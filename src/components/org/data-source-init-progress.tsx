@@ -33,14 +33,14 @@ export function DataSourceInitProgress({ connected, imported }: DataSourceInitPr
         {steps.map((step, index) => (
           <div key={step.id} className="flex flex-1 items-center gap-2">
             {index > 0 && (
-              <div className={cn('h-0.5 flex-1', step.done ? 'bg-indigo-400' : 'bg-border')} />
+              <div className={cn('h-0.5 flex-1', step.done ? 'bg-blue-400' : 'bg-border')} />
             )}
             <div className="flex flex-col items-center gap-1 min-w-0">
               <div
                 className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium shrink-0',
                   step.done
-                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                    ? 'border-blue-600 bg-blue-600 text-white'
                     : 'border-border bg-background text-muted-foreground',
                 )}
               >
@@ -49,7 +49,7 @@ export function DataSourceInitProgress({ connected, imported }: DataSourceInitPr
               <span
                 className={cn(
                   'text-[11px] text-center leading-tight',
-                  step.done ? 'text-indigo-700 font-medium' : 'text-muted-foreground',
+                  step.done ? 'text-blue-700 font-medium' : 'text-muted-foreground',
                 )}
               >
                 {step.label}

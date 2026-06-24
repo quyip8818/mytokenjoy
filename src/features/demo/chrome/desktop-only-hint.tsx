@@ -19,8 +19,8 @@ export function DesktopOnlyHint() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 p-6">
       <div className="max-w-sm text-center space-y-4">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50">
-          <Monitor className="h-6 w-6 text-indigo-600" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
+          <Monitor className="h-6 w-6 text-blue-600" />
         </div>
         <p className="text-base font-medium">请使用桌面浏览器</p>
         <p className="text-sm text-muted-foreground">

@@ -63,7 +63,7 @@ export default function BudgetAlertsPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               超限行为固定为直接阻断。组织预算分配见{' '}
-              <Link to="/budget/overview" className="text-indigo-600 hover:underline">
+              <Link to="/budget/overview" className="text-blue-600 hover:underline">
                 预算总览
               </Link>
               。

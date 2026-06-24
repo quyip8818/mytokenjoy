@@ -52,7 +52,7 @@ export default function CallLogsPage() {
       }}
       actions={
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
-          <SelectTrigger className="w-32 border-border/60 focus:ring-indigo-500">
+          <SelectTrigger className="w-32 border-border/60 focus:ring-blue-500">
             <SelectValue placeholder="全部状态" />
           </SelectTrigger>
           <SelectContent>
@@ -124,7 +124,7 @@ export default function CallLogsPage() {
                 </TableRow>
                 {isExpanded && (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={10} className="bg-indigo-50/20 p-4">
+                    <TableCell colSpan={10} className="bg-blue-50/20 p-4">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <div className="mb-1 text-xs font-medium text-muted-foreground">

@@ -58,7 +58,7 @@ export default function OperationLogsPage() {
       }}
       actions={
         <Select value={actionFilter} onValueChange={(v) => setActionFilter(v ?? 'all')}>
-          <SelectTrigger className="w-40 border-border/60 focus:ring-indigo-500">
+          <SelectTrigger className="w-40 border-border/60 focus:ring-blue-500">
             <SelectValue placeholder="全部类型" />
           </SelectTrigger>
           <SelectContent>

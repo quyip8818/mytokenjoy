@@ -89,12 +89,12 @@ export default function UsageDashboardPage() {
               contentStyle={{
                 borderRadius: '8px',
                 border: '1px solid #e2e8f0',
-                boxShadow: '0 4px 12px rgba(79,70,229,0.08)',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.08)',
               }}
             />
             <Legend wrapperStyle={{ fontSize: '12px' }} />
-            <Bar dataKey="cost" name="花费 (¥)" fill="#4f46e5" radius={[0, 4, 4, 0]} />
-            <Bar dataKey="requests" name="请求数" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="cost" name="花费 (¥)" fill="#2563eb" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="requests" name="请求数" fill="#3b82f6" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </DataSection>

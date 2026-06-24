@@ -12,8 +12,8 @@ export function useRowHighlight() {
   }, [])
 
   const rowClass = useCallback(
-    (id: string, base = 'border-border/40 hover:bg-indigo-50/30') =>
-      `${base} transition-colors ${highlightId === id ? 'bg-indigo-50/60' : ''}`,
+    (id: string, base = 'border-border/40 hover:bg-blue-50/30') =>
+      `${base} transition-colors ${highlightId === id ? 'bg-blue-50/60' : ''}`,
     [highlightId],
   )
 

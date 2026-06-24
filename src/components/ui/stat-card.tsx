@@ -16,7 +16,7 @@ export function StatCard({
   value,
   accent,
   icon: Icon,
-  iconAccent = 'from-indigo-500 to-violet-500',
+  iconAccent = 'from-blue-500 to-sky-500',
   className,
 }: StatCardProps) {
   return (

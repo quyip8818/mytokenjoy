@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 
 export type AsyncFetcher<T> = (signal: AbortSignal) => Promise<T>
 
@@ -18,19 +25,24 @@ export function useAsyncResource<T>(
   const [data, setData] = useState<T | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const fetcherRef = useRef(fetcher)
+
+  useEffect(() => {
+    fetcherRef.current = fetcher
+  }, [fetcher])
 
   const refresh = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetcher(new AbortController().signal)
+      const result = await fetcherRef.current(new AbortController().signal)
       setData(result)
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)))
     } finally {
       setLoading(false)
     }
-  }, [fetcher])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -43,7 +55,7 @@ export function useAsyncResource<T>(
       }
     })
 
-    void fetcher(controller.signal)
+    void fetcherRef.current(controller.signal)
       .then((result) => {
         if (!cancelled) {
           setData(result)
@@ -62,7 +74,7 @@ export function useAsyncResource<T>(
       controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher, ...deps])
+  }, deps)
 
   return { data, loading, error, refresh, setData, setLoading }
 }

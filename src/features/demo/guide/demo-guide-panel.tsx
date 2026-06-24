@@ -50,7 +50,7 @@ export function DemoGuidePanel() {
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Map className="h-5 w-5 text-indigo-600" />
+            <Map className="h-5 w-5 text-blue-600" />
             演示引导
           </DialogTitle>
           <DialogDescription>
@@ -67,7 +67,7 @@ export function DemoGuidePanel() {
                 key={step.id}
                 className={cn(
                   'flex items-start gap-3 rounded-lg border border-border/60 p-3 transition-colors',
-                  isActive && 'border-indigo-300 bg-indigo-50/50',
+                  isActive && 'border-blue-300 bg-blue-50/50',
                   done && 'bg-slate-50/50',
                 )}
               >
@@ -84,7 +84,7 @@ export function DemoGuidePanel() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
                   {step.role && (
-                    <p className="text-xs text-indigo-600 mt-1">
+                    <p className="text-xs text-blue-600 mt-1">
                       视角：{DEMO_ROLE_PROFILES[step.role].label}
                     </p>
                   )}

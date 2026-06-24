@@ -36,8 +36,8 @@ export function DemoToolbar() {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2 rounded-full border border-border/60 py-1 pr-3 pl-1 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-semibold text-white shadow-sm">
+        <div className="flex items-center gap-2 rounded-full border border-border/60 py-1 pr-3 pl-1 transition-colors hover:border-blue-200 hover:bg-blue-50/50">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-sky-500 text-[10px] font-semibold text-white shadow-sm">
             {initials}
           </div>
           <span className="hidden text-sm font-medium text-foreground/80 md:inline">

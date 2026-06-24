@@ -13,7 +13,7 @@ export function getBudgetProgressClass(pct: number, accent = false): string {
   const tone = getBudgetProgressTone(pct)
   if (tone === 'danger') return 'text-red-500'
   if (tone === 'warning') return 'text-amber-500'
-  return accent ? 'text-indigo-600' : 'text-muted-foreground'
+  return accent ? 'text-blue-600' : 'text-muted-foreground'
 }
 
 export function sumChildrenBudget(node: BudgetNode): number {

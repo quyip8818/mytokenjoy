@@ -26,7 +26,7 @@ import { dashboardApi } from '@/api/dashboard'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { TrendingUp, TrendingDown, Coins, Hash, Zap, DollarSign } from 'lucide-react'
 
-const COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
+const COLORS = ['#2563eb', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4']
 
 export default function CostDashboardPage() {
   const { data, loading } = useAsyncResource(async () => {
@@ -52,7 +52,7 @@ export default function CostDashboardPage() {
       label: '本月总花费',
       value: summary ? `¥${summary.totalCost.toLocaleString()}` : '-',
       icon: Coins,
-      accent: 'from-indigo-500 to-violet-500',
+      accent: 'from-blue-500 to-sky-500',
     },
     {
       label: '环比变化',
@@ -67,7 +67,7 @@ export default function CostDashboardPage() {
       label: '总 Token 数',
       value: summary ? `${(summary.totalTokens / 1000000).toFixed(1)}M` : '-',
       icon: Hash,
-      accent: 'from-violet-500 to-purple-500',
+      accent: 'from-blue-500 to-sky-400',
     },
     {
       label: '总请求数',
@@ -122,10 +122,10 @@ export default function CostDashboardPage() {
                 contentStyle={{
                   borderRadius: '8px',
                   border: '1px solid #e2e8f0',
-                  boxShadow: '0 4px 12px rgba(79,70,229,0.08)',
+                  boxShadow: '0 4px 12px rgba(37,99,235,0.08)',
                 }}
               />
-              <Line type="monotone" dataKey="cost" stroke="#4f46e5" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="cost" stroke="#2563eb" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </DataSection>
@@ -171,7 +171,7 @@ export default function CostDashboardPage() {
               <TableRow key={c.memberId}>
                 <TableCell>
                   <div
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${i < 3 ? 'bg-gradient-to-br from-indigo-500 to-violet-500' : 'bg-slate-300'}`}
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${i < 3 ? 'bg-gradient-to-br from-blue-500 to-sky-500' : 'bg-slate-300'}`}
                   >
                     {i + 1}
                   </div>

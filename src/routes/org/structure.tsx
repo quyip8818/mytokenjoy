@@ -212,7 +212,7 @@ export default function StructurePage() {
               <StatusBadge variant="warning">未激活 {inactiveCount} 人</StatusBadge>
             )}
             {approvalPendingCount > 0 && (
-              <Link to="/keys/approval" className="text-sm text-indigo-600 hover:text-indigo-500">
+              <Link to="/keys/approval" className="text-sm text-blue-600 hover:text-blue-500">
                 待审批申请: {approvalPendingCount} → 去审批
               </Link>
             )}

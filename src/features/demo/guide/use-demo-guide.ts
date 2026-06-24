@@ -21,7 +21,7 @@ export function useDemoGuideHighlight(ctaId: string): string {
   const store = useDemoGuideStoreApi()
   const highlightCtaId = useStore(store, (s) => s.highlightCtaId)
   if (highlightCtaId !== ctaId) return ''
-  return cn('ring-2 ring-indigo-400/70 ring-offset-2 shadow-[0_0_12px_rgba(79,70,229,0.35)]')
+  return cn('ring-2 ring-blue-400/70 ring-offset-2 shadow-[0_0_12px_rgba(37,99,235,0.35)]')
 }
 
 export function useDemoCta(key: DemoCtaKey) {

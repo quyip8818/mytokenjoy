@@ -4,7 +4,7 @@ import { PROVIDER_BADGE_STYLES, PROVIDER_LABELS } from '@/lib/labels'
 
 export function KeyPrefixBadge({ prefix }: { prefix: string }) {
   return (
-    <span className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+    <span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
       {prefix}
     </span>
   )
