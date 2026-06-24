@@ -3,7 +3,9 @@ import { Search } from 'lucide-react'
 import type { Member } from '@/api/types'
 import { memberApi } from '@/api/org'
 import type { WorkflowComponentProps } from '../types'
-import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
+import { WorkflowPickerShell } from '../components/workflow-picker-shell'
+import { WORKFLOW_LIST_ITEM_SELECTED_CLASS, WORKFLOW_SCROLL_LIST_CLASS } from '../constants'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,7 +16,7 @@ export function MemberSearchWorkflow({
   onPop,
   onClose,
   onSetDirty,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'member-search'>) {
   const excludeIds = (entry.payload.excludeIds as string[]) ?? []
   const onConfirm = entry.payload.onConfirm as ((members: Member[]) => void) | undefined
   const multi = entry.payload.multi !== false
@@ -60,21 +62,14 @@ export function MemberSearchWorkflow({
   }
 
   return (
-    <WorkflowPanelChrome
+    <WorkflowPickerShell
       title="搜索成员"
-      showBack
-      onBack={onPop}
+      onPop={onPop}
       onClose={onClose}
-      footer={
-        <WorkflowPanelFooter
-          onCancel={onPop}
-          primaryLabel="确认"
-          onPrimary={handleConfirm}
-          primaryDisabled={selected.size === 0}
-        />
-      }
+      onConfirm={handleConfirm}
+      primaryDisabled={selected.size === 0}
     >
-      <div className="space-y-4">
+      <WorkflowFormLayout variant="full">
         <div className="flex gap-2">
           <Input
             placeholder="输入姓名搜索..."
@@ -87,7 +82,7 @@ export function MemberSearchWorkflow({
             <Search className="h-4 w-4" />
           </Button>
         </div>
-        <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-border/60 divide-y divide-border/40">
+        <div className={WORKFLOW_SCROLL_LIST_CLASS}>
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
               {keyword ? '无匹配成员' : '请搜索成员'}
@@ -99,8 +94,8 @@ export function MemberSearchWorkflow({
                 type="button"
                 onClick={() => toggleMember(m)}
                 className={cn(
-                  'flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-indigo-50/30',
-                  selected.has(m.id) && 'bg-indigo-50/40',
+                  'flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-primary/5',
+                  selected.has(m.id) && WORKFLOW_LIST_ITEM_SELECTED_CLASS,
                 )}
               >
                 {multi && (
@@ -114,7 +109,7 @@ export function MemberSearchWorkflow({
             ))
           )}
         </div>
-      </div>
-    </WorkflowPanelChrome>
+      </WorkflowFormLayout>
+    </WorkflowPickerShell>
   )
 }

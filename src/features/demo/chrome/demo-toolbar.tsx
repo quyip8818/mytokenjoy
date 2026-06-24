@@ -18,27 +18,32 @@ export function DemoToolbar() {
 
   return (
     <>
-      <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setOpen(true)}>
-        <Map className="h-4 w-4" />
-        演示引导
-      </Button>
-      <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
-        <SelectTrigger className="w-28 h-9">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {DEMO_ROLES.map((r) => (
-            <SelectItem key={r.id} value={r.id}>
-              {r.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <div className="flex items-center gap-2.5 rounded-full border border-border/60 px-3 py-1.5 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[11px] font-semibold text-white shadow-sm">
-          {initials}
+      <div className="flex shrink-0 items-center gap-2">
+        <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setOpen(true)}>
+          <Map className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">演示引导</span>
+        </Button>
+        <div className="hidden h-5 w-px bg-border/60 sm:block" aria-hidden />
+        <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
+          <SelectTrigger className="h-8 w-[7.5rem] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DEMO_ROLES.map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-2 rounded-full border border-border/60 py-1 pr-3 pl-1 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-semibold text-white shadow-sm">
+            {initials}
+          </div>
+          <span className="hidden text-sm font-medium text-foreground/80 md:inline">
+            {displayName}
+          </span>
         </div>
-        <span className="text-sm font-medium text-foreground/80">{displayName}</span>
       </div>
       <DemoGuidePanel />
     </>

@@ -27,6 +27,6 @@ export { createDemoGuideStore, type DemoGuideStoreState } from './guide/store'
 
 export { useApprovalPendingCount } from './nav/use-approval-pending-count'
 
-export { DemoBanner } from './chrome/demo-banner'
+export { DemoBadge } from './chrome/demo-banner'
 export { DemoToolbar } from './chrome/demo-toolbar'
 export { DesktopOnlyHint } from './chrome/desktop-only-hint'

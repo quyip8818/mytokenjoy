@@ -1,7 +1,7 @@
-export function DemoBanner() {
+export function DemoBadge() {
   return (
-    <div className="flex h-10 items-center justify-center bg-amber-50/80 px-8 text-xs text-amber-800 border-b border-amber-100/80">
-      演示环境 · 数据为 Mock，刷新页面可重置
-    </div>
+    <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200/70 bg-amber-50/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800">
+      DEMO · Mock
+    </span>
   )
 }

@@ -3,11 +3,18 @@ import { modelApi } from '@/api/models'
 import type { ModelInfo } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
+import { WORKFLOW_LIST_ITEM_CLASS, WORKFLOW_LIST_ITEM_SELECTED_CLASS } from '../constants'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
-export function ModelPickerWorkflow({ entry, onPop, onClose, onSetDirty }: WorkflowComponentProps) {
+export function ModelPickerWorkflow({
+  entry,
+  onPop,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'model-picker'>) {
   const selected = (entry.payload.selectedModels as string[]) ?? []
   const parentWhitelist = (entry.payload.parentWhitelist as string[] | undefined) ?? undefined
   const onConfirm = entry.payload.onConfirm as ((models: string[]) => void) | undefined
@@ -56,7 +63,7 @@ export function ModelPickerWorkflow({ entry, onPop, onClose, onSetDirty }: Workf
         />
       }
     >
-      <div className="space-y-4">
+      <WorkflowFormLayout variant="full">
         <Input
           placeholder="搜索模型..."
           value={search}
@@ -67,8 +74,9 @@ export function ModelPickerWorkflow({ entry, onPop, onClose, onSetDirty }: Workf
             <label
               key={m.id}
               className={cn(
-                'flex items-center gap-3 rounded-lg border border-border/50 px-4 py-3 cursor-pointer hover:bg-indigo-50/30',
-                picked.includes(m.name) && 'border-indigo-200 bg-indigo-50/40',
+                'flex items-center gap-3 px-4 py-3 cursor-pointer',
+                WORKFLOW_LIST_ITEM_CLASS,
+                picked.includes(m.name) && WORKFLOW_LIST_ITEM_SELECTED_CLASS,
               )}
             >
               <Checkbox checked={picked.includes(m.name)} onCheckedChange={() => toggle(m.name)} />
@@ -79,7 +87,7 @@ export function ModelPickerWorkflow({ entry, onPop, onClose, onSetDirty }: Workf
             </label>
           ))}
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

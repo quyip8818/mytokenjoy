@@ -3,11 +3,16 @@ import { toast } from 'sonner'
 import { modelApi } from '@/api/models'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useWorkflow } from '../use-workflow'
 
-export function ModelCreateWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps) {
+export function ModelCreateWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'model-create'>) {
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
   const [name, setName] = useState('')
@@ -52,7 +57,7 @@ export function ModelCreateWorkflow({ entry, onClose, onSetDirty }: WorkflowComp
         />
       }
     >
-      <div className="max-w-md space-y-5">
+      <WorkflowFormLayout>
         <div className="space-y-1.5">
           <Label>模型名称</Label>
           <Input
@@ -111,7 +116,7 @@ export function ModelCreateWorkflow({ entry, onClose, onSetDirty }: WorkflowComp
             />
           </div>
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

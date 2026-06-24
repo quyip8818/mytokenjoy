@@ -31,7 +31,7 @@ export function RoleList({
   const customRoles = filtered.filter((r) => r.type === 'custom')
 
   return (
-    <div className="w-[220px] shrink-0 border-r border-border bg-background flex flex-col">
+    <div className="flex h-full w-[220px] shrink-0 flex-col rounded-lg border border-border/50 bg-card shadow-card">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">

@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { approvalApi } from '@/api/keys'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useWorkflow } from '../use-workflow'
@@ -12,7 +13,7 @@ export function RejectReasonWorkflow({
   onPop,
   onClose,
   onSetDirty,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'reject-reason'>) {
   const { closeAll } = useWorkflow()
   const approvalId = entry.payload.approvalId as string
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -52,7 +53,7 @@ export function RejectReasonWorkflow({
         />
       }
     >
-      <div className="space-y-3 max-w-md">
+      <WorkflowFormLayout className="space-y-3">
         <Label>请填写拒绝理由（必填）</Label>
         <Textarea
           value={reason}
@@ -63,7 +64,7 @@ export function RejectReasonWorkflow({
           rows={4}
           placeholder="请说明拒绝原因..."
         />
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

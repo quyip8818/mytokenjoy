@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
-import type { Department, Member, Paginated } from '@/api/types'
+import type { Department, Member } from '@/api/types'
+import { useAsyncResource } from '@/hooks/use-async-resource'
 import { departmentApi, memberApi } from '@/api/org'
 import { approvalApi } from '@/api/keys'
 import { DepartmentTree } from '@/components/org/department-tree'
 import { MemberTable } from '@/components/org/member-table'
-import { EmptyState } from '@/components/ui/empty-state'
+import { DataSection } from '@/components/layout/data-section'
+import { PageShell } from '@/components/layout/page-shell'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { useWorkflow } from '@/features/workflow/use-workflow'
-import { usePageContext } from '@/features/layout/use-page-context'
+import { usePageSubtitle } from '@/lib/page-subtitle'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -40,15 +43,11 @@ import {
 
 export default function StructurePage() {
   const { open } = useWorkflow()
-  const { setSubtitle } = usePageContext()
+  const { setSubtitle } = usePageSubtitle()
   const [selectedDept, setSelectedDept] = useState<Department | undefined>()
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [members, setMembers] = useState<Member[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [directOnly, setDirectOnly] = useState(false)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [approvalPendingCount, setApprovalPendingCount] = useState(0)
   const [confirmState, setConfirmState] = useState<{
     open: boolean
     title: string
@@ -58,54 +57,30 @@ export default function StructurePage() {
   }>({ open: false, title: '', desc: '', variant: 'primary', onConfirm: () => {} })
   const pageSize = 10
 
-  const loadDepartments = async () => {
-    const tree = await departmentApi.getTree()
-    setDepartments(tree)
-  }
+  const { data: departments = [], refresh: refreshDepartments } = useAsyncResource(
+    () => departmentApi.getTree(),
+    [],
+  )
 
-  const loadMembers = useCallback(async () => {
+  const {
+    data: memberData,
+    loading: membersLoading,
+    refresh: refreshMembers,
+  } = useAsyncResource(async () => {
     const params: Parameters<typeof memberApi.list>[0] = { page, pageSize }
     if (selectedDept) {
       params.departmentId = selectedDept.id
       params.directOnly = directOnly
     }
-    const res: Paginated<Member> = await memberApi.list(params)
-    setMembers(res.items)
-    setTotal(res.total)
+    return memberApi.list(params)
   }, [page, selectedDept, directOnly])
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const tree = await departmentApi.getTree()
-      if (!cancelled) setDepartments(tree)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const members = memberData?.items ?? []
+  const total = memberData?.total ?? 0
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const params: Parameters<typeof memberApi.list>[0] = { page, pageSize }
-      if (selectedDept) {
-        params.departmentId = selectedDept.id
-        params.directOnly = directOnly
-      }
-      const res = await memberApi.list(params)
-      if (!cancelled) {
-        setMembers(res.items)
-        setTotal(res.total)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [page, selectedDept, directOnly])
-
-  useEffect(() => {
-    approvalApi.list({ tab: 'pending' }).then((items) => setApprovalPendingCount(items.length))
+  const { data: approvalPendingCount = 0 } = useAsyncResource(async () => {
+    const items = await approvalApi.list({ tab: 'pending' })
+    return items.length
   }, [])
 
   useEffect(() => {
@@ -146,7 +121,7 @@ export default function StructurePage() {
           const dept = flattenDepartments(departments).find((d) => d.id === data.departmentId)
           await memberApi.create({ ...data, departmentName: dept?.name ?? '' })
         }
-        loadMembers()
+        refreshMembers()
       },
     })
   }
@@ -165,7 +140,7 @@ export default function StructurePage() {
         await memberApi.updateStatus(ids, status)
         setConfirmState((s) => ({ ...s, open: false }))
         setRowSelection({})
-        loadMembers()
+        refreshMembers()
       },
     })
   }
@@ -180,7 +155,7 @@ export default function StructurePage() {
         await memberApi.delete(ids)
         setConfirmState((s) => ({ ...s, open: false }))
         setRowSelection({})
-        loadMembers()
+        refreshMembers()
       },
     })
   }
@@ -190,7 +165,7 @@ export default function StructurePage() {
     if (!val) return
     const isEmail = val.includes('@')
     await memberApi.invite(isEmail ? { email: val } : { phone: val })
-    loadMembers()
+    refreshMembers()
   }
 
   const handleBatchInvite = async () => {
@@ -206,138 +181,147 @@ export default function StructurePage() {
       onConfirm: async (deptId: string) => {
         await memberApi.transferDepartment(selectedIds, deptId)
         setRowSelection({})
-        loadMembers()
+        refreshMembers()
       },
     })
   }
 
-  return (
-    <div className="flex min-h-0 flex-1 gap-4">
-      <DepartmentTree
-        selectedId={selectedDept?.id}
-        onSelect={handleSelectDept}
-        onTreeChange={loadDepartments}
-      />
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage)
+  }
 
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
-        <Card size="sm">
-          <CardContent className="flex items-center gap-6">
+  return (
+    <PageShell
+      layout="split"
+      sidebar={
+        <DepartmentTree
+          selectedId={selectedDept?.id}
+          onSelect={handleSelectDept}
+          onTreeChange={refreshDepartments}
+        />
+      }
+    >
+      <Card size="sm" className="border-border/50 shadow-card">
+        <CardContent className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-6">
             <span className="text-base font-semibold">{selectedDept?.name ?? '全部成员'}</span>
             <span className="text-sm text-muted-foreground">
               总人数: <span className="font-medium text-foreground">{total}</span>
             </span>
             {inactiveCount > 0 && (
-              <span className="text-sm text-yellow-600">未激活: {inactiveCount} 人</span>
+              <StatusBadge variant="warning">未激活 {inactiveCount} 人</StatusBadge>
             )}
             {approvalPendingCount > 0 && (
               <Link to="/keys/approval" className="text-sm text-indigo-600 hover:text-indigo-500">
                 待审批申请: {approvalPendingCount} → 去审批
               </Link>
             )}
-          </CardContent>
-        </Card>
-
-        {inactiveCount > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 text-sm text-yellow-800 flex items-center justify-between gap-3">
-            <span>当前有 {inactiveCount} 名成员未激活</span>
+          </div>
+          {inactiveCount > 0 && (
             <Button size="sm" variant="outline" onClick={handleBatchInvite}>
               批量发送邀请
             </Button>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 flex-wrap">
-          <Select
-            value={directOnly ? 'direct' : 'all'}
-            onValueChange={(v) => {
-              setDirectOnly(v === 'direct')
-              setPage(1)
-              setRowSelection({})
-            }}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部</SelectItem>
-              <SelectItem value="direct">仅直属</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedIds.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                批量操作 ({selectedIds.length})
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={handleBatchTransfer}>批量转移部门</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'active')}>
-                  批量启用
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'inactive')}>
-                  批量停用
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onClick={() => handleDelete(selectedIds)}>
-                  批量删除
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           )}
+        </CardContent>
+      </Card>
 
-          <div className="flex-1" />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              open('member-import', {
-                defaultDeptName: selectedDept?.name,
-                onSuccess: loadMembers,
-              })
-            }
-          >
-            导入成员
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              open('member-invite', {
-                onSubmit: handleInvite,
-              })
-            }
-          >
-            邀请成员
-          </Button>
-          <Button size="sm" onClick={() => openMemberForm(null)}>
-            添加成员
-          </Button>
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Select
+          value={directOnly ? 'direct' : 'all'}
+          onValueChange={(v) => {
+            setDirectOnly(v === 'direct')
+            setPage(1)
+            setRowSelection({})
+          }}
+        >
+          <SelectTrigger className="w-[100px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部</SelectItem>
+            <SelectItem value="direct">仅直属</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {members.length === 0 && total === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="暂无成员"
-            description={
-              selectedDept ? `${selectedDept.name} 下还没有成员` : '请先选择部门或添加成员'
-            }
-            actionLabel="添加成员"
-            onAction={() => openMemberForm(null)}
-          />
-        ) : (
-          <MemberTable
-            data={members}
-            total={total}
-            page={page}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onEdit={(m) => openMemberForm(m)}
-            onStatusChange={handleStatusChange}
-            onDelete={handleDelete}
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
-          />
+        {selectedIds.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+              批量操作 ({selectedIds.length})
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleBatchTransfer}>批量转移部门</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'active')}>
+                批量启用
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'inactive')}>
+                批量停用
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={() => handleDelete(selectedIds)}>
+                批量删除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
+
+        <div className="flex-1" />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            open('member-import', {
+              defaultDeptName: selectedDept?.name,
+              onSuccess: refreshMembers,
+            })
+          }
+        >
+          导入成员
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            open('member-invite', {
+              onSubmit: handleInvite,
+            })
+          }
+        >
+          邀请成员
+        </Button>
+        <Button size="sm" variant="brand" onClick={() => openMemberForm(null)}>
+          添加成员
+        </Button>
       </div>
+
+      <DataSection
+        loading={membersLoading}
+        skeletonColumns={6}
+        empty={
+          !membersLoading && members.length === 0 && total === 0
+            ? {
+                icon: Users,
+                title: '暂无成员',
+                description: selectedDept
+                  ? `${selectedDept.name} 下还没有成员`
+                  : '请先选择部门或添加成员',
+                actionLabel: '添加成员',
+                onAction: () => openMemberForm(null),
+              }
+            : null
+        }
+      >
+        <MemberTable
+          data={members}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onEdit={(m) => openMemberForm(m)}
+          onStatusChange={handleStatusChange}
+          onDelete={handleDelete}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+        />
+      </DataSection>
 
       <AlertDialog
         open={confirmState.open}
@@ -367,6 +351,6 @@ export default function StructurePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

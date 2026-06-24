@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import type { Member, Permission, Role } from '@/api/types'
+import { useState } from 'react'
+import type { Member, Role } from '@/api/types'
 import { roleApi } from '@/api/org'
 import { RoleList } from '@/components/org/role-list'
 import { RoleMemberTable } from '@/components/org/role-member-table'
+import { DataSection } from '@/components/layout/data-section'
+import { PageShell } from '@/components/layout/page-shell'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { Shield } from 'lucide-react'
 import {
@@ -20,42 +23,42 @@ import { toast } from 'sonner'
 
 export default function RolesPage() {
   const { open } = useWorkflow()
-  const [roles, setRoles] = useState<Role[]>([])
-  const [permissions, setPermissions] = useState<Permission[]>([])
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)
-  const [members, setMembers] = useState<Member[]>([])
-  const initializedRef = useRef(false)
-
   const [deleteConfirm, setDeleteConfirm] = useState<Role | null>(null)
   const [removeConfirm, setRemoveConfirm] = useState<{ member: Member; role: Role } | null>(null)
 
-  const selectedRole = roles.find((r) => r.id === selectedRoleId) ?? null
+  const {
+    data: initData,
+    loading,
+    setData: setInitData,
+  } = useAsyncResource(async () => {
+    const [rolesData, permsData] = await Promise.all([roleApi.list(), roleApi.getPermissions()])
+    return { roles: rolesData, permissions: permsData }
+  }, [])
+
+  const roles = initData?.roles ?? []
+  const permissions = initData?.permissions ?? []
+  const activeRoleId = selectedRoleId ?? roles[0]?.id ?? null
+
+  const {
+    data: members = [],
+    loading: membersLoading,
+    refresh: refreshMembers,
+  } = useAsyncResource(async () => {
+    if (!activeRoleId) return []
+    return roleApi.getMembers(activeRoleId)
+  }, [activeRoleId])
+
+  const selectedRole = roles.find((r) => r.id === activeRoleId) ?? null
 
   const refreshRoles = async () => {
     const updated = await roleApi.list()
-    setRoles(updated)
+    setInitData((prev) => ({ roles: updated, permissions: prev?.permissions ?? [] }))
     return updated
   }
 
-  useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
-    const init = async () => {
-      const [rolesData, permsData] = await Promise.all([roleApi.list(), roleApi.getPermissions()])
-      setRoles(rolesData)
-      setPermissions(permsData)
-      if (rolesData.length > 0) {
-        setSelectedRoleId(rolesData[0].id)
-        const membersData = await roleApi.getMembers(rolesData[0].id)
-        setMembers(membersData)
-      }
-    }
-    init()
-  }, [])
-
   const handleSelectRole = (role: Role) => {
     setSelectedRoleId(role.id)
-    roleApi.getMembers(role.id).then(setMembers)
   }
 
   const handleAddRole = () => {
@@ -90,7 +93,6 @@ export default function RolesPage() {
     await roleApi.delete(deleteConfirm.id)
     if (selectedRoleId === deleteConfirm.id) {
       setSelectedRoleId(null)
-      setMembers([])
     }
     setDeleteConfirm(null)
     await refreshRoles()
@@ -109,39 +111,46 @@ export default function RolesPage() {
     if (!removeConfirm) return
     await roleApi.removeMember(removeConfirm.role.id, removeConfirm.member.id)
     setRemoveConfirm(null)
-    if (selectedRoleId) {
-      const membersData = await roleApi.getMembers(selectedRoleId)
-      setMembers(membersData)
-    }
+    void refreshMembers()
     await refreshRoles()
   }
 
   const handleAddMember = () => {
-    if (!selectedRoleId || !selectedRole) return
+    if (!activeRoleId || !selectedRole) return
     open('role-add-member', {
-      roleId: selectedRoleId,
+      roleId: activeRoleId,
       roleName: selectedRole.name,
       existingMemberIds: members.map((m) => m.id),
       onSuccess: async () => {
-        const membersData = await roleApi.getMembers(selectedRoleId)
-        setMembers(membersData)
+        await refreshMembers()
         await refreshRoles()
       },
     })
   }
 
   return (
-    <div className="flex h-full rounded-lg border border-border overflow-hidden">
-      <RoleList
-        roles={roles}
-        selectedRoleId={selectedRoleId}
-        onSelect={handleSelectRole}
-        onAdd={handleAddRole}
-        onEdit={handleEditRole}
-        onDelete={handleDeleteRole}
-      />
-
-      <div className="flex-1 p-6 overflow-auto">
+    <PageShell
+      layout="split"
+      sidebar={
+        <DataSection
+          loading={loading}
+          skeletonColumns={1}
+          skeletonRows={4}
+          className="h-full w-[220px] shrink-0"
+          contentClassName="p-4"
+        >
+          <RoleList
+            roles={roles}
+            selectedRoleId={activeRoleId}
+            onSelect={handleSelectRole}
+            onAdd={handleAddRole}
+            onEdit={handleEditRole}
+            onDelete={handleDeleteRole}
+          />
+        </DataSection>
+      }
+    >
+      <DataSection loading={membersLoading} skeletonColumns={4} className="min-h-0 flex-1">
         {selectedRole ? (
           <RoleMemberTable
             role={selectedRole}
@@ -158,7 +167,7 @@ export default function RolesPage() {
             onAction={handleAddRole}
           />
         )}
-      </div>
+      </DataSection>
 
       <AlertDialog
         open={!!deleteConfirm}
@@ -205,6 +214,6 @@ export default function RolesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

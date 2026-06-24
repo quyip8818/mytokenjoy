@@ -11,6 +11,7 @@ interface EmptyStateProps {
   actionClassName?: string
   actionId?: string
   icon?: LucideIcon
+  compact?: boolean
   className?: string
 }
 
@@ -22,28 +23,30 @@ export function EmptyState({
   actionClassName,
   actionId,
   icon: Icon = Inbox,
+  compact = false,
   className,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center py-12 px-4 text-center rounded-lg border border-dashed border-border/60 bg-slate-50/30',
+        'flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/30 px-4 text-center',
+        compact ? 'py-8' : 'py-12',
         className,
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 mb-4">
-        <Icon className="h-6 w-6 text-indigo-500" />
-      </div>
+      {!compact && (
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Icon className="h-6 w-6 text-primary" />
+        </div>
+      )}
       <p className="text-sm font-medium text-foreground">{title}</p>
       {description && <p className="text-sm text-muted-foreground mt-1 max-w-sm">{description}</p>}
       {actionLabel && onAction && (
         <Button
           id={actionId}
           size="sm"
-          className={cn(
-            'mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white',
-            actionClassName,
-          )}
+          variant="brand"
+          className={cn('mt-4', actionClassName)}
           onClick={onAction}
         >
           {actionLabel}

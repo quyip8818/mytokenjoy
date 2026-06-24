@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import type { Permission, Role } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -70,7 +71,7 @@ function RoleFormInner({
         />
       }
     >
-      <div className="max-w-md space-y-4">
+      <WorkflowFormLayout>
         <div className="space-y-1.5">
           <Label>角色名称</Label>
           <Input
@@ -93,12 +94,17 @@ function RoleFormInner({
           </div>
           <p className="text-sm text-muted-foreground">已选 {selectedPerms.length} 项权限</p>
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }
 
-export function RoleFormWorkflow({ entry, onClose, onSetDirty, onPush }: WorkflowComponentProps) {
+export function RoleFormWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+  onPush,
+}: WorkflowComponentProps<'role-form'>) {
   const role = entry.payload.role as Role | null | undefined
   const permissions = (entry.payload.permissions as Permission[]) ?? []
   const onSubmit = entry.payload.onSubmit as

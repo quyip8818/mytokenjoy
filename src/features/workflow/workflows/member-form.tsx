@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import type { Member, Department } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -23,7 +24,11 @@ interface MemberFormData {
   departmentId: string
 }
 
-export function MemberFormWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps) {
+export function MemberFormWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'member-form'>) {
   const { closeAll } = useWorkflow()
   const member = entry.payload.member as Member | null | undefined
   const departments = (entry.payload.departments as Department[]) ?? []
@@ -75,7 +80,7 @@ export function MemberFormWorkflow({ entry, onClose, onSetDirty }: WorkflowCompo
         />
       }
     >
-      <form className="max-w-md space-y-4" onChange={() => onSetDirty(true)}>
+      <WorkflowFormLayout as="form" onChange={() => onSetDirty(true)}>
         <div className="space-y-1.5">
           <Label>姓名</Label>
           <Input {...register('name', { required: '请输入姓名' })} />
@@ -117,12 +122,16 @@ export function MemberFormWorkflow({ entry, onClose, onSetDirty }: WorkflowCompo
             <p className="text-xs text-destructive">{errors.departmentId.message}</p>
           )}
         </div>
-      </form>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }
 
-export function MemberInviteWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps) {
+export function MemberInviteWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'member-invite'>) {
   const { closeAll } = useWorkflow()
   const onSubmit = entry.payload.onSubmit as ((value: string) => Promise<void>) | undefined
   const [value, setValue] = useState('')
@@ -151,7 +160,7 @@ export function MemberInviteWorkflow({ entry, onClose, onSetDirty }: WorkflowCom
         />
       }
     >
-      <div className="max-w-md space-y-3">
+      <WorkflowFormLayout className="space-y-3">
         <Label>手机号或邮箱</Label>
         <Input
           value={value}
@@ -161,7 +170,7 @@ export function MemberInviteWorkflow({ entry, onClose, onSetDirty }: WorkflowCom
           }}
           placeholder="输入手机号或邮箱"
         />
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

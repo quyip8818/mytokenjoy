@@ -1,5 +1,21 @@
 import type { BudgetNode } from '@/api/types'
 
+export const BUDGET_WARNING_THRESHOLD = 70
+export const BUDGET_DANGER_THRESHOLD = 90
+
+export function getBudgetProgressTone(pct: number): 'danger' | 'warning' | 'default' | 'accent' {
+  if (pct >= BUDGET_DANGER_THRESHOLD) return 'danger'
+  if (pct >= BUDGET_WARNING_THRESHOLD) return 'warning'
+  return 'default'
+}
+
+export function getBudgetProgressClass(pct: number, accent = false): string {
+  const tone = getBudgetProgressTone(pct)
+  if (tone === 'danger') return 'text-red-500'
+  if (tone === 'warning') return 'text-amber-500'
+  return accent ? 'text-indigo-600' : 'text-muted-foreground'
+}
+
 export function sumChildrenBudget(node: BudgetNode): number {
   return (node.children ?? []).reduce((sum, child) => sum + child.budget, 0)
 }

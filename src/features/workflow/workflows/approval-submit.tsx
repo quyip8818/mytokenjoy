@@ -4,6 +4,7 @@ import { approvalApi } from '@/api/keys'
 import { useDemoRole } from '@/features/demo'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,7 +26,7 @@ export function ApprovalSubmitWorkflow({
   onClose,
   onPush,
   onSetDirty,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'approval-submit'>) {
   const { closeAll } = useWorkflow()
   const { memberId } = useDemoRole()
   const { resolveWhitelist } = useMemberWhitelist()
@@ -78,7 +79,7 @@ export function ApprovalSubmitWorkflow({
         />
       }
     >
-      <div className="max-w-lg space-y-5">
+      <WorkflowFormLayout variant="wide">
         <div className="space-y-1.5">
           <Label>申请类型</Label>
           <Select
@@ -133,7 +134,7 @@ export function ApprovalSubmitWorkflow({
             ))}
           </div>
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

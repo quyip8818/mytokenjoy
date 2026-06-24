@@ -121,7 +121,7 @@ export function DepartmentTree({ selectedId, onSelect, onTreeChange }: Departmen
     return (
       <>
         {text.slice(0, idx)}
-        <span className="bg-yellow-200">{keyword}</span>
+        <span className="rounded-sm bg-amber-200/80 px-0.5">{keyword}</span>
         {text.slice(idx + keyword.length)}
       </>
     )
@@ -230,7 +230,7 @@ export function DepartmentTree({ selectedId, onSelect, onTreeChange }: Departmen
 
   return (
     <TooltipProvider>
-      <div className="w-[220px] shrink-0 border rounded-lg bg-card flex flex-col h-full">
+      <div className="flex h-full w-[220px] shrink-0 flex-col rounded-lg border border-border/50 bg-card shadow-card">
         <div className="p-3 border-b flex items-center gap-2">
           <Input
             type="text"

@@ -5,6 +5,7 @@ import { departmentApi } from '@/api/org'
 import type { RoutingRule } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -18,7 +19,7 @@ export function WhitelistConfigWorkflow({
   onClose,
   onPush,
   onSetDirty,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'whitelist-config'>) {
   const { closeAll } = useWorkflow()
   const rule = entry.payload.rule as RoutingRule
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -120,7 +121,7 @@ export function WhitelistConfigWorkflow({
             </p>
           )}
         </div>
-        <div className="col-span-2 rounded-lg bg-slate-50/80 p-5 space-y-2 text-sm">
+        <WorkflowInfoBox fullWidth className="space-y-2">
           <h4 className="font-semibold">父级白名单参考</h4>
           <div className="flex flex-wrap gap-1">
             {parentWhitelist.map((m) => (
@@ -129,7 +130,7 @@ export function WhitelistConfigWorkflow({
               </Badge>
             ))}
           </div>
-        </div>
+        </WorkflowInfoBox>
       </div>
     </WorkflowPanelChrome>
   )

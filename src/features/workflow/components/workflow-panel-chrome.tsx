@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowLeft, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 
 interface WorkflowPanelChromeProps {
   title: string
@@ -25,7 +24,7 @@ export function WorkflowPanelChrome({
   children,
 }: WorkflowPanelChromeProps) {
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-card">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-6">
         {showBack && onBack ? (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
@@ -41,7 +40,7 @@ export function WorkflowPanelChrome({
       </header>
 
       {contextBar && (
-        <div className="shrink-0 border-b border-border/40 bg-slate-50/80 px-6 py-2 text-sm text-muted-foreground">
+        <div className="shrink-0 border-b border-border/40 bg-muted/50 px-6 py-2 text-sm text-muted-foreground">
           {contextBar}
         </div>
       )}
@@ -49,7 +48,9 @@ export function WorkflowPanelChrome({
       <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
 
       {banner && (
-        <div className="shrink-0 border-t border-border/40 bg-amber-50/80 px-6 py-3">{banner}</div>
+        <div className="shrink-0 border-t border-amber-200/60 bg-amber-50/80 px-6 py-3 dark:border-amber-900/40 dark:bg-amber-950/30">
+          {banner}
+        </div>
       )}
 
       {footer && (
@@ -99,22 +100,11 @@ export function WorkflowPanelFooter({
         </Button>
       )}
       {onDestructive && destructiveLabel && (
-        <Button
-          variant="outline"
-          disabled={destructiveDisabled}
-          onClick={onDestructive}
-          className="text-red-600 border-red-200 hover:bg-red-50"
-        >
+        <Button variant="destructive" disabled={destructiveDisabled} onClick={onDestructive}>
           {destructiveLabel}
         </Button>
       )}
-      <Button
-        disabled={primaryDisabled}
-        onClick={onPrimary}
-        className={cn(
-          'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-button',
-        )}
-      >
+      <Button disabled={primaryDisabled} variant="brand" onClick={onPrimary}>
         {primaryLabel}
       </Button>
     </>

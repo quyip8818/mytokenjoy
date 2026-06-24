@@ -15,7 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { PageLoading } from '@/components/ui/page-loading'
+import { EmptyState } from '@/components/ui/empty-state'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { SYNC_RESULT_VARIANTS } from '@/lib/labels'
 
 const columnHelper = createColumnHelper<SyncLog>()
 
@@ -30,15 +33,6 @@ const resultLabels: Record<SyncLog['result'], string> = {
   failure: '失败',
 }
 
-const resultBadge: Record<
-  SyncLog['result'],
-  { variant: 'default' | 'secondary' | 'destructive'; className?: string }
-> = {
-  success: { variant: 'default', className: 'bg-green-100 text-green-700 hover:bg-green-100' },
-  partial_failure: { variant: 'secondary' },
-  failure: { variant: 'destructive' },
-}
-
 const columns = [
   columnHelper.accessor('time', { header: '时间' }),
   columnHelper.accessor('type', {
@@ -49,11 +43,10 @@ const columns = [
     header: '结果',
     cell: (info) => {
       const value = info.getValue()
-      const { variant, className } = resultBadge[value]
       return (
-        <Badge variant={variant} className={className}>
+        <StatusBadge variant={SYNC_RESULT_VARIANTS[value] ?? 'neutral'}>
           {resultLabels[value]}
-        </Badge>
+        </StatusBadge>
       )
     },
   }),
@@ -79,11 +72,11 @@ export function SyncLogTable() {
   })
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">加载中...</p>
+    return <PageLoading className="py-8" />
   }
 
   if (logs.length === 0) {
-    return <p className="text-sm text-muted-foreground">暂无同步记录</p>
+    return <EmptyState compact title="暂无同步记录" description="执行同步后记录将显示在这里" />
   }
 
   return (
@@ -91,7 +84,7 @@ export function SyncLogTable() {
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id}>
                   {header.isPlaceholder

@@ -5,6 +5,7 @@ import type { Member } from '@/api/types'
 import { roleApi } from '@/api/org'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
@@ -14,7 +15,7 @@ export function RoleAddMemberWorkflow({
   onClose,
   onSetDirty,
   onPush,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'role-add-member'>) {
   const { closeAll } = useWorkflow()
   const roleId = entry.payload.roleId as string
   const roleName = (entry.payload.roleName as string) ?? ''
@@ -77,7 +78,7 @@ export function RoleAddMemberWorkflow({
         />
       }
     >
-      <div className="space-y-4">
+      <WorkflowFormLayout variant="full">
         <Button variant="outline" size="sm" onClick={openSearch}>
           搜索并添加成员
         </Button>
@@ -99,7 +100,7 @@ export function RoleAddMemberWorkflow({
             ))}
           </div>
         )}
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

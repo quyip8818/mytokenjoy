@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -186,11 +187,8 @@ export function MemberTable({
           ))}
           {data.length === 0 && (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="text-center text-muted-foreground py-8"
-              >
-                暂无数据
+              <TableCell colSpan={columns.length} className="border-0 p-0">
+                <EmptyState compact title="暂无成员" description="当前筛选条件下没有成员数据" />
               </TableCell>
             </TableRow>
           )}

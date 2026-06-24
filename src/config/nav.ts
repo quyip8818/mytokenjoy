@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   Building2,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   Globe,
   Key,
   PieChart,
+  ScrollText,
   Shield,
   ShieldAlert,
   TrendingUp,
@@ -79,19 +81,19 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: '用量分析', path: '/dashboard/usage', icon: TrendingUp, roles: ['admin'] },
     ],
   },
+  {
+    group: '审计',
+    collapsed: true,
+    items: [
+      { label: '操作审计', path: '/audit/operations', icon: ScrollText, roles: ['admin'] },
+      { label: '调用日志', path: '/audit/calls', icon: Activity, roles: ['admin'] },
+    ],
+  },
 ]
 
-const EXTRA_ROUTE_TITLES: Record<string, string> = {
-  '/audit/operations': '操作审计',
-  '/audit/calls': '调用日志',
-}
-
-export const ROUTE_TITLES: Record<string, string> = {
-  ...Object.fromEntries(
-    NAV_GROUPS.flatMap((group) => group.items.map((item) => [item.path, item.label])),
-  ),
-  ...EXTRA_ROUTE_TITLES,
-}
+export const ROUTE_TITLES: Record<string, string> = Object.fromEntries(
+  NAV_GROUPS.flatMap((group) => group.items.map((item) => [item.path, item.label])),
+)
 
 export function getVisibleNavGroups(role: DemoRole): NavGroup[] {
   return NAV_GROUPS.map((group) => ({

@@ -4,10 +4,15 @@ import { approvalApi } from '@/api/keys'
 import type { KeyApproval } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
 
-export function ApprovalReviewWorkflow({ entry, onPush, onClose }: WorkflowComponentProps) {
+export function ApprovalReviewWorkflow({
+  entry,
+  onPush,
+  onClose,
+}: WorkflowComponentProps<'approval-review'>) {
   const { closeAll } = useWorkflow()
   const approval = entry.payload.approval as KeyApproval
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -130,7 +135,7 @@ export function ApprovalReviewWorkflow({ entry, onPush, onClose }: WorkflowCompo
             </div>
           )}
         </div>
-        <div className="col-span-2 rounded-lg bg-slate-50/80 p-5 space-y-3 text-sm">
+        <WorkflowInfoBox fullWidth className="space-y-3">
           <h4 className="font-semibold">申请信息</h4>
           <p className="text-muted-foreground">申请人：{approval.applicant}</p>
           <p className="text-muted-foreground">部门：{approval.department}</p>
@@ -138,7 +143,7 @@ export function ApprovalReviewWorkflow({ entry, onPush, onClose }: WorkflowCompo
           {approval.approver && (
             <p className="text-muted-foreground">审批人：{approval.approver}</p>
           )}
-        </div>
+        </WorkflowInfoBox>
       </div>
     </WorkflowPanelChrome>
   )

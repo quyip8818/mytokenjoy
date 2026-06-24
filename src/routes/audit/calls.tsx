@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Fragment, useState } from 'react'
+import { Activity, ChevronRight } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -8,7 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
+import { StatusBadge } from '@/components/ui/status-badge'
 import {
   Select,
   SelectContent,
@@ -16,29 +17,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ChevronRight } from 'lucide-react'
 import { auditApi } from '@/api/audit'
-import type { CallLog } from '@/api/types'
+import { useFilteredResource } from '@/hooks/use-filtered-resource'
+import { CALL_LOG_STATUS_VARIANTS } from '@/lib/labels'
 
-const statusStyles: Record<string, { label: string; className: string }> = {
-  success: { label: '成功', className: 'bg-emerald-50 text-emerald-700 border-0' },
-  error: { label: '错误', className: 'bg-red-50 text-red-700 border-0' },
-  filtered: { label: '已过滤', className: 'bg-amber-50 text-amber-700 border-0' },
+const statusLabels: Record<string, string> = {
+  success: '成功',
+  error: '错误',
+  filtered: '已过滤',
 }
 
 export default function CallLogsPage() {
-  const [logs, setLogs] = useState<CallLog[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const params = statusFilter !== 'all' ? { status: statusFilter } : undefined
-    auditApi.getCalls(params).then((res) => setLogs(res.items))
-  }, [statusFilter])
+  const {
+    data: logs = [],
+    loading,
+    filter: statusFilter,
+    setFilter: setStatusFilter,
+  } = useFilteredResource(async (filter) => {
+    const params = filter !== 'all' ? { status: filter } : undefined
+    const res = await auditApi.getCalls(params)
+    return res.items
+  }, 'all')
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end">
+    <AuditFilteredPage
+      title="调用记录"
+      loading={loading}
+      items={logs}
+      empty={{
+        icon: Activity,
+        title: '暂无调用记录',
+        description: '模型 API 调用成功后，日志将显示在这里',
+      }}
+      actions={
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
           <SelectTrigger className="w-32 border-border/60 focus:ring-indigo-500">
             <SelectValue placeholder="全部状态" />
@@ -50,124 +62,95 @@ export default function CallLogsPage() {
             <SelectItem value="filtered">已过滤</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      <Card className="shadow-card border-border/50">
-        <CardContent className="pt-5 pb-4">
-          <h3 className="text-sm font-semibold text-foreground/80 mb-4">调用记录</h3>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs font-semibold text-muted-foreground w-6"></TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">时间</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">
-                  调用方
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">类型</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">模型</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  输入 Token
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  输出 Token
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  延迟
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  费用 (¥)
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">状态</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => {
-                const status = statusStyles[log.status] ?? statusStyles.success
-                const isExpanded = expandedId === log.id
-                return (
-                  <>
-                    <TableRow
-                      key={log.id}
-                      className="border-border/40 hover:bg-indigo-50/30 cursor-pointer"
-                      onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                    >
-                      <TableCell className="w-6 pr-0">
-                        <ChevronRight
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                        />
-                      </TableCell>
-                      <TableCell className="text-[12px] tabular-nums text-muted-foreground whitespace-nowrap">
-                        {log.createdAt}
-                      </TableCell>
-                      <TableCell className="font-medium">{log.caller}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`border-0 ${log.callerType === 'platform_key' ? 'bg-violet-50 text-violet-700' : ''}`}
-                        >
-                          {log.callerType === 'member' ? '成员' : '应用'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className="bg-indigo-50 text-indigo-700 border-0"
-                        >
-                          {log.model}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs">
-                        {log.inputTokens.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs">
-                        {log.outputTokens.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs">
-                        {log.latencyMs}ms
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs">
-                        {log.cost.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={status.className}>
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                    {isExpanded && (
-                      <TableRow
-                        key={`${log.id}-detail`}
-                        className="border-border/40 hover:bg-transparent"
-                      >
-                        <TableCell colSpan={10} className="bg-indigo-50/20 p-4">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <div className="text-xs font-medium text-muted-foreground mb-1">
-                                输入内容
-                              </div>
-                              <div className="bg-background rounded-md p-3 border border-border/40 text-xs">
-                                {log.inputPreview}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-xs font-medium text-muted-foreground mb-1">
-                                输出内容
-                              </div>
-                              <div className="bg-background rounded-md p-3 border border-border/40 text-xs">
-                                {log.outputPreview}
-                              </div>
-                            </div>
+      }
+    >
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-6"></TableHead>
+            <TableHead>时间</TableHead>
+            <TableHead>调用方</TableHead>
+            <TableHead>类型</TableHead>
+            <TableHead>模型</TableHead>
+            <TableHead className="text-right">输入 Token</TableHead>
+            <TableHead className="text-right">输出 Token</TableHead>
+            <TableHead className="text-right">延迟</TableHead>
+            <TableHead className="text-right">费用 (¥)</TableHead>
+            <TableHead>状态</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {logs.map((log) => {
+            const statusVariant = CALL_LOG_STATUS_VARIANTS[log.status] ?? 'success'
+            const isExpanded = expandedId === log.id
+            return (
+              <Fragment key={log.id}>
+                <TableRow
+                  className="cursor-pointer"
+                  onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                >
+                  <TableCell className="w-6 pr-0">
+                    <ChevronRight
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                    />
+                  </TableCell>
+                  <TableCell className="text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
+                    {log.createdAt}
+                  </TableCell>
+                  <TableCell className="font-medium">{log.caller}</TableCell>
+                  <TableCell>
+                    <StatusBadge variant={log.callerType === 'platform_key' ? 'violet' : 'neutral'}>
+                      {log.callerType === 'member' ? '成员' : '应用'}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge variant="info">{log.model}</StatusBadge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs">
+                    {log.inputTokens.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs">
+                    {log.outputTokens.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs">{log.latencyMs}ms</TableCell>
+                  <TableCell className="text-right font-mono text-xs">
+                    {log.cost.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge variant={statusVariant}>
+                      {statusLabels[log.status] ?? log.status}
+                    </StatusBadge>
+                  </TableCell>
+                </TableRow>
+                {isExpanded && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={10} className="bg-indigo-50/20 p-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="mb-1 text-xs font-medium text-muted-foreground">
+                            输入内容
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+                          <div className="rounded-md border border-border/40 bg-background p-3 text-xs">
+                            {log.inputPreview}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-1 text-xs font-medium text-muted-foreground">
+                            输出内容
+                          </div>
+                          <div className="rounded-md border border-border/40 bg-background p-3 text-xs">
+                            {log.outputPreview}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </AuditFilteredPage>
   )
 }

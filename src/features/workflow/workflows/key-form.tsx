@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { platformKeyApi } from '@/api/keys'
-import type { Member, MemberQuotaSummary, PlatformKey } from '@/api/types'
+import type { Member, MemberQuotaSummary } from '@/api/types'
 import { useDemoRole } from '@/features/demo'
 import { pushModelPicker, useMemberWhitelist } from '../use-member-whitelist'
-import type { WorkflowComponentProps } from '../types'
+import type { WorkflowComponentProps, WorkflowStackEntry } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { WorkflowStepper } from '../components/workflow-stepper'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,21 +22,27 @@ function formatQuotaContext(summary: MemberQuotaSummary | null, department?: str
   return parts.join(' · ')
 }
 
-export function KeyFormWorkflow({ entry, onPush, onClose, onSetDirty }: WorkflowComponentProps) {
+export function KeyFormWorkflow({
+  entry,
+  onPush,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'key-create' | 'key-edit'>) {
   const { closeAll } = useWorkflow()
   const { memberId } = useDemoRole()
   const { resolveWhitelist } = useMemberWhitelist()
   const isCreate = entry.id === 'key-create'
-  const key = entry.payload.key as PlatformKey | undefined
-  const adminCreate = Boolean(entry.payload.adminCreate)
-  const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
+  const key =
+    entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined
+  const adminCreate = isCreate ? Boolean(entry.payload.adminCreate) : false
+  const onSuccess = entry.payload.onSuccess
 
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? '')
   const [quota, setQuota] = useState(String(key?.quota ?? '5000'))
   const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(
-    adminCreate ? ((entry.payload.targetMemberId as string) ?? '') : memberId,
+    adminCreate && entry.id === 'key-create' ? (entry.payload.targetMemberId ?? '') : memberId,
   )
   const [targetMemberName, setTargetMemberName] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -280,7 +287,7 @@ export function KeyFormWorkflow({ entry, onPush, onClose, onSetDirty }: Workflow
             </>
           )}
         </div>
-        <div className="col-span-2 rounded-lg bg-slate-50/80 p-5 space-y-3 text-sm">
+        <WorkflowInfoBox fullWidth className="space-y-3">
           <h4 className="font-semibold text-foreground/80">{isCreate ? '摘要' : '当前 Key'}</h4>
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
@@ -296,7 +303,7 @@ export function KeyFormWorkflow({ entry, onPush, onClose, onSetDirty }: Workflow
               </>
             )
           )}
-        </div>
+        </WorkflowInfoBox>
       </div>
     </WorkflowPanelChrome>
   )

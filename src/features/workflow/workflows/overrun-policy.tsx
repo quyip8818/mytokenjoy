@@ -4,6 +4,7 @@ import { budgetApi } from '@/api/budget'
 import type { OverrunPolicyConfig } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,7 +12,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../use-workflow'
 
-export function OverrunPolicyWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps) {
+export function OverrunPolicyWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'overrun-policy'>) {
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [config, setConfig] = useState<OverrunPolicyConfig | null>(null)
@@ -77,7 +82,7 @@ export function OverrunPolicyWorkflow({ entry, onClose, onSetDirty }: WorkflowCo
         />
       }
     >
-      <div className="max-w-lg space-y-6">
+      <WorkflowFormLayout variant="wide">
         <div className="space-y-3">
           <Label>预警阈值 (%)</Label>
           {config.thresholds.map((t, i) => (
@@ -145,7 +150,7 @@ export function OverrunPolicyWorkflow({ entry, onClose, onSetDirty }: WorkflowCo
             rows={3}
           />
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

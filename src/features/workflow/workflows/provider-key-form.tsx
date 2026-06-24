@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { providerKeyApi } from '@/api/keys'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -22,7 +23,11 @@ const PROVIDERS = [
   { value: 'custom', label: '自定义' },
 ]
 
-export function ProviderKeyFormWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps) {
+export function ProviderKeyFormWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'provider-key-form'>) {
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [provider, setProvider] = useState('openai')
@@ -58,7 +63,7 @@ export function ProviderKeyFormWorkflow({ entry, onClose, onSetDirty }: Workflow
         />
       }
     >
-      <div className="max-w-md space-y-5">
+      <WorkflowFormLayout>
         <div className="space-y-1.5">
           <Label>供应商</Label>
           <Select
@@ -103,7 +108,7 @@ export function ProviderKeyFormWorkflow({ entry, onClose, onSetDirty }: Workflow
             placeholder="sk-..."
           />
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

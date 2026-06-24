@@ -4,6 +4,7 @@ import type { BatchImportRow } from '@/api/types'
 import { memberApi } from '@/api/org'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import {
   Table,
   TableBody,
@@ -14,7 +15,11 @@ import {
 } from '@/components/ui/table'
 import { useWorkflow } from '../use-workflow'
 
-export function ImportPreviewWorkflow({ entry, onPop, onClose }: WorkflowComponentProps) {
+export function ImportPreviewWorkflow({
+  entry,
+  onPop,
+  onClose,
+}: WorkflowComponentProps<'import-preview'>) {
   const { closeAll } = useWorkflow()
   const rows = (entry.payload.rows as BatchImportRow[]) ?? []
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -53,7 +58,10 @@ export function ImportPreviewWorkflow({ entry, onPop, onClose }: WorkflowCompone
         />
       }
     >
-      <div className="max-h-[55vh] overflow-auto rounded-lg border border-border/60">
+      <WorkflowFormLayout
+        variant="full"
+        className="max-h-[55vh] overflow-auto rounded-lg border border-border/60"
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -74,7 +82,7 @@ export function ImportPreviewWorkflow({ entry, onPop, onClose }: WorkflowCompone
             ))}
           </TableBody>
         </Table>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

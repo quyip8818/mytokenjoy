@@ -22,7 +22,7 @@ export function DataSourceInitProgress({ connected, imported }: DataSourceInitPr
   const doneCount = steps.filter((s) => s.done).length
 
   return (
-    <div className="rounded-lg border border-border/60 bg-slate-50/50 px-4 py-4 space-y-3">
+    <div className="space-y-3 rounded-lg border border-border/50 bg-muted/30 px-4 py-4 shadow-card">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">平台初始化进度</p>
         <span className="text-xs text-muted-foreground">

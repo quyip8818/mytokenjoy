@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useMemo } from 'react'
+import { StatCard } from '@/components/ui/stat-card'
+import { DataSection } from '@/components/layout/data-section'
+import { PageShell } from '@/components/layout/page-shell'
 import {
   Table,
   TableBody,
@@ -21,35 +23,29 @@ import {
   Legend,
 } from 'recharts'
 import { dashboardApi } from '@/api/dashboard'
-import type { CostSummary, DailyCost, DepartmentCost, TopConsumer } from '@/api/types'
+import { useAsyncResource } from '@/hooks/use-async-resource'
 import { TrendingUp, TrendingDown, Coins, Hash, Zap, DollarSign } from 'lucide-react'
 
 const COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
 
 export default function CostDashboardPage() {
-  const [summary, setSummary] = useState<CostSummary | null>(null)
-  const [dailyCosts, setDailyCosts] = useState<DailyCost[]>([])
-  const [deptCosts, setDeptCosts] = useState<DepartmentCost[]>([])
-  const [topConsumers, setTopConsumers] = useState<TopConsumer[]>([])
-
-  useEffect(() => {
-    Promise.all([
+  const { data, loading } = useAsyncResource(async () => {
+    const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
       dashboardApi.getCostSummary(),
       dashboardApi.getDailyCosts(),
       dashboardApi.getDepartmentCosts(),
       dashboardApi.getTopConsumers(),
-    ]).then(([s, d, dc, tc]) => {
-      setSummary(s)
-      setDailyCosts(d)
-      setDeptCosts(dc)
-      setTopConsumers(tc)
-    })
+    ])
+    return { summary, dailyCosts, deptCosts, topConsumers }
   }, [])
 
-  const deptCostsWithColors = useMemo(
-    () => deptCosts.map((item, i) => ({ ...item, fill: COLORS[i % COLORS.length] })),
-    [deptCosts],
-  )
+  const summary = data?.summary ?? null
+  const dailyCosts = data?.dailyCosts ?? []
+  const topConsumers = data?.topConsumers ?? []
+  const deptCostsWithColors = useMemo(() => {
+    const items = data?.deptCosts ?? []
+    return items.map((item, i) => ({ ...item, fill: COLORS[i % COLORS.length] }))
+  }, [data?.deptCosts])
 
   const stats = [
     {
@@ -88,143 +84,114 @@ export default function CostDashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Summary stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card
+    <PageShell
+      stats={
+        <div className="grid grid-cols-2 gap-5 lg:grid-cols-5">
+          {stats.map((stat) => (
+            <StatCard
               key={stat.label}
-              className="shadow-card border-border/50 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <CardContent className="pt-5 pb-4 px-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
-                  <div
-                    className={`h-8 w-8 rounded-lg bg-gradient-to-br ${stat.accent} flex items-center justify-center`}
-                  >
-                    <Icon className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Charts */}
+              label={stat.label}
+              value={loading ? '-' : stat.value}
+              icon={stat.icon}
+              iconAccent={stat.accent}
+            />
+          ))}
+        </div>
+      }
+    >
       <div className="grid grid-cols-3 gap-6">
-        <Card className="col-span-2 shadow-card border-border/50">
-          <CardContent className="pt-5 pb-4">
-            <h3 className="text-sm font-semibold text-foreground/80 mb-4">每日花费趋势</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={dailyCosts}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(v) => v.slice(5)}
-                  fontSize={11}
-                  stroke="#94a3b8"
-                />
-                <YAxis fontSize={11} stroke="#94a3b8" />
-                <Tooltip
-                  formatter={(value) => [`¥${Number(value).toFixed(2)}`, '花费']}
-                  labelFormatter={(l) => `日期: ${l}`}
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 4px 12px rgba(79,70,229,0.08)',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cost"
-                  stroke="#4f46e5"
-                  strokeWidth={2.5}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <DataSection
+          title="每日花费趋势"
+          loading={loading}
+          skeletonColumns={1}
+          className="col-span-2"
+        >
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={dailyCosts}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(v) => v.slice(5)}
+                fontSize={11}
+                stroke="#94a3b8"
+              />
+              <YAxis fontSize={11} stroke="#94a3b8" />
+              <Tooltip
+                formatter={(value) => [`¥${Number(value).toFixed(2)}`, '花费']}
+                labelFormatter={(l) => `日期: ${l}`}
+                contentStyle={{
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 12px rgba(79,70,229,0.08)',
+                }}
+              />
+              <Line type="monotone" dataKey="cost" stroke="#4f46e5" strokeWidth={2.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </DataSection>
 
-        <Card className="shadow-card border-border/50">
-          <CardContent className="pt-5 pb-4">
-            <h3 className="text-sm font-semibold text-foreground/80 mb-4">部门成本占比</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={deptCostsWithColors}
-                  dataKey="cost"
-                  nameKey="departmentName"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={85}
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
-                  fontSize={10}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Tooltip
-                  formatter={(value) => [`¥${Number(value).toLocaleString()}`, '花费']}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <DataSection title="部门成本占比" loading={loading} skeletonColumns={1}>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={deptCostsWithColors}
+                dataKey="cost"
+                nameKey="departmentName"
+                cx="50%"
+                cy="50%"
+                outerRadius={85}
+                label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                labelLine={false}
+                fontSize={10}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Tooltip
+                formatter={(value) => [`¥${Number(value).toLocaleString()}`, '花费']}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </DataSection>
       </div>
 
-      {/* Top consumers */}
-      <Card className="shadow-card border-border/50">
-        <CardContent className="pt-5 pb-4">
-          <h3 className="text-sm font-semibold text-foreground/80 mb-4">消费排行 Top 5</h3>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs font-semibold text-muted-foreground">排名</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">成员</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">部门</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  花费 (¥)
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  Token 数
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  请求数
-                </TableHead>
+      <DataSection title="消费排行 Top 5" loading={loading} skeletonColumns={6}>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>排名</TableHead>
+              <TableHead>成员</TableHead>
+              <TableHead>部门</TableHead>
+              <TableHead className="text-right">花费 (¥)</TableHead>
+              <TableHead className="text-right">Token 数</TableHead>
+              <TableHead className="text-right">请求数</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {topConsumers.map((c, i) => (
+              <TableRow key={c.memberId}>
+                <TableCell>
+                  <div
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${i < 3 ? 'bg-gradient-to-br from-indigo-500 to-violet-500' : 'bg-slate-300'}`}
+                  >
+                    {i + 1}
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{c.memberName}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{c.department}</TableCell>
+                <TableCell className="text-right font-semibold">
+                  {c.cost.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {(c.tokens / 1000000).toFixed(1)}M
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {c.requests.toLocaleString()}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {topConsumers.map((c, i) => (
-                <TableRow key={c.memberId} className="border-border/40 hover:bg-indigo-50/30">
-                  <TableCell>
-                    <div
-                      className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white ${i < 3 ? 'bg-gradient-to-br from-indigo-500 to-violet-500' : 'bg-slate-300'}`}
-                    >
-                      {i + 1}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{c.memberName}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{c.department}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {c.cost.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {(c.tokens / 1000000).toFixed(1)}M
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {c.requests.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+            ))}
+          </TableBody>
+        </Table>
+      </DataSection>
+    </PageShell>
   )
 }

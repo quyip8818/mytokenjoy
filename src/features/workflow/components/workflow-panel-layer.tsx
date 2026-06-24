@@ -60,7 +60,7 @@ export function WorkflowPanelLayer({
   return (
     <div
       className={cn(
-        'absolute top-0 bottom-0 flex flex-col border-l border-border/80 bg-white transition-transform ease-out',
+        'absolute top-0 bottom-0 flex flex-col border-l border-border/80 bg-card transition-transform ease-out',
         depthFromTop > 0 && 'shadow-lg',
         index === 0 && 'shadow-[var(--shadow-sidebar)]',
       )}
@@ -77,7 +77,7 @@ export function WorkflowPanelLayer({
     >
       {depthFromTop > 0 && (
         <div
-          className="absolute left-0 top-0 bottom-0 w-3 bg-slate-50 border-r border-border/60"
+          className="absolute left-0 top-0 bottom-0 w-3 bg-muted border-r border-border/60"
           aria-hidden
         />
       )}

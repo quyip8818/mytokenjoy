@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Permission } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -11,7 +12,7 @@ export function PermissionPickerWorkflow({
   onPop,
   onClose,
   onSetDirty,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'permission-picker'>) {
   const permissions = useMemo(
     () => (entry.payload.permissions as Permission[]) ?? [],
     [entry.payload.permissions],
@@ -52,7 +53,7 @@ export function PermissionPickerWorkflow({
         <WorkflowPanelFooter onCancel={onPop} primaryLabel="确认" onPrimary={handleConfirm} />
       }
     >
-      <div className="max-h-[60vh] overflow-y-auto space-y-4">
+      <WorkflowFormLayout variant="full" className="max-h-[60vh] overflow-y-auto">
         {Object.entries(grouped).map(([group, perms], idx) => (
           <div key={group}>
             {idx > 0 && <Separator className="mb-3" />}
@@ -76,7 +77,7 @@ export function PermissionPickerWorkflow({
             </div>
           </div>
         ))}
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

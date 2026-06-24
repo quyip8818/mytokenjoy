@@ -3,6 +3,7 @@ import { computeUnallocated, sumChildrenBudget } from '@/lib/budget'
 import type { BudgetNode } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -11,7 +12,7 @@ export function BudgetNodeEditWorkflow({
   onClose,
   onPush,
   onSetDirty,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'budget-node-edit'>) {
   const node = entry.payload.node as BudgetNode
   const parent = entry.payload.parent as BudgetNode | null | undefined
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -91,13 +92,13 @@ export function BudgetNodeEditWorkflow({
             </div>
           )}
         </div>
-        <div className="col-span-2 rounded-lg bg-slate-50/80 p-5 space-y-2 text-sm text-muted-foreground">
+        <WorkflowInfoBox fullWidth className="space-y-2 text-muted-foreground">
           <h4 className="font-semibold text-foreground/80">摘要</h4>
           <p>已消耗：¥{node.consumed.toLocaleString()}</p>
           <p>子节点合计：¥{sumChildrenBudget(node).toLocaleString()}</p>
           <p>未分配：¥{computeUnallocated(node).toLocaleString()}</p>
           {parent && <p>父节点：{parent.name}</p>}
-        </div>
+        </WorkflowInfoBox>
       </div>
     </WorkflowPanelChrome>
   )

@@ -4,6 +4,7 @@ import { budgetApi } from '@/api/budget'
 import type { BudgetGroup, BudgetNode, Member } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ export function BudgetGroupFormWorkflow({
   onClose,
   onSetDirty,
   onPush,
-}: WorkflowComponentProps) {
+}: WorkflowComponentProps<'budget-group-form'>) {
   const { closeAll } = useWorkflow()
   const group = entry.payload.group as BudgetGroup | undefined
   const tree = useMemo(() => (entry.payload.tree as BudgetNode[]) ?? [], [entry.payload.tree])
@@ -125,7 +126,7 @@ export function BudgetGroupFormWorkflow({
         />
       }
     >
-      <div className="max-w-md space-y-5">
+      <WorkflowFormLayout>
         <div className="space-y-1.5">
           <Label>名称</Label>
           <Input
@@ -173,7 +174,7 @@ export function BudgetGroupFormWorkflow({
             {budgetError}
           </div>
         )}
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

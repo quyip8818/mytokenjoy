@@ -54,14 +54,10 @@ export function WorkflowPanelStack() {
   return (
     <>
       {stack[0]?.layer === 1 && (
-        <div
-          className="absolute inset-0 z-30 bg-slate-900/20"
-          onClick={handleCloseAll}
-          aria-hidden
-        />
+        <div className="fixed inset-0 z-30 bg-slate-900/20" onClick={handleCloseAll} aria-hidden />
       )}
-      <div className="absolute inset-0 z-30 pointer-events-none">
-        <div className="relative h-full w-full pointer-events-auto">
+      <div className="fixed inset-0 z-30 pointer-events-none">
+        <div className="relative h-full w-full">
           {stack.map((entry, index) => (
             <WorkflowPanelLayer
               key={`${entry.id}-${index}`}

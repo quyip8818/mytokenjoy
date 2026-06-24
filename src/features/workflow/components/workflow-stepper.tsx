@@ -19,9 +19,9 @@ export function WorkflowStepper({ steps, current }: WorkflowStepperProps) {
               <div
                 className={cn(
                   'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
-                  active && 'bg-indigo-600 text-white',
-                  done && 'bg-indigo-100 text-indigo-700',
-                  !active && !done && 'bg-slate-100 text-muted-foreground',
+                  active && 'bg-primary text-primary-foreground',
+                  done && 'bg-primary/10 text-primary',
+                  !active && !done && 'bg-muted text-muted-foreground',
                 )}
               >
                 {stepNum}

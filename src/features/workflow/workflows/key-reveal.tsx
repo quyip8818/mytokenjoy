@@ -2,10 +2,11 @@ import { Copy, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../use-workflow'
 
-export function KeyRevealWorkflow({ entry, onClose }: WorkflowComponentProps) {
+export function KeyRevealWorkflow({ entry, onClose }: WorkflowComponentProps<'key-reveal'>) {
   const { closeAll } = useWorkflow()
   const fullKey = (entry.payload.fullKey as string) ?? 'tj-demo-key-not-available'
   const onDone = entry.payload.onDone as (() => void) | undefined
@@ -32,12 +33,12 @@ export function KeyRevealWorkflow({ entry, onClose }: WorkflowComponentProps) {
         </div>
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">请立即复制保存，此 Key 仅展示一次</p>
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-slate-50 px-4 py-3 font-mono text-sm">
+          <WorkflowInfoBox variant="code">
             <span className="flex-1 break-all text-left">{fullKey}</span>
             <Button variant="ghost" size="icon" onClick={handleCopy}>
               <Copy className="h-4 w-4" />
             </Button>
-          </div>
+          </WorkflowInfoBox>
         </div>
       </div>
     </WorkflowPanelChrome>

@@ -1,5 +1,14 @@
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { PROVIDER_BADGE_STYLES, PROVIDER_LABELS } from '@/lib/labels'
+
+export function KeyPrefixBadge({ prefix }: { prefix: string }) {
+  return (
+    <span className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+      {prefix}
+    </span>
+  )
+}
 
 export function ProviderBadge({ provider }: { provider: string }) {
   return (
@@ -15,24 +24,13 @@ export function ProviderBadge({ provider }: { provider: string }) {
 export function KeyStatusBadge({ status }: { status: string }) {
   switch (status) {
     case 'active':
-      return (
-        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-          正常
-        </span>
-      )
+      return <StatusBadge variant="success">正常</StatusBadge>
     case 'disabled':
-      return (
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-          已禁用
-        </span>
-      )
+      return <StatusBadge variant="neutral">已禁用</StatusBadge>
     case 'error':
+      return <StatusBadge variant="danger">异常</StatusBadge>
     case 'expired':
-      return (
-        <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-          {status === 'error' ? '异常' : '已过期'}
-        </span>
-      )
+      return <StatusBadge variant="danger">已过期</StatusBadge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -41,23 +39,11 @@ export function KeyStatusBadge({ status }: { status: string }) {
 export function ApprovalStatusBadge({ status }: { status: string }) {
   switch (status) {
     case 'pending':
-      return (
-        <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-          待审批
-        </span>
-      )
+      return <StatusBadge variant="warning">待审批</StatusBadge>
     case 'approved':
-      return (
-        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-          已通过
-        </span>
-      )
+      return <StatusBadge variant="success">已通过</StatusBadge>
     case 'rejected':
-      return (
-        <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-          已拒绝
-        </span>
-      )
+      return <StatusBadge variant="danger">已拒绝</StatusBadge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }

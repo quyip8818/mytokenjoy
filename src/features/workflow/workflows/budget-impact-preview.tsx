@@ -3,6 +3,8 @@ import { toast } from 'sonner'
 import { budgetApi } from '@/api/budget'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WORKFLOW_TABLE_HEAD_CLASS } from '../constants'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { useWorkflow } from '../use-workflow'
 
 interface PreviewPayload {
@@ -13,7 +15,11 @@ interface PreviewPayload {
   onSuccess?: () => void
 }
 
-export function BudgetImpactPreviewWorkflow({ entry, onPop, onClose }: WorkflowComponentProps) {
+export function BudgetImpactPreviewWorkflow({
+  entry,
+  onPop,
+  onClose,
+}: WorkflowComponentProps<'budget-impact-preview'>) {
   const { closeAll } = useWorkflow()
   const payload = entry.payload as unknown as PreviewPayload
   const [submitting, setSubmitting] = useState(false)
@@ -50,10 +56,10 @@ export function BudgetImpactPreviewWorkflow({ entry, onPop, onClose }: WorkflowC
         />
       }
     >
-      <div className="space-y-4 max-w-lg">
+      <WorkflowFormLayout variant="wide" className="space-y-4">
         <p className="text-sm text-muted-foreground">节点：{payload.nodeName}</p>
         <table className="w-full text-sm border border-border/50 rounded-lg overflow-hidden">
-          <thead className="bg-slate-50">
+          <thead className={WORKFLOW_TABLE_HEAD_CLASS}>
             <tr>
               <th className="text-left px-3 py-2 font-medium">字段</th>
               <th className="text-right px-3 py-2 font-medium">原值</th>
@@ -79,7 +85,7 @@ export function BudgetImpactPreviewWorkflow({ entry, onPop, onClose }: WorkflowC
             </tr>
           </tbody>
         </table>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

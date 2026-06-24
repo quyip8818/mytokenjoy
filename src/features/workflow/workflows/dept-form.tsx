@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import type { Department } from '@/api/types'
 import { departmentApi } from '@/api/org'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
+import { WorkflowFormField } from '../components/workflow-form-field'
+import { useWorkflowSubmit } from '../use-workflow-submit'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useWorkflow } from '../use-workflow'
 
 function DeptFormInner({
   department,
@@ -23,32 +23,24 @@ function DeptFormInner({
   onSetDirty: (dirty: boolean) => void
   onSuccess?: () => void
 }) {
-  const { closeAll } = useWorkflow()
   const [name, setName] = useState(department?.name ?? '')
   const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      setError('请输入部门名称')
-      return
-    }
-    setSubmitting(true)
-    try {
+  const { submit, submitting } = useWorkflowSubmit({
+    validate: () => (!name.trim() ? '请输入部门名称' : null),
+    onSubmit: async () => {
       if (department) {
         await departmentApi.update(department.id, { name: name.trim() })
-        toast.success('部门已更新')
       } else if (parentId) {
         await departmentApi.create({ name: name.trim(), parentId })
-        toast.success('部门已创建')
       }
-      onSuccess?.()
-      closeAll()
-    } catch {
-      toast.error('操作失败')
-    } finally {
-      setSubmitting(false)
-    }
+    },
+    successMessage: department ? '部门已更新' : '部门已创建',
+    onSuccess,
+  })
+
+  const handleSubmit = async () => {
+    const result = await submit()
+    if (!result.ok && result.error) setError(result.error)
   }
 
   return (
@@ -65,9 +57,8 @@ function DeptFormInner({
         />
       }
     >
-      <div className="max-w-md space-y-4">
-        <div className="space-y-1.5">
-          <Label>部门名称</Label>
+      <WorkflowFormLayout>
+        <WorkflowFormField label="部门名称" error={error}>
           <Input
             value={name}
             onChange={(e) => {
@@ -78,14 +69,17 @@ function DeptFormInner({
             placeholder="输入部门名称"
             autoFocus
           />
-          {error && <p className="text-xs text-destructive">{error}</p>}
-        </div>
-      </div>
+        </WorkflowFormField>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }
 
-export function DeptFormWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps) {
+export function DeptFormWorkflow({
+  entry,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'dept-form'>) {
   const department = entry.payload.department as Department | null | undefined
   const parentId = (entry.payload.parentId as string) ?? department?.parentId ?? ''
   const parentName = (entry.payload.parentName as string) ?? ''

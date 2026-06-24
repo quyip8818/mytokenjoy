@@ -3,10 +3,17 @@ import type { Member } from '@/api/types'
 import { memberApi } from '@/api/org'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowFormLayout } from '../components/workflow-form-layout'
+import { WORKFLOW_LIST_ITEM_SELECTED_CLASS } from '../constants'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
-export function PickMembersWorkflow({ entry, onPop, onClose, onSetDirty }: WorkflowComponentProps) {
+export function PickMembersWorkflow({
+  entry,
+  onPop,
+  onClose,
+  onSetDirty,
+}: WorkflowComponentProps<'pick-members'>) {
   const departmentId = entry.payload.departmentId as string
   const selectedIds = (entry.payload.selectedIds as string[]) ?? []
   const onConfirm = entry.payload.onConfirm as
@@ -62,7 +69,7 @@ export function PickMembersWorkflow({ entry, onPop, onClose, onSetDirty }: Workf
         />
       }
     >
-      <div className="space-y-4">
+      <WorkflowFormLayout variant="full">
         {!departmentId && (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
             请先选择来源部门
@@ -80,8 +87,8 @@ export function PickMembersWorkflow({ entry, onPop, onClose, onSetDirty }: Workf
                 type="button"
                 onClick={() => toggleMember(m)}
                 className={cn(
-                  'flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-indigo-50/30',
-                  selected.has(m.id) && 'bg-indigo-50/40',
+                  'flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-primary/5',
+                  selected.has(m.id) && WORKFLOW_LIST_ITEM_SELECTED_CLASS,
                 )}
               >
                 <Checkbox checked={selected.has(m.id)} onCheckedChange={() => toggleMember(m)} />
@@ -93,7 +100,7 @@ export function PickMembersWorkflow({ entry, onPop, onClose, onSetDirty }: Workf
             ))
           )}
         </div>
-      </div>
+      </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )
 }

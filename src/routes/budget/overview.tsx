@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import { useState } from 'react'
 import { PieChart } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { StatCard } from '@/components/ui/stat-card'
 import {
   Table,
   TableBody,
@@ -10,15 +10,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
 import { Button } from '@/components/ui/button'
+import { DataSection } from '@/components/layout/data-section'
+import { PageShell } from '@/components/layout/page-shell'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { budgetApi } from '@/api/budget'
 import type { BudgetNode } from '@/api/types'
-import { useWorkflow } from '@/features/workflow/use-workflow'
+import { useAsyncResource } from '@/hooks/use-async-resource'
+import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { useDemoCta } from '@/features/demo'
-import { EmptyState } from '@/components/ui/empty-state'
 import { computeUnallocated, findBudgetNode } from '@/lib/budget'
+import { listEmpty } from '@/lib/list-empty'
 import { cn } from '@/lib/utils'
 
 function BudgetRow({
@@ -37,21 +40,20 @@ function BudgetRow({
   allocateCtaId?: string
 }) {
   const [expanded, setExpanded] = useState(true)
-  const pct = node.budget > 0 ? Math.round((node.consumed / node.budget) * 100) : 0
   const hasChildren = node.children && node.children.length > 0
   const parent = node.parentId ? findBudgetNode(tree, node.parentId) : null
   const unallocated = computeUnallocated(node)
 
   return (
     <>
-      <TableRow className="border-border/40 hover:bg-indigo-50/30">
+      <TableRow>
         <TableCell>
           <div className="flex items-center" style={{ paddingLeft: `${depth * 20}px` }}>
             {hasChildren && (
               <button
                 type="button"
                 onClick={() => setExpanded(!expanded)}
-                className="mr-2 text-indigo-400 hover:text-indigo-300 text-xs w-4"
+                className="mr-2 w-4 text-xs text-indigo-400 hover:text-indigo-300"
               >
                 {expanded ? '▾' : '▸'}
               </button>
@@ -65,14 +67,7 @@ function BudgetRow({
         <TableCell className="text-right">¥{(node.reservedPool ?? 0).toLocaleString()}</TableCell>
         <TableCell className="text-right">¥{unallocated.toLocaleString()}</TableCell>
         <TableCell className="w-40">
-          <div className="flex items-center gap-2">
-            <Progress value={pct} className="flex-1 h-2" />
-            <span
-              className={`text-xs ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : 'text-muted-foreground'}`}
-            >
-              {pct}%
-            </span>
-          </div>
+          <BudgetProgressCell value={node.consumed} total={node.budget} />
         </TableCell>
         <TableCell className="w-[120px]">
           <Button
@@ -101,18 +96,9 @@ function BudgetRow({
 }
 
 export default function BudgetOverviewPage() {
-  const { open } = useWorkflow()
   const budgetCta = useDemoCta('BUDGET')
-  const [tree, setTree] = useState<BudgetNode[]>([])
-
-  const load = useCallback(async () => {
-    const t = await budgetApi.getTree()
-    setTree(t)
-  }, [])
-
-  useEffect(() => {
-    void budgetApi.getTree().then(setTree)
-  }, [])
+  const { data: tree = [], loading, refresh } = useAsyncResource(() => budgetApi.getTree(), [])
+  const { openWithRefresh } = useWorkflowRefresh(refresh)
 
   const root = tree[0]
   const summary = root
@@ -124,98 +110,67 @@ export default function BudgetOverviewPage() {
     : { budget: 0, consumed: 0, unallocated: 0 }
 
   const handleAllocate = (node: BudgetNode, parent: BudgetNode | null) => {
-    open('budget-node-edit', { node, parent, onSuccess: load })
+    openWithRefresh('budget-node-edit', { node, parent })
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="grid grid-cols-3 gap-4 flex-1 max-w-2xl">
-          <Card className="shadow-card border-border/50">
-            <CardContent className="pt-4 pb-3">
-              <p className="text-xs text-muted-foreground">总预算</p>
-              <p className="text-lg font-semibold">¥{summary.budget.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-card border-border/50">
-            <CardContent className="pt-4 pb-3">
-              <p className="text-xs text-muted-foreground">已用</p>
-              <p className="text-lg font-semibold">¥{summary.consumed.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-card border-border/50">
-            <CardContent className="pt-4 pb-3">
-              <p className="text-xs text-muted-foreground">未分配</p>
-              <p className="text-lg font-semibold">¥{summary.unallocated.toLocaleString()}</p>
-            </CardContent>
-          </Card>
+    <PageShell
+      leading={
+        <div className="grid max-w-2xl grid-cols-3 gap-4">
+          <StatCard label="总预算" value={loading ? '-' : `¥${summary.budget.toLocaleString()}`} />
+          <StatCard label="已用" value={loading ? '-' : `¥${summary.consumed.toLocaleString()}`} />
+          <StatCard
+            label="未分配"
+            value={loading ? '-' : `¥${summary.unallocated.toLocaleString()}`}
+            accent
+          />
         </div>
-        <Badge variant="outline" className="border-indigo-200 text-indigo-600 text-xs">
-          周期：2026 年 6 月
-        </Badge>
-      </div>
-
-      <Card className="shadow-card border-border/50">
-        <CardContent className="pt-5 pb-4">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-xs font-semibold text-muted-foreground">节点</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  预算
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  已消耗
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  预留池
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground text-right">
-                  未分配
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground w-40">
-                  进度
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground w-[120px]">
-                  操作
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tree.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="p-0 border-0">
-                    <EmptyState
-                      icon={PieChart}
-                      title="暂无预算数据"
-                      description="请先导入组织后再分配预算"
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                tree.map((node) => (
-                  <BudgetRow
-                    key={node.id}
-                    node={node}
-                    depth={0}
-                    tree={tree}
-                    onAllocate={handleAllocate}
-                    allocateHighlight={budgetCta.className}
-                    allocateCtaId={budgetCta.id}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-          <p className="text-xs text-muted-foreground mt-4">
-            超限行为由全局{' '}
-            <Link to="/budget/alerts" className="text-indigo-600 hover:underline">
-              超限策略
-            </Link>{' '}
-            统一配置。预算周期为自然月，月初已用额度清零由后端处理，Demo 不模拟月重置。
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+      }
+      actions={<StatusBadge variant="info">周期：2026 年 6 月</StatusBadge>}
+    >
+      <DataSection
+        loading={loading}
+        skeletonColumns={7}
+        empty={listEmpty(loading, tree, {
+          icon: PieChart,
+          title: '暂无预算数据',
+          description: '请先导入组织后再分配预算',
+        })}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>节点</TableHead>
+              <TableHead className="text-right">预算</TableHead>
+              <TableHead className="text-right">已消耗</TableHead>
+              <TableHead className="text-right">预留池</TableHead>
+              <TableHead className="text-right">未分配</TableHead>
+              <TableHead className="w-40">进度</TableHead>
+              <TableHead className="w-[120px]">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tree.map((node) => (
+              <BudgetRow
+                key={node.id}
+                node={node}
+                depth={0}
+                tree={tree}
+                onAllocate={handleAllocate}
+                allocateHighlight={budgetCta.className}
+                allocateCtaId={budgetCta.id}
+              />
+            ))}
+          </TableBody>
+        </Table>
+        <p className="mt-4 text-xs text-muted-foreground">
+          超限行为由全局{' '}
+          <Link to="/budget/alerts" className="text-indigo-600 hover:underline">
+            超限策略
+          </Link>{' '}
+          统一配置。预算周期为自然月，月初已用额度清零由后端处理，Demo 不模拟月重置。
+        </p>
+      </DataSection>
+    </PageShell>
   )
 }
