@@ -1,4 +1,4 @@
-const BASE_URL = '/api'
+import { API_BASE_PATH } from '@/config/app'
 
 export class ApiError extends Error {
   status: number
@@ -11,7 +11,7 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${BASE_URL}${path}`
+  const url = `${API_BASE_PATH}${path}`
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',

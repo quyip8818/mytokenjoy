@@ -20,7 +20,7 @@ import CallLogsPage from '@/routes/audit/calls'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route element={<AdminLayout />}>
           <Route index element={<Navigate to={getDefaultHomePath('admin')} replace />} />

@@ -1,11 +1,16 @@
 import { http, HttpResponse, delay } from 'msw'
+import { API_BASE_PATH } from '@/config/app'
 import type { RoutingRule, BatchImportRow } from '../api/types'
 import { findBudgetNode, updateBudgetNodeInTree } from '@/lib/budget'
 import { flattenDepartmentTree, buildDeptParentMap } from '@/lib/org'
+import { getReservedPoolForMember } from './lib/budget-lookup'
+import { paginate } from './lib/paginate'
+import { filterMembersByDepartment, findMemberById } from './lib/query'
 import {
   mockDataSourceStatus,
   mockSyncConfig,
   mockSyncLogs,
+  mockImportFailures,
   mockDepartments,
   mockMembers,
   mockRoles,
@@ -28,6 +33,11 @@ import {
   mockOperationLogs,
   mockCallLogs,
 } from './data'
+
+function parseIntParam(value: string | null, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
 
 const deptParentMap = () => buildDeptParentMap(mockDepartments)
 
@@ -60,19 +70,19 @@ function shrinkChildRoutingRules(parentNodeId: string, parentAllowed: string[]) 
 
 export const handlers = [
   // ========== 数据源 ==========
-  http.get('/api/org/data-source/status', () => {
+  http.get(`${API_BASE_PATH}/org/data-source/status`, () => {
     return HttpResponse.json(mockDataSourceStatus)
   }),
-  http.post('/api/org/data-source/test', async () => {
+  http.post(`${API_BASE_PATH}/org/data-source/test`, async () => {
     await delay(1000)
     return HttpResponse.json({ success: true })
   }),
-  http.put('/api/org/data-source', () => {
+  http.put(`${API_BASE_PATH}/org/data-source`, () => {
     mockDataSourceStatus.connected = true
     mockDataSourceStatus.platform = 'feishu'
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/org/data-source/search', ({ request }) => {
+  http.get(`${API_BASE_PATH}/org/data-source/search`, ({ request }) => {
     const url = new URL(request.url)
     const keyword = url.searchParams.get('keyword') || ''
     if (!keyword) return HttpResponse.json({ name: '', department: '', mappingOk: false })
@@ -82,44 +92,44 @@ export const handlers = [
       mappingOk: true,
     })
   }),
-  http.post('/api/org/data-source/import', async () => {
+  http.post(`${API_BASE_PATH}/org/data-source/import`, async () => {
     await delay(2000)
     return HttpResponse.json({
       successMembers: 120,
       successDepartments: 5,
-      failures: [
-        { id: 'f-1', name: '李四', employeeId: '10087', reason: '手机号为空' },
-        { id: 'f-2', name: '王五', employeeId: '10088', reason: '部门不存在' },
-      ],
+      failures: mockImportFailures,
     })
   }),
-  http.post('/api/org/data-source/import/retry', async () => {
+  http.post(`${API_BASE_PATH}/org/data-source/import/retry`, async () => {
     await delay(500)
     return HttpResponse.json({ successMembers: 1, successDepartments: 0, failures: [] })
   }),
 
   // ========== 同步 ==========
-  http.get('/api/org/sync/config', () => {
+  http.get(`${API_BASE_PATH}/org/sync/config`, () => {
     return HttpResponse.json(mockSyncConfig)
   }),
-  http.put('/api/org/sync/config', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/org/sync/config`, async ({ request }) => {
     const body = (await request.json()) as typeof mockSyncConfig
     Object.assign(mockSyncConfig, body)
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.post('/api/org/sync/trigger', async () => {
+  http.post(`${API_BASE_PATH}/org/sync/trigger`, async () => {
     await delay(1500)
     return HttpResponse.json({ successMembers: 3, successDepartments: 0, failures: [] })
   }),
-  http.get('/api/org/sync/logs', () => {
-    return HttpResponse.json({ items: mockSyncLogs, total: 3, page: 1, pageSize: 10 })
+  http.get(`${API_BASE_PATH}/org/sync/logs`, ({ request }) => {
+    const url = new URL(request.url)
+    const page = parseIntParam(url.searchParams.get('page'), 1)
+    const pageSize = parseIntParam(url.searchParams.get('pageSize'), 10)
+    return HttpResponse.json(paginate(mockSyncLogs, page, pageSize))
   }),
 
   // ========== 部门 ==========
-  http.get('/api/org/departments/tree', () => {
+  http.get(`${API_BASE_PATH}/org/departments/tree`, () => {
     return HttpResponse.json(mockDepartments)
   }),
-  http.post('/api/org/departments', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/org/departments`, async ({ request }) => {
     const body = (await request.json()) as { name: string; parentId: string }
     return HttpResponse.json({
       id: `dept-${Date.now()}`,
@@ -128,25 +138,30 @@ export const handlers = [
       memberCount: 0,
     })
   }),
-  http.put('/api/org/departments/:id', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/org/departments/:id`, async ({ request }) => {
     const body = (await request.json()) as { name: string }
     return HttpResponse.json({ id: 'dept-x', name: body.name, parentId: null, memberCount: 0 })
   }),
-  http.delete('/api/org/departments/:id', () => {
+  http.delete(`${API_BASE_PATH}/org/departments/:id`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
 
   // ========== 成员 ==========
-  http.get('/api/org/members', ({ request }) => {
+  http.get(`${API_BASE_PATH}/org/members`, ({ request }) => {
     const url = new URL(request.url)
     const deptId = url.searchParams.get('departmentId')
     const keyword = url.searchParams.get('keyword')
+    const directOnly = url.searchParams.get('directOnly') === 'true'
+    const page = parseIntParam(url.searchParams.get('page'), 1)
+    const pageSize = parseIntParam(url.searchParams.get('pageSize'), 20)
     let items = [...mockMembers]
-    if (deptId) items = items.filter((m) => m.departmentId === deptId)
+    if (deptId) {
+      items = filterMembersByDepartment(mockMembers, mockDepartments, deptId, directOnly)
+    }
     if (keyword) items = items.filter((m) => m.name.includes(keyword))
-    return HttpResponse.json({ items, total: items.length, page: 1, pageSize: 20 })
+    return HttpResponse.json(paginate(items, page, pageSize))
   }),
-  http.post('/api/org/members', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/org/members`, async ({ request }) => {
     const body = (await request.json()) as Record<string, string>
     return HttpResponse.json({
       id: `m-${Date.now()}`,
@@ -156,14 +171,14 @@ export const handlers = [
       source: 'manual',
     })
   }),
-  http.put('/api/org/members/:id', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/org/members/:id`, async ({ request }) => {
     const body = await request.json()
     return HttpResponse.json(body)
   }),
-  http.delete('/api/org/members', () => {
+  http.delete(`${API_BASE_PATH}/org/members`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.put('/api/org/members/status', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/org/members/status`, async ({ request }) => {
     const body = (await request.json()) as { ids: string[]; status: 'active' | 'inactive' }
     for (const id of body.ids) {
       const member = mockMembers.find((m) => m.id === id)
@@ -176,20 +191,20 @@ export const handlers = [
     }
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.post('/api/org/members/transfer', () => {
+  http.post(`${API_BASE_PATH}/org/members/transfer`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.post('/api/org/members/invite', () => {
+  http.post(`${API_BASE_PATH}/org/members/invite`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.post('/api/org/members/batch-invite', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/org/members/batch-invite`, async ({ request }) => {
     const body = (await request.json()) as { ids?: string[] }
     const targets = body.ids?.length
       ? mockMembers.filter((m) => body.ids!.includes(m.id))
       : mockMembers.filter((m) => m.status === 'pending' || m.status === 'inactive')
     return HttpResponse.json({ sent: targets.length })
   }),
-  http.post('/api/org/members/batch-import', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/org/members/batch-import`, async ({ request }) => {
     const body = (await request.json()) as { rows: BatchImportRow[] }
     const failures: { row: number; reason: string }[] = []
     let imported = 0
@@ -217,38 +232,40 @@ export const handlers = [
   }),
 
   // ========== 角色 ==========
-  http.get('/api/org/roles', () => {
+  http.get(`${API_BASE_PATH}/org/roles`, () => {
     return HttpResponse.json(mockRoles)
   }),
-  http.post('/api/org/roles', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/org/roles`, async ({ request }) => {
     const body = (await request.json()) as { name: string; permissions: string[] }
     return HttpResponse.json({ id: `role-${Date.now()}`, ...body, type: 'custom', memberCount: 0 })
   }),
-  http.put('/api/org/roles/:id', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/org/roles/:id`, async ({ request }) => {
     const body = await request.json()
     return HttpResponse.json(body)
   }),
-  http.delete('/api/org/roles/:id', () => {
+  http.delete(`${API_BASE_PATH}/org/roles/:id`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/org/roles/:roleId/members', () => {
-    return HttpResponse.json(mockMembers.slice(0, 2))
+  http.get(`${API_BASE_PATH}/org/roles/:roleId/members`, ({ params }) => {
+    const role = mockRoles.find((r) => r.id === params.roleId)
+    if (!role) return HttpResponse.json([])
+    return HttpResponse.json(mockMembers.filter((m) => m.roles.includes(role.name)))
   }),
-  http.post('/api/org/roles/:roleId/members', () => {
+  http.post(`${API_BASE_PATH}/org/roles/:roleId/members`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.delete('/api/org/roles/:roleId/members/:memberId', () => {
+  http.delete(`${API_BASE_PATH}/org/roles/:roleId/members/:memberId`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/org/permissions', () => {
+  http.get(`${API_BASE_PATH}/org/permissions`, () => {
     return HttpResponse.json(mockPermissions)
   }),
 
   // ========== 预算管理 ==========
-  http.get('/api/budget/tree', () => {
+  http.get(`${API_BASE_PATH}/budget/tree`, () => {
     return HttpResponse.json(mockBudgetTree)
   }),
-  http.put('/api/budget/nodes/:id', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/budget/nodes/:id`, async ({ params, request }) => {
     await delay(300)
     const body = (await request.json()) as { budget: number; reservedPool?: number }
     const id = params.id as string
@@ -262,17 +279,17 @@ export const handlers = [
     })
     return HttpResponse.json(findBudgetNode(mockBudgetTree, id))
   }),
-  http.get('/api/budget/groups', () => {
+  http.get(`${API_BASE_PATH}/budget/groups`, () => {
     return HttpResponse.json(mockBudgetGroups)
   }),
-  http.post('/api/budget/groups', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/budget/groups`, async ({ request }) => {
     await delay(300)
     const body = (await request.json()) as Record<string, unknown>
     const group = { id: `bg-${Date.now()}`, consumed: 0, ...body } as (typeof mockBudgetGroups)[0]
     mockBudgetGroups.push(group)
     return HttpResponse.json(group)
   }),
-  http.put('/api/budget/groups/:id', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/budget/groups/:id`, async ({ params, request }) => {
     await delay(300)
     const body = (await request.json()) as Partial<(typeof mockBudgetGroups)[0]>
     const idx = mockBudgetGroups.findIndex((g) => g.id === params.id)
@@ -280,41 +297,41 @@ export const handlers = [
     mockBudgetGroups[idx] = { ...mockBudgetGroups[idx], ...body }
     return HttpResponse.json(mockBudgetGroups[idx])
   }),
-  http.delete('/api/budget/groups/:id', ({ params }) => {
+  http.delete(`${API_BASE_PATH}/budget/groups/:id`, ({ params }) => {
     const idx = mockBudgetGroups.findIndex((g) => g.id === params.id)
     if (idx >= 0) mockBudgetGroups.splice(idx, 1)
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/budget/overrun-policy', () => {
+  http.get(`${API_BASE_PATH}/budget/overrun-policy`, () => {
     return HttpResponse.json(mockOverrunPolicy)
   }),
-  http.put('/api/budget/overrun-policy', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/budget/overrun-policy`, async ({ request }) => {
     await delay(300)
     const body = (await request.json()) as typeof mockOverrunPolicy
     Object.assign(mockOverrunPolicy, body)
     return HttpResponse.json(mockOverrunPolicy)
   }),
-  http.get('/api/budget/alerts', () => {
+  http.get(`${API_BASE_PATH}/budget/alerts`, () => {
     return HttpResponse.json(mockAlertRules)
   }),
-  http.post('/api/budget/alerts', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/budget/alerts`, async ({ request }) => {
     await delay(300)
     const body = (await request.json()) as Record<string, unknown>
     return HttpResponse.json({ id: `alert-${Date.now()}`, ...body })
   }),
-  http.put('/api/budget/alerts/:id', async ({ request }) => {
+  http.put(`${API_BASE_PATH}/budget/alerts/:id`, async ({ request }) => {
     const body = await request.json()
     return HttpResponse.json(body)
   }),
-  http.delete('/api/budget/alerts/:id', () => {
+  http.delete(`${API_BASE_PATH}/budget/alerts/:id`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
 
   // ========== API-KEY 管理 ==========
-  http.get('/api/keys/provider', () => {
+  http.get(`${API_BASE_PATH}/keys/provider`, () => {
     return HttpResponse.json(mockProviderKeys)
   }),
-  http.post('/api/keys/provider', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/keys/provider`, async ({ request }) => {
     await delay(500)
     const body = (await request.json()) as Record<string, unknown>
     return HttpResponse.json({
@@ -328,11 +345,11 @@ export const handlers = [
       rotateEnabled: false,
     })
   }),
-  http.put('/api/keys/provider/:id/toggle', async () => {
+  http.put(`${API_BASE_PATH}/keys/provider/:id/toggle`, async () => {
     await delay(300)
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.post('/api/keys/provider/:id/rotate', async ({ params }) => {
+  http.post(`${API_BASE_PATH}/keys/provider/:id/rotate`, async ({ params }) => {
     await delay(1000)
     const idx = mockProviderKeys.findIndex((k) => k.id === params.id)
     if (idx === -1) {
@@ -346,10 +363,10 @@ export const handlers = [
     mockProviderKeys[idx] = updated
     return HttpResponse.json(updated)
   }),
-  http.delete('/api/keys/provider/:id', () => {
+  http.delete(`${API_BASE_PATH}/keys/provider/:id`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/keys/platform', ({ request }) => {
+  http.get(`${API_BASE_PATH}/keys/platform`, ({ request }) => {
     const url = new URL(request.url)
     const memberId = url.searchParams.get('memberId')
     let items = [...mockPlatformKeys]
@@ -363,7 +380,7 @@ export const handlers = [
       pageSize: 20,
     })
   }),
-  http.get('/api/keys/platform/quota-summary', ({ request }) => {
+  http.get(`${API_BASE_PATH}/keys/platform/quota-summary`, ({ request }) => {
     const url = new URL(request.url)
     const memberId = url.searchParams.get('memberId') ?? 'm-1'
     const keys = mockPlatformKeys.filter((k) => k.memberId === memberId && k.status === 'active')
@@ -373,20 +390,22 @@ export const handlers = [
       totalQuota,
       used,
       remaining: Math.max(0, totalQuota - used),
-      reservedPool: memberId === 'm-1' ? 2000 : 5000,
+      reservedPool: getReservedPoolForMember(mockBudgetTree, mockMembers, memberId),
     })
   }),
-  http.post('/api/keys/platform', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/keys/platform`, async ({ request }) => {
     await delay(500)
     const body = (await request.json()) as Record<string, unknown>
     const fullKey = `tj-${Date.now()}-demo-secret-key`
+    const memberId = (body.memberId as string) ?? null
+    const member = memberId ? findMemberById(mockMembers, memberId) : undefined
     const newKey = {
       id: `plk-${Date.now()}`,
       name: body.name as string,
       keyPrefix: `${fullKey.slice(0, 12)}...`,
       fullKey,
-      memberId: (body.memberId as string) ?? null,
-      memberName: body.memberId === 'm-1' ? '张三' : body.memberId === 'm-2' ? '李四' : null,
+      memberId,
+      memberName: member?.name ?? null,
       appName: (body.appName as string) ?? null,
       quota: body.quota as number,
       used: 0,
@@ -398,7 +417,7 @@ export const handlers = [
     mockPlatformKeys.push(newKey)
     return HttpResponse.json(newKey)
   }),
-  http.put('/api/keys/platform/:id', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/keys/platform/:id`, async ({ params, request }) => {
     await delay(300)
     const body = (await request.json()) as Record<string, unknown>
     const idx = mockPlatformKeys.findIndex((k) => k.id === params.id)
@@ -408,7 +427,7 @@ export const handlers = [
     }
     return HttpResponse.json(null, { status: 404 })
   }),
-  http.put('/api/keys/platform/:id/toggle', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/keys/platform/:id/toggle`, async ({ params, request }) => {
     await delay(300)
     const body = (await request.json()) as { enabled: boolean }
     const idx = mockPlatformKeys.findIndex((k) => k.id === params.id)
@@ -421,7 +440,7 @@ export const handlers = [
     }
     return HttpResponse.json(null, { status: 404 })
   }),
-  http.post('/api/keys/platform/:id/rotate', async ({ params }) => {
+  http.post(`${API_BASE_PATH}/keys/platform/:id/rotate`, async ({ params }) => {
     await delay(500)
     const idx = mockPlatformKeys.findIndex((k) => k.id === params.id)
     if (idx >= 0) {
@@ -435,14 +454,14 @@ export const handlers = [
     }
     return HttpResponse.json(null, { status: 404 })
   }),
-  http.put('/api/keys/platform/:id/revoke', async () => {
+  http.put(`${API_BASE_PATH}/keys/platform/:id/revoke`, async () => {
     await delay(300)
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.delete('/api/keys/platform/:id', () => {
+  http.delete(`${API_BASE_PATH}/keys/platform/:id`, () => {
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/keys/approvals', ({ request }) => {
+  http.get(`${API_BASE_PATH}/keys/approvals`, ({ request }) => {
     const url = new URL(request.url)
     const tab = url.searchParams.get('tab')
     const memberId = url.searchParams.get('memberId')
@@ -454,17 +473,17 @@ export const handlers = [
     }
     return HttpResponse.json(items)
   }),
-  http.post('/api/keys/approvals', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/keys/approvals`, async ({ request }) => {
     await delay(400)
     const body = (await request.json()) as Record<string, unknown>
     const memberId = body.memberId as string
-    const applicantName = memberId === 'm-1' ? '张三' : memberId === 'm-2' ? '李四' : '申请人'
+    const member = findMemberById(mockMembers, memberId)
     const approval = {
       id: `apv-${Date.now()}`,
       type: body.type as 'key' | 'quota',
-      applicant: applicantName,
+      applicant: member?.name ?? '申请人',
       applicantId: memberId,
-      department: memberId === 'm-1' ? '后端组' : '后端组',
+      department: member?.departmentName ?? '',
       reason: body.reason as string,
       requestedQuota: body.requestedQuota as number,
       requestedModels: body.requestedModels as string[],
@@ -476,17 +495,19 @@ export const handlers = [
     mockApprovals.push(approval)
     return HttpResponse.json(approval)
   }),
-  http.get('/api/keys/approvals/:id/quota-check', ({ params }) => {
+  http.get(`${API_BASE_PATH}/keys/approvals/:id/quota-check`, ({ params }) => {
     const approval = mockApprovals.find((a) => a.id === params.id)
     const requested = approval?.requestedQuota ?? 0
-    const reservedPool = approval?.applicantId === 'm-1' ? 2000 : 5000
+    const reservedPool = approval
+      ? getReservedPoolForMember(mockBudgetTree, mockMembers, approval.applicantId)
+      : 0
     return HttpResponse.json({
       sufficient: requested <= reservedPool,
       reservedPool,
       requested,
     })
   }),
-  http.put('/api/keys/approvals/:id/approve', async ({ params }) => {
+  http.put(`${API_BASE_PATH}/keys/approvals/:id/approve`, async ({ params }) => {
     await delay(500)
     const idx = mockApprovals.findIndex((a) => a.id === params.id)
     if (idx < 0) {
@@ -494,11 +515,8 @@ export const handlers = [
     }
 
     const approval = mockApprovals[idx]
-    if (
-      approval.requestedQuota > 2000 &&
-      approval.applicantId === 'm-1' &&
-      approval.type === 'quota'
-    ) {
+    const reservedPool = getReservedPoolForMember(mockBudgetTree, mockMembers, approval.applicantId)
+    if (approval.requestedQuota > reservedPool && approval.type === 'quota') {
       return HttpResponse.json({ message: 'Reserved pool insufficient' }, { status: 422 })
     }
 
@@ -541,7 +559,7 @@ export const handlers = [
     }
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.put('/api/keys/approvals/:id/reject', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/keys/approvals/:id/reject`, async ({ params, request }) => {
     await delay(500)
     const body = (await request.json()) as { reason?: string }
     const idx = mockApprovals.findIndex((a) => a.id === params.id)
@@ -558,10 +576,10 @@ export const handlers = [
   }),
 
   // ========== 模型路由 ==========
-  http.get('/api/models', () => {
+  http.get(`${API_BASE_PATH}/models`, () => {
     return HttpResponse.json(mockModels)
   }),
-  http.post('/api/models', async ({ request }) => {
+  http.post(`${API_BASE_PATH}/models`, async ({ request }) => {
     await delay(300)
     const body = (await request.json()) as {
       name: string
@@ -583,17 +601,17 @@ export const handlers = [
     mockModels.push(model)
     return HttpResponse.json(model)
   }),
-  http.put('/api/models/:id/toggle', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/models/:id/toggle`, async ({ params, request }) => {
     await delay(300)
     const body = (await request.json()) as { enabled: boolean }
     const model = mockModels.find((m) => m.id === params.id)
     if (model) model.enabled = body.enabled
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.get('/api/models/routing', () => {
+  http.get(`${API_BASE_PATH}/models/routing`, () => {
     return HttpResponse.json(mockRoutingRules)
   }),
-  http.get('/api/models/routing/resolve', ({ request }) => {
+  http.get(`${API_BASE_PATH}/models/routing/resolve`, ({ request }) => {
     const url = new URL(request.url)
     const deptId = url.searchParams.get('deptId') ?? ''
     const rule = getRoutingRuleForDept(deptId)
@@ -618,7 +636,7 @@ export const handlers = [
       parentCount,
     })
   }),
-  http.put('/api/models/routing/:id', async ({ params, request }) => {
+  http.put(`${API_BASE_PATH}/models/routing/:id`, async ({ params, request }) => {
     await delay(300)
     const body = (await request.json()) as Partial<RoutingRule>
     const idx = mockRoutingRules.findIndex((r) => r.id === params.id)
@@ -633,39 +651,43 @@ export const handlers = [
   }),
 
   // ========== 数据看板 ==========
-  http.get('/api/dashboard/cost/summary', () => {
+  http.get(`${API_BASE_PATH}/dashboard/cost/summary`, () => {
     return HttpResponse.json(mockCostSummary)
   }),
-  http.get('/api/dashboard/cost/departments', () => {
+  http.get(`${API_BASE_PATH}/dashboard/cost/departments`, () => {
     return HttpResponse.json(mockDepartmentCosts)
   }),
-  http.get('/api/dashboard/cost/daily', () => {
+  http.get(`${API_BASE_PATH}/dashboard/cost/daily`, () => {
     return HttpResponse.json(mockDailyCosts)
   }),
-  http.get('/api/dashboard/cost/top', () => {
+  http.get(`${API_BASE_PATH}/dashboard/cost/top`, () => {
     return HttpResponse.json(mockTopConsumers)
   }),
-  http.get('/api/dashboard/usage/models', () => {
+  http.get(`${API_BASE_PATH}/dashboard/usage/models`, () => {
     return HttpResponse.json(mockModelUsage)
   }),
-  http.get('/api/dashboard/usage/teams', () => {
+  http.get(`${API_BASE_PATH}/dashboard/usage/teams`, () => {
     return HttpResponse.json(mockTeamUsage)
   }),
 
   // ========== 审计日志 ==========
-  http.get('/api/audit/operations', ({ request }) => {
+  http.get(`${API_BASE_PATH}/audit/operations`, ({ request }) => {
     const url = new URL(request.url)
     const action = url.searchParams.get('action')
+    const page = parseIntParam(url.searchParams.get('page'), 1)
+    const pageSize = parseIntParam(url.searchParams.get('pageSize'), 20)
     const items = action ? mockOperationLogs.filter((l) => l.action === action) : mockOperationLogs
-    return HttpResponse.json({ items, total: items.length, page: 1, pageSize: 20 })
+    return HttpResponse.json(paginate(items, page, pageSize))
   }),
-  http.get('/api/audit/calls', ({ request }) => {
+  http.get(`${API_BASE_PATH}/audit/calls`, ({ request }) => {
     const url = new URL(request.url)
     const model = url.searchParams.get('model')
     const status = url.searchParams.get('status')
+    const page = parseIntParam(url.searchParams.get('page'), 1)
+    const pageSize = parseIntParam(url.searchParams.get('pageSize'), 20)
     let items = mockCallLogs
     if (model) items = items.filter((l) => l.model === model)
     if (status) items = items.filter((l) => l.status === status)
-    return HttpResponse.json({ items, total: items.length, page: 1, pageSize: 20 })
+    return HttpResponse.json(paginate(items, page, pageSize))
   }),
 ]
