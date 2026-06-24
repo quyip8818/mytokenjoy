@@ -1,0 +1,145 @@
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { approvalApi } from '@/api/keys'
+import type { KeyApproval } from '@/api/types'
+import type { WorkflowComponentProps } from '../types'
+import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { Badge } from '@/components/ui/badge'
+import { useWorkflow } from '../use-workflow'
+
+export function ApprovalReviewWorkflow({ entry, onPush, onClose }: WorkflowComponentProps) {
+  const { closeAll } = useWorkflow()
+  const approval = entry.payload.approval as KeyApproval
+  const onSuccess = entry.payload.onSuccess as (() => void) | undefined
+  const [submitting, setSubmitting] = useState(false)
+
+  const typeLabel = approval.type === 'key' ? 'Key 申请' : '额度追加'
+
+  const handleApprove = async () => {
+    if (
+      approval.type === 'quota' &&
+      approval.requestedQuota > 2000 &&
+      approval.applicantId === 'm-1'
+    ) {
+      const check = await approvalApi.checkQuota(approval.id)
+      if (!check.sufficient) {
+        onPush('quota-check', {
+          reservedPool: check.reservedPool,
+          requested: check.requested,
+        })
+        return
+      }
+    }
+    setSubmitting(true)
+    try {
+      await approvalApi.approve(approval.id)
+      toast.success('已通过')
+      onSuccess?.()
+      closeAll()
+    } catch {
+      const check = await approvalApi.checkQuota(approval.id)
+      if (!check.sufficient) {
+        onPush('quota-check', {
+          reservedPool: check.reservedPool,
+          requested: check.requested,
+        })
+      } else {
+        toast.error('审批失败')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleReject = () => {
+    onPush('reject-reason', {
+      approvalId: approval.id,
+      onSuccess,
+    })
+  }
+
+  return (
+    <WorkflowPanelChrome
+      title="审批处理"
+      onClose={onClose}
+      contextBar={`申请人：${approval.applicant} · ${approval.department}`}
+      footer={
+        approval.status === 'pending' ? (
+          <WorkflowPanelFooter
+            onCancel={onClose}
+            cancelLabel="关闭"
+            destructiveLabel="拒绝"
+            onDestructive={handleReject}
+            primaryLabel={submitting ? '处理中...' : '通过'}
+            onPrimary={handleApprove}
+            primaryDisabled={submitting}
+          />
+        ) : (
+          <WorkflowPanelFooter
+            onCancel={onClose}
+            cancelLabel="关闭"
+            primaryLabel="关闭"
+            onPrimary={onClose}
+          />
+        )
+      }
+    >
+      <div className="grid grid-cols-5 gap-8">
+        <div className="col-span-3 space-y-5">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{typeLabel}</Badge>
+            <Badge
+              variant="outline"
+              className={
+                approval.status === 'pending'
+                  ? 'bg-amber-50 text-amber-700'
+                  : approval.status === 'approved'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-red-50 text-red-700'
+              }
+            >
+              {approval.status === 'pending'
+                ? '待审批'
+                : approval.status === 'approved'
+                  ? '已通过'
+                  : '已拒绝'}
+            </Badge>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">申请理由</h4>
+            <p className="text-sm">{approval.reason}</p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">申请额度</h4>
+            <p className="text-lg font-semibold">¥{approval.requestedQuota.toLocaleString()}</p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">申请模型</h4>
+            <div className="flex flex-wrap gap-1">
+              {approval.requestedModels.map((m) => (
+                <Badge key={m} variant="outline" className="text-xs">
+                  {m}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          {approval.rejectReason && (
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">拒绝理由</h4>
+              <p className="text-sm text-red-600">{approval.rejectReason}</p>
+            </div>
+          )}
+        </div>
+        <div className="col-span-2 rounded-lg bg-slate-50/80 p-5 space-y-3 text-sm">
+          <h4 className="font-semibold">申请信息</h4>
+          <p className="text-muted-foreground">申请人：{approval.applicant}</p>
+          <p className="text-muted-foreground">部门：{approval.department}</p>
+          <p className="text-muted-foreground">申请时间：{approval.createdAt}</p>
+          {approval.approver && (
+            <p className="text-muted-foreground">审批人：{approval.approver}</p>
+          )}
+        </div>
+      </div>
+    </WorkflowPanelChrome>
+  )
+}

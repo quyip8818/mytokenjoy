@@ -1,0 +1,44 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+- `pnpm install` — Install dependencies
+- `pnpm start` / `pnpm dev` — Start Vite dev server with HMR
+- `pnpm build` — TypeScript type-check (`tsc -b`) then Vite production build
+- `pnpm lint` — ESLint across all TS/TSX files
+- `pnpm lint:fix` — ESLint with auto-fix
+- `pnpm format` — Format all files with Prettier
+- `pnpm format:check` — Check formatting without writing
+- `pnpm test` — Run vitest in watch mode
+- `pnpm test:run` — Run vitest once (CI-friendly)
+- `pnpm preview` — Serve the production build locally
+
+To run a single test file: `npx vitest run src/path/to/file.test.ts`
+
+## Architecture
+
+Single-page React app built with Vite 8, React 19, and TypeScript 6.
+
+**Entry point:** `src/main.tsx` → starts MSW service worker in dev mode, then renders `<App />` into `#root`.
+
+**Routing:** `react-router` v7 (imported from `'react-router'`, not `'react-router-dom'`). All routes are nested under `<AdminLayout />` which provides sidebar + header + `<Outlet />`. Route page components live in `src/routes/org/`.
+
+**Styling:** TailwindCSS v4 via the `@tailwindcss/vite` plugin. CSS-first configuration in `src/index.css` — no separate tailwind.config file.
+
+**UI components:** shadcn/ui primitives in `src/components/ui/` (uses `class-variance-authority`, `tailwind-merge`, `lucide-react` icons). The `cn()` utility in `src/lib/utils.ts` merges class names.
+
+**State management:** Zustand v5 — stores are co-located with the features that use them (no central store directory).
+
+**Data fetching:** Custom fetch wrapper in `src/api/client.ts` with a `request<T>()` generic function (base URL: `/api`). Domain-specific API methods are in `src/api/org.ts`, organized as namespaced objects (`dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`). No react-query/SWR — fetches happen directly in effects or event handlers.
+
+**API mocking (dev):** MSW v2 intercepts `/api/org/*` requests. Handlers in `src/mocks/handlers.ts`, fixtures in `src/mocks/data.ts`.
+
+**Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `src/test-setup.ts`. MSW is available for mocking API calls in tests.
+
+**Path alias:** `@/*` resolves to `./src/*` (configured in both vite.config.ts and tsconfig.app.json).
+
+**TypeScript config:** Project references — `tsconfig.app.json` (app code, ES2023, bundler resolution, strict) and `tsconfig.node.json` (tooling). Strict rules: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `erasableSyntaxOnly`.
+
+**ESLint:** Flat config (ESLint 10) with typescript-eslint, react-hooks, and react-refresh plugins.

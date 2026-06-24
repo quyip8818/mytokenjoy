@@ -1,0 +1,105 @@
+import type { DemoRole } from '@/features/demo/roles/constants'
+
+export const DEMO_CTA_IDS = {
+  CREDENTIAL: 'demo-cta-credential',
+  IMPORT: 'demo-cta-import',
+  BUDGET: 'demo-cta-budget',
+  MODEL: 'demo-cta-model',
+  OVERRUN: 'demo-cta-overrun',
+  CREATE_KEY: 'demo-cta-create-key',
+  APPLY_QUOTA: 'demo-cta-apply-quota',
+} as const
+
+export type DemoCtaKey = keyof typeof DEMO_CTA_IDS
+export type DemoCtaId = (typeof DEMO_CTA_IDS)[DemoCtaKey]
+
+export interface DemoGuideStep {
+  id: string
+  title: string
+  description: string
+  path: string
+  ctaId?: DemoCtaId
+  role?: DemoRole
+}
+
+export const DEMO_GUIDE_STORAGE_KEY = 'tokenjoy-demo-guide-completed'
+
+export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
+  {
+    id: 'credential',
+    title: '配置凭证',
+    description: '连接飞书/钉钉/企业微信数据源',
+    path: '/org/data-source',
+    ctaId: DEMO_CTA_IDS.CREDENTIAL,
+    role: 'admin',
+  },
+  {
+    id: 'import',
+    title: '全量导入组织',
+    description: '导入部门与成员到平台',
+    path: '/org/data-source',
+    ctaId: DEMO_CTA_IDS.IMPORT,
+    role: 'admin',
+  },
+  {
+    id: 'structure',
+    title: '查看组织架构',
+    description: '确认导入的部门树与成员',
+    path: '/org/structure',
+    role: 'admin',
+  },
+  {
+    id: 'budget',
+    title: '分配部门预算',
+    description: '在预算总览为节点设置预算与预留池',
+    path: '/budget/overview',
+    ctaId: DEMO_CTA_IDS.BUDGET,
+    role: 'admin',
+  },
+  {
+    id: 'model',
+    title: '添加自定义模型',
+    description: '扩展企业可用模型列表',
+    path: '/models/list',
+    ctaId: DEMO_CTA_IDS.MODEL,
+    role: 'admin',
+  },
+  {
+    id: 'whitelist',
+    title: '配置模型白名单',
+    description: '为部门勾选可用模型',
+    path: '/models/routing',
+    role: 'admin',
+  },
+  {
+    id: 'overrun',
+    title: '设置超限策略',
+    description: '配置全局预警阈值与阻断规则',
+    path: '/budget/alerts',
+    ctaId: DEMO_CTA_IDS.OVERRUN,
+    role: 'admin',
+  },
+  {
+    id: 'create-key',
+    title: '创建 Platform Key',
+    description: '切换为成员视角，创建个人 Key',
+    path: '/keys/mine',
+    ctaId: DEMO_CTA_IDS.CREATE_KEY,
+    role: 'member',
+  },
+  {
+    id: 'apply-quota',
+    title: '申请额度追加',
+    description: '成员发起额度申请',
+    path: '/keys/mine',
+    ctaId: DEMO_CTA_IDS.APPLY_QUOTA,
+    role: 'member',
+  },
+  {
+    id: 'approve',
+    title: '审批申请',
+    description: '切换为 TL 视角，在审批中心处理',
+    path: '/keys/approval',
+    role: 'tl',
+  },
+]
