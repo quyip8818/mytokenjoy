@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { approvalApi } from '@/api/keys'
+import { ApiError } from '@/api/client'
 import { useDemoRole } from '@/features/demo'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
@@ -20,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../use-workflow'
 import { pushModelPicker, useMemberWhitelist } from '../use-member-whitelist'
 import type { ApprovalType } from '@/api/types'
+import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/lib/dashboard-constants'
 
 export function ApprovalSubmitWorkflow({
   entry,
@@ -35,7 +37,7 @@ export function ApprovalSubmitWorkflow({
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
   const [quota, setQuota] = useState('3000')
-  const [models, setModels] = useState<string[]>(['gpt-4o'])
+  const [models, setModels] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   const handlePickModels = () => {
@@ -46,7 +48,20 @@ export function ApprovalSubmitWorkflow({
     })
   }
 
+  const validateModels = async (): Promise<boolean> => {
+    if (type !== 'key' || models.length === 0) return true
+    const allowed = await resolveWhitelist()
+    if (!allowed?.length) return true
+    const invalid = models.filter((m) => !allowed.includes(m))
+    if (invalid.length > 0) {
+      toast.error(MODEL_NOT_IN_DEPT_MESSAGE)
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async () => {
+    if (!(await validateModels())) return
     setSubmitting(true)
     try {
       await approvalApi.create({
@@ -59,8 +74,9 @@ export function ApprovalSubmitWorkflow({
       toast.success('申请已提交')
       onSuccess?.()
       closeAll()
-    } catch {
-      toast.error('提交失败')
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : '提交失败'
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -75,7 +91,7 @@ export function ApprovalSubmitWorkflow({
           onCancel={onClose}
           primaryLabel={submitting ? '提交中...' : '提交申请'}
           onPrimary={handleSubmit}
-          primaryDisabled={!reason.trim() || submitting}
+          primaryDisabled={!reason.trim() || submitting || (type === 'key' && models.length === 0)}
         />
       }
     >
@@ -121,19 +137,23 @@ export function ApprovalSubmitWorkflow({
             }}
           />
         </div>
-        <div className="space-y-3">
-          <Label>申请模型</Label>
-          <Button variant="outline" onClick={handlePickModels}>
-            选择模型 ({models.length})
-          </Button>
-          <div className="flex flex-wrap gap-1">
-            {models.map((m) => (
-              <Badge key={m} variant="outline" className="text-xs">
-                {m}
-              </Badge>
-            ))}
+        {type === 'key' && (
+          <div className="space-y-3">
+            <Label>申请模型</Label>
+            <Button variant="outline" onClick={handlePickModels}>
+              选择模型 {models.length > 0 && `(${models.length})`}
+            </Button>
+            {models.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {models.map((m) => (
+                  <Badge key={m} variant="outline" className="text-xs">
+                    {m}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </WorkflowFormLayout>
     </WorkflowPanelChrome>
   )

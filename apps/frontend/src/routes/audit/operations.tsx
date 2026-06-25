@@ -16,9 +16,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
+import { AuditToolbar } from '@/components/audit/audit-toolbar'
 import { auditApi } from '@/api/audit'
 import { useFilteredResource } from '@/hooks/use-filtered-resource'
 import { getOperationActionBadgeVariant } from '@/lib/labels'
+import { downloadCsv } from '@/lib/csv-export'
 
 const actionLabels: Record<string, string> = {
   key_create: 'Key 创建',
@@ -46,6 +48,21 @@ export default function OperationLogsPage() {
     return res.items
   }, 'all')
 
+  const handleExport = () => {
+    downloadCsv(
+      'operation-audit.csv',
+      ['时间', '操作类型', '操作人', '操作对象', '详情', 'IP'],
+      logs.map((log) => [
+        log.createdAt,
+        actionLabels[log.action] ?? log.action,
+        log.operator,
+        log.target,
+        log.detail,
+        log.ip,
+      ]),
+    )
+  }
+
   return (
     <AuditFilteredPage
       title="操作记录"
@@ -57,21 +74,24 @@ export default function OperationLogsPage() {
         description: '调整筛选条件或完成管理操作后，记录将显示在这里',
       }}
       actions={
-        <Select value={actionFilter} onValueChange={(v) => setActionFilter(v ?? 'all')}>
-          <SelectTrigger className="w-40 border-border/60 focus:ring-blue-500">
-            <SelectValue placeholder="全部类型" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部类型</SelectItem>
-            <SelectItem value="key_create">Key 创建</SelectItem>
-            <SelectItem value="key_disable">Key 禁用</SelectItem>
-            <SelectItem value="budget_change">预算变更</SelectItem>
-            <SelectItem value="budget_approve">预算审批</SelectItem>
-            <SelectItem value="permission_change">权限变更</SelectItem>
-            <SelectItem value="model_whitelist_change">白名单变更</SelectItem>
-            <SelectItem value="org_structure_change">组织结构变更</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Select value={actionFilter} onValueChange={(v) => setActionFilter(v ?? 'all')}>
+            <SelectTrigger className="w-40 border-border/60 focus:ring-blue-500">
+              <SelectValue placeholder="全部类型" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部类型</SelectItem>
+              <SelectItem value="key_create">Key 创建</SelectItem>
+              <SelectItem value="key_disable">Key 禁用</SelectItem>
+              <SelectItem value="budget_change">预算变更</SelectItem>
+              <SelectItem value="budget_approve">预算审批</SelectItem>
+              <SelectItem value="permission_change">权限变更</SelectItem>
+              <SelectItem value="model_whitelist_change">白名单变更</SelectItem>
+              <SelectItem value="org_structure_change">组织结构变更</SelectItem>
+            </SelectContent>
+          </Select>
+          <AuditToolbar onExport={handleExport} />
+        </div>
       }
     >
       <Table>

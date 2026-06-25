@@ -1,11 +1,23 @@
 import { http, HttpResponse } from 'msw'
 import { API_BASE_PATH } from '@/config/app'
+import type { AuditSettings } from '@/api/types'
 import { paginate } from '../lib/paginate'
 import { parseIntParam } from '../lib/parse'
 import { mockOperationLogs, mockCallLogs } from '../data'
 
+let mockAuditSettings: AuditSettings = {
+  contentRetentionEnabled: true,
+}
+
 export const auditHandlers = [
-  // ========== 审计日志 ==========
+  http.get(`${API_BASE_PATH}/audit/settings`, () => {
+    return HttpResponse.json(mockAuditSettings)
+  }),
+  http.put(`${API_BASE_PATH}/audit/settings`, async ({ request }) => {
+    const body = (await request.json()) as AuditSettings
+    mockAuditSettings = { ...mockAuditSettings, ...body }
+    return HttpResponse.json(mockAuditSettings)
+  }),
   http.get(`${API_BASE_PATH}/audit/operations`, ({ request }) => {
     const url = new URL(request.url)
     const action = url.searchParams.get('action')

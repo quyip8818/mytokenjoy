@@ -134,8 +134,6 @@ export interface Paginated<T> {
 
 // ========== 预算管理 ==========
 
-export type OverrunPolicy = 'hard_reject' | 'approval' | 'downgrade'
-
 export interface BudgetNode {
   id: string
   name: string
@@ -144,7 +142,6 @@ export interface BudgetNode {
   consumed: number
   reservedPool?: number
   children?: BudgetNode[]
-  overrunPolicy: OverrunPolicy
   period: string
 }
 
@@ -276,17 +273,29 @@ export interface RoutingRule {
 
 export interface CostSummary {
   totalCost: number
-  monthOverMonth: number // 环比百分比
+  monthOverMonth: number
   totalTokens: number
   totalRequests: number
   avgCostPerRequest: number
+  avgCostPerMember: number
 }
+
+export type CostPeriod = 'current_month' | 'last_month' | 'last_7_days'
 
 export interface DepartmentCost {
   departmentId: string
   departmentName: string
   cost: number
   percentage: number
+  hasChildren?: boolean
+}
+
+export interface DepartmentCostMember {
+  memberId: string
+  memberName: string
+  cost: number
+  requests: number
+  tokens: number
 }
 
 export interface DailyCost {
@@ -365,4 +374,8 @@ export interface CallLog {
   createdAt: string
   inputPreview: string
   outputPreview: string
+}
+
+export interface AuditSettings {
+  contentRetentionEnabled: boolean
 }

@@ -8,7 +8,6 @@ export const mockBudgetTree: BudgetNode[] = [
     budget: 100000,
     consumed: 67500,
     reservedPool: 5000,
-    overrunPolicy: 'approval',
     period: '2026-06',
     children: [
       {
@@ -18,7 +17,6 @@ export const mockBudgetTree: BudgetNode[] = [
         budget: 50000,
         consumed: 38200,
         reservedPool: 2000,
-        overrunPolicy: 'approval',
         period: '2026-06',
         children: [
           {
@@ -28,7 +26,6 @@ export const mockBudgetTree: BudgetNode[] = [
             budget: 25000,
             consumed: 21000,
             reservedPool: 1500,
-            overrunPolicy: 'hard_reject',
             period: '2026-06',
           },
           {
@@ -37,7 +34,6 @@ export const mockBudgetTree: BudgetNode[] = [
             parentId: 'dept-2',
             budget: 15000,
             consumed: 11200,
-            overrunPolicy: 'downgrade',
             period: '2026-06',
           },
           {
@@ -46,7 +42,6 @@ export const mockBudgetTree: BudgetNode[] = [
             parentId: 'dept-2',
             budget: 10000,
             consumed: 6000,
-            overrunPolicy: 'approval',
             period: '2026-06',
           },
         ],
@@ -57,7 +52,6 @@ export const mockBudgetTree: BudgetNode[] = [
         parentId: 'dept-1',
         budget: 20000,
         consumed: 14300,
-        overrunPolicy: 'downgrade',
         period: '2026-06',
       },
       {
@@ -66,7 +60,6 @@ export const mockBudgetTree: BudgetNode[] = [
         parentId: 'dept-1',
         budget: 15000,
         consumed: 8500,
-        overrunPolicy: 'hard_reject',
         period: '2026-06',
       },
       {
@@ -75,7 +68,6 @@ export const mockBudgetTree: BudgetNode[] = [
         parentId: 'dept-1',
         budget: 15000,
         consumed: 6500,
-        overrunPolicy: 'hard_reject',
         period: '2026-06',
       },
     ],

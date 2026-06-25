@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
+import { AuditToolbar } from '@/components/audit/audit-toolbar'
 import { StatusBadge } from '@/components/ui/status-badge'
 import {
   Select,
@@ -19,7 +20,9 @@ import {
 } from '@/components/ui/select'
 import { auditApi } from '@/api/audit'
 import { useFilteredResource } from '@/hooks/use-filtered-resource'
+import { useAuditSettings } from '@/hooks/use-audit-settings'
 import { CALL_LOG_STATUS_VARIANTS } from '@/lib/labels'
+import { downloadCsv } from '@/lib/csv-export'
 
 const statusLabels: Record<string, string> = {
   success: '成功',
@@ -29,6 +32,7 @@ const statusLabels: Record<string, string> = {
 
 export default function CallLogsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const { contentRetentionEnabled } = useAuditSettings()
   const {
     data: logs = [],
     loading,
@@ -39,6 +43,24 @@ export default function CallLogsPage() {
     const res = await auditApi.getCalls(params)
     return res.items
   }, 'all')
+
+  const handleExport = () => {
+    downloadCsv(
+      'call-audit.csv',
+      ['时间', '调用方', '类型', '模型', '输入Token', '输出Token', '延迟', '费用', '状态'],
+      logs.map((log) => [
+        log.createdAt,
+        log.caller,
+        log.callerType === 'member' ? '成员' : '应用',
+        log.model,
+        log.inputTokens,
+        log.outputTokens,
+        `${log.latencyMs}ms`,
+        log.cost.toFixed(2),
+        statusLabels[log.status] ?? log.status,
+      ]),
+    )
+  }
 
   return (
     <AuditFilteredPage
@@ -51,17 +73,20 @@ export default function CallLogsPage() {
         description: '模型 API 调用成功后，日志将显示在这里',
       }}
       actions={
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
-          <SelectTrigger className="w-32 border-border/60 focus:ring-blue-500">
-            <SelectValue placeholder="全部状态" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            <SelectItem value="success">成功</SelectItem>
-            <SelectItem value="error">错误</SelectItem>
-            <SelectItem value="filtered">已过滤</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
+            <SelectTrigger className="w-32 border-border/60 focus:ring-blue-500">
+              <SelectValue placeholder="全部状态" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="success">成功</SelectItem>
+              <SelectItem value="error">错误</SelectItem>
+              <SelectItem value="filtered">已过滤</SelectItem>
+            </SelectContent>
+          </Select>
+          <AuditToolbar onExport={handleExport} />
+        </div>
       }
     >
       <Table>
@@ -83,16 +108,21 @@ export default function CallLogsPage() {
           {logs.map((log) => {
             const statusVariant = CALL_LOG_STATUS_VARIANTS[log.status] ?? 'success'
             const isExpanded = expandedId === log.id
+            const canExpand = contentRetentionEnabled
             return (
               <Fragment key={log.id}>
                 <TableRow
-                  className="cursor-pointer"
-                  onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                  className={canExpand ? 'cursor-pointer' : undefined}
+                  onClick={() => {
+                    if (canExpand) setExpandedId(isExpanded ? null : log.id)
+                  }}
                 >
                   <TableCell className="w-6 pr-0">
-                    <ChevronRight
-                      className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                    />
+                    {canExpand && (
+                      <ChevronRight
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
                     {log.createdAt}
@@ -122,7 +152,7 @@ export default function CallLogsPage() {
                     </StatusBadge>
                   </TableCell>
                 </TableRow>
-                {isExpanded && (
+                {isExpanded && canExpand && (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={10} className="bg-blue-50/20 p-4">
                       <div className="grid grid-cols-2 gap-4 text-sm">

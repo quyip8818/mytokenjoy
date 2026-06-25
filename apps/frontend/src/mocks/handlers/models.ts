@@ -5,6 +5,7 @@ import {
   getRoutingRuleForDept,
   getParentDeptId,
   shrinkChildRoutingRules,
+  resolveDeptAllowedModels,
   mockModels,
   mockRoutingRules,
 } from '../lib/routing-helpers'
@@ -60,11 +61,7 @@ export const modelsHandlers = [
     const parentId = getParentDeptId(rule.nodeId)
     const parentRule = parentId ? mockRoutingRules.find((r) => r.nodeId === parentId) : undefined
     const parentCount = parentRule?.allowedModels.length ?? rule.allowedModels.length
-    let allowedModels = rule.allowedModels
-    if (rule.inherited && parentRule) {
-      allowedModels = rule.allowedModels.filter((m) => parentRule.allowedModels.includes(m))
-      if (allowedModels.length === 0) allowedModels = [...parentRule.allowedModels]
-    }
+    const allowedModels = resolveDeptAllowedModels(deptId)
     return HttpResponse.json({
       inherited: rule.inherited,
       allowedModels,

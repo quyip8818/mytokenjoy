@@ -21,6 +21,21 @@ export function getParentDeptId(deptId: string): string | null {
   return deptParentMap().get(deptId) ?? null
 }
 
+export function resolveDeptAllowedModels(deptId: string): string[] {
+  const rule = getRoutingRuleForDept(deptId)
+  if (!rule) {
+    return mockModels.filter((m) => m.enabled).map((m) => m.name)
+  }
+  const parentId = getParentDeptId(rule.nodeId)
+  const parentRule = parentId ? mockRoutingRules.find((r) => r.nodeId === parentId) : undefined
+  let allowedModels = rule.allowedModels
+  if (rule.inherited && parentRule) {
+    allowedModels = rule.allowedModels.filter((m) => parentRule.allowedModels.includes(m))
+    if (allowedModels.length === 0) allowedModels = [...parentRule.allowedModels]
+  }
+  return allowedModels
+}
+
 export function shrinkChildRoutingRules(parentNodeId: string, parentAllowed: string[]) {
   for (const rule of mockRoutingRules) {
     const parentId = getParentDeptId(rule.nodeId)

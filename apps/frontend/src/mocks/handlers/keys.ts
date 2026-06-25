@@ -1,7 +1,15 @@
 import { http, HttpResponse, delay } from 'msw'
 import { API_BASE_PATH } from '@/config/app'
+import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/lib/dashboard-constants'
 import { getReservedPoolForMember } from '../lib/budget-lookup'
+import {
+  addPersonalQuota,
+  buildQuotaSummary,
+  getPersonalQuota,
+  getQuotaRemaining,
+} from '../lib/member-quota'
 import { findMemberById } from '../lib/query'
+import { resolveDeptAllowedModels } from '../lib/routing-helpers'
 import {
   mockProviderKeys,
   mockPlatformKeys,
@@ -10,8 +18,16 @@ import {
   mockMembers,
 } from '../data'
 
+function validateModelsForMember(memberId: string, models: string[]): string | null {
+  const member = findMemberById(mockMembers, memberId)
+  if (!member || models.length === 0) return null
+  const allowed = resolveDeptAllowedModels(member.departmentId)
+  const invalid = models.filter((m) => !allowed.includes(m))
+  if (invalid.length > 0) return MODEL_NOT_IN_DEPT_MESSAGE
+  return null
+}
+
 export const keysHandlers = [
-  // ========== API-KEY 管理 ==========
   http.get(`${API_BASE_PATH}/keys/provider`, () => {
     return HttpResponse.json(mockProviderKeys)
   }),
@@ -67,22 +83,27 @@ export const keysHandlers = [
   http.get(`${API_BASE_PATH}/keys/platform/quota-summary`, ({ request }) => {
     const url = new URL(request.url)
     const memberId = url.searchParams.get('memberId') ?? 'm-1'
-    const keys = mockPlatformKeys.filter((k) => k.memberId === memberId && k.status === 'active')
-    const totalQuota = keys.reduce((sum, k) => sum + k.quota, 0)
-    const used = keys.reduce((sum, k) => sum + k.used, 0)
-    return HttpResponse.json({
-      totalQuota,
-      used,
-      remaining: Math.max(0, totalQuota - used),
-      reservedPool: getReservedPoolForMember(mockBudgetTree, mockMembers, memberId),
-    })
+    const reservedPool = getReservedPoolForMember(mockBudgetTree, mockMembers, memberId)
+    return HttpResponse.json(buildQuotaSummary(memberId, reservedPool))
   }),
   http.post(`${API_BASE_PATH}/keys/platform`, async ({ request }) => {
     await delay(500)
     const body = (await request.json()) as Record<string, unknown>
-    const fullKey = `tj-${Date.now()}-demo-secret-key`
     const memberId = (body.memberId as string) ?? null
-    const member = memberId ? findMemberById(mockMembers, memberId) : undefined
+    if (!memberId) {
+      return HttpResponse.json({ message: 'memberId required' }, { status: 400 })
+    }
+    const quota = body.quota as number
+    const modelWhitelist = body.modelWhitelist as string[]
+    const modelError = validateModelsForMember(memberId, modelWhitelist)
+    if (modelError) {
+      return HttpResponse.json({ message: modelError }, { status: 422 })
+    }
+    if (quota > getQuotaRemaining(memberId)) {
+      return HttpResponse.json({ message: '额度不足，请先申请追加' }, { status: 422 })
+    }
+    const fullKey = `tj-${Date.now()}-demo-secret-key`
+    const member = findMemberById(mockMembers, memberId)
     const newKey = {
       id: `plk-${Date.now()}`,
       name: body.name as string,
@@ -91,9 +112,9 @@ export const keysHandlers = [
       memberId,
       memberName: member?.name ?? null,
       appName: (body.appName as string) ?? null,
-      quota: body.quota as number,
+      quota,
       used: 0,
-      modelWhitelist: body.modelWhitelist as string[],
+      modelWhitelist,
       status: 'active' as const,
       createdAt: new Date().toISOString().slice(0, 10),
       expiresAt: null,
@@ -105,11 +126,26 @@ export const keysHandlers = [
     await delay(300)
     const body = (await request.json()) as Record<string, unknown>
     const idx = mockPlatformKeys.findIndex((k) => k.id === params.id)
-    if (idx >= 0) {
-      mockPlatformKeys[idx] = { ...mockPlatformKeys[idx], ...body }
-      return HttpResponse.json(mockPlatformKeys[idx])
+    if (idx < 0) return HttpResponse.json(null, { status: 404 })
+    const existing = mockPlatformKeys[idx]
+    const memberId = existing.memberId
+    if (body.modelWhitelist && memberId) {
+      const modelError = validateModelsForMember(memberId, body.modelWhitelist as string[])
+      if (modelError) {
+        return HttpResponse.json({ message: modelError }, { status: 422 })
+      }
     }
-    return HttpResponse.json(null, { status: 404 })
+    if (body.quota !== undefined && memberId) {
+      const otherAllocated = mockPlatformKeys
+        .filter((k) => k.memberId === memberId && k.status === 'active' && k.id !== existing.id)
+        .reduce((sum, k) => sum + k.quota, 0)
+      const newTotal = otherAllocated + (body.quota as number)
+      if (newTotal > getPersonalQuota(memberId)) {
+        return HttpResponse.json({ message: '额度不足，请先申请追加' }, { status: 422 })
+      }
+    }
+    mockPlatformKeys[idx] = { ...existing, ...body }
+    return HttpResponse.json(mockPlatformKeys[idx])
   }),
   http.put(`${API_BASE_PATH}/keys/platform/:id/toggle`, async ({ params, request }) => {
     await delay(300)
@@ -142,7 +178,11 @@ export const keysHandlers = [
     await delay(300)
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.delete(`${API_BASE_PATH}/keys/platform/:id`, () => {
+  http.delete(`${API_BASE_PATH}/keys/platform/:id`, ({ params }) => {
+    const idx = mockPlatformKeys.findIndex((k) => k.id === params.id)
+    if (idx >= 0) {
+      mockPlatformKeys.splice(idx, 1)
+    }
     return HttpResponse.json(null, { status: 200 })
   }),
   http.get(`${API_BASE_PATH}/keys/approvals`, ({ request }) => {
@@ -161,6 +201,11 @@ export const keysHandlers = [
     await delay(400)
     const body = (await request.json()) as Record<string, unknown>
     const memberId = body.memberId as string
+    const requestedModels = body.requestedModels as string[]
+    const modelError = validateModelsForMember(memberId, requestedModels)
+    if (modelError) {
+      return HttpResponse.json({ message: modelError }, { status: 422 })
+    }
     const member = findMemberById(mockMembers, memberId)
     const approval = {
       id: `apv-${Date.now()}`,
@@ -170,7 +215,7 @@ export const keysHandlers = [
       department: member?.departmentName ?? '',
       reason: body.reason as string,
       requestedQuota: body.requestedQuota as number,
-      requestedModels: body.requestedModels as string[],
+      requestedModels,
       status: 'pending' as const,
       approver: null,
       createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
@@ -207,6 +252,10 @@ export const keysHandlers = [
     if (approval.type === 'key') {
       const member = mockMembers.find((m) => m.id === approval.applicantId)
       const fullKey = `tj-apv-${Date.now()}-demo-secret-key`
+      const keyQuota = approval.requestedQuota
+      if (keyQuota > getQuotaRemaining(approval.applicantId)) {
+        addPersonalQuota(approval.applicantId, keyQuota - getQuotaRemaining(approval.applicantId))
+      }
       mockPlatformKeys.push({
         id: `plk-apv-${Date.now()}`,
         name: `${approval.applicant}-审批 Key`,
@@ -215,7 +264,7 @@ export const keysHandlers = [
         memberId: approval.applicantId,
         memberName: member?.name ?? approval.applicant,
         appName: null,
-        quota: approval.requestedQuota,
+        quota: keyQuota,
         used: 0,
         modelWhitelist: approval.requestedModels,
         status: 'active',
@@ -223,16 +272,7 @@ export const keysHandlers = [
         expiresAt: null,
       })
     } else if (approval.type === 'quota') {
-      const memberKey = mockPlatformKeys.find(
-        (k) => k.memberId === approval.applicantId && k.status === 'active',
-      )
-      if (memberKey) {
-        const keyIdx = mockPlatformKeys.findIndex((k) => k.id === memberKey.id)
-        mockPlatformKeys[keyIdx] = {
-          ...memberKey,
-          quota: memberKey.quota + approval.requestedQuota,
-        }
-      }
+      addPersonalQuota(approval.applicantId, approval.requestedQuota)
     }
 
     mockApprovals[idx] = {
