@@ -32,9 +32,15 @@ interface DepartmentTreeProps {
   selectedId: string | undefined
   onSelect: (dept: Department | undefined) => void
   onTreeChange: () => void
+  readOnly?: boolean
 }
 
-export function DepartmentTree({ selectedId, onSelect, onTreeChange }: DepartmentTreeProps) {
+export function DepartmentTree({
+  selectedId,
+  onSelect,
+  onTreeChange,
+  readOnly = false,
+}: DepartmentTreeProps) {
   const { open } = useWorkflow()
   const [tree, setTree] = useState<Department[]>([])
   const [search, setSearch] = useState('')
@@ -169,6 +175,7 @@ export function DepartmentTree({ selectedId, onSelect, onTreeChange }: Departmen
             <span className="flex-1 truncate">{highlightText(dept.name, search)}</span>
           )}
           <span className="text-xs text-muted-foreground mr-1">{dept.memberCount}</span>
+          {!readOnly && (
           <div
             className="hidden group-hover:flex items-center gap-0.5"
             onClick={(e) => e.stopPropagation()}
@@ -220,6 +227,7 @@ export function DepartmentTree({ selectedId, onSelect, onTreeChange }: Departmen
               <TooltipContent>删除</TooltipContent>
             </Tooltip>
           </div>
+          )}
         </div>
         {hasChildren && isExpanded && dept.children!.map((child) => renderNode(child, level + 1))}
       </div>
@@ -239,6 +247,7 @@ export function DepartmentTree({ selectedId, onSelect, onTreeChange }: Departmen
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {!readOnly && (
           <Tooltip>
             <TooltipTrigger
               render={
@@ -254,6 +263,7 @@ export function DepartmentTree({ selectedId, onSelect, onTreeChange }: Departmen
             </TooltipTrigger>
             <TooltipContent>添加子部门</TooltipContent>
           </Tooltip>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {filteredTree.map((dept) => renderNode(dept, 0))}

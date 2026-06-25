@@ -21,9 +21,15 @@ import { useFilteredResource } from '@/hooks/use-filtered-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
 import { useRowHighlight } from '@/lib/use-row-highlight'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { usePermissions } from '@/hooks/use-permissions'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function ApprovalPage() {
   const { memberId } = useDemoRole()
+  const { has } = usePermissions()
+  const canApprove = has(PERMISSION.BUDGET_APPROVE)
+  const canSubmit = has(PERMISSION.SELF_APPROVAL)
   const { flashRow, rowClass } = useRowHighlight()
   const {
     data: approvals = [],
@@ -47,6 +53,7 @@ export default function ApprovalPage() {
   const hasQuotaType = useMemo(() => approvals.some((a) => a.type === 'quota'), [approvals])
 
   const handleRowClick = (approval: KeyApproval) => {
+    if (!canApprove && approval.status === 'pending') return
     openWithRefresh('approval-review', { approval })
   }
 
@@ -55,9 +62,11 @@ export default function ApprovalPage() {
   return (
     <PageShell
       actions={
-        <Button variant="brand" onClick={openSubmit}>
-          发起申请
-        </Button>
+        <PermissionGate permission={PERMISSION.SELF_APPROVAL}>
+          <Button variant="brand" onClick={openSubmit}>
+            发起申请
+          </Button>
+        </PermissionGate>
       }
     >
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
@@ -83,8 +92,8 @@ export default function ApprovalPage() {
               title: '暂无审批记录',
               description:
                 tab === 'pending' ? '当前没有待处理的审批申请' : '发起申请后记录将显示在这里',
-              actionLabel: '发起申请',
-              onAction: openSubmit,
+              actionLabel: canSubmit ? '发起申请' : undefined,
+              onAction: canSubmit ? openSubmit : undefined,
             })}
           >
             <Table>

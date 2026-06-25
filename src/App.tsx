@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
-import { getDefaultHomePath } from '@/features/demo'
+import { DEFAULT_DEMO_MEMBER_ID } from '@/features/demo'
+import { getDefaultHomePathForMemberId } from '@/features/demo/roles/constants'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import DataSourcePage from '@/routes/org/data-source'
 import StructurePage from '@/routes/org/structure'
@@ -23,7 +24,10 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route element={<AdminLayout />}>
-          <Route index element={<Navigate to={getDefaultHomePath('admin')} replace />} />
+          <Route
+            index
+            element={<Navigate to={getDefaultHomePathForMemberId(DEFAULT_DEMO_MEMBER_ID)} replace />}
+          />
           <Route path="dashboard/cost" element={<CostDashboardPage />} />
           <Route path="dashboard/usage" element={<UsageDashboardPage />} />
           <Route path="org/data-source" element={<DataSourcePage />} />

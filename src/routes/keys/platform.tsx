@@ -9,6 +9,8 @@ import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
 import { useRowHighlight } from '@/lib/use-row-highlight'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function PlatformKeysPage() {
   const { flashRow, rowClass } = useRowHighlight()
@@ -34,9 +36,11 @@ export default function PlatformKeysPage() {
   return (
     <PageShell
       actions={
-        <Button size="sm" variant="brand" onClick={openCreateKey}>
-          代建 Key
-        </Button>
+        <PermissionGate write permission={PERMISSION.KEYS_ADMIN}>
+          <Button size="sm" variant="brand" onClick={openCreateKey}>
+            代建 Key
+          </Button>
+        </PermissionGate>
       }
     >
       <DataSection

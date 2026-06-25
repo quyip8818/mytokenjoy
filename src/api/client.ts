@@ -10,11 +10,19 @@ export class ApiError extends Error {
   }
 }
 
+let demoMemberIdProvider: (() => string | null) | null = null
+
+export function setDemoMemberIdProvider(provider: () => string | null): void {
+  demoMemberIdProvider = provider
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_PATH}${path}`
+  const memberId = demoMemberIdProvider?.()
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
+      ...(memberId ? { 'X-Demo-Member-Id': memberId } : {}),
       ...options.headers,
     },
     ...options,

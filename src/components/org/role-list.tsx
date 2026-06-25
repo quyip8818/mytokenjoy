@@ -13,6 +13,7 @@ interface RoleListProps {
   onAdd: () => void
   onEdit: (role: Role) => void
   onDelete: (role: Role) => void
+  readOnly?: boolean
 }
 
 export function RoleList({
@@ -22,6 +23,7 @@ export function RoleList({
   onAdd,
   onEdit,
   onDelete,
+  readOnly = false,
 }: RoleListProps) {
   const [search, setSearch] = useState('')
 
@@ -36,9 +38,11 @@ export function RoleList({
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">角色</h3>
-          <Button size="xs" onClick={onAdd}>
-            添加角色
-          </Button>
+          {!readOnly && (
+            <Button size="xs" onClick={onAdd}>
+              添加角色
+            </Button>
+          )}
         </div>
         <Input
           type="text"
@@ -58,6 +62,7 @@ export function RoleList({
             onSelect={onSelect}
             onEdit={onEdit}
             onDelete={onDelete}
+            readOnly={readOnly}
           />
         )}
         {customRoles.length > 0 && (
@@ -70,6 +75,7 @@ export function RoleList({
               onSelect={onSelect}
               onEdit={onEdit}
               onDelete={onDelete}
+              readOnly={readOnly}
             />
           </>
         )}
@@ -88,6 +94,7 @@ function RoleGroup({
   onSelect,
   onEdit,
   onDelete,
+  readOnly = false,
 }: {
   title: string
   roles: Role[]
@@ -95,6 +102,7 @@ function RoleGroup({
   onSelect: (role: Role) => void
   onEdit: (role: Role) => void
   onDelete: (role: Role) => void
+  readOnly?: boolean
 }) {
   return (
     <div className="mb-3">
@@ -107,6 +115,7 @@ function RoleGroup({
           onSelect={() => onSelect(role)}
           onEdit={() => onEdit(role)}
           onDelete={() => onDelete(role)}
+          readOnly={readOnly}
         />
       ))}
     </div>
@@ -119,12 +128,14 @@ function RoleItem({
   onSelect,
   onEdit,
   onDelete,
+  readOnly = false,
 }: {
   role: Role
   selected: boolean
   onSelect: () => void
   onEdit: () => void
   onDelete: () => void
+  readOnly?: boolean
 }) {
   return (
     <div
@@ -138,7 +149,7 @@ function RoleItem({
         <Badge variant="secondary" className="text-[10px] px-1.5">
           {role.memberCount}
         </Badge>
-        {role.type === 'custom' && (
+        {role.type === 'custom' && !readOnly && (
           <div className="hidden group-hover:flex gap-0.5">
             <Button
               variant="ghost"

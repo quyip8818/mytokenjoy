@@ -22,10 +22,15 @@ import { listEmpty } from '@/lib/list-empty'
 import { useRowHighlight } from '@/lib/use-row-highlight'
 import { PROVIDER_CHIP_STYLES, PROVIDER_LABELS } from '@/lib/labels'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { usePermissions } from '@/hooks/use-permissions'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function ModelListPage() {
   const { flashRow, rowClass } = useRowHighlight()
   const modelCta = useDemoCta('MODEL')
+  const { has } = usePermissions()
+  const canManage = has(PERMISSION.MODEL_MANAGE)
   const { data: models = [], loading, refresh } = useAsyncResource(() => modelApi.list(), [])
   const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
 
@@ -41,15 +46,17 @@ export default function ModelListPage() {
   return (
     <PageShell
       actions={
-        <Button
-          id={modelCta.id}
-          size="sm"
-          variant="brand"
-          className={modelCta.className}
-          onClick={openCreate}
-        >
-          添加模型
-        </Button>
+        <PermissionGate write permission={PERMISSION.MODEL_MANAGE}>
+          <Button
+            id={modelCta.id}
+            size="sm"
+            variant="brand"
+            className={modelCta.className}
+            onClick={openCreate}
+          >
+            添加模型
+          </Button>
+        </PermissionGate>
       }
     >
       <DataSection
@@ -59,8 +66,8 @@ export default function ModelListPage() {
           icon: Box,
           title: '暂无模型',
           description: '添加自定义模型以扩展可用模型列表',
-          actionLabel: '添加模型',
-          onAction: openCreate,
+          actionLabel: canManage ? '添加模型' : undefined,
+          onAction: canManage ? openCreate : undefined,
         })}
       >
         <Table>
@@ -109,7 +116,13 @@ export default function ModelListPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Switch checked={model.enabled} onCheckedChange={() => handleToggle(model)} />
+                  {canManage ? (
+                    <Switch checked={model.enabled} onCheckedChange={() => handleToggle(model)} />
+                  ) : (
+                    <StatusBadge variant={model.enabled ? 'success' : 'neutral'}>
+                      {model.enabled ? '启用' : '禁用'}
+                    </StatusBadge>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

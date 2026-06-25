@@ -118,6 +118,12 @@ export interface Permission {
   group: string
 }
 
+export interface SessionContext {
+  member: Member
+  permissions: string[]
+  readOnly: boolean
+}
+
 // 通用分页
 export interface Paginated<T> {
   items: T[]

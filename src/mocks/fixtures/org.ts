@@ -196,7 +196,7 @@ export const mockRoles: Role[] = [
     id: 'role-6',
     name: ROLE_BUDGET_APPROVER,
     type: 'custom',
-    permissions: ['budget:approve', 'budget:read'],
+    permissions: ['p-6'],
     memberCount: countMembersByRole(mockMembers, ROLE_BUDGET_APPROVER),
   },
 ]

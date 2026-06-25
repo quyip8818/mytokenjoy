@@ -16,6 +16,13 @@ import {
   mockPermissions,
   mockPlatformKeys,
 } from '../data'
+import { ROLE_MEMBER, countMembersByRole } from '../lib/member-factory'
+
+function recalcRoleMemberCounts() {
+  for (const role of mockRoles) {
+    role.memberCount = countMembersByRole(mockMembers, role.name)
+  }
+}
 
 export const orgHandlers = [
   // ========== 数据源 ==========
@@ -186,13 +193,34 @@ export const orgHandlers = [
   }),
   http.post(`${API_BASE_PATH}/org/roles`, async ({ request }) => {
     const body = (await request.json()) as { name: string; permissions: string[] }
-    return HttpResponse.json({ id: `role-${Date.now()}`, ...body, type: 'custom', memberCount: 0 })
+    const role = {
+      id: `role-${Date.now()}`,
+      ...body,
+      type: 'custom' as const,
+      memberCount: 0,
+    }
+    mockRoles.push(role)
+    return HttpResponse.json(role)
   }),
-  http.put(`${API_BASE_PATH}/org/roles/:id`, async ({ request }) => {
-    const body = await request.json()
-    return HttpResponse.json(body)
+  http.put(`${API_BASE_PATH}/org/roles/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as { name: string; permissions: string[] }
+    const idx = mockRoles.findIndex((r) => r.id === params.id)
+    if (idx < 0) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    mockRoles[idx] = { ...mockRoles[idx], ...body }
+    return HttpResponse.json(mockRoles[idx])
   }),
-  http.delete(`${API_BASE_PATH}/org/roles/:id`, () => {
+  http.delete(`${API_BASE_PATH}/org/roles/:id`, ({ params }) => {
+    const idx = mockRoles.findIndex((r) => r.id === params.id)
+    if (idx < 0) return HttpResponse.json(null, { status: 404 })
+    const role = mockRoles[idx]
+    if (role.type === 'preset') {
+      return HttpResponse.json({ message: 'Cannot delete preset role' }, { status: 400 })
+    }
+    for (const member of mockMembers) {
+      member.roles = member.roles.filter((name) => name !== role.name)
+    }
+    mockRoles.splice(idx, 1)
+    recalcRoleMemberCounts()
     return HttpResponse.json(null, { status: 200 })
   }),
   http.get(`${API_BASE_PATH}/org/roles/:roleId/members`, ({ params }) => {
@@ -200,10 +228,27 @@ export const orgHandlers = [
     if (!role) return HttpResponse.json([])
     return HttpResponse.json(mockMembers.filter((m) => m.roles.includes(role.name)))
   }),
-  http.post(`${API_BASE_PATH}/org/roles/:roleId/members`, () => {
+  http.post(`${API_BASE_PATH}/org/roles/:roleId/members`, async ({ params, request }) => {
+    const body = (await request.json()) as { memberId: string }
+    const role = mockRoles.find((r) => r.id === params.roleId)
+    const member = mockMembers.find((m) => m.id === body.memberId)
+    if (role && member && !member.roles.includes(role.name)) {
+      member.roles = [...member.roles, role.name]
+      recalcRoleMemberCounts()
+    }
     return HttpResponse.json(null, { status: 200 })
   }),
-  http.delete(`${API_BASE_PATH}/org/roles/:roleId/members/:memberId`, () => {
+  http.delete(`${API_BASE_PATH}/org/roles/:roleId/members/:memberId`, ({ params }) => {
+    const role = mockRoles.find((r) => r.id === params.roleId)
+    const member = mockMembers.find((m) => m.id === params.memberId)
+    if (!role || !member) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    }
+    if (role.name === ROLE_MEMBER) {
+      return HttpResponse.json({ message: 'Cannot remove base member role' }, { status: 400 })
+    }
+    member.roles = member.roles.filter((name) => name !== role.name)
+    recalcRoleMemberCounts()
     return HttpResponse.json(null, { status: 200 })
   }),
   http.get(`${API_BASE_PATH}/org/permissions`, () => {

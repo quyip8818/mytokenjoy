@@ -8,6 +8,8 @@ import { PageShell } from '@/components/layout/page-shell'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflow } from '@/features/workflow/use-workflow'
+import { useDemoRole } from '@/features/demo'
+import { usePermissions } from '@/hooks/use-permissions'
 import { Shield } from 'lucide-react'
 import {
   AlertDialog,
@@ -23,6 +25,8 @@ import { toast } from 'sonner'
 
 export default function RolesPage() {
   const { open } = useWorkflow()
+  const { memberId, refreshSession } = useDemoRole()
+  const { canWrite } = usePermissions()
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<Role | null>(null)
   const [removeConfirm, setRemoveConfirm] = useState<{ member: Member; role: Role } | null>(null)
@@ -96,6 +100,7 @@ export default function RolesPage() {
     }
     setDeleteConfirm(null)
     await refreshRoles()
+    await refreshSession()
   }
 
   const handleRemoveMember = (member: Member) => {
@@ -113,6 +118,9 @@ export default function RolesPage() {
     setRemoveConfirm(null)
     void refreshMembers()
     await refreshRoles()
+    if (removeConfirm.member.id === memberId) {
+      await refreshSession()
+    }
   }
 
   const handleAddMember = () => {
@@ -124,6 +132,7 @@ export default function RolesPage() {
       onSuccess: async () => {
         await refreshMembers()
         await refreshRoles()
+        await refreshSession()
       },
     })
   }
@@ -146,6 +155,7 @@ export default function RolesPage() {
             onAdd={handleAddRole}
             onEdit={handleEditRole}
             onDelete={handleDeleteRole}
+            readOnly={!canWrite}
           />
         </DataSection>
       }
@@ -157,14 +167,15 @@ export default function RolesPage() {
             members={members}
             onRemoveMember={handleRemoveMember}
             onAddMember={handleAddMember}
+            readOnly={!canWrite}
           />
         ) : (
           <EmptyState
             icon={Shield}
             title="请选择一个角色"
             description="从左侧列表选择角色查看成员，或创建新角色"
-            actionLabel="创建角色"
-            onAction={handleAddRole}
+            actionLabel={canWrite ? '创建角色' : undefined}
+            onAction={canWrite ? handleAddRole : undefined}
           />
         )}
       </DataSection>

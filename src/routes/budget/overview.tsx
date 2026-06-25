@@ -23,6 +23,8 @@ import { useDemoCta } from '@/features/demo'
 import { computeUnallocated, findBudgetNode } from '@/lib/budget'
 import { listEmpty } from '@/lib/list-empty'
 import { cn } from '@/lib/utils'
+import { usePermissions } from '@/hooks/use-permissions'
+import { PERMISSION } from '@/lib/permissions'
 
 function BudgetRow({
   node,
@@ -31,6 +33,7 @@ function BudgetRow({
   onAllocate,
   allocateHighlight,
   allocateCtaId,
+  canAllocate = true,
 }: {
   node: BudgetNode
   depth: number
@@ -38,6 +41,7 @@ function BudgetRow({
   onAllocate: (node: BudgetNode, parent: BudgetNode | null) => void
   allocateHighlight?: string
   allocateCtaId?: string
+  canAllocate?: boolean
 }) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children && node.children.length > 0
@@ -70,15 +74,17 @@ function BudgetRow({
           <BudgetProgressCell value={node.consumed} total={node.budget} />
         </TableCell>
         <TableCell className="w-[120px]">
-          <Button
-            id={depth === 0 ? allocateCtaId : undefined}
-            variant="ghost"
-            size="sm"
-            className={cn(depth === 0 ? allocateHighlight : undefined)}
-            onClick={() => onAllocate(node, parent)}
-          >
-            分配
-          </Button>
+          {canAllocate ? (
+            <Button
+              id={depth === 0 ? allocateCtaId : undefined}
+              variant="ghost"
+              size="sm"
+              className={cn(depth === 0 ? allocateHighlight : undefined)}
+              onClick={() => onAllocate(node, parent)}
+            >
+              分配
+            </Button>
+          ) : null}
         </TableCell>
       </TableRow>
       {expanded &&
@@ -89,6 +95,7 @@ function BudgetRow({
             depth={depth + 1}
             tree={tree}
             onAllocate={onAllocate}
+            canAllocate={canAllocate}
           />
         ))}
     </>
@@ -97,6 +104,8 @@ function BudgetRow({
 
 export default function BudgetOverviewPage() {
   const budgetCta = useDemoCta('BUDGET')
+  const { has } = usePermissions()
+  const canAllocate = has(PERMISSION.BUDGET_ALLOCATE)
   const { data: tree = [], loading, refresh } = useAsyncResource(() => budgetApi.getTree(), [])
   const { openWithRefresh } = useWorkflowRefresh(refresh)
 
@@ -159,6 +168,7 @@ export default function BudgetOverviewPage() {
                 onAllocate={handleAllocate}
                 allocateHighlight={budgetCta.className}
                 allocateCtaId={budgetCta.id}
+                canAllocate={canAllocate}
               />
             ))}
           </TableBody>

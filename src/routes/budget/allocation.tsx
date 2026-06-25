@@ -19,6 +19,9 @@ import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
 import { useRowHighlight } from '@/lib/use-row-highlight'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { usePermissions } from '@/hooks/use-permissions'
+import { PERMISSION } from '@/lib/permissions'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +31,7 @@ import {
 
 export default function BudgetAllocationPage() {
   const { flashRow, rowClass } = useRowHighlight()
+  const { canWrite } = usePermissions()
   const { data, loading, refresh } = useAsyncResource(async () => {
     const [groups, tree] = await Promise.all([budgetApi.getGroups(), budgetApi.getTree()])
     return { groups, tree }
@@ -54,9 +58,11 @@ export default function BudgetAllocationPage() {
         </p>
       }
       actions={
-        <Button size="sm" variant="brand" onClick={() => openForm()}>
-          新建预算组
-        </Button>
+        <PermissionGate write permission={PERMISSION.BUDGET_ALLOCATE}>
+          <Button size="sm" variant="brand" onClick={() => openForm()}>
+            新建预算组
+          </Button>
+        </PermissionGate>
       }
     >
       <DataSection
@@ -97,21 +103,23 @@ export default function BudgetAllocationPage() {
                   </StatusBadge>
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openForm(g)}>管理</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(g.id)}>
-                        删除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {canWrite ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openForm(g)}>管理</DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(g.id)}>
+                          删除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))}

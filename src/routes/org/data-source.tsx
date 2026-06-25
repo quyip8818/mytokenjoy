@@ -16,6 +16,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { PERMISSION } from '@/lib/permissions'
 
 const platformLabels: Record<Platform, string> = {
   feishu: '飞书',
@@ -104,30 +106,34 @@ export default function DataSourcePage() {
             </span>
           </div>
           <div className="flex gap-2">
-            <Button
-              id={credentialCta.id}
-              variant="outline"
-              size="sm"
-              className={cn(credentialCta.className)}
-              onClick={openCredential}
-            >
-              配置凭证
-            </Button>
-            <Button variant="outline" size="sm" onClick={openSyncConfig}>
-              编辑同步策略
-            </Button>
+            <PermissionGate write>
+              <Button
+                id={credentialCta.id}
+                variant="outline"
+                size="sm"
+                className={cn(credentialCta.className)}
+                onClick={openCredential}
+              >
+                配置凭证
+              </Button>
+              <Button variant="outline" size="sm" onClick={openSyncConfig}>
+                编辑同步策略
+              </Button>
+            </PermissionGate>
           </div>
         </div>
       ) : (
-        <EmptyState
-          icon={Plug}
-          title="尚未连接第三方平台"
-          description="连接后可导入组织"
-          actionLabel="配置凭证"
-          onAction={openCredential}
-          actionClassName={credentialCta.className}
-          actionId={credentialCta.id}
-        />
+        <PermissionGate write permission={PERMISSION.ORG_DATASOURCE}>
+          <EmptyState
+            icon={Plug}
+            title="尚未连接第三方平台"
+            description="连接后可导入组织"
+            actionLabel="配置凭证"
+            onAction={openCredential}
+            actionClassName={credentialCta.className}
+            actionId={credentialCta.id}
+          />
+        </PermissionGate>
       )}
 
       {status.connected && (
@@ -135,16 +141,18 @@ export default function DataSourcePage() {
           <DataSection
             title="全量导入"
             headerAction={
-              <Button
-                id={importCta.id}
-                size="sm"
-                variant="brand"
-                className={cn(importCta.className)}
-                onClick={handleImport}
-                disabled={importing}
-              >
-                {importing ? '导入中...' : '执行全量导入'}
-              </Button>
+              <PermissionGate write permission={PERMISSION.ORG_DATASOURCE}>
+                <Button
+                  id={importCta.id}
+                  size="sm"
+                  variant="brand"
+                  className={cn(importCta.className)}
+                  onClick={handleImport}
+                  disabled={importing}
+                >
+                  {importing ? '导入中...' : '执行全量导入'}
+                </Button>
+              </PermissionGate>
             }
           >
             {displayImportResult ? (
@@ -163,9 +171,11 @@ export default function DataSourcePage() {
           <DataSection
             title="同步策略"
             headerAction={
-              <Button variant="outline" size="sm" onClick={openSyncConfig}>
-                编辑
-              </Button>
+              <PermissionGate write permission={PERMISSION.ORG_DATASOURCE}>
+                <Button variant="outline" size="sm" onClick={openSyncConfig}>
+                  编辑
+                </Button>
+              </PermissionGate>
             }
             loading={!syncConfig}
             loadingVariant="spinner"

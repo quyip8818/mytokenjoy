@@ -1,5 +1,3 @@
-import type { DemoRole } from '@/features/demo/roles/constants'
-
 export const DEMO_CTA_IDS = {
   CREDENTIAL: 'demo-cta-credential',
   IMPORT: 'demo-cta-import',
@@ -19,7 +17,7 @@ export interface DemoGuideStep {
   description: string
   path: string
   ctaId?: DemoCtaId
-  role?: DemoRole
+  memberId?: string
 }
 
 export const DEMO_GUIDE_STORAGE_KEY = 'tokenjoy-demo-guide-completed'
@@ -31,7 +29,7 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '连接飞书/钉钉/企业微信数据源',
     path: '/org/data-source',
     ctaId: DEMO_CTA_IDS.CREDENTIAL,
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'import',
@@ -39,14 +37,14 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '导入部门与成员到平台',
     path: '/org/data-source',
     ctaId: DEMO_CTA_IDS.IMPORT,
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'structure',
     title: '查看组织架构',
     description: '确认导入的部门树与成员',
     path: '/org/structure',
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'budget',
@@ -54,7 +52,7 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '在预算总览为节点设置预算与预留池',
     path: '/budget/overview',
     ctaId: DEMO_CTA_IDS.BUDGET,
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'model',
@@ -62,14 +60,14 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '扩展企业可用模型列表',
     path: '/models/list',
     ctaId: DEMO_CTA_IDS.MODEL,
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'whitelist',
     title: '配置模型白名单',
     description: '为部门勾选可用模型',
     path: '/models/routing',
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'overrun',
@@ -77,7 +75,7 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '配置全局预警阈值与阻断规则',
     path: '/budget/alerts',
     ctaId: DEMO_CTA_IDS.OVERRUN,
-    role: 'admin',
+    memberId: 'm-admin',
   },
   {
     id: 'create-key',
@@ -85,7 +83,7 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '切换为成员视角，创建个人 Key',
     path: '/keys/mine',
     ctaId: DEMO_CTA_IDS.CREATE_KEY,
-    role: 'member',
+    memberId: 'm-1',
   },
   {
     id: 'apply-quota',
@@ -93,13 +91,13 @@ export const DEMO_GUIDE_STEPS: DemoGuideStep[] = [
     description: '成员发起额度申请',
     path: '/keys/mine',
     ctaId: DEMO_CTA_IDS.APPLY_QUOTA,
-    role: 'member',
+    memberId: 'm-1',
   },
   {
     id: 'approve',
     title: '审批申请',
-    description: '切换为 TL 视角，在审批中心处理',
+    description: '切换为李四视角，在审批中心处理',
     path: '/keys/approval',
-    role: 'tl',
+    memberId: 'm-2',
   },
 ]

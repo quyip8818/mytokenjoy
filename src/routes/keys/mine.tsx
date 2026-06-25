@@ -40,6 +40,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function MyKeysPage() {
   const { memberId } = useDemoRole()
@@ -87,24 +89,28 @@ export default function MyKeysPage() {
     <PageShell
       actions={
         <>
-          <Button
-            id={applyQuotaCta.id}
-            variant="outline"
-            className={cn(applyQuotaCta.className)}
-            onClick={() => openWithRefresh('approval-submit', { defaultType: 'quota' })}
-          >
-            申请额度
-          </Button>
-          <Button
-            id={createKeyCta.id}
-            variant="brand"
-            className={createKeyCta.className}
-            disabled={quota !== null && quota.remaining <= 0}
-            onClick={openCreateKey}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            创建 Key
-          </Button>
+          <PermissionGate permission={PERMISSION.SELF_APPROVAL}>
+            <Button
+              id={applyQuotaCta.id}
+              variant="outline"
+              className={cn(applyQuotaCta.className)}
+              onClick={() => openWithRefresh('approval-submit', { defaultType: 'quota' })}
+            >
+              申请额度
+            </Button>
+          </PermissionGate>
+          <PermissionGate write permission={PERMISSION.SELF_KEYS}>
+            <Button
+              id={createKeyCta.id}
+              variant="brand"
+              className={createKeyCta.className}
+              disabled={quota !== null && quota.remaining <= 0}
+              onClick={openCreateKey}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              创建 Key
+            </Button>
+          </PermissionGate>
         </>
       }
       stats={
@@ -167,42 +173,44 @@ export default function MyKeysPage() {
                   <KeyStatusBadge status={key.status} />
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => open('key-edit', { key, onSuccess: refresh })}
-                      >
-                        编辑
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          open('key-rotate-confirm', {
-                            key,
-                            onRotate: (k: PlatformKey) => platformKeyApi.rotate(k.id),
-                            onDone: refresh,
-                          })
+                  <PermissionGate write permission={PERMISSION.SELF_KEYS}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
                         }
-                      >
-                        重新生成
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggle(key)}>
-                        {key.status === 'active' ? '禁用' : '启用'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => setDeleteTarget(key)}
-                      >
-                        删除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      />
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => open('key-edit', { key, onSuccess: refresh })}
+                        >
+                          编辑
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            open('key-rotate-confirm', {
+                              key,
+                              onRotate: (k: PlatformKey) => platformKeyApi.rotate(k.id),
+                              onDone: refresh,
+                            })
+                          }
+                        >
+                          重新生成
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggle(key)}>
+                          {key.status === 'active' ? '禁用' : '启用'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={() => setDeleteTarget(key)}
+                        >
+                          删除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </PermissionGate>
                 </TableCell>
               </TableRow>
             ))}

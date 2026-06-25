@@ -3,7 +3,7 @@ import { CheckCircle2, Circle, Map } from 'lucide-react'
 import { DEMO_GUIDE_STEPS } from './constants'
 import { useDemoGuide } from '@/features/demo'
 import { useDemoRole } from '@/features/demo/roles/use-demo-role'
-import { DEMO_ROLE_PROFILES } from '@/features/demo/roles/constants'
+import { getSwitchableMember } from '@/features/demo/roles/constants'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 
 export function DemoGuidePanel() {
   const navigate = useNavigate()
-  const { role, setRole } = useDemoRole()
+  const { memberId, setMemberId } = useDemoRole()
   const {
     open,
     setOpen,
@@ -30,8 +30,8 @@ export function DemoGuidePanel() {
   const completedCount = DEMO_GUIDE_STEPS.filter((s) => completed.has(s.id)).length
 
   const handleGoToStep = (step: (typeof DEMO_GUIDE_STEPS)[number]) => {
-    if (step.role && step.role !== role) {
-      setRole(step.role)
+    if (step.memberId && step.memberId !== memberId) {
+      void setMemberId(step.memberId)
     }
     setOpen(false)
     navigate(step.path)
@@ -62,6 +62,7 @@ export function DemoGuidePanel() {
           {DEMO_GUIDE_STEPS.map((step, index) => {
             const done = completed.has(step.id)
             const isActive = step.ctaId && highlightCtaId === step.ctaId
+            const memberProfile = step.memberId ? getSwitchableMember(step.memberId) : undefined
             return (
               <div
                 key={step.id}
@@ -83,10 +84,8 @@ export function DemoGuidePanel() {
                     {index + 1}. {step.title}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
-                  {step.role && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      视角：{DEMO_ROLE_PROFILES[step.role].label}
-                    </p>
+                  {memberProfile && (
+                    <p className="text-xs text-blue-600 mt-1">身份：{memberProfile.label}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-1 shrink-0">

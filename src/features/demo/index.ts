@@ -1,11 +1,10 @@
 export { DemoProvider } from './demo-provider'
 
-export type { DemoRole } from './roles/constants'
 export {
-  DEMO_ROLE_PROFILES,
-  DEMO_ROLES,
-  DEMO_ROLE_HOME,
-  getDefaultHomePath,
+  DEFAULT_DEMO_MEMBER_ID,
+  DEMO_SWITCHABLE_MEMBERS,
+  getSwitchableMember,
+  type DemoSwitchableMember,
 } from './roles/constants'
 export { DemoRoleProvider } from './roles/provider'
 export { useDemoRole } from './roles/use-demo-role'

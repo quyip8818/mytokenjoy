@@ -18,6 +18,7 @@ interface RoleMemberTableProps {
   members: Member[]
   onRemoveMember: (member: Member) => void
   onAddMember: () => void
+  readOnly?: boolean
 }
 
 export function RoleMemberTable({
@@ -25,6 +26,7 @@ export function RoleMemberTable({
   members,
   onRemoveMember,
   onAddMember,
+  readOnly = false,
 }: RoleMemberTableProps) {
   const [search, setSearch] = useState('')
 
@@ -39,9 +41,11 @@ export function RoleMemberTable({
             {role.type === 'preset' ? '系统预设角色' : '自定义角色'} · {members.length} 名成员
           </p>
         </div>
-        <Button variant="brand" onClick={onAddMember}>
-          添加角色成员
-        </Button>
+        {!readOnly && (
+          <Button variant="brand" onClick={onAddMember}>
+            添加角色成员
+          </Button>
+        )}
       </div>
 
       <div className="mb-3">
@@ -60,13 +64,13 @@ export function RoleMemberTable({
             <TableRow className="hover:bg-transparent">
               <TableHead className="px-4">姓名</TableHead>
               <TableHead className="px-4">角色</TableHead>
-              <TableHead className="px-4 text-right">操作</TableHead>
+              {!readOnly && <TableHead className="px-4 text-right">操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="border-0 p-0">
+                <TableCell colSpan={readOnly ? 2 : 3} className="border-0 p-0">
                   <EmptyState compact title="暂无成员" description="添加成员到此角色" />
                 </TableCell>
               </TableRow>
@@ -83,16 +87,18 @@ export function RoleMemberTable({
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="px-4 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => onRemoveMember(member)}
-                    >
-                      移除
-                    </Button>
-                  </TableCell>
+                  {!readOnly && (
+                    <TableCell className="px-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => onRemoveMember(member)}
+                      >
+                        移除
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

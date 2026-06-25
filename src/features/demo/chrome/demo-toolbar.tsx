@@ -1,5 +1,5 @@
 import { Map } from 'lucide-react'
-import { DEMO_ROLES } from '@/features/demo/roles/constants'
+import { DEMO_SWITCHABLE_MEMBERS } from '@/features/demo/roles/constants'
 import { useDemoRole } from '@/features/demo/roles/use-demo-role'
 import { useDemoGuide } from '@/features/demo/guide/use-demo-guide'
 import { DemoGuidePanel } from '@/features/demo/guide/demo-guide-panel'
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 
 export function DemoToolbar() {
-  const { role, displayName, initials, setRole } = useDemoRole()
+  const { memberId, displayName, initials, roles, setMemberId } = useDemoRole()
   const { setOpen } = useDemoGuide()
 
   return (
@@ -24,14 +24,19 @@ export function DemoToolbar() {
           <span className="hidden sm:inline">演示引导</span>
         </Button>
         <div className="hidden h-5 w-px bg-border/60 sm:block" aria-hidden />
-        <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
-          <SelectTrigger className="h-8 w-[7.5rem] text-xs">
+        <Select
+          value={memberId}
+          onValueChange={(v) => {
+            if (v) void setMemberId(v)
+          }}
+        >
+          <SelectTrigger className="h-8 w-[11rem] text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {DEMO_ROLES.map((r) => (
-              <SelectItem key={r.id} value={r.id}>
-                {r.label}
+            {DEMO_SWITCHABLE_MEMBERS.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -40,9 +45,12 @@ export function DemoToolbar() {
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-sky-500 text-[10px] font-semibold text-white shadow-sm">
             {initials}
           </div>
-          <span className="hidden text-sm font-medium text-foreground/80 md:inline">
-            {displayName}
-          </span>
+          <div className="hidden min-w-0 md:block">
+            <span className="block truncate text-sm font-medium text-foreground/80">{displayName}</span>
+            <span className="block max-w-[10rem] truncate text-[10px] text-muted-foreground">
+              {roles.join(' · ')}
+            </span>
+          </div>
         </div>
       </div>
       <DemoGuidePanel />

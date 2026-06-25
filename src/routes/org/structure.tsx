@@ -40,10 +40,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { usePermissions } from '@/hooks/use-permissions'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function StructurePage() {
   const { open } = useWorkflow()
   const { setSubtitle } = usePageSubtitle()
+  const { canWrite } = usePermissions()
   const [selectedDept, setSelectedDept] = useState<Department | undefined>()
   const [page, setPage] = useState(1)
   const [directOnly, setDirectOnly] = useState(false)
@@ -198,6 +202,7 @@ export default function StructurePage() {
           selectedId={selectedDept?.id}
           onSelect={handleSelectDept}
           onTreeChange={refreshDepartments}
+          readOnly={!canWrite}
         />
       }
     >
@@ -212,16 +217,20 @@ export default function StructurePage() {
               <StatusBadge variant="warning">未激活 {inactiveCount} 人</StatusBadge>
             )}
             {approvalPendingCount > 0 && (
-              <Link to="/keys/approval" className="text-sm text-blue-600 hover:text-blue-500">
-                待审批申请: {approvalPendingCount} → 去审批
-              </Link>
+              <PermissionGate permission={PERMISSION.BUDGET_APPROVE}>
+                <Link to="/keys/approval" className="text-sm text-blue-600 hover:text-blue-500">
+                  待审批申请: {approvalPendingCount} → 去审批
+                </Link>
+              </PermissionGate>
             )}
           </div>
-          {inactiveCount > 0 && (
-            <Button size="sm" variant="outline" onClick={handleBatchInvite}>
-              批量发送邀请
-            </Button>
-          )}
+          <PermissionGate write>
+            {inactiveCount > 0 && (
+              <Button size="sm" variant="outline" onClick={handleBatchInvite}>
+                批量发送邀请
+              </Button>
+            )}
+          </PermissionGate>
         </CardContent>
       </Card>
 
@@ -244,52 +253,56 @@ export default function StructurePage() {
         </Select>
 
         {selectedIds.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              批量操作 ({selectedIds.length})
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleBatchTransfer}>批量转移部门</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'active')}>
-                批量启用
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'inactive')}>
-                批量停用
-              </DropdownMenuItem>
-              <DropdownMenuItem variant="destructive" onClick={() => handleDelete(selectedIds)}>
-                批量删除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <PermissionGate write>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                批量操作 ({selectedIds.length})
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleBatchTransfer}>批量转移部门</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'active')}>
+                  批量启用
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange(selectedIds, 'inactive')}>
+                  批量停用
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => handleDelete(selectedIds)}>
+                  批量删除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </PermissionGate>
         )}
 
         <div className="flex-1" />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            open('member-import', {
-              defaultDeptName: selectedDept?.name,
-              onSuccess: refreshMembers,
-            })
-          }
-        >
-          导入成员
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            open('member-invite', {
-              onSubmit: handleInvite,
-            })
-          }
-        >
-          邀请成员
-        </Button>
-        <Button size="sm" variant="brand" onClick={() => openMemberForm(null)}>
-          添加成员
-        </Button>
+        <PermissionGate write>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              open('member-import', {
+                defaultDeptName: selectedDept?.name,
+                onSuccess: refreshMembers,
+              })
+            }
+          >
+            导入成员
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              open('member-invite', {
+                onSubmit: handleInvite,
+              })
+            }
+          >
+            邀请成员
+          </Button>
+          <Button size="sm" variant="brand" onClick={() => openMemberForm(null)}>
+            添加成员
+          </Button>
+        </PermissionGate>
       </div>
 
       <DataSection
@@ -303,8 +316,8 @@ export default function StructurePage() {
                 description: selectedDept
                   ? `${selectedDept.name} 下还没有成员`
                   : '请先选择部门或添加成员',
-                actionLabel: '添加成员',
-                onAction: () => openMemberForm(null),
+                actionLabel: canWrite ? '添加成员' : undefined,
+                onAction: canWrite ? () => openMemberForm(null) : undefined,
               }
             : null
         }
@@ -320,6 +333,7 @@ export default function StructurePage() {
           onDelete={handleDelete}
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
+          readOnly={!canWrite}
         />
       </DataSection>
 

@@ -7,6 +7,8 @@ import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function BudgetAlertsPage() {
   const overrunCta = useDemoCta('OVERRUN')
@@ -30,15 +32,17 @@ export default function BudgetAlertsPage() {
         loading={loading}
         loadingVariant="spinner"
         headerAction={
-          <Button
-            id={overrunCta.id}
-            size="sm"
-            variant="brand"
-            className={overrunCta.className}
-            onClick={() => openWithRefresh('overrun-policy')}
-          >
-            编辑策略
-          </Button>
+          <PermissionGate write permission={PERMISSION.BUDGET_POLICY}>
+            <Button
+              id={overrunCta.id}
+              size="sm"
+              variant="brand"
+              className={overrunCta.className}
+              onClick={() => openWithRefresh('overrun-policy')}
+            >
+              编辑策略
+            </Button>
+          </PermissionGate>
         }
       >
         {policy && (

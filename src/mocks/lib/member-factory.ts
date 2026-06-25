@@ -90,6 +90,28 @@ const ANCHOR_MEMBERS: Member[] = [
     roles: [ROLE_MEMBER],
     source: 'imported',
   },
+  {
+    id: 'm-auditor',
+    name: '孙审计',
+    phone: '13512345678',
+    email: 'sunaudit@example.com',
+    departmentId: 'dept-8',
+    departmentName: '行政部',
+    status: 'active',
+    roles: [ROLE_MEMBER, ROLE_AUDITOR],
+    source: 'manual',
+  },
+  {
+    id: 'm-pure',
+    name: '周八',
+    phone: '13412345678',
+    email: 'zhouba@example.com',
+    departmentId: 'dept-3',
+    departmentName: '后端组',
+    status: 'active',
+    roles: [ROLE_MEMBER],
+    source: 'manual',
+  },
 ]
 
 function pickStatus(index: number): MemberStatus {

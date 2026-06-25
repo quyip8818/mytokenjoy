@@ -16,6 +16,8 @@ import type { RoutingRule } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
+import { PermissionGate } from '@/components/auth/permission-gate'
+import { PERMISSION } from '@/lib/permissions'
 
 export default function ModelRoutingPage() {
   const { data: rules = [], loading, refresh } = useAsyncResource(() => routingApi.getRules(), [])
@@ -71,13 +73,15 @@ export default function ModelRoutingPage() {
                   </StatusBadge>
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openWithRefresh('whitelist-config', { rule })}
-                  >
-                    配置
-                  </Button>
+                  <PermissionGate write permission={PERMISSION.MODEL_WHITELIST}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openWithRefresh('whitelist-config', { rule })}
+                    >
+                      配置
+                    </Button>
+                  </PermissionGate>
                 </TableCell>
               </TableRow>
             ))}

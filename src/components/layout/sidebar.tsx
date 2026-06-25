@@ -1,12 +1,13 @@
 import { NavLink, useLocation } from 'react-router'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups } from '@/config/nav'
-import { useDemoRole, useApprovalPendingCount } from '@/features/demo'
+import { useApprovalPendingCount } from '@/features/demo'
+import { usePermissions } from '@/hooks/use-permissions'
 
 export function Sidebar() {
   const location = useLocation()
-  const { role } = useDemoRole()
-  const navGroups = getVisibleNavGroups(role)
+  const { permissions } = usePermissions()
+  const navGroups = getVisibleNavGroups(permissions)
   const approvalPendingCount = useApprovalPendingCount()
 
   const getBadge = (badgeKey?: string) => {

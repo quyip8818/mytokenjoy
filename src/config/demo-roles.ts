@@ -1,2 +1,6 @@
-export type { DemoRole } from '@/features/demo'
-export { DEMO_ROLE_PROFILES, DEMO_ROLES, DEMO_ROLE_HOME, getDefaultHomePath } from '@/features/demo'
+export {
+  DEFAULT_DEMO_MEMBER_ID,
+  DEMO_SWITCHABLE_MEMBERS,
+  getSwitchableMember,
+  type DemoSwitchableMember,
+} from '@/features/demo'

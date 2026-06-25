@@ -37,6 +37,7 @@ interface MemberTableProps {
   onDelete: (ids: string[]) => void
   rowSelection: RowSelectionState
   onRowSelectionChange: (selection: RowSelectionState) => void
+  readOnly?: boolean
 }
 
 function maskPhone(phone: string): string {
@@ -68,25 +69,31 @@ export function MemberTable({
   onDelete,
   rowSelection,
   onRowSelectionChange,
+  readOnly = false,
 }: MemberTableProps) {
-  const columns = useMemo(
-    () => [
-      columnHelper.display({
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(checked) => table.toggleAllPageRowsSelected(!!checked)}
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(checked) => row.toggleSelected(!!checked)}
-          />
-        ),
-        size: 40,
-      }),
+  const columns = useMemo(() => {
+    const cols = []
+    if (!readOnly) {
+      cols.push(
+        columnHelper.display({
+          id: 'select',
+          header: ({ table }) => (
+            <Checkbox
+              checked={table.getIsAllPageRowsSelected()}
+              onCheckedChange={(checked) => table.toggleAllPageRowsSelected(!!checked)}
+            />
+          ),
+          cell: ({ row }) => (
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(checked) => row.toggleSelected(!!checked)}
+            />
+          ),
+          size: 40,
+        }),
+      )
+    }
+    cols.push(
       columnHelper.accessor('name', {
         header: '姓名',
         cell: (info) => <span className="font-medium text-foreground">{info.getValue()}</span>,
@@ -105,42 +112,46 @@ export function MemberTable({
           return <Badge variant={s.variant}>{s.label}</Badge>
         },
       }),
-      columnHelper.display({
-        id: 'actions',
-        header: '操作',
-        cell: ({ row }) => {
-          const member = row.original
-          return (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="xs" onClick={() => onEdit(member)}>
-                编辑
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="ghost" size="xs" />}>
-                  更多
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {member.status === 'active' ? (
-                    <DropdownMenuItem onClick={() => onStatusChange([member.id], 'inactive')}>
-                      停用
+    )
+    if (!readOnly) {
+      cols.push(
+        columnHelper.display({
+          id: 'actions',
+          header: '操作',
+          cell: ({ row }) => {
+            const member = row.original
+            return (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="xs" onClick={() => onEdit(member)}>
+                  编辑
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="xs" />}>
+                    更多
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {member.status === 'active' ? (
+                      <DropdownMenuItem onClick={() => onStatusChange([member.id], 'inactive')}>
+                        停用
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => onStatusChange([member.id], 'active')}>
+                        启用
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem variant="destructive" onClick={() => onDelete([member.id])}>
+                      删除
                     </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={() => onStatusChange([member.id], 'active')}>
-                      启用
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem variant="destructive" onClick={() => onDelete([member.id])}>
-                    删除
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )
-        },
-      }),
-    ],
-    [onEdit, onStatusChange, onDelete],
-  )
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )
+          },
+        }),
+      )
+    }
+    return cols
+  }, [onEdit, onStatusChange, onDelete, readOnly])
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns unstable function refs
   const table = useReactTable({
