@@ -308,7 +308,19 @@ Demo 可整体通过 `USE_MOCKS` 与 `DemoProvider` 开关。
 
 ---
 
-## 10. Mock 与测试
+## 10. Demo API 与测试
+
+Demo 模式下，`/api/*` 由 MSW 在浏览器内实现（**Demo API**），返回内存 fake 数据；`api/*.ts` 与生产共用同一调用链，不访问外部后端。
+
+**Handler 分工**（[`handlers/index.ts`](../apps/frontend/src/mocks/handlers/index.ts)）：
+
+| 导出 | 用于 | 行为 |
+| --- | --- | --- |
+| `domainHandlers` | 域 mock 实现 | session / org / budget / … |
+| `browserHandlers` | [`browser.ts`](../apps/frontend/src/mocks/browser.ts) | `domainHandlers` + `fallbackHandlers`（未匹配 API → 501 JSON，避免 SPA 回退 HTML） |
+| `serverHandlers` | [`server.ts`](../apps/frontend/src/mocks/server.ts) / Vitest | 仅 `domainHandlers`；未 mock 请求触发 `onUnhandledRequest: 'error'` |
+
+Demo session 加载失败时通过 `sessionError` + `DemoSessionGate` 展示 `ErrorState`，不静默清空为无权限空会话。
 
 ### 10.1 MSW 布局
 
@@ -318,13 +330,14 @@ mocks/
 ├── server.ts               setupServer（Vitest）
 ├── start-browser-worker.ts 浏览器启动封装
 ├── handlers/{domain}.ts    与 api 同域
+├── handlers/fallback.ts    未匹配 API 路径 → 501 JSON
 ├── fixtures/{domain}.ts    静态种子数据
 ├── data.ts                 可变内存 store
 └── lib/                    paginate、query、parse 等 mock 工具
 ```
 
-- 开发 / GitHub Pages：`startBrowserMockWorker()`，`onUnhandledRequest: 'bypass'`
-- 测试：`tests/setup.ts` 挂载 `server`，`onUnhandledRequest: 'error'`
+- 开发 / GitHub Pages：`startBrowserMockWorker()` 使用 `browserHandlers`，`onUnhandledRequest: 'bypass'`（静态资源 bypass；API 由 domain + fallback 消化）
+- 测试：`tests/setup.ts` 挂载 `serverHandlers`，`onUnhandledRequest: 'error'`（漏写 handler 立即失败）
 
 Mock 工具仅放 `mocks/lib/`，禁止进入 `src/lib/`。
 

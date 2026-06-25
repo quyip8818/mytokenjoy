@@ -1,5 +1,4 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
-import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { setDemoMemberIdProvider } from '@/api/client'
@@ -20,6 +19,7 @@ export interface DemoRoleStoreState {
   displayName: string
   initials: string
   loading: boolean
+  sessionError: Error | null
   setMemberId: (memberId: string) => Promise<void>
   refreshSession: () => Promise<void>
 }
@@ -36,7 +36,15 @@ function profileFromMember(member: Member) {
 }
 
 function resolveInitialMemberId(memberId: string): string {
-  return DEMO_SWITCHABLE_MEMBERS.some((m) => m.id === memberId) ? memberId : DEFAULT_DEMO_MEMBER_ID
+  if (DEMO_SWITCHABLE_MEMBERS.some((m) => m.id === memberId)) {
+    return memberId
+  }
+  if (import.meta.env.DEV) {
+    console.warn(
+      `[Demo] Unknown member id "${memberId}", using default "${DEFAULT_DEMO_MEMBER_ID}"`,
+    )
+  }
+  return DEFAULT_DEMO_MEMBER_ID
 }
 
 export function createDemoRoleStore(
@@ -54,8 +62,9 @@ export function createDemoRoleStore(
     displayName: fallback?.displayName ?? '用户',
     initials: fallback?.initials ?? '?',
     loading: true,
+    sessionError: null,
     setMemberId: async (memberId: string) => {
-      set({ memberId, loading: true })
+      set({ memberId, loading: true, sessionError: null })
       await get().refreshSession()
     },
     refreshSession: async () => {
@@ -71,16 +80,14 @@ export function createDemoRoleStore(
           displayName: profile.displayName,
           initials: profile.initials,
           loading: false,
+          sessionError: null,
         })
-      } catch {
+      } catch (error) {
+        const sessionError = error instanceof Error ? error : new Error(String(error))
         set({
-          member: null,
-          permissions: [],
-          readOnly: false,
-          roles: [],
           loading: false,
+          sessionError,
         })
-        toast.error('Failed to load session')
       }
     },
   }))

@@ -20,5 +20,16 @@ export function HomeRedirect() {
     )
   }
 
-  return <Navigate to={getDefaultHomePath(permissions)} replace />
+  const homePath = getDefaultHomePath(permissions)
+  if (!homePath) {
+    return (
+      <EmptyState
+        title="No default page available"
+        description="Your permissions do not match any configured home page. Use the sidebar to navigate."
+        className="m-6"
+      />
+    )
+  }
+
+  return <Navigate to={homePath} replace />
 }

@@ -89,7 +89,7 @@ describe('getDefaultHomePath', () => {
     expect(getDefaultHomePath([PERMISSION.BUDGET_READ])).toBe(ROUTES.budgetOverview)
   })
 
-  it('falls back to cost dashboard when no candidate matches', () => {
-    expect(getDefaultHomePath([PERMISSION.API_CALL])).toBe(ROUTES.dashboardCost)
+  it('returns null when no home candidate matches', () => {
+    expect(getDefaultHomePath([PERMISSION.API_CALL])).toBeNull()
   })
 })

@@ -18,7 +18,8 @@ export function DemoRoleNavigationBridge() {
       isFirstRender.current = false
       previousMemberId.current = memberId
       if (!canAccessRoute(location.pathname, permissions)) {
-        navigate(getDefaultHomePath(permissions), { replace: true })
+        const home = getDefaultHomePath(permissions)
+        navigate(home ?? '/', { replace: true })
       }
       return
     }
@@ -26,13 +27,14 @@ export function DemoRoleNavigationBridge() {
     if (previousMemberId.current !== memberId) {
       previousMemberId.current = memberId
       const home = getDefaultHomePath(permissions)
-      navigate(home)
+      navigate(home ?? '/')
       toast.info(`已切换为${displayName}视角`)
       return
     }
 
     if (!canAccessRoute(location.pathname, permissions)) {
-      navigate(getDefaultHomePath(permissions), { replace: true })
+      const home = getDefaultHomePath(permissions)
+      navigate(home ?? '/', { replace: true })
       toast.info('当前身份无权访问该页面')
     }
   }, [memberId, displayName, permissions, loading, location.pathname, navigate])

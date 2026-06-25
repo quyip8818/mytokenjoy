@@ -4,6 +4,7 @@ import { DemoRoleProvider } from './roles/provider'
 import { DemoGuideProvider } from './guide/provider'
 import { DemoRoleNavigationBridge } from './roles/navigation-bridge'
 import { DesktopOnlyHint } from './chrome/desktop-only-hint'
+import { DemoSessionGate } from './demo-session-gate'
 import type { DemoRoleStoreState } from './roles/store'
 import type { DemoGuideStoreState } from './guide/store'
 
@@ -18,7 +19,7 @@ export function DemoProvider({ children, roleStore, guideStore }: DemoProviderPr
     <DemoRoleProvider store={roleStore}>
       <DemoGuideProvider store={guideStore}>
         <DemoRoleNavigationBridge />
-        {children}
+        <DemoSessionGate>{children}</DemoSessionGate>
         <DesktopOnlyHint />
       </DemoGuideProvider>
     </DemoRoleProvider>

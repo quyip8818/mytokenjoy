@@ -5,8 +5,9 @@ import { modelsHandlers } from './models'
 import { dashboardHandlers } from './dashboard'
 import { auditHandlers } from './audit'
 import { sessionHandlers } from './session'
+import { fallbackHandlers } from './fallback'
 
-export const handlers = [
+export const domainHandlers = [
   ...sessionHandlers,
   ...orgHandlers,
   ...budgetHandlers,
@@ -15,3 +16,7 @@ export const handlers = [
   ...dashboardHandlers,
   ...auditHandlers,
 ]
+
+export const browserHandlers = [...domainHandlers, ...fallbackHandlers]
+
+export const serverHandlers = domainHandlers

@@ -217,9 +217,11 @@ HTTP 非 2xx 时，body 应包含：
 
 ```
 UI → src/api/* → client.request() → fetch(/api/...)
-                                      ├─ USE_MOCKS=true  → MSW handlers
+                                      ├─ USE_MOCKS=true  → MSW handlers（Demo API）
                                       └─ USE_MOCKS=false → 真实后端
 ```
+
+Demo 模式下 `/api/*` 即 **Demo API**：由 MSW 在浏览器内实现，返回内存 fake 数据；前端 `api/*.ts` 调用方式与生产相同，不访问外部服务。
 
 - Mock 开关：[`USE_MOCKS`](../apps/frontend/src/config/app.ts)（`DEV` 或 `VITE_ENABLE_MOCKS=true`）
 - MSW handlers：[`apps/frontend/src/mocks/handlers/`](../apps/frontend/src/mocks/handlers/)

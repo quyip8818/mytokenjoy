@@ -10,7 +10,7 @@ function renderMockWorkerError(error: unknown): void {
     <StrictMode>
       <div className="flex min-h-screen items-center justify-center p-8">
         <div className="max-w-lg space-y-3 text-center">
-          <h1 className="text-lg font-semibold">Demo Mock API 启动失败</h1>
+          <h1 className="text-lg font-semibold">Demo API 启动失败</h1>
           <p className="text-sm text-muted-foreground">
             请硬刷新页面，或在浏览器设置中清除本站的 Service Worker 后重试。
           </p>
