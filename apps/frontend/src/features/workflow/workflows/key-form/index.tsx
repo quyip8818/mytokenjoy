@@ -14,11 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../../use-workflow'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '../../constants'
-import {
-  formatQuotaContext,
-  useKeyFormQuota,
-  useKeyFormState,
-} from './use-key-form-quota'
+import { formatQuotaContext, useKeyFormQuota, useKeyFormState } from './use-key-form-quota'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -132,8 +128,12 @@ export function KeyFormWorkflow({
       })
       toast.success('Key 创建成功')
       onSuccess?.(created.id)
+      if (!created.fullKey) {
+        toast.error('创建失败：未返回 Key')
+        return
+      }
       onPush('key-reveal', {
-        fullKey: created.fullKey ?? `${created.keyPrefix}full-key-demo`,
+        fullKey: created.fullKey,
         onDone: onSuccess,
       })
     } catch {

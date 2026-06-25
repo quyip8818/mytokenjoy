@@ -51,11 +51,7 @@ export default function CallLogsPage() {
             allLabel="全部状态"
             className="w-32"
           />
-          <AuditMemberSelect
-            value={callerId}
-            onValueChange={setCallerId}
-            allLabel="全部调用人"
-          />
+          <AuditMemberSelect value={callerId} onValueChange={setCallerId} allLabel="全部调用人" />
           <AuditKeywordInput value={keyword} onChange={setKeyword} />
           <AuditToolbar onExport={handleExport} />
         </div>

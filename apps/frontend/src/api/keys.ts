@@ -26,8 +26,12 @@ export const providerKeyApi = {
 }
 
 export const platformKeyApi = {
-  list: (params?: { page?: number; pageSize?: number; memberId?: string; budgetGroupId?: string }) =>
-    request<Paginated<PlatformKey>>(`/keys/platform${buildQuery(params ?? {})}`),
+  list: (params?: {
+    page?: number
+    pageSize?: number
+    memberId?: string
+    budgetGroupId?: string
+  }) => request<Paginated<PlatformKey>>(`/keys/platform${buildQuery(params ?? {})}`),
   create: (data: {
     name: string
     memberId?: string

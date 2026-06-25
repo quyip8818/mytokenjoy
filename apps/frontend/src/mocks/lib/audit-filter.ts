@@ -20,6 +20,10 @@ export function filterByKeyword<T>(
   if (!keyword?.trim()) return items
   const q = keyword.trim().toLowerCase()
   return items.filter((item) =>
-    fields.some((field) => String(item[field] ?? '').toLowerCase().includes(q)),
+    fields.some((field) =>
+      String(item[field] ?? '')
+        .toLowerCase()
+        .includes(q),
+    ),
   )
 }

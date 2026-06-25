@@ -5,14 +5,7 @@ import type {
   DailyCost,
   CostGranularity,
 } from '@/api/types'
-import {
-  Coins,
-  Hash,
-  Zap,
-  DollarSign,
-  User,
-  type LucideIcon,
-} from 'lucide-react'
+import { Coins, Hash, Zap, DollarSign, User, type LucideIcon } from 'lucide-react'
 
 export const COST_CHART_COLORS = ['#2563eb', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4']
 
@@ -153,10 +146,7 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
 
 export { formatMom }
 
-export function aggregateDailyCosts(
-  daily: DailyCost[],
-  granularity: CostGranularity,
-): DailyCost[] {
+export function aggregateDailyCosts(daily: DailyCost[], granularity: CostGranularity): DailyCost[] {
   if (granularity === 'day' || daily.length === 0) return daily
 
   const buckets = new Map<string, DailyCost>()

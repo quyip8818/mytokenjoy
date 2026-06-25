@@ -6,7 +6,7 @@ import { useDemoCta } from '@/features/demo'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { computeUnallocated } from '@/lib/budget'
+import { computeUnallocated, formatBudgetPeriodLabel } from '@/lib/budget'
 import { PERMISSION } from '@/lib/permissions'
 
 export function useBudgetOverviewPage(injectedApis?: AppApis) {
@@ -35,6 +35,8 @@ export function useBudgetOverviewPage(injectedApis?: AppApis) {
     }
   }, [tree])
 
+  const periodLabel = useMemo(() => formatBudgetPeriodLabel(tree[0]?.period), [tree])
+
   const handleAllocate = useCallback(
     (node: BudgetNode, parent: BudgetNode | null) => {
       openWithRefresh('budget-node-edit', { node, parent })
@@ -58,6 +60,7 @@ export function useBudgetOverviewPage(injectedApis?: AppApis) {
     error,
     refresh,
     summary,
+    periodLabel,
     canAllocate,
     budgetCta,
     handleAllocate,

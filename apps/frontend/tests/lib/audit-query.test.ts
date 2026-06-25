@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { AUDIT_DATE_PRESET } from '@/lib/audit-constants'
+import { resolveLast7DaysRange } from '@/lib/date'
 import {
   AUDIT_FILTER_ALL,
   buildAuditBaseQuery,
@@ -9,6 +10,10 @@ import {
 } from '@/lib/audit-query'
 
 describe('audit-query', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('omitAll maps all sentinel to undefined', () => {
     expect(omitAll(AUDIT_FILTER_ALL)).toBeUndefined()
     expect(omitAll('success')).toBe('success')
@@ -22,12 +27,15 @@ describe('audit-query', () => {
       }),
     ).toEqual({ keyword: 'bot' })
 
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 19, 12, 0, 0))
+    const range = resolveLast7DaysRange()
     expect(
       buildAuditBaseQuery({
         datePreset: AUDIT_DATE_PRESET.LAST_7_DAYS,
         keyword: '',
       }),
-    ).toEqual({ from: '2026-06-13', to: '2026-06-19', keyword: undefined })
+    ).toEqual({ ...range, keyword: undefined })
   })
 
   it('buildCallsQuery maps domain filters', () => {

@@ -3,7 +3,10 @@ import type { AppApis } from '@/api/app-apis'
 import type { MemberQuotaSummary, PlatformKey } from '@/api/types'
 import { useApis } from '@/api/use-apis'
 
-export function formatQuotaContext(summary: MemberQuotaSummary | null, department?: string): string {
+export function formatQuotaContext(
+  summary: MemberQuotaSummary | null,
+  department?: string,
+): string {
   if (!summary) return department ? `部门：${department}` : ''
   const parts = [`剩余额度 ¥${summary.remaining.toLocaleString()}`]
   if (department) parts.unshift(department)
@@ -73,21 +76,11 @@ export function useKeyFormQuota({
 
   const quotaSummary = quotaState?.memberId === effectiveMemberId ? quotaState.summary : null
   const quotaInsufficient =
-    isCreate &&
-    !isGroupKey &&
-    !adminCreate &&
-    quotaSummary !== null &&
-    quotaSummary.remaining <= 0
+    isCreate && !isGroupKey && !adminCreate && quotaSummary !== null && quotaSummary.remaining <= 0
   const quotaExceedsRemaining =
-    isCreate &&
-    !isGroupKey &&
-    quotaSummary !== null &&
-    Number(quota) > quotaSummary.remaining
+    isCreate && !isGroupKey && quotaSummary !== null && Number(quota) > quotaSummary.remaining
   const groupQuotaExceeds =
-    isCreate &&
-    isGroupKey &&
-    groupQuotaRemaining !== null &&
-    Number(quota) > groupQuotaRemaining
+    isCreate && isGroupKey && groupQuotaRemaining !== null && Number(quota) > groupQuotaRemaining
 
   return {
     quotaSummary,

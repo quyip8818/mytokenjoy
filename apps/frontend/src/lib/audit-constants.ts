@@ -1,4 +1,4 @@
-import { resolveLast7DaysRange } from '@/lib/demo-clock'
+import { resolveLast7DaysRange } from '@/lib/date'
 
 export const AUDIT_DATE_PRESET = {
   ALL: 'all',

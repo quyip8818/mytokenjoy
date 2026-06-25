@@ -11,8 +11,18 @@ import { BudgetRow } from '@/routes/budget/components/budget-row'
 import { useBudgetOverviewPage } from '@/routes/budget/hooks/use-budget-overview-page'
 
 export default function BudgetOverviewPage() {
-  const { tree, loading, error, refresh, summary, canAllocate, budgetCta, handleAllocate, handleMemberQuota } =
-    useBudgetOverviewPage()
+  const {
+    tree,
+    loading,
+    error,
+    refresh,
+    summary,
+    periodLabel,
+    canAllocate,
+    budgetCta,
+    handleAllocate,
+    handleMemberQuota,
+  } = useBudgetOverviewPage()
 
   return (
     <PageShell
@@ -27,7 +37,7 @@ export default function BudgetOverviewPage() {
           />
         </div>
       }
-      actions={<StatusBadge variant="info">周期：2026 年 6 月</StatusBadge>}
+      actions={<StatusBadge variant="info">周期：{loading ? '-' : periodLabel}</StatusBadge>}
     >
       <DataSection
         loading={loading}

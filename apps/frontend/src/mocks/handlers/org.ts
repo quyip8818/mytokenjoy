@@ -1,7 +1,7 @@
 import { http, HttpResponse, delay } from 'msw'
 import { API_BASE_PATH } from '@/config/app'
 import type { BatchImportRow } from '@/api/types'
-import { flattenDepartmentTree } from '@/lib/org'
+import { flattenDepartmentTree, getDeptPath } from '@/lib/org'
 import { paginate } from '../lib/paginate'
 import { parseIntParam } from '../lib/parse'
 import { filterMembersByDepartment } from '../lib/query'
@@ -40,11 +40,18 @@ export const orgHandlers = [
   }),
   http.get(`${API_BASE_PATH}/org/data-source/search`, ({ request }) => {
     const url = new URL(request.url)
-    const keyword = url.searchParams.get('keyword') || ''
+    const keyword = url.searchParams.get('keyword')?.trim() ?? ''
     if (!keyword) return HttpResponse.json({ name: '', department: '', mappingOk: false })
+    const member = mockMembers.find(
+      (m) => m.name.includes(keyword) || m.phone.includes(keyword) || m.email.includes(keyword),
+    )
+    if (!member) {
+      return HttpResponse.json({ name: '', department: '', mappingOk: false })
+    }
+    const department = getDeptPath(mockDepartments, member.departmentId) ?? member.departmentName
     return HttpResponse.json({
-      name: keyword === '张三' ? '张三' : `${keyword}（模拟）`,
-      department: '技术部 > 后端组',
+      name: member.name,
+      department,
       mappingOk: true,
     })
   }),

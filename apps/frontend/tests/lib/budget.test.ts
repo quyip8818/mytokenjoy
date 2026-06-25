@@ -5,6 +5,7 @@ import {
   BUDGET_WARNING_THRESHOLD,
   computeUnallocated,
   findBudgetNode,
+  formatBudgetPeriodLabel,
   getBudgetProgressTone,
   updateBudgetNodeInTree,
 } from '@/lib/budget'
@@ -88,5 +89,12 @@ describe('updateBudgetNodeInTree', () => {
   it('returns false when node is not found', () => {
     const tree: BudgetNode[] = [makeNode({ id: 'n1', name: 'Root' })]
     expect(updateBudgetNodeInTree(tree, 'missing', { name: 'X' })).toBe(false)
+  })
+})
+
+describe('formatBudgetPeriodLabel', () => {
+  it('formats YYYY-MM period from API', () => {
+    expect(formatBudgetPeriodLabel('2026-06')).toBe('2026 年 6 月')
+    expect(formatBudgetPeriodLabel(undefined)).toBe('-')
   })
 })

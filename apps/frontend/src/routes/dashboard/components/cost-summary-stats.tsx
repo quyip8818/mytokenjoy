@@ -14,9 +14,7 @@ export function CostSummaryStats({ stats, loading }: CostSummaryStatsProps) {
           key={stat.label}
           label={stat.label}
           value={loading ? '-' : stat.value}
-          subValue={
-            !loading && stat.mom !== undefined ? `环比 ${formatMom(stat.mom)}` : undefined
-          }
+          subValue={!loading && stat.mom !== undefined ? `环比 ${formatMom(stat.mom)}` : undefined}
           icon={stat.icon}
           iconAccent={stat.accent}
         />

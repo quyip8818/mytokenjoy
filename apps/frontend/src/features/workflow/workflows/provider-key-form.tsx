@@ -14,14 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWorkflow } from '../use-workflow'
-
-const PROVIDERS = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'deepseek', label: 'DeepSeek' },
-  { value: 'qwen', label: '通义千问' },
-  { value: 'custom', label: '自定义' },
-]
+import { PROVIDER_LABELS } from '@/lib/labels'
 
 export function ProviderKeyFormWorkflow({
   entry,
@@ -78,9 +71,9 @@ export function ProviderKeyFormWorkflow({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PROVIDERS.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
+              {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>

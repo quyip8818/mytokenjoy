@@ -7,11 +7,14 @@ export function isMockApiUrl(url: string): boolean {
 }
 
 export const fallbackHandlers = [
-  http.all(({ request }) => isMockApiUrl(request.url), ({ request }) => {
-    const { pathname } = new URL(request.url)
-    return HttpResponse.json(
-      { message: `No mock handler for ${request.method} ${pathname}` },
-      { status: 501 },
-    )
-  }),
+  http.all(
+    ({ request }) => isMockApiUrl(request.url),
+    ({ request }) => {
+      const { pathname } = new URL(request.url)
+      return HttpResponse.json(
+        { message: `No mock handler for ${request.method} ${pathname}` },
+        { status: 501 },
+      )
+    },
+  ),
 ]

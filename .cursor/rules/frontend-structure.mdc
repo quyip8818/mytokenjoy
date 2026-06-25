@@ -23,7 +23,7 @@ Follow `docs/Frontend-代码结构优化指南.md` (especially §7.4). Summary:
 | HTTP | `api/{domain}.ts` | One namespace per backend resource |
 | DTO types | `api/types/{domain}.ts` | Same domain as API |
 | Pure helpers | `lib/` | No React; unit-testable |
-| Demo date anchor | `lib/demo-clock.ts` | `DEMO_TODAY`, `resolveLast7DaysRange()` — never hardcode demo dates |
+| Demo date anchor | `mocks/lib/demo-clock.ts` | Fixture timestamps only; business code uses `lib/date.ts` |
 | Audit query builders | `lib/audit-query.ts` | Shared filter → API query mapping |
 | Tests | `tests/` | Mirror `src/` subpaths; `@tests/` for fixtures/utils |
 

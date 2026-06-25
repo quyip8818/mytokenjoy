@@ -42,9 +42,7 @@ export interface AuditOperationsFilter extends AuditBaseFilter {
   operatorId: string
 }
 
-export function buildOperationsQuery(
-  filter: AuditOperationsFilter,
-): AuditOperationsQueryParams {
+export function buildOperationsQuery(filter: AuditOperationsFilter): AuditOperationsQueryParams {
   return {
     ...buildAuditBaseQuery(filter),
     action: omitAll(filter.action),

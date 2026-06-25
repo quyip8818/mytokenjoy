@@ -3,11 +3,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { CallLog } from '@/api/types'
 import { useAuditSettings } from '@/hooks/use-audit-settings'
 import { AUDIT_DATE_PRESET } from '@/lib/audit-constants'
-import {
-  AUDIT_FILTER_ALL,
-  buildCallsQuery,
-  type AuditCallsFilter,
-} from '@/lib/audit-query'
+import { AUDIT_FILTER_ALL, buildCallsQuery, type AuditCallsFilter } from '@/lib/audit-query'
 import { downloadCsv } from '@/lib/csv-export'
 import { useAuditListPage } from './use-audit-list-page'
 
@@ -21,11 +17,14 @@ const INITIAL_FILTER: AuditCallsFilter = {
 export type { AuditCallsFilter }
 
 export function useAuditCallsPage(injectedApis?: AppApis) {
-  const { items: logs, filter, patchFilter, loading, error, refresh } = useAuditListPage<
-    AuditCallsFilter,
-    CallLog,
-    ReturnType<typeof buildCallsQuery>
-  >({
+  const {
+    items: logs,
+    filter,
+    patchFilter,
+    loading,
+    error,
+    refresh,
+  } = useAuditListPage<AuditCallsFilter, CallLog, ReturnType<typeof buildCallsQuery>>({
     initialFilter: INITIAL_FILTER,
     toQueryParams: buildCallsQuery,
     fetchItems: (apis, query) => apis.auditApi.getCalls(query).then((res) => res.items),

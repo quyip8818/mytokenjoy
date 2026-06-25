@@ -3,6 +3,7 @@ import { API_BASE_PATH } from '@/config/app'
 import { getReservedPoolForMember } from '../../lib/budget-lookup'
 import { addPersonalQuota, getQuotaRemaining } from '../../lib/member-quota'
 import { findMemberById } from '../../lib/query'
+import { resolveDemoMemberName } from '../../lib/session-context'
 import { mockApprovals, mockBudgetTree, mockMembers, mockPlatformKeys } from '../../data'
 import { validateModelsForMember } from './validation'
 
@@ -58,7 +59,7 @@ export const approvalKeysHandlers = [
       requested,
     })
   }),
-  http.put(`${API_BASE_PATH}/keys/approvals/:id/approve`, async ({ params }) => {
+  http.put(`${API_BASE_PATH}/keys/approvals/:id/approve`, async ({ params, request }) => {
     await delay(500)
     const idx = mockApprovals.findIndex((a) => a.id === params.id)
     if (idx < 0) {
@@ -102,7 +103,7 @@ export const approvalKeysHandlers = [
     mockApprovals[idx] = {
       ...approval,
       status: 'approved',
-      approver: '李四',
+      approver: resolveDemoMemberName(request, mockMembers),
       resolvedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
     }
     return HttpResponse.json(null, { status: 200 })
@@ -115,7 +116,7 @@ export const approvalKeysHandlers = [
       mockApprovals[idx] = {
         ...mockApprovals[idx],
         status: 'rejected',
-        approver: '李四',
+        approver: resolveDemoMemberName(request, mockMembers),
         rejectReason: body.reason ?? null,
         resolvedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
       }

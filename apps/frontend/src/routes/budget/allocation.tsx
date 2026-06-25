@@ -9,8 +9,17 @@ import { BudgetGroupTable } from '@/routes/budget/components/budget-group-table'
 import { useBudgetAllocationPage } from '@/routes/budget/hooks/use-budget-allocation-page'
 
 export default function BudgetAllocationPage() {
-  const { groups, loading, error, refresh, canWrite, rowClass, handleDelete, openForm, openGroupKeys } =
-    useBudgetAllocationPage()
+  const {
+    groups,
+    loading,
+    error,
+    refresh,
+    canWrite,
+    rowClass,
+    handleDelete,
+    openForm,
+    openGroupKeys,
+  } = useBudgetAllocationPage()
 
   return (
     <PageShell

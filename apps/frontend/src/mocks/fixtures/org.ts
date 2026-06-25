@@ -7,7 +7,7 @@ import type {
   SyncConfig,
   SyncLog,
 } from '@/api/types'
-import { DEMO_TODAY } from '@/lib/demo-clock'
+import { DEMO_TODAY } from '../lib/demo-clock'
 import {
   buildMockMembers,
   countMembersByRole,

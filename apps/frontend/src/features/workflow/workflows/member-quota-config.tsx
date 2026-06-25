@@ -9,7 +9,14 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 export function MemberQuotaConfigWorkflow({
@@ -42,7 +49,11 @@ export function MemberQuotaConfigWorkflow({
     [quotas, effectiveSelectedId],
   )
 
-  const draftValue = selectedId ? draftQuota : selected ? String(selected.personalQuota) : draftQuota
+  const draftValue = selectedId
+    ? draftQuota
+    : selected
+      ? String(selected.personalQuota)
+      : draftQuota
 
   const handleSelect = (item: MemberBudgetQuota) => {
     setSelectedId(item.memberId)
@@ -111,7 +122,9 @@ export function MemberQuotaConfigWorkflow({
                     onClick={() => handleSelect(item)}
                   >
                     <TableCell className="font-medium">{item.memberName}</TableCell>
-                    <TableCell className="text-right">¥{item.personalQuota.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      ¥{item.personalQuota.toLocaleString()}
+                    </TableCell>
                     <TableCell className="text-right">¥{item.allocated.toLocaleString()}</TableCell>
                     <TableCell className="text-right">¥{item.used.toLocaleString()}</TableCell>
                   </TableRow>

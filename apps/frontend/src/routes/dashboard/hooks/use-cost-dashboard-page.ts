@@ -2,9 +2,15 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import { useApis } from '@/api/use-apis'
 import { useAsyncResource } from '@/hooks/use-async-resource'
-import type { CostGranularity, CostPeriod, CostQueryParams, DepartmentCost, DepartmentCostMember } from '@/api/types'
-import { DEMO_MONTH_START, DEMO_TODAY } from '@/lib/demo-clock'
+import type {
+  CostGranularity,
+  CostPeriod,
+  CostQueryParams,
+  DepartmentCost,
+  DepartmentCostMember,
+} from '@/api/types'
 import { COST_GRANULARITY, COST_PERIOD } from '@/lib/dashboard-constants'
+import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
 import {
   ROOT_DRILL,
   type DrillState,
@@ -20,11 +26,7 @@ import {
 export type { CostStatItem, DrillState } from '@/lib/dashboard'
 export { ROOT_DRILL, COST_CHART_COLORS } from '@/lib/dashboard'
 
-function buildCostQuery(
-  period: CostPeriod,
-  startDate: string,
-  endDate: string,
-): CostQueryParams {
+function buildCostQuery(period: CostPeriod, startDate: string, endDate: string): CostQueryParams {
   if (period === COST_PERIOD.CUSTOM) {
     return { period, startDate, endDate }
   }
@@ -35,8 +37,8 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
   const ctxApis = useApis()
   const apis = injectedApis ?? ctxApis
   const [period, setPeriod] = useState<CostPeriod>(COST_PERIOD.CURRENT_MONTH)
-  const [startDate, setStartDate] = useState(DEMO_MONTH_START)
-  const [endDate, setEndDate] = useState(DEMO_TODAY)
+  const [startDate, setStartDate] = useState(getMonthStartLocal)
+  const [endDate, setEndDate] = useState(getTodayLocal)
   const [granularity, setGranularity] = useState<CostGranularity>(COST_GRANULARITY.DAY)
   const [drill, setDrill] = useState<DrillState>(ROOT_DRILL)
 

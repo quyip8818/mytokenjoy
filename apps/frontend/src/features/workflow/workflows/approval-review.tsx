@@ -22,11 +22,7 @@ export function ApprovalReviewWorkflow({
   const typeLabel = approval.type === 'key' ? 'Key 申请' : '额度追加'
 
   const handleApprove = async () => {
-    if (
-      approval.type === 'quota' &&
-      approval.requestedQuota > 2000 &&
-      approval.applicantId === 'm-1'
-    ) {
+    if (approval.type === 'quota') {
       const check = await apis.approvalApi.checkQuota(approval.id)
       if (!check.sufficient) {
         onPush('quota-check', {

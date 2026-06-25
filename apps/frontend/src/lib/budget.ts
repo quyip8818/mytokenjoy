@@ -20,6 +20,13 @@ export function sumChildrenBudget(node: BudgetNode): number {
   return (node.children ?? []).reduce((sum, child) => sum + child.budget, 0)
 }
 
+export function formatBudgetPeriodLabel(period: string | undefined): string {
+  if (!period) return '-'
+  const [year, month] = period.split('-')
+  if (!year || !month) return period
+  return `${year} 年 ${Number(month)} 月`
+}
+
 export function computeUnallocated(node: BudgetNode): number {
   const reserved = node.reservedPool ?? 0
   const childrenSum = sumChildrenBudget(node)

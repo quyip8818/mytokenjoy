@@ -21,7 +21,14 @@ const INITIAL_FILTER: AuditOperationsFilter = {
 export type { AuditOperationsFilter }
 
 export function useAuditOperationsPage(injectedApis?: AppApis) {
-  const { items: logs, filter, patchFilter, loading, error, refresh } = useAuditListPage<
+  const {
+    items: logs,
+    filter,
+    patchFilter,
+    loading,
+    error,
+    refresh,
+  } = useAuditListPage<
     AuditOperationsFilter,
     OperationLog,
     ReturnType<typeof buildOperationsQuery>
