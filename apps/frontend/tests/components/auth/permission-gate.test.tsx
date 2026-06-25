@@ -1,8 +1,8 @@
 import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { PermissionGate } from './permission-gate'
+import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permission-keys'
-import { renderWithProviders } from '@/test-utils'
+import { renderWithProviders } from '@tests/utils'
 
 describe('PermissionGate', () => {
   it('renders children when user has required permission', async () => {

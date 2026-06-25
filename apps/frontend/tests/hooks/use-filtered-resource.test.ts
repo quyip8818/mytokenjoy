@@ -1,7 +1,6 @@
-import { act, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useFilteredResource } from './use-filtered-resource'
-import { renderHook } from '@testing-library/react'
+import { useFilteredResource } from '@/hooks/use-filtered-resource'
 
 describe('useFilteredResource', () => {
   it('sets loading when filter changes and resolves with new data', async () => {

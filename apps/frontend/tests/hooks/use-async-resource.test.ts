@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useAsyncResource } from './use-async-resource'
+import { useAsyncResource } from '@/hooks/use-async-resource'
 
 describe('useAsyncResource', () => {
   it('loads data on mount and exposes refresh', async () => {

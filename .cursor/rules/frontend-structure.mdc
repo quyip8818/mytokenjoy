@@ -22,6 +22,7 @@ Follow `docs/Frontend-代码结构优化指南.md` (especially §7.4). Summary:
 | HTTP | `api/{domain}.ts` | One namespace per backend resource |
 | DTO types | `api/types/{domain}.ts` | Same domain as API |
 | Pure helpers | `lib/` | No React; unit-testable |
+| Tests | `tests/` | Mirror `src/` subpaths; `@tests/` for fixtures/utils |
 
 ## Component placement decision
 
@@ -65,4 +66,4 @@ Page hooks:
 
 - Consume APIs via `useApis()` in hooks, workflows, and shared components
 - Do not `import { xxxApi }` in business code
-- Tests: `createMockApis()` + `renderHookWithProviders(..., { apis })`
+- Tests: `createMockApis()` + `renderHookWithProviders(..., { apis })` from `@tests/utils`

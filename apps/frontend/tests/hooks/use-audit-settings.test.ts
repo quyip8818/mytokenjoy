@@ -1,14 +1,14 @@
-import { act, waitFor } from '@testing-library/react'
+import { act } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useAuditSettings } from './use-audit-settings'
-import { createMockApis, renderHookWithProviders } from '@/test-utils'
+import { useAuditSettings } from '@/hooks/use-audit-settings'
+import { createMockApis, renderHookWithProviders } from '@tests/utils'
+import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 
 describe('useAuditSettings', () => {
   it('loads audit settings on mount', async () => {
     const settings = { contentRetentionEnabled: false }
     const apis = createMockApis({
       auditApi: {
-        ...createMockApis().auditApi,
         getSettings: vi.fn().mockResolvedValue(settings),
         updateSettings: vi.fn().mockResolvedValue(settings),
       },
@@ -16,9 +16,7 @@ describe('useAuditSettings', () => {
 
     const { result } = renderHookWithProviders(() => useAuditSettings(apis), { apis })
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false)
-    })
+    await waitForLoaded(result, 'loading')
 
     expect(apis.auditApi.getSettings).toHaveBeenCalled()
     expect(result.current.contentRetentionEnabled).toBe(false)
@@ -28,7 +26,6 @@ describe('useAuditSettings', () => {
   it('updates content retention via API', async () => {
     const apis = createMockApis({
       auditApi: {
-        ...createMockApis().auditApi,
         getSettings: vi.fn().mockResolvedValue({ contentRetentionEnabled: true }),
         updateSettings: vi.fn().mockResolvedValue({ contentRetentionEnabled: false }),
       },
@@ -36,9 +33,7 @@ describe('useAuditSettings', () => {
 
     const { result } = renderHookWithProviders(() => useAuditSettings(apis), { apis })
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false)
-    })
+    await waitForLoaded(result, 'loading')
 
     await act(async () => {
       await result.current.updateContentRetention(false)

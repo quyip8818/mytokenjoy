@@ -238,7 +238,7 @@ export default function ExamplePage() {
 
 **Demo：** `features/demo/`（roles、guide、chrome）；`usePermissions` 读 demo session。
 
-**MSW：** `mocks/handlers/{domain}.ts` 与 `api/{domain}.ts` 路径一致；mock 工具仅放 `mocks/lib/`。测试用 [`mocks/server.ts`](../apps/frontend/src/mocks/server.ts) + [`test-setup.ts`](../apps/frontend/src/test-setup.ts)。
+**MSW：** `mocks/handlers/{domain}.ts` 与 `api/{domain}.ts` 路径一致；mock 工具仅放 `mocks/lib/`。测试用 [`mocks/server.ts`](../apps/frontend/src/mocks/server.ts) + [`tests/setup.ts`](../apps/frontend/tests/setup.ts)。
 
 ---
 
@@ -248,17 +248,30 @@ export default function ExamplePage() {
 - **UI：** Tailwind 4 + shadcn（`components/ui/`）；表格 TanStack Table；图表 Recharts（数据转换在页面 Hook）
 - **表单：** react-hook-form；页面内嵌 → `components/{domain}/`，侧滑 → `features/workflow/workflows/`
 
-| 命令                  | 作用                          |
-| --------------------- | ----------------------------- |
-| `pnpm start`          | 开发                          |
-| `pnpm lint`           | ESLint + `check-conventions`  |
-| `pnpm test`           | Vitest（`test-setup` 挂 MSW） |
-| `pnpm build`          | `tsc -b && vite build`        |
-| `pnpm build:gh-pages` | Mock 生产构建                 |
+| 命令                  | 作用                              |
+| --------------------- | --------------------------------- |
+| `pnpm start`          | 开发                              |
+| `pnpm lint`           | ESLint + `check-conventions`      |
+| `pnpm test`           | Vitest（`tests/setup.ts` 挂 MSW） |
+| `pnpm build`          | `tsc -b && vite build`            |
+| `pnpm build:gh-pages` | Mock 生产构建                     |
 
 **CI：** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) 与 [`deploy.yml`](../.github/workflows/deploy.yml) 均执行 lint + test + build。
 
-**测试布局（7 文件 / 40 用例）：** `lib/*.test.ts` ×3、`config/routes.test.ts`、`hooks/use-filtered-resource.test.ts`、`routes/org/hooks/use-structure-page.test.tsx`、`components/auth/permission-gate.test.tsx`；工具 [`test-utils.tsx`](../apps/frontend/src/test-utils.tsx)。
+**测试布局（`tests/` 目录，镜像 `src/` 子路径）：**
+
+```
+tests/
+├── setup.ts、utils.tsx
+├── fixtures/、helpers/
+├── lib/、config/、hooks/
+├── routes/{domain}/
+└── components/{domain}/
+```
+
+- 业务代码 import：`@/`；测试工具与 fixtures：`@tests/`
+- 路由结构静态校验由 `check-conventions.mjs` 负责；`tests/config/routes.test.ts` 仅覆盖运行时行为
+- 工具：[`tests/utils.tsx`](../apps/frontend/tests/utils.tsx)（`createMockApis`、`renderHookWithProviders`）
 
 **增量测试优先级：** `lib/` 纯函数 → 全局 Hook → 页面 Hook（`injectedApis`）→ 关键组件（`PermissionGate`）。
 

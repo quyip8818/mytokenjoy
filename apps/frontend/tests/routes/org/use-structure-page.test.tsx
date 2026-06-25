@@ -1,16 +1,15 @@
-import { act, waitFor } from '@testing-library/react'
+import { act } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { useStructurePage } from './use-structure-page'
-import { createMockApis, mockDepartments, renderHookWithProviders } from '@/test-utils'
+import { useStructurePage } from '@/routes/org/hooks/use-structure-page'
+import { createMockApis, mockDepartments, renderHookWithProviders } from '@tests/utils'
+import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 
 describe('useStructurePage', () => {
   it('loads departments and members on mount', async () => {
     const apis = createMockApis()
     const { result } = renderHookWithProviders(() => useStructurePage(apis), { apis })
 
-    await waitFor(() => {
-      expect(result.current.membersLoading).toBe(false)
-    })
+    await waitForLoaded(result, 'membersLoading')
 
     expect(apis.departmentApi.getTree).toHaveBeenCalled()
     expect(apis.memberApi.list).toHaveBeenCalled()
@@ -23,9 +22,7 @@ describe('useStructurePage', () => {
     const apis = createMockApis()
     const { result } = renderHookWithProviders(() => useStructurePage(apis), { apis })
 
-    await waitFor(() => {
-      expect(result.current.membersLoading).toBe(false)
-    })
+    await waitForLoaded(result, 'membersLoading')
 
     const dept = mockDepartments[0].children![0]
 

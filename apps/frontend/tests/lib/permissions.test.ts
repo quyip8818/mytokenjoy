@@ -9,7 +9,7 @@ import {
   hasPermission,
   isReadOnlySession,
   resolveMemberPermissions,
-} from './permissions'
+} from '@/lib/permissions'
 
 const roles: Role[] = [
   { id: 'r1', name: ROLE_SUPER_ADMIN, type: 'preset', permissions: [], memberCount: 1 },
@@ -33,15 +33,16 @@ function memberWithRoles(roleNames: string[]): Member {
 }
 
 describe('hasPermission', () => {
-  it('returns true when any required permission matches', () => {
-    expect(hasPermission([PERMISSION.ORG_STRUCTURE], PERMISSION.ORG_STRUCTURE)).toBe(true)
-    expect(
-      hasPermission([PERMISSION.SELF_KEYS], [PERMISSION.ORG_STRUCTURE, PERMISSION.SELF_KEYS]),
-    ).toBe(true)
-  })
-
-  it('returns false when no required permission matches', () => {
-    expect(hasPermission([PERMISSION.SELF_KEYS], PERMISSION.ORG_STRUCTURE)).toBe(false)
+  it.each([
+    { user: [PERMISSION.ORG_STRUCTURE], required: PERMISSION.ORG_STRUCTURE, expected: true },
+    {
+      user: [PERMISSION.SELF_KEYS],
+      required: [PERMISSION.ORG_STRUCTURE, PERMISSION.SELF_KEYS],
+      expected: true,
+    },
+    { user: [PERMISSION.SELF_KEYS], required: PERMISSION.ORG_STRUCTURE, expected: false },
+  ])('matches required permissions ($expected)', ({ user, required, expected }) => {
+    expect(hasPermission(user, required)).toBe(expected)
   })
 })
 

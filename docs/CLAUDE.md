@@ -15,7 +15,7 @@ Run from the repository root (pnpm workspace):
 - `pnpm test:run` — Run vitest once (CI-friendly)
 - `pnpm preview` — Serve the production build locally
 
-To run a single test file: `pnpm --filter @tokenjoy/frontend exec vitest run src/path/to/file.test.ts`
+To run a single test file: `pnpm --filter @tokenjoy/frontend exec vitest run tests/lib/org.test.ts`
 
 ## Architecture
 
@@ -37,7 +37,7 @@ Single-page React app built with Vite 8, React 19, and TypeScript 6.
 
 **API mocking:** MSW v2 intercepts `/api/*` requests when `USE_MOCKS` is true. Handlers in `apps/frontend/src/mocks/handlers/` (aggregated by `handlers/index.ts`), fixtures in `apps/frontend/src/mocks/fixtures/` (re-exported via `mocks/data.ts`). Local backend proxy: set `VITE_API_PROXY_TARGET` in `vite.config.ts`.
 
-**Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `apps/frontend/src/test-setup.ts`. MSW is available for mocking API calls in tests.
+**Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `apps/frontend/tests/setup.ts`. MSW is available for mocking API calls in tests. All specs live under `apps/frontend/tests/` (mirror `src/` paths); use `@tests/utils` for providers and `createMockApis`.
 
 **Path alias:** `@/*` resolves to `./src/*` (configured in both `apps/frontend/vite.config.ts` and `apps/frontend/tsconfig.app.json`).
 

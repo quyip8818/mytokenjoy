@@ -7,7 +7,7 @@ import {
   findBudgetNode,
   getBudgetProgressTone,
   updateBudgetNodeInTree,
-} from './budget'
+} from '@/lib/budget'
 
 function makeNode(overrides: Partial<BudgetNode> & Pick<BudgetNode, 'id' | 'name'>): BudgetNode {
   return {
