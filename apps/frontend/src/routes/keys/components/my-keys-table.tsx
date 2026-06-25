@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { KeyStatusBadge } from '@/lib/label-badges'
+import { KeyStatusBadge } from '@/components/keys/status-badges'
 import { Progress } from '@/components/ui/progress'
 import {
   DropdownMenu,

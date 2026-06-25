@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useDemoCta } from '@/features/demo'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 
 export function useBudgetAlertsPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const overrunCta = useDemoCta('OVERRUN')
   const {
     data: policy = null,

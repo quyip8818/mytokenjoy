@@ -1,11 +1,10 @@
 import { useCallback } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 
 export function useAuditSettings(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { data, loading, error, refresh } = useAsyncResource(
     () => apis.auditApi.getSettings(),
     [apis],

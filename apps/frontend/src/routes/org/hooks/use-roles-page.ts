@@ -1,15 +1,14 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { Member, Role } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { useDemoRole } from '@/features/demo'
 
 export function useRolesPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { open } = useWorkflow()
   const { memberId, refreshSession } = useDemoRole()
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)

@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import type { ProviderKey } from '@/api/types'
-import { KeyPrefixBadge, KeyStatusBadge, ProviderBadge } from '@/lib/label-badges'
+import { KeyPrefixBadge, KeyStatusBadge, ProviderBadge } from '@/components/keys/status-badges'
 import {
   DropdownMenu,
   DropdownMenuContent,

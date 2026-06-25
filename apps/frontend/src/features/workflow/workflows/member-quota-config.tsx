@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { MemberBudgetQuota } from '@/api/types'
 import { ApiError } from '@/api/client'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
@@ -25,8 +25,7 @@ export function MemberQuotaConfigWorkflow({
   onSetDirty,
   injectedApis,
 }: WorkflowComponentProps<'member-quota-config'> & { injectedApis?: AppApis }) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const departmentId = entry.payload.departmentId
   const departmentName = entry.payload.departmentName
   const onSuccess = entry.payload.onSuccess

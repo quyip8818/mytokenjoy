@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { BudgetNode } from '@/api/types'
 import { useDemoCta } from '@/features/demo'
 import { useAsyncResource } from '@/hooks/use-async-resource'
@@ -10,8 +10,7 @@ import { computeUnallocated, formatBudgetPeriodLabel } from '@/lib/budget'
 import { PERMISSION } from '@/lib/permissions'
 
 export function useBudgetOverviewPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const budgetCta = useDemoCta('BUDGET')
   const { has } = usePermissions()
   const canAllocate = has(PERMISSION.BUDGET_ALLOCATE)

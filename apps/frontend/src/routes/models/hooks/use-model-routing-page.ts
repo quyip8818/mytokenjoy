@@ -1,14 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { RoutingRule } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { findParentDeptId } from '@/lib/org'
 
 export function useModelRoutingPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { data, loading, error, refresh } = useAsyncResource(
     () =>
       Promise.all([apis.routingApi.getRules(), apis.departmentApi.getTree()]).then(

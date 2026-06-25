@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { ApprovalStatusBadge } from '@/lib/label-badges'
+import { ApprovalStatusBadge } from '@/components/keys/status-badges'
 
 interface ApprovalTableProps {
   approvals: KeyApproval[]

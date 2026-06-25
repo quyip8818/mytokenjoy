@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { MemberQuotaSummary, PlatformKey } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 
 export function formatQuotaContext(
   summary: MemberQuotaSummary | null,
@@ -32,8 +32,7 @@ export function useKeyFormQuota({
   adminCreate,
   injectedApis,
 }: UseKeyFormQuotaOptions) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const [quotaState, setQuotaState] = useState<{
     memberId: string
     summary: MemberQuotaSummary

@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { ModelInfo } from '@/api/types'
 import { useDemoCta } from '@/features/demo'
 import { useAsyncResource } from '@/hooks/use-async-resource'
@@ -11,8 +11,7 @@ import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { PERMISSION } from '@/lib/permissions'
 
 export function useModelListPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { flashRow, rowClass } = useRowHighlight()
   const modelCta = useDemoCta('MODEL')
   const { has } = usePermissions()

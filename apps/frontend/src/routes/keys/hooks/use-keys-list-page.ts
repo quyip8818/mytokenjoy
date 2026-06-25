@@ -1,5 +1,5 @@
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { PlatformKey, ProviderKey } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
@@ -38,8 +38,7 @@ export function useKeysListPage(
   injectedApis: AppApis | undefined,
   source: KeysListSource,
 ): KeysListResult<PlatformKey | ProviderKey> {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { flashRow, rowClass } = useRowHighlight()
   const {
     data: keys = [],

@@ -9,3 +9,8 @@ export function useApis(): AppApis {
   }
   return ctx
 }
+
+export function useInjectedApis(injectedApis?: AppApis): AppApis {
+  const ctxApis = useApis()
+  return injectedApis ?? ctxApis
+}

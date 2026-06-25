@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { PlatformKey } from '@/api/types'
 import { useDemoRole, useDemoCta } from '@/features/demo'
 import { useAsyncResource } from '@/hooks/use-async-resource'
@@ -9,8 +9,7 @@ import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/workflow/constants'
 
 export function useMyKeysPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { memberId } = useDemoRole()
   const applyQuotaCta = useDemoCta('APPLY_QUOTA')
   const createKeyCta = useDemoCta('CREATE_KEY')

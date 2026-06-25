@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { ImportResult } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
@@ -10,8 +10,7 @@ import { useDemoCta } from '@/features/demo'
 import { ROUTES } from '@/config/routes'
 
 export function useDataSourcePage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const navigate = useNavigate()
   const credentialCta = useDemoCta('CREDENTIAL')
   const importCta = useDemoCta('IMPORT')

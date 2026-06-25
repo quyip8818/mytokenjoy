@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Frontend Structure Conventions
 
-Follow `docs/Frontend-代码结构优化指南.md` (especially §7.4). Summary:
+Follow [docs/Frontend-代码结构.md](../docs/Frontend-代码结构.md) (especially §8 shared components). Summary:
 
 ## Where code goes
 
@@ -25,6 +25,7 @@ Follow `docs/Frontend-代码结构优化指南.md` (especially §7.4). Summary:
 | Pure helpers | `lib/` | No React; unit-testable |
 | Demo date anchor | `mocks/lib/demo-clock.ts` | Fixture timestamps only; business code uses `lib/date.ts` |
 | Audit query builders | `lib/audit-query.ts` | Shared filter → API query mapping |
+| Audit CSV export | `lib/audit-export.ts` | Call/operation log → CSV rows |
 | Tests | `tests/` | Mirror `src/` subpaths; `@tests/` for fixtures/utils |
 
 ## Component placement decision
@@ -44,14 +45,14 @@ Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`
 1. List all importers (route pages + workflow)
 2. Pick directory per table above
 3. Never put domain-named files in `components/ui/` (`budget-*`, `org-*`, etc.)
-4. Update §7.4 inventory in the guide when adding shared components
+4. Update §8 shared component inventory in [Frontend-代码结构.md](../docs/Frontend-代码结构.md) when adding shared components
 
 ## Page template
 
 `{page}.tsx` — compose only; call `use{Name}Page()` from `hooks/use-*-page.ts`.
 
 Page hooks:
-- Use `useApis()` (optional `injectedApis` for tests)
+- Use `useInjectedApis(injectedApis?)` in page hooks that accept test overrides; use `useApis()` elsewhere
 - Use `useAsyncResource` for data; expose `error` + `refresh`
 - Audit list pages: prefer `use-audit-list-page` (wraps `useFilteredResource`)
 - Return a flat view model; no JSX
@@ -68,6 +69,6 @@ Page hooks:
 
 ## API dependency injection
 
-- Consume APIs via `useApis()` in hooks, workflows, and shared components
+- Page hooks with test overrides: `useInjectedApis(injectedApis?)`; otherwise `useApis()` in hooks, workflows, and shared components
 - Do not `import { xxxApi }` in business code
 - Tests: `createMockApis()` + `renderHookWithProviders(..., { apis })` from `@tests/utils`

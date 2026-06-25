@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useFilteredResource } from '@/hooks/use-filtered-resource'
 
 export interface UseAuditListPageConfig<TFilter, TItem, TQuery> {
@@ -16,8 +16,7 @@ export function useAuditListPage<TFilter, TItem, TQuery>({
   fetchItems,
   injectedApis,
 }: UseAuditListPageConfig<TFilter, TItem, TQuery>) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
 
   const { data, loading, error, refresh, filter, setFilter } = useFilteredResource(
     (currentFilter) => fetchItems(apis, toQueryParams(currentFilter)),

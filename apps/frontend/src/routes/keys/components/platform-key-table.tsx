@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { BudgetProgressCell } from '@/components/budget/budget-progress-cell'
 import type { PlatformKey } from '@/api/types'
-import { KeyPrefixBadge, KeyStatusBadge } from '@/lib/label-badges'
+import { KeyPrefixBadge, KeyStatusBadge } from '@/components/keys/status-badges'
 import {
   DropdownMenu,
   DropdownMenuContent,

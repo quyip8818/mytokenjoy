@@ -7,7 +7,7 @@ import {
   buildOperationsQuery,
   type AuditOperationsFilter,
 } from '@/lib/audit-query'
-import { OPERATION_ACTION_LABELS } from '@/lib/labels'
+import { OPERATION_AUDIT_CSV_HEADERS, buildOperationAuditCsvRows } from '@/lib/audit-export'
 import { downloadCsv } from '@/lib/csv-export'
 import { useAuditListPage } from './use-audit-list-page'
 
@@ -42,15 +42,8 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
   const handleExport = useCallback(() => {
     downloadCsv(
       'operation-audit.csv',
-      ['时间', '操作类型', '操作人', '操作对象', '详情', 'IP'],
-      logs.map((log) => [
-        log.createdAt,
-        OPERATION_ACTION_LABELS[log.action] ?? log.action,
-        log.operator,
-        log.target,
-        log.detail,
-        log.ip,
-      ]),
+      [...OPERATION_AUDIT_CSV_HEADERS],
+      buildOperationAuditCsvRows(logs),
     )
   }, [logs])
 

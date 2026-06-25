@@ -1,6 +1,6 @@
 import { http, HttpResponse, delay } from 'msw'
 import { API_BASE_PATH } from '@/config/app'
-import { DEMO_TODAY } from '../../lib/demo-clock'
+import { DEMO_TODAY } from '@/mocks/lib/demo-clock'
 import { mockProviderKeys } from '../../data'
 
 export const providerKeysHandlers = [

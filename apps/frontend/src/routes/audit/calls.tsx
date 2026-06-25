@@ -1,9 +1,6 @@
 import { Activity } from 'lucide-react'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
-import { AuditMemberSelect } from '@/components/audit/audit-member-select'
-import { AuditToolbar } from '@/components/audit/audit-toolbar'
-import { AuditDatePresetSelect } from '@/components/audit/audit-date-preset-select'
-import { AuditKeywordInput } from '@/components/audit/audit-keyword-input'
+import { AuditListToolbar } from '@/components/audit/audit-list-toolbar'
 import { OptionsSelect } from '@/components/ui/options-select'
 import { CALL_LOG_STATUS_LABELS } from '@/lib/labels'
 import { CallLogsTable } from '@/routes/audit/components/call-logs-table'
@@ -42,8 +39,16 @@ export default function CallLogsPage() {
         description: '模型 API 调用成功后，日志将显示在这里',
       }}
       actions={
-        <div className="flex flex-wrap items-center gap-3">
-          <AuditDatePresetSelect value={datePreset} onValueChange={setDatePreset} />
+        <AuditListToolbar
+          datePreset={datePreset}
+          onDatePresetChange={setDatePreset}
+          memberId={callerId}
+          onMemberIdChange={setCallerId}
+          memberAllLabel="全部调用人"
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          onExport={handleExport}
+        >
           <OptionsSelect
             value={statusFilter}
             onValueChange={setStatusFilter}
@@ -51,10 +56,7 @@ export default function CallLogsPage() {
             allLabel="全部状态"
             className="w-32"
           />
-          <AuditMemberSelect value={callerId} onValueChange={setCallerId} allLabel="全部调用人" />
-          <AuditKeywordInput value={keyword} onChange={setKeyword} />
-          <AuditToolbar onExport={handleExport} />
-        </div>
+        </AuditListToolbar>
       }
     >
       <CallLogsTable

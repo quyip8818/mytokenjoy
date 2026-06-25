@@ -4,6 +4,7 @@ import type { CallLog } from '@/api/types'
 import { useAuditSettings } from '@/hooks/use-audit-settings'
 import { AUDIT_DATE_PRESET } from '@/lib/audit-constants'
 import { AUDIT_FILTER_ALL, buildCallsQuery, type AuditCallsFilter } from '@/lib/audit-query'
+import { CALL_AUDIT_CSV_HEADERS, buildCallAuditCsvRows } from '@/lib/audit-export'
 import { downloadCsv } from '@/lib/csv-export'
 import { useAuditListPage } from './use-audit-list-page'
 
@@ -34,20 +35,7 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const handleExport = useCallback(() => {
-    downloadCsv(
-      'call-audit.csv',
-      ['时间', '调用人', '模型', '输入 Token', '输出 Token', '延迟(ms)', '状态', '费用'],
-      logs.map((log) => [
-        log.createdAt,
-        log.caller,
-        log.model,
-        String(log.inputTokens),
-        String(log.outputTokens),
-        String(log.latencyMs),
-        log.status,
-        String(log.cost),
-      ]),
-    )
+    downloadCsv('call-audit.csv', [...CALL_AUDIT_CSV_HEADERS], buildCallAuditCsvRows(logs))
   }, [logs])
 
   const toggleExpanded = useCallback((id: string) => {

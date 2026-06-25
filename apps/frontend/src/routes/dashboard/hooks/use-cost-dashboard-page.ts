@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import type {
   CostGranularity,
@@ -34,8 +34,7 @@ function buildCostQuery(period: CostPeriod, startDate: string, endDate: string):
 }
 
 export function useCostDashboardPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const [period, setPeriod] = useState<CostPeriod>(COST_PERIOD.CURRENT_MONTH)
   const [startDate, setStartDate] = useState(getMonthStartLocal)
   const [endDate, setEndDate] = useState(getTodayLocal)

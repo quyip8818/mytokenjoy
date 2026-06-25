@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import type { Member } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useDemoRole } from '@/features/demo'
 import { pushModelPicker, useMemberWhitelist } from '../../use-member-whitelist'
 import type { WorkflowComponentProps, WorkflowStackEntry } from '../../types'
@@ -27,8 +27,7 @@ export function KeyFormWorkflow({
   onSetDirty,
   injectedApis,
 }: KeyFormWorkflowProps) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
   const { memberId } = useDemoRole()
   const { resolveWhitelist } = useMemberWhitelist()

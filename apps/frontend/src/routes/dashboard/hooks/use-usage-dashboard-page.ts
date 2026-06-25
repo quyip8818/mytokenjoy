@@ -1,10 +1,9 @@
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 
 export function useUsageDashboardPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { data, loading, error, refresh } = useAsyncResource(async () => {
     const [teamUsage, modelUsage] = await Promise.all([
       apis.dashboardApi.getTeamUsage(),

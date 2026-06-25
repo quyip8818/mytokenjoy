@@ -1,5 +1,5 @@
 import type { KeyApproval, PlatformKey, ProviderKey } from '@/api/types'
-import { DEMO_MONTH_START, DEMO_TODAY } from '../lib/demo-clock'
+import { DEMO_MONTH_START, DEMO_TODAY } from '@/mocks/lib/demo-clock'
 import { mockMembers } from './org'
 
 function memberName(id: string): string {

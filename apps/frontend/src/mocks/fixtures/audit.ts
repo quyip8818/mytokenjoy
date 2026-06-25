@@ -1,5 +1,5 @@
 import type { AuditAction, CallLog, OperationLog, ProviderType } from '@/api/types'
-import { DEMO_MONTH_START, DEMO_TODAY } from '../lib/demo-clock'
+import { DEMO_MONTH_START, DEMO_TODAY } from '@/mocks/lib/demo-clock'
 
 export const mockOperationLogs: OperationLog[] = [
   {

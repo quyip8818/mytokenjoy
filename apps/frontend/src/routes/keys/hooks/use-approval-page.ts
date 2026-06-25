@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { KeyApproval } from '@/api/types'
 import { useDemoRole } from '@/features/demo'
 import { useFilteredResource } from '@/hooks/use-filtered-resource'
@@ -12,8 +12,7 @@ import { PERMISSION } from '@/lib/permissions'
 type ApprovalTab = 'pending' | 'mine' | 'all'
 
 export function useApprovalPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
+  const apis = useInjectedApis(injectedApis)
   const { memberId } = useDemoRole()
   const { has } = usePermissions()
   const canApprove = has(PERMISSION.BUDGET_APPROVE)
