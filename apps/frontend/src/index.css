@@ -59,7 +59,7 @@
   --shadow-card: 0 1px 3px rgba(37, 99, 235, 0.04), 0 4px 12px rgba(37, 99, 235, 0.06);
   --shadow-card-hover: 0 4px 16px rgba(37, 99, 235, 0.1), 0 8px 24px rgba(37, 99, 235, 0.06);
   --shadow-button: 0 2px 8px rgba(37, 99, 235, 0.25);
-  --shadow-sidebar: 4px 0 24px rgba(37, 99, 235, 0.06);
+  --shadow-sidebar: 1px 0 0 rgba(226, 232, 240, 0.9);
 }
 
 :root {
@@ -87,13 +87,13 @@
   --chart-4: #f59e0b;
   --chart-5: #06b6d4;
   --radius: 0.625rem;
-  --sidebar: #0f172a;
-  --sidebar-foreground: #e2e8f0;
+  --sidebar: #fafbfd;
+  --sidebar-foreground: #475569;
   --sidebar-primary: #2563eb;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(37, 99, 235, 0.1);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-accent: #f3f6fc;
+  --sidebar-accent-foreground: #2563eb;
+  --sidebar-border: #e8edf4;
   --sidebar-ring: #2563eb;
 }
 

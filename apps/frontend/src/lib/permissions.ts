@@ -1,5 +1,5 @@
 import type { Member, Role } from '@/api/types'
-import { HOME_PATH_CANDIDATES, ROUTE_META, ROUTES } from '@/config/routes'
+import { HOME_PATH_CANDIDATES, ROUTE_META, ROUTES, routePermissions } from '@/config/routes'
 import { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 import {
   ROLE_API_CALLER,
@@ -121,8 +121,8 @@ export function canWriteSession(permissions: readonly string[]): boolean {
 }
 
 export function getDefaultHomePath(permissions: readonly string[]): string {
-  for (const { path, requiredPermissions } of HOME_PATH_CANDIDATES) {
-    if (hasPermission(permissions, [...requiredPermissions])) return path
+  for (const path of HOME_PATH_CANDIDATES) {
+    if (hasPermission(permissions, routePermissions(path))) return path
   }
   return ROUTES.dashboardCost
 }

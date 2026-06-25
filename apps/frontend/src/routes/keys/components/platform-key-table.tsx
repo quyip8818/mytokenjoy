@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
+import { BudgetProgressCell } from '@/components/budget/budget-progress-cell'
 import type { PlatformKey } from '@/api/types'
 import { KeyPrefixBadge, KeyStatusBadge } from '@/lib/label-badges'
 import {

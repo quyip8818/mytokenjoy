@@ -6,7 +6,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import type { ImportFailure, ImportResult } from '@/api/types'
-import { useApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -21,6 +20,7 @@ interface ImportResultProps {
   result: ImportResult
   onNavigateOrg?: () => void
   onUpdate: (result: ImportResult) => void
+  onRetryImport: (ids: string[]) => Promise<ImportResult>
 }
 
 const columnHelper = createColumnHelper<ImportFailure>()
@@ -31,38 +31,19 @@ const columns = [
   columnHelper.accessor('reason', { header: '失败原因' }),
 ]
 
-export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResultProps) {
-  const apis = useApis()
+export function ImportResultView({
+  result,
+  onNavigateOrg,
+  onUpdate,
+  onRetryImport,
+}: ImportResultProps) {
   const [retrying, setRetrying] = useState<Set<string>>(new Set())
   const [retryingAll, setRetryingAll] = useState(false)
-
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns unstable function refs
-  const table = useReactTable({
-    data: result.failures,
-    columns: [
-      ...columns,
-      columnHelper.display({
-        id: 'actions',
-        header: '操作',
-        cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={retrying.has(row.original.id)}
-            onClick={() => handleRetry(row.original.id)}
-          >
-            {retrying.has(row.original.id) ? '重试中...' : '重试'}
-          </Button>
-        ),
-      }),
-    ],
-    getCoreRowModel: getCoreRowModel(),
-  })
 
   const handleRetry = async (id: string) => {
     setRetrying((prev) => new Set(prev).add(id))
     try {
-      const res = await apis.dataSourceApi.retryImport([id])
+      const res = await onRetryImport([id])
       const updatedFailures = result.failures.filter((f) => f.id !== id)
       onUpdate({
         successMembers: result.successMembers + res.successMembers,
@@ -82,7 +63,7 @@ export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResu
     const ids = result.failures.map((f) => f.id)
     setRetryingAll(true)
     try {
-      const res = await apis.dataSourceApi.retryImport(ids)
+      const res = await onRetryImport(ids)
       onUpdate({
         successMembers: result.successMembers + res.successMembers,
         successDepartments: result.successDepartments + res.successDepartments,
@@ -92,6 +73,29 @@ export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResu
       setRetryingAll(false)
     }
   }
+
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns unstable function refs
+  const table = useReactTable({
+    data: result.failures,
+    columns: [
+      ...columns,
+      columnHelper.display({
+        id: 'actions',
+        header: '操作',
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={retrying.has(row.original.id)}
+            onClick={() => void handleRetry(row.original.id)}
+          >
+            {retrying.has(row.original.id) ? '重试中...' : '重试'}
+          </Button>
+        ),
+      }),
+    ],
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   const allSuccess = result.failures.length === 0
 
@@ -119,7 +123,7 @@ export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResu
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-muted-foreground">失败详情</h4>
-            <Button variant="destructive" size="sm" onClick={handleRetryAll} disabled={retryingAll}>
+            <Button variant="destructive" size="sm" onClick={() => void handleRetryAll()} disabled={retryingAll}>
               {retryingAll ? '重试中...' : '全部重试失败'}
             </Button>
           </div>

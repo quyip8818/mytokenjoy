@@ -8,7 +8,7 @@ import {
 import { PageShell } from '@/components/layout/page-shell'
 import { ErrorState } from '@/components/ui/error-state'
 import { COST_PERIOD_LABELS } from '@/lib/dashboard-constants'
-import { useCostDashboard } from '@/routes/dashboard/hooks/use-cost-dashboard'
+import { useCostDashboardPage } from '@/routes/dashboard/hooks/use-cost-dashboard-page'
 import { CostSummaryStats } from '@/routes/dashboard/components/cost-summary-stats'
 import { CostTrendChart } from '@/routes/dashboard/components/cost-trend-chart'
 import { CostDistributionChart } from '@/routes/dashboard/components/cost-distribution-chart'
@@ -33,7 +33,7 @@ export default function CostDashboardPage() {
     handlePeriodChange,
     handleDrillDept,
     handleDrillBack,
-  } = useCostDashboard()
+  } = useCostDashboardPage()
 
   if (error) {
     return (

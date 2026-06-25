@@ -1,6 +1,6 @@
 import { Shield } from 'lucide-react'
-import { RoleList } from '@/components/org/role-list'
-import { RoleMemberTable } from '@/components/org/role-member-table'
+import { RoleList } from '@/routes/org/components/role-list'
+import { RoleMemberTable } from '@/routes/org/components/role-member-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { ErrorState } from '@/components/ui/error-state'

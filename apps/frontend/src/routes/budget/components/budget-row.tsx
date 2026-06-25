@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { BudgetNode } from '@/api/types'
-import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
+import { BudgetProgressCell } from '@/components/budget/budget-progress-cell'
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { computeUnallocated, findBudgetNode } from '@/lib/budget'

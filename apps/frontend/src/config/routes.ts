@@ -1,4 +1,23 @@
 import type { ComponentType } from 'react'
+import {
+  Activity,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  Cpu,
+  CreditCard,
+  Database,
+  GitBranch,
+  Globe,
+  Key,
+  PieChart,
+  ScrollText,
+  Shield,
+  ShieldAlert,
+  TrendingUp,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
 import { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 
 export const ROUTES = {
@@ -25,49 +44,131 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 
 export interface RouteMeta {
   path: RoutePath
+  label: string
+  icon: LucideIcon
   requiredPermissions: readonly PermissionKey[]
+  badgeKey?: 'approvalPending'
 }
 
 export const ROUTE_META: RouteMeta[] = [
-  { path: ROUTES.orgDataSource, requiredPermissions: [PERMISSION.ORG_DATASOURCE] },
+  {
+    path: ROUTES.orgDataSource,
+    label: '数据源',
+    icon: Database,
+    requiredPermissions: [PERMISSION.ORG_DATASOURCE],
+  },
   {
     path: ROUTES.orgStructure,
+    label: '组织架构',
+    icon: Building2,
     requiredPermissions: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS],
   },
-  { path: ROUTES.orgRoles, requiredPermissions: [PERMISSION.ORG_ROLES] },
-  { path: ROUTES.budgetOverview, requiredPermissions: [PERMISSION.BUDGET_READ] },
-  { path: ROUTES.budgetAllocation, requiredPermissions: [PERMISSION.BUDGET_READ] },
-  { path: ROUTES.budgetAlerts, requiredPermissions: [PERMISSION.BUDGET_POLICY] },
-  { path: ROUTES.modelsList, requiredPermissions: [PERMISSION.MODEL_MANAGE] },
-  { path: ROUTES.modelsRouting, requiredPermissions: [PERMISSION.MODEL_WHITELIST] },
-  { path: ROUTES.keysMine, requiredPermissions: [PERMISSION.SELF_KEYS] },
+  {
+    path: ROUTES.orgRoles,
+    label: '角色管理',
+    icon: Shield,
+    requiredPermissions: [PERMISSION.ORG_ROLES],
+  },
+  {
+    path: ROUTES.budgetOverview,
+    label: '预算总览',
+    icon: Wallet,
+    requiredPermissions: [PERMISSION.BUDGET_READ],
+  },
+  {
+    path: ROUTES.budgetAllocation,
+    label: '预算分配',
+    icon: PieChart,
+    requiredPermissions: [PERMISSION.BUDGET_READ],
+  },
+  {
+    path: ROUTES.budgetAlerts,
+    label: '超限策略',
+    icon: ShieldAlert,
+    requiredPermissions: [PERMISSION.BUDGET_POLICY],
+  },
+  {
+    path: ROUTES.modelsList,
+    label: '模型列表',
+    icon: Cpu,
+    requiredPermissions: [PERMISSION.MODEL_MANAGE],
+  },
+  {
+    path: ROUTES.modelsRouting,
+    label: '模型白名单',
+    icon: GitBranch,
+    requiredPermissions: [PERMISSION.MODEL_WHITELIST],
+  },
+  {
+    path: ROUTES.keysMine,
+    label: '我的 Key',
+    icon: CreditCard,
+    requiredPermissions: [PERMISSION.SELF_KEYS],
+  },
   {
     path: ROUTES.keysApproval,
+    label: '审批中心',
+    icon: CheckCircle2,
     requiredPermissions: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL],
+    badgeKey: 'approvalPending',
   },
-  { path: ROUTES.keysPlatform, requiredPermissions: [PERMISSION.KEYS_ADMIN] },
-  { path: ROUTES.keysProvider, requiredPermissions: [PERMISSION.KEYS_PROVIDER] },
-  { path: ROUTES.dashboardCost, requiredPermissions: [PERMISSION.DASHBOARD_COST] },
-  { path: ROUTES.dashboardUsage, requiredPermissions: [PERMISSION.DASHBOARD_USAGE] },
-  { path: ROUTES.auditOperations, requiredPermissions: [PERMISSION.AUDIT_READ] },
-  { path: ROUTES.auditCalls, requiredPermissions: [PERMISSION.AUDIT_READ] },
+  {
+    path: ROUTES.keysPlatform,
+    label: 'Key 管理',
+    icon: Globe,
+    requiredPermissions: [PERMISSION.KEYS_ADMIN],
+  },
+  {
+    path: ROUTES.keysProvider,
+    label: '供应商 Key',
+    icon: Key,
+    requiredPermissions: [PERMISSION.KEYS_PROVIDER],
+  },
+  {
+    path: ROUTES.dashboardCost,
+    label: '成本看板',
+    icon: BarChart3,
+    requiredPermissions: [PERMISSION.DASHBOARD_COST],
+  },
+  {
+    path: ROUTES.dashboardUsage,
+    label: '用量分析',
+    icon: TrendingUp,
+    requiredPermissions: [PERMISSION.DASHBOARD_USAGE],
+  },
+  {
+    path: ROUTES.auditOperations,
+    label: '操作审计',
+    icon: ScrollText,
+    requiredPermissions: [PERMISSION.AUDIT_READ],
+  },
+  {
+    path: ROUTES.auditCalls,
+    label: '调用日志',
+    icon: Activity,
+    requiredPermissions: [PERMISSION.AUDIT_READ],
+  },
 ]
 
-export const HOME_PATH_CANDIDATES: RouteMeta[] = [
-  { path: ROUTES.orgDataSource, requiredPermissions: [PERMISSION.ORG_DATASOURCE] },
-  { path: ROUTES.keysApproval, requiredPermissions: [PERMISSION.BUDGET_APPROVE] },
-  { path: ROUTES.budgetOverview, requiredPermissions: [PERMISSION.BUDGET_READ] },
-  { path: ROUTES.keysMine, requiredPermissions: [PERMISSION.SELF_KEYS] },
-  { path: ROUTES.auditOperations, requiredPermissions: [PERMISSION.AUDIT_READ] },
-  { path: ROUTES.dashboardCost, requiredPermissions: [PERMISSION.DASHBOARD_COST] },
+export const HOME_PATH_CANDIDATES: RoutePath[] = [
+  ROUTES.orgDataSource,
+  ROUTES.keysApproval,
+  ROUTES.budgetOverview,
+  ROUTES.keysMine,
+  ROUTES.auditOperations,
+  ROUTES.dashboardCost,
 ]
 
-export function routePermissions(path: RoutePath): PermissionKey[] {
+export function getRouteMeta(path: RoutePath): RouteMeta {
   const meta = ROUTE_META.find((entry) => entry.path === path)
   if (!meta) {
     throw new Error(`Missing ROUTE_META for path: ${path}`)
   }
-  return [...meta.requiredPermissions]
+  return meta
+}
+
+export function routePermissions(path: RoutePath): PermissionKey[] {
+  return [...getRouteMeta(path).requiredPermissions]
 }
 
 type LazyPageModule = { default: ComponentType }

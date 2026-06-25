@@ -35,13 +35,20 @@ function profileFromMember(member: Member) {
   return getMemberDisplay(member)
 }
 
+function resolveInitialMemberId(memberId: string): string {
+  return DEMO_SWITCHABLE_MEMBERS.some((m) => m.id === memberId)
+    ? memberId
+    : DEFAULT_DEMO_MEMBER_ID
+}
+
 export function createDemoRoleStore(
   initialMemberId: string = DEFAULT_DEMO_MEMBER_ID,
   apis: Pick<AppApis, 'sessionApi'> = defaultApis,
 ): StoreApi<DemoRoleStoreState> {
-  const fallback = DEMO_SWITCHABLE_MEMBERS.find((m) => m.id === initialMemberId)
+  const resolvedMemberId = resolveInitialMemberId(initialMemberId)
+  const fallback = DEMO_SWITCHABLE_MEMBERS.find((m) => m.id === resolvedMemberId)
   const store = createStore<DemoRoleStoreState>((set, get) => ({
-    memberId: initialMemberId,
+    memberId: resolvedMemberId,
     member: null,
     permissions: [],
     readOnly: false,
@@ -85,5 +92,3 @@ export function createDemoRoleStore(
 
   return store
 }
-
-export const defaultDemoRoleStore = createDemoRoleStore()

@@ -26,5 +26,18 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
     },
   },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/config/routes.ts', 'src/api/**', 'src/mocks/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/^\\/(org|budget|keys|models|dashboard|audit)(\\/|$)/]',
+          message: 'Use ROUTES.* from @/config/routes instead of hardcoded app paths.',
+        },
+      ],
+    },
+  },
   eslintConfigPrettier,
 ])

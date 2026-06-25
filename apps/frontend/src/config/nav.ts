@@ -1,24 +1,6 @@
-import {
-  Activity,
-  BarChart3,
-  Building2,
-  CheckCircle2,
-  Cpu,
-  CreditCard,
-  Database,
-  GitBranch,
-  Globe,
-  Key,
-  PieChart,
-  ScrollText,
-  Shield,
-  ShieldAlert,
-  TrendingUp,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { type PermissionKey, hasPermission } from '@/lib/permissions'
-import { ROUTES, routePermissions } from '@/config/routes'
+import { ROUTE_META, ROUTES, getRouteMeta, type RoutePath } from '@/config/routes'
 
 export interface NavItem {
   label: string
@@ -34,140 +16,58 @@ export interface NavGroup {
   collapsed?: boolean
 }
 
-export const NAV_GROUPS: NavGroup[] = [
+export const NAV_GROUP_LAYOUT: {
+  group: string
+  paths: RoutePath[]
+  collapsed?: boolean
+}[] = [
   {
     group: '组织',
-    items: [
-      {
-        label: '数据源',
-        path: ROUTES.orgDataSource,
-        icon: Database,
-        requiredPermissions: routePermissions(ROUTES.orgDataSource),
-      },
-      {
-        label: '组织架构',
-        path: ROUTES.orgStructure,
-        icon: Building2,
-        requiredPermissions: routePermissions(ROUTES.orgStructure),
-      },
-      {
-        label: '角色管理',
-        path: ROUTES.orgRoles,
-        icon: Shield,
-        requiredPermissions: routePermissions(ROUTES.orgRoles),
-      },
-    ],
+    paths: [ROUTES.orgDataSource, ROUTES.orgStructure, ROUTES.orgRoles],
   },
   {
     group: '预算',
-    items: [
-      {
-        label: '预算总览',
-        path: ROUTES.budgetOverview,
-        icon: Wallet,
-        requiredPermissions: routePermissions(ROUTES.budgetOverview),
-      },
-      {
-        label: '预算分配',
-        path: ROUTES.budgetAllocation,
-        icon: PieChart,
-        requiredPermissions: routePermissions(ROUTES.budgetAllocation),
-      },
-      {
-        label: '超限策略',
-        path: ROUTES.budgetAlerts,
-        icon: ShieldAlert,
-        requiredPermissions: routePermissions(ROUTES.budgetAlerts),
-      },
-    ],
+    paths: [ROUTES.budgetOverview, ROUTES.budgetAllocation, ROUTES.budgetAlerts],
   },
   {
     group: '模型管理',
-    items: [
-      {
-        label: '模型列表',
-        path: ROUTES.modelsList,
-        icon: Cpu,
-        requiredPermissions: routePermissions(ROUTES.modelsList),
-      },
-      {
-        label: '模型白名单',
-        path: ROUTES.modelsRouting,
-        icon: GitBranch,
-        requiredPermissions: routePermissions(ROUTES.modelsRouting),
-      },
-    ],
+    paths: [ROUTES.modelsList, ROUTES.modelsRouting],
   },
   {
     group: 'Key 中心',
-    items: [
-      {
-        label: '我的 Key',
-        path: ROUTES.keysMine,
-        icon: CreditCard,
-        requiredPermissions: routePermissions(ROUTES.keysMine),
-      },
-      {
-        label: '审批中心',
-        path: ROUTES.keysApproval,
-        icon: CheckCircle2,
-        requiredPermissions: routePermissions(ROUTES.keysApproval),
-        badgeKey: 'approvalPending',
-      },
-      {
-        label: 'Key 管理',
-        path: ROUTES.keysPlatform,
-        icon: Globe,
-        requiredPermissions: routePermissions(ROUTES.keysPlatform),
-      },
-      {
-        label: '供应商 Key',
-        path: ROUTES.keysProvider,
-        icon: Key,
-        requiredPermissions: routePermissions(ROUTES.keysProvider),
-      },
-    ],
+    paths: [ROUTES.keysMine, ROUTES.keysApproval, ROUTES.keysPlatform, ROUTES.keysProvider],
   },
   {
     group: '数据中心',
     collapsed: true,
-    items: [
-      {
-        label: '成本看板',
-        path: ROUTES.dashboardCost,
-        icon: BarChart3,
-        requiredPermissions: routePermissions(ROUTES.dashboardCost),
-      },
-      {
-        label: '用量分析',
-        path: ROUTES.dashboardUsage,
-        icon: TrendingUp,
-        requiredPermissions: routePermissions(ROUTES.dashboardUsage),
-      },
-    ],
+    paths: [ROUTES.dashboardCost, ROUTES.dashboardUsage],
   },
   {
     group: '审计',
     collapsed: true,
-    items: [
-      {
-        label: '操作审计',
-        path: ROUTES.auditOperations,
-        icon: ScrollText,
-        requiredPermissions: routePermissions(ROUTES.auditOperations),
-      },
-      {
-        label: '调用日志',
-        path: ROUTES.auditCalls,
-        icon: Activity,
-        requiredPermissions: routePermissions(ROUTES.auditCalls),
-      },
-    ],
+    paths: [ROUTES.auditOperations, ROUTES.auditCalls],
   },
 ]
 
+function toNavItem(path: RoutePath): NavItem {
+  const meta = getRouteMeta(path)
+  return {
+    path: meta.path,
+    label: meta.label,
+    icon: meta.icon,
+    requiredPermissions: [...meta.requiredPermissions],
+    badgeKey: meta.badgeKey,
+  }
+}
+
+export const NAV_GROUPS: NavGroup[] = NAV_GROUP_LAYOUT.map((layout) => ({
+  group: layout.group,
+  collapsed: layout.collapsed,
+  items: layout.paths.map(toNavItem),
+}))
+
 export const ROUTE_TITLES: Record<string, string> = Object.fromEntries(
-  NAV_GROUPS.flatMap((group) => group.items.map((item) => [item.path, item.label])),
+  ROUTE_META.map((meta) => [meta.path, meta.label]),
 )
 
 export function getVisibleNavGroups(permissions: readonly string[]): NavGroup[] {

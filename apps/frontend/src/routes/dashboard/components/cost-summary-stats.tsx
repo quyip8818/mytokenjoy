@@ -1,5 +1,5 @@
 import { StatCard } from '@/components/ui/stat-card'
-import type { CostStatItem } from '@/routes/dashboard/hooks/use-cost-dashboard'
+import type { CostStatItem } from '@/lib/dashboard'
 
 interface CostSummaryStatsProps {
   stats: CostStatItem[]

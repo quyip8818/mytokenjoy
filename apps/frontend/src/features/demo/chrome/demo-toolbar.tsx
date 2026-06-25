@@ -15,6 +15,7 @@ import {
 export function DemoToolbar() {
   const { memberId, displayName, initials, roles, setMemberId } = useDemoRole()
   const { setOpen } = useDemoGuide()
+  const selectedMember = DEMO_SWITCHABLE_MEMBERS.find((m) => m.id === memberId)
 
   return (
     <>
@@ -31,7 +32,7 @@ export function DemoToolbar() {
           }}
         >
           <SelectTrigger className="h-8 w-[11rem] text-xs">
-            <SelectValue />
+            <SelectValue>{selectedMember?.label}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {DEMO_SWITCHABLE_MEMBERS.map((m) => (

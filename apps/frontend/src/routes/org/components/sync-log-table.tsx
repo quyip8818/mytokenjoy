@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   createColumnHelper,
   flexRender,
@@ -6,7 +5,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import type { SyncLog } from '@/api/types'
-import { useApis } from '@/api/use-apis'
 import {
   Table,
   TableBody,
@@ -18,26 +16,15 @@ import {
 import { PageLoading } from '@/components/ui/page-loading'
 import { EmptyState } from '@/components/ui/empty-state'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { SYNC_RESULT_VARIANTS } from '@/lib/labels'
+import { SYNC_RESULT_LABELS, SYNC_RESULT_VARIANTS, SYNC_TYPE_LABELS } from '@/lib/labels'
 
 const columnHelper = createColumnHelper<SyncLog>()
-
-const typeLabels: Record<SyncLog['type'], string> = {
-  scheduled: '定时',
-  manual: '手动',
-}
-
-const resultLabels: Record<SyncLog['result'], string> = {
-  success: '成功',
-  partial_failure: '部分失败',
-  failure: '失败',
-}
 
 const columns = [
   columnHelper.accessor('time', { header: '时间' }),
   columnHelper.accessor('type', {
     header: '类型',
-    cell: (info) => typeLabels[info.getValue()],
+    cell: (info) => SYNC_TYPE_LABELS[info.getValue()],
   }),
   columnHelper.accessor('result', {
     header: '结果',
@@ -45,7 +32,7 @@ const columns = [
       const value = info.getValue()
       return (
         <StatusBadge variant={SYNC_RESULT_VARIANTS[value] ?? 'neutral'}>
-          {resultLabels[value]}
+          {SYNC_RESULT_LABELS[value]}
         </StatusBadge>
       )
     },
@@ -53,18 +40,12 @@ const columns = [
   columnHelper.accessor('detail', { header: '详情' }),
 ]
 
-export function SyncLogTable() {
-  const apis = useApis()
-  const [logs, setLogs] = useState<SyncLog[]>([])
-  const [loading, setLoading] = useState(true)
+interface SyncLogTableProps {
+  logs: SyncLog[]
+  loading: boolean
+}
 
-  useEffect(() => {
-    apis.syncApi.getLogs(1, 10).then((res) => {
-      setLogs(res.items)
-      setLoading(false)
-    })
-  }, [apis])
-
+export function SyncLogTable({ logs, loading }: SyncLogTableProps) {
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns unstable function refs
   const table = useReactTable({
     data: logs,

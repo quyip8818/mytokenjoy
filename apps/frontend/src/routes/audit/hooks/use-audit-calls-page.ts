@@ -4,7 +4,7 @@ import { useApis } from '@/api/use-apis'
 import { useFilteredResource } from '@/hooks/use-filtered-resource'
 import { CALL_LOG_STATUS_LABELS } from '@/lib/labels'
 import { downloadCsv } from '@/lib/csv-export'
-import { useAuditSettings } from '@/routes/audit/hooks/use-audit-settings'
+import { useAuditSettings } from '@/hooks/use-audit-settings'
 
 export function useAuditCallsPage(injectedApis?: AppApis) {
   const ctxApis = useApis()

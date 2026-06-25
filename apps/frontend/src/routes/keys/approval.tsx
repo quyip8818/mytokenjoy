@@ -1,21 +1,13 @@
 import { ClipboardList } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { ApprovalStatusBadge } from '@/lib/label-badges'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
+import { ApprovalTable } from '@/routes/keys/components/approval-table'
 import { useApprovalPage } from '@/routes/keys/hooks/use-approval-page'
 
 export default function ApprovalPage() {
@@ -74,52 +66,13 @@ export default function ApprovalPage() {
               onAction: canSubmit ? openSubmit : undefined,
             })}
           >
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>类型</TableHead>
-                  <TableHead>申请人</TableHead>
-                  <TableHead>部门</TableHead>
-                  <TableHead>申请理由</TableHead>
-                  {hasKeyType && <TableHead>申请模型</TableHead>}
-                  {hasQuotaType && <TableHead className="text-right">额度 (¥)</TableHead>}
-                  <TableHead>状态</TableHead>
-                  <TableHead>申请时间</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvals.map((a) => (
-                  <TableRow
-                    key={a.id}
-                    className={`cursor-pointer ${rowClass(a.id)}`}
-                    onClick={() => handleRowClick(a)}
-                  >
-                    <TableCell>
-                      <StatusBadge variant="neutral">
-                        {a.type === 'key' ? 'Key 申请' : '额度追加'}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell className="font-medium">{a.applicant}</TableCell>
-                    <TableCell className="text-muted-foreground">{a.department}</TableCell>
-                    <TableCell className="max-w-48 truncate text-sm">{a.reason}</TableCell>
-                    {hasKeyType && (
-                      <TableCell className="text-sm text-muted-foreground">
-                        {a.type === 'key' ? a.requestedModels.join(', ') || '—' : '—'}
-                      </TableCell>
-                    )}
-                    {hasQuotaType && (
-                      <TableCell className="text-right">
-                        {a.type === 'quota' ? a.requestedQuota.toLocaleString() : '—'}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <ApprovalStatusBadge status={a.status} />
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{a.createdAt}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ApprovalTable
+              approvals={approvals}
+              hasKeyType={hasKeyType}
+              hasQuotaType={hasQuotaType}
+              rowClass={rowClass}
+              onRowClick={handleRowClick}
+            />
           </DataSection>
         </TabsContent>
       </Tabs>

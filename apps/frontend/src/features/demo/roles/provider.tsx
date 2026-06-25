@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import { DemoRoleStoreContext } from './context'
-import { defaultDemoRoleStore, type DemoRoleStoreState } from './store'
+import { createDemoRoleStore, type DemoRoleStoreState } from './store'
 
 interface DemoRoleProviderProps {
   children: ReactNode
@@ -9,7 +9,7 @@ interface DemoRoleProviderProps {
 }
 
 export function DemoRoleProvider({ children, store }: DemoRoleProviderProps) {
-  const storeInstance = useMemo(() => store ?? defaultDemoRoleStore, [store])
+  const storeInstance = useMemo(() => store ?? createDemoRoleStore(), [store])
   return (
     <DemoRoleStoreContext.Provider value={storeInstance}>{children}</DemoRoleStoreContext.Provider>
   )

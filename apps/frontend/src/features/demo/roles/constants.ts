@@ -8,8 +8,6 @@ export interface DemoSwitchableMember {
   roleSummary: string
 }
 
-export const DEFAULT_DEMO_MEMBER_ID = 'm-admin'
-
 export const DEMO_SWITCHABLE_MEMBERS: DemoSwitchableMember[] = [
   {
     id: 'm-admin',
@@ -47,6 +45,8 @@ export const DEMO_SWITCHABLE_MEMBERS: DemoSwitchableMember[] = [
     roleSummary: '普通成员',
   },
 ]
+
+export const DEFAULT_DEMO_MEMBER_ID = DEMO_SWITCHABLE_MEMBERS[0]!.id
 
 export function getSwitchableMember(memberId: string): DemoSwitchableMember | undefined {
   return DEMO_SWITCHABLE_MEMBERS.find((m) => m.id === memberId)

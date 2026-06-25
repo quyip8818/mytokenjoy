@@ -1,14 +1,5 @@
 import { ScrollText } from 'lucide-react'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { StatusBadge } from '@/components/ui/status-badge'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -17,7 +8,7 @@ import {
 } from '@/components/ui/select'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
 import { AuditToolbar } from '@/components/audit/audit-toolbar'
-import { getOperationActionBadgeVariant, OPERATION_ACTION_LABELS } from '@/lib/labels'
+import { OperationsLogTable } from '@/routes/audit/components/operations-log-table'
 import { useAuditOperationsPage } from '@/routes/audit/hooks/use-audit-operations-page'
 
 export default function OperationLogsPage() {
@@ -57,40 +48,7 @@ export default function OperationLogsPage() {
         </div>
       }
     >
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>时间</TableHead>
-            <TableHead>操作类型</TableHead>
-            <TableHead>操作人</TableHead>
-            <TableHead>操作对象</TableHead>
-            <TableHead>详情</TableHead>
-            <TableHead>IP</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {logs.map((log) => (
-            <TableRow key={log.id}>
-              <TableCell className="text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
-                {log.createdAt}
-              </TableCell>
-              <TableCell>
-                <StatusBadge variant={getOperationActionBadgeVariant(log.action)}>
-                  {OPERATION_ACTION_LABELS[log.action] ?? log.action}
-                </StatusBadge>
-              </TableCell>
-              <TableCell className="font-medium">{log.operator}</TableCell>
-              <TableCell className="text-sm">{log.target}</TableCell>
-              <TableCell className="max-w-64 truncate text-sm text-muted-foreground">
-                {log.detail}
-              </TableCell>
-              <TableCell className="font-mono text-[11px] text-muted-foreground">
-                {log.ip}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <OperationsLogTable logs={logs} />
     </AuditFilteredPage>
   )
 }

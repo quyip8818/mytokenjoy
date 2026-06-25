@@ -1,0 +1,68 @@
+---
+description: TokenJoy frontend structure — placement, pages, routes, components, and API DI
+globs: apps/frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend Structure Conventions
+
+Follow `docs/Frontend-代码结构优化指南.md` (especially §7.4). Summary:
+
+## Where code goes
+
+| Code | Location | Condition |
+|------|----------|-----------|
+| Route page entry | `routes/{domain}/{page}.tsx` | One file per `APP_ROUTES` entry |
+| Page logic | `routes/{domain}/hooks/use-{page}-page.ts` | State, effects, orchestration |
+| Page-only UI | `routes/{domain}/components/` | Exactly 1 route page; no workflow reuse |
+| Shared domain UI | `components/{domain}/` | 2+ route pages OR 1 page + `features/workflow` |
+| Cross-domain layout/auth | `components/layout/`, `components/auth/` | No single-page blocks |
+| Primitives | `components/ui/` | No business semantics — no domain words in filename |
+| Workflow adapter | `features/workflow/workflows/` | Open via `useWorkflow().open()` |
+| HTTP | `api/{domain}.ts` | One namespace per backend resource |
+| DTO types | `api/types/{domain}.ts` | Same domain as API |
+| Pure helpers | `lib/` | No React; unit-testable |
+
+## Component placement decision
+
+1. Business semantics? If no → `components/ui/`
+2. Cross-domain layout/auth? → `components/layout/` or `auth/`
+3. Count consumers: route pages + workflow imports
+4. One route page only, no workflow → `routes/{domain}/components/`
+5. Two+ route pages, or workflow reuses UI → `components/{domain}/`
+6. Promote: second route page imports from `routes/*/components/` → move to `components/{domain}/`
+7. Demote: `components/{domain}/` only used by one page with no workflow → `routes/{domain}/components/`
+
+Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`); thin wrapper in `features/workflow/workflows/`.
+
+## New component checklist
+
+1. List all importers (route pages + workflow)
+2. Pick directory per table above
+3. Never put domain-named files in `components/ui/` (`budget-*`, `org-*`, etc.)
+4. Update §7.4 inventory in the guide when adding shared components
+
+## Page template
+
+`{page}.tsx` — compose only; call `use{Name}Page()` from `hooks/use-*-page.ts`.
+
+Page hooks:
+- Use `useApis()` (optional `injectedApis` for tests)
+- Use `useAsyncResource` for data; expose `error` + `refresh`
+- Return a flat view model; no JSX
+
+## Routes (single source of truth)
+
+- Paths: `ROUTES` in `config/routes.ts` only — never hardcode `/org/...`, `/budget/...`, etc.
+- Metadata: `ROUTE_META` holds `path`, `label`, `icon`, `requiredPermissions`, optional `badgeKey`
+- New route checklist:
+  1. Add `ROUTES.*` key and `ROUTE_META` entry
+  2. Add `APP_ROUTES` lazy import
+  3. Add path to `NAV_GROUP_LAYOUT` in `config/nav.ts`
+  4. Create `routes/{domain}/{page}.tsx` + `hooks/use-*-page.ts`
+
+## API dependency injection
+
+- Consume APIs via `useApis()` in hooks, workflows, and shared components
+- Do not `import { xxxApi }` in business code
+- Tests: `createMockApis()` + `renderHookWithProviders(..., { apis })`

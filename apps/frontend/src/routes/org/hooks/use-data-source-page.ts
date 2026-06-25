@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
@@ -27,6 +27,15 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     return { status, syncConfig }
   }, [apis])
 
+  const {
+    data: syncLogs = [],
+    loading: syncLogsLoading,
+    refresh: refreshSyncLogs,
+  } = useAsyncResource(async () => {
+    const res = await apis.syncApi.getLogs(1, 10)
+    return res.items
+  }, [apis])
+
   const status = data?.status ?? null
   const syncConfig = data?.syncConfig ?? null
   const { openWithRefresh, open } = useWorkflowRefresh(refresh)
@@ -51,10 +60,18 @@ export function useDataSourcePage(injectedApis?: AppApis) {
       const result = await apis.syncApi.triggerSync()
       setImportResult(result)
       toast.success('同步完成')
+      void refreshSyncLogs()
     } finally {
       setTriggeringSync(false)
     }
   }
+
+  const handleRetryImport = useCallback(
+    async (ids: string[]) => {
+      return apis.dataSourceApi.retryImport(ids)
+    },
+    [apis],
+  )
 
   const openCredential = () => {
     openWithRefresh('credential-form', {
@@ -92,5 +109,8 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     openCredential,
     openSyncConfig,
     navigateToStructure,
+    syncLogs,
+    syncLogsLoading,
+    handleRetryImport,
   }
 }

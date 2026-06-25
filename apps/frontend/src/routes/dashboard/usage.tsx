@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
+import { BudgetProgressCell } from '@/components/budget/budget-progress-cell'
 import { UsageModelChart } from '@/routes/dashboard/components/usage-model-chart'
 import { useUsageDashboardPage } from '@/routes/dashboard/hooks/use-usage-dashboard-page'
 

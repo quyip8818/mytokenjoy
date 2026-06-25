@@ -1,23 +1,12 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
-import { useApis } from '@/api/use-apis'
 import type { ProviderKey } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useRowHighlight } from '@/hooks/use-row-highlight'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { useKeysListPage } from '@/routes/keys/hooks/use-keys-list-page'
 
 export function useProviderKeysPage(injectedApis?: AppApis) {
-  const ctxApis = useApis()
-  const apis = injectedApis ?? ctxApis
-  const { flashRow, rowClass } = useRowHighlight()
-  const {
-    data: keys = [],
-    loading,
-    error,
-    refresh,
-  } = useAsyncResource(() => apis.providerKeyApi.list(), [apis])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
+  const { apis, keys, loading, error, refresh, flashRow, rowClass, openWithRefresh } =
+    useKeysListPage(injectedApis, 'provider')
 
   const handleToggle = useCallback(
     async (key: ProviderKey) => {

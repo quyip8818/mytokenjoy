@@ -1,6 +1,6 @@
 import { Key } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ProviderKeyTable } from '@/components/keys/provider-key-table'
+import { ProviderKeyTable } from '@/routes/keys/components/provider-key-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'

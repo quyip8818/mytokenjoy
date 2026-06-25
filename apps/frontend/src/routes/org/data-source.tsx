@@ -1,7 +1,7 @@
 import { Plug } from 'lucide-react'
-import { ImportResultView } from '@/components/org/import-result'
-import { SyncLogTable } from '@/components/org/sync-log-table'
-import { DataSourceInitProgress } from '@/components/org/data-source-init-progress'
+import { ImportResultView } from '@/routes/org/components/import-result'
+import { SyncLogTable } from '@/routes/org/components/sync-log-table'
+import { DataSourceInitProgress } from '@/routes/org/components/data-source-init-progress'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { ErrorState } from '@/components/ui/error-state'
@@ -31,6 +31,9 @@ export default function DataSourcePage() {
     openCredential,
     openSyncConfig,
     navigateToStructure,
+    syncLogs,
+    syncLogsLoading,
+    handleRetryImport,
   } = useDataSourcePage()
 
   if (loading) {
@@ -128,6 +131,7 @@ export default function DataSourcePage() {
                 result={displayImportResult}
                 onUpdate={setImportResult}
                 onNavigateOrg={navigateToStructure}
+                onRetryImport={handleRetryImport}
               />
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -163,7 +167,7 @@ export default function DataSourcePage() {
           </DataSection>
 
           <DataSection title="同步记录">
-            <SyncLogTable />
+            <SyncLogTable logs={syncLogs} loading={syncLogsLoading} />
           </DataSection>
         </>
       )}

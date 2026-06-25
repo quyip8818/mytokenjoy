@@ -50,6 +50,24 @@ export function findParentDeptId(departments: Department[], deptId: string): str
   return null
 }
 
+export function filterDepartmentTree(departments: Department[], keyword: string): Department[] {
+  if (!keyword) return departments
+  return departments.reduce<Department[]>((acc, dept) => {
+    const childMatches = dept.children ? filterDepartmentTree(dept.children, keyword) : []
+    if (dept.name.includes(keyword) || childMatches.length > 0) {
+      acc.push({ ...dept, children: childMatches.length > 0 ? childMatches : dept.children })
+    }
+    return acc
+  }, [])
+}
+
+export function getDeptDeleteError(dept: Department): string | null {
+  if ((dept.children && dept.children.length > 0) || dept.memberCount > 0) {
+    return '请先移动或删除该部门下的子部门和成员'
+  }
+  return null
+}
+
 export function buildDeptParentMap(
   departments: Department[],
   map = new Map<string, string | null>(),

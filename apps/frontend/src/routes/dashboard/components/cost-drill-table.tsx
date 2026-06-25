@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { DepartmentCost, DepartmentCostMember } from '@/api/types'
-import type { DrillState } from '@/routes/dashboard/hooks/use-cost-dashboard'
+import type { DrillState } from '@/lib/dashboard'
 
 interface CostDrillTableProps {
   drill: DrillState

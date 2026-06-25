@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import type { RowSelectionState } from '@tanstack/react-table'
 import type { AppApis } from '@/api/app-apis'
@@ -7,7 +7,7 @@ import type { Department, Member } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { usePageSubtitle } from '@/hooks/use-page-subtitle'
-import { flattenDepartments, getDeptPath } from '@/lib/org'
+import { flattenDepartments, flattenDepartmentTree, getDeptPath } from '@/lib/org'
 import { usePermissions } from '@/hooks/use-permissions'
 import { PERMISSION } from '@/lib/permissions'
 import type { ConfirmActionState } from '@/components/ui/confirm-action-dialog'
@@ -29,7 +29,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const { setSubtitle } = usePageSubtitle()
   const { canWrite, permissions } = usePermissions()
   const canApprove = permissions.includes(PERMISSION.BUDGET_APPROVE)
-  const [selectedDept, setSelectedDept] = useState<Department | undefined>()
+  const [selectedDeptId, setSelectedDeptId] = useState<string | undefined>()
   const [page, setPage] = useState(1)
   const [directOnly, setDirectOnly] = useState(false)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -40,6 +40,11 @@ export function useStructurePage(injectedApis?: AppApis) {
     error: deptError,
     refresh: refreshDepartments,
   } = useAsyncResource(() => apis.departmentApi.getTree(), [apis])
+
+  const selectedDept = useMemo(() => {
+    if (!selectedDeptId || departments.length === 0) return undefined
+    return flattenDepartmentTree(departments).find((d) => d.id === selectedDeptId)
+  }, [departments, selectedDeptId])
 
   const {
     data: memberData,
@@ -53,7 +58,7 @@ export function useStructurePage(injectedApis?: AppApis) {
       params.directOnly = directOnly
     }
     return apis.memberApi.list(params)
-  }, [apis, page, selectedDept, directOnly])
+  }, [apis, page, selectedDeptId, directOnly])
 
   const members = memberData?.items ?? []
   const total = memberData?.total ?? 0
@@ -81,7 +86,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   }, [selectedDept, departments, setSubtitle])
 
   const handleSelectDept = (dept: Department | undefined) => {
-    setSelectedDept(dept)
+    setSelectedDeptId(dept?.id)
     setPage(1)
     setRowSelection({})
   }
@@ -185,6 +190,36 @@ export function useStructurePage(injectedApis?: AppApis) {
     setConfirmState((s) => ({ ...s, open: false }))
   }
 
+  const handleAddChildDept = useCallback(
+    (parentId: string, parentName: string) => {
+      open('dept-form', {
+        parentId,
+        parentName,
+        onSuccess: () => {
+          void refreshDepartments()
+        },
+      })
+    },
+    [open, refreshDepartments],
+  )
+
+  const handleUpdateDeptName = useCallback(
+    async (id: string, name: string) => {
+      await apis.departmentApi.update(id, { name })
+      await refreshDepartments()
+    },
+    [apis, refreshDepartments],
+  )
+
+  const handleDeleteDept = useCallback(
+    async (dept: Department) => {
+      await apis.departmentApi.delete(dept.id)
+      if (selectedDeptId === dept.id) setSelectedDeptId(undefined)
+      await refreshDepartments()
+    },
+    [apis, refreshDepartments, selectedDeptId],
+  )
+
   return {
     canWrite,
     selectedDept,
@@ -216,5 +251,8 @@ export function useStructurePage(injectedApis?: AppApis) {
     setRowSelection,
     closeConfirm,
     open,
+    handleAddChildDept,
+    handleUpdateDeptName,
+    handleDeleteDept,
   }
 }

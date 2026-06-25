@@ -10,6 +10,4 @@ export const COST_PERIOD_LABELS: Record<string, string> = {
   [COST_PERIOD.LAST_7_DAYS]: '近 7 天',
 }
 
-export const AUDIT_CONTENT_RETENTION_KEY = 'tokenjoy-audit-content-retention'
-
 export const MODEL_NOT_IN_DEPT_MESSAGE = '该模型不在您部门的可用范围内'

@@ -1,6 +1,6 @@
 import { CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PlatformKeyTable } from '@/components/keys/platform-key-table'
+import { PlatformKeyTable } from '@/routes/keys/components/platform-key-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'

@@ -1,7 +1,7 @@
 import { Users } from 'lucide-react'
 import type { Member } from '@/api/types'
-import { DepartmentTree } from '@/components/org/department-tree'
-import { MemberTable } from '@/components/org/member-table'
+import { DepartmentTree } from '@/routes/org/components/department-tree'
+import { MemberTable } from '@/routes/org/components/member-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { useStructurePage } from '@/routes/org/hooks/use-structure-page'
@@ -13,6 +13,7 @@ export default function StructurePage() {
   const {
     canWrite,
     selectedDept,
+    departments,
     members,
     total,
     page,
@@ -26,7 +27,6 @@ export default function StructurePage() {
     inactiveCount,
     selectedIds,
     approvalPendingCount,
-    refreshDepartments,
     refreshMembers,
     handleSelectDept,
     openMemberForm,
@@ -40,6 +40,9 @@ export default function StructurePage() {
     setRowSelection,
     closeConfirm,
     open,
+    handleAddChildDept,
+    handleUpdateDeptName,
+    handleDeleteDept,
   } = useStructurePage()
 
   return (
@@ -47,9 +50,12 @@ export default function StructurePage() {
       layout="split"
       sidebar={
         <DepartmentTree
+          departments={departments}
           selectedId={selectedDept?.id}
           onSelect={handleSelectDept}
-          onTreeChange={refreshDepartments}
+          onAddChildDept={handleAddChildDept}
+          onUpdateDeptName={handleUpdateDeptName}
+          onDeleteDept={handleDeleteDept}
           readOnly={!canWrite}
         />
       }
