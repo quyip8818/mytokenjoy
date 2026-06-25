@@ -7,7 +7,7 @@ import {
   WORKFLOW_PEEK_WIDTH_PX,
 } from '../constants'
 import type { WorkflowId, WorkflowLayer, WorkflowPayload, WorkflowStackEntry } from '../types'
-import { getWorkflowDefinition } from '../workflow-definitions'
+import { getWorkflowDefinition } from '../definitions'
 
 interface WorkflowPanelLayerProps {
   entry: WorkflowStackEntry

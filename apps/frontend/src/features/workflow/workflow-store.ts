@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { WORKFLOW_MAX_DEPTH } from './constants'
 import type { WorkflowId, WorkflowLayer, WorkflowPayloadMap, WorkflowStackEntry } from './types'
-import { getWorkflowDefinition } from './workflow-definitions'
+import { getWorkflowDefinition } from './definitions'
 
 export interface WorkflowStoreState {
   stack: WorkflowStackEntry[]

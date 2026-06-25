@@ -1,26 +1,34 @@
 import { useMemo, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
-import { queryKeys } from '@/features/query/query-keys'
+import { SessionContextSchema } from '@/api/schemas/session'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { SessionReactContext } from './context'
 import { SessionGate } from './session-gate'
 import type { AppSession } from './types'
 
 interface AuthSessionProviderProps {
   children: ReactNode
-  apis?: Pick<AppApis, 'sessionApi'>
+  apis?: AppApis
 }
 
 export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessionProviderProps) {
-  const query = useQuery({
+  const query = useInjectedQuery({
+    injectedApis: apis,
     queryKey: queryKeys.session.current(),
-    queryFn: () => apis.sessionApi.getCurrent(),
+    queryFn: async (a) => {
+      const data = await a.sessionApi.getCurrent()
+      const parsed = SessionContextSchema.safeParse(data)
+      if (!parsed.success) {
+        throw new Error('Invalid session response')
+      }
+      return parsed.data
+    },
   })
 
   const session = useMemo<AppSession>(() => {
     const refreshSession = async () => {
-      await query.refetch()
+      await query.refresh()
     }
 
     return {
@@ -28,7 +36,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
       member: query.data?.member ?? null,
       permissions: query.data?.permissions ?? [],
       readOnly: query.data?.readOnly ?? false,
-      loading: query.isLoading,
+      loading: query.loading,
       sessionError: query.error,
       refreshSession,
     }

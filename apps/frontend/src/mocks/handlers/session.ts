@@ -2,7 +2,6 @@ import { http, HttpResponse } from 'msw'
 import { API_BASE_PATH } from '@/config/app'
 import { SessionContextSchema } from '@/api/schemas/session'
 import { resolveMemberPermissions, isReadOnlySession } from '@/lib/permissions'
-import { DEFAULT_DEMO_MEMBER_ID } from '@/features/demo/roles/constants'
 import { mockMembers, mockRoles } from '../data'
 import { findMemberById } from '../lib/query'
 
@@ -30,6 +29,11 @@ function jsonSession(session: NonNullable<ReturnType<typeof buildSessionResponse
 }
 
 function resolveMemberIdFromRequest(request: Request): string | null {
+  const demoMemberId = request.headers.get('X-Demo-Member-Id')
+  if (demoMemberId) {
+    return demoMemberId
+  }
+
   const url = new URL(request.url)
   const queryMemberId = url.searchParams.get('memberId')
   if (queryMemberId) {
@@ -50,7 +54,7 @@ function resolveMemberIdFromRequest(request: Request): string | null {
     }
   }
 
-  return DEFAULT_DEMO_MEMBER_ID
+  return null
 }
 
 export const sessionHandlers = [

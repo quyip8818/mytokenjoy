@@ -7,9 +7,9 @@ import type { Department, Member } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { usePageSubtitle } from '@/hooks/use-page-subtitle'
+import { useApprovalPendingCountQuery } from '@/hooks/use-approval-pending-count-query'
 import { flattenDepartments, flattenDepartmentTree, getDeptPath } from '@/lib/org'
 import { usePermissions } from '@/hooks/use-permissions'
-import { PERMISSION } from '@/lib/permissions'
 import type { ConfirmActionState } from '@/components/ui/confirm-action-dialog'
 
 const PAGE_SIZE = 10
@@ -26,8 +26,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { open } = useWorkflow()
   const { setSubtitle } = usePageSubtitle()
-  const { canWrite, permissions } = usePermissions()
-  const canApprove = permissions.includes(PERMISSION.BUDGET_APPROVE)
+  const { canWrite } = usePermissions()
   const [selectedDeptId, setSelectedDeptId] = useState<string | undefined>()
   const [page, setPage] = useState(1)
   const [directOnly, setDirectOnly] = useState(false)
@@ -74,16 +73,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const members = memberData?.items ?? []
   const total = memberData?.total ?? 0
 
-  const { data: approvalPendingCount = 0 } = useInjectedQuery({
-    injectedApis: apis,
-    queryKey: queryKeys.org.approvalPendingCount(),
-    queryFn: async (a) => {
-      if (!canApprove) return 0
-      const items = await a.approvalApi.list({ tab: 'pending' })
-      return items.length
-    },
-    enabled: canApprove,
-  })
+  const { data: approvalPendingCount = 0 } = useApprovalPendingCountQuery({ injectedApis: apis })
 
   const error = memberError ?? deptError
 
