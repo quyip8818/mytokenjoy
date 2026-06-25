@@ -1,6 +1,6 @@
 dist
 node_modules
 pnpm-lock.yaml
-public/mockServiceWorker.js
+apps/frontend/public/mockServiceWorker.js
 coverage
 .vercel

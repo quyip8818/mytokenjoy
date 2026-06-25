@@ -32,11 +32,12 @@ jobs:
       - name: Build
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          VITE_ENABLE_MOCKS: 'true'
         run: pnpm build
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: apps/frontend/dist
 
   deploy:
     needs: build

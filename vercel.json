@@ -1,3 +1,9 @@
 {
+  "buildCommand": "pnpm build",
+  "outputDirectory": "apps/frontend/dist",
+  "installCommand": "pnpm install",
+  "env": {
+    "VITE_ENABLE_MOCKS": "true"
+  },
   "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
 }
