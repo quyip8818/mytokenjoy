@@ -6,13 +6,13 @@
 
 ## 0. 相关文档
 
-| 文档             | 路径                                               | 职责                                              |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------- |
-| API 契约         | [Frontend-API契约.md](./Frontend-API契约.md)       | REST 路径、请求/响应体、分页、错误格式、Mock 切换 |
-| Demo 交互设计    | [Demo-交互设计方案.md](./Demo-交互设计方案.md)     | Workflow 侧滑、Demo 引导、CTA 高亮                |
-| 开发速查         | [CLAUDE.md](./CLAUDE.md)                           | 命令、技术栈、目录一览                            |
-| 产品需求         | [TokenJoy-PRD.md](./TokenJoy-PRD.md)               | 业务域边界、功能范围                              |
-| Cursor 规范      | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
+| 文档          | 路径                                                                              | 职责                                              |
+| ------------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| API 契约      | [Frontend-API契约.md](./Frontend-API契约.md)                                      | REST 路径、请求/响应体、分页、错误格式、Mock 切换 |
+| Demo 交互设计 | [Demo-交互设计方案.md](./Demo-交互设计方案.md)                                    | Workflow 侧滑、Demo 引导、CTA 高亮                |
+| 开发速查      | [CLAUDE.md](./CLAUDE.md)                                                          | 命令、技术栈、目录一览                            |
+| 产品需求      | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                              | 业务域边界、功能范围                              |
+| Cursor 规范   | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
 
 **边界说明：** 类型以 `api/types/` 为准；Workflow 交互见 Demo 设计文档；Mock 路径须与 API 契约同步。
 
@@ -44,30 +44,30 @@ Mock 开关：`config/app.ts` 中 `USE_MOCKS`；API 前缀：`API_BASE_PATH`。
 
 ### 1.3 核心模式（摘要）
 
-| 模式 | 位置 |
-| ---- | ---- |
-| 薄页面 + 页面 Hook | `routes/*/{page}.tsx` + `hooks/use-*-page.ts` |
+| 模式               | 位置                                                           |
+| ------------------ | -------------------------------------------------------------- |
+| 薄页面 + 页面 Hook | `routes/*/{page}.tsx` + `hooks/use-*-page.ts`                  |
 | 路由元数据单一来源 | `ROUTE_META`（path / label / icon / 权限）+ `NAV_GROUP_LAYOUT` |
-| API 依赖注入 | `ApiProvider` + `useApis()` |
-| 异步数据 | `useAsyncResource`；列表筛选 `useFilteredResource` |
-| 侧滑编排 | `features/workflow/` + `useWorkflowRefresh` |
+| API 依赖注入       | `ApiProvider` + `useApis()`                                    |
+| 异步数据           | `useAsyncResource`；列表筛选 `useFilteredResource`             |
+| 侧滑编排           | `features/workflow/` + `useWorkflowRefresh`                    |
 
 ---
 
 ## 2. 代码放置决策表
 
-| 我要写的代码 | 放哪里 | 判断条件 |
-| ------------ | ------ | -------- |
-| 路由页面入口 | `routes/{domain}/{page}.tsx` | 每个 `APP_ROUTES` 一条 |
-| 页面逻辑 | `routes/{domain}/hooks/use-{page}-page.ts` | 状态、副作用、编排 |
-| 单页 UI 块 | `routes/{domain}/components/` | 仅 1 个 route 页面，且无 workflow 复用 |
-| 跨页 / workflow UI | `components/{domain}/` | ≥2 页面，或 1 页面 + workflow |
-| 布局 / 权限门控 | `components/layout/`、`auth/` | 跨业务域 |
-| Primitive | `components/ui/` | 无业务语义 |
-| Workflow 面板 | `features/workflow/workflows/` | `useWorkflow().open()` |
-| HTTP | `api/{domain}.ts` | 对应后端资源 |
-| DTO | `api/types/{domain}.ts` | 与 api 同域 |
-| 纯逻辑 | `lib/` | 无 React，可单测 |
+| 我要写的代码       | 放哪里                                     | 判断条件                               |
+| ------------------ | ------------------------------------------ | -------------------------------------- |
+| 路由页面入口       | `routes/{domain}/{page}.tsx`               | 每个 `APP_ROUTES` 一条                 |
+| 页面逻辑           | `routes/{domain}/hooks/use-{page}-page.ts` | 状态、副作用、编排                     |
+| 单页 UI 块         | `routes/{domain}/components/`              | 仅 1 个 route 页面，且无 workflow 复用 |
+| 跨页 / workflow UI | `components/{domain}/`                     | ≥2 页面，或 1 页面 + workflow          |
+| 布局 / 权限门控    | `components/layout/`、`auth/`              | 跨业务域                               |
+| Primitive          | `components/ui/`                           | 无业务语义                             |
+| Workflow 面板      | `features/workflow/workflows/`             | `useWorkflow().open()`                 |
+| HTTP               | `api/{domain}.ts`                          | 对应后端资源                           |
+| DTO                | `api/types/{domain}.ts`                    | 与 api 同域                            |
+| 纯逻辑             | `lib/`                                     | 无 React，可单测                       |
 
 **组件升级/降级：** 第二页面引用 `routes/*/components/` → 升到 `components/{domain}/`；`components/{domain}/` 长期单页且无 workflow → 降到 `routes/*/components/`。
 
@@ -134,11 +134,11 @@ export default function ExamplePage() {
 
 ### 7.1 何时拆分
 
-| 信号 | 动作 |
-| ---- | ---- |
-| 页面 > 120 行 | 抽 `use-*-page.ts` |
+| 信号                   | 动作                                                                    |
+| ---------------------- | ----------------------------------------------------------------------- |
+| 页面 > 120 行          | 抽 `use-*-page.ts`                                                      |
 | 内联 Row/Chart/Toolbar | 单页 → `routes/.../components/`；多页/workflow → `components/{domain}/` |
-| 单文件 > 200 行 | 必须拆分 |
+| 单文件 > 200 行        | 必须拆分                                                                |
 
 ### 7.2 API 设计
 
@@ -146,27 +146,27 @@ export default function ExamplePage() {
 
 ### 7.3 共享组件索引
 
-| 组件 | 路径 | 消费者 |
-| ---- | ---- | ------ |
-| `PageShell`、`DataSection` | `components/layout/` | 全局 |
-| `PermissionGate` | `components/auth/` | 全局 |
-| `EmptyState`、`ErrorState`、`ConfirmActionDialog` | `components/ui/` | 全局 |
-| `CredentialForm`、`SyncConfigPanel` | `components/org/` | workflow |
-| `BudgetProgressCell` | `components/budget/` | budget、usage、platform keys |
-| `AuditFilteredPage`、`AuditToolbar` | `components/audit/` | operations、calls |
+| 组件                                              | 路径                 | 消费者                       |
+| ------------------------------------------------- | -------------------- | ---------------------------- |
+| `PageShell`、`DataSection`                        | `components/layout/` | 全局                         |
+| `PermissionGate`                                  | `components/auth/`   | 全局                         |
+| `EmptyState`、`ErrorState`、`ConfirmActionDialog` | `components/ui/`     | 全局                         |
+| `CredentialForm`、`SyncConfigPanel`               | `components/org/`    | workflow                     |
+| `BudgetProgressCell`                              | `components/budget/` | budget、usage、platform keys |
+| `AuditFilteredPage`、`AuditToolbar`               | `components/audit/`  | operations、calls            |
 
 ### 7.4 页面私有组件（Review 对照）
 
-| 域 | 组件 | 页面 |
-| -- | ---- | ---- |
-| org | `structure-toolbar`、`structure-summary-card`、`department-tree`、`member-table` | structure |
-| org | `role-list`、`role-member-table` | roles |
-| org | `data-source-init-progress`、`import-result`、`sync-log-table` | data-source |
-| keys | `my-keys-table`、`platform-key-table`、`provider-key-table` | mine / platform / provider |
-| budget | `budget-row` | overview |
-| dashboard | `cost-*` ×5 | cost |
-| dashboard | `usage-model-chart` | usage |
-| audit | `call-logs-table` | calls |
+| 域        | 组件                                                                             | 页面                       |
+| --------- | -------------------------------------------------------------------------------- | -------------------------- |
+| org       | `structure-toolbar`、`structure-summary-card`、`department-tree`、`member-table` | structure                  |
+| org       | `role-list`、`role-member-table`                                                 | roles                      |
+| org       | `data-source-init-progress`、`import-result`、`sync-log-table`                   | data-source                |
+| keys      | `my-keys-table`、`platform-key-table`、`provider-key-table`                      | mine / platform / provider |
+| budget    | `budget-row`                                                                     | overview                   |
+| dashboard | `cost-*` ×5                                                                      | cost                       |
+| dashboard | `usage-model-chart`                                                              | usage                      |
+| audit     | `call-logs-table`                                                                | calls                      |
 
 **新组件 checklist：** 统计 route 页面 + workflow 引用 → 选目录 → 禁止业务域文件名进 `components/ui/`。
 
@@ -174,23 +174,23 @@ export default function ExamplePage() {
 
 ## 8. 常量、类型与命名
 
-| 类型 | 位置 |
-| ---- | ---- |
-| 路由 | `config/routes.ts` |
-| 权限 key | `lib/permission-keys.ts`（`permissions.ts` re-export） |
-| 业务标签 | `lib/labels.ts` 或 `lib/{domain}-constants.ts` |
-| Workflow 文案 | `features/workflow/constants.ts` |
-| 环境 | `config/app.ts` |
+| 类型          | 位置                                                   |
+| ------------- | ------------------------------------------------------ |
+| 路由          | `config/routes.ts`                                     |
+| 权限 key      | `lib/permission-keys.ts`（`permissions.ts` re-export） |
+| 业务标签      | `lib/labels.ts` 或 `lib/{domain}-constants.ts`         |
+| Workflow 文案 | `features/workflow/constants.ts`                       |
+| 环境          | `config/app.ts`                                        |
 
 类型：API → `api/types/`；页面 view model → 页面 Hook 旁导出。
 
-| 类别 | 约定 | 示例 |
-| ---- | ---- | ---- |
-| 页面 | `{name}.tsx` | `structure.tsx` |
-| 页面 Hook | `use-{name}-page.ts` | `use-structure-page.ts` |
-| 页面组件 | `{feature}-{part}.tsx` | `cost-trend-chart.tsx` |
-| API | `{domain}.ts` / `{resource}Api` | `memberApi` |
-| Mock handler | `mocks/handlers/{domain}.ts` | 与 api 同域 |
+| 类别         | 约定                            | 示例                    |
+| ------------ | ------------------------------- | ----------------------- |
+| 页面         | `{name}.tsx`                    | `structure.tsx`         |
+| 页面 Hook    | `use-{name}-page.ts`            | `use-structure-page.ts` |
+| 页面组件     | `{feature}-{part}.tsx`          | `cost-trend-chart.tsx`  |
+| API          | `{domain}.ts` / `{resource}Api` | `memberApi`             |
+| Mock handler | `mocks/handlers/{domain}.ts`    | 与 api 同域             |
 
 ---
 
@@ -198,37 +198,37 @@ export default function ExamplePage() {
 
 16 个 `APP_ROUTES` 页面均已 Page → Hook → Components 三层。
 
-| 页面 | Hook | 主要 components |
-| ---- | ---- | --------------- |
-| `dashboard/cost` | `use-cost-dashboard-page` | `cost-*` ×5 |
-| `dashboard/usage` | `use-usage-dashboard-page` | `usage-model-chart` |
-| `org/structure` | `use-structure-page` | `structure-*`、`department-tree`、`member-table` |
-| `org/data-source` | `use-data-source-page` | `data-source-*`、`import-result`、`sync-log-table` |
-| `org/roles` | `use-roles-page` | `role-list`、`role-member-table` |
-| `budget/overview` | `use-budget-overview-page` | `budget-row` |
-| `budget/allocation` | `use-budget-allocation-page` | — |
-| `budget/alerts` | `use-budget-alerts-page` | — |
-| `keys/mine` | `use-my-keys-page` | `my-keys-table` |
-| `keys/approval` | `use-approval-page` | — |
-| `keys/platform` | `use-platform-keys-page` | `platform-key-table` |
-| `keys/provider` | `use-provider-keys-page` | `provider-key-table` |
-| `models/list` | `use-model-list-page` | — |
-| `models/routing` | `use-model-routing-page` | — |
-| `audit/calls` | `use-audit-calls-page` | `call-logs-table` |
-| `audit/operations` | `use-audit-operations-page` | — |
+| 页面                | Hook                         | 主要 components                                    |
+| ------------------- | ---------------------------- | -------------------------------------------------- |
+| `dashboard/cost`    | `use-cost-dashboard-page`    | `cost-*` ×5                                        |
+| `dashboard/usage`   | `use-usage-dashboard-page`   | `usage-model-chart`                                |
+| `org/structure`     | `use-structure-page`         | `structure-*`、`department-tree`、`member-table`   |
+| `org/data-source`   | `use-data-source-page`       | `data-source-*`、`import-result`、`sync-log-table` |
+| `org/roles`         | `use-roles-page`             | `role-list`、`role-member-table`                   |
+| `budget/overview`   | `use-budget-overview-page`   | `budget-row`                                       |
+| `budget/allocation` | `use-budget-allocation-page` | —                                                  |
+| `budget/alerts`     | `use-budget-alerts-page`     | —                                                  |
+| `keys/mine`         | `use-my-keys-page`           | `my-keys-table`                                    |
+| `keys/approval`     | `use-approval-page`          | —                                                  |
+| `keys/platform`     | `use-platform-keys-page`     | `platform-key-table`                               |
+| `keys/provider`     | `use-provider-keys-page`     | `provider-key-table`                               |
+| `models/list`       | `use-model-list-page`        | —                                                  |
+| `models/routing`    | `use-model-routing-page`     | —                                                  |
+| `audit/calls`       | `use-audit-calls-page`       | `call-logs-table`                                  |
+| `audit/operations`  | `use-audit-operations-page`  | —                                                  |
 
 **Hook 分层：** 单页 → `use-*-page.ts`；域内复用 → `routes/{domain}/hooks/`；跨域通用 → `hooks/`。
 
 ### 全局 Hook
 
-| Hook | 职责 |
-| ---- | ---- |
-| `useAsyncResource` | 异步 loading/error/refresh |
-| `useFilteredResource` | 带 filter 的列表 |
-| `useWorkflowRefresh` | workflow 成功后 refresh |
-| `usePermissions` | 权限与 readOnly |
-| `useRowHighlight` | 行高亮 |
-| `usePageSubtitle` | Header 副标题 |
+| Hook                  | 职责                       |
+| --------------------- | -------------------------- |
+| `useAsyncResource`    | 异步 loading/error/refresh |
+| `useFilteredResource` | 带 filter 的列表           |
+| `useWorkflowRefresh`  | workflow 成功后 refresh    |
+| `usePermissions`      | 权限与 readOnly            |
+| `useRowHighlight`     | 行高亮                     |
+| `usePageSubtitle`     | Header 副标题              |
 
 ---
 
@@ -248,13 +248,13 @@ export default function ExamplePage() {
 - **UI：** Tailwind 4 + shadcn（`components/ui/`）；表格 TanStack Table；图表 Recharts（数据转换在页面 Hook）
 - **表单：** react-hook-form；页面内嵌 → `components/{domain}/`，侧滑 → `features/workflow/workflows/`
 
-| 命令 | 作用 |
-| ---- | ---- |
-| `pnpm start` | 开发 |
-| `pnpm lint` | ESLint + `check-conventions` |
-| `pnpm test` | Vitest（`test-setup` 挂 MSW） |
-| `pnpm build` | `tsc -b && vite build` |
-| `pnpm build:gh-pages` | Mock 生产构建 |
+| 命令                  | 作用                          |
+| --------------------- | ----------------------------- |
+| `pnpm start`          | 开发                          |
+| `pnpm lint`           | ESLint + `check-conventions`  |
+| `pnpm test`           | Vitest（`test-setup` 挂 MSW） |
+| `pnpm build`          | `tsc -b && vite build`        |
+| `pnpm build:gh-pages` | Mock 生产构建                 |
 
 **CI：** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) 与 [`deploy.yml`](../.github/workflows/deploy.yml) 均执行 lint + test + build。
 
@@ -266,18 +266,18 @@ export default function ExamplePage() {
 
 ## 12. 反模式（Review 对照）
 
-| 反模式 | 正确做法 |
-| ------ | -------- |
-| 页面内大量 `useState` + handler | `use-*-page.ts` |
-| 子组件直接 `import { xxxApi }` | `useApis()` 或 Hook 传回调 |
-| `components/ui` 含业务语义 | `components/{domain}/` 或 `routes/.../components/` |
-| 单页组件放 `components/{domain}/` | `routes/{domain}/components/` |
-| 硬编码路由字符串 | `ROUTES.*` |
-| 新路由未更新 `APP_ROUTES` / `ROUTE_META` | 同步 config |
-| 忽略 `useAsyncResource` 的 `error` | `ErrorState` 或 toast |
-| Mock 与 api 路径不一致 | 对照 API 契约 |
-| mock 工具进 `src/lib/` | `mocks/lib/` |
-| 映射表多处定义 | `lib/labels.ts` 或 constants |
+| 反模式                                   | 正确做法                                           |
+| ---------------------------------------- | -------------------------------------------------- |
+| 页面内大量 `useState` + handler          | `use-*-page.ts`                                    |
+| 子组件直接 `import { xxxApi }`           | `useApis()` 或 Hook 传回调                         |
+| `components/ui` 含业务语义               | `components/{domain}/` 或 `routes/.../components/` |
+| 单页组件放 `components/{domain}/`        | `routes/{domain}/components/`                      |
+| 硬编码路由字符串                         | `ROUTES.*`                                         |
+| 新路由未更新 `APP_ROUTES` / `ROUTE_META` | 同步 config                                        |
+| 忽略 `useAsyncResource` 的 `error`       | `ErrorState` 或 toast                              |
+| Mock 与 api 路径不一致                   | 对照 API 契约                                      |
+| mock 工具进 `src/lib/`                   | `mocks/lib/`                                       |
+| 映射表多处定义                           | `lib/labels.ts` 或 constants                       |
 
 ---
 

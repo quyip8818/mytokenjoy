@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Department } from '@/api/types'
-import { findParentDeptId, flattenDepartments, flattenDepartmentTree, getDeptPath, filterDepartmentTree, getDeptDeleteError } from './org'
+import {
+  findParentDeptId,
+  flattenDepartments,
+  flattenDepartmentTree,
+  getDeptPath,
+  filterDepartmentTree,
+  getDeptDeleteError,
+} from './org'
 
 const departments: Department[] = [
   {

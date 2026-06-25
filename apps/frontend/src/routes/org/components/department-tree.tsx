@@ -52,7 +52,10 @@ export function DepartmentTree({
     })
   }
 
-  const filteredTree = useMemo(() => filterDepartmentTree(departments, search), [departments, search])
+  const filteredTree = useMemo(
+    () => filterDepartmentTree(departments, search),
+    [departments, search],
+  )
 
   const handleCommitEdit = async (id: string) => {
     if (!editName.trim()) return

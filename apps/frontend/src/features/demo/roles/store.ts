@@ -36,9 +36,7 @@ function profileFromMember(member: Member) {
 }
 
 function resolveInitialMemberId(memberId: string): string {
-  return DEMO_SWITCHABLE_MEMBERS.some((m) => m.id === memberId)
-    ? memberId
-    : DEFAULT_DEMO_MEMBER_ID
+  return DEMO_SWITCHABLE_MEMBERS.some((m) => m.id === memberId) ? memberId : DEFAULT_DEMO_MEMBER_ID
 }
 
 export function createDemoRoleStore(

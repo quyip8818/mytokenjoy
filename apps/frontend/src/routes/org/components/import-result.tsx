@@ -123,7 +123,12 @@ export function ImportResultView({
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-muted-foreground">失败详情</h4>
-            <Button variant="destructive" size="sm" onClick={() => void handleRetryAll()} disabled={retryingAll}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleRetryAll()}
+              disabled={retryingAll}
+            >
               {retryingAll ? '重试中...' : '全部重试失败'}
             </Button>
           </div>
