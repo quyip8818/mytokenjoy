@@ -1,25 +1,27 @@
-import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import type { Member, MemberQuotaSummary } from '@/api/types'
+import type { Member } from '@/api/types'
+import type { AppApis } from '@/api/app-apis'
 import { useApis } from '@/api/use-apis'
 import { useDemoRole } from '@/features/demo'
-import { pushModelPicker, useMemberWhitelist } from '../use-member-whitelist'
-import type { WorkflowComponentProps, WorkflowStackEntry } from '../types'
-import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
-import { WorkflowInfoBox } from '../components/workflow-info-box'
-import { WorkflowStepper } from '../components/workflow-stepper'
+import { pushModelPicker, useMemberWhitelist } from '../../use-member-whitelist'
+import type { WorkflowComponentProps, WorkflowStackEntry } from '../../types'
+import { WorkflowPanelChrome, WorkflowPanelFooter } from '../../components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '../../components/workflow-info-box'
+import { WorkflowStepper } from '../../components/workflow-stepper'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useWorkflow } from '../use-workflow'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '../constants'
+import { useWorkflow } from '../../use-workflow'
+import { QUOTA_INSUFFICIENT_MESSAGE } from '../../constants'
+import {
+  formatQuotaContext,
+  useKeyFormQuota,
+  useKeyFormState,
+} from './use-key-form-quota'
 
-function formatQuotaContext(summary: MemberQuotaSummary | null, department?: string): string {
-  if (!summary) return department ? `部门：${department}` : ''
-  const parts = [`剩余额度 ¥${summary.remaining.toLocaleString()}`]
-  if (department) parts.unshift(department)
-  return parts.join(' · ')
+type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
+  injectedApis?: AppApis
 }
 
 export function KeyFormWorkflow({
@@ -27,8 +29,10 @@ export function KeyFormWorkflow({
   onPush,
   onClose,
   onSetDirty,
-}: WorkflowComponentProps<'key-create' | 'key-edit'>) {
-  const apis = useApis()
+  injectedApis,
+}: KeyFormWorkflowProps) {
+  const ctxApis = useApis()
+  const apis = injectedApis ?? ctxApis
   const { closeAll } = useWorkflow()
   const { memberId } = useDemoRole()
   const { resolveWhitelist } = useMemberWhitelist()
@@ -36,40 +40,51 @@ export function KeyFormWorkflow({
   const key =
     entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined
   const adminCreate = isCreate ? Boolean(entry.payload.adminCreate) : false
+  const budgetGroupId = isCreate ? entry.payload.budgetGroupId : undefined
+  const budgetGroupName = isCreate ? entry.payload.budgetGroupName : undefined
   const onSuccess = entry.payload.onSuccess
 
-  const [step, setStep] = useState(1)
-  const [name, setName] = useState(key?.name ?? '')
-  const [quota, setQuota] = useState(String(key?.quota ?? '5000'))
-  const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
-  const [targetMemberId, setTargetMemberId] = useState(
-    adminCreate && entry.id === 'key-create' ? (entry.payload.targetMemberId ?? '') : memberId,
-  )
-  const [targetMemberName, setTargetMemberName] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [quotaState, setQuotaState] = useState<{
-    memberId: string
-    summary: MemberQuotaSummary
-  } | null>(null)
+  const {
+    step,
+    setStep,
+    name,
+    setName,
+    quota,
+    setQuota,
+    models,
+    setModels,
+    targetMemberId,
+    setTargetMemberId,
+    targetMemberName,
+    setTargetMemberName,
+    submitting,
+    setSubmitting,
+  } = useKeyFormState({
+    key,
+    adminCreate,
+    defaultMemberId: memberId,
+    initialTargetMemberId:
+      isCreate && entry.id === 'key-create' ? entry.payload.targetMemberId : undefined,
+  })
 
   const effectiveMemberId = adminCreate ? targetMemberId : memberId
+  const isGroupKey = Boolean(budgetGroupId)
 
-  useEffect(() => {
-    if (!isCreate || !effectiveMemberId) return
-    let cancelled = false
-    void apis.platformKeyApi.getQuotaSummary(effectiveMemberId).then((summary) => {
-      if (!cancelled) setQuotaState({ memberId: effectiveMemberId, summary })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [apis, isCreate, effectiveMemberId])
-
-  const quotaSummary = quotaState?.memberId === effectiveMemberId ? quotaState.summary : null
-  const quotaInsufficient =
-    isCreate && !adminCreate && quotaSummary !== null && quotaSummary.remaining <= 0
-  const quotaExceedsRemaining =
-    isCreate && quotaSummary !== null && Number(quota) > quotaSummary.remaining
+  const {
+    quotaSummary,
+    groupQuotaRemaining,
+    quotaInsufficient,
+    quotaExceedsRemaining,
+    groupQuotaExceeds,
+  } = useKeyFormQuota({
+    isCreate,
+    isGroupKey,
+    effectiveMemberId,
+    budgetGroupId,
+    quota,
+    adminCreate,
+    injectedApis: apis,
+  })
 
   const openPickMember = () => {
     onPush('member-search', {
@@ -102,11 +117,16 @@ export function KeyFormWorkflow({
       toast.error(`额度不能超过剩余 ¥${quotaSummary.remaining.toLocaleString()}`)
       return
     }
+    if (groupQuotaExceeds) {
+      toast.error(`额度不能超过预算组剩余 ¥${groupQuotaRemaining!.toLocaleString()}`)
+      return
+    }
     setSubmitting(true)
     try {
       const created = await apis.platformKeyApi.create({
         name,
-        memberId: effectiveMemberId,
+        memberId: isGroupKey ? effectiveMemberId || memberId : effectiveMemberId,
+        budgetGroupId,
         quota: Number(quota),
         modelWhitelist: models,
       })
@@ -166,10 +186,12 @@ export function KeyFormWorkflow({
       onClose={onClose}
       contextBar={
         isCreate
-          ? formatQuotaContext(
-              quotaSummary,
-              adminCreate ? targetMemberName || undefined : undefined,
-            )
+          ? isGroupKey
+            ? `预算组：${budgetGroupName ?? ''} · 剩余可分配 ¥${(groupQuotaRemaining ?? 0).toLocaleString()}`
+            : formatQuotaContext(
+                quotaSummary,
+                adminCreate ? targetMemberName || undefined : undefined,
+              )
           : undefined
       }
       banner={
@@ -178,6 +200,10 @@ export function KeyFormWorkflow({
         ) : quotaExceedsRemaining ? (
           <p className="text-sm text-amber-800">
             申请额度超过剩余 ¥{quotaSummary!.remaining.toLocaleString()}
+          </p>
+        ) : groupQuotaExceeds ? (
+          <p className="text-sm text-amber-800">
+            申请额度超过预算组剩余 ¥{groupQuotaRemaining!.toLocaleString()}
           </p>
         ) : undefined
       }
@@ -191,8 +217,9 @@ export function KeyFormWorkflow({
               primaryDisabled={
                 quotaInsufficient ||
                 !name.trim() ||
-                (adminCreate && !targetMemberId) ||
-                quotaExceedsRemaining
+                (adminCreate && !isGroupKey && !targetMemberId) ||
+                quotaExceedsRemaining ||
+                groupQuotaExceeds
               }
             />
           ) : (
@@ -203,7 +230,11 @@ export function KeyFormWorkflow({
               primaryLabel={submitting ? '创建中...' : '创建 Key'}
               onPrimary={handleCreate}
               primaryDisabled={
-                models.length === 0 || submitting || quotaInsufficient || quotaExceedsRemaining
+                models.length === 0 ||
+                submitting ||
+                quotaInsufficient ||
+                quotaExceedsRemaining ||
+                groupQuotaExceeds
               }
             />
           )

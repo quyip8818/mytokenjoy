@@ -37,6 +37,17 @@ export function useBudgetAllocationPage(injectedApis?: AppApis) {
     [openWithRefresh, tree],
   )
 
+  const openGroupKeys = useCallback(
+    (group: BudgetGroup) => {
+      openWithRefresh('key-create', {
+        adminCreate: true,
+        budgetGroupId: group.id,
+        budgetGroupName: group.name,
+      })
+    },
+    [openWithRefresh],
+  )
+
   return {
     groups,
     loading,
@@ -46,5 +57,6 @@ export function useBudgetAllocationPage(injectedApis?: AppApis) {
     rowClass,
     handleDelete,
     openForm,
+    openGroupKeys,
   }
 }

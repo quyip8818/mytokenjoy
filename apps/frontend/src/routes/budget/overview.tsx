@@ -11,7 +11,7 @@ import { BudgetRow } from '@/routes/budget/components/budget-row'
 import { useBudgetOverviewPage } from '@/routes/budget/hooks/use-budget-overview-page'
 
 export default function BudgetOverviewPage() {
-  const { tree, loading, error, refresh, summary, canAllocate, budgetCta, handleAllocate } =
+  const { tree, loading, error, refresh, summary, canAllocate, budgetCta, handleAllocate, handleMemberQuota } =
     useBudgetOverviewPage()
 
   return (
@@ -60,6 +60,7 @@ export default function BudgetOverviewPage() {
                 depth={0}
                 tree={tree}
                 onAllocate={handleAllocate}
+                onMemberQuota={handleMemberQuota}
                 allocateHighlight={budgetCta.className}
                 allocateCtaId={budgetCta.id}
                 canAllocate={canAllocate}

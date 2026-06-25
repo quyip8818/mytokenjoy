@@ -18,10 +18,13 @@ Follow `docs/Frontend-代码结构优化指南.md` (especially §7.4). Summary:
 | Shared domain UI | `components/{domain}/` | 2+ route pages OR 1 page + `features/workflow` |
 | Cross-domain layout/auth | `components/layout/`, `components/auth/` | No single-page blocks |
 | Primitives | `components/ui/` | No business semantics — no domain words in filename |
+| Generic enum/filter select | `components/ui/options-select.tsx` | Map from `lib/labels.ts`; no hardcoded options in pages |
 | Workflow adapter | `features/workflow/workflows/` | Open via `useWorkflow().open()` |
 | HTTP | `api/{domain}.ts` | One namespace per backend resource |
 | DTO types | `api/types/{domain}.ts` | Same domain as API |
 | Pure helpers | `lib/` | No React; unit-testable |
+| Demo date anchor | `lib/demo-clock.ts` | `DEMO_TODAY`, `resolveLast7DaysRange()` — never hardcode demo dates |
+| Audit query builders | `lib/audit-query.ts` | Shared filter → API query mapping |
 | Tests | `tests/` | Mirror `src/` subpaths; `@tests/` for fixtures/utils |
 
 ## Component placement decision
@@ -50,6 +53,7 @@ Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`
 Page hooks:
 - Use `useApis()` (optional `injectedApis` for tests)
 - Use `useAsyncResource` for data; expose `error` + `refresh`
+- Audit list pages: prefer `use-audit-list-page` (wraps `useFilteredResource`)
 - Return a flat view model; no JSX
 
 ## Routes (single source of truth)

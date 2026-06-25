@@ -1,5 +1,7 @@
 import { mockPlatformKeys } from '../data'
 
+// Personal quota pools and per-member key allocation for MSW handlers.
+
 export interface MemberQuotaPool {
   personalQuota: number
 }
@@ -24,15 +26,19 @@ export function addPersonalQuota(memberId: string, amount: number): void {
   mockMemberQuotaPools[memberId] = { personalQuota: current + amount }
 }
 
+export function setPersonalQuota(memberId: string, personalQuota: number): void {
+  mockMemberQuotaPools[memberId] = { personalQuota }
+}
+
 export function getAllocatedKeyQuota(memberId: string): number {
   return mockPlatformKeys
-    .filter((k) => k.memberId === memberId && k.status === 'active')
+    .filter((k) => k.memberId === memberId && !k.budgetGroupId && k.status === 'active')
     .reduce((sum, k) => sum + k.quota, 0)
 }
 
 export function getUsedKeyQuota(memberId: string): number {
   return mockPlatformKeys
-    .filter((k) => k.memberId === memberId && k.status === 'active')
+    .filter((k) => k.memberId === memberId && !k.budgetGroupId && k.status === 'active')
     .reduce((sum, k) => sum + k.used, 0)
 }
 

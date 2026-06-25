@@ -7,6 +7,7 @@ import type {
   SyncConfig,
   SyncLog,
 } from '@/api/types'
+import { DEMO_TODAY } from '@/lib/demo-clock'
 import {
   buildMockMembers,
   countMembersByRole,
@@ -39,7 +40,7 @@ export const mockSyncConfig: SyncConfig = {
 export const mockSyncLogs: SyncLog[] = [
   {
     id: 'sync-1',
-    time: '2026-06-19 02:00',
+    time: `${DEMO_TODAY} 02:00`,
     type: 'scheduled',
     result: 'success',
     detail: '新增 3 人，更新 12 人',

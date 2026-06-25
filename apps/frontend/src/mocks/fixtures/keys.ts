@@ -1,4 +1,5 @@
 import type { KeyApproval, PlatformKey, ProviderKey } from '@/api/types'
+import { DEMO_MONTH_START, DEMO_TODAY } from '@/lib/demo-clock'
 import { mockMembers } from './org'
 
 function memberName(id: string): string {
@@ -9,6 +10,17 @@ function memberDept(id: string): string {
   return mockMembers.find((m) => m.id === id)?.departmentName ?? ''
 }
 
+function platformKey(
+  key: Omit<PlatformKey, 'budgetGroupId' | 'budgetGroupName'> &
+    Partial<Pick<PlatformKey, 'budgetGroupId' | 'budgetGroupName'>>,
+): PlatformKey {
+  return {
+    budgetGroupId: null,
+    budgetGroupName: null,
+    ...key,
+  }
+}
+
 export const mockProviderKeys: ProviderKey[] = [
   {
     id: 'pk-1',
@@ -17,7 +29,7 @@ export const mockProviderKeys: ProviderKey[] = [
     keyPrefix: 'sk-proj-abc...',
     status: 'active',
     balance: 4250.0,
-    lastUsed: '2026-06-19 10:32',
+    lastUsed: `${DEMO_TODAY} 10:32`,
     createdAt: '2026-01-15',
     rotateEnabled: true,
   },
@@ -28,7 +40,7 @@ export const mockProviderKeys: ProviderKey[] = [
     keyPrefix: 'sk-ant-xyz...',
     status: 'active',
     balance: 2100.0,
-    lastUsed: '2026-06-19 09:45',
+    lastUsed: `${DEMO_TODAY} 09:45`,
     createdAt: '2026-02-01',
     rotateEnabled: true,
   },
@@ -101,7 +113,7 @@ export const mockProviderKeys: ProviderKey[] = [
 ]
 
 export const mockPlatformKeys: PlatformKey[] = [
-  {
+  platformKey({
     id: 'plk-1',
     name: '张三-开发调试',
     keyPrefix: 'tj-dev-001...',
@@ -114,8 +126,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o', 'claude-sonnet-4-6'],
     createdAt: '2026-03-01',
     expiresAt: '2026-12-31',
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-1b',
     name: '张三-个人实验',
     keyPrefix: 'tj-dev-002...',
@@ -128,8 +140,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o-mini', 'deepseek-v3'],
     createdAt: '2026-05-10',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-2',
     name: '李四-后端服务',
     keyPrefix: 'tj-svc-002...',
@@ -142,22 +154,24 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o', 'deepseek-v3'],
     createdAt: '2026-03-15',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-3',
     name: '客服Bot-生产',
     keyPrefix: 'tj-bot-003...',
     memberId: null,
     memberName: null,
     appName: '智能客服',
+    budgetGroupId: 'bg-2',
+    budgetGroupName: '客服 Bot 项目',
     status: 'active',
     quota: 20000,
     used: 15600,
     modelWhitelist: ['gpt-4o-mini', 'deepseek-v3'],
     createdAt: '2026-04-01',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-4',
     name: '赵六-实验',
     keyPrefix: 'tj-exp-004...',
@@ -170,8 +184,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o-mini'],
     createdAt: '2026-05-01',
     expiresAt: '2026-06-30',
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-5',
     name: '代码助手-CI',
     keyPrefix: 'tj-ci-005...',
@@ -184,8 +198,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['claude-sonnet-4-6', 'gpt-4o'],
     createdAt: '2026-05-15',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-6',
     name: '市场部Bot',
     keyPrefix: 'tj-mkt-006...',
@@ -198,8 +212,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o-mini', 'qwen-plus'],
     createdAt: '2026-04-20',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-7',
     name: '产品调研',
     keyPrefix: 'tj-prd-007...',
@@ -212,8 +226,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o-mini'],
     createdAt: '2026-05-05',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-8',
     name: '测试自动化',
     keyPrefix: 'tj-tst-008...',
@@ -226,8 +240,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['deepseek-v3'],
     createdAt: '2026-04-10',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-9',
     name: '运维巡检',
     keyPrefix: 'tj-ops-009...',
@@ -238,10 +252,10 @@ export const mockPlatformKeys: PlatformKey[] = [
     quota: 5000,
     used: 900,
     modelWhitelist: ['gpt-4o-mini', 'deepseek-v3'],
-    createdAt: '2026-06-01',
+    createdAt: DEMO_MONTH_START,
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-10',
     name: '前端构建',
     keyPrefix: 'tj-fe-010...',
@@ -254,8 +268,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o-mini'],
     createdAt: '2026-03-20',
     expiresAt: '2026-06-15',
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-11',
     name: '数据报表',
     keyPrefix: 'tj-rpt-011...',
@@ -268,8 +282,8 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o', 'qwen-plus'],
     createdAt: '2026-05-25',
     expiresAt: null,
-  },
-  {
+  }),
+  platformKey({
     id: 'plk-12',
     name: '行政助手',
     keyPrefix: 'tj-adm-012...',
@@ -282,7 +296,23 @@ export const mockPlatformKeys: PlatformKey[] = [
     modelWhitelist: ['gpt-4o-mini'],
     createdAt: '2026-06-10',
     expiresAt: null,
-  },
+  }),
+  platformKey({
+    id: 'plk-bg-1',
+    name: 'AI创新-共享Key',
+    keyPrefix: 'tj-bg-001...',
+    memberId: 'm-1',
+    memberName: '张三',
+    appName: 'AI 创新项目组',
+    budgetGroupId: 'bg-1',
+    budgetGroupName: 'AI 创新项目组',
+    status: 'active',
+    quota: 8000,
+    used: 4200,
+    modelWhitelist: ['gpt-4o', 'claude-sonnet-4-6'],
+    createdAt: '2026-04-15',
+    expiresAt: null,
+  }),
 ]
 
 export const mockApprovals: KeyApproval[] = [
@@ -354,7 +384,7 @@ export const mockApprovals: KeyApproval[] = [
     requestedModels: ['gpt-4o', 'deepseek-v3'],
     status: 'pending',
     approver: null,
-    createdAt: '2026-06-19 10:00',
+    createdAt: `${DEMO_TODAY} 10:00`,
     resolvedAt: null,
   },
   {
@@ -368,7 +398,7 @@ export const mockApprovals: KeyApproval[] = [
     requestedModels: ['gpt-4o', 'deepseek-v3'],
     status: 'pending',
     approver: null,
-    createdAt: '2026-06-19 08:30',
+    createdAt: `${DEMO_TODAY} 08:30`,
     resolvedAt: null,
   },
   {
@@ -510,7 +540,7 @@ export const mockApprovals: KeyApproval[] = [
     requestedModels: ['gpt-4o', 'qwen-plus'],
     status: 'pending',
     approver: null,
-    createdAt: '2026-06-19 07:00',
+    createdAt: `${DEMO_TODAY} 07:00`,
     resolvedAt: null,
   },
   {

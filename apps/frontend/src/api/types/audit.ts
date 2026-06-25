@@ -44,3 +44,25 @@ export interface CallLog {
 export interface AuditSettings {
   contentRetentionEnabled: boolean
 }
+
+export interface AuditDateRangeParams {
+  from?: string
+  to?: string
+}
+
+export interface AuditOperationsQueryParams extends AuditDateRangeParams {
+  page?: number
+  pageSize?: number
+  action?: string
+  operatorId?: string
+  keyword?: string
+}
+
+export interface AuditCallsQueryParams extends AuditDateRangeParams {
+  page?: number
+  pageSize?: number
+  model?: string
+  status?: string
+  callerId?: string
+  keyword?: string
+}

@@ -1,10 +1,17 @@
 import { request, buildQuery } from './client'
-import type { AuditSettings, CallLog, OperationLog, Paginated } from './types'
+import type {
+  AuditCallsQueryParams,
+  AuditOperationsQueryParams,
+  AuditSettings,
+  CallLog,
+  OperationLog,
+  Paginated,
+} from './types'
 
 export const auditApi = {
-  getOperations: (params?: { page?: number; pageSize?: number; action?: string }) =>
+  getOperations: (params?: AuditOperationsQueryParams) =>
     request<Paginated<OperationLog>>(`/audit/operations${buildQuery(params ?? {})}`),
-  getCalls: (params?: { page?: number; pageSize?: number; model?: string; status?: string }) =>
+  getCalls: (params?: AuditCallsQueryParams) =>
     request<Paginated<CallLog>>(`/audit/calls${buildQuery(params ?? {})}`),
   getSettings: () => request<AuditSettings>('/audit/settings'),
   updateSettings: (data: AuditSettings) =>

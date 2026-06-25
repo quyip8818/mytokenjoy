@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 interface StatCardProps {
   label: string
   value: string
+  subValue?: string
   accent?: boolean
   icon?: LucideIcon
   iconAccent?: string
@@ -14,6 +15,7 @@ interface StatCardProps {
 export function StatCard({
   label,
   value,
+  subValue,
   accent,
   icon: Icon,
   iconAccent = 'from-blue-500 to-sky-500',
@@ -52,6 +54,7 @@ export function StatCard({
         >
           {value}
         </p>
+        {subValue ? <p className="mt-1 text-xs text-muted-foreground">{subValue}</p> : null}
       </CardContent>
     </Card>
   )

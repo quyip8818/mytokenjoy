@@ -1,4 +1,5 @@
 import type { AuditAction, CallLog, OperationLog, ProviderType } from '@/api/types'
+import { DEMO_MONTH_START, DEMO_TODAY } from '@/lib/demo-clock'
 
 export const mockOperationLogs: OperationLog[] = [
   {
@@ -9,7 +10,7 @@ export const mockOperationLogs: OperationLog[] = [
     target: 'Platform Key: 客服Bot-生产',
     detail: '创建平台凭证，额度 20000 元',
     ip: '192.168.1.100',
-    createdAt: '2026-06-19 10:30',
+    createdAt: `${DEMO_TODAY} 10:30`,
   },
   {
     id: 'op-2',
@@ -19,7 +20,7 @@ export const mockOperationLogs: OperationLog[] = [
     target: '后端组',
     detail: '预算从 20000 调整为 25000',
     ip: '192.168.1.100',
-    createdAt: '2026-06-19 09:15',
+    createdAt: `${DEMO_TODAY} 09:15`,
   },
   {
     id: 'op-3',
@@ -239,7 +240,7 @@ export const mockOperationLogs: OperationLog[] = [
     target: '前端组',
     detail: '预留池从 0 调整为 500',
     ip: '192.168.1.100',
-    createdAt: '2026-06-01 09:00',
+    createdAt: `${DEMO_MONTH_START} 09:00`,
   },
   {
     id: 'op-25',

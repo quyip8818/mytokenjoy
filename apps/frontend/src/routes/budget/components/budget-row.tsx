@@ -11,6 +11,7 @@ export interface BudgetRowProps {
   depth: number
   tree: BudgetNode[]
   onAllocate: (node: BudgetNode, parent: BudgetNode | null) => void
+  onMemberQuota?: (node: BudgetNode) => void
   allocateHighlight?: string
   allocateCtaId?: string
   canAllocate?: boolean
@@ -21,12 +22,14 @@ export function BudgetRow({
   depth,
   tree,
   onAllocate,
+  onMemberQuota,
   allocateHighlight,
   allocateCtaId,
   canAllocate = true,
 }: BudgetRowProps) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children && node.children.length > 0
+  const isLeaf = !hasChildren
   const parent = node.parentId ? findBudgetNode(tree, node.parentId) : null
   const unallocated = computeUnallocated(node)
 
@@ -57,15 +60,22 @@ export function BudgetRow({
         </TableCell>
         <TableCell className="w-[120px]">
           {canAllocate ? (
-            <Button
-              id={depth === 0 ? allocateCtaId : undefined}
-              variant="ghost"
-              size="sm"
-              className={cn(depth === 0 ? allocateHighlight : undefined)}
-              onClick={() => onAllocate(node, parent)}
-            >
-              分配
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button
+                id={depth === 0 ? allocateCtaId : undefined}
+                variant="ghost"
+                size="sm"
+                className={cn(depth === 0 ? allocateHighlight : undefined)}
+                onClick={() => onAllocate(node, parent)}
+              >
+                分配
+              </Button>
+              {isLeaf && onMemberQuota ? (
+                <Button variant="ghost" size="sm" onClick={() => onMemberQuota(node)}>
+                  成员额度
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </TableCell>
       </TableRow>
@@ -77,6 +87,7 @@ export function BudgetRow({
             depth={depth + 1}
             tree={tree}
             onAllocate={onAllocate}
+            onMemberQuota={onMemberQuota}
             canAllocate={canAllocate}
           />
         ))}

@@ -1,11 +1,25 @@
 import { request } from './client'
-import type { AlertRule, BudgetGroup, BudgetNode, OverrunPolicyConfig } from './types'
+import type {
+  AlertRule,
+  BudgetGroup,
+  BudgetNode,
+  MemberBudgetQuota,
+  OverrunPolicyConfig,
+  UpdateMemberQuotaInput,
+} from './types'
 
 export const budgetApi = {
   getTree: (period?: string) =>
     request<BudgetNode[]>(`/budget/tree${period ? `?period=${period}` : ''}`),
   updateNode: (id: string, data: { budget: number; reservedPool?: number }) =>
     request<BudgetNode>(`/budget/nodes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getMemberQuotas: (departmentId: string) =>
+    request<MemberBudgetQuota[]>(`/budget/departments/${departmentId}/member-quotas`),
+  updateMemberQuota: (memberId: string, data: UpdateMemberQuotaInput) =>
+    request<MemberBudgetQuota>(`/budget/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   getGroups: () => request<BudgetGroup[]>('/budget/groups'),
   createGroup: (data: Omit<BudgetGroup, 'id' | 'consumed'>) =>
     request<BudgetGroup>('/budget/groups', { method: 'POST', body: JSON.stringify(data) }),

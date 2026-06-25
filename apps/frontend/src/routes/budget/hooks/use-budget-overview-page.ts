@@ -42,6 +42,16 @@ export function useBudgetOverviewPage(injectedApis?: AppApis) {
     [openWithRefresh],
   )
 
+  const handleMemberQuota = useCallback(
+    (node: BudgetNode) => {
+      openWithRefresh('member-quota-config', {
+        departmentId: node.id,
+        departmentName: node.name,
+      })
+    },
+    [openWithRefresh],
+  )
+
   return {
     tree,
     loading,
@@ -51,5 +61,6 @@ export function useBudgetOverviewPage(injectedApis?: AppApis) {
     canAllocate,
     budgetCta,
     handleAllocate,
+    handleMemberQuota,
   }
 }

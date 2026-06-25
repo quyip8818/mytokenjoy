@@ -36,9 +36,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   return res.json()
 }
 
-export function buildQuery(
-  params: Record<string, string | number | boolean | undefined | null>,
-): string {
+export function buildQuery(params: object): string {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null || value === '') continue

@@ -51,3 +51,16 @@ export interface AlertRule {
   notifyRoleIds: string[]
   enabled: boolean
 }
+
+export interface MemberBudgetQuota {
+  memberId: string
+  memberName: string
+  departmentId: string
+  personalQuota: number
+  allocated: number
+  used: number
+}
+
+export interface UpdateMemberQuotaInput {
+  personalQuota: number
+}

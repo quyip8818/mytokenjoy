@@ -19,28 +19,60 @@ const PERIOD_SCALE: Record<CostPeriod, number> = {
   current_month: 1,
   last_month: 0.88,
   last_7_days: 0.28,
+  custom: 0.5,
 }
 
-const PERIOD_MOM: Record<CostPeriod, number> = {
-  current_month: 12.5,
-  last_month: 8.2,
-  last_7_days: -3.1,
+const PERIOD_MOM: Record<
+  CostPeriod,
+  Pick<
+    CostSummary,
+    'totalCostMom' | 'avgCostPerRequestMom' | 'avgCostPerMemberMom' | 'totalRequestsMom'
+  >
+> = {
+  current_month: {
+    totalCostMom: 12.5,
+    avgCostPerRequestMom: 8.1,
+    avgCostPerMemberMom: 10.2,
+    totalRequestsMom: 15.3,
+  },
+  last_month: {
+    totalCostMom: 8.2,
+    avgCostPerRequestMom: 5.4,
+    avgCostPerMemberMom: 7.1,
+    totalRequestsMom: 9.8,
+  },
+  last_7_days: {
+    totalCostMom: -3.1,
+    avgCostPerRequestMom: -1.2,
+    avgCostPerMemberMom: -2.5,
+    totalRequestsMom: 4.6,
+  },
+  custom: {
+    totalCostMom: 6.0,
+    avgCostPerRequestMom: 3.5,
+    avgCostPerMemberMom: 4.2,
+    totalRequestsMom: 7.8,
+  },
 }
 
 const TOTAL_COST_TARGET = 67500
 
 export function buildCostSummary(period: CostPeriod = 'current_month'): CostSummary {
   const scale = PERIOD_SCALE[period]
+  const mom = PERIOD_MOM[period]
   const totalCost = Math.round(TOTAL_COST_TARGET * scale)
   const memberCount = mockMembers.filter((m) => m.status === 'active').length
   const totalRequests = Math.round(28500 * scale)
   return {
     totalCost,
-    monthOverMonth: PERIOD_MOM[period],
+    totalCostMom: mom.totalCostMom,
     totalTokens: Math.round(45000000 * scale),
     totalRequests,
+    totalRequestsMom: mom.totalRequestsMom,
     avgCostPerRequest: totalRequests > 0 ? Math.round((totalCost / totalRequests) * 100) / 100 : 0,
+    avgCostPerRequestMom: mom.avgCostPerRequestMom,
     avgCostPerMember: memberCount > 0 ? Math.round(totalCost / memberCount) : 0,
+    avgCostPerMemberMom: mom.avgCostPerMemberMom,
   }
 }
 

@@ -257,6 +257,7 @@ Demo 可整体通过 `USE_MOCKS` 与 `DemoProvider` 开关。
 | `RouteFallback` | `components/layout/` | lazy 路由加载态 |
 | `PermissionGate` | `components/auth/` | 权限门控 |
 | `EmptyState`、`ErrorState`、`ConfirmActionDialog` | `components/ui/` | 通用反馈 |
+| `OptionsSelect` | `components/ui/` | 无业务语义的枚举筛选下拉 |
 
 ### 8.2 跨域业务组件
 
@@ -265,6 +266,8 @@ Demo 可整体通过 `USE_MOCKS` 与 `DemoProvider` 开关。
 | `CredentialForm`、`SyncConfigPanel` | `components/org/` | workflow |
 | `BudgetProgressCell` | `components/budget/` | budget、usage、platform keys |
 | `AuditFilteredPage`、`AuditToolbar` | `components/audit/` | operations、calls |
+| `AuditMemberSelect`、`AuditDatePresetSelect`、`AuditKeywordInput` | `components/audit/` | operations、calls |
+| `OptionsSelect` | `components/ui/` | audit 筛选、可复用于 dashboard |
 
 ### 8.3 页面私有组件（按域）
 
@@ -292,6 +295,9 @@ Demo 可整体通过 `USE_MOCKS` 与 `DemoProvider` 开关。
 | `useRowHighlight` | 表格行高亮 |
 | `usePageSubtitle` | Header 副标题（Zustand） |
 | `useAuditSettings` | 审计页共享筛选设置 |
+| `useAuditMemberOptions` | 审计成员筛选下拉选项 |
+
+Audit 列表页共享 Hook：`routes/audit/hooks/use-audit-list-page.ts`（内部 `useFilteredResource`）。
 
 ### 9.2 纯逻辑（`lib/`）
 
@@ -300,11 +306,13 @@ Demo 可整体通过 `USE_MOCKS` 与 `DemoProvider` 开关。
 | `permission-keys.ts` | 权限 key 常量 |
 | `permissions.ts` | `hasPermission`、`getDefaultHomePath` 等 |
 | `labels.ts`、`label-badges.tsx` | 业务标签与徽章映射 |
+| `demo-clock.ts` | Demo 时间锚点（`DEMO_TODAY`、`resolveLast7DaysRange`） |
+| `audit-constants.ts`、`audit-query.ts` | 审计日期 preset 与 query 构建 |
 | `{domain}.ts` | 域内纯函数（org、budget、dashboard） |
 | `utils.ts` | `cn()` 等工具 |
 | `csv-export.ts` | 导出辅助 |
 
-常量与环境：`config/routes.ts`、`config/app.ts`、`features/workflow/constants.ts`、`features/demo/guide/constants.ts`。
+常量与环境：`config/routes.ts`、`config/app.ts`、`lib/demo-clock.ts`、`features/workflow/constants.ts`、`features/demo/guide/constants.ts`。
 
 ---
 
@@ -404,6 +412,9 @@ tests/
 | Mock 与 api 路径不一致 | 对照 API 契约 |
 | mock 工具进 `src/lib/` | `mocks/lib/` |
 | 映射表多处定义 | `lib/labels.ts` 或 domain constants |
+| 筛选下拉硬编码 label / value | `lib/labels.ts` + `components/ui/options-select.tsx` |
+| Audit 列表手写 filter state | `use-audit-list-page` + `useFilteredResource` |
+| Demo 日期多处硬编码 | `lib/demo-clock.ts` |
 
 ---
 

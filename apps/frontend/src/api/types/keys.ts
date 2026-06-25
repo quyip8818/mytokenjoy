@@ -21,6 +21,8 @@ export interface PlatformKey {
   memberId: string | null
   memberName: string | null
   appName: string | null
+  budgetGroupId: string | null
+  budgetGroupName: string | null
   status: KeyStatus
   quota: number
   used: number

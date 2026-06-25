@@ -2,14 +2,26 @@ import type { ProviderType } from './keys'
 
 export interface CostSummary {
   totalCost: number
-  monthOverMonth: number
+  totalCostMom: number
   totalTokens: number
   totalRequests: number
+  totalRequestsMom: number
   avgCostPerRequest: number
+  avgCostPerRequestMom: number
   avgCostPerMember: number
+  avgCostPerMemberMom: number
 }
 
-export type CostPeriod = 'current_month' | 'last_month' | 'last_7_days'
+export type CostPeriod = 'current_month' | 'last_month' | 'last_7_days' | 'custom'
+
+export type CostGranularity = 'day' | 'week' | 'month'
+
+export interface CostQueryParams {
+  period?: CostPeriod
+  startDate?: string
+  endDate?: string
+  granularity?: CostGranularity
+}
 
 export interface DepartmentCost {
   departmentId: string

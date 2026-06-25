@@ -1,7 +1,11 @@
-import type { CostSummary, DepartmentCost, DepartmentCostMember } from '@/api/types'
+import type {
+  CostSummary,
+  DepartmentCost,
+  DepartmentCostMember,
+  DailyCost,
+  CostGranularity,
+} from '@/api/types'
 import {
-  TrendingUp,
-  TrendingDown,
   Coins,
   Hash,
   Zap,
@@ -33,8 +37,13 @@ export const ROOT_DRILL: DrillState = {
 export interface CostStatItem {
   label: string
   value: string
+  mom?: number
   icon: LucideIcon
   accent: string
+}
+
+function formatMom(mom: number): string {
+  return `${mom > 0 ? '+' : ''}${mom}%`
 }
 
 export function drillIntoDepartment(drill: DrillState, dept: DepartmentCost): DrillState {
@@ -108,35 +117,30 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
     {
       label: '总花费',
       value: summary ? `¥${summary.totalCost.toLocaleString()}` : '-',
+      mom: summary?.totalCostMom,
       icon: Coins,
       accent: 'from-blue-500 to-sky-500',
     },
     {
-      label: '环比变化',
-      value: summary ? `${summary.monthOverMonth > 0 ? '+' : ''}${summary.monthOverMonth}%` : '-',
-      icon: summary && summary.monthOverMonth > 0 ? TrendingUp : TrendingDown,
-      accent:
-        summary && summary.monthOverMonth > 0
-          ? 'from-red-400 to-rose-500'
-          : 'from-emerald-400 to-teal-500',
+      label: '平均单次成本',
+      value: summary ? `¥${summary.avgCostPerRequest.toFixed(2)}` : '-',
+      mom: summary?.avgCostPerRequestMom,
+      icon: DollarSign,
+      accent: 'from-cyan-400 to-blue-500',
     },
     {
       label: '人均成本',
       value: summary ? `¥${summary.avgCostPerMember.toLocaleString()}` : '-',
+      mom: summary?.avgCostPerMemberMom,
       icon: User,
       accent: 'from-violet-400 to-purple-500',
     },
     {
       label: '总调用次数',
       value: summary?.totalRequests.toLocaleString() ?? '-',
+      mom: summary?.totalRequestsMom,
       icon: Zap,
       accent: 'from-amber-400 to-orange-500',
-    },
-    {
-      label: '平均单次成本',
-      value: summary ? `¥${summary.avgCostPerRequest.toFixed(2)}` : '-',
-      icon: DollarSign,
-      accent: 'from-cyan-400 to-blue-500',
     },
     {
       label: '总 Token',
@@ -145,4 +149,37 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
       accent: 'from-blue-500 to-sky-400',
     },
   ]
+}
+
+export { formatMom }
+
+export function aggregateDailyCosts(
+  daily: DailyCost[],
+  granularity: CostGranularity,
+): DailyCost[] {
+  if (granularity === 'day' || daily.length === 0) return daily
+
+  const buckets = new Map<string, DailyCost>()
+  for (const row of daily) {
+    const date = new Date(`${row.date}T00:00:00`)
+    let key: string
+    if (granularity === 'month') {
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    } else {
+      const day = date.getDay()
+      const diff = day === 0 ? -6 : 1 - day
+      const weekStart = new Date(date)
+      weekStart.setDate(date.getDate() + diff)
+      key = weekStart.toISOString().slice(0, 10)
+    }
+    const existing = buckets.get(key)
+    if (existing) {
+      existing.cost += row.cost
+      existing.tokens += row.tokens
+      existing.requests += row.requests
+    } else {
+      buckets.set(key, { date: key, cost: row.cost, tokens: row.tokens, requests: row.requests })
+    }
+  }
+  return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date))
 }

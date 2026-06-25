@@ -1,7 +1,12 @@
 import { http, HttpResponse, delay } from 'msw'
 import { API_BASE_PATH } from '@/config/app'
 import { findBudgetNode, updateBudgetNodeInTree } from '@/lib/budget'
-import { mockBudgetTree, mockBudgetGroups, mockAlertRules, mockOverrunPolicy } from '../data'
+import {
+  applyMemberQuotaUpdate,
+  buildMemberBudgetQuota,
+  validateMemberQuotaUpdate,
+} from '../lib/member-budget-quota'
+import { mockBudgetTree, mockBudgetGroups, mockAlertRules, mockOverrunPolicy, mockMembers } from '../data'
 
 export const budgetHandlers = [
   // ========== 预算管理 ==========
@@ -21,6 +26,32 @@ export const budgetHandlers = [
       reservedPool: body.reservedPool ?? existing.reservedPool ?? 0,
     })
     return HttpResponse.json(findBudgetNode(mockBudgetTree, id))
+  }),
+  http.get(`${API_BASE_PATH}/budget/departments/:deptId/member-quotas`, ({ params }) => {
+    const deptId = params.deptId as string
+    const deptNode = findBudgetNode(mockBudgetTree, deptId)
+    if (!deptNode) {
+      return HttpResponse.json({ message: 'Department not found' }, { status: 404 })
+    }
+    const quotas = mockMembers
+      .filter((m) => m.departmentId === deptId)
+      .map((m) => buildMemberBudgetQuota(m))
+    return HttpResponse.json(quotas)
+  }),
+  http.put(`${API_BASE_PATH}/budget/members/:memberId`, async ({ params, request }) => {
+    await delay(300)
+    const memberId = params.memberId as string
+    const body = (await request.json()) as { personalQuota: number }
+    const error = validateMemberQuotaUpdate(
+      mockBudgetTree,
+      mockMembers,
+      memberId,
+      body.personalQuota,
+    )
+    if (error) {
+      return HttpResponse.json({ message: error }, { status: 422 })
+    }
+    return HttpResponse.json(applyMemberQuotaUpdate(mockMembers, memberId, body.personalQuota))
   }),
   http.get(`${API_BASE_PATH}/budget/groups`, () => {
     return HttpResponse.json(mockBudgetGroups)

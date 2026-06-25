@@ -27,6 +27,7 @@ import { RoleAddMemberWorkflow } from './workflows/role-add-member'
 import { PermissionPickerWorkflow } from './workflows/permission-picker'
 import { MemberSearchWorkflow } from './workflows/member-search'
 import { PickMembersWorkflow } from './workflows/pick-members'
+import { MemberQuotaConfigWorkflow } from './workflows/member-quota-config'
 
 const REGISTRY: Record<WorkflowId, ReturnType<typeof defineWorkflow>> = {
   'credential-form': defineWorkflow(CredentialFormWorkflow, {
@@ -88,6 +89,10 @@ const REGISTRY: Record<WorkflowId, ReturnType<typeof defineWorkflow>> = {
   }),
   'member-search': defineWorkflow(MemberSearchWorkflow, { defaultLayer: 2, title: '搜索成员' }),
   'pick-members': defineWorkflow(PickMembersWorkflow, { defaultLayer: 2, title: '选择成员' }),
+  'member-quota-config': defineWorkflow(MemberQuotaConfigWorkflow, {
+    defaultLayer: 1,
+    title: '成员额度配置',
+  }),
 }
 
 export function getWorkflowDefinition(id: WorkflowId) {

@@ -23,6 +23,7 @@ interface BudgetGroupTableProps {
   canWrite: boolean
   rowClass: (id: string) => string | undefined
   onEdit: (group: BudgetGroup) => void
+  onManageKeys: (group: BudgetGroup) => void
   onDelete: (id: string) => void
 }
 
@@ -31,6 +32,7 @@ export function BudgetGroupTable({
   canWrite,
   rowClass,
   onEdit,
+  onManageKeys,
   onDelete,
 }: BudgetGroupTableProps) {
   return (
@@ -72,6 +74,7 @@ export function BudgetGroupTable({
                   />
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onEdit(g)}>管理</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onManageKeys(g)}>管理 Key</DropdownMenuItem>
                     <DropdownMenuItem className="text-red-600" onClick={() => onDelete(g.id)}>
                       删除
                     </DropdownMenuItem>

@@ -72,12 +72,16 @@ export interface WorkflowPayloadMap {
   'key-create': {
     adminCreate?: boolean
     targetMemberId?: string
+    budgetGroupId?: string
+    budgetGroupName?: string
     onSuccess?: (id?: string) => void
   }
   'key-edit': {
     key?: PlatformKey
     adminCreate?: boolean
     targetMemberId?: string
+    budgetGroupId?: string
+    budgetGroupName?: string
     onSuccess?: (id?: string) => void
   }
   'key-rotate-confirm': {
@@ -137,6 +141,11 @@ export interface WorkflowPayloadMap {
     nodeName: string
     before: { budget: number; reservedPool: number }
     after: { budget: number; reservedPool: number }
+    onSuccess?: () => void
+  }
+  'member-quota-config': {
+    departmentId: string
+    departmentName: string
     onSuccess?: () => void
   }
   'permission-picker': {

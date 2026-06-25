@@ -9,7 +9,7 @@ import { BudgetGroupTable } from '@/routes/budget/components/budget-group-table'
 import { useBudgetAllocationPage } from '@/routes/budget/hooks/use-budget-allocation-page'
 
 export default function BudgetAllocationPage() {
-  const { groups, loading, error, refresh, canWrite, rowClass, handleDelete, openForm } =
+  const { groups, loading, error, refresh, canWrite, rowClass, handleDelete, openForm, openGroupKeys } =
     useBudgetAllocationPage()
 
   return (
@@ -45,6 +45,7 @@ export default function BudgetAllocationPage() {
           canWrite={canWrite}
           rowClass={rowClass}
           onEdit={openForm}
+          onManageKeys={openGroupKeys}
           onDelete={handleDelete}
         />
       </DataSection>

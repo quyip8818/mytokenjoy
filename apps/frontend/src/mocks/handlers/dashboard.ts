@@ -11,34 +11,34 @@ import {
   mockTeamUsage,
 } from '../fixtures/dashboard'
 
-function parsePeriod(url: URL): CostPeriod {
+function resolvePeriod(url: URL): CostPeriod {
   const period = url.searchParams.get('period') as CostPeriod | null
-  if (period === 'last_month' || period === 'last_7_days') return period
+  if (period === 'last_month' || period === 'last_7_days' || period === 'custom') return period
   return 'current_month'
 }
 
 export const dashboardHandlers = [
   http.get(`${API_BASE_PATH}/dashboard/cost/summary`, ({ request }) => {
-    const period = parsePeriod(new URL(request.url))
+    const period = resolvePeriod(new URL(request.url))
     return HttpResponse.json(buildCostSummary(period))
   }),
   http.get(`${API_BASE_PATH}/dashboard/cost/departments`, ({ request }) => {
     const url = new URL(request.url)
-    const period = parsePeriod(url)
+    const period = resolvePeriod(url)
     const parentId = url.searchParams.get('parentId')
     return HttpResponse.json(getDepartmentCostsForParent(parentId, period))
   }),
   http.get(`${API_BASE_PATH}/dashboard/cost/departments/:deptId/members`, ({ request, params }) => {
-    const period = parsePeriod(new URL(request.url))
+    const period = resolvePeriod(new URL(request.url))
     return HttpResponse.json(getDepartmentMemberCosts(params.deptId as string, period))
   }),
   http.get(`${API_BASE_PATH}/dashboard/cost/daily`, ({ request }) => {
-    const period = parsePeriod(new URL(request.url))
+    const period = resolvePeriod(new URL(request.url))
     return HttpResponse.json(buildDailyCosts(period))
   }),
   http.get(`${API_BASE_PATH}/dashboard/cost/top`, ({ request }) => {
     const url = new URL(request.url)
-    const period = parsePeriod(url)
+    const period = resolvePeriod(url)
     const limit = Number(url.searchParams.get('limit') ?? 5)
     return HttpResponse.json(getTopConsumers(limit, period))
   }),

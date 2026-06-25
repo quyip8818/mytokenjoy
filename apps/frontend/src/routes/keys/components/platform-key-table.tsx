@@ -32,6 +32,7 @@ export function PlatformKeyTable({ keys, rowClass, onRevoke }: PlatformKeyTableP
         <TableRow className="hover:bg-transparent">
           <TableHead>名称</TableHead>
           <TableHead>绑定</TableHead>
+          <TableHead>预算组</TableHead>
           <TableHead>Key 前缀</TableHead>
           <TableHead>状态</TableHead>
           <TableHead className="w-36">额度使用</TableHead>
@@ -45,6 +46,9 @@ export function PlatformKeyTable({ keys, rowClass, onRevoke }: PlatformKeyTableP
           <TableRow key={key.id} className={rowClass(key.id)}>
             <TableCell className="font-medium">{key.name}</TableCell>
             <TableCell className="text-sm">{key.memberName ?? key.appName ?? '-'}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {key.budgetGroupName ?? '-'}
+            </TableCell>
             <TableCell>
               <KeyPrefixBadge prefix={key.keyPrefix} />
             </TableCell>

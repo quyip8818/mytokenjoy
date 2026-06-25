@@ -1,19 +1,30 @@
 import { ScrollText } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { AuditDatePresetSelect } from '@/components/audit/audit-date-preset-select'
+import { AuditKeywordInput } from '@/components/audit/audit-keyword-input'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
+import { AuditMemberSelect } from '@/components/audit/audit-member-select'
 import { AuditToolbar } from '@/components/audit/audit-toolbar'
+import { OptionsSelect } from '@/components/ui/options-select'
+import { OPERATION_ACTION_LABELS } from '@/lib/labels'
 import { OperationsLogTable } from '@/routes/audit/components/operations-log-table'
 import { useAuditOperationsPage } from '@/routes/audit/hooks/use-audit-operations-page'
 
 export default function OperationLogsPage() {
-  const { logs, loading, error, refresh, actionFilter, setActionFilter, handleExport } =
-    useAuditOperationsPage()
+  const {
+    logs,
+    loading,
+    error,
+    refresh,
+    actionFilter,
+    datePreset,
+    operatorId,
+    keyword,
+    setActionFilter,
+    setDatePreset,
+    setOperatorId,
+    setKeyword,
+    handleExport,
+  } = useAuditOperationsPage()
 
   return (
     <AuditFilteredPage
@@ -28,22 +39,21 @@ export default function OperationLogsPage() {
         description: '调整筛选条件或完成管理操作后，记录将显示在这里',
       }}
       actions={
-        <div className="flex items-center gap-3">
-          <Select value={actionFilter} onValueChange={(v) => setActionFilter(v ?? 'all')}>
-            <SelectTrigger className="w-40 border-border/60 focus:ring-blue-500">
-              <SelectValue placeholder="全部类型" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部类型</SelectItem>
-              <SelectItem value="key_create">Key 创建</SelectItem>
-              <SelectItem value="key_disable">Key 禁用</SelectItem>
-              <SelectItem value="budget_change">预算变更</SelectItem>
-              <SelectItem value="budget_approve">预算审批</SelectItem>
-              <SelectItem value="permission_change">权限变更</SelectItem>
-              <SelectItem value="model_whitelist_change">白名单变更</SelectItem>
-              <SelectItem value="org_structure_change">组织结构变更</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-3">
+          <AuditDatePresetSelect value={datePreset} onValueChange={setDatePreset} />
+          <OptionsSelect
+            value={actionFilter}
+            onValueChange={setActionFilter}
+            options={OPERATION_ACTION_LABELS}
+            allLabel="全部类型"
+            className="w-40"
+          />
+          <AuditMemberSelect
+            value={operatorId}
+            onValueChange={setOperatorId}
+            allLabel="全部操作人"
+          />
+          <AuditKeywordInput value={keyword} onChange={setKeyword} />
           <AuditToolbar onExport={handleExport} />
         </div>
       }
