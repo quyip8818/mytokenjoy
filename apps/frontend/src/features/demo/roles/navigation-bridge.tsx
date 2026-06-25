@@ -10,7 +10,13 @@ export function DemoRoleNavigationBridge() {
   const { memberId, displayName } = useDemoRole()
 
   const handleMemberIdChange = useCallback(
-    ({ permissions, displayName: name }: { permissions: readonly string[]; displayName: string }) => {
+    ({
+      permissions,
+      displayName: name,
+    }: {
+      permissions: readonly string[]
+      displayName: string
+    }) => {
       const home = getDefaultHomePath(permissions)
       navigate(home ?? '/')
       toast.info(`已切换为${name}视角`)

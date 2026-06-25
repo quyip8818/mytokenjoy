@@ -297,19 +297,19 @@ Demo 可整体通过 `USE_MOCKS` 与 `DemoProvider` 开关。
 
 ### 9.1 全局 Hook（`hooks/`）
 
-| Hook                              | 职责                                           |
-| --------------------------------- | ---------------------------------------------- |
-| `useInjectedQuery`（`features/query/`） | DI + TanStack Query 数据获取               |
-| `useFilteredQuery`                | filter state 与 queryKey 联动的列表查询        |
-| `useApprovalPendingCountQuery`    | 审批待办角标（structure 页与侧栏共用）         |
-| `useRouteRedirect`                | 无权限 / 角色切换时的路由重定向                |
-| `useWorkflowRefresh`              | workflow 成功后触发 refresh / invalidate       |
-| `usePermissions`                  | 权限与 `canWrite`                              |
-| `useRouteAccess`                  | 当前路径是否可访问                             |
-| `useRowHighlight`                 | 表格行高亮                                     |
-| `usePageSubtitle`                 | Header 副标题（Zustand）                       |
-| `useAuditSettings`                | 审计页共享筛选设置                             |
-| `useAuditMemberOptions`           | 审计成员筛选下拉选项                           |
+| Hook                                    | 职责                                     |
+| --------------------------------------- | ---------------------------------------- |
+| `useInjectedQuery`（`features/query/`） | DI + TanStack Query 数据获取             |
+| `useFilteredQuery`                      | filter state 与 queryKey 联动的列表查询  |
+| `useApprovalPendingCountQuery`          | 审批待办角标（structure 页与侧栏共用）   |
+| `useRouteRedirect`                      | 无权限 / 角色切换时的路由重定向          |
+| `useWorkflowRefresh`                    | workflow 成功后触发 refresh / invalidate |
+| `usePermissions`                        | 权限与 `canWrite`                        |
+| `useRouteAccess`                        | 当前路径是否可访问                       |
+| `useRowHighlight`                       | 表格行高亮                               |
+| `usePageSubtitle`                       | Header 副标题（Zustand）                 |
+| `useAuditSettings`                      | 审计页共享筛选设置                       |
+| `useAuditMemberOptions`                 | 审计成员筛选下拉选项                     |
 
 Audit 列表页共享 Hook：`routes/audit/hooks/use-audit-list-page.ts`（内部 `useFilteredQuery`）。
 
