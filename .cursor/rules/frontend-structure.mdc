@@ -19,7 +19,7 @@ Follow [docs/Frontend-代码结构.md](../docs/Frontend-代码结构.md) (especi
 | Cross-domain layout/auth | `components/layout/`, `components/auth/` | No single-page blocks |
 | Primitives | `components/ui/` | No business semantics — no domain words in filename |
 | Generic enum/filter select | `components/ui/options-select.tsx` | Map from `lib/labels.ts`; no hardcoded options in pages |
-| Workflow adapter | `features/workflow/workflows/` | Open via `useWorkflow().open()` |
+| Workflow adapter | `features/workflow/workflows/` or `defineDelegateWorkflow` in `definitions/` | Open via `useWorkflow().open()` |
 | HTTP | `api/{domain}.ts` | One namespace per backend resource |
 | DTO types | `api/types/{domain}.ts` | Same domain as API |
 | Pure helpers | `lib/` | No React; unit-testable |
@@ -38,9 +38,22 @@ Follow [docs/Frontend-代码结构.md](../docs/Frontend-代码结构.md) (especi
 6. Promote: second route page imports from `routes/*/components/` → move to `components/{domain}/`
 7. Demote: `components/{domain}/` only used by one page with no workflow → `routes/{domain}/components/`
 
-Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`); thin wrapper in `features/workflow/workflows/`.
+Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`); register via `defineDelegateWorkflow` or thin wrapper in `features/workflow/workflows/`.
 
-## New component checklist
+## Session & permissions
+
+- `useSession()` from `features/session` — `memberId`, permissions, loading (Demo + production)
+- `usePermissions()` reads `useSession()`; do not import `useDemoRole` in page/workflow hooks
+- `useDemoRole()` — Demo-only UI (role switcher, guide panel)
+- CTA highlight: `useCtaHighlight()` from `hooks/use-cta-highlight` (no-op in production; Demo provides context)
+
+## Routes (single source of truth)
+
+- Hand-write **`ROUTE_DEFINITIONS`** in `config/routes.ts` only (path, label, icon, permissions, lazy, navGroup)
+- `ROUTES`, `ROUTE_META`, `APP_ROUTES`, `NAV_GROUP_LAYOUT` are derived — never edit separately
+- New route checklist:
+  1. Add one entry to `ROUTE_DEFINITIONS` (include `navGroup`)
+  2. Create `routes/{domain}/{page}.tsx` + `hooks/use-*-page.ts`
 
 1. List all importers (route pages + workflow)
 2. Pick directory per table above
@@ -57,17 +70,7 @@ Page hooks:
 - Audit list pages: prefer `use-audit-list-page` (wraps `useFilteredResource`)
 - Return a flat view model; no JSX
 
-## Routes (single source of truth)
-
-- Paths: `ROUTES` in `config/routes.ts` only — never hardcode `/org/...`, `/budget/...`, etc.
-- Metadata: `ROUTE_META` holds `path`, `label`, `icon`, `requiredPermissions`, optional `badgeKey`
-- New route checklist:
-  1. Add `ROUTES.*` key and `ROUTE_META` entry
-  2. Add `APP_ROUTES` lazy import
-  3. Add path to `NAV_GROUP_LAYOUT` in `config/nav.ts`
-  4. Create `routes/{domain}/{page}.tsx` + `hooks/use-*-page.ts`
-
-## API dependency injection
+## New component checklist
 
 - Page hooks with test overrides: `useInjectedApis(injectedApis?)`; otherwise `useApis()` in hooks, workflows, and shared components
 - Do not `import { xxxApi }` in business code

@@ -12,6 +12,7 @@
 | Demo 交互设计 | [Demo-交互设计方案.md](./Demo-交互设计方案.md)                                    | Workflow 侧滑、Demo 引导、CTA 高亮                |
 | 开发速查      | [CLAUDE.md](./CLAUDE.md)                                                          | 命令、技术栈、目录一览                            |
 | 产品需求      | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                              | 业务域边界、功能范围                              |
+| 架构优化建议  | [Frontend-架构优化建议.md](./Frontend-架构优化建议.md)                            | 可简化点、演进路线、不建议动的部分                |
 | Cursor 规范   | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
 
 **边界：** 类型以 `api/types/` 为准；Workflow 交互见 Demo 设计文档；Mock 路径须与 API 契约同步。
@@ -56,15 +57,19 @@ MSW 浏览器 worker 经 `mocks/start-browser-worker.ts` 启动，Service Worker
 ```
 App (BrowserRouter + lazy routes)
 └─ AdminLayout
-   ├─ ApiProvider          defaultApis
-   ├─ DemoProvider         角色切换 + 引导 + 导航桥接
-   ├─ WorkflowProvider     侧滑栈状态（Zustand）
+   ├─ ApiProvider
+   ├─ USE_MOCKS ?
+   │    └─ LazyDemoShell → DemoSessionProvider + DemoGuide + 导航桥接
+   │    └─ AuthSessionProvider（生产 cookie/JWT）
+   ├─ WorkflowProvider
    ├─ Sidebar / Header / Outlet
-   ├─ WorkflowPanelStack   全局侧滑面板
+   ├─ WorkflowPanelStack
    └─ Toaster
 ```
 
-首页 `/` 由 `HomeRedirect` 根据当前 Demo 角色权限跳转到 `HOME_PATH_CANDIDATES` 中第一个可访问页面。
+首页 `/` 由 [`components/layout/home-redirect.tsx`](../apps/frontend/src/components/layout/home-redirect.tsx) 经 `useSession()` 读取权限，跳转到 `HOME_PATH_CANDIDATES` 中第一个可访问页面。
+
+权限与 `memberId` 经 `features/session` 的 `useSession()`；Demo 角色切换 UI 仍用 `useDemoRole()`。
 
 ### 2.3 环境与部署
 
@@ -91,8 +96,8 @@ apps/frontend/
     ├── main.tsx            启动入口
     ├── App.tsx             路由注册（lazy + Suspense）
     ├── config/
-    │   ├── routes.ts       ROUTES / ROUTE_META / APP_ROUTES
-    │   ├── nav.ts          NAV_GROUP_LAYOUT → NAV_GROUPS
+    │   ├── routes.ts       ROUTE_DEFINITIONS → 派生 ROUTES / ROUTE_META / APP_ROUTES / NAV_GROUP_LAYOUT
+    │   ├── nav.ts          NAV_GROUPS / ROUTE_TITLES（从 routes 派生）
     │   └── app.ts          环境常量
     ├── routes/{domain}/    页面入口 + hooks/ + components/
     ├── components/
@@ -101,8 +106,9 @@ apps/frontend/
     │   ├── auth/           权限门控
     │   └── {domain}/       跨页或 workflow 复用的业务组件
     ├── features/
-    │   ├── workflow/       侧滑编排（Zustand + 面板栈）
-    │   └── demo/           Demo 角色、引导、Chrome
+    │   ├── session/        AppSession、DemoSessionProvider、AuthSessionProvider
+    │   ├── workflow/       侧滑编排（Zustand + 面板栈 + definitions/ 分域注册）
+    │   └── demo/           Demo 角色、引导、Chrome（USE_MOCKS 时 lazy 加载）
     ├── api/                HTTP 客户端 + 聚合注入
     ├── hooks/              跨域通用 React Hook
     ├── lib/                纯函数、常量、权限工具
@@ -120,19 +126,21 @@ apps/frontend/
 
 ## 4. 路由体系
 
-[`config/routes.ts`](../apps/frontend/src/config/routes.ts) 为唯一路由元数据源。
+[`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一手写源，派生其余导出。
 
 | 导出                   | 职责                                                      |
 | ---------------------- | --------------------------------------------------------- |
+| `ROUTE_DEFINITIONS`      | 单条含 path、label、icon、权限、lazy、`navGroup`          |
 | `ROUTES`               | 路径常量（业务代码禁止硬编码 `/org/...` 等字符串）        |
-| `ROUTE_META`           | path、label、icon、`requiredPermissions`、可选 `badgeKey` |
+| `ROUTE_META`           | 由 definitions 派生                                       |
 | `APP_ROUTES`           | lazy 页面模块，供 `App.tsx` 注册                          |
+| `NAV_GROUP_LAYOUT`     | 侧栏分组，由 definitions 的 `navGroup` 派生               |
 | `HOME_PATH_CANDIDATES` | 首页跳转优先级                                            |
 | `toRouterPath`         | 去掉 leading `/` 供 React Router `path` 使用              |
 
-[`config/nav.ts`](../apps/frontend/src/config/nav.ts) 的 `NAV_GROUP_LAYOUT` 只负责侧栏分组与顺序，条目元数据从 `ROUTE_META` 派生。
+[`config/nav.ts`](../apps/frontend/src/config/nav.ts) 从 `NAV_GROUP_LAYOUT` / `ROUTE_META` 派生 `NAV_GROUPS` 与 `ROUTE_TITLES`。
 
-**新增页面清单：** `ROUTES` → `ROUTE_META` → `APP_ROUTES` → `NAV_GROUP_LAYOUT` → `{page}.tsx` + `hooks/use-{page}-page.ts`。`pnpm lint` 中的 `check-conventions` 会校验四者对齐及页面 Hook 存在性。
+**新增页面清单：** 在 `ROUTE_DEFINITIONS` 增加一条（含 `navGroup`）→ 创建 `{page}.tsx` + `hooks/use-{page}-page.ts`。`pnpm lint` 中的 `check-conventions` 会校验 definitions 与页面 Hook。
 
 当前共 **16** 个业务页面（不含首页重定向）：
 
@@ -222,14 +230,15 @@ Workflow 关闭后刷新列表：`useWorkflowRefresh(refresh)`。
 
 | 模块                                  | 职责                                                   |
 | ------------------------------------- | ------------------------------------------------------ |
-| `workflow-definitions.tsx`            | 所有 workflow 注册表（id → 组件 + 默认 layer + title） |
-| `workflow-payloads.ts`                | 各 workflow 的 open 参数类型                           |
-| `workflows/*.tsx`                     | 具体步骤面板（可复用 `components/{domain}/` 表单）     |
+| `definitions/{domain}.ts`             | 分域 workflow 注册表（org / budget / keys / models / shared） |
+| `define-delegate-workflow.tsx`        | 薄包装 `WorkflowDelegatePanel` + 业务表单的工厂        |
+| `workflow-payloads.ts`                | 各 workflow 的 open 参数类型（部分 payload 在 `payloads/`） |
+| `workflows/*.tsx`                     | 含业务逻辑的步骤面板                                   |
 | `components/workflow-panel-stack.tsx` | 全局侧滑栈渲染                                         |
 | `use-workflow.ts`                     | `open` / `push` / `pop` / `closeAll`                   |
 | `use-workflow-submit.ts`              | 提交流程封装                                           |
 
-新增 workflow：`workflows/{name}.tsx` + `workflow-payloads.ts` 类型 + `workflow-definitions.tsx` 注册。
+新增 workflow：`workflows/{name}.tsx`（或 `defineDelegateWorkflow`）+ payload 类型 + `definitions/{domain}.ts` 注册。
 
 ### 7.2 Demo（`features/demo/`）
 

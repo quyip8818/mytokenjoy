@@ -5,12 +5,12 @@ import { useInjectedApis } from '@/api/use-apis'
 import type { Member, Role } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflow } from '@/features/workflow/use-workflow'
-import { useDemoRole } from '@/features/demo'
+import { useSession } from '@/features/session'
 
 export function useRolesPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { open } = useWorkflow()
-  const { memberId, refreshSession } = useDemoRole()
+  const { memberId, refreshSession } = useSession()
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<Role | null>(null)
   const [removeConfirm, setRemoveConfirm] = useState<{ member: Member; role: Role } | null>(null)

@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
-import { DemoRoleProvider } from './roles/provider'
+import { DemoSessionProvider } from '@/features/session'
 import { DemoGuideProvider } from './guide/provider'
 import { DemoRoleNavigationBridge } from './roles/navigation-bridge'
 import { DesktopOnlyHint } from './chrome/desktop-only-hint'
-import { DemoSessionGate } from './demo-session-gate'
 import type { DemoRoleStoreState } from './roles/store'
 import type { DemoGuideStoreState } from './guide/store'
 
@@ -16,12 +15,12 @@ interface DemoProviderProps {
 
 export function DemoProvider({ children, roleStore, guideStore }: DemoProviderProps) {
   return (
-    <DemoRoleProvider store={roleStore}>
+    <DemoSessionProvider store={roleStore}>
       <DemoGuideProvider store={guideStore}>
         <DemoRoleNavigationBridge />
-        <DemoSessionGate>{children}</DemoSessionGate>
+        {children}
         <DesktopOnlyHint />
       </DemoGuideProvider>
-    </DemoRoleProvider>
+    </DemoSessionProvider>
   )
 }

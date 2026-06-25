@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { BudgetNode } from '@/api/types'
-import { useDemoCta } from '@/features/demo'
+import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
@@ -11,7 +11,7 @@ import { PERMISSION } from '@/lib/permissions'
 
 export function useBudgetOverviewPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
-  const budgetCta = useDemoCta('BUDGET')
+  const budgetCta = useCtaHighlight('BUDGET')
   const { has } = usePermissions()
   const canAllocate = has(PERMISSION.BUDGET_ALLOCATE)
   const {

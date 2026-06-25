@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
-import { useDemoCta } from '@/features/demo'
+import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 
 export function useBudgetAlertsPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
-  const overrunCta = useDemoCta('OVERRUN')
+  const overrunCta = useCtaHighlight('OVERRUN')
   const {
     data: policy = null,
     loading,

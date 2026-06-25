@@ -33,57 +33,48 @@ function relativeToSrc(absolutePath) {
 }
 
 const routesSource = readSrc('config/routes.ts')
-const navSource = readSrc('config/nav.ts')
 
-const routeMetaKeys = [...routesSource.matchAll(/path: (ROUTES\.\w+),\s*\n\s*label:/g)].map(
-  (match) => match[1],
-)
-
-const appRouteKeys = [...routesSource.matchAll(/\{ path: (ROUTES\.\w+), lazy:/g)].map(
-  (match) => match[1],
-)
-
-const navRouteKeys = [...navSource.matchAll(/ROUTES\.(\w+)/g)].map((match) => `ROUTES.${match[1]}`)
-
-const uniqueMeta = new Set(routeMetaKeys)
-const uniqueApp = new Set(appRouteKeys)
-const uniqueNav = new Set(navRouteKeys)
-
-if (uniqueMeta.size !== routeMetaKeys.length) {
-  fail('ROUTE_META contains duplicate route keys')
-}
-
-if (uniqueApp.size !== appRouteKeys.length) {
-  fail('APP_ROUTES contains duplicate route keys')
-}
-
-for (const key of uniqueApp) {
-  if (!uniqueMeta.has(key)) {
-    fail(`APP_ROUTES entry ${key} is missing from ROUTE_META`)
-  }
-}
-
-for (const key of uniqueMeta) {
-  if (!uniqueApp.has(key)) {
-    fail(`ROUTE_META entry ${key} is missing from APP_ROUTES`)
-  }
-}
-
-for (const key of uniqueNav) {
-  if (!uniqueMeta.has(key)) {
-    fail(`NAV_GROUP_LAYOUT references ${key} which is missing from ROUTE_META`)
-  }
-}
+const definitionKeys = [...routesSource.matchAll(/key: '(\w+)'/g)].map((match) => match[1])
+const definitionPaths = [...routesSource.matchAll(/path: '([^']+)'/g)]
+  .map((match) => match[1])
+  .filter((path) => path !== '/')
 
 const lazyImports = [...routesSource.matchAll(/lazy: \(\) => import\('(@\/routes\/[^']+)'\)/g)].map(
   (match) => match[1],
 )
 
+if (definitionKeys.length !== lazyImports.length) {
+  fail(
+    `ROUTE_DEFINITIONS key count (${definitionKeys.length}) must match lazy import count (${lazyImports.length})`,
+  )
+}
+
+const uniqueKeys = new Set(definitionKeys)
+if (uniqueKeys.size !== definitionKeys.length) {
+  fail('ROUTE_DEFINITIONS contains duplicate keys')
+}
+
+const uniquePaths = new Set(definitionPaths)
+if (uniquePaths.size !== definitionPaths.length) {
+  fail('ROUTE_DEFINITIONS contains duplicate paths')
+}
+
+for (const definition of ROUTE_DEFINITIONSFromSource(routesSource)) {
+  if (!definition.navGroup) {
+    fail(`ROUTE_DEFINITIONS entry ${definition.key} is missing navGroup`)
+  }
+}
+
+const navPaths = [...routesSource.matchAll(/navGroup: '([^']+)'/g)]
+if (navPaths.length !== definitionKeys.length) {
+  fail('Every ROUTE_DEFINITIONS entry must declare navGroup')
+}
+
 for (const importPath of lazyImports) {
   const relativePath = importPath.replace('@/', '') + '.tsx'
   const pagePath = join(srcRoot, relativePath)
   if (!existsSync(pagePath)) {
-    fail(`APP_ROUTES lazy import target not found: ${relativePath}`)
+    fail(`ROUTE_DEFINITIONS lazy import target not found: ${relativePath}`)
   }
 
   const pageSource = readFileSync(pagePath, 'utf8')
@@ -93,6 +84,19 @@ for (const importPath of lazyImports) {
   if (!hasPageHookImport) {
     fail(`Page ${relativePath} must import a hook from ./hooks/ (use-*-page.ts pattern)`)
   }
+}
+
+function ROUTE_DEFINITIONSFromSource(source) {
+  const entries = []
+  const blocks = source.match(/\{\s*key: '[^']+'[\s\S]*?navGroup: '[^']+'[\s\S]*?\},/g) ?? []
+  for (const block of blocks) {
+    const key = block.match(/key: '(\w+)'/)?.[1]
+    const navGroup = block.match(/navGroup: '([^']+)'/)?.[1]
+    if (key) {
+      entries.push({ key, navGroup })
+    }
+  }
+  return entries
 }
 
 const uiDir = join(srcRoot, 'components/ui')

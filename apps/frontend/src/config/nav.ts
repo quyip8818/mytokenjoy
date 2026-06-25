@@ -1,6 +1,11 @@
 import type { LucideIcon } from 'lucide-react'
 import { type PermissionKey, hasPermission } from '@/lib/permissions'
-import { ROUTE_META, ROUTES, getRouteMeta, type RoutePath } from '@/config/routes'
+import {
+  NAV_GROUP_LAYOUT,
+  ROUTE_META,
+  getRouteMeta,
+  type RoutePath,
+} from '@/config/routes'
 
 export interface NavItem {
   label: string
@@ -15,39 +20,6 @@ export interface NavGroup {
   items: NavItem[]
   collapsed?: boolean
 }
-
-export const NAV_GROUP_LAYOUT: {
-  group: string
-  paths: RoutePath[]
-  collapsed?: boolean
-}[] = [
-  {
-    group: '组织',
-    paths: [ROUTES.orgDataSource, ROUTES.orgStructure, ROUTES.orgRoles],
-  },
-  {
-    group: '预算',
-    paths: [ROUTES.budgetOverview, ROUTES.budgetAllocation, ROUTES.budgetAlerts],
-  },
-  {
-    group: '模型管理',
-    paths: [ROUTES.modelsList, ROUTES.modelsRouting],
-  },
-  {
-    group: 'Key 中心',
-    paths: [ROUTES.keysMine, ROUTES.keysApproval, ROUTES.keysPlatform, ROUTES.keysProvider],
-  },
-  {
-    group: '数据中心',
-    collapsed: true,
-    paths: [ROUTES.dashboardCost, ROUTES.dashboardUsage],
-  },
-  {
-    group: '审计',
-    collapsed: true,
-    paths: [ROUTES.auditOperations, ROUTES.auditCalls],
-  },
-]
 
 function toNavItem(path: RoutePath): NavItem {
   const meta = getRouteMeta(path)

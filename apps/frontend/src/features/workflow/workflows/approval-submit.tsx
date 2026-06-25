@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { useApis } from '@/api/use-apis'
-import { useDemoRole } from '@/features/demo'
+import { useSession } from '@/features/session'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -31,7 +31,7 @@ export function ApprovalSubmitWorkflow({
 }: WorkflowComponentProps<'approval-submit'>) {
   const apis = useApis()
   const { closeAll } = useWorkflow()
-  const { memberId } = useDemoRole()
+  const { memberId } = useSession()
   const { resolveWhitelist } = useMemberWhitelist()
   const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'quota'
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined

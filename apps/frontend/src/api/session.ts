@@ -3,4 +3,5 @@ import type { SessionContext } from './types'
 
 export const sessionApi = {
   get: (memberId: string) => request<SessionContext>(`/session${buildQuery({ memberId })}`),
+  getCurrent: () => request<SessionContext>('/session'),
 }

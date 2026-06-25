@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups } from '@/config/nav'
-import { useApprovalPendingCount } from '@/features/demo'
+import { useApprovalPendingCount } from '@/hooks/use-approval-pending-count'
 import { usePermissions } from '@/hooks/use-permissions'
 
 export function Sidebar() {

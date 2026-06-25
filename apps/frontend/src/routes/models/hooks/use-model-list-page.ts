@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { ModelInfo } from '@/api/types'
-import { useDemoCta } from '@/features/demo'
+import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
@@ -13,7 +13,7 @@ import { PERMISSION } from '@/lib/permissions'
 export function useModelListPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { flashRow, rowClass } = useRowHighlight()
-  const modelCta = useDemoCta('MODEL')
+  const modelCta = useCtaHighlight('MODEL')
   const { has } = usePermissions()
   const canManage = has(PERMISSION.MODEL_MANAGE)
   const {

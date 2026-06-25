@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router'
 import { ROUTE_TITLES } from '@/config/nav'
 import { usePageSubtitle } from '@/hooks/use-page-subtitle'
-import { DemoBadge, DemoToolbar } from '@/features/demo'
+import { HeaderDemoBadge, HeaderDemoToolbar } from './header-demo-chrome'
 
 export function Header() {
   const location = useLocation()
@@ -13,14 +13,14 @@ export function Header() {
       <div className="flex h-14 items-center justify-between gap-4 px-8">
         <div className="flex min-w-0 items-center gap-3">
           <h1 className="truncate text-lg font-bold tracking-tight text-foreground">{title}</h1>
-          <DemoBadge />
+          <HeaderDemoBadge />
           {subtitle && (
             <span className="hidden truncate text-sm text-muted-foreground sm:inline">
               / {subtitle}
             </span>
           )}
         </div>
-        <DemoToolbar />
+        <HeaderDemoToolbar />
       </div>
     </header>
   )

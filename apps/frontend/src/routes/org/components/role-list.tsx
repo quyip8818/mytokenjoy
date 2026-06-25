@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { PencilIcon, TrashIcon } from 'lucide-react'
 
 interface RoleListProps {
@@ -139,14 +140,20 @@ function RoleItem({
 }) {
   return (
     <div
-      className={`group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer text-sm ${
-        selected ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-muted'
-      }`}
+      className={cn(
+        'group flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-pointer',
+        selected ? 'bg-accent' : 'text-foreground hover:bg-muted',
+      )}
       onClick={onSelect}
     >
-      <span className="truncate">{role.name}</span>
+      <span className={cn('truncate', selected && 'font-medium text-accent-foreground')}>
+        {role.name}
+      </span>
       <div className="flex items-center gap-1">
-        <Badge variant="secondary" className="text-[10px] px-1.5">
+        <Badge
+          variant={selected ? 'outline' : 'secondary'}
+          className={cn('shrink-0 text-[10px] px-1.5', selected && 'bg-background')}
+        >
           {role.memberCount}
         </Badge>
         {role.type === 'custom' && !readOnly && (

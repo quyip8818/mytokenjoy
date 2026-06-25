@@ -6,11 +6,11 @@ import type {
   KeyApproval,
   Member,
   Permission,
-  Platform,
   PlatformKey,
   Role,
   RoutingRule,
 } from '@/api/types'
+import type { CredentialFormPayload, SyncConfigPayload } from './payloads/org-delegate'
 
 export interface MemberFormData {
   name: string
@@ -20,16 +20,8 @@ export interface MemberFormData {
 }
 
 export interface WorkflowPayloadMap {
-  'credential-form': {
-    connected?: boolean
-    currentPlatform?: Platform | null
-    onSuccess?: () => void
-  }
-  'sync-config': {
-    onTriggerSync?: () => void
-    triggeringSync?: boolean
-    onSuccess?: () => void
-  }
+  'credential-form': CredentialFormPayload
+  'sync-config': SyncConfigPayload
   'member-form': {
     member?: Member | null
     departments?: Department[]

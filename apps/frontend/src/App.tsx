@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
-import { HomeRedirect } from '@/features/demo/roles/home-redirect'
+import { HomeRedirect } from '@/components/layout/home-redirect'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { RouteFallback } from '@/components/layout/route-fallback'
 import { APP_ROUTES, toRouterPath } from '@/config/routes'

@@ -2,7 +2,7 @@ import { toast } from 'sonner'
 import type { Member } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
-import { useDemoRole } from '@/features/demo'
+import { useSession } from '@/features/session'
 import { pushModelPicker, useMemberWhitelist } from '../../use-member-whitelist'
 import type { WorkflowComponentProps, WorkflowStackEntry } from '../../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../../components/workflow-panel-chrome'
@@ -29,7 +29,7 @@ export function KeyFormWorkflow({
 }: KeyFormWorkflowProps) {
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
-  const { memberId } = useDemoRole()
+  const { memberId } = useSession()
   const { resolveWhitelist } = useMemberWhitelist()
   const isCreate = entry.id === 'key-create'
   const key =

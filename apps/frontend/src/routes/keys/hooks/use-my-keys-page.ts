@@ -3,16 +3,17 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { PlatformKey } from '@/api/types'
-import { useDemoRole, useDemoCta } from '@/features/demo'
+import { useSession } from '@/features/session'
+import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/workflow/constants'
 
 export function useMyKeysPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
-  const { memberId } = useDemoRole()
-  const applyQuotaCta = useDemoCta('APPLY_QUOTA')
-  const createKeyCta = useDemoCta('CREATE_KEY')
+  const { memberId } = useSession()
+  const applyQuotaCta = useCtaHighlight('APPLY_QUOTA')
+  const createKeyCta = useCtaHighlight('CREATE_KEY')
   const [deleteTarget, setDeleteTarget] = useState<PlatformKey | null>(null)
 
   const { data, loading, error, refresh } = useAsyncResource(async () => {

@@ -1,11 +1,11 @@
 import { useApis } from '@/api/use-apis'
-import { useDemoRole } from '@/features/demo/roles/use-demo-role'
+import { useSession } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 
-export function useApprovalPendingCount(): number {
+export function useDemoApprovalPendingCount(): number {
   const apis = useApis()
-  const { permissions } = useDemoRole()
+  const { permissions } = useSession()
   const canApprove = permissions.includes(PERMISSION.BUDGET_APPROVE)
 
   const { data: count = 0 } = useAsyncResource(async () => {

@@ -6,14 +6,14 @@ import { useInjectedApis } from '@/api/use-apis'
 import type { ImportResult } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { useDemoCta } from '@/features/demo'
+import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { ROUTES } from '@/config/routes'
 
 export function useDataSourcePage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const navigate = useNavigate()
-  const credentialCta = useDemoCta('CREDENTIAL')
-  const importCta = useDemoCta('IMPORT')
+  const credentialCta = useCtaHighlight('CREDENTIAL')
+  const importCta = useCtaHighlight('IMPORT')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [triggeringSync, setTriggeringSync] = useState(false)

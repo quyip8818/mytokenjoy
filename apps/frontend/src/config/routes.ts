@@ -20,27 +20,180 @@ import {
 } from 'lucide-react'
 import { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 
+type LazyPageModule = { default: ComponentType }
+
+export interface RouteDefinition {
+  key: string
+  path: string
+  label: string
+  icon: LucideIcon
+  requiredPermissions: readonly PermissionKey[]
+  badgeKey?: 'approvalPending'
+  lazy: () => Promise<LazyPageModule>
+  navGroup: string
+  navGroupCollapsed?: boolean
+}
+
+export const ROUTE_DEFINITIONS = [
+  {
+    key: 'orgDataSource',
+    path: '/org/data-source',
+    label: '数据源',
+    icon: Database,
+    requiredPermissions: [PERMISSION.ORG_DATASOURCE],
+    lazy: () => import('@/routes/org/data-source'),
+    navGroup: '组织',
+  },
+  {
+    key: 'orgStructure',
+    path: '/org/structure',
+    label: '组织架构',
+    icon: Building2,
+    requiredPermissions: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS],
+    lazy: () => import('@/routes/org/structure'),
+    navGroup: '组织',
+  },
+  {
+    key: 'orgRoles',
+    path: '/org/roles',
+    label: '角色管理',
+    icon: Shield,
+    requiredPermissions: [PERMISSION.ORG_ROLES],
+    lazy: () => import('@/routes/org/roles'),
+    navGroup: '组织',
+  },
+  {
+    key: 'budgetOverview',
+    path: '/budget/overview',
+    label: '预算总览',
+    icon: Wallet,
+    requiredPermissions: [PERMISSION.BUDGET_READ],
+    lazy: () => import('@/routes/budget/overview'),
+    navGroup: '预算',
+  },
+  {
+    key: 'budgetAllocation',
+    path: '/budget/allocation',
+    label: '预算分配',
+    icon: PieChart,
+    requiredPermissions: [PERMISSION.BUDGET_READ],
+    lazy: () => import('@/routes/budget/allocation'),
+    navGroup: '预算',
+  },
+  {
+    key: 'budgetAlerts',
+    path: '/budget/alerts',
+    label: '超限策略',
+    icon: ShieldAlert,
+    requiredPermissions: [PERMISSION.BUDGET_POLICY],
+    lazy: () => import('@/routes/budget/alerts'),
+    navGroup: '预算',
+  },
+  {
+    key: 'modelsList',
+    path: '/models/list',
+    label: '模型列表',
+    icon: Cpu,
+    requiredPermissions: [PERMISSION.MODEL_MANAGE],
+    lazy: () => import('@/routes/models/list'),
+    navGroup: '模型管理',
+  },
+  {
+    key: 'modelsRouting',
+    path: '/models/routing',
+    label: '模型白名单',
+    icon: GitBranch,
+    requiredPermissions: [PERMISSION.MODEL_WHITELIST],
+    lazy: () => import('@/routes/models/routing'),
+    navGroup: '模型管理',
+  },
+  {
+    key: 'keysMine',
+    path: '/keys/mine',
+    label: '我的 Key',
+    icon: CreditCard,
+    requiredPermissions: [PERMISSION.SELF_KEYS],
+    lazy: () => import('@/routes/keys/mine'),
+    navGroup: 'Key 中心',
+  },
+  {
+    key: 'keysApproval',
+    path: '/keys/approval',
+    label: '审批中心',
+    icon: CheckCircle2,
+    requiredPermissions: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL],
+    badgeKey: 'approvalPending' as const,
+    lazy: () => import('@/routes/keys/approval'),
+    navGroup: 'Key 中心',
+  },
+  {
+    key: 'keysPlatform',
+    path: '/keys/platform',
+    label: 'Key 管理',
+    icon: Globe,
+    requiredPermissions: [PERMISSION.KEYS_ADMIN],
+    lazy: () => import('@/routes/keys/platform'),
+    navGroup: 'Key 中心',
+  },
+  {
+    key: 'keysProvider',
+    path: '/keys/provider',
+    label: '供应商 Key',
+    icon: Key,
+    requiredPermissions: [PERMISSION.KEYS_PROVIDER],
+    lazy: () => import('@/routes/keys/provider'),
+    navGroup: 'Key 中心',
+  },
+  {
+    key: 'dashboardCost',
+    path: '/dashboard/cost',
+    label: '成本看板',
+    icon: BarChart3,
+    requiredPermissions: [PERMISSION.DASHBOARD_COST],
+    lazy: () => import('@/routes/dashboard/cost'),
+    navGroup: '数据中心',
+    navGroupCollapsed: true,
+  },
+  {
+    key: 'dashboardUsage',
+    path: '/dashboard/usage',
+    label: '用量分析',
+    icon: TrendingUp,
+    requiredPermissions: [PERMISSION.DASHBOARD_USAGE],
+    lazy: () => import('@/routes/dashboard/usage'),
+    navGroup: '数据中心',
+  },
+  {
+    key: 'auditOperations',
+    path: '/audit/operations',
+    label: '操作审计',
+    icon: ScrollText,
+    requiredPermissions: [PERMISSION.AUDIT_READ],
+    lazy: () => import('@/routes/audit/operations'),
+    navGroup: '审计',
+    navGroupCollapsed: true,
+  },
+  {
+    key: 'auditCalls',
+    path: '/audit/calls',
+    label: '调用日志',
+    icon: Activity,
+    requiredPermissions: [PERMISSION.AUDIT_READ],
+    lazy: () => import('@/routes/audit/calls'),
+    navGroup: '审计',
+  },
+] as const satisfies readonly RouteDefinition[]
+
+export type RouteKey = (typeof ROUTE_DEFINITIONS)[number]['key']
+
+const routeEntries = ROUTE_DEFINITIONS.map((definition) => [definition.key, definition.path] as const)
+
 export const ROUTES = {
   home: '/',
-  dashboardCost: '/dashboard/cost',
-  dashboardUsage: '/dashboard/usage',
-  orgDataSource: '/org/data-source',
-  orgStructure: '/org/structure',
-  orgRoles: '/org/roles',
-  budgetOverview: '/budget/overview',
-  budgetAllocation: '/budget/allocation',
-  budgetAlerts: '/budget/alerts',
-  keysProvider: '/keys/provider',
-  keysPlatform: '/keys/platform',
-  keysMine: '/keys/mine',
-  keysApproval: '/keys/approval',
-  modelsList: '/models/list',
-  modelsRouting: '/models/routing',
-  auditOperations: '/audit/operations',
-  auditCalls: '/audit/calls',
-} as const
+  ...Object.fromEntries(routeEntries),
+} as { home: '/' } & Record<RouteKey, string>
 
-export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
+export type RoutePath = '/' | (typeof ROUTE_DEFINITIONS)[number]['path']
 
 export interface RouteMeta {
   path: RoutePath
@@ -50,114 +203,49 @@ export interface RouteMeta {
   badgeKey?: 'approvalPending'
 }
 
-export const ROUTE_META: RouteMeta[] = [
-  {
-    path: ROUTES.orgDataSource,
-    label: '数据源',
-    icon: Database,
-    requiredPermissions: [PERMISSION.ORG_DATASOURCE],
-  },
-  {
-    path: ROUTES.orgStructure,
-    label: '组织架构',
-    icon: Building2,
-    requiredPermissions: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS],
-  },
-  {
-    path: ROUTES.orgRoles,
-    label: '角色管理',
-    icon: Shield,
-    requiredPermissions: [PERMISSION.ORG_ROLES],
-  },
-  {
-    path: ROUTES.budgetOverview,
-    label: '预算总览',
-    icon: Wallet,
-    requiredPermissions: [PERMISSION.BUDGET_READ],
-  },
-  {
-    path: ROUTES.budgetAllocation,
-    label: '预算分配',
-    icon: PieChart,
-    requiredPermissions: [PERMISSION.BUDGET_READ],
-  },
-  {
-    path: ROUTES.budgetAlerts,
-    label: '超限策略',
-    icon: ShieldAlert,
-    requiredPermissions: [PERMISSION.BUDGET_POLICY],
-  },
-  {
-    path: ROUTES.modelsList,
-    label: '模型列表',
-    icon: Cpu,
-    requiredPermissions: [PERMISSION.MODEL_MANAGE],
-  },
-  {
-    path: ROUTES.modelsRouting,
-    label: '模型白名单',
-    icon: GitBranch,
-    requiredPermissions: [PERMISSION.MODEL_WHITELIST],
-  },
-  {
-    path: ROUTES.keysMine,
-    label: '我的 Key',
-    icon: CreditCard,
-    requiredPermissions: [PERMISSION.SELF_KEYS],
-  },
-  {
-    path: ROUTES.keysApproval,
-    label: '审批中心',
-    icon: CheckCircle2,
-    requiredPermissions: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL],
-    badgeKey: 'approvalPending',
-  },
-  {
-    path: ROUTES.keysPlatform,
-    label: 'Key 管理',
-    icon: Globe,
-    requiredPermissions: [PERMISSION.KEYS_ADMIN],
-  },
-  {
-    path: ROUTES.keysProvider,
-    label: '供应商 Key',
-    icon: Key,
-    requiredPermissions: [PERMISSION.KEYS_PROVIDER],
-  },
-  {
-    path: ROUTES.dashboardCost,
-    label: '成本看板',
-    icon: BarChart3,
-    requiredPermissions: [PERMISSION.DASHBOARD_COST],
-  },
-  {
-    path: ROUTES.dashboardUsage,
-    label: '用量分析',
-    icon: TrendingUp,
-    requiredPermissions: [PERMISSION.DASHBOARD_USAGE],
-  },
-  {
-    path: ROUTES.auditOperations,
-    label: '操作审计',
-    icon: ScrollText,
-    requiredPermissions: [PERMISSION.AUDIT_READ],
-  },
-  {
-    path: ROUTES.auditCalls,
-    label: '调用日志',
-    icon: Activity,
-    requiredPermissions: [PERMISSION.AUDIT_READ],
-  },
-]
+export const ROUTE_META: RouteMeta[] = ROUTE_DEFINITIONS.map((definition) => ({
+  path: definition.path as RoutePath,
+  label: definition.label,
+  icon: definition.icon,
+  requiredPermissions: definition.requiredPermissions,
+  ...('badgeKey' in definition && definition.badgeKey ? { badgeKey: definition.badgeKey } : {}),
+}))
 
-export const HOME_PATH_CANDIDATES: RoutePath[] = [
-  ROUTES.orgDataSource,
-  ROUTES.keysApproval,
-  ROUTES.budgetOverview,
-  ROUTES.keysMine,
-  ROUTES.auditOperations,
-  ROUTES.dashboardCost,
-]
+export interface NavGroupLayoutEntry {
+  group: string
+  paths: RoutePath[]
+  collapsed?: boolean
+}
+
+export const NAV_GROUP_LAYOUT: NavGroupLayoutEntry[] = (() => {
+  const groups: NavGroupLayoutEntry[] = []
+  for (const definition of ROUTE_DEFINITIONS) {
+    let group = groups.find((entry) => entry.group === definition.navGroup)
+    if (!group) {
+      group = {
+        group: definition.navGroup,
+        paths: [],
+        ...('navGroupCollapsed' in definition && definition.navGroupCollapsed
+          ? { collapsed: definition.navGroupCollapsed }
+          : {}),
+      }
+      groups.push(group)
+    }
+    group.paths.push(definition.path as RoutePath)
+  }
+  return groups
+})()
+
+export const HOME_ROUTE_KEYS = [
+  'orgDataSource',
+  'keysApproval',
+  'budgetOverview',
+  'keysMine',
+  'auditOperations',
+  'dashboardCost',
+] as const satisfies readonly RouteKey[]
+
+export const HOME_PATH_CANDIDATES = HOME_ROUTE_KEYS.map((key) => ROUTES[key]) as RoutePath[]
 
 export function getRouteMeta(path: RoutePath): RouteMeta {
   const meta = ROUTE_META.find((entry) => entry.path === path)
@@ -171,31 +259,15 @@ export function routePermissions(path: RoutePath): PermissionKey[] {
   return [...getRouteMeta(path).requiredPermissions]
 }
 
-type LazyPageModule = { default: ComponentType }
-
 export interface AppRouteEntry {
   path: RoutePath
   lazy: () => Promise<LazyPageModule>
 }
 
-export const APP_ROUTES: AppRouteEntry[] = [
-  { path: ROUTES.dashboardCost, lazy: () => import('@/routes/dashboard/cost') },
-  { path: ROUTES.dashboardUsage, lazy: () => import('@/routes/dashboard/usage') },
-  { path: ROUTES.orgDataSource, lazy: () => import('@/routes/org/data-source') },
-  { path: ROUTES.orgStructure, lazy: () => import('@/routes/org/structure') },
-  { path: ROUTES.orgRoles, lazy: () => import('@/routes/org/roles') },
-  { path: ROUTES.budgetOverview, lazy: () => import('@/routes/budget/overview') },
-  { path: ROUTES.budgetAllocation, lazy: () => import('@/routes/budget/allocation') },
-  { path: ROUTES.budgetAlerts, lazy: () => import('@/routes/budget/alerts') },
-  { path: ROUTES.keysProvider, lazy: () => import('@/routes/keys/provider') },
-  { path: ROUTES.keysPlatform, lazy: () => import('@/routes/keys/platform') },
-  { path: ROUTES.keysMine, lazy: () => import('@/routes/keys/mine') },
-  { path: ROUTES.keysApproval, lazy: () => import('@/routes/keys/approval') },
-  { path: ROUTES.modelsList, lazy: () => import('@/routes/models/list') },
-  { path: ROUTES.modelsRouting, lazy: () => import('@/routes/models/routing') },
-  { path: ROUTES.auditOperations, lazy: () => import('@/routes/audit/operations') },
-  { path: ROUTES.auditCalls, lazy: () => import('@/routes/audit/calls') },
-]
+export const APP_ROUTES: AppRouteEntry[] = ROUTE_DEFINITIONS.map(({ path, lazy }) => ({
+  path: path as RoutePath,
+  lazy,
+}))
 
 export function toRouterPath(route: RoutePath): string {
   return route === ROUTES.home ? '' : route.slice(1)

@@ -23,8 +23,7 @@ export { DemoGuideProvider } from './guide/provider'
 export { useDemoGuide, useDemoGuideHighlight, useDemoCta } from './guide/use-demo-guide'
 export { DemoGuidePanel } from './guide/demo-guide-panel'
 export { createDemoGuideStore, type DemoGuideStoreState } from './guide/store'
-
-export { useApprovalPendingCount } from './nav/use-approval-pending-count'
+export { useDemoApprovalPendingCount } from './nav/use-approval-pending-count'
 
 export { DemoBadge } from './chrome/demo-banner'
 export { DemoToolbar } from './chrome/demo-toolbar'

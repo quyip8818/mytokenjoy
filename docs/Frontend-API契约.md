@@ -127,9 +127,9 @@ HTTP 非 2xx 时，body 应包含：
 
 | 方法 | 路径       | 查询 / Body        | 响应             | 说明                                  |
 | ---- | ---------- | ------------------ | ---------------- | ------------------------------------- |
-| GET  | `/session` | `memberId`（必填） | `SessionContext` | 缺 `memberId` → 400；成员不存在 → 404 |
+| GET  | `/session` | Demo：`memberId`（必填）；生产：无 query（cookie/JWT） | `SessionContext` | Demo 缺 `memberId` → 400；生产未鉴权 → 401 |
 
-Demo 角色切换时调用；加载失败由 `DemoSessionGate` 展示错误页。
+Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `sessionApi.getCurrent()` 凭 cookie 鉴权。加载失败由 `SessionGate` 展示错误页。
 
 ---
 
