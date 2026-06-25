@@ -1,141 +1,35 @@
-import { useState } from 'react'
-import type { Member, Role } from '@/api/types'
-import { roleApi } from '@/api/org'
+import { Shield } from 'lucide-react'
 import { RoleList } from '@/components/org/role-list'
 import { RoleMemberTable } from '@/components/org/role-member-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { EmptyState } from '@/components/ui/empty-state'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflow } from '@/features/workflow/use-workflow'
-import { useDemoRole } from '@/features/demo'
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { usePermissions } from '@/hooks/use-permissions'
-import { Shield } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { toast } from 'sonner'
+import { useRolesPage } from '@/routes/org/hooks/use-roles-page'
 
 export default function RolesPage() {
-  const { open } = useWorkflow()
-  const { memberId, refreshSession } = useDemoRole()
   const { canWrite } = usePermissions()
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<Role | null>(null)
-  const [removeConfirm, setRemoveConfirm] = useState<{ member: Member; role: Role } | null>(null)
-
   const {
-    data: initData,
+    roles,
+    activeRoleId,
+    selectedRole,
+    members,
     loading,
-    setData: setInitData,
-  } = useAsyncResource(async () => {
-    const [rolesData, permsData] = await Promise.all([roleApi.list(), roleApi.getPermissions()])
-    return { roles: rolesData, permissions: permsData }
-  }, [])
-
-  const roles = initData?.roles ?? []
-  const permissions = initData?.permissions ?? []
-  const activeRoleId = selectedRoleId ?? roles[0]?.id ?? null
-
-  const {
-    data: members = [],
-    loading: membersLoading,
-    refresh: refreshMembers,
-  } = useAsyncResource(async () => {
-    if (!activeRoleId) return []
-    return roleApi.getMembers(activeRoleId)
-  }, [activeRoleId])
-
-  const selectedRole = roles.find((r) => r.id === activeRoleId) ?? null
-
-  const refreshRoles = async () => {
-    const updated = await roleApi.list()
-    setInitData((prev) => ({ roles: updated, permissions: prev?.permissions ?? [] }))
-    return updated
-  }
-
-  const handleSelectRole = (role: Role) => {
-    setSelectedRoleId(role.id)
-  }
-
-  const handleAddRole = () => {
-    open('role-form', {
-      role: null,
-      permissions,
-      onSubmit: async (data: { name: string; permissions: string[] }) => {
-        await roleApi.create(data)
-        await refreshRoles()
-      },
-    })
-  }
-
-  const handleEditRole = (role: Role) => {
-    open('role-form', {
-      role,
-      permissions,
-      onSubmit: async (data: { name: string; permissions: string[] }) => {
-        await roleApi.update(role.id, data)
-        await refreshRoles()
-      },
-    })
-  }
-
-  const handleDeleteRole = (role: Role) => {
-    if (role.type === 'preset') return
-    setDeleteConfirm(role)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirm) return
-    await roleApi.delete(deleteConfirm.id)
-    if (selectedRoleId === deleteConfirm.id) {
-      setSelectedRoleId(null)
-    }
-    setDeleteConfirm(null)
-    await refreshRoles()
-    await refreshSession()
-  }
-
-  const handleRemoveMember = (member: Member) => {
-    if (!selectedRole) return
-    if (selectedRole.name === '普通成员') {
-      toast('普通成员为保底角色，不可移除')
-      return
-    }
-    setRemoveConfirm({ member, role: selectedRole })
-  }
-
-  const handleConfirmRemove = async () => {
-    if (!removeConfirm) return
-    await roleApi.removeMember(removeConfirm.role.id, removeConfirm.member.id)
-    setRemoveConfirm(null)
-    void refreshMembers()
-    await refreshRoles()
-    if (removeConfirm.member.id === memberId) {
-      await refreshSession()
-    }
-  }
-
-  const handleAddMember = () => {
-    if (!activeRoleId || !selectedRole) return
-    open('role-add-member', {
-      roleId: activeRoleId,
-      roleName: selectedRole.name,
-      existingMemberIds: members.map((m) => m.id),
-      onSuccess: async () => {
-        await refreshMembers()
-        await refreshRoles()
-        await refreshSession()
-      },
-    })
-  }
+    membersLoading,
+    deleteConfirm,
+    removeConfirm,
+    setDeleteConfirm,
+    setRemoveConfirm,
+    handleSelectRole,
+    handleAddRole,
+    handleEditRole,
+    handleDeleteRole,
+    handleConfirmDelete,
+    handleRemoveMember,
+    handleConfirmRemove,
+    handleAddMember,
+  } = useRolesPage()
 
   return (
     <PageShell
@@ -180,51 +74,46 @@ export default function RolesPage() {
         )}
       </DataSection>
 
-      <AlertDialog
-        open={!!deleteConfirm}
-        onOpenChange={(o) => {
-          if (!o) setDeleteConfirm(null)
+      <ConfirmActionDialog
+        state={
+          deleteConfirm
+            ? {
+                open: true,
+                title: '删除角色',
+                desc:
+                  deleteConfirm.memberCount > 0
+                    ? `该角色下有 ${deleteConfirm.memberCount} 名成员，删除后将失去对应权限，是否继续？`
+                    : '确定要删除该角色吗？',
+                variant: 'danger',
+                confirmLabel: '删除',
+                onConfirm: handleConfirmDelete,
+              }
+            : null
+        }
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirm(null)
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>删除角色</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteConfirm && deleteConfirm.memberCount > 0
-                ? `该角色下有 ${deleteConfirm.memberCount} 名成员，删除后将失去对应权限，是否继续？`
-                : '确定要删除该角色吗？'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleConfirmDelete}>
-              删除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onClose={() => setDeleteConfirm(null)}
+      />
 
-      <AlertDialog
-        open={!!removeConfirm}
-        onOpenChange={(o) => {
-          if (!o) setRemoveConfirm(null)
+      <ConfirmActionDialog
+        state={
+          removeConfirm
+            ? {
+                open: true,
+                title: '移除成员',
+                desc: `确定将「${removeConfirm.member.name}」从「${removeConfirm.role.name}」角色中移除吗？`,
+                variant: 'danger',
+                confirmLabel: '移除',
+                onConfirm: handleConfirmRemove,
+              }
+            : null
+        }
+        onOpenChange={(open) => {
+          if (!open) setRemoveConfirm(null)
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>移除成员</AlertDialogTitle>
-            <AlertDialogDescription>
-              {`确定将「${removeConfirm?.member.name ?? ''}」从「${removeConfirm?.role.name ?? ''}」角色中移除吗？`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleConfirmRemove}>
-              移除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onClose={() => setRemoveConfirm(null)}
+      />
     </PageShell>
   )
 }

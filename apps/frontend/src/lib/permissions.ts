@@ -1,4 +1,5 @@
 import type { Member, Role } from '@/api/types'
+import { HOME_PATH_CANDIDATES, ROUTE_META, ROUTES } from '@/config/routes'
 import {
   ROLE_API_CALLER,
   ROLE_AUDITOR,
@@ -140,41 +141,15 @@ export function canWriteSession(permissions: readonly string[]): boolean {
 }
 
 export function getDefaultHomePath(permissions: readonly string[]): string {
-  const candidates: { path: string; required: PermissionKey[] }[] = [
-    { path: '/org/data-source', required: [PERMISSION.ORG_DATASOURCE] },
-    { path: '/keys/approval', required: [PERMISSION.BUDGET_APPROVE] },
-    { path: '/budget/overview', required: [PERMISSION.BUDGET_READ] },
-    { path: '/keys/mine', required: [PERMISSION.SELF_KEYS] },
-    { path: '/audit/operations', required: [PERMISSION.AUDIT_READ] },
-    { path: '/dashboard/cost', required: [PERMISSION.DASHBOARD_COST] },
-  ]
-  for (const { path, required } of candidates) {
-    if (hasPermission(permissions, required)) return path
+  for (const { path, requiredPermissions } of HOME_PATH_CANDIDATES) {
+    if (hasPermission(permissions, [...requiredPermissions])) return path
   }
-  return '/dashboard/cost'
+  return ROUTES.dashboardCost
 }
 
 export function getRouteRequiredPermissions(pathname: string): PermissionKey[] | null {
-  const routes: { prefix: string; required: PermissionKey[] }[] = [
-    { prefix: '/org/data-source', required: [PERMISSION.ORG_DATASOURCE] },
-    { prefix: '/org/structure', required: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS] },
-    { prefix: '/org/roles', required: [PERMISSION.ORG_ROLES] },
-    { prefix: '/budget/overview', required: [PERMISSION.BUDGET_READ] },
-    { prefix: '/budget/allocation', required: [PERMISSION.BUDGET_READ] },
-    { prefix: '/budget/alerts', required: [PERMISSION.BUDGET_POLICY] },
-    { prefix: '/models/list', required: [PERMISSION.MODEL_MANAGE] },
-    { prefix: '/models/routing', required: [PERMISSION.MODEL_WHITELIST] },
-    { prefix: '/keys/mine', required: [PERMISSION.SELF_KEYS] },
-    { prefix: '/keys/approval', required: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL] },
-    { prefix: '/keys/platform', required: [PERMISSION.KEYS_ADMIN] },
-    { prefix: '/keys/provider', required: [PERMISSION.KEYS_PROVIDER] },
-    { prefix: '/dashboard/cost', required: [PERMISSION.DASHBOARD_COST] },
-    { prefix: '/dashboard/usage', required: [PERMISSION.DASHBOARD_USAGE] },
-    { prefix: '/audit/operations', required: [PERMISSION.AUDIT_READ] },
-    { prefix: '/audit/calls', required: [PERMISSION.AUDIT_READ] },
-  ]
-  const match = routes.find((r) => pathname.startsWith(r.prefix))
-  return match?.required ?? null
+  const match = ROUTE_META.find((route) => pathname.startsWith(route.path))
+  return match ? [...match.requiredPermissions] : null
 }
 
 export function canAccessRoute(pathname: string, permissions: readonly string[]): boolean {

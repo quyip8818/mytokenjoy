@@ -18,11 +18,11 @@ import {
 
 interface SyncConfigProps {
   onTriggerSync: () => void
-  triggeringSyc: boolean
+  triggeringSync: boolean
   onSaved?: () => void
 }
 
-export function SyncConfigPanel({ onTriggerSync, triggeringSyc, onSaved }: SyncConfigProps) {
+export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: SyncConfigProps) {
   const { register, handleSubmit, setValue, control } = useForm<SyncConfigType>({
     defaultValues: {
       enabled: false,
@@ -159,8 +159,8 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSyc, onSaved }: SyncC
 
       <div className="flex gap-3 pt-2">
         <Button type="submit">保存配置</Button>
-        <Button type="button" variant="outline" onClick={onTriggerSync} disabled={triggeringSyc}>
-          {triggeringSyc ? '同步中...' : '立即同步一次'}
+        <Button type="button" variant="outline" onClick={onTriggerSync} disabled={triggeringSync}>
+          {triggeringSync ? '同步中...' : '立即同步一次'}
         </Button>
       </div>
     </form>

@@ -17,7 +17,8 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
-import { PERMISSION, type PermissionKey, hasPermission } from '@/lib/permissions'
+import { type PermissionKey, hasPermission } from '@/lib/permissions'
+import { ROUTES, routePermissions } from '@/config/routes'
 
 export interface NavItem {
   label: string
@@ -39,21 +40,21 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         label: '数据源',
-        path: '/org/data-source',
+        path: ROUTES.orgDataSource,
         icon: Database,
-        requiredPermissions: [PERMISSION.ORG_DATASOURCE],
+        requiredPermissions: routePermissions(ROUTES.orgDataSource),
       },
       {
         label: '组织架构',
-        path: '/org/structure',
+        path: ROUTES.orgStructure,
         icon: Building2,
-        requiredPermissions: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS],
+        requiredPermissions: routePermissions(ROUTES.orgStructure),
       },
       {
         label: '角色管理',
-        path: '/org/roles',
+        path: ROUTES.orgRoles,
         icon: Shield,
-        requiredPermissions: [PERMISSION.ORG_ROLES],
+        requiredPermissions: routePermissions(ROUTES.orgRoles),
       },
     ],
   },
@@ -62,21 +63,21 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         label: '预算总览',
-        path: '/budget/overview',
+        path: ROUTES.budgetOverview,
         icon: Wallet,
-        requiredPermissions: [PERMISSION.BUDGET_READ],
+        requiredPermissions: routePermissions(ROUTES.budgetOverview),
       },
       {
         label: '预算分配',
-        path: '/budget/allocation',
+        path: ROUTES.budgetAllocation,
         icon: PieChart,
-        requiredPermissions: [PERMISSION.BUDGET_READ],
+        requiredPermissions: routePermissions(ROUTES.budgetAllocation),
       },
       {
         label: '超限策略',
-        path: '/budget/alerts',
+        path: ROUTES.budgetAlerts,
         icon: ShieldAlert,
-        requiredPermissions: [PERMISSION.BUDGET_POLICY],
+        requiredPermissions: routePermissions(ROUTES.budgetAlerts),
       },
     ],
   },
@@ -85,15 +86,15 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         label: '模型列表',
-        path: '/models/list',
+        path: ROUTES.modelsList,
         icon: Cpu,
-        requiredPermissions: [PERMISSION.MODEL_MANAGE],
+        requiredPermissions: routePermissions(ROUTES.modelsList),
       },
       {
         label: '模型白名单',
-        path: '/models/routing',
+        path: ROUTES.modelsRouting,
         icon: GitBranch,
-        requiredPermissions: [PERMISSION.MODEL_WHITELIST],
+        requiredPermissions: routePermissions(ROUTES.modelsRouting),
       },
     ],
   },
@@ -102,28 +103,28 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         label: '我的 Key',
-        path: '/keys/mine',
+        path: ROUTES.keysMine,
         icon: CreditCard,
-        requiredPermissions: [PERMISSION.SELF_KEYS],
+        requiredPermissions: routePermissions(ROUTES.keysMine),
       },
       {
         label: '审批中心',
-        path: '/keys/approval',
+        path: ROUTES.keysApproval,
         icon: CheckCircle2,
-        requiredPermissions: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL],
+        requiredPermissions: routePermissions(ROUTES.keysApproval),
         badgeKey: 'approvalPending',
       },
       {
         label: 'Key 管理',
-        path: '/keys/platform',
+        path: ROUTES.keysPlatform,
         icon: Globe,
-        requiredPermissions: [PERMISSION.KEYS_ADMIN],
+        requiredPermissions: routePermissions(ROUTES.keysPlatform),
       },
       {
         label: '供应商 Key',
-        path: '/keys/provider',
+        path: ROUTES.keysProvider,
         icon: Key,
-        requiredPermissions: [PERMISSION.KEYS_PROVIDER],
+        requiredPermissions: routePermissions(ROUTES.keysProvider),
       },
     ],
   },
@@ -133,15 +134,15 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         label: '成本看板',
-        path: '/dashboard/cost',
+        path: ROUTES.dashboardCost,
         icon: BarChart3,
-        requiredPermissions: [PERMISSION.DASHBOARD_COST],
+        requiredPermissions: routePermissions(ROUTES.dashboardCost),
       },
       {
         label: '用量分析',
-        path: '/dashboard/usage',
+        path: ROUTES.dashboardUsage,
         icon: TrendingUp,
-        requiredPermissions: [PERMISSION.DASHBOARD_USAGE],
+        requiredPermissions: routePermissions(ROUTES.dashboardUsage),
       },
     ],
   },
@@ -151,15 +152,15 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         label: '操作审计',
-        path: '/audit/operations',
+        path: ROUTES.auditOperations,
         icon: ScrollText,
-        requiredPermissions: [PERMISSION.AUDIT_READ],
+        requiredPermissions: routePermissions(ROUTES.auditOperations),
       },
       {
         label: '调用日志',
-        path: '/audit/calls',
+        path: ROUTES.auditCalls,
         icon: Activity,
-        requiredPermissions: [PERMISSION.AUDIT_READ],
+        requiredPermissions: routePermissions(ROUTES.auditCalls),
       },
     ],
   },

@@ -1,12 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
-import { toast } from 'sonner'
 import { Plug } from 'lucide-react'
-import type { ImportResult, Platform } from '@/api/types'
-import { dataSourceApi, syncApi } from '@/api/org'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { useDemoCta } from '@/features/demo'
+import type { Platform } from '@/api/types'
 import { ImportResultView } from '@/components/org/import-result'
 import { SyncLogTable } from '@/components/org/sync-log-table'
 import { DataSourceInitProgress } from '@/components/org/data-source-init-progress'
@@ -18,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
+import { useDataSourcePage } from '@/routes/org/hooks/use-data-source-page'
 
 const platformLabels: Record<Platform, string> = {
   feishu: '飞书',
@@ -26,60 +20,21 @@ const platformLabels: Record<Platform, string> = {
 }
 
 export default function DataSourcePage() {
-  const navigate = useNavigate()
-  const credentialCta = useDemoCta('CREDENTIAL')
-  const importCta = useDemoCta('IMPORT')
-  const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<ImportResult | null>(null)
-  const [triggeringSync, setTriggeringSync] = useState(false)
-
-  const { data, loading, refresh } = useAsyncResource(async () => {
-    const [status, syncConfig] = await Promise.all([dataSourceApi.getStatus(), syncApi.getConfig()])
-    return { status, syncConfig }
-  }, [])
-
-  const status = data?.status ?? null
-  const syncConfig = data?.syncConfig ?? null
-  const { openWithRefresh, open } = useWorkflowRefresh(refresh)
-
-  const displayImportResult = importResult ?? status?.lastImportResult ?? null
-
-  const handleImport = async () => {
-    setImporting(true)
-    try {
-      const result = await dataSourceApi.import()
-      setImportResult(result)
-      toast.success(`导入完成：${result.successMembers} 人 / ${result.successDepartments} 个部门`)
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  const handleTriggerSync = async () => {
-    setTriggeringSync(true)
-    try {
-      const result = await syncApi.triggerSync()
-      setImportResult(result)
-      toast.success('同步完成')
-    } finally {
-      setTriggeringSync(false)
-    }
-  }
-
-  const openCredential = () => {
-    openWithRefresh('credential-form', {
-      connected: status?.connected ?? false,
-      currentPlatform: status?.platform ?? null,
-    })
-  }
-
-  const openSyncConfig = () => {
-    open('sync-config', {
-      onTriggerSync: handleTriggerSync,
-      triggeringSync,
-      onSuccess: refresh,
-    })
-  }
+  const {
+    credentialCta,
+    importCta,
+    importing,
+    displayImportResult,
+    status,
+    syncConfig,
+    loading,
+    imported,
+    setImportResult,
+    handleImport,
+    openCredential,
+    openSyncConfig,
+    navigateToStructure,
+  } = useDataSourcePage()
 
   if (loading || !status) {
     return (
@@ -90,8 +45,6 @@ export default function DataSourcePage() {
       </PageShell>
     )
   }
-
-  const imported = Boolean(status.lastImport || displayImportResult)
 
   return (
     <PageShell>
@@ -159,7 +112,7 @@ export default function DataSourcePage() {
               <ImportResultView
                 result={displayImportResult}
                 onUpdate={setImportResult}
-                onNavigateOrg={() => navigate('/org/structure')}
+                onNavigateOrg={navigateToStructure}
               />
             ) : (
               <p className="text-sm text-muted-foreground">

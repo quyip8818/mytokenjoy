@@ -23,6 +23,7 @@ import { useDemoCta } from '@/features/demo'
 import { computeUnallocated, findBudgetNode } from '@/lib/budget'
 import { listEmpty } from '@/lib/list-empty'
 import { cn } from '@/lib/utils'
+import { ROUTES } from '@/config/routes'
 import { usePermissions } from '@/hooks/use-permissions'
 import { PERMISSION } from '@/lib/permissions'
 
@@ -175,7 +176,7 @@ export default function BudgetOverviewPage() {
         </Table>
         <p className="mt-4 text-xs text-muted-foreground">
           超限行为由全局{' '}
-          <Link to="/budget/alerts" className="text-blue-600 hover:underline">
+          <Link to={ROUTES.budgetAlerts} className="text-blue-600 hover:underline">
             超限策略
           </Link>{' '}
           统一配置。预算周期为自然月，月初已用额度清零由后端处理，Demo 不模拟月重置。

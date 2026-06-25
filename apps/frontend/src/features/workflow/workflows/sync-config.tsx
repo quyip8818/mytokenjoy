@@ -17,7 +17,7 @@ export function SyncConfigWorkflow({
     <WorkflowDelegatePanel title="同步策略" onClose={onClose} onSetDirty={onSetDirty}>
       <SyncConfigPanel
         onTriggerSync={onTriggerSync ?? (() => {})}
-        triggeringSyc={triggeringSync}
+        triggeringSync={triggeringSync}
         onSaved={() => {
           onSuccess?.()
           closeAll()

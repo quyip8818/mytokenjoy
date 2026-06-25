@@ -1,47 +1,28 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
 import { HomeRedirect } from '@/features/demo/roles/home-redirect'
 import { AdminLayout } from '@/components/layout/admin-layout'
-import DataSourcePage from '@/routes/org/data-source'
-import StructurePage from '@/routes/org/structure'
-import RolesPage from '@/routes/org/roles'
-import CostDashboardPage from '@/routes/dashboard/cost'
-import UsageDashboardPage from '@/routes/dashboard/usage'
-import BudgetOverviewPage from '@/routes/budget/overview'
-import BudgetAllocationPage from '@/routes/budget/allocation'
-import BudgetAlertsPage from '@/routes/budget/alerts'
-import ProviderKeysPage from '@/routes/keys/provider'
-import PlatformKeysPage from '@/routes/keys/platform'
-import MyKeysPage from '@/routes/keys/mine'
-import ApprovalPage from '@/routes/keys/approval'
-import ModelListPage from '@/routes/models/list'
-import ModelRoutingPage from '@/routes/models/routing'
-import OperationLogsPage from '@/routes/audit/operations'
-import CallLogsPage from '@/routes/audit/calls'
+import { RouteFallback } from '@/components/layout/route-fallback'
+import { APP_ROUTES, toRouterPath } from '@/config/routes'
+
+const lazyPages = APP_ROUTES.map((entry) => ({
+  path: toRouterPath(entry.path),
+  Page: lazy(entry.lazy),
+}))
 
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <Routes>
-        <Route element={<AdminLayout />}>
-          <Route index element={<HomeRedirect />} />
-          <Route path="dashboard/cost" element={<CostDashboardPage />} />
-          <Route path="dashboard/usage" element={<UsageDashboardPage />} />
-          <Route path="org/data-source" element={<DataSourcePage />} />
-          <Route path="org/structure" element={<StructurePage />} />
-          <Route path="org/roles" element={<RolesPage />} />
-          <Route path="budget/overview" element={<BudgetOverviewPage />} />
-          <Route path="budget/allocation" element={<BudgetAllocationPage />} />
-          <Route path="budget/alerts" element={<BudgetAlertsPage />} />
-          <Route path="keys/provider" element={<ProviderKeysPage />} />
-          <Route path="keys/platform" element={<PlatformKeysPage />} />
-          <Route path="keys/mine" element={<MyKeysPage />} />
-          <Route path="keys/approval" element={<ApprovalPage />} />
-          <Route path="models/list" element={<ModelListPage />} />
-          <Route path="models/routing" element={<ModelRoutingPage />} />
-          <Route path="audit/operations" element={<OperationLogsPage />} />
-          <Route path="audit/calls" element={<CallLogsPage />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route element={<AdminLayout />}>
+            <Route index element={<HomeRedirect />} />
+            {lazyPages.map(({ path, Page }) => (
+              <Route key={path} path={path} element={<Page />} />
+            ))}
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }
