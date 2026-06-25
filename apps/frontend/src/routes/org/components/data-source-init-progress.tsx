@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,16 +30,21 @@ export function DataSourceInitProgress({ connected, imported }: DataSourceInitPr
           {doneCount}/{steps.length}
         </span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex w-full items-start">
         {steps.map((step, index) => (
-          <div key={step.id} className="flex flex-1 items-center gap-2">
+          <Fragment key={step.id}>
             {index > 0 && (
-              <div className={cn('h-0.5 flex-1', step.done ? 'bg-blue-400' : 'bg-border')} />
-            )}
-            <div className="flex flex-col items-center gap-1 min-w-0">
               <div
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium shrink-0',
+                  'mt-4 h-0.5 min-w-6 flex-1',
+                  steps[index - 1].done ? 'bg-blue-400' : 'bg-border',
+                )}
+              />
+            )}
+            <div className="flex max-w-[7rem] shrink-0 flex-col items-center gap-1">
+              <div
+                className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-medium',
                   step.done
                     ? 'border-blue-600 bg-blue-600 text-white'
                     : 'border-border bg-background text-muted-foreground',
@@ -48,14 +54,14 @@ export function DataSourceInitProgress({ connected, imported }: DataSourceInitPr
               </div>
               <span
                 className={cn(
-                  'text-[11px] text-center leading-tight',
-                  step.done ? 'text-blue-700 font-medium' : 'text-muted-foreground',
+                  'text-center text-[11px] leading-tight',
+                  step.done ? 'font-medium text-blue-700' : 'text-muted-foreground',
                 )}
               >
                 {step.label}
               </span>
             </div>
-          </div>
+          </Fragment>
         ))}
       </div>
     </div>
