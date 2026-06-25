@@ -8,7 +8,7 @@
     "build": "tsc -b tsconfig.app.json tsconfig.node.json && vite build",
     "typecheck:test": "tsc -b tsconfig.test.json",
     "build:gh-pages": "VITE_ENABLE_MOCKS=true pnpm build",
-    "preview:gh-pages": "pnpm build:gh-pages && vite preview --base /mytokenjoy/",
+    "preview:gh-pages": "GITHUB_REPOSITORY=quyip8818/mytokenjoy pnpm build:gh-pages && vite preview --base /mytokenjoy/",
     "check:conventions": "node scripts/check-conventions.mjs",
     "lint": "eslint . && pnpm check:conventions",
     "preview": "vite preview",
