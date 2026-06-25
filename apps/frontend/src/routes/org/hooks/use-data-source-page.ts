@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { ImportResult } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { ROUTES } from '@/config/routes'
@@ -18,26 +18,34 @@ export function useDataSourcePage(injectedApis?: AppApis) {
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [triggeringSync, setTriggeringSync] = useState(false)
 
-  const { data, loading, error, refresh } = useAsyncResource(async () => {
-    const [status, syncConfig] = await Promise.all([
-      apis.dataSourceApi.getStatus(),
-      apis.syncApi.getConfig(),
-    ])
-    return { status, syncConfig }
-  }, [apis])
+  const { data, loading, error, refresh } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: [...queryKeys.org.dataSource(), 'status'],
+    queryFn: async (apis) => {
+      const [status, syncConfig] = await Promise.all([
+        apis.dataSourceApi.getStatus(),
+        apis.syncApi.getConfig(),
+      ])
+      return { status, syncConfig }
+    },
+  })
 
   const {
     data: syncLogs = [],
     loading: syncLogsLoading,
     refresh: refreshSyncLogs,
-  } = useAsyncResource(async () => {
-    const res = await apis.syncApi.getLogs(1, 10)
-    return res.items
-  }, [apis])
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.org.syncLogs(),
+    queryFn: (apis) => apis.syncApi.getLogs(1, 10).then((res) => res.items),
+  })
 
   const status = data?.status ?? null
   const syncConfig = data?.syncConfig ?? null
-  const { openWithRefresh, open } = useWorkflowRefresh(refresh)
+  const { openWithRefresh, open } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.org.dataSource()],
+  })
 
   const displayImportResult = importResult ?? status?.lastImportResult ?? null
   const imported = Boolean(status?.lastImport || displayImportResult)

@@ -1,3 +1,5 @@
+// FROZEN: avoid incremental mock handler changes after backend integration.
+// Session dual-track fixes are the only exception. New APIs: update api/ + contract + query keys + tests.
 import { orgHandlers } from './org'
 import { budgetHandlers } from './budget'
 import { keysHandlers } from './keys'

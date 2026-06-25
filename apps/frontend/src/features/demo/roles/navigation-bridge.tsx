@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
-import { canAccessRoute, getDefaultHomePath } from '@/lib/permissions'
+import { getDefaultHomePath } from '@/lib/permissions'
+import { useRouteAccess } from '@/hooks/use-route-access'
 import { useDemoRole } from './use-demo-role'
 
 export function DemoRoleNavigationBridge() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { memberId, displayName, permissions, loading } = useDemoRole()
+  const { memberId, displayName } = useDemoRole()
+  const { permissions, loading, canAccess, pathname } = useRouteAccess()
   const isFirstRender = useRef(true)
   const previousMemberId = useRef(memberId)
 
@@ -17,7 +18,7 @@ export function DemoRoleNavigationBridge() {
     if (isFirstRender.current) {
       isFirstRender.current = false
       previousMemberId.current = memberId
-      if (!canAccessRoute(location.pathname, permissions)) {
+      if (!canAccess) {
         const home = getDefaultHomePath(permissions)
         navigate(home ?? '/', { replace: true })
       }
@@ -32,12 +33,12 @@ export function DemoRoleNavigationBridge() {
       return
     }
 
-    if (!canAccessRoute(location.pathname, permissions)) {
+    if (!canAccess) {
       const home = getDefaultHomePath(permissions)
       navigate(home ?? '/', { replace: true })
       toast.info('当前身份无权访问该页面')
     }
-  }, [memberId, displayName, permissions, loading, location.pathname, navigate])
+  }, [memberId, displayName, permissions, loading, canAccess, pathname, navigate])
 
   return null
 }

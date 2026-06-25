@@ -1,26 +1,23 @@
 import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useInjectedApis } from '@/api/use-apis'
 import type { BudgetNode } from '@/api/types'
+import { queryKeys } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
-import { useAsyncResource } from '@/hooks/use-async-resource'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { computeUnallocated, formatBudgetPeriodLabel } from '@/lib/budget'
 import { PERMISSION } from '@/lib/permissions'
+import { useBudgetTreeQuery } from './use-budget-tree-query'
 
 export function useBudgetOverviewPage(injectedApis?: AppApis) {
-  const apis = useInjectedApis(injectedApis)
   const budgetCta = useCtaHighlight('BUDGET')
   const { has } = usePermissions()
   const canAllocate = has(PERMISSION.BUDGET_ALLOCATE)
-  const {
-    data: tree = [],
-    loading,
-    error,
+  const { data: tree = [], loading, error, refresh } = useBudgetTreeQuery(injectedApis)
+  const { openWithRefresh } = useWorkflowRefresh({
     refresh,
-  } = useAsyncResource(() => apis.budgetApi.getTree(), [apis])
-  const { openWithRefresh } = useWorkflowRefresh(refresh)
+    invalidateKeys: [queryKeys.budget.all],
+  })
 
   const summary = useMemo(() => {
     const root = tree[0]

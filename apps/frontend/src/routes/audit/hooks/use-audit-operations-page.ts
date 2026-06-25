@@ -9,6 +9,7 @@ import {
 } from '@/lib/audit-query'
 import { OPERATION_AUDIT_CSV_HEADERS, buildOperationAuditCsvRows } from '@/lib/audit-export'
 import { downloadCsv } from '@/lib/csv-export'
+import { queryKeys } from '@/features/query'
 import { useAuditListPage } from './use-audit-list-page'
 
 const INITIAL_FILTER: AuditOperationsFilter = {
@@ -37,6 +38,7 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
     toQueryParams: buildOperationsQuery,
     fetchItems: (apis, query) => apis.auditApi.getOperations(query).then((res) => res.items),
     injectedApis,
+    queryKeyFactory: (filter) => queryKeys.audit.operations(filter),
   })
 
   const handleExport = useCallback(() => {

@@ -3,7 +3,7 @@ import type { MemberBudgetQuota } from '@/api/types'
 import { ApiError } from '@/api/client'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
@@ -34,7 +34,11 @@ export function MemberQuotaConfigWorkflow({
     data: quotas = [],
     loading,
     refresh,
-  } = useAsyncResource(() => apis.budgetApi.getMemberQuotas(departmentId), [apis, departmentId])
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.budget.memberQuotas(departmentId),
+    queryFn: (a) => a.budgetApi.getMemberQuotas(departmentId),
+  })
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draftQuota, setDraftQuota] = useState('')

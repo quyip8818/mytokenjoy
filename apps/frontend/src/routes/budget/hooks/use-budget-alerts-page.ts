@@ -1,20 +1,25 @@
 import { useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useInjectedApis } from '@/api/use-apis'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
-import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 
 export function useBudgetAlertsPage(injectedApis?: AppApis) {
-  const apis = useInjectedApis(injectedApis)
   const overrunCta = useCtaHighlight('OVERRUN')
   const {
     data: policy = null,
     loading,
     error,
     refresh,
-  } = useAsyncResource(() => apis.budgetApi.getOverrunPolicy(), [apis])
-  const { openWithRefresh } = useWorkflowRefresh(refresh)
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.overrunPolicy(),
+    queryFn: (apis) => apis.budgetApi.getOverrunPolicy(),
+  })
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.budget.overrunPolicy()],
+  })
 
   const notifyLabels = useMemo(
     () =>

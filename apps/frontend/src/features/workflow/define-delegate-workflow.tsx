@@ -1,12 +1,7 @@
 import type { ComponentType } from 'react'
 import { WorkflowDelegatePanel } from './components/workflow-delegate-panel'
 import { useWorkflow } from './use-workflow'
-import type {
-  WorkflowComponentProps,
-  WorkflowDefinition,
-  WorkflowId,
-  WorkflowLayer,
-} from './types'
+import type { WorkflowComponentProps, WorkflowDefinition, WorkflowId, WorkflowLayer } from './types'
 import { defineWorkflow } from './types'
 import type { WorkflowPayloadMap } from './workflow-payloads'
 
@@ -22,11 +17,7 @@ export function defineDelegateWorkflow<T extends WorkflowId, P extends object>(c
   Child: ComponentType<P>
   mapProps: (payload: WorkflowPayloadMap[T], ctx: DelegateWorkflowContext) => P
 }): WorkflowDefinition {
-  function DelegateWorkflow({
-    entry,
-    onClose,
-    onSetDirty,
-  }: WorkflowComponentProps<T>) {
+  function DelegateWorkflow({ entry, onClose, onSetDirty }: WorkflowComponentProps<T>) {
     const { closeAll } = useWorkflow()
     const onSuccess = (entry.payload as { onSuccess?: () => void }).onSuccess
 

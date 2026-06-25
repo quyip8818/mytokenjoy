@@ -1,20 +1,39 @@
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 
 export function useUsageDashboardPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
-  const { data, loading, error, refresh } = useAsyncResource(async () => {
-    const [teamUsage, modelUsage] = await Promise.all([
-      apis.dashboardApi.getTeamUsage(),
-      apis.dashboardApi.getModelUsage(),
-    ])
-    return { teamUsage, modelUsage }
-  }, [apis])
+  const {
+    data: teamUsage = [],
+    loading: teamLoading,
+    error: teamError,
+    refresh: refreshTeam,
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: [...queryKeys.dashboard.usage(), 'team'],
+    queryFn: (a) => a.dashboardApi.getTeamUsage(),
+  })
+  const {
+    data: modelUsage = [],
+    loading: modelLoading,
+    error: modelError,
+    refresh: refreshModel,
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: [...queryKeys.dashboard.usage(), 'model'],
+    queryFn: (a) => a.dashboardApi.getModelUsage(),
+  })
+
+  const loading = teamLoading || modelLoading
+  const error = teamError ?? modelError
+  const refresh = async () => {
+    await Promise.all([refreshTeam(), refreshModel()])
+  }
 
   return {
-    teamUsage: data?.teamUsage ?? [],
-    modelUsage: data?.modelUsage ?? [],
+    teamUsage,
+    modelUsage,
     loading,
     error,
     refresh,

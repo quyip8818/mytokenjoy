@@ -125,11 +125,11 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`sessionApi`](../apps/frontend/src/api/session.ts) · Handler：[`session.ts`](../apps/frontend/src/mocks/handlers/session.ts)
 
-| 方法 | 路径       | 查询 / Body        | 响应             | 说明                                  |
-| ---- | ---------- | ------------------ | ---------------- | ------------------------------------- |
+| 方法 | 路径       | 查询 / Body                                            | 响应             | 说明                                       |
+| ---- | ---------- | ------------------------------------------------------ | ---------------- | ------------------------------------------ |
 | GET  | `/session` | Demo：`memberId`（必填）；生产：无 query（cookie/JWT） | `SessionContext` | Demo 缺 `memberId` → 400；生产未鉴权 → 401 |
 
-Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `sessionApi.getCurrent()` 凭 cookie 鉴权。加载失败由 `SessionGate` 展示错误页。
+Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `sessionApi.getCurrent()` 凭 cookie / `Authorization` 鉴权（`credentials: 'include'`）。`401` 由 `AuthUnauthorizedBridge` 跳转 `/login`；加载失败由 `SessionGate` 展示错误页。响应经 `SessionContextSchema`（Zod）校验。
 
 ---
 
@@ -456,6 +456,16 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
    - 本地开发：设置 `VITE_API_PROXY_TARGET=http://localhost:8080` 并设 `VITE_ENABLE_MOCKS=false`
 4. **鉴权** — 在 `client.ts` 将 `setDemoMemberIdProvider` 替换为真实 session / token 注入
 5. **逐域验收** — session → org → budget → keys → models → dashboard → audit
+
+---
+
+### 6.4 Mock 维护策略（冻结）
+
+接真实后端后：
+
+- `mocks/handlers/` **冻结增量**（Session 双轨修复除外，见 [`session.ts`](../apps/frontend/src/mocks/handlers/session.ts)）
+- 新 API 只改 `api/`、本文档、`features/query/query-keys.ts` 与集成测试
+- Session 响应在 MSW handler 中经 `SessionContextSchema.safeParse` 校验，避免 mock 漂移
 
 ---
 

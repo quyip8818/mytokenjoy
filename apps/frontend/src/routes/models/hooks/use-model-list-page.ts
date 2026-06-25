@@ -3,8 +3,8 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { ModelInfo } from '@/api/types'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
-import { useAsyncResource } from '@/hooks/use-async-resource'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
@@ -21,8 +21,16 @@ export function useModelListPage(injectedApis?: AppApis) {
     loading,
     error,
     refresh,
-  } = useAsyncResource(() => apis.modelApi.list(), [apis])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.models.list(),
+    queryFn: (a) => a.modelApi.list(),
+  })
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.models.all],
+    flashRow,
+  })
 
   const handleToggle = useCallback(
     async (model: ModelInfo) => {

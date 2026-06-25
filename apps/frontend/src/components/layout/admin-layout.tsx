@@ -2,7 +2,9 @@ import { Outlet } from 'react-router'
 import { USE_MOCKS } from '@/config/app'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
-import { AuthSessionProvider } from '@/features/session'
+import { QueryProvider } from '@/features/query'
+import { AuthSessionProvider, SessionNavigationBridge } from '@/features/session'
+import { AuthUnauthorizedBridge } from '@/components/auth/auth-unauthorized-bridge'
 import { WorkflowProvider } from '@/features/workflow/workflow-context'
 import { WorkflowPanelStack } from '@/features/workflow/components/workflow-panel-stack'
 import { Toaster } from '@/components/ui/sonner'
@@ -33,15 +35,19 @@ function AdminShell() {
 export function AdminLayout() {
   return (
     <ApiProvider apis={defaultApis}>
-      {USE_MOCKS ? (
-        <LazyDemoShellBoundary>
-          <AdminShell />
-        </LazyDemoShellBoundary>
-      ) : (
-        <AuthSessionProvider>
-          <AdminShell />
-        </AuthSessionProvider>
-      )}
+      <QueryProvider>
+        {USE_MOCKS ? (
+          <LazyDemoShellBoundary>
+            <AdminShell />
+          </LazyDemoShellBoundary>
+        ) : (
+          <AuthSessionProvider>
+            <AuthUnauthorizedBridge />
+            <SessionNavigationBridge />
+            <AdminShell />
+          </AuthSessionProvider>
+        )}
+      </QueryProvider>
     </ApiProvider>
   )
 }

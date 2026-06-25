@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { Member, Role } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { useSession } from '@/features/session'
 
@@ -20,14 +20,17 @@ export function useRolesPage(injectedApis?: AppApis) {
     loading,
     error: rolesError,
     refresh: refreshInit,
-    setData: setInitData,
-  } = useAsyncResource(async () => {
-    const [rolesData, permsData] = await Promise.all([
-      apis.roleApi.list(),
-      apis.roleApi.getPermissions(),
-    ])
-    return { roles: rolesData, permissions: permsData }
-  }, [apis])
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.org.rolesInit(),
+    queryFn: async (a) => {
+      const [rolesData, permsData] = await Promise.all([
+        a.roleApi.list(),
+        a.roleApi.getPermissions(),
+      ])
+      return { roles: rolesData, permissions: permsData }
+    },
+  })
 
   const roles = initData?.roles ?? []
   const permissions = initData?.permissions ?? []
@@ -38,10 +41,12 @@ export function useRolesPage(injectedApis?: AppApis) {
     loading: membersLoading,
     error: membersError,
     refresh: refreshMembers,
-  } = useAsyncResource(async () => {
-    if (!activeRoleId) return []
-    return apis.roleApi.getMembers(activeRoleId)
-  }, [apis, activeRoleId])
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.org.roleMembers(activeRoleId ?? ''),
+    queryFn: (a) => (activeRoleId ? a.roleApi.getMembers(activeRoleId) : Promise.resolve([])),
+    enabled: Boolean(activeRoleId),
+  })
 
   const selectedRole = roles.find((r) => r.id === activeRoleId) ?? null
   const error = rolesError ?? membersError
@@ -51,9 +56,8 @@ export function useRolesPage(injectedApis?: AppApis) {
   }, [refreshInit, refreshMembers])
 
   const refreshRoles = async () => {
-    const updated = await apis.roleApi.list()
-    setInitData((prev) => ({ roles: updated, permissions: prev?.permissions ?? [] }))
-    return updated
+    await refreshInit()
+    return initData?.roles ?? []
   }
 
   const handleSelectRole = (role: Role) => {

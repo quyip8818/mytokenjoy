@@ -1,24 +1,46 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { BudgetGroup } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { useBudgetTreeQuery } from './use-budget-tree-query'
 
 export function useBudgetAllocationPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { flashRow, rowClass } = useRowHighlight()
   const { canWrite } = usePermissions()
-  const { data, loading, error, refresh } = useAsyncResource(async () => {
-    const [groups, tree] = await Promise.all([apis.budgetApi.getGroups(), apis.budgetApi.getTree()])
-    return { groups, tree }
-  }, [apis])
-  const groups = data?.groups ?? []
-  const tree = useMemo(() => data?.tree ?? [], [data?.tree])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
+  const {
+    data: groups = [],
+    loading: groupsLoading,
+    error: groupsError,
+    refresh: refreshGroups,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.groups(),
+    queryFn: (apis) => apis.budgetApi.getGroups(),
+  })
+  const {
+    data: tree = [],
+    loading: treeLoading,
+    error: treeError,
+    refresh: refreshTree,
+  } = useBudgetTreeQuery(injectedApis)
+
+  const loading = groupsLoading || treeLoading
+  const error = groupsError ?? treeError
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshGroups(), refreshTree()])
+  }, [refreshGroups, refreshTree])
+
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.budget.all],
+    flashRow,
+  })
 
   const handleDelete = useCallback(
     async (id: string) => {

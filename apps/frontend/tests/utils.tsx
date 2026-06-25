@@ -14,6 +14,7 @@ import { DemoProvider } from '@/features/demo'
 import { createDemoRoleStore } from '@/features/demo/roles/store'
 import { DEFAULT_DEMO_MEMBER_ID } from '@/features/demo/roles/constants'
 import { WorkflowProvider } from '@/features/workflow/workflow-context'
+import { QueryProvider, createTestQueryClient } from '@/features/query'
 import { mockDepartments } from '@tests/fixtures/departments'
 
 export { mockDepartments }
@@ -91,6 +92,7 @@ export function createMockApis(overrides: ApiNamespaceOverrides = {}): AppApis {
     sessionApi: {
       ...defaultApis.sessionApi,
       get: vi.fn().mockResolvedValue(session),
+      getCurrent: vi.fn().mockResolvedValue(session),
     },
   }
   return mergeApis(base, overrides)
@@ -111,18 +113,22 @@ export function createTestWrapper(options: TestWrapperOptions = {}) {
     createMockApis({
       sessionApi: {
         get: vi.fn().mockResolvedValue(createMockSession(permissions, readOnly)),
+        getCurrent: vi.fn().mockResolvedValue(createMockSession(permissions, readOnly)),
       },
     })
   const roleStore = createDemoRoleStore(DEFAULT_DEMO_MEMBER_ID, apis)
+  const queryClient = createTestQueryClient()
 
   return function TestWrapper({ children }: { children: ReactNode }) {
     return (
       <MemoryRouter initialEntries={options.initialEntries ?? [ROUTES.orgStructure]}>
-        <ApiProvider apis={apis}>
-          <DemoProvider roleStore={roleStore}>
-            <WorkflowProvider>{children}</WorkflowProvider>
-          </DemoProvider>
-        </ApiProvider>
+        <QueryProvider client={queryClient}>
+          <ApiProvider apis={apis}>
+            <DemoProvider roleStore={roleStore}>
+              <WorkflowProvider>{children}</WorkflowProvider>
+            </DemoProvider>
+          </ApiProvider>
+        </QueryProvider>
       </MemoryRouter>
     )
   }

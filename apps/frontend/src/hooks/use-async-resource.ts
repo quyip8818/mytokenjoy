@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
+/** @deprecated Use useInjectedQuery from @/features/query */
 export type AsyncFetcher<T> = (signal: AbortSignal) => Promise<T>
 
 export interface UseAsyncResourceResult<T> {

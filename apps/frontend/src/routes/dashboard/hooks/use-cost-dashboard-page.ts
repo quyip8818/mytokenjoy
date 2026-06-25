@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import { useInjectedApis } from '@/api/use-apis'
-import { useAsyncResource } from '@/hooks/use-async-resource'
 import type {
   CostGranularity,
   CostPeriod,
@@ -11,6 +9,7 @@ import type {
 } from '@/api/types'
 import { COST_GRANULARITY, COST_PERIOD } from '@/lib/dashboard-constants'
 import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import {
   ROOT_DRILL,
   type DrillState,
@@ -34,7 +33,6 @@ function buildCostQuery(period: CostPeriod, startDate: string, endDate: string):
 }
 
 export function useCostDashboardPage(injectedApis?: AppApis) {
-  const apis = useInjectedApis(injectedApis)
   const [period, setPeriod] = useState<CostPeriod>(COST_PERIOD.CURRENT_MONTH)
   const [startDate, setStartDate] = useState(getMonthStartLocal)
   const [endDate, setEndDate] = useState(getTodayLocal)
@@ -46,20 +44,24 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
     [period, startDate, endDate],
   )
 
-  const { data, loading, error, refresh } = useAsyncResource(async () => {
-    const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
-      apis.dashboardApi.getCostSummary(costQuery),
-      apis.dashboardApi.getDailyCosts(costQuery),
-      drill.level === 'members' && drill.deptId
-        ? apis.dashboardApi.getDepartmentMemberCosts(drill.deptId, costQuery)
-        : apis.dashboardApi.getDepartmentCosts({
-            ...costQuery,
-            parentId: drill.parentId ?? undefined,
-          }),
-      apis.dashboardApi.getTopConsumers({ ...costQuery, limit: 5 }),
-    ])
-    return { summary, dailyCosts, deptCosts, topConsumers }
-  }, [apis, costQuery, drill])
+  const { data, loading, error, refresh } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.dashboard.cost(costQuery, drill),
+    queryFn: async (apis) => {
+      const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
+        apis.dashboardApi.getCostSummary(costQuery),
+        apis.dashboardApi.getDailyCosts(costQuery),
+        drill.level === 'members' && drill.deptId
+          ? apis.dashboardApi.getDepartmentMemberCosts(drill.deptId, costQuery)
+          : apis.dashboardApi.getDepartmentCosts({
+              ...costQuery,
+              parentId: drill.parentId ?? undefined,
+            }),
+        apis.dashboardApi.getTopConsumers({ ...costQuery, limit: 5 }),
+      ])
+      return { summary, dailyCosts, deptCosts, topConsumers }
+    },
+  })
 
   const handlePeriodChange = useCallback((value: string | null) => {
     if (!value) return

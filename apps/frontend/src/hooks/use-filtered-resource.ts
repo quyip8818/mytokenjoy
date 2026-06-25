@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useAsyncResource } from './use-async-resource'
 
+/** @deprecated Use useFilteredQuery from @/hooks/use-filtered-query */
 export function useFilteredResource<T, F>(
   fetcher: (filter: F, signal: AbortSignal) => Promise<T>,
   initialFilter: F,

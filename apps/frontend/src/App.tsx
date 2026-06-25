@@ -1,9 +1,12 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
+import { LOGIN_PATH } from '@/config/auth'
 import { HomeRedirect } from '@/components/layout/home-redirect'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { RouteFallback } from '@/components/layout/route-fallback'
 import { APP_ROUTES, toRouterPath } from '@/config/routes'
+
+const LoginPage = lazy(() => import('@/routes/auth/login'))
 
 const lazyPages = APP_ROUTES.map((entry) => ({
   path: toRouterPath(entry.path),
@@ -15,6 +18,14 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          <Route
+            path={LOGIN_PATH.slice(1)}
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <LoginPage />
+              </Suspense>
+            }
+          />
           <Route element={<AdminLayout />}>
             <Route index element={<HomeRedirect />} />
             {lazyPages.map(({ path, Page }) => (

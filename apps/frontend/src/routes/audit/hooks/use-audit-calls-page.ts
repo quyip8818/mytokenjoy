@@ -6,6 +6,7 @@ import { AUDIT_DATE_PRESET } from '@/lib/audit-constants'
 import { AUDIT_FILTER_ALL, buildCallsQuery, type AuditCallsFilter } from '@/lib/audit-query'
 import { CALL_AUDIT_CSV_HEADERS, buildCallAuditCsvRows } from '@/lib/audit-export'
 import { downloadCsv } from '@/lib/csv-export'
+import { queryKeys } from '@/features/query'
 import { useAuditListPage } from './use-audit-list-page'
 
 const INITIAL_FILTER: AuditCallsFilter = {
@@ -30,6 +31,7 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
     toQueryParams: buildCallsQuery,
     fetchItems: (apis, query) => apis.auditApi.getCalls(query).then((res) => res.items),
     injectedApis,
+    queryKeyFactory: (filter) => queryKeys.audit.calls(filter),
   })
   const { contentRetentionEnabled } = useAuditSettings(injectedApis)
   const [expandedId, setExpandedId] = useState<string | null>(null)

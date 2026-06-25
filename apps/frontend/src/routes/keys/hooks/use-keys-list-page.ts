@@ -1,7 +1,7 @@
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { PlatformKey, ProviderKey } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 
@@ -12,7 +12,7 @@ type KeysListResult<T> = {
   keys: T[]
   loading: boolean
   error: Error | null
-  refresh: () => Promise<void>
+  refresh: () => Promise<unknown>
   flashRow: ReturnType<typeof useRowHighlight>['flashRow']
   rowClass: ReturnType<typeof useRowHighlight>['rowClass']
   openWithRefresh: ReturnType<typeof useWorkflowRefresh>['openWithRefresh']
@@ -40,13 +40,22 @@ export function useKeysListPage(
 ): KeysListResult<PlatformKey | ProviderKey> {
   const apis = useInjectedApis(injectedApis)
   const { flashRow, rowClass } = useRowHighlight()
+  const queryKey = source === 'platform' ? queryKeys.keys.platform() : queryKeys.keys.provider()
   const {
     data: keys = [],
     loading,
     error,
     refresh,
-  } = useAsyncResource(() => fetchKeysBySource(apis, source), [apis, source])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey,
+    queryFn: (a) => fetchKeysBySource(a, source),
+  })
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.keys.all],
+    flashRow,
+  })
 
   return {
     apis,

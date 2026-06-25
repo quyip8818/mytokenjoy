@@ -4,8 +4,8 @@ import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { PlatformKey } from '@/api/types'
 import { useSession } from '@/features/session'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
-import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/workflow/constants'
 
@@ -16,17 +16,38 @@ export function useMyKeysPage(injectedApis?: AppApis) {
   const createKeyCta = useCtaHighlight('CREATE_KEY')
   const [deleteTarget, setDeleteTarget] = useState<PlatformKey | null>(null)
 
-  const { data, loading, error, refresh } = useAsyncResource(async () => {
-    const [keyRes, quotaRes] = await Promise.all([
-      apis.platformKeyApi.list({ memberId }),
-      apis.platformKeyApi.getQuotaSummary(memberId),
-    ])
-    return { keys: keyRes.items, quota: quotaRes }
-  }, [apis, memberId])
+  const {
+    data: keys = [],
+    loading: keysLoading,
+    error: keysError,
+    refresh: refreshKeys,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.keys.mine(memberId),
+    queryFn: (apis) => apis.platformKeyApi.list({ memberId }).then((res) => res.items),
+    enabled: Boolean(memberId),
+  })
+  const {
+    data: quota = null,
+    loading: quotaLoading,
+    error: quotaError,
+    refresh: refreshQuota,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.keys.quota(memberId),
+    queryFn: (apis) => apis.platformKeyApi.getQuotaSummary(memberId),
+    enabled: Boolean(memberId),
+  })
 
-  const keys = data?.keys ?? []
-  const quota = data?.quota ?? null
-  const { openWithRefresh, open } = useWorkflowRefresh(refresh)
+  const loading = keysLoading || quotaLoading
+  const error = keysError ?? quotaError
+  const refresh = async () => {
+    await Promise.all([refreshKeys(), refreshQuota()])
+  }
+  const { openWithRefresh, open } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.keys.all],
+  })
 
   const handleDelete = async () => {
     if (!deleteTarget) return

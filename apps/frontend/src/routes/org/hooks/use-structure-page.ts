@@ -4,7 +4,7 @@ import type { RowSelectionState } from '@tanstack/react-table'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { Department, Member } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { usePageSubtitle } from '@/hooks/use-page-subtitle'
 import { flattenDepartments, flattenDepartmentTree, getDeptPath } from '@/lib/org'
@@ -34,11 +34,26 @@ export function useStructurePage(injectedApis?: AppApis) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmState, setConfirmState] = useState<ConfirmActionState>(INITIAL_CONFIRM_STATE)
 
+  const memberListParams = useMemo(() => {
+    const params: Parameters<typeof apis.memberApi.list>[0] = { page, pageSize: PAGE_SIZE }
+    if (selectedDeptId) {
+      params.departmentId = selectedDeptId
+      params.directOnly = directOnly
+    }
+    return params
+    // apis.memberApi.list signature is stable; params object drives the query key
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, selectedDeptId, directOnly])
+
   const {
     data: departments = [],
     error: deptError,
     refresh: refreshDepartments,
-  } = useAsyncResource(() => apis.departmentApi.getTree(), [apis])
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.org.departmentTree(),
+    queryFn: (a) => a.departmentApi.getTree(),
+  })
 
   const selectedDept = useMemo(() => {
     if (!selectedDeptId || departments.length === 0) return undefined
@@ -50,23 +65,25 @@ export function useStructurePage(injectedApis?: AppApis) {
     loading: membersLoading,
     error: memberError,
     refresh: refreshMembers,
-  } = useAsyncResource(async () => {
-    const params: Parameters<typeof apis.memberApi.list>[0] = { page, pageSize: PAGE_SIZE }
-    if (selectedDept) {
-      params.departmentId = selectedDept.id
-      params.directOnly = directOnly
-    }
-    return apis.memberApi.list(params)
-  }, [apis, page, selectedDeptId, directOnly])
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.org.members(memberListParams),
+    queryFn: (a) => a.memberApi.list(memberListParams),
+  })
 
   const members = memberData?.items ?? []
   const total = memberData?.total ?? 0
 
-  const { data: approvalPendingCount = 0 } = useAsyncResource(async () => {
-    if (!canApprove) return 0
-    const items = await apis.approvalApi.list({ tab: 'pending' })
-    return items.length
-  }, [apis, canApprove])
+  const { data: approvalPendingCount = 0 } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.org.approvalPendingCount(),
+    queryFn: async (a) => {
+      if (!canApprove) return 0
+      const items = await a.approvalApi.list({ tab: 'pending' })
+      return items.length
+    },
+    enabled: canApprove,
+  })
 
   const error = memberError ?? deptError
 

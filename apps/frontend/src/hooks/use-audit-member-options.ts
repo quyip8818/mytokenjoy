@@ -1,14 +1,12 @@
 import type { AppApis } from '@/api/app-apis'
-import { useInjectedApis } from '@/api/use-apis'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 
 export function useAuditMemberOptions(injectedApis?: AppApis) {
-  const apis = useInjectedApis(injectedApis)
-
-  const { data: members = [], loading } = useAsyncResource(
-    () => apis.memberApi.list({ page: 1, pageSize: 100 }).then((res) => res.items),
-    [apis],
-  )
+  const { data: members = [], loading } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.audit.members(),
+    queryFn: (apis) => apis.memberApi.list({ page: 1, pageSize: 100 }).then((res) => res.items),
+  })
 
   return { members, loading }
 }

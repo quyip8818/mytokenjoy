@@ -1,11 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { type PermissionKey, hasPermission } from '@/lib/permissions'
-import {
-  NAV_GROUP_LAYOUT,
-  ROUTE_META,
-  getRouteMeta,
-  type RoutePath,
-} from '@/config/routes'
+import { NAV_GROUP_LAYOUT, ROUTE_META, getRouteMeta, type RoutePath } from '@/config/routes'
 
 export interface NavItem {
   label: string

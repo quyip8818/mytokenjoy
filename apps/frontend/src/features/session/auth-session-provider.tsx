@@ -1,7 +1,8 @@
 import { useMemo, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { queryKeys } from '@/features/query/query-keys'
 import { SessionReactContext } from './context'
 import { SessionGate } from './session-gate'
 import type { AppSession } from './types'
@@ -12,25 +13,26 @@ interface AuthSessionProviderProps {
 }
 
 export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessionProviderProps) {
-  const {
-    data,
-    loading,
-    error: sessionError,
-    refresh: refreshSession,
-  } = useAsyncResource(() => apis.sessionApi.getCurrent(), [apis])
+  const query = useQuery({
+    queryKey: queryKeys.session.current(),
+    queryFn: () => apis.sessionApi.getCurrent(),
+  })
 
-  const session = useMemo<AppSession>(
-    () => ({
-      memberId: data?.member.id ?? '',
-      member: data?.member ?? null,
-      permissions: data?.permissions ?? [],
-      readOnly: data?.readOnly ?? false,
-      loading,
-      sessionError,
+  const session = useMemo<AppSession>(() => {
+    const refreshSession = async () => {
+      await query.refetch()
+    }
+
+    return {
+      memberId: query.data?.member.id ?? '',
+      member: query.data?.member ?? null,
+      permissions: query.data?.permissions ?? [],
+      readOnly: query.data?.readOnly ?? false,
+      loading: query.isLoading,
+      sessionError: query.error,
       refreshSession,
-    }),
-    [data, loading, sessionError, refreshSession],
-  )
+    }
+  }, [query])
 
   return (
     <SessionReactContext.Provider value={session}>

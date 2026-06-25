@@ -3,7 +3,8 @@ import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { KeyApproval } from '@/api/types'
 import { useSession } from '@/features/session'
-import { useFilteredResource } from '@/hooks/use-filtered-resource'
+import { queryKeys } from '@/features/query'
+import { useFilteredQuery } from '@/hooks/use-filtered-query'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
@@ -25,15 +26,21 @@ export function useApprovalPage(injectedApis?: AppApis) {
     refresh,
     filter: tab,
     setFilter: setTab,
-  } = useFilteredResource(
-    (filter) =>
-      apis.approvalApi.list({
+  } = useFilteredQuery({
+    injectedApis: apis,
+    initialFilter: 'pending' as ApprovalTab,
+    queryKeyFactory: (filter) => queryKeys.keys.approvals(filter, memberId),
+    fetcher: (a, filter) =>
+      a.approvalApi.list({
         tab: filter === 'all' ? undefined : filter,
         memberId: filter === 'mine' ? memberId : undefined,
       }),
-    'pending' as ApprovalTab,
-  )
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
+  })
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.keys.all],
+    flashRow,
+  })
 
   const pendingCount = useMemo(
     () => approvals.filter((a) => a.status === 'pending').length,

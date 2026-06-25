@@ -186,7 +186,9 @@ export const ROUTE_DEFINITIONS = [
 
 export type RouteKey = (typeof ROUTE_DEFINITIONS)[number]['key']
 
-const routeEntries = ROUTE_DEFINITIONS.map((definition) => [definition.key, definition.path] as const)
+const routeEntries = ROUTE_DEFINITIONS.map(
+  (definition) => [definition.key, definition.path] as const,
+)
 
 export const ROUTES = {
   home: '/',
@@ -268,6 +270,39 @@ export const APP_ROUTES: AppRouteEntry[] = ROUTE_DEFINITIONS.map(({ path, lazy }
   path: path as RoutePath,
   lazy,
 }))
+
+const LAZY_IMPORT_PATTERN = /import\(['"](@\/routes\/[^'"]+)['"]\)/
+
+export function validateRouteDefinitions(): void {
+  const keys = ROUTE_DEFINITIONS.map((definition) => definition.key)
+  const paths = ROUTE_DEFINITIONS.map((definition) => definition.path)
+
+  if (new Set(keys).size !== keys.length) {
+    throw new Error('ROUTE_DEFINITIONS contains duplicate keys')
+  }
+
+  if (new Set(paths).size !== paths.length) {
+    throw new Error('ROUTE_DEFINITIONS contains duplicate paths')
+  }
+
+  const lazyImportMatches = ROUTE_DEFINITIONS.map((definition) =>
+    definition.lazy.toString().match(LAZY_IMPORT_PATTERN),
+  )
+
+  if (lazyImportMatches.some((match) => !match)) {
+    throw new Error('ROUTE_DEFINITIONS lazy imports must use import("@/routes/...") syntax')
+  }
+}
+
+export function getRouteLazyImportPaths(): string[] {
+  return ROUTE_DEFINITIONS.map((definition) => {
+    const match = definition.lazy.toString().match(LAZY_IMPORT_PATTERN)
+    if (!match?.[1]) {
+      throw new Error(`Unable to resolve lazy import for route ${definition.key}`)
+    }
+    return match[1]
+  })
+}
 
 export function toRouterPath(route: RoutePath): string {
   return route === ROUTES.home ? '' : route.slice(1)

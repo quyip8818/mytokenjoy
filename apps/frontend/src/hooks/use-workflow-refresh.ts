@@ -1,12 +1,40 @@
 import { useCallback } from 'react'
+import { useQueryClient, type QueryKey } from '@tanstack/react-query'
 import type { WorkflowId, WorkflowPayloadMap } from '@/features/workflow/types'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 
+type RefreshHandler = () => void | Promise<void>
+
+export interface WorkflowRefreshOptions {
+  refresh?: RefreshHandler
+  invalidateKeys?: QueryKey[]
+  flashRow?: (id: string) => void
+}
+
 export function useWorkflowRefresh(
-  refresh: () => void | Promise<void>,
+  refreshOrOptions: RefreshHandler | WorkflowRefreshOptions,
   flashRow?: (id: string) => void,
 ) {
   const { open } = useWorkflow()
+  const queryClient = useQueryClient()
+
+  const resolvedOptions: WorkflowRefreshOptions =
+    typeof refreshOrOptions === 'function'
+      ? { refresh: refreshOrOptions, flashRow }
+      : refreshOrOptions
+
+  const { refresh, invalidateKeys, flashRow: highlightRow } = resolvedOptions
+
+  const runRefresh = useCallback(async () => {
+    if (invalidateKeys?.length) {
+      await Promise.all(
+        invalidateKeys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
+    }
+    if (refresh) {
+      await refresh()
+    }
+  }, [invalidateKeys, refresh, queryClient])
 
   const openWithRefresh = useCallback(
     <T extends WorkflowId>(id: T, payload?: WorkflowPayloadMap[T], title?: string) => {
@@ -19,15 +47,17 @@ export function useWorkflowRefresh(
           ...rest,
           onSuccess: (resultId?: string) => {
             onSuccess?.(resultId)
-            void refresh()
-            if (resultId && flashRow) flashRow(resultId)
+            void runRefresh()
+            if (resultId && highlightRow) {
+              highlightRow(resultId)
+            }
           },
         } as WorkflowPayloadMap[T],
         title,
       )
     },
-    [open, refresh, flashRow],
+    [open, highlightRow, runRefresh],
   )
 
-  return { openWithRefresh, open }
+  return { openWithRefresh, open, refresh: runRefresh }
 }

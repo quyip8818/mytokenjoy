@@ -128,15 +128,15 @@ apps/frontend/
 
 [`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一手写源，派生其余导出。
 
-| 导出                   | 职责                                                      |
-| ---------------------- | --------------------------------------------------------- |
-| `ROUTE_DEFINITIONS`      | 单条含 path、label、icon、权限、lazy、`navGroup`          |
-| `ROUTES`               | 路径常量（业务代码禁止硬编码 `/org/...` 等字符串）        |
-| `ROUTE_META`           | 由 definitions 派生                                       |
-| `APP_ROUTES`           | lazy 页面模块，供 `App.tsx` 注册                          |
-| `NAV_GROUP_LAYOUT`     | 侧栏分组，由 definitions 的 `navGroup` 派生               |
-| `HOME_PATH_CANDIDATES` | 首页跳转优先级                                            |
-| `toRouterPath`         | 去掉 leading `/` 供 React Router `path` 使用              |
+| 导出                   | 职责                                               |
+| ---------------------- | -------------------------------------------------- |
+| `ROUTE_DEFINITIONS`    | 单条含 path、label、icon、权限、lazy、`navGroup`   |
+| `ROUTES`               | 路径常量（业务代码禁止硬编码 `/org/...` 等字符串） |
+| `ROUTE_META`           | 由 definitions 派生                                |
+| `APP_ROUTES`           | lazy 页面模块，供 `App.tsx` 注册                   |
+| `NAV_GROUP_LAYOUT`     | 侧栏分组，由 definitions 的 `navGroup` 派生        |
+| `HOME_PATH_CANDIDATES` | 首页跳转优先级                                     |
+| `toRouterPath`         | 去掉 leading `/` 供 React Router `path` 使用       |
 
 [`config/nav.ts`](../apps/frontend/src/config/nav.ts) 从 `NAV_GROUP_LAYOUT` / `ROUTE_META` 派生 `NAV_GROUPS` 与 `ROUTE_TITLES`。
 
@@ -228,15 +228,15 @@ Workflow 关闭后刷新列表：`useWorkflowRefresh(refresh)`。
 
 侧滑多步表单的编排层，基于 Zustand `workflow-store`。
 
-| 模块                                  | 职责                                                   |
-| ------------------------------------- | ------------------------------------------------------ |
+| 模块                                  | 职责                                                          |
+| ------------------------------------- | ------------------------------------------------------------- |
 | `definitions/{domain}.ts`             | 分域 workflow 注册表（org / budget / keys / models / shared） |
-| `define-delegate-workflow.tsx`        | 薄包装 `WorkflowDelegatePanel` + 业务表单的工厂        |
-| `workflow-payloads.ts`                | 各 workflow 的 open 参数类型（部分 payload 在 `payloads/`） |
-| `workflows/*.tsx`                     | 含业务逻辑的步骤面板                                   |
-| `components/workflow-panel-stack.tsx` | 全局侧滑栈渲染                                         |
-| `use-workflow.ts`                     | `open` / `push` / `pop` / `closeAll`                   |
-| `use-workflow-submit.ts`              | 提交流程封装                                           |
+| `define-delegate-workflow.tsx`        | 薄包装 `WorkflowDelegatePanel` + 业务表单的工厂               |
+| `workflow-payloads.ts`                | 各 workflow 的 open 参数类型（部分 payload 在 `payloads/`）   |
+| `workflows/*.tsx`                     | 含业务逻辑的步骤面板                                          |
+| `components/workflow-panel-stack.tsx` | 全局侧滑栈渲染                                                |
+| `use-workflow.ts`                     | `open` / `push` / `pop` / `closeAll`                          |
+| `use-workflow-submit.ts`              | 提交流程封装                                                  |
 
 新增 workflow：`workflows/{name}.tsx`（或 `defineDelegateWorkflow`）+ payload 类型 + `definitions/{domain}.ts` 注册。
 
