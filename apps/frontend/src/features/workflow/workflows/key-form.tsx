@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { platformKeyApi } from '@/api/keys'
 import type { Member, MemberQuotaSummary } from '@/api/types'
+import { useApis } from '@/api/use-apis'
 import { useDemoRole } from '@/features/demo'
 import { pushModelPicker, useMemberWhitelist } from '../use-member-whitelist'
 import type { WorkflowComponentProps, WorkflowStackEntry } from '../types'
@@ -28,6 +28,7 @@ export function KeyFormWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'key-create' | 'key-edit'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const { memberId } = useDemoRole()
   const { resolveWhitelist } = useMemberWhitelist()
@@ -56,13 +57,13 @@ export function KeyFormWorkflow({
   useEffect(() => {
     if (!isCreate || !effectiveMemberId) return
     let cancelled = false
-    void platformKeyApi.getQuotaSummary(effectiveMemberId).then((summary) => {
+    void apis.platformKeyApi.getQuotaSummary(effectiveMemberId).then((summary) => {
       if (!cancelled) setQuotaState({ memberId: effectiveMemberId, summary })
     })
     return () => {
       cancelled = true
     }
-  }, [isCreate, effectiveMemberId])
+  }, [apis, isCreate, effectiveMemberId])
 
   const quotaSummary = quotaState?.memberId === effectiveMemberId ? quotaState.summary : null
   const quotaInsufficient =
@@ -103,7 +104,7 @@ export function KeyFormWorkflow({
     }
     setSubmitting(true)
     try {
-      const created = await platformKeyApi.create({
+      const created = await apis.platformKeyApi.create({
         name,
         memberId: effectiveMemberId,
         quota: Number(quota),
@@ -126,7 +127,7 @@ export function KeyFormWorkflow({
     if (!key) return
     setSubmitting(true)
     try {
-      await platformKeyApi.update(key.id, {
+      await apis.platformKeyApi.update(key.id, {
         name,
         quota: Number(quota),
         modelWhitelist: models,

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { SyncConfig as SyncConfigType } from '@/api/types'
-import { syncApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,6 +23,7 @@ interface SyncConfigProps {
 }
 
 export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: SyncConfigProps) {
+  const apis = useApis()
   const { register, handleSubmit, setValue, control } = useForm<SyncConfigType>({
     defaultValues: {
       enabled: false,
@@ -43,7 +44,7 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: Sync
   const notifyIm = useWatch({ control, name: 'notifyIm' })
 
   useEffect(() => {
-    syncApi.getConfig().then((config) => {
+    apis.syncApi.getConfig().then((config) => {
       const fields: (keyof SyncConfigType)[] = [
         'enabled',
         'startTime',
@@ -58,10 +59,10 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: Sync
         setValue(key, config[key] as never)
       })
     })
-  }, [setValue])
+  }, [apis, setValue])
 
   const onSubmit = async (data: SyncConfigType) => {
-    await syncApi.saveConfig(data)
+    await apis.syncApi.saveConfig(data)
     toast.success('同步策略已保存')
     onSaved?.()
   }

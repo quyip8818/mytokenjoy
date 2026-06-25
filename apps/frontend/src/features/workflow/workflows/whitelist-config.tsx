@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { routingApi } from '@/api/models'
-import { departmentApi } from '@/api/org'
 import type { RoutingRule } from '@/api/types'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
@@ -20,6 +19,7 @@ export function WhitelistConfigWorkflow({
   onPush,
   onSetDirty,
 }: WorkflowComponentProps<'whitelist-config'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const rule = entry.payload.rule as RoutingRule
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -30,12 +30,15 @@ export function WhitelistConfigWorkflow({
 
   useEffect(() => {
     void (async () => {
-      const [rules, depts] = await Promise.all([routingApi.getRules(), departmentApi.getTree()])
+      const [rules, depts] = await Promise.all([
+        apis.routingApi.getRules(),
+        apis.departmentApi.getTree(),
+      ])
       const parentId = findParentDeptId(depts, rule.nodeId)
       const parentRule = parentId ? rules.find((r) => r.nodeId === parentId) : undefined
       setParentWhitelist(parentRule?.allowedModels ?? rule.allowedModels)
     })()
-  }, [rule.nodeId, rule.allowedModels])
+  }, [apis, rule.nodeId, rule.allowedModels])
 
   const handlePickModels = () => {
     onPush('model-picker', {
@@ -55,7 +58,7 @@ export function WhitelistConfigWorkflow({
     }
     setSubmitting(true)
     try {
-      await routingApi.updateRule(rule.id, {
+      await apis.routingApi.updateRule(rule.id, {
         inherited,
         allowedModels: inherited ? rule.allowedModels : models,
       })

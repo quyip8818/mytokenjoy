@@ -3,6 +3,7 @@ import { RoleList } from '@/components/org/role-list'
 import { RoleMemberTable } from '@/components/org/role-member-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { ErrorState } from '@/components/ui/error-state'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -17,6 +18,8 @@ export default function RolesPage() {
     members,
     loading,
     membersLoading,
+    error,
+    refresh,
     deleteConfirm,
     removeConfirm,
     setDeleteConfirm,
@@ -30,6 +33,14 @@ export default function RolesPage() {
     handleConfirmRemove,
     handleAddMember,
   } = useRolesPage()
+
+  if (error) {
+    return (
+      <PageShell>
+        <ErrorState message={error.message} onRetry={refresh} />
+      </PageShell>
+    )
+  }
 
   return (
     <PageShell

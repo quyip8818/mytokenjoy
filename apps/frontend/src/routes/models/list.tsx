@@ -1,4 +1,3 @@
-import { toast } from 'sonner'
 import { Box } from 'lucide-react'
 import {
   Table,
@@ -13,35 +12,25 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import { modelApi } from '@/api/models'
-import type { ModelInfo } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { useDemoCta } from '@/features/demo'
 import { listEmpty } from '@/lib/list-empty'
-import { useRowHighlight } from '@/lib/use-row-highlight'
 import { PROVIDER_CHIP_STYLES, PROVIDER_LABELS } from '@/lib/labels'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PermissionGate } from '@/components/auth/permission-gate'
-import { usePermissions } from '@/hooks/use-permissions'
 import { PERMISSION } from '@/lib/permissions'
+import { useModelListPage } from '@/routes/models/hooks/use-model-list-page'
 
 export default function ModelListPage() {
-  const { flashRow, rowClass } = useRowHighlight()
-  const modelCta = useDemoCta('MODEL')
-  const { has } = usePermissions()
-  const canManage = has(PERMISSION.MODEL_MANAGE)
-  const { data: models = [], loading, refresh } = useAsyncResource(() => modelApi.list(), [])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
-
-  const handleToggle = async (model: ModelInfo) => {
-    await modelApi.toggle(model.id, !model.enabled)
-    toast.success(model.enabled ? '模型已禁用' : '模型已启用')
-    flashRow(model.id)
-    void refresh()
-  }
-
-  const openCreate = () => openWithRefresh('model-create')
+  const {
+    models,
+    loading,
+    error,
+    refresh,
+    canManage,
+    modelCta,
+    rowClass,
+    handleToggle,
+    openCreate,
+  } = useModelListPage()
 
   return (
     <PageShell
@@ -61,6 +50,8 @@ export default function ModelListPage() {
     >
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={7}
         empty={listEmpty(loading, models, {
           icon: Box,

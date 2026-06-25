@@ -1,5 +1,6 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { ErrorState } from '@/components/ui/error-state'
 import { StatusBadge } from '@/components/ui/status-badge'
 import {
   Table,
@@ -10,30 +11,19 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts'
-import { dashboardApi } from '@/api/dashboard'
-import { useAsyncResource } from '@/hooks/use-async-resource'
+import { UsageModelChart } from '@/routes/dashboard/components/usage-model-chart'
+import { useUsageDashboardPage } from '@/routes/dashboard/hooks/use-usage-dashboard-page'
 
 export default function UsageDashboardPage() {
-  const { data, loading } = useAsyncResource(async () => {
-    const [teamUsage, modelUsage] = await Promise.all([
-      dashboardApi.getTeamUsage(),
-      dashboardApi.getModelUsage(),
-    ])
-    return { teamUsage, modelUsage }
-  }, [])
+  const { teamUsage, modelUsage, loading, error, refresh } = useUsageDashboardPage()
 
-  const teamUsage = data?.teamUsage ?? []
-  const modelUsage = data?.modelUsage ?? []
+  if (error) {
+    return (
+      <PageShell>
+        <ErrorState message={error.message} onRetry={refresh} />
+      </PageShell>
+    )
+  }
 
   return (
     <PageShell>
@@ -74,29 +64,7 @@ export default function UsageDashboardPage() {
       </DataSection>
 
       <DataSection title="模型使用分布" loading={loading} skeletonColumns={1}>
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={modelUsage} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis type="number" fontSize={11} stroke="#94a3b8" />
-            <YAxis type="category" dataKey="modelName" width={130} fontSize={12} stroke="#94a3b8" />
-            <Tooltip
-              formatter={(value, name) => [
-                name === '花费 (¥)'
-                  ? `¥${Number(value).toLocaleString()}`
-                  : Number(value).toLocaleString(),
-                name,
-              ]}
-              contentStyle={{
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.08)',
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: '12px' }} />
-            <Bar dataKey="cost" name="花费 (¥)" fill="#2563eb" radius={[0, 4, 4, 0]} />
-            <Bar dataKey="requests" name="请求数" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <UsageModelChart modelUsage={modelUsage} />
       </DataSection>
     </PageShell>
   )

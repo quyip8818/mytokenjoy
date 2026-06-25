@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { PageLoading } from '@/components/ui/page-loading'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,8 @@ export interface DataSectionProps {
   skeletonRows?: number
   skeletonColumns?: number
   empty?: DataSectionEmptyProps | null
+  error?: Error | null
+  onRetry?: () => void
   children: ReactNode
   className?: string
   contentClassName?: string
@@ -37,6 +40,8 @@ export function DataSection({
   skeletonRows = 5,
   skeletonColumns = 6,
   empty = null,
+  error = null,
+  onRetry,
   children,
   className,
   contentClassName,
@@ -62,6 +67,8 @@ export function DataSection({
           ) : (
             <TableSkeleton rows={skeletonRows} columns={skeletonColumns} />
           )
+        ) : error ? (
+          <ErrorState message={error.message} onRetry={onRetry} />
         ) : empty ? (
           <EmptyState
             icon={empty.icon}

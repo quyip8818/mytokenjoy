@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
-import { dashboardApi } from '@/api/dashboard'
+import type { AppApis } from '@/api/app-apis'
+import { useApis } from '@/api/use-apis'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import type { CostPeriod, DepartmentCost, DepartmentCostMember } from '@/api/types'
 import { COST_PERIOD } from '@/lib/dashboard-constants'
@@ -41,24 +42,26 @@ export interface CostStatItem {
   accent: string
 }
 
-export function useCostDashboard() {
+export function useCostDashboard(injectedApis?: AppApis) {
+  const ctxApis = useApis()
+  const apis = injectedApis ?? ctxApis
   const [period, setPeriod] = useState<CostPeriod>(COST_PERIOD.CURRENT_MONTH)
   const [drill, setDrill] = useState<DrillState>(ROOT_DRILL)
 
-  const { data, loading } = useAsyncResource(async () => {
+  const { data, loading, error, refresh } = useAsyncResource(async () => {
     const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
-      dashboardApi.getCostSummary(period),
-      dashboardApi.getDailyCosts(period),
+      apis.dashboardApi.getCostSummary(period),
+      apis.dashboardApi.getDailyCosts(period),
       drill.level === 'members' && drill.deptId
-        ? dashboardApi.getDepartmentMemberCosts(drill.deptId, period)
-        : dashboardApi.getDepartmentCosts({
+        ? apis.dashboardApi.getDepartmentMemberCosts(drill.deptId, period)
+        : apis.dashboardApi.getDepartmentCosts({
             parentId: drill.parentId ?? undefined,
             period,
           }),
-      dashboardApi.getTopConsumers({ limit: 5, period }),
+      apis.dashboardApi.getTopConsumers({ limit: 5, period }),
     ])
     return { summary, dailyCosts, deptCosts, topConsumers }
-  }, [period, drill])
+  }, [apis, period, drill])
 
   const handlePeriodChange = useCallback((value: string | null) => {
     if (!value) return
@@ -183,6 +186,8 @@ export function useCostDashboard() {
     period,
     drill,
     loading,
+    error,
+    refresh,
     summary,
     dailyCosts,
     topConsumers,

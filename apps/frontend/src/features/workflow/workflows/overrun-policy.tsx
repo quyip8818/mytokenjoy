@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { budgetApi } from '@/api/budget'
 import type { OverrunPolicyConfig } from '@/api/types'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -17,14 +17,15 @@ export function OverrunPolicyWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'overrun-policy'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [config, setConfig] = useState<OverrunPolicyConfig | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    budgetApi.getOverrunPolicy().then(setConfig)
-  }, [])
+    apis.budgetApi.getOverrunPolicy().then(setConfig)
+  }, [apis])
 
   const updateThreshold = (index: number, value: string) => {
     if (!config) return
@@ -50,7 +51,7 @@ export function OverrunPolicyWorkflow({
     if (!config) return
     setSubmitting(true)
     try {
-      await budgetApi.updateOverrunPolicy(config)
+      await apis.budgetApi.updateOverrunPolicy(config)
       toast.success('策略已保存')
       onSuccess?.()
       closeAll()

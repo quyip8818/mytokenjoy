@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Member } from '@/api/types'
-import { memberApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -14,6 +14,7 @@ export function PickMembersWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'pick-members'>) {
+  const apis = useApis()
   const departmentId = entry.payload.departmentId as string
   const selectedIds = (entry.payload.selectedIds as string[]) ?? []
   const onConfirm = entry.payload.onConfirm as
@@ -26,13 +27,13 @@ export function PickMembersWorkflow({
   useEffect(() => {
     if (!departmentId) return
     let cancelled = false
-    void memberApi.list({ departmentId, page: 1, pageSize: 100 }).then((res) => {
+    void apis.memberApi.list({ departmentId, page: 1, pageSize: 100 }).then((res) => {
       if (!cancelled) setMembers(res.items)
     })
     return () => {
       cancelled = true
     }
-  }, [departmentId])
+  }, [apis, departmentId])
 
   const toggleMember = (member: Member) => {
     setSelected((prev) => {

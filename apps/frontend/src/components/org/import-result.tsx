@@ -6,7 +6,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import type { ImportFailure, ImportResult } from '@/api/types'
-import { dataSourceApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -32,6 +32,7 @@ const columns = [
 ]
 
 export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResultProps) {
+  const apis = useApis()
   const [retrying, setRetrying] = useState<Set<string>>(new Set())
   const [retryingAll, setRetryingAll] = useState(false)
 
@@ -61,7 +62,7 @@ export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResu
   const handleRetry = async (id: string) => {
     setRetrying((prev) => new Set(prev).add(id))
     try {
-      const res = await dataSourceApi.retryImport([id])
+      const res = await apis.dataSourceApi.retryImport([id])
       const updatedFailures = result.failures.filter((f) => f.id !== id)
       onUpdate({
         successMembers: result.successMembers + res.successMembers,
@@ -81,7 +82,7 @@ export function ImportResultView({ result, onNavigateOrg, onUpdate }: ImportResu
     const ids = result.failures.map((f) => f.id)
     setRetryingAll(true)
     try {
-      const res = await dataSourceApi.retryImport(ids)
+      const res = await apis.dataSourceApi.retryImport(ids)
       onUpdate({
         successMembers: result.successMembers + res.successMembers,
         successDepartments: result.successDepartments + res.successDepartments,

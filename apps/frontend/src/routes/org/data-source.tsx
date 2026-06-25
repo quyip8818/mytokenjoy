@@ -1,23 +1,18 @@
 import { Plug } from 'lucide-react'
-import type { Platform } from '@/api/types'
 import { ImportResultView } from '@/components/org/import-result'
 import { SyncLogTable } from '@/components/org/sync-log-table'
 import { DataSourceInitProgress } from '@/components/org/data-source-init-progress'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { ErrorState } from '@/components/ui/error-state'
 import { EmptyState } from '@/components/ui/empty-state'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { PLATFORM_LABELS } from '@/lib/labels'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
 import { useDataSourcePage } from '@/routes/org/hooks/use-data-source-page'
-
-const platformLabels: Record<Platform, string> = {
-  feishu: '飞书',
-  dingtalk: '钉钉',
-  wecom: '企业微信',
-}
 
 export default function DataSourcePage() {
   const {
@@ -28,6 +23,8 @@ export default function DataSourcePage() {
     status,
     syncConfig,
     loading,
+    error,
+    refresh,
     imported,
     setImportResult,
     handleImport,
@@ -36,7 +33,25 @@ export default function DataSourcePage() {
     navigateToStructure,
   } = useDataSourcePage()
 
-  if (loading || !status) {
+  if (loading) {
+    return (
+      <PageShell>
+        <DataSection loading loadingVariant="spinner">
+          <div />
+        </DataSection>
+      </PageShell>
+    )
+  }
+
+  if (error) {
+    return (
+      <PageShell>
+        <ErrorState message={error.message} onRetry={refresh} />
+      </PageShell>
+    )
+  }
+
+  if (!status) {
     return (
       <PageShell>
         <DataSection loading loadingVariant="spinner">
@@ -55,7 +70,7 @@ export default function DataSourcePage() {
           <div className="flex items-center gap-2">
             <StatusBadge variant="success">已连接</StatusBadge>
             <span className="text-sm text-emerald-800">
-              当前数据源：{platformLabels[status.platform]}
+              当前数据源：{PLATFORM_LABELS[status.platform]}
             </span>
           </div>
           <div className="flex gap-2">

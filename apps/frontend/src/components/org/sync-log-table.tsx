@@ -6,7 +6,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import type { SyncLog } from '@/api/types'
-import { syncApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import {
   Table,
   TableBody,
@@ -54,15 +54,16 @@ const columns = [
 ]
 
 export function SyncLogTable() {
+  const apis = useApis()
   const [logs, setLogs] = useState<SyncLog[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    syncApi.getLogs(1, 10).then((res) => {
+    apis.syncApi.getLogs(1, 10).then((res) => {
       setLogs(res.items)
       setLoading(false)
     })
-  }, [])
+  }, [apis])
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns unstable function refs
   const table = useReactTable({

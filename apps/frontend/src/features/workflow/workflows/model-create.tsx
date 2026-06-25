@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { modelApi } from '@/api/models'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -13,6 +13,7 @@ export function ModelCreateWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'model-create'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
   const [name, setName] = useState('')
@@ -26,7 +27,7 @@ export function ModelCreateWorkflow({
     if (!name.trim() || !baseUrl.trim()) return
     setSubmitting(true)
     try {
-      const created = await modelApi.create({
+      const created = await apis.modelApi.create({
         name: name.trim(),
         displayName: name.trim(),
         baseUrl: baseUrl.trim(),

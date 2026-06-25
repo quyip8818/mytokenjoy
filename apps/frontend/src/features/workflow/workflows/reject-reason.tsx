@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { approvalApi } from '@/api/keys'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -14,6 +14,7 @@ export function RejectReasonWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'reject-reason'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const approvalId = entry.payload.approvalId as string
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -27,7 +28,7 @@ export function RejectReasonWorkflow({
     }
     setSubmitting(true)
     try {
-      await approvalApi.reject(approvalId, reason)
+      await apis.approvalApi.reject(approvalId, reason)
       toast.success('已拒绝')
       onSuccess?.()
       closeAll()

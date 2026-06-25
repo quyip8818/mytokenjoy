@@ -17,56 +17,19 @@ import {
 } from '@/components/ui/select'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
 import { AuditToolbar } from '@/components/audit/audit-toolbar'
-import { auditApi } from '@/api/audit'
-import { useFilteredResource } from '@/hooks/use-filtered-resource'
-import { getOperationActionBadgeVariant } from '@/lib/labels'
-import { downloadCsv } from '@/lib/csv-export'
-
-const actionLabels: Record<string, string> = {
-  key_create: 'Key 创建',
-  key_disable: 'Key 禁用',
-  key_rotate: 'Key 轮转',
-  budget_change: '预算变更',
-  budget_approve: '预算审批',
-  permission_change: '权限变更',
-  role_assign: '角色分配',
-  model_whitelist_change: '白名单变更',
-  member_add: '成员添加',
-  member_remove: '成员移除',
-  org_structure_change: '组织结构变更',
-}
+import { getOperationActionBadgeVariant, OPERATION_ACTION_LABELS } from '@/lib/labels'
+import { useAuditOperationsPage } from '@/routes/audit/hooks/use-audit-operations-page'
 
 export default function OperationLogsPage() {
-  const {
-    data: logs = [],
-    loading,
-    filter: actionFilter,
-    setFilter: setActionFilter,
-  } = useFilteredResource(async (filter) => {
-    const params = filter !== 'all' ? { action: filter } : undefined
-    const res = await auditApi.getOperations(params)
-    return res.items
-  }, 'all')
-
-  const handleExport = () => {
-    downloadCsv(
-      'operation-audit.csv',
-      ['时间', '操作类型', '操作人', '操作对象', '详情', 'IP'],
-      logs.map((log) => [
-        log.createdAt,
-        actionLabels[log.action] ?? log.action,
-        log.operator,
-        log.target,
-        log.detail,
-        log.ip,
-      ]),
-    )
-  }
+  const { logs, loading, error, refresh, actionFilter, setActionFilter, handleExport } =
+    useAuditOperationsPage()
 
   return (
     <AuditFilteredPage
       title="操作记录"
       loading={loading}
+      error={error}
+      onRetry={refresh}
       items={logs}
       empty={{
         icon: ScrollText,
@@ -113,7 +76,7 @@ export default function OperationLogsPage() {
               </TableCell>
               <TableCell>
                 <StatusBadge variant={getOperationActionBadgeVariant(log.action)}>
-                  {actionLabels[log.action] ?? log.action}
+                  {OPERATION_ACTION_LABELS[log.action] ?? log.action}
                 </StatusBadge>
               </TableCell>
               <TableCell className="font-medium">{log.operator}</TableCell>

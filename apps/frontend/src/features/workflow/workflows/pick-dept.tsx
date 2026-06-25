@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { departmentApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { WorkflowListItem, WorkflowScrollList } from '../components/workflow-list-item'
@@ -13,6 +13,7 @@ export function PickDeptWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'pick-dept'>) {
+  const apis = useApis()
   const selectedId = (entry.payload.selectedId as string) ?? ''
   const onConfirm = entry.payload.onConfirm as ((deptId: string) => void) | undefined
   const [departments, setDepartments] = useState<{ id: string; name: string; level: number }[]>([])
@@ -20,8 +21,8 @@ export function PickDeptWorkflow({
   const [picked, setPicked] = useState(selectedId)
 
   useEffect(() => {
-    departmentApi.getTree().then((tree) => setDepartments(flattenDepartments(tree)))
-  }, [])
+    apis.departmentApi.getTree().then((tree) => setDepartments(flattenDepartments(tree)))
+  }, [apis])
 
   const filtered = departments.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
 

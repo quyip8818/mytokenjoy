@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { approvalApi } from '@/api/keys'
 import { ApiError } from '@/api/client'
+import { useApis } from '@/api/use-apis'
 import { useDemoRole } from '@/features/demo'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
@@ -29,6 +29,7 @@ export function ApprovalSubmitWorkflow({
   onPush,
   onSetDirty,
 }: WorkflowComponentProps<'approval-submit'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const { memberId } = useDemoRole()
   const { resolveWhitelist } = useMemberWhitelist()
@@ -64,7 +65,7 @@ export function ApprovalSubmitWorkflow({
     if (!(await validateModels())) return
     setSubmitting(true)
     try {
-      await approvalApi.create({
+      await apis.approvalApi.create({
         type,
         reason,
         requestedQuota: Number(quota),

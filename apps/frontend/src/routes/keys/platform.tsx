@@ -1,37 +1,16 @@
-import { toast } from 'sonner'
 import { CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlatformKeyTable } from '@/components/keys/platform-key-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import { platformKeyApi } from '@/api/keys'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
-import { useRowHighlight } from '@/lib/use-row-highlight'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
+import { usePlatformKeysPage } from '@/routes/keys/hooks/use-platform-keys-page'
 
 export default function PlatformKeysPage() {
-  const { flashRow, rowClass } = useRowHighlight()
-  const {
-    data: keys = [],
-    loading,
-    refresh,
-  } = useAsyncResource(async () => {
-    const res = await platformKeyApi.list()
-    return res.items
-  }, [])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
-
-  const handleRevoke = async (id: string) => {
-    await platformKeyApi.revoke(id)
-    toast.success('Key 已吊销')
-    flashRow(id)
-    void refresh()
-  }
-
-  const openCreateKey = () => openWithRefresh('key-create', { adminCreate: true })
+  const { keys, loading, error, refresh, rowClass, handleRevoke, openCreateKey } =
+    usePlatformKeysPage()
 
   return (
     <PageShell
@@ -45,6 +24,8 @@ export default function PlatformKeysPage() {
     >
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={8}
         empty={listEmpty(loading, keys, {
           icon: CreditCard,

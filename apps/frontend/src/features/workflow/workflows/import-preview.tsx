@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { BatchImportRow } from '@/api/types'
-import { memberApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -20,6 +20,7 @@ export function ImportPreviewWorkflow({
   onPop,
   onClose,
 }: WorkflowComponentProps<'import-preview'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const rows = (entry.payload.rows as BatchImportRow[]) ?? []
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -28,7 +29,7 @@ export function ImportPreviewWorkflow({
   const handleConfirm = async () => {
     setSubmitting(true)
     try {
-      const result = await memberApi.batchImport(rows)
+      const result = await apis.memberApi.batchImport(rows)
       toast.success(`成功导入 ${result.imported} 名成员`)
       if (result.failures.length > 0) {
         toast.warning(`${result.failures.length} 行导入失败`)

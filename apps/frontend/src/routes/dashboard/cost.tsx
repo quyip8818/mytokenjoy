@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PageShell } from '@/components/layout/page-shell'
+import { ErrorState } from '@/components/ui/error-state'
 import { COST_PERIOD_LABELS } from '@/lib/dashboard-constants'
 import { useCostDashboard } from '@/routes/dashboard/hooks/use-cost-dashboard'
 import { CostSummaryStats } from '@/routes/dashboard/components/cost-summary-stats'
@@ -19,6 +20,8 @@ export default function CostDashboardPage() {
     period,
     drill,
     loading,
+    error,
+    refresh,
     dailyCosts,
     topConsumers,
     deptCosts,
@@ -31,6 +34,14 @@ export default function CostDashboardPage() {
     handleDrillDept,
     handleDrillBack,
   } = useCostDashboard()
+
+  if (error) {
+    return (
+      <PageShell>
+        <ErrorState message={error.message} onRetry={refresh} />
+      </PageShell>
+    )
+  }
 
   return (
     <PageShell

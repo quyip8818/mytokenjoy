@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Department } from '@/api/types'
-import { departmentApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -23,15 +23,16 @@ function DeptFormInner({
   onSetDirty: (dirty: boolean) => void
   onSuccess?: () => void
 }) {
+  const apis = useApis()
   const [name, setName] = useState(department?.name ?? '')
   const [error, setError] = useState('')
   const { submit, submitting } = useWorkflowSubmit({
     validate: () => (!name.trim() ? '请输入部门名称' : null),
     onSubmit: async () => {
       if (department) {
-        await departmentApi.update(department.id, { name: name.trim() })
+        await apis.departmentApi.update(department.id, { name: name.trim() })
       } else if (parentId) {
-        await departmentApi.create({ name: name.trim(), parentId })
+        await apis.departmentApi.create({ name: name.trim(), parentId })
       }
     },
     successMessage: department ? '部门已更新' : '部门已创建',

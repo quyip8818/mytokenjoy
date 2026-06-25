@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import type { AppApis } from '@/api/app-apis'
+import { useApis } from '@/api/use-apis'
 import type { ImportResult } from '@/api/types'
-import { dataSourceApi, syncApi } from '@/api/org'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { useDemoCta } from '@/features/demo'
 import { ROUTES } from '@/config/routes'
 
-export function useDataSourcePage() {
+export function useDataSourcePage(injectedApis?: AppApis) {
+  const ctxApis = useApis()
+  const apis = injectedApis ?? ctxApis
   const navigate = useNavigate()
   const credentialCta = useDemoCta('CREDENTIAL')
   const importCta = useDemoCta('IMPORT')
@@ -16,10 +19,13 @@ export function useDataSourcePage() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [triggeringSync, setTriggeringSync] = useState(false)
 
-  const { data, loading, refresh } = useAsyncResource(async () => {
-    const [status, syncConfig] = await Promise.all([dataSourceApi.getStatus(), syncApi.getConfig()])
+  const { data, loading, error, refresh } = useAsyncResource(async () => {
+    const [status, syncConfig] = await Promise.all([
+      apis.dataSourceApi.getStatus(),
+      apis.syncApi.getConfig(),
+    ])
     return { status, syncConfig }
-  }, [])
+  }, [apis])
 
   const status = data?.status ?? null
   const syncConfig = data?.syncConfig ?? null
@@ -31,7 +37,7 @@ export function useDataSourcePage() {
   const handleImport = async () => {
     setImporting(true)
     try {
-      const result = await dataSourceApi.import()
+      const result = await apis.dataSourceApi.import()
       setImportResult(result)
       toast.success(`导入完成：${result.successMembers} 人 / ${result.successDepartments} 个部门`)
     } finally {
@@ -42,7 +48,7 @@ export function useDataSourcePage() {
   const handleTriggerSync = async () => {
     setTriggeringSync(true)
     try {
-      const result = await syncApi.triggerSync()
+      const result = await apis.syncApi.triggerSync()
       setImportResult(result)
       toast.success('同步完成')
     } finally {
@@ -78,6 +84,8 @@ export function useDataSourcePage() {
     status,
     syncConfig,
     loading,
+    error,
+    refresh,
     imported,
     setImportResult,
     handleImport,

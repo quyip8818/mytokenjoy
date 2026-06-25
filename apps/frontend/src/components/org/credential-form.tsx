@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Credential, Platform } from '@/api/types'
-import { dataSourceApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
+import { PLATFORM_LABELS } from '@/lib/labels'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,13 +43,8 @@ interface WecomFields {
 
 type FormFields = FeishuFields & DingtalkFields & WecomFields
 
-const platformLabels: Record<Platform, string> = {
-  feishu: '飞书',
-  dingtalk: '钉钉',
-  wecom: '企业微信',
-}
-
 export function CredentialForm({ connected, currentPlatform, onSaved }: CredentialFormProps) {
+  const apis = useApis()
   const [platform, setPlatform] = useState<Platform>(currentPlatform || 'feishu')
   const [testSuccess, setTestSuccess] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -117,7 +113,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
     setTesting(true)
     setTestMessage('')
     try {
-      const res = await dataSourceApi.testConnection(credential)
+      const res = await apis.dataSourceApi.testConnection(credential)
       if (res.success) {
         setTestSuccess(true)
         setTestMessage('连接成功')
@@ -133,7 +129,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
 
   const handleSearch = async () => {
     if (!searchKeyword.trim()) return
-    const result = await dataSourceApi.searchMember(searchKeyword)
+    const result = await apis.dataSourceApi.searchMember(searchKeyword)
     setSearchResult(result)
   }
 
@@ -150,7 +146,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
     const credential = buildCredential(values)
     setSaving(true)
     try {
-      await dataSourceApi.save(credential)
+      await apis.dataSourceApi.save(credential)
       onSaved()
     } finally {
       setSaving(false)
@@ -170,7 +166,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
           {(['feishu', 'dingtalk', 'wecom'] as Platform[]).map((p) => (
             <Label key={p} className="cursor-pointer">
               <RadioGroupItem value={p} />
-              <span className="text-sm">{platformLabels[p]}</span>
+              <span className="text-sm">{PLATFORM_LABELS[p]}</span>
             </Label>
           ))}
         </RadioGroup>

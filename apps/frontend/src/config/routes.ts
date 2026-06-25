@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { PERMISSION, type PermissionKey } from '@/lib/permissions'
+import { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 
 export const ROUTES = {
   home: '/',

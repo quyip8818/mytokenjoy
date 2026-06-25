@@ -1,6 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { toast } from 'sonner'
-import { sessionApi } from '@/api/session'
+import type { AppApis } from '@/api/app-apis'
+import { defaultApis } from '@/api/app-apis'
 import { setDemoMemberIdProvider } from '@/api/client'
 import type { Member } from '@/api/types'
 import {
@@ -36,6 +37,7 @@ function profileFromMember(member: Member) {
 
 export function createDemoRoleStore(
   initialMemberId: string = DEFAULT_DEMO_MEMBER_ID,
+  apis: Pick<AppApis, 'sessionApi'> = defaultApis,
 ): StoreApi<DemoRoleStoreState> {
   const fallback = DEMO_SWITCHABLE_MEMBERS.find((m) => m.id === initialMemberId)
   const store = createStore<DemoRoleStoreState>((set, get) => ({
@@ -54,7 +56,7 @@ export function createDemoRoleStore(
     refreshSession: async () => {
       const { memberId } = get()
       try {
-        const session = await sessionApi.get(memberId)
+        const session = await apis.sessionApi.get(memberId)
         const profile = profileFromMember(session.member)
         set({
           member: session.member,

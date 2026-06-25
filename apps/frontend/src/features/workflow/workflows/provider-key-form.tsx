@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { providerKeyApi } from '@/api/keys'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -28,6 +28,7 @@ export function ProviderKeyFormWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'provider-key-form'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [provider, setProvider] = useState('openai')
@@ -39,7 +40,7 @@ export function ProviderKeyFormWorkflow({
     if (!name || !keyValue) return
     setSubmitting(true)
     try {
-      await providerKeyApi.create({ provider, name, key: keyValue })
+      await apis.providerKeyApi.create({ provider, name, key: keyValue })
       toast.success('供应商 Key 已添加')
       onSuccess?.()
       closeAll()

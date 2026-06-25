@@ -18,6 +18,8 @@ export default function StructurePage() {
     page,
     pageSize,
     membersLoading,
+    error,
+    refresh,
     directOnly,
     rowSelection,
     confirmState,
@@ -84,6 +86,8 @@ export default function StructurePage() {
 
       <DataSection
         loading={membersLoading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={6}
         empty={
           !membersLoading && members.length === 0 && total === 0

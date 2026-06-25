@@ -1,7 +1,7 @@
 import { KeyRound, Plus } from 'lucide-react'
 import type { PlatformKey } from '@/api/types'
 import { listEmpty } from '@/lib/list-empty'
-import { useRowHighlight } from '@/lib/use-row-highlight'
+import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatCard } from '@/components/ui/stat-card'
@@ -19,6 +19,8 @@ export default function MyKeysPage() {
     keys,
     quota,
     loading,
+    error,
+    refresh,
     deleteTarget,
     setDeleteTarget,
     applyQuotaCta,
@@ -82,6 +84,8 @@ export default function MyKeysPage() {
     >
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={6}
         empty={listEmpty(loading, keys, {
           icon: KeyRound,

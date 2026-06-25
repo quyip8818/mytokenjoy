@@ -1,5 +1,6 @@
 import type { Member, Role } from '@/api/types'
 import { HOME_PATH_CANDIDATES, ROUTE_META, ROUTES } from '@/config/routes'
+import { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 import {
   ROLE_API_CALLER,
   ROLE_AUDITOR,
@@ -8,28 +9,7 @@ import {
   ROLE_SUPER_ADMIN,
 } from '@/lib/role-constants'
 
-export const PERMISSION = {
-  ORG_DATASOURCE: 'org:datasource',
-  ORG_STRUCTURE: 'org:structure',
-  ORG_ROLES: 'org:roles',
-  ORG_MEMBERS: 'org:members',
-  BUDGET_READ: 'budget:read',
-  BUDGET_ALLOCATE: 'budget:allocate',
-  BUDGET_APPROVE: 'budget:approve',
-  BUDGET_POLICY: 'budget:policy',
-  MODEL_MANAGE: 'model:manage',
-  MODEL_WHITELIST: 'model:whitelist',
-  KEYS_ADMIN: 'keys:admin',
-  KEYS_PROVIDER: 'keys:provider',
-  SELF_KEYS: 'self:keys',
-  SELF_APPROVAL: 'self:approval',
-  DASHBOARD_COST: 'dashboard:cost',
-  DASHBOARD_USAGE: 'dashboard:usage',
-  AUDIT_READ: 'audit:read',
-  API_CALL: 'api:call',
-} as const
-
-export type PermissionKey = (typeof PERMISSION)[keyof typeof PERMISSION]
+export { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 
 export const ALL_PERMISSIONS: PermissionKey[] = Object.values(PERMISSION)
 

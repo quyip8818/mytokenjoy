@@ -1,8 +1,4 @@
 import { Link } from 'react-router'
-import { budgetApi } from '@/api/budget'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { useDemoCta } from '@/features/demo'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { Button } from '@/components/ui/button'
@@ -10,27 +6,19 @@ import { Badge } from '@/components/ui/badge'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { ROUTES } from '@/config/routes'
 import { PERMISSION } from '@/lib/permissions'
+import { useBudgetAlertsPage } from '@/routes/budget/hooks/use-budget-alerts-page'
 
 export default function BudgetAlertsPage() {
-  const overrunCta = useDemoCta('OVERRUN')
-  const {
-    data: policy = null,
-    loading,
-    refresh,
-  } = useAsyncResource(() => budgetApi.getOverrunPolicy(), [])
-  const { openWithRefresh } = useWorkflowRefresh(refresh)
-
-  const notifyLabels = [
-    policy?.notifyEmail && '邮箱',
-    policy?.notifyPhone && '手机',
-    policy?.notifyIm && 'IM',
-  ].filter(Boolean)
+  const { policy, loading, error, refresh, overrunCta, notifyLabels, openEditPolicy } =
+    useBudgetAlertsPage()
 
   return (
     <PageShell>
       <DataSection
         title="全局超限策略"
         loading={loading}
+        error={error}
+        onRetry={refresh}
         loadingVariant="spinner"
         headerAction={
           <PermissionGate write permission={PERMISSION.BUDGET_POLICY}>
@@ -39,7 +27,7 @@ export default function BudgetAlertsPage() {
               size="sm"
               variant="brand"
               className={overrunCta.className}
-              onClick={() => openWithRefresh('overrun-policy')}
+              onClick={openEditPolicy}
             >
               编辑策略
             </Button>

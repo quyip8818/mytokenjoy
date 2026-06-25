@@ -1,0 +1,51 @@
+import { useCallback } from 'react'
+import { toast } from 'sonner'
+import type { AppApis } from '@/api/app-apis'
+import { useApis } from '@/api/use-apis'
+import type { ModelInfo } from '@/api/types'
+import { useDemoCta } from '@/features/demo'
+import { useAsyncResource } from '@/hooks/use-async-resource'
+import { usePermissions } from '@/hooks/use-permissions'
+import { useRowHighlight } from '@/hooks/use-row-highlight'
+import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { PERMISSION } from '@/lib/permissions'
+
+export function useModelListPage(injectedApis?: AppApis) {
+  const ctxApis = useApis()
+  const apis = injectedApis ?? ctxApis
+  const { flashRow, rowClass } = useRowHighlight()
+  const modelCta = useDemoCta('MODEL')
+  const { has } = usePermissions()
+  const canManage = has(PERMISSION.MODEL_MANAGE)
+  const {
+    data: models = [],
+    loading,
+    error,
+    refresh,
+  } = useAsyncResource(() => apis.modelApi.list(), [apis])
+  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
+
+  const handleToggle = useCallback(
+    async (model: ModelInfo) => {
+      await apis.modelApi.toggle(model.id, !model.enabled)
+      toast.success(model.enabled ? '模型已禁用' : '模型已启用')
+      flashRow(model.id)
+      void refresh()
+    },
+    [apis, flashRow, refresh],
+  )
+
+  const openCreate = useCallback(() => openWithRefresh('model-create'), [openWithRefresh])
+
+  return {
+    models,
+    loading,
+    error,
+    refresh,
+    canManage,
+    modelCta,
+    rowClass,
+    handleToggle,
+    openCreate,
+  }
+}

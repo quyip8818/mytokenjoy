@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import type { Member } from '@/api/types'
-import { memberApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { WorkflowPickerShell } from '../components/workflow-picker-shell'
@@ -17,6 +17,7 @@ export function MemberSearchWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'member-search'>) {
+  const apis = useApis()
   const excludeIds = (entry.payload.excludeIds as string[]) ?? []
   const onConfirm = entry.payload.onConfirm as ((members: Member[]) => void) | undefined
   const multi = entry.payload.multi !== false
@@ -30,7 +31,7 @@ export function MemberSearchWorkflow({
     if (!keyword.trim()) return
     setLoading(true)
     try {
-      const res = await memberApi.list({ page: 1, pageSize: 30, keyword: keyword.trim() })
+      const res = await apis.memberApi.list({ page: 1, pageSize: 30, keyword: keyword.trim() })
       setResults(res.items.filter((m) => !excludeIds.includes(m.id)))
     } catch {
       setResults([])

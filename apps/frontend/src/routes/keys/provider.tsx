@@ -1,38 +1,16 @@
-import { toast } from 'sonner'
 import { Key } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProviderKeyTable } from '@/components/keys/provider-key-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import { providerKeyApi } from '@/api/keys'
-import type { ProviderKey } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
-import { useRowHighlight } from '@/lib/use-row-highlight'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
+import { useProviderKeysPage } from '@/routes/keys/hooks/use-provider-keys-page'
 
 export default function ProviderKeysPage() {
-  const { flashRow, rowClass } = useRowHighlight()
-  const { data: keys = [], loading, refresh } = useAsyncResource(() => providerKeyApi.list(), [])
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
-
-  const handleToggle = async (key: ProviderKey) => {
-    const enabled = key.status !== 'active'
-    await providerKeyApi.toggle(key.id, enabled)
-    toast.success(enabled ? 'Key 已启用' : 'Key 已禁用')
-    flashRow(key.id)
-    void refresh()
-  }
-
-  const handleDelete = async (id: string) => {
-    await providerKeyApi.delete(id)
-    toast.success('Key 已删除')
-    void refresh()
-  }
-
-  const openForm = () => openWithRefresh('provider-key-form')
+  const { keys, loading, error, refresh, rowClass, handleToggle, handleDelete, openForm } =
+    useProviderKeysPage()
 
   return (
     <PageShell
@@ -46,6 +24,8 @@ export default function ProviderKeysPage() {
     >
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={7}
         empty={listEmpty(loading, keys, {
           icon: Key,

@@ -1,127 +1,18 @@
 import { Link } from 'react-router'
-import { useState } from 'react'
 import { PieChart } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
-import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { budgetApi } from '@/api/budget'
-import type { BudgetNode } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { useDemoCta } from '@/features/demo'
-import { computeUnallocated, findBudgetNode } from '@/lib/budget'
 import { listEmpty } from '@/lib/list-empty'
-import { cn } from '@/lib/utils'
 import { ROUTES } from '@/config/routes'
-import { usePermissions } from '@/hooks/use-permissions'
-import { PERMISSION } from '@/lib/permissions'
-
-function BudgetRow({
-  node,
-  depth,
-  tree,
-  onAllocate,
-  allocateHighlight,
-  allocateCtaId,
-  canAllocate = true,
-}: {
-  node: BudgetNode
-  depth: number
-  tree: BudgetNode[]
-  onAllocate: (node: BudgetNode, parent: BudgetNode | null) => void
-  allocateHighlight?: string
-  allocateCtaId?: string
-  canAllocate?: boolean
-}) {
-  const [expanded, setExpanded] = useState(true)
-  const hasChildren = node.children && node.children.length > 0
-  const parent = node.parentId ? findBudgetNode(tree, node.parentId) : null
-  const unallocated = computeUnallocated(node)
-
-  return (
-    <>
-      <TableRow>
-        <TableCell>
-          <div className="flex items-center" style={{ paddingLeft: `${depth * 20}px` }}>
-            {hasChildren && (
-              <button
-                type="button"
-                onClick={() => setExpanded(!expanded)}
-                className="mr-2 w-4 text-xs text-blue-400 hover:text-blue-300"
-              >
-                {expanded ? '▾' : '▸'}
-              </button>
-            )}
-            {!hasChildren && <span className="mr-2 w-4" />}
-            <span className="font-medium">{node.name}</span>
-          </div>
-        </TableCell>
-        <TableCell className="text-right">¥{node.budget.toLocaleString()}</TableCell>
-        <TableCell className="text-right">¥{node.consumed.toLocaleString()}</TableCell>
-        <TableCell className="text-right">¥{(node.reservedPool ?? 0).toLocaleString()}</TableCell>
-        <TableCell className="text-right">¥{unallocated.toLocaleString()}</TableCell>
-        <TableCell className="w-40">
-          <BudgetProgressCell value={node.consumed} total={node.budget} />
-        </TableCell>
-        <TableCell className="w-[120px]">
-          {canAllocate ? (
-            <Button
-              id={depth === 0 ? allocateCtaId : undefined}
-              variant="ghost"
-              size="sm"
-              className={cn(depth === 0 ? allocateHighlight : undefined)}
-              onClick={() => onAllocate(node, parent)}
-            >
-              分配
-            </Button>
-          ) : null}
-        </TableCell>
-      </TableRow>
-      {expanded &&
-        node.children?.map((child) => (
-          <BudgetRow
-            key={child.id}
-            node={child}
-            depth={depth + 1}
-            tree={tree}
-            onAllocate={onAllocate}
-            canAllocate={canAllocate}
-          />
-        ))}
-    </>
-  )
-}
+import { BudgetRow } from '@/routes/budget/components/budget-row'
+import { useBudgetOverviewPage } from '@/routes/budget/hooks/use-budget-overview-page'
 
 export default function BudgetOverviewPage() {
-  const budgetCta = useDemoCta('BUDGET')
-  const { has } = usePermissions()
-  const canAllocate = has(PERMISSION.BUDGET_ALLOCATE)
-  const { data: tree = [], loading, refresh } = useAsyncResource(() => budgetApi.getTree(), [])
-  const { openWithRefresh } = useWorkflowRefresh(refresh)
-
-  const root = tree[0]
-  const summary = root
-    ? {
-        budget: root.budget,
-        consumed: root.consumed,
-        unallocated: computeUnallocated(root),
-      }
-    : { budget: 0, consumed: 0, unallocated: 0 }
-
-  const handleAllocate = (node: BudgetNode, parent: BudgetNode | null) => {
-    openWithRefresh('budget-node-edit', { node, parent })
-  }
+  const { tree, loading, error, refresh, summary, canAllocate, budgetCta, handleAllocate } =
+    useBudgetOverviewPage()
 
   return (
     <PageShell
@@ -140,6 +31,8 @@ export default function BudgetOverviewPage() {
     >
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={7}
         empty={listEmpty(loading, tree, {
           icon: PieChart,

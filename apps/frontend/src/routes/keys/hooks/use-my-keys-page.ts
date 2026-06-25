@@ -1,25 +1,28 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { platformKeyApi } from '@/api/keys'
+import type { AppApis } from '@/api/app-apis'
+import { useApis } from '@/api/use-apis'
 import type { PlatformKey } from '@/api/types'
 import { useDemoRole, useDemoCta } from '@/features/demo'
 import { useAsyncResource } from '@/hooks/use-async-resource'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/workflow/constants'
 
-export function useMyKeysPage() {
+export function useMyKeysPage(injectedApis?: AppApis) {
+  const ctxApis = useApis()
+  const apis = injectedApis ?? ctxApis
   const { memberId } = useDemoRole()
   const applyQuotaCta = useDemoCta('APPLY_QUOTA')
   const createKeyCta = useDemoCta('CREATE_KEY')
   const [deleteTarget, setDeleteTarget] = useState<PlatformKey | null>(null)
 
-  const { data, loading, refresh } = useAsyncResource(async () => {
+  const { data, loading, error, refresh } = useAsyncResource(async () => {
     const [keyRes, quotaRes] = await Promise.all([
-      platformKeyApi.list({ memberId }),
-      platformKeyApi.getQuotaSummary(memberId),
+      apis.platformKeyApi.list({ memberId }),
+      apis.platformKeyApi.getQuotaSummary(memberId),
     ])
     return { keys: keyRes.items, quota: quotaRes }
-  }, [memberId])
+  }, [apis, memberId])
 
   const keys = data?.keys ?? []
   const quota = data?.quota ?? null
@@ -27,7 +30,7 @@ export function useMyKeysPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    await platformKeyApi.delete(deleteTarget.id)
+    await apis.platformKeyApi.delete(deleteTarget.id)
     toast.success('Key 已删除')
     setDeleteTarget(null)
     refresh()
@@ -35,7 +38,7 @@ export function useMyKeysPage() {
 
   const handleToggle = async (key: PlatformKey) => {
     const enabled = key.status !== 'active'
-    await platformKeyApi.toggle(key.id, enabled)
+    await apis.platformKeyApi.toggle(key.id, enabled)
     toast.success(enabled ? 'Key 已启用' : 'Key 已禁用')
     refresh()
     return key.id
@@ -56,7 +59,7 @@ export function useMyKeysPage() {
   const openRotateKey = (key: PlatformKey) => {
     open('key-rotate-confirm', {
       key,
-      onRotate: (k: PlatformKey) => platformKeyApi.rotate(k.id),
+      onRotate: (k: PlatformKey) => apis.platformKeyApi.rotate(k.id),
       onDone: refresh,
     })
   }
@@ -65,6 +68,7 @@ export function useMyKeysPage() {
     keys,
     quota,
     loading,
+    error,
     deleteTarget,
     setDeleteTarget,
     applyQuotaCta,

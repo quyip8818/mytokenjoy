@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router'
 import { ROUTE_TITLES } from '@/config/nav'
-import { usePageSubtitle } from '@/lib/page-subtitle'
+import { usePageSubtitle } from '@/hooks/use-page-subtitle'
 import { DemoBadge, DemoToolbar } from '@/features/demo'
 
 export function Header() {

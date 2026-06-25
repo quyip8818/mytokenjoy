@@ -8,6 +8,8 @@ interface AuditFilteredPageProps<T> {
   title: string
   actions: ReactNode
   loading: boolean
+  error?: Error | null
+  onRetry?: () => void
   items: readonly T[]
   empty: DataSectionEmptyProps
   children: ReactNode
@@ -17,6 +19,8 @@ export function AuditFilteredPage<T>({
   title,
   actions,
   loading,
+  error = null,
+  onRetry,
   items,
   empty,
   children,
@@ -27,6 +31,8 @@ export function AuditFilteredPage<T>({
         title={title}
         loading={loading}
         loadingVariant="spinner"
+        error={error}
+        onRetry={onRetry}
         empty={listEmpty(loading, items, empty)}
       >
         {children}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { budgetApi } from '@/api/budget'
 import type { BudgetGroup, BudgetNode, Member } from '@/api/types'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../use-workflow'
 import { findBudgetNode } from '@/lib/budget'
 import { flattenDepartments } from '@/lib/org'
-import { departmentApi, memberApi } from '@/api/org'
 
 export function BudgetGroupFormWorkflow({
   entry,
@@ -19,6 +18,7 @@ export function BudgetGroupFormWorkflow({
   onSetDirty,
   onPush,
 }: WorkflowComponentProps<'budget-group-form'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const group = entry.payload.group as BudgetGroup | undefined
   const tree = useMemo(() => (entry.payload.tree as BudgetNode[]) ?? [], [entry.payload.tree])
@@ -45,17 +45,17 @@ export function BudgetGroupFormWorkflow({
 
   useEffect(() => {
     if (!departmentId) return
-    departmentApi.getTree().then((depts) => {
+    apis.departmentApi.getTree().then((depts) => {
       const flat = flattenDepartments(depts)
       setDepartmentName(flat.find((d) => d.id === departmentId)?.name ?? '')
     })
-    memberApi.list({ departmentId, page: 1, pageSize: 100 }).then((res) => {
+    apis.memberApi.list({ departmentId, page: 1, pageSize: 100 }).then((res) => {
       const names = memberIds
         .map((id) => res.items.find((m) => m.id === id)?.name)
         .filter((n): n is string => !!n)
       setMemberNames(names)
     })
-  }, [departmentId, memberIds])
+  }, [apis, departmentId, memberIds])
 
   const openPickDept = () => {
     onPush('pick-dept', {
@@ -87,7 +87,7 @@ export function BudgetGroupFormWorkflow({
     setSubmitting(true)
     try {
       if (group) {
-        await budgetApi.updateGroup(group.id, {
+        await apis.budgetApi.updateGroup(group.id, {
           name,
           budget: Number(budget),
           departmentIds: [departmentId],
@@ -96,7 +96,7 @@ export function BudgetGroupFormWorkflow({
         toast.success('预算组已更新')
         onSuccess?.(group.id)
       } else {
-        const created = await budgetApi.createGroup({
+        const created = await apis.budgetApi.createGroup({
           name,
           budget: Number(budget),
           memberIds,

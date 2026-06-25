@@ -1,4 +1,3 @@
-import { toast } from 'sonner'
 import { Wallet, MoreHorizontal } from 'lucide-react'
 import {
   Table,
@@ -13,14 +12,8 @@ import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { BudgetProgressCell } from '@/components/ui/budget-progress-cell'
-import { budgetApi } from '@/api/budget'
-import type { BudgetGroup } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
-import { useRowHighlight } from '@/lib/use-row-highlight'
 import { PermissionGate } from '@/components/auth/permission-gate'
-import { usePermissions } from '@/hooks/use-permissions'
 import { PERMISSION } from '@/lib/permissions'
 import {
   DropdownMenu,
@@ -28,27 +21,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useBudgetAllocationPage } from '@/routes/budget/hooks/use-budget-allocation-page'
 
 export default function BudgetAllocationPage() {
-  const { flashRow, rowClass } = useRowHighlight()
-  const { canWrite } = usePermissions()
-  const { data, loading, refresh } = useAsyncResource(async () => {
-    const [groups, tree] = await Promise.all([budgetApi.getGroups(), budgetApi.getTree()])
-    return { groups, tree }
-  }, [])
-  const groups = data?.groups ?? []
-  const tree = data?.tree ?? []
-  const { openWithRefresh } = useWorkflowRefresh(refresh, flashRow)
-
-  const handleDelete = async (id: string) => {
-    await budgetApi.deleteGroup(id)
-    toast.success('预算组已删除')
-    void refresh()
-  }
-
-  const openForm = (group?: BudgetGroup) => {
-    openWithRefresh('budget-group-form', { group, tree })
-  }
+  const { groups, loading, error, refresh, canWrite, rowClass, handleDelete, openForm } =
+    useBudgetAllocationPage()
 
   return (
     <PageShell
@@ -67,6 +44,8 @@ export default function BudgetAllocationPage() {
     >
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={6}
         empty={listEmpty(loading, groups, {
           icon: Wallet,

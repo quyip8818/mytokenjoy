@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { X } from 'lucide-react'
 import type { Member } from '@/api/types'
-import { roleApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -16,6 +16,7 @@ export function RoleAddMemberWorkflow({
   onSetDirty,
   onPush,
 }: WorkflowComponentProps<'role-add-member'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const roleId = entry.payload.roleId as string
   const roleName = (entry.payload.roleName as string) ?? ''
@@ -52,7 +53,7 @@ export function RoleAddMemberWorkflow({
     setSubmitting(true)
     try {
       for (const m of pending) {
-        await roleApi.addMember(roleId, m.id)
+        await apis.roleApi.addMember(roleId, m.id)
       }
       toast.success(`已添加 ${pending.length} 名成员`)
       onSuccess?.()

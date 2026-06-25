@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { RowSelectionState } from '@tanstack/react-table'
+import type { AppApis } from '@/api/app-apis'
+import { useApis } from '@/api/use-apis'
 import type { Department, Member } from '@/api/types'
 import { useAsyncResource } from '@/hooks/use-async-resource'
-import { departmentApi, memberApi } from '@/api/org'
-import { approvalApi } from '@/api/keys'
 import { useWorkflow } from '@/features/workflow/use-workflow'
-import { usePageSubtitle } from '@/lib/page-subtitle'
+import { usePageSubtitle } from '@/hooks/use-page-subtitle'
 import { flattenDepartments, getDeptPath } from '@/lib/org'
 import { usePermissions } from '@/hooks/use-permissions'
 import { PERMISSION } from '@/lib/permissions'
@@ -22,7 +22,9 @@ const INITIAL_CONFIRM_STATE: ConfirmActionState = {
   onConfirm: () => {},
 }
 
-export function useStructurePage() {
+export function useStructurePage(injectedApis?: AppApis) {
+  const ctxApis = useApis()
+  const apis = injectedApis ?? ctxApis
   const { open } = useWorkflow()
   const { setSubtitle } = usePageSubtitle()
   const { canWrite, permissions } = usePermissions()
@@ -33,32 +35,40 @@ export function useStructurePage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmState, setConfirmState] = useState<ConfirmActionState>(INITIAL_CONFIRM_STATE)
 
-  const { data: departments = [], refresh: refreshDepartments } = useAsyncResource(
-    () => departmentApi.getTree(),
-    [],
-  )
+  const {
+    data: departments = [],
+    error: deptError,
+    refresh: refreshDepartments,
+  } = useAsyncResource(() => apis.departmentApi.getTree(), [apis])
 
   const {
     data: memberData,
     loading: membersLoading,
+    error: memberError,
     refresh: refreshMembers,
   } = useAsyncResource(async () => {
-    const params: Parameters<typeof memberApi.list>[0] = { page, pageSize: PAGE_SIZE }
+    const params: Parameters<typeof apis.memberApi.list>[0] = { page, pageSize: PAGE_SIZE }
     if (selectedDept) {
       params.departmentId = selectedDept.id
       params.directOnly = directOnly
     }
-    return memberApi.list(params)
-  }, [page, selectedDept, directOnly])
+    return apis.memberApi.list(params)
+  }, [apis, page, selectedDept, directOnly])
 
   const members = memberData?.items ?? []
   const total = memberData?.total ?? 0
 
   const { data: approvalPendingCount = 0 } = useAsyncResource(async () => {
     if (!canApprove) return 0
-    const items = await approvalApi.list({ tab: 'pending' })
+    const items = await apis.approvalApi.list({ tab: 'pending' })
     return items.length
-  }, [canApprove])
+  }, [apis, canApprove])
+
+  const error = memberError ?? deptError
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshDepartments(), refreshMembers()])
+  }, [refreshDepartments, refreshMembers])
 
   useEffect(() => {
     if (selectedDept && departments.length > 0) {
@@ -93,10 +103,10 @@ export function useStructurePage() {
         departmentId: string
       }) => {
         if (member) {
-          await memberApi.update(member.id, data)
+          await apis.memberApi.update(member.id, data)
         } else {
           const dept = flattenDepartments(departments).find((d) => d.id === data.departmentId)
-          await memberApi.create({ ...data, departmentName: dept?.name ?? '' })
+          await apis.memberApi.create({ ...data, departmentName: dept?.name ?? '' })
         }
         refreshMembers()
       },
@@ -114,7 +124,7 @@ export function useStructurePage() {
       desc,
       variant: status === 'inactive' ? 'danger' : 'primary',
       onConfirm: async () => {
-        await memberApi.updateStatus(ids, status)
+        await apis.memberApi.updateStatus(ids, status)
         setConfirmState((s) => ({ ...s, open: false }))
         setRowSelection({})
         refreshMembers()
@@ -129,7 +139,7 @@ export function useStructurePage() {
       desc: `确定删除 ${ids.length} 名成员？此操作不可恢复`,
       variant: 'danger',
       onConfirm: async () => {
-        await memberApi.delete(ids)
+        await apis.memberApi.delete(ids)
         setConfirmState((s) => ({ ...s, open: false }))
         setRowSelection({})
         refreshMembers()
@@ -141,7 +151,7 @@ export function useStructurePage() {
     const val = inviteValue.trim()
     if (!val) return
     const isEmail = val.includes('@')
-    await memberApi.invite(isEmail ? { email: val } : { phone: val })
+    await apis.memberApi.invite(isEmail ? { email: val } : { phone: val })
     refreshMembers()
   }
 
@@ -149,14 +159,16 @@ export function useStructurePage() {
     const inactiveIds = members
       .filter((m) => m.status === 'inactive' || m.status === 'pending')
       .map((m) => m.id)
-    const result = await memberApi.batchInvite(inactiveIds.length > 0 ? inactiveIds : undefined)
+    const result = await apis.memberApi.batchInvite(
+      inactiveIds.length > 0 ? inactiveIds : undefined,
+    )
     toast.success(`已向 ${result.sent} 名未激活成员发送邀请`)
   }
 
   const handleBatchTransfer = () => {
     open('pick-dept', {
       onConfirm: async (deptId: string) => {
-        await memberApi.transferDepartment(selectedIds, deptId)
+        await apis.memberApi.transferDepartment(selectedIds, deptId)
         setRowSelection({})
         refreshMembers()
       },
@@ -182,6 +194,8 @@ export function useStructurePage() {
     page,
     pageSize: PAGE_SIZE,
     membersLoading,
+    error,
+    refresh,
     directOnly,
     rowSelection,
     confirmState,

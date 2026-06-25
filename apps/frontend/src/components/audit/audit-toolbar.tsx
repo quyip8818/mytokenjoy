@@ -2,7 +2,7 @@ import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { useAuditSettings } from '@/hooks/use-audit-settings'
+import { useAuditSettings } from '@/routes/audit/hooks/use-audit-settings'
 
 interface AuditToolbarProps {
   onExport: () => void

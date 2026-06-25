@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { modelApi } from '@/api/models'
 import type { ModelInfo } from '@/api/types'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -15,6 +15,7 @@ export function ModelPickerWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'model-picker'>) {
+  const apis = useApis()
   const selected = (entry.payload.selectedModels as string[]) ?? []
   const parentWhitelist = (entry.payload.parentWhitelist as string[] | undefined) ?? undefined
   const onConfirm = entry.payload.onConfirm as ((models: string[]) => void) | undefined
@@ -23,14 +24,14 @@ export function ModelPickerWorkflow({
   const [picked, setPicked] = useState<string[]>(selected)
 
   useEffect(() => {
-    modelApi.list().then((list) => {
+    apis.modelApi.list().then((list) => {
       let enabled = list.filter((m) => m.enabled)
       if (parentWhitelist?.length) {
         enabled = enabled.filter((m) => parentWhitelist.includes(m.name))
       }
       setModels(enabled)
     })
-  }, [parentWhitelist])
+  }, [apis, parentWhitelist])
 
   const filtered = models.filter(
     (m) =>

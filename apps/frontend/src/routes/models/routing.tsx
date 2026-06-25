@@ -11,37 +11,21 @@ import { Button } from '@/components/ui/button'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { routingApi } from '@/api/models'
-import type { RoutingRule } from '@/api/types'
-import { useAsyncResource } from '@/hooks/use-async-resource'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
+import { useModelRoutingPage } from '@/routes/models/hooks/use-model-routing-page'
 
 export default function ModelRoutingPage() {
-  const { data: rules = [], loading, refresh } = useAsyncResource(() => routingApi.getRules(), [])
-  const { openWithRefresh } = useWorkflowRefresh(refresh)
-
-  const getParentCount = (rule: RoutingRule) => {
-    const parentMap: Record<string, string> = {
-      'dept-2': 'dept-1',
-      'dept-3': 'dept-2',
-      'dept-4': 'dept-2',
-      'dept-5': 'dept-2',
-      'dept-6': 'dept-1',
-      'dept-7': 'dept-1',
-      'dept-8': 'dept-1',
-    }
-    const parentId = parentMap[rule.nodeId]
-    const parent = parentId ? rules.find((r) => r.nodeId === parentId) : undefined
-    return parent?.allowedModels.length ?? rule.allowedModels.length
-  }
+  const { rules, loading, error, refresh, getParentCount, openWhitelistConfig } =
+    useModelRoutingPage()
 
   return (
     <PageShell>
       <DataSection
         loading={loading}
+        error={error}
+        onRetry={refresh}
         skeletonColumns={4}
         empty={listEmpty(loading, rules, {
           icon: GitBranch,
@@ -74,11 +58,7 @@ export default function ModelRoutingPage() {
                 </TableCell>
                 <TableCell>
                   <PermissionGate write permission={PERMISSION.MODEL_WHITELIST}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openWithRefresh('whitelist-config', { rule })}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => openWhitelistConfig(rule)}>
                       配置
                     </Button>
                   </PermissionGate>

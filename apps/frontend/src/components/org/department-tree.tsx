@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Pencil, X } from 'lucide-react'
 import type { Department } from '@/api/types'
-import { departmentApi } from '@/api/org'
+import { useApis } from '@/api/use-apis'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +41,7 @@ export function DepartmentTree({
   onTreeChange,
   readOnly = false,
 }: DepartmentTreeProps) {
+  const apis = useApis()
   const { open } = useWorkflow()
   const [tree, setTree] = useState<Department[]>([])
   const [search, setSearch] = useState('')
@@ -51,20 +52,20 @@ export function DepartmentTree({
   const [deleteError, setDeleteError] = useState('')
 
   const loadTree = async () => {
-    const data = await departmentApi.getTree()
+    const data = await apis.departmentApi.getTree()
     setTree(data)
   }
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const data = await departmentApi.getTree()
+      const data = await apis.departmentApi.getTree()
       if (!cancelled) setTree(data)
     })()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [apis])
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -90,7 +91,7 @@ export function DepartmentTree({
 
   const handleEdit = async (id: string) => {
     if (!editName.trim()) return
-    await departmentApi.update(id, { name: editName.trim() })
+    await apis.departmentApi.update(id, { name: editName.trim() })
     setEditId(null)
     setEditName('')
     loadTree()
@@ -113,7 +114,7 @@ export function DepartmentTree({
       setDeleteError('')
       return
     }
-    await departmentApi.delete(deleteTarget.id)
+    await apis.departmentApi.delete(deleteTarget.id)
     if (selectedId === deleteTarget.id) onSelect(undefined)
     setDeleteTarget(null)
     loadTree()

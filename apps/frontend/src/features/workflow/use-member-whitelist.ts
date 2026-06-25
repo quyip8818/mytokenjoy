@@ -1,19 +1,19 @@
 import { useCallback } from 'react'
-import { memberApi } from '@/api/org'
-import { routingApi } from '@/api/models'
+import { useApis } from '@/api/use-apis'
 import { useDemoRole } from '@/features/demo'
 import type { WorkflowComponentProps } from './types'
 
 export function useMemberWhitelist() {
+  const apis = useApis()
   const { memberId } = useDemoRole()
 
   const resolveWhitelist = useCallback(async (): Promise<string[] | undefined> => {
-    const res = await memberApi.list({ page: 1, pageSize: 500 })
+    const res = await apis.memberApi.list({ page: 1, pageSize: 500 })
     const member = res.items.find((m) => m.id === memberId)
     if (!member) return undefined
-    const resolved = await routingApi.resolveWhitelist(member.departmentId)
+    const resolved = await apis.routingApi.resolveWhitelist(member.departmentId)
     return resolved.allowedModels
-  }, [memberId])
+  }, [apis, memberId])
 
   return { resolveWhitelist }
 }

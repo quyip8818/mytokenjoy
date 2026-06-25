@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { approvalApi } from '@/api/keys'
 import type { KeyApproval } from '@/api/types'
+import { useApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
@@ -13,6 +13,7 @@ export function ApprovalReviewWorkflow({
   onPush,
   onClose,
 }: WorkflowComponentProps<'approval-review'>) {
+  const apis = useApis()
   const { closeAll } = useWorkflow()
   const approval = entry.payload.approval as KeyApproval
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -26,7 +27,7 @@ export function ApprovalReviewWorkflow({
       approval.requestedQuota > 2000 &&
       approval.applicantId === 'm-1'
     ) {
-      const check = await approvalApi.checkQuota(approval.id)
+      const check = await apis.approvalApi.checkQuota(approval.id)
       if (!check.sufficient) {
         onPush('quota-check', {
           reservedPool: check.reservedPool,
@@ -37,12 +38,12 @@ export function ApprovalReviewWorkflow({
     }
     setSubmitting(true)
     try {
-      await approvalApi.approve(approval.id)
+      await apis.approvalApi.approve(approval.id)
       toast.success('已通过')
       onSuccess?.()
       closeAll()
     } catch {
-      const check = await approvalApi.checkQuota(approval.id)
+      const check = await apis.approvalApi.checkQuota(approval.id)
       if (!check.sufficient) {
         onPush('quota-check', {
           reservedPool: check.reservedPool,
