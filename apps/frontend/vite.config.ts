@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1]
 const githubPagesBase = process.env.VITE_BASE_PATH ?? (repoName ? `/${repoName}/` : undefined)
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -27,4 +28,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: apiProxyTarget
+    ? {
+        proxy: {
+          '/api': { target: apiProxyTarget, changeOrigin: true },
+        },
+      }
+    : undefined,
 })

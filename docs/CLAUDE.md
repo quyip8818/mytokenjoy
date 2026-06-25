@@ -23,7 +23,7 @@ pnpm monorepo. Frontend app lives in `apps/frontend/`.
 
 Single-page React app built with Vite 8, React 19, and TypeScript 6.
 
-**Entry point:** `apps/frontend/src/main.tsx` → starts MSW service worker in dev mode, then renders `<App />` into `#root`.
+**Entry point:** `apps/frontend/src/main.tsx` → starts MSW service worker when `USE_MOCKS` is true (`apps/frontend/src/config/app.ts`), then renders `<App />` into `#root`.
 
 **Routing:** `react-router` v7 (imported from `'react-router'`, not `'react-router-dom'`). All routes are nested under `<AdminLayout />` which provides sidebar + header + `<Outlet />`. Route page components live in `apps/frontend/src/routes/org/`.
 
@@ -33,9 +33,9 @@ Single-page React app built with Vite 8, React 19, and TypeScript 6.
 
 **State management:** Zustand v5 — stores are co-located with the features that use them (no central store directory).
 
-**Data fetching:** Custom fetch wrapper in `apps/frontend/src/api/client.ts` with a `request<T>()` generic function (base URL: `/api`). Domain-specific API methods are in `apps/frontend/src/api/org.ts`, organized as namespaced objects (`dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`). No react-query/SWR — fetches happen directly in effects or event handlers.
+**Data fetching:** Custom fetch wrapper in `apps/frontend/src/api/client.ts` with a `request<T>()` generic function (base URL: `/api`). Domain-specific API methods are in `apps/frontend/src/api/` (`org.ts`, `keys.ts`, `budget.ts`, `models.ts`, `dashboard.ts`, `audit.ts`, `session.ts`), organized as namespaced objects (`dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, etc.). No react-query/SWR — fetches happen directly in effects or event handlers. API contract: `docs/Frontend-API契约.md`.
 
-**API mocking (dev):** MSW v2 intercepts `/api/org/*` requests. Handlers in `apps/frontend/src/mocks/handlers.ts`, fixtures in `apps/frontend/src/mocks/data.ts`.
+**API mocking:** MSW v2 intercepts `/api/*` requests when `USE_MOCKS` is true. Handlers in `apps/frontend/src/mocks/handlers/` (aggregated by `handlers/index.ts`), fixtures in `apps/frontend/src/mocks/fixtures/` (re-exported via `mocks/data.ts`). Local backend proxy: set `VITE_API_PROXY_TARGET` in `vite.config.ts`.
 
 **Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `apps/frontend/src/test-setup.ts`. MSW is available for mocking API calls in tests.
 
