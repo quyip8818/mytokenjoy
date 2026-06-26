@@ -1,0 +1,249 @@
+package handler_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/permission"
+)
+
+func newTestRouter(t *testing.T) http.Handler {
+	t.Helper()
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.SimulateDelay = false
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	return app.New(cfg, logger).Router
+}
+
+func TestSessionDemoMissingMemberID(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestSessionDemoNotFound(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=missing", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestSessionProductionUnauthorized(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+}
+
+func TestSessionDemoSuccess(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=m-admin", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload types.SessionContext
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Member.ID != "m-admin" {
+		t.Fatalf("expected m-admin, got %s", payload.Member.ID)
+	}
+	if payload.ReadOnly {
+		t.Fatal("expected admin session to be writable")
+	}
+}
+
+func TestHealthz(t *testing.T) {
+	router := newTestRouter(t)
+	methods := []string{
+		http.MethodGet,
+		http.MethodHead,
+		http.MethodPost,
+		http.MethodDelete,
+	}
+	for _, method := range methods {
+		t.Run(method, func(t *testing.T) {
+			req := httptest.NewRequest(method, "/healthz", nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d", rec.Code)
+			}
+			if method == http.MethodHead && rec.Body.Len() > 0 {
+				t.Fatalf("expected empty body for HEAD, got %q", rec.Body.String())
+			}
+			if method != http.MethodHead {
+				var payload map[string]string
+				if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+					t.Fatal(err)
+				}
+				if payload["status"] != "ok" {
+					t.Fatalf("expected status ok, got %q", payload["status"])
+				}
+			}
+		})
+	}
+}
+
+func TestOrgRolesList(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/org/roles", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var roles []types.Role
+	if err := json.NewDecoder(rec.Body).Decode(&roles); err != nil {
+		t.Fatal(err)
+	}
+	if len(roles) != 6 {
+		t.Fatalf("expected 6 roles, got %d", len(roles))
+	}
+	_ = permission.RoleSuperAdmin
+}
+
+func TestOrgDataSourceStatus(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/org/data-source/status", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var status types.DataSourceStatus
+	if err := json.NewDecoder(rec.Body).Decode(&status); err != nil {
+		t.Fatal(err)
+	}
+	if status.Connected {
+		t.Fatal("expected disconnected initial status")
+	}
+}
+
+func TestBudgetTree(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/budget/tree", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var tree []types.BudgetNode
+	if err := json.NewDecoder(rec.Body).Decode(&tree); err != nil {
+		t.Fatal(err)
+	}
+	if len(tree) == 0 || tree[0].ID != "dept-1" {
+		t.Fatal("expected budget tree root dept-1")
+	}
+}
+
+func TestKeysProviderList(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/keys/provider", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var providerKeys []types.ProviderKey
+	if err := json.NewDecoder(rec.Body).Decode(&providerKeys); err != nil {
+		t.Fatal(err)
+	}
+	if len(providerKeys) < 8 {
+		t.Fatalf("expected at least 8 provider keys, got %d", len(providerKeys))
+	}
+}
+
+func TestKeysPlatformCreateMissingMemberID(t *testing.T) {
+	router := newTestRouter(t)
+	body, _ := json.Marshal(map[string]any{
+		"name": "test", "quota": 1000, "modelWhitelist": []string{"gpt-4o"},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestModelsList(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var modelsList []types.ModelInfo
+	if err := json.NewDecoder(rec.Body).Decode(&modelsList); err != nil {
+		t.Fatal(err)
+	}
+	if len(modelsList) < 8 {
+		t.Fatalf("expected at least 8 models, got %d", len(modelsList))
+	}
+}
+
+func TestDashboardCostSummary(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/cost/summary", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var summary types.CostSummary
+	if err := json.NewDecoder(rec.Body).Decode(&summary); err != nil {
+		t.Fatal(err)
+	}
+	if summary.TotalCost <= 0 {
+		t.Fatal("expected positive total cost")
+	}
+}
+
+func TestAuditOperations(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/audit/operations", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var page struct {
+		Items []types.OperationLog `json:"items"`
+		Total int                  `json:"total"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if page.Total == 0 || len(page.Items) == 0 {
+		t.Fatal("expected audit operation logs")
+	}
+}

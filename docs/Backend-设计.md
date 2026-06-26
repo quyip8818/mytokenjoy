@@ -1,0 +1,530 @@
+# TokenJoy Backend 设计
+
+本文档描述 `apps/backend/` Go 后端服务的设计方案，用于对接前端 REST API，并将 MSW Mock 中的种子数据与业务逻辑迁移至独立后端。
+
+**相关文档：**
+
+| 文档     | 路径                                                   | 职责                            |
+| -------- | ------------------------------------------------------ | ------------------------------- |
+| API 契约 | [Frontend-API契约.md](./Frontend-API契约.md)           | 81 个端点、请求/响应体、错误码  |
+| 前端架构 | [Frontend-代码结构.md](./Frontend-代码结构.md)         | 前端调用链、Mock 开关、代理配置 |
+| 架构优化 | [Frontend-架构优化建议.md](./Frontend-架构优化建议.md) | 接真实后端为当前优先事项        |
+
+**权威来源（按优先级）：**
+
+1. 端点与类型 — [Frontend-API契约.md](./Frontend-API契约.md) §5–§6
+2. 前端类型定义 — `apps/frontend/src/api/types/`
+3. MSW handlers — `apps/frontend/src/mocks/handlers/`（行为参考）
+4. 种子数据 — `apps/frontend/src/mocks/fixtures/`、`mocks/data.ts`
+5. 领域辅助逻辑 — `apps/frontend/src/mocks/lib/`
+
+---
+
+## 1. 目标与范围
+
+### 1.1 目标
+
+| 目标          | 说明                                                                      |
+| ------------- | ------------------------------------------------------------------------- |
+| 替代 MSW      | 开发 / 预发环境通过 `VITE_API_PROXY_TARGET` 指向 Go 服务，关闭浏览器 Mock |
+| 契约对齐      | 实现契约 §5 全部 **81** 个端点，JSON 结构与 `api/types/` 一致             |
+| 数据迁移      | 将 `mocks/fixtures/` 种子数据与 `mocks/lib/` 可变状态逻辑迁入后端         |
+| 行为等价      | 首版以 Mock 行为为准（含 400/401/404/422 等业务校验），非生产级持久化     |
+| Monorepo 集成 | 置于 `apps/backend/`，与 `apps/frontend/` 并列，根目录脚本可一键启动      |
+
+### 1.2 首版不做
+
+- 真实飞书 / 钉钉 / 企微对接（数据源 test/import 保持模拟延迟与固定结果）
+- PostgreSQL / Redis 等外部存储（见 §5 存储策略）
+- 生产级 JWT / OAuth（Session 先复刻 Mock 双轨鉴权）
+- OpenAPI 代码生成（类型以契约文档 + 前端 TS 为准，后端手写 struct）
+
+### 1.3 成功标准
+
+1. `VITE_ENABLE_MOCKS=false` + `VITE_API_PROXY_TARGET=http://localhost:8080` 下，前端 16 个业务页可正常浏览与操作
+2. 前端 Vitest 集成测试可改为打真实后端或保留 MSW（测试环境独立，见 §11）
+3. CI 可编译 backend、运行 `go test ./...`
+
+---
+
+## 2. 现状：MSW Mock 资产清单
+
+### 2.1 域与 Handler 映射
+
+| 域        | Handler 文件            | 端点数 | Fixtures                         |
+| --------- | ----------------------- | ------ | -------------------------------- |
+| Session   | `handlers/session.ts`   | 1      | 依赖 `mockMembers` + `mockRoles` |
+| Org       | `handlers/org.ts`       | 31     | `fixtures/org.ts`                |
+| Budget    | `handlers/budget.ts`    | 14     | `fixtures/budget.ts`             |
+| Keys      | `handlers/keys/*.ts`    | 18     | `fixtures/keys.ts`               |
+| Models    | `handlers/models.ts`    | 6      | `fixtures/models.ts`             |
+| Dashboard | `handlers/dashboard.ts` | 7      | `fixtures/dashboard.ts`          |
+| Audit     | `handlers/audit.ts`     | 4      | `fixtures/audit.ts`              |
+
+### 2.2 可变状态（内存 Store）
+
+MSW 将以下数据保存在进程内存，刷新页面重置。后端首版同样采用内存 Store，重启服务即重置：
+
+| 数据                                    | 来源                  | 写操作域               |
+| --------------------------------------- | --------------------- | ---------------------- |
+| `mockDataSourceStatus`                  | org fixture           | data-source PUT        |
+| `mockSyncConfig`                        | org fixture           | sync config PUT        |
+| `mockDepartments`                       | org fixture           | department CRUD        |
+| `mockMembers`                           | member-factory 生成   | member CRUD / import   |
+| `mockRoles`                             | org fixture           | role CRUD / 成员绑定   |
+| `mockBudgetTree`                        | budget fixture        | budget node PUT        |
+| `mockMemberQuotaPools`                  | `lib/member-quota.ts` | member quota PUT       |
+| `mockBudgetGroups`                      | budget fixture        | budget group CRUD      |
+| `mockOverrunPolicy` / `mockAlertRules`  | budget fixture        | policy / alerts        |
+| `mockProviderKeys` / `mockPlatformKeys` | keys fixture          | keys CRUD              |
+| `mockApprovals`                         | keys fixture          | approval flow          |
+| `mockModels` / `mockRoutingRules`       | models fixture        | model / routing        |
+| `mockAuditSettings`                     | audit handler 内      | audit settings PUT     |
+| Dashboard 指标                          | dashboard fixture     | 只读（按查询参数过滤） |
+
+### 2.3 需迁移的领域逻辑
+
+以下 `mocks/lib/` 模块含非平凡业务规则，须在后端 Service 层等价实现：
+
+| 模块                         | 职责                                           |
+| ---------------------------- | ---------------------------------------------- |
+| `member-factory.ts`          | 按部门配额生成成员、角色常量                   |
+| `member-quota.ts`            | 个人额度池、Key 已分配/已用量、quota summary   |
+| `member-budget-quota.ts`     | 部门内额度校验（超卖、低于已分配 Key → 422）   |
+| `budget-lookup.ts`           | 部门 / 成员预留池查询                          |
+| `budget-group-quota.ts`      | Group Key 额度校验                             |
+| `routing-helpers.ts`         | 部门模型白名单继承、resolve、子节点收缩        |
+| `keys/validation.ts`         | 平台 Key 白名单、额度校验                      |
+| `query.ts`                   | 部门树后代收集、成员过滤                       |
+| `paginate.ts` / `parse.ts`   | 分页与查询参数解析                             |
+| `audit-filter.ts`            | 审计日志日期 / 关键字过滤                      |
+| `demo-clock.ts`              | Demo 固定日期（`DEMO_TODAY` 等）               |
+| `lib/permissions.ts`（前端） | Session 权限解析（后端需复制规则或共享常量表） |
+
+---
+
+## 3. 技术选型
+
+| 类别      | 选型                                                                              | 理由                                  |
+| --------- | --------------------------------------------------------------------------------- | ------------------------------------- |
+| 语言      | Go 1.22+                                                                          | 单二进制部署、与前端 monorepo 解耦    |
+| HTTP 路由 | [chi](https://github.com/go-chi/chi) v5                                           | 轻量、标准 `net/http`、中间件生态成熟 |
+| 配置      | [caarlos0/env](https://github.com/caarlos0/env) + 环境变量                        | 与 Vite proxy 配置风格一致            |
+| 日志      | `log/slog`                                                                        | 标准库结构化日志                      |
+| JSON      | `encoding/json` + struct tag                                                      | 与前端字段名对齐（camelCase）         |
+| 校验      | 手写 + 可选 [go-playground/validator](https://github.com/go-playground/validator) | 422 业务规则以 Mock 行为为准          |
+| 测试      | `testing` + `httptest`                                                            | Handler 级契约测试                    |
+| 依赖注入  | 构造函数注入（无全局单例）                                                        | 与前端 `AppApis` DI 理念一致          |
+
+不引入 ORM、不引入重型框架（如 Gin 全栈方案），保持首版可维护性。
+
+---
+
+## 4. 项目结构
+
+```
+apps/backend/
+├── cmd/
+│   └── server/
+│       └── main.go              # 组装 Config、Store、Services、Router、启动 HTTP
+├── internal/
+│   ├── config/
+│   │   └── config.go            # PORT、CORS、Demo 模式开关
+│   ├── domain/                  # 按契约域划分；每域含 model + service
+│   │   ├── session/
+│   │   ├── org/
+│   │   ├── budget/
+│   │   ├── keys/
+│   │   ├── models/
+│   │   ├── dashboard/
+│   │   └── audit/
+│   ├── http/
+│   │   ├── router.go            # chi 路由注册，挂载 /api 前缀
+│   │   ├── middleware/          # CORS、RequestID、Recover、Auth
+│   │   ├── response/            # JSON 成功/错误响应、Paginated 辅助
+│   │   └── handler/             # 薄 Handler：解析请求 → 调 Service → 写响应
+│   │       ├── session.go
+│   │       ├── org.go
+│   │       └── ...
+│   ├── permission/              # 权限 key 常量、resolveMemberPermissions
+│   ├── seed/                    # 启动时加载种子数据
+│   │   ├── data/                # JSON 种子文件（由 TS fixtures 导出）
+│   │   └── loader.go
+│   └── store/                   # 内存 Store 接口与实现
+│       ├── store.go             # Store 聚合接口
+│       └── memory.go            # 读写锁保护的 in-memory 实现
+├── go.mod
+├── go.sum
+└── Makefile                     # dev、test、lint（可选 golangci-lint）
+```
+
+根目录 `package.json` 后续可增加：
+
+```json
+"dev:backend": "cd apps/backend && go run ./cmd/server",
+"dev:all": "concurrently \"pnpm dev:backend\" \"pnpm start\""
+```
+
+（`concurrently` 为可选 devDependency，首版文档不强制。）
+
+---
+
+## 5. 分层架构
+
+```
+HTTP Request
+  └─ middleware (CORS, Auth, Recover)
+       └─ handler.{Domain}Handler   // 解析 path/query/body，HTTP 状态码
+            └─ domain.{Domain}Service  // 业务规则、校验、编排
+                 └─ store.Store         // 持久化抽象（首版 memory）
+                      └─ seed 初始状态
+```
+
+### 5.1 Handler 层
+
+- 职责：HTTP 适配，不含业务规则
+- 统一错误：`response.Error(w, status, message)` → `{ "message": "..." }`
+- `void` 端点返回 `{}` 或 `null`（避免前端 `res.json()` 解析失败，见契约 §2.3）
+- 分页响应使用统一 `Paginated[T]` 结构
+
+### 5.2 Service 层
+
+- 每个域一个 `Service` 接口 + `service` 实现，构造函数注入 `store.Store` 及跨域依赖（如 Keys 依赖 Budget、Org）
+- 业务校验失败返回 typed error，Handler 映射为 400 / 404 / 422
+- 模拟延迟（如 data-source test 1s、import 2s）通过 `config` 可关闭，默认与 Mock 一致
+
+### 5.3 Store 层
+
+```go
+// 示意：聚合各子 Store，便于 Service 跨域只依赖一个接口
+type Store interface {
+    Org() OrgRepository
+    Budget() BudgetRepository
+    Keys() KeysRepository
+    Models() ModelsRepository
+    Dashboard() DashboardRepository
+    Audit() AuditRepository
+    // 事务：首版单进程内存，无需真正事务；预留 Tx(ctx) 供后续 DB 扩展
+}
+```
+
+首版 `memory.go` 在启动时从 `seed/` 深拷贝一份可变状态；所有写操作直接修改内存。
+
+### 5.4 依赖注入（main.go 组装）
+
+```go
+cfg := config.Load()
+st := store.NewMemory(seed.Load(cfg))
+orgSvc := org.NewService(st)
+budgetSvc := budget.NewService(st, orgSvc)
+keysSvc := keys.NewService(st, budgetSvc, orgSvc)
+// ...
+r := http.NewRouter(cfg, sessionSvc, orgSvc, budgetSvc, ...)
+```
+
+禁止在 handler / service 内使用 `init()` 或包级可变全局状态。
+
+---
+
+## 6. API 路由与契约对齐
+
+所有路由挂载在 **`/api`** 前缀下，与前端 `API_BASE_PATH` 一致。
+
+### 6.1 路由注册示例
+
+```go
+r.Route("/api", func(r chi.Router) {
+    r.Get("/session", sessionHandler.Get)
+
+    r.Route("/org", func(r chi.Router) {
+        r.Get("/data-source/status", orgHandler.DataSourceStatus)
+        // ...
+    })
+
+    r.Route("/budget", func(r chi.Router) { /* ... */ })
+    r.Route("/keys", func(r chi.Router) { /* ... */ })
+    r.Route("/models", func(r chi.Router) { /* ... */ })
+    r.Route("/dashboard", func(r chi.Router) { /* ... */ })
+    r.Route("/audit", func(r chi.Router) { /* ... */ })
+})
+```
+
+完整端点清单见 [Frontend-API契约.md](./Frontend-API契约.md) §5，实现时按域分批交付（§12）。
+
+### 6.2 JSON 字段命名
+
+前端 TypeScript 使用 **camelCase**。Go struct 示例：
+
+```go
+type Member struct {
+    ID             string   `json:"id"`
+    Name           string   `json:"name"`
+    DepartmentID   string   `json:"departmentId"`
+    DepartmentName string   `json:"departmentName"`
+    Status         string   `json:"status"`
+    Roles          []string `json:"roles"`
+    Source         string   `json:"source"`
+}
+```
+
+可选字段使用指针或 `omitempty`；与 Mock 返回 `{}` / `null` 的行为保持一致。
+
+### 6.3 查询参数
+
+| 规则                             | 实现                                                            |
+| -------------------------------- | --------------------------------------------------------------- |
+| 跳过 `undefined` / `null` / `""` | 与前端 `buildQuery()` 对称：空 query 用默认值                   |
+| 布尔                             | 接受 `"true"` / `"false"`                                       |
+| 分页                             | `page` 默认 1，`pageSize` 默认 20（与 Mock `paginate.ts` 一致） |
+
+---
+
+## 7. 鉴权与会话
+
+首版复刻 Mock 双轨行为（契约 §3.1）：
+
+### 7.1 Demo 模式
+
+- `GET /api/session?memberId={id}`：`memberId` 必填，缺参 → 400，不存在 → 404
+- 响应：`SessionContext`（`member`、`permissions[]`、`readOnly`）
+
+### 7.2 生产模式
+
+- `GET /api/session`（无 query）：从请求解析身份
+- 解析顺序（与 Mock 一致）：
+  1. `X-Demo-Member-Id` header
+  2. query `memberId`（若有）
+  3. Cookie `tokenjoy_session_member`
+  4. `Authorization: Bearer {token}`（token 视为 memberId）
+- 无法解析 → 401 `{ "message": "Unauthorized" }`
+
+### 7.3 权限
+
+- Mock 对其他端点不做鉴权；首版后端同样**不在中间件拦截写操作**
+- `permissions[]` 由 `permission` 包根据成员角色计算，规则对齐 `apps/frontend/src/lib/permissions.ts`
+- 权限 key 常量对齐 `apps/frontend/src/lib/permission-keys.ts`
+- 后续 Phase 2 可在 middleware 按 path + method 校验 permission key
+
+### 7.4 CORS
+
+开发环境允许前端 origin（`http://localhost:5173`），`credentials: true`，暴露 cookie 所需 header。
+
+---
+
+## 8. 种子数据迁移
+
+### 8.1 迁移策略
+
+| 步骤         | 说明                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
+| 1. 导出 JSON | 将 `fixtures/*.ts` 静态数据导出为 `seed/data/*.json`（一次性脚本或手工）                                     |
+| 2. 生成逻辑  | `member-factory` 的 `buildMockMembers()` 改为 Go `seed.BuildMembers()`，输入 `LEAF_DEPT_QUOTAS` + 角色分配表 |
+| 3. 加载      | `seed.Load()` 读取 JSON + 执行生成逻辑，返回 `store.Snapshot`                                                |
+| 4. 校验      | 启动时用 smoke test 对比关键 ID 数量（如成员数、部门数）与前端 fixture 一致                                  |
+
+### 8.2 种子文件规划
+
+```
+seed/data/
+├── org_departments.json
+├── org_roles.json
+├── org_permissions.json
+├── org_sync_config.json
+├── org_sync_logs.json
+├── budget_tree.json
+├── budget_groups.json
+├── budget_overrun_policy.json
+├── budget_alert_rules.json
+├── keys_provider.json
+├── keys_platform.json
+├── keys_approvals.json
+├── models.json
+├── models_routing.json
+├── dashboard_cost.json          # summary / departments / daily / top
+├── dashboard_usage.json
+└── audit_logs.json
+```
+
+`member-quota` 等运行时池可在 `seed.Load()` 中由成员与 Key 数据派生初始化。
+
+### 8.3 Demo 时钟
+
+`demo-clock.ts` 中的 `DEMO_TODAY`、`DEMO_MONTH_START` 迁入 `internal/config` 或 `seed` 常量，Dashboard 成本周期计算与之对齐。
+
+---
+
+## 9. 错误与状态码
+
+与契约 §2.4 一致：
+
+| 状态码 | 场景                         | 响应体                          |
+| ------ | ---------------------------- | ------------------------------- |
+| 400    | 缺必填参数、不可删预设角色等 | `{ "message": "..." }`          |
+| 401    | 生产 Session 未鉴权          | `{ "message": "Unauthorized" }` |
+| 404    | 资源不存在                   | `{ "message": "..." }`          |
+| 422    | 额度不足、白名单校验失败等   | `{ "message": "..." }`          |
+| 500    | 内部错误（首版应极少）       | `{ "message": "..." }`          |
+
+Service 层定义：
+
+```go
+type DomainError struct {
+    Status  int
+    Message string
+}
+```
+
+Handler 统一 `errors.As` 映射。
+
+---
+
+## 10. 配置与运行
+
+### 10.1 环境变量
+
+| 变量             | 默认                    | 说明               |
+| ---------------- | ----------------------- | ------------------ |
+| `PORT`           | `8080`                  | HTTP 监听端口      |
+| `CORS_ORIGINS`   | `http://localhost:5173` | 逗号分隔           |
+| `SIMULATE_DELAY` | `true`                  | 是否模拟 Mock 延迟 |
+| `DEMO_TODAY`     | `2026-06-19`            | Dashboard 演示日期 |
+
+### 10.2 本地联调
+
+```bash
+# 终端 1：启动 backend
+cd apps/backend && go run ./cmd/server
+
+# 终端 2：启动 frontend（关闭 MSW，走代理）
+cd apps/frontend
+VITE_ENABLE_MOCKS=false VITE_API_PROXY_TARGET=http://localhost:8080 pnpm start
+```
+
+### 10.3 部署拓扑（简图）
+
+```
+Browser
+  └─ GET /api/*  →  Vite dev proxy / 生产反向代理
+       └─ apps/backend:8080
+            └─ memory store (seed on boot)
+```
+
+GitHub Pages Demo 可继续使用 MSW（`VITE_ENABLE_MOCKS=true`）；有后端的预发 / 本地开发走后端。
+
+---
+
+## 11. 测试策略
+
+| 层级             | 范围                             | 工具                                |
+| ---------------- | -------------------------------- | ----------------------------------- |
+| Service 单元测试 | 额度校验、路由继承、分页过滤     | `go test` + table-driven            |
+| Handler 契约测试 | 每个端点 status + JSON 形状      | `httptest` + 黄金 JSON 快照（可选） |
+| 跨域集成测试     | Session → 创建 Key → quota-check | 内存 Store 全链路                   |
+| 前端测试         | 保持 MSW `serverHandlers`        | 不依赖 backend 进程，CI 不变        |
+
+建议新增 `apps/backend/testdata/` 存放期望响应片段，与 `apps/frontend/tests/fixtures/` 概念对齐但不强制共享文件格式。
+
+---
+
+## 12. 实施阶段
+
+### Phase 0 — 脚手架（1–2 天）
+
+- [x] 初始化 `apps/backend/go.mod`、`cmd/server`、`config`、`chi` 路由、`/healthz`
+- [x] `response` 包、`middleware`（CORS、Recover）
+- [x] 根目录 / CI 增加 `go build`、`go test`
+
+### Phase 1 — Session + Org（3–5 天）
+
+- [x] `seed` 加载部门、角色、成员、权限
+- [x] `GET /session` 双轨鉴权
+- [x] Org 全部 31 端点（含分页成员列表、批量导入、角色成员绑定）
+- [x] 前端：`VITE_API_PROXY_TARGET` 验证组织管理页
+
+### Phase 2 — Budget + Keys（4–6 天）
+
+- [x] Budget 14 端点（树、成员额度、组、策略、告警）
+- [x] Keys 18 端点（provider / platform / approval / validation）
+- [x] 跨域：审批通过扣预留池、Group Key 额度
+
+### Phase 3 — Models + Dashboard + Audit（3–4 天）
+
+- [x] Models 6 端点（路由继承、resolve）
+- [x] Dashboard 7 端点（`CostQueryParams` 过滤）
+- [x] Audit 4 端点（分页 + 过滤）
+
+### Phase 4 — 收尾
+
+- [x] 契约文档 §8.3 迁移检查清单勾选
+- [x] 更新 [Frontend-API契约.md](./Frontend-API契约.md)「当前状态」为已有 backend
+- [x] 可选：`pnpm dev:all` 脚本、README 联调说明（用户未要求则不写 README）
+
+### Phase 5 — 前后端联调
+
+- [x] 修复 `USE_MOCKS` 三态逻辑（DEV 下 `VITE_ENABLE_MOCKS=false` 可关 MSW）
+- [x] `dev:all` 注入 `VITE_ENABLE_MOCKS=false` + `VITE_API_PROXY_TARGET`
+- [x] Dev `/login` 成员选择 + `tokenjoy_session_member` cookie
+- [x] 契约 §8.3 / 架构优化建议 §7 文档同步
+- [x] GET 契约测试（`contract_test.go`）
+- [x] Session 401 跳登录 / Dev Header 切换成员 / `dev:all` wait-on
+- [ ] 16 个业务页人工验收
+
+---
+
+## 13. CI 集成
+
+已在 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) 增加 `backend` job，与 `pnpm lint` / `pnpm test` / `pnpm build` 并行：
+
+```yaml
+backend:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+    - run: go build -o /dev/null ./...
+      working-directory: apps/backend
+    - run: go test ./...
+      working-directory: apps/backend
+```
+
+---
+
+## 14. 后续演进
+
+| 阶段     | 内容                                                             |
+| -------- | ---------------------------------------------------------------- |
+| 持久化   | Store 接口换 PostgreSQL 实现；seed 改为 migration + seed command |
+| 真实鉴权 | JWT / Session cookie 签名；移除 `X-Demo-Member-Id` 生产路径      |
+| 权限网关 | 写操作 middleware 校验 `permission-keys`                         |
+| 外部集成 | 飞书 / 钉钉 API、模型供应商 Key 校验                             |
+| 可观测性 | 请求日志、metrics、audit 写路径落库                              |
+| 契约同步 | 可选从 TS 类型生成 OpenAPI，或共享 JSON Schema                   |
+
+---
+
+## 15. 风险与对策
+
+| 风险                   | 对策                                                   |
+| ---------------------- | ------------------------------------------------------ |
+| Mock 行为文档不全      | 以 handler 源码为行为真相；契约测试锁定响应            |
+| 前后端字段漂移         | 改 API 时同步更新契约 §6 与 Go struct                  |
+| 成员工厂逻辑复杂       | Phase 1 优先 port `member-factory`，对比成员 ID 列表   |
+| Dashboard 只读数据量大 | 首版整包加载内存；后续按 period 索引                   |
+| 双端并行维护           | Mock 冻结策略不变；新 API 只改 `api/` + backend + 契约 |
+
+---
+
+## 16. 变更检查清单
+
+新增或修改 API 时，同步更新：
+
+- [ ] `apps/frontend/src/api/{domain}.ts`
+- [ ] `apps/frontend/src/api/types/{domain}.ts`
+- [ ] [Frontend-API契约.md](./Frontend-API契约.md)
+- [ ] `apps/backend/internal/domain/{domain}/`
+- [ ] `apps/backend/internal/http/handler/{domain}.go`
+- [ ] `apps/backend/internal/seed/data/`（若种子数据变化）
+- [ ] `apps/backend` 契约测试
+- [ ] 前端 `features/query/query-keys.ts`（若读操作变更）

@@ -27,6 +27,10 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm lint

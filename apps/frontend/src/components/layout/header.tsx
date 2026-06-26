@@ -2,6 +2,7 @@ import { useLocation } from 'react-router'
 import { ROUTE_TITLES } from '@/config/nav'
 import { usePageSubtitle } from '@/hooks/use-page-subtitle'
 import { HeaderDemoBadge, HeaderDemoToolbar } from './header-demo-chrome'
+import { HeaderDevBackendToolbar } from './header-dev-backend-chrome'
 
 export function Header() {
   const location = useLocation()
@@ -21,6 +22,7 @@ export function Header() {
           )}
         </div>
         <HeaderDemoToolbar />
+        <HeaderDevBackendToolbar />
       </div>
     </header>
   )

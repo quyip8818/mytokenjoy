@@ -1,12 +1,15 @@
 # Frontend API 契约
 
-本文档描述 TokenJoy 前端 `src/api/` 层调用的 REST 接口契约，供 MSW mock 与真实后端实现对齐。
+本文档描述 TokenJoy 前端 `src/api/` 层调用的 REST 接口契约，供 MSW Mock 与真实后端实现对齐。
+
+**当前状态：** Monorepo 已包含 Go 后端（[`apps/backend/`](../apps/backend/)，chi + 内存 Store），实现契约 §5 全部 **81** 个端点。本地联调：根目录 `pnpm dev:all`（自动关闭 MSW 并代理到 `:8080`），或 `pnpm dev:backend` + 复制 [`apps/frontend/.env.development.local.example`](../apps/frontend/.env.development.local.example) 为 `.env.development.local`。`USE_MOCKS=false` 时走 `AuthSessionProvider`，Dev 环境在 `/login` 选择成员并写入 `tokenjoy_session_member` cookie。GitHub Pages Demo 仍由 MSW 拦截（[`.env.production`](../apps/frontend/.env.production) 为 `VITE_ENABLE_MOCKS=true`）。MSW 与后端行为均以本文档及 `api/types/` 为准；后端设计见 [Backend-设计.md](./Backend-设计.md)。
 
 **权威来源（按优先级）：**
 
 1. 类型定义 — [`apps/frontend/src/api/types/`](../apps/frontend/src/api/types/)
 2. HTTP 客户端 — [`apps/frontend/src/api/{domain}.ts`](../apps/frontend/src/api/)
-3. MSW handlers — [`apps/frontend/src/mocks/handlers/`](../apps/frontend/src/mocks/handlers/)
+3. Session 校验 — [`apps/frontend/src/api/schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)
+4. MSW handlers — [`apps/frontend/src/mocks/handlers/`](../apps/frontend/src/mocks/handlers/)
 
 架构与分层约定见 [Frontend-代码结构.md](./Frontend-代码结构.md)。
 
@@ -15,24 +18,29 @@
 ## 1. 调用架构
 
 ```
-UI / 页面 Hook
-  └─ useApis() → AppApis（依赖注入）
-       └─ {domain}Api.{method}()
+页面 / Hook
+  └─ useApis() 或 useInjectedQuery({ queryFn: (apis) => ... })
+       └─ AppApis.{domain}Api.{method}()
             └─ client.request() → fetch({API_BASE_PATH}{path})
                  ├─ USE_MOCKS=true  → MSW domainHandlers + fallbackHandlers
                  └─ USE_MOCKS=false → 真实后端（或 Vite proxy）
 ```
 
-| 模块          | 路径                         | 职责                                                                 |
-| ------------- | ---------------------------- | -------------------------------------------------------------------- |
-| `client.ts`   | `api/client.ts`              | `request()`、`ApiError`、`buildQuery()`、`setDemoMemberIdProvider()` |
-| `app-apis.ts` | `api/app-apis.ts`            | `AppApis` 接口与 `defaultApis` 聚合                                  |
-| `context.tsx` | `api/context.tsx`            | `ApiProvider` 注入                                                   |
-| `use-apis.ts` | `api/use-apis.ts`            | React 消费入口                                                       |
-| `{domain}.ts` | `api/{domain}.ts`            | 各资源 HTTP 方法                                                     |
-| handlers      | `mocks/handlers/{domain}.ts` | 与 api 同域的 mock 实现                                              |
+| 模块                    | 路径                                   | 职责                                                                                             |
+| ----------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `client.ts`             | `api/client.ts`                        | `request()`、`ApiError`、`buildQuery()`、`setDemoMemberIdProvider()`、`setUnauthorizedHandler()` |
+| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（14 个命名空间）                                             |
+| `api-context.ts`        | `api/api-context.ts`                   | `ApiContext` React Context                                                                       |
+| `context.tsx`           | `api/context.tsx`                      | `ApiProvider` 注入                                                                               |
+| `use-apis.ts`           | `api/use-apis.ts`                      | `useApis()`、`useInjectedApis()`                                                                 |
+| `use-injected-query.ts` | `features/query/use-injected-query.ts` | 基于 TanStack Query 的 `useInjectedQuery()`                                                      |
+| `query-keys.ts`         | `features/query/query-keys.ts`         | 各域 query key 工厂                                                                              |
+| `{domain}.ts`           | `api/{domain}.ts`                      | 各资源 HTTP 方法                                                                                 |
+| handlers                | `mocks/handlers/{domain}.ts`           | 与 api 同域的 Mock 实现                                                                          |
 
-**依赖注入：** 生产环境 `AdminLayout` 注入 `defaultApis`；页面 Hook 支持 `injectedApis` 参数供测试覆盖；非 React 代码（如 `createDemoRoleStore`）通过构造函数注入 `sessionApi` 等。
+**依赖注入：** 生产环境 `AdminLayout` 注入 `defaultApis`；页面 Hook 支持 `injectedApis` 参数供测试覆盖；`useInjectedQuery` 同样支持 `injectedApis`；非 React 代码（如 `createDemoRoleStore`）通过构造函数注入 `sessionApi` 等。
+
+**数据获取：** 读操作逐步迁移至 `useInjectedQuery` + `queryKeys`；写操作仍在事件处理函数中直接调用 `*Api` 方法，成功后通过 `queryClient.invalidateQueries` 或 `useWorkflowRefresh` 刷新缓存。
 
 ---
 
@@ -46,18 +54,22 @@ UI / 页面 Hook
 
 本地开发通常为 `/api`；GitHub Pages 子路径部署时为 `/{repo}/api`。
 
+开发环境可通过 `VITE_API_PROXY_TARGET` 将 `/api` 代理到真实后端（见 `vite.config.ts`）。
+
 ### 2.2 请求头
 
-| Header             | 必填       | 说明                                                                                        |
-| ------------------ | ---------- | ------------------------------------------------------------------------------------------- |
-| `Content-Type`     | 有 body 时 | `application/json`（`client.request` 默认注入）                                             |
-| `X-Demo-Member-Id` | Demo 模式  | 当前 Demo 成员 ID，由 `setDemoMemberIdProvider` 注入；真实后端应替换为 session / token 鉴权 |
+| Header             | 必填         | 说明                                                                                        |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------- |
+| `Content-Type`     | 有 body 时   | `application/json`（`client.request` 默认注入）                                             |
+| `X-Demo-Member-Id` | Demo 模式    | 当前 Demo 成员 ID，由 `setDemoMemberIdProvider` 注入；真实后端应替换为 session / token 鉴权 |
+| `Cookie`           | 生产 Session | `credentials: 'include'` 自动携带；Mock 识别 `tokenjoy_session_member`                      |
+| `Authorization`    | 可选         | `Bearer {token}`；Mock 将 token 视为 memberId                                               |
 
 ### 2.3 成功响应
 
 - HTTP 2xx
-- `void` 类型端点可返回空 body 或 `null`
-- 其余端点返回 JSON，结构与 `api/types/` 一致
+- 返回 JSON，结构与 `api/types/` 一致
+- `void` 类型端点：TypeScript 侧为 `void`，Mock 常返回 `null`；**注意** `request()` 始终调用 `res.json()`，真实后端对无 body 端点应返回 `{}` 或 `null`，避免空 body 导致解析失败
 
 ### 2.4 错误响应
 
@@ -67,16 +79,18 @@ HTTP 非 2xx 时，body 应包含：
 { "message": "错误描述" }
 ```
 
-前端 `ApiError`（[`client.ts`](../apps/frontend/src/api/client.ts)）读取 `message` 字段，无则回退 `statusText`。
+前端 `ApiError`（[`client.ts`](../apps/frontend/src/api/client.ts)）读取 `message` 字段，无则回退 `statusText`。收到 **401** 时触发 `setUnauthorizedHandler` 注册的回调（`AuthUnauthorizedBridge` 跳转 `/login`）。
 
 **常见状态码：**
 
-| 状态码 | 场景                                                                 |
-| ------ | -------------------------------------------------------------------- |
-| `400`  | 缺少必填参数（如 session 缺 `memberId`、platform key 缺 `memberId`） |
-| `404`  | 资源不存在                                                           |
-| `422`  | 业务校验失败（额度不足、模型不在部门白名单等）                       |
-| `501`  | Demo 模式下未实现的路径（`fallbackHandlers` 返回）                   |
+| 状态码 | 场景                                                                                   |
+| ------ | -------------------------------------------------------------------------------------- |
+| `400`  | 缺少必填参数（如 session 缺 `memberId`、platform key 缺 `memberId`、不可删预设角色等） |
+| `401`  | Session 未鉴权（生产 `GET /session` 无有效身份）                                       |
+| `404`  | 资源不存在                                                                             |
+| `422`  | 业务校验失败（额度不足、模型不在部门白名单、预留池不足等）                             |
+| `500`  | Session payload 校验失败（Mock 内部 Zod 失败）                                         |
+| `501`  | Demo 模式下未实现的路径（`fallbackHandlers` 返回）                                     |
 
 ### 2.5 分页
 
@@ -99,7 +113,54 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 3. 共享类型
+## 3. 鉴权与权限
+
+### 3.1 Session 端点
+
+| 模式              | 调用方式                   | 说明                                                                                                       |
+| ----------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Demo              | `sessionApi.get(memberId)` | query `memberId` 必填；缺参 → 400                                                                          |
+| 生产              | `sessionApi.getCurrent()`  | 无 query；凭 cookie / `Authorization`                                                                      |
+| Mock 身份解析顺序 | —                          | `X-Demo-Member-Id` → query `memberId` → cookie `tokenjoy_session_member` → `Authorization: Bearer {token}` |
+
+响应经 `SessionContextSchema`（Zod，[`schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)）校验。成员不存在 → 404；生产未鉴权 → 401。
+
+Demo 角色切换时调用 `sessionApi.get(memberId)`；加载失败由 `SessionGate` 展示错误页。
+
+### 3.2 其他端点
+
+Mock 层**不做鉴权**（任意请求可通过）。权限由 `GET /session` 返回的 `permissions[]` 驱动，前端通过 `PermissionGate` / `usePermissions()` 控制 UI 与路由。真实后端实现时，应在网关/后端对写操作按 permission key 校验。
+
+### 3.3 权限 Key
+
+定义于 [`lib/permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)：
+
+| Key               | 含义              |
+| ----------------- | ----------------- |
+| `org:datasource`  | 数据源配置与导入  |
+| `org:structure`   | 部门结构          |
+| `org:roles`       | 角色管理          |
+| `org:members`     | 成员管理          |
+| `budget:read`     | 预算只读          |
+| `budget:allocate` | 预算分配          |
+| `budget:approve`  | 预算审批          |
+| `budget:policy`   | 超支策略与告警    |
+| `model:manage`    | 模型管理          |
+| `model:whitelist` | 模型白名单 / 路由 |
+| `keys:admin`      | 平台 Key 管理     |
+| `keys:provider`   | 供应商 Key 管理   |
+| `self:keys`       | 我的 Key          |
+| `self:approval`   | 我的审批          |
+| `dashboard:cost`  | 成本看板          |
+| `dashboard:usage` | 用量看板          |
+| `audit:read`      | 审计日志          |
+| `api:call`        | API 调用权限      |
+
+`readOnly: true` 表示当前 Session 无任何写权限 capability（见 `lib/permissions.ts` 中 `isReadOnlySession`）。
+
+---
+
+## 4. 共享类型
 
 定义于 [`api/types/common.ts`](../apps/frontend/src/api/types/common.ts)。
 
@@ -109,37 +170,35 @@ HTTP 非 2xx 时，body 应包含：
 
 ### SessionContext
 
-| 字段          | 类型       | 说明                                         |
-| ------------- | ---------- | -------------------------------------------- |
-| `member`      | `Member`   | 当前成员                                     |
-| `permissions` | `string[]` | 权限 key 列表（见 `lib/permission-keys.ts`） |
-| `readOnly`    | `boolean`  | 无写权限时为 `true`                          |
+| 字段          | 类型       | 说明                |
+| ------------- | ---------- | ------------------- |
+| `member`      | `Member`   | 当前成员            |
+| `permissions` | `string[]` | 权限 key 列表       |
+| `readOnly`    | `boolean`  | 无写权限时为 `true` |
 
 ---
 
-## 4. 端点清单
+## 5. 端点清单
 
-路径均相对于 `API_BASE_PATH`。类型详情见 §5。
+路径均相对于 `API_BASE_PATH`（`/api`）。共 **81** 个端点。类型详情见 §6。
 
-### 4.1 Session
+### 5.1 Session
 
 客户端：[`sessionApi`](../apps/frontend/src/api/session.ts) · Handler：[`session.ts`](../apps/frontend/src/mocks/handlers/session.ts)
 
-| 方法 | 路径       | 查询 / Body                                            | 响应             | 说明                                       |
-| ---- | ---------- | ------------------------------------------------------ | ---------------- | ------------------------------------------ |
-| GET  | `/session` | Demo：`memberId`（必填）；生产：无 query（cookie/JWT） | `SessionContext` | Demo 缺 `memberId` → 400；生产未鉴权 → 401 |
-
-Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `sessionApi.getCurrent()` 凭 cookie / `Authorization` 鉴权（`credentials: 'include'`）。`401` 由 `AuthUnauthorizedBridge` 跳转 `/login`；加载失败由 `SessionGate` 展示错误页。响应经 `SessionContextSchema`（Zod）校验。
+| 方法 | 路径       | 查询 / Body                              | 响应             | 说明                                       |
+| ---- | ---------- | ---------------------------------------- | ---------------- | ------------------------------------------ |
+| GET  | `/session` | Demo：`memberId`（必填）；生产：无 query | `SessionContext` | Demo 缺 `memberId` → 400；生产未鉴权 → 401 |
 
 ---
 
-### 4.2 Org（组织管理）
+### 5.2 Org（组织管理）
 
 客户端：[`org.ts`](../apps/frontend/src/api/org.ts) · Handler：[`org.ts`](../apps/frontend/src/mocks/handlers/org.ts)
 
 #### 数据源 `dataSourceApi`
 
-| 方法 | 路径                            | Body                | 响应                                     |
+| 方法 | 路径                            | Body / 查询         | 响应                                     |
 | ---- | ------------------------------- | ------------------- | ---------------------------------------- |
 | GET  | `/org/data-source/status`       | —                   | `DataSourceStatus`                       |
 | POST | `/org/data-source/test`         | `Credential`        | `{ success: boolean; message?: string }` |
@@ -195,32 +254,32 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 ---
 
-### 4.3 Budget（预算管理）
+### 5.3 Budget（预算管理）
 
-客户端：[`budget.ts`](../apps/frontend/src/api/budget.ts) · Handler：[`budget.ts`](../apps/frontend/src/mocks/handlers/budget.ts)
+客户端：[`budgetApi`](../apps/frontend/src/api/budget.ts) · Handler：[`budget.ts`](../apps/frontend/src/mocks/handlers/budget.ts)
 
-| 方法   | 路径                                        | Body / 查询                                      | 响应                  |
+| 方法   | 路径                                        | Body / 查询                                      | 响应                  | 备注                              |
 | ------ | ------------------------------------------- | ------------------------------------------------ | --------------------- | --------------------------------- |
-| GET    | `/budget/tree`                              | query: `period?`                                 | `BudgetNode[]`        |
-| PUT    | `/budget/nodes/:id`                         | `{ budget, reservedPool? }`                      | `BudgetNode`          |
-| GET    | `/budget/departments/:deptId/member-quotas` | —                                                | `MemberBudgetQuota[]` |
-| PUT    | `/budget/members/:memberId`                 | `{ personalQuota }`                              | `MemberBudgetQuota`   | 部门内超卖 / 低于已分配 Key → 422 |
-| GET    | `/budget/groups`                            | —                                                | `BudgetGroup[]`       |
-| POST   | `/budget/groups`                            | `Omit<BudgetGroup, 'id' \| 'consumed'>`          | `BudgetGroup`         |
-| PUT    | `/budget/groups/:id`                        | `Partial<Omit<BudgetGroup, 'id' \| 'consumed'>>` | `BudgetGroup`         |
-| DELETE | `/budget/groups/:id`                        | —                                                | `void`                |
-| GET    | `/budget/overrun-policy`                    | —                                                | `OverrunPolicyConfig` |
-| PUT    | `/budget/overrun-policy`                    | `OverrunPolicyConfig`                            | `OverrunPolicyConfig` |
-| GET    | `/budget/alerts`                            | —                                                | `AlertRule[]`         |
-| POST   | `/budget/alerts`                            | `Omit<AlertRule, 'id'>`                          | `AlertRule`           |
-| PUT    | `/budget/alerts/:id`                        | `Partial<AlertRule>`                             | `AlertRule`           |
-| DELETE | `/budget/alerts/:id`                        | —                                                | `void`                |
+| GET    | `/budget/tree`                              | query: `period?`                                 | `BudgetNode[]`        |                                   |
+| PUT    | `/budget/nodes/:id`                         | `{ budget, reservedPool? }`                      | `BudgetNode`          |                                   |
+| GET    | `/budget/departments/:deptId/member-quotas` | —                                                | `MemberBudgetQuota[]` |                                   |
+| PUT    | `/budget/members/:memberId`                 | `UpdateMemberQuotaInput`                         | `MemberBudgetQuota`   | 部门内超卖 / 低于已分配 Key → 422 |
+| GET    | `/budget/groups`                            | —                                                | `BudgetGroup[]`       |                                   |
+| POST   | `/budget/groups`                            | `Omit<BudgetGroup, 'id' \| 'consumed'>`          | `BudgetGroup`         |                                   |
+| PUT    | `/budget/groups/:id`                        | `Partial<Omit<BudgetGroup, 'id' \| 'consumed'>>` | `BudgetGroup`         |                                   |
+| DELETE | `/budget/groups/:id`                        | —                                                | `void`                |                                   |
+| GET    | `/budget/overrun-policy`                    | —                                                | `OverrunPolicyConfig` |                                   |
+| PUT    | `/budget/overrun-policy`                    | `OverrunPolicyConfig`                            | `OverrunPolicyConfig` |                                   |
+| GET    | `/budget/alerts`                            | —                                                | `AlertRule[]`         |                                   |
+| POST   | `/budget/alerts`                            | `Omit<AlertRule, 'id'>`                          | `AlertRule`           |                                   |
+| PUT    | `/budget/alerts/:id`                        | `Partial<AlertRule>`                             | `AlertRule`           |                                   |
+| DELETE | `/budget/alerts/:id`                        | —                                                | `void`                |                                   |
 
 ---
 
-### 4.4 Keys（API Key 管理）
+### 5.4 Keys（API Key 管理）
 
-客户端：[`keys.ts`](../apps/frontend/src/api/keys.ts) · Handler：[`keys.ts`](../apps/frontend/src/mocks/handlers/keys.ts)
+客户端：[`keys.ts`](../apps/frontend/src/api/keys.ts) · Handler：[`mocks/handlers/keys/`](../apps/frontend/src/mocks/handlers/keys/)
 
 #### 供应商密钥 `providerKeyApi`
 
@@ -257,7 +316,7 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 ---
 
-### 4.5 Models（模型与路由）
+### 5.5 Models（模型与路由）
 
 客户端：[`models.ts`](../apps/frontend/src/api/models.ts) · Handler：[`models.ts`](../apps/frontend/src/mocks/handlers/models.ts)
 
@@ -279,9 +338,9 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 ---
 
-### 4.6 Dashboard（数据看板）
+### 5.6 Dashboard（数据看板）
 
-客户端：[`dashboard.ts`](../apps/frontend/src/api/dashboard.ts) · Handler：[`dashboard.ts`](../apps/frontend/src/mocks/handlers/dashboard.ts)
+客户端：[`dashboardApi`](../apps/frontend/src/api/dashboard.ts) · Handler：[`dashboard.ts`](../apps/frontend/src/mocks/handlers/dashboard.ts)
 
 成本类接口共享查询参数 `CostQueryParams`（`period` 默认 `current_month`）：
 
@@ -306,28 +365,32 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 ---
 
-### 4.7 Audit（审计日志）
+### 5.7 Audit（审计日志）
 
-客户端：[`audit.ts`](../apps/frontend/src/api/audit.ts) · Handler：[`audit.ts`](../apps/frontend/src/mocks/handlers/audit.ts)
+客户端：[`auditApi`](../apps/frontend/src/api/audit.ts) · Handler：[`audit.ts`](../apps/frontend/src/mocks/handlers/audit.ts)
 
-| 方法 | 路径                | 查询 / Body                                                                        | 响应                      |
-| ---- | ------------------- | ---------------------------------------------------------------------------------- | ------------------------- |
-| GET  | `/audit/settings`   | —                                                                                  | `AuditSettings`           |
-| PUT  | `/audit/settings`   | `AuditSettings`                                                                    | `AuditSettings`           |
-| GET  | `/audit/operations` | `page?`, `pageSize?`, `action?`, `from?`, `to?`, `operatorId?`, `keyword?`         | `Paginated<OperationLog>` |
-| GET  | `/audit/calls`      | `page?`, `pageSize?`, `model?`, `status?`, `from?`, `to?`, `callerId?`, `keyword?` | `Paginated<CallLog>`      |
+| 方法 | 路径                | 查询 / Body                  | 响应                      |
+| ---- | ------------------- | ---------------------------- | ------------------------- |
+| GET  | `/audit/settings`   | —                            | `AuditSettings`           |
+| PUT  | `/audit/settings`   | `AuditSettings`              | `AuditSettings`           |
+| GET  | `/audit/operations` | `AuditOperationsQueryParams` | `Paginated<OperationLog>` |
+| GET  | `/audit/calls`      | `AuditCallsQueryParams`      | `Paginated<CallLog>`      |
+
+`AuditOperationsQueryParams`：`page?`, `pageSize?`, `action?`, `from?`, `to?`, `operatorId?`, `keyword?`
+
+`AuditCallsQueryParams`：`page?`, `pageSize?`, `model?`, `status?`, `from?`, `to?`, `callerId?`, `keyword?`
 
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
 ---
 
-## 5. 类型参考
+## 6. 类型参考
 
 完整定义以源码为准。以下列出各域核心类型字段。
 
-### 5.1 Org — [`types/org.ts`](../apps/frontend/src/api/types/org.ts)
+### 6.1 Org — [`types/org.ts`](../apps/frontend/src/api/types/org.ts)
 
-**Credential**（ discriminated union by `platform`）：
+**Credential**（discriminated union by `platform`）：
 
 | platform   | 字段                            |
 | ---------- | ------------------------------- |
@@ -357,11 +420,13 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 **Permission：** `id`, `name`, `group`
 
-### 5.2 Budget — [`types/budget.ts`](../apps/frontend/src/api/types/budget.ts)
+### 6.2 Budget — [`types/budget.ts`](../apps/frontend/src/api/types/budget.ts)
 
 **BudgetNode：** `id`, `name`, `parentId`, `budget`, `consumed`, `reservedPool?`, `children?`, `period`
 
 **MemberBudgetQuota：** `memberId`, `memberName`, `departmentId`, `personalQuota`, `allocated`, `used`
+
+**UpdateMemberQuotaInput：** `personalQuota`
 
 **BudgetGroup：** `id`, `name`, `budget`, `consumed`, `memberIds`, `departmentIds`
 
@@ -373,7 +438,7 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 **ResolvedWhitelist：** `inherited`, `allowedModels`, `parentCount`
 
-### 5.3 Keys — [`types/keys.ts`](../apps/frontend/src/api/types/keys.ts)
+### 6.3 Keys — [`types/keys.ts`](../apps/frontend/src/api/types/keys.ts)
 
 **ProviderType：** `openai` \| `anthropic` \| `deepseek` \| `qwen` \| `custom`
 
@@ -389,13 +454,19 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 **MemberQuotaSummary：** `totalQuota`, `used`, `remaining`, `reservedPool`
 
-### 5.4 Models — [`types/models.ts`](../apps/frontend/src/api/types/models.ts)
+### 6.4 Models — [`types/models.ts`](../apps/frontend/src/api/types/models.ts)
 
 **ModelInfo：** `id`, `provider`, `name`, `displayName`, `inputPrice`, `outputPrice`, `maxContext`, `enabled`, `capabilities`
 
 **RoutingRule：** `id`, `nodeId`, `nodeName`, `allowedModels`, `defaultModel`, `fallbackModel`, `inherited`
 
-### 5.5 Dashboard — [`types/dashboard.ts`](../apps/frontend/src/api/types/dashboard.ts)
+### 6.5 Dashboard — [`types/dashboard.ts`](../apps/frontend/src/api/types/dashboard.ts)
+
+**CostPeriod：** `current_month` \| `last_month` \| `last_7_days` \| `custom`
+
+**CostGranularity：** `day` \| `week` \| `month`
+
+**CostQueryParams：** `period?`, `startDate?`, `endDate?`, `granularity?`
 
 **CostSummary：** `totalCost`, `totalCostMom`, `totalTokens`, `totalRequests`, `totalRequestsMom`, `avgCostPerRequest`, `avgCostPerRequestMom`, `avgCostPerMember`, `avgCostPerMemberMom`
 
@@ -411,7 +482,7 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 **TeamUsage：** `departmentId`, `departmentName`, `quota`, `consumed`, `memberCount`, `topModel`
 
-### 5.6 Audit — [`types/audit.ts`](../apps/frontend/src/api/types/audit.ts)
+### 6.6 Audit — [`types/audit.ts`](../apps/frontend/src/api/types/audit.ts)
 
 **AuditAction：** `key_create` \| `key_disable` \| `key_rotate` \| `budget_change` \| `budget_approve` \| `permission_change` \| `role_assign` \| `model_whitelist_change` \| `member_add` \| `member_remove` \| `org_structure_change`
 
@@ -423,43 +494,61 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 ---
 
-## 6. Mock 与真实 API
+## 7. AppApis 聚合
 
-### 6.1 开关
+[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 14 个命名空间：
+
+`sessionApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`
+
+所有 HTTP 调用均经 `client.request()`，无其他 `fetch('/api/...')` 直连。
+
+---
+
+## 8. Mock 与真实 API
+
+### 8.1 开关
 
 | 常量 / 变量             | 定义            | 行为                                         |
 | ----------------------- | --------------- | -------------------------------------------- |
 | `USE_MOCKS`             | `config/app.ts` | `DEV` 或 `VITE_ENABLE_MOCKS=true` 时启用 MSW |
 | `VITE_API_PROXY_TARGET` | 环境变量        | 开发时将 `/api` 代理到真实后端               |
+| `USE_API_PROXY`         | `config/app.ts` | `Boolean(VITE_API_PROXY_TARGET)`             |
 
-### 6.2 Handler 分工
+当前 [`.env.production`](../apps/frontend/.env.production) 为 `VITE_ENABLE_MOCKS=true`（GitHub Pages Demo 仍使用 Mock）。后端实现与联调说明见 [Backend-设计.md](./Backend-设计.md) §10。
+
+### 8.2 Handler 分工
 
 | 导出              | 用于                       | 行为                                                       |
 | ----------------- | -------------------------- | ---------------------------------------------------------- |
-| `domainHandlers`  | 域 mock 实现               | session / org / budget / keys / models / dashboard / audit |
+| `domainHandlers`  | 域 Mock 实现               | session / org / budget / keys / models / dashboard / audit |
 | `browserHandlers` | `mocks/browser.ts`         | `domainHandlers` + `fallbackHandlers`                      |
 | `serverHandlers`  | `mocks/server.ts` / Vitest | 仅 `domainHandlers`                                        |
+
+Keys 域 handler 拆分为 [`mocks/handlers/keys/`](../apps/frontend/src/mocks/handlers/keys/)（`provider.ts`、`platform.ts`、`approval.ts`、`validation.ts`），由 `index.ts` 聚合导出。
 
 - **浏览器：** `fallbackHandlers` 对未匹配的 `/api/*` 返回 `501` JSON，避免 SPA 回退 HTML
 - **测试：** `onUnhandledRequest: 'error'`，漏写 handler 立即失败
 - **数据：** mock 状态存于 `mocks/data.ts` 内存，刷新页面重置
 
-### 6.3 迁移到真实 API
+### 8.3 迁移到真实 API
 
 1. **实现后端** — 按本文档路径与 `api/types/` 实现 REST API
 2. **关闭 Mock** — 生产 / 预发设置 `VITE_ENABLE_MOCKS=false`
-   - [`.env.production`](../apps/frontend/.env.production)
-   - [`vercel.json`](../vercel.json)
-   - [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
 3. **配置网络**
    - 静态托管：将 `/api` 反向代理到后端，或前后端同域部署
    - 本地开发：设置 `VITE_API_PROXY_TARGET=http://localhost:8080` 并设 `VITE_ENABLE_MOCKS=false`
 4. **鉴权** — 在 `client.ts` 将 `setDemoMemberIdProvider` 替换为真实 session / token 注入
 5. **逐域验收** — session → org → budget → keys → models → dashboard → audit
 
----
+**实现进度：**
 
-### 6.4 Mock 维护策略（冻结）
+- [x] 实现后端 — 81 端点（`apps/backend`）
+- [x] 关闭 Mock — 本地 `VITE_ENABLE_MOCKS=false` 或 `pnpm dev:all` 可关闭 MSW
+- [x] 配置网络 — `VITE_API_PROXY_TARGET` + Vite proxy 已支持
+- [x] 鉴权 — Dev cookie + `/login` 成员选择（生产 JWT 未做）
+- [ ] 逐域验收 — GET 契约测试已覆盖；16 页 UI 建议 `pnpm dev:all` 人工抽查
+
+### 8.4 Mock 维护策略（冻结）
 
 接真实后端后：
 
@@ -469,14 +558,16 @@ Demo 角色切换时调用 `sessionApi.get(memberId)`；生产环境由 `session
 
 ---
 
-## 7. 变更检查清单
+## 9. 变更检查清单
 
 新增或修改 API 时，同步更新：
 
 - [ ] `api/{domain}.ts` — HTTP 方法
 - [ ] `api/types/{domain}.ts` — 请求 / 响应类型
 - [ ] `api/app-apis.ts` — 若新增域 API 对象
-- [ ] `mocks/handlers/{domain}.ts` — mock 实现
+- [ ] `api/schemas/` — 若响应需运行时校验（如 Session）
+- [ ] `features/query/query-keys.ts` — 若读操作使用 React Query
+- [ ] `mocks/handlers/{domain}.ts` — mock 实现（冻结期内仅 Session 例外）
 - [ ] `mocks/fixtures/` 或 `mocks/data.ts` — 种子 / 可变数据（如需）
 - [ ] 本文档 — 端点与类型
 - [ ] 页面 Hook / 测试 — 按需补充

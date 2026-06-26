@@ -109,11 +109,11 @@ flowchart LR
   workflow -->|Delegate 类| factory[defineDelegateWorkflow]
 ```
 
-| 阶段                    | 动作                                   | 状态       |
-| ----------------------- | -------------------------------------- | ---------- |
-| P1～P6 架构优化         | Session / Query / 路由守卫 / Mock 冻结 | **已完成** |
-| 真实后端 `GET /session` | 替换 MSW 双轨默认 member 兜底          | **待做**   |
-| 页面 Hook 单测补齐      | P7                                     | **按需**   |
+| 阶段                    | 动作                                    | 状态       |
+| ----------------------- | --------------------------------------- | ---------- |
+| P1～P6 架构优化         | Session / Query / 路由守卫 / Mock 冻结  | **已完成** |
+| 真实后端 `GET /session` | Dev cookie 登录 + `AuthSessionProvider` | **已完成** |
+| 页面 Hook 单测补齐      | P7                                      | **按需**   |
 
 ---
 

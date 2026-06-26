@@ -1,0 +1,80 @@
+package org_test
+
+import (
+	"testing"
+
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/org"
+	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/seed"
+	"github.com/tokenjoy/backend/internal/store"
+)
+
+func newTestOrgService(t *testing.T) org.Service {
+	t.Helper()
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.SimulateDelay = false
+	return org.NewService(cfg, store.NewMemory(seed.Load(cfg)))
+}
+
+func TestDeletePresetRoleReturns400(t *testing.T) {
+	svc := newTestOrgService(t)
+	err := svc.DeleteRole("role-1")
+	if err == nil {
+		t.Fatal("expected error deleting preset role")
+	}
+}
+
+func TestListMembersPagination(t *testing.T) {
+	svc := newTestOrgService(t)
+	page := svc.ListMembers("", "", false, 1, 20)
+	if len(page.Items) != 20 {
+		t.Fatalf("expected 20 items, got %d", len(page.Items))
+	}
+	if page.Total < 120 {
+		t.Fatalf("expected total >= 120, got %d", page.Total)
+	}
+}
+
+func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
+	svc := newTestOrgService(t)
+	err := svc.RemoveRoleMember("role-3", "m-1")
+	if err == nil {
+		t.Fatal("expected error removing base member role")
+	}
+}
+
+func TestBatchImportUnknownDepartment(t *testing.T) {
+	svc := newTestOrgService(t)
+	result := svc.BatchImport([]org.BatchImportRow{
+		{Name: "Test", Phone: "13800000000", Email: "t@example.com", DepartmentName: "不存在部门"},
+	})
+	if result.Imported != 0 {
+		t.Fatalf("expected 0 imported, got %d", result.Imported)
+	}
+	if len(result.Failures) != 1 {
+		t.Fatalf("expected 1 failure, got %d", len(result.Failures))
+	}
+}
+
+func TestCreateRoleAndList(t *testing.T) {
+	svc := newTestOrgService(t)
+	role := svc.CreateRole("测试角色", []string{"p-1"})
+	if role.Name != "测试角色" {
+		t.Fatalf("unexpected role name %s", role.Name)
+	}
+	found := false
+	for _, r := range svc.ListRoles() {
+		if r.ID == role.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("created role not found in list")
+	}
+	_ = permission.OrgStructure
+}
