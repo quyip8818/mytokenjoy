@@ -11,7 +11,7 @@
 3. Session 校验 — [`apps/frontend/src/api/schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)
 4. MSW handlers — [`apps/frontend/src/mocks/handlers/`](../apps/frontend/src/mocks/handlers/)
 
-架构与分层约定见 [Frontend-代码结构.md](./Frontend-代码结构.md)。
+架构与分层约定见 [Frontend-开发指南.md](./Frontend-开发指南.md)。
 
 ---
 

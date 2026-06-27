@@ -1,19 +1,19 @@
-# TokenJoy 前端架构
+# TokenJoy 前端开发指南
 
-`apps/frontend` 的架构说明与开发规范。描述当前代码组织、运行时行为与扩展方式，供日常开发与 Code Review 参考。
+`apps/frontend` 的架构说明、开发规范与演进路线。描述当前代码组织、运行时行为、扩展方式及剩余优化项，供日常开发与 Code Review 参考。
 
 ---
 
 ## 0. 相关文档
 
-| 文档          | 路径                                                                              | 职责                                              |
-| ------------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
-| API 契约      | [Frontend-API契约.md](./Frontend-API契约.md)                                      | REST 路径、请求/响应体、分页、错误格式、Mock 切换 |
-| Demo 交互设计 | [Demo-交互设计方案.md](./Demo-交互设计方案.md)                                    | Workflow 侧滑、Demo 引导、CTA 高亮                |
-| 开发速查      | [CLAUDE.md](./CLAUDE.md)                                                          | 命令、技术栈、目录一览                            |
-| 产品需求      | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                              | 业务域边界、功能范围                              |
-| 架构优化建议  | [Frontend-架构优化建议.md](./Frontend-架构优化建议.md)                            | 可简化点、演进路线、不建议动的部分                |
-| Cursor 规范   | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
+| 文档        | 路径                                                                              | 职责                                              |
+| ----------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| API 契约    | [Frontend-API契约.md](./Frontend-API契约.md)                                      | REST 路径、请求/响应体、分页、错误格式、Mock 切换 |
+| Demo        | [Demo.md](./Demo.md)                                                              | Workflow 侧滑、Demo 引导、PRD 差距与走查清单      |
+| 开发速查    | [CLAUDE.md](./CLAUDE.md)                                                          | 命令、技术栈、目录一览                            |
+| 产品需求    | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                             | 业务域边界、功能范围、契约对齐附录                |
+| 后端设计    | [Backend-设计.md](./Backend-设计.md)                                              | Go 服务设计与 MSW 迁移                            |
+| Cursor 规范 | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
 
 **边界：** 类型以 `api/types/` 为准；Workflow 交互见 Demo 设计文档；Mock 路径须与 API 契约同步。
 
@@ -446,3 +446,116 @@ tests/
 **新 Workflow：** `workflows/{name}.tsx` + payload 类型 + `definitions/{domain}.ts` 注册；可复用 UI 放 `components/{domain}/`。
 
 **提 PR 前：** `pnpm lint` 与 `pnpm test` 本地通过。
+
+---
+
+## 15. 架构演进与优化
+
+**评估日期：** 2026-06-25（P1～P6 架构优化落地后）  
+**代码规模：** `src/` 约 300 个 TS/TSX 文件
+
+### 15.1 总体结论
+
+| 维度         | 评价                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------- |
+| 分层清晰度   | 良好 — `routes` / `components` / `features` / `api` / `lib` 边界明确，`check-conventions` 自动兜底            |
+| 可测试性     | 良好 — `AppApis` DI、`injectedApis`、MSW 双端一致；`features/session` 与 Query 基础设施已有单测               |
+| 复杂度来源   | 仍为 **Demo**（MSW、引导、角色切换）与 **Workflow**（~27 个自定义面板 + 分域 registry），非 16 页 CRUD        |
+| 生产就绪度   | **较好** — Session 双轨 Mock、`credentials`、401 跳转登录、`SessionNavigationBridge`、TanStack Query 全量迁移 |
+| 是否值得大改 | **否** — 下一步以接真实后端、补页面 Hook 测试、按需演进 workflow 工厂为主                                     |
+
+**一句话：** P1～P6 已落地（Session 闭环、payload 分域、Query、路由守卫、预算树 Hook、Mock 冻结 + Session Zod）。剩余为真实后端对接与测试覆盖率提升。
+
+### 15.2 已完成（2026-06-25）
+
+| 项                          | 落地要点                                                                                                                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Session 抽象（P0）**      | [`features/session/`](../apps/frontend/src/features/session/)：`useSession()`、`DemoSessionProvider`、`AuthSessionProvider`                                                                   |
+| **路由单源（P0）**          | [`config/routes.ts`](../apps/frontend/src/config/routes.ts) 的 `ROUTE_DEFINITIONS` 派生路由与导航                                                                                             |
+| **Demo 按需加载（P0）**     | [`admin-layout.tsx`](../apps/frontend/src/components/layout/admin-layout.tsx) 的 `USE_MOCKS` 分支 + lazy `DemoShell`                                                                          |
+| **Workflow 样板压缩（P0）** | [`define-delegate-workflow.tsx`](../apps/frontend/src/features/workflow/define-delegate-workflow.tsx)；[`definitions/`](../apps/frontend/src/features/workflow/definitions/) 分域注册         |
+| **P1 Session/401**          | MSW 双轨 `GET /session`；`credentials: 'include'`；`setUnauthorizedHandler`；[`/login`](../apps/frontend/src/routes/auth/login.tsx)；`AuthSessionProvider` 单测                               |
+| **P2 Workflow payload**     | [`features/workflow/payloads/`](../apps/frontend/src/features/workflow/payloads/)；[`defineAlertWorkflow`](../apps/frontend/src/features/workflow/define-alert-workflow.tsx)（`quota-check`） |
+| **P3 TanStack Query**       | [`features/query/`](../apps/frontend/src/features/query/)；16 页 Hook + 共享 Hook 全量迁移；`useWorkflowRefresh` 支持 `invalidateKeys`                                                        |
+| **P4 路由守卫**             | [`lib/route-access.ts`](../apps/frontend/src/lib/route-access.ts)；[`SessionNavigationBridge`](../apps/frontend/src/features/session/session-navigation-bridge.tsx)；Demo 桥接瘦身            |
+| **P5 预算树 Hook**          | [`use-budget-tree-query.ts`](../apps/frontend/src/routes/budget/hooks/use-budget-tree-query.ts) — overview / allocation 复用                                                                  |
+| **P6 Mock + Zod**           | Mock 冻结策略（契约 §6.4）；[`api/schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)；`check-conventions` 改为 import `ROUTE_DEFINITIONS`                                      |
+
+### 15.3 体量分布（复审）
+
+```
+features/   95+ 文件  (session + workflow + demo + query)
+routes/     61 文件
+components/ 48 文件
+mocks/      36 文件
+api/        21 文件
+lib/        16 文件
+hooks/      12 文件
+config/      4 文件
+```
+
+### 15.4 现状优点（建议保留）
+
+| 模式                                                    | 价值                                |
+| ------------------------------------------------------- | ----------------------------------- |
+| 薄页面 → `use-*-page` → 展示组件                        | 可读、可测                          |
+| `AppApis` + `injectedApis` + `useInjectedQuery`         | 统一 DI + Query                     |
+| `ROUTE_DEFINITIONS` 单源 + `validateRouteDefinitions()` | 新页面只改一处                      |
+| `useSession` / `usePermissions` / `useRouteAccess`      | Demo 与生产可切换                   |
+| `queryKeys` 分层                                        | workflow 成功后 `invalidateQueries` |
+| `components/ui` 零业务语义                              | lint 强制                           |
+
+### 15.5 剩余可优化项
+
+#### P7 — 工具链与测试补强
+
+| 项                             | 说明                                                              |
+| ------------------------------ | ----------------------------------------------------------------- |
+| **页面 Hook 覆盖率**           | 16 页中约半数有单测；接后端前优先补 keys / budget / org 核心 Hook |
+| **`DemoSessionProvider` 单测** | 与 `createDemoRoleStore` 桥接                                     |
+| **workflow 继续工厂化**        | 第 3 个同类 picker 出现再抽象 `definePickerWorkflow`              |
+
+#### P8 — Bundle 与 Demo 边界（低优先级）
+
+**现状（`pnpm build`）：**
+
+- Demo 相关 chunk 已分离；主入口含 Workflow + Recharts 依赖。
+- Recharts 已随 dashboard 路由 lazy，可接受。
+- 避免在 `hooks/` 或 `lib/` 静态 import `@/features/demo`（Session handler 兜底常量除外）。
+
+### 15.6 不建议简化的部分
+
+| 想法                                     | 原因                     |
+| ---------------------------------------- | ------------------------ |
+| 合并 `routes/` 与 `components/{domain}/` | convention + lint 已固化 |
+| 删掉 Workflow 改 Modal                   | 与 [Demo.md](./Demo.md) 交互设计冲突 |
+| 全局 Zustand 存列表                      | Query 已覆盖缓存需求     |
+| 16 页合并路由                            | 与 PRD 信息架构一致      |
+
+### 15.7 推荐演进路线
+
+```mermaid
+flowchart LR
+  done[P1-P6已完成] --> backend[接真实后端 Session API]
+  backend --> tests[补页面 Hook 单测]
+  backend --> workflow{新 workflow 面板?}
+  workflow -->|Delegate 类| factory[defineDelegateWorkflow]
+```
+
+| 阶段                    | 动作                                    | 状态       |
+| ----------------------- | --------------------------------------- | ---------- |
+| P1～P6 架构优化         | Session / Query / 路由守卫 / Mock 冻结  | **已完成** |
+| 真实后端 `GET /session` | Dev cookie 登录 + `AuthSessionProvider` | **已完成** |
+| 页面 Hook 单测补齐      | P7                                      | **按需**   |
+
+### 15.8 PR / 接后端自检清单
+
+- [ ] 新页面只改 `ROUTE_DEFINITIONS` 一条
+- [ ] 页面组件只从 `use-*-page` 取数，无内联 `useApis`
+- [ ] 业务代码用 `useSession` / `usePermissions`，不用 `useDemoRole`
+- [ ] 新数据请求用 `useInjectedQuery` + `queryKeys`，workflow 成功传 `invalidateKeys`
+- [ ] 新 API 改 `api/` + 契约 + `queryKeys`（**不**改冻结的 mock handler）
+- [ ] 生产构建不依赖 `VITE_ENABLE_MOCKS`
+- [ ] `AuthSessionProvider` 路径有测试或手动验证
+
+**维护说明：** 接真实后端后更新 §15.7 路线图；新 workflow 工厂化按需记入 §15.5 P7。
