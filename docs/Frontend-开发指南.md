@@ -12,6 +12,8 @@
 | Demo        | [Demo.md](./Demo.md)                                                              | Workflow 侧滑、Demo 引导、PRD 差距与走查清单      |
 | 开发速查    | [CLAUDE.md](./CLAUDE.md)                                                          | 命令、技术栈、目录一览                            |
 | 产品需求    | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                             | 业务域边界、功能范围、契约对齐附录                |
+| 系统架构    | [tokenjoy-architecture.md](./tokenjoy-architecture.md)                           | 双平面、预算消耗闭环、Relay 部署与 New API 集成 |
+| Relay 集成   | [tokenjoy-architecture.md](./tokenjoy-architecture.md) §9–§10                  | New API、Webhook、选路、白名单、预算闭环       |
 | 后端设计    | [Backend-设计.md](./Backend-设计.md)                                              | Go 服务设计与 MSW 迁移                            |
 | Cursor 规范 | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
 
