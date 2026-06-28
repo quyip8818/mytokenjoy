@@ -22,7 +22,13 @@ func (r *persistOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) erro
 	return r.persist(context.Background())
 }
 func (r *persistOrgRepo) ImportFailures() []types.ImportFailure { return r.inner.ImportFailures() }
-func (r *persistOrgRepo) SyncConfig() types.SyncConfig          { return r.inner.SyncConfig() }
+func (r *persistOrgRepo) SetImportFailures(failures []types.ImportFailure) error {
+	if err := r.inner.SetImportFailures(failures); err != nil {
+		return err
+	}
+	return r.persist(context.Background())
+}
+func (r *persistOrgRepo) SyncConfig() types.SyncConfig { return r.inner.SyncConfig() }
 func (r *persistOrgRepo) SetSyncConfig(cfg types.SyncConfig) error {
 	if err := r.inner.SetSyncConfig(cfg); err != nil {
 		return err
@@ -30,6 +36,12 @@ func (r *persistOrgRepo) SetSyncConfig(cfg types.SyncConfig) error {
 	return r.persist(context.Background())
 }
 func (r *persistOrgRepo) SyncLogs() []types.SyncLog { return r.inner.SyncLogs() }
+func (r *persistOrgRepo) AppendSyncLog(log types.SyncLog) error {
+	if err := r.inner.AppendSyncLog(log); err != nil {
+		return err
+	}
+	return r.persist(context.Background())
+}
 func (r *persistOrgRepo) Departments() []types.Department {
 	return r.inner.Departments()
 }
@@ -171,11 +183,17 @@ func (r *deferredOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) err
 	return r.inner.SetDataSourceStatus(status)
 }
 func (r *deferredOrgRepo) ImportFailures() []types.ImportFailure { return r.inner.ImportFailures() }
-func (r *deferredOrgRepo) SyncConfig() types.SyncConfig          { return r.inner.SyncConfig() }
+func (r *deferredOrgRepo) SetImportFailures(failures []types.ImportFailure) error {
+	return r.inner.SetImportFailures(failures)
+}
+func (r *deferredOrgRepo) SyncConfig() types.SyncConfig { return r.inner.SyncConfig() }
 func (r *deferredOrgRepo) SetSyncConfig(cfg types.SyncConfig) error {
 	return r.inner.SetSyncConfig(cfg)
 }
 func (r *deferredOrgRepo) SyncLogs() []types.SyncLog { return r.inner.SyncLogs() }
+func (r *deferredOrgRepo) AppendSyncLog(log types.SyncLog) error {
+	return r.inner.AppendSyncLog(log)
+}
 func (r *deferredOrgRepo) Departments() []types.Department {
 	return r.inner.Departments()
 }

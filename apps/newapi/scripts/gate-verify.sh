@@ -40,7 +40,21 @@ CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -d '{"budget":90000,"reservedPool":1500}')
 echo "PUT budget node => ${CODE}"
 
-echo "[6/6] 502 spike (manual log review)..."
+echo "[6/7] Simulated NewAPI settle webhook..."
+PAYLOAD='{"id":999888777,"token_id":1,"quota":1000,"model":"gpt-4o","created_at":1717200000}'
+WH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST "${API_URL}/api/internal/webhooks/newapi-log" \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Secret: ${WEBHOOK_SECRET}" \
+  -d "${PAYLOAD}" || true)
+echo "POST newapi-log webhook => ${WH_CODE}"
+if [[ -x "${ROOT}/apps/newapi/patches/webhook/settle_webhook.sh" ]]; then
+  MANAGEMENT_WEBHOOK_URL="${API_URL}/api/internal/webhooks/newapi-log" \
+  MANAGEMENT_WEBHOOK_SECRET="${WEBHOOK_SECRET}" \
+  "${ROOT}/apps/newapi/patches/webhook/settle_webhook.sh" "${PAYLOAD}" || true
+fi
+
+echo "[7/7] 502 spike (manual log review)..."
 "${ROOT}/apps/newapi/scripts/spike-502.sh" || true
 
 echo "Gate script finished. Fill docs/tokenjoy-architecture.md section 5.9 after reviewing spike output."

@@ -6,25 +6,35 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
+	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/permission"
 )
 
 type ModelsHandler struct {
-	service domainmodels.Service
+	service    domainmodels.Service
+	sessionSvc session.Service
 }
 
-func NewModelsHandler(service domainmodels.Service) *ModelsHandler {
-	return &ModelsHandler{service: service}
+func NewModelsHandler(service domainmodels.Service, sessionSvc session.Service) *ModelsHandler {
+	return &ModelsHandler{service: service, sessionSvc: sessionSvc}
 }
 
 func (h *ModelsHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/", h.List)
-	r.Post("/", h.Create)
-	r.Put("/{id}/toggle", h.Toggle)
 	r.Get("/routing", h.RoutingList)
 	r.Get("/routing/resolve", h.RoutingResolve)
-	r.Put("/routing/{id}", h.RoutingUpdate)
+
+	sessionWrite := r.With(httpmiddleware.RequireSession(h.sessionSvc))
+
+	manageWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.ModelManage))
+	manageWrite.Post("/", h.Create)
+	manageWrite.Put("/{id}/toggle", h.Toggle)
+
+	whitelistWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.ModelWhitelist))
+	whitelistWrite.Put("/routing/{id}", h.RoutingUpdate)
 }
 
 func (h *ModelsHandler) List(w http.ResponseWriter, r *http.Request) {

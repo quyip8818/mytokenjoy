@@ -23,6 +23,13 @@ func (r *memoryOrgRepo) ImportFailures() []types.ImportFailure {
 	return cloneImportFailures(r.store.data.ImportFailures)
 }
 
+func (r *memoryOrgRepo) SetImportFailures(failures []types.ImportFailure) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	r.store.data.ImportFailures = cloneImportFailures(failures)
+	return nil
+}
+
 func (r *memoryOrgRepo) SyncConfig() types.SyncConfig {
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
@@ -40,6 +47,13 @@ func (r *memoryOrgRepo) SyncLogs() []types.SyncLog {
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
 	return cloneSyncLogs(r.store.data.SyncLogs)
+}
+
+func (r *memoryOrgRepo) AppendSyncLog(log types.SyncLog) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	r.store.data.SyncLogs = append([]types.SyncLog{log}, r.store.data.SyncLogs...)
+	return nil
 }
 
 func (r *memoryOrgRepo) Departments() []types.Department {

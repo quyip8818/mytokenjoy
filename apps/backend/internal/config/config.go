@@ -19,6 +19,13 @@ type Config struct {
 	NewAPIAdminToken    string `env:"NEW_API_ADMIN_TOKEN"`
 	NewAPIWebhookSecret string `env:"NEW_API_WEBHOOK_SECRET"`
 	NewAPIPublicURL     string `env:"NEW_API_PUBLIC_URL"`
+
+	SyncTriggerAPIKey string `env:"SYNC_TRIGGER_API_KEY"`
+
+	DataSourceCredentialKey string `env:"DATA_SOURCE_CREDENTIAL_KEY"`
+	FeishuBaseURL           string `env:"FEISHU_BASE_URL" envDefault:"https://open.feishu.cn"`
+
+	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
 }
 
 func Load() (Config, error) {

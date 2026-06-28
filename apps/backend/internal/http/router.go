@@ -39,12 +39,12 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
 	sessionHandler := httphandler.NewSessionHandler(deps.SessionSvc)
-	orgHandler := httphandler.NewOrgHandler(deps.OrgSvc)
-	budgetHandler := httphandler.NewBudgetHandler(deps.BudgetSvc)
-	keysHandler := httphandler.NewKeysHandler(deps.KeysSvc)
-	modelsHandler := httphandler.NewModelsHandler(deps.ModelsSvc)
-	dashboardHandler := httphandler.NewDashboardHandler(deps.DashboardSvc)
-	auditHandler := httphandler.NewAuditHandler(deps.AuditSvc)
+	orgHandler := httphandler.NewOrgHandler(deps.OrgSvc, deps.SessionSvc, deps.Config)
+	budgetHandler := httphandler.NewBudgetHandler(deps.BudgetSvc, deps.SessionSvc)
+	keysHandler := httphandler.NewKeysHandler(deps.KeysSvc, deps.SessionSvc)
+	modelsHandler := httphandler.NewModelsHandler(deps.ModelsSvc, deps.SessionSvc)
+	dashboardHandler := httphandler.NewDashboardHandler(deps.DashboardSvc, deps.SessionSvc)
+	auditHandler := httphandler.NewAuditHandler(deps.AuditSvc, deps.SessionSvc)
 	webhookHandler := httphandler.NewWebhookHandler(deps.Config, deps.IngestSvc)
 
 	httphandler.RegisterHealthRoutes(r)

@@ -53,6 +53,9 @@ type Department struct {
 	ParentID    *string      `json:"parentId"`
 	Children    []Department `json:"children,omitempty"`
 	MemberCount int          `json:"memberCount"`
+	ExternalID  *string      `json:"externalId,omitempty"`
+	Source      *string      `json:"source,omitempty"`
+	ManagerID   *string      `json:"managerId,omitempty"`
 }
 
 type BatchImportRow struct {

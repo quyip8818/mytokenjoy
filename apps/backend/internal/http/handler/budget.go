@@ -6,16 +6,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/permission"
 )
 
 type BudgetHandler struct {
-	service domainbudget.Service
+	service    domainbudget.Service
+	sessionSvc session.Service
 }
 
-func NewBudgetHandler(service domainbudget.Service) *BudgetHandler {
-	return &BudgetHandler{service: service}
+func NewBudgetHandler(service domainbudget.Service, sessionSvc session.Service) *BudgetHandler {
+	return &BudgetHandler{service: service, sessionSvc: sessionSvc}
 }
 
 func (h *BudgetHandler) Tree(w http.ResponseWriter, r *http.Request) {
@@ -173,17 +177,23 @@ func (h *BudgetHandler) AlertDelete(w http.ResponseWriter, r *http.Request) {
 
 func (h *BudgetHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/tree", h.Tree)
-	r.Put("/nodes/{id}", h.UpdateNode)
 	r.Get("/departments/{deptId}/member-quotas", h.MemberQuotas)
-	r.Put("/members/{memberId}", h.UpdateMemberQuota)
 	r.Get("/groups", h.GroupsList)
-	r.Post("/groups", h.GroupCreate)
-	r.Put("/groups/{id}", h.GroupUpdate)
-	r.Delete("/groups/{id}", h.GroupDelete)
 	r.Get("/overrun-policy", h.OverrunPolicyGet)
-	r.Put("/overrun-policy", h.OverrunPolicyUpdate)
 	r.Get("/alerts", h.AlertsList)
-	r.Post("/alerts", h.AlertCreate)
-	r.Put("/alerts/{id}", h.AlertUpdate)
-	r.Delete("/alerts/{id}", h.AlertDelete)
+
+	sessionWrite := r.With(httpmiddleware.RequireSession(h.sessionSvc))
+
+	allocateWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
+	allocateWrite.Put("/nodes/{id}", h.UpdateNode)
+	allocateWrite.Put("/members/{memberId}", h.UpdateMemberQuota)
+	allocateWrite.Post("/groups", h.GroupCreate)
+	allocateWrite.Put("/groups/{id}", h.GroupUpdate)
+	allocateWrite.Delete("/groups/{id}", h.GroupDelete)
+
+	policyWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.BudgetPolicy))
+	policyWrite.Put("/overrun-policy", h.OverrunPolicyUpdate)
+	policyWrite.Post("/alerts", h.AlertCreate)
+	policyWrite.Put("/alerts/{id}", h.AlertUpdate)
+	policyWrite.Delete("/alerts/{id}", h.AlertDelete)
 }

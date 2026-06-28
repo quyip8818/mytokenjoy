@@ -6,38 +6,52 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/permission"
 	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
 )
 
 type KeysHandler struct {
-	service domainkeys.Service
+	service    domainkeys.Service
+	sessionSvc session.Service
 }
 
-func NewKeysHandler(service domainkeys.Service) *KeysHandler {
-	return &KeysHandler{service: service}
+func NewKeysHandler(service domainkeys.Service, sessionSvc session.Service) *KeysHandler {
+	return &KeysHandler{service: service, sessionSvc: sessionSvc}
 }
 
 func (h *KeysHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/provider", h.ProviderList)
-	r.Post("/provider", h.ProviderCreate)
-	r.Put("/provider/{id}/toggle", h.ProviderToggle)
-	r.Post("/provider/{id}/rotate", h.ProviderRotate)
-	r.Delete("/provider/{id}", h.ProviderDelete)
 	r.Get("/platform", h.PlatformList)
 	r.Get("/platform/quota-summary", h.PlatformQuotaSummary)
-	r.Post("/platform", h.PlatformCreate)
-	r.Put("/platform/{id}", h.PlatformUpdate)
-	r.Put("/platform/{id}/toggle", h.PlatformToggle)
-	r.Post("/platform/{id}/rotate", h.PlatformRotate)
-	r.Put("/platform/{id}/revoke", h.PlatformRevoke)
-	r.Delete("/platform/{id}", h.PlatformDelete)
 	r.Get("/approvals", h.ApprovalsList)
-	r.Post("/approvals", h.ApprovalCreate)
 	r.Get("/approvals/{id}/quota-check", h.ApprovalQuotaCheck)
-	r.Put("/approvals/{id}/approve", h.ApprovalApprove)
-	r.Put("/approvals/{id}/reject", h.ApprovalReject)
+
+	sessionWrite := r.With(httpmiddleware.RequireSession(h.sessionSvc))
+
+	providerWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.KeysProvider))
+	providerWrite.Post("/provider", h.ProviderCreate)
+	providerWrite.Put("/provider/{id}/toggle", h.ProviderToggle)
+	providerWrite.Post("/provider/{id}/rotate", h.ProviderRotate)
+	providerWrite.Delete("/provider/{id}", h.ProviderDelete)
+
+	platformWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.KeysAdmin))
+	platformWrite.Post("/platform", h.PlatformCreate)
+	platformWrite.Put("/platform/{id}", h.PlatformUpdate)
+	platformWrite.Put("/platform/{id}/toggle", h.PlatformToggle)
+	platformWrite.Post("/platform/{id}/rotate", h.PlatformRotate)
+	platformWrite.Put("/platform/{id}/revoke", h.PlatformRevoke)
+	platformWrite.Delete("/platform/{id}", h.PlatformDelete)
+
+	approvalWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.SelfApproval))
+	approvalWrite.Post("/approvals", h.ApprovalCreate)
+
+	approveWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.BudgetApprove))
+	approveWrite.Put("/approvals/{id}/approve", h.ApprovalApprove)
+	approveWrite.Put("/approvals/{id}/reject", h.ApprovalReject)
 }
 
 func (h *KeysHandler) ProviderList(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,7 @@ import (
 
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/notification"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/worker"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -21,10 +22,12 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 		testutil.WithNewAPIAdminToken("token"),
 	)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub)
+	orgSvc := testutil.NewOrgService(t, cfg, st)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, logger)
+	notifier := notification.NewService(cfg, st, logger)
+	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, stub, lifecycle)
-	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, rebalance, logger)
+	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, rebalance, orgSvc, logger)
 	return runner, st, lifecycle
 }
 

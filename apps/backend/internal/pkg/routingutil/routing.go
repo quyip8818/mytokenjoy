@@ -173,6 +173,40 @@ func cloneRoutingRulesSlice(rules []types.RoutingRule) []types.RoutingRule {
 	return result
 }
 
+func AppendInheritedRule(
+	rules []types.RoutingRule,
+	deptID, deptName string,
+	parentAllowed []string,
+	ruleID string,
+) []types.RoutingRule {
+	return append(rules, types.RoutingRule{
+		ID:            ruleID,
+		NodeID:        deptID,
+		NodeName:      deptName,
+		AllowedModels: append([]string{}, parentAllowed...),
+		Inherited:     true,
+	})
+}
+
+func RemoveRuleByNodeID(rules []types.RoutingRule, nodeID string) []types.RoutingRule {
+	filtered := make([]types.RoutingRule, 0, len(rules))
+	for _, rule := range rules {
+		if rule.NodeID != nodeID {
+			filtered = append(filtered, rule)
+		}
+	}
+	return filtered
+}
+
+func UpdateRuleNodeName(rules []types.RoutingRule, nodeID, name string) []types.RoutingRule {
+	for i := range rules {
+		if rules[i].NodeID == nodeID {
+			rules[i].NodeName = name
+		}
+	}
+	return rules
+}
+
 func shrinkChildRoutingRules(
 	parentNodeID string,
 	parentAllowed []string,

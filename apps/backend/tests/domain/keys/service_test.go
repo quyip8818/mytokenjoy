@@ -162,3 +162,36 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
+
+func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
+	svc, st := newKeysService(t)
+	memberID := seed.IDMember1
+	created, err := svc.CreatePlatformKey(context.Background(), types.CreatePlatformKeyInput{
+		Name: "release-me", MemberID: &memberID, Quota: 500,
+		ModelWhitelist: []string{"gpt-4o"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := svc.QuotaSummary(memberID).Remaining
+	if err := svc.DeletePlatformKey(created.ID); err != nil {
+		t.Fatal(err)
+	}
+	after := svc.QuotaSummary(memberID).Remaining
+	if after <= before {
+		t.Fatalf("expected quota release after delete, before=%v after=%v", before, after)
+	}
+	_ = st
+}
+
+func TestRevokePlatformKey(t *testing.T) {
+	svc, st := newKeysService(t)
+	if err := svc.RevokePlatformKey(context.Background(), seed.IDPlatformKey1); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range st.Keys().PlatformKeys() {
+		if key.ID == seed.IDPlatformKey1 && key.Status != "revoked" {
+			t.Fatalf("expected revoked status, got %s", key.Status)
+		}
+	}
+}

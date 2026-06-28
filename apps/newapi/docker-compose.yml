@@ -9,8 +9,9 @@ services:
       - '5432:5432'
     volumes:
       - tokenjoy_pg:/var/lib/postgresql/data
+      - ./scripts/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U tokenjoy']
+      test: ['CMD-SHELL', 'pg_isready -U tokenjoy -d tokenjoy']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,29 +21,19 @@ services:
     ports:
       - '6379:6379'
 
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: newapi
-      MYSQL_DATABASE: newapi
-    ports:
-      - '3306:3306'
-    volumes:
-      - newapi_mysql:/var/lib/mysql
-
   new-api:
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      mysql:
-        condition: service_started
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_started
     ports:
       - '3000:3000'
     environment:
-      SQL_DSN: root:newapi@tcp(mysql:3306)/newapi?charset=utf8mb4&parseTime=True&loc=Local
+      SQL_DSN: postgresql://tokenjoy:tokenjoy@postgres:5432/newapi?sslmode=disable
       REDIS_CONN_STRING: redis://redis:6379
       SESSION_SECRET: tokenjoy-dev-session-secret
       SYNC_FREQUENCY: 60
@@ -51,4 +42,3 @@ services:
 
 volumes:
   tokenjoy_pg:
-  newapi_mysql:

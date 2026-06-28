@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/notification"
 	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
 	"github.com/tokenjoy/backend/internal/pkg/memberquota"
 	"github.com/tokenjoy/backend/internal/pkg/queryutil"
@@ -21,11 +23,18 @@ type IngestService struct {
 	cfg       config.Config
 	store     store.Store
 	lifecycle relay.Lifecycle
+	notifier  notification.Notifier
 	logger    *slog.Logger
 }
 
-func NewIngestService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle, logger *slog.Logger) *IngestService {
-	return &IngestService{cfg: cfg, store: st, lifecycle: lifecycle, logger: logger}
+func NewIngestService(
+	cfg config.Config,
+	st store.Store,
+	lifecycle relay.Lifecycle,
+	notifier notification.Notifier,
+	logger *slog.Logger,
+) *IngestService {
+	return &IngestService{cfg: cfg, store: st, lifecycle: lifecycle, notifier: notifier, logger: logger}
 }
 
 func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPayload) error {
@@ -47,12 +56,8 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 	}
 
 	models := s.store.Models().Models()
-	modelName := payload.Model
-	if modelName == "" {
-		modelName = newapi.LogEntryModel(newapi.LogEntry{ModelName: payload.Model})
-	}
-	modelPrice := newapi.ModelPriceCNY(models, modelName)
-	costCNY := newapi.CostCNYFromQuota(payload.Quota, modelPrice)
+	modelName := domainusage.ResolveWebhookModel(payload)
+	costCNY := domainusage.CostCNYFromLog(payload.Quota, modelName, models)
 
 	var memberID *string
 	if mapping.MemberID != nil {
@@ -117,6 +122,21 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		tree = st.Budget().Tree()
 		members = st.Org().Members()
 		if err := s.evaluateOverrun(ctx, st, tree, members, memberID, mapping); err != nil {
+			return err
+		}
+
+		memberIDValue := ""
+		if memberID != nil {
+			memberIDValue = *memberID
+		}
+		if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
+			BucketStart:  usageHourFromPayload(payload),
+			DepartmentID: mapping.DepartmentID,
+			MemberID:     memberIDValue,
+			Model:        modelName,
+			CostCNY:      costCNY,
+			CallCount:    1,
+		}); err != nil {
 			return err
 		}
 
@@ -203,12 +223,19 @@ func (s *IngestService) evaluateOverrun(
 		used := memberquota.GetUsedKeyQuota(platformKeys, *memberID)
 		capacity := memberquota.GetPersonalQuota(pools, *memberID)
 		if used >= capacity {
+			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, *memberID, map[string]any{
+				"scope": "member", "memberId": *memberID, "used": used, "capacity": capacity,
+			})
 			return s.disableMemberKeys(ctx, platformKeys, *memberID)
 		}
 	}
 
 	if node := budgetutil.FindBudgetNode(tree, mapping.DepartmentID); node != nil {
 		if node.Consumed >= node.Budget {
+			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, mapping.DepartmentID, map[string]any{
+				"scope": "department", "departmentId": mapping.DepartmentID,
+				"consumed": node.Consumed, "budget": node.Budget,
+			})
 			return s.disableDepartmentKeys(ctx, mapping.DepartmentID)
 		}
 	}
@@ -217,11 +244,30 @@ func (s *IngestService) evaluateOverrun(
 		groups := st.Budget().Groups()
 		for _, group := range groups {
 			if group.ID == *mapping.BudgetGroupID && group.Consumed >= group.Budget {
+				s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, group.ID, map[string]any{
+					"scope": "budgetGroup", "budgetGroupId": group.ID,
+					"consumed": group.Consumed, "budget": group.Budget,
+				})
 				return s.disableBudgetGroupKeys(ctx, *mapping.BudgetGroupID)
 			}
 		}
 	}
 	return nil
+}
+
+func (s *IngestService) notifyOverrun(ctx context.Context, eventType, recipient string, payload map[string]any) {
+	if s.notifier == nil {
+		return
+	}
+	_ = s.notifier.Send(ctx, types.Notification{EventType: eventType, Recipient: recipient, Payload: payload})
+}
+
+func usageHourFromPayload(payload newapi.WebhookLogPayload) time.Time {
+	ts := payload.CreatedAt
+	if ts <= 0 {
+		ts = time.Now().Unix()
+	}
+	return time.Unix(ts, 0).UTC().Truncate(time.Hour)
 }
 
 func (s *IngestService) disableMemberKeys(ctx context.Context, platformKeys []types.PlatformKey, memberID string) error {

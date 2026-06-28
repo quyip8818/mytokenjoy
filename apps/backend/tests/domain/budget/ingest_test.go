@@ -4,36 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
-	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/domain/budget"
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/seed"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	ingest := budget.NewIngestService(cfg, st, lifecycle, logger)
-
-	mapping := store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
-		NewAPITokenID: testutil.Int64Ptr(99),
-		MemberID:      testutil.StrPtr(seed.IDMember1),
-		DepartmentID:  seed.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "dept-dept-3",
-	}
-	if err := st.Relay().UpsertMapping(mapping); err != nil {
-		t.Fatal(err)
-	}
+	ingest := testutil.NewIngestService(t, cfg, st)
+	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
 
 	keys := st.Keys().PlatformKeys()
 	for i := range keys {
@@ -100,24 +82,14 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	if leaf.Consumed <= beforeConsumed {
 		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, leaf.Consumed)
 	}
+
+	testutil.AssertUsageBucketCount(t, st, 1)
 }
 
 func TestIngestFromOutbox(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	ingest := budget.NewIngestService(cfg, st, lifecycle, logger)
-
-	if err := st.Relay().UpsertMapping(store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
-		NewAPITokenID: testutil.Int64Ptr(99),
-		MemberID:      testutil.StrPtr(seed.IDMember1),
-		DepartmentID:  seed.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "dept-dept-3",
-	}); err != nil {
-		t.Fatal(err)
-	}
+	ingest := testutil.NewIngestService(t, cfg, st)
+	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
 
 	raw, err := json.Marshal(newapi.WebhookLogPayload{
 		ID: 2002, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
@@ -134,11 +106,29 @@ func TestIngestFromOutbox(t *testing.T) {
 	}
 }
 
+func TestIngestWritesUsageBucket(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	ingest := testutil.NewIngestService(t, cfg, st)
+	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+
+	payload := newapi.WebhookLogPayload{
+		ID: 4001, TokenID: 99, Quota: 100000, Model: "gpt-4o", CreatedAt: 1717200000,
+	}
+	if err := ingest.Ingest(context.Background(), payload); err != nil {
+		t.Fatal(err)
+	}
+
+	testutil.AssertUsageBucketCount(t, st, 1)
+
+	if err := ingest.Ingest(context.Background(), payload); err != nil {
+		t.Fatal(err)
+	}
+	testutil.AssertUsageBucketCount(t, st, 1)
+}
+
 func TestEnqueueFailed(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	ingest := budget.NewIngestService(cfg, st, lifecycle, logger)
+	ingest := testutil.NewIngestService(t, cfg, st)
 
 	payload := newapi.WebhookLogPayload{ID: 3003, TokenID: 1, Quota: 100, Model: "gpt-4o"}
 	if err := ingest.EnqueueFailed(payload, errors.New("simulated failure")); err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -20,9 +21,12 @@ type Runner struct {
 	lifecycle relay.Lifecycle
 	ingest    *domainbudget.IngestService
 	rebalance *domainbudget.RebalanceService
+	orgSvc    domainorg.Service
 	client    newapi.AdminClient
 	logger    *slog.Logger
 	interval  time.Duration
+	syncEvery time.Duration
+	syncTick  time.Duration
 }
 
 func NewRunner(
@@ -32,6 +36,7 @@ func NewRunner(
 	lifecycle relay.Lifecycle,
 	ingest *domainbudget.IngestService,
 	rebalance *domainbudget.RebalanceService,
+	orgSvc domainorg.Service,
 	logger *slog.Logger,
 ) *Runner {
 	return &Runner{
@@ -41,8 +46,10 @@ func NewRunner(
 		lifecycle: lifecycle,
 		ingest:    ingest,
 		rebalance: rebalance,
+		orgSvc:    orgSvc,
 		logger:    logger,
 		interval:  5 * time.Second,
+		syncEvery: time.Minute,
 	}
 }
 
@@ -61,7 +68,12 @@ func (r *Runner) loop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			r.syncTick += r.interval
 			r.tick(ctx)
+			if r.syncTick >= r.syncEvery {
+				r.syncTick = 0
+				_ = r.processOrgSync(ctx)
+			}
 		}
 	}
 }
@@ -71,6 +83,13 @@ func (r *Runner) tick(ctx context.Context) {
 	_ = r.processWebhookOutbox(ctx)
 	_ = r.processRebalance(ctx)
 	_ = r.compensateLogs(ctx)
+}
+
+func (r *Runner) processOrgSync(ctx context.Context) error {
+	if r.orgSvc == nil {
+		return nil
+	}
+	return r.orgSvc.RunScheduledSync(ctx)
 }
 
 // RunOnce executes one worker cycle (outbox + rebalance + log compensation).

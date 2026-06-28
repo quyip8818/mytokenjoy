@@ -18,6 +18,8 @@ type (
 	Permission               = types.Permission
 	DataSourceSearchResult   = types.DataSourceSearchResult
 	DataSourceTestResult     = types.DataSourceTestResult
+	Credential               = types.Credential
+	FeishuCredential         = types.FeishuCredential
 	BatchInviteResult        = types.BatchInviteResult
 	PlatformKey              = types.PlatformKey
 	SessionContext           = types.SessionContext

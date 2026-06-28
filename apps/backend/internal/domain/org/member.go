@@ -35,13 +35,35 @@ func (s *service) ListMembers(departmentID, keyword string, directOnly bool, pag
 	}
 }
 
-func (s *service) CreateMember(input Member) Member {
-	return Member{
+func (s *service) CreateMember(input Member) (Member, error) {
+	departments := s.store.Org().Departments()
+	dept := orgutil.FindDepartment(departments, input.DepartmentID)
+	if dept == nil {
+		return Member{}, domain.NewDomainError(domain.StatusNotFound, "Department not found")
+	}
+
+	deptName := dept.Name
+	if path := orgutil.GetDeptPath(departments, input.DepartmentID); path != nil {
+		deptName = *path
+	}
+
+	member := Member{
 		ID:   fmt.Sprintf("m-%d", time.Now().UnixMilli()),
 		Name: input.Name, Phone: input.Phone, Email: input.Email,
-		DepartmentID: input.DepartmentID, DepartmentName: input.DepartmentName,
+		DepartmentID: input.DepartmentID, DepartmentName: deptName,
 		Status: "active", Roles: []string{permission.RoleMember}, Source: "manual",
 	}
+
+	members := s.store.Org().Members()
+	members = append(members, member)
+	departments = RecalcDepartmentMemberCounts(departments, members)
+	if err := s.store.Org().SetMembers(members); err != nil {
+		return Member{}, err
+	}
+	if err := s.store.Org().SetDepartments(departments); err != nil {
+		return Member{}, err
+	}
+	return member, nil
 }
 
 func (s *service) UpdateMember(id string, input Member) (Member, error) {
@@ -61,8 +83,7 @@ func (s *service) UpdateMember(id string, input Member) (Member, error) {
 }
 
 func (s *service) DeleteMembers(ids []string) error {
-	_ = ids
-	return nil
+	return s.UpdateMemberStatus(ids, "inactive")
 }
 
 func (s *service) UpdateMemberStatus(ids []string, status string) error {
@@ -91,9 +112,53 @@ func (s *service) UpdateMemberStatus(ids []string, status string) error {
 }
 
 func (s *service) TransferMembers(ids []string, departmentID string) error {
-	_ = ids
-	_ = departmentID
-	return nil
+	if len(ids) == 0 {
+		return nil
+	}
+
+	return s.store.WithTx(context.Background(), func(st store.Store) error {
+		departments := st.Org().Departments()
+		target := orgutil.FindDepartment(departments, departmentID)
+		if target == nil {
+			return domain.NewDomainError(domain.StatusNotFound, "Department not found")
+		}
+
+		deptName := target.Name
+		if path := orgutil.GetDeptPath(departments, departmentID); path != nil {
+			deptName = *path
+		}
+
+		members := st.Org().Members()
+		idSet := make(map[string]struct{}, len(ids))
+		for _, id := range ids {
+			idSet[id] = struct{}{}
+		}
+
+		for i := range members {
+			if _, ok := idSet[members[i].ID]; !ok {
+				continue
+			}
+			members[i].DepartmentID = departmentID
+			members[i].DepartmentName = deptName
+
+			mappings, err := st.Relay().ListMappingsByMemberID(members[i].ID)
+			if err != nil {
+				return err
+			}
+			for _, mapping := range mappings {
+				mapping.DepartmentID = departmentID
+				if err := st.Relay().UpsertMapping(mapping); err != nil {
+					return err
+				}
+			}
+		}
+
+		departments = RecalcDepartmentMemberCounts(departments, members)
+		if err := st.Org().SetMembers(members); err != nil {
+			return err
+		}
+		return st.Org().SetDepartments(departments)
+	})
 }
 
 func (s *service) InviteMember() error {

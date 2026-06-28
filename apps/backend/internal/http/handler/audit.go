@@ -6,17 +6,21 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
+	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/permission"
 	pkg "github.com/tokenjoy/backend/internal/pkg"
 )
 
 type AuditHandler struct {
-	service domainaudit.Service
+	service    domainaudit.Service
+	sessionSvc session.Service
 }
 
-func NewAuditHandler(service domainaudit.Service) *AuditHandler {
-	return &AuditHandler{service: service}
+func NewAuditHandler(service domainaudit.Service, sessionSvc session.Service) *AuditHandler {
+	return &AuditHandler{service: service, sessionSvc: sessionSvc}
 }
 
 func (h *AuditHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +67,9 @@ func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuditHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/settings", h.SettingsGet)
-	r.Put("/settings", h.SettingsUpdate)
 	r.Get("/operations", h.OperationsList)
 	r.Get("/calls", h.CallsList)
+
+	sessionWrite := r.With(httpmiddleware.RequireSession(h.sessionSvc))
+	sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.AuditRead)).Put("/settings", h.SettingsUpdate)
 }

@@ -5,17 +5,24 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/config"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	"github.com/tokenjoy/backend/internal/domain/session"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/permission"
 	"github.com/tokenjoy/backend/internal/pkg"
 )
 
 type OrgHandler struct {
-	service domainorg.Service
+	service    domainorg.Service
+	sessionSvc session.Service
+	cfg        config.Config
 }
 
-func NewOrgHandler(service domainorg.Service) *OrgHandler {
-	return &OrgHandler{service: service}
+func NewOrgHandler(service domainorg.Service, sessionSvc session.Service, cfg config.Config) *OrgHandler {
+	return &OrgHandler{service: service, sessionSvc: sessionSvc, cfg: cfg}
 }
 
 func (h *OrgHandler) DataSourceStatus(w http.ResponseWriter, r *http.Request) {
@@ -23,23 +30,54 @@ func (h *OrgHandler) DataSourceStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrgHandler) DataSourceTest(w http.ResponseWriter, r *http.Request) {
-	result, err := h.service.TestDataSource(r.Context())
+	cred, err := decodeCredential(r)
 	if err != nil {
+		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	result, err := h.service.TestDataSource(r.Context(), cred)
+	if err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
 		response.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if !result.Success {
+		response.JSON(w, http.StatusUnprocessableEntity, result)
 		return
 	}
 	response.JSON(w, http.StatusOK, result)
 }
 
 func (h *OrgHandler) DataSourceUpdate(w http.ResponseWriter, r *http.Request) {
-	_ = json.NewDecoder(r.Body).Decode(&struct{}{})
-	h.service.UpdateDataSource()
+	cred, err := decodeCredential(r)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	force := r.URL.Query().Get("force") == "true"
+	if err := h.service.UpdateDataSource(r.Context(), cred, force); err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
 	response.Void(w)
 }
 
 func (h *OrgHandler) DataSourceSearch(w http.ResponseWriter, r *http.Request) {
 	keyword := r.URL.Query().Get("keyword")
-	response.JSON(w, http.StatusOK, h.service.SearchDataSource(keyword))
+	result, err := h.service.SearchDataSource(r.Context(), keyword)
+	if err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	response.JSON(w, http.StatusOK, result)
 }
 
 func (h *OrgHandler) DataSourceImport(w http.ResponseWriter, r *http.Request) {
@@ -52,12 +90,26 @@ func (h *OrgHandler) DataSourceImport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrgHandler) DataSourceImportRetry(w http.ResponseWriter, r *http.Request) {
-	result, err := h.service.RetryImport(r.Context())
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	result, err := h.service.RetryImport(r.Context(), body.IDs)
 	if err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
 		response.Error(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 	response.JSON(w, http.StatusOK, result)
+}
+
+func decodeCredential(r *http.Request) (domainorg.Credential, error) {
+	return types.DecodeCredential(json.NewDecoder(r.Body))
 }
 
 func (h *OrgHandler) SyncConfigGet(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +154,15 @@ func (h *OrgHandler) DepartmentCreate(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	response.JSON(w, http.StatusOK, h.service.CreateDepartment(body.Name, body.ParentID))
+	dept, err := h.service.CreateDepartment(body.Name, body.ParentID)
+	if err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	response.JSON(w, http.StatusOK, dept)
 }
 
 func (h *OrgHandler) DepartmentUpdate(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +174,15 @@ func (h *OrgHandler) DepartmentUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := chi.URLParam(r, "id")
-	response.JSON(w, http.StatusOK, h.service.UpdateDepartment(id, body.Name))
+	dept, err := h.service.UpdateDepartment(id, body.Name)
+	if err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	response.JSON(w, http.StatusOK, dept)
 }
 
 func (h *OrgHandler) DepartmentDelete(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +213,15 @@ func (h *OrgHandler) MemberCreate(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	response.JSON(w, http.StatusOK, h.service.CreateMember(body))
+	member, err := h.service.CreateMember(body)
+	if err != nil {
+		if writeDomainError(w, err) {
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	response.JSON(w, http.StatusOK, member)
 }
 
 func (h *OrgHandler) MemberUpdate(w http.ResponseWriter, r *http.Request) {
@@ -336,34 +412,45 @@ func (h *OrgHandler) PermissionsList(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrgHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/data-source/status", h.DataSourceStatus)
-	r.Post("/data-source/test", h.DataSourceTest)
-	r.Put("/data-source", h.DataSourceUpdate)
 	r.Get("/data-source/search", h.DataSourceSearch)
-	r.Post("/data-source/import", h.DataSourceImport)
-	r.Post("/data-source/import/retry", h.DataSourceImportRetry)
 	r.Get("/sync/config", h.SyncConfigGet)
-	r.Put("/sync/config", h.SyncConfigUpdate)
-	r.Post("/sync/trigger", h.SyncTrigger)
 	r.Get("/sync/logs", h.SyncLogs)
 	r.Get("/departments/tree", h.DepartmentTree)
-	r.Post("/departments", h.DepartmentCreate)
-	r.Put("/departments/{id}", h.DepartmentUpdate)
-	r.Delete("/departments/{id}", h.DepartmentDelete)
 	r.Get("/members", h.MembersList)
-	r.Post("/members", h.MemberCreate)
-	r.Put("/members/{id}", h.MemberUpdate)
-	r.Delete("/members", h.MembersDelete)
-	r.Put("/members/status", h.MembersStatus)
-	r.Post("/members/transfer", h.MembersTransfer)
-	r.Post("/members/invite", h.MembersInvite)
-	r.Post("/members/batch-invite", h.MembersBatchInvite)
-	r.Post("/members/batch-import", h.MembersBatchImport)
 	r.Get("/roles", h.RolesList)
-	r.Post("/roles", h.RoleCreate)
-	r.Put("/roles/{id}", h.RoleUpdate)
-	r.Delete("/roles/{id}", h.RoleDelete)
 	r.Get("/roles/{roleId}/members", h.RoleMembersList)
-	r.Post("/roles/{roleId}/members", h.RoleMemberAdd)
-	r.Delete("/roles/{roleId}/members/{memberId}", h.RoleMemberRemove)
 	r.Get("/permissions", h.PermissionsList)
+
+	sessionWrite := r.With(httpmiddleware.RequireSession(h.sessionSvc))
+
+	datasourceWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.OrgDatasource))
+	datasourceWrite.Post("/data-source/test", h.DataSourceTest)
+	datasourceWrite.Put("/data-source", h.DataSourceUpdate)
+	datasourceWrite.Post("/data-source/import", h.DataSourceImport)
+	datasourceWrite.Post("/data-source/import/retry", h.DataSourceImportRetry)
+	datasourceWrite.Put("/sync/config", h.SyncConfigUpdate)
+
+	r.With(httpmiddleware.AllowSyncTrigger(h.cfg, h.sessionSvc)).Post("/sync/trigger", h.SyncTrigger)
+
+	structureWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.OrgStructure))
+	structureWrite.Post("/departments", h.DepartmentCreate)
+	structureWrite.Put("/departments/{id}", h.DepartmentUpdate)
+	structureWrite.Delete("/departments/{id}", h.DepartmentDelete)
+
+	membersWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.OrgMembers))
+	membersWrite.Post("/members", h.MemberCreate)
+	membersWrite.Put("/members/{id}", h.MemberUpdate)
+	membersWrite.Delete("/members", h.MembersDelete)
+	membersWrite.Put("/members/status", h.MembersStatus)
+	membersWrite.Post("/members/transfer", h.MembersTransfer)
+	membersWrite.Post("/members/invite", h.MembersInvite)
+	membersWrite.Post("/members/batch-invite", h.MembersBatchInvite)
+	membersWrite.Post("/members/batch-import", h.MembersBatchImport)
+
+	rolesWrite := sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.OrgRoles))
+	rolesWrite.Post("/roles", h.RoleCreate)
+	rolesWrite.Put("/roles/{id}", h.RoleUpdate)
+	rolesWrite.Delete("/roles/{id}", h.RoleDelete)
+	rolesWrite.Post("/roles/{roleId}/members", h.RoleMemberAdd)
+	rolesWrite.Delete("/roles/{roleId}/members/{memberId}", h.RoleMemberRemove)
 }

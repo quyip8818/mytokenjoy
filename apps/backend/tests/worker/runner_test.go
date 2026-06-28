@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/seed"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
@@ -50,17 +51,9 @@ func TestProcessWebhookOutbox(t *testing.T) {
 	ctx := context.Background()
 
 	tokenID := int64(77)
-	memberID := seed.IDMember1
-	if err := st.Relay().UpsertMapping(store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		MemberID:      &memberID,
-		DepartmentID:  seed.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "dept-dept-3",
-	}); err != nil {
-		t.Fatal(err)
-	}
+	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
+		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
+	})
 
 	payload, err := json.Marshal(newapi.WebhookLogPayload{
 		ID: 1001, TokenID: 77, Quota: 500, Model: "gpt-4o", CreatedAt: time.Now().Unix(),
@@ -108,17 +101,9 @@ func TestCompensateLogs(t *testing.T) {
 	ctx := context.Background()
 
 	tokenID := int64(88)
-	memberID := seed.IDMember1
-	if err := st.Relay().UpsertMapping(store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		MemberID:      &memberID,
-		DepartmentID:  seed.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "dept-dept-3",
-	}); err != nil {
-		t.Fatal(err)
-	}
+	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
+		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
+	})
 	if err := st.Relay().SetLastLogID(0); err != nil {
 		t.Fatal(err)
 	}

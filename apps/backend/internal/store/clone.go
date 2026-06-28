@@ -40,6 +40,10 @@ func cloneMembers(items []types.Member) []types.Member {
 			DepartmentID: member.DepartmentID, DepartmentName: member.DepartmentName,
 			Status: member.Status, Roles: append([]string{}, member.Roles...), Source: member.Source,
 		}
+		if member.ExternalID != nil {
+			externalID := *member.ExternalID
+			result[i].ExternalID = &externalID
+		}
 	}
 	return result
 }
@@ -57,6 +61,18 @@ func cloneDepartment(dept types.Department) types.Department {
 	if dept.ParentID != nil {
 		parentID := *dept.ParentID
 		cloned.ParentID = &parentID
+	}
+	if dept.ExternalID != nil {
+		externalID := *dept.ExternalID
+		cloned.ExternalID = &externalID
+	}
+	if dept.Source != nil {
+		source := *dept.Source
+		cloned.Source = &source
+	}
+	if dept.ManagerID != nil {
+		managerID := *dept.ManagerID
+		cloned.ManagerID = &managerID
 	}
 	if len(dept.Children) > 0 {
 		cloned.Children = make([]types.Department, len(dept.Children))

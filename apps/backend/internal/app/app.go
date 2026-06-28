@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
@@ -15,7 +16,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	httpapi "github.com/tokenjoy/backend/internal/http"
+	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/notification"
 	"github.com/tokenjoy/backend/internal/seed"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -52,18 +55,21 @@ func New(cfg config.Config, logger *slog.Logger) *App {
 	}
 
 	lifecycle := relay.NewTokenLifecycle(cfg, st, adminClient)
-	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, logger)
+	notifier := notification.NewService(cfg, st, logger)
+	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, adminClient, lifecycle)
 
 	sessionSvc := session.NewService(st)
-	orgSvc := domainorg.NewService(cfg, st)
+	factory := datasource.NewFactory(cfg)
+	orgSvc := domainorg.NewService(cfg, st, factory, lifecycle, notifier)
 	budgetSvc := domainbudget.NewService(cfg, st)
 	keysSvc := domainkeys.NewService(cfg, st, lifecycle)
 	modelsSvc := domainmodels.NewService(cfg, st, adminClient, lifecycle)
-	dashboardSvc := domaindashboard.NewService(cfg, st)
+	logAggregator := domainusage.NewLogAggregator(adminClient, st, logger)
+	dashboardSvc := domaindashboard.NewService(cfg, st, logAggregator)
 	auditSvc := domainaudit.NewService(cfg, st)
 
-	runner := worker.NewRunner(cfg, st, adminClient, lifecycle, ingest, rebalance, logger)
+	runner := worker.NewRunner(cfg, st, adminClient, lifecycle, ingest, rebalance, orgSvc, logger)
 
 	router := httpapi.NewRouter(httpapi.Deps{
 		Config:       cfg,

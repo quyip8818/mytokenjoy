@@ -1,0 +1,55 @@
+package notification_test
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"testing"
+
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/notification"
+	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/tests/testutil"
+)
+
+func TestNotifierWritesLogEntry(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	svc := notification.NewService(cfg, st, logger)
+
+	if err := svc.Send(context.Background(), types.Notification{
+		EventType: types.NotificationEventSyncThreshold,
+		Recipient: "ops",
+		Payload:   map[string]any{"detail": "test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	logs := st.(*store.Memory).NotificationLogs()
+	if len(logs) != 1 {
+		t.Fatalf("expected 1 notification log, got %d", len(logs))
+	}
+	if logs[0].EventType != types.NotificationEventSyncThreshold {
+		t.Fatalf("unexpected event type %s", logs[0].EventType)
+	}
+}
+
+func TestWebhookFailureDoesNotReturnError(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t, func(c *config.Config) {
+		c.NotifyWebhookURL = "http://127.0.0.1:1/unreachable"
+	})
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	svc := notification.NewService(cfg, st, logger)
+
+	err := svc.Send(context.Background(), types.Notification{
+		EventType: types.NotificationEventOverrunBlocked,
+		Payload:   map[string]any{"scope": "member"},
+	})
+	if err != nil {
+		t.Fatalf("expected nil error on webhook failure, got %v", err)
+	}
+	if len(st.(*store.Memory).NotificationLogs()) < 2 {
+		t.Fatalf("expected log + failed webhook entries")
+	}
+}

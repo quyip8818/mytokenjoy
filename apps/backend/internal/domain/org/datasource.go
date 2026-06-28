@@ -2,11 +2,12 @@ package org
 
 import (
 	"context"
+	"fmt"
 	"strings"
-	"time"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg"
+	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/pkg/orgutil"
 )
 
@@ -14,86 +15,127 @@ func (s *service) GetDataSourceStatus() DataSourceStatus {
 	return s.store.Org().DataSourceStatus()
 }
 
-func (s *service) TestDataSource(ctx context.Context) (DataSourceTestResult, error) {
-	if err := s.delayer.Wait(ctx, time.Second); err != nil {
+func (s *service) TestDataSource(ctx context.Context, cred Credential) (DataSourceTestResult, error) {
+	if err := cred.Validate(); err != nil {
+		msg := err.Error()
+		return DataSourceTestResult{Success: false, Message: &msg}, nil
+	}
+	provider, err := s.providerForCredential(cred)
+	if err != nil {
 		return DataSourceTestResult{}, err
+	}
+	if err := provider.TestConnection(ctx); err != nil {
+		msg := err.Error()
+		return DataSourceTestResult{Success: false, Message: &msg}, nil
 	}
 	return DataSourceTestResult{Success: true}, nil
 }
 
-func (s *service) UpdateDataSource() DataSourceStatus {
-	platform := PlatformFeishu
+func (s *service) UpdateDataSource(ctx context.Context, cred Credential, force bool) error {
+	if err := cred.Validate(); err != nil {
+		return domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+	}
+
+	current := s.store.Org().DataSourceStatus()
+	if current.Connected && current.Platform != nil && *current.Platform != cred.Platform && !force {
+		return domain.NewDomainError(
+			domain.StatusUnprocessable,
+			"platform change requires force=true",
+		)
+	}
+
+	testResult, err := s.TestDataSource(ctx, cred)
+	if err != nil {
+		return err
+	}
+	if !testResult.Success {
+		message := "invalid credential"
+		if testResult.Message != nil {
+			message = *testResult.Message
+		}
+		return domain.NewDomainError(domain.StatusUnprocessable, message)
+	}
+
+	if current.Connected && current.Platform != nil && *current.Platform != cred.Platform && force {
+		if err := s.store.Credential().ClearCredential(); err != nil {
+			return err
+		}
+	}
+
+	if err := s.saveCredential(cred); err != nil {
+		return err
+	}
+
+	platform := cred.Platform
 	status := s.store.Org().DataSourceStatus()
 	status.Connected = true
 	status.Platform = &platform
-	_ = s.store.Org().SetDataSourceStatus(status)
-	return status
+	return s.store.Org().SetDataSourceStatus(status)
 }
 
-func (s *service) SearchDataSource(keyword string) DataSourceSearchResult {
+func (s *service) SearchDataSource(ctx context.Context, keyword string) (DataSourceSearchResult, error) {
 	trimmed := strings.TrimSpace(keyword)
 	if trimmed == "" {
-		return DataSourceSearchResult{}
+		return DataSourceSearchResult{}, nil
 	}
 
-	members := s.store.Org().Members()
-	departments := s.store.Org().Departments()
-	for _, member := range members {
-		if strings.Contains(member.Name, trimmed) ||
-			strings.Contains(member.Phone, trimmed) ||
-			strings.Contains(member.Email, trimmed) {
-			department := member.DepartmentName
-			if path := orgutil.GetDeptPath(departments, member.DepartmentID); path != nil {
-				department = *path
-			}
-			return DataSourceSearchResult{
-				Name: member.Name, Department: department, MappingOK: true,
-			}
+	provider, _, err := s.providerForStored()
+	if err != nil {
+		return DataSourceSearchResult{}, err
+	}
+
+	remote, err := provider.SearchMember(ctx, trimmed)
+	if err != nil {
+		return DataSourceSearchResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+	}
+
+	departments, err := provider.ListDepartments(ctx)
+	if err != nil {
+		return DataSourceSearchResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+	}
+
+	deptName := remote.DepartmentExternalID
+	for _, dept := range departments {
+		if dept.ExternalID == remote.DepartmentExternalID {
+			deptName = dept.Name
+			break
 		}
 	}
-	return DataSourceSearchResult{}
-}
 
-func (s *service) ImportDataSource(ctx context.Context) (ImportResult, error) {
-	if err := s.delayer.Wait(ctx, 2*time.Second); err != nil {
-		return ImportResult{}, err
+	localDepts := s.store.Org().Departments()
+	mappingOK := false
+	for _, dept := range orgutil.FlattenDepartmentTree(localDepts) {
+		if dept.ExternalID != nil && *dept.ExternalID == remote.DepartmentExternalID {
+			mappingOK = true
+			if path := orgutil.GetDeptPath(localDepts, dept.ID); path != nil {
+				deptName = *path
+			}
+			break
+		}
 	}
-	return ImportResult{
-		SuccessMembers: 120, SuccessDepartments: 5,
-		Failures: s.store.Org().ImportFailures(),
+
+	return DataSourceSearchResult{
+		Name:       remote.Name,
+		Department: deptName,
+		MappingOK:  mappingOK,
 	}, nil
 }
 
-func (s *service) RetryImport(ctx context.Context) (ImportResult, error) {
-	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
-		return ImportResult{}, err
-	}
-	return ImportResult{
-		SuccessMembers: 1, SuccessDepartments: 0, Failures: []ImportFailure{},
-	}, nil
+type fixedProvider struct {
+	departments []datasource.RemoteDepartment
+	members     []datasource.RemoteMember
 }
 
-func (s *service) GetSyncConfig() SyncConfig {
-	return s.store.Org().SyncConfig()
+func (p *fixedProvider) TestConnection(ctx context.Context) error { return nil }
+
+func (p *fixedProvider) SearchMember(ctx context.Context, keyword string) (datasource.RemoteMember, error) {
+	return datasource.RemoteMember{}, fmt.Errorf("not implemented")
 }
 
-func (s *service) UpdateSyncConfig(cfg SyncConfig) {
-	_ = s.store.Org().SetSyncConfig(cfg)
+func (p *fixedProvider) ListDepartments(ctx context.Context) ([]datasource.RemoteDepartment, error) {
+	return p.departments, nil
 }
 
-func (s *service) TriggerSync(ctx context.Context) (ImportResult, error) {
-	if err := s.delayer.Wait(ctx, 1500*time.Millisecond); err != nil {
-		return ImportResult{}, err
-	}
-	return ImportResult{
-		SuccessMembers: 3, SuccessDepartments: 0, Failures: []ImportFailure{},
-	}, nil
-}
-
-func (s *service) ListSyncLogs(page, pageSize int) types.PageResult[SyncLog] {
-	logs := s.store.Org().SyncLogs()
-	items, total, safePage, safeSize := pkg.Paginate(logs, page, pageSize)
-	return types.PageResult[SyncLog]{
-		Items: items, Total: total, Page: safePage, PageSize: safeSize,
-	}
+func (p *fixedProvider) ListMembers(ctx context.Context) ([]datasource.RemoteMember, []types.ImportFailure, error) {
+	return p.members, nil, nil
 }

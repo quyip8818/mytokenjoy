@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/seed"
 	"github.com/tokenjoy/backend/internal/store"
@@ -60,19 +59,10 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	app := newTestApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
-	tokenID := int64(99)
-	if err := app.Store.Relay().UpsertMapping(store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		MemberID:      testutil.StrPtr(seed.IDMember1),
-		DepartmentID:  seed.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "dept-dept-3",
-	}); err != nil {
-		t.Fatal(err)
-	}
+	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
 
-	beforeConsumed := dept3Consumed(t, app.Store.Budget().Tree())
+	beforeConsumed := testutil.Dept3Consumed(t, app.Store.Budget().Tree())
+	beforeUsed := platformKeyUsed(t, app.Store, seed.IDPlatformKey1)
 
 	payload := newapi.WebhookLogPayload{
 		ID: 2001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
@@ -94,35 +84,44 @@ func TestWebhookIngestSuccess(t *testing.T) {
 		t.Fatalf("expected status ok, got %q", resp["status"])
 	}
 
-	afterConsumed := dept3Consumed(t, app.Store.Budget().Tree())
+	afterConsumed := testutil.Dept3Consumed(t, app.Store.Budget().Tree())
 	if afterConsumed <= beforeConsumed {
 		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
 	}
-}
-
-func dept3Consumed(t *testing.T, tree []types.BudgetNode) float64 {
-	t.Helper()
-	consumed, ok := findDept3Consumed(tree)
-	if !ok {
-		t.Fatal("dept-3 not found in budget tree")
+	afterUsed := platformKeyUsed(t, app.Store, seed.IDPlatformKey1)
+	if afterUsed <= beforeUsed {
+		t.Fatalf("expected platform key used increase, before=%v after=%v", beforeUsed, afterUsed)
 	}
-	return consumed
+	testutil.AssertUsageBucketCount(t, app.Store, 1)
 }
 
-func findDept3Consumed(tree []types.BudgetNode) (float64, bool) {
-	var walk func([]types.BudgetNode) (float64, bool)
-	walk = func(nodes []types.BudgetNode) (float64, bool) {
-		for _, node := range nodes {
-			if node.ID == seed.IDDept3 {
-				return node.Consumed, true
-			}
-			if len(node.Children) > 0 {
-				if v, ok := walk(node.Children); ok {
-					return v, true
-				}
-			}
+func TestWebhookIngestIdempotent(t *testing.T) {
+	app := newTestApp(t, func(cfg *config.Config) {
+		cfg.NewAPIWebhookSecret = webhookSecret
+	})
+	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
+	payload := newapi.WebhookLogPayload{ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1}
+	body, _ := json.Marshal(payload)
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Webhook-Secret", webhookSecret)
+		rec := httptest.NewRecorder()
+		app.Router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("attempt %d expected 200, got %d", i+1, rec.Code)
 		}
-		return 0, false
 	}
-	return walk(tree)
+	testutil.AssertUsageBucketCount(t, app.Store, 1)
+}
+
+func platformKeyUsed(t *testing.T, st store.Store, keyID string) float64 {
+	t.Helper()
+	for _, key := range st.Keys().PlatformKeys() {
+		if key.ID == keyID {
+			return key.Used
+		}
+	}
+	t.Fatalf("platform key %s not found", keyID)
+	return 0
 }

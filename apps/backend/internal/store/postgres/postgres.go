@@ -44,6 +44,22 @@ func New(ctx context.Context, databaseURL string, seed store.Snapshot) (store.St
 	return s, nil
 }
 
+func (s *Store) Credential() store.CredentialRepository {
+	return &credentialRepo{db: s.pool}
+}
+
+func (s *Store) SchedulerLock() store.SchedulerLockRepository {
+	return &schedulerLockRepo{db: s.pool}
+}
+
+func (s *Store) Usage() store.UsageRepository {
+	return &usageRepo{db: s.pool}
+}
+
+func (s *Store) Notification() store.NotificationRepository {
+	return &notificationRepo{db: s.pool}
+}
+
 func (s *Store) Close() {
 	if s.pool != nil {
 		s.pool.Close()

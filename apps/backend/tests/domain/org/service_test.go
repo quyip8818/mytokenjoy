@@ -4,14 +4,20 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func newTestOrgService(t *testing.T) org.Service {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	return org.NewService(cfg, st)
+	_, _, svc := testutil.NewOrgServiceFromStore(t)
+	return svc
+}
+
+func newTestOrgServiceWithStore(t *testing.T) (org.Service, store.Store) {
+	t.Helper()
+	_, st, svc := testutil.NewOrgServiceFromStore(t)
+	return svc, st
 }
 
 func TestDeletePresetRoleReturns400(t *testing.T) {
@@ -70,7 +76,6 @@ func TestCreateRoleAndList(t *testing.T) {
 	if !found {
 		t.Fatal("created role not found in list")
 	}
-	_ = permission.OrgStructure
 }
 
 func TestAddRoleMember(t *testing.T) {

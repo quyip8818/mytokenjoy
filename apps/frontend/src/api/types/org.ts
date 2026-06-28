@@ -67,6 +67,9 @@ export interface Department {
   parentId: string | null
   children?: Department[]
   memberCount: number
+  externalId?: string
+  source?: 'imported' | 'manual'
+  managerId?: string
 }
 
 export type MemberStatus = 'active' | 'inactive' | 'pending'
@@ -81,6 +84,7 @@ export interface Member {
   status: MemberStatus
   roles: string[]
   source: 'imported' | 'manual' | 'invited'
+  externalId?: string
 }
 
 export interface BatchImportRow {

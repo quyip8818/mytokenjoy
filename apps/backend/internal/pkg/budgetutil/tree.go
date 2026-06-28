@@ -39,3 +39,48 @@ func UpdateBudgetNodeInTree(nodes []types.BudgetNode, id string, data types.Budg
 	}
 	return false
 }
+
+func InsertBudgetNode(nodes []types.BudgetNode, parentID string, node types.BudgetNode) bool {
+	for i := range nodes {
+		if nodes[i].ID == parentID {
+			nodes[i].Children = append(nodes[i].Children, node)
+			return true
+		}
+		if len(nodes[i].Children) > 0 && InsertBudgetNode(nodes[i].Children, parentID, node) {
+			return true
+		}
+	}
+	return false
+}
+
+func RemoveBudgetNode(nodes []types.BudgetNode, id string) ([]types.BudgetNode, bool) {
+	filtered := make([]types.BudgetNode, 0, len(nodes))
+	removed := false
+	for _, node := range nodes {
+		if node.ID == id {
+			removed = true
+			continue
+		}
+		cloned := node
+		if len(node.Children) > 0 {
+			var childRemoved bool
+			cloned.Children, childRemoved = RemoveBudgetNode(node.Children, id)
+			removed = removed || childRemoved
+		}
+		filtered = append(filtered, cloned)
+	}
+	return filtered, removed
+}
+
+func UpdateBudgetNodeName(nodes []types.BudgetNode, id, name string) bool {
+	for i := range nodes {
+		if nodes[i].ID == id {
+			nodes[i].Name = name
+			return true
+		}
+		if len(nodes[i].Children) > 0 && UpdateBudgetNodeName(nodes[i].Children, id, name) {
+			return true
+		}
+	}
+	return false
+}
