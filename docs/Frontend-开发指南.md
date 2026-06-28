@@ -11,9 +11,9 @@
 | API 契约    | [Frontend-API契约.md](./Frontend-API契约.md)                                      | REST 路径、请求/响应体、分页、错误格式、Mock 切换 |
 | Demo        | [Demo.md](./Demo.md)                                                              | Workflow 侧滑、Demo 引导、PRD 差距与走查清单      |
 | 开发速查    | [CLAUDE.md](./CLAUDE.md)                                                          | 命令、技术栈、目录一览                            |
-| 产品需求    | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                             | 业务域边界、功能范围、契约对齐附录                |
-| 系统架构    | [tokenjoy-architecture.md](./tokenjoy-architecture.md)                           | 双平面、预算消耗闭环、Relay 部署与 New API 集成 |
-| Relay 集成   | [tokenjoy-architecture.md](./tokenjoy-architecture.md) §9–§10                  | New API、Webhook、选路、白名单、预算闭环       |
+| 产品需求    | [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                              | 业务域边界、功能范围、契约对齐附录                |
+| 系统架构    | [tokenjoy-architecture.md](./tokenjoy-architecture.md)                            | 双平面、预算消耗闭环、Relay 部署与 New API 集成   |
+| Relay 集成  | [tokenjoy-architecture.md](./tokenjoy-architecture.md) §9–§10                     | New API、Webhook、选路、白名单、预算闭环          |
 | 后端设计    | [Backend-设计.md](./Backend-设计.md)                                              | Go 服务设计与 MSW 迁移                            |
 | Cursor 规范 | [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI / 新人速查摘要                                 |
 
@@ -527,12 +527,12 @@ config/      4 文件
 
 ### 15.6 不建议简化的部分
 
-| 想法                                     | 原因                     |
-| ---------------------------------------- | ------------------------ |
-| 合并 `routes/` 与 `components/{domain}/` | convention + lint 已固化 |
+| 想法                                     | 原因                                 |
+| ---------------------------------------- | ------------------------------------ |
+| 合并 `routes/` 与 `components/{domain}/` | convention + lint 已固化             |
 | 删掉 Workflow 改 Modal                   | 与 [Demo.md](./Demo.md) 交互设计冲突 |
-| 全局 Zustand 存列表                      | Query 已覆盖缓存需求     |
-| 16 页合并路由                            | 与 PRD 信息架构一致      |
+| 全局 Zustand 存列表                      | Query 已覆盖缓存需求                 |
+| 16 页合并路由                            | 与 PRD 信息架构一致                  |
 
 ### 15.7 推荐演进路线
 

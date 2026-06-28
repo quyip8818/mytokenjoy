@@ -22,8 +22,8 @@ func buildBudgetTree() []types.BudgetNode {
 					ID: "dept-2", Name: "技术部", ParentID: &dept2,
 					Budget: 50000, Consumed: 38200, ReservedPool: &reserved2000, Period: "2026-06",
 					Children: []types.BudgetNode{
-						{ID: "dept-3", Name: "后端组", ParentID: &dept3, Budget: 25000, Consumed: 21000, ReservedPool: &reserved1500, Period: "2026-06"},
-						{ID: "dept-4", Name: "前端组", ParentID: &dept4, Budget: 15000, Consumed: 11200, Period: "2026-06"},
+						{ID: IDDept3, Name: "后端组", ParentID: &dept3, Budget: 25000, Consumed: 21000, ReservedPool: &reserved1500, Period: "2026-06"},
+						{ID: IDDept4, Name: "前端组", ParentID: &dept4, Budget: 15000, Consumed: 11200, Period: "2026-06"},
 						{ID: "dept-5", Name: "测试组", ParentID: &dept5, Budget: 10000, Consumed: 6000, Period: "2026-06"},
 					},
 				},
@@ -37,10 +37,10 @@ func buildBudgetTree() []types.BudgetNode {
 
 func buildBudgetGroups() []types.BudgetGroup {
 	return []types.BudgetGroup{
-		{ID: "bg-1", Name: "AI 创新项目组", Budget: 30000, Consumed: 18500, MemberIDs: []string{"m-1", "m-4", "m-10"}, DepartmentIDs: []string{"dept-3", "dept-4"}},
+		{ID: IDBudgetGroup1, Name: "AI 创新项目组", Budget: 30000, Consumed: 18500, MemberIDs: []string{IDMember1, "m-4", "m-10"}, DepartmentIDs: []string{IDDept3, IDDept4}},
 		{ID: "bg-2", Name: "客服 Bot 项目", Budget: 15000, Consumed: 9200, MemberIDs: []string{"m-2"}, DepartmentIDs: []string{"dept-6"}},
 		{ID: "bg-3", Name: "市场增长实验", Budget: 12000, Consumed: 6800, MemberIDs: []string{"m-15", "m-20"}, DepartmentIDs: []string{"dept-7"}},
-		{ID: "bg-4", Name: "内部效率工具", Budget: 8000, Consumed: 4200, MemberIDs: []string{"m-6", "m-8"}, DepartmentIDs: []string{"dept-5"}},
+		{ID: IDBudgetGroup4, Name: "内部效率工具", Budget: 8000, Consumed: 4200, MemberIDs: []string{"m-6", "m-8"}, DepartmentIDs: []string{"dept-5"}},
 	}
 }
 
@@ -55,7 +55,7 @@ func buildAlertRules() []types.AlertRule {
 	return []types.AlertRule{
 		{ID: "alert-1", NodeID: "dept-1", NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []string{"role-1"}, Enabled: true},
 		{ID: "alert-2", NodeID: "dept-2", NodeName: "技术部", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []string{"role-2"}, Enabled: true},
-		{ID: "alert-3", NodeID: "dept-3", NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []string{"role-2"}, Enabled: true},
+		{ID: "alert-3", NodeID: IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []string{"role-2"}, Enabled: true},
 		{ID: "alert-4", NodeID: "dept-6", NodeName: "产品部", Thresholds: []int{80, 100}, NotifyRoleIDs: []string{"role-6"}, Enabled: false},
 		{ID: "alert-5", NodeID: "dept-4", NodeName: "前端组", Thresholds: []int{80, 90}, NotifyRoleIDs: []string{"role-2"}, Enabled: true},
 		{ID: "alert-6", NodeID: "dept-5", NodeName: "测试组", Thresholds: []int{90, 100}, NotifyRoleIDs: []string{"role-2"}, Enabled: true},

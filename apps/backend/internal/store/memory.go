@@ -5,12 +5,15 @@ import (
 )
 
 type Memory struct {
-	mu   sync.RWMutex
-	data Snapshot
+	mu        sync.RWMutex
+	data      Snapshot
+	relayRepo *memoryRelayRepo
 }
 
 func NewMemory(snapshot Snapshot) *Memory {
-	return &Memory{data: deepCopySnapshot(snapshot)}
+	m := &Memory{data: deepCopySnapshot(snapshot)}
+	m.relayRepo = newMemoryRelayRepo(m)
+	return m
 }
 
 func (m *Memory) Org() OrgRepository             { return &memoryOrgRepo{store: m} }
@@ -19,6 +22,19 @@ func (m *Memory) Keys() KeysRepository           { return &memoryKeysRepo{store:
 func (m *Memory) Models() ModelsRepository       { return &memoryModelsRepo{store: m} }
 func (m *Memory) Dashboard() DashboardRepository { return &memoryDashboardRepo{store: m} }
 func (m *Memory) Audit() AuditRepository         { return &memoryAuditRepo{store: m} }
+func (m *Memory) Relay() RelayRepository         { return m.relayRepo }
+
+func (m *Memory) Snapshot() Snapshot {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return deepCopySnapshot(m.data)
+}
+
+func (m *Memory) LoadSnapshot(snapshot Snapshot) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.data = deepCopySnapshot(snapshot)
+}
 
 func deepCopySnapshot(snapshot Snapshot) Snapshot {
 	return Snapshot{

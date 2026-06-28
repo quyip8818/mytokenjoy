@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
       - run: pnpm install --frozen-lockfile
 
@@ -33,19 +33,48 @@ jobs:
           VITE_ENABLE_MOCKS: 'true'
         run: pnpm build
 
-  backend:
+  backend-unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
       - name: Build backend
         run: go build -o /dev/null ./...
         working-directory: apps/backend
 
-      - name: Test backend
-        run: go test ./...
+      - name: Test backend unit
+        run: make test-unit
+        working-directory: apps/backend
+
+  backend-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tokenjoy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Test backend integration
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/tokenjoy_test?sslmode=disable
+        run: make test-integration
         working-directory: apps/backend

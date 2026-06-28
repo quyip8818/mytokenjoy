@@ -1,6 +1,10 @@
 package store
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"context"
+
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
 
 type Snapshot struct {
 	DataSourceStatus types.DataSourceStatus
@@ -35,51 +39,53 @@ type Store interface {
 	Models() ModelsRepository
 	Dashboard() DashboardRepository
 	Audit() AuditRepository
+	Relay() RelayRepository
+	WithTx(ctx context.Context, fn func(Store) error) error
 }
 
 type OrgRepository interface {
 	DataSourceStatus() types.DataSourceStatus
-	SetDataSourceStatus(status types.DataSourceStatus)
+	SetDataSourceStatus(status types.DataSourceStatus) error
 	ImportFailures() []types.ImportFailure
 	SyncConfig() types.SyncConfig
-	SetSyncConfig(cfg types.SyncConfig)
+	SetSyncConfig(cfg types.SyncConfig) error
 	SyncLogs() []types.SyncLog
 	Departments() []types.Department
-	SetDepartments(departments []types.Department)
+	SetDepartments(departments []types.Department) error
 	Members() []types.Member
-	SetMembers(members []types.Member)
+	SetMembers(members []types.Member) error
 	Roles() []types.Role
-	SetRoles(roles []types.Role)
+	SetRoles(roles []types.Role) error
 	Permissions() []types.Permission
 }
 
 type BudgetRepository interface {
 	Tree() []types.BudgetNode
-	SetTree(tree []types.BudgetNode)
+	SetTree(tree []types.BudgetNode) error
 	Groups() []types.BudgetGroup
-	SetGroups(groups []types.BudgetGroup)
+	SetGroups(groups []types.BudgetGroup) error
 	OverrunPolicy() types.OverrunPolicyConfig
-	SetOverrunPolicy(policy types.OverrunPolicyConfig)
+	SetOverrunPolicy(policy types.OverrunPolicyConfig) error
 	AlertRules() []types.AlertRule
-	SetAlertRules(rules []types.AlertRule)
+	SetAlertRules(rules []types.AlertRule) error
 	MemberQuotaPools() map[string]types.MemberQuotaPool
-	SetMemberQuotaPools(pools map[string]types.MemberQuotaPool)
+	SetMemberQuotaPools(pools map[string]types.MemberQuotaPool) error
 }
 
 type KeysRepository interface {
 	ProviderKeys() []types.ProviderKey
-	SetProviderKeys(keys []types.ProviderKey)
+	SetProviderKeys(keys []types.ProviderKey) error
 	PlatformKeys() []types.PlatformKey
-	SetPlatformKeys(keys []types.PlatformKey)
+	SetPlatformKeys(keys []types.PlatformKey) error
 	Approvals() []types.KeyApproval
-	SetApprovals(approvals []types.KeyApproval)
+	SetApprovals(approvals []types.KeyApproval) error
 }
 
 type ModelsRepository interface {
 	Models() []types.ModelInfo
-	SetModels(models []types.ModelInfo)
+	SetModels(models []types.ModelInfo) error
 	RoutingRules() []types.RoutingRule
-	SetRoutingRules(rules []types.RoutingRule)
+	SetRoutingRules(rules []types.RoutingRule) error
 }
 
 type DashboardRepository interface {
@@ -89,7 +95,7 @@ type DashboardRepository interface {
 
 type AuditRepository interface {
 	Settings() types.AuditSettings
-	SetSettings(settings types.AuditSettings)
+	SetSettings(settings types.AuditSettings) error
 	OperationLogs() []types.OperationLog
 	CallLogs() []types.CallLog
 }

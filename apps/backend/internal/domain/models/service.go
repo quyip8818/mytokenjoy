@@ -7,7 +7,10 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/queryutil"
 	"github.com/tokenjoy/backend/internal/pkg/routingutil"
 	"github.com/tokenjoy/backend/internal/pkg/simulate"
 	"github.com/tokenjoy/backend/internal/store"
@@ -23,16 +26,20 @@ type Service interface {
 }
 
 type service struct {
-	cfg     config.Config
-	store   store.Store
-	delayer simulate.Delayer
+	cfg       config.Config
+	store     store.Store
+	delayer   simulate.Delayer
+	client    newapi.AdminClient
+	lifecycle relay.Lifecycle
 }
 
-func NewService(cfg config.Config, st store.Store) Service {
+func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle) Service {
 	return &service{
-		cfg:     cfg,
-		store:   st,
-		delayer: simulate.NewDelayer(cfg.SimulateDelay),
+		cfg:       cfg,
+		store:     st,
+		delayer:   simulate.NewDelayer(cfg.SimulateDelay),
+		client:    client,
+		lifecycle: lifecycle,
 	}
 }
 
@@ -162,5 +169,12 @@ func (s *service) UpdateRoutingRule(
 		)
 	}
 	s.store.Models().SetRoutingRules(rules)
+	if s.client != nil && s.cfg.NewAPIEnabled {
+		_ = s.client.RebuildAbilities(ctx)
+		if s.lifecycle != nil {
+			deptIDs := queryutil.CollectDescendantDeptIDs(s.store.Org().Departments(), updated.NodeID)
+			_ = s.lifecycle.EnqueueModelLimitsForDepartments(deptIDs)
+		}
+	}
 	return updated, nil
 }

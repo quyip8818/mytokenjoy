@@ -3,28 +3,14 @@ package handler_test
 import (
 	"bytes"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/app"
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/seed"
 )
-
-func newTestRouter(t *testing.T) http.Handler {
-	t.Helper()
-	cfg, err := config.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.SimulateDelay = false
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	return app.New(cfg, logger).Router
-}
 
 func TestSessionDemoMissingMemberID(t *testing.T) {
 	router := newTestRouter(t)
@@ -58,7 +44,7 @@ func TestSessionProductionUnauthorized(t *testing.T) {
 
 func TestSessionDemoSuccess(t *testing.T) {
 	router := newTestRouter(t)
-	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=m-admin", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId="+seed.IDMemberAdmin, nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -69,8 +55,8 @@ func TestSessionDemoSuccess(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Member.ID != "m-admin" {
-		t.Fatalf("expected m-admin, got %s", payload.Member.ID)
+	if payload.Member.ID != seed.IDMemberAdmin {
+		t.Fatalf("expected %s, got %s", seed.IDMemberAdmin, payload.Member.ID)
 	}
 	if payload.ReadOnly {
 		t.Fatal("expected admin session to be writable")
@@ -245,5 +231,18 @@ func TestAuditOperations(t *testing.T) {
 	}
 	if page.Total == 0 || len(page.Items) == 0 {
 		t.Fatal("expected audit operation logs")
+	}
+}
+
+func TestBudgetNodeUpdateOversell(t *testing.T) {
+	router := newTestRouter(t)
+	body := []byte(`{"budget":90000,"reservedPool":1500}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/budget/nodes/dept-3", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", sessionCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }

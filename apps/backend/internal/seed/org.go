@@ -21,8 +21,8 @@ func buildDepartments() []types.Department {
 				{
 					ID: "dept-2", Name: "技术部", ParentID: &dept2Parent, MemberCount: 45,
 					Children: []types.Department{
-						{ID: "dept-3", Name: "后端组", ParentID: &dept3Parent, MemberCount: 20},
-						{ID: "dept-4", Name: "前端组", ParentID: &dept4Parent, MemberCount: 15},
+						{ID: IDDept3, Name: "后端组", ParentID: &dept3Parent, MemberCount: 20},
+						{ID: IDDept4, Name: "前端组", ParentID: &dept4Parent, MemberCount: 15},
 						{ID: "dept-5", Name: "测试组", ParentID: &dept5Parent, MemberCount: 10},
 					},
 				},

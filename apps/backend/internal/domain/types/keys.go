@@ -1,15 +1,17 @@
 package types
 
 type ProviderKey struct {
-	ID            string   `json:"id"`
-	Provider      string   `json:"provider"`
-	Name          string   `json:"name"`
-	KeyPrefix     string   `json:"keyPrefix"`
-	Status        string   `json:"status"`
-	Balance       *float64 `json:"balance"`
-	LastUsed      *string  `json:"lastUsed"`
-	CreatedAt     string   `json:"createdAt"`
-	RotateEnabled bool     `json:"rotateEnabled"`
+	ID             string   `json:"id"`
+	Provider       string   `json:"provider"`
+	Name           string   `json:"name"`
+	KeyPrefix      string   `json:"keyPrefix"`
+	Status         string   `json:"status"`
+	Balance        *float64 `json:"balance"`
+	LastUsed       *string  `json:"lastUsed"`
+	CreatedAt      string   `json:"createdAt"`
+	RotateEnabled  bool     `json:"rotateEnabled"`
+	SecretKey      string   `json:"-"`
+	RelayChannelID int      `json:"-"`
 }
 
 type PlatformKey struct {

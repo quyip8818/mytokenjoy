@@ -28,6 +28,7 @@ type Deps struct {
 	ModelsSvc    domainmodels.Service
 	DashboardSvc domaindashboard.Service
 	AuditSvc     domainaudit.Service
+	IngestSvc    *domainbudget.IngestService
 }
 
 func NewRouter(deps Deps) http.Handler {
@@ -44,11 +45,13 @@ func NewRouter(deps Deps) http.Handler {
 	modelsHandler := httphandler.NewModelsHandler(deps.ModelsSvc)
 	dashboardHandler := httphandler.NewDashboardHandler(deps.DashboardSvc)
 	auditHandler := httphandler.NewAuditHandler(deps.AuditSvc)
+	webhookHandler := httphandler.NewWebhookHandler(deps.Config, deps.IngestSvc)
 
 	httphandler.RegisterHealthRoutes(r)
 
 	r.Route("/api", func(r chi.Router) {
 		sessionHandler.RegisterRoutes(r)
+		webhookHandler.RegisterRoutes(r)
 		r.Route("/org", orgHandler.RegisterRoutes)
 		r.Route("/budget", budgetHandler.RegisterRoutes)
 		r.Route("/keys", keysHandler.RegisterRoutes)

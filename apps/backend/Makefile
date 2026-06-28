@@ -1,10 +1,15 @@
-.PHONY: dev test build lint format
+.PHONY: dev test test-unit test-integration build lint format
 
 dev:
 	go run ./cmd/server
 
-test:
-	go test ./...
+test: test-unit
+
+test-unit:
+	go test ./tests/...
+
+test-integration:
+	go test -tags=integration -count=1 ./tests/store/postgres/...
 
 build:
 	go build -o bin/server ./cmd/server

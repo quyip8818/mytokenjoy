@@ -13,8 +13,8 @@ type DeptQuota struct {
 }
 
 var leafDeptQuotas = []DeptQuota{
-	{DepartmentID: "dept-3", DepartmentName: "后端组", Count: 20},
-	{DepartmentID: "dept-4", DepartmentName: "前端组", Count: 15},
+	{DepartmentID: IDDept3, DepartmentName: "后端组", Count: 20},
+	{DepartmentID: IDDept4, DepartmentName: "前端组", Count: 15},
 	{DepartmentID: "dept-5", DepartmentName: "测试组", Count: 10},
 	{DepartmentID: "dept-6", DepartmentName: "产品部", Count: 25},
 	{DepartmentID: "dept-7", DepartmentName: "市场部", Count: 30},
@@ -24,13 +24,13 @@ var leafDeptQuotas = []DeptQuota{
 func anchorMembers() []types.Member {
 	return []types.Member{
 		{
-			ID: "m-admin", Name: "管理员", Phone: "13800000001", Email: "admin@example.com",
+			ID: IDMemberAdmin, Name: "管理员", Phone: "13800000001", Email: "admin@example.com",
 			DepartmentID: "dept-1", DepartmentName: "总公司", Status: "active",
 			Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
 		},
 		{
-			ID: "m-1", Name: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
-			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "active",
+			ID: IDMember1, Name: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
+			DepartmentID: IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{

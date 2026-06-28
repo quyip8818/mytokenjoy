@@ -10,10 +10,11 @@ func (r *memoryOrgRepo) DataSourceStatus() types.DataSourceStatus {
 	return r.store.data.DataSourceStatus
 }
 
-func (r *memoryOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) {
+func (r *memoryOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.DataSourceStatus = status
+	return nil
 }
 
 func (r *memoryOrgRepo) ImportFailures() []types.ImportFailure {
@@ -28,10 +29,11 @@ func (r *memoryOrgRepo) SyncConfig() types.SyncConfig {
 	return r.store.data.SyncConfig
 }
 
-func (r *memoryOrgRepo) SetSyncConfig(cfg types.SyncConfig) {
+func (r *memoryOrgRepo) SetSyncConfig(cfg types.SyncConfig) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.SyncConfig = cfg
+	return nil
 }
 
 func (r *memoryOrgRepo) SyncLogs() []types.SyncLog {
@@ -46,10 +48,11 @@ func (r *memoryOrgRepo) Departments() []types.Department {
 	return cloneDepartments(r.store.data.Departments)
 }
 
-func (r *memoryOrgRepo) SetDepartments(departments []types.Department) {
+func (r *memoryOrgRepo) SetDepartments(departments []types.Department) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.Departments = cloneDepartments(departments)
+	return nil
 }
 
 func (r *memoryOrgRepo) Members() []types.Member {
@@ -58,10 +61,11 @@ func (r *memoryOrgRepo) Members() []types.Member {
 	return cloneMembers(r.store.data.Members)
 }
 
-func (r *memoryOrgRepo) SetMembers(members []types.Member) {
+func (r *memoryOrgRepo) SetMembers(members []types.Member) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.Members = cloneMembers(members)
+	return nil
 }
 
 func (r *memoryOrgRepo) Roles() []types.Role {
@@ -70,10 +74,11 @@ func (r *memoryOrgRepo) Roles() []types.Role {
 	return cloneRoles(r.store.data.Roles)
 }
 
-func (r *memoryOrgRepo) SetRoles(roles []types.Role) {
+func (r *memoryOrgRepo) SetRoles(roles []types.Role) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.Roles = cloneRoles(roles)
+	return nil
 }
 
 func (r *memoryOrgRepo) Permissions() []types.Permission {
@@ -90,10 +95,11 @@ func (r *memoryBudgetRepo) Tree() []types.BudgetNode {
 	return cloneBudgetTree(r.store.data.BudgetTree)
 }
 
-func (r *memoryBudgetRepo) SetTree(tree []types.BudgetNode) {
+func (r *memoryBudgetRepo) SetTree(tree []types.BudgetNode) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.BudgetTree = cloneBudgetTree(tree)
+	return nil
 }
 
 func (r *memoryBudgetRepo) Groups() []types.BudgetGroup {
@@ -102,10 +108,11 @@ func (r *memoryBudgetRepo) Groups() []types.BudgetGroup {
 	return cloneBudgetGroups(r.store.data.BudgetGroups)
 }
 
-func (r *memoryBudgetRepo) SetGroups(groups []types.BudgetGroup) {
+func (r *memoryBudgetRepo) SetGroups(groups []types.BudgetGroup) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.BudgetGroups = cloneBudgetGroups(groups)
+	return nil
 }
 
 func (r *memoryBudgetRepo) OverrunPolicy() types.OverrunPolicyConfig {
@@ -114,10 +121,11 @@ func (r *memoryBudgetRepo) OverrunPolicy() types.OverrunPolicyConfig {
 	return r.store.data.OverrunPolicy
 }
 
-func (r *memoryBudgetRepo) SetOverrunPolicy(policy types.OverrunPolicyConfig) {
+func (r *memoryBudgetRepo) SetOverrunPolicy(policy types.OverrunPolicyConfig) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.OverrunPolicy = policy
+	return nil
 }
 
 func (r *memoryBudgetRepo) AlertRules() []types.AlertRule {
@@ -126,10 +134,11 @@ func (r *memoryBudgetRepo) AlertRules() []types.AlertRule {
 	return cloneAlertRules(r.store.data.AlertRules)
 }
 
-func (r *memoryBudgetRepo) SetAlertRules(rules []types.AlertRule) {
+func (r *memoryBudgetRepo) SetAlertRules(rules []types.AlertRule) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.AlertRules = cloneAlertRules(rules)
+	return nil
 }
 
 func (r *memoryBudgetRepo) MemberQuotaPools() map[string]types.MemberQuotaPool {
@@ -138,10 +147,11 @@ func (r *memoryBudgetRepo) MemberQuotaPools() map[string]types.MemberQuotaPool {
 	return cloneMemberQuotaPools(r.store.data.MemberQuotaPools)
 }
 
-func (r *memoryBudgetRepo) SetMemberQuotaPools(pools map[string]types.MemberQuotaPool) {
+func (r *memoryBudgetRepo) SetMemberQuotaPools(pools map[string]types.MemberQuotaPool) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.MemberQuotaPools = cloneMemberQuotaPools(pools)
+	return nil
 }
 
 type memoryKeysRepo struct{ store *Memory }
@@ -152,10 +162,11 @@ func (r *memoryKeysRepo) ProviderKeys() []types.ProviderKey {
 	return cloneProviderKeys(r.store.data.ProviderKeys)
 }
 
-func (r *memoryKeysRepo) SetProviderKeys(keys []types.ProviderKey) {
+func (r *memoryKeysRepo) SetProviderKeys(keys []types.ProviderKey) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.ProviderKeys = cloneProviderKeys(keys)
+	return nil
 }
 
 func (r *memoryKeysRepo) PlatformKeys() []types.PlatformKey {
@@ -164,10 +175,11 @@ func (r *memoryKeysRepo) PlatformKeys() []types.PlatformKey {
 	return clonePlatformKeys(r.store.data.PlatformKeys)
 }
 
-func (r *memoryKeysRepo) SetPlatformKeys(keys []types.PlatformKey) {
+func (r *memoryKeysRepo) SetPlatformKeys(keys []types.PlatformKey) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.PlatformKeys = clonePlatformKeys(keys)
+	return nil
 }
 
 func (r *memoryKeysRepo) Approvals() []types.KeyApproval {
@@ -176,10 +188,11 @@ func (r *memoryKeysRepo) Approvals() []types.KeyApproval {
 	return cloneApprovals(r.store.data.Approvals)
 }
 
-func (r *memoryKeysRepo) SetApprovals(approvals []types.KeyApproval) {
+func (r *memoryKeysRepo) SetApprovals(approvals []types.KeyApproval) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.Approvals = cloneApprovals(approvals)
+	return nil
 }
 
 type memoryModelsRepo struct{ store *Memory }
@@ -190,10 +203,11 @@ func (r *memoryModelsRepo) Models() []types.ModelInfo {
 	return cloneModels(r.store.data.Models)
 }
 
-func (r *memoryModelsRepo) SetModels(models []types.ModelInfo) {
+func (r *memoryModelsRepo) SetModels(models []types.ModelInfo) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.Models = cloneModels(models)
+	return nil
 }
 
 func (r *memoryModelsRepo) RoutingRules() []types.RoutingRule {
@@ -202,10 +216,11 @@ func (r *memoryModelsRepo) RoutingRules() []types.RoutingRule {
 	return cloneRoutingRules(r.store.data.RoutingRules)
 }
 
-func (r *memoryModelsRepo) SetRoutingRules(rules []types.RoutingRule) {
+func (r *memoryModelsRepo) SetRoutingRules(rules []types.RoutingRule) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.RoutingRules = cloneRoutingRules(rules)
+	return nil
 }
 
 type memoryDashboardRepo struct{ store *Memory }
@@ -230,10 +245,11 @@ func (r *memoryAuditRepo) Settings() types.AuditSettings {
 	return r.store.data.AuditSettings
 }
 
-func (r *memoryAuditRepo) SetSettings(settings types.AuditSettings) {
+func (r *memoryAuditRepo) SetSettings(settings types.AuditSettings) error {
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
 	r.store.data.AuditSettings = settings
+	return nil
 }
 
 func (r *memoryAuditRepo) OperationLogs() []types.OperationLog {

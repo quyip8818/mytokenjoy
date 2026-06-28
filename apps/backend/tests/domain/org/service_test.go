@@ -3,21 +3,15 @@ package org_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/seed"
-	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func newTestOrgService(t *testing.T) org.Service {
 	t.Helper()
-	cfg, err := config.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.SimulateDelay = false
-	return org.NewService(cfg, store.NewMemory(seed.Load(cfg)))
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	return org.NewService(cfg, st)
 }
 
 func TestDeletePresetRoleReturns400(t *testing.T) {
@@ -77,4 +71,52 @@ func TestCreateRoleAndList(t *testing.T) {
 		t.Fatal("created role not found in list")
 	}
 	_ = permission.OrgStructure
+}
+
+func TestAddRoleMember(t *testing.T) {
+	svc := newTestOrgService(t)
+	role := svc.CreateRole("附加角色", []string{"p-1"})
+	if err := svc.AddRoleMember(role.ID, "m-3"); err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range svc.ListMembers("", "", false, 1, 200).Items {
+		if m.ID != "m-3" {
+			continue
+		}
+		found := false
+		for _, r := range m.Roles {
+			if r == "附加角色" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected m-3 to have role 附加角色, got %v", m.Roles)
+		}
+		return
+	}
+	t.Fatal("m-3 not found")
+}
+
+func TestRemoveRoleMemberSuccess(t *testing.T) {
+	svc := newTestOrgService(t)
+	role := svc.CreateRole("可移除角色", []string{"p-2"})
+	if err := svc.AddRoleMember(role.ID, "m-3"); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RemoveRoleMember(role.ID, "m-3"); err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range svc.ListMembers("", "", false, 1, 200).Items {
+		if m.ID != "m-3" {
+			continue
+		}
+		for _, r := range m.Roles {
+			if r == "可移除角色" {
+				t.Fatalf("expected role removed from m-3, still has %v", m.Roles)
+			}
+		}
+		return
+	}
+	t.Fatal("m-3 not found")
 }

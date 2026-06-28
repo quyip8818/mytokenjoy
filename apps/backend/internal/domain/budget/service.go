@@ -62,6 +62,13 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	if reservedPool != nil {
 		reserved = reservedPool
 	}
+	reservedValue := 0.0
+	if reserved != nil {
+		reservedValue = *reserved
+	}
+	if msg := budgetutil.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue); msg != nil {
+		return types.BudgetNode{}, domain.NewDomainError(422, *msg)
+	}
 	update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
 	if !budgetutil.UpdateBudgetNodeInTree(tree, id, update) {
 		return types.BudgetNode{}, domain.NewDomainError(404, "Node not found")

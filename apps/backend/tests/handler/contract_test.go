@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-const sessionCookie = "tokenjoy_session_member=m-admin"
-
 type getContractCase struct {
 	name string
 	path string

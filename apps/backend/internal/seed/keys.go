@@ -47,7 +47,7 @@ func buildProviderKeys(demoToday string) []types.ProviderKey {
 
 func buildApprovals() []types.KeyApproval {
 	return []types.KeyApproval{
-		{ID: "apv-1", Type: "key", Applicant: "钱七", ApplicantID: "m-5", Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedQuota: 5000, RequestedModels: []string{"gpt-4o", "claude-sonnet-4-6"}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
+		{ID: IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: "m-5", Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedQuota: 5000, RequestedModels: []string{"gpt-4o", "claude-sonnet-4-6"}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
 		{ID: "apv-2", Type: "key", Applicant: "王五", ApplicantID: "m-3", Department: "后端组", Reason: "新项目需要多模型测试", RequestedQuota: 8000, RequestedModels: []string{"gpt-4o", "deepseek-v3", "claude-sonnet-4-6"}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
 		{ID: "apv-3", Type: "quota", Applicant: "张三", ApplicantID: "m-1", Department: "后端组", Reason: "额度即将用完，申请追加", RequestedQuota: 3000, RequestedModels: []string{"gpt-4o"}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
 	}
