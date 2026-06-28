@@ -28,7 +28,7 @@ type Deps struct {
 	ModelsSvc    domainmodels.Service
 	DashboardSvc domaindashboard.Service
 	AuditSvc     domainaudit.Service
-	IngestSvc    *domainbudget.IngestService
+	IngestSvc    domainbudget.Ingestor
 }
 
 func NewRouter(deps Deps) http.Handler {
@@ -38,13 +38,13 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(httpmiddleware.Recover(deps.Logger))
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
-	sessionHandler := httphandler.NewSessionHandler(deps.SessionSvc)
+	sessionHandler := httphandler.NewSessionHandler(deps.Config, deps.SessionSvc)
 	orgHandler := httphandler.NewOrgHandler(deps.OrgSvc, deps.SessionSvc, deps.Config)
-	budgetHandler := httphandler.NewBudgetHandler(deps.BudgetSvc, deps.SessionSvc)
-	keysHandler := httphandler.NewKeysHandler(deps.KeysSvc, deps.SessionSvc)
-	modelsHandler := httphandler.NewModelsHandler(deps.ModelsSvc, deps.SessionSvc)
-	dashboardHandler := httphandler.NewDashboardHandler(deps.DashboardSvc, deps.SessionSvc)
-	auditHandler := httphandler.NewAuditHandler(deps.AuditSvc, deps.SessionSvc)
+	budgetHandler := httphandler.NewBudgetHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc)
+	keysHandler := httphandler.NewKeysHandler(deps.Config, deps.KeysSvc, deps.SessionSvc)
+	modelsHandler := httphandler.NewModelsHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc)
+	dashboardHandler := httphandler.NewDashboardHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc)
+	auditHandler := httphandler.NewAuditHandler(deps.Config, deps.AuditSvc, deps.SessionSvc)
 	webhookHandler := httphandler.NewWebhookHandler(deps.Config, deps.IngestSvc)
 
 	httphandler.RegisterHealthRoutes(r)

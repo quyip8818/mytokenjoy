@@ -25,7 +25,6 @@ func (m *Memory) Org() OrgRepository             { return &memoryOrgRepo{store: 
 func (m *Memory) Budget() BudgetRepository       { return &memoryBudgetRepo{store: m} }
 func (m *Memory) Keys() KeysRepository           { return &memoryKeysRepo{store: m} }
 func (m *Memory) Models() ModelsRepository       { return &memoryModelsRepo{store: m} }
-func (m *Memory) Dashboard() DashboardRepository { return &memoryDashboardRepo{store: m} }
 func (m *Memory) Audit() AuditRepository         { return &memoryAuditRepo{store: m} }
 func (m *Memory) Relay() RelayRepository         { return m.relayRepo }
 func (m *Memory) Credential() CredentialRepository {
@@ -73,8 +72,6 @@ func deepCopySnapshot(snapshot Snapshot) Snapshot {
 		Approvals:           cloneApprovals(snapshot.Approvals),
 		Models:              cloneModels(snapshot.Models),
 		RoutingRules:        cloneRoutingRules(snapshot.RoutingRules),
-		ModelUsage:          cloneModelUsage(snapshot.ModelUsage),
-		TeamUsage:           cloneTeamUsage(snapshot.TeamUsage),
 		AuditSettings:       snapshot.AuditSettings,
 		OperationLogs:       cloneOperationLogs(snapshot.OperationLogs),
 		CallLogs:            cloneCallLogs(snapshot.CallLogs),

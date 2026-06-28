@@ -23,7 +23,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	application := app.New(cfg, logger)
+	application, err := app.New(cfg, logger)
+	if err != nil {
+		logger.Error("create app", "error", err)
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

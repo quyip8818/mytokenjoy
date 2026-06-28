@@ -82,12 +82,12 @@ func (s *service) UpdateMember(id string, input Member) (Member, error) {
 	return Member{}, domain.NewDomainError(404, "Member not found")
 }
 
-func (s *service) DeleteMembers(ids []string) error {
-	return s.UpdateMemberStatus(ids, "inactive")
+func (s *service) DeleteMembers(ctx context.Context, ids []string) error {
+	return s.UpdateMemberStatus(ctx, ids, "inactive")
 }
 
-func (s *service) UpdateMemberStatus(ids []string, status string) error {
-	return s.store.WithTx(context.Background(), func(st store.Store) error {
+func (s *service) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
+	return s.store.WithTx(ctx, func(st store.Store) error {
 		members := st.Org().Members()
 		keys := st.Keys().PlatformKeys()
 		for _, id := range ids {
@@ -111,12 +111,12 @@ func (s *service) UpdateMemberStatus(ids []string, status string) error {
 	})
 }
 
-func (s *service) TransferMembers(ids []string, departmentID string) error {
+func (s *service) TransferMembers(ctx context.Context, ids []string, departmentID string) error {
 	if len(ids) == 0 {
 		return nil
 	}
 
-	return s.store.WithTx(context.Background(), func(st store.Store) error {
+	return s.store.WithTx(ctx, func(st store.Store) error {
 		departments := st.Org().Departments()
 		target := orgutil.FindDepartment(departments, departmentID)
 		if target == nil {

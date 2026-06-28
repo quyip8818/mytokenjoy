@@ -36,6 +36,12 @@ func WithNewAPIAdminToken(token string) ConfigOption {
 	}
 }
 
+func WithProfile(profile string) ConfigOption {
+	return func(cfg *config.Config) {
+		cfg.Profile = profile
+	}
+}
+
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
 		DemoToday:     defaultDemoToday,

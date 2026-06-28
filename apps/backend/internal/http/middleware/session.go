@@ -5,10 +5,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
-	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
 )
 
@@ -23,12 +24,12 @@ func SessionFromContext(ctx context.Context) (org.SessionContext, bool) {
 	return sessionCtx, ok
 }
 
-func RequireSession(sessionSvc session.Service) func(http.Handler) http.Handler {
+func RequireSession(cfg config.Config, sessionSvc session.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			memberID := sessionutil.ResolveMemberID(r)
+			memberID := sessionutil.ResolveMemberID(r, cfg.IsDemoProfile())
 			if memberID == "" {
-				response.Error(w, http.StatusUnauthorized, "Unauthorized")
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}
 
@@ -36,10 +37,10 @@ func RequireSession(sessionSvc session.Service) func(http.Handler) http.Handler 
 			if err != nil {
 				var domainErr *domain.DomainError
 				if errors.As(err, &domainErr) && domainErr.Status == domain.StatusNotFound {
-					response.Error(w, http.StatusUnauthorized, "Unauthorized")
+					httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 					return
 				}
-				response.Error(w, http.StatusInternalServerError, "Internal server error")
+				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 				return
 			}
 

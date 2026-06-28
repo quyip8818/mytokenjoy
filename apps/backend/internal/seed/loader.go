@@ -34,8 +34,6 @@ func Load(cfg config.Config) store.Snapshot {
 		Approvals:        buildApprovals(),
 		Models:           buildModels(),
 		RoutingRules:     buildRoutingRules(),
-		ModelUsage:       buildModelUsage(),
-		TeamUsage:        buildTeamUsage(),
 		AuditSettings:    buildAuditSettings(),
 		OperationLogs:    loadOperationLogs(),
 		CallLogs:         loadCallLogs(),

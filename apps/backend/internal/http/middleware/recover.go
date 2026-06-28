@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 )
 
 func Recover(logger *slog.Logger) func(http.Handler) http.Handler {
@@ -13,7 +13,7 @@ func Recover(logger *slog.Logger) func(http.Handler) http.Handler {
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					logger.Error("panic recovered", "error", recovered, "path", r.URL.Path)
-					response.Error(w, http.StatusInternalServerError, "Internal server error")
+					httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 				}
 			}()
 			next.ServeHTTP(w, r)

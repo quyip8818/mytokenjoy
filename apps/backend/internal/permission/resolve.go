@@ -12,7 +12,10 @@ var presetRoleCapabilities = map[string][]string{
 	RoleSuperAdmin: append([]string{}, AllPermissions...),
 	RoleOrgAdmin:   append([]string{}, AllPermissions...),
 	RoleMember:     {SelfKeys, SelfApproval},
-	RoleAuditor:    {AuditRead, DashboardCost, DashboardUsage, SelfApproval},
+	RoleAuditor: {
+		OrgRead, BudgetRead, KeysRead, ModelRead,
+		AuditRead, DashboardCost, DashboardUsage, SelfApproval,
+	},
 	RoleAPICaller:  {APICall},
 }
 

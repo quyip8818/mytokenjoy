@@ -7,11 +7,17 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+const (
+	ProfileDemo = "demo"
+	ProfileProd = "prod"
+)
+
 type Config struct {
 	Port          string `env:"PORT" envDefault:"8080"`
 	CORSOrigins   string `env:"CORS_ORIGINS" envDefault:"http://localhost:5173"`
 	SimulateDelay bool   `env:"SIMULATE_DELAY" envDefault:"true"`
 	DemoToday     string `env:"DEMO_TODAY" envDefault:"2026-06-19"`
+	Profile       string `env:"APP_PROFILE" envDefault:"demo"`
 
 	DatabaseURL         string `env:"DATABASE_URL"`
 	NewAPIEnabled       bool   `env:"NEW_API_ENABLED" envDefault:"false"`
@@ -33,10 +39,21 @@ func Load() (Config, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
 	}
+	if cfg.IsProdProfile() {
+		cfg.SimulateDelay = false
+	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+func (c Config) IsDemoProfile() bool {
+	return c.Profile != ProfileProd
+}
+
+func (c Config) IsProdProfile() bool {
+	return c.Profile == ProfileProd
 }
 
 func (c Config) validate() error {

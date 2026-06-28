@@ -11,6 +11,10 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+type Rebalancer interface {
+	ProcessAxis(ctx context.Context, axisKind, axisID string) error
+}
+
 type RebalanceService struct {
 	cfg       config.Config
 	store     store.Store
@@ -100,3 +104,5 @@ func findPlatformKeyByID(platformKeys []types.PlatformKey, id string) (types.Pla
 	}
 	return types.PlatformKey{}, false
 }
+
+var _ Rebalancer = (*RebalanceService)(nil)

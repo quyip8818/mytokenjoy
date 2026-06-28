@@ -1,6 +1,7 @@
 package permission
 
 const (
+	OrgRead        = "org:read"
 	OrgDatasource  = "org:datasource"
 	OrgStructure   = "org:structure"
 	OrgRoles       = "org:roles"
@@ -10,8 +11,10 @@ const (
 	BudgetApprove  = "budget:approve"
 	BudgetPolicy   = "budget:policy"
 	ModelManage    = "model:manage"
+	ModelRead      = "model:read"
 	ModelWhitelist = "model:whitelist"
 	KeysAdmin      = "keys:admin"
+	KeysRead       = "keys:read"
 	KeysProvider   = "keys:provider"
 	SelfKeys       = "self:keys"
 	SelfApproval   = "self:approval"
@@ -22,6 +25,7 @@ const (
 )
 
 var AllPermissions = []string{
+	OrgRead,
 	OrgDatasource,
 	OrgStructure,
 	OrgRoles,
@@ -31,8 +35,10 @@ var AllPermissions = []string{
 	BudgetApprove,
 	BudgetPolicy,
 	ModelManage,
+	ModelRead,
 	ModelWhitelist,
 	KeysAdmin,
+	KeysRead,
 	KeysProvider,
 	SelfKeys,
 	SelfApproval,
@@ -61,4 +67,7 @@ var PermissionIDMap = map[string]string{
 	"p-16": KeysProvider,
 	"p-17": SelfKeys,
 	"p-18": SelfApproval,
+	"p-19": OrgRead,
+	"p-20": KeysRead,
+	"p-21": ModelRead,
 }

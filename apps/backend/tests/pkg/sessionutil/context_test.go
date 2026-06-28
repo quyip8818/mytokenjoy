@@ -12,15 +12,23 @@ import (
 func TestResolveMemberIDHeaderFirst(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=query-id", nil)
 	req.Header.Set("X-Demo-Member-Id", "header-id")
-	if got := sessionutil.ResolveMemberID(req); got != "header-id" {
+	if got := sessionutil.ResolveMemberID(req, true); got != "header-id" {
 		t.Fatalf("expected header-id, got %q", got)
+	}
+}
+
+func TestResolveMemberIDIgnoresDemoHeaderWhenDisabled(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=query-id", nil)
+	req.Header.Set("X-Demo-Member-Id", "header-id")
+	if got := sessionutil.ResolveMemberID(req, false); got != "" {
+		t.Fatalf("expected empty member id, got %q", got)
 	}
 }
 
 func TestResolveMemberIDCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	req.AddCookie(&http.Cookie{Name: sessionutil.SessionCookie, Value: "cookie-id"})
-	if got := sessionutil.ResolveMemberID(req); got != "cookie-id" {
+	if got := sessionutil.ResolveMemberID(req, false); got != "cookie-id" {
 		t.Fatalf("expected cookie-id, got %q", got)
 	}
 }

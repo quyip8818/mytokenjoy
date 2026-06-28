@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -18,6 +19,12 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/queryutil"
 	"github.com/tokenjoy/backend/internal/store"
 )
+
+type Ingestor interface {
+	Ingest(ctx context.Context, payload newapi.WebhookLogPayload) error
+	IngestFromOutbox(ctx context.Context, raw json.RawMessage) error
+	EnqueueFailed(payload newapi.WebhookLogPayload, ingestErr error) error
+}
 
 type IngestService struct {
 	cfg       config.Config
@@ -52,7 +59,7 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 	}
 	if mapping == nil {
 		s.logger.Warn("ingest rejected: mapping missing", "token_id", payload.TokenID, "log_id", payload.ID)
-		return fmt.Errorf("mapping not found for token %d", payload.TokenID)
+		return domain.NotFound(fmt.Sprintf("mapping not found for token %d", payload.TokenID))
 	}
 
 	models := s.store.Models().Models()
@@ -74,7 +81,7 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 			}
 		}
 		if keyIdx < 0 {
-			return fmt.Errorf("platform key not found: %s", mapping.PlatformKeyID)
+			return domain.NotFound(fmt.Sprintf("platform key not found: %s", mapping.PlatformKeyID))
 		}
 		platformKeys[keyIdx].Used += costCNY
 		if err := st.Keys().SetPlatformKeys(platformKeys); err != nil {
@@ -172,7 +179,7 @@ func (s *IngestService) IngestFromOutbox(ctx context.Context, raw json.RawMessag
 func rollupDepartmentConsumed(tree []types.BudgetNode, leafDepartmentID string, costCNY float64) error {
 	node := budgetutil.FindBudgetNode(tree, leafDepartmentID)
 	if node == nil {
-		return fmt.Errorf("department node not found: %s", leafDepartmentID)
+		return domain.NotFound(fmt.Sprintf("department node not found: %s", leafDepartmentID))
 	}
 	node.Consumed += costCNY
 	ancestors := collectAncestorIDs(tree, leafDepartmentID)
@@ -320,3 +327,5 @@ func (s *IngestService) EnqueueFailed(payload newapi.WebhookLogPayload, ingestEr
 		CreatedAt: time.Now(),
 	})
 }
+
+var _ Ingestor = (*IngestService)(nil)

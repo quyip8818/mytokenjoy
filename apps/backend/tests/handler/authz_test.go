@@ -38,6 +38,23 @@ func TestAuthzWriteEndpoints(t *testing.T) {
 	}
 }
 
+func TestProdGetReadForbiddenForMember(t *testing.T) {
+	router := newProdTestRouter(t)
+	for _, tc := range prodGetForbiddenCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			if tc.cookie != "" {
+				req.Header.Set("Cookie", tc.cookie)
+			}
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != tc.wantStatus {
+				t.Fatalf("expected %d, got %d body=%s", tc.wantStatus, rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
 func TestSyncTriggerWithAPIKey(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	app := newTestApp(t, func(cfg *config.Config) {

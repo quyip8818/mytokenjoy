@@ -90,5 +90,8 @@ func buildPermissions() []types.Permission {
 		{ID: "p-17", Name: "我的 Key", Group: "成员"},
 		{ID: "p-18", Name: "我的审批", Group: "成员"},
 		{ID: "p-11", Name: "API 调用", Group: "API"},
+		{ID: "p-19", Name: "组织查看", Group: "组织"},
+		{ID: "p-20", Name: "Keys 查看", Group: "资源管控"},
+		{ID: "p-21", Name: "模型查看", Group: "资源管控"},
 	}
 }

@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -15,8 +16,8 @@ func NewOrgService(t *testing.T, cfg config.Config, st store.Store) org.Service 
 	t.Helper()
 	factory := datasource.NewFactory(cfg)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
-	notifier := notification.NewService(cfg, st, nil)
-	return org.NewService(cfg, st, factory, lifecycle, notifier)
+	notifier := notification.NewService(cfg, st, slog.Default())
+	return org.NewService(cfg, st, factory, lifecycle, notifier, slog.Default())
 }
 
 func NewOrgServiceFromStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Store, org.Service) {

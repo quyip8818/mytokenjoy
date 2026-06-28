@@ -275,18 +275,6 @@ func cloneRoutingRules(items []types.RoutingRule) []types.RoutingRule {
 	return result
 }
 
-func cloneModelUsage(items []types.ModelUsage) []types.ModelUsage {
-	result := make([]types.ModelUsage, len(items))
-	copy(result, items)
-	return result
-}
-
-func cloneTeamUsage(items []types.TeamUsage) []types.TeamUsage {
-	result := make([]types.TeamUsage, len(items))
-	copy(result, items)
-	return result
-}
-
 func cloneOperationLogs(items []types.OperationLog) []types.OperationLog {
 	result := make([]types.OperationLog, len(items))
 	copy(result, items)

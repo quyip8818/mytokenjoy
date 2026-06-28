@@ -1,39 +1,40 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/permission"
 	pkg "github.com/tokenjoy/backend/internal/pkg"
 )
 
 type AuditHandler struct {
+	cfg        config.Config
 	service    domainaudit.Service
 	sessionSvc session.Service
 }
 
-func NewAuditHandler(service domainaudit.Service, sessionSvc session.Service) *AuditHandler {
-	return &AuditHandler{service: service, sessionSvc: sessionSvc}
+func NewAuditHandler(cfg config.Config, service domainaudit.Service, sessionSvc session.Service) *AuditHandler {
+	return &AuditHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
 }
 
 func (h *AuditHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
-	response.JSON(w, http.StatusOK, h.service.GetSettings())
+	httputil.WriteOK(w, h.service.GetSettings())
 }
 
 func (h *AuditHandler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 	var body types.AuditSettings
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		response.Error(w, http.StatusBadRequest, "Invalid request body")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
-	response.JSON(w, http.StatusOK, h.service.UpdateSettings(body))
+	httputil.WriteOK(w, h.service.UpdateSettings(body))
 }
 
 func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +48,7 @@ func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {
 		From:       query.Get("from"),
 		To:         query.Get("to"),
 	}
-	response.JSON(w, http.StatusOK, h.service.ListOperations(params))
+	httputil.WriteOK(w, h.service.ListOperations(params))
 }
 
 func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
@@ -62,14 +63,16 @@ func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
 		From:     query.Get("from"),
 		To:       query.Get("to"),
 	}
-	response.JSON(w, http.StatusOK, h.service.ListCalls(params))
+	httputil.WriteOK(w, h.service.ListCalls(params))
 }
 
 func (h *AuditHandler) RegisterRoutes(r chi.Router) {
-	r.Get("/settings", h.SettingsGet)
-	r.Get("/operations", h.OperationsList)
-	r.Get("/calls", h.CallsList)
+	read := httpmiddleware.PublicOrReadRoutes(h.cfg, r, h.sessionSvc, permission.AuditRead)
+	read.Get("/settings", h.SettingsGet)
+	read.Get("/operations", h.OperationsList)
+	read.Get("/calls", h.CallsList)
 
-	sessionWrite := r.With(httpmiddleware.RequireSession(h.sessionSvc))
-	sessionWrite.With(httpmiddleware.RequireAnyPermission(permission.AuditRead)).Put("/settings", h.SettingsUpdate)
+	httpmiddleware.WriteRoutes(r, h.cfg, h.sessionSvc).
+		With(httpmiddleware.RequireAnyPermission(permission.AuditRead)).
+		Put("/settings", h.SettingsUpdate)
 }

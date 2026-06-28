@@ -49,3 +49,15 @@ func authzWriteCases() []authzCase {
 		{name: "sync trigger unauthorized", method: http.MethodPost, path: "/api/org/sync/trigger", wantStatus: http.StatusUnauthorized},
 	}
 }
+
+func prodGetForbiddenCases() []authzCase {
+	memberCookie := testutil.SessionCookie(seed.IDMember1)
+	return []authzCase{
+		{name: "org departments tree", method: http.MethodGet, path: "/api/org/departments/tree", cookie: memberCookie, wantStatus: http.StatusForbidden},
+		{name: "budget tree", method: http.MethodGet, path: "/api/budget/tree", cookie: memberCookie, wantStatus: http.StatusForbidden},
+		{name: "keys provider", method: http.MethodGet, path: "/api/keys/provider", cookie: memberCookie, wantStatus: http.StatusForbidden},
+		{name: "models list", method: http.MethodGet, path: "/api/models", cookie: memberCookie, wantStatus: http.StatusForbidden},
+		{name: "audit settings", method: http.MethodGet, path: "/api/audit/settings", cookie: memberCookie, wantStatus: http.StatusForbidden},
+		{name: "dashboard cost summary", method: http.MethodGet, path: "/api/dashboard/cost/summary", cookie: memberCookie, wantStatus: http.StatusForbidden},
+	}
+}

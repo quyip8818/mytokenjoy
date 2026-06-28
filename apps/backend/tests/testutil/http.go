@@ -23,7 +23,11 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 		mutate(&cfg)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	return app.New(cfg, logger)
+	application, err := app.New(cfg, logger, app.WithoutWorker())
+	if err != nil {
+		t.Fatalf("create app: %v", err)
+	}
+	return application
 }
 
 func NewTestRouter(t *testing.T) http.Handler {

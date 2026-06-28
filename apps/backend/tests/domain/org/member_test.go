@@ -1,6 +1,7 @@
 package org_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/org"
@@ -49,7 +50,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	svc = testutil.NewOrgService(t, cfg, st)
 
-	if err := svc.DeleteMembers([]string{seed.IDMember1}); err != nil {
+	if err := svc.DeleteMembers(context.Background(), []string{seed.IDMember1}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,7 +85,7 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.TransferMembers([]string{memberID}, targetDept); err != nil {
+	if err := svc.TransferMembers(context.Background(), []string{memberID}, targetDept); err != nil {
 		t.Fatal(err)
 	}
 
@@ -114,7 +115,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	svc := testutil.NewOrgService(t, cfg, st)
 
-	if err := svc.UpdateMemberStatus([]string{seed.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(context.Background(), []string{seed.IDMember1}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range st.Keys().PlatformKeys() {

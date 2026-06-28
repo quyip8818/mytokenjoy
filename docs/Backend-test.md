@@ -36,7 +36,7 @@ tests/
 | 规则    | 说明                                                                                                           |
 | ------- | -------------------------------------------------------------------------------------------------------------- |
 | 包名    | `package <name>_test`，黑盒 import `internal/...`                                                              |
-| Fixture | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`；禁止裸 `config.Load()`（`seed/loader_test` 除外） |
+| Fixture | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`；Handler 集成测试优先 `testutil.NewTestApp(t)`（内部 `app.New(..., app.WithoutWorker())`，避免 worker goroutine 干扰）；禁止裸 `config.Load()`（`seed/loader_test` 除外） |
 | Seed ID | 使用 `internal/seed` 导出常量（如 `seed.IDDept3`）                                                             |
 | Mock    | `testutil/mock.StubAdminClient` 实现 `newapi.AdminClient`                                                      |
 | 确定性  | `testutil.TestConfig()` 固定 `SimulateDelay=false`；unit 不设 `DATABASE_URL`                                   |
@@ -61,11 +61,16 @@ flowchart LR
   end
   subgraph remaining [仍缺或暂缓]
     ORG[DeleteDepartment stub]
-    AUTH[全局鉴权中间件]
+    AUTH[OIDC/JWT 生产 Session]
     P3[Relay gate-verify 手工]
+  end
+  subgraph authDone [鉴权部分完成]
+    AUTHZ[写操作 Session+permission]
+    PROD[prod GET PublicOrReadRoutes]
   end
   P0 --> P1
   P1 --> P2
+  P2 --> authDone
   P2 --> remaining
 ```
 
@@ -92,7 +97,9 @@ go test ./tests/... -coverprofile=coverage.out && go tool cover -html=coverage.o
 
 | 路径                                                                                                                                   | 覆盖点                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `tests/handler/contract_test.go`                                                                                                       | 33 个 GET → 200 + JSON                        |
+| `tests/handler/contract_test.go`                                                                                                       | demo profile：GET 带 admin cookie → 200 + JSON |
+| `tests/handler/contract_prod_test.go`                                                                                                  | prod profile：无 cookie GET → 401；admin cookie → 200 |
+| `tests/handler/authz_test.go`                                                                                                            | 写操作 401/403/200；`TestProdGetReadForbiddenForMember` prod GET 403 |
 | `tests/handler/handler_test.go`                                                                                                        | Session 双轨、healthz、域 smoke、预算超卖 422 |
 | `tests/handler/webhook_test.go`                                                                                                        | Webhook 401/400/200                           |
 | `tests/handler/keys_test.go`                                                                                                           | 审批 approve/reject HTTP                      |
@@ -289,7 +296,7 @@ req.Header.Set("Cookie", testutil.SessionCookie(seed.IDMemberAdmin))
 
 ### 6.4 新 GET 端点
 
-在 `tests/handler/contract_test.go` 的 `getContractCases()` 追加 `{name, path}`。
+在 `tests/handler/contract_test.go` 的 `getContractCases()` 追加 `{name, path}`。prod profile 行为用 `testutil.WithProfile(config.ProfileProd)` 配置 `NewTestApp`（见 `contract_prod_test.go`）。
 
 ---
 

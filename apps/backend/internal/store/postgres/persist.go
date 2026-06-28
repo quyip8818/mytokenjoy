@@ -1,17 +1,13 @@
 package postgres
 
 import (
-	"context"
-
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type persistFunc func(context.Context) error
-
 type persistOrgRepo struct {
-	inner   store.OrgRepository
-	persist persistFunc
+	inner store.OrgRepository
+	store *Store
 }
 
 func (r *persistOrgRepo) DataSourceStatus() types.DataSourceStatus { return r.inner.DataSourceStatus() }
@@ -19,28 +15,28 @@ func (r *persistOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) erro
 	if err := r.inner.SetDataSourceStatus(status); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) ImportFailures() []types.ImportFailure { return r.inner.ImportFailures() }
 func (r *persistOrgRepo) SetImportFailures(failures []types.ImportFailure) error {
 	if err := r.inner.SetImportFailures(failures); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) SyncConfig() types.SyncConfig { return r.inner.SyncConfig() }
 func (r *persistOrgRepo) SetSyncConfig(cfg types.SyncConfig) error {
 	if err := r.inner.SetSyncConfig(cfg); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) SyncLogs() []types.SyncLog { return r.inner.SyncLogs() }
 func (r *persistOrgRepo) AppendSyncLog(log types.SyncLog) error {
 	if err := r.inner.AppendSyncLog(log); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) Departments() []types.Department {
 	return r.inner.Departments()
@@ -49,27 +45,27 @@ func (r *persistOrgRepo) SetDepartments(departments []types.Department) error {
 	if err := r.inner.SetDepartments(departments); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) Members() []types.Member { return r.inner.Members() }
 func (r *persistOrgRepo) SetMembers(members []types.Member) error {
 	if err := r.inner.SetMembers(members); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) Roles() []types.Role { return r.inner.Roles() }
 func (r *persistOrgRepo) SetRoles(roles []types.Role) error {
 	if err := r.inner.SetRoles(roles); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistOrgRepo) Permissions() []types.Permission { return r.inner.Permissions() }
 
 type persistBudgetRepo struct {
-	inner   store.BudgetRepository
-	persist persistFunc
+	inner store.BudgetRepository
+	store *Store
 }
 
 func (r *persistBudgetRepo) Tree() []types.BudgetNode { return r.inner.Tree() }
@@ -77,28 +73,28 @@ func (r *persistBudgetRepo) SetTree(tree []types.BudgetNode) error {
 	if err := r.inner.SetTree(tree); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistBudgetRepo) Groups() []types.BudgetGroup { return r.inner.Groups() }
 func (r *persistBudgetRepo) SetGroups(groups []types.BudgetGroup) error {
 	if err := r.inner.SetGroups(groups); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistBudgetRepo) OverrunPolicy() types.OverrunPolicyConfig { return r.inner.OverrunPolicy() }
 func (r *persistBudgetRepo) SetOverrunPolicy(policy types.OverrunPolicyConfig) error {
 	if err := r.inner.SetOverrunPolicy(policy); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistBudgetRepo) AlertRules() []types.AlertRule { return r.inner.AlertRules() }
 func (r *persistBudgetRepo) SetAlertRules(rules []types.AlertRule) error {
 	if err := r.inner.SetAlertRules(rules); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistBudgetRepo) MemberQuotaPools() map[string]types.MemberQuotaPool {
 	return r.inner.MemberQuotaPools()
@@ -107,12 +103,12 @@ func (r *persistBudgetRepo) SetMemberQuotaPools(pools map[string]types.MemberQuo
 	if err := r.inner.SetMemberQuotaPools(pools); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 
 type persistKeysRepo struct {
-	inner   store.KeysRepository
-	persist persistFunc
+	inner store.KeysRepository
+	store *Store
 }
 
 func (r *persistKeysRepo) ProviderKeys() []types.ProviderKey { return r.inner.ProviderKeys() }
@@ -120,26 +116,26 @@ func (r *persistKeysRepo) SetProviderKeys(keys []types.ProviderKey) error {
 	if err := r.inner.SetProviderKeys(keys); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistKeysRepo) PlatformKeys() []types.PlatformKey { return r.inner.PlatformKeys() }
 func (r *persistKeysRepo) SetPlatformKeys(keys []types.PlatformKey) error {
 	if err := r.inner.SetPlatformKeys(keys); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistKeysRepo) Approvals() []types.KeyApproval { return r.inner.Approvals() }
 func (r *persistKeysRepo) SetApprovals(approvals []types.KeyApproval) error {
 	if err := r.inner.SetApprovals(approvals); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 
 type persistModelsRepo struct {
-	inner   store.ModelsRepository
-	persist persistFunc
+	inner store.ModelsRepository
+	store *Store
 }
 
 func (r *persistModelsRepo) Models() []types.ModelInfo { return r.inner.Models() }
@@ -147,19 +143,19 @@ func (r *persistModelsRepo) SetModels(models []types.ModelInfo) error {
 	if err := r.inner.SetModels(models); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistModelsRepo) RoutingRules() []types.RoutingRule { return r.inner.RoutingRules() }
 func (r *persistModelsRepo) SetRoutingRules(rules []types.RoutingRule) error {
 	if err := r.inner.SetRoutingRules(rules); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 
 type persistAuditRepo struct {
-	inner   store.AuditRepository
-	persist persistFunc
+	inner store.AuditRepository
+	store *Store
 }
 
 func (r *persistAuditRepo) Settings() types.AuditSettings { return r.inner.Settings() }
@@ -167,7 +163,7 @@ func (r *persistAuditRepo) SetSettings(settings types.AuditSettings) error {
 	if err := r.inner.SetSettings(settings); err != nil {
 		return err
 	}
-	return r.persist(context.Background())
+	return r.store.persistSnapshot()
 }
 func (r *persistAuditRepo) OperationLogs() []types.OperationLog { return r.inner.OperationLogs() }
 func (r *persistAuditRepo) CallLogs() []types.CallLog           { return r.inner.CallLogs() }

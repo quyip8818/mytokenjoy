@@ -32,10 +32,6 @@ func (s *txStore) Models() store.ModelsRepository {
 	return &deferredModelsRepo{inner: s.memory.Models()}
 }
 
-func (s *txStore) Dashboard() store.DashboardRepository {
-	return s.memory.Dashboard()
-}
-
 func (s *txStore) Audit() store.AuditRepository {
 	return &deferredAuditRepo{inner: s.memory.Audit()}
 }
@@ -68,6 +64,9 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	s.setActiveCtx(ctx)
+	defer s.clearActiveCtx()
+
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)

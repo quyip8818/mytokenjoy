@@ -16,7 +16,7 @@
 | 业务规则  | 预算超卖、成员额度、 BG、白名单继承、Key/审批校验                    | 组织部分 CRUD 为 stub；数据源/同步为 Mock  |
 | 持久化    | Memory 默认；Postgres 可选（`domain_snapshot` JSONB + relay 关系表） | 凭证、用量事实、调度锁等需扩展 schema      |
 | 运行时    | NewAPI webhook ingest、outbox worker、超限禁用 Key                   | 预警通知、定时同步、月初重置、看板真实数据 |
-| 鉴权      | Demo Session（Cookie / memberId）                                    | 写操作无强制鉴权；生产 JWT/OAuth 未做      |
+| 鉴权      | `APP_PROFILE` demo/prod；写操作 Session + permission；prod GET `PublicOrReadRoutes`；Demo `memberId`/cookie；前端读权限与 Auditor 路由已对齐 | 生产 OIDC/JWT（§11.2）未做 |
 
 ---
 

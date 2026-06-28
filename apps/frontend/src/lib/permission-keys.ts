@@ -1,4 +1,5 @@
 export const PERMISSION = {
+  ORG_READ: 'org:read',
   ORG_DATASOURCE: 'org:datasource',
   ORG_STRUCTURE: 'org:structure',
   ORG_ROLES: 'org:roles',
@@ -7,8 +8,10 @@ export const PERMISSION = {
   BUDGET_ALLOCATE: 'budget:allocate',
   BUDGET_APPROVE: 'budget:approve',
   BUDGET_POLICY: 'budget:policy',
+  MODEL_READ: 'model:read',
   MODEL_MANAGE: 'model:manage',
   MODEL_WHITELIST: 'model:whitelist',
+  KEYS_READ: 'keys:read',
   KEYS_ADMIN: 'keys:admin',
   KEYS_PROVIDER: 'keys:provider',
   SELF_KEYS: 'self:keys',

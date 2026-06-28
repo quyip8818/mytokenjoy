@@ -4,17 +4,20 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/session"
-	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
 )
 
 type SessionHandler struct {
+	cfg     config.Config
 	service session.Service
 }
 
-func NewSessionHandler(service session.Service) *SessionHandler {
-	return &SessionHandler{service: service}
+func NewSessionHandler(cfg config.Config, service session.Service) *SessionHandler {
+	return &SessionHandler{cfg: cfg, service: service}
 }
 
 func (h *SessionHandler) RegisterRoutes(r chi.Router) {
@@ -23,19 +26,19 @@ func (h *SessionHandler) RegisterRoutes(r chi.Router) {
 
 func (h *SessionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	if _, hasMemberID := query["memberId"]; hasMemberID {
+	if _, hasMemberID := query["memberId"]; hasMemberID && h.cfg.IsDemoProfile() {
 		memberID := query.Get("memberId")
 		if memberID == "" {
-			response.Error(w, http.StatusBadRequest, "memberId is required")
+			httputil.WriteError(w, domain.BadRequest("memberId is required"))
 			return
 		}
 		h.respondSession(w, memberID)
 		return
 	}
 
-	memberID := sessionutil.ResolveMemberID(r)
+	memberID := sessionutil.ResolveMemberID(r, h.cfg.IsDemoProfile())
 	if memberID == "" {
-		response.Error(w, http.StatusUnauthorized, "Unauthorized")
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
 	h.respondSession(w, memberID)
@@ -43,12 +46,5 @@ func (h *SessionHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *SessionHandler) respondSession(w http.ResponseWriter, memberID string) {
 	ctx, err := h.service.GetByMemberID(memberID)
-	if err != nil {
-		if writeDomainError(w, err) {
-			return
-		}
-		response.Error(w, http.StatusInternalServerError, "Internal server error")
-		return
-	}
-	response.JSON(w, http.StatusOK, ctx)
+	httputil.WriteJSON(w, http.StatusOK, ctx, err)
 }

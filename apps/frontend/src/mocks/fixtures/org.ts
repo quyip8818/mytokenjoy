@@ -221,4 +221,7 @@ export const mockPermissions: Permission[] = [
   { id: 'p-17', name: '我的 Key', group: '成员' },
   { id: 'p-18', name: '我的审批', group: '成员' },
   { id: 'p-11', name: 'API 调用', group: 'API' },
+  { id: 'p-19', name: '组织查看', group: '组织' },
+  { id: 'p-20', name: 'Keys 查看', group: '资源管控' },
+  { id: 'p-21', name: '模型查看', group: '资源管控' },
 ]

@@ -237,20 +237,6 @@ func (r *memoryModelsRepo) SetRoutingRules(rules []types.RoutingRule) error {
 	return nil
 }
 
-type memoryDashboardRepo struct{ store *Memory }
-
-func (r *memoryDashboardRepo) ModelUsage() []types.ModelUsage {
-	r.store.mu.RLock()
-	defer r.store.mu.RUnlock()
-	return cloneModelUsage(r.store.data.ModelUsage)
-}
-
-func (r *memoryDashboardRepo) TeamUsage() []types.TeamUsage {
-	r.store.mu.RLock()
-	defer r.store.mu.RUnlock()
-	return cloneTeamUsage(r.store.data.TeamUsage)
-}
-
 type memoryAuditRepo struct{ store *Memory }
 
 func (r *memoryAuditRepo) Settings() types.AuditSettings {

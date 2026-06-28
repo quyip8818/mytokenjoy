@@ -52,9 +52,6 @@ func TestLoadSnapshot(t *testing.T) {
 	if !foundPending {
 		t.Fatal("expected pending approval apv-1")
 	}
-	if len(snapshot.ModelUsage) != 5 {
-		t.Fatalf("expected 5 model usage rows, got %d", len(snapshot.ModelUsage))
-	}
 	if len(snapshot.OperationLogs) == 0 {
 		t.Fatal("expected operation logs")
 	}

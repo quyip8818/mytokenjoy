@@ -26,8 +26,6 @@ type Snapshot struct {
 	Approvals           []types.KeyApproval
 	Models              []types.ModelInfo
 	RoutingRules        []types.RoutingRule
-	ModelUsage          []types.ModelUsage
-	TeamUsage           []types.TeamUsage
 	AuditSettings       types.AuditSettings
 	OperationLogs       []types.OperationLog
 	CallLogs            []types.CallLog
@@ -40,7 +38,6 @@ type Store interface {
 	Budget() BudgetRepository
 	Keys() KeysRepository
 	Models() ModelsRepository
-	Dashboard() DashboardRepository
 	Audit() AuditRepository
 	Relay() RelayRepository
 	Credential() CredentialRepository
@@ -106,11 +103,6 @@ type ModelsRepository interface {
 	SetModels(models []types.ModelInfo) error
 	RoutingRules() []types.RoutingRule
 	SetRoutingRules(rules []types.RoutingRule) error
-}
-
-type DashboardRepository interface {
-	ModelUsage() []types.ModelUsage
-	TeamUsage() []types.TeamUsage
 }
 
 type AuditRepository interface {

@@ -5,33 +5,33 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/config"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	"github.com/tokenjoy/backend/internal/domain"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/http/response"
 	pkg "github.com/tokenjoy/backend/internal/pkg"
 	"github.com/tokenjoy/backend/internal/permission"
 )
 
 type DashboardHandler struct {
+	cfg        config.Config
 	service    domaindashboard.Service
 	sessionSvc session.Service
 }
 
-func NewDashboardHandler(service domaindashboard.Service, sessionSvc session.Service) *DashboardHandler {
-	return &DashboardHandler{service: service, sessionSvc: sessionSvc}
+func NewDashboardHandler(cfg config.Config, service domaindashboard.Service, sessionSvc session.Service) *DashboardHandler {
+	return &DashboardHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
 }
 
 func (h *DashboardHandler) CostSummary(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.CostSummary(ctx, params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -40,10 +40,7 @@ func (h *DashboardHandler) DepartmentCosts(w http.ResponseWriter, r *http.Reques
 		query := r.URL.Query()
 		params := parseCostQueryParams(r)
 		result, err := h.service.DepartmentCosts(ctx, query.Get("parentId"), params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -51,10 +48,7 @@ func (h *DashboardHandler) DepartmentMemberCosts(w http.ResponseWriter, r *http.
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.DepartmentMemberCosts(ctx, chi.URLParam(r, "deptId"), params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -62,10 +56,7 @@ func (h *DashboardHandler) DailyCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.DailyCosts(ctx, params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -75,10 +66,7 @@ func (h *DashboardHandler) TopConsumers(w http.ResponseWriter, r *http.Request) 
 		limit := pkg.ParseIntParam(query.Get("limit"), 5)
 		params := parseCostQueryParams(r)
 		result, err := h.service.TopConsumers(ctx, limit, params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -86,10 +74,7 @@ func (h *DashboardHandler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.ModelUsage(ctx, params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -97,10 +82,7 @@ func (h *DashboardHandler) TeamUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.TeamUsage(ctx, params, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
@@ -111,12 +93,13 @@ func (h *DashboardHandler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 		startRaw := query.Get("start")
 		endRaw := query.Get("end")
 		if granularity == "" || startRaw == "" || endRaw == "" {
-			response.Error(w, http.StatusBadRequest, "granularity, start and end are required")
+			httputil.WriteError(w, domain.BadRequest("granularity, start and end are required"))
 			return
 		}
 		timezone := domainusage.ResolveTimezone("")
 		start, end, err := domainusage.ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone)
-		if writeDomainError(w, err) {
+		if err != nil {
+			httputil.WriteError(w, err)
 			return
 		}
 		groupBy := query.Get("groupBy")
@@ -132,18 +115,12 @@ func (h *DashboardHandler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 			MemberID:     query.Get("memberId"),
 			Timezone:     timezone,
 		}, scope)
-		if writeDomainError(w, err) {
-			return
-		}
-		response.JSON(w, http.StatusOK, result)
+		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
 
 func (h *DashboardHandler) RegisterRoutes(r chi.Router) {
-	read := r.With(
-		httpmiddleware.RequireSession(h.sessionSvc),
-		httpmiddleware.RequireAnyPermission(permission.DashboardCost, permission.DashboardUsage),
-	)
+	read := httpmiddleware.ReadRoutes(r, h.cfg, h.sessionSvc, permission.DashboardCost, permission.DashboardUsage)
 	read.Get("/cost/summary", h.CostSummary)
 	read.Get("/cost/departments", h.DepartmentCosts)
 	read.Get("/cost/departments/{deptId}/members", h.DepartmentMemberCosts)
@@ -157,7 +134,7 @@ func (h *DashboardHandler) RegisterRoutes(r chi.Router) {
 func (h *DashboardHandler) withScope(w http.ResponseWriter, r *http.Request, fn func(context.Context, domainusage.SessionScope)) {
 	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
 	if !ok {
-		response.Error(w, http.StatusUnauthorized, "Unauthorized")
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
 	fn(r.Context(), domainusage.SessionScope{

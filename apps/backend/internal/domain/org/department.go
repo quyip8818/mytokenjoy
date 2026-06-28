@@ -23,7 +23,7 @@ func (s *service) GetDepartmentTree() []Department {
 	return s.store.Org().Departments()
 }
 
-func (s *service) CreateDepartment(name, parentID string) (Department, error) {
+func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (Department, error) {
 	if strings.TrimSpace(name) == "" {
 		return Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Department name is required")
 	}
@@ -34,7 +34,7 @@ func (s *service) CreateDepartment(name, parentID string) (Department, error) {
 	deptID := fmt.Sprintf("dept-%d", time.Now().UnixMilli())
 	var created Department
 
-	err := s.store.WithTx(context.Background(), func(st store.Store) error {
+	err := s.store.WithTx(ctx, func(st store.Store) error {
 		departments := st.Org().Departments()
 		members := st.Org().Members()
 		state := &ProvisionState{
@@ -78,13 +78,13 @@ func (s *service) CreateDepartment(name, parentID string) (Department, error) {
 	return created, nil
 }
 
-func (s *service) UpdateDepartment(id, name string) (Department, error) {
+func (s *service) UpdateDepartment(ctx context.Context, id, name string) (Department, error) {
 	if strings.TrimSpace(name) == "" {
 		return Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Department name is required")
 	}
 
 	var updated Department
-	err := s.store.WithTx(context.Background(), func(st store.Store) error {
+	err := s.store.WithTx(ctx, func(st store.Store) error {
 		members := st.Org().Members()
 		state := &ProvisionState{
 			Departments: st.Org().Departments(),
@@ -123,12 +123,12 @@ func (s *service) UpdateDepartment(id, name string) (Department, error) {
 	return updated, nil
 }
 
-func (s *service) DeleteDepartment(id string) error {
+func (s *service) DeleteDepartment(ctx context.Context, id string) error {
 	if id == RootDepartmentID {
 		return domain.NewDomainError(domain.StatusUnprocessable, DeptDeleteBlockedMsg)
 	}
 
-	return s.store.WithTx(context.Background(), func(st store.Store) error {
+	return s.store.WithTx(ctx, func(st store.Store) error {
 		departments := st.Org().Departments()
 		members := st.Org().Members()
 

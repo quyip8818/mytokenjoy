@@ -2,10 +2,11 @@ package postgres
 
 import (
 	"context"
-	"embed"
 	"encoding/json"
+	"embed"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,9 +17,11 @@ import (
 var migrationFS embed.FS
 
 type Store struct {
-	pool   *pgxpool.Pool
-	memory *store.Memory
-	relay  *relayRepo
+	pool      *pgxpool.Pool
+	memory    *store.Memory
+	relay     *relayRepo
+	activeCtx context.Context
+	activeMu  sync.RWMutex
 }
 
 func New(ctx context.Context, databaseURL string, seed store.Snapshot) (store.Store, error) {
@@ -67,20 +70,19 @@ func (s *Store) Close() {
 }
 
 func (s *Store) Org() store.OrgRepository {
-	return &persistOrgRepo{inner: s.memory.Org(), persist: s.persistDomain}
+	return &persistOrgRepo{inner: s.memory.Org(), store: s}
 }
 func (s *Store) Budget() store.BudgetRepository {
-	return &persistBudgetRepo{inner: s.memory.Budget(), persist: s.persistDomain}
+	return &persistBudgetRepo{inner: s.memory.Budget(), store: s}
 }
 func (s *Store) Keys() store.KeysRepository {
-	return &persistKeysRepo{inner: s.memory.Keys(), persist: s.persistDomain}
+	return &persistKeysRepo{inner: s.memory.Keys(), store: s}
 }
 func (s *Store) Models() store.ModelsRepository {
-	return &persistModelsRepo{inner: s.memory.Models(), persist: s.persistDomain}
+	return &persistModelsRepo{inner: s.memory.Models(), store: s}
 }
-func (s *Store) Dashboard() store.DashboardRepository { return s.memory.Dashboard() }
 func (s *Store) Audit() store.AuditRepository {
-	return &persistAuditRepo{inner: s.memory.Audit(), persist: s.persistDomain}
+	return &persistAuditRepo{inner: s.memory.Audit(), store: s}
 }
 func (s *Store) Relay() store.RelayRepository { return s.relay }
 
@@ -116,4 +118,29 @@ func (s *Store) persistDomain(ctx context.Context) error {
 		return fmt.Errorf("persist domain snapshot: %w", err)
 	}
 	return nil
+}
+
+func (s *Store) domainPersistCtx() context.Context {
+	s.activeMu.RLock()
+	defer s.activeMu.RUnlock()
+	if s.activeCtx != nil {
+		return s.activeCtx
+	}
+	return context.Background()
+}
+
+func (s *Store) setActiveCtx(ctx context.Context) {
+	s.activeMu.Lock()
+	s.activeCtx = ctx
+	s.activeMu.Unlock()
+}
+
+func (s *Store) clearActiveCtx() {
+	s.activeMu.Lock()
+	s.activeCtx = nil
+	s.activeMu.Unlock()
+}
+
+func (s *Store) persistSnapshot() error {
+	return s.persistDomain(s.domainPersistCtx())
 }

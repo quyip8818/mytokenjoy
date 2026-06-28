@@ -11,7 +11,7 @@ import (
 const SyncTriggerAPIKeyHeader = "X-Sync-API-Key"
 
 func AllowSyncTrigger(cfg config.Config, sessionSvc session.Service) func(http.Handler) http.Handler {
-	sessionChain := RequireSession(sessionSvc)
+	sessionChain := RequireSession(cfg, sessionSvc)
 	authzChain := RequireAnyPermission(permission.OrgDatasource)
 
 	return func(next http.Handler) http.Handler {

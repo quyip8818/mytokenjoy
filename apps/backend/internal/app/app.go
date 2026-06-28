@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -41,12 +42,28 @@ type App struct {
 	closers []func()
 }
 
-func New(cfg config.Config, logger *slog.Logger) *App {
+type options struct {
+	skipWorker bool
+}
+
+type Option func(*options)
+
+func WithoutWorker() Option {
+	return func(o *options) {
+		o.skipWorker = true
+	}
+}
+
+func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	ctx := context.Background()
 	st, err := openStore(ctx, cfg)
 	if err != nil {
-		logger.Error("open store", "error", err)
-		panic(err)
+		return nil, fmt.Errorf("open store: %w", err)
 	}
 
 	var adminClient newapi.AdminClient
@@ -61,7 +78,7 @@ func New(cfg config.Config, logger *slog.Logger) *App {
 
 	sessionSvc := session.NewService(st)
 	factory := datasource.NewFactory(cfg)
-	orgSvc := domainorg.NewService(cfg, st, factory, lifecycle, notifier)
+	orgSvc := domainorg.NewService(cfg, st, factory, lifecycle, notifier, logger)
 	budgetSvc := domainbudget.NewService(cfg, st)
 	keysSvc := domainkeys.NewService(cfg, st, lifecycle)
 	modelsSvc := domainmodels.NewService(cfg, st, adminClient, lifecycle)
@@ -85,7 +102,9 @@ func New(cfg config.Config, logger *slog.Logger) *App {
 	})
 
 	workerCtx, cancel := context.WithCancel(context.Background())
-	runner.Start(workerCtx)
+	if !o.skipWorker {
+		runner.Start(workerCtx)
+	}
 
 	return &App{
 		Config: cfg,
@@ -100,7 +119,7 @@ func New(cfg config.Config, logger *slog.Logger) *App {
 				}
 			},
 		},
-	}
+	}, nil
 }
 
 func (a *App) Close() {

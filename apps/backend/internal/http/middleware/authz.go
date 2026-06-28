@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/permission"
 )
 
@@ -12,11 +12,11 @@ func RequireAnyPermission(required ...string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sessionCtx, ok := SessionFromContext(r.Context())
 			if !ok {
-				response.Error(w, http.StatusUnauthorized, "Unauthorized")
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}
 			if !permission.HasAny(sessionCtx.Permissions, required...) {
-				response.Error(w, http.StatusForbidden, "Forbidden")
+				httputil.WriteStatus(w, http.StatusForbidden, httputil.MsgForbidden)
 				return
 			}
 			next.ServeHTTP(w, r)

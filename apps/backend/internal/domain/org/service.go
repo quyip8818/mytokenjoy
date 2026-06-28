@@ -28,15 +28,15 @@ type Service interface {
 	RunScheduledSync(ctx context.Context) error
 	ListSyncLogs(page, pageSize int) types.PageResult[SyncLog]
 	GetDepartmentTree() []Department
-	CreateDepartment(name, parentID string) (Department, error)
-	UpdateDepartment(id, name string) (Department, error)
-	DeleteDepartment(id string) error
+	CreateDepartment(ctx context.Context, name, parentID string) (Department, error)
+	UpdateDepartment(ctx context.Context, id, name string) (Department, error)
+	DeleteDepartment(ctx context.Context, id string) error
 	ListMembers(departmentID, keyword string, directOnly bool, page, pageSize int) types.PageResult[Member]
 	CreateMember(input Member) (Member, error)
 	UpdateMember(id string, input Member) (Member, error)
-	DeleteMembers(ids []string) error
-	UpdateMemberStatus(ids []string, status string) error
-	TransferMembers(ids []string, departmentID string) error
+	DeleteMembers(ctx context.Context, ids []string) error
+	UpdateMemberStatus(ctx context.Context, ids []string, status string) error
+	TransferMembers(ctx context.Context, ids []string, departmentID string) error
 	InviteMember() error
 	BatchInvite(ids []string) BatchInviteResult
 	BatchImport(rows []BatchImportRow) MemberBatchImportResult
@@ -67,8 +67,11 @@ func NewService(
 	factory datasource.Factory,
 	lifecycle relay.Lifecycle,
 	notifier notification.Notifier,
+	logger *slog.Logger,
 ) Service {
-	logger := slog.Default()
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &service{
 		cfg:       cfg,
 		store:     st,

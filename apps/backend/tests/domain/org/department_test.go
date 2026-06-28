@@ -1,6 +1,7 @@
 package org_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -24,7 +25,7 @@ func asDomainError(t *testing.T, err error) *domain.DomainError {
 func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
 
-	created, err := svc.CreateDepartment("Phase0 Team", "dept-2")
+	created, err := svc.CreateDepartment(context.Background(), "Phase0 Team", "dept-2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +61,12 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 func TestUpdateDepartmentPreservesParent(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
 
-	created, err := svc.CreateDepartment("Rename Me", "dept-6")
+	created, err := svc.CreateDepartment(context.Background(), "Rename Me", "dept-6")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateDepartment(created.ID, "Renamed Team")
+	updated, err := svc.UpdateDepartment(context.Background(), created.ID, "Renamed Team")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +90,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 
 func TestDeleteDepartmentWithChildren422(t *testing.T) {
 	svc := newTestOrgService(t)
-	err := svc.DeleteDepartment("dept-2")
+	err := svc.DeleteDepartment(context.Background(), "dept-2")
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)
@@ -101,7 +102,7 @@ func TestDeleteDepartmentWithChildren422(t *testing.T) {
 
 func TestDeleteDepartmentWithMembers422(t *testing.T) {
 	svc := newTestOrgService(t)
-	err := svc.DeleteDepartment(seed.IDDept3)
+	err := svc.DeleteDepartment(context.Background(), seed.IDDept3)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)
@@ -111,11 +112,11 @@ func TestDeleteDepartmentWithMembers422(t *testing.T) {
 func TestDeleteLeafDepartment(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
 
-	created, err := svc.CreateDepartment("Disposable", "dept-2")
+	created, err := svc.CreateDepartment(context.Background(), "Disposable", "dept-2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.DeleteDepartment(created.ID); err != nil {
+	if err := svc.DeleteDepartment(context.Background(), created.ID); err != nil {
 		t.Fatal(err)
 	}
 

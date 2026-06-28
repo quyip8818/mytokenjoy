@@ -64,6 +64,15 @@ describe('resolveMemberPermissions', () => {
     expect(perms).toContain(PERMISSION.BUDGET_READ)
   })
 
+  it('expands auditor role to read capabilities', () => {
+    const perms = resolveMemberPermissions(memberWithRoles([ROLE_AUDITOR]), roles)
+    expect(perms).toContain(PERMISSION.ORG_READ)
+    expect(perms).toContain(PERMISSION.BUDGET_READ)
+    expect(perms).toContain(PERMISSION.KEYS_READ)
+    expect(perms).toContain(PERMISSION.MODEL_READ)
+    expect(perms).toContain(PERMISSION.AUDIT_READ)
+  })
+
   it('expands member role to self-service permissions', () => {
     const perms = resolveMemberPermissions(memberWithRoles([ROLE_MEMBER]), roles)
     expect(perms).toEqual([PERMISSION.SELF_KEYS, PERMISSION.SELF_APPROVAL])
@@ -73,6 +82,11 @@ describe('resolveMemberPermissions', () => {
 describe('canAccessRoute', () => {
   it('allows access when user has required route permission', () => {
     expect(canAccessRoute(ROUTES.orgStructure, [PERMISSION.ORG_STRUCTURE])).toBe(true)
+  })
+
+  it('allows auditor to access org structure route', () => {
+    const perms = resolveMemberPermissions(memberWithRoles([ROLE_AUDITOR]), roles)
+    expect(canAccessRoute(ROUTES.orgStructure, perms)).toBe(true)
   })
 
   it('denies access when user lacks required route permission', () => {

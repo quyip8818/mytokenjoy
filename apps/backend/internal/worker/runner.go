@@ -19,8 +19,8 @@ type Runner struct {
 	cfg       config.Config
 	store     store.Store
 	lifecycle relay.Lifecycle
-	ingest    *domainbudget.IngestService
-	rebalance *domainbudget.RebalanceService
+	ingest    domainbudget.Ingestor
+	rebalance domainbudget.Rebalancer
 	orgSvc    domainorg.Service
 	client    newapi.AdminClient
 	logger    *slog.Logger
@@ -34,8 +34,8 @@ func NewRunner(
 	st store.Store,
 	client newapi.AdminClient,
 	lifecycle relay.Lifecycle,
-	ingest *domainbudget.IngestService,
-	rebalance *domainbudget.RebalanceService,
+	ingest domainbudget.Ingestor,
+	rebalance domainbudget.Rebalancer,
 	orgSvc domainorg.Service,
 	logger *slog.Logger,
 ) *Runner {
@@ -72,17 +72,23 @@ func (r *Runner) loop(ctx context.Context) {
 			r.tick(ctx)
 			if r.syncTick >= r.syncEvery {
 				r.syncTick = 0
-				_ = r.processOrgSync(ctx)
+				r.logStep("org_sync", r.processOrgSync(ctx))
 			}
 		}
 	}
 }
 
 func (r *Runner) tick(ctx context.Context) {
-	_ = r.processRelayOutbox(ctx)
-	_ = r.processWebhookOutbox(ctx)
-	_ = r.processRebalance(ctx)
-	_ = r.compensateLogs(ctx)
+	r.logStep("relay_outbox", r.processRelayOutbox(ctx))
+	r.logStep("webhook_outbox", r.processWebhookOutbox(ctx))
+	r.logStep("rebalance", r.processRebalance(ctx))
+	r.logStep("compensate_logs", r.compensateLogs(ctx))
+}
+
+func (r *Runner) logStep(step string, err error) {
+	if err != nil {
+		r.logger.Warn("worker step failed", "step", step, "error", err)
+	}
 }
 
 func (r *Runner) processOrgSync(ctx context.Context) error {
