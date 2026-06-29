@@ -2,13 +2,10 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"embed"
-	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -17,11 +14,13 @@ import (
 var migrationFS embed.FS
 
 type Store struct {
-	pool      *pgxpool.Pool
-	memory    *store.Memory
-	relay     *relayRepo
-	activeCtx context.Context
-	activeMu  sync.RWMutex
+	pool        *pgxpool.Pool
+	memory      *store.Memory
+	relay       *relayRepo
+	activeCtx   context.Context
+	activeMu    sync.RWMutex
+	dirtyShards map[string]struct{}
+	dirtyMu     sync.Mutex
 }
 
 func New(ctx context.Context, databaseURL string, seed store.Snapshot) (store.Store, error) {
@@ -87,37 +86,19 @@ func (s *Store) Audit() store.AuditRepository {
 func (s *Store) Relay() store.RelayRepository { return s.relay }
 
 func (s *Store) loadOrSeedDomain(ctx context.Context, seed store.Snapshot) error {
-	var raw []byte
-	err := s.pool.QueryRow(ctx, `SELECT data FROM domain_snapshot WHERE id = 1`).Scan(&raw)
-	if errors.Is(err, pgx.ErrNoRows) {
-		s.memory = store.NewMemory(seed)
-		return s.persistDomain(ctx)
-	}
+	shards, err := s.loadShards(ctx)
 	if err != nil {
-		return fmt.Errorf("load domain snapshot: %w", err)
+		return err
 	}
-	var snapshot store.Snapshot
-	if err := json.Unmarshal(raw, &snapshot); err != nil {
-		return fmt.Errorf("unmarshal domain snapshot: %w", err)
+	if shardsComplete(shards) {
+		snapshot, err := store.ShardsToSnapshot(shards)
+		if err != nil {
+			return err
+		}
+		s.memory = store.NewMemory(snapshot)
+		return nil
 	}
-	s.memory = store.NewMemory(snapshot)
-	return nil
-}
-
-func (s *Store) persistDomain(ctx context.Context) error {
-	raw, err := json.Marshal(s.memory.Snapshot())
-	if err != nil {
-		return fmt.Errorf("marshal domain snapshot: %w", err)
-	}
-	_, err = s.pool.Exec(ctx, `
-		INSERT INTO domain_snapshot (id, data, updated_at)
-		VALUES (1, $1, NOW())
-		ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-	`, raw)
-	if err != nil {
-		return fmt.Errorf("persist domain snapshot: %w", err)
-	}
-	return nil
+	return s.seedDomainShards(ctx, seed)
 }
 
 func (s *Store) domainPersistCtx() context.Context {
@@ -139,8 +120,4 @@ func (s *Store) clearActiveCtx() {
 	s.activeMu.Lock()
 	s.activeCtx = nil
 	s.activeMu.Unlock()
-}
-
-func (s *Store) persistSnapshot() error {
-	return s.persistDomain(s.domainPersistCtx())
 }

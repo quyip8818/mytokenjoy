@@ -241,32 +241,6 @@ func sortSeriesPoints(points []types.UsageSeriesPoint) {
 	})
 }
 
-func childDepartmentIDs(departments []types.Department, parentID string) []string {
-	parent := findDepartment(departments, parentID)
-	if parent == nil {
-		return nil
-	}
-	ids := make([]string, 0, len(parent.Children))
-	for _, child := range parent.Children {
-		ids = append(ids, child.ID)
-	}
-	return ids
-}
-
-func findDepartment(departments []types.Department, id string) *types.Department {
-	for i := range departments {
-		if departments[i].ID == id {
-			return &departments[i]
-		}
-		if len(departments[i].Children) > 0 {
-			if found := findDepartment(departments[i].Children, id); found != nil {
-				return found
-			}
-		}
-	}
-	return nil
-}
-
 func containsString(items []string, target string) bool {
 	for _, item := range items {
 		if item == target {

@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/store"
@@ -17,23 +16,23 @@ type txStore struct {
 }
 
 func (s *txStore) Org() store.OrgRepository {
-	return &deferredOrgRepo{inner: s.memory.Org()}
+	return &deferredOrgRepo{inner: s.memory.Org(), onMutate: s.parent.markDirty}
 }
 
 func (s *txStore) Budget() store.BudgetRepository {
-	return &deferredBudgetRepo{inner: s.memory.Budget()}
+	return &deferredBudgetRepo{inner: s.memory.Budget(), onMutate: s.parent.markDirty}
 }
 
 func (s *txStore) Keys() store.KeysRepository {
-	return &deferredKeysRepo{inner: s.memory.Keys()}
+	return &deferredKeysRepo{inner: s.memory.Keys(), onMutate: s.parent.markDirty}
 }
 
 func (s *txStore) Models() store.ModelsRepository {
-	return &deferredModelsRepo{inner: s.memory.Models()}
+	return &deferredModelsRepo{inner: s.memory.Models(), onMutate: s.parent.markDirty}
 }
 
 func (s *txStore) Audit() store.AuditRepository {
-	return &deferredAuditRepo{inner: s.memory.Audit()}
+	return &deferredAuditRepo{inner: s.memory.Audit(), onMutate: s.parent.markDirty}
 }
 
 func (s *txStore) Relay() store.RelayRepository {
@@ -93,19 +92,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 }
 
 func (s *Store) persistDomainExec(ctx context.Context, exec dbQuerier) error {
-	raw, err := json.Marshal(s.memory.Snapshot())
-	if err != nil {
-		return fmt.Errorf("marshal domain snapshot: %w", err)
-	}
-	_, err = exec.Exec(ctx, `
-		INSERT INTO domain_snapshot (id, data, updated_at)
-		VALUES (1, $1, NOW())
-		ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-	`, raw)
-	if err != nil {
-		return fmt.Errorf("persist domain snapshot: %w", err)
-	}
-	return nil
+	return s.flushShards(ctx, exec)
 }
 
 var _ store.Store = (*Store)(nil)

@@ -21,7 +21,7 @@ type Runner struct {
 	lifecycle relay.Lifecycle
 	ingest    domainbudget.Ingestor
 	rebalance domainbudget.Rebalancer
-	orgSvc    domainorg.Service
+	syncSvc   domainorg.SyncService
 	client    newapi.AdminClient
 	logger    *slog.Logger
 	interval  time.Duration
@@ -36,7 +36,7 @@ func NewRunner(
 	lifecycle relay.Lifecycle,
 	ingest domainbudget.Ingestor,
 	rebalance domainbudget.Rebalancer,
-	orgSvc domainorg.Service,
+	syncSvc domainorg.SyncService,
 	logger *slog.Logger,
 ) *Runner {
 	return &Runner{
@@ -46,7 +46,7 @@ func NewRunner(
 		lifecycle: lifecycle,
 		ingest:    ingest,
 		rebalance: rebalance,
-		orgSvc:    orgSvc,
+		syncSvc:   syncSvc,
 		logger:    logger,
 		interval:  5 * time.Second,
 		syncEvery: time.Minute,
@@ -92,10 +92,10 @@ func (r *Runner) logStep(step string, err error) {
 }
 
 func (r *Runner) processOrgSync(ctx context.Context) error {
-	if r.orgSvc == nil {
+	if r.syncSvc == nil {
 		return nil
 	}
-	return r.orgSvc.RunScheduledSync(ctx)
+	return r.syncSvc.RunScheduledSync(ctx)
 }
 
 // RunOnce executes one worker cycle (outbox + rebalance + log compensation).

@@ -6,12 +6,6 @@ const defaultDemoToday = "2026-06-19"
 
 type ConfigOption func(*config.Config)
 
-func WithDemoToday(value string) ConfigOption {
-	return func(cfg *config.Config) {
-		cfg.DemoToday = value
-	}
-}
-
 func WithNewAPIEnabled(enabled bool) ConfigOption {
 	return func(cfg *config.Config) {
 		cfg.NewAPIEnabled = enabled
