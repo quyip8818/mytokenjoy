@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/pkg/budgetlookup"
 	"github.com/tokenjoy/backend/internal/pkg/memberquota"
-	"github.com/tokenjoy/backend/internal/seed"
+	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 

@@ -14,7 +14,8 @@ function DevLoginPanel() {
       <div className="space-y-2 text-center">
         <h1 className="text-lg font-semibold">Dev backend sign-in</h1>
         <p className="text-sm text-muted-foreground">
-          Select a member to set the session cookie and connect to the Go API via Vite proxy.
+          Select a member to set the session cookie. API calls use same-origin `/api` proxied to the
+          Go backend.
         </p>
       </div>
       <ul className="flex flex-col gap-2">

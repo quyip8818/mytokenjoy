@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
 	"github.com/tokenjoy/backend/internal/pkg/orgutil"
 	"github.com/tokenjoy/backend/internal/pkg/routingutil"
-	"github.com/tokenjoy/backend/internal/seed"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 func asDomainError(t *testing.T, err error) *domain.DomainError {

@@ -6,12 +6,12 @@
 
 ## 1. 相关文档
 
-| 文档 | 职责 |
-| ---- | ---- |
-| [Frontend-API契约.md](./Frontend-API契约.md) | REST 路径、类型、鉴权 |
-| [Backend-设计.md](./Backend-设计.md) | Go 服务、联调方式 |
-| [TokenJoy-PRD.md](./TokenJoy-PRD.md) | 产品需求 |
-| [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI 速查摘要 |
+| 文档                                                                              | 职责                  |
+| --------------------------------------------------------------------------------- | --------------------- |
+| [Frontend-API契约.md](./Frontend-API契约.md)                                      | REST 路径、类型、鉴权 |
+| [Backend-设计.md](./Backend-设计.md)                                              | Go 服务、联调方式     |
+| [TokenJoy-PRD.md](./TokenJoy-PRD.md)                                              | 产品需求              |
+| [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc) | AI 速查摘要           |
 
 ---
 
@@ -33,7 +33,7 @@ main.tsx → App.tsx
    └─ WorkflowProvider → Sidebar / Header / Outlet / WorkflowPanelStack
 ```
 
-- 根目录 `pnpm start`：backend `:8080` + Vite；`VITE_API_PROXY_TARGET` 代理 `/api`
+- 根目录 `pnpm start`：backend `:8080` + Vite；同域 `/api` 反代到 Go（dev 与 preview 均启用，见 `vite-api-proxy.ts`）
 - Dev 登录：`/login` 选成员 → `tokenjoy_session_member` cookie → `GET /session`
 - 首页 `/` 按权限跳转 `HOME_PATH_CANDIDATES`
 
@@ -96,7 +96,7 @@ apps/frontend/
 
 ## 9. 测试
 
-`tests/setup.ts`、`createMockApis()`、`renderHookWithProviders()`；不依赖 backend 进程。`src/mocks/` 仅测试辅助，运行时不用 MSW。
+`tests/setup.ts`、`createMockApis()`、`renderHookWithProviders()`；不依赖 backend 进程。静态 fixture 在 `tests/fixtures/`。
 
 优先级：`lib/` 纯函数 → Hook → 页面 Hook（`injectedApis`）。
 
@@ -104,15 +104,15 @@ apps/frontend/
 
 ## 10. 代码放置
 
-| 代码 | 位置 |
-| ---- | ---- |
-| 页面入口 | `routes/{domain}/{page}.tsx` |
-| 页面逻辑 | `routes/{domain}/hooks/use-{page}-page.ts` |
-| 单页 UI | `routes/{domain}/components/` |
-| 跨页 UI | `components/{domain}/` |
-| Primitive | `components/ui/` |
-| HTTP / DTO | `api/{domain}.ts`、`api/types/` |
-| 纯逻辑 | `lib/` |
+| 代码       | 位置                                       |
+| ---------- | ------------------------------------------ |
+| 页面入口   | `routes/{domain}/{page}.tsx`               |
+| 页面逻辑   | `routes/{domain}/hooks/use-{page}-page.ts` |
+| 单页 UI    | `routes/{domain}/components/`              |
+| 跨页 UI    | `components/{domain}/`                     |
+| Primitive  | `components/ui/`                           |
+| HTTP / DTO | `api/{domain}.ts`、`api/types/`            |
+| 纯逻辑     | `lib/`                                     |
 
 禁止硬编码路由字符串（用 `ROUTES.*`）；禁止 `components/ui` 含业务语义。
 
@@ -120,29 +120,37 @@ apps/frontend/
 
 ## 11. 工具链
 
-| 命令 | 作用 |
-| ---- | ---- |
-| `pnpm start` | backend + frontend |
-| `pnpm lint` | ESLint + check-conventions |
-| `pnpm test` | Vitest |
-| `pnpm build` | tsc + vite build |
-| `pnpm verify` | lint + test + build |
+| 命令          | 作用                       |
+| ------------- | -------------------------- |
+| `pnpm start`  | backend + frontend         |
+| `pnpm lint`   | ESLint + check-conventions |
+| `pnpm test`   | Vitest                     |
+| `pnpm build`  | tsc + vite build           |
+| `pnpm verify` | lint + test + build        |
 
 ---
 
-## 12. 后续工作（按需）
+## 12. 生产同域部署
 
-| 项 | 说明 |
-| -- | ---- |
-| 页面 Hook 单测 | 优先 keys / budget / org |
-| 生产 OIDC | 替换 dev cookie |
-| `groupBy` 多系列 | usage 看板 defer |
+生产环境使用 **同域反向代理**：`/api/*` 转发到 Go，页面路径才走 SPA `index.html` fallback。
+
+示例配置：[`deploy/nginx.conf.example`](../deploy/nginx.conf.example)。`location /api/` 必须写在 `try_files ... /index.html` **之前**，否则 `/api` 会被静态托管误回退为 HTML。
+
+---
+
+## 13. 后续工作（按需）
+
+| 项               | 说明                     |
+| ---------------- | ------------------------ |
+| 页面 Hook 单测   | 优先 keys / budget / org |
+| 生产 OIDC        | 替换 dev cookie          |
+| `groupBy` 多系列 | usage 看板 defer         |
 
 81 端点已对接；`usage/series` minute/hour UI 已完成。
 
 ---
 
-## 13. PR 自检
+## 14. PR 自检
 
 - [ ] 新页面只改 `ROUTE_DEFINITIONS` 一条
 - [ ] 页面从 `use-*-page` 取数，无内联 `useApis`

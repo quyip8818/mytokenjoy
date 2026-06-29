@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/seed"
+	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -51,7 +51,7 @@ func reopenPostgresStore(t *testing.T, dbURL string) store.Store {
 	t.Helper()
 	cfg := testutil.TestConfig()
 	cfg.DatabaseURL = dbURL
-	st, err := postgres.New(context.Background(), cfg, seed.Load(cfg))
+	st, err := postgres.New(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestShardPersistOrgOnly(t *testing.T) {
 	cfg := testutil.TestConfig()
 	cfg.DatabaseURL = dbURL
 
-	st1, err := postgres.New(ctx, cfg, seed.Load(cfg))
+	st1, err := postgres.New(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

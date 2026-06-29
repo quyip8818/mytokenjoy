@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 const SessionCookieAdmin = "tokenjoy_session_member=m-admin"
@@ -22,8 +24,15 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	if mutate != nil {
 		mutate(&cfg)
 	}
+	st := NewMemoryStore(t, cfg)
+	if cfg.IsDemoProfile() {
+		ctx := context.Background()
+		if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+			t.Fatalf("apply usage buckets: %v", err)
+		}
+	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	application, err := app.New(cfg, logger, app.WithoutWorker())
+	application, err := app.New(cfg, logger, app.WithoutWorker(), app.WithStore(st))
 	if err != nil {
 		t.Fatalf("create app: %v", err)
 	}

@@ -21,9 +21,23 @@ func TestProdRequiresDatabaseURL(t *testing.T) {
 	}
 }
 
-func TestDemoAllowsMissingDatabaseURL(t *testing.T) {
+func TestDemoRequiresDatabaseURL(t *testing.T) {
 	t.Setenv("APP_PROFILE", config.ProfileDemo)
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("NEW_API_ENABLED", "false")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when demo profile has no DATABASE_URL")
+	}
+	if !strings.Contains(err.Error(), "DATABASE_URL") {
+		t.Fatalf("expected DATABASE_URL error, got %v", err)
+	}
+}
+
+func TestDemoLoadsWithDatabaseURL(t *testing.T) {
+	t.Setenv("APP_PROFILE", config.ProfileDemo)
+	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
 	t.Setenv("NEW_API_ENABLED", "false")
 
 	cfg, err := config.Load()
@@ -32,5 +46,8 @@ func TestDemoAllowsMissingDatabaseURL(t *testing.T) {
 	}
 	if cfg.IsProdProfile() {
 		t.Fatal("expected demo profile")
+	}
+	if cfg.DatabaseURL != config.DefaultDatabaseURL {
+		t.Fatalf("expected default database url, got %q", cfg.DatabaseURL)
 	}
 }

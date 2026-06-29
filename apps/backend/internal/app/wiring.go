@@ -1,8 +1,6 @@
 package app
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -42,12 +40,7 @@ type domainServices struct {
 	rebalance domainbudget.Rebalancer
 }
 
-func buildInfra(ctx context.Context, cfg config.Config, logger *slog.Logger) (infra, error) {
-	st, err := openStore(ctx, cfg)
-	if err != nil {
-		return infra{}, fmt.Errorf("open store: %w", err)
-	}
-
+func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store) (infra, error) {
 	var adminClient newapi.AdminClient
 	if cfg.NewAPIEnabled {
 		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)

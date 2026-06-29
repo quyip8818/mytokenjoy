@@ -9,14 +9,16 @@ describe('dashboardApi.getUsageSeries', () => {
   it('requests usage series with query params', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
-      json: async () => ({
-        granularity: 'hour',
-        source: 'buckets',
-        timezone: 'Asia/Shanghai',
-        approximate: false,
-        mappingAsOf: 'ingest_time',
-        points: [],
-      }),
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      text: async () =>
+        JSON.stringify({
+          granularity: 'hour',
+          source: 'buckets',
+          timezone: 'Asia/Shanghai',
+          approximate: false,
+          mappingAsOf: 'ingest_time',
+          points: [],
+        }),
     } as Response)
 
     await dashboardApi.getUsageSeries({

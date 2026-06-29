@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 //go:embed migrations/*.sql
@@ -24,7 +25,7 @@ type Store struct {
 	dirtyMu     sync.Mutex
 }
 
-func New(ctx context.Context, cfg config.Config, seed store.Snapshot) (store.Store, error) {
+func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("connect postgres: %w", err)
@@ -39,9 +40,15 @@ func New(ctx context.Context, cfg config.Config, seed store.Snapshot) (store.Sto
 	}
 
 	s := &Store{pool: pool}
-	if err := s.loadOrSeedDomain(ctx, cfg, seed); err != nil {
+	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
 		pool.Close()
 		return nil, err
+	}
+	if cfg.IsDemoProfile() {
+		if err := seed.ApplyUsageBuckets(ctx, s, cfg); err != nil {
+			pool.Close()
+			return nil, err
+		}
 	}
 	s.relay = &relayRepo{db: pool}
 	return s, nil
@@ -86,7 +93,7 @@ func (s *Store) Audit() store.AuditRepository {
 }
 func (s *Store) Relay() store.RelayRepository { return s.relay }
 
-func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config, seed store.Snapshot) error {
+func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	shards, err := s.loadShards(ctx)
 	if err != nil {
 		return err
@@ -102,7 +109,7 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config, seed st
 	if cfg.IsProdProfile() {
 		return fmt.Errorf("postgres domain shards incomplete in prod profile")
 	}
-	return s.seedDomainShards(ctx, seed)
+	return s.seedDomainShards(ctx, seed.Load(cfg))
 }
 
 func (s *Store) domainPersistCtx() context.Context {

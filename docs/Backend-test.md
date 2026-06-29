@@ -15,17 +15,18 @@ tests/
 ├── domain/{audit,budget,keys,models,org,session,dashboard}/
 ├── pkg/
 ├── permission/
-├── seed/
-├── store/postgres/    # integration tag
+├── store/
+│   ├── seed/              # seed Load / ApplyUsageBuckets 测试
+│   └── postgres/          # integration tag
 └── worker/
 ```
 
-| 规则 | 说明 |
-| ---- | ---- |
-| 包名 | `package <name>_test`，黑盒 import `internal/...` |
-| Fixture | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)` |
-| Handler 集成 | `testutil.NewTestApp(t)`（默认 `app.WithoutWorker()`） |
-| 确定性 | `SimulateDelay=false`；unit 不设 `DATABASE_URL` |
+| 规则         | 说明                                                        |
+| ------------ | ----------------------------------------------------------- |
+| 包名         | `package <name>_test`，黑盒 import `internal/...`           |
+| Fixture      | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)` |
+| Handler 集成 | `testutil.NewTestApp(t)`（Memory + `app.WithStore`；默认 `app.WithoutWorker()`） |
+| 确定性       | `SimulateDelay=false`；单测不走 Postgres；`config.Load()` 需 `DATABASE_URL` |
 
 ---
 
@@ -44,13 +45,13 @@ go test ./tests/domain/keys/... -v # 单包
 
 ## 3. 分层
 
-| 层 | 目录 | CI |
-| -- | ---- | -- |
-| L1 纯函数 | `tests/pkg/*` | `verify` |
-| L2 Domain | `tests/domain/*` | `verify` |
-| L3 Handler | `tests/handler/*` | `verify` |
-| L5 Postgres | `tests/store/postgres` | `backend-integration` |
-| L6 Relay 全栈 | `apps/newapi/scripts/gate-verify.sh` | 手工 |
+| 层            | 目录                                 | CI                    |
+| ------------- | ------------------------------------ | --------------------- |
+| L1 纯函数     | `tests/pkg/*`                        | `verify`              |
+| L2 Domain     | `tests/domain/*`                     | `verify`              |
+| L3 Handler    | `tests/handler/*`                    | `verify`              |
+| L5 Postgres   | `tests/store/postgres`               | `backend-integration` |
+| L6 Relay 全栈 | `apps/newapi/scripts/gate-verify.sh` | 手工                  |
 
 **契约测试：** `contract_test.go`（demo profile + admin cookie）；`contract_prod_test.go`（prod 无 cookie → 401）；`authz_test.go`（写操作 401/403）。
 
@@ -86,11 +87,11 @@ req.Header.Set("Cookie", testutil.SessionCookie(seed.IDMemberAdmin))
 
 ## 5. 与前端边界
 
-| | Backend | Frontend |
-| - | ------- | -------- |
-| 工具 | Go testing | Vitest |
-| Mock | `testutil/mock` | `createMockApis()` |
-| 契约 | [Frontend-API契约.md](./Frontend-API契约.md) | 同源 |
+|      | Backend                                      | Frontend           |
+| ---- | -------------------------------------------- | ------------------ |
+| 工具 | Go testing                                   | Vitest             |
+| Mock | `testutil/mock`                              | `createMockApis()` |
+| 契约 | [Frontend-API契约.md](./Frontend-API契约.md) | 同源               |
 
 默认 CI 不启动 backend 进程。
 
@@ -100,6 +101,6 @@ req.Header.Set("Cookie", testutil.SessionCookie(seed.IDMemberAdmin))
 
 - [ ] 测试在 `tests/`，未在 `internal/` 新增 `*_test.go`
 - [ ] `make test-unit` 通过
-- [ ] 使用 `testutil.TestConfig()`，未裸调 `config.Load()`（`seed/loader_test` 除外）
+- [ ] 使用 `testutil.TestConfig()`，未裸调 `config.Load()`（`tests/store/seed/loader_test` 除外，须设 `DATABASE_URL`）
 - [ ] 新 GET → `contract_test.go`；新写操作 → handler 或 domain 用例
 - [ ] 跨域逻辑在 domain 层断言 Store 副作用

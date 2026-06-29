@@ -5,9 +5,10 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "pnpm start",
-    "start": "concurrently -n backend,frontend -c blue,green \"pnpm start:backend\" \"wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm --filter @tokenjoy/frontend start\"",
-    "start:frontend": "pnpm --filter @tokenjoy/frontend start",
-    "start:backend": "cd apps/backend && go run ./cmd/server",
+    "start": "pnpm start:postgres && concurrently -n backend,frontend -c blue,green \"pnpm start:backend\" \"wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm --filter @tokenjoy/frontend start\"",
+    "start:frontend": "wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm --filter @tokenjoy/frontend start",
+    "start:postgres": "docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
+    "start:backend": "cd apps/backend && DATABASE_URL=postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable go run ./cmd/server",
     "start:relay": "docker compose -f apps/newapi/docker-compose.yml up",
     "gate:verify": "apps/newapi/scripts/gate-verify.sh",
     "build": "pnpm --filter @tokenjoy/frontend build",
@@ -17,6 +18,8 @@
     "format:backend": "cd apps/backend && make format",
     "test": "pnpm test:frontend && pnpm test:backend",
     "test:frontend": "pnpm --filter @tokenjoy/frontend test:run",
+    "test:e2e": "pnpm --filter @tokenjoy/frontend test:e2e",
+    "test:e2e:ui": "pnpm --filter @tokenjoy/frontend test:e2e:ui",
     "test:backend": "cd apps/backend && make test-unit",
     "test:backend:integration": "cd apps/backend && make test-integration",
     "verify": "pnpm lint && pnpm test && pnpm build"

@@ -7,7 +7,7 @@
 在仓库根目录（pnpm workspace）：
 
 - `pnpm install` — 安装依赖
-- `pnpm start` / `pnpm dev` — 并发 backend + frontend（Vite 代理 `/api` → `:8080`）
+- `pnpm start` / `pnpm dev` — 起 Postgres + backend + frontend（Vite 代理 `/api` → `:8080`）
 - `pnpm build` — 前端 `tsc -b` + Vite 生产构建
 - `pnpm lint` — ESLint（前端）+ golangci-lint（后端）
 - `pnpm test` — Vitest + `go test ./tests/...`
@@ -34,4 +34,4 @@ pnpm monorepo：`apps/frontend/`（前端）、`apps/backend/`（Go API）。
 
 **路径别名：** `@/*` → `src/*`；`@tests/*` → `tests/*`。
 
-**后端：** Go + chi；`internal/app` 组合根；`internal/domain/*` 业务；`internal/store` Memory/Postgres；`tests/` 镜像 internal。详见 `docs/Backend-设计.md`。
+**后端：** Go + chi；`internal/app` 组合根；`internal/domain/*` 业务；运行时 **Postgres 必填**（`DATABASE_URL`）；`internal/store/seed/` 演示数据；单测用 Memory + `app.WithStore`。详见 `docs/Backend-设计.md`。

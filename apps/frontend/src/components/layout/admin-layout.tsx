@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router'
+import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
 import { QueryProvider } from '@/features/query'
@@ -21,7 +22,9 @@ function AdminShell() {
             <Header />
             <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-8">
               <div className="min-h-0 flex-1 overflow-auto">
-                <Outlet />
+                <AppErrorBoundary>
+                  <Outlet />
+                </AppErrorBoundary>
               </div>
             </main>
           </div>

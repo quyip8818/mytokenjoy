@@ -17,7 +17,7 @@ func (s *service) credentialKey() ([]byte, error) {
 		s.cryptoKey = key
 		return key, nil
 	}
-	if s.cfg.DatabaseURL == "" && s.cfg.IsDemoProfile() {
+	if s.cfg.IsDemoProfile() {
 		s.cryptoKey = cryptoutil.DevDefaultKey()
 		return s.cryptoKey, nil
 	}

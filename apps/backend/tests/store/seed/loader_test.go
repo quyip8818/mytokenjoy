@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/pkg/queryutil"
-	"github.com/tokenjoy/backend/internal/seed"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 func TestBuildMembersAnchorIDs(t *testing.T) {
@@ -22,6 +22,8 @@ func TestBuildMembersAnchorIDs(t *testing.T) {
 }
 
 func TestLoadSnapshot(t *testing.T) {
+	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("NEW_API_ENABLED", "false")
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatal(err)

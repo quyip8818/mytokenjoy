@@ -7,33 +7,13 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	httpapi "github.com/tokenjoy/backend/internal/http"
-	"github.com/tokenjoy/backend/internal/seed"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/internal/worker"
 )
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
-	snapshot := seed.Load(cfg)
-	var st store.Store
-	var err error
-	if cfg.DatabaseURL == "" {
-		st = store.NewMemory(snapshot)
-	} else {
-		st, err = postgres.New(ctx, cfg, snapshot)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if cfg.IsDemoProfile() {
-		if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
-			if closer, ok := st.(interface{ Close() }); ok {
-				closer.Close()
-			}
-			return nil, err
-		}
-	}
-	return st, nil
+	return postgres.New(ctx, cfg)
 }
 
 type App struct {
@@ -46,6 +26,7 @@ type App struct {
 
 type options struct {
 	skipWorker bool
+	store      store.Store
 }
 
 type Option func(*options)
@@ -56,6 +37,12 @@ func WithoutWorker() Option {
 	}
 }
 
+func WithStore(st store.Store) Option {
+	return func(o *options) {
+		o.store = st
+	}
+}
+
 func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 	var o options
 	for _, opt := range opts {
@@ -63,11 +50,20 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 	}
 
 	ctx := context.Background()
-	infraDeps, err := buildInfra(ctx, cfg, logger)
+	var st store.Store
+	if o.store != nil {
+		st = o.store
+	} else {
+		var err error
+		st, err = openStore(ctx, cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	infraDeps, err := buildInfraWithStore(cfg, logger, st)
 	if err != nil {
 		return nil, err
 	}
-	st := infraDeps.store
 
 	services := buildDomainServices(cfg, infraDeps, logger)
 	runner := worker.NewRunner(cfg, st, infraDeps.adminClient, infraDeps.lifecycle, services.ingest, services.rebalance, services.org, logger)

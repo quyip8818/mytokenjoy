@@ -20,9 +20,13 @@ dist-ssr
 .env.*
 !.env.example
 !.env.production
+!.env.development.example
 
 # Test
 coverage
+test-results
+playwright-report
+playwright/.cache
 
 # Tooling caches
 .eslintcache

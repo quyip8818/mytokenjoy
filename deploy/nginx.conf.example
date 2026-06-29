@@ -1,0 +1,29 @@
+# Same-origin deployment: static frontend + Go API
+# Place built frontend at /var/www/tokenjoy (apps/frontend/dist)
+# Run Go backend on 127.0.0.1:8080
+
+server {
+    listen 80;
+    server_name tokenjoy.example.com;
+
+    # API must be matched before SPA fallback
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /healthz {
+        proxy_pass http://127.0.0.1:8080/healthz;
+        proxy_set_header Host $host;
+    }
+
+    # SPA: only page routes fall back to index.html
+    location / {
+        root /var/www/tokenjoy;
+        try_files $uri $uri/ /index.html;
+    }
+}

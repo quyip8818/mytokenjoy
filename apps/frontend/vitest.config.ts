@@ -1,9 +1,9 @@
 import { mergeConfig } from 'vite'
 import { defineConfig } from 'vitest/config'
-import viteConfig from './vite.config'
+import { baseViteConfig } from './vite.config'
 
 export default mergeConfig(
-  viteConfig,
+  baseViteConfig,
   defineConfig({
     test: {
       globals: true,

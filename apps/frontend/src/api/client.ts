@@ -18,11 +18,37 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler
 }
 
+const NON_JSON_RESPONSE_MESSAGE =
+  'Expected application/json from /api. Ensure /api is proxied to the Go backend (same-origin), not served as SPA HTML.'
+
+function isJsonContentType(contentType: string): boolean {
+  return contentType.includes('application/json')
+}
+
+async function readJsonBody<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get('Content-Type') ?? ''
+  if (!isJsonContentType(contentType)) {
+    throw new ApiError(res.status, NON_JSON_RESPONSE_MESSAGE)
+  }
+
+  const text = await res.text()
+  if (!text) {
+    return undefined as T
+  }
+
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new ApiError(res.status, 'Invalid JSON response from API')
+  }
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_PATH}${path}`
   const res = await fetch(url, {
     credentials: 'include',
     headers: {
+      Accept: 'application/json',
       'Content-Type': 'application/json',
       ...options.headers,
     },
@@ -30,7 +56,14 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   })
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
+    let body: { message?: string; retryAfter?: number } = {}
+    try {
+      body = await readJsonBody<{ message?: string; retryAfter?: number }>(res)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        body = { message: error.message }
+      }
+    }
     if (res.status === 401) {
       unauthorizedHandler?.()
     }
@@ -41,7 +74,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     )
   }
 
-  return res.json()
+  return readJsonBody<T>(res)
 }
 
 export function buildQuery(params: object): string {

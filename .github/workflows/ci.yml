@@ -36,11 +36,61 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: pnpm build
 
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: tokenjoy
+          POSTGRES_PASSWORD: tokenjoy
+          POSTGRES_DB: tokenjoy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tokenjoy -d tokenjoy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/frontend
+
+      - name: Run frontend E2E tests
+        env:
+          CI: true
+          DATABASE_URL: postgres://tokenjoy:tokenjoy@localhost:5432/tokenjoy?sslmode=disable
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/frontend/playwright-report/
+          retention-days: 7
+
   backend-integration:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
