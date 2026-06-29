@@ -15,7 +15,6 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	httphandler "github.com/tokenjoy/backend/internal/http/handler"
-	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
 )
@@ -42,27 +41,11 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(httpmiddleware.Recover(deps.Logger))
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
-	sessionHandler := httphandler.NewSessionHandler(deps.Config, deps.SessionSvc)
-	orgHandler := orghandler.NewHandler(deps.Config, deps.OrgSvc, deps.SessionSvc)
-	budgetHandler := httphandler.NewBudgetHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc)
-	keysHandler := httphandler.NewKeysHandler(deps.Config, deps.KeysSvc, deps.SessionSvc)
-	modelsHandler := httphandler.NewModelsHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc)
-	dashboardHandler := httphandler.NewDashboardHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc)
-	auditHandler := httphandler.NewAuditHandler(deps.Config, deps.AuditSvc, deps.SessionSvc)
-	webhookHandler := httphandler.NewWebhookHandler(deps.Config, deps.IngestSvc, deps.Logger)
+	reg := httphandler.NewRegistry(httphandler.RegistryDeps(deps))
 
 	httphandler.RegisterHealthRoutes(r)
 
-	r.Route("/api", func(r chi.Router) {
-		sessionHandler.RegisterRoutes(r)
-		webhookHandler.RegisterRoutes(r)
-		r.Route("/org", orgHandler.RegisterRoutes)
-		r.Route("/budget", budgetHandler.RegisterRoutes)
-		r.Route("/keys", keysHandler.RegisterRoutes)
-		r.Route("/models", modelsHandler.RegisterRoutes)
-		r.Route("/dashboard", dashboardHandler.RegisterRoutes)
-		r.Route("/audit", auditHandler.RegisterRoutes)
-	})
+	r.Route("/api", reg.RegisterAPIRoutes)
 
 	return r
 }

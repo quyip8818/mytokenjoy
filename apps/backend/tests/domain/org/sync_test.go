@@ -7,8 +7,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -51,11 +51,11 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	dept := orgutil.FindDepartment(env.Store.Org().Departments(), seed.IDFeishuDept1)
+	dept := pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDFeishuDept1)
 	if dept == nil || dept.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed department, got %+v", dept)
 	}
-	node := budgetutil.FindBudgetNode(env.Store.Budget().Tree(), seed.IDFeishuDept1)
+	node := budget.FindBudgetNode(env.Store.Budget().Tree(), seed.IDFeishuDept1)
 	if node == nil || node.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed budget node, got %+v", node)
 	}
@@ -109,7 +109,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if orgutil.FindDepartment(env.Store.Org().Departments(), seed.IDDept2) == nil {
+	if pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDDept2) == nil {
 		t.Fatal("manual department should remain after sync")
 	}
 }

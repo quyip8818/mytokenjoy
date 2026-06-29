@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/usagequery"
 )
 
 type usageRepo struct {
@@ -48,17 +50,9 @@ func (r *usageRepo) QuerySeries(ctx context.Context, q types.UsageSeriesQuery) (
 	}
 	points := make([]types.UsageSeriesPoint, len(rows))
 	for i, row := range rows {
-		points[i] = types.UsageSeriesPoint{
-			Bucket:       row.Bucket,
-			DepartmentID: row.DepartmentID,
-			MemberID:     row.MemberID,
-			Model:        row.Model,
-			CostCNY:      row.CostCNY,
-			CallCount:    row.CallCount,
-			InputTokens:  row.InputTokens,
-			OutputTokens: row.OutputTokens,
-		}
+		points[i] = usagequery.AggregateToSeriesPoint(row)
 	}
+	usagequery.SortSeriesPoints(points)
 	return points, nil
 }
 
@@ -67,75 +61,48 @@ func (r *usageRepo) QueryAggregates(ctx context.Context, q types.UsageAggregateQ
 }
 
 func (r *usageRepo) QuerySummary(ctx context.Context, q types.UsageAggregateQuery) (types.UsageSummaryTotals, error) {
-	where, args := buildUsageWhere(q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
-	query := fmt.Sprintf(`
-		SELECT
-			COALESCE(SUM(cost_cny), 0),
-			COALESCE(SUM(call_count), 0),
-			COALESCE(SUM(input_tokens), 0),
-			COALESCE(SUM(output_tokens), 0)
-		FROM usage_buckets
-		WHERE %s
-	`, where)
-	var totals types.UsageSummaryTotals
-	err := r.db.QueryRow(ctx, query, args...).Scan(
-		&totals.CostCNY, &totals.CallCount, &totals.InputTokens, &totals.OutputTokens,
-	)
-	return totals, err
+	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	if err != nil {
+		return types.UsageSummaryTotals{}, err
+	}
+	return usagequery.SummaryTotals(rows, q.Start, q.End), nil
 }
 
 func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error) {
-	groupBy := q.GroupBy
-	if groupBy == "" {
-		groupBy = types.UsageGroupByNone
+	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	if err != nil {
+		return nil, err
 	}
-	where, args := buildUsageWhere(q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
-
-	var truncExpr string
-	var selectBucket string
-	var groupDims string
-	if q.Granularity != "" {
-		truncExpr = bucketTruncExpr(q.Granularity, q.Timezone)
-		selectBucket = fmt.Sprintf("to_char(%s, 'YYYY-MM-DD\"T\"HH24:MI:SSOF') AS bucket,", truncExpr)
-		groupDims = "bucket"
-	} else {
-		selectBucket = "'' AS bucket,"
-		groupDims = ""
+	loc, err := common.LoadLocation(q.Timezone)
+	if err != nil {
+		return nil, err
 	}
-
-	selectDims, dimGroup := aggregateSelectGroup(groupBy)
-	if q.Granularity != "" {
-		if dimGroup == "bucket" || dimGroup == "" {
-			groupDims = "bucket"
-		} else {
-			groupDims = "bucket, " + dimGroup
+	aggregated := usagequery.AggregateRows(rows, q.Granularity, q.GroupBy, loc)
+	if len(q.DepartmentIDs) > 0 {
+		filtered := make([]types.UsageAggregateRow, 0)
+		for _, row := range aggregated {
+			if usagequery.ContainsString(q.DepartmentIDs, row.DepartmentID) {
+				filtered = append(filtered, row)
+			}
 		}
-	} else {
-		groupDims = dimGroup
-		if groupDims == "bucket" {
-			groupDims = "1"
-			selectBucket = "'' AS bucket,"
-		}
+		aggregated = filtered
 	}
+	return usagequery.LimitByCost(aggregated, q.Limit), nil
+}
 
+func (r *usageRepo) fetchFilteredRows(
+	ctx context.Context,
+	start, end time.Time,
+	departmentID, memberID string,
+	departmentIDs, scopeDeptIDs []string,
+) ([]types.UsageBucketRow, error) {
+	where, args := buildUsageWhere(start, end, departmentID, memberID, departmentIDs, scopeDeptIDs)
 	query := fmt.Sprintf(`
-		SELECT
-			%s
-			%s
-			COALESCE(SUM(cost_cny), 0) AS cost_cny,
-			COALESCE(SUM(call_count), 0) AS call_count,
-			COALESCE(SUM(input_tokens), 0) AS input_tokens,
-			COALESCE(SUM(output_tokens), 0) AS output_tokens
+		SELECT bucket_start, department_id, member_id, model,
+			cost_cny, call_count, input_tokens, output_tokens
 		FROM usage_buckets
 		WHERE %s
-		GROUP BY %s
-	`, selectBucket, selectDims, where, groupDims)
-
-	if q.Limit > 0 {
-		query += fmt.Sprintf(" ORDER BY cost_cny DESC LIMIT %d", q.Limit)
-	} else {
-		query += " ORDER BY bucket ASC"
-	}
+	`, where)
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
@@ -143,66 +110,18 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 	}
 	defer rows.Close()
 
-	result := make([]types.UsageAggregateRow, 0)
+	result := make([]types.UsageBucketRow, 0)
 	for rows.Next() {
-		var row types.UsageAggregateRow
-		var dept, member, model *string
-		scanTargets := []any{&row.Bucket}
-		switch groupBy {
-		case types.UsageGroupByDepartment:
-			scanTargets = append(scanTargets, &dept)
-		case types.UsageGroupByMember:
-			scanTargets = append(scanTargets, &member)
-		case types.UsageGroupByModel:
-			scanTargets = append(scanTargets, &model)
-		}
-		scanTargets = append(scanTargets, &row.CostCNY, &row.CallCount, &row.InputTokens, &row.OutputTokens)
-		if err := rows.Scan(scanTargets...); err != nil {
+		var row types.UsageBucketRow
+		if err := rows.Scan(
+			&row.BucketStart, &row.DepartmentID, &row.MemberID, &row.Model,
+			&row.CostCNY, &row.CallCount, &row.InputTokens, &row.OutputTokens,
+		); err != nil {
 			return nil, err
-		}
-		if dept != nil {
-			row.DepartmentID = *dept
-		}
-		if member != nil {
-			row.MemberID = *member
-		}
-		if model != nil {
-			row.Model = *model
 		}
 		result = append(result, row)
 	}
 	return result, rows.Err()
-}
-
-func bucketTruncExpr(granularity, timezone string) string {
-	tz := timezone
-	if tz == "" {
-		tz = types.UsageDefaultTimezone
-	}
-	local := fmt.Sprintf("(bucket_start AT TIME ZONE '%s')", tz)
-	switch granularity {
-	case types.UsageGranularityHour:
-		return fmt.Sprintf("date_trunc('hour', %s)", local)
-	case types.UsageGranularityWeek:
-		return fmt.Sprintf("date_trunc('week', %s)", local)
-	case types.UsageGranularityMonth:
-		return fmt.Sprintf("date_trunc('month', %s)", local)
-	default:
-		return fmt.Sprintf("date_trunc('day', %s)", local)
-	}
-}
-
-func aggregateSelectGroup(groupBy string) (selectCols, groupCols string) {
-	switch groupBy {
-	case types.UsageGroupByDepartment:
-		return "department_id, ", "department_id"
-	case types.UsageGroupByMember:
-		return "member_id, ", "member_id"
-	case types.UsageGroupByModel:
-		return "model, ", "model"
-	default:
-		return "", "bucket"
-	}
 }
 
 func buildUsageWhere(

@@ -7,7 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
@@ -59,19 +59,12 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 }
 
 func UsageBucketCount(st store.Store) int {
-	mem, ok := st.(*store.Memory)
-	if !ok {
-		return -1
-	}
-	return len(mem.UsageBucketRows())
+	return len(UsageBucketRows(st))
 }
 
 func AssertUsageBucketCount(t *testing.T, st store.Store, want int) {
 	t.Helper()
 	got := UsageBucketCount(st)
-	if got < 0 {
-		t.Fatal("usage bucket count requires memory store in unit tests")
-	}
 	if got != want {
 		t.Fatalf("expected %d usage buckets, got %d", want, got)
 	}

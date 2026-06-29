@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/org"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -49,7 +50,7 @@ func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 
 func TestBatchImportUnknownDepartment(t *testing.T) {
 	svc := newTestOrgService(t)
-	result := svc.BatchImport([]org.BatchImportRow{
+	result := svc.BatchImport([]types.BatchImportRow{
 		{Name: "Test", Phone: "13800000000", Email: "t@example.com", DepartmentName: "不存在部门"},
 	})
 	if result.Imported != 0 {

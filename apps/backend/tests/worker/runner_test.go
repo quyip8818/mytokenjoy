@@ -28,11 +28,7 @@ func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
 
 	runner.RunOnce(ctx)
 
-	mem, ok := st.(*store.Memory)
-	if !ok {
-		t.Fatal("expected memory store")
-	}
-	entry, found := mem.RelayOutboxEntry("outbox-unknown")
+	entry, found := testutil.RelayOutboxEntry(st, "outbox-unknown")
 	if !found {
 		t.Fatal("expected unknown outbox entry to remain in store")
 	}

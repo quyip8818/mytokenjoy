@@ -8,30 +8,31 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 type ModelsHandler struct {
-	sessionHandlerBase
+	shared.SessionHandlerBase
 	service domainmodels.Service
 }
 
 func NewModelsHandler(cfg config.Config, service domainmodels.Service, sessionSvc session.Service) *ModelsHandler {
 	return &ModelsHandler{
-		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
 func (h *ModelsHandler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.cfg, r, h.sessionSvc, permission.ModelRead)
+	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.ModelRead)
 	read.Get("/", h.List)
 	read.Get("/routing", h.RoutingList)
 	read.Get("/routing/resolve", h.RoutingResolve)
 
-	write := httpmiddleware.WriteRoutes(r, h.cfg, h.sessionSvc)
+	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
 
 	manageWrite := write.With(httpmiddleware.RequireAnyPermission(permission.ModelManage))
 	manageWrite.Post("/", h.Create)

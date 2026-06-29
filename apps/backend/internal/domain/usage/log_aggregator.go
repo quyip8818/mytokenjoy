@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/timeutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -67,7 +67,7 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 	totalLogs := 0
 	aggregated := make(map[seriesAggKey]types.UsageSeriesPoint)
 	models := a.store.Models().Models()
-	loc, err := timeutil.LoadLocation(q.Timezone)
+	loc, err := common.LoadLocation(q.Timezone)
 	if err != nil {
 		return types.UsageSeriesResponse{}, err
 	}
@@ -127,7 +127,7 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 			}
 			modelName := ResolveLogEntryModel(entry)
 			cost := CostCNYFromLog(entry.Quota, modelName, models)
-			bucket := timeutil.FormatBucketISO(timeutil.TruncateInTZ(createdAt, time.Minute, loc))
+			bucket := common.FormatBucketISO(common.TruncateInTZ(createdAt, time.Minute, loc))
 			key := seriesAggKey{bucket: bucket}
 			switch q.GroupBy {
 			case types.UsageGroupByDepartment:

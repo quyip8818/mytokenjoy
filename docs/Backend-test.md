@@ -10,23 +10,26 @@
 
 ```
 tests/
-├── testutil/          # bootstrap、assert、mock
+├── testutil/          # bootstrap、assert、mock；memory store 入口
 ├── handler/           # HTTP 契约 + 行为
 ├── domain/{audit,budget,keys,models,org,session,dashboard}/
 ├── pkg/
-├── permission/
+│   ├── budget/            # 镜像 internal/pkg/budget
+│   ├── common/            # 镜像 internal/pkg/common
+│   └── newapi/            # integration client 纯函数
+├── infra/permission/      # 权限解析（镜像 internal/infra/permission）
 ├── store/
 │   ├── seed/              # seed Load / ApplyUsageBuckets 测试
 │   └── postgres/          # integration tag
-└── worker/
+└── worker/                # 镜像 internal/infra/worker
 ```
 
-| 规则         | 说明                                                                             |
-| ------------ | -------------------------------------------------------------------------------- |
-| 包名         | `package <name>_test`，黑盒 import `internal/...`                                |
-| Fixture      | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`                      |
-| Handler 集成 | `testutil.NewTestApp(t)`（Memory + `app.WithStore`；默认 `app.WithoutWorker()`） |
-| 确定性       | `SimulateDelay=false`；单测不走 Postgres；`config.Load()` 需 `DATABASE_URL`      |
+| 规则         | 说明                                                                              |
+| ------------ | --------------------------------------------------------------------------------- |
+| 包名         | `package <name>_test`，黑盒 import `internal/...`                                 |
+| Fixture      | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`                       |
+| Handler 集成 | `testutil.NewTestApp(t)`（`-tags=testhook`；`app.NewWithStore` + `store/memory`） |
+| 确定性       | `SimulateDelay=false`；单测不走 Postgres；`config.Load()` 需 `DATABASE_URL`       |
 
 ---
 
@@ -34,7 +37,7 @@ tests/
 
 ```bash
 cd apps/backend
-make test-unit                     # go test ./tests/...
+make test-unit                     # go test -tags=testhook ./tests/...
 make test-integration              # -tags=integration（需 DATABASE_URL）
 go test ./tests/domain/keys/... -v # 单包
 ```
@@ -45,13 +48,13 @@ go test ./tests/domain/keys/... -v # 单包
 
 ## 3. 分层
 
-| 层            | 目录                                 | CI                    |
-| ------------- | ------------------------------------ | --------------------- |
-| L1 纯函数     | `tests/pkg/*`                        | `verify`              |
-| L2 Domain     | `tests/domain/*`                     | `verify`              |
-| L3 Handler    | `tests/handler/*`                    | `verify`              |
-| L5 Postgres   | `tests/store/postgres`               | `backend-integration` |
-| L6 Relay 全栈 | `apps/newapi/scripts/gate-verify.sh` | 手工                  |
+| 层            | 目录                                   | CI                    |
+| ------------- | -------------------------------------- | --------------------- |
+| L1 纯函数     | `tests/pkg/budget`、`tests/pkg/common` | `verify`              |
+| L2 Domain     | `tests/domain/*`                       | `verify`              |
+| L3 Handler    | `tests/handler/*`                      | `verify`              |
+| L5 Postgres   | `tests/store/postgres`                 | `backend-integration` |
+| L6 Relay 全栈 | `apps/newapi/scripts/gate-verify.sh`   | 手工                  |
 
 **契约测试：** `contract_test.go`（demo profile + admin cookie）；`contract_prod_test.go`（prod 无 cookie → 401）；`authz_test.go`（写操作 401/403）。
 

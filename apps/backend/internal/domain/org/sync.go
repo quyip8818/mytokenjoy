@@ -7,9 +7,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/notification"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -22,7 +22,7 @@ type syncDiff struct {
 	removeMembers     []types.Member
 }
 
-func (s *service) TriggerSync(ctx context.Context) (ImportResult, error) {
+func (s *service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
 	return s.syncFromProvider(ctx, types.SyncTypeManual)
 }
 
@@ -53,7 +53,7 @@ func (s *service) RunScheduledSync(ctx context.Context) error {
 	return syncErr
 }
 
-func (s *service) shouldRunScheduledSync(cfg SyncConfig) bool {
+func (s *service) shouldRunScheduledSync(cfg types.SyncConfig) bool {
 	if cfg.FrequencyHours <= 0 {
 		return false
 	}
@@ -93,22 +93,22 @@ func (s *service) schedulerHolder() string {
 	return fmt.Sprintf("worker-%d", time.Now().UnixNano())
 }
 
-func (s *service) syncFromProvider(ctx context.Context, syncType string) (ImportResult, error) {
+func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.ImportResult, error) {
 	provider, platform, err := s.providerForStored()
 	if err != nil {
-		return ImportResult{}, err
+		return types.ImportResult{}, err
 	}
 
 	remoteDepts, err := provider.ListDepartments(ctx)
 	if err != nil {
-		return ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 	remoteMembers, fetchFailures, err := provider.ListMembers(ctx)
 	if err != nil {
-		return ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	localDepts := orgutil.FlattenDepartmentTree(s.store.Org().Departments())
+	localDepts := pkgorg.FlattenDepartmentTree(s.store.Org().Departments())
 	localMembers := s.store.Org().Members()
 	diff := buildSyncDiff(localDepts, localMembers, remoteDepts, remoteMembers)
 
@@ -117,13 +117,13 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (Import
 		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.removeMembers), cfg.DeleteMemberThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)
 		_ = s.appendSyncLog(syncType, types.SyncResultFailure, detail)
-		return ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
+		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
 	if len(diff.removeDepartment) > cfg.DeleteDepartmentThreshold {
 		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.removeDepartment), cfg.DeleteDepartmentThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)
 		_ = s.appendSyncLog(syncType, types.SyncResultFailure, detail)
-		return ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
+		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
 
 	result, applyErr := s.applySyncDiff(ctx, platform, diff)
@@ -221,13 +221,13 @@ func buildSyncDiff(
 	return diff
 }
 
-func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, diff syncDiff) (ImportResult, error) {
+func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, diff syncDiff) (types.ImportResult, error) {
 	remoteDepts := append([]datasource.RemoteDepartment{}, diff.addDepartments...)
 	remoteDepts = append(remoteDepts, diff.updateDepartments...)
 	remoteMembers := append([]datasource.RemoteMember{}, diff.addMembers...)
 	remoteMembers = append(remoteMembers, diff.updateMembers...)
 
-	result := ImportResult{}
+	result := types.ImportResult{}
 	if len(remoteDepts) > 0 || len(remoteMembers) > 0 {
 		importResult, err := s.importRemoteSnapshot(ctx, platform, remoteDepts, remoteMembers)
 		if err != nil {
@@ -286,7 +286,7 @@ func (s *service) importRemoteSnapshot(
 	platform types.Platform,
 	remoteDepts []datasource.RemoteDepartment,
 	remoteMembers []datasource.RemoteMember,
-) (ImportResult, error) {
+) (types.ImportResult, error) {
 	provider := &fixedProvider{departments: remoteDepts, members: remoteMembers}
 	return s.importFromProvider(ctx, provider, platform, importOptions{})
 }

@@ -7,9 +7,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	httpapi "github.com/tokenjoy/backend/internal/http"
+	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
-	"github.com/tokenjoy/backend/internal/worker"
 )
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
@@ -26,7 +26,6 @@ type App struct {
 
 type options struct {
 	skipWorker bool
-	store      store.Store
 }
 
 type Option func(*options)
@@ -37,49 +36,30 @@ func WithoutWorker() Option {
 	}
 }
 
-func WithStore(st store.Store) Option {
-	return func(o *options) {
-		o.store = st
+func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
+	ctx := context.Background()
+	st, err := openStore(ctx, cfg)
+	if err != nil {
+		return nil, err
 	}
+	return newApp(cfg, logger, st, opts...)
 }
 
-func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
+func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Option) (*App, error) {
 	var o options
 	for _, opt := range opts {
 		opt(&o)
 	}
 
-	ctx := context.Background()
-	var st store.Store
-	if o.store != nil {
-		st = o.store
-	} else {
-		var err error
-		st, err = openStore(ctx, cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
 	infraDeps, err := buildInfraWithStore(cfg, logger, st)
 	if err != nil {
 		return nil, err
 	}
 
-	services := buildDomainServices(cfg, infraDeps, logger)
-	runner := worker.NewRunner(cfg, st, infraDeps.adminClient, infraDeps.lifecycle, services.ingest, services.rebalance, services.org, logger)
+	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger))
+	runner := registry.WorkerRunner(logger)
 
-	router := httpapi.NewRouter(httpapi.Deps{
-		Config:       cfg,
-		Logger:       logger,
-		SessionSvc:   services.session,
-		OrgSvc:       services.org,
-		BudgetSvc:    services.budget,
-		KeysSvc:      services.keys,
-		ModelsSvc:    services.models,
-		DashboardSvc: services.dashboard,
-		AuditSvc:     services.audit,
-		IngestSvc:    services.ingest,
-	})
+	router := httpapi.NewRouter(registry.HTTPDeps(logger))
 
 	workerCtx, cancel := context.WithCancel(context.Background())
 	if !o.skipWorker {

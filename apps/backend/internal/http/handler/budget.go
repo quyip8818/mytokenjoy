@@ -8,19 +8,20 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 type BudgetHandler struct {
-	sessionHandlerBase
+	shared.SessionHandlerBase
 	service domainbudget.Service
 }
 
 func NewBudgetHandler(cfg config.Config, service domainbudget.Service, sessionSvc session.Service) *BudgetHandler {
 	return &BudgetHandler{
-		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
@@ -130,14 +131,14 @@ func (h *BudgetHandler) AlertDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BudgetHandler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.cfg, r, h.sessionSvc, permission.BudgetRead)
+	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
 	read.Get("/departments/{deptId}/member-quotas", h.MemberQuotas)
 	read.Get("/groups", h.GroupsList)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
 
-	write := httpmiddleware.WriteRoutes(r, h.cfg, h.sessionSvc)
+	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
 
 	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
 	allocateWrite.Put("/nodes/{id}", h.UpdateNode)

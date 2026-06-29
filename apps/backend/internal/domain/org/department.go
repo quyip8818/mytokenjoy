@@ -8,7 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -19,20 +19,20 @@ func (s *service) budgetPeriod() string {
 	return time.Now().Format("2006-01")
 }
 
-func (s *service) GetDepartmentTree() []Department {
+func (s *service) GetDepartmentTree() []types.Department {
 	return s.store.Org().Departments()
 }
 
-func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (Department, error) {
+func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error) {
 	if strings.TrimSpace(name) == "" {
-		return Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Department name is required")
+		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "types.Department name is required")
 	}
 	if parentID == "" {
-		return Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Parent department is required")
+		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Parent department is required")
 	}
 
 	deptID := fmt.Sprintf("dept-%d", time.Now().UnixMilli())
-	var created Department
+	var created types.Department
 
 	err := s.store.WithTx(ctx, func(st store.Store) error {
 		departments := st.Org().Departments()
@@ -63,7 +63,7 @@ func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (
 			return err
 		}
 
-		found := orgutil.FindDepartment(state.Departments, deptID)
+		found := pkgorg.FindDepartment(state.Departments, deptID)
 		if found == nil {
 			return fmt.Errorf("created department not found")
 		}
@@ -73,17 +73,17 @@ func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (
 		return nil
 	})
 	if err != nil {
-		return Department{}, err
+		return types.Department{}, err
 	}
 	return created, nil
 }
 
-func (s *service) UpdateDepartment(ctx context.Context, id, name string) (Department, error) {
+func (s *service) UpdateDepartment(ctx context.Context, id, name string) (types.Department, error) {
 	if strings.TrimSpace(name) == "" {
-		return Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Department name is required")
+		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "types.Department name is required")
 	}
 
-	var updated Department
+	var updated types.Department
 	err := s.store.WithTx(ctx, func(st store.Store) error {
 		members := st.Org().Members()
 		state := &ProvisionState{
@@ -92,11 +92,11 @@ func (s *service) UpdateDepartment(ctx context.Context, id, name string) (Depart
 			Rules:       st.Models().RoutingRules(),
 			Models:      st.Models().Models(),
 		}
-		if orgutil.FindDepartment(state.Departments, id) == nil {
-			return domain.NewDomainError(domain.StatusNotFound, "Department not found")
+		if pkgorg.FindDepartment(state.Departments, id) == nil {
+			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
 		}
 		if err := RenameDepartment(state, id, name); err != nil {
-			return domain.NewDomainError(domain.StatusNotFound, "Department not found")
+			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
@@ -110,7 +110,7 @@ func (s *service) UpdateDepartment(ctx context.Context, id, name string) (Depart
 			return err
 		}
 
-		found := orgutil.FindDepartment(state.Departments, id)
+		found := pkgorg.FindDepartment(state.Departments, id)
 		if found == nil {
 			return fmt.Errorf("updated department not found")
 		}
@@ -118,7 +118,7 @@ func (s *service) UpdateDepartment(ctx context.Context, id, name string) (Depart
 		return nil
 	})
 	if err != nil {
-		return Department{}, err
+		return types.Department{}, err
 	}
 	return updated, nil
 }
@@ -132,10 +132,10 @@ func (s *service) DeleteDepartment(ctx context.Context, id string) error {
 		departments := st.Org().Departments()
 		members := st.Org().Members()
 
-		if orgutil.FindDepartment(departments, id) == nil {
-			return domain.NewDomainError(domain.StatusNotFound, "Department not found")
+		if pkgorg.FindDepartment(departments, id) == nil {
+			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
 		}
-		if orgutil.HasDirectChildDepartments(departments, id) || orgutil.HasDirectActiveMembers(members, id) {
+		if pkgorg.HasDirectChildDepartments(departments, id) || pkgorg.HasDirectActiveMembers(members, id) {
 			return domain.NewDomainError(domain.StatusUnprocessable, DeptDeleteBlockedMsg)
 		}
 
@@ -146,7 +146,7 @@ func (s *service) DeleteDepartment(ctx context.Context, id string) error {
 			Models:      st.Models().Models(),
 		}
 		if err := DeprovisionDepartment(state, id); err != nil {
-			return domain.NewDomainError(domain.StatusNotFound, "Department not found")
+			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)

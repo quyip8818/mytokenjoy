@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
+	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
@@ -37,11 +37,11 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 	}
 
 	tree := svc.GetDepartmentTree()
-	if orgutil.FindDepartment(tree, created.ID) == nil {
+	if pkgorg.FindDepartment(tree, created.ID) == nil {
 		t.Fatal("created department not found in tree")
 	}
 
-	budgetNode := budgetutil.FindBudgetNode(st.Budget().Tree(), created.ID)
+	budgetNode := budget.FindBudgetNode(st.Budget().Tree(), created.ID)
 	if budgetNode == nil {
 		t.Fatal("budget node not created")
 	}
@@ -49,7 +49,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatalf("expected budget 0, got %f", budgetNode.Budget)
 	}
 
-	rule := routingutil.GetRoutingRuleForDept(created.ID, st.Models().RoutingRules(), tree)
+	rule := common.GetRoutingRuleForDept(created.ID, st.Models().RoutingRules(), tree)
 	if rule == nil {
 		t.Fatal("routing rule not created")
 	}
@@ -77,12 +77,12 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 		t.Fatalf("unexpected name %s", updated.Name)
 	}
 
-	budgetNode := budgetutil.FindBudgetNode(st.Budget().Tree(), created.ID)
+	budgetNode := budget.FindBudgetNode(st.Budget().Tree(), created.ID)
 	if budgetNode == nil || budgetNode.Name != "Renamed Team" {
 		t.Fatalf("budget node name not updated: %+v", budgetNode)
 	}
 
-	rule := routingutil.GetRoutingRuleForDept(created.ID, st.Models().RoutingRules(), svc.GetDepartmentTree())
+	rule := common.GetRoutingRuleForDept(created.ID, st.Models().RoutingRules(), svc.GetDepartmentTree())
 	if rule == nil || rule.NodeName != "Renamed Team" {
 		t.Fatalf("routing rule name not updated: %+v", rule)
 	}
@@ -95,7 +95,7 @@ func TestDeleteDepartmentWithChildren422(t *testing.T) {
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)
 	}
-	if de.Message != org.DeptDeleteBlockedMsg {
+	if de.Message != domainorg.DeptDeleteBlockedMsg {
 		t.Fatalf("unexpected message %q", de.Message)
 	}
 }
@@ -121,11 +121,11 @@ func TestDeleteLeafDepartment(t *testing.T) {
 	}
 
 	tree := svc.GetDepartmentTree()
-	if orgutil.FindDepartment(tree, created.ID) != nil {
+	if pkgorg.FindDepartment(tree, created.ID) != nil {
 		t.Fatal("department still in tree")
 	}
 
-	if budgetutil.FindBudgetNode(st.Budget().Tree(), created.ID) != nil {
+	if budget.FindBudgetNode(st.Budget().Tree(), created.ID) != nil {
 		t.Fatal("budget node still exists")
 	}
 	for _, rule := range st.Models().RoutingRules() {

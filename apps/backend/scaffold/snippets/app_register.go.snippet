@@ -3,3 +3,7 @@
 
 // Add to buildDomainServices return:
 //   __DOMAIN_TITLE__: domain__DOMAIN__.NewService(cfg, i.store),
+
+// Add to ServiceRegistry in internal/app/registry.go:
+//   __DOMAIN_TITLE__ domain__DOMAIN__.Service
+// (and wire in buildServiceRegistry + HTTPDeps)

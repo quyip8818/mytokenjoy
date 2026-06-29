@@ -7,9 +7,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetlookup"
-	"github.com/tokenjoy/backend/internal/pkg/memberquota"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -37,11 +36,11 @@ type Service interface {
 type service struct {
 	cfg       config.Config
 	store     store.Store
-	delayer   simulate.Delayer
+	delayer   common.Delayer
 	lifecycle relay.Lifecycle
 }
 
-func NewService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle, delayer simulate.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle, delayer common.Delayer) Service {
 	return &service{
 		cfg:       cfg,
 		store:     st,
@@ -79,8 +78,8 @@ func (s *service) QuotaSummary(memberID string) (types.MemberQuotaSummary, error
 	members := s.store.Org().Members()
 	pools := s.store.Budget().MemberQuotaPools()
 	platformKeys := s.store.Keys().PlatformKeys()
-	reservedPool := budgetlookup.GetReservedPoolForMember(tree, members, memberID)
-	return memberquota.BuildQuotaSummary(pools, platformKeys, memberID, reservedPool), nil
+	reservedPool := budget.GetReservedPoolForMember(tree, members, memberID)
+	return budget.BuildQuotaSummary(pools, platformKeys, memberID, reservedPool), nil
 }
 
 func (s *service) ListApprovals(tab, memberID string) []types.KeyApproval {
@@ -113,7 +112,7 @@ func (s *service) ApprovalQuotaCheck(id string) types.ApprovalQuotaCheck {
 		requested = approval.RequestedQuota
 		tree := s.store.Budget().Tree()
 		members := s.store.Org().Members()
-		reservedPool = budgetlookup.GetReservedPoolForMember(tree, members, approval.ApplicantID)
+		reservedPool = budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
 	}
 	return types.ApprovalQuotaCheck{
 		Sufficient: requested <= reservedPool, ReservedPool: reservedPool, Requested: requested,

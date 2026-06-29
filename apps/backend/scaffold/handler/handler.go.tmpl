@@ -7,27 +7,28 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domain__DOMAIN__ "github.com/tokenjoy/backend/internal/domain/__DOMAIN__"
 	"github.com/tokenjoy/backend/internal/domain/session"
+	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 type __DOMAIN_TITLE__Handler struct {
-	sessionHandlerBase
+	shared.SessionHandlerBase
 	service domain__DOMAIN__.Service
 }
 
 func New__DOMAIN_TITLE__Handler(cfg config.Config, service domain__DOMAIN__.Service, sessionSvc session.Service) *__DOMAIN_TITLE__Handler {
 	return &__DOMAIN_TITLE__Handler{
-		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
 func (h *__DOMAIN_TITLE__Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.cfg, r, h.sessionSvc, permission.__DOMAIN_TITLE__Read)
+	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.__DOMAIN_TITLE__Read)
 	read.Get("/", h.List)
 
-	write := httpmiddleware.WriteRoutes(r, h.cfg, h.sessionSvc)
+	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
 	write.With(httpmiddleware.RequireAnyPermission(permission.__DOMAIN_TITLE__Read)).Post("/", h.Create)
 }
 

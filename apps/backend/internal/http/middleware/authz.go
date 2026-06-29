@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 func RequireAnyPermission(required ...string) func(http.Handler) http.Handler {

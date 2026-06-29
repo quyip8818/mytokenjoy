@@ -49,5 +49,6 @@ yarn.lock
 *.sln
 *.sw?
 
-# Deploy
-.vercel
+# Go binaries
+apps/backend/server
+

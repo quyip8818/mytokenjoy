@@ -14,8 +14,28 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestUsageSeriesMinuteUnavailableWithoutNewAPI(t *testing.T) {
+func TestUsageSeriesMinuteDemoFallbackWithoutNewAPI(t *testing.T) {
 	app := testutil.NewTestApp(t, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T10:00:00%2B08:00&end=2026-06-10T11:00:00%2B08:00", nil)
+	req.Header.Set("Cookie", sessionCookie)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var resp types.UsageSeriesResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Source != types.UsageSourceBuckets || !resp.Approximate {
+		t.Fatalf("expected demo bucket fallback, got %+v", resp)
+	}
+}
+
+func TestUsageSeriesMinuteUnavailableInProdProfile(t *testing.T) {
+	app := testutil.NewTestApp(t, func(cfg *config.Config) {
+		cfg.Profile = config.ProfileProd
+	})
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T10:00:00%2B08:00&end=2026-06-10T11:00:00%2B08:00", nil)
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()

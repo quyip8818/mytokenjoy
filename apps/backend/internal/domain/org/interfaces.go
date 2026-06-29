@@ -7,50 +7,50 @@ import (
 )
 
 type DataSourceService interface {
-	GetDataSourceStatus() DataSourceStatus
-	TestDataSource(ctx context.Context, cred Credential) (DataSourceTestResult, error)
-	UpdateDataSource(ctx context.Context, cred Credential, force bool) error
-	SearchDataSource(ctx context.Context, keyword string) (DataSourceSearchResult, error)
-	ImportDataSource(ctx context.Context) (ImportResult, error)
-	RetryImport(ctx context.Context, ids []string) (ImportResult, error)
+	GetDataSourceStatus() types.DataSourceStatus
+	TestDataSource(ctx context.Context, cred types.Credential) (types.DataSourceTestResult, error)
+	UpdateDataSource(ctx context.Context, cred types.Credential, force bool) error
+	SearchDataSource(ctx context.Context, keyword string) (types.DataSourceSearchResult, error)
+	ImportDataSource(ctx context.Context) (types.ImportResult, error)
+	RetryImport(ctx context.Context, ids []string) (types.ImportResult, error)
 }
 
 type SyncService interface {
-	GetSyncConfig() SyncConfig
-	UpdateSyncConfig(cfg SyncConfig) error
-	TriggerSync(ctx context.Context) (ImportResult, error)
+	GetSyncConfig() types.SyncConfig
+	UpdateSyncConfig(cfg types.SyncConfig) error
+	TriggerSync(ctx context.Context) (types.ImportResult, error)
 	RunScheduledSync(ctx context.Context) error
-	ListSyncLogs(page, pageSize int) types.PageResult[SyncLog]
+	ListSyncLogs(page, pageSize int) types.PageResult[types.SyncLog]
 }
 
 type DepartmentService interface {
-	GetDepartmentTree() []Department
-	CreateDepartment(ctx context.Context, name, parentID string) (Department, error)
-	UpdateDepartment(ctx context.Context, id, name string) (Department, error)
+	GetDepartmentTree() []types.Department
+	CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error)
+	UpdateDepartment(ctx context.Context, id, name string) (types.Department, error)
 	DeleteDepartment(ctx context.Context, id string) error
 }
 
 type MemberService interface {
-	ListMembers(departmentID, keyword string, directOnly bool, page, pageSize int) types.PageResult[Member]
-	CreateMember(input Member) (Member, error)
-	UpdateMember(id string, input Member) (Member, error)
+	ListMembers(departmentID, keyword string, directOnly bool, page, pageSize int) types.PageResult[types.Member]
+	CreateMember(input types.Member) (types.Member, error)
+	UpdateMember(id string, input types.Member) (types.Member, error)
 	DeleteMembers(ctx context.Context, ids []string) error
 	UpdateMemberStatus(ctx context.Context, ids []string, status string) error
 	TransferMembers(ctx context.Context, ids []string, departmentID string) error
 	InviteMember() error
-	BatchInvite(ids []string) BatchInviteResult
-	BatchImport(rows []BatchImportRow) MemberBatchImportResult
+	BatchInvite(ids []string) types.BatchInviteResult
+	BatchImport(rows []types.BatchImportRow) types.MemberBatchImportResult
 }
 
 type RoleService interface {
-	ListRoles() []Role
-	CreateRole(name string, permissions []string) (Role, error)
-	UpdateRole(id, name string, permissions []string) (Role, error)
+	ListRoles() []types.Role
+	CreateRole(name string, permissions []string) (types.Role, error)
+	UpdateRole(id, name string, permissions []string) (types.Role, error)
 	DeleteRole(id string) error
-	ListRoleMembers(roleID string) []Member
+	ListRoleMembers(roleID string) []types.Member
 	AddRoleMember(roleID, memberID string) error
 	RemoveRoleMember(roleID, memberID string) error
-	ListPermissions() []Permission
+	ListPermissions() []types.Permission
 }
 
 type Service interface {

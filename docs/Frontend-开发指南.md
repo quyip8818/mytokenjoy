@@ -1,6 +1,6 @@
 # TokenJoy 前端开发指南
 
-`apps/frontend` 架构说明与开发规范。API 契约见 [Frontend-API契约.md](./Frontend-API契约.md)；速查见 [CLAUDE.md](./CLAUDE.md)。
+`apps/frontend` 架构说明与开发规范。API 契约见 [Frontend-API契约.md](./Frontend-API契约.md)；常用命令见 [README.md](./README.md#常用命令)。
 
 ---
 

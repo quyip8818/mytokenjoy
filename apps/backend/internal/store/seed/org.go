@@ -2,8 +2,8 @@ package seed
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/roleutil"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 func buildDepartments() []types.Department {
@@ -61,12 +61,12 @@ func buildSyncLogs(demoToday string) []types.SyncLog {
 
 func buildRoles(members []types.Member) []types.Role {
 	return []types.Role{
-		{ID: "role-1", Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: roleutil.CountMembersByRole(members, permission.RoleSuperAdmin)},
-		{ID: "role-2", Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: roleutil.CountMembersByRole(members, permission.RoleOrgAdmin)},
-		{ID: "role-3", Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: roleutil.CountMembersByRole(members, permission.RoleMember)},
-		{ID: "role-4", Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}, MemberCount: roleutil.CountMembersByRole(members, permission.RoleAuditor)},
-		{ID: "role-5", Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: roleutil.CountMembersByRole(members, permission.RoleAPICaller)},
-		{ID: "role-6", Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: roleutil.CountMembersByRole(members, permission.RoleBudgetApprover)},
+		{ID: "role-1", Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
+		{ID: "role-2", Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
+		{ID: "role-3", Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
+		{ID: "role-4", Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}, MemberCount: org.CountMembersByRole(members, permission.RoleAuditor)},
+		{ID: "role-5", Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
+		{ID: "role-6", Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover)},
 	}
 }
 

@@ -18,7 +18,15 @@ type dbQuerier interface {
 }
 
 type relayRepo struct {
-	db dbQuerier
+	db  dbQuerier
+	ctx context.Context
+}
+
+func newRelayRepo(ctx context.Context, db dbQuerier) *relayRepo {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return &relayRepo{db: db, ctx: ctx}
 }
 
 func scanMapping(row pgx.Row) (store.RelayMapping, error) {
@@ -48,7 +56,7 @@ const mappingSelect = `
 `
 
 func (r *relayRepo) GetMappingByPlatformKeyID(platformKeyID string) (*store.RelayMapping, error) {
-	row := r.db.QueryRow(context.Background(), mappingSelect+` WHERE platform_key_id = $1`, platformKeyID)
+	row := r.db.QueryRow(r.ctx, mappingSelect+` WHERE platform_key_id = $1`, platformKeyID)
 	m, err := scanMapping(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -60,7 +68,7 @@ func (r *relayRepo) GetMappingByPlatformKeyID(platformKeyID string) (*store.Rela
 }
 
 func (r *relayRepo) GetMappingByNewAPITokenID(tokenID int64) (*store.RelayMapping, error) {
-	row := r.db.QueryRow(context.Background(), mappingSelect+` WHERE newapi_token_id = $1`, tokenID)
+	row := r.db.QueryRow(r.ctx, mappingSelect+` WHERE newapi_token_id = $1`, tokenID)
 	m, err := scanMapping(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -76,7 +84,7 @@ func (r *relayRepo) listMappings(where string, arg any) ([]store.RelayMapping, e
 	if where != "" {
 		query += " WHERE " + where
 	}
-	rows, err := r.db.Query(context.Background(), query, arg)
+	rows, err := r.db.Query(r.ctx, query, arg)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +117,7 @@ func (r *relayRepo) ListActiveMappings() ([]store.RelayMapping, error) {
 }
 
 func (r *relayRepo) UpsertMapping(mapping store.RelayMapping) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		INSERT INTO relay_mappings (
 			platform_key_id, newapi_token_id, member_id, department_id, budget_group_id,
 			relay_group, sync_status, synced_at, relay_remain_quota, updated_at
@@ -136,7 +144,7 @@ func (r *relayRepo) UpdateMappingSync(
 	remainQuota *int64,
 	syncedAt time.Time,
 ) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE relay_mappings
 		SET newapi_token_id = $2, sync_status = $3, relay_remain_quota = $4,
 		    synced_at = $5, updated_at = NOW()
@@ -146,7 +154,7 @@ func (r *relayRepo) UpdateMappingSync(
 }
 
 func (r *relayRepo) UpdateMappingRemainQuota(platformKeyID string, remainQuota int64) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE relay_mappings SET relay_remain_quota = $2, updated_at = NOW()
 		WHERE platform_key_id = $1
 	`, platformKeyID, remainQuota)
@@ -154,7 +162,7 @@ func (r *relayRepo) UpdateMappingRemainQuota(platformKeyID string, remainQuota i
 }
 
 func (r *relayRepo) EnqueueRelayOutbox(entry store.RelayOutboxEntry) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		INSERT INTO relay_outbox (id, kind, payload, status, attempts, next_retry, last_error, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
 	`, entry.ID, entry.Kind, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
@@ -162,12 +170,13 @@ func (r *relayRepo) EnqueueRelayOutbox(entry store.RelayOutboxEntry) error {
 }
 
 func (r *relayRepo) ClaimPendingRelayOutbox(limit int) ([]store.RelayOutboxEntry, error) {
-	rows, err := r.db.Query(context.Background(), `
+	rows, err := r.db.Query(r.ctx, `
 		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
 		FROM relay_outbox
 		WHERE status = $1 AND next_retry <= NOW()
 		ORDER BY created_at
 		LIMIT $2
+		FOR UPDATE SKIP LOCKED
 	`, store.OutboxStatusPending, limit)
 	if err != nil {
 		return nil, err
@@ -189,14 +198,14 @@ func scanRelayOutbox(rows pgx.Rows) ([]store.RelayOutboxEntry, error) {
 }
 
 func (r *relayRepo) MarkRelayOutboxDone(id string) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE relay_outbox SET status = $2, updated_at = NOW() WHERE id = $1
 	`, id, store.OutboxStatusDone)
 	return err
 }
 
 func (r *relayRepo) MarkRelayOutboxRetry(id string, nextRetry time.Time, lastError string) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE relay_outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
 		WHERE id = $1
 	`, id, nextRetry, lastError)
@@ -204,7 +213,7 @@ func (r *relayRepo) MarkRelayOutboxRetry(id string, nextRetry time.Time, lastErr
 }
 
 func (r *relayRepo) EnqueueWebhookOutbox(entry store.WebhookOutboxEntry) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		INSERT INTO webhook_outbox (id, payload, status, attempts, next_retry, last_error, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
 	`, entry.ID, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
@@ -212,12 +221,13 @@ func (r *relayRepo) EnqueueWebhookOutbox(entry store.WebhookOutboxEntry) error {
 }
 
 func (r *relayRepo) ClaimPendingWebhookOutbox(limit int) ([]store.WebhookOutboxEntry, error) {
-	rows, err := r.db.Query(context.Background(), `
+	rows, err := r.db.Query(r.ctx, `
 		SELECT id, payload, status, attempts, next_retry, last_error, created_at
 		FROM webhook_outbox
 		WHERE status = $1 AND next_retry <= NOW()
 		ORDER BY created_at
 		LIMIT $2
+		FOR UPDATE SKIP LOCKED
 	`, store.OutboxStatusPending, limit)
 	if err != nil {
 		return nil, err
@@ -235,14 +245,14 @@ func (r *relayRepo) ClaimPendingWebhookOutbox(limit int) ([]store.WebhookOutboxE
 }
 
 func (r *relayRepo) MarkWebhookOutboxDone(id string) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE webhook_outbox SET status = $2, updated_at = NOW() WHERE id = $1
 	`, id, store.OutboxStatusDone)
 	return err
 }
 
 func (r *relayRepo) MarkWebhookOutboxRetry(id string, nextRetry time.Time, lastError string) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE webhook_outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
 		WHERE id = $1
 	`, id, nextRetry, lastError)
@@ -251,14 +261,14 @@ func (r *relayRepo) MarkWebhookOutboxRetry(id string, nextRetry time.Time, lastE
 
 func (r *relayRepo) HasIngestedLogID(logID int64) (bool, error) {
 	var exists bool
-	err := r.db.QueryRow(context.Background(), `
+	err := r.db.QueryRow(r.ctx, `
 		SELECT EXISTS (SELECT 1 FROM ingested_log_ids WHERE log_id = $1)
 	`, logID).Scan(&exists)
 	return exists, err
 }
 
 func (r *relayRepo) InsertIngestedLogID(logID int64) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		INSERT INTO ingested_log_ids (log_id) VALUES ($1) ON CONFLICT DO NOTHING
 	`, logID)
 	return err
@@ -266,12 +276,12 @@ func (r *relayRepo) InsertIngestedLogID(logID int64) error {
 
 func (r *relayRepo) GetLastLogID() (int64, error) {
 	var id int64
-	err := r.db.QueryRow(context.Background(), `SELECT last_log_id FROM relay_sync_cursors WHERE id = 1`).Scan(&id)
+	err := r.db.QueryRow(r.ctx, `SELECT last_log_id FROM relay_sync_cursors WHERE id = 1`).Scan(&id)
 	return id, err
 }
 
 func (r *relayRepo) SetLastLogID(logID int64) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE relay_sync_cursors SET last_log_id = $1, updated_at = NOW() WHERE id = 1
 	`, logID)
 	return err
@@ -279,7 +289,7 @@ func (r *relayRepo) SetLastLogID(logID int64) error {
 
 func (r *relayRepo) EnqueueRebalance(axisKind, axisID string) error {
 	id := fmt.Sprintf("rb-%s-%s-%d", axisKind, axisID, time.Now().UnixNano())
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		INSERT INTO rebalance_queue (id, axis_kind, axis_id, status)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (axis_kind, axis_id, status) DO NOTHING
@@ -288,12 +298,13 @@ func (r *relayRepo) EnqueueRebalance(axisKind, axisID string) error {
 }
 
 func (r *relayRepo) ClaimPendingRebalance(limit int) ([]store.RebalanceQueueEntry, error) {
-	rows, err := r.db.Query(context.Background(), `
+	rows, err := r.db.Query(r.ctx, `
 		SELECT id, axis_kind, axis_id, status
 		FROM rebalance_queue
 		WHERE status = $1
 		ORDER BY created_at
 		LIMIT $2
+		FOR UPDATE SKIP LOCKED
 	`, store.OutboxStatusPending, limit)
 	if err != nil {
 		return nil, err
@@ -311,7 +322,7 @@ func (r *relayRepo) ClaimPendingRebalance(limit int) ([]store.RebalanceQueueEntr
 }
 
 func (r *relayRepo) MarkRebalanceDone(id string) error {
-	_, err := r.db.Exec(context.Background(), `
+	_, err := r.db.Exec(r.ctx, `
 		UPDATE rebalance_queue SET status = $2 WHERE id = $1
 	`, id, store.OutboxStatusDone)
 	return err

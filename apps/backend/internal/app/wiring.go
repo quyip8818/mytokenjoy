@@ -13,10 +13,10 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/notification"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -25,7 +25,7 @@ type infra struct {
 	adminClient newapi.AdminClient
 	lifecycle   relay.Lifecycle
 	notifier    notification.Notifier
-	delayer     simulate.Delayer
+	delayer     common.Delayer
 }
 
 type domainServices struct {
@@ -51,7 +51,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store)
 		adminClient: adminClient,
 		lifecycle:   relay.NewTokenLifecycle(cfg, st, adminClient),
 		notifier:    notification.NewService(cfg, st, logger),
-		delayer:     simulate.NewDelayer(cfg.SimulateDelay),
+		delayer:     common.NewDelayer(cfg.SimulateDelay),
 	}, nil
 }
 

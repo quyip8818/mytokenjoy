@@ -7,7 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/pkgconst"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -109,8 +109,8 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.FullKey == nil || !strings.Contains(*created.FullKey, pkgconst.DemoKeyPrefix) {
-		t.Fatalf("expected demo full key with prefix %q, got %+v", pkgconst.DemoKeyPrefix, created.FullKey)
+	if created.FullKey == nil || !strings.Contains(*created.FullKey, common.DemoKeyPrefix) {
+		t.Fatalf("expected demo full key with prefix %q, got %+v", common.DemoKeyPrefix, created.FullKey)
 	}
 }
 

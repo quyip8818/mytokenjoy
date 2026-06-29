@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )

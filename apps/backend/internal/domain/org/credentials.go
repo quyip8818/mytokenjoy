@@ -4,7 +4,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/pkg/cryptoutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 const credentialKeySize = 32
@@ -13,12 +13,12 @@ func (s *service) credentialKey() ([]byte, error) {
 	if len(s.cryptoKey) == credentialKeySize {
 		return s.cryptoKey, nil
 	}
-	if key, err := cryptoutil.ParseKey(s.cfg.DataSourceCredentialKey); err == nil {
+	if key, err := common.ParseKey(s.cfg.DataSourceCredentialKey); err == nil {
 		s.cryptoKey = key
 		return key, nil
 	}
 	if s.cfg.IsDemoProfile() {
-		s.cryptoKey = cryptoutil.DevDefaultKey()
+		s.cryptoKey = common.DevDefaultKey()
 		return s.cryptoKey, nil
 	}
 	return nil, domain.NewDomainError(domain.StatusUnprocessable, "DATA_SOURCE_CREDENTIAL_KEY is required")
@@ -36,7 +36,7 @@ func (s *service) loadStoredCredential() (types.Credential, error) {
 	if err != nil {
 		return types.Credential{}, err
 	}
-	raw, err := cryptoutil.Decrypt(key, stored.Encrypted)
+	raw, err := common.Decrypt(key, stored.Encrypted)
 	if err != nil {
 		return types.Credential{}, domain.NewDomainError(domain.StatusUnprocessable, "failed to decrypt credential")
 	}
@@ -52,7 +52,7 @@ func (s *service) saveCredential(cred types.Credential) error {
 	if err != nil {
 		return err
 	}
-	encrypted, err := cryptoutil.Encrypt(key, payload)
+	encrypted, err := common.Encrypt(key, payload)
 	if err != nil {
 		return err
 	}

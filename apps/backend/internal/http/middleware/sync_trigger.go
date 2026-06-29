@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/session"
-	"github.com/tokenjoy/backend/internal/permission"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 const SyncTriggerAPIKeyHeader = "X-Sync-API-Key"

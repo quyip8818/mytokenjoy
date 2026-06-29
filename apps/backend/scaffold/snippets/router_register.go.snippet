@@ -4,8 +4,11 @@
 // Add to httpapi.Deps in internal/http/router.go:
 //   __DOMAIN_TITLE__Svc domain__DOMAIN__.Service
 
-// Add handler construction:
-//   __DOMAIN__Handler := httphandler.New__DOMAIN_TITLE__Handler(deps.Config, deps.__DOMAIN_TITLE__Svc, deps.SessionSvc)
+// Add to handler.RegistryDeps in internal/http/handler/register.go:
+//   __DOMAIN_TITLE__Svc domain__DOMAIN__.Service
 
-// Add route registration inside /api:
-//   r.Route("/__DOMAIN__", __DOMAIN__Handler.RegisterRoutes)
+// Add handler construction in handler/register.go NewRegistry:
+//   __DOMAIN__: New__DOMAIN_TITLE__Handler(deps.Config, deps.__DOMAIN_TITLE__Svc, deps.SessionSvc),
+
+// Add route registration in handler/register.go RegisterAPIRoutes:
+//   r.Route("/__DOMAIN__", reg.__DOMAIN__.RegisterRoutes)

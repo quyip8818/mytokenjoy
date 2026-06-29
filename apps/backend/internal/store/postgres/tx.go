@@ -8,32 +8,19 @@ import (
 )
 
 type txStore struct {
-	memory       *store.Memory
+	domain       domainRepos
 	relay        store.RelayRepository
 	usage        store.UsageRepository
 	notification store.NotificationRepository
 	parent       *Store
+	shards       *txShardCache
 }
 
-func (s *txStore) Org() store.OrgRepository {
-	return &deferredOrgRepo{inner: s.memory.Org(), onMutate: s.parent.markDirty}
-}
-
-func (s *txStore) Budget() store.BudgetRepository {
-	return &deferredBudgetRepo{inner: s.memory.Budget(), onMutate: s.parent.markDirty}
-}
-
-func (s *txStore) Keys() store.KeysRepository {
-	return &deferredKeysRepo{inner: s.memory.Keys(), onMutate: s.parent.markDirty}
-}
-
-func (s *txStore) Models() store.ModelsRepository {
-	return &deferredModelsRepo{inner: s.memory.Models(), onMutate: s.parent.markDirty}
-}
-
-func (s *txStore) Audit() store.AuditRepository {
-	return &deferredAuditRepo{inner: s.memory.Audit(), onMutate: s.parent.markDirty}
-}
+func (s *txStore) Org() store.OrgRepository       { return s.domain.org }
+func (s *txStore) Budget() store.BudgetRepository { return s.domain.budget }
+func (s *txStore) Keys() store.KeysRepository     { return s.domain.keys }
+func (s *txStore) Models() store.ModelsRepository { return s.domain.models }
+func (s *txStore) Audit() store.AuditRepository   { return s.domain.audit }
 
 func (s *txStore) Relay() store.RelayRepository {
 	return s.relay
@@ -63,8 +50,6 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	s.setActiveCtx(ctx)
-	defer s.clearActiveCtx()
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -72,27 +57,25 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	}
 	defer tx.Rollback(ctx)
 
+	cache := newTxShardCache(ctx, tx)
 	txView := &txStore{
-		memory:       s.memory,
-		relay:        &relayRepo{db: tx},
+		domain:       newDomainRepoSet(cache),
+		relay:        newRelayRepo(ctx, tx),
 		usage:        &usageRepo{db: tx},
 		notification: &notificationRepo{db: tx},
 		parent:       s,
+		shards:       cache,
 	}
 	if err := fn(txView); err != nil {
 		return err
 	}
-	if err := s.persistDomainExec(ctx, tx); err != nil {
+	if err := cache.flush(ctx); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit tx: %w", err)
 	}
 	return nil
-}
-
-func (s *Store) persistDomainExec(ctx context.Context, exec dbQuerier) error {
-	return s.flushShards(ctx, exec)
 }
 
 var _ store.Store = (*Store)(nil)

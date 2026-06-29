@@ -17,7 +17,7 @@ function buildQuery(granularity: UsageGranularity): UsageSeriesQuery {
 }
 
 export function useUsageSeriesPage(injectedApis?: AppApis) {
-  const [granularity, setGranularity] = useState<UsageGranularity>(USAGE_GRANULARITY.MINUTE)
+  const [granularity, setGranularity] = useState<UsageGranularity>(USAGE_GRANULARITY.HOUR)
   const seriesQuery = useMemo(() => buildQuery(granularity), [granularity])
 
   const { data, loading, error, refresh } = useInjectedQuery({
@@ -26,9 +26,10 @@ export function useUsageSeriesPage(injectedApis?: AppApis) {
     queryFn: (apis) => apis.dashboardApi.getUsageSeries(seriesQuery),
   })
 
+  const chartGranularity = data?.granularity ?? granularity
   const chartData = useMemo(
-    () => buildUsageSeriesChartData(data?.points ?? [], granularity),
-    [data?.points, granularity],
+    () => buildUsageSeriesChartData(data?.points ?? [], chartGranularity),
+    [data?.points, chartGranularity],
   )
 
   const isServiceUnavailable = error instanceof ApiError && error.status === 503

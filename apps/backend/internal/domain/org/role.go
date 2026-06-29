@@ -5,40 +5,41 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/roleutil"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) ListRoles() []Role {
+func (s *service) ListRoles() []types.Role {
 	return s.store.Org().Roles()
 }
 
-func (s *service) CreateRole(name string, permissions []string) (Role, error) {
+func (s *service) CreateRole(name string, permissions []string) (types.Role, error) {
 	roles := s.store.Org().Roles()
-	role := Role{
+	role := types.Role{
 		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
 		Name: name, Type: "custom", Permissions: permissions, MemberCount: 0,
 	}
 	roles = append(roles, role)
 	if err := s.store.Org().SetRoles(roles); err != nil {
-		return Role{}, fmt.Errorf("persist roles: %w", err)
+		return types.Role{}, fmt.Errorf("persist roles: %w", err)
 	}
 	return role, nil
 }
 
-func (s *service) UpdateRole(id, name string, permissions []string) (Role, error) {
+func (s *service) UpdateRole(id, name string, permissions []string) (types.Role, error) {
 	roles := s.store.Org().Roles()
 	for i := range roles {
 		if roles[i].ID == id {
 			roles[i].Name = name
 			roles[i].Permissions = permissions
 			if err := s.store.Org().SetRoles(roles); err != nil {
-				return Role{}, err
+				return types.Role{}, err
 			}
 			return roles[i], nil
 		}
 	}
-	return Role{}, domain.NewDomainError(404, "Not found")
+	return types.Role{}, domain.NewDomainError(404, "Not found")
 }
 
 func (s *service) DeleteRole(id string) error {
@@ -77,9 +78,9 @@ func (s *service) DeleteRole(id string) error {
 	return s.store.Org().SetRoles(roles)
 }
 
-func (s *service) ListRoleMembers(roleID string) []Member {
+func (s *service) ListRoleMembers(roleID string) []types.Member {
 	roles := s.store.Org().Roles()
-	var role *Role
+	var role *types.Role
 	for i := range roles {
 		if roles[i].ID == roleID {
 			role = &roles[i]
@@ -87,11 +88,11 @@ func (s *service) ListRoleMembers(roleID string) []Member {
 		}
 	}
 	if role == nil {
-		return []Member{}
+		return []types.Member{}
 	}
 
 	members := s.store.Org().Members()
-	result := make([]Member, 0)
+	result := make([]types.Member, 0)
 	for _, member := range members {
 		for _, roleName := range member.Roles {
 			if roleName == role.Name {
@@ -107,7 +108,7 @@ func (s *service) AddRoleMember(roleID, memberID string) error {
 	roles := s.store.Org().Roles()
 	members := s.store.Org().Members()
 
-	var role *Role
+	var role *types.Role
 	for i := range roles {
 		if roles[i].ID == roleID {
 			role = &roles[i]
@@ -122,7 +123,7 @@ func (s *service) AddRoleMember(roleID, memberID string) error {
 		if members[i].ID != memberID {
 			continue
 		}
-		if !roleutil.ContainsRole(members[i].Roles, role.Name) {
+		if !pkgorg.ContainsRole(members[i].Roles, role.Name) {
 			members[i].Roles = append(members[i].Roles, role.Name)
 			s.recalcRoleMemberCounts(roles)
 			if err := s.store.Org().SetMembers(members); err != nil {
@@ -139,14 +140,14 @@ func (s *service) RemoveRoleMember(roleID, memberID string) error {
 	roles := s.store.Org().Roles()
 	members := s.store.Org().Members()
 
-	var role *Role
+	var role *types.Role
 	for i := range roles {
 		if roles[i].ID == roleID {
 			role = &roles[i]
 			break
 		}
 	}
-	var member *Member
+	var member *types.Member
 	for i := range members {
 		if members[i].ID == memberID {
 			member = &members[i]

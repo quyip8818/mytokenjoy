@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 type SessionHandler struct {
@@ -24,7 +24,7 @@ func (h *SessionHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *SessionHandler) Get(w http.ResponseWriter, r *http.Request) {
-	memberID := sessionutil.ResolveMemberID(r)
+	memberID := common.ResolveMemberID(r)
 	if memberID == "" {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return

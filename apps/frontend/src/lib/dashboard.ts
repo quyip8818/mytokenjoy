@@ -5,6 +5,7 @@ import type {
   UsageGranularity,
   UsageSeriesPoint,
 } from '@/api/types'
+import { demoSeriesAnchorEnd, demoSeriesMonthStartISO } from '@/lib/demo-clock'
 import { Coins, Hash, Zap, DollarSign, User, type LucideIcon } from 'lucide-react'
 
 export const COST_CHART_COLORS = ['#2563eb', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4']
@@ -205,12 +206,16 @@ export function buildUsageSeriesWindow(granularity: UsageGranularity): {
   start: string
   end: string
 } {
-  const end = new Date()
-  const start = new Date(end)
+  const end = import.meta.env.DEV ? demoSeriesAnchorEnd() : new Date()
   if (granularity === 'minute') {
-    start.setHours(start.getHours() - 3)
-  } else {
-    start.setHours(start.getHours() - 24)
+    const start = new Date(end)
+    start.setTime(end.getTime() - 3 * 60 * 60 * 1000)
+    return { start: start.toISOString(), end: end.toISOString() }
   }
+  if (import.meta.env.DEV) {
+    return { start: demoSeriesMonthStartISO(), end: end.toISOString() }
+  }
+  const start = new Date(end)
+  start.setHours(start.getHours() - 24)
   return { start: start.toISOString(), end: end.toISOString() }
 }

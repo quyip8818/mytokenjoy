@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/pkg/periodutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -38,13 +38,13 @@ func NewService(cfg config.Config, st store.Store, logAggregator *domainusage.Lo
 	}
 }
 
-func (s *service) resolveRange(params types.CostQueryParams) (periodutil.ResolvedRange, error) {
+func (s *service) resolveRange(params types.CostQueryParams) (budget.ResolvedRange, error) {
 	if err := domainusage.ValidateCostGranularity(params.Granularity); err != nil {
-		return periodutil.ResolvedRange{}, err
+		return budget.ResolvedRange{}, err
 	}
 	normalized := params
 	normalized.Granularity = domainusage.NormalizeCostGranularity(params.Granularity)
-	return periodutil.Resolve(normalized, s.dashboardNow(), domainusage.ResolveTimezone(""))
+	return budget.Resolve(normalized, s.dashboardNow(), domainusage.ResolveTimezone(""))
 }
 
 func (s *service) dashboardNow() time.Time {
@@ -62,7 +62,7 @@ func (s *service) resolveScope(_ context.Context, scope domainusage.SessionScope
 	return domainusage.ResolveScopeDepartments(s.store.Org().Departments(), scope, requestedDeptID)
 }
 
-func withRange(base types.UsageAggregateQuery, rng periodutil.ResolvedRange) types.UsageAggregateQuery {
+func withRange(base types.UsageAggregateQuery, rng budget.ResolvedRange) types.UsageAggregateQuery {
 	base.Start = rng.Start
 	base.End = rng.End
 	base.Timezone = rng.Timezone

@@ -2,8 +2,8 @@ package seed
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/roleutil"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 type DeptQuota struct {
@@ -133,7 +133,7 @@ func BuildMembers() []types.Member {
 func assignSpecialRoles(members []types.Member) {
 	for i := range members {
 		if members[i].ID == "m-10" && members[i].DepartmentID == "dept-3" {
-			if !roleutil.ContainsRole(members[i].Roles, permission.RoleOrgAdmin) {
+			if !org.ContainsRole(members[i].Roles, permission.RoleOrgAdmin) {
 				members[i].Roles = append(members[i].Roles, permission.RoleOrgAdmin)
 			}
 		}
@@ -141,7 +141,7 @@ func assignSpecialRoles(members []types.Member) {
 
 	for i := range members {
 		if members[i].DepartmentID == "dept-6" && members[i].ID != "m-2" {
-			if !roleutil.ContainsRole(members[i].Roles, permission.RoleBudgetApprover) {
+			if !org.ContainsRole(members[i].Roles, permission.RoleBudgetApprover) {
 				members[i].Roles = append(members[i].Roles, permission.RoleBudgetApprover)
 				break
 			}
@@ -151,7 +151,7 @@ func assignSpecialRoles(members []types.Member) {
 	auditorCount := 0
 	for i := range members {
 		if members[i].DepartmentID == "dept-8" && members[i].Status == "active" && auditorCount < 3 {
-			if !roleutil.ContainsRole(members[i].Roles, permission.RoleAuditor) {
+			if !org.ContainsRole(members[i].Roles, permission.RoleAuditor) {
 				members[i].Roles = append(members[i].Roles, permission.RoleAuditor)
 			}
 			auditorCount++
@@ -160,8 +160,8 @@ func assignSpecialRoles(members []types.Member) {
 
 	apiCallerCount := 0
 	for i := range members {
-		if members[i].Status == "active" && !roleutil.ContainsRole(members[i].Roles, permission.RoleSuperAdmin) && apiCallerCount < 50 {
-			if !roleutil.ContainsRole(members[i].Roles, permission.RoleAPICaller) {
+		if members[i].Status == "active" && !org.ContainsRole(members[i].Roles, permission.RoleSuperAdmin) && apiCallerCount < 50 {
+			if !org.ContainsRole(members[i].Roles, permission.RoleAPICaller) {
 				members[i].Roles = append(members[i].Roles, permission.RoleAPICaller)
 			}
 			apiCallerCount++

@@ -10,19 +10,28 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type TokenLifecycle struct {
-	cfg    config.Config
-	store  store.Store
-	client newapi.AdminClient
+	cfg         config.Config
+	store       store.Store
+	client      newapi.AdminClient
+	mappings    store.RelayMappingRepository
+	relayOutbox store.RelayOutboxRepository
 }
 
 func NewTokenLifecycle(cfg config.Config, st store.Store, client newapi.AdminClient) *TokenLifecycle {
-	return &TokenLifecycle{cfg: cfg, store: st, client: client}
+	relayRepo := st.Relay()
+	return &TokenLifecycle{
+		cfg:         cfg,
+		store:       st,
+		client:      client,
+		mappings:    relayRepo,
+		relayOutbox: relayRepo,
+	}
 }
 
 var _ Lifecycle = (*TokenLifecycle)(nil)
@@ -43,11 +52,11 @@ func (l *TokenLifecycle) SyncCreatePlatformKey(ctx context.Context, key types.Pl
 		RelayGroup:    newapi.RelayGroupForDepartment(departmentID),
 		SyncStatus:    store.RelaySyncStatusPending,
 	}
-	if err := l.store.Relay().UpsertMapping(mapping); err != nil {
+	if err := l.mappings.UpsertMapping(mapping); err != nil {
 		return err
 	}
 	payload, _ := json.Marshal(CreateTokenOutboxPayload{PlatformKeyID: key.ID})
-	return l.store.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+	return l.relayOutbox.EnqueueRelayOutbox(store.RelayOutboxEntry{
 		ID:        fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
 		Kind:      store.OutboxKindCreateToken,
 		Payload:   payload,
@@ -76,7 +85,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 
 	departmentID := ""
 	if key.MemberID != nil {
-		if member, found := queryutil.FindMemberByID(members, *key.MemberID); found {
+		if member, found := org.FindMemberByID(members, *key.MemberID); found {
 			departmentID = member.DepartmentID
 		}
 	}
@@ -92,7 +101,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 		return "", fmt.Errorf("department not resolved for key")
 	}
 
-	deptAllowed := routingutil.ResolveDeptAllowedModels(departmentID, departments, rules, models)
+	deptAllowed := common.ResolveDeptAllowedModels(departmentID, departments, rules, models)
 	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
 	remainCNY := ComputeRemainQuotaCNY(key, tree, pools, platformKeys, groups, departmentID)
 	remainUnits := newapi.ToNewAPIUnits(remainCNY, models, effective)
@@ -112,7 +121,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	}
 	now := time.Now()
 	remain := token.RemainQuota
-	if err := l.store.Relay().UpdateMappingSync(key.ID, token.ID, store.RelaySyncStatusSynced, &remain, now); err != nil {
+	if err := l.mappings.UpdateMappingSync(key.ID, token.ID, store.RelaySyncStatusSynced, &remain, now); err != nil {
 		return "", err
 	}
 	keys := l.store.Keys().PlatformKeys()
@@ -138,7 +147,7 @@ func (l *TokenLifecycle) EnqueueUpdatePlatformKey(platformKeyID string) error {
 		return nil
 	}
 	payload, _ := json.Marshal(UpdateTokenOutboxPayload{PlatformKeyID: platformKeyID})
-	return l.store.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+	return l.relayOutbox.EnqueueRelayOutbox(store.RelayOutboxEntry{
 		ID:        fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
 		Kind:      store.OutboxKindUpdateToken,
 		Payload:   payload,
@@ -152,7 +161,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	if !l.Enabled() {
 		return nil
 	}
-	mapping, err := l.store.Relay().GetMappingByPlatformKeyID(platformKeyID)
+	mapping, err := l.mappings.GetMappingByPlatformKeyID(platformKeyID)
 	if err != nil || mapping == nil || mapping.NewAPITokenID == nil {
 		return fmt.Errorf("relay mapping missing for %s", platformKeyID)
 	}
@@ -168,7 +177,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	groups := l.store.Budget().Groups()
 	tree := l.store.Budget().Tree()
 
-	deptAllowed := routingutil.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
+	deptAllowed := common.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
 	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
 	remainCNY := ComputeRemainQuotaCNY(key, tree, pools, platformKeys, groups, mapping.DepartmentID)
 	remainUnits := newapi.ToNewAPIUnits(remainCNY, models, effective)
@@ -193,14 +202,14 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	}
 	now := time.Now()
 	relayRemain := token.RemainQuota
-	return l.store.Relay().UpdateMappingSync(key.ID, token.ID, store.RelaySyncStatusSynced, &relayRemain, now)
+	return l.mappings.UpdateMappingSync(key.ID, token.ID, store.RelaySyncStatusSynced, &relayRemain, now)
 }
 
 func (l *TokenLifecycle) SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error {
 	if !l.Enabled() {
 		return nil
 	}
-	mapping, err := l.store.Relay().GetMappingByPlatformKeyID(platformKeyID)
+	mapping, err := l.mappings.GetMappingByPlatformKeyID(platformKeyID)
 	if err != nil || mapping == nil || mapping.NewAPITokenID == nil {
 		return nil
 	}
@@ -208,7 +217,7 @@ func (l *TokenLifecycle) SyncRevokePlatformKey(ctx context.Context, platformKeyI
 		return err
 	}
 	mapping.SyncStatus = store.RelaySyncStatusSynced
-	return l.store.Relay().UpsertMapping(*mapping)
+	return l.mappings.UpsertMapping(*mapping)
 }
 
 func (l *TokenLifecycle) DisablePlatformKey(ctx context.Context, platformKeyID string) error {
@@ -225,7 +234,7 @@ func (l *TokenLifecycle) DisablePlatformKey(ctx context.Context, platformKeyID s
 	if !l.Enabled() {
 		return nil
 	}
-	mapping, err := l.store.Relay().GetMappingByPlatformKeyID(platformKeyID)
+	mapping, err := l.mappings.GetMappingByPlatformKeyID(platformKeyID)
 	if err != nil || mapping == nil || mapping.NewAPITokenID == nil {
 		return nil
 	}
@@ -245,7 +254,7 @@ func (l *TokenLifecycle) EnqueueUpsertProviderKey(providerKeyID string) error {
 		return nil
 	}
 	payload, _ := json.Marshal(UpsertChannelOutboxPayload{ProviderKeyID: providerKeyID})
-	return l.store.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+	return l.relayOutbox.EnqueueRelayOutbox(store.RelayOutboxEntry{
 		ID:        fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
 		Kind:      store.OutboxKindUpsertChannel,
 		Payload:   payload,
@@ -300,7 +309,7 @@ func (l *TokenLifecycle) EnqueueModelLimitsForDepartment(departmentID string) er
 		return nil
 	}
 	payload, _ := json.Marshal(UpdateModelLimitsOutboxPayload{DepartmentID: departmentID})
-	return l.store.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+	return l.relayOutbox.EnqueueRelayOutbox(store.RelayOutboxEntry{
 		ID:        fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
 		Kind:      store.OutboxKindUpdateModelLimits,
 		Payload:   payload,
@@ -331,7 +340,7 @@ func (l *TokenLifecycle) SyncModelLimitsForDepartment(ctx context.Context, depar
 	if !l.Enabled() {
 		return nil
 	}
-	mappings, err := l.store.Relay().ListMappingsByDepartmentID(departmentID)
+	mappings, err := l.mappings.ListMappingsByDepartmentID(departmentID)
 	if err != nil {
 		return err
 	}
@@ -351,7 +360,7 @@ func (l *TokenLifecycle) EnqueueRebalanceAxis(axisKind, axisID string) error {
 		return nil
 	}
 	payload, _ := json.Marshal(RebalanceAxisOutboxPayload{AxisKind: axisKind, AxisID: axisID})
-	return l.store.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+	return l.relayOutbox.EnqueueRelayOutbox(store.RelayOutboxEntry{
 		ID:        fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
 		Kind:      store.OutboxKindRebalanceToken,
 		Payload:   payload,

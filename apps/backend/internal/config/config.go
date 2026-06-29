@@ -32,6 +32,9 @@ type Config struct {
 	FeishuBaseURL           string `env:"FEISHU_BASE_URL" envDefault:"https://open.feishu.cn"`
 
 	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
+
+	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"5"`
+	WorkerOrgSyncIntervalSec int `env:"WORKER_ORG_SYNC_INTERVAL_SEC" envDefault:"60"`
 }
 
 func Load() (Config, error) {

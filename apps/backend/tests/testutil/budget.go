@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 func DeptConsumed(t *testing.T, tree []types.BudgetNode, deptID string) float64 {
 	t.Helper()
-	node := budgetutil.FindBudgetNode(tree, deptID)
+	node := budget.FindBudgetNode(tree, deptID)
 	if node == nil {
 		t.Fatalf("department %s not found in budget tree", deptID)
 	}

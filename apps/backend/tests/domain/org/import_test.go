@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -16,7 +16,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
 	}
-	if orgutil.FindDepartment(env.Store.Org().Departments(), seed.IDFeishuDept1) == nil {
+	if pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDFeishuDept1) == nil {
 		t.Fatal("expected imported department in tree")
 	}
 	foundMember := false
@@ -46,7 +46,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	_ = env.Store.Org().SetDepartments(departments)
 	testutil.ImportFeishuOrg(t, env)
 
-	dept := orgutil.FindDepartment(env.Store.Org().Departments(), seed.IDDept2)
+	dept := pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDDept2)
 	if dept == nil || dept.Name != "技术部" {
 		t.Fatalf("manual department should keep name, got %+v", dept)
 	}
@@ -68,7 +68,7 @@ func TestImportSecondRunIdempotent(t *testing.T) {
 func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	testutil.ImportFeishuOrg(t, env)
-	if budgetutil.FindBudgetNode(env.Store.Budget().Tree(), seed.IDFeishuDept1) == nil {
+	if budget.FindBudgetNode(env.Store.Budget().Tree(), seed.IDFeishuDept1) == nil {
 		t.Fatal("expected budget node for imported department")
 	}
 	foundRule := false

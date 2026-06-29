@@ -6,9 +6,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
-	"github.com/tokenjoy/backend/internal/pkg/periodutil"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) (types.CostSummary, error) {
@@ -16,7 +15,7 @@ func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams,
 	if err != nil {
 		return types.CostSummary{}, err
 	}
-	prev := periodutil.PreviousRange(current)
+	prev := pkgbudget.PreviousRange(current)
 	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
 	if err != nil {
 		return types.CostSummary{}, err
@@ -75,7 +74,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	}
 	result := make([]types.DepartmentCost, 0, len(rows))
 	for _, row := range rows {
-		dept := orgutil.FindDepartment(departments, row.DepartmentID)
+		dept := pkgorg.FindDepartment(departments, row.DepartmentID)
 		name := row.DepartmentID
 		hasChildren := false
 		if dept != nil {
@@ -117,7 +116,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	result := make([]types.DepartmentCostMember, 0, len(rows))
 	for _, row := range rows {
 		name := row.MemberID
-		if member, ok := queryutil.FindMemberByID(members, row.MemberID); ok {
+		if member, ok := pkgorg.FindMemberByID(members, row.MemberID); ok {
 			name = member.Name
 		}
 		result = append(result, types.DepartmentCostMember{
@@ -178,9 +177,9 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	for _, row := range rows {
 		name := row.MemberID
 		deptName := ""
-		if member, ok := queryutil.FindMemberByID(members, row.MemberID); ok {
+		if member, ok := pkgorg.FindMemberByID(members, row.MemberID); ok {
 			name = member.Name
-			if path := orgutil.GetDeptPath(departments, member.DepartmentID); path != nil {
+			if path := pkgorg.GetDeptPath(departments, member.DepartmentID); path != nil {
 				deptName = *path
 			}
 		}
@@ -200,7 +199,7 @@ func storeChildDepartmentIDs(departments []types.Department, parentID string) []
 		}
 		return ids
 	}
-	parent := orgutil.FindDepartment(departments, parentID)
+	parent := pkgorg.FindDepartment(departments, parentID)
 	if parent == nil {
 		return nil
 	}

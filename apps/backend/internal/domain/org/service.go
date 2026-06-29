@@ -6,11 +6,10 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/notification"
-	"github.com/tokenjoy/backend/internal/pkg"
-	"github.com/tokenjoy/backend/internal/pkg/roleutil"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -20,7 +19,7 @@ type service struct {
 	factory   datasource.Factory
 	lifecycle relay.Lifecycle
 	notifier  notification.Notifier
-	delayer   simulate.Delayer
+	delayer   common.Delayer
 	cryptoKey []byte
 	logger    *slog.Logger
 }
@@ -31,7 +30,7 @@ func NewService(
 	factory datasource.Factory,
 	lifecycle relay.Lifecycle,
 	notifier notification.Notifier,
-	delayer simulate.Delayer,
+	delayer common.Delayer,
 	logger *slog.Logger,
 ) Service {
 	if logger == nil {
@@ -48,29 +47,29 @@ func NewService(
 	}
 }
 
-func (s *service) recalcRoleMemberCounts(roles []Role) {
+func (s *service) recalcRoleMemberCounts(roles []types.Role) {
 	members := s.store.Org().Members()
 	for i := range roles {
-		roles[i].MemberCount = roleutil.CountMembersByRole(members, roles[i].Name)
+		roles[i].MemberCount = pkgorg.CountMembersByRole(members, roles[i].Name)
 	}
 }
 
-func (s *service) ListPermissions() []Permission {
+func (s *service) ListPermissions() []types.Permission {
 	return s.store.Org().Permissions()
 }
 
-func (s *service) GetSyncConfig() SyncConfig {
+func (s *service) GetSyncConfig() types.SyncConfig {
 	return s.store.Org().SyncConfig()
 }
 
-func (s *service) UpdateSyncConfig(cfg SyncConfig) error {
+func (s *service) UpdateSyncConfig(cfg types.SyncConfig) error {
 	return s.store.Org().SetSyncConfig(cfg)
 }
 
-func (s *service) ListSyncLogs(page, pageSize int) types.PageResult[SyncLog] {
+func (s *service) ListSyncLogs(page, pageSize int) types.PageResult[types.SyncLog] {
 	logs := s.store.Org().SyncLogs()
-	items, total, safePage, safeSize := pkg.Paginate(logs, page, pageSize)
-	return types.PageResult[SyncLog]{
+	items, total, safePage, safeSize := common.Paginate(logs, page, pageSize)
+	return types.PageResult[types.SyncLog]{
 		Items: items, Total: total, Page: safePage, PageSize: safeSize,
 	}
 }

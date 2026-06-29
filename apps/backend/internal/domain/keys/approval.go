@@ -7,12 +7,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetlookup"
-	"github.com/tokenjoy/backend/internal/pkg/memberquota"
-	"github.com/tokenjoy/backend/internal/pkg/pkgconst"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
-	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -24,12 +21,12 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	departments := s.store.Org().Departments()
 	rules := s.store.Models().RoutingRules()
 	models := s.store.Models().Models()
-	if msg := routingutil.ValidateModelsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
+	if msg := common.ValidateModelsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 		return types.KeyApproval{}, domain.Validation(*msg)
 	}
 	applicant := "申请人"
 	department := ""
-	if member, ok := queryutil.FindMemberByID(members, input.MemberID); ok {
+	if member, ok := org.FindMemberByID(members, input.MemberID); ok {
 		applicant = member.Name
 		department = member.DepartmentName
 	}
@@ -66,7 +63,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	approval := approvals[idx]
 	tree := s.store.Budget().Tree()
 	members := s.store.Org().Members()
-	reservedPool := budgetlookup.GetReservedPoolForMember(tree, members, approval.ApplicantID)
+	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
 	if approval.Type == "quota" && approval.RequestedQuota > reservedPool {
 		return domain.Validation("Reserved pool insufficient")
 	}
@@ -76,9 +73,9 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		platformKeys := st.Keys().PlatformKeys()
 		if approval.Type == "key" {
 			keyQuota := approval.RequestedQuota
-			remaining := memberquota.GetQuotaRemaining(pools, platformKeys, approval.ApplicantID)
+			remaining := budget.GetQuotaRemaining(pools, platformKeys, approval.ApplicantID)
 			if keyQuota > remaining {
-				memberquota.AddPersonalQuota(pools, approval.ApplicantID, keyQuota-remaining)
+				budget.AddPersonalQuota(pools, approval.ApplicantID, keyQuota-remaining)
 			}
 			memberName := approval.Applicant
 			memberID := approval.ApplicantID
@@ -98,13 +95,13 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 				return err
 			}
 		} else if approval.Type == "quota" {
-			memberquota.AddPersonalQuota(pools, approval.ApplicantID, approval.RequestedQuota)
+			budget.AddPersonalQuota(pools, approval.ApplicantID, approval.RequestedQuota)
 		}
 		if err := st.Budget().SetMemberQuotaPools(pools); err != nil {
 			return err
 		}
 
-		approver := sessionutil.ResolveDemoMemberName(approverMemberID, members)
+		approver := common.ResolveDemoMemberName(approverMemberID, members)
 		now := time.Now().Format("2006-01-02 15:04")
 		approvals[idx].Status = "approved"
 		approvals[idx].Approver = &approver
@@ -121,7 +118,7 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 	members := s.store.Org().Members()
 	for i := range approvals {
 		if approvals[i].ID == id {
-			approver := sessionutil.ResolveDemoMemberName(approverMemberID, members)
+			approver := common.ResolveDemoMemberName(approverMemberID, members)
 			now := time.Now().Format("2006-01-02 15:04")
 			approvals[i].Status = "rejected"
 			approvals[i].Approver = &approver

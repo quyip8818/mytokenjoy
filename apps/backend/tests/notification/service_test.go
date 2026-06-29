@@ -8,8 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/notification"
-	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -26,7 +25,7 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logs := st.(*store.Memory).NotificationLogs()
+	logs := testutil.NotificationLogs(st)
 	if len(logs) != 1 {
 		t.Fatalf("expected 1 notification log, got %d", len(logs))
 	}
@@ -49,7 +48,7 @@ func TestWebhookFailureDoesNotReturnError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected nil error on webhook failure, got %v", err)
 	}
-	if len(st.(*store.Memory).NotificationLogs()) < 2 {
+	if len(testutil.NotificationLogs(st)) < 2 {
 		t.Fatalf("expected log + failed webhook entries")
 	}
 }

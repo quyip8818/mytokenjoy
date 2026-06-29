@@ -3,9 +3,9 @@ package org
 import (
 	"net/http"
 
-	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 func (h *Handler) SyncConfigGet(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +13,7 @@ func (h *Handler) SyncConfigGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SyncConfigUpdate(w http.ResponseWriter, r *http.Request) {
-	var body domainorg.SyncConfig
+	var body types.SyncConfig
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -28,7 +28,7 @@ func (h *Handler) SyncTrigger(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SyncLogs(w http.ResponseWriter, r *http.Request) {
-	page := pkg.ParseIntParam(r.URL.Query().Get("page"), 1)
-	pageSize := pkg.ParseIntParam(r.URL.Query().Get("pageSize"), 10)
+	page := common.ParseIntParam(r.URL.Query().Get("page"), 1)
+	pageSize := common.ParseIntParam(r.URL.Query().Get("pageSize"), 10)
 	httputil.WriteOK(w, h.service.ListSyncLogs(page, pageSize))
 }

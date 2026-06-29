@@ -7,31 +7,31 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 type sessionContextKey struct{}
 
-func WithSessionContext(ctx context.Context, sessionCtx org.SessionContext) context.Context {
+func WithSessionContext(ctx context.Context, sessionCtx types.SessionContext) context.Context {
 	return context.WithValue(ctx, sessionContextKey{}, sessionCtx)
 }
 
-func SessionFromContext(ctx context.Context) (org.SessionContext, bool) {
-	sessionCtx, ok := ctx.Value(sessionContextKey{}).(org.SessionContext)
+func SessionFromContext(ctx context.Context) (types.SessionContext, bool) {
+	sessionCtx, ok := ctx.Value(sessionContextKey{}).(types.SessionContext)
 	return sessionCtx, ok
 }
 
 func RequireSession(cfg config.Config, sessionSvc session.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if cfg.IsProdProfile() && sessionutil.UsedBearerAuth(r) {
+			if cfg.IsProdProfile() && common.UsedBearerAuth(r) {
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}
-			memberID := sessionutil.ResolveMemberID(r)
+			memberID := common.ResolveMemberID(r)
 			if memberID == "" {
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return

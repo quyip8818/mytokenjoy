@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
@@ -15,7 +15,7 @@ func TestBuildMembersAnchorIDs(t *testing.T) {
 	}
 
 	for _, id := range []string{"m-admin", "m-1", "m-2"} {
-		if _, ok := queryutil.FindMemberByID(members, id); !ok {
+		if _, ok := org.FindMemberByID(members, id); !ok {
 			t.Fatalf("expected anchor member %s", id)
 		}
 	}

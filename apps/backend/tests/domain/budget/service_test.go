@@ -7,8 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
-	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -53,8 +52,8 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 		members = append(members, member)
 	}
 	snapshot.Members = members
-	st = store.NewMemory(snapshot)
-	svc := budget.NewService(cfg, st, simulate.NewDelayer(false))
+	st = testutil.NewMemoryStoreFromSnapshot(snapshot)
+	svc := budget.NewService(cfg, st, common.NewDelayer(false))
 
 	result, err := svc.UpdateMemberQuota(context.Background(), seed.IDMember1, 15000)
 	if err != nil {

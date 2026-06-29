@@ -2,9 +2,7 @@ package postgres
 
 import (
 	"context"
-	"embed"
 	"fmt"
-	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
@@ -12,17 +10,18 @@ import (
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
-//go:embed migrations/*.sql
-var migrationFS embed.FS
-
 type Store struct {
-	pool        *pgxpool.Pool
-	memory      *store.Memory
-	relay       *relayRepo
-	activeCtx   context.Context
-	activeMu    sync.RWMutex
-	dirtyShards map[string]struct{}
-	dirtyMu     sync.Mutex
+	pool   *pgxpool.Pool
+	relay  *relayRepo
+	domain domainRepos
+}
+
+type domainRepos struct {
+	org    store.OrgRepository
+	budget store.BudgetRepository
+	keys   store.KeysRepository
+	models store.ModelsRepository
+	audit  store.AuditRepository
 }
 
 func New(ctx context.Context, cfg config.Config) (store.Store, error) {
@@ -34,7 +33,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		pool.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
-	if err := migrate(ctx, pool); err != nil {
+	if err := applySchema(ctx, pool); err != nil {
 		pool.Close()
 		return nil, err
 	}
@@ -50,8 +49,16 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			return nil, err
 		}
 	}
-	s.relay = &relayRepo{db: pool}
+	s.relay = newRelayRepo(ctx, pool)
+	s.domain = newDomainRepoSet(newPoolShardBackend(ctx, pool))
 	return s, nil
+}
+
+func newDomainRepoSet(backend shardBackend) domainRepos {
+	org, budget, keys, models, audit := newDomainRepos(backend)
+	return domainRepos{
+		org: org, budget: budget, keys: keys, models: models, audit: audit,
+	}
 }
 
 func (s *Store) Credential() store.CredentialRepository {
@@ -76,59 +83,23 @@ func (s *Store) Close() {
 	}
 }
 
-func (s *Store) Org() store.OrgRepository {
-	return &persistOrgRepo{inner: s.memory.Org(), store: s}
-}
-func (s *Store) Budget() store.BudgetRepository {
-	return &persistBudgetRepo{inner: s.memory.Budget(), store: s}
-}
-func (s *Store) Keys() store.KeysRepository {
-	return &persistKeysRepo{inner: s.memory.Keys(), store: s}
-}
-func (s *Store) Models() store.ModelsRepository {
-	return &persistModelsRepo{inner: s.memory.Models(), store: s}
-}
-func (s *Store) Audit() store.AuditRepository {
-	return &persistAuditRepo{inner: s.memory.Audit(), store: s}
-}
-func (s *Store) Relay() store.RelayRepository { return s.relay }
+func (s *Store) Org() store.OrgRepository       { return s.domain.org }
+func (s *Store) Budget() store.BudgetRepository { return s.domain.budget }
+func (s *Store) Keys() store.KeysRepository     { return s.domain.keys }
+func (s *Store) Models() store.ModelsRepository { return s.domain.models }
+func (s *Store) Audit() store.AuditRepository   { return s.domain.audit }
+func (s *Store) Relay() store.RelayRepository   { return s.relay }
 
 func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
-	shards, err := s.loadShards(ctx)
+	shards, err := loadAllShards(ctx, s.pool)
 	if err != nil {
 		return err
 	}
 	if shardsComplete(shards) {
-		snapshot, err := store.ShardsToSnapshot(shards)
-		if err != nil {
-			return err
-		}
-		s.memory = store.NewMemory(snapshot)
 		return nil
 	}
 	if cfg.IsProdProfile() {
 		return fmt.Errorf("postgres domain shards incomplete in prod profile")
 	}
-	return s.seedDomainShards(ctx, seed.Load(cfg))
-}
-
-func (s *Store) domainPersistCtx() context.Context {
-	s.activeMu.RLock()
-	defer s.activeMu.RUnlock()
-	if s.activeCtx != nil {
-		return s.activeCtx
-	}
-	return context.Background()
-}
-
-func (s *Store) setActiveCtx(ctx context.Context) {
-	s.activeMu.Lock()
-	s.activeCtx = ctx
-	s.activeMu.Unlock()
-}
-
-func (s *Store) clearActiveCtx() {
-	s.activeMu.Lock()
-	s.activeCtx = nil
-	s.activeMu.Unlock()
+	return seedShards(ctx, s.pool, seed.Load(cfg))
 }

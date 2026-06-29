@@ -8,20 +8,21 @@ import (
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/permission"
-	pkg "github.com/tokenjoy/backend/internal/pkg"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 type AuditHandler struct {
-	sessionHandlerBase
+	shared.SessionHandlerBase
 	service domainaudit.Service
 }
 
 func NewAuditHandler(cfg config.Config, service domainaudit.Service, sessionSvc session.Service) *AuditHandler {
 	return &AuditHandler{
-		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
@@ -43,8 +44,8 @@ func (h *AuditHandler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	params := types.AuditOperationsQueryParams{
-		Page:       pkg.ParseIntParam(query.Get("page"), 1),
-		PageSize:   pkg.ParseIntParam(query.Get("pageSize"), 20),
+		Page:       common.ParseIntParam(query.Get("page"), 1),
+		PageSize:   common.ParseIntParam(query.Get("pageSize"), 20),
 		Action:     query.Get("action"),
 		OperatorID: query.Get("operatorId"),
 		Keyword:    query.Get("keyword"),
@@ -57,8 +58,8 @@ func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {
 func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	params := types.AuditCallsQueryParams{
-		Page:     pkg.ParseIntParam(query.Get("page"), 1),
-		PageSize: pkg.ParseIntParam(query.Get("pageSize"), 20),
+		Page:     common.ParseIntParam(query.Get("page"), 1),
+		PageSize: common.ParseIntParam(query.Get("pageSize"), 20),
 		Model:    query.Get("model"),
 		Status:   query.Get("status"),
 		CallerID: query.Get("callerId"),
@@ -70,12 +71,12 @@ func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuditHandler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.cfg, r, h.sessionSvc, permission.AuditRead)
+	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.AuditRead)
 	read.Get("/settings", h.SettingsGet)
 	read.Get("/operations", h.OperationsList)
 	read.Get("/calls", h.CallsList)
 
-	httpmiddleware.WriteRoutes(r, h.cfg, h.sessionSvc).
+	httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc).
 		With(httpmiddleware.RequireAnyPermission(permission.AuditRead)).
 		Put("/settings", h.SettingsUpdate)
 }

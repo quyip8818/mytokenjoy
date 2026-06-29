@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.ModelUsage, error) {
@@ -64,7 +64,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	if err != nil {
 		return nil, err
 	}
-	departments := orgutil.FlattenDepartmentTree(s.store.Org().Departments())
+	departments := org.FlattenDepartmentTree(s.store.Org().Departments())
 	tree := s.store.Budget().Tree()
 	members := s.store.Org().Members()
 	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{

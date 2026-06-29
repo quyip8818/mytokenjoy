@@ -18,6 +18,8 @@ importers:
         specifier: ^8.0.3
         version: 8.0.5
 
+  apps/backend: {}
+
   apps/frontend:
     dependencies:
       '@base-ui/react':

@@ -9,19 +9,19 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/cryptoutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 func TestCredentialEncryptRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
-	key := cryptoutil.DevDefaultKey()
+	key := common.DevDefaultKey()
 	payload, err := json.Marshal(types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "cli_pg", AppSecret: "secret_pg",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	encrypted, err := cryptoutil.Encrypt(key, payload)
+	encrypted, err := common.Encrypt(key, payload)
 	if err != nil {
 		t.Fatal(err)
 	}

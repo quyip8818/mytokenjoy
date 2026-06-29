@@ -4,15 +4,15 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	page := pkg.ParseIntParam(query.Get("page"), 1)
-	pageSize := pkg.ParseIntParam(query.Get("pageSize"), 20)
+	page := common.ParseIntParam(query.Get("page"), 1)
+	pageSize := common.ParseIntParam(query.Get("pageSize"), 20)
 	directOnly := query.Get("directOnly") == "true"
 	httputil.WriteOK(w, h.service.ListMembers(
 		query.Get("departmentId"), query.Get("keyword"), directOnly, page, pageSize,
@@ -20,7 +20,7 @@ func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
-	var body domainorg.Member
+	var body types.Member
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -30,7 +30,7 @@ func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberUpdate(w http.ResponseWriter, r *http.Request) {
-	var body domainorg.Member
+	var body types.Member
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -101,7 +101,7 @@ func (h *Handler) MembersBatchInvite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) MembersBatchImport(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Rows []domainorg.BatchImportRow `json:"rows"`
+		Rows []types.BatchImportRow `json:"rows"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)

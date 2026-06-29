@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildCostStats, buildUsageSeriesChartData, formatTokenCount } from '@/lib/dashboard'
+import {
+  buildCostStats,
+  buildUsageSeriesChartData,
+  buildUsageSeriesWindow,
+  formatTokenCount,
+} from '@/lib/dashboard'
 import type { CostSummary } from '@/api/types'
 
 describe('buildCostStats', () => {
@@ -38,6 +43,20 @@ describe('buildCostStats', () => {
     const stats = buildCostStats(summary)
     expect(stats.find((s) => s.label === '总 Token')?.value).toBe('-')
     expect(formatTokenCount(0)).toBe('-')
+  })
+})
+
+describe('buildUsageSeriesWindow', () => {
+  it('anchors dev ranges to demo today seed window', () => {
+    const hourWindow = buildUsageSeriesWindow('hour')
+    expect(hourWindow.end).toContain('2026-06-19')
+    expect(hourWindow.start).toContain('2026-06-01')
+
+    const minuteWindow = buildUsageSeriesWindow('minute')
+    expect(minuteWindow.end).toContain('2026-06-19')
+    expect(new Date(minuteWindow.end).getTime() - new Date(minuteWindow.start).getTime()).toBe(
+      3 * 60 * 60 * 1000,
+    )
   })
 })
 

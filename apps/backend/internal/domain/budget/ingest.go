@@ -12,11 +12,10 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/notification"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/memberquota"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -91,7 +90,7 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		tree := st.Budget().Tree()
 		members := st.Org().Members()
 		if memberID != nil {
-			if member, ok := queryutil.FindMemberByID(members, *memberID); ok {
+			if member, ok := pkgorg.FindMemberByID(members, *memberID); ok {
 				if err := rollupDepartmentConsumed(tree, member.DepartmentID, costCNY); err != nil {
 					return err
 				}
@@ -177,14 +176,14 @@ func (s *IngestService) IngestFromOutbox(ctx context.Context, raw json.RawMessag
 }
 
 func rollupDepartmentConsumed(tree []types.BudgetNode, leafDepartmentID string, costCNY float64) error {
-	node := budgetutil.FindBudgetNode(tree, leafDepartmentID)
+	node := pkgbudget.FindBudgetNode(tree, leafDepartmentID)
 	if node == nil {
 		return domain.NotFound(fmt.Sprintf("department node not found: %s", leafDepartmentID))
 	}
 	node.Consumed += costCNY
 	ancestors := collectAncestorIDs(tree, leafDepartmentID)
 	for _, ancestorID := range ancestors {
-		ancestor := budgetutil.FindBudgetNode(tree, ancestorID)
+		ancestor := pkgbudget.FindBudgetNode(tree, ancestorID)
 		if ancestor != nil {
 			ancestor.Consumed += costCNY
 		}
@@ -227,8 +226,8 @@ func (s *IngestService) evaluateOverrun(
 	pools := st.Budget().MemberQuotaPools()
 
 	if memberID != nil && mapping.BudgetGroupID == nil {
-		used := memberquota.GetUsedKeyQuota(platformKeys, *memberID)
-		capacity := memberquota.GetPersonalQuota(pools, *memberID)
+		used := pkgbudget.GetUsedKeyQuota(platformKeys, *memberID)
+		capacity := pkgbudget.GetPersonalQuota(pools, *memberID)
 		if used >= capacity {
 			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, *memberID, map[string]any{
 				"scope": "member", "memberId": *memberID, "used": used, "capacity": capacity,
@@ -237,7 +236,7 @@ func (s *IngestService) evaluateOverrun(
 		}
 	}
 
-	if node := budgetutil.FindBudgetNode(tree, mapping.DepartmentID); node != nil {
+	if node := pkgbudget.FindBudgetNode(tree, mapping.DepartmentID); node != nil {
 		if node.Consumed >= node.Budget {
 			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, mapping.DepartmentID, map[string]any{
 				"scope": "department", "departmentId": mapping.DepartmentID,

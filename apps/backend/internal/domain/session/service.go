@@ -2,14 +2,14 @@ package session
 
 import (
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Service interface {
-	GetByMemberID(memberID string) (org.SessionContext, error)
+	GetByMemberID(memberID string) (types.SessionContext, error)
 }
 
 type service struct {
@@ -20,17 +20,17 @@ func NewService(st store.Store) Service {
 	return &service{store: st}
 }
 
-func (s *service) GetByMemberID(memberID string) (org.SessionContext, error) {
+func (s *service) GetByMemberID(memberID string) (types.SessionContext, error) {
 	members := s.store.Org().Members()
 	roles := s.store.Org().Roles()
 
-	member, ok := queryutil.FindMemberByID(members, memberID)
+	member, ok := pkgorg.FindMemberByID(members, memberID)
 	if !ok {
-		return org.SessionContext{}, domain.NewDomainError(404, "Member not found")
+		return types.SessionContext{}, domain.NewDomainError(404, "Member not found")
 	}
 
 	permissions := permission.ResolveMemberPermissions(*member, roles)
-	return org.SessionContext{
+	return types.SessionContext{
 		Member:      *member,
 		Permissions: permissions,
 		ReadOnly:    permission.IsReadOnlySession(permissions),

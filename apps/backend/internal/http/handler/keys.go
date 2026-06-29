@@ -8,33 +8,34 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 type KeysHandler struct {
-	sessionHandlerBase
+	shared.SessionHandlerBase
 	service domainkeys.Service
 }
 
 func NewKeysHandler(cfg config.Config, service domainkeys.Service, sessionSvc session.Service) *KeysHandler {
 	return &KeysHandler{
-		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
 func (h *KeysHandler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.cfg, r, h.sessionSvc, permission.KeysRead)
+	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.KeysRead)
 	read.Get("/provider", h.ProviderList)
 	read.Get("/platform", h.PlatformList)
 	read.Get("/platform/quota-summary", h.PlatformQuotaSummary)
 	read.Get("/approvals", h.ApprovalsList)
 	read.Get("/approvals/{id}/quota-check", h.ApprovalQuotaCheck)
 
-	write := httpmiddleware.WriteRoutes(r, h.cfg, h.sessionSvc)
+	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
 
 	providerWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysProvider))
 	providerWrite.Post("/provider", h.ProviderCreate)
@@ -172,7 +173,7 @@ func (h *KeysHandler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *KeysHandler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
-	approverID := sessionutil.ResolveMemberID(r)
+	approverID := common.ResolveMemberID(r)
 	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), approverID)
 	httputil.WriteVoid(w, err)
 }
@@ -183,7 +184,7 @@ func (h *KeysHandler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	approverID := sessionutil.ResolveMemberID(r)
+	approverID := common.ResolveMemberID(r)
 	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), approverID, body.Reason)
 	httputil.WriteVoid(w, err)
 }

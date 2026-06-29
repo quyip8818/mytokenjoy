@@ -6,9 +6,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
-	"github.com/tokenjoy/backend/internal/pkg/timeutil"
+	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 type SessionScope struct {
@@ -43,7 +43,7 @@ func ResolveScopeDepartments(
 
 func IsDepartmentAccessible(departments []types.Department, scope SessionScope, targetDeptID string) bool {
 	if hasOrgWideDashboardAccess(scope.Permissions) {
-		return orgutil.FindDepartment(departments, targetDeptID) != nil
+		return org.FindDepartment(departments, targetDeptID) != nil
 	}
 	allowed := collectSubtreeIDs(departments, scope.DepartmentID)
 	for _, id := range allowed {
@@ -62,7 +62,7 @@ func hasOrgWideDashboardAccess(permissions []string) bool {
 }
 
 func collectSubtreeIDs(departments []types.Department, rootID string) []string {
-	root := orgutil.FindDepartment(departments, rootID)
+	root := org.FindDepartment(departments, rootID)
 	if root == nil {
 		return []string{rootID}
 	}
@@ -82,7 +82,7 @@ func collectSubtreeIDsFromNode(dept types.Department) []string {
 }
 
 func ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone string) (time.Time, time.Time, error) {
-	loc, err := timeutil.LoadLocation(timezone)
+	loc, err := common.LoadLocation(timezone)
 	if err != nil {
 		return time.Time{}, time.Time{}, err
 	}
@@ -115,9 +115,9 @@ func parseBoundary(value string, loc *time.Location, isEnd bool) (time.Time, err
 		return time.Time{}, domain.BadRequest(fmt.Sprintf("invalid time: %s", value))
 	}
 	if isEnd {
-		return timeutil.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour), nil
+		return common.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour), nil
 	}
-	return timeutil.TruncateInTZ(t, 24*time.Hour, loc), nil
+	return common.TruncateInTZ(t, 24*time.Hour, loc), nil
 }
 
 func ValidateWindow(start, end time.Time, granularity string) error {

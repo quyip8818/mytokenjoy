@@ -8,9 +8,8 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/memberbudgetquota"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -34,10 +33,10 @@ type Service interface {
 type service struct {
 	cfg     config.Config
 	store   store.Store
-	delayer simulate.Delayer
+	delayer common.Delayer
 }
 
-func NewService(cfg config.Config, st store.Store, delayer simulate.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, delayer common.Delayer) Service {
 	return &service{
 		cfg:     cfg,
 		store:   st,
@@ -54,7 +53,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		return types.BudgetNode{}, err
 	}
 	tree := s.store.Budget().Tree()
-	existing := budgetutil.FindBudgetNode(tree, id)
+	existing := pkgbudget.FindBudgetNode(tree, id)
 	if existing == nil {
 		return types.BudgetNode{}, domain.NotFound("Node not found")
 	}
@@ -66,23 +65,23 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	if reserved != nil {
 		reservedValue = *reserved
 	}
-	if msg := budgetutil.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue); msg != nil {
+	if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue); msg != nil {
 		return types.BudgetNode{}, domain.Validation(*msg)
 	}
 	update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
-	if !budgetutil.UpdateBudgetNodeInTree(tree, id, update) {
+	if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
 		return types.BudgetNode{}, domain.NotFound("Node not found")
 	}
 	if err := s.store.Budget().SetTree(tree); err != nil {
 		return types.BudgetNode{}, fmt.Errorf("persist budget tree: %w", err)
 	}
-	updated := budgetutil.FindBudgetNode(tree, id)
+	updated := pkgbudget.FindBudgetNode(tree, id)
 	return *updated, nil
 }
 
 func (s *service) ListMemberQuotas(deptID string) ([]types.MemberBudgetQuota, error) {
 	tree := s.store.Budget().Tree()
-	if budgetutil.FindBudgetNode(tree, deptID) == nil {
+	if pkgbudget.FindBudgetNode(tree, deptID) == nil {
 		return nil, domain.NotFound("Department not found")
 	}
 	members := s.store.Org().Members()
@@ -91,7 +90,7 @@ func (s *service) ListMemberQuotas(deptID string) ([]types.MemberBudgetQuota, er
 	quotas := make([]types.MemberBudgetQuota, 0)
 	for _, member := range members {
 		if member.DepartmentID == deptID {
-			quotas = append(quotas, memberbudgetquota.BuildMemberBudgetQuota(member, pools, platformKeys))
+			quotas = append(quotas, pkgbudget.BuildMemberBudgetQuota(member, pools, platformKeys))
 		}
 	}
 	return quotas, nil
@@ -105,10 +104,10 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	members := s.store.Org().Members()
 	pools := s.store.Budget().MemberQuotaPools()
 	platformKeys := s.store.Keys().PlatformKeys()
-	if msg := memberbudgetquota.ValidateMemberQuotaUpdate(tree, members, pools, platformKeys, memberID, personalQuota); msg != nil {
+	if msg := pkgbudget.ValidateMemberQuotaUpdate(tree, members, pools, platformKeys, memberID, personalQuota); msg != nil {
 		return types.MemberBudgetQuota{}, domain.Validation(*msg)
 	}
-	result := memberbudgetquota.ApplyMemberQuotaUpdate(members, pools, platformKeys, memberID, personalQuota)
+	result := pkgbudget.ApplyMemberQuotaUpdate(members, pools, platformKeys, memberID, personalQuota)
 	if err := s.store.Budget().SetMemberQuotaPools(pools); err != nil {
 		return types.MemberBudgetQuota{}, fmt.Errorf("persist member quota pools: %w", err)
 	}

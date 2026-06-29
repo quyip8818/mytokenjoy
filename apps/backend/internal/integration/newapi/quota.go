@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/pkgconst"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 func HighestModelPriceCNY(models []types.ModelInfo, whitelist []string) float64 {
@@ -26,13 +26,13 @@ func HighestModelPriceCNY(models []types.ModelInfo, whitelist []string) float64 
 		}
 	}
 	if highest <= 0 {
-		return pkgconst.DefaultModelPriceCNY
+		return common.DefaultModelPriceCNY
 	}
 	return highest
 }
 
 func CostCNYFromQuota(quota int64, modelPriceCNY float64) float64 {
-	return float64(quota) / float64(pkgconst.QuotaPerUnit) * modelPriceCNY
+	return float64(quota) / float64(common.QuotaPerUnit) * modelPriceCNY
 }
 
 func ToNewAPIUnits(cnyRemaining float64, models []types.ModelInfo, whitelist []string) int64 {
@@ -40,7 +40,7 @@ func ToNewAPIUnits(cnyRemaining float64, models []types.ModelInfo, whitelist []s
 		return 0
 	}
 	price := HighestModelPriceCNY(models, whitelist)
-	units := cnyRemaining / price * float64(pkgconst.QuotaPerUnit)
+	units := cnyRemaining / price * float64(common.QuotaPerUnit)
 	if units < 0 {
 		return 0
 	}
@@ -59,12 +59,12 @@ func ModelPriceCNY(models []types.ModelInfo, modelName string) float64 {
 		if model.Name == modelName {
 			price := model.InputPrice + model.OutputPrice
 			if price <= 0 {
-				return pkgconst.DefaultModelPriceCNY
+				return common.DefaultModelPriceCNY
 			}
 			return price
 		}
 	}
-	return pkgconst.DefaultModelPriceCNY
+	return common.DefaultModelPriceCNY
 }
 
 func EffectiveWhitelist(keyWhitelist, deptAllowed []string) []string {
@@ -85,5 +85,5 @@ func EffectiveWhitelist(keyWhitelist, deptAllowed []string) []string {
 }
 
 func RelayGroupForDepartment(departmentID string) string {
-	return fmt.Sprintf("%s%s", pkgconst.RelayGroupPrefix, departmentID)
+	return fmt.Sprintf("%s%s", common.RelayGroupPrefix, departmentID)
 }

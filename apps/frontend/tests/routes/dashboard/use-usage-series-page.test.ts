@@ -31,7 +31,7 @@ describe('useUsageSeriesPage', () => {
 
     expect(getUsageSeries).toHaveBeenCalledWith(
       expect.objectContaining({
-        granularity: 'minute',
+        granularity: 'hour',
         groupBy: 'none',
       }),
     )

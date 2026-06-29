@@ -25,24 +25,46 @@ func (s *service) UsageSeries(ctx context.Context, q types.UsageSeriesQuery, sco
 
 	switch q.Granularity {
 	case types.UsageGranularityMinute:
-		return s.logAggregator.Series(ctx, q)
-	case types.UsageGranularityDay, types.UsageGranularityHour:
-		points, err := s.store.Usage().QuerySeries(ctx, q)
+		resp, err := s.logAggregator.Series(ctx, q)
 		if err != nil {
+			if s.cfg.IsDemoProfile() && domainusage.IsNewAPIUnavailable(err) {
+				return s.seriesFromBuckets(ctx, q, types.UsageGranularityHour, true)
+			}
 			return types.UsageSeriesResponse{}, err
 		}
-		if err := domainusage.ValidateSeriesPointLimit(len(points)); err != nil {
-			return types.UsageSeriesResponse{}, err
-		}
-		return types.UsageSeriesResponse{
-			Granularity: q.Granularity,
-			Source:      types.UsageSourceBuckets,
-			Timezone:    q.Timezone,
-			Approximate: false,
-			MappingAsOf: types.UsageMappingAsOfIngestTime,
-			Points:      points,
-		}, nil
+		return resp, nil
+	case types.UsageGranularityDay, types.UsageGranularityHour:
+		return s.seriesFromBuckets(ctx, q, q.Granularity, false)
 	default:
 		return types.UsageSeriesResponse{}, domainusage.ValidateGroupBy("invalid")
 	}
+}
+
+func (s *service) seriesFromBuckets(
+	ctx context.Context,
+	q types.UsageSeriesQuery,
+	granularity string,
+	approximate bool,
+) (types.UsageSeriesResponse, error) {
+	bucketQuery := q
+	bucketQuery.Granularity = granularity
+	points, err := s.store.Usage().QuerySeries(ctx, bucketQuery)
+	if err != nil {
+		return types.UsageSeriesResponse{}, err
+	}
+	if err := domainusage.ValidateSeriesPointLimit(len(points)); err != nil {
+		return types.UsageSeriesResponse{}, err
+	}
+	mappingAsOf := types.UsageMappingAsOfIngestTime
+	if approximate {
+		mappingAsOf = types.UsageMappingAsOfQueryTime
+	}
+	return types.UsageSeriesResponse{
+		Granularity: granularity,
+		Source:      types.UsageSourceBuckets,
+		Timezone:    q.Timezone,
+		Approximate: approximate,
+		MappingAsOf: mappingAsOf,
+		Points:      points,
+	}, nil
 }

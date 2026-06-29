@@ -10,9 +10,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -28,12 +27,12 @@ type Service interface {
 type service struct {
 	cfg       config.Config
 	store     store.Store
-	delayer   simulate.Delayer
+	delayer   common.Delayer
 	client    newapi.AdminClient
 	lifecycle relay.Lifecycle
 }
 
-func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle, delayer simulate.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle, delayer common.Delayer) Service {
 	return &service{
 		cfg:       cfg,
 		store:     st,
@@ -99,7 +98,7 @@ func (s *service) ResolveRouting(deptID string) types.ResolvedWhitelist {
 	departments := s.store.Org().Departments()
 	rules := s.store.Models().RoutingRules()
 	models := s.store.Models().Models()
-	rule := routingutil.GetRoutingRuleForDept(deptID, rules, departments)
+	rule := common.GetRoutingRuleForDept(deptID, rules, departments)
 	if rule == nil {
 		allowed := make([]string, 0)
 		for _, model := range models {
@@ -113,7 +112,7 @@ func (s *service) ResolveRouting(deptID string) types.ResolvedWhitelist {
 			ParentCount:   len(models),
 		}
 	}
-	parentID := routingutil.GetParentDeptID(rule.NodeID, departments)
+	parentID := common.GetParentDeptID(rule.NodeID, departments)
 	parentCount := len(rule.AllowedModels)
 	if parentID != nil {
 		for i := range rules {
@@ -123,7 +122,7 @@ func (s *service) ResolveRouting(deptID string) types.ResolvedWhitelist {
 			}
 		}
 	}
-	allowedModels := routingutil.ResolveDeptAllowedModels(deptID, departments, rules, models)
+	allowedModels := common.ResolveDeptAllowedModels(deptID, departments, rules, models)
 	return types.ResolvedWhitelist{
 		Inherited:     rule.Inherited,
 		AllowedModels: allowedModels,
@@ -165,7 +164,7 @@ func (s *service) UpdateRoutingRule(
 	}
 	rules[idx] = updated
 	if input.AllowedModels != nil {
-		rules = routingutil.ShrinkChildRoutingRules(
+		rules = common.ShrinkChildRoutingRules(
 			updated.NodeID,
 			updated.AllowedModels,
 			rules,
@@ -180,7 +179,7 @@ func (s *service) UpdateRoutingRule(
 			return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
 		}
 		if s.lifecycle != nil {
-			deptIDs := queryutil.CollectDescendantDeptIDs(s.store.Org().Departments(), updated.NodeID)
+			deptIDs := org.CollectDescendantDeptIDs(s.store.Org().Departments(), updated.NodeID)
 			if err := s.lifecycle.EnqueueModelLimitsForDepartments(deptIDs); err != nil {
 				return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
 			}

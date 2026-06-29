@@ -67,7 +67,7 @@ type RebalanceQueueEntry struct {
 	Status   string
 }
 
-type RelayRepository interface {
+type RelayMappingRepository interface {
 	GetMappingByPlatformKeyID(platformKeyID string) (*RelayMapping, error)
 	GetMappingByNewAPITokenID(tokenID int64) (*RelayMapping, error)
 	ListMappingsByMemberID(memberID string) ([]RelayMapping, error)
@@ -77,24 +77,39 @@ type RelayRepository interface {
 	UpsertMapping(mapping RelayMapping) error
 	UpdateMappingSync(platformKeyID string, tokenID int64, status string, remainQuota *int64, syncedAt time.Time) error
 	UpdateMappingRemainQuota(platformKeyID string, remainQuota int64) error
+}
 
+type RelayOutboxRepository interface {
 	EnqueueRelayOutbox(entry RelayOutboxEntry) error
 	ClaimPendingRelayOutbox(limit int) ([]RelayOutboxEntry, error)
 	MarkRelayOutboxDone(id string) error
 	MarkRelayOutboxRetry(id string, nextRetry time.Time, lastError string) error
+}
 
+type WebhookOutboxRepository interface {
 	EnqueueWebhookOutbox(entry WebhookOutboxEntry) error
 	ClaimPendingWebhookOutbox(limit int) ([]WebhookOutboxEntry, error)
 	MarkWebhookOutboxDone(id string) error
 	MarkWebhookOutboxRetry(id string, nextRetry time.Time, lastError string) error
+}
 
+type IngestDedupRepository interface {
 	HasIngestedLogID(logID int64) (bool, error)
 	InsertIngestedLogID(logID int64) error
-
 	GetLastLogID() (int64, error)
 	SetLastLogID(logID int64) error
+}
 
+type RebalanceQueueRepository interface {
 	EnqueueRebalance(axisKind, axisID string) error
 	ClaimPendingRebalance(limit int) ([]RebalanceQueueEntry, error)
 	MarkRebalanceDone(id string) error
+}
+
+type RelayRepository interface {
+	RelayMappingRepository
+	RelayOutboxRepository
+	WebhookOutboxRepository
+	IngestDedupRepository
+	RebalanceQueueRepository
 }

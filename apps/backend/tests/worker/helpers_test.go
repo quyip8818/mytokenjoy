@@ -7,9 +7,9 @@ import (
 
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
-	"github.com/tokenjoy/backend/internal/notification"
+	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/worker"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )

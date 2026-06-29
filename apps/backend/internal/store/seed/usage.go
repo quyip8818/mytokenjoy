@@ -27,9 +27,6 @@ func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) e
 }
 
 func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
-	if mem, ok := st.(*store.Memory); ok {
-		return len(mem.UsageBucketRows()) == 0, nil
-	}
 	totals, err := st.Usage().QuerySummary(ctx, types.UsageAggregateQuery{
 		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		End:      time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),

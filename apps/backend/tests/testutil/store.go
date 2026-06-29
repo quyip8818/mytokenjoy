@@ -5,12 +5,13 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 func NewMemoryStore(t *testing.T, cfg config.Config) store.Store {
 	t.Helper()
-	return store.NewMemory(seed.Load(cfg))
+	return memory.New(seed.Load(cfg))
 }
 
 func NewMemoryStoreFromConfig(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {

@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -74,7 +74,7 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	groups := s.store.Budget().Groups()
 	tree := s.store.Budget().Tree()
 
-	deptAllowed := routingutil.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
+	deptAllowed := common.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
 	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
 	newRemain := newapi.ToNewAPIUnits(
 		relay.ComputeRemainQuotaCNY(key, tree, pools, platformKeys, groups, mapping.DepartmentID),

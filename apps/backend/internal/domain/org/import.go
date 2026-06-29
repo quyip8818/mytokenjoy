@@ -7,9 +7,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -37,18 +37,18 @@ type importOptions struct {
 	retryExternalIDs map[string]struct{}
 }
 
-func (s *service) ImportDataSource(ctx context.Context) (ImportResult, error) {
+func (s *service) ImportDataSource(ctx context.Context) (types.ImportResult, error) {
 	provider, platform, err := s.providerForStored()
 	if err != nil {
-		return ImportResult{}, err
+		return types.ImportResult{}, err
 	}
 	return s.importFromProvider(ctx, provider, platform, importOptions{})
 }
 
-func (s *service) RetryImport(ctx context.Context, ids []string) (ImportResult, error) {
+func (s *service) RetryImport(ctx context.Context, ids []string) (types.ImportResult, error) {
 	provider, platform, err := s.providerForStored()
 	if err != nil {
-		return ImportResult{}, err
+		return types.ImportResult{}, err
 	}
 	retrySet := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
@@ -62,22 +62,22 @@ func (s *service) importFromProvider(
 	provider datasource.Provider,
 	platform types.Platform,
 	opts importOptions,
-) (ImportResult, error) {
+) (types.ImportResult, error) {
 	retryOnly := len(opts.retryExternalIDs) > 0
 
 	remoteDepts, err := provider.ListDepartments(ctx)
 	if err != nil {
-		return ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 	remoteMembers, fetchFailures, err := provider.ListMembers(ctx)
 	if err != nil {
-		return ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
+		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
 	if retryOnly {
 		remoteMembers = filterRemoteMembersForRetry(remoteMembers, opts.retryExternalIDs, s.store.Org().ImportFailures())
 		if len(remoteMembers) == 0 {
-			return ImportResult{
+			return types.ImportResult{
 				SuccessMembers: 0, SuccessDepartments: 0,
 				Failures: s.store.Org().ImportFailures(),
 			}, nil
@@ -95,7 +95,7 @@ func (s *service) importFromProvider(
 		remoteDepts = filteredDepts
 	}
 
-	result := ImportResult{Failures: append([]ImportFailure{}, fetchFailures...)}
+	result := types.ImportResult{Failures: append([]types.ImportFailure{}, fetchFailures...)}
 	changedDeptIDs := make([]string, 0)
 
 	err = s.store.WithTx(ctx, func(st store.Store) error {
@@ -123,7 +123,7 @@ func (s *service) importFromProvider(
 				localID = localDeptID(platform, remote.ExternalID)
 			}
 
-			existing := orgutil.FindDepartment(state.Departments, localID)
+			existing := pkgorg.FindDepartment(state.Departments, localID)
 			if existing != nil && isManualDeptSource(existing.Source) {
 				continue
 			}
@@ -134,7 +134,7 @@ func (s *service) importFromProvider(
 				}); err != nil {
 					return err
 				}
-				dept := orgutil.FindDepartment(state.Departments, localID)
+				dept := pkgorg.FindDepartment(state.Departments, localID)
 				if dept != nil {
 					dept.ExternalID = stringPtr(remote.ExternalID)
 					dept.Source = stringPtr(types.DeptSourceImported)
@@ -192,7 +192,7 @@ func (s *service) importFromProvider(
 				continue
 			}
 
-			members = append(members, Member{
+			members = append(members, types.Member{
 				ID:             memberID,
 				Name:           remote.Name,
 				Phone:          remote.Mobile,
@@ -237,15 +237,15 @@ func (s *service) importFromProvider(
 		return st.Org().SetDataSourceStatus(status)
 	})
 	if err != nil {
-		return ImportResult{}, err
+		return types.ImportResult{}, err
 	}
 
 	if err := s.store.Org().SetImportFailures(result.Failures); err != nil {
-		return ImportResult{}, fmt.Errorf("persist import failures: %w", err)
+		return types.ImportResult{}, fmt.Errorf("persist import failures: %w", err)
 	}
 	if s.lifecycle != nil && len(changedDeptIDs) > 0 {
 		if err := s.lifecycle.EnqueueModelLimitsForDepartments(changedDeptIDs); err != nil {
-			return ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
+			return types.ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
 		}
 	}
 	return result, nil
@@ -253,7 +253,7 @@ func (s *service) importFromProvider(
 
 func buildDeptExternalMap(departments []types.Department) map[string]string {
 	result := make(map[string]string)
-	for _, dept := range orgutil.FlattenDepartmentTree(departments) {
+	for _, dept := range pkgorg.FlattenDepartmentTree(departments) {
 		if dept.ExternalID != nil {
 			result[*dept.ExternalID] = dept.ID
 		}
@@ -261,8 +261,8 @@ func buildDeptExternalMap(departments []types.Department) map[string]string {
 	return result
 }
 
-func buildMemberExternalIndex(members []Member) map[string]Member {
-	result := make(map[string]Member, len(members))
+func buildMemberExternalIndex(members []types.Member) map[string]types.Member {
+	result := make(map[string]types.Member, len(members))
 	for _, member := range members {
 		if member.ExternalID != nil {
 			result[*member.ExternalID] = member
@@ -273,9 +273,9 @@ func buildMemberExternalIndex(members []Member) map[string]Member {
 
 func flattenDeptNames(departments []types.Department) map[string]string {
 	result := make(map[string]string)
-	for _, dept := range orgutil.FlattenDepartmentTree(departments) {
+	for _, dept := range pkgorg.FlattenDepartmentTree(departments) {
 		result[dept.ID] = dept.Name
-		if path := orgutil.GetDeptPath(departments, dept.ID); path != nil {
+		if path := pkgorg.GetDeptPath(departments, dept.ID); path != nil {
 			result[dept.ID] = *path
 		}
 	}
@@ -318,7 +318,7 @@ func sortRemoteDepartments(
 func filterRemoteMembersForRetry(
 	members []datasource.RemoteMember,
 	retryIDs map[string]struct{},
-	failures []ImportFailure,
+	failures []types.ImportFailure,
 ) []datasource.RemoteMember {
 	targets := make(map[string]struct{})
 	for _, failure := range failures {
@@ -354,7 +354,7 @@ func resolveLocalDeptID(
 	if localID, ok := externalToLocal[externalID]; ok {
 		return localID
 	}
-	for _, dept := range orgutil.FlattenDepartmentTree(departments) {
+	for _, dept := range pkgorg.FlattenDepartmentTree(departments) {
 		if dept.ExternalID != nil && *dept.ExternalID == externalID {
 			return dept.ID
 		}

@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -14,7 +14,7 @@ import (
 func newBudgetService(t *testing.T) (budget.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	return budget.NewService(cfg, st, simulate.NewDelayer(false)), st
+	return budget.NewService(cfg, st, common.NewDelayer(false)), st
 }
 
 func findDept3(tree []types.BudgetNode) *types.BudgetNode {

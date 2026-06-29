@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/orgutil"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 const (
@@ -29,10 +29,10 @@ type ProvisionState struct {
 }
 
 func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
-	if orgutil.FindDepartment(state.Departments, input.ParentID) == nil {
+	if pkgorg.FindDepartment(state.Departments, input.ParentID) == nil {
 		return fmt.Errorf("parent department not found")
 	}
-	if orgutil.FindDepartment(state.Departments, input.ID) != nil {
+	if pkgorg.FindDepartment(state.Departments, input.ID) != nil {
 		return fmt.Errorf("department already exists")
 	}
 
@@ -40,7 +40,7 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 	dept := types.Department{
 		ID: input.ID, Name: input.Name, ParentID: &parentID, MemberCount: 0,
 	}
-	if !orgutil.InsertDepartmentChild(state.Departments, input.ParentID, dept) {
+	if !pkgorg.InsertDepartmentChild(state.Departments, input.ParentID, dept) {
 		return fmt.Errorf("failed to insert department")
 	}
 
@@ -48,14 +48,14 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 		ID: input.ID, Name: input.Name, ParentID: &parentID,
 		Budget: 0, Consumed: 0, Period: input.Period,
 	}
-	if !budgetutil.InsertBudgetNode(state.BudgetTree, input.ParentID, budgetNode) {
+	if !budget.InsertBudgetNode(state.BudgetTree, input.ParentID, budgetNode) {
 		return fmt.Errorf("failed to insert budget node")
 	}
 
-	parentAllowed := routingutil.ResolveDeptAllowedModels(
+	parentAllowed := common.ResolveDeptAllowedModels(
 		input.ParentID, state.Departments, state.Rules, state.Models,
 	)
-	state.Rules = routingutil.AppendInheritedRule(
+	state.Rules = common.AppendInheritedRule(
 		state.Rules, input.ID, input.Name, parentAllowed, fmt.Sprintf("rr-%s", input.ID),
 	)
 	return nil
@@ -63,29 +63,29 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 
 func DeprovisionDepartment(state *ProvisionState, deptID string) error {
 	var removed bool
-	state.Departments, removed = orgutil.RemoveDepartment(state.Departments, deptID)
+	state.Departments, removed = pkgorg.RemoveDepartment(state.Departments, deptID)
 	if !removed {
 		return fmt.Errorf("department not found")
 	}
 
 	var budgetRemoved bool
-	state.BudgetTree, budgetRemoved = budgetutil.RemoveBudgetNode(state.BudgetTree, deptID)
+	state.BudgetTree, budgetRemoved = budget.RemoveBudgetNode(state.BudgetTree, deptID)
 	if !budgetRemoved {
 		return fmt.Errorf("budget node not found")
 	}
 
-	state.Rules = routingutil.RemoveRuleByNodeID(state.Rules, deptID)
+	state.Rules = common.RemoveRuleByNodeID(state.Rules, deptID)
 	return nil
 }
 
 func RenameDepartment(state *ProvisionState, deptID, name string) error {
-	if !orgutil.UpdateDepartmentName(state.Departments, deptID, name) {
+	if !pkgorg.UpdateDepartmentName(state.Departments, deptID, name) {
 		return fmt.Errorf("department not found")
 	}
-	if !budgetutil.UpdateBudgetNodeName(state.BudgetTree, deptID, name) {
+	if !budget.UpdateBudgetNodeName(state.BudgetTree, deptID, name) {
 		return fmt.Errorf("budget node not found")
 	}
-	state.Rules = routingutil.UpdateRuleNodeName(state.Rules, deptID, name)
+	state.Rules = common.UpdateRuleNodeName(state.Rules, deptID, name)
 	return nil
 }
 
@@ -93,5 +93,5 @@ func RecalcDepartmentMemberCounts(
 	departments []types.Department,
 	members []types.Member,
 ) []types.Department {
-	return orgutil.RecalcMemberCounts(departments, members)
+	return pkgorg.RecalcMemberCounts(departments, members)
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/notification"
-	"github.com/tokenjoy/backend/internal/pkg/simulate"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -18,7 +18,7 @@ func NewOrgService(t *testing.T, cfg config.Config, st store.Store) org.Service 
 	factory := datasource.NewFactory(cfg)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, lifecycle, notifier, simulate.NewDelayer(false), slog.Default())
+	return org.NewService(cfg, st, factory, lifecycle, notifier, common.NewDelayer(false), slog.Default())
 }
 
 func NewOrgServiceFromStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Store, org.Service) {

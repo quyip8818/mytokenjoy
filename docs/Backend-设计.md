@@ -26,22 +26,23 @@
 apps/backend/
 ├── cmd/server/main.go
 ├── internal/
-│   ├── app/                 # DI 组合根（app.go + wiring.go）
+│   ├── app/                 # DI 组合根（app.go + wiring.go + registry.go）
 │   ├── config/
 │   ├── domain/              # session, org, budget, keys, models, dashboard, audit, usage, relay
 │   ├── http/
-│   │   ├── router.go
-│   │   ├── handler/         # 按域拆分（org/ 子包等）
+│   │   ├── router.go        # 全局 middleware + /api 挂载
+│   │   ├── handler/         # register.go 集中 API 路由；按域拆分（shared/、org/ 子包等）
 │   │   ├── middleware/
 │   │   └── response/
+│   ├── infra/               # notification、worker、permission
 │   ├── integration/         # newapi, datasource（飞书等）
-│   ├── worker/              # outbox、sync、补偿轮询
-│   ├── permission/
-│   ├── notification/
-│   └── store/               # Memory（单测）；postgres/（运行时）；seed/（演示数据）
-├── tests/                   # 镜像 internal，禁止 internal/*_test.go
+│   ├── pkg/                 # budget/、org/、common/ 工具包
+│   └── store/               # postgres/（运行时）；memory/（单测）；seed/；usagequery/
+├── tests/                   # 镜像 internal；testutil 注入 store/memory
 └── Makefile
 ```
+
+域 DTO（含 org 的 `Member`、`Credential`、`SessionContext` 等）统一定义在 `internal/domain/types/`，各 domain 包仅保留 Service 接口与业务逻辑，不在包内 re-export 类型别名。
 
 ---
 
@@ -74,14 +75,14 @@ type Store interface {
 }
 ```
 
-| 模式     | 条件                          | 说明                                                                 |
-| -------- | ----------------------------- | -------------------------------------------------------------------- |
-| Postgres | 运行时（必填 `DATABASE_URL`） | 域数据 JSONB snapshot + relay/usage/credential 关系表；空库自动 seed |
-| Memory   | 单元/Handler 测试             | `testutil.NewMemoryStore` + `app.WithStore`；不持久化                |
+| 模式     | 条件                          | 说明                                                                                     |
+| -------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| Postgres | 运行时（必填 `DATABASE_URL`） | 域数据直读写 `domain_snapshot` JSONB + relay/usage/credential 关系表；demo 空库自动 seed |
+| Memory   | 单元/Handler 测试             | `internal/store/memory` + `testutil`；`app.NewWithStore` 仅 `-tags=testhook` 构建        |
 
-迁移 SQL 唯一来源：`internal/store/postgres/migrations/`（`go:embed`）。
+Schema SQL 唯一来源：`internal/store/postgres/schema.sql`（`go:embed`）。**不做增量迁移**；改表结构后清空 Postgres volume 重来。
 
-**启动 bootstrap（Postgres）：** `postgres.New` → migrate → 若 `domain_snapshot` 不完整且非 prod → `store/seed.Load` 写入 5 个 shard；demo profile 下再 `ApplyUsageBuckets` 灌入看板用量。
+**启动 bootstrap（Postgres）：** `postgres.New` → applySchema → 若 `domain_snapshot` 不完整且非 prod → `seedShards` 写入 5 个 shard；demo profile 下再 `ApplyUsageBuckets` 灌入看板用量。运行时 **不** 预热进程内 Memory；每次域读写 SELECT/UPSERT `domain_snapshot`（`WithTx` 内仅事务级 shard 缓存）。
 
 ---
 
@@ -111,6 +112,8 @@ type Store interface {
 | `NEW_API_ENABLED`                                                     | `false`                 | Relay + worker                                          |
 | `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` / `NEW_API_WEBHOOK_SECRET` | —                       | 启用 NewAPI 时必填                                      |
 | `DATA_SOURCE_CREDENTIAL_KEY`                                          | —                       | 飞书等凭证 AES-GCM（32 字节 hex）                       |
+| `WORKER_POLL_INTERVAL_SEC`                                            | `5`                     | Worker 轮询间隔（秒）                                   |
+| `WORKER_ORG_SYNC_INTERVAL_SEC`                                        | `60`                    | 组织定时同步间隔（秒）                                  |
 
 ---
 
@@ -181,7 +184,7 @@ flowchart TB
 
 **一致性：** 月初 budget 重置只清 snapshot `Consumed`，buckets 保留全量历史；ingest 成本写入后不回溯。
 
-关键代码：`internal/domain/usage/`（`log_aggregator.go`、`cost_from_log.go`）、`internal/domain/dashboard/`、`internal/store/postgres/migrations/`（`usage_buckets` 表）。
+关键代码：`internal/domain/usage/`（`log_aggregator.go`、`cost_from_log.go`）、`internal/domain/dashboard/`、`internal/store/postgres/schema.sql`（`usage_buckets` 表）。
 
 ---
 

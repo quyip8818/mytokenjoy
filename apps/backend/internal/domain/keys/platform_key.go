@@ -7,11 +7,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetgroupquota"
-	"github.com/tokenjoy/backend/internal/pkg/memberquota"
-	"github.com/tokenjoy/backend/internal/pkg/pkgconst"
-	"github.com/tokenjoy/backend/internal/pkg/queryutil"
-	"github.com/tokenjoy/backend/internal/pkg/routingutil"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error) {
@@ -37,11 +35,11 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if group == nil {
 			return types.PlatformKey{}, domain.NotFound("Budget group not found")
 		}
-		if msg := budgetgroupquota.ValidateGroupKeyQuota(*group, platformKeys, input.Quota, ""); msg != nil {
+		if msg := budget.ValidateGroupKeyQuota(*group, platformKeys, input.Quota, ""); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
-			if msg := routingutil.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
+			if msg := common.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		}
@@ -49,10 +47,10 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if input.MemberID == nil {
 			return types.PlatformKey{}, domain.BadRequest("memberId required")
 		}
-		if msg := routingutil.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
+		if msg := common.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if input.Quota > memberquota.GetQuotaRemaining(pools, platformKeys, *input.MemberID) {
+		if input.Quota > budget.GetQuotaRemaining(pools, platformKeys, *input.MemberID) {
 			return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 		}
 	}
@@ -60,7 +58,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	var fullKeyPtr *string
 	keyPrefix := "pending..."
 	if s.lifecycle == nil || !s.lifecycle.Enabled() {
-		fullKey := fmt.Sprintf("%s%d-demo-secret-key", pkgconst.DemoKeyPrefix, time.Now().UnixMilli())
+		fullKey := fmt.Sprintf("%s%d-demo-secret-key", common.DemoKeyPrefix, time.Now().UnixMilli())
 		fullKeyPtr = &fullKey
 		keyPrefix = fullKey
 		if len(keyPrefix) > 12 {
@@ -69,7 +67,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	}
 	memberName := (*string)(nil)
 	if input.MemberID != nil {
-		if member, ok := queryutil.FindMemberByID(members, *input.MemberID); ok {
+		if member, ok := org.FindMemberByID(members, *input.MemberID); ok {
 			memberName = &member.Name
 		}
 	}
@@ -99,7 +97,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if s.lifecycle != nil && s.lifecycle.Enabled() {
 		departmentID := ""
 		if input.MemberID != nil {
-			if member, ok := queryutil.FindMemberByID(members, *input.MemberID); ok {
+			if member, ok := org.FindMemberByID(members, *input.MemberID); ok {
 				departmentID = member.DepartmentID
 			}
 		}
@@ -156,7 +154,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	groups := s.store.Budget().Groups()
 
 	if len(input.ModelWhitelist) > 0 && existing.MemberID != nil {
-		if msg := routingutil.ValidateModelsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
+		if msg := common.ValidateModelsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}
@@ -172,7 +170,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 			if group == nil {
 				return types.PlatformKey{}, domain.NotFound("Budget group not found")
 			}
-			if msg := budgetgroupquota.ValidateGroupKeyQuota(*group, platformKeys, *input.Quota, existing.ID); msg != nil {
+			if msg := budget.ValidateGroupKeyQuota(*group, platformKeys, *input.Quota, existing.ID); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		} else if existing.MemberID != nil {
@@ -182,7 +180,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 					otherAllocated += key.Quota
 				}
 			}
-			if otherAllocated+*input.Quota > memberquota.GetPersonalQuota(pools, *existing.MemberID) {
+			if otherAllocated+*input.Quota > budget.GetPersonalQuota(pools, *existing.MemberID) {
 				return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 			}
 		}

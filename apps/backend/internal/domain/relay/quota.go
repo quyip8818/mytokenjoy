@@ -2,8 +2,7 @@ package relay
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budgetutil"
-	"github.com/tokenjoy/backend/internal/pkg/memberquota"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
 )
 
 func ComputeRemainQuotaCNY(
@@ -32,8 +31,8 @@ func ComputeRemainQuotaCNY(
 			}
 		}
 	} else if key.MemberID != nil {
-		memberUsed := memberquota.GetUsedKeyQuota(platformKeys, *key.MemberID)
-		memberCap := memberquota.GetPersonalQuota(pools, *key.MemberID)
+		memberUsed := budget.GetUsedKeyQuota(platformKeys, *key.MemberID)
+		memberCap := budget.GetPersonalQuota(pools, *key.MemberID)
 		memberRemaining := memberCap - memberUsed
 		if memberRemaining < 0 {
 			memberRemaining = 0
@@ -41,7 +40,7 @@ func ComputeRemainQuotaCNY(
 		candidates = append(candidates, memberRemaining)
 	}
 
-	if node := budgetutil.FindBudgetNode(tree, departmentID); node != nil {
+	if node := budget.FindBudgetNode(tree, departmentID); node != nil {
 		deptRemaining := node.Budget - node.Consumed
 		reserved := 0.0
 		if node.ReservedPool != nil {

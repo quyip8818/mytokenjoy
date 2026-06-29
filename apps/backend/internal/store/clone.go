@@ -286,3 +286,79 @@ func cloneCallLogs(items []types.CallLog) []types.CallLog {
 	copy(result, items)
 	return result
 }
+
+func CloneImportFailures(items []types.ImportFailure) []types.ImportFailure {
+	return cloneImportFailures(items)
+}
+
+func CloneSyncLogs(items []types.SyncLog) []types.SyncLog { return cloneSyncLogs(items) }
+
+func ClonePermissions(items []types.Permission) []types.Permission { return clonePermissions(items) }
+
+func CloneRoles(items []types.Role) []types.Role { return cloneRoles(items) }
+
+func CloneMembers(items []types.Member) []types.Member { return cloneMembers(items) }
+
+func CloneDepartments(items []types.Department) []types.Department { return cloneDepartments(items) }
+
+func CloneBudgetTree(items []types.BudgetNode) []types.BudgetNode { return cloneBudgetTree(items) }
+
+func CloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
+	return cloneBudgetGroups(items)
+}
+
+func CloneAlertRules(items []types.AlertRule) []types.AlertRule { return cloneAlertRules(items) }
+
+func CloneMemberQuotaPools(pools map[string]types.MemberQuotaPool) map[string]types.MemberQuotaPool {
+	return cloneMemberQuotaPools(pools)
+}
+
+func CloneProviderKeys(items []types.ProviderKey) []types.ProviderKey {
+	return cloneProviderKeys(items)
+}
+
+func ClonePlatformKeys(items []types.PlatformKey) []types.PlatformKey {
+	return clonePlatformKeys(items)
+}
+
+func CloneApprovals(items []types.KeyApproval) []types.KeyApproval { return cloneApprovals(items) }
+
+func CloneModels(items []types.ModelInfo) []types.ModelInfo { return cloneModels(items) }
+
+func CloneRoutingRules(items []types.RoutingRule) []types.RoutingRule {
+	return cloneRoutingRules(items)
+}
+
+func CloneOperationLogs(items []types.OperationLog) []types.OperationLog {
+	return cloneOperationLogs(items)
+}
+
+func CloneCallLogs(items []types.CallLog) []types.CallLog { return cloneCallLogs(items) }
+
+func CloneSnapshot(snapshot Snapshot) Snapshot {
+	return Snapshot{
+		DataSourceStatus:    snapshot.DataSourceStatus,
+		SyncConfig:          snapshot.SyncConfig,
+		SyncLogs:            CloneSyncLogs(snapshot.SyncLogs),
+		ImportFailures:      CloneImportFailures(snapshot.ImportFailures),
+		Departments:         CloneDepartments(snapshot.Departments),
+		Members:             CloneMembers(snapshot.Members),
+		Roles:               CloneRoles(snapshot.Roles),
+		Permissions:         ClonePermissions(snapshot.Permissions),
+		BudgetTree:          CloneBudgetTree(snapshot.BudgetTree),
+		BudgetGroups:        CloneBudgetGroups(snapshot.BudgetGroups),
+		OverrunPolicy:       snapshot.OverrunPolicy,
+		AlertRules:          CloneAlertRules(snapshot.AlertRules),
+		MemberQuotaPools:    CloneMemberQuotaPools(snapshot.MemberQuotaPools),
+		ProviderKeys:        CloneProviderKeys(snapshot.ProviderKeys),
+		PlatformKeys:        ClonePlatformKeys(snapshot.PlatformKeys),
+		Approvals:           CloneApprovals(snapshot.Approvals),
+		Models:              CloneModels(snapshot.Models),
+		RoutingRules:        CloneRoutingRules(snapshot.RoutingRules),
+		AuditSettings:       snapshot.AuditSettings,
+		OperationLogs:       CloneOperationLogs(snapshot.OperationLogs),
+		CallLogs:            CloneCallLogs(snapshot.CallLogs),
+		CredentialPlatform:  snapshot.CredentialPlatform,
+		EncryptedCredential: append([]byte(nil), snapshot.EncryptedCredential...),
+	}
+}
