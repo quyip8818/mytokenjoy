@@ -1,14 +1,14 @@
-// Add import:
-//   domain__DOMAIN__ "github.com/tokenjoy/backend/internal/domain/__DOMAIN__"
-
-// Add to httpapi.Deps in internal/http/router.go:
-//   __DOMAIN_TITLE__Svc domain__DOMAIN__.Service
+// Add import to internal/http/handler/register.go:
+//   __DOMAIN__handler "github.com/tokenjoy/backend/internal/http/handler/__DOMAIN__"
 
 // Add to handler.RegistryDeps in internal/http/handler/register.go:
 //   __DOMAIN_TITLE__Svc domain__DOMAIN__.Service
 
-// Add handler construction in handler/register.go NewRegistry:
-//   __DOMAIN__: New__DOMAIN_TITLE__Handler(deps.Config, deps.__DOMAIN_TITLE__Svc, deps.SessionSvc),
+// Add to Registry struct:
+//   __DOMAIN__ *__DOMAIN__handler.Handler
 
-// Add route registration in handler/register.go RegisterAPIRoutes:
+// Add handler construction in NewRegistry:
+//   __DOMAIN__: __DOMAIN__handler.NewHandler(deps.Config, deps.__DOMAIN_TITLE__Svc, deps.SessionSvc),
+
+// Add route registration in RegisterAPIRoutes:
 //   r.Route("/__DOMAIN__", reg.__DOMAIN__.RegisterRoutes)

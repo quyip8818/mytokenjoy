@@ -1,4 +1,4 @@
-package handler
+package keys
 
 import (
 	"net/http"
@@ -15,19 +15,19 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
-type KeysHandler struct {
+type Handler struct {
 	shared.SessionHandlerBase
 	service domainkeys.Service
 }
 
-func NewKeysHandler(cfg config.Config, service domainkeys.Service, sessionSvc session.Service) *KeysHandler {
-	return &KeysHandler{
+func NewHandler(cfg config.Config, service domainkeys.Service, sessionSvc session.Service) *Handler {
+	return &Handler{
 		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
-func (h *KeysHandler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.KeysRead)
 	read.Get("/provider", h.ProviderList)
 	read.Get("/platform", h.PlatformList)
@@ -59,11 +59,11 @@ func (h *KeysHandler) RegisterRoutes(r chi.Router) {
 	approveWrite.Put("/approvals/{id}/reject", h.ApprovalReject)
 }
 
-func (h *KeysHandler) ProviderList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProviderList(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteOK(w, h.service.ListProviderKeys())
 }
 
-func (h *KeysHandler) ProviderCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProviderCreate(w http.ResponseWriter, r *http.Request) {
 	var body types.CreateProviderKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -73,7 +73,7 @@ func (h *KeysHandler) ProviderCreate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
-func (h *KeysHandler) ProviderToggle(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProviderToggle(w http.ResponseWriter, r *http.Request) {
 	var body types.ToggleProviderKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -83,7 +83,7 @@ func (h *KeysHandler) ProviderToggle(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
-func (h *KeysHandler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
 	var body types.RotateProviderKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -93,22 +93,22 @@ func (h *KeysHandler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
-func (h *KeysHandler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
 	err := h.service.DeleteProviderKey(chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
-func (h *KeysHandler) PlatformList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	httputil.WriteOK(w, h.service.ListPlatformKeys(query.Get("memberId"), query.Get("budgetGroupId")))
 }
 
-func (h *KeysHandler) PlatformQuotaSummary(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformQuotaSummary(w http.ResponseWriter, r *http.Request) {
 	summary, err := h.service.QuotaSummary(r.URL.Query().Get("memberId"))
 	httputil.WriteJSON(w, http.StatusOK, summary, err)
 }
 
-func (h *KeysHandler) PlatformCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformCreate(w http.ResponseWriter, r *http.Request) {
 	var body types.CreatePlatformKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -118,7 +118,7 @@ func (h *KeysHandler) PlatformCreate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
-func (h *KeysHandler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
 	var body types.UpdatePlatformKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -128,7 +128,7 @@ func (h *KeysHandler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
-func (h *KeysHandler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
 	var body types.TogglePlatformKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -138,27 +138,27 @@ func (h *KeysHandler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
-func (h *KeysHandler) PlatformRotate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformRotate(w http.ResponseWriter, r *http.Request) {
 	key, err := h.service.RotatePlatformKey(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
-func (h *KeysHandler) PlatformRevoke(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformRevoke(w http.ResponseWriter, r *http.Request) {
 	err := h.service.RevokePlatformKey(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
-func (h *KeysHandler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
 	err := h.service.DeletePlatformKey(chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
-func (h *KeysHandler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	httputil.WriteOK(w, h.service.ListApprovals(query.Get("tab"), query.Get("memberId")))
 }
 
-func (h *KeysHandler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 	var body types.CreateApprovalInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -168,17 +168,17 @@ func (h *KeysHandler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, approval, err)
 }
 
-func (h *KeysHandler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteOK(w, h.service.ApprovalQuotaCheck(chi.URLParam(r, "id")))
 }
 
-func (h *KeysHandler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
 	approverID := common.ResolveMemberID(r)
 	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), approverID)
 	httputil.WriteVoid(w, err)
 }
 
-func (h *KeysHandler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
 	var body types.RejectApprovalInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)

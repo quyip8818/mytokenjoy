@@ -1,0 +1,96 @@
+//go:build integration
+
+package seed_test
+
+import (
+	"context"
+	"os"
+	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tokenjoy/backend/internal/store/postgres"
+	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/tests/testutil"
+)
+
+func requireDatabaseURL(t *testing.T) string {
+	t.Helper()
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("DATABASE_URL not set")
+	}
+	return dbURL
+}
+
+func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
+	_, err := pool.Exec(ctx, `
+		TRUNCATE TABLE
+			member_roles, role_permission_grants, alert_rule_notify_roles,
+			budget_group_members, budget_group_departments, member_quota_pools,
+			platform_key_models, key_approval_models, routing_rule_models,
+			key_approvals, platform_keys, provider_keys,
+			operation_logs, call_logs,
+			alert_rules, routing_rules, model_capabilities,
+			budget_groups, budget_nodes, members, departments,
+			roles, permissions, models,
+			org_sync_logs, org_import_failures,
+			org_data_source_status, org_sync_config, overrun_policy, audit_settings
+		RESTART IDENTITY CASCADE
+	`)
+	return err
+}
+
+func TestApplyTablesMatchesSnapshot(t *testing.T) {
+	ctx := context.Background()
+	dbURL := requireDatabaseURL(t)
+	cfg := testutil.TestConfig()
+	cfg.DatabaseURL = dbURL
+
+	st, err := postgres.New(ctx, cfg)
+	if err != nil {
+		t.Fatalf("bootstrap schema: %v", err)
+	}
+	if pg, ok := st.(*postgres.Store); ok {
+		pg.Close()
+	}
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	if err := truncateDomainTables(ctx, pool); err != nil {
+		t.Fatalf("truncate domain tables: %v", err)
+	}
+
+	snap := seed.Load(cfg)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := seed.ApplyTables(ctx, tx, snap); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	assertCount(t, ctx, pool, "members", len(snap.Members))
+	assertCount(t, ctx, pool, "roles", len(snap.Roles))
+	assertCount(t, ctx, pool, "models", len(snap.Models))
+	assertCount(t, ctx, pool, "provider_keys", len(snap.ProviderKeys))
+	assertCount(t, ctx, pool, "platform_keys", len(snap.PlatformKeys))
+}
+
+func assertCount(t *testing.T, ctx context.Context, pool *pgxpool.Pool, table string, want int) {
+	t.Helper()
+	var got int
+	query := "SELECT COUNT(*) FROM " + table
+	if err := pool.QueryRow(ctx, query).Scan(&got); err != nil {
+		t.Fatalf("count %s: %v", table, err)
+	}
+	if got != want {
+		t.Fatalf("%s: expected %d rows, got %d", table, want, got)
+	}
+}

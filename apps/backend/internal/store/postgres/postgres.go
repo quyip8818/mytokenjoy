@@ -12,6 +12,7 @@ import (
 
 type Store struct {
 	pool   *pgxpool.Pool
+	ctx    context.Context
 	relay  *relayRepo
 	domain domainRepos
 }
@@ -38,7 +39,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		return nil, err
 	}
 
-	s := &Store{pool: pool}
+	s := &Store{pool: pool, ctx: ctx}
 	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
 		pool.Close()
 		return nil, err
@@ -50,19 +51,12 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		}
 	}
 	s.relay = newRelayRepo(ctx, pool)
-	s.domain = newDomainRepoSet(newPoolShardBackend(ctx, pool))
+	s.domain = newDomainRepoSet(ctx, pool)
 	return s, nil
 }
 
-func newDomainRepoSet(backend shardBackend) domainRepos {
-	org, budget, keys, models, audit := newDomainRepos(backend)
-	return domainRepos{
-		org: org, budget: budget, keys: keys, models: models, audit: audit,
-	}
-}
-
 func (s *Store) Credential() store.CredentialRepository {
-	return &credentialRepo{db: s.pool}
+	return &credentialRepo{ctx: s.ctx, db: s.pool}
 }
 
 func (s *Store) SchedulerLock() store.SchedulerLockRepository {
@@ -91,15 +85,35 @@ func (s *Store) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *Store) Relay() store.RelayRepository   { return s.relay }
 
 func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
-	shards, err := loadAllShards(ctx, s.pool)
+	empty, err := isDatabaseEmpty(ctx, s.pool)
 	if err != nil {
 		return err
 	}
-	if shardsComplete(shards) {
+	if !empty {
 		return nil
 	}
 	if cfg.IsProdProfile() {
-		return fmt.Errorf("postgres domain shards incomplete in prod profile")
+		return fmt.Errorf("postgres domain data empty in prod profile")
 	}
-	return seedShards(ctx, s.pool, seed.Load(cfg))
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin seed tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	if err := seed.ApplyTables(ctx, tx, seed.Load(cfg)); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit seed tx: %w", err)
+	}
+	return nil
+}
+
+func isDatabaseEmpty(ctx context.Context, exec dbQuerier) (bool, error) {
+	var count int
+	err := exec.QueryRow(ctx, `SELECT COUNT(*) FROM members`).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("count members: %w", err)
+	}
+	return count == 0, nil
 }

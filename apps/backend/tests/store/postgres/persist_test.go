@@ -35,14 +35,38 @@ func testDBPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-func shardUpdatedAt(t *testing.T, pool *pgxpool.Pool, shard string) time.Time {
+func memberUpdatedAt(t *testing.T, pool *pgxpool.Pool, memberID string) time.Time {
 	t.Helper()
 	var ts time.Time
 	err := pool.QueryRow(context.Background(), `
-		SELECT updated_at FROM domain_snapshot WHERE id = $1
-	`, shard).Scan(&ts)
+		SELECT updated_at FROM members WHERE id = $1
+	`, memberID).Scan(&ts)
 	if err != nil {
-		t.Fatalf("read shard %s updated_at: %v", shard, err)
+		t.Fatalf("read member %s updated_at: %v", memberID, err)
+	}
+	return ts
+}
+
+func budgetNodeUpdatedAt(t *testing.T, pool *pgxpool.Pool, nodeID string) time.Time {
+	t.Helper()
+	var ts time.Time
+	err := pool.QueryRow(context.Background(), `
+		SELECT updated_at FROM budget_nodes WHERE id = $1
+	`, nodeID).Scan(&ts)
+	if err != nil {
+		t.Fatalf("read budget node %s updated_at: %v", nodeID, err)
+	}
+	return ts
+}
+
+func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID string) time.Time {
+	t.Helper()
+	var ts time.Time
+	err := pool.QueryRow(context.Background(), `
+		SELECT updated_at FROM models WHERE id = $1
+	`, modelID).Scan(&ts)
+	if err != nil {
+		t.Fatalf("read model %s updated_at: %v", modelID, err)
 	}
 	return ts
 }
@@ -121,7 +145,7 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 	}
 }
 
-func TestShardPersistOrgOnly(t *testing.T) {
+func TestMemberPersistAcrossRestart(t *testing.T) {
 	dbURL := requireDatabaseURL(t)
 	ctx := context.Background()
 	cfg := testutil.TestConfig()
@@ -136,7 +160,7 @@ func TestShardPersistOrgOnly(t *testing.T) {
 	updated := false
 	for i := range members {
 		if members[i].ID == seed.IDMember1 {
-			members[i].Name = "ShardPersistTest"
+			members[i].Name = "PersistTest"
 			updated = true
 			break
 		}
@@ -152,7 +176,7 @@ func TestShardPersistOrgOnly(t *testing.T) {
 	}
 
 	st2 := reopenPostgresStore(t, dbURL)
-	if got := findMemberName(st2.Org().Members(), seed.IDMember1); got != "ShardPersistTest" {
+	if got := findMemberName(st2.Org().Members(), seed.IDMember1); got != "PersistTest" {
 		t.Fatalf("expected persisted member name, got %q", got)
 	}
 	gotLen, gotRoot := budgetTreeSignature(st2.Budget().Tree())
@@ -161,20 +185,20 @@ func TestShardPersistOrgOnly(t *testing.T) {
 	}
 }
 
-func TestWithTxFlushesDirtyShards(t *testing.T) {
+func TestWithTxCommitsDomainWrites(t *testing.T) {
 	st := testPostgresStore(t)
 	pool := testDBPool(t)
 	ctx := context.Background()
 
-	modelsBefore := shardUpdatedAt(t, pool, store.ShardModels)
-	orgBefore := shardUpdatedAt(t, pool, store.ShardOrg)
-	budgetBefore := shardUpdatedAt(t, pool, store.ShardBudget)
+	modelsBefore := modelUpdatedAt(t, pool, "model-1")
+	memberBefore := memberUpdatedAt(t, pool, seed.IDMember1)
+	budgetBefore := budgetNodeUpdatedAt(t, pool, "dept-1")
 
 	err := st.WithTx(ctx, func(tx store.Store) error {
 		members := tx.Org().Members()
 		for i := range members {
 			if members[i].ID == seed.IDMember1 {
-				members[i].Name = "TxShardTest"
+				members[i].Name = "TxTest"
 			}
 		}
 		if err := tx.Org().SetMembers(members); err != nil {
@@ -190,17 +214,17 @@ func TestWithTxFlushesDirtyShards(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	modelsAfter := shardUpdatedAt(t, pool, store.ShardModels)
-	orgAfter := shardUpdatedAt(t, pool, store.ShardOrg)
-	budgetAfter := shardUpdatedAt(t, pool, store.ShardBudget)
+	memberAfter := memberUpdatedAt(t, pool, seed.IDMember1)
+	budgetAfter := budgetNodeUpdatedAt(t, pool, "dept-1")
+	modelsAfter := modelUpdatedAt(t, pool, "model-1")
 
-	if !orgAfter.After(orgBefore) {
-		t.Fatalf("expected org shard updated_at to advance: before=%v after=%v", orgBefore, orgAfter)
+	if !memberAfter.After(memberBefore) {
+		t.Fatalf("expected member updated_at to advance: before=%v after=%v", memberBefore, memberAfter)
 	}
 	if !budgetAfter.After(budgetBefore) {
-		t.Fatalf("expected budget shard updated_at to advance: before=%v after=%v", budgetBefore, budgetAfter)
+		t.Fatalf("expected budget node updated_at to advance: before=%v after=%v", budgetBefore, budgetAfter)
 	}
 	if !modelsAfter.Equal(modelsBefore) {
-		t.Fatalf("expected models shard updated_at unchanged: before=%v after=%v", modelsBefore, modelsAfter)
+		t.Fatalf("expected model updated_at unchanged: before=%v after=%v", modelsBefore, modelsAfter)
 	}
 }

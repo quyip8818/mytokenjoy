@@ -1,4 +1,4 @@
-package handler
+package __DOMAIN__
 
 import (
 	"net/http"
@@ -12,19 +12,19 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
-type __DOMAIN_TITLE__Handler struct {
+type Handler struct {
 	shared.SessionHandlerBase
 	service domain__DOMAIN__.Service
 }
 
-func New__DOMAIN_TITLE__Handler(cfg config.Config, service domain__DOMAIN__.Service, sessionSvc session.Service) *__DOMAIN_TITLE__Handler {
-	return &__DOMAIN_TITLE__Handler{
+func NewHandler(cfg config.Config, service domain__DOMAIN__.Service, sessionSvc session.Service) *Handler {
+	return &Handler{
 		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
-func (h *__DOMAIN_TITLE__Handler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.__DOMAIN_TITLE__Read)
 	read.Get("/", h.List)
 
@@ -32,10 +32,10 @@ func (h *__DOMAIN_TITLE__Handler) RegisterRoutes(r chi.Router) {
 	write.With(httpmiddleware.RequireAnyPermission(permission.__DOMAIN_TITLE__Read)).Post("/", h.Create)
 }
 
-func (h *__DOMAIN_TITLE__Handler) List(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	// TODO: implement
 }
 
-func (h *__DOMAIN_TITLE__Handler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	// TODO: implement
 }

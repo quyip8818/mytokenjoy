@@ -1,4 +1,4 @@
-package handler
+package audit
 
 import (
 	"net/http"
@@ -15,23 +15,23 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
-type AuditHandler struct {
+type Handler struct {
 	shared.SessionHandlerBase
 	service domainaudit.Service
 }
 
-func NewAuditHandler(cfg config.Config, service domainaudit.Service, sessionSvc session.Service) *AuditHandler {
-	return &AuditHandler{
+func NewHandler(cfg config.Config, service domainaudit.Service, sessionSvc session.Service) *Handler {
+	return &Handler{
 		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
-func (h *AuditHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SettingsGet(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteOK(w, h.service.GetSettings())
 }
 
-func (h *AuditHandler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 	var body types.AuditSettings
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -41,7 +41,7 @@ func (h *AuditHandler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, settings, err)
 }
 
-func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) OperationsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	params := types.AuditOperationsQueryParams{
 		Page:       common.ParseIntParam(query.Get("page"), 1),
@@ -55,7 +55,7 @@ func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteOK(w, h.service.ListOperations(params))
 }
 
-func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	params := types.AuditCallsQueryParams{
 		Page:     common.ParseIntParam(query.Get("page"), 1),
@@ -70,7 +70,7 @@ func (h *AuditHandler) CallsList(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteOK(w, h.service.ListCalls(params))
 }
 
-func (h *AuditHandler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.AuditRead)
 	read.Get("/settings", h.SettingsGet)
 	read.Get("/operations", h.OperationsList)

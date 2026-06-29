@@ -13,7 +13,6 @@ type txStore struct {
 	usage        store.UsageRepository
 	notification store.NotificationRepository
 	parent       *Store
-	shards       *txShardCache
 }
 
 func (s *txStore) Org() store.OrgRepository       { return s.domain.org }
@@ -57,19 +56,14 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	}
 	defer tx.Rollback(ctx)
 
-	cache := newTxShardCache(ctx, tx)
 	txView := &txStore{
-		domain:       newDomainRepoSet(cache),
+		domain:       newDomainRepoSet(ctx, tx),
 		relay:        newRelayRepo(ctx, tx),
 		usage:        &usageRepo{db: tx},
 		notification: &notificationRepo{db: tx},
 		parent:       s,
-		shards:       cache,
 	}
 	if err := fn(txView); err != nil {
-		return err
-	}
-	if err := cache.flush(ctx); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {

@@ -1,4 +1,4 @@
-package handler
+package dashboard
 
 import (
 	"context"
@@ -18,19 +18,19 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
-type DashboardHandler struct {
+type Handler struct {
 	shared.SessionHandlerBase
 	service domaindashboard.Service
 }
 
-func NewDashboardHandler(cfg config.Config, service domaindashboard.Service, sessionSvc session.Service) *DashboardHandler {
-	return &DashboardHandler{
+func NewHandler(cfg config.Config, service domaindashboard.Service, sessionSvc session.Service) *Handler {
+	return &Handler{
 		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
 	}
 }
 
-func (h *DashboardHandler) CostSummary(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CostSummary(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.CostSummary(ctx, params, scope)
@@ -38,7 +38,7 @@ func (h *DashboardHandler) CostSummary(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *DashboardHandler) DepartmentCosts(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DepartmentCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		query := r.URL.Query()
 		params := parseCostQueryParams(r)
@@ -47,7 +47,7 @@ func (h *DashboardHandler) DepartmentCosts(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-func (h *DashboardHandler) DepartmentMemberCosts(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DepartmentMemberCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.DepartmentMemberCosts(ctx, chi.URLParam(r, "deptId"), params, scope)
@@ -55,7 +55,7 @@ func (h *DashboardHandler) DepartmentMemberCosts(w http.ResponseWriter, r *http.
 	})
 }
 
-func (h *DashboardHandler) DailyCosts(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DailyCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.DailyCosts(ctx, params, scope)
@@ -63,7 +63,7 @@ func (h *DashboardHandler) DailyCosts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *DashboardHandler) TopConsumers(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) TopConsumers(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		query := r.URL.Query()
 		limit := common.ParseIntParam(query.Get("limit"), 5)
@@ -73,7 +73,7 @@ func (h *DashboardHandler) TopConsumers(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func (h *DashboardHandler) ModelUsage(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.ModelUsage(ctx, params, scope)
@@ -81,7 +81,7 @@ func (h *DashboardHandler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *DashboardHandler) TeamUsage(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) TeamUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		result, err := h.service.TeamUsage(ctx, params, scope)
@@ -89,7 +89,7 @@ func (h *DashboardHandler) TeamUsage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *DashboardHandler) UsageSeries(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		query := r.URL.Query()
 		granularity := query.Get("granularity")
@@ -122,7 +122,7 @@ func (h *DashboardHandler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *DashboardHandler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Cfg, h.SessionSvc, permission.DashboardCost, permission.DashboardUsage)
 	read.Get("/cost/summary", h.CostSummary)
 	read.Get("/cost/departments", h.DepartmentCosts)
@@ -134,7 +134,7 @@ func (h *DashboardHandler) RegisterRoutes(r chi.Router) {
 	read.Get("/usage/series", h.UsageSeries)
 }
 
-func (h *DashboardHandler) withScope(w http.ResponseWriter, r *http.Request, fn func(context.Context, domainusage.SessionScope)) {
+func (h *Handler) withScope(w http.ResponseWriter, r *http.Request, fn func(context.Context, domainusage.SessionScope)) {
 	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
 	if !ok {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)

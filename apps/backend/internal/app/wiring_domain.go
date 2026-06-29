@@ -10,23 +10,10 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/store"
 )
-
-type infra struct {
-	store       store.Store
-	adminClient newapi.AdminClient
-	lifecycle   relay.Lifecycle
-	notifier    notification.Notifier
-	delayer     common.Delayer
-}
 
 type domainServices struct {
 	session   session.Service
@@ -38,21 +25,6 @@ type domainServices struct {
 	audit     domainaudit.Service
 	ingest    domainbudget.Ingestor
 	rebalance domainbudget.Rebalancer
-}
-
-func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store) (infra, error) {
-	var adminClient newapi.AdminClient
-	if cfg.NewAPIEnabled {
-		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
-	}
-
-	return infra{
-		store:       st,
-		adminClient: adminClient,
-		lifecycle:   relay.NewTokenLifecycle(cfg, st, adminClient),
-		notifier:    notification.NewService(cfg, st, logger),
-		delayer:     common.NewDelayer(cfg.SimulateDelay),
-	}, nil
 }
 
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {

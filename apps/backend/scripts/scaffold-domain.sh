@@ -34,7 +34,8 @@ render() {
 }
 
 DOMAIN_DIR="$ROOT/internal/domain/$DOMAIN"
-HANDLER_FILE="$ROOT/internal/http/handler/${DOMAIN}.go"
+HANDLER_DIR="$ROOT/internal/http/handler/$DOMAIN"
+HANDLER_FILE="$HANDLER_DIR/handler.go"
 DOMAIN_TEST_DIR="$ROOT/tests/domain/$DOMAIN"
 HANDLER_TEST_FILE="$ROOT/tests/handler/${DOMAIN}_test.go"
 
@@ -43,7 +44,7 @@ if [[ -e "$DOMAIN_DIR" || -e "$HANDLER_FILE" ]]; then
   exit 1
 fi
 
-mkdir -p "$DOMAIN_DIR" "$DOMAIN_TEST_DIR"
+mkdir -p "$DOMAIN_DIR" "$DOMAIN_TEST_DIR" "$HANDLER_DIR"
 
 render "$SCAFFOLD/domain/service.go.tmpl" "$DOMAIN_DIR/service.go"
 render "$SCAFFOLD/domain/service_test.go.tmpl" "$DOMAIN_TEST_DIR/service_test.go"
@@ -52,7 +53,7 @@ render "$SCAFFOLD/handler/handler_test.go.tmpl" "$HANDLER_TEST_FILE"
 
 echo "Created:"
 echo "  internal/domain/$DOMAIN/service.go"
-echo "  internal/http/handler/${DOMAIN}.go"
+echo "  internal/http/handler/$DOMAIN/handler.go"
 echo "  tests/domain/$DOMAIN/service_test.go"
 echo "  tests/handler/${DOMAIN}_test.go"
 echo ""

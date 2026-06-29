@@ -375,8 +375,8 @@ HTTP 非 2xx 时，body 应包含：
 
 **数据源约定**
 
-- `cost/*`、`usage/models`、`usage/teams` 的 **consumed / cost** 均来自 **`usage_buckets` 周期聚合**（不读 snapshot `budget tree.Consumed`）。
-- `usage/teams` 的 **quota** 来自 snapshot 预算树。
+- `cost/*`、`usage/models`、`usage/teams` 的 **consumed / cost** 均来自 **`usage_buckets` 周期聚合**（不读 `budget_nodes.consumed`）。
+- `usage/teams` 的 **quota** 来自 **`budget_nodes`** 预算树。
 - 聚合/展示时区默认 **`Asia/Shanghai`**（IANA）；响应 `timezone` 字段返回实际使用值；租户可配置覆盖。
 - `week` / `month` 由服务端对 buckets 做 `date_trunc('week' \| 'month', …)`，不走 `usage/series`。
 

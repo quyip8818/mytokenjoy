@@ -239,12 +239,12 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173 go run ./cmd/server
 
 ## 8. 自定义 / 扩展演示数据
 
-| 目标                 | 做法                                                                                                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 改成员、部门、密钥等 | 编辑 `internal/store/seed/*.go` 或 `internal/store/seed/data/*.json`                                                                         |
-| 改看板日期范围       | 调整 `DEMO_TODAY` 与 `internal/store/seed/usage.go`                                                                                          |
-| 重新灌 seed          | `docker compose -f apps/newapi/docker-compose.yml down -v && pnpm start:postgres`，或清空 `domain_snapshot` + `usage_buckets` 后重启 backend |
-| 对接真实 NewAPI      | `NEW_API_ENABLED=true` 及相关变量（Relay 场景，非管理面 seed）                                                                               |
+| 目标                 | 做法                                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 改成员、部门、密钥等 | 编辑 `internal/store/seed/*.go` 或 `internal/store/seed/data/*.json`                                                                        |
+| 改看板日期范围       | 调整 `DEMO_TODAY` 与 `internal/store/seed/usage.go`                                                                                         |
+| 重新灌 seed          | `docker compose -f apps/newapi/docker-compose.yml down -v && pnpm start:postgres`，或清空 `members` 等域表 + `usage_buckets` 后重启 backend |
+| 对接真实 NewAPI      | `NEW_API_ENABLED=true` 及相关变量（Relay 场景，非管理面 seed）                                                                              |
 
 改 seed 后：若需重新初始化，按上表重置数据库再重启 backend。
 

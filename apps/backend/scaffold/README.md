@@ -14,18 +14,17 @@ make scaffold-domain DOMAIN=notification
 
 ## 生成内容
 
-| 文件                                    | 说明                          |
-| --------------------------------------- | ----------------------------- |
-| `internal/domain/<DOMAIN>/service.go`   | Service interface + 空实现    |
-| `internal/http/handler/<DOMAIN>.go`     | Handler + RegisterRoutes 骨架 |
-| `tests/domain/<DOMAIN>/service_test.go` | 领域单测                      |
-| `tests/handler/<DOMAIN>_test.go`        | HTTP 契约测骨架               |
+| 文件                                        | 说明                          |
+| ------------------------------------------- | ----------------------------- |
+| `internal/domain/<DOMAIN>/service.go`       | Service interface + 空实现    |
+| `internal/http/handler/<DOMAIN>/handler.go` | Handler + RegisterRoutes 骨架 |
+| `tests/domain/<DOMAIN>/service_test.go`     | 领域单测                      |
+| `tests/handler/<DOMAIN>_test.go`            | HTTP 契约测骨架               |
 
 脚本会在终端打印需手动粘贴到以下文件的代码片段：
 
 - `internal/infra/permission/keys.go` — 权限 key
-- `internal/app/wiring.go` 与 `registry.go` — DI 注册
-- `internal/http/router.go` — `httpapi.Deps` 字段
+- `internal/app/wiring_domain.go` 与 `registry.go` — DI 注册
 - `internal/http/handler/register.go` — Handler 构造与 `/api` 路由注册
 
 ## 不自动生成（需手工）

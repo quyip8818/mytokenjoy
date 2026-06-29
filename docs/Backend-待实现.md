@@ -48,13 +48,13 @@
 
 ### 存储原则
 
-| 数据       | 存储                                                              |
-| ---------- | ----------------------------------------------------------------- |
-| 管理配置   | `domain_snapshot` JSONB                                           |
-| 第三方凭证 | `datasource_credentials`（加密）                                  |
-| 高频写入   | `usage_buckets`、`scheduler_locks`、`alert_fired`（规划）等关系表 |
+| 数据       | 存储                                                                                |
+| ---------- | ----------------------------------------------------------------------------------- |
+| 管理配置   | 关系表（组织/预算/密钥/模型/审计，见 [Backend-存储架构.md](./Backend-存储架构.md)） |
+| 第三方凭证 | `datasource_credentials`（加密）                                                    |
+| 高频写入   | `usage_buckets`、`scheduler_locks`、`alert_fired`（规划）等                         |
 
-避免将 ingest 聚合塞回 snapshot JSONB。
+看板用量只写 `usage_buckets`；`budget_nodes.consumed` 由月初重置等业务单独维护，ingest 不回写。
 
 ### 契约变更
 

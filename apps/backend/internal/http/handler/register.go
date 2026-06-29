@@ -12,6 +12,11 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
+	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
+	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
+	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
+	keyshandler "github.com/tokenjoy/backend/internal/http/handler/keys"
+	modelshandler "github.com/tokenjoy/backend/internal/http/handler/models"
 	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
 )
 
@@ -31,11 +36,11 @@ type RegistryDeps struct {
 type Registry struct {
 	session   *SessionHandler
 	org       *orghandler.Handler
-	budget    *BudgetHandler
-	keys      *KeysHandler
-	models    *ModelsHandler
-	dashboard *DashboardHandler
-	audit     *AuditHandler
+	budget    *budgethandler.Handler
+	keys      *keyshandler.Handler
+	models    *modelshandler.Handler
+	dashboard *dashboardhandler.Handler
+	audit     *audithandler.Handler
 	webhook   *WebhookHandler
 }
 
@@ -43,11 +48,11 @@ func NewRegistry(deps RegistryDeps) Registry {
 	return Registry{
 		session:   NewSessionHandler(deps.Config, deps.SessionSvc),
 		org:       orghandler.NewHandler(deps.Config, deps.OrgSvc, deps.SessionSvc),
-		budget:    NewBudgetHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc),
-		keys:      NewKeysHandler(deps.Config, deps.KeysSvc, deps.SessionSvc),
-		models:    NewModelsHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc),
-		dashboard: NewDashboardHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc),
-		audit:     NewAuditHandler(deps.Config, deps.AuditSvc, deps.SessionSvc),
+		budget:    budgethandler.NewHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc),
+		keys:      keyshandler.NewHandler(deps.Config, deps.KeysSvc, deps.SessionSvc),
+		models:    modelshandler.NewHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc),
+		dashboard: dashboardhandler.NewHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc),
+		audit:     audithandler.NewHandler(deps.Config, deps.AuditSvc, deps.SessionSvc),
 		webhook:   NewWebhookHandler(deps.Config, deps.IngestSvc, deps.Logger),
 	}
 }
