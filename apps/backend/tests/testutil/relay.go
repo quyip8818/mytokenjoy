@@ -3,8 +3,8 @@ package testutil
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 type RelayMappingOpts struct {

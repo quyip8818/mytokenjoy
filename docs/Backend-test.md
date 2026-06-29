@@ -21,12 +21,12 @@ tests/
 └── worker/
 ```
 
-| 规则         | 说明                                                        |
-| ------------ | ----------------------------------------------------------- |
-| 包名         | `package <name>_test`，黑盒 import `internal/...`           |
-| Fixture      | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)` |
+| 规则         | 说明                                                                             |
+| ------------ | -------------------------------------------------------------------------------- |
+| 包名         | `package <name>_test`，黑盒 import `internal/...`                                |
+| Fixture      | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`                      |
 | Handler 集成 | `testutil.NewTestApp(t)`（Memory + `app.WithStore`；默认 `app.WithoutWorker()`） |
-| 确定性       | `SimulateDelay=false`；单测不走 Postgres；`config.Load()` 需 `DATABASE_URL` |
+| 确定性       | `SimulateDelay=false`；单测不走 Postgres；`config.Load()` 需 `DATABASE_URL`      |
 
 ---
 
@@ -39,7 +39,7 @@ make test-integration              # -tags=integration（需 DATABASE_URL）
 go test ./tests/domain/keys/... -v # 单包
 ```
 
-根目录 `pnpm test` = 前端 Vitest + `make test-unit`。Postgres 集成：`pnpm test:backend:integration` 或 CI `backend-integration` job。
+根目录 `pnpm test` = 前端 Vitest + `make test-unit`。Postgres 集成：`pnpm test:integration` 或 CI `backend-integration` job。
 
 ---
 

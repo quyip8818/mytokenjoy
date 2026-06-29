@@ -55,14 +55,14 @@ export function warnIfBackendUnreachable(target: string): void {
       if (!res.ok) {
         console.warn(
           `[tokenjoy] API backend not healthy at ${healthUrl} (HTTP ${res.status}). ` +
-            'Start it with: pnpm start:backend',
+            'Start it with: pnpm -F @tokenjoy/backend start',
         )
       }
     })
     .catch(() => {
       console.warn(
         `[tokenjoy] API backend unreachable at ${healthUrl}. ` +
-          'Start it with: pnpm start:backend (or pnpm start from repo root)',
+          'Start it with: pnpm -F @tokenjoy/backend start (or pnpm start from repo root)',
       )
     })
 }

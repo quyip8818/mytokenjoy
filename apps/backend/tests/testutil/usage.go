@@ -8,8 +8,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/permission"
-	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 type UsageBucketOpts struct {

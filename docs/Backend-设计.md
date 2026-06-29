@@ -74,10 +74,10 @@ type Store interface {
 }
 ```
 
-| 模式     | 条件                | 说明                                                  |
-| -------- | ------------------- | ----------------------------------------------------- |
+| 模式     | 条件                          | 说明                                                                 |
+| -------- | ----------------------------- | -------------------------------------------------------------------- |
 | Postgres | 运行时（必填 `DATABASE_URL`） | 域数据 JSONB snapshot + relay/usage/credential 关系表；空库自动 seed |
-| Memory   | 单元/Handler 测试   | `testutil.NewMemoryStore` + `app.WithStore`；不持久化 |
+| Memory   | 单元/Handler 测试             | `testutil.NewMemoryStore` + `app.WithStore`；不持久化                |
 
 迁移 SQL 唯一来源：`internal/store/postgres/migrations/`（`go:embed`）。
 
@@ -100,17 +100,17 @@ type Store interface {
 
 ## 6. 环境变量
 
-| 变量                                                                  | 默认                    | 说明                              |
-| --------------------------------------------------------------------- | ----------------------- | --------------------------------- |
-| `PORT`                                                                | `8080`                  | HTTP 端口                         |
-| `CORS_ORIGINS`                                                        | `http://localhost:5173` | 逗号分隔                          |
-| `APP_PROFILE`                                                         | `demo`                  | `demo` / `prod`                   |
-| `SIMULATE_DELAY`                                                      | `true`                  | 模拟数据源 test/import 延迟       |
-| `DEMO_TODAY`                                                          | `2026-06-19`            | Demo 看板锚定日期                 |
+| 变量                                                                  | 默认                    | 说明                                                    |
+| --------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------- |
+| `PORT`                                                                | `8080`                  | HTTP 端口                                               |
+| `CORS_ORIGINS`                                                        | `http://localhost:5173` | 逗号分隔                                                |
+| `APP_PROFILE`                                                         | `demo`                  | `demo` / `prod`                                         |
+| `SIMULATE_DELAY`                                                      | `true`                  | 模拟数据源 test/import 延迟                             |
+| `DEMO_TODAY`                                                          | `2026-06-19`            | Demo 看板锚定日期                                       |
 | `DATABASE_URL`                                                        | **必填**                | Postgres 连接串；本地默认见 `config.DefaultDatabaseURL` |
-| `NEW_API_ENABLED`                                                     | `false`                 | Relay + worker                    |
-| `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` / `NEW_API_WEBHOOK_SECRET` | —                       | 启用 NewAPI 时必填                |
-| `DATA_SOURCE_CREDENTIAL_KEY`                                          | —                       | 飞书等凭证 AES-GCM（32 字节 hex） |
+| `NEW_API_ENABLED`                                                     | `false`                 | Relay + worker                                          |
+| `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` / `NEW_API_WEBHOOK_SECRET` | —                       | 启用 NewAPI 时必填                                      |
+| `DATA_SOURCE_CREDENTIAL_KEY`                                          | —                       | 飞书等凭证 AES-GCM（32 字节 hex）                       |
 
 ---
 
@@ -187,14 +187,14 @@ flowchart TB
 
 ## 11. 维护要点
 
-| 项               | 说明                                        |
-| ---------------- | ------------------------------------------- |
-| HTTP 错误出口    | 收敛到 `httputil` / `writeDomainError`      |
-| 读鉴权一致性     | prod profile 下各域 GET 挂 Session + 读权限 |
-| Context 传递     | domain 内避免 `context.Background()` 滥用   |
-| org.Service 体量 | 按需拆子 interface                          |
-| 存储演进         | snapshot 写放大时按域分片                   |
-| Worker 测试      | `app.WithoutWorker()`                       |
+| 项               | 说明                                                                         |
+| ---------------- | ---------------------------------------------------------------------------- |
+| HTTP 错误出口    | 收敛到 `httputil` / `writeDomainError`                                       |
+| 读鉴权一致性     | prod profile 下各域 GET 挂 Session + 读权限                                  |
+| Context 传递     | domain 内避免 `context.Background()` 滥用                                    |
+| org.Service 体量 | 按需拆子 interface                                                           |
+| 存储演进         | snapshot 写放大时按域分片；详见 [Backend-存储架构.md](./Backend-存储架构.md) |
+| Worker 测试      | `app.WithoutWorker()`                                                        |
 
 功能 backlog 见 [Backend-待实现.md](./Backend-待实现.md)。
 

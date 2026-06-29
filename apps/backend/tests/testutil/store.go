@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 func NewMemoryStore(t *testing.T, cfg config.Config) store.Store {
