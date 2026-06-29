@@ -7,23 +7,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Run from the repository root (pnpm workspace):
 
 - `pnpm install` — Install dependencies
-- `pnpm start` / `pnpm dev` — Start Vite dev server with HMR
+- `pnpm start` / `pnpm dev` — Start backend + frontend (Vite proxy to `:8080`)
 - `pnpm build` — TypeScript type-check (`tsc -b`) then Vite production build
 - `pnpm lint` — ESLint across all TS/TSX files
 - `pnpm format` — Format all files with Prettier
-- `pnpm test` — Run vitest in watch mode
-- `pnpm test:run` — Run vitest once (CI-friendly)
-- `pnpm preview` — Serve the production build locally
+- `pnpm test` — Run vitest once + backend unit tests
+- `pnpm verify` — lint + test + build（PR 前快捷命令）
+- `pnpm preview` — Serve the production build locally (frontend)
 
 To run a single test file: `pnpm --filter @tokenjoy/frontend exec vitest run tests/lib/org.test.ts`
 
 ## Architecture
 
-pnpm monorepo. Frontend app lives in `apps/frontend/`.
+pnpm monorepo. Frontend app lives in `apps/frontend/`. Backend API lives in `apps/backend/`.
 
 Single-page React app built with Vite 8, React 19, and TypeScript 6.
 
-**Entry point:** `apps/frontend/src/main.tsx` → starts MSW service worker when `USE_MOCKS` is true (`apps/frontend/src/config/app.ts`), then renders `<App />` into `#root`.
+**Entry point:** `apps/frontend/src/main.tsx` → renders `<App />` into `#root`.
 
 **Routing:** `react-router` v7 (imported from `'react-router'`, not `'react-router-dom'`). All routes are nested under `<AdminLayout />` which provides sidebar + header + `<Outlet />`. Route page components live in `apps/frontend/src/routes/org/`.
 
@@ -33,11 +33,11 @@ Single-page React app built with Vite 8, React 19, and TypeScript 6.
 
 **State management:** Zustand v5 — stores are co-located with the features that use them (no central store directory).
 
-**Data fetching:** Custom fetch wrapper in `apps/frontend/src/api/client.ts` with a `request<T>()` generic function (base URL: `/api`). Domain-specific API methods are in `apps/frontend/src/api/` (`org.ts`, `keys.ts`, `budget.ts`, `models.ts`, `dashboard.ts`, `audit.ts`, `session.ts`), organized as namespaced objects (`dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, etc.). No react-query/SWR — fetches happen directly in effects or event handlers. API contract: `docs/Frontend-API契约.md`.
+**Data fetching:** Custom fetch wrapper in `apps/frontend/src/api/client.ts` with a `request<T>()` generic function (base URL: `/api`). Domain-specific API methods are in `apps/frontend/src/api/` (`org.ts`, `keys.ts`, `budget.ts`, `models.ts`, `dashboard.ts`, `audit.ts`, `session.ts`), organized as namespaced objects (`dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, etc.). TanStack Query via `features/query`. API contract: `docs/Frontend-API契约.md`.
 
-**API mocking:** MSW v2 intercepts `/api/*` requests when `USE_MOCKS` is true. Handlers in `apps/frontend/src/mocks/handlers/` (aggregated by `handlers/index.ts`), fixtures in `apps/frontend/src/mocks/fixtures/` (re-exported via `mocks/data.ts`). Local backend proxy: set `VITE_API_PROXY_TARGET` in `vite.config.ts`.
+**Local backend proxy:** `apps/frontend/.env.development` sets `VITE_API_PROXY_TARGET=http://localhost:8080`. Root `pnpm start` runs backend and frontend together.
 
-**Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `apps/frontend/tests/setup.ts`. MSW is available for mocking API calls in tests. All specs live under `apps/frontend/tests/` (mirror `src/` paths); use `@tests/utils` for providers and `createMockApis`.
+**Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `apps/frontend/tests/setup.ts`. Tests use `createMockApis()` for API injection. All specs live under `apps/frontend/tests/` (mirror `src/` paths); use `@tests/utils` for providers and `createMockApis`.
 
 **Path alias:** `@/*` resolves to `./src/*` (configured in both `apps/frontend/vite.config.ts` and `apps/frontend/tsconfig.app.json`).
 

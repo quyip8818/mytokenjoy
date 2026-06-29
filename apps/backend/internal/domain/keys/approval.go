@@ -25,7 +25,7 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	rules := s.store.Models().RoutingRules()
 	models := s.store.Models().Models()
 	if msg := routingutil.ValidateModelsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
-		return types.KeyApproval{}, domain.NewDomainError(422, *msg)
+		return types.KeyApproval{}, domain.Validation(*msg)
 	}
 	applicant := "申请人"
 	department := ""
@@ -61,14 +61,14 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		}
 	}
 	if idx < 0 {
-		return domain.NewDomainError(404, "Not found")
+		return domain.NotFound("Not found")
 	}
 	approval := approvals[idx]
 	tree := s.store.Budget().Tree()
 	members := s.store.Org().Members()
 	reservedPool := budgetlookup.GetReservedPoolForMember(tree, members, approval.ApplicantID)
 	if approval.Type == "quota" && approval.RequestedQuota > reservedPool {
-		return domain.NewDomainError(422, "Reserved pool insufficient")
+		return domain.Validation("Reserved pool insufficient")
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {

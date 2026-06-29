@@ -10,21 +10,23 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/permission"
 	"github.com/tokenjoy/backend/internal/seed"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestSessionDemoMissingMemberID(t *testing.T) {
 	router := newTestRouter(t)
-	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", rec.Code)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }
 
 func TestSessionDemoNotFound(t *testing.T) {
 	router := newTestRouter(t)
-	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=missing", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Cookie", "tokenjoy_session_member=missing")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {
@@ -44,7 +46,8 @@ func TestSessionProductionUnauthorized(t *testing.T) {
 
 func TestSessionDemoSuccess(t *testing.T) {
 	router := newTestRouter(t)
-	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId="+seed.IDMemberAdmin, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Cookie", testutil.SessionCookie(seed.IDMemberAdmin))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { DepartmentCost, DepartmentCostMember } from '@/api/types'
-import type { DrillState } from '@/lib/dashboard'
+import { formatTokenCount, type DrillState } from '@/lib/dashboard'
 
 interface CostDrillTableProps {
   drill: DrillState
@@ -67,7 +67,7 @@ export function CostDrillTable({
                   {m.cost.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
-                  {(m.tokens / 1000000).toFixed(1)}M
+                  {formatTokenCount(m.tokens)}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {m.requests.toLocaleString()}

@@ -2,24 +2,11 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/config"
-	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
-	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
-	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/domain/relay"
-	"github.com/tokenjoy/backend/internal/domain/session"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	httpapi "github.com/tokenjoy/backend/internal/http"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/notification"
 	"github.com/tokenjoy/backend/internal/seed"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -28,10 +15,25 @@ import (
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
 	snapshot := seed.Load(cfg)
+	var st store.Store
+	var err error
 	if cfg.DatabaseURL == "" {
-		return store.NewMemory(snapshot), nil
+		st = store.NewMemory(snapshot)
+	} else {
+		st, err = postgres.New(ctx, cfg, snapshot)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return postgres.New(ctx, cfg.DatabaseURL, snapshot)
+	if cfg.IsDemoProfile() {
+		if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+			if closer, ok := st.(interface{ Close() }); ok {
+				closer.Close()
+			}
+			return nil, err
+		}
+	}
+	return st, nil
 }
 
 type App struct {
@@ -61,44 +63,26 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 	}
 
 	ctx := context.Background()
-	st, err := openStore(ctx, cfg)
+	infraDeps, err := buildInfra(ctx, cfg, logger)
 	if err != nil {
-		return nil, fmt.Errorf("open store: %w", err)
+		return nil, err
 	}
+	st := infraDeps.store
 
-	var adminClient newapi.AdminClient
-	if cfg.NewAPIEnabled {
-		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
-	}
-
-	lifecycle := relay.NewTokenLifecycle(cfg, st, adminClient)
-	notifier := notification.NewService(cfg, st, logger)
-	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, notifier, logger)
-	rebalance := domainbudget.NewRebalanceService(cfg, st, adminClient, lifecycle)
-
-	sessionSvc := session.NewService(st)
-	factory := datasource.NewFactory(cfg)
-	orgSvc := domainorg.NewService(cfg, st, factory, lifecycle, notifier, logger)
-	budgetSvc := domainbudget.NewService(cfg, st)
-	keysSvc := domainkeys.NewService(cfg, st, lifecycle)
-	modelsSvc := domainmodels.NewService(cfg, st, adminClient, lifecycle)
-	logAggregator := domainusage.NewLogAggregator(adminClient, st, logger)
-	dashboardSvc := domaindashboard.NewService(cfg, st, logAggregator)
-	auditSvc := domainaudit.NewService(cfg, st)
-
-	runner := worker.NewRunner(cfg, st, adminClient, lifecycle, ingest, rebalance, orgSvc, logger)
+	services := buildDomainServices(cfg, infraDeps, logger)
+	runner := worker.NewRunner(cfg, st, infraDeps.adminClient, infraDeps.lifecycle, services.ingest, services.rebalance, services.org, logger)
 
 	router := httpapi.NewRouter(httpapi.Deps{
 		Config:       cfg,
 		Logger:       logger,
-		SessionSvc:   sessionSvc,
-		OrgSvc:       orgSvc,
-		BudgetSvc:    budgetSvc,
-		KeysSvc:      keysSvc,
-		ModelsSvc:    modelsSvc,
-		DashboardSvc: dashboardSvc,
-		AuditSvc:     auditSvc,
-		IngestSvc:    ingest,
+		SessionSvc:   services.session,
+		OrgSvc:       services.org,
+		BudgetSvc:    services.budget,
+		KeysSvc:      services.keys,
+		ModelsSvc:    services.models,
+		DashboardSvc: services.dashboard,
+		AuditSvc:     services.audit,
+		IngestSvc:    services.ingest,
 	})
 
 	workerCtx, cancel := context.WithCancel(context.Background())

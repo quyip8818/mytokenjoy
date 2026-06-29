@@ -1,4 +1,4 @@
-.PHONY: dev test test-unit test-integration build lint format
+.PHONY: dev test test-unit test-integration build lint format scaffold-domain
 
 dev:
 	go run ./cmd/server
@@ -20,3 +20,8 @@ lint:
 
 format:
 	gofmt -w .
+
+scaffold-domain:
+	@test -n "$(DOMAIN)" || (echo "usage: make scaffold-domain DOMAIN=foo"; exit 1)
+	@chmod +x ./scripts/scaffold-domain.sh
+	./scripts/scaffold-domain.sh $(DOMAIN)

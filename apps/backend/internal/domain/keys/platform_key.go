@@ -35,25 +35,25 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 			}
 		}
 		if group == nil {
-			return types.PlatformKey{}, domain.NewDomainError(404, "Budget group not found")
+			return types.PlatformKey{}, domain.NotFound("Budget group not found")
 		}
 		if msg := budgetgroupquota.ValidateGroupKeyQuota(*group, platformKeys, input.Quota, ""); msg != nil {
-			return types.PlatformKey{}, domain.NewDomainError(422, *msg)
+			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
 			if msg := routingutil.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
-				return types.PlatformKey{}, domain.NewDomainError(422, *msg)
+				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		}
 	} else {
 		if input.MemberID == nil {
-			return types.PlatformKey{}, domain.NewDomainError(400, "memberId required")
+			return types.PlatformKey{}, domain.BadRequest("memberId required")
 		}
 		if msg := routingutil.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
-			return types.PlatformKey{}, domain.NewDomainError(422, *msg)
+			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.Quota > memberquota.GetQuotaRemaining(pools, platformKeys, *input.MemberID) {
-			return types.PlatformKey{}, domain.NewDomainError(422, "额度不足，请先申请追加")
+			return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 		}
 	}
 
@@ -112,7 +112,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 			}
 		}
 		if departmentID == "" {
-			return types.PlatformKey{}, domain.NewDomainError(422, "无法解析部门用于 Relay 同步")
+			return types.PlatformKey{}, domain.Validation("无法解析部门用于 Relay 同步")
 		}
 		if err := s.lifecycle.SyncCreatePlatformKey(ctx, created, departmentID); err != nil {
 			return types.PlatformKey{}, fmt.Errorf("relay sync enqueue: %w", err)
@@ -120,7 +120,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		fullKey, err := s.lifecycle.TrySyncCreate(ctx, created.ID)
 		if err != nil {
 			s.lifecycle.RollbackFailedCreate(created.ID)
-			return types.PlatformKey{}, domain.NewDomainError(503, "Relay 同步失败，请稍后重试")
+			return types.PlatformKey{}, domain.ServiceUnavailable("Relay 同步失败，请稍后重试")
 		}
 		_ = fullKey
 		for _, key := range s.store.Keys().PlatformKeys() {
@@ -145,7 +145,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		}
 	}
 	if idx < 0 {
-		return types.PlatformKey{}, domain.NewDomainError(404, "Not found")
+		return types.PlatformKey{}, domain.NotFound("Not found")
 	}
 	existing := platformKeys[idx]
 	members := s.store.Org().Members()
@@ -157,7 +157,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 
 	if len(input.ModelWhitelist) > 0 && existing.MemberID != nil {
 		if msg := routingutil.ValidateModelsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgconst.ModelNotInDeptMessage); msg != nil {
-			return types.PlatformKey{}, domain.NewDomainError(422, *msg)
+			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}
 	if input.Quota != nil {
@@ -170,10 +170,10 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 				}
 			}
 			if group == nil {
-				return types.PlatformKey{}, domain.NewDomainError(404, "Budget group not found")
+				return types.PlatformKey{}, domain.NotFound("Budget group not found")
 			}
 			if msg := budgetgroupquota.ValidateGroupKeyQuota(*group, platformKeys, *input.Quota, existing.ID); msg != nil {
-				return types.PlatformKey{}, domain.NewDomainError(422, *msg)
+				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		} else if existing.MemberID != nil {
 			otherAllocated := 0.0
@@ -183,7 +183,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 				}
 			}
 			if otherAllocated+*input.Quota > memberquota.GetPersonalQuota(pools, *existing.MemberID) {
-				return types.PlatformKey{}, domain.NewDomainError(422, "额度不足，请先申请追加")
+				return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 			}
 		}
 	}
@@ -201,7 +201,9 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		return types.PlatformKey{}, err
 	}
 	if s.lifecycle != nil && s.lifecycle.Enabled() {
-		_ = s.lifecycle.EnqueueUpdatePlatformKey(id)
+		if err := s.lifecycle.EnqueueUpdatePlatformKey(id); err != nil {
+			return types.PlatformKey{}, err
+		}
 	}
 	return existing, nil
 }
@@ -222,12 +224,14 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 				return types.PlatformKey{}, err
 			}
 			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				_ = s.lifecycle.EnqueueUpdatePlatformKey(id)
+				if err := s.lifecycle.EnqueueUpdatePlatformKey(id); err != nil {
+					return types.PlatformKey{}, err
+				}
 			}
 			return platformKeys[i], nil
 		}
 	}
-	return types.PlatformKey{}, domain.NewDomainError(404, "Not found")
+	return types.PlatformKey{}, domain.NotFound("Not found")
 }
 
 func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error) {
@@ -250,7 +254,7 @@ func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.Platf
 			return platformKeys[i], nil
 		}
 	}
-	return types.PlatformKey{}, domain.NewDomainError(404, "Not found")
+	return types.PlatformKey{}, domain.NotFound("Not found")
 }
 
 func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
@@ -270,7 +274,7 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 			return nil
 		}
 	}
-	return domain.NewDomainError(404, "Not found")
+	return domain.NotFound("Not found")
 }
 
 func (s *service) DeletePlatformKey(id string) error {
@@ -278,8 +282,11 @@ func (s *service) DeletePlatformKey(id string) error {
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			platformKeys = append(platformKeys[:i], platformKeys[i+1:]...)
-			return s.store.Keys().SetPlatformKeys(platformKeys)
+			if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+				return err
+			}
+			return nil
 		}
 	}
-	return nil
+	return domain.NotFound("Not found")
 }

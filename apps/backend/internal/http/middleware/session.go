@@ -27,7 +27,11 @@ func SessionFromContext(ctx context.Context) (org.SessionContext, bool) {
 func RequireSession(cfg config.Config, sessionSvc session.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			memberID := sessionutil.ResolveMemberID(r, cfg.IsDemoProfile())
+			if cfg.IsProdProfile() && sessionutil.UsedBearerAuth(r) {
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+				return
+			}
+			memberID := sessionutil.ResolveMemberID(r)
 			if memberID == "" {
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return

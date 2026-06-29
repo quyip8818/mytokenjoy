@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/timeutil"
 )
 
@@ -18,7 +17,7 @@ type ResolvedRange struct {
 
 func Resolve(params types.CostQueryParams, now time.Time, timezone string) (ResolvedRange, error) {
 	if timezone == "" {
-		timezone = domainusage.DefaultTimezone
+		timezone = types.UsageDefaultTimezone
 	}
 	loc, err := timeutil.LoadLocation(timezone)
 	if err != nil {
@@ -31,7 +30,7 @@ func Resolve(params types.CostQueryParams, now time.Time, timezone string) (Reso
 	}
 	granularity := params.Granularity
 	if granularity == "" {
-		granularity = domainusage.GranularityDay
+		granularity = types.UsageGranularityDay
 	}
 
 	var start, end time.Time

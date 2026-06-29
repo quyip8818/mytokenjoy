@@ -57,6 +57,28 @@ func TestPlatformKeyDeleteHTTP(t *testing.T) {
 	}
 }
 
+func TestProviderKeyDeleteNotFoundHTTP(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodDelete, "/api/keys/provider/missing-provider-key", nil)
+	req.Header.Set("Cookie", sessionCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPlatformKeyDeleteNotFoundHTTP(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodDelete, "/api/keys/platform/missing-platform-key", nil)
+	req.Header.Set("Cookie", sessionCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestApprovalCreateHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	body := []byte(`{"type":"quota","reason":"need more","requestedQuota":500,"memberId":"m-1"}`)

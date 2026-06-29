@@ -1,5 +1,4 @@
 import { Link } from 'react-router'
-import { USE_MOCKS } from '@/config/app'
 import { LOGIN_PATH } from '@/config/auth'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/features/session/use-session'
@@ -20,7 +19,7 @@ function HeaderDevBackendToolbarContent() {
 }
 
 export function HeaderDevBackendToolbar() {
-  if (!import.meta.env.DEV || USE_MOCKS) {
+  if (!import.meta.env.DEV) {
     return null
   }
 

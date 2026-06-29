@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { TopConsumer } from '@/api/types'
+import { formatTokenCount } from '@/lib/dashboard'
 
 interface CostTopConsumersTableProps {
   topConsumers: TopConsumer[]
@@ -42,7 +43,7 @@ export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumer
               <TableCell className="text-sm text-muted-foreground">{c.department}</TableCell>
               <TableCell className="text-right font-semibold">{c.cost.toLocaleString()}</TableCell>
               <TableCell className="text-right text-muted-foreground">
-                {(c.tokens / 1000000).toFixed(1)}M
+                {formatTokenCount(c.tokens)}
               </TableCell>
               <TableCell className="text-right text-muted-foreground">
                 {c.requests.toLocaleString()}

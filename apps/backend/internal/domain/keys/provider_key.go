@@ -37,7 +37,7 @@ func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProvi
 			return types.ProviderKey{}, err
 		}
 		if err := s.lifecycle.SyncUpsertProviderKey(ctx, created.ID); err != nil {
-			return types.ProviderKey{}, domain.NewDomainError(503, "Relay Channel 同步失败")
+			return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel 同步失败")
 		}
 	}
 	return created, nil
@@ -59,12 +59,14 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 				return err
 			}
 			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				_ = s.lifecycle.EnqueueUpsertProviderKey(id)
+				if err := s.lifecycle.EnqueueUpsertProviderKey(id); err != nil {
+					return err
+				}
 			}
 			return nil
 		}
 	}
-	return domain.NewDomainError(404, "Not found")
+	return domain.NotFound("Not found")
 }
 
 func (s *service) RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error) {
@@ -83,10 +85,19 @@ func (s *service) RotateProviderKey(ctx context.Context, id string) (types.Provi
 			return keys[i], nil
 		}
 	}
-	return types.ProviderKey{}, domain.NewDomainError(404, "Not found")
+	return types.ProviderKey{}, domain.NotFound("Not found")
 }
 
 func (s *service) DeleteProviderKey(id string) error {
-	_ = id
-	return nil
+	keys := s.store.Keys().ProviderKeys()
+	for i := range keys {
+		if keys[i].ID == id {
+			keys = append(keys[:i], keys[i+1:]...)
+			if err := s.store.Keys().SetProviderKeys(keys); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return domain.NotFound("Not found")
 }

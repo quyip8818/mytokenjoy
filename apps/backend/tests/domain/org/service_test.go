@@ -62,7 +62,10 @@ func TestBatchImportUnknownDepartment(t *testing.T) {
 
 func TestCreateRoleAndList(t *testing.T) {
 	svc := newTestOrgService(t)
-	role := svc.CreateRole("测试角色", []string{"p-1"})
+	role, err := svc.CreateRole("测试角色", []string{"p-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if role.Name != "测试角色" {
 		t.Fatalf("unexpected role name %s", role.Name)
 	}
@@ -80,7 +83,10 @@ func TestCreateRoleAndList(t *testing.T) {
 
 func TestAddRoleMember(t *testing.T) {
 	svc := newTestOrgService(t)
-	role := svc.CreateRole("附加角色", []string{"p-1"})
+	role, err := svc.CreateRole("附加角色", []string{"p-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := svc.AddRoleMember(role.ID, "m-3"); err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +111,10 @@ func TestAddRoleMember(t *testing.T) {
 
 func TestRemoveRoleMemberSuccess(t *testing.T) {
 	svc := newTestOrgService(t)
-	role := svc.CreateRole("可移除角色", []string{"p-2"})
+	role, err := svc.CreateRole("可移除角色", []string{"p-2"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := svc.AddRoleMember(role.ID, "m-3"); err != nil {
 		t.Fatal(err)
 	}

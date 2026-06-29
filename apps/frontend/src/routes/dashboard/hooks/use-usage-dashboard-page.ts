@@ -1,9 +1,14 @@
+import { useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
+import type { CostQueryParams } from '@/api/types'
+import { COST_PERIOD } from '@/lib/dashboard-constants'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 export function useUsageDashboardPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
+  const costQuery = useMemo<CostQueryParams>(() => ({ period: COST_PERIOD.CURRENT_MONTH }), [])
+
   const {
     data: teamUsage = [],
     loading: teamLoading,
@@ -11,8 +16,8 @@ export function useUsageDashboardPage(injectedApis?: AppApis) {
     refresh: refreshTeam,
   } = useInjectedQuery({
     injectedApis: apis,
-    queryKey: [...queryKeys.dashboard.usage(), 'team'],
-    queryFn: (a) => a.dashboardApi.getTeamUsage(),
+    queryKey: [...queryKeys.dashboard.usage(), 'team', costQuery],
+    queryFn: (a) => a.dashboardApi.getTeamUsage(costQuery),
   })
   const {
     data: modelUsage = [],
@@ -21,8 +26,8 @@ export function useUsageDashboardPage(injectedApis?: AppApis) {
     refresh: refreshModel,
   } = useInjectedQuery({
     injectedApis: apis,
-    queryKey: [...queryKeys.dashboard.usage(), 'model'],
-    queryFn: (a) => a.dashboardApi.getModelUsage(),
+    queryKey: [...queryKeys.dashboard.usage(), 'model', costQuery],
+    queryFn: (a) => a.dashboardApi.getModelUsage(costQuery),
   })
 
   const loading = teamLoading || modelLoading

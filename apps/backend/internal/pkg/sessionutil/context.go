@@ -10,16 +10,15 @@ import (
 
 const SessionCookie = "tokenjoy_session_member"
 
-func ResolveMemberID(r *http.Request, allowDemo bool) string {
-	if allowDemo {
-		if demoMemberID := r.Header.Get("X-Demo-Member-Id"); demoMemberID != "" {
-			return demoMemberID
-		}
-		if memberID := r.URL.Query().Get("memberId"); memberID != "" {
-			return memberID
-		}
+func UsedBearerAuth(r *http.Request) bool {
+	authorization := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authorization, "Bearer ") {
+		return false
 	}
+	return strings.TrimSpace(strings.TrimPrefix(authorization, "Bearer ")) != ""
+}
 
+func ResolveMemberID(r *http.Request) string {
 	if cookie, err := r.Cookie(SessionCookie); err == nil && cookie.Value != "" {
 		return cookie.Value
 	}

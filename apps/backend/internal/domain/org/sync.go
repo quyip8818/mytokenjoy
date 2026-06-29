@@ -66,7 +66,8 @@ func (s *service) shouldRunScheduledSync(cfg SyncConfig) bool {
 	}
 	parsed, err := time.Parse("15:04", cfg.StartTime)
 	if err != nil {
-		return true
+		s.logger.Warn("invalid sync start time", "start_time", cfg.StartTime, "error", err)
+		return false
 	}
 	now := time.Now()
 	startToday := time.Date(now.Year(), now.Month(), now.Day(), parsed.Hour(), parsed.Minute(), 0, 0, now.Location())

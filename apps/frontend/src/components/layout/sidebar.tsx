@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups, type NavItem } from '@/config/nav'
-import { useApprovalPendingCount } from '@/hooks/use-approval-pending-count'
+import { useApprovalPendingCountQuery } from '@/hooks/use-approval-pending-count-query'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -158,7 +158,7 @@ export function Sidebar() {
   const location = useLocation()
   const { permissions } = usePermissions()
   const navGroups = getVisibleNavGroups(permissions)
-  const approvalPendingCount = useApprovalPendingCount()
+  const { data: approvalPendingCount = 0 } = useApprovalPendingCountQuery({ poll: true })
   const { collapsed, toggleCollapsed } = useSidebarLayout()
 
   const getBadge = (badgeKey?: string) => {

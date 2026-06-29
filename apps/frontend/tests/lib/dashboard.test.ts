@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateDailyCosts, buildCostStats } from '@/lib/dashboard'
-import type { CostSummary, DailyCost } from '@/api/types'
+import { buildCostStats, buildUsageSeriesChartData, formatTokenCount } from '@/lib/dashboard'
+import type { CostSummary } from '@/api/types'
 
 describe('buildCostStats', () => {
   it('maps each primary metric with its own mom field', () => {
@@ -22,22 +22,50 @@ describe('buildCostStats', () => {
     expect(stats.find((s) => s.label === '总调用次数')?.mom).toBe(8)
     expect(stats.find((s) => s.label === '总 Token')?.mom).toBeUndefined()
   })
+
+  it('shows dash for zero total tokens', () => {
+    const summary: CostSummary = {
+      totalCost: 1000,
+      totalCostMom: 0,
+      totalTokens: 0,
+      totalRequests: 0,
+      totalRequestsMom: 0,
+      avgCostPerRequest: 0,
+      avgCostPerRequestMom: 0,
+      avgCostPerMember: 0,
+      avgCostPerMemberMom: 0,
+    }
+    const stats = buildCostStats(summary)
+    expect(stats.find((s) => s.label === '总 Token')?.value).toBe('-')
+    expect(formatTokenCount(0)).toBe('-')
+  })
 })
 
-describe('aggregateDailyCosts', () => {
-  const daily: DailyCost[] = [
-    { date: '2026-06-02', cost: 10, tokens: 100, requests: 5 },
-    { date: '2026-06-03', cost: 20, tokens: 200, requests: 10 },
-    { date: '2026-06-09', cost: 30, tokens: 300, requests: 15 },
-  ]
+describe('buildUsageSeriesChartData', () => {
+  it('aggregates points by bucket and formats hour labels', () => {
+    const chartData = buildUsageSeriesChartData(
+      [
+        {
+          bucket: '2026-06-10T09:00:00+08:00',
+          costCny: 4,
+          callCount: 2,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+        {
+          bucket: '2026-06-10T09:00:00+08:00',
+          costCny: 6,
+          callCount: 3,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+      ],
+      'hour',
+    )
 
-  it('returns daily rows unchanged for day granularity', () => {
-    expect(aggregateDailyCosts(daily, 'day')).toEqual(daily)
-  })
-
-  it('aggregates rows by month', () => {
-    const result = aggregateDailyCosts(daily, 'month')
-    expect(result).toHaveLength(1)
-    expect(result[0].cost).toBe(60)
+    expect(chartData).toHaveLength(1)
+    expect(chartData[0]?.costCny).toBe(10)
+    expect(chartData[0]?.callCount).toBe(5)
+    expect(chartData[0]?.label).toMatch(/06-10/)
   })
 })

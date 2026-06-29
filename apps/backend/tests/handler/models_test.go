@@ -46,7 +46,7 @@ func TestModelCreateHTTP(t *testing.T) {
 func TestModelToggleHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	body := []byte(`{"enabled":false}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/models/mdl-1/toggle", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/models/model-1/toggle", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()

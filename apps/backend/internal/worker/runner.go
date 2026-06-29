@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"math"
 	"time"
@@ -111,37 +112,55 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 		switch entry.Kind {
 		case store.OutboxKindCreateToken:
 			var payload relay.CreateTokenOutboxPayload
-			_ = json.Unmarshal(entry.Payload, &payload)
+			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+				processErr = fmt.Errorf("unmarshal create token payload: %w", err)
+				break
+			}
 			_, processErr = r.lifecycle.TrySyncCreate(ctx, payload.PlatformKeyID)
 		case store.OutboxKindUpdateToken:
 			var payload relay.UpdateTokenOutboxPayload
-			_ = json.Unmarshal(entry.Payload, &payload)
+			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+				processErr = fmt.Errorf("unmarshal update token payload: %w", err)
+				break
+			}
 			processErr = r.lifecycle.SyncUpdatePlatformKey(ctx, payload.PlatformKeyID)
 		case store.OutboxKindRevokeToken:
 			var payload relay.UpdateTokenOutboxPayload
-			_ = json.Unmarshal(entry.Payload, &payload)
+			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+				processErr = fmt.Errorf("unmarshal revoke token payload: %w", err)
+				break
+			}
 			processErr = r.lifecycle.SyncRevokePlatformKey(ctx, payload.PlatformKeyID)
 		case store.OutboxKindUpsertChannel:
 			var payload relay.UpsertChannelOutboxPayload
-			_ = json.Unmarshal(entry.Payload, &payload)
+			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+				processErr = fmt.Errorf("unmarshal upsert channel payload: %w", err)
+				break
+			}
 			processErr = r.lifecycle.SyncUpsertProviderKey(ctx, payload.ProviderKeyID)
 		case store.OutboxKindUpdateModelLimits:
 			var payload relay.UpdateModelLimitsOutboxPayload
-			_ = json.Unmarshal(entry.Payload, &payload)
+			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+				processErr = fmt.Errorf("unmarshal update model limits payload: %w", err)
+				break
+			}
 			processErr = r.lifecycle.SyncModelLimitsForDepartment(ctx, payload.DepartmentID)
 		case store.OutboxKindRebalanceToken:
 			var payload relay.RebalanceAxisOutboxPayload
-			_ = json.Unmarshal(entry.Payload, &payload)
+			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+				processErr = fmt.Errorf("unmarshal rebalance payload: %w", err)
+				break
+			}
 			processErr = r.rebalance.ProcessAxis(ctx, payload.AxisKind, payload.AxisID)
 		default:
-			processErr = nil
+			processErr = fmt.Errorf("unknown relay outbox kind: %s", entry.Kind)
 		}
 		if processErr != nil {
 			next := time.Now().Add(backoff(entry.Attempts))
-			_ = r.store.Relay().MarkRelayOutboxRetry(entry.ID, next, processErr.Error())
+			r.markRelayOutboxRetry(entry.ID, next, processErr.Error())
 			continue
 		}
-		_ = r.store.Relay().MarkRelayOutboxDone(entry.ID)
+		r.markRelayOutboxDone(entry.ID)
 	}
 	return nil
 }
@@ -154,10 +173,10 @@ func (r *Runner) processWebhookOutbox(ctx context.Context) error {
 	for _, entry := range entries {
 		if err := r.ingest.IngestFromOutbox(ctx, entry.Payload); err != nil {
 			next := time.Now().Add(backoff(entry.Attempts))
-			_ = r.store.Relay().MarkWebhookOutboxRetry(entry.ID, next, err.Error())
+			r.markWebhookOutboxRetry(entry.ID, next, err.Error())
 			continue
 		}
-		_ = r.store.Relay().MarkWebhookOutboxDone(entry.ID)
+		r.markWebhookOutboxDone(entry.ID)
 	}
 	return nil
 }
@@ -170,10 +189,12 @@ func (r *Runner) processRebalance(ctx context.Context) error {
 	for _, entry := range entries {
 		if err := r.rebalance.ProcessAxis(ctx, entry.AxisKind, entry.AxisID); err != nil {
 			r.logger.Warn("rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "error", err)
-			_ = r.lifecycle.EnqueueRebalanceAxis(entry.AxisKind, entry.AxisID)
+			if enqueueErr := r.lifecycle.EnqueueRebalanceAxis(entry.AxisKind, entry.AxisID); enqueueErr != nil {
+				r.logger.Warn("re-enqueue rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "error", enqueueErr)
+			}
 			continue
 		}
-		_ = r.store.Relay().MarkRebalanceDone(entry.ID)
+		r.markRebalanceDone(entry.ID)
 	}
 	return nil
 }
@@ -208,4 +229,34 @@ func (r *Runner) compensateLogs(ctx context.Context) error {
 func backoff(attempts int) time.Duration {
 	seconds := math.Min(300, math.Pow(2, float64(attempts)))
 	return time.Duration(seconds) * time.Second
+}
+
+func (r *Runner) markRelayOutboxRetry(id string, next time.Time, reason string) {
+	if err := r.store.Relay().MarkRelayOutboxRetry(id, next, reason); err != nil {
+		r.logger.Warn("mark relay outbox retry failed", "id", id, "error", err)
+	}
+}
+
+func (r *Runner) markRelayOutboxDone(id string) {
+	if err := r.store.Relay().MarkRelayOutboxDone(id); err != nil {
+		r.logger.Warn("mark relay outbox done failed", "id", id, "error", err)
+	}
+}
+
+func (r *Runner) markWebhookOutboxRetry(id string, next time.Time, reason string) {
+	if err := r.store.Relay().MarkWebhookOutboxRetry(id, next, reason); err != nil {
+		r.logger.Warn("mark webhook outbox retry failed", "id", id, "error", err)
+	}
+}
+
+func (r *Runner) markWebhookOutboxDone(id string) {
+	if err := r.store.Relay().MarkWebhookOutboxDone(id); err != nil {
+		r.logger.Warn("mark webhook outbox done failed", "id", id, "error", err)
+	}
+}
+
+func (r *Runner) markRebalanceDone(id string) {
+	if err := r.store.Relay().MarkRebalanceDone(id); err != nil {
+		r.logger.Warn("mark rebalance done failed", "id", id, "error", err)
+	}
 }

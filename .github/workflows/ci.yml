@@ -25,30 +25,16 @@ jobs:
 
       - run: pnpm lint
 
-      - run: pnpm test
-
-      - name: Build
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          VITE_ENABLE_MOCKS: 'true'
-        run: pnpm build
-
-  backend-unit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-
       - name: Build backend
         run: go build -o /dev/null ./...
         working-directory: apps/backend
 
-      - name: Test backend unit
-        run: make test-unit
-        working-directory: apps/backend
+      - run: pnpm test
+
+      - name: Build frontend
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: pnpm build
 
   backend-integration:
     runs-on: ubuntu-latest

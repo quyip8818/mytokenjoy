@@ -25,6 +25,20 @@ func FilterByDateRangeCreatedAt[T any](items []T, from, to string, createdAt fun
 	return result
 }
 
+func FilterByEquals[T any, V comparable](items []T, value V, extract func(T) V) []T {
+	var zero V
+	if value == zero {
+		return items
+	}
+	result := make([]T, 0, len(items))
+	for _, item := range items {
+		if extract(item) == value {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
 func FilterByKeyword[T any](items []T, keyword string, extractors []func(T) string) []T {
 	if strings.TrimSpace(keyword) == "" {
 		return items

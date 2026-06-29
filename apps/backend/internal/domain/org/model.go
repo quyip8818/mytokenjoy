@@ -24,9 +24,3 @@ type (
 	PlatformKey              = types.PlatformKey
 	SessionContext           = types.SessionContext
 )
-
-const (
-	PlatformFeishu   = types.PlatformFeishu
-	PlatformDingtalk = types.PlatformDingtalk
-	PlatformWecom    = types.PlatformWecom
-)

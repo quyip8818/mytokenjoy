@@ -1,0 +1,11 @@
+// Add import:
+//   domain__DOMAIN__ "github.com/tokenjoy/backend/internal/domain/__DOMAIN__"
+
+// Add to httpapi.Deps in internal/http/router.go:
+//   __DOMAIN_TITLE__Svc domain__DOMAIN__.Service
+
+// Add handler construction:
+//   __DOMAIN__Handler := httphandler.New__DOMAIN_TITLE__Handler(deps.Config, deps.__DOMAIN_TITLE__Svc, deps.SessionSvc)
+
+// Add route registration inside /api:
+//   r.Route("/__DOMAIN__", __DOMAIN__Handler.RegisterRoutes)

@@ -194,6 +194,17 @@ func (r *memoryRelayRepo) MarkRelayOutboxRetry(id string, nextRetry time.Time, l
 	return nil
 }
 
+func (r *memoryRelayRepo) relayOutboxEntry(id string) (RelayOutboxEntry, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, entry := range r.data.relayOutbox {
+		if entry.ID == id {
+			return entry, true
+		}
+	}
+	return RelayOutboxEntry{}, false
+}
+
 func (r *memoryRelayRepo) EnqueueWebhookOutbox(entry WebhookOutboxEntry) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

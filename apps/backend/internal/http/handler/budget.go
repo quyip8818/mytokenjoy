@@ -14,13 +14,15 @@ import (
 )
 
 type BudgetHandler struct {
-	cfg        config.Config
-	service    domainbudget.Service
-	sessionSvc session.Service
+	sessionHandlerBase
+	service domainbudget.Service
 }
 
 func NewBudgetHandler(cfg config.Config, service domainbudget.Service, sessionSvc session.Service) *BudgetHandler {
-	return &BudgetHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
+	return &BudgetHandler{
+		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		service:            service,
+	}
 }
 
 func (h *BudgetHandler) Tree(w http.ResponseWriter, r *http.Request) {
@@ -123,8 +125,8 @@ func (h *BudgetHandler) AlertUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BudgetHandler) AlertDelete(w http.ResponseWriter, r *http.Request) {
-	_ = h.service.DeleteAlert(chi.URLParam(r, "id"))
-	httputil.WriteVoid(w, nil)
+	err := h.service.DeleteAlert(chi.URLParam(r, "id"))
+	httputil.WriteVoid(w, err)
 }
 
 func (h *BudgetHandler) RegisterRoutes(r chi.Router) {

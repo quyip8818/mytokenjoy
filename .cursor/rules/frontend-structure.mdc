@@ -23,7 +23,6 @@ Follow [docs/Frontend-开发指南.md](../docs/Frontend-开发指南.md) (especi
 | HTTP | `api/{domain}.ts` | One namespace per backend resource |
 | DTO types | `api/types/{domain}.ts` | Same domain as API |
 | Pure helpers | `lib/` | No React; unit-testable |
-| Demo date anchor | `mocks/lib/demo-clock.ts` | Fixture timestamps only; business code uses `lib/date.ts` |
 | Audit query builders | `lib/audit-query.ts` | Shared filter → API query mapping |
 | Audit CSV export | `lib/audit-export.ts` | Call/operation log → CSV rows |
 | Tests | `tests/` | Mirror `src/` subpaths; `@tests/` for fixtures/utils |
@@ -42,10 +41,9 @@ Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`
 
 ## Session & permissions
 
-- `useSession()` from `features/session` — `memberId`, permissions, loading (Demo + production)
-- `usePermissions()` reads `useSession()`; do not import `useDemoRole` in page/workflow hooks
-- `useDemoRole()` — Demo-only UI (role switcher, guide panel)
-- CTA highlight: `useCtaHighlight()` from `hooks/use-cta-highlight` (no-op in production; Demo provides context)
+- `useSession()` from `features/session` — `memberId`, permissions, loading
+- `usePermissions()` reads `useSession()`; do not bypass session in page/workflow hooks
+- Dev login: `/login` writes `tokenjoy_session_member` cookie; production uses Bearer token
 
 ## Routes (single source of truth)
 

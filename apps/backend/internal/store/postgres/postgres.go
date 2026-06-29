@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -23,8 +24,8 @@ type Store struct {
 	dirtyMu     sync.Mutex
 }
 
-func New(ctx context.Context, databaseURL string, seed store.Snapshot) (store.Store, error) {
-	pool, err := pgxpool.New(ctx, databaseURL)
+func New(ctx context.Context, cfg config.Config, seed store.Snapshot) (store.Store, error) {
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("connect postgres: %w", err)
 	}
@@ -38,7 +39,7 @@ func New(ctx context.Context, databaseURL string, seed store.Snapshot) (store.St
 	}
 
 	s := &Store{pool: pool}
-	if err := s.loadOrSeedDomain(ctx, seed); err != nil {
+	if err := s.loadOrSeedDomain(ctx, cfg, seed); err != nil {
 		pool.Close()
 		return nil, err
 	}
@@ -85,7 +86,7 @@ func (s *Store) Audit() store.AuditRepository {
 }
 func (s *Store) Relay() store.RelayRepository { return s.relay }
 
-func (s *Store) loadOrSeedDomain(ctx context.Context, seed store.Snapshot) error {
+func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config, seed store.Snapshot) error {
 	shards, err := s.loadShards(ctx)
 	if err != nil {
 		return err
@@ -97,6 +98,9 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, seed store.Snapshot) error
 		}
 		s.memory = store.NewMemory(snapshot)
 		return nil
+	}
+	if cfg.IsProdProfile() {
+		return fmt.Errorf("postgres domain shards incomplete in prod profile")
 	}
 	return s.seedDomainShards(ctx, seed)
 }

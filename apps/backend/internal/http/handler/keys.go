@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -16,13 +15,15 @@ import (
 )
 
 type KeysHandler struct {
-	cfg        config.Config
-	service    domainkeys.Service
-	sessionSvc session.Service
+	sessionHandlerBase
+	service domainkeys.Service
 }
 
 func NewKeysHandler(cfg config.Config, service domainkeys.Service, sessionSvc session.Service) *KeysHandler {
-	return &KeysHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
+	return &KeysHandler{
+		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		service:            service,
+	}
 }
 
 func (h *KeysHandler) RegisterRoutes(r chi.Router) {
@@ -72,20 +73,28 @@ func (h *KeysHandler) ProviderCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *KeysHandler) ProviderToggle(w http.ResponseWriter, r *http.Request) {
-	_ = json.NewDecoder(r.Body).Decode(&types.ToggleProviderKeyInput{})
+	var body types.ToggleProviderKeyInput
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
 	err := h.service.ToggleProviderKey(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
 func (h *KeysHandler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
-	_ = json.NewDecoder(r.Body).Decode(&types.RotateProviderKeyInput{})
+	var body types.RotateProviderKeyInput
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
 	key, err := h.service.RotateProviderKey(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
 func (h *KeysHandler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
-	_ = h.service.DeleteProviderKey(chi.URLParam(r, "id"))
-	httputil.WriteVoid(w, nil)
+	err := h.service.DeleteProviderKey(chi.URLParam(r, "id"))
+	httputil.WriteVoid(w, err)
 }
 
 func (h *KeysHandler) PlatformList(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +103,8 @@ func (h *KeysHandler) PlatformList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *KeysHandler) PlatformQuotaSummary(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.QuotaSummary(r.URL.Query().Get("memberId")))
+	summary, err := h.service.QuotaSummary(r.URL.Query().Get("memberId"))
+	httputil.WriteJSON(w, http.StatusOK, summary, err)
 }
 
 func (h *KeysHandler) PlatformCreate(w http.ResponseWriter, r *http.Request) {
@@ -138,8 +148,8 @@ func (h *KeysHandler) PlatformRevoke(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *KeysHandler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
-	_ = h.service.DeletePlatformKey(chi.URLParam(r, "id"))
-	httputil.WriteVoid(w, nil)
+	err := h.service.DeletePlatformKey(chi.URLParam(r, "id"))
+	httputil.WriteVoid(w, err)
 }
 
 func (h *KeysHandler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
@@ -162,15 +172,18 @@ func (h *KeysHandler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *KeysHandler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
-	approverID := sessionutil.ResolveMemberID(r, h.cfg.IsDemoProfile())
+	approverID := sessionutil.ResolveMemberID(r)
 	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), approverID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *KeysHandler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
 	var body types.RejectApprovalInput
-	_ = json.NewDecoder(r.Body).Decode(&body)
-	approverID := sessionutil.ResolveMemberID(r, h.cfg.IsDemoProfile())
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	approverID := sessionutil.ResolveMemberID(r)
 	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), approverID, body.Reason)
 	httputil.WriteVoid(w, err)
 }

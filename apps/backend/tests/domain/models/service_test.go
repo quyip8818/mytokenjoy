@@ -6,13 +6,14 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/simulate"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func newModelsService(t *testing.T) models.Service {
 	t.Helper()
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	return models.NewService(cfg, st, nil, nil)
+	return models.NewService(cfg, st, nil, nil, simulate.NewDelayer(false))
 }
 
 func TestResolveRoutingWithoutRule(t *testing.T) {

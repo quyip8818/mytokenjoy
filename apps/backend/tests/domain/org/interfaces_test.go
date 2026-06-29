@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/notification"
+	"github.com/tokenjoy/backend/internal/pkg/simulate"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -17,7 +18,7 @@ func newTestService(t *testing.T) org.Service {
 	factory := datasource.NewFactory(cfg)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, lifecycle, notifier, slog.Default())
+	return org.NewService(cfg, st, factory, lifecycle, notifier, simulate.NewDelayer(false), slog.Default())
 }
 
 func TestServiceImplementsSubInterfaces(t *testing.T) {

@@ -59,7 +59,7 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 		return cached, nil
 	}
 
-	fetchCtx, cancel := context.WithTimeout(ctx, NewAPILogsTimeout)
+	fetchCtx, cancel := context.WithTimeout(ctx, types.UsageNewAPILogsTimeout)
 	defer cancel()
 
 	unmappedCount := 0
@@ -72,10 +72,10 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 		return types.UsageSeriesResponse{}, err
 	}
 
-	for page := 1; page <= MaxLogPages; page++ {
+	for page := 1; page <= types.UsageMaxLogPages; page++ {
 		logs, err := a.client.ListLogs(fetchCtx, newapi.ListLogsParams{
 			Page:          page,
-			PageSize:      LogPageSize,
+			PageSize:      types.UsageLogPageSize,
 			StartUnixTime: q.Start.Unix(),
 			EndUnixTime:   q.End.Unix(),
 		})
@@ -95,7 +95,7 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 			break
 		}
 		for _, entry := range logs {
-			if totalLogs >= MaxLogEntries {
+			if totalLogs >= types.UsageMaxLogEntries {
 				truncated = true
 				break
 			}
@@ -105,7 +105,10 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 				continue
 			}
 			mapping, err := a.store.Relay().GetMappingByNewAPITokenID(entry.TokenID)
-			if err != nil || mapping == nil {
+			if err != nil {
+				return types.UsageSeriesResponse{}, fmt.Errorf("lookup relay mapping: %w", err)
+			}
+			if mapping == nil {
 				unmappedCount++
 				continue
 			}
@@ -127,11 +130,11 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 			bucket := timeutil.FormatBucketISO(timeutil.TruncateInTZ(createdAt, time.Minute, loc))
 			key := seriesAggKey{bucket: bucket}
 			switch q.GroupBy {
-			case GroupByDepartment:
+			case types.UsageGroupByDepartment:
 				key.departmentID = mapping.DepartmentID
-			case GroupByMember:
+			case types.UsageGroupByMember:
 				key.memberID = memberID
-			case GroupByModel:
+			case types.UsageGroupByModel:
 				key.model = modelName
 			}
 			point := aggregated[key]
@@ -145,7 +148,7 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 			point.CallCount++
 			aggregated[key] = point
 		}
-		if truncated || len(logs) < LogPageSize {
+		if truncated || len(logs) < types.UsageLogPageSize {
 			break
 		}
 	}
@@ -162,11 +165,11 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 	unmapped := unmappedCount
 	trunc := truncated
 	resp := types.UsageSeriesResponse{
-		Granularity:   GranularityMinute,
-		Source:        SourceLogs,
+		Granularity:   types.UsageGranularityMinute,
+		Source:        types.UsageSourceLogs,
 		Timezone:      q.Timezone,
 		Approximate:   true,
-		MappingAsOf:   MappingAsOfQueryTime,
+		MappingAsOf:   types.UsageMappingAsOfQueryTime,
 		UnmappedCount: &unmapped,
 		Truncated:     &trunc,
 		Points:        points,
@@ -204,7 +207,7 @@ func (a *LogAggregator) getCache(key string) (types.UsageSeriesResponse, bool) {
 func (a *LogAggregator) setCache(key string, resp types.UsageSeriesResponse) {
 	a.cacheMu.Lock()
 	defer a.cacheMu.Unlock()
-	a.cache[key] = cachedSeries{response: resp, expiresAt: time.Now().Add(MinuteCacheTTL)}
+	a.cache[key] = cachedSeries{response: resp, expiresAt: time.Now().Add(types.UsageMinuteCacheTTL)}
 }
 
 func containsID(items []string, target string) bool {

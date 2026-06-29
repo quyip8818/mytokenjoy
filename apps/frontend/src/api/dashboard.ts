@@ -8,6 +8,8 @@ import type {
   ModelUsage,
   TeamUsage,
   TopConsumer,
+  UsageSeriesQuery,
+  UsageSeriesResponse,
 } from './types'
 
 export const dashboardApi = {
@@ -23,6 +25,10 @@ export const dashboardApi = {
     request<DailyCost[]>(`/dashboard/cost/daily${buildQuery(params ?? {})}`),
   getTopConsumers: (params?: CostQueryParams & { limit?: number }) =>
     request<TopConsumer[]>(`/dashboard/cost/top${buildQuery(params ?? {})}`),
-  getModelUsage: () => request<ModelUsage[]>('/dashboard/usage/models'),
-  getTeamUsage: () => request<TeamUsage[]>('/dashboard/usage/teams'),
+  getModelUsage: (params?: CostQueryParams) =>
+    request<ModelUsage[]>(`/dashboard/usage/models${buildQuery(params ?? {})}`),
+  getTeamUsage: (params?: CostQueryParams) =>
+    request<TeamUsage[]>(`/dashboard/usage/teams${buildQuery(params ?? {})}`),
+  getUsageSeries: (params: UsageSeriesQuery) =>
+    request<UsageSeriesResponse>(`/dashboard/usage/series${buildQuery(params)}`),
 }

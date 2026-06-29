@@ -12,12 +12,12 @@
 
 ## 1. 背景与目标
 
-| 现状                                                                                          | 缺口                             |
-| --------------------------------------------------------------------------------------------- | -------------------------------- |
-| Phase 2 已有 `usage_daily`，ingest 按 **日** upsert（Phase 3 演进为 `usage_buckets` hour 桶） | 无 hour / minute 看板            |
-| Dashboard 仍读 `dashboardcalc` demo                                                           | 需接真实用量                     |
-| NewAPI `ListLogs` 已支持 `start_timestamp` / `end_timestamp`                                  | 仅 worker 补偿在用，未暴露给看板 |
-| Webhook → ingest 有 `created_at`（秒级）                                                      | 时间精度在入账前未保留到小时     |
+| 现状                                                                                          | 缺口                                          |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Phase 2 已有 `usage_daily`，ingest 按 **日** upsert（Phase 3 演进为 `usage_buckets` hour 桶） | 无 hour / minute 看板                         |
+| Dashboard 已读 `usage_buckets` 聚合；`dashboardcalc` 包已删除                                 | minute 需 NewAPI；前端 `usage/series` UI 已接 |
+| NewAPI `ListLogs` 已支持 `start_timestamp` / `end_timestamp`                                  | 仅 worker 补偿在用，未暴露给看板              |
+| Webhook → ingest 有 `created_at`（秒级）                                                      | 时间精度在入账前未保留到小时                  |
 
 **目标**
 
@@ -326,7 +326,7 @@ GET /api/dashboard/usage/series
 | `GET /dashboard/cost/summary`        | **周期内 buckets SUM** + 等长上一周期环比（同源 buckets）                                                                             |
 | `GET /dashboard/cost/departments` 等 | buckets 聚合；`CostQueryParams.granularity` 为 `week`/`month` 时在 SQL 对 buckets 做 `date_trunc('week'\|'month', … AT TIME ZONE tz)` |
 | `GET /dashboard/usage/teams`         | quota ← snapshot；consumed ← **周期 buckets SUM**                                                                                     |
-| `dashboardcalc`                      | 生产路径废弃，仅单测 / 无 PG 时 fallback                                                                                              |
+| `dashboardcalc`                      | **已删除**；看板读 `usage_buckets` / NewAPI logs                                                                                      |
 
 **粒度分工**
 
@@ -411,7 +411,7 @@ default:
 | 3    | `UsageRepository.QuerySeries`（day/hour，含时区 `date_trunc`）        | 无          |
 | 4    | `log_aggregator` + minute 窗口 / 分页 / `unmappedCount`               | 无          |
 | 5    | `GET /dashboard/usage/series` + dashboard service 改读 buckets        | 无          |
-| 6    | cost/_ / usage/_ 改 buckets 聚合；废弃 `dashboardcalc` 生产路径       | 无          |
+| 6    | cost/_ / usage/_ 改 buckets 聚合；删除 `dashboardcalc`                | **已完成**  |
 | 7    | 契约 §5.6 同步 `UsageSeries*` 扩展字段                                | 无          |
 
 ---

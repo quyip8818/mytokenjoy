@@ -24,4 +24,14 @@ export const COST_GRANULARITY_LABELS: Record<string, string> = {
   [COST_GRANULARITY.MONTH]: '按月',
 }
 
+export const USAGE_GRANULARITY = {
+  MINUTE: 'minute',
+  HOUR: 'hour',
+} as const
+
+export const USAGE_GRANULARITY_LABELS: Record<string, string> = {
+  [USAGE_GRANULARITY.MINUTE]: '按分钟',
+  [USAGE_GRANULARITY.HOUR]: '按小时',
+}
+
 export const MODEL_NOT_IN_DEPT_MESSAGE = '该模型不在您部门的可用范围内'

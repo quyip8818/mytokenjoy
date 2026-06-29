@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budgetlookup"
@@ -19,7 +20,7 @@ type Service interface {
 	RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error)
 	DeleteProviderKey(id string) error
 	ListPlatformKeys(memberID, budgetGroupID string) types.PageResult[types.PlatformKey]
-	QuotaSummary(memberID string) types.MemberQuotaSummary
+	QuotaSummary(memberID string) (types.MemberQuotaSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
 	UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
 	TogglePlatformKey(ctx context.Context, id string, enabled bool) (types.PlatformKey, error)
@@ -40,11 +41,11 @@ type service struct {
 	lifecycle relay.Lifecycle
 }
 
-func NewService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle) Service {
+func NewService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle, delayer simulate.Delayer) Service {
 	return &service{
 		cfg:       cfg,
 		store:     st,
-		delayer:   simulate.NewDelayer(cfg.SimulateDelay),
+		delayer:   delayer,
 		lifecycle: lifecycle,
 	}
 }
@@ -70,16 +71,16 @@ func (s *service) ListPlatformKeys(memberID, budgetGroupID string) types.PageRes
 	}
 }
 
-func (s *service) QuotaSummary(memberID string) types.MemberQuotaSummary {
+func (s *service) QuotaSummary(memberID string) (types.MemberQuotaSummary, error) {
 	if memberID == "" {
-		memberID = "m-1"
+		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
 	}
 	tree := s.store.Budget().Tree()
 	members := s.store.Org().Members()
 	pools := s.store.Budget().MemberQuotaPools()
 	platformKeys := s.store.Keys().PlatformKeys()
 	reservedPool := budgetlookup.GetReservedPoolForMember(tree, members, memberID)
-	return memberquota.BuildQuotaSummary(pools, platformKeys, memberID, reservedPool)
+	return memberquota.BuildQuotaSummary(pools, platformKeys, memberID, reservedPool), nil
 }
 
 func (s *service) ListApprovals(tab, memberID string) []types.KeyApproval {

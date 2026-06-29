@@ -17,7 +17,7 @@ type DataSourceService interface {
 
 type SyncService interface {
 	GetSyncConfig() SyncConfig
-	UpdateSyncConfig(cfg SyncConfig)
+	UpdateSyncConfig(cfg SyncConfig) error
 	TriggerSync(ctx context.Context) (ImportResult, error)
 	RunScheduledSync(ctx context.Context) error
 	ListSyncLogs(page, pageSize int) types.PageResult[SyncLog]
@@ -44,7 +44,7 @@ type MemberService interface {
 
 type RoleService interface {
 	ListRoles() []Role
-	CreateRole(name string, permissions []string) Role
+	CreateRole(name string, permissions []string) (Role, error)
 	UpdateRole(id, name string, permissions []string) (Role, error)
 	DeleteRole(id string) error
 	ListRoleMembers(roleID string) []Member

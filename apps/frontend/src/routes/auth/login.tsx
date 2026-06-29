@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router'
 import { Link } from 'react-router'
-import { USE_MOCKS } from '@/config/app'
 import { ROUTES } from '@/config/routes'
+import { DEV_SWITCHABLE_MEMBERS } from '@/config/dev-members'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
-import { DEMO_SWITCHABLE_MEMBERS } from '@/features/demo/roles/constants'
 import { setSessionMemberCookie } from '@/lib/session-cookie'
 
 function DevLoginPanel() {
@@ -19,7 +18,7 @@ function DevLoginPanel() {
         </p>
       </div>
       <ul className="flex flex-col gap-2">
-        {DEMO_SWITCHABLE_MEMBERS.map((member) => (
+        {DEV_SWITCHABLE_MEMBERS.map((member) => (
           <li key={member.id}>
             <Button
               type="button"
@@ -45,11 +44,9 @@ function DevLoginPanel() {
 }
 
 export default function LoginPage() {
-  const isDevBackend = import.meta.env.DEV && !USE_MOCKS
-
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      {isDevBackend ? (
+      {import.meta.env.DEV ? (
         <DevLoginPanel />
       ) : (
         <>

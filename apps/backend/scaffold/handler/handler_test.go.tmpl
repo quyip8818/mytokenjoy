@@ -1,0 +1,18 @@
+package handler_test
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func Test__DOMAIN_TITLE__ListHTTP(t *testing.T) {
+	router := newTestRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/__DOMAIN__/", nil)
+	req.Header.Set("Cookie", sessionCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK && rec.Code != http.StatusNotImplemented {
+		t.Fatalf("expected 200 or 501, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}

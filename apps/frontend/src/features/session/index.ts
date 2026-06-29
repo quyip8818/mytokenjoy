@@ -1,6 +1,5 @@
 export type { AppSession } from './types'
 export { useSession } from './use-session'
-export { DemoSessionProvider } from './demo-session-provider'
 export { AuthSessionProvider } from './auth-session-provider'
 export { SessionGate } from './session-gate'
 export { SessionNavigationBridge } from './session-navigation-bridge'

@@ -1,0 +1,36 @@
+package config_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/tokenjoy/backend/internal/config"
+)
+
+func TestProdRequiresDatabaseURL(t *testing.T) {
+	t.Setenv("APP_PROFILE", config.ProfileProd)
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("NEW_API_ENABLED", "false")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when prod profile has no DATABASE_URL")
+	}
+	if !strings.Contains(err.Error(), "DATABASE_URL") {
+		t.Fatalf("expected DATABASE_URL error, got %v", err)
+	}
+}
+
+func TestDemoAllowsMissingDatabaseURL(t *testing.T) {
+	t.Setenv("APP_PROFILE", config.ProfileDemo)
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("NEW_API_ENABLED", "false")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("expected demo config to load, got %v", err)
+	}
+	if cfg.IsProdProfile() {
+		t.Fatal("expected demo profile")
+	}
+}

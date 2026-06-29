@@ -113,6 +113,7 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     imported,
     setImportResult,
     handleImport,
+    handleTriggerSync,
     openCredential,
     openSyncConfig,
     navigateToStructure,

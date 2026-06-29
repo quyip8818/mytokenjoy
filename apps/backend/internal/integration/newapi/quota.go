@@ -26,7 +26,7 @@ func HighestModelPriceCNY(models []types.ModelInfo, whitelist []string) float64 
 		}
 	}
 	if highest <= 0 {
-		return 1
+		return pkgconst.DefaultModelPriceCNY
 	}
 	return highest
 }
@@ -59,12 +59,12 @@ func ModelPriceCNY(models []types.ModelInfo, modelName string) float64 {
 		if model.Name == modelName {
 			price := model.InputPrice + model.OutputPrice
 			if price <= 0 {
-				return 1
+				return pkgconst.DefaultModelPriceCNY
 			}
 			return price
 		}
 	}
-	return 1
+	return pkgconst.DefaultModelPriceCNY
 }
 
 func EffectiveWhitelist(keyWhitelist, deptAllowed []string) []string {

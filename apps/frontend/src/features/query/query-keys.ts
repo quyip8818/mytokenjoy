@@ -1,4 +1,4 @@
-import type { CostQueryParams } from '@/api/types'
+import type { CostQueryParams, UsageSeriesQuery } from '@/api/types'
 
 export const queryKeys = {
   session: {
@@ -46,8 +46,10 @@ export const queryKeys = {
   },
   dashboard: {
     all: ['dashboard'] as const,
-    cost: (query: CostQueryParams, drill: unknown) =>
-      [...queryKeys.dashboard.all, 'cost', query, drill] as const,
+    cost: (query: CostQueryParams, drill: unknown, granularity: string) =>
+      [...queryKeys.dashboard.all, 'cost', query, drill, granularity] as const,
     usage: () => [...queryKeys.dashboard.all, 'usage'] as const,
+    usageSeries: (query: UsageSeriesQuery) =>
+      [...queryKeys.dashboard.all, 'usage-series', query] as const,
   },
 }

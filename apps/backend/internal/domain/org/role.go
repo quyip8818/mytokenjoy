@@ -13,15 +13,17 @@ func (s *service) ListRoles() []Role {
 	return s.store.Org().Roles()
 }
 
-func (s *service) CreateRole(name string, permissions []string) Role {
+func (s *service) CreateRole(name string, permissions []string) (Role, error) {
 	roles := s.store.Org().Roles()
 	role := Role{
 		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
 		Name: name, Type: "custom", Permissions: permissions, MemberCount: 0,
 	}
 	roles = append(roles, role)
-	_ = s.store.Org().SetRoles(roles)
-	return role
+	if err := s.store.Org().SetRoles(roles); err != nil {
+		return Role{}, fmt.Errorf("persist roles: %w", err)
+	}
+	return role, nil
 }
 
 func (s *service) UpdateRole(id, name string, permissions []string) (Role, error) {
@@ -113,7 +115,7 @@ func (s *service) AddRoleMember(roleID, memberID string) error {
 		}
 	}
 	if role == nil {
-		return nil
+		return domain.NewDomainError(404, "Not found")
 	}
 
 	for i := range members {

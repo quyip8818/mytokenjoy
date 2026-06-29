@@ -15,3 +15,15 @@ func Forbidden(msg string) error {
 func BadRequest(msg string) error {
 	return NewDomainError(StatusBadRequest, msg)
 }
+
+func NotImplemented(msg string) error {
+	return NewDomainError(StatusNotImplemented, msg)
+}
+
+func ServiceUnavailable(msg string) error {
+	return NewDomainError(StatusServiceUnavailable, msg)
+}
+
+func TooManyRequests(msg string) error {
+	return NewDomainError(StatusTooManyRequests, msg)
+}

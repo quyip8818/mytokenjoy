@@ -6,12 +6,12 @@
 
 ## 0. 相关文档
 
-| 文档     | 路径                                                      | 用途                                        |
-| -------- | --------------------------------------------------------- | ------------------------------------------- |
-| 后端设计 | [Backend-设计.md](./Backend-设计.md)                      | 分层、Store、§11 策略                       |
-| API 契约 | [Frontend-API契约.md](./Frontend-API契约.md)              | 81 端点、状态码、JSON                       |
-| 系统架构 | [tokenjoy-architecture.md](./tokenjoy-architecture.md)    | 双平面、预算闭环、Relay                     |
-| CI       | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | `backend-unit` + `backend-integration` jobs |
+| 文档     | 路径                                                      | 用途                                                    |
+| -------- | --------------------------------------------------------- | ------------------------------------------------------- |
+| 后端设计 | [Backend-设计.md](./Backend-设计.md)                      | 分层、Store、§11 策略                                   |
+| API 契约 | [Frontend-API契约.md](./Frontend-API契约.md)              | 81 端点、状态码、JSON                                   |
+| 系统架构 | [tokenjoy-architecture.md](./tokenjoy-architecture.md)    | 双平面、预算闭环、Relay                                 |
+| CI       | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | `verify`（含 backend 单测）+ `backend-integration` jobs |
 
 ---
 
@@ -45,10 +45,10 @@ tests/
 
 | 层         | 目录                                 | 测什么                      | CI                                                      |
 | ---------- | ------------------------------------ | --------------------------- | ------------------------------------------------------- |
-| L1 纯函数  | `tests/pkg/*`                        | 校验、过滤、换算            | `backend-unit`                                          |
-| L2 Domain  | `tests/domain/*`                     | Service 规则 + Store 副作用 | `backend-unit`                                          |
-| L3 Handler | `tests/handler/*`                    | 路由、状态码、JSON          | `backend-unit`                                          |
-| L4 闭环    | `tests/domain/budget` 等             | 多 Service 协作             | `backend-unit`                                          |
+| L1 纯函数  | `tests/pkg/*`                        | 校验、过滤、换算            | `verify`（`pnpm test`）                                 |
+| L2 Domain  | `tests/domain/*`                     | Service 规则 + Store 副作用 | `verify`（`pnpm test`）                                 |
+| L3 Handler | `tests/handler/*`                    | 路由、状态码、JSON          | `verify`（`pnpm test`）                                 |
+| L4 闭环    | `tests/domain/budget` 等             | 多 Service 协作             | `verify`（`pnpm test`）                                 |
 | L5 外部    | `tests/store/postgres`               | DB 持久化                   | `backend-integration`（`-tags=integration` + Postgres） |
 | L6 门禁    | `apps/newapi/scripts/gate-verify.sh` | 真实 Relay                  | 手工                                                    |
 
@@ -87,7 +87,7 @@ go test ./tests/domain/keys/... -v # 单包
 go test ./tests/... -coverprofile=coverage.out && go tool cover -html=coverage.out
 ```
 
-根目录 `pnpm test` **不含** backend。PR 须 `make test-unit` 与 CI `backend-integration` 全绿。
+根目录 `pnpm test` 含 frontend（Vitest）与 backend 单测（`make test-unit`）。集成测另跑 `pnpm test:backend:integration` 或 CI `backend-integration` job。
 
 ---
 
@@ -95,36 +95,36 @@ go test ./tests/... -coverprofile=coverage.out && go tool cover -html=coverage.o
 
 ### 3.1 已有（34 文件）
 
-| 路径                                                                                                                                   | 覆盖点                                                               |
-| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `tests/handler/contract_test.go`                                                                                                       | demo profile：GET 带 admin cookie → 200 + JSON                       |
-| `tests/handler/contract_prod_test.go`                                                                                                  | prod profile：无 cookie GET → 401；admin cookie → 200                |
-| `tests/handler/authz_test.go`                                                                                                          | 写操作 401/403/200；`TestProdGetReadForbiddenForMember` prod GET 403 |
-| `tests/handler/handler_test.go`                                                                                                        | Session 双轨、healthz、域 smoke、预算超卖 422                        |
-| `tests/handler/webhook_test.go`                                                                                                        | Webhook 401/400/200                                                  |
-| `tests/handler/keys_test.go`                                                                                                           | 审批 approve/reject HTTP                                             |
-| `tests/handler/budget_test.go`                                                                                                         | PUT 节点 200                                                         |
-| `tests/handler/session_test.go`                                                                                                        | cookie 只读、`?memberId=` 优先级                                     |
-| `tests/handler/models_test.go`                                                                                                         | PUT routing → 200                                                    |
-| `tests/handler/org_test.go`                                                                                                            | POST member、batch-import                                            |
-| `tests/handler/audit_test.go`                                                                                                          | PUT settings → 200                                                   |
-| `tests/domain/budget/service_test.go`                                                                                                  | 节点/成员额度、组 CRUD                                               |
-| `tests/domain/budget/ingest_test.go`                                                                                                   | 入账幂等、rollup、outbox、EnqueueFailed                              |
-| `tests/domain/budget/ingest_overrun_test.go`                                                                                           | 超支 disable                                                         |
-| `tests/domain/budget/rebalance_test.go`                                                                                                | RemainQuota 仅下调                                                   |
-| `tests/domain/keys/service_test.go`                                                                                                    | 审批闭环、Platform/Group Key 校验                                    |
-| `tests/domain/keys/token_lifecycle_test.go`                                                                                            | outbox、CreateToken、rollback                                        |
-| `tests/domain/session/service_test.go`                                                                                                 | admin/404/只读                                                       |
-| `tests/domain/models/service_test.go`                                                                                                  | 路由继承/收缩、模型 CRUD                                             |
-| `tests/domain/org/service_test.go`                                                                                                     | 角色、分页、导入、Add/RemoveRoleMember                               |
-| `tests/domain/audit/service_test.go`                                                                                                   | 操作/通话日志过滤                                                    |
-| `tests/domain/dashboard/service_test.go`                                                                                               | 周期成本汇总                                                         |
-| `tests/worker/runner_test.go`                                                                                                          | relay/webhook outbox、log 补偿                                       |
-| `tests/store/postgres/persist_test.go`                                                                                                 | domain seed、relay mapping（integration）                            |
-| `tests/pkg/{budgetutil,budgetlookup,memberquota,budgetgroupquota,memberbudgetquota,routingutil,auditfilter,dashboardcalc,sessionutil}` | 纯函数                                                               |
-| `tests/permission/resolve_test.go`                                                                                                     | 角色权限、只读 Session                                               |
-| `tests/seed/loader_test.go`                                                                                                            | 种子数据完整性                                                       |
-| `tests/pkg/newapi/quota_test.go`                                                                                                       | 配额单位 / CNY 换算                                                  |
+| 路径                                                                                                                     | 覆盖点                                                               |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `tests/handler/contract_test.go`                                                                                         | demo profile：GET 带 admin cookie → 200 + JSON                       |
+| `tests/handler/contract_prod_test.go`                                                                                    | prod profile：无 cookie GET → 401；admin cookie → 200                |
+| `tests/handler/authz_test.go`                                                                                            | 写操作 401/403/200；`TestProdGetReadForbiddenForMember` prod GET 403 |
+| `tests/handler/handler_test.go`                                                                                          | Session 双轨、healthz、域 smoke、预算超卖 422                        |
+| `tests/handler/webhook_test.go`                                                                                          | Webhook 401/400/200                                                  |
+| `tests/handler/keys_test.go`                                                                                             | 审批 approve/reject HTTP                                             |
+| `tests/handler/budget_test.go`                                                                                           | PUT 节点 200                                                         |
+| `tests/handler/session_test.go`                                                                                          | cookie 只读、`?memberId=` 优先级                                     |
+| `tests/handler/models_test.go`                                                                                           | PUT routing → 200                                                    |
+| `tests/handler/org_test.go`                                                                                              | POST member、batch-import                                            |
+| `tests/handler/audit_test.go`                                                                                            | PUT settings → 200                                                   |
+| `tests/domain/budget/service_test.go`                                                                                    | 节点/成员额度、组 CRUD                                               |
+| `tests/domain/budget/ingest_test.go`                                                                                     | 入账幂等、rollup、outbox、EnqueueFailed                              |
+| `tests/domain/budget/ingest_overrun_test.go`                                                                             | 超支 disable                                                         |
+| `tests/domain/budget/rebalance_test.go`                                                                                  | RemainQuota 仅下调                                                   |
+| `tests/domain/keys/service_test.go`                                                                                      | 审批闭环、Platform/Group Key 校验                                    |
+| `tests/domain/keys/token_lifecycle_test.go`                                                                              | outbox、CreateToken、rollback                                        |
+| `tests/domain/session/service_test.go`                                                                                   | admin/404/只读                                                       |
+| `tests/domain/models/service_test.go`                                                                                    | 路由继承/收缩、模型 CRUD                                             |
+| `tests/domain/org/service_test.go`                                                                                       | 角色、分页、导入、Add/RemoveRoleMember                               |
+| `tests/domain/audit/service_test.go`                                                                                     | 操作/通话日志过滤                                                    |
+| `tests/domain/dashboard/service_test.go`                                                                                 | 周期成本汇总                                                         |
+| `tests/worker/runner_test.go`                                                                                            | relay/webhook outbox、log 补偿                                       |
+| `tests/store/postgres/persist_test.go`                                                                                   | domain seed、relay mapping（integration）                            |
+| `tests/pkg/{budgetutil,budgetlookup,memberquota,budgetgroupquota,memberbudgetquota,routingutil,auditfilter,sessionutil}` | 纯函数                                                               |
+| `tests/permission/resolve_test.go`                                                                                       | 角色权限、只读 Session                                               |
+| `tests/seed/loader_test.go`                                                                                              | 种子数据完整性                                                       |
+| `tests/pkg/newapi/quota_test.go`                                                                                         | 配额单位 / CNY 换算                                                  |
 
 ### 3.2 仍缺或暂缓
 
@@ -236,7 +236,7 @@ go test ./tests/... -coverprofile=coverage.out && go tool cover -html=coverage.o
 
 ## 5. 推荐实施顺序
 
-批次 1–3 **已完成**。CI 拆为 `backend-unit`（`make test-unit`）与 `backend-integration`（Postgres service + `make test-integration`）。
+批次 1–3 **已完成**。CI：`verify` job 含 `pnpm test`（frontend + backend 单测）与 `go build`；`backend-integration` job 跑 Postgres 集成测。
 
 ```
 批次 1（P0 闭环）✅
@@ -302,12 +302,12 @@ req.Header.Set("Cookie", testutil.SessionCookie(seed.IDMemberAdmin))
 
 ## 7. 与前端边界
 
-|      | Backend                                           | Frontend     |
-| ---- | ------------------------------------------------- | ------------ |
-| 目录 | `tests/`                                          | `tests/`     |
-| 工具 | Go testing                                        | Vitest + MSW |
-| 契约 | 同源 [Frontend-API契约.md](./Frontend-API契约.md) | 同源         |
-| CI   | `backend-unit` + `backend-integration` jobs       | `verify` job |
+|      | Backend                                            | Frontend     |
+| ---- | -------------------------------------------------- | ------------ |
+| 目录 | `tests/`                                           | `tests/`     |
+| 工具 | Go testing                                         | Vitest + MSW |
+| 契约 | 同源 [Frontend-API契约.md](./Frontend-API契约.md)  | 同源         |
+| CI   | `verify`（含 backend 单测）+ `backend-integration` | `verify` job |
 
 默认 CI **不**启动 backend 进程；E2E 若做则独立 job。
 

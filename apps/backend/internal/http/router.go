@@ -15,6 +15,7 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	httphandler "github.com/tokenjoy/backend/internal/http/handler"
+	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 )
 
@@ -39,13 +40,13 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
 	sessionHandler := httphandler.NewSessionHandler(deps.Config, deps.SessionSvc)
-	orgHandler := httphandler.NewOrgHandler(deps.OrgSvc, deps.SessionSvc, deps.Config)
+	orgHandler := orghandler.NewHandler(deps.Config, deps.OrgSvc, deps.SessionSvc)
 	budgetHandler := httphandler.NewBudgetHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc)
 	keysHandler := httphandler.NewKeysHandler(deps.Config, deps.KeysSvc, deps.SessionSvc)
 	modelsHandler := httphandler.NewModelsHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc)
 	dashboardHandler := httphandler.NewDashboardHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc)
 	auditHandler := httphandler.NewAuditHandler(deps.Config, deps.AuditSvc, deps.SessionSvc)
-	webhookHandler := httphandler.NewWebhookHandler(deps.Config, deps.IngestSvc)
+	webhookHandler := httphandler.NewWebhookHandler(deps.Config, deps.IngestSvc, deps.Logger)
 
 	httphandler.RegisterHealthRoutes(r)
 

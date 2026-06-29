@@ -15,13 +15,15 @@ import (
 )
 
 type AuditHandler struct {
-	cfg        config.Config
-	service    domainaudit.Service
-	sessionSvc session.Service
+	sessionHandlerBase
+	service domainaudit.Service
 }
 
 func NewAuditHandler(cfg config.Config, service domainaudit.Service, sessionSvc session.Service) *AuditHandler {
-	return &AuditHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
+	return &AuditHandler{
+		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		service:            service,
+	}
 }
 
 func (h *AuditHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +36,8 @@ func (h *AuditHandler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	httputil.WriteOK(w, h.service.UpdateSettings(body))
+	settings, err := h.service.UpdateSettings(body)
+	httputil.WriteJSON(w, http.StatusOK, settings, err)
 }
 
 func (h *AuditHandler) OperationsList(w http.ResponseWriter, r *http.Request) {

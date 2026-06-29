@@ -52,6 +52,10 @@ func (m *Memory) LoadSnapshot(snapshot Snapshot) {
 	m.data = deepCopySnapshot(snapshot)
 }
 
+func (m *Memory) RelayOutboxEntry(id string) (RelayOutboxEntry, bool) {
+	return m.relayRepo.relayOutboxEntry(id)
+}
+
 func deepCopySnapshot(snapshot Snapshot) Snapshot {
 	return Snapshot{
 		DataSourceStatus:    snapshot.DataSourceStatus,

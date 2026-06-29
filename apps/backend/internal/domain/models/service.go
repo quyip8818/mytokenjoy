@@ -33,11 +33,11 @@ type service struct {
 	lifecycle relay.Lifecycle
 }
 
-func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle) Service {
+func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle, delayer simulate.Delayer) Service {
 	return &service{
 		cfg:       cfg,
 		store:     st,
-		delayer:   simulate.NewDelayer(cfg.SimulateDelay),
+		delayer:   delayer,
 		client:    client,
 		lifecycle: lifecycle,
 	}
@@ -68,7 +68,9 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	}
 	models := s.store.Models().Models()
 	models = append(models, model)
-	s.store.Models().SetModels(models)
+	if err := s.store.Models().SetModels(models); err != nil {
+		return types.ModelInfo{}, fmt.Errorf("persist models: %w", err)
+	}
 	return model, nil
 }
 
@@ -80,11 +82,13 @@ func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) erro
 	for i := range models {
 		if models[i].ID == id {
 			models[i].Enabled = enabled
-			s.store.Models().SetModels(models)
+			if err := s.store.Models().SetModels(models); err != nil {
+				return fmt.Errorf("persist models: %w", err)
+			}
 			return nil
 		}
 	}
-	return nil
+	return domain.NotFound("Not found")
 }
 
 func (s *service) ListRoutingRules() []types.RoutingRule {
@@ -144,7 +148,7 @@ func (s *service) UpdateRoutingRule(
 		}
 	}
 	if idx < 0 {
-		return types.RoutingRule{}, domain.NewDomainError(domain.StatusNotFound, "Not found")
+		return types.RoutingRule{}, domain.NotFound("Not found")
 	}
 	updated := rules[idx]
 	if input.AllowedModels != nil {
@@ -168,12 +172,18 @@ func (s *service) UpdateRoutingRule(
 			s.store.Org().Departments(),
 		)
 	}
-	s.store.Models().SetRoutingRules(rules)
+	if err := s.store.Models().SetRoutingRules(rules); err != nil {
+		return types.RoutingRule{}, fmt.Errorf("persist routing rules: %w", err)
+	}
 	if s.client != nil && s.cfg.NewAPIEnabled {
-		_ = s.client.RebuildAbilities(ctx)
+		if err := s.client.RebuildAbilities(ctx); err != nil {
+			return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
+		}
 		if s.lifecycle != nil {
 			deptIDs := queryutil.CollectDescendantDeptIDs(s.store.Org().Departments(), updated.NodeID)
-			_ = s.lifecycle.EnqueueModelLimitsForDepartments(deptIDs)
+			if err := s.lifecycle.EnqueueModelLimitsForDepartments(deptIDs); err != nil {
+				return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
+			}
 		}
 	}
 	return updated, nil

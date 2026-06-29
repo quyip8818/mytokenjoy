@@ -9,27 +9,37 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/sessionutil"
 )
 
-func TestResolveMemberIDHeaderFirst(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=query-id", nil)
-	req.Header.Set("X-Demo-Member-Id", "header-id")
-	if got := sessionutil.ResolveMemberID(req, true); got != "header-id" {
-		t.Fatalf("expected header-id, got %q", got)
-	}
-}
-
-func TestResolveMemberIDIgnoresDemoHeaderWhenDisabled(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/session?memberId=query-id", nil)
-	req.Header.Set("X-Demo-Member-Id", "header-id")
-	if got := sessionutil.ResolveMemberID(req, false); got != "" {
-		t.Fatalf("expected empty member id, got %q", got)
-	}
-}
-
 func TestResolveMemberIDCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	req.AddCookie(&http.Cookie{Name: sessionutil.SessionCookie, Value: "cookie-id"})
-	if got := sessionutil.ResolveMemberID(req, false); got != "cookie-id" {
+	if got := sessionutil.ResolveMemberID(req); got != "cookie-id" {
 		t.Fatalf("expected cookie-id, got %q", got)
+	}
+}
+
+func TestUsedBearerAuth(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	if sessionutil.UsedBearerAuth(req) {
+		t.Fatal("expected false without bearer header")
+	}
+	req.Header.Set("Authorization", "Bearer token-id")
+	if !sessionutil.UsedBearerAuth(req) {
+		t.Fatal("expected true with bearer header")
+	}
+}
+
+func TestResolveMemberIDBearer(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Authorization", "Bearer token-id")
+	if got := sessionutil.ResolveMemberID(req); got != "token-id" {
+		t.Fatalf("expected token-id, got %q", got)
+	}
+}
+
+func TestResolveMemberIDEmptyWithoutCredentials(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	if got := sessionutil.ResolveMemberID(req); got != "" {
+		t.Fatalf("expected empty member id, got %q", got)
 	}
 }
 

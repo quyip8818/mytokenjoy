@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -368,7 +369,9 @@ func (l *TokenLifecycle) RollbackFailedCreate(platformKeyID string) {
 			filtered = append(filtered, key)
 		}
 	}
-	_ = l.store.Keys().SetPlatformKeys(filtered)
+	if err := l.store.Keys().SetPlatformKeys(filtered); err != nil {
+		slog.Default().Warn("rollback failed create persist failed", "platform_key_id", platformKeyID, "error", err)
+	}
 }
 
 func findPlatformKey(keys []types.PlatformKey, id string) (types.PlatformKey, bool) {

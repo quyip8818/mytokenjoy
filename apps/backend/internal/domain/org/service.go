@@ -31,6 +31,7 @@ func NewService(
 	factory datasource.Factory,
 	lifecycle relay.Lifecycle,
 	notifier notification.Notifier,
+	delayer simulate.Delayer,
 	logger *slog.Logger,
 ) Service {
 	if logger == nil {
@@ -42,7 +43,7 @@ func NewService(
 		factory:   factory,
 		lifecycle: lifecycle,
 		notifier:  notifier,
-		delayer:   simulate.NewDelayer(cfg.SimulateDelay),
+		delayer:   delayer,
 		logger:    logger,
 	}
 }
@@ -62,8 +63,8 @@ func (s *service) GetSyncConfig() SyncConfig {
 	return s.store.Org().SyncConfig()
 }
 
-func (s *service) UpdateSyncConfig(cfg SyncConfig) {
-	_ = s.store.Org().SetSyncConfig(cfg)
+func (s *service) UpdateSyncConfig(cfg SyncConfig) error {
+	return s.store.Org().SetSyncConfig(cfg)
 }
 
 func (s *service) ListSyncLogs(page, pageSize int) types.PageResult[SyncLog] {

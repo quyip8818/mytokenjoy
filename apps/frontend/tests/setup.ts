@@ -1,6 +1,5 @@
-import { afterAll, afterEach, beforeAll, vi } from 'vitest'
+import { vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
-import { server } from '@/mocks/server'
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -15,7 +14,3 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 })
-
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())

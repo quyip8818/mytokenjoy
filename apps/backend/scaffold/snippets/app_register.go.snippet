@@ -1,0 +1,5 @@
+// Add to domainServices in internal/app/wiring.go:
+//   __DOMAIN_TITLE__ domain__DOMAIN__.Service
+
+// Add to buildDomainServices return:
+//   __DOMAIN_TITLE__: domain__DOMAIN__.NewService(cfg, i.store),

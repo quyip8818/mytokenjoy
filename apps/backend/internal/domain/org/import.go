@@ -240,9 +240,13 @@ func (s *service) importFromProvider(
 		return ImportResult{}, err
 	}
 
-	_ = s.store.Org().SetImportFailures(result.Failures)
+	if err := s.store.Org().SetImportFailures(result.Failures); err != nil {
+		return ImportResult{}, fmt.Errorf("persist import failures: %w", err)
+	}
 	if s.lifecycle != nil && len(changedDeptIDs) > 0 {
-		_ = s.lifecycle.EnqueueModelLimitsForDepartments(changedDeptIDs)
+		if err := s.lifecycle.EnqueueModelLimitsForDepartments(changedDeptIDs); err != nil {
+			return ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
+		}
 	}
 	return result, nil
 }

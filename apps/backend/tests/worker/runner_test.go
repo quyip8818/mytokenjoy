@@ -3,6 +3,7 @@ package worker_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,38 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
+
+func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
+	runner, st, _ := newWorkerRunner(t, stub)
+	ctx := context.Background()
+
+	if err := st.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+		ID: "outbox-unknown", Kind: "unknown_kind", Payload: []byte(`{}`), Status: store.OutboxStatusPending,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	runner.RunOnce(ctx)
+
+	mem, ok := st.(*store.Memory)
+	if !ok {
+		t.Fatal("expected memory store")
+	}
+	entry, found := mem.RelayOutboxEntry("outbox-unknown")
+	if !found {
+		t.Fatal("expected unknown outbox entry to remain in store")
+	}
+	if entry.Status == store.OutboxStatusDone {
+		t.Fatal("expected unknown outbox entry not marked done")
+	}
+	if entry.Attempts == 0 {
+		t.Fatal("expected retry attempts incremented for unknown outbox kind")
+	}
+	if entry.LastError == nil || !strings.Contains(*entry.LastError, "unknown relay outbox kind") {
+		t.Fatalf("expected unknown kind error recorded, got %v", entry.LastError)
+	}
+}
 
 func TestProcessRelayOutbox(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}

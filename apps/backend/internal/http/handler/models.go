@@ -14,13 +14,15 @@ import (
 )
 
 type ModelsHandler struct {
-	cfg        config.Config
-	service    domainmodels.Service
-	sessionSvc session.Service
+	sessionHandlerBase
+	service domainmodels.Service
 }
 
 func NewModelsHandler(cfg config.Config, service domainmodels.Service, sessionSvc session.Service) *ModelsHandler {
-	return &ModelsHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
+	return &ModelsHandler{
+		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		service:            service,
+	}
 }
 
 func (h *ModelsHandler) RegisterRoutes(r chi.Router) {

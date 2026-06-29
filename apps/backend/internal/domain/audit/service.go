@@ -1,6 +1,8 @@
 package audit
 
 import (
+	"fmt"
+
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkg "github.com/tokenjoy/backend/internal/pkg"
@@ -10,7 +12,7 @@ import (
 
 type Service interface {
 	GetSettings() types.AuditSettings
-	UpdateSettings(settings types.AuditSettings) types.AuditSettings
+	UpdateSettings(settings types.AuditSettings) (types.AuditSettings, error)
 	ListOperations(params types.AuditOperationsQueryParams) types.PageResult[types.OperationLog]
 	ListCalls(params types.AuditCallsQueryParams) types.PageResult[types.CallLog]
 }
@@ -28,33 +30,23 @@ func (s *service) GetSettings() types.AuditSettings {
 	return s.store.Audit().Settings()
 }
 
-func (s *service) UpdateSettings(settings types.AuditSettings) types.AuditSettings {
+func (s *service) UpdateSettings(settings types.AuditSettings) (types.AuditSettings, error) {
 	current := s.store.Audit().Settings()
 	current.ContentRetentionEnabled = settings.ContentRetentionEnabled
-	s.store.Audit().SetSettings(current)
-	return current
+	if err := s.store.Audit().SetSettings(current); err != nil {
+		return types.AuditSettings{}, fmt.Errorf("persist audit settings: %w", err)
+	}
+	return current, nil
 }
 
 func (s *service) ListOperations(params types.AuditOperationsQueryParams) types.PageResult[types.OperationLog] {
 	items := s.store.Audit().OperationLogs()
-	if params.Action != "" {
-		filtered := make([]types.OperationLog, 0)
-		for _, item := range items {
-			if item.Action == params.Action {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
-	if params.OperatorID != "" {
-		filtered := make([]types.OperationLog, 0)
-		for _, item := range items {
-			if item.OperatorID == params.OperatorID {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
+	items = auditfilter.FilterByEquals(items, params.Action, func(item types.OperationLog) string {
+		return item.Action
+	})
+	items = auditfilter.FilterByEquals(items, params.OperatorID, func(item types.OperationLog) string {
+		return item.OperatorID
+	})
 	items = auditfilter.FilterByDateRangeCreatedAt(items, params.From, params.To, func(item types.OperationLog) string {
 		return item.CreatedAt
 	})
@@ -71,33 +63,15 @@ func (s *service) ListOperations(params types.AuditOperationsQueryParams) types.
 
 func (s *service) ListCalls(params types.AuditCallsQueryParams) types.PageResult[types.CallLog] {
 	items := s.store.Audit().CallLogs()
-	if params.Model != "" {
-		filtered := make([]types.CallLog, 0)
-		for _, item := range items {
-			if item.Model == params.Model {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
-	if params.Status != "" {
-		filtered := make([]types.CallLog, 0)
-		for _, item := range items {
-			if item.Status == params.Status {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
-	if params.CallerID != "" {
-		filtered := make([]types.CallLog, 0)
-		for _, item := range items {
-			if item.CallerID == params.CallerID {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
+	items = auditfilter.FilterByEquals(items, params.Model, func(item types.CallLog) string {
+		return item.Model
+	})
+	items = auditfilter.FilterByEquals(items, params.Status, func(item types.CallLog) string {
+		return item.Status
+	})
+	items = auditfilter.FilterByEquals(items, params.CallerID, func(item types.CallLog) string {
+		return item.CallerID
+	})
 	items = auditfilter.FilterByDateRangeCreatedAt(items, params.From, params.To, func(item types.CallLog) string {
 		return item.CreatedAt
 	})

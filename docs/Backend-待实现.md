@@ -10,13 +10,13 @@
 
 ## 1. 现状基线
 
-| 层级      | 已完成                                                                                                                                       | 缺口                                       |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| HTTP 端点 | 契约 §5 全部管理面端点                                                                                                                       | 无 LLM 代理端点（属 NewAPI，非本服务）     |
-| 业务规则  | 预算超卖、成员额度、 BG、白名单继承、Key/审批校验                                                                                            | 组织部分 CRUD 为 stub；数据源/同步为 Mock  |
-| 持久化    | Memory 默认；Postgres 可选（`domain_snapshot` JSONB + relay 关系表）                                                                         | 凭证、用量事实、调度锁等需扩展 schema      |
-| 运行时    | NewAPI webhook ingest、outbox worker、超限禁用 Key                                                                                           | 预警通知、定时同步、月初重置、看板真实数据 |
-| 鉴权      | `APP_PROFILE` demo/prod；写操作 Session + permission；prod GET `PublicOrReadRoutes`；Demo `memberId`/cookie；前端读权限与 Auditor 路由已对齐 | 生产 OIDC/JWT（§11.2）未做                 |
+| 层级      | 已完成                                                                                                                                       | 缺口                                         |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| HTTP 端点 | 契约 §5 全部管理面端点                                                                                                                       | 无 LLM 代理端点（属 NewAPI，非本服务）       |
+| 业务规则  | 预算超卖、成员额度、 BG、白名单继承、Key/审批校验；**飞书 datasource/import/sync MVP 已实现**                                                | US-04 邀请链路 stub；钉钉/企微 Phase 5 defer |
+| 持久化    | Memory 默认；Postgres 可选（`domain_snapshot` JSONB + relay 关系表 + `datasource_credentials` + `usage_buckets` + `scheduler_locks`）        | 邀请 token 表 Phase 5 defer                  |
+| 运行时    | NewAPI webhook ingest、outbox worker、超限禁用 Key、**worker 定时 org sync**、seed 用量桶                                                    | 预警通知、月初重置                           |
+| 鉴权      | `APP_PROFILE` demo/prod；写操作 Session + permission；prod GET `PublicOrReadRoutes`；Demo `memberId`/cookie；前端读权限与 Auditor 路由已对齐 | 生产 OIDC/JWT（§11.2）未做                   |
 
 ---
 
@@ -29,21 +29,21 @@
 | 契约文档                | [Frontend-API契约.md](./Frontend-API契约.md)                    |
 | 前端类型                | `apps/frontend/src/api/types/`                                  |
 | 后端类型                | `apps/backend/internal/domain/types/`（`org.go`、`session.go`） |
-| MSW                     | `apps/frontend/src/mocks/handlers/`                             |
+| MSW                     | 已移除；前端直连 Go backend                                     |
 | Seed（若字段影响 demo） | `apps/backend/internal/seed/`                                   |
 
-| 项                                        | 现状                                                     | 变更                                                                                 |
-| ----------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `POST /org/data-source/test` body         | Handler 未解析；Service 固定成功                         | 解析契约 **Credential** discriminated union（`platform` 分支），失败 422 + `message` |
-| `PUT /org/data-source` body               | Handler 解码空 struct；硬编码飞书                        | 同上；Test 通过后才持久化                                                            |
-| `POST /org/data-source/import/retry` body | 契约 `{ ids: string[] }`；Handler/Service 均未按 ID 重试 | 实现按 `ImportFailure.id` 单条/批量重试                                              |
-| `Member.externalId`                       | 无                                                       | 新增可选字段；第三方导入成员的唯一键                                                 |
-| `Department.externalId`                   | 无                                                       | 新增可选字段；第三方导入部门的唯一键                                                 |
-| `Department.source`                       | 无（仅 `Member.source`）                                 | 新增 `imported` \| `manual`；US-03「手动部门不删」依赖此字段                         |
-| `Department.managerId`                    | 无                                                       | 新增可选字段；US-10 直属 TL 审批路由（见 §8 US-10）                                  |
-| 邀请激活                                  | 契约无独立端点                                           | **功能 defer 至 Phase 5**；若做须新增 `POST /org/members/activate` + 契约补充        |
+| 项                                        | 现状                                                     | 变更                                                                          |
+| ----------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `POST /org/data-source/test` body         | **已完成** — Handler 解析 Credential，飞书 Provider 真连 | —                                                                             |
+| `PUT /org/data-source` body               | **已完成** — Test 通过后 AES-GCM 持久化凭证              | —                                                                             |
+| `POST /org/data-source/import/retry` body | **已完成** — 按 `ImportFailure.id` 重试                  | —                                                                             |
+| `Member.externalId`                       | 无                                                       | 新增可选字段；第三方导入成员的唯一键                                          |
+| `Department.externalId`                   | 无                                                       | 新增可选字段；第三方导入部门的唯一键                                          |
+| `Department.source`                       | 无（仅 `Member.source`）                                 | 新增 `imported` \| `manual`；US-03「手动部门不删」依赖此字段                  |
+| `Department.managerId`                    | 无                                                       | 新增可选字段；US-10 直属 TL 审批路由（见 §8 US-10）                           |
+| 邀请激活                                  | 契约无独立端点                                           | **功能 defer 至 Phase 5**；若做须新增 `POST /org/members/activate` + 契约补充 |
 
-**Handler 待改：** `internal/http/handler/org.go` — `DataSourceTest`、`DataSourceUpdate`、`DataSourceImportRetry` 须解析并传递 body。
+**Handler：** `internal/http/handler/org.go` — `DataSourceTest`、`DataSourceUpdate`、`DataSourceImportRetry` 已解析并传递 body。
 
 ---
 
@@ -84,20 +84,20 @@
 
 ## 5. 待办总览
 
-| US    | 主题              | 优先级 | 状态                                    |
-| ----- | ----------------- | ------ | --------------------------------------- |
-| US-01 | 第三方平台凭证    | P0     | Mock                                    |
-| US-02 | 全量导入组织架构  | P0     | Mock                                    |
-| US-03 | 定时同步策略      | P0     | 配置有，调度与 diff 无                  |
-| US-04 | 手动组织管理      | P0     | 部分 stub                               |
-| US-05 | 角色与权限        | P1     | 规则已有，鉴权未强制                    |
-| US-07 | 逐级预算分配      | P1     | 规则完整，月初重置无                    |
-| US-08 | 用量预警与超限    | P1     | 配置有，运行时预警无                    |
-| US-09 | 模型白名单        | P2     | 管理面完整                              |
-| US-10 | 审批流            | P1     | 流程完整，IM 通知无                     |
-| US-11 | Platform Key 管理 | P2     | 完整（含 NewAPI relay）                 |
-| US-12 | API 调用          | P0     | 依赖 NewAPI + ingest                    |
-| US-13 | 成本看板          | P1     | Backend 完成；Frontend MSW/页面接入待做 |
+| US    | 主题              | 优先级 | 状态                                                                            |
+| ----- | ----------------- | ------ | ------------------------------------------------------------------------------- |
+| US-01 | 第三方平台凭证    | P0     | **飞书 MVP 已完成**（钉钉/企微 defer）                                          |
+| US-02 | 全量导入组织架构  | P0     | **已完成**（飞书 import + provision）                                           |
+| US-03 | 定时同步策略      | P0     | **已完成**（diff + worker + sync log）                                          |
+| US-04 | 手动组织管理      | P0     | 部门 CRUD 已实现；Invite defer                                                  |
+| US-05 | 角色与权限        | P1     | 规则已有，鉴权未强制                                                            |
+| US-07 | 逐级预算分配      | P1     | 规则完整，月初重置无                                                            |
+| US-08 | 用量预警与超限    | P1     | 配置有，运行时预警无                                                            |
+| US-09 | 模型白名单        | P2     | 管理面完整                                                                      |
+| US-10 | 审批流            | P1     | 流程完整，IM 通知无                                                             |
+| US-11 | Platform Key 管理 | P2     | 完整（含 NewAPI relay）                                                         |
+| US-12 | API 调用          | P0     | 依赖 NewAPI + ingest                                                            |
+| US-13 | 成本看板          | P1     | Backend 完成；Frontend cost/usage 页已接 API；`usage/series` 实时监控 UI 已完成 |
 
 横切：鉴权（§11）、通知（§10）、多租户 SaaS（§12 实施 Phase 5 defer）。
 
@@ -109,13 +109,31 @@
 
 ### US-01：配置第三方平台凭证
 
-**缺口**
+**Backend 已完成（飞书 MVP）**
 
-- `TestDataSource` 固定返回成功，不校验凭证。
-- `UpdateDataSource` 硬编码飞书；**Handler 忽略 `Credential` body**（见 §2）。
-- 无飞书 / 钉钉 / 企微 SDK 调用。
+- `Provider` 接口 + [`feishu_adapter.go`](../apps/backend/internal/integration/datasource/feishu_adapter.go) 真连飞书 Open API
+- `TestDataSource` / `UpdateDataSource` 解析 Credential，测试通过后 AES-GCM 持久化（`DATA_SOURCE_CREDENTIAL_KEY`）
+- `SearchDataSource` 调第三方 API 搜索成员并校验本地 mapping
+- 切换平台需 `force=true` 并清空旧凭证
 
-**实现方式**
+**仍 defer**
+
+- 钉钉、企微 adapter（Phase 5 分平台交付）
+
+**飞书 live 验收步骤（staging 人工，不入 CI）**
+
+1. 配置 `FEISHU_BASE_URL`（默认开放平台）、`DATA_SOURCE_CREDENTIAL_KEY`（32 字节 hex）
+2. `pnpm start` → 管理员登录 → 组织 / 数据源页
+3. 填写飞书 `appId` / `appSecret` → 测试连接 → 保存
+4. 全量导入 → structure 页核对部门/成员数量
+5. 手动 sync → sync log 出现 `manual` 记录
+6. 在飞书侧修改部门名称 → 再次 sync → 本地名称更新
+7. 构造导入失败 → 数据源页按 failure id 调用 `import/retry` 重试
+8. 启用 sync 配置（频率 + 起始时间）→ worker 进程内 `RunScheduledSync` 写入 `scheduled` log
+9. 切换平台不填 `force` → 422；填 `force=true` → 旧凭证清除、新平台连接成功
+10. Postgres 部署时确认 `datasource_credentials` 表加密落盘（非 snapshot 明文）
+
+**实现参考（历史）**
 
 1. **抽象集成层** `internal/integration/datasource/`
    - `Provider` 接口：`TestConnection`、`SearchMember`、`ListDepartments`、`ListMembers`（后两者供 US-02）。
@@ -130,12 +148,14 @@
 
 ### US-02：全量导入组织架构
 
-**缺口**
+**Backend 已完成**
 
-- `ImportDataSource` 返回固定 `{120, 5}`，不写入 store。
-- 无增量合并；`RetryImport` 未解析 `{ ids }`（§2）。
+- [`import.go`](../apps/backend/internal/domain/org/import.go) 拉取飞书部门/成员，事务内写入 departments + budget tree + routing + members
+- `externalId` / `source` 合并策略；`manual` 部门/成员不覆盖
+- `RetryImport(ids)` 按 failure id 重试
+- 联动 [`provision.go`](../apps/backend/internal/domain/org/provision.go)
 
-**实现方式**
+**实现参考（历史）**
 
 1. **导入编排** `domain/org/import.go`
    - 拉取部门树 + 成员（分页、限流、重试）。
@@ -154,12 +174,17 @@
 
 ### US-03：定时同步策略
 
-**缺口**
+**Backend 已完成**
 
-- 仅有配置 CRUD 与 `TriggerSync` Mock。
-- 无 cron、diff、软删除、删除保护阈值；手动同步不写 sync log。
+- [`sync.go`](../apps/backend/internal/domain/org/sync.go) diff + 软删除 + 删除保护阈值
+- `TriggerSync` 写 `manual` sync log；`RunScheduledSync` + `scheduler_locks` 防多实例重复
+- [`worker/runner.go`](../apps/backend/internal/worker/runner.go) 进程内调度
 
-**实现方式**
+**仍 defer**
+
+- 超阈值 IM 通知（§10 Phase 4）；独立 `cmd/worker` 部署文档
+
+**实现参考（历史）**
 
 1. **同步核心** `domain/org/sync.go`（复用 import diff + §4 联动）
 
@@ -346,8 +371,8 @@
 **缺口**
 
 - **Backend Phase 3 已完成**：`usage_buckets` 写入、只读 `GET /dashboard/usage/series`（day/hour/minute 双路径）、`cost/*` / `usage/*` buckets 聚合、Session 鉴权。
-- **Frontend 待接**：`dashboardApi.getUsageSeries`、MSW handler、看板页透传 `CostQueryParams.granularity` 与 minute 近似提示。
-- **defer**：租户 `timezone` 配置 UI、`input_tokens`/`output_tokens` 非零写入、cutover 元数据 API。
+- **Frontend 已接**：`cost/*`、`usage/models`、`usage/teams`；`CostQueryParams.granularity` 透传；demo profile period 与 seed 对齐；**`dashboardApi.getUsageSeries` + `/dashboard/usage` 实时监控区块**（minute/hour、approximate 提示、503 友好降级）。
+- **defer**：`groupBy` 多系列 UI、租户 `timezone` 配置 UI、`input_tokens`/`output_tokens` 非零写入、cutover 元数据 API。
 
 **Backend 补漏（已完成）**
 
@@ -381,7 +406,7 @@
 4. `log_aggregator` + minute 窗口 / 分页 / `unmappedCount` / 503 + `retryAfter`；**禁止**注入 `IngestService`。**已完成**
 5. 新增 **`GET /dashboard/usage/series`**；响应扩展 `approximate`、`mappingAsOf`、`unmappedCount`、`truncated`。**已完成**
 6. `GET /dashboard/cost/*`、`GET /dashboard/usage/*` 改 **buckets 周期聚合**；`teams` quota ← snapshot、consumed ← buckets；`cost/daily` 透传 `granularity`。**已完成**
-7. 废弃 `dashboardcalc` 生产路径；契约 §5.6 同步 `UsageSeries*`。**Backend 已完成；Frontend 类型已有**
+7. 删除 `dashboardcalc`；契约 §5.6 同步 `UsageSeries*`。**Backend + Frontend 已完成**
 8. **NewAPI 零改造**；minute 复用 Admin `/api/log/`。**已完成**
 
 **查询窗口与上限**

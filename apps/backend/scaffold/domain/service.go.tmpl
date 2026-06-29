@@ -1,0 +1,19 @@
+package __DOMAIN__
+
+import (
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/store"
+)
+
+type Service interface {
+	// TODO: add domain methods
+}
+
+type service struct {
+	cfg   config.Config
+	store store.Store
+}
+
+func NewService(cfg config.Config, st store.Store) Service {
+	return &service{cfg: cfg, store: st}
+}

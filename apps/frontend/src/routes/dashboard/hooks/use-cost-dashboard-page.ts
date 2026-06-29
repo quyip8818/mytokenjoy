@@ -13,7 +13,6 @@ import { queryKeys, useInjectedQuery } from '@/features/query'
 import {
   ROOT_DRILL,
   type DrillState,
-  aggregateDailyCosts,
   buildCostStats,
   buildDeptCostsWithColors,
   canDrillBack,
@@ -46,11 +45,11 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
 
   const { data, loading, error, refresh } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.dashboard.cost(costQuery, drill),
+    queryKey: queryKeys.dashboard.cost(costQuery, drill, granularity),
     queryFn: async (apis) => {
       const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
         apis.dashboardApi.getCostSummary(costQuery),
-        apis.dashboardApi.getDailyCosts(costQuery),
+        apis.dashboardApi.getDailyCosts({ ...costQuery, granularity }),
         drill.level === 'members' && drill.deptId
           ? apis.dashboardApi.getDepartmentMemberCosts(drill.deptId, costQuery)
           : apis.dashboardApi.getDepartmentCosts({
@@ -78,10 +77,7 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
   }, [])
 
   const summary = data?.summary ?? null
-  const dailyCosts = useMemo(
-    () => aggregateDailyCosts(data?.dailyCosts ?? [], granularity),
-    [data?.dailyCosts, granularity],
-  )
+  const dailyCosts = data?.dailyCosts ?? []
   const topConsumers = data?.topConsumers ?? []
   const rawDeptCosts = data?.deptCosts
 

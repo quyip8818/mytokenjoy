@@ -18,13 +18,15 @@ import (
 )
 
 type DashboardHandler struct {
-	cfg        config.Config
-	service    domaindashboard.Service
-	sessionSvc session.Service
+	sessionHandlerBase
+	service domaindashboard.Service
 }
 
 func NewDashboardHandler(cfg config.Config, service domaindashboard.Service, sessionSvc session.Service) *DashboardHandler {
-	return &DashboardHandler{cfg: cfg, service: service, sessionSvc: sessionSvc}
+	return &DashboardHandler{
+		sessionHandlerBase: newSessionHandlerBase(cfg, sessionSvc),
+		service:            service,
+	}
 }
 
 func (h *DashboardHandler) CostSummary(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +106,7 @@ func (h *DashboardHandler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 		}
 		groupBy := query.Get("groupBy")
 		if groupBy == "" {
-			groupBy = domainusage.GroupByNone
+			groupBy = types.UsageGroupByNone
 		}
 		result, err := h.service.UsageSeries(ctx, types.UsageSeriesQuery{
 			Granularity:  granularity,

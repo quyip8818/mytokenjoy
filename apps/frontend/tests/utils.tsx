@@ -10,21 +10,15 @@ import type { Member } from '@/api/types'
 import type { SessionContext } from '@/api/types'
 import type { PermissionKey } from '@/lib/permission-keys'
 import { ALL_PERMISSIONS } from '@/lib/permissions'
-import { DemoProvider } from '@/features/demo'
-import { createDemoRoleStore } from '@/features/demo/roles/store'
-import { DEFAULT_DEMO_MEMBER_ID } from '@/features/demo/roles/constants'
 import { WorkflowProvider } from '@/features/workflow/workflow-context'
 import { QueryProvider, createTestQueryClient } from '@/features/query'
 import { mockDepartments } from '@tests/fixtures/departments'
+import { TestSessionProvider } from '@tests/test-session-provider'
 
 export { mockDepartments }
 
-type ApiNamespaceOverrides = {
-  [K in keyof AppApis]?: Partial<AppApis[K]>
-}
-
 const mockMember: Member = {
-  id: DEFAULT_DEMO_MEMBER_ID,
+  id: 'm-admin',
   name: '管理员',
   phone: '13800000000',
   email: 'admin@test.com',
@@ -44,6 +38,10 @@ export function createMockSession(
     permissions,
     readOnly,
   }
+}
+
+type ApiNamespaceOverrides = {
+  [K in keyof AppApis]?: Partial<AppApis[K]>
 }
 
 function withOverrides<K extends keyof AppApis>(
@@ -91,7 +89,6 @@ export function createMockApis(overrides: ApiNamespaceOverrides = {}): AppApis {
     },
     sessionApi: {
       ...defaultApis.sessionApi,
-      get: vi.fn().mockResolvedValue(session),
       getCurrent: vi.fn().mockResolvedValue(session),
     },
   }
@@ -112,11 +109,9 @@ export function createTestWrapper(options: TestWrapperOptions = {}) {
     options.apis ??
     createMockApis({
       sessionApi: {
-        get: vi.fn().mockResolvedValue(createMockSession(permissions, readOnly)),
         getCurrent: vi.fn().mockResolvedValue(createMockSession(permissions, readOnly)),
       },
     })
-  const roleStore = createDemoRoleStore(DEFAULT_DEMO_MEMBER_ID, apis)
   const queryClient = createTestQueryClient()
 
   return function TestWrapper({ children }: { children: ReactNode }) {
@@ -124,9 +119,9 @@ export function createTestWrapper(options: TestWrapperOptions = {}) {
       <MemoryRouter initialEntries={options.initialEntries ?? [ROUTES.orgStructure]}>
         <QueryProvider client={queryClient}>
           <ApiProvider apis={apis}>
-            <DemoProvider roleStore={roleStore}>
+            <TestSessionProvider permissions={permissions} readOnly={readOnly}>
               <WorkflowProvider>{children}</WorkflowProvider>
-            </DemoProvider>
+            </TestSessionProvider>
           </ApiProvider>
         </QueryProvider>
       </MemoryRouter>

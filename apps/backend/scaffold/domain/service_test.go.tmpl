@@ -1,0 +1,21 @@
+package __DOMAIN___test
+
+import (
+	"testing"
+
+	"github.com/tokenjoy/backend/internal/domain/__DOMAIN__
+	"github.com/tokenjoy/backend/tests/testutil"
+)
+
+func new__DOMAIN_TITLE__Service(t *testing.T) __DOMAIN__.Service {
+	t.Helper()
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	return __DOMAIN__.NewService(cfg, st)
+}
+
+func TestNewService(t *testing.T) {
+	svc := new__DOMAIN_TITLE__Service(t)
+	if svc == nil {
+		t.Fatal("expected non-nil service")
+	}
+}

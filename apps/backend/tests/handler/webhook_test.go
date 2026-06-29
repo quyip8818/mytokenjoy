@@ -59,6 +59,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	app := newTestApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
+	beforeBuckets := testutil.UsageBucketCount(app.Store)
 	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
 
 	beforeConsumed := testutil.Dept3Consumed(t, app.Store.Budget().Tree())
@@ -92,13 +93,14 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	if afterUsed <= beforeUsed {
 		t.Fatalf("expected platform key used increase, before=%v after=%v", beforeUsed, afterUsed)
 	}
-	testutil.AssertUsageBucketCount(t, app.Store, 1)
+	testutil.AssertUsageBucketCount(t, app.Store, beforeBuckets+1)
 }
 
 func TestWebhookIngestIdempotent(t *testing.T) {
 	app := newTestApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
+	beforeBuckets := testutil.UsageBucketCount(app.Store)
 	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
 	payload := newapi.WebhookLogPayload{ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1}
 	body, _ := json.Marshal(payload)
@@ -112,7 +114,7 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 			t.Fatalf("attempt %d expected 200, got %d", i+1, rec.Code)
 		}
 	}
-	testutil.AssertUsageBucketCount(t, app.Store, 1)
+	testutil.AssertUsageBucketCount(t, app.Store, beforeBuckets+1)
 }
 
 func platformKeyUsed(t *testing.T, st store.Store, keyID string) float64 {

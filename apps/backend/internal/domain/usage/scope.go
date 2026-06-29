@@ -17,8 +17,11 @@ type SessionScope struct {
 	Permissions  []string
 }
 
-func ResolveTimezone(_ string) string {
-	return DefaultTimezone
+func ResolveTimezone(timezone string) string {
+	if timezone != "" {
+		return timezone
+	}
+	return types.UsageDefaultTimezone
 }
 
 func ResolveScopeDepartments(
@@ -28,7 +31,7 @@ func ResolveScopeDepartments(
 ) ([]string, error) {
 	if requestedDeptID != "" {
 		if !IsDepartmentAccessible(departments, scope, requestedDeptID) {
-			return nil, domain.NewDomainError(domain.StatusForbidden, "Department not accessible")
+			return nil, domain.Forbidden("Department not accessible")
 		}
 		return nil, nil
 	}
@@ -92,7 +95,7 @@ func ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone string) (time.
 		return time.Time{}, time.Time{}, err
 	}
 	if !end.After(start) {
-		return time.Time{}, time.Time{}, domain.NewDomainError(domain.StatusBadRequest, "end must be after start")
+		return time.Time{}, time.Time{}, domain.BadRequest("end must be after start")
 	}
 	if err := ValidateWindow(start, end, granularity); err != nil {
 		return time.Time{}, time.Time{}, err
@@ -102,14 +105,14 @@ func ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone string) (time.
 
 func parseBoundary(value string, loc *time.Location, isEnd bool) (time.Time, error) {
 	if value == "" {
-		return time.Time{}, domain.NewDomainError(domain.StatusBadRequest, "start and end are required")
+		return time.Time{}, domain.BadRequest("start and end are required")
 	}
 	if t, err := time.Parse(time.RFC3339, value); err == nil {
 		return t.In(loc), nil
 	}
 	t, err := time.ParseInLocation("2006-01-02", value, loc)
 	if err != nil {
-		return time.Time{}, domain.NewDomainError(domain.StatusBadRequest, fmt.Sprintf("invalid time: %s", value))
+		return time.Time{}, domain.BadRequest(fmt.Sprintf("invalid time: %s", value))
 	}
 	if isEnd {
 		return timeutil.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour), nil
@@ -120,36 +123,36 @@ func parseBoundary(value string, loc *time.Location, isEnd bool) (time.Time, err
 func ValidateWindow(start, end time.Time, granularity string) error {
 	duration := end.Sub(start)
 	switch granularity {
-	case GranularityDay:
-		if duration > MaxDayWindow {
-			return domain.NewDomainError(domain.StatusUnprocessable, "day query window exceeds 365 days")
+	case types.UsageGranularityDay:
+		if duration > types.UsageMaxDayWindow {
+			return domain.Validation("day query window exceeds 365 days")
 		}
-	case GranularityHour:
-		if duration > MaxHourWindow {
-			return domain.NewDomainError(domain.StatusUnprocessable, "hour query window exceeds 90 days")
+	case types.UsageGranularityHour:
+		if duration > types.UsageMaxHourWindow {
+			return domain.Validation("hour query window exceeds 90 days")
 		}
-	case GranularityMinute:
-		if duration > MaxMinuteWindow {
-			return domain.NewDomainError(domain.StatusTooManyRequests, "minute query window exceeds 3 hours")
+	case types.UsageGranularityMinute:
+		if duration > types.UsageMaxMinuteWindow {
+			return domain.TooManyRequests("minute query window exceeds 3 hours")
 		}
 	default:
-		return domain.NewDomainError(domain.StatusBadRequest, "invalid granularity")
+		return domain.BadRequest("invalid granularity")
 	}
 	return nil
 }
 
 func ValidateGroupBy(groupBy string) error {
 	switch groupBy {
-	case "", GroupByNone, GroupByDepartment, GroupByMember, GroupByModel:
+	case "", types.UsageGroupByNone, types.UsageGroupByDepartment, types.UsageGroupByMember, types.UsageGroupByModel:
 		return nil
 	default:
-		return domain.NewDomainError(domain.StatusBadRequest, "invalid groupBy")
+		return domain.BadRequest("invalid groupBy")
 	}
 }
 
 func ValidateSeriesPointLimit(count int) error {
-	if count > MaxSeriesPoints {
-		return domain.NewDomainError(domain.StatusUnprocessable, "too many points in response")
+	if count > types.UsageMaxSeriesPoints {
+		return domain.Validation("too many points in response")
 	}
 	return nil
 }

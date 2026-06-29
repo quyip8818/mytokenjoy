@@ -32,7 +32,7 @@ func getContractCases() []getContractCase {
 		{name: "budget alerts", path: "/api/budget/alerts"},
 		{name: "keys provider", path: "/api/keys/provider"},
 		{name: "keys platform", path: "/api/keys/platform"},
-		{name: "keys platform quota summary", path: "/api/keys/platform/quota-summary"},
+		{name: "keys platform quota summary", path: "/api/keys/platform/quota-summary?memberId=m-1"},
 		{name: "keys approvals", path: "/api/keys/approvals"},
 		{name: "keys approval quota check", path: "/api/keys/approvals/apv-1/quota-check"},
 		{name: "models list", path: "/api/models"},

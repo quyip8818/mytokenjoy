@@ -162,7 +162,7 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 }
 
 func (s *service) InviteMember() error {
-	return nil
+	return domain.NewDomainError(domain.StatusNotImplemented, "Invite member is not implemented")
 }
 
 func (s *service) BatchInvite(ids []string) BatchInviteResult {
@@ -217,6 +217,11 @@ func (s *service) BatchImport(rows []BatchImportRow) MemberBatchImportResult {
 		imported++
 	}
 
-	_ = s.store.Org().SetMembers(members)
+	if err := s.store.Org().SetMembers(members); err != nil {
+		return MemberBatchImportResult{Imported: imported, Failures: append(failures, MemberBatchImportFailure{
+			Row: 0, Reason: "Failed to persist imported members",
+		})}
+	}
+
 	return MemberBatchImportResult{Imported: imported, Failures: failures}
 }

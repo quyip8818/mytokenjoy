@@ -57,6 +57,9 @@ func (c Config) IsProdProfile() bool {
 }
 
 func (c Config) validate() error {
+	if c.IsProdProfile() && strings.TrimSpace(c.DatabaseURL) == "" {
+		return fmt.Errorf("DATABASE_URL is required when APP_PROFILE=prod")
+	}
 	if !c.NewAPIEnabled {
 		return nil
 	}

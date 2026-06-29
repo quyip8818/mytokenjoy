@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router'
-import { USE_MOCKS } from '@/config/app'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
 import { QueryProvider } from '@/features/query'
@@ -11,7 +10,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { Sidebar } from './sidebar'
 import { SidebarLayoutProvider } from './sidebar-layout-provider'
 import { Header } from './header'
-import { LazyDemoShellBoundary } from './lazy-demo-shell'
 
 function AdminShell() {
   return (
@@ -39,17 +37,11 @@ export function AdminLayout() {
   return (
     <ApiProvider apis={defaultApis}>
       <QueryProvider>
-        {USE_MOCKS ? (
-          <LazyDemoShellBoundary>
-            <AdminShell />
-          </LazyDemoShellBoundary>
-        ) : (
-          <AuthSessionProvider>
-            <AuthUnauthorizedBridge />
-            <SessionNavigationBridge />
-            <AdminShell />
-          </AuthSessionProvider>
-        )}
+        <AuthSessionProvider>
+          <AuthUnauthorizedBridge />
+          <SessionNavigationBridge />
+          <AdminShell />
+        </AuthSessionProvider>
       </QueryProvider>
     </ApiProvider>
   )

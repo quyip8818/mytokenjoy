@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -14,10 +15,14 @@ import (
 type WebhookHandler struct {
 	cfg    config.Config
 	ingest domainbudget.Ingestor
+	logger *slog.Logger
 }
 
-func NewWebhookHandler(cfg config.Config, ingest domainbudget.Ingestor) *WebhookHandler {
-	return &WebhookHandler{cfg: cfg, ingest: ingest}
+func NewWebhookHandler(cfg config.Config, ingest domainbudget.Ingestor, logger *slog.Logger) *WebhookHandler {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &WebhookHandler{cfg: cfg, ingest: ingest, logger: logger}
 }
 
 func (h *WebhookHandler) RegisterRoutes(r chi.Router) {
@@ -41,7 +46,12 @@ func (h *WebhookHandler) HandleNewAPILog(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if err := h.ingest.Ingest(r.Context(), payload); err != nil {
-		_ = h.ingest.EnqueueFailed(payload, err)
+		if enqueueErr := h.ingest.EnqueueFailed(payload, err); enqueueErr != nil {
+			h.logger.Error("ingest failed and enqueue to outbox failed",
+				"ingest_error", err,
+				"enqueue_error", enqueueErr,
+			)
+		}
 		httputil.WriteStatus(w, http.StatusInternalServerError, "Ingest failed")
 		return
 	}

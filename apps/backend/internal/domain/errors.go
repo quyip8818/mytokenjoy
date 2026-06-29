@@ -6,6 +6,7 @@ const (
 	StatusForbidden          = 403
 	StatusUnprocessable      = 422
 	StatusTooManyRequests    = 429
+	StatusNotImplemented     = 501
 	StatusServiceUnavailable = 503
 )
 

@@ -173,11 +173,19 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := svc.QuotaSummary(memberID).Remaining
+	beforeSummary, err := svc.QuotaSummary(memberID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := beforeSummary.Remaining
 	if err := svc.DeletePlatformKey(created.ID); err != nil {
 		t.Fatal(err)
 	}
-	after := svc.QuotaSummary(memberID).Remaining
+	afterSummary, err := svc.QuotaSummary(memberID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := afterSummary.Remaining
 	if after <= before {
 		t.Fatalf("expected quota release after delete, before=%v after=%v", before, after)
 	}

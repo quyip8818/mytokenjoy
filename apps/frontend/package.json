@@ -7,8 +7,6 @@
     "start": "vite",
     "build": "tsc -b tsconfig.app.json tsconfig.node.json && vite build",
     "typecheck:test": "tsc -b tsconfig.test.json",
-    "build:gh-pages": "VITE_ENABLE_MOCKS=true pnpm build",
-    "preview:gh-pages": "GITHUB_REPOSITORY=quyip8818/mytokenjoy pnpm build:gh-pages && vite preview --base /mytokenjoy/",
     "check:conventions": "tsx --tsconfig tsconfig.app.json scripts/check-conventions.ts",
     "lint": "eslint . && pnpm check:conventions",
     "preview": "vite preview",
@@ -50,7 +48,6 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
-    "msw": "^2.14.6",
     "shadcn": "^4.11.0",
     "tailwindcss": "^4.3.1",
     "tsx": "^4.22.4",
@@ -58,10 +55,5 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
     "vitest": "^4.1.9"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   }
 }
