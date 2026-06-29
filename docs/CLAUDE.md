@@ -1,46 +1,37 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件供 Claude Code 等 AI 助手快速了解仓库。详细说明见 [docs/README.md](./README.md)。
 
 ## Commands
 
-Run from the repository root (pnpm workspace):
+在仓库根目录（pnpm workspace）：
 
-- `pnpm install` — Install dependencies
-- `pnpm start` / `pnpm dev` — Start backend + frontend (Vite proxy to `:8080`)
-- `pnpm build` — TypeScript type-check (`tsc -b`) then Vite production build
-- `pnpm lint` — ESLint across all TS/TSX files
-- `pnpm format` — Format all files with Prettier
-- `pnpm test` — Run vitest once + backend unit tests
-- `pnpm verify` — lint + test + build（PR 前快捷命令）
-- `pnpm preview` — Serve the production build locally (frontend)
+- `pnpm install` — 安装依赖
+- `pnpm start` / `pnpm dev` — 并发 backend + frontend（Vite 代理 `/api` → `:8080`）
+- `pnpm build` — 前端 `tsc -b` + Vite 生产构建
+- `pnpm lint` — ESLint（前端）+ golangci-lint（后端）
+- `pnpm test` — Vitest + `go test ./tests/...`
+- `pnpm verify` — lint + test + build（PR 前）
+- `pnpm preview` — 本地预览前端生产构建
 
-To run a single test file: `pnpm --filter @tokenjoy/frontend exec vitest run tests/lib/org.test.ts`
+单测示例：`pnpm --filter @tokenjoy/frontend exec vitest run tests/lib/org.test.ts`
 
 ## Architecture
 
-pnpm monorepo. Frontend app lives in `apps/frontend/`. Backend API lives in `apps/backend/`.
+pnpm monorepo：`apps/frontend/`（前端）、`apps/backend/`（Go API）。
 
-Single-page React app built with Vite 8, React 19, and TypeScript 6.
+**前端：** Vite 8、React 19、TypeScript 6、React Router 7（从 `'react-router'` 导入）、Tailwind CSS 4、shadcn/ui、Zustand、TanStack Query。
 
-**Entry point:** `apps/frontend/src/main.tsx` → renders `<App />` into `#root`.
+**入口：** `apps/frontend/src/main.tsx` → `<App />`。
 
-**Routing:** `react-router` v7 (imported from `'react-router'`, not `'react-router-dom'`). All routes are nested under `<AdminLayout />` which provides sidebar + header + `<Outlet />`. Route page components live in `apps/frontend/src/routes/org/`.
+**路由：** 业务页在 `apps/frontend/src/routes/{domain}/`；路由定义单源 `config/routes.ts` 的 `ROUTE_DEFINITIONS`。
 
-**Styling:** TailwindCSS v4 via the `@tailwindcss/vite` plugin. CSS-first configuration in `apps/frontend/src/index.css` — no separate tailwind.config file.
+**数据：** `api/client.ts` 的 `request<T>()`；域 API 在 `api/{domain}.ts`；`AppApis` DI + `features/query`；契约见 `docs/Frontend-API契约.md`。
 
-**UI components:** shadcn/ui primitives in `apps/frontend/src/components/ui/` (uses `class-variance-authority`, `tailwind-merge`, `lucide-react` icons). The `cn()` utility in `apps/frontend/src/lib/utils.ts` merges class names.
+**鉴权：** Dev 在 `/login` 选成员写入 `tokenjoy_session_member` cookie；`credentials: 'include'`；401 跳转登录。
 
-**State management:** Zustand v5 — stores are co-located with the features that use them (no central store directory).
+**测试：** Vitest + Testing Library；`createMockApis()` 注入，不依赖 backend 进程。用例在 `apps/frontend/tests/`。
 
-**Data fetching:** Custom fetch wrapper in `apps/frontend/src/api/client.ts` with a `request<T>()` generic function (base URL: `/api`). Domain-specific API methods are in `apps/frontend/src/api/` (`org.ts`, `keys.ts`, `budget.ts`, `models.ts`, `dashboard.ts`, `audit.ts`, `session.ts`), organized as namespaced objects (`dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, etc.). TanStack Query via `features/query`. API contract: `docs/Frontend-API契约.md`.
+**路径别名：** `@/*` → `src/*`；`@tests/*` → `tests/*`。
 
-**Local backend proxy:** `apps/frontend/.env.development` sets `VITE_API_PROXY_TARGET=http://localhost:8080`. Root `pnpm start` runs backend and frontend together.
-
-**Testing:** Vitest + `@testing-library/react` + jsdom. Setup file: `apps/frontend/tests/setup.ts`. Tests use `createMockApis()` for API injection. All specs live under `apps/frontend/tests/` (mirror `src/` paths); use `@tests/utils` for providers and `createMockApis`.
-
-**Path alias:** `@/*` resolves to `./src/*` (configured in both `apps/frontend/vite.config.ts` and `apps/frontend/tsconfig.app.json`).
-
-**TypeScript config:** Project references — `tsconfig.app.json` (app code, ES2023, bundler resolution, strict) and `tsconfig.node.json` (tooling). Strict rules: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `erasableSyntaxOnly`.
-
-**ESLint:** Flat config (ESLint 10) with typescript-eslint, react-hooks, and react-refresh plugins.
+**后端：** Go + chi；`internal/app` 组合根；`internal/domain/*` 业务；`internal/store` Memory/Postgres；`tests/` 镜像 internal。详见 `docs/Backend-设计.md`。

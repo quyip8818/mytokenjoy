@@ -11,7 +11,7 @@
 3. Session 校验 — [`apps/frontend/src/api/schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)
 4. 后端类型 — [`apps/backend/internal/domain/types/`](../apps/backend/internal/domain/types/)
 
-架构与分层约定见 [Frontend-开发指南.md](./Frontend-开发指南.md)。
+文档索引见 [README.md](./README.md)；前端分层见 [Frontend-开发指南.md](./Frontend-开发指南.md)。
 
 ---
 
@@ -361,7 +361,7 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`dashboardApi`](../apps/frontend/src/api/dashboard.ts)
 
-**只读约束：** 本节 **全部端点为 `GET`**，查询用量/成本，**无副作用**（不写库、不触发 ingest、不修改预算）。架构详见 [Backend-看板用量架构.md](./Backend-看板用量架构.md)。
+**只读约束：** 本节 **全部端点为 `GET`**，查询用量/成本，**无副作用**（不写库、不触发 ingest、不修改预算）。实现架构见 [Backend-设计.md](./Backend-设计.md) §10。
 
 成本类接口共享查询参数 `CostQueryParams`（`period` 默认 `current_month`）：
 
