@@ -3,8 +3,8 @@ package usage_test
 import (
 	"testing"
 
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 )
 
 func TestValidateCostGranularity(t *testing.T) {

@@ -8,14 +8,14 @@
 
 ## 1. 执行摘要
 
-| 维度 | 现状评价 | 核心建议 |
-| --- | --- | --- |
-| 分层与分包 | 良好，bounded context 清晰 | 收敛横切不一致，补全接口边界 |
-| 依赖注入 | `app.go` 组合根清晰 | 统一 Logger / Context / 错误契约 |
-| 存储 | 混合模式（JSON snapshot + 关系表）处于过渡期 | 渐进正规化，先清死代码 |
-| 鉴权 | Dashboard 严格，其余 GET 开放 | 统一读策略，区分 demo / prod profile |
-| 可测试性 | `tests/` 覆盖广 | 减少测试构造副作用（Worker 自动启动） |
-| 性能 | 无明显热点债务 | 避免为「整洁」引入额外分配或 N+1 |
+| 维度       | 现状评价                                     | 核心建议                              |
+| ---------- | -------------------------------------------- | ------------------------------------- |
+| 分层与分包 | 良好，bounded context 清晰                   | 收敛横切不一致，补全接口边界          |
+| 依赖注入   | `app.go` 组合根清晰                          | 统一 Logger / Context / 错误契约      |
+| 存储       | 混合模式（JSON snapshot + 关系表）处于过渡期 | 渐进正规化，先清死代码                |
+| 鉴权       | Dashboard 严格，其余 GET 开放                | 统一读策略，区分 demo / prod profile  |
+| 可测试性   | `tests/` 覆盖广                              | 减少测试构造副作用（Worker 自动启动） |
+| 性能       | 无明显热点债务                               | 避免为「整洁」引入额外分配或 N+1      |
 
 **结论**：当前 backend 已具备清晰的三层 + 六边形雏形，适合 MVP 与功能迭代。最大维护风险来自**横切模式分裂**（鉴权、错误、Context、Service 抽象）和**存储双轨过渡期残留**，而非单点算法问题。建议分三阶段推进，每阶段可独立合并、可回滚。
 
@@ -85,17 +85,17 @@ apps/backend/
 
 **按层统计**
 
-| 层 | 包数 | 职责 | 评价 |
-| --- | --- | --- | --- |
-| `cmd` + `app` | 2 | 启动与装配 | 精简，保持 |
-| `domain` | 10 子包 | 业务规则 | 结构合理；`org` 偏大 |
-| `store` | 2 | 持久化 | 接口清晰；`repos`+`persist` 样板多 |
-| `http` | 3 子包 | 传输适配 | **错误出口分散（见 §3.7）** |
-| `integration` | 2 | 外部系统 | 良好 |
-| `worker` + `notification` | 2 | 异步副作用 | 单文件可接受 |
-| `permission` + `pkg` | 19 | 横切工具 | `pkg` 子包多但无副作用 |
-| `seed` | 1 | 演示数据 | 与 `domain` 解耦正确 |
-| `tests` | 镜像 | 测试 | 独立树，testutil 成熟 |
+| 层                        | 包数    | 职责       | 评价                               |
+| ------------------------- | ------- | ---------- | ---------------------------------- |
+| `cmd` + `app`             | 2       | 启动与装配 | 精简，保持                         |
+| `domain`                  | 10 子包 | 业务规则   | 结构合理；`org` 偏大               |
+| `store`                   | 2       | 持久化     | 接口清晰；`repos`+`persist` 样板多 |
+| `http`                    | 3 子包  | 传输适配   | **错误出口分散（见 §3.7）**        |
+| `integration`             | 2       | 外部系统   | 良好                               |
+| `worker` + `notification` | 2       | 异步副作用 | 单文件可接受                       |
+| `permission` + `pkg`      | 19      | 横切工具   | `pkg` 子包多但无副作用             |
+| `seed`                    | 1       | 演示数据   | 与 `domain` 解耦正确               |
+| `tests`                   | 镜像    | 测试       | 独立树，testutil 成熟              |
 
 ### 2.2 运行时数据流
 
@@ -151,24 +151,24 @@ flowchart TB
 
 ### 3.1 横切关注点分裂（维护成本最高）
 
-| 关注点 | 一致做法 | 分裂做法 | 影响 |
-| --- | --- | --- | --- |
-| 读接口鉴权 | `dashboard`：Session + Permission | `org/budget/keys/audit` GET 无鉴权 | 安全模型难推理；新端点易抄错模板 |
-| Service 抽象 | `org.Service` interface | `IngestService` / `RebalanceService` / `LogAggregator` 为具体 struct | Worker、Router 与实现强耦合，mock 成本高 |
-| Context | ingest / sync 传递 `ctx` | `org/department.go`、`member.go` 部分 `WithTx(context.Background())` | 取消、超时、trace 断裂；测试难注入 deadline |
-| 错误类型 | `domain.DomainError` | ingest 等返回裸 `fmt.Errorf` | Handler 统一映射失败 → 意外 500 |
-| Logger | `app.New` 注入 | `org.NewService`、`LogAggregator` 用 `slog.Default()` | 日志字段不一致，排障困难 |
+| 关注点       | 一致做法                          | 分裂做法                                                             | 影响                                        |
+| ------------ | --------------------------------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| 读接口鉴权   | `dashboard`：Session + Permission | `org/budget/keys/audit` GET 无鉴权                                   | 安全模型难推理；新端点易抄错模板            |
+| Service 抽象 | `org.Service` interface           | `IngestService` / `RebalanceService` / `LogAggregator` 为具体 struct | Worker、Router 与实现强耦合，mock 成本高    |
+| Context      | ingest / sync 传递 `ctx`          | `org/department.go`、`member.go` 部分 `WithTx(context.Background())` | 取消、超时、trace 断裂；测试难注入 deadline |
+| 错误类型     | `domain.DomainError`              | ingest 等返回裸 `fmt.Errorf`                                         | Handler 统一映射失败 → 意外 500             |
+| Logger       | `app.New` 注入                    | `org.NewService`、`LogAggregator` 用 `slog.Default()`                | 日志字段不一致，排障困难                    |
 
 ### 3.2 存储过渡期残留
 
 当前 Postgres 实现 = **Memory 作写缓存** + **整包 JSON snapshot 持久化** + **部分关系表**（relay、usage、credential、notification、lock）。
 
-| 现象 | 位置 | 维护/错误风险 |
-| --- | --- | --- |
-| 每次 `Set*` 可能触发全量 snapshot 写 | `store/postgres/persist.go` | 写放大；与 `WithTx` 延迟写语义并存，新人难理解 |
-| persist 用 `context.Background()` | `persist.go` 多处 | 脱离请求生命周期，无法传递 deadline |
-| `DashboardRepository` 已无业务调用 | `store/store.go`、`seed/dashboard.go` | 死代码误导；Snapshot 仍含 `ModelUsage`/`TeamUsage` |
-| Memory `WithTx` 为 no-op | `store/tx.go` | 单测通过、集成环境事务行为不同 |
+| 现象                                 | 位置                                  | 维护/错误风险                                      |
+| ------------------------------------ | ------------------------------------- | -------------------------------------------------- |
+| 每次 `Set*` 可能触发全量 snapshot 写 | `store/postgres/persist.go`           | 写放大；与 `WithTx` 延迟写语义并存，新人难理解     |
+| persist 用 `context.Background()`    | `persist.go` 多处                     | 脱离请求生命周期，无法传递 deadline                |
+| `DashboardRepository` 已无业务调用   | `store/store.go`、`seed/dashboard.go` | 死代码误导；Snapshot 仍含 `ModelUsage`/`TeamUsage` |
+| Memory `WithTx` 为 no-op             | `store/tx.go`                         | 单测通过、集成环境事务行为不同                     |
 
 > **性能说明**：JSON snapshot 在全量较小、写频率低时性能可接受；**不建议为「表结构美观」一次性大迁移**。应随域演进逐表拆出，保持读写路径不变。
 
@@ -224,23 +224,23 @@ flowchart TB
     SS --> RE
 ```
 
-| 位置 | 调用量（约） | 问题 |
-| --- | --- | --- |
-| `handler/*.go` → `response.Error` | ~80 | 与 `writeDomainError` 并存，400 校验各写各的 |
-| `handler/*.go` → `writeDomainError` | ~47 | 未覆盖 middleware 与部分 handler |
-| `middleware/*.go` → `response.Error` | ~6 | 重复 401/403/500 文案，绕过统一映射 |
-| `domain/*.go` → `NewDomainError` | ~70 | 无分类 helper，status 偶发硬编码数字 |
-| `worker/runner.go` | 吞掉 / slog | 正确不走 HTTP，但缺少统一 `LogError` |
+| 位置                                 | 调用量（约） | 问题                                         |
+| ------------------------------------ | ------------ | -------------------------------------------- |
+| `handler/*.go` → `response.Error`    | ~80          | 与 `writeDomainError` 并存，400 校验各写各的 |
+| `handler/*.go` → `writeDomainError`  | ~47          | 未覆盖 middleware 与部分 handler             |
+| `middleware/*.go` → `response.Error` | ~6           | 重复 401/403/500 文案，绕过统一映射          |
+| `domain/*.go` → `NewDomainError`     | ~70          | 无分类 helper，status 偶发硬编码数字         |
+| `worker/runner.go`                   | 吞掉 / slog  | 正确不走 HTTP，但缺少统一 `LogError`         |
 
 **结论**：可以把 **HTTP 边界** 的错误写出收敛到 **一个地方**；域内语义错误仍保留在 `domain`，worker 走 logger，不应强行合并为一个全局 `errors` 包。
 
 ### 3.4 应用生命周期与测试
 
-| 问题 | 位置 | 影响 |
-| --- | --- | --- |
-| `openStore` 失败 `panic` | `app/app.go:47-49` | `main` 无法优雅退出；库式复用困难 |
+| 问题                               | 位置               | 影响                                                               |
+| ---------------------------------- | ------------------ | ------------------------------------------------------------------ |
+| `openStore` 失败 `panic`           | `app/app.go:47-49` | `main` 无法优雅退出；库式复用困难                                  |
 | Worker 在 `app.New` 内自动 `Start` | `app/app.go:87-88` | `testutil.NewTestApp` 每次起 goroutine；handler 测试与 worker 耦合 |
-| `SimulateDelay` 默认 `true` | `config/config.go` | 易误以为性能问题；生产误开则人为延迟 |
+| `SimulateDelay` 默认 `true`        | `config/config.go` | 易误以为性能问题；生产误开则人为延迟                               |
 
 ### 3.5 Worker 可观测性不足
 
@@ -295,11 +295,11 @@ internal/
 └── seed/
 ```
 
-| 动作 | 收益 | 成本 |
-| --- | --- | --- |
-| 新增 `http/httputil` | 错误单出口、handler 减 30% 样板 | 1–2 天机械替换 |
-| 删 `DashboardRepository` | 减误导 | 半天 |
-| `permission` 保持独立 | 域与 HTTP 共用 capability | 无 |
+| 动作                     | 收益                            | 成本           |
+| ------------------------ | ------------------------------- | -------------- |
+| 新增 `http/httputil`     | 错误单出口、handler 减 30% 样板 | 1–2 天机械替换 |
+| 删 `DashboardRepository` | 减误导                          | 半天           |
+| `permission` 保持独立    | 域与 HTTP 共用 capability       | 无             |
 
 #### 方案 B — 可选（语义更清晰，非必须）
 
@@ -307,12 +307,12 @@ internal/
 
 #### 方案 C — 不建议
 
-| 改动 | 原因 |
-| --- | --- |
-| `domain/org` 拆成多个 top-level 包 | import 爆炸 |
-| 每个 handler 独立 package | 导航成本上升 |
+| 改动                                | 原因              |
+| ----------------------------------- | ----------------- |
+| `domain/org` 拆成多个 top-level 包  | import 爆炸       |
+| 每个 handler 独立 package           | 导航成本上升      |
 | `tests/` 迁回 co-located `_test.go` | testutil 投资浪费 |
-| 合并 `pkg/*` 到 `domain/*` | 循环依赖风险 |
+| 合并 `pkg/*` 到 `domain/*`          | 循环依赖风险      |
 
 #### `pkg/` 与 `org/` 说明
 
@@ -368,11 +368,11 @@ func WriteRoutes(r chi.Router, sess session.Service, perms ...string) chi.Router
 
 **原则**：三层分离，两个「一个地方」
 
-| 层 | 唯一职责 | 包路径 |
-| --- | --- | --- |
-| 域语义 | 定义「什么算业务失败」 | `domain/errors.go` + `domain/errsentinel.go`（新增） |
+| 层        | 唯一职责                        | 包路径                                                                |
+| --------- | ------------------------------- | --------------------------------------------------------------------- |
+| 域语义    | 定义「什么算业务失败」          | `domain/errors.go` + `domain/errsentinel.go`（新增）                  |
 | HTTP 映射 | 把 `error` → status + JSON body | `http/httputil/write.go`（新增，合并 handler/errors + 部分 response） |
-| 非 HTTP | worker / notification 只打日志 | `pkg/logutil` 或各组件注入 logger |
+| 非 HTTP   | worker / notification 只打日志  | `pkg/logutil` 或各组件注入 logger                                     |
 
 **目标结构**
 
@@ -448,12 +448,12 @@ httputil.WriteError(w, domain.Unauthorized(""))  // 或 httputil.WriteStatus(w, 
 
 **不建议的做法**
 
-| 做法 | 原因 |
-| --- | --- |
+| 做法                            | 原因                                              |
+| ------------------------------- | ------------------------------------------------- |
 | 全 backend 只有一个 `errors` 包 | worker/store/integration 语义不同，强合并增加耦合 |
-| 用 panic + recover 做业务错误 | 破坏 Go 惯例，性能与栈追踪差 |
-| 在 domain 引用 `net/http` | 污染域层，无法复用于 worker CLI |
-| 每个 handler 继续 copy-paste | 现状；漏写 `writeDomainError` 即 500 误报 |
+| 用 panic + recover 做业务错误   | 破坏 Go 惯例，性能与栈追踪差                      |
+| 在 domain 引用 `net/http`       | 污染域层，无法复用于 worker CLI                   |
+| 每个 handler 继续 copy-paste    | 现状；漏写 `writeDomainError` 即 500 误报         |
 
 **迁移顺序**（零性能影响，纯重构）
 
@@ -465,16 +465,16 @@ httputil.WriteError(w, domain.Unauthorized(""))  // 或 httputil.WriteStatus(w, 
 
 #### 5.3.3 鉴权策略矩阵（建议终态）
 
-| 资源 | GET | 写 |
-| --- | --- | --- |
-| Session | 公开（或仅 cookie） | — |
-| Org 结构/成员 | `org:read` 或更细 capability | 现有 write permission |
-| Budget | `budget:read` | 现有 write permission |
-| Keys | `keys:read`（敏感字段脱敏） | 现有 write permission |
-| Models | `model:read` | 现有 write permission |
-| Dashboard | 现有 `dashboard:cost` / `dashboard:usage` | — |
-| Audit | `audit:read` | `audit:read`（settings） |
-| Webhook | — | `X-Webhook-Secret` |
+| 资源          | GET                                       | 写                       |
+| ------------- | ----------------------------------------- | ------------------------ |
+| Session       | 公开（或仅 cookie）                       | —                        |
+| Org 结构/成员 | `org:read` 或更细 capability              | 现有 write permission    |
+| Budget        | `budget:read`                             | 现有 write permission    |
+| Keys          | `keys:read`（敏感字段脱敏）               | 现有 write permission    |
+| Models        | `model:read`                              | 现有 write permission    |
+| Dashboard     | 现有 `dashboard:cost` / `dashboard:usage` | —                        |
+| Audit         | `audit:read`                              | `audit:read`（settings） |
+| Webhook       | —                                         | `X-Webhook-Secret`       |
 
 **Demo 模式**：通过 `config.Profile == "demo"` 跳过读鉴权，与生产显式分离，替代当前隐式「全部 GET 200」契约（`tests/handler/contract_test.go` 需同步）。
 
@@ -507,12 +507,12 @@ flowchart LR
     P3 -.->|按需| OK3[大规模才需要]
 ```
 
-| 阶段 | 动作 | 性能影响 |
-| --- | --- | --- |
-| P0 | 删除 `DashboardRepository`、`Snapshot` 中废弃字段；文档标明 snapshot 边界 | 略减序列化体积 |
-| P1 | persist 接受 `ctx`；`WithTx` 内统一延迟写；org 去掉 `context.Background()` | 无 |
-| P2 | snapshot 按 `org` / `budget` / `keys` 分 JSON 列或分表，persist 只写变更聚合 | 降低写放大 |
-| P3 | 高频查询字段（成员列表、预算树）迁正规表 + 索引 | 读性能提升；迁移期双写需基准测试 |
+| 阶段 | 动作                                                                         | 性能影响                         |
+| ---- | ---------------------------------------------------------------------------- | -------------------------------- |
+| P0   | 删除 `DashboardRepository`、`Snapshot` 中废弃字段；文档标明 snapshot 边界    | 略减序列化体积                   |
+| P1   | persist 接受 `ctx`；`WithTx` 内统一延迟写；org 去掉 `context.Background()`   | 无                               |
+| P2   | snapshot 按 `org` / `budget` / `keys` 分 JSON 列或分表，persist 只写变更聚合 | 降低写放大                       |
+| P3   | 高频查询字段（成员列表、预算树）迁正规表 + 索引                              | 读性能提升；迁移期双写需基准测试 |
 
 **当前不必做 P3**，除非：成员 > 1 万、或 snapshot 序列化 > 1MB、或写 QPS 成为瓶颈。
 
@@ -543,11 +543,11 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 
 ### 5.8 测试结构建议
 
-| 现状 | 建议 | 理由 |
-| --- | --- | --- |
-| 测试全在 `tests/` | 保持；domain 纯逻辑可逐步 co-locate `_test.go` | 项目已建立 testutil；大规模搬迁收益低 |
-| `NewTestApp` 启 Worker | 默认 `WithoutWorker` | 减少 flaky 与 goroutine 泄漏 |
-| `contract_test` 断言 GET 无 cookie 200 | 拆为 `demo_contract_test` + `authz_contract_test` | 与 prod profile 对齐 |
+| 现状                                   | 建议                                              | 理由                                  |
+| -------------------------------------- | ------------------------------------------------- | ------------------------------------- |
+| 测试全在 `tests/`                      | 保持；domain 纯逻辑可逐步 co-locate `_test.go`    | 项目已建立 testutil；大规模搬迁收益低 |
+| `NewTestApp` 启 Worker                 | 默认 `WithoutWorker`                              | 减少 flaky 与 goroutine 泄漏          |
+| `contract_test` 断言 GET 无 cookie 200 | 拆为 `demo_contract_test` + `authz_contract_test` | 与 prod profile 对齐                  |
 
 ---
 
@@ -555,35 +555,35 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 
 ### Phase 1 — 低风险、立即收益（1–2 周）
 
-| # | 任务 | 涉及文件 | 风险 |
-| --- | --- | --- | --- |
-| 1.0 | 新增 `http/httputil`，`WriteError` 单出口 | `http/httputil/`，middleware 先改 | 低 |
-| 1.1 | Handler 全面改用 `httputil`；删 `handler/errors.go` | `http/handler/*.go` | 低 |
-| 1.1b | 新增 `domain/errsentinel.go` | `domain/` | 低 |
-| 1.2 | `ReadRoutes` / `WriteRoutes` 中间件辅助 | `http/middleware/` | 低 |
-| 1.3 | 删除 `DashboardRepository` 及 seed 残留 | `store/`, `seed/` | 低；需确认无引用 |
-| 1.4 | ingest 等裸 error 改 `DomainError` | `domain/budget/ingest.go` 等 | 低；改测试断言 |
-| 1.5 | `app.New` 返回 `error`；`WithoutWorker` Option | `app/app.go`, `tests/testutil/` | 低 |
-| 1.6 | 统一 Logger 注入到 `org.NewService`、`LogAggregator` | `domain/org/`, `domain/usage/` | 低 |
-| 1.7 | Worker tick 错误日志化 | `worker/runner.go` | 低 |
+| #    | 任务                                                 | 涉及文件                          | 风险             |
+| ---- | ---------------------------------------------------- | --------------------------------- | ---------------- |
+| 1.0  | 新增 `http/httputil`，`WriteError` 单出口            | `http/httputil/`，middleware 先改 | 低               |
+| 1.1  | Handler 全面改用 `httputil`；删 `handler/errors.go`  | `http/handler/*.go`               | 低               |
+| 1.1b | 新增 `domain/errsentinel.go`                         | `domain/`                         | 低               |
+| 1.2  | `ReadRoutes` / `WriteRoutes` 中间件辅助              | `http/middleware/`                | 低               |
+| 1.3  | 删除 `DashboardRepository` 及 seed 残留              | `store/`, `seed/`                 | 低；需确认无引用 |
+| 1.4  | ingest 等裸 error 改 `DomainError`                   | `domain/budget/ingest.go` 等      | 低；改测试断言   |
+| 1.5  | `app.New` 返回 `error`；`WithoutWorker` Option       | `app/app.go`, `tests/testutil/`   | 低               |
+| 1.6  | 统一 Logger 注入到 `org.NewService`、`LogAggregator` | `domain/org/`, `domain/usage/`    | 低               |
+| 1.7  | Worker tick 错误日志化                               | `worker/runner.go`                | 低               |
 
 ### Phase 2 — 一致性与安全（2–4 周）
 
-| # | 任务 | 说明 |
-| --- | --- | --- |
-| 2.1 | 引入 `config.Profile`（`demo` / `prod`） | `SimulateDelay`、读鉴权、session query 开关 |
-| 2.2 | 统一 GET 鉴权（prod profile） | 复用 dashboard 模式；补全 `BudgetRead` 等未使用 permission |
-| 2.3 | `IngestService` / `RebalanceService` 提取 interface | `worker`、`router` 依赖 interface |
-| 2.4 | org 域 `WithTx` 全部改用方法 `ctx` | `department.go`, `member.go` |
-| 2.5 | persist 装饰器传递 `ctx` | `store/postgres/persist.go` |
+| #   | 任务                                                | 说明                                                       |
+| --- | --------------------------------------------------- | ---------------------------------------------------------- |
+| 2.1 | 引入 `config.Profile`（`demo` / `prod`）            | `SimulateDelay`、读鉴权、session query 开关                |
+| 2.2 | 统一 GET 鉴权（prod profile）                       | 复用 dashboard 模式；补全 `BudgetRead` 等未使用 permission |
+| 2.3 | `IngestService` / `RebalanceService` 提取 interface | `worker`、`router` 依赖 interface                          |
+| 2.4 | org 域 `WithTx` 全部改用方法 `ctx`                  | `department.go`, `member.go`                               |
+| 2.5 | persist 装饰器传递 `ctx`                            | `store/postgres/persist.go`                                |
 
 ### Phase 3 — 结构演进（按需，1–3 月）
 
-| # | 任务 | 触发条件 |
-| --- | --- | --- |
-| 3.1 | 拆分 `org.Service` 为子 interface + 门面 | org 继续膨胀时 |
-| 3.2 | snapshot 按聚合分片 persist | snapshot 体积或写延迟可观测上升 |
-| 3.3 | 高频读路径迁正规表 | 需要 SQL 级过滤/分页时 |
+| #   | 任务                                             | 触发条件                                |
+| --- | ------------------------------------------------ | --------------------------------------- |
+| 3.1 | 拆分 `org.Service` 为子 interface + 门面         | org 继续膨胀时                          |
+| 3.2 | snapshot 按聚合分片 persist                      | snapshot 体积或写延迟可观测上升         |
+| 3.3 | 高频读路径迁正规表                               | 需要 SQL 级过滤/分页时                  |
 | 3.4 | 考虑 `go generate` 生成 memory/persist repo 样板 | `repos.go` + `persist.go` 重复超 500 行 |
 
 ---
@@ -592,32 +592,32 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 
 以下做法看似整洁，但与本项目阶段不符或可能伤害性能/稳定性：
 
-| 做法 | 原因 |
-| --- | --- |
+| 做法                                                  | 原因                                      |
+| ----------------------------------------------------- | ----------------------------------------- |
 | 引入重型 DI 框架（wire 除外的一次性 generate 可接受） | 增加魔法与编译复杂度，现 manual DI 已足够 |
-| 全面改为 CQRS + 事件总线 | Outbox 已覆盖异步需求；过度抽象增加故障面 |
-| 为每个 handler 单独建 package | 81 端点规模下过度拆分，导航成本上升 |
-| 读路径加 Redis 缓存 | 用户要求不影响性能架构；当前无读热点证据 |
-| 一次性拆掉 JSON snapshot 全迁 PG | 高风险大爆炸迁移；应随域渐进 |
-| 将所有 `pkg/` 并入 `domain/` | 纯函数工具独立合理，合并反而循环依赖 |
+| 全面改为 CQRS + 事件总线                              | Outbox 已覆盖异步需求；过度抽象增加故障面 |
+| 为每个 handler 单独建 package                         | 81 端点规模下过度拆分，导航成本上升       |
+| 读路径加 Redis 缓存                                   | 用户要求不影响性能架构；当前无读热点证据  |
+| 一次性拆掉 JSON snapshot 全迁 PG                      | 高风险大爆炸迁移；应随域渐进              |
+| 将所有 `pkg/` 并入 `domain/`                          | 纯函数工具独立合理，合并反而循环依赖      |
 
 ---
 
 ## 8. 模块级速查表
 
-| 模块 | 保持 | 调整 | 避免 |
-| --- | --- | --- | --- |
-| `app` | 组合根单一 | `New` 返回 error、Options | 在 app 内塞业务逻辑 |
-| `domain/types` | 共享 DTO 单一来源 | 过大文件按域拆 | handler 直接改 types |
-| `domain/org` | 按文件拆功能 | 接口隔离、ctx 统一 | 继续膨胀 50+ 方法 interface |
-| `domain/budget` | Ingest 独立 | Ingest/Rebalance interface | 与 dashboard 读路径耦合 |
-| `domain/usage` | 粒度/scope 纯函数 | LogAggregator interface | minute 路径写库 |
-| `store` | Repository 拆分 | 删 Dashboard 死代码、ctx persist | 过早全 SQL 化 |
-| `http/handler` | 每域一 handler | Respond 辅助、路由辅助 | 每端点一个 package |
-| `worker` | Outbox 模式 | 错误日志、可配置 interval | 同步进 HTTP 请求 |
-| `integration` | interface + factory | 补 dingtalk/wecom 占位文档 | handler 直连 HTTP |
-| `permission` | capability 常量 | 读权限补全并使用 | 在 domain 内硬编码角色 |
-| `tests/testutil` | 集中 fixture | 默认 WithoutWorker | 与生产装配两套逻辑 |
+| 模块             | 保持                | 调整                             | 避免                        |
+| ---------------- | ------------------- | -------------------------------- | --------------------------- |
+| `app`            | 组合根单一          | `New` 返回 error、Options        | 在 app 内塞业务逻辑         |
+| `domain/types`   | 共享 DTO 单一来源   | 过大文件按域拆                   | handler 直接改 types        |
+| `domain/org`     | 按文件拆功能        | 接口隔离、ctx 统一               | 继续膨胀 50+ 方法 interface |
+| `domain/budget`  | Ingest 独立         | Ingest/Rebalance interface       | 与 dashboard 读路径耦合     |
+| `domain/usage`   | 粒度/scope 纯函数   | LogAggregator interface          | minute 路径写库             |
+| `store`          | Repository 拆分     | 删 Dashboard 死代码、ctx persist | 过早全 SQL 化               |
+| `http/handler`   | 每域一 handler      | Respond 辅助、路由辅助           | 每端点一个 package          |
+| `worker`         | Outbox 模式         | 错误日志、可配置 interval        | 同步进 HTTP 请求            |
+| `integration`    | interface + factory | 补 dingtalk/wecom 占位文档       | handler 直连 HTTP           |
+| `permission`     | capability 常量     | 读权限补全并使用                 | 在 domain 内硬编码角色      |
+| `tests/testutil` | 集中 fixture        | 默认 WithoutWorker               | 与生产装配两套逻辑          |
 
 ---
 
@@ -635,12 +635,12 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 
 ## 10. 与现有文档关系
 
-| 文档 | 关系 |
-| --- | --- |
-| [Backend-设计.md](./Backend-设计.md) | 首版 MSW 迁移设计；本文不修改其端点范围 |
-| [Backend-待实现.md](./Backend-待实现.md) | 功能 backlog；架构优化项可摘录为独立 US |
-| [Backend-看板用量架构.md](./Backend-看板用量架构.md) | 用量读路径已定稿；存储 P2/P3 须与其一致 |
-| [Backend-test.md](./Backend-test.md) | 测试目录规范；Phase 1.5 后需补 WithoutWorker 说明 |
+| 文档                                                 | 关系                                              |
+| ---------------------------------------------------- | ------------------------------------------------- |
+| [Backend-设计.md](./Backend-设计.md)                 | 首版 MSW 迁移设计；本文不修改其端点范围           |
+| [Backend-待实现.md](./Backend-待实现.md)             | 功能 backlog；架构优化项可摘录为独立 US           |
+| [Backend-看板用量架构.md](./Backend-看板用量架构.md) | 用量读路径已定稿；存储 P2/P3 须与其一致           |
+| [Backend-test.md](./Backend-test.md)                 | 测试目录规范；Phase 1.5 后需补 WithoutWorker 说明 |
 
 ---
 
@@ -650,12 +650,12 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 
 **能，但要分清「一个地方」指什么：**
 
-| 问题类型 | 集中位置 | 不应合并到 |
-| --- | --- | --- |
-| 业务失败语义（404/422/403） | `domain/errors.go` + `errsentinel.go` | HTTP 层 |
-| HTTP 响应写出（status + JSON） | `http/httputil/write.go` **唯一出口** | domain / worker |
-| panic 恢复 | `middleware/recover.go` → 调用 `httputil` | handler 内 |
-| 后台任务失败 | `worker` 结构化 slog | httputil |
+| 问题类型                       | 集中位置                                  | 不应合并到      |
+| ------------------------------ | ----------------------------------------- | --------------- |
+| 业务失败语义（404/422/403）    | `domain/errors.go` + `errsentinel.go`     | HTTP 层         |
+| HTTP 响应写出（status + JSON） | `http/httputil/write.go` **唯一出口**     | domain / worker |
+| panic 恢复                     | `middleware/recover.go` → 调用 `httputil` | handler 内      |
+| 后台任务失败                   | `worker` 结构化 slog                      | httputil        |
 
 实施后：新增端点只需 `httputil.WriteJSON(w, 200, result, err)`，**不可能**再出现「忘了 writeDomainError 导致 500」的分裂。
 

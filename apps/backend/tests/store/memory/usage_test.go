@@ -15,7 +15,7 @@ func TestUsageBucketQuerySeriesHour(t *testing.T) {
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 3})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-		CostCNY: 7,
+		CostCNY:     7,
 	})
 	points, err := st.Usage().QuerySeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityHour,

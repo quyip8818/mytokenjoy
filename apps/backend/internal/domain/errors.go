@@ -1,12 +1,12 @@
 package domain
 
 const (
-	StatusBadRequest          = 400
-	StatusNotFound            = 404
-	StatusForbidden           = 403
-	StatusUnprocessable       = 422
-	StatusTooManyRequests     = 429
-	StatusServiceUnavailable  = 503
+	StatusBadRequest         = 400
+	StatusNotFound           = 404
+	StatusForbidden          = 403
+	StatusUnprocessable      = 422
+	StatusTooManyRequests    = 429
+	StatusServiceUnavailable = 503
 )
 
 type DomainError struct {

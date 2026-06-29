@@ -10,13 +10,13 @@
 
 ## 1. 现状基线
 
-| 层级      | 已完成                                                               | 缺口                                       |
-| --------- | -------------------------------------------------------------------- | ------------------------------------------ |
-| HTTP 端点 | 契约 §5 全部管理面端点                                               | 无 LLM 代理端点（属 NewAPI，非本服务）     |
-| 业务规则  | 预算超卖、成员额度、 BG、白名单继承、Key/审批校验                    | 组织部分 CRUD 为 stub；数据源/同步为 Mock  |
-| 持久化    | Memory 默认；Postgres 可选（`domain_snapshot` JSONB + relay 关系表） | 凭证、用量事实、调度锁等需扩展 schema      |
-| 运行时    | NewAPI webhook ingest、outbox worker、超限禁用 Key                   | 预警通知、定时同步、月初重置、看板真实数据 |
-| 鉴权      | `APP_PROFILE` demo/prod；写操作 Session + permission；prod GET `PublicOrReadRoutes`；Demo `memberId`/cookie；前端读权限与 Auditor 路由已对齐 | 生产 OIDC/JWT（§11.2）未做 |
+| 层级      | 已完成                                                                                                                                       | 缺口                                       |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| HTTP 端点 | 契约 §5 全部管理面端点                                                                                                                       | 无 LLM 代理端点（属 NewAPI，非本服务）     |
+| 业务规则  | 预算超卖、成员额度、 BG、白名单继承、Key/审批校验                                                                                            | 组织部分 CRUD 为 stub；数据源/同步为 Mock  |
+| 持久化    | Memory 默认；Postgres 可选（`domain_snapshot` JSONB + relay 关系表）                                                                         | 凭证、用量事实、调度锁等需扩展 schema      |
+| 运行时    | NewAPI webhook ingest、outbox worker、超限禁用 Key                                                                                           | 预警通知、定时同步、月初重置、看板真实数据 |
+| 鉴权      | `APP_PROFILE` demo/prod；写操作 Session + permission；prod GET `PublicOrReadRoutes`；Demo `memberId`/cookie；前端读权限与 Auditor 路由已对齐 | 生产 OIDC/JWT（§11.2）未做                 |
 
 ---
 
@@ -51,12 +51,12 @@
 
 当前域数据在 **`domain_snapshot` 单 JSONB**；relay / ingest 已用关系表。扩展时遵循：
 
-| 数据类型                            | 存储                                                                                         | 理由                         |
-| ----------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------- |
-| 管理配置（组织、预算树、Key、模型） | 继续 `domain_snapshot` 或 snapshot + 加密凭证独立表                                          | 读多写少、与现有 Store 一致  |
-| 第三方凭证                          | 独立表 `datasource_credentials`（加密 JSONB）                                                | 安全隔离、不进 snapshot 明文 |
+| 数据类型                            | 存储                                                                                                                    | 理由                         |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 管理配置（组织、预算树、Key、模型） | 继续 `domain_snapshot` 或 snapshot + 加密凭证独立表                                                                     | 读多写少、与现有 Store 一致  |
+| 第三方凭证                          | 独立表 `datasource_credentials`（加密 JSONB）                                                                           | 安全隔离、不进 snapshot 明文 |
 | 高频写入 / 聚合查询                 | 关系表：`usage_buckets`（hour 桶，day 查询聚合）、`alert_fired`、`budget_period`、`scheduler_locks`、`notification_log` | ingest、看板、调度幂等       |
-| 邀请 token                          | `member_invites`（Phase 5 defer）                                                            | 有过期与激活状态             |
+| 邀请 token                          | `member_invites`（Phase 5 defer）                                                                                       | 有过期与激活状态             |
 
 **Store 接口待扩展（US-02 / US-03）：** 当前 `OrgRepository` 仅有 `SyncLogs()`、`ImportFailures()` 只读；须新增 `AppendSyncLog` / `SetImportFailures`（或等价写入方法），否则同步日志与导入失败记录无法持久化。
 
@@ -84,19 +84,19 @@
 
 ## 5. 待办总览
 
-| US    | 主题              | 优先级 | 状态                    |
-| ----- | ----------------- | ------ | ----------------------- |
-| US-01 | 第三方平台凭证    | P0     | Mock                    |
-| US-02 | 全量导入组织架构  | P0     | Mock                    |
-| US-03 | 定时同步策略      | P0     | 配置有，调度与 diff 无  |
-| US-04 | 手动组织管理      | P0     | 部分 stub               |
-| US-05 | 角色与权限        | P1     | 规则已有，鉴权未强制    |
-| US-07 | 逐级预算分配      | P1     | 规则完整，月初重置无    |
-| US-08 | 用量预警与超限    | P1     | 配置有，运行时预警无    |
-| US-09 | 模型白名单        | P2     | 管理面完整              |
-| US-10 | 审批流            | P1     | 流程完整，IM 通知无     |
-| US-11 | Platform Key 管理 | P2     | 完整（含 NewAPI relay） |
-| US-12 | API 调用          | P0     | 依赖 NewAPI + ingest    |
+| US    | 主题              | 优先级 | 状态                                    |
+| ----- | ----------------- | ------ | --------------------------------------- |
+| US-01 | 第三方平台凭证    | P0     | Mock                                    |
+| US-02 | 全量导入组织架构  | P0     | Mock                                    |
+| US-03 | 定时同步策略      | P0     | 配置有，调度与 diff 无                  |
+| US-04 | 手动组织管理      | P0     | 部分 stub                               |
+| US-05 | 角色与权限        | P1     | 规则已有，鉴权未强制                    |
+| US-07 | 逐级预算分配      | P1     | 规则完整，月初重置无                    |
+| US-08 | 用量预警与超限    | P1     | 配置有，运行时预警无                    |
+| US-09 | 模型白名单        | P2     | 管理面完整                              |
+| US-10 | 审批流            | P1     | 流程完整，IM 通知无                     |
+| US-11 | Platform Key 管理 | P2     | 完整（含 NewAPI relay）                 |
+| US-12 | API 调用          | P0     | 依赖 NewAPI + ingest                    |
 | US-13 | 成本看板          | P1     | Backend 完成；Frontend MSW/页面接入待做 |
 
 横切：鉴权（§11）、通知（§10）、多租户 SaaS（§12 实施 Phase 5 defer）。
@@ -356,22 +356,22 @@
 
 **架构（已定稿）** — [Backend-看板用量架构.md](./Backend-看板用量架构.md)
 
-| 粒度 | 存储 / 数据源 | API |
-| --- | --- | --- |
-| `day` / `hour` | `usage_buckets`（只存 hour，按租户时区 `date_trunc` 聚合 day） | 只读 GET |
-| `week` / `month` | 同上（`cost/*`、`usage/*` 服务端 `date_trunc`） | 只读 GET |
-| `minute` | NewAPI `ListLogs` 按需聚合（不落库、不 ingest、`approximate`） | 只读 GET |
+| 粒度             | 存储 / 数据源                                                  | API      |
+| ---------------- | -------------------------------------------------------------- | -------- |
+| `day` / `hour`   | `usage_buckets`（只存 hour，按租户时区 `date_trunc` 聚合 day） | 只读 GET |
+| `week` / `month` | 同上（`cost/*`、`usage/*` 服务端 `date_trunc`）                | 只读 GET |
+| `minute`         | NewAPI `ListLogs` 按需聚合（不落库、不 ingest、`approximate`） | 只读 GET |
 
 **横切约定**
 
-| 项 | 规则 |
-| --- | --- |
-| 时区 | UTC 存桶；聚合/展示默认 **`Asia/Shanghai`**，租户可配置 IANA 覆盖 |
-| 看板 consumed | **周期内 `usage_buckets` SUM**；不读 snapshot `budget tree.Consumed` |
+| 项             | 规则                                                                         |
+| -------------- | ---------------------------------------------------------------------------- |
+| 时区           | UTC 存桶；聚合/展示默认 **`Asia/Shanghai`**，租户可配置 IANA 覆盖            |
+| 看板 consumed  | **周期内 `usage_buckets` SUM**；不读 snapshot `budget tree.Consumed`         |
 | minute mapping | 查询时刻 mapping；响应 `mappingAsOf: "query_time"`；禁止与 hour/day 混合环比 |
-| 历史 migration | 旧 `usage_daily` → 北京时间日初 pseudo-hour 桶；cutover 前 hour 视图不可用 |
-| token 指标 | Phase 3 defer（`inputTokens`/`outputTokens` 恒 0，待 webhook 扩展） |
-| 成本精度 | `cost_cny NUMERIC(18,6)`；ingest 时点单价不可回溯 |
+| 历史 migration | 旧 `usage_daily` → 北京时间日初 pseudo-hour 桶；cutover 前 hour 视图不可用   |
+| token 指标     | Phase 3 defer（`inputTokens`/`outputTokens` 恒 0，待 webhook 扩展）          |
+| 成本精度       | `cost_cny NUMERIC(18,6)`；ingest 时点单价不可回溯                            |
 
 **实现方式**
 
@@ -386,11 +386,11 @@
 
 **查询窗口与上限**
 
-| `granularity` | 最大窗口 | 备注 |
-| --- | --- | --- |
-| `day` | 365 天 | `groupBy=none` 每桶单点；`points ≤ 10000` |
-| `hour` | 90 天 | cutover 前无真实 hour 数据 |
-| `minute` | 3 小时 | 最多 50 页 / 5000 log；超时 10s；缓存 TTL 60s（key 含 session 范围） |
+| `granularity` | 最大窗口 | 备注                                                                 |
+| ------------- | -------- | -------------------------------------------------------------------- |
+| `day`         | 365 天   | `groupBy=none` 每桶单点；`points ≤ 10000`                            |
+| `hour`        | 90 天    | cutover 前无真实 hour 数据                                           |
+| `minute`      | 3 小时   | 最多 50 页 / 5000 log；超时 10s；缓存 TTL 60s（key 含 session 范围） |
 
 ---
 
@@ -465,7 +465,7 @@ flowchart LR
 | **Phase 0.5** | 生产最小安全                | webhook 已有 + sync trigger 保护 + authz 中间件                                     | **2～3 天**              |
 | **Phase 1**   | PRD Epic P1：可演示真实组织 | **飞书** credential/import/sync；sync log；契约 §2                                  | **4～6 周**              |
 | **Phase 2**   | 真实 API 调用与扣费         | NewAPI webhook 实装 + ingest + usage 写入 + rebalance；notification log MVP（可选） | **3～5 周**（含 NewAPI） |
-| **Phase 3**   | 真实成本看板                | `usage_buckets` + 只读 `usage/series`（day/hour/minute）；OIDC 可选               | **2～3 周**              |
+| **Phase 3**   | 真实成本看板                | `usage_buckets` + 只读 `usage/series`（day/hour/minute）；OIDC 可选                 | **2～3 周**              |
 | **Phase 4**   | 运营策略完整                | 通知 MVP→全渠道；US-08 alerting；US-07 月初重置 + 调度锁                            | **2～3 周**              |
 | **Phase 5**   | SaaS / 全平台               | 钉钉、企微；多租户；邀请激活全链路                                                  | 独立立项                 |
 
@@ -512,19 +512,19 @@ flowchart LR
 
 ## 14. 验收对照（不含 US-14）
 
-| US    | 关键验收点                                                             |
-| ----- | ---------------------------------------------------------------------- |
-| US-01 | 错误凭证 422；正确保存；切换平台清空凭证；body 为 `Credential`         |
-| US-02 | 二次导入仅新增；新部门同步预算树+routing；retry 按 ids                 |
-| US-03 | 定时执行写 log；超阈值终止不删；manual 部门保留；多副本不重复 sync     |
-| US-04 | 子部门/成员存在不可删部门；停用 Key 失效；转移更新 mapping             |
-| US-05 | 不可移除普通成员；无权限 403                                           |
-| US-07 | 超卖 422；月初 consumed/used 清零；reset 幂等                          |
-| US-08 | 80%/90% 通知（Policy+Rule 合并）；100% 阻断；Key 级 429 不拖垮其他 Key |
-| US-09 | 子级 ⊆ 父级；父级缩小子级联动                                          |
-| US-10 | 预留池不足拒绝；通知发往 managerId（或 documented fallback）           |
-| US-11 | Key 额度独立；删除释放未用额度                                         |
-| US-12 | 401/403/429；webhook 入账后 used 增加                                  |
+| US    | 关键验收点                                                                                                                                                                               |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-01 | 错误凭证 422；正确保存；切换平台清空凭证；body 为 `Credential`                                                                                                                           |
+| US-02 | 二次导入仅新增；新部门同步预算树+routing；retry 按 ids                                                                                                                                   |
+| US-03 | 定时执行写 log；超阈值终止不删；manual 部门保留；多副本不重复 sync                                                                                                                       |
+| US-04 | 子部门/成员存在不可删部门；停用 Key 失效；转移更新 mapping                                                                                                                               |
+| US-05 | 不可移除普通成员；无权限 403                                                                                                                                                             |
+| US-07 | 超卖 422；月初 consumed/used 清零；reset 幂等                                                                                                                                            |
+| US-08 | 80%/90% 通知（Policy+Rule 合并）；100% 阻断；Key 级 429 不拖垮其他 Key                                                                                                                   |
+| US-09 | 子级 ⊆ 父级；父级缩小子级联动                                                                                                                                                            |
+| US-10 | 预留池不足拒绝；通知发往 managerId（或 documented fallback）                                                                                                                             |
+| US-11 | Key 额度独立；删除释放未用额度                                                                                                                                                           |
+| US-12 | 401/403/429；webhook 入账后 used 增加                                                                                                                                                    |
 | US-13 | `day`/`hour`/`week`/`month` 来自 buckets 周期 SUM；`minute` 只读日志聚合（`approximate`）；consumed 不读 snapshot；默认时区 `Asia/Shanghai`；**全部看板 API 为 GET 只读**；下钻部门→成员 |
 
 ---

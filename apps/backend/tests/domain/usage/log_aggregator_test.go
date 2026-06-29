@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/tests/testutil"
 	mock "github.com/tokenjoy/backend/tests/testutil/mock"

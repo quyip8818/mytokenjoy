@@ -6,15 +6,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/config"
-	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	pkg "github.com/tokenjoy/backend/internal/pkg"
 	"github.com/tokenjoy/backend/internal/permission"
+	pkg "github.com/tokenjoy/backend/internal/pkg"
 )
 
 type DashboardHandler struct {

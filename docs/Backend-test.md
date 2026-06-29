@@ -33,13 +33,13 @@ tests/
 └── worker/
 ```
 
-| 规则    | 说明                                                                                                           |
-| ------- | -------------------------------------------------------------------------------------------------------------- |
-| 包名    | `package <name>_test`，黑盒 import `internal/...`                                                              |
+| 规则    | 说明                                                                                                                                                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 包名    | `package <name>_test`，黑盒 import `internal/...`                                                                                                                                                                                     |
 | Fixture | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`；Handler 集成测试优先 `testutil.NewTestApp(t)`（内部 `app.New(..., app.WithoutWorker())`，避免 worker goroutine 干扰）；禁止裸 `config.Load()`（`seed/loader_test` 除外） |
-| Seed ID | 使用 `internal/seed` 导出常量（如 `seed.IDDept3`）                                                             |
-| Mock    | `testutil/mock.StubAdminClient` 实现 `newapi.AdminClient`                                                      |
-| 确定性  | `testutil.TestConfig()` 固定 `SimulateDelay=false`；unit 不设 `DATABASE_URL`                                   |
+| Seed ID | 使用 `internal/seed` 导出常量（如 `seed.IDDept3`）                                                                                                                                                                                    |
+| Mock    | `testutil/mock.StubAdminClient` 实现 `newapi.AdminClient`                                                                                                                                                                             |
+| 确定性  | `testutil.TestConfig()` 固定 `SimulateDelay=false`；unit 不设 `DATABASE_URL`                                                                                                                                                          |
 
 ### 1.2 分层
 
@@ -95,36 +95,36 @@ go test ./tests/... -coverprofile=coverage.out && go tool cover -html=coverage.o
 
 ### 3.1 已有（34 文件）
 
-| 路径                                                                                                                                   | 覆盖点                                        |
-| -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `tests/handler/contract_test.go`                                                                                                       | demo profile：GET 带 admin cookie → 200 + JSON |
-| `tests/handler/contract_prod_test.go`                                                                                                  | prod profile：无 cookie GET → 401；admin cookie → 200 |
-| `tests/handler/authz_test.go`                                                                                                            | 写操作 401/403/200；`TestProdGetReadForbiddenForMember` prod GET 403 |
-| `tests/handler/handler_test.go`                                                                                                        | Session 双轨、healthz、域 smoke、预算超卖 422 |
-| `tests/handler/webhook_test.go`                                                                                                        | Webhook 401/400/200                           |
-| `tests/handler/keys_test.go`                                                                                                           | 审批 approve/reject HTTP                      |
-| `tests/handler/budget_test.go`                                                                                                         | PUT 节点 200                                  |
-| `tests/handler/session_test.go`                                                                                                        | cookie 只读、`?memberId=` 优先级              |
-| `tests/handler/models_test.go`                                                                                                         | PUT routing → 200                             |
-| `tests/handler/org_test.go`                                                                                                            | POST member、batch-import                     |
-| `tests/handler/audit_test.go`                                                                                                          | PUT settings → 200                            |
-| `tests/domain/budget/service_test.go`                                                                                                  | 节点/成员额度、组 CRUD                        |
-| `tests/domain/budget/ingest_test.go`                                                                                                   | 入账幂等、rollup、outbox、EnqueueFailed       |
-| `tests/domain/budget/ingest_overrun_test.go`                                                                                           | 超支 disable                                  |
-| `tests/domain/budget/rebalance_test.go`                                                                                                | RemainQuota 仅下调                            |
-| `tests/domain/keys/service_test.go`                                                                                                    | 审批闭环、Platform/Group Key 校验             |
-| `tests/domain/keys/token_lifecycle_test.go`                                                                                            | outbox、CreateToken、rollback                 |
-| `tests/domain/session/service_test.go`                                                                                                 | admin/404/只读                                |
-| `tests/domain/models/service_test.go`                                                                                                  | 路由继承/收缩、模型 CRUD                      |
-| `tests/domain/org/service_test.go`                                                                                                     | 角色、分页、导入、Add/RemoveRoleMember        |
-| `tests/domain/audit/service_test.go`                                                                                                   | 操作/通话日志过滤                             |
-| `tests/domain/dashboard/service_test.go`                                                                                               | 周期成本汇总                                  |
-| `tests/worker/runner_test.go`                                                                                                          | relay/webhook outbox、log 补偿                |
-| `tests/store/postgres/persist_test.go`                                                                                                 | domain seed、relay mapping（integration）     |
-| `tests/pkg/{budgetutil,budgetlookup,memberquota,budgetgroupquota,memberbudgetquota,routingutil,auditfilter,dashboardcalc,sessionutil}` | 纯函数                                        |
-| `tests/permission/resolve_test.go`                                                                                                     | 角色权限、只读 Session                        |
-| `tests/seed/loader_test.go`                                                                                                            | 种子数据完整性                                |
-| `tests/pkg/newapi/quota_test.go`                                                                                                       | 配额单位 / CNY 换算                           |
+| 路径                                                                                                                                   | 覆盖点                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `tests/handler/contract_test.go`                                                                                                       | demo profile：GET 带 admin cookie → 200 + JSON                       |
+| `tests/handler/contract_prod_test.go`                                                                                                  | prod profile：无 cookie GET → 401；admin cookie → 200                |
+| `tests/handler/authz_test.go`                                                                                                          | 写操作 401/403/200；`TestProdGetReadForbiddenForMember` prod GET 403 |
+| `tests/handler/handler_test.go`                                                                                                        | Session 双轨、healthz、域 smoke、预算超卖 422                        |
+| `tests/handler/webhook_test.go`                                                                                                        | Webhook 401/400/200                                                  |
+| `tests/handler/keys_test.go`                                                                                                           | 审批 approve/reject HTTP                                             |
+| `tests/handler/budget_test.go`                                                                                                         | PUT 节点 200                                                         |
+| `tests/handler/session_test.go`                                                                                                        | cookie 只读、`?memberId=` 优先级                                     |
+| `tests/handler/models_test.go`                                                                                                         | PUT routing → 200                                                    |
+| `tests/handler/org_test.go`                                                                                                            | POST member、batch-import                                            |
+| `tests/handler/audit_test.go`                                                                                                          | PUT settings → 200                                                   |
+| `tests/domain/budget/service_test.go`                                                                                                  | 节点/成员额度、组 CRUD                                               |
+| `tests/domain/budget/ingest_test.go`                                                                                                   | 入账幂等、rollup、outbox、EnqueueFailed                              |
+| `tests/domain/budget/ingest_overrun_test.go`                                                                                           | 超支 disable                                                         |
+| `tests/domain/budget/rebalance_test.go`                                                                                                | RemainQuota 仅下调                                                   |
+| `tests/domain/keys/service_test.go`                                                                                                    | 审批闭环、Platform/Group Key 校验                                    |
+| `tests/domain/keys/token_lifecycle_test.go`                                                                                            | outbox、CreateToken、rollback                                        |
+| `tests/domain/session/service_test.go`                                                                                                 | admin/404/只读                                                       |
+| `tests/domain/models/service_test.go`                                                                                                  | 路由继承/收缩、模型 CRUD                                             |
+| `tests/domain/org/service_test.go`                                                                                                     | 角色、分页、导入、Add/RemoveRoleMember                               |
+| `tests/domain/audit/service_test.go`                                                                                                   | 操作/通话日志过滤                                                    |
+| `tests/domain/dashboard/service_test.go`                                                                                               | 周期成本汇总                                                         |
+| `tests/worker/runner_test.go`                                                                                                          | relay/webhook outbox、log 补偿                                       |
+| `tests/store/postgres/persist_test.go`                                                                                                 | domain seed、relay mapping（integration）                            |
+| `tests/pkg/{budgetutil,budgetlookup,memberquota,budgetgroupquota,memberbudgetquota,routingutil,auditfilter,dashboardcalc,sessionutil}` | 纯函数                                                               |
+| `tests/permission/resolve_test.go`                                                                                                     | 角色权限、只读 Session                                               |
+| `tests/seed/loader_test.go`                                                                                                            | 种子数据完整性                                                       |
+| `tests/pkg/newapi/quota_test.go`                                                                                                       | 配额单位 / CNY 换算                                                  |
 
 ### 3.2 仍缺或暂缓
 

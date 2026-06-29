@@ -26,7 +26,7 @@ func SetupFeishuConnected(t *testing.T) FeishuOrgEnv {
 	ConnectFeishuDataSource(t, &cfg, st, server.URL)
 	return FeishuOrgEnv{
 		Cfg: cfg, Store: st,
-		Svc: NewOrgService(t, cfg, st),
+		Svc:       NewOrgService(t, cfg, st),
 		ServerURL: server.URL,
 	}
 }
@@ -55,7 +55,7 @@ func SetupImportedFeishuOrgWithServer(t *testing.T, serverURL string) FeishuOrgE
 	ConnectFeishuDataSource(t, &cfg, st, serverURL)
 	env := FeishuOrgEnv{
 		Cfg: cfg, Store: st,
-		Svc: NewOrgService(t, cfg, st),
+		Svc:       NewOrgService(t, cfg, st),
 		ServerURL: serverURL,
 	}
 	ImportFeishuOrg(t, env)

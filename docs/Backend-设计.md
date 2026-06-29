@@ -66,21 +66,21 @@
 
 MSW 将以下数据保存在进程内存，刷新页面重置。后端首版同样采用内存 Store，重启服务即重置：
 
-| 数据                                    | 来源                  | 写操作域               |
-| --------------------------------------- | --------------------- | ---------------------- |
-| `mockDataSourceStatus`                  | org fixture           | data-source PUT        |
-| `mockSyncConfig`                        | org fixture           | sync config PUT        |
-| `mockDepartments`                       | org fixture           | department CRUD        |
-| `mockMembers`                           | member-factory 生成   | member CRUD / import   |
-| `mockRoles`                             | org fixture           | role CRUD / 成员绑定   |
-| `mockBudgetTree`                        | budget fixture        | budget node PUT        |
-| `mockMemberQuotaPools`                  | `lib/member-quota.ts` | member quota PUT       |
-| `mockBudgetGroups`                      | budget fixture        | budget group CRUD      |
-| `mockOverrunPolicy` / `mockAlertRules`  | budget fixture        | policy / alerts        |
-| `mockProviderKeys` / `mockPlatformKeys` | keys fixture          | keys CRUD              |
-| `mockApprovals`                         | keys fixture          | approval flow          |
-| `mockModels` / `mockRoutingRules`       | models fixture        | model / routing        |
-| `mockAuditSettings`                     | audit handler 内      | audit settings PUT     |
+| 数据                                    | 来源                           | 写操作域                                               |
+| --------------------------------------- | ------------------------------ | ------------------------------------------------------ |
+| `mockDataSourceStatus`                  | org fixture                    | data-source PUT                                        |
+| `mockSyncConfig`                        | org fixture                    | sync config PUT                                        |
+| `mockDepartments`                       | org fixture                    | department CRUD                                        |
+| `mockMembers`                           | member-factory 生成            | member CRUD / import                                   |
+| `mockRoles`                             | org fixture                    | role CRUD / 成员绑定                                   |
+| `mockBudgetTree`                        | budget fixture                 | budget node PUT                                        |
+| `mockMemberQuotaPools`                  | `lib/member-quota.ts`          | member quota PUT                                       |
+| `mockBudgetGroups`                      | budget fixture                 | budget group CRUD                                      |
+| `mockOverrunPolicy` / `mockAlertRules`  | budget fixture                 | policy / alerts                                        |
+| `mockProviderKeys` / `mockPlatformKeys` | keys fixture                   | keys CRUD                                              |
+| `mockApprovals`                         | keys fixture                   | approval flow                                          |
+| `mockModels` / `mockRoutingRules`       | models fixture                 | model / routing                                        |
+| `mockAuditSettings`                     | audit handler 内               | audit settings PUT                                     |
 | Dashboard 指标                          | `usage_buckets` + 只读 GET API | 只读（`GET` 全系；minute 代理 NewAPI 日志，不 ingest） |
 
 ### 2.3 需迁移的领域逻辑

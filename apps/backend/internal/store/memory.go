@@ -21,12 +21,12 @@ func NewMemory(snapshot Snapshot) *Memory {
 	return m
 }
 
-func (m *Memory) Org() OrgRepository             { return &memoryOrgRepo{store: m} }
-func (m *Memory) Budget() BudgetRepository       { return &memoryBudgetRepo{store: m} }
-func (m *Memory) Keys() KeysRepository           { return &memoryKeysRepo{store: m} }
-func (m *Memory) Models() ModelsRepository       { return &memoryModelsRepo{store: m} }
-func (m *Memory) Audit() AuditRepository         { return &memoryAuditRepo{store: m} }
-func (m *Memory) Relay() RelayRepository         { return m.relayRepo }
+func (m *Memory) Org() OrgRepository       { return &memoryOrgRepo{store: m} }
+func (m *Memory) Budget() BudgetRepository { return &memoryBudgetRepo{store: m} }
+func (m *Memory) Keys() KeysRepository     { return &memoryKeysRepo{store: m} }
+func (m *Memory) Models() ModelsRepository { return &memoryModelsRepo{store: m} }
+func (m *Memory) Audit() AuditRepository   { return &memoryAuditRepo{store: m} }
+func (m *Memory) Relay() RelayRepository   { return m.relayRepo }
 func (m *Memory) Credential() CredentialRepository {
 	return &memoryCredentialRepo{store: m}
 }

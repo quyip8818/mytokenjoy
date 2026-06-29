@@ -6,8 +6,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/orgutil"
 	"github.com/tokenjoy/backend/internal/pkg/periodutil"
 	"github.com/tokenjoy/backend/internal/pkg/queryutil"
@@ -26,10 +26,10 @@ type Service interface {
 }
 
 type service struct {
-	cfg          config.Config
-	store        store.Store
+	cfg           config.Config
+	store         store.Store
 	logAggregator *domainusage.LogAggregator
-	now          func() time.Time
+	now           func() time.Time
 }
 
 func NewService(cfg config.Config, st store.Store, logAggregator *domainusage.LogAggregator) Service {

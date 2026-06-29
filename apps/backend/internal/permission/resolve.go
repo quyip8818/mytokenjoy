@@ -16,7 +16,7 @@ var presetRoleCapabilities = map[string][]string{
 		OrgRead, BudgetRead, KeysRead, ModelRead,
 		AuditRead, DashboardCost, DashboardUsage, SelfApproval,
 	},
-	RoleAPICaller:  {APICall},
+	RoleAPICaller: {APICall},
 }
 
 var writeCapabilities = []string{

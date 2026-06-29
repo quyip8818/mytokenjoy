@@ -79,28 +79,28 @@ type UsageSeriesPoint struct {
 }
 
 type UsageSeriesResponse struct {
-	Granularity  string             `json:"granularity"`
-	Source       string             `json:"source"`
-	Timezone     string             `json:"timezone"`
-	Approximate  bool               `json:"approximate"`
-	MappingAsOf  string             `json:"mappingAsOf"`
-	UnmappedCount *int              `json:"unmappedCount,omitempty"`
-	Truncated    *bool              `json:"truncated,omitempty"`
-	Points       []UsageSeriesPoint `json:"points"`
+	Granularity   string             `json:"granularity"`
+	Source        string             `json:"source"`
+	Timezone      string             `json:"timezone"`
+	Approximate   bool               `json:"approximate"`
+	MappingAsOf   string             `json:"mappingAsOf"`
+	UnmappedCount *int               `json:"unmappedCount,omitempty"`
+	Truncated     *bool              `json:"truncated,omitempty"`
+	Points        []UsageSeriesPoint `json:"points"`
 }
 
 type UsageAggregateQuery struct {
-	Start          time.Time
-	End            time.Time
-	Granularity    string
-	Timezone       string
-	GroupBy        string
-	DepartmentID   string
-	DepartmentIDs  []string
-	MemberID       string
-	ParentDeptID   string
-	Limit          int
-	ScopeDeptIDs   []string
+	Start         time.Time
+	End           time.Time
+	Granularity   string
+	Timezone      string
+	GroupBy       string
+	DepartmentID  string
+	DepartmentIDs []string
+	MemberID      string
+	ParentDeptID  string
+	Limit         int
+	ScopeDeptIDs  []string
 }
 
 type UsageAggregateRow struct {

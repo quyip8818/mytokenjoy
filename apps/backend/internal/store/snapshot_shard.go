@@ -31,10 +31,10 @@ type orgShardPayload struct {
 }
 
 type budgetShardPayload struct {
-	BudgetTree       []types.BudgetNode              `json:"budgetTree"`
-	BudgetGroups     []types.BudgetGroup             `json:"budgetGroups"`
-	OverrunPolicy    types.OverrunPolicyConfig       `json:"overrunPolicy"`
-	AlertRules       []types.AlertRule               `json:"alertRules"`
+	BudgetTree       []types.BudgetNode               `json:"budgetTree"`
+	BudgetGroups     []types.BudgetGroup              `json:"budgetGroups"`
+	OverrunPolicy    types.OverrunPolicyConfig        `json:"overrunPolicy"`
+	AlertRules       []types.AlertRule                `json:"alertRules"`
 	MemberQuotaPools map[string]types.MemberQuotaPool `json:"memberQuotaPools"`
 }
 

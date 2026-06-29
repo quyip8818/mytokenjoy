@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/dashboard"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/permission"
 	"github.com/tokenjoy/backend/internal/seed"
 	"github.com/tokenjoy/backend/internal/store"
@@ -39,7 +39,7 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 4})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 12, 9, 0, 0, 0, time.UTC),
-		CostCNY: 6,
+		CostCNY:     6,
 	})
 	rows, err := svc.DailyCosts(ctx, types.CostQueryParams{
 		Period: string(types.CostPeriodCurrentMonth), Granularity: types.UsageGranularityWeek,
@@ -58,7 +58,7 @@ func TestUsageSeriesHourFromBuckets(t *testing.T) {
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 3})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-		CostCNY: 7,
+		CostCNY:     7,
 	})
 	resp, err := svc.UsageSeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityHour,
@@ -107,7 +107,7 @@ func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 	ctx := context.Background()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 5, 15, 8, 0, 0, 0, time.UTC),
-		CostCNY: 5,
+		CostCNY:     5,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 12.5, CallCount: 2})
 	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
@@ -154,11 +154,11 @@ func TestUsageSeriesTimezoneShanghai(t *testing.T) {
 	ctx := context.Background()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 9, 16, 0, 0, 0, time.UTC),
-		CostCNY: 3,
+		CostCNY:     3,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 10, 7, 0, 0, 0, time.UTC),
-		CostCNY: 7,
+		CostCNY:     7,
 	})
 	resp, err := svc.UsageSeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityDay,

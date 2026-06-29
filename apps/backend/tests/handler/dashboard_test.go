@@ -68,7 +68,7 @@ func TestUsageSeriesGroupByDepartmentHTTP(t *testing.T) {
 	app := testutil.NewTestApp(t, nil)
 	testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{CostCNY: 4})
 	testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{
-		BucketStart: time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
+		BucketStart:  time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
 		DepartmentID: seed.IDDept4, MemberID: "m-4", CostCNY: 6,
 	})
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=day&start=2026-06-10&end=2026-06-11&groupBy=department", nil)
