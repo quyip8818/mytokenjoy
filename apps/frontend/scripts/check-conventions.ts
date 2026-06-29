@@ -91,4 +91,17 @@ walkFiles(join(srcRoot, 'routes'), (filePath) => {
   }
 })
 
+const deepRelativeImportPattern = /from ['"]\.\.\/\.\.\/|import\(['"]\.\.\/\.\.\//
+
+walkFiles(srcRoot, (filePath) => {
+  const source = readFileSync(filePath, 'utf8')
+  for (const line of source.split('\n')) {
+    const trimmed = line.trimStart()
+    if (!deepRelativeImportPattern.test(trimmed)) continue
+    fail(
+      `${relativeToSrc(filePath)}: use @/ alias instead of ../../ (or deeper) relative imports in src/`,
+    )
+  }
+})
+
 console.log('check-conventions: all checks passed')

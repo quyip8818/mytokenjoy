@@ -3,17 +3,20 @@ import type { Member } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
-import { pushModelPicker, useMemberWhitelist } from '../../use-member-whitelist'
-import type { WorkflowComponentProps, WorkflowStackEntry } from '../../types'
-import { WorkflowPanelChrome, WorkflowPanelFooter } from '../../components/workflow-panel-chrome'
-import { WorkflowInfoBox } from '../../components/workflow-info-box'
-import { WorkflowStepper } from '../../components/workflow-stepper'
+import { pushModelPicker, useMemberWhitelist } from '@/features/workflow/use-member-whitelist'
+import type { WorkflowComponentProps, WorkflowStackEntry } from '@/features/workflow/types'
+import {
+  WorkflowPanelChrome,
+  WorkflowPanelFooter,
+} from '@/features/workflow/components/workflow-panel-chrome'
+import { WorkflowInfoBox } from '@/features/workflow/components/workflow-info-box'
+import { WorkflowStepper } from '@/features/workflow/components/workflow-stepper'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useWorkflow } from '../../use-workflow'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '../../constants'
+import { useWorkflow } from '@/features/workflow/use-workflow'
+import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/workflow/constants'
 import { formatQuotaContext, useKeyFormQuota, useKeyFormState } from './use-key-form-quota'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
