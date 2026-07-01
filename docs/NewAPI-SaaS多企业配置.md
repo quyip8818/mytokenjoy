@@ -35,7 +35,7 @@ flowchart LR
 | 组件             | 数量            | 说明                                                         |
 | ---------------- | --------------- | ------------------------------------------------------------ |
 | NewAPI 进程      | **1**（单集群） | 所有企业共用；**逻辑按企业服务账户隔离**                     |
-| TokenJoy Backend | 1+              | `MULTI_COMPANY=true`；唯一持有 NewAPI Admin Token            |
+| TokenJoy Backend | 1+              | `SUPPORT_SAAS=true`；唯一持有 NewAPI Admin Token             |
 | Postgres         | 1 实例，两库    | `tokenjoy` + `newapi`（见 `apps/newapi/docker-compose.yml`） |
 | Redis            | 1               | NewAPI 会话与缓存                                            |
 
@@ -103,7 +103,7 @@ TokenJoy Backend 侧（与现网一致，扩展用于多企业）：
 | `NEW_API_BASE_URL`             | NewAPI 内网地址，如 `http://new-api:3000`                  |
 | `NEW_API_ADMIN_TOKEN`          | **平台根管理员** JWT；仅 Backend / Worker 使用，不下发企业 |
 | `NEW_API_WEBHOOK_SECRET`       | 与 NewAPI webhook 一致                                     |
-| `MULTI_COMPANY`                | `true`                                                     |
+| `SUPPORT_SAAS`                 | `true`                                                     |
 | `DEFAULT_COMPANY_ID`           | 私有化默认 `1`                                             |
 | `COMPANY_WALLET_CACHE_TTL_SEC` | `30`（钱包预检缓存）                                       |
 | `PLATFORM_SHARED_RELAY_GROUP`  | `platform_shared`（与 Channel `group` 一致）               |
@@ -222,7 +222,7 @@ TokenJoy 已提供 `POST /api/internal/webhooks/newapi-log`；若上游未原生
 
 ---
 
-## 10. 单企业私有化（`MULTI_COMPANY=false`）
+## 10. 单企业私有化（`SUPPORT_SAAS=false`）
 
 | 项           | 配置                                                                   |
 | ------------ | ---------------------------------------------------------------------- |

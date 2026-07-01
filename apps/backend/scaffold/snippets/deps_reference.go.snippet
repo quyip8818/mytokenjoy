@@ -1,0 +1,21 @@
+// Reference: internal/http/deps/deps.go (full Deps struct)
+// New domains typically add only __DOMAIN_TITLE__Svc; fields below usually unchanged.
+//
+// type Deps struct {
+// 	Config       config.Config
+// 	Logger       *slog.Logger
+// 	Store        store.Store              // gateway / worker paths
+// 	SessionSvc   session.Service
+// 	OrgSvc       domainorg.Service
+// 	BudgetSvc    domainbudget.Service
+// 	KeysSvc      domainkeys.Service
+// 	ModelsSvc    domainmodels.Service
+// 	DashboardSvc domaindashboard.Service
+// 	AuditSvc     domainaudit.Service
+// 	IngestSvc    domainbudget.Ingestor     // webhook / worker ingest
+// 	CompanySvc   domaincompany.Service
+// 	BillingSvc   domainbilling.Service
+// 	PlatformSvc  platformauth.Service      // platform login
+// 	WalletSvc    domaincompany.WalletService // relay gateway precheck
+// 	CompanyGate  *domaincompany.Gate         // /api suspended read-only
+// }

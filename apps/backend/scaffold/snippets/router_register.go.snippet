@@ -1,10 +1,11 @@
 // Add import to internal/http/handler/register.go:
 //   __DOMAIN__handler "github.com/tokenjoy/backend/internal/http/handler/__DOMAIN__"
 
-// Add to handler.RegistryDeps in internal/http/handler/register.go:
+// Add to http/deps.Deps in internal/http/deps/deps.go:
 //   __DOMAIN_TITLE__Svc domain__DOMAIN__.Service
+// See scaffold/snippets/deps_reference.go.snippet for full Deps field list.
 
-// Add to Registry struct:
+// Add to Registry struct in register.go:
 //   __DOMAIN__ *__DOMAIN__handler.Handler
 
 // Add handler construction in NewRegistry:

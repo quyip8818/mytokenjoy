@@ -25,6 +25,7 @@ make scaffold-domain DOMAIN=notification
 
 - `internal/infra/permission/keys.go` — 权限 key
 - `internal/app/wiring_domain.go` 与 `registry.go` — DI 注册
+- `internal/http/deps/deps.go` — 新增 `__DOMAIN_TITLE__Svc`（完整字段见 `snippets/deps_reference.go.snippet`）
 - `internal/http/handler/register.go` — Handler 构造与 `/api` 路由注册
 
 ## 不自动生成（需手工）
@@ -39,7 +40,7 @@ make scaffold-domain DOMAIN=notification
 scaffold/
   domain/     service.go.tmpl, service_test.go.tmpl
   handler/    handler.go.tmpl, handler_test.go.tmpl
-  snippets/   注册清单片段
+  snippets/   注册清单片段（含 deps_reference 完整 Deps 字段参考）
 ```
 
 占位符：`__DOMAIN__`（包名）、`__DOMAIN_TITLE__`（PascalCase 类型名）。

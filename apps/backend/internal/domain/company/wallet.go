@@ -2,46 +2,12 @@ package company
 
 import (
 	"context"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/http/httputil"
 )
-
-type Gate struct {
-	cfg config.Config
-}
-
-func NewGate(cfg config.Config) *Gate {
-	return &Gate{cfg: cfg}
-}
-
-func (g *Gate) IsSuspended(ctx context.Context) bool {
-	companyCtx, ok := FromContext(ctx)
-	if !ok {
-		return false
-	}
-	return companyCtx.Status == "suspended"
-}
-
-func (g *Gate) IsReadOnlyAllowed(method string) bool {
-	return method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
-}
-
-func CompanyReadOnlyMiddleware(gate *Gate) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if gate.IsSuspended(r.Context()) && !gate.IsReadOnlyAllowed(r.Method) {
-				httputil.WriteStatus(w, http.StatusForbidden, "Company suspended")
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
 type WalletService interface {
 	AvailableQuota(ctx context.Context, walletAccountID int64) (int64, error)

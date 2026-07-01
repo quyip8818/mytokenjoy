@@ -65,4 +65,7 @@ cat "$SCAFFOLD/snippets/app_register.go.snippet" | sed -e "s/__DOMAIN__/${DOMAIN
 echo ""
 cat "$SCAFFOLD/snippets/router_register.go.snippet" | sed -e "s/__DOMAIN__/${DOMAIN}/g" -e "s/__DOMAIN_TITLE__/${DOMAIN_TITLE}/g" -e "s/__DOMAIN_IMPORT__/${DOMAIN_IMPORT}/g"
 echo ""
+echo "Deps field reference (usually only add __DOMAIN_TITLE__Svc):"
+cat "$SCAFFOLD/snippets/deps_reference.go.snippet"
+echo ""
 echo "Also add types to internal/domain/types/ and update docs/Frontend-API契约.md if needed."

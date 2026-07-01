@@ -39,9 +39,9 @@ func WithProfile(profile string) ConfigOption {
 	}
 }
 
-func WithMultiCompany(enabled bool) ConfigOption {
+func WithSupportSaas(enabled bool) ConfigOption {
 	return func(cfg *config.Config) {
-		cfg.MultiCompany = enabled
+		cfg.SupportSaas = enabled
 	}
 }
 

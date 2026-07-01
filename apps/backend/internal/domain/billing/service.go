@@ -68,7 +68,7 @@ func (s *service) PlatformRecharge(ctx context.Context, companyID int64, amount 
 		fmt.Sprintf("platform:%s", operatorID), nil); err != nil {
 		return err
 	}
-	return domainplatform.AppendAudit(ctx, s.store, "platform.company.recharge", operatorID,
+	return domainplatform.AppendAudit(ctx, s.store, companyID, "platform.company.recharge", operatorID,
 		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("amount=%.2f", amount))
 }
 

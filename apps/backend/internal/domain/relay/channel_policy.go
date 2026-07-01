@@ -34,7 +34,7 @@ func (p SaaSSharedChannelPolicy) ResolveRelayGroup(_ context.Context, _ string) 
 }
 
 func NewChannelPolicy(cfg config.Config) ChannelPolicy {
-	if cfg.MultiCompany {
+	if cfg.SupportSaas {
 		return NewSaaSSharedChannelPolicy(cfg.PlatformSharedRelayGroup)
 	}
 	return NewLocalChannelPolicy()

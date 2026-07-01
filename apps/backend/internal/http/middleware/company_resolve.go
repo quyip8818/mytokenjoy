@@ -31,7 +31,7 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService) func(http.Hand
 			var companyID int64
 			var companyCtx company.Context
 			var err error
-			if !cfg.MultiCompany {
+			if !cfg.SupportSaas {
 				companyID = cfg.DefaultCompanyID
 				companyCtx, err = companySvc.ResolveCompanyContext(r.Context(), companyID)
 			} else if memberID := common.ResolveMemberID(r); memberID != "" {

@@ -24,7 +24,7 @@ const (
 )
 
 func ApplySaaSConfig(cfg *config.Config) {
-	cfg.MultiCompany = true
+	cfg.SupportSaas = true
 	cfg.SimulateDelay = false
 	cfg.PlatformBootstrapEmail = PlatformBootstrapEmail
 	cfg.PlatformBootstrapPassword = PlatformBootstrapPassword
@@ -32,7 +32,7 @@ func ApplySaaSConfig(cfg *config.Config) {
 
 func SaaSConfig(opts ...ConfigOption) config.Config {
 	all := append([]ConfigOption{
-		WithMultiCompany(true),
+		WithSupportSaas(true),
 		WithPlatformBootstrap(PlatformBootstrapEmail, PlatformBootstrapPassword),
 	}, opts...)
 	return TestConfig(all...)

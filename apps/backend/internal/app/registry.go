@@ -13,8 +13,8 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
-	httpapi "github.com/tokenjoy/backend/internal/http"
-	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
+	"github.com/tokenjoy/backend/internal/infra/platformauth"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -34,12 +34,12 @@ type ServiceRegistry struct {
 	Rebalance   domainbudget.Rebalancer
 	Company     domaincompany.Service
 	Billing     domainbilling.Service
-	Platform    httpmiddleware.PlatformService
+	Platform    platformauth.Service
 	CompanyGate *domaincompany.Gate
 }
 
-func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpapi.Deps {
-	return httpapi.Deps{
+func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
+	return httpdeps.Deps{
 		Config:       r.Config,
 		Logger:       logger,
 		Store:        r.Store,
@@ -88,7 +88,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 		Rebalance:   services.rebalance,
 		Company:     services.company,
 		Billing:     services.billing,
-		Platform:    httpmiddleware.NewPlatformAuthService(cfg, i.store),
+		Platform:    platformauth.NewService(cfg, i.store),
 		CompanyGate: i.companyGate,
 	}
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
-	if s.cfg.MultiCompany {
+	if s.cfg.SupportSaas {
 		return types.ProviderKey{}, domain.Forbidden("provider keys are managed by platform in SaaS mode")
 	}
 	return s.createProviderKey(ctx, input)
@@ -58,7 +58,7 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 }
 
 func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
-	if s.cfg.MultiCompany {
+	if s.cfg.SupportSaas {
 		return domain.Forbidden("provider keys are managed by platform in SaaS mode")
 	}
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
@@ -90,7 +90,7 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 }
 
 func (s *service) RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error) {
-	if s.cfg.MultiCompany {
+	if s.cfg.SupportSaas {
 		return types.ProviderKey{}, domain.Forbidden("provider keys are managed by platform in SaaS mode")
 	}
 	if err := s.delayer.Wait(ctx, time.Second); err != nil {
@@ -115,7 +115,7 @@ func (s *service) RotateProviderKey(ctx context.Context, id string) (types.Provi
 }
 
 func (s *service) DeleteProviderKey(ctx context.Context, id string) error {
-	if s.cfg.MultiCompany {
+	if s.cfg.SupportSaas {
 		return domain.Forbidden("provider keys are managed by platform in SaaS mode")
 	}
 	keys, err := s.store.Keys().ProviderKeys(ctx)

@@ -1,0 +1,18 @@
+package store
+
+import (
+	"context"
+
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
+
+type UsageRepository interface {
+	UpsertBucket(ctx context.Context, row types.UsageBucketRow) error
+	QuerySeries(ctx context.Context, q types.UsageSeriesQuery) ([]types.UsageSeriesPoint, error)
+	QueryAggregates(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error)
+	QuerySummary(ctx context.Context, q types.UsageAggregateQuery) (types.UsageSummaryTotals, error)
+}
+
+type NotificationRepository interface {
+	Append(ctx context.Context, entry types.NotificationLogEntry) error
+}

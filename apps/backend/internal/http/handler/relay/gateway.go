@@ -2,9 +2,7 @@ package relayhandler
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -13,27 +11,23 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/store"
 )
-
-const gatewayMinEstimateCNY = 0.01
 
 type Gateway struct {
 	cfg         config.Config
 	store       store.Store
-	wallet      domaincompany.WalletService
+	precheck    relay.Prechecker
 	proxyTarget *url.URL
 }
 
-func NewGateway(cfg config.Config, st store.Store, wallet domaincompany.WalletService) (*Gateway, error) {
+func NewGateway(cfg config.Config, st store.Store, precheck relay.Prechecker) (*Gateway, error) {
 	target, err := url.Parse(strings.TrimRight(cfg.NewAPIBaseURL, "/"))
 	if err != nil {
 		return nil, err
 	}
-	return &Gateway{cfg: cfg, store: st, wallet: wallet, proxyTarget: target}, nil
+	return &Gateway{cfg: cfg, store: st, precheck: precheck, proxyTarget: target}, nil
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -61,100 +55,20 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Status:                company.Status,
 		})
 	}
-	if err := g.precheck(ctx, mapping, company, r); err != nil {
+	body, err := readAndRestoreBody(r)
+	if err != nil {
+		http.Error(w, "read request body", http.StatusForbidden)
+		return
+	}
+	if err := g.precheck.Run(ctx, relay.PrecheckInput{
+		Mapping: mapping,
+		Company: company,
+		Model:   parseRequestModel(body),
+	}); err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	g.proxy(w, r)
-}
-
-func (g *Gateway) precheck(ctx context.Context, mapping *store.RelayMapping, company *store.Company, r *http.Request) error {
-	if company.Status != store.CompanyStatusActive {
-		return fmt.Errorf("company not active")
-	}
-	if err := g.checkWallet(ctx, company); err != nil {
-		return err
-	}
-	if err := g.checkDepartmentBudget(ctx, mapping); err != nil {
-		return err
-	}
-	if err := g.checkTokenRemainQuota(mapping); err != nil {
-		return err
-	}
-	body, err := readAndRestoreBody(r)
-	if err != nil {
-		return fmt.Errorf("read request body")
-	}
-	return g.checkPlatformKey(ctx, mapping, parseRequestModel(body))
-}
-
-func (g *Gateway) checkWallet(ctx context.Context, company *store.Company) error {
-	if company.NewAPIWalletAccountID == nil || g.wallet == nil {
-		return nil
-	}
-	quota, err := g.wallet.AvailableQuota(ctx, *company.NewAPIWalletAccountID)
-	if err != nil {
-		return fmt.Errorf("wallet unavailable")
-	}
-	balanceCNY := newapi.FromNewAPIUnits(quota, nil, nil)
-	if balanceCNY < gatewayMinEstimateCNY {
-		return fmt.Errorf("insufficient wallet balance")
-	}
-	return nil
-}
-
-func (g *Gateway) checkDepartmentBudget(ctx context.Context, mapping *store.RelayMapping) error {
-	tree, err := g.store.Budget().Tree(ctx)
-	if err != nil {
-		return err
-	}
-	node := pkgbudget.FindBudgetNode(tree, mapping.DepartmentID)
-	if node == nil {
-		return fmt.Errorf("department not found")
-	}
-	if node.Budget <= 0 {
-		return fmt.Errorf("budget exceeded")
-	}
-	if node.Consumed+gatewayMinEstimateCNY > node.Budget {
-		return fmt.Errorf("budget exceeded")
-	}
-	return nil
-}
-
-func (g *Gateway) checkTokenRemainQuota(mapping *store.RelayMapping) error {
-	if mapping.RelayRemainQuota == nil || *mapping.RelayRemainQuota <= 0 {
-		return fmt.Errorf("insufficient token quota")
-	}
-	return nil
-}
-
-func (g *Gateway) checkPlatformKey(ctx context.Context, mapping *store.RelayMapping, modelName string) error {
-	keys, err := g.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return err
-	}
-	var key *types.PlatformKey
-	for i := range keys {
-		if keys[i].ID == mapping.PlatformKeyID {
-			key = &keys[i]
-			break
-		}
-	}
-	if key == nil {
-		return fmt.Errorf("platform key not found")
-	}
-	if key.Status != "active" {
-		return fmt.Errorf("platform key inactive")
-	}
-	if modelName == "" || len(key.ModelWhitelist) == 0 {
-		return nil
-	}
-	for _, allowed := range key.ModelWhitelist {
-		if allowed == modelName {
-			return nil
-		}
-	}
-	return fmt.Errorf("model not allowed")
 }
 
 func readAndRestoreBody(r *http.Request) ([]byte, error) {

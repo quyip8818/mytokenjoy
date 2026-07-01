@@ -10,8 +10,8 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func AppendAudit(ctx context.Context, st store.Store, action, operatorID, target, detail string) error {
-	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: 1})
+func AppendAudit(ctx context.Context, st store.Store, companyID int64, action, operatorID, target, detail string) error {
+	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: companyID})
 	return st.Audit().AppendOperationLog(companyCtx, types.OperationLog{
 		ID:         fmt.Sprintf("op-%d", time.Now().UnixNano()),
 		Action:     action,

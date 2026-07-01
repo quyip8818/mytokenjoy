@@ -36,7 +36,7 @@ type Config struct {
 	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"5"`
 	WorkerOrgSyncIntervalSec int `env:"WORKER_ORG_SYNC_INTERVAL_SEC" envDefault:"60"`
 
-	MultiCompany             bool   `env:"MULTI_COMPANY" envDefault:"false"`
+	SupportSaas              bool   `env:"SUPPORT_SAAS" envDefault:"false"`
 	DefaultCompanyID         int64  `env:"DEFAULT_COMPANY_ID" envDefault:"1"`
 	PlatformSharedRelayGroup string `env:"PLATFORM_SHARED_RELAY_GROUP" envDefault:"platform_shared"`
 	RelayGatewayEnabled      bool   `env:"RELAY_GATEWAY_ENABLED" envDefault:"false"`

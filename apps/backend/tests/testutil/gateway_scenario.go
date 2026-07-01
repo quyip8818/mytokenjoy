@@ -8,6 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	relayhandler "github.com/tokenjoy/backend/internal/http/handler/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -143,7 +144,8 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	cfg.RelayGatewayEnabled = true
 
 	wallet := gatewayWallet(cfg, opts)
-	gw, err := relayhandler.NewGateway(cfg, st, wallet)
+	precheck := relay.NewPrecheckService(st, wallet)
+	gw, err := relayhandler.NewGateway(cfg, st, precheck)
 	if err != nil {
 		t.Fatal(err)
 	}

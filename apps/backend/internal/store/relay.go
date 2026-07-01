@@ -74,8 +74,8 @@ type RebalanceQueueEntry struct {
 type RelayMappingRepository interface {
 	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*RelayMapping, error)
 	GetMappingByFullKey(ctx context.Context, fullKey string) (*RelayMapping, error)
-	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
-	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
+	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)  // tenant-scoped: filters by ctx company_id
+	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error) // global lookup for webhook ingest (no tenant in ctx)
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]RelayMapping, error)
 	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]RelayMapping, error)
 	ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]RelayMapping, error)
