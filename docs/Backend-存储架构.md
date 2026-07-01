@@ -1,6 +1,6 @@
 # Backend 存储架构
 
-本文描述 TokenJoy 后端 **Postgres 中的实体与关系**。表定义唯一来源：`apps/backend/internal/store/postgres/schema.sql`（共 **40** 张表）。
+本文描述 TokenJoy 后端 **Postgres 中的实体与关系**。表定义唯一来源：`apps/backend/internal/store/postgres/schema.sql`（共 **44** 张表）。
 
 不涉及 SQL 字段明细、Repository 或 HTTP 层。
 
@@ -12,10 +12,10 @@
 
 Postgres 承担两类数据：
 
-| 分层 | 内容 | 特征 |
-| ---- | ---- | ---- |
-| **管理面** | 组织、预算、密钥、模型、审计 | 低频读写；树形结构用 `parent_id` 邻接表存储 |
-| **基础设施** | 用量桶、Relay 映射、Outbox、凭证、锁 | 高频追加或异步消费；与管理配置解耦 |
+| 分层         | 内容                                 | 特征                                        |
+| ------------ | ------------------------------------ | ------------------------------------------- |
+| **管理面**   | 组织、预算、密钥、模型、审计         | 低频读写；树形结构用 `parent_id` 邻接表存储 |
+| **基础设施** | 用量桶、Relay 映射、Outbox、凭证、锁 | 高频追加或异步消费；与管理配置解耦          |
 
 ```mermaid
 flowchart TB
@@ -42,14 +42,14 @@ flowchart TB
 
 ## 2. 表的四种形态
 
-读下文前先理解：40 张表并非 40 个独立业务概念，而是按存储形态拆分。
+读下文前先理解：44 张表并非 44 个独立业务概念，而是按存储形态拆分。
 
-| 形态 | 张数 | 含义 | 示例 |
-| ---- | ---- | ---- | ---- |
-| **主表** | ~14 | 一行一个业务对象 | `members`、`platform_keys` |
-| **关联表** | 10 | 多对多拆表；读写时并入父行 | `member_roles`、`platform_key_models` |
-| **单行配置** | 6 | 全库仅一行，`id = 1` | `org_sync_config`、`audit_settings` |
-| **日志 / 队列** | ~10 | 只追加或异步消费 | `call_logs`、`relay_outbox` |
+| 形态            | 张数 | 含义                       | 示例                                  |
+| --------------- | ---- | -------------------------- | ------------------------------------- |
+| **主表**        | ~14  | 一行一个业务对象           | `members`、`platform_keys`            |
+| **关联表**      | 10   | 多对多拆表；读写时并入父行 | `member_roles`、`platform_key_models` |
+| **单行配置**    | 6    | 全库仅一行，`id = 1`       | `org_sync_config`、`audit_settings`   |
+| **日志 / 队列** | ~10  | 只追加或异步消费           | `call_logs`、`relay_outbox`           |
 
 树形主表（`departments`、`budget_nodes`）无 `children` 子表；嵌套结构读出时在应用层组装。
 
@@ -61,28 +61,28 @@ flowchart TB
 
 ### 3.1 主表
 
-| 表 | 说明 |
-| -- | ---- |
-| `departments` | 部门；`parent_id` 自引用成树；`manager_id` → `members` |
-| `members` | 成员；`department_id` → `departments`；冗余 `department_name` |
-| `roles` | 角色定义 |
-| `permissions` | 权限目录（seed 灌入，运行时只读） |
+| 表            | 说明                                                          |
+| ------------- | ------------------------------------------------------------- |
+| `departments` | 部门；`parent_id` 自引用成树；`manager_id` → `members`        |
+| `members`     | 成员；`department_id` → `departments`；冗余 `department_name` |
+| `roles`       | 角色定义                                                      |
+| `permissions` | 权限目录（seed 灌入，运行时只读）                             |
 
 ### 3.2 关联表
 
-| 表 | 关系 |
-| -- | ---- |
-| `member_roles` | 成员 ↔ 角色 |
+| 表                       | 关系                                                          |
+| ------------------------ | ------------------------------------------------------------- |
+| `member_roles`           | 成员 ↔ 角色                                                   |
 | `role_permission_grants` | 角色 ↔ 权限引用（存字符串如 `org:*`，不 FK 到 `permissions`） |
 
 ### 3.3 配置与日志
 
-| 表 | 说明 |
-| -- | ---- |
+| 表                       | 说明                   |
+| ------------------------ | ---------------------- |
 | `org_data_source_status` | 数据源连接状态（单行） |
-| `org_sync_config` | 定时同步策略（单行） |
-| `org_sync_logs` | 同步执行记录（追加） |
-| `org_import_failures` | 导入失败明细 |
+| `org_sync_config`        | 定时同步策略（单行）   |
+| `org_sync_logs`          | 同步执行记录（追加）   |
+| `org_import_failures`    | 导入失败明细           |
 
 ### 3.4 关系
 
@@ -105,21 +105,21 @@ erDiagram
 
 ### 4.1 主表
 
-| 表 | 说明 |
-| -- | ---- |
-| `budget_nodes` | 预算树；`parent_id` 自引用；含 `budget`、`consumed`、`period` |
-| `budget_groups` | 跨部门/成员的共享额度池 |
-| `overrun_policy` | 全局超限策略（单行） |
-| `alert_rules` | 挂载在预算节点上的预警规则 |
-| `member_quota_pools` | 成员个人额度（1:1，`member_id` 为主键） |
+| 表                   | 说明                                                          |
+| -------------------- | ------------------------------------------------------------- |
+| `budget_nodes`       | 预算树；`parent_id` 自引用；含 `budget`、`consumed`、`period` |
+| `budget_groups`      | 跨部门/成员的共享额度池                                       |
+| `overrun_policy`     | 全局超限策略（单行）                                          |
+| `alert_rules`        | 挂载在预算节点上的预警规则                                    |
+| `member_quota_pools` | 成员个人额度（1:1，`member_id` 为主键）                       |
 
 ### 4.2 关联表
 
-| 表 | 关系 |
-| -- | ---- |
-| `budget_group_members` | 预算组 ↔ 成员 |
-| `budget_group_departments` | 预算组 ↔ 部门 |
-| `alert_rule_notify_roles` | 预警规则 ↔ 通知角色 |
+| 表                         | 关系                |
+| -------------------------- | ------------------- |
+| `budget_group_members`     | 预算组 ↔ 成员       |
+| `budget_group_departments` | 预算组 ↔ 部门       |
+| `alert_rule_notify_roles`  | 预警规则 ↔ 通知角色 |
 
 ### 4.3 关系
 
@@ -142,13 +142,13 @@ erDiagram
 
 两类密钥：上游 **Provider** 密钥（连 OpenAI 等）与平台发放的 **Platform** 密钥（给成员/应用）。
 
-| 表 | 说明 |
-| -- | ---- |
-| `provider_keys` | 上游密钥；含 `secret_key`、`relay_channel_id` |
-| `platform_keys` | 平台 Key；`member_id`、`budget_group_id` 可选；冗余成员名/组名 |
-| `platform_key_models` | Platform Key 允许的模型白名单（存 `model_name`） |
-| `key_approvals` | 额度/密钥审批单 |
-| `key_approval_models` | 审批单申请的模型列表 |
+| 表                    | 说明                                                           |
+| --------------------- | -------------------------------------------------------------- |
+| `provider_keys`       | 上游密钥；含 `secret_key`、`relay_channel_id`                  |
+| `platform_keys`       | 平台 Key；`member_id`、`budget_group_id` 可选；冗余成员名/组名 |
+| `platform_key_models` | Platform Key 允许的模型白名单（存 `model_name`）               |
+| `key_approvals`       | 额度/密钥审批单                                                |
+| `key_approval_models` | 审批单申请的模型列表                                           |
 
 ```mermaid
 erDiagram
@@ -167,12 +167,12 @@ erDiagram
 
 模型目录与按组织节点的路由策略。
 
-| 表 | 说明 |
-| -- | ---- |
-| `models` | 模型目录（供应商、定价、上下文长度等） |
-| `model_capabilities` | 模型能力标签 |
-| `routing_rules` | 按节点的路由；`node_id` 指向预算/部门节点（无 FK） |
-| `routing_rule_models` | 路由允许的模型白名单 |
+| 表                    | 说明                                               |
+| --------------------- | -------------------------------------------------- |
+| `models`              | 模型目录（供应商、定价、上下文长度等）             |
+| `model_capabilities`  | 模型能力标签                                       |
+| `routing_rules`       | 按节点的路由；`node_id` 指向预算/部门节点（无 FK） |
+| `routing_rule_models` | 路由允许的模型白名单                               |
 
 ```mermaid
 erDiagram
@@ -185,11 +185,11 @@ erDiagram
 
 ## 7. 审计域（3 表）
 
-| 表 | 说明 |
-| -- | ---- |
+| 表               | 说明                          |
+| ---------------- | ----------------------------- |
 | `audit_settings` | 是否保留请求/响应摘要（单行） |
-| `operation_logs` | 管理操作日志（只追加） |
-| `call_logs` | API 调用日志（只追加） |
+| `operation_logs` | 管理操作日志（只追加）        |
+| `call_logs`      | API 调用日志（只追加）        |
 
 `operation_logs`、`call_logs` 通过 `operator_id` / `caller_id` 逻辑关联 `members`，无强制 FK。
 
@@ -199,18 +199,18 @@ erDiagram
 
 不参与管理面 CRUD，由 Worker / Ingest 读写。
 
-| 表 | 职责 |
-| -- | ---- |
-| `usage_buckets` | 看板用量；主键 `(bucket_start, department_id, member_id, model)` |
-| `relay_mappings` | Platform Key ↔ NewAPI Token（1:1，`platform_key_id` 为主键） |
-| `relay_outbox` | Relay 异步任务 |
-| `webhook_outbox` | Webhook 失败重试 |
-| `ingested_log_ids` | Ingest 幂等去重 |
-| `relay_sync_cursors` | 补偿轮询游标（单行） |
-| `rebalance_queue` | 预算 rebalance 待办 |
-| `datasource_credentials` | 第三方凭证（AES-GCM 加密，单行） |
-| `scheduler_locks` | 定时任务分布式租约 |
-| `notification_log` | 通知发送记录 |
+| 表                       | 职责                                                             |
+| ------------------------ | ---------------------------------------------------------------- |
+| `usage_buckets`          | 看板用量；主键 `(bucket_start, department_id, member_id, model)` |
+| `relay_mappings`         | Platform Key ↔ NewAPI Token（1:1，`platform_key_id` 为主键）     |
+| `relay_outbox`           | Relay 异步任务                                                   |
+| `webhook_outbox`         | Webhook 失败重试                                                 |
+| `ingested_log_ids`       | Ingest 幂等去重                                                  |
+| `relay_sync_cursors`     | 补偿轮询游标（单行）                                             |
+| `rebalance_queue`        | 预算 rebalance 待办                                              |
+| `datasource_credentials` | 第三方凭证（AES-GCM 加密，单行）                                 |
+| `scheduler_locks`        | 定时任务分布式租约                                               |
+| `notification_log`       | 通知发送记录                                                     |
 
 ```mermaid
 flowchart LR
@@ -261,30 +261,30 @@ erDiagram
 
 ### 9.1 ID 对齐约定
 
-| 锚点 | 规则 |
-| ---- | ---- |
-| `departments.id` = `budget_nodes.id` | 一一对应 |
-| `routing_rules.node_id` | 指向部门/预算节点 |
-| `relay_mappings` | 冗余 `platform_key_id`、`member_id`、`department_id`、`budget_group_id` |
-| `usage_buckets` | 按 `department_id` + `member_id` + `model` + 时间桶聚合 |
+| 锚点                                 | 规则                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `departments.id` = `budget_nodes.id` | 一一对应                                                                |
+| `routing_rules.node_id`              | 指向部门/预算节点                                                       |
+| `relay_mappings`                     | 冗余 `platform_key_id`、`member_id`、`department_id`、`budget_group_id` |
+| `usage_buckets`                      | 按 `department_id` + `member_id` + `model` + 时间桶聚合                 |
 
 ---
 
 ## 10. 表结构简化方案
 
-40 张表里约一半可合并，在 TokenJoy 规模（成员数百、白名单数十）下**不影响功能与性能**，多数读路径反而更快。
+44 张表里约一半可合并，在 TokenJoy 规模（成员数百、白名单数十）下**不影响功能与性能**，多数读路径反而更快。
 
 ### 10.1 表数量从哪来
 
-| 类别 | 张数 | 原因 |
-| ---- | ---- | ---- |
-| 关联表 | 10 | 多对多拆表，父行读写时需删插子表 |
-| 单行配置 | 6 | 每个 `id = 1` 独占一表 |
-| 双树结构 | 2 | `departments` 与 `budget_nodes` ID 对齐但分表 |
-| 1:1 扩展 | 2 | `relay_mappings`、`member_quota_pools` 可并入父表 |
-| 双 Outbox | 2 | `relay_outbox` / `webhook_outbox` 结构相同 |
-| 高频/日志 | 8 | 不宜合并 |
-| 核心主表 | ~10 | `members`、`platform_keys`、`models` 等 |
+| 类别      | 张数 | 原因                                              |
+| --------- | ---- | ------------------------------------------------- |
+| 关联表    | 10   | 多对多拆表，父行读写时需删插子表                  |
+| 单行配置  | 6    | 每个 `id = 1` 独占一表                            |
+| 双树结构  | 2    | `departments` 与 `budget_nodes` ID 对齐但分表     |
+| 1:1 扩展  | 2    | `relay_mappings`、`member_quota_pools` 可并入父表 |
+| 双 Outbox | 2    | `relay_outbox` / `webhook_outbox` 结构相同        |
+| 高频/日志 | 8    | 不宜合并                                          |
+| 核心主表  | ~10  | `members`、`platform_keys`、`models` 等           |
 
 ### 10.2 分三阶段
 
@@ -297,16 +297,16 @@ flowchart LR
 
 #### 阶段一：关联表 → `TEXT[]` 列（−10 表，优先）
 
-| 删除的表 | 并入 |
-| -------- | ---- |
-| `member_roles` | `members.role_ids` |
-| `role_permission_grants` | `roles.permission_refs` |
+| 删除的表                                            | 并入                                          |
+| --------------------------------------------------- | --------------------------------------------- |
+| `member_roles`                                      | `members.role_ids`                            |
+| `role_permission_grants`                            | `roles.permission_refs`                       |
 | `budget_group_members` / `budget_group_departments` | `budget_groups.member_ids` / `department_ids` |
-| `alert_rule_notify_roles` | `alert_rules.notify_role_ids` |
-| `model_capabilities` | `models.capabilities` |
-| `routing_rule_models` | `routing_rules.allowed_models` |
-| `platform_key_models` | `platform_keys.model_whitelist` |
-| `key_approval_models` | `key_approvals.requested_models` |
+| `alert_rule_notify_roles`                           | `alert_rules.notify_role_ids`                 |
+| `model_capabilities`                                | `models.capabilities`                         |
+| `routing_rule_models`                               | `routing_rules.allowed_models`                |
+| `platform_key_models`                               | `platform_keys.model_whitelist`               |
+| `key_approval_models`                               | `key_approvals.requested_models`              |
 
 - **功能**：不变。
 - **性能**：消除读 `platform_keys` 时的 N+1 子表查询，**更快**。
@@ -314,63 +314,61 @@ flowchart LR
 
 #### 阶段二：单行配置与 1:1 扩展（−4～6 表）
 
-| 删除的表 | 并入 |
-| -------- | ---- |
-| `org_data_source_status` + `org_sync_config` | `org_settings` |
-| `overrun_policy` + `audit_settings` + `relay_sync_cursors` | `system_settings`（JSONB 按 key） |
-| `member_quota_pools` | `members.personal_quota` |
-| `relay_mappings` | `platform_keys` 的 relay 列（1:1） |
-| `relay_outbox` + `webhook_outbox` | `outbox`（加 `queue` 列） |
+| 删除的表                                                   | 并入                               |
+| ---------------------------------------------------------- | ---------------------------------- |
+| `org_data_source_status` + `org_sync_config`               | `org_settings`                     |
+| `overrun_policy` + `audit_settings` + `relay_sync_cursors` | `system_settings`（JSONB 按 key）  |
+| `member_quota_pools`                                       | `members.personal_quota`           |
+| `relay_mappings`                                           | `platform_keys` 的 relay 列（1:1） |
+| `relay_outbox` + `webhook_outbox`                          | `outbox`（加 `queue` 列）          |
 
 - **`datasource_credentials` 建议保持独立**（加密边界清晰）。
 
 #### 阶段三：结构合并（−4 表，可选）
 
-| 删除的表 | 方案 |
-| -------- | ---- |
-| `budget_nodes` | 预算字段并入 `departments` |
-| `routing_rules` + `routing_rule_models` | 路由字段并入节点行 |
-| `permissions` | 权限目录固化在应用代码（seed 只读） |
-| `org_import_failures` | 写入 `org_settings` JSONB |
+| 删除的表                                | 方案                                |
+| --------------------------------------- | ----------------------------------- |
+| `budget_nodes`                          | 预算字段并入 `departments`          |
+| `routing_rules` + `routing_rule_models` | 路由字段并入节点行                  |
+| `permissions`                           | 权限目录固化在应用代码（seed 只读） |
+| `org_import_failures`                   | 写入 `org_settings` JSONB           |
 
 - **代价**：组织与预算/路由绑在同一张宽表，后续演进成本更高。
 
 ### 10.3 不建议合并的表
 
-| 表 | 原因 |
-| -- | ---- |
-| `usage_buckets` | 高频 UPSERT + 多维聚合主键 |
-| `call_logs` / `operation_logs` | 追加型日志，索引维度不同 |
-| `ingested_log_ids` | Webhook 幂等；行数随调用增长 |
-| `scheduler_locks` | 租约语义独立 |
-| `rebalance_queue` | 与 Outbox 消费模型不同 |
-| `notification_log` | 追加审计，与管理配置分离 |
-| `provider_keys` vs `platform_keys` | 生命周期与 Relay 逻辑不同 |
+| 表                                 | 原因                         |
+| ---------------------------------- | ---------------------------- |
+| `usage_buckets`                    | 高频 UPSERT + 多维聚合主键   |
+| `call_logs` / `operation_logs`     | 追加型日志，索引维度不同     |
+| `ingested_log_ids`                 | Webhook 幂等；行数随调用增长 |
+| `scheduler_locks`                  | 租约语义独立                 |
+| `rebalance_queue`                  | 与 Outbox 消费模型不同       |
+| `notification_log`                 | 追加审计，与管理配置分离     |
+| `provider_keys` vs `platform_keys` | 生命周期与 Relay 逻辑不同    |
 
 ### 10.4 目标与落地
 
-| 目标 | 表数 | 风险 |
-| ---- | ---- | ---- |
-| 只做阶段一 | **30** | 低，性价比最高 |
-| 阶段一 + 二 | **~26** | 低 |
-| 全部三阶段 | **~22** | 中 |
+| 目标        | 表数    | 风险           |
+| ----------- | ------- | -------------- |
+| 只做阶段一  | **30**  | 低，性价比最高 |
+| 阶段一 + 二 | **~26** | 低             |
+| 全部三阶段  | **~22** | 中             |
 
-改 schema 须清库重建，适合在阶段一一次性做；主要改动 Postgres repo 层的读写逻辑。
+改 schema 后清库重建，主要改动 Postgres repo 层的读写逻辑。
 
 ---
 
-## 11. SaaS 多企业（规划）
+## 11. SaaS 多企业
 
-产品 **企业（Renter）** 对应字段 `tenant_id`（表名 `tenants` 保留）。详见 [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) §五。
+产品 **企业（Company）** 对应表 `companies`、列 `company_id`。详见 [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) §五。
 
-| 变更 | 说明 |
-| ---- | ---- |
-| 新增 | `tenants`、`tenant_invites`、`platform_operators` |
-| 企业域 | `renter_recharge_orders`（含 `tenant_id`） |
-| 企业域表 | 组织、预算、密钥、审计、基础设施等加 `tenant_id` |
-| 全局表 | `provider_keys`、`permissions` 不加 |
-| 单例改多行 | `overrun_policy`、`org_sync_config`、`datasource_credentials` 等按企业一行 |
-| 主键 | 建议 `(tenant_id, id)`，避免多企业 seed ID 冲突 |
+| 项         | 说明                                                                                |
+| ---------- | ----------------------------------------------------------------------------------- |
+| 企业表     | `companies`、`company_invites`、`platform_operators`、`company_recharge_orders`     |
+| 企业域     | 组织、预算、密钥、审计、Relay、用量等表含 `company_id`；主键多为 `(company_id, id)` |
+| 全局表     | `provider_keys`、`permissions` 不加 `company_id`                                    |
+| 单例改多行 | `overrun_policy`、`org_sync_config`、`datasource_credentials` 等按企业一行          |
 
 NewAPI 侧每企业一个 **企业服务账户**（公司钱包），不新增 Postgres 表；见 [NewAPI-SaaS多企业配置.md](./NewAPI-SaaS多企业配置.md)。
 
@@ -378,12 +376,12 @@ NewAPI 侧每企业一个 **企业服务账户**（公司钱包），不新增 P
 
 ## 12. 小结
 
-| 问题 | 答案 |
-| ---- | ---- |
-| 一共多少张表？ | **40** |
-| 管理面 / 基础设施？ | **30** / **10** |
-| 树怎么存？ | `parent_id` 邻接表；嵌套 `children` 读出组装 |
-| 部门与预算？ | `departments.id` = `budget_nodes.id` |
-| 模型白名单？ | 关联表存 `model_name`，非 `models.id` |
-| 用量 vs 审计？ | `usage_buckets` 供看板；`call_logs` 供审计 |
-| 能否减表？ | 可以；40 → 22～30，见 §10 |
+| 问题                | 答案                                         |
+| ------------------- | -------------------------------------------- |
+| 一共多少张表？      | **44**                                       |
+| 管理面 / 基础设施？ | **30** / **10**                              |
+| 树怎么存？          | `parent_id` 邻接表；嵌套 `children` 读出组装 |
+| 部门与预算？        | `departments.id` = `budget_nodes.id`         |
+| 模型白名单？        | 关联表存 `model_name`，非 `models.id`        |
+| 用量 vs 审计？      | `usage_buckets` 供看板；`call_logs` 供审计   |
+| 能否减表？          | 可以；40 → 22～30，见 §10                    |

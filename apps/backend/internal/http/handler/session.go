@@ -31,6 +31,6 @@ func (h *SessionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	ctx, err := h.SessionSvc.GetByMemberID(memberID)
+	ctx, err := h.SessionSvc.GetByMemberID(r.Context(), memberID)
 	httputil.WriteJSON(w, http.StatusOK, ctx, err)
 }

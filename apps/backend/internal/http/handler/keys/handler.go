@@ -60,7 +60,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *Handler) ProviderList(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListProviderKeys())
+	keys, err := h.service.ListProviderKeys(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 
 func (h *Handler) ProviderCreate(w http.ResponseWriter, r *http.Request) {
@@ -94,17 +95,18 @@ func (h *Handler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteProviderKey(chi.URLParam(r, "id"))
+	err := h.service.DeleteProviderKey(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	httputil.WriteOK(w, h.service.ListPlatformKeys(query.Get("memberId"), query.Get("budgetGroupId")))
+	keys, err := h.service.ListPlatformKeys(r.Context(), query.Get("memberId"), query.Get("budgetGroupId"))
+	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 
 func (h *Handler) PlatformQuotaSummary(w http.ResponseWriter, r *http.Request) {
-	summary, err := h.service.QuotaSummary(r.URL.Query().Get("memberId"))
+	summary, err := h.service.QuotaSummary(r.Context(), r.URL.Query().Get("memberId"))
 	httputil.WriteJSON(w, http.StatusOK, summary, err)
 }
 
@@ -149,13 +151,14 @@ func (h *Handler) PlatformRevoke(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeletePlatformKey(chi.URLParam(r, "id"))
+	err := h.service.DeletePlatformKey(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	httputil.WriteOK(w, h.service.ListApprovals(query.Get("tab"), query.Get("memberId")))
+	approvals, err := h.service.ListApprovals(r.Context(), query.Get("tab"), query.Get("memberId"))
+	httputil.WriteJSON(w, http.StatusOK, approvals, err)
 }
 
 func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +172,8 @@ func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ApprovalQuotaCheck(chi.URLParam(r, "id")))
+	result, err := h.service.ApprovalQuotaCheck(r.Context(), chi.URLParam(r, "id"))
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {

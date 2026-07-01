@@ -10,16 +10,16 @@ import (
 )
 
 type credentialRepo struct {
-	ctx context.Context
-	db  dbQuerier
+	db dbQuerier
 }
 
-func (r *credentialRepo) GetCredential() (*types.StoredCredential, error) {
+func (r *credentialRepo) GetCredential(ctx context.Context) (*types.StoredCredential, error) {
+	companyID := store.CompanyID(ctx)
 	var platform string
 	var encrypted []byte
-	err := r.db.QueryRow(r.ctx, `
-		SELECT platform, encrypted FROM datasource_credentials WHERE id = 1
-	`).Scan(&platform, &encrypted)
+	err := r.db.QueryRow(ctx, `
+		SELECT platform, encrypted FROM datasource_credentials WHERE company_id = $1
+	`, companyID).Scan(&platform, &encrypted)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -32,20 +32,22 @@ func (r *credentialRepo) GetCredential() (*types.StoredCredential, error) {
 	}, nil
 }
 
-func (r *credentialRepo) SaveCredential(platform types.Platform, encrypted []byte) error {
-	_, err := r.db.Exec(r.ctx, `
-		INSERT INTO datasource_credentials (id, platform, encrypted, updated_at)
-		VALUES (1, $1, $2, NOW())
-		ON CONFLICT (id) DO UPDATE
+func (r *credentialRepo) SaveCredential(ctx context.Context, platform types.Platform, encrypted []byte) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO datasource_credentials (company_id, platform, encrypted, updated_at)
+		VALUES ($1, $2, $3, NOW())
+		ON CONFLICT (company_id) DO UPDATE
 		SET platform = EXCLUDED.platform,
 		    encrypted = EXCLUDED.encrypted,
 		    updated_at = NOW()
-	`, string(platform), encrypted)
+	`, companyID, string(platform), encrypted)
 	return err
 }
 
-func (r *credentialRepo) ClearCredential() error {
-	_, err := r.db.Exec(r.ctx, `DELETE FROM datasource_credentials WHERE id = 1`)
+func (r *credentialRepo) ClearCredential(ctx context.Context) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `DELETE FROM datasource_credentials WHERE company_id = $1`, companyID)
 	return err
 }
 

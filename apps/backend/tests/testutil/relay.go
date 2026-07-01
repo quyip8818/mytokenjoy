@@ -35,7 +35,7 @@ func UpsertRelayMapping(t *testing.T, st store.Store, opts RelayMappingOpts) {
 	}
 	memberID := opts.MemberID
 	tokenID := opts.NewAPITokenID
-	if err := st.Relay().UpsertMapping(store.RelayMapping{
+	if err := st.Relay().UpsertMapping(Ctx(), store.RelayMapping{
 		PlatformKeyID: opts.PlatformKeyID,
 		NewAPITokenID: &tokenID,
 		MemberID:      &memberID,

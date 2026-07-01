@@ -29,7 +29,7 @@ func TestLogAggregatorUnmappedAndTruncated(t *testing.T) {
 	agg := domainusage.NewLogAggregator(stub, st, nil)
 	start := time.Now().Add(-30 * time.Minute).UTC()
 	end := time.Now().UTC()
-	resp, err := agg.Series(context.Background(), types.UsageSeriesQuery{
+	resp, err := agg.Series(testutil.Ctx(), types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityMinute,
 		Start:       start,
 		End:         end,
@@ -87,7 +87,7 @@ func TestLogAggregatorMinuteSuccess(t *testing.T) {
 	agg := domainusage.NewLogAggregator(stub, st, nil)
 	start := time.Now().Add(-30 * time.Minute).UTC()
 	end := time.Now().UTC()
-	resp, err := agg.Series(context.Background(), types.UsageSeriesQuery{
+	resp, err := agg.Series(testutil.Ctx(), types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityMinute,
 		Start:       start,
 		End:         end,
@@ -118,7 +118,7 @@ func TestLogAggregatorDoesNotWriteBuckets(t *testing.T) {
 		},
 	}
 	agg := domainusage.NewLogAggregator(stub, st, nil)
-	_, err := agg.Series(context.Background(), types.UsageSeriesQuery{
+	_, err := agg.Series(testutil.Ctx(), types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityMinute,
 		Start:       time.Now().Add(-30 * time.Minute).UTC(),
 		End:         time.Now().UTC(),

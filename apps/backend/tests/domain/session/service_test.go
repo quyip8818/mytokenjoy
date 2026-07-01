@@ -19,7 +19,7 @@ func newSessionService(t *testing.T) session.Service {
 
 func TestGetByMemberIDSuccess(t *testing.T) {
 	svc := newSessionService(t)
-	ctx, err := svc.GetByMemberID(seed.IDMemberAdmin)
+	ctx, err := svc.GetByMemberID(testutil.Ctx(), seed.IDMemberAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestGetByMemberIDSuccess(t *testing.T) {
 
 func TestGetByMemberIDNotFound(t *testing.T) {
 	svc := newSessionService(t)
-	_, err := svc.GetByMemberID("missing")
+	_, err := svc.GetByMemberID(testutil.Ctx(), "missing")
 	var domainErr *domain.DomainError
 	if !errors.As(err, &domainErr) || domainErr.Status != domain.StatusNotFound {
 		t.Fatalf("expected 404, got %v", err)
@@ -45,7 +45,7 @@ func TestGetByMemberIDNotFound(t *testing.T) {
 
 func TestGetByMemberIDReadOnlyMember(t *testing.T) {
 	svc := newSessionService(t)
-	ctx, err := svc.GetByMemberID("m-pure")
+	ctx, err := svc.GetByMemberID(testutil.Ctx(), "m-pure")
 	if err != nil {
 		t.Fatal(err)
 	}

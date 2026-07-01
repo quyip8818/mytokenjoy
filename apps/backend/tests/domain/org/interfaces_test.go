@@ -16,7 +16,7 @@ func newTestService(t *testing.T) org.Service {
 	t.Helper()
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	factory := datasource.NewFactory(cfg)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
+	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	notifier := notification.NewService(cfg, st, slog.Default())
 	return org.NewService(cfg, st, factory, lifecycle, notifier, common.NewDelayer(false), slog.Default())
 }

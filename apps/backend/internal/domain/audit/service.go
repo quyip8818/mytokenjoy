@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -10,10 +11,10 @@ import (
 )
 
 type Service interface {
-	GetSettings() types.AuditSettings
-	UpdateSettings(settings types.AuditSettings) (types.AuditSettings, error)
-	ListOperations(params types.AuditOperationsQueryParams) types.PageResult[types.OperationLog]
-	ListCalls(params types.AuditCallsQueryParams) types.PageResult[types.CallLog]
+	GetSettings(ctx context.Context) (types.AuditSettings, error)
+	UpdateSettings(ctx context.Context, settings types.AuditSettings) (types.AuditSettings, error)
+	ListOperations(ctx context.Context, params types.AuditOperationsQueryParams) (types.PageResult[types.OperationLog], error)
+	ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error)
 }
 
 type service struct {
@@ -25,21 +26,27 @@ func NewService(cfg config.Config, st store.Store) Service {
 	return &service{cfg: cfg, store: st}
 }
 
-func (s *service) GetSettings() types.AuditSettings {
-	return s.store.Audit().Settings()
+func (s *service) GetSettings(ctx context.Context) (types.AuditSettings, error) {
+	return s.store.Audit().Settings(ctx)
 }
 
-func (s *service) UpdateSettings(settings types.AuditSettings) (types.AuditSettings, error) {
-	current := s.store.Audit().Settings()
+func (s *service) UpdateSettings(ctx context.Context, settings types.AuditSettings) (types.AuditSettings, error) {
+	current, err := s.store.Audit().Settings(ctx)
+	if err != nil {
+		return types.AuditSettings{}, err
+	}
 	current.ContentRetentionEnabled = settings.ContentRetentionEnabled
-	if err := s.store.Audit().SetSettings(current); err != nil {
+	if err := s.store.Audit().SetSettings(ctx, current); err != nil {
 		return types.AuditSettings{}, fmt.Errorf("persist audit settings: %w", err)
 	}
 	return current, nil
 }
 
-func (s *service) ListOperations(params types.AuditOperationsQueryParams) types.PageResult[types.OperationLog] {
-	items := s.store.Audit().OperationLogs()
+func (s *service) ListOperations(ctx context.Context, params types.AuditOperationsQueryParams) (types.PageResult[types.OperationLog], error) {
+	items, err := s.store.Audit().OperationLogs(ctx)
+	if err != nil {
+		return types.PageResult[types.OperationLog]{}, err
+	}
 	items = common.FilterByEquals(items, params.Action, func(item types.OperationLog) string {
 		return item.Action
 	})
@@ -57,11 +64,14 @@ func (s *service) ListOperations(params types.AuditOperationsQueryParams) types.
 	paged, total, page, pageSize := common.Paginate(items, params.Page, params.PageSize)
 	return types.PageResult[types.OperationLog]{
 		Items: paged, Total: total, Page: page, PageSize: pageSize,
-	}
+	}, nil
 }
 
-func (s *service) ListCalls(params types.AuditCallsQueryParams) types.PageResult[types.CallLog] {
-	items := s.store.Audit().CallLogs()
+func (s *service) ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error) {
+	items, err := s.store.Audit().CallLogs(ctx)
+	if err != nil {
+		return types.PageResult[types.CallLog]{}, err
+	}
 	items = common.FilterByEquals(items, params.Model, func(item types.CallLog) string {
 		return item.Model
 	})
@@ -83,5 +93,5 @@ func (s *service) ListCalls(params types.AuditCallsQueryParams) types.PageResult
 	paged, total, page, pageSize := common.Paginate(items, params.Page, params.PageSize)
 	return types.PageResult[types.CallLog]{
 		Items: paged, Total: total, Page: page, PageSize: pageSize,
-	}
+	}, nil
 }

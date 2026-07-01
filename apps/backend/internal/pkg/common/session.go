@@ -9,6 +9,24 @@ import (
 )
 
 const SessionCookie = "tokenjoy_session_member"
+const PlatformSessionCookie = "tokenjoy_platform_session"
+
+func ResolvePlatformOperatorID(r *http.Request) string {
+	if cookie, err := r.Cookie(PlatformSessionCookie); err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+	return ""
+}
+
+func SetPlatformSessionCookie(w http.ResponseWriter, operatorID string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     PlatformSessionCookie,
+		Value:    operatorID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
 
 func UsedBearerAuth(r *http.Request) bool {
 	authorization := r.Header.Get("Authorization")

@@ -5,36 +5,44 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	httpapi "github.com/tokenjoy/backend/internal/http"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type ServiceRegistry struct {
-	Config    config.Config
-	Store     store.Store
-	Infra     infra
-	Session   session.Service
-	Org       domainorg.Service
-	Budget    domainbudget.Service
-	Keys      domainkeys.Service
-	Models    domainmodels.Service
-	Dashboard domaindashboard.Service
-	Audit     domainaudit.Service
-	Ingest    domainbudget.Ingestor
-	Rebalance domainbudget.Rebalancer
+	Config      config.Config
+	Store       store.Store
+	Infra       infra
+	Session     session.Service
+	Org         domainorg.Service
+	Budget      domainbudget.Service
+	Keys        domainkeys.Service
+	Models      domainmodels.Service
+	Dashboard   domaindashboard.Service
+	Audit       domainaudit.Service
+	Ingest      domainbudget.Ingestor
+	Rebalance   domainbudget.Rebalancer
+	Company     domaincompany.Service
+	Billing     domainbilling.Service
+	Platform    httpmiddleware.PlatformService
+	CompanyGate *domaincompany.Gate
 }
 
 func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpapi.Deps {
 	return httpapi.Deps{
 		Config:       r.Config,
 		Logger:       logger,
+		Store:        r.Store,
 		SessionSvc:   r.Session,
 		OrgSvc:       r.Org,
 		BudgetSvc:    r.Budget,
@@ -43,6 +51,11 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpapi.Deps {
 		DashboardSvc: r.Dashboard,
 		AuditSvc:     r.Audit,
 		IngestSvc:    r.Ingest,
+		CompanySvc:   r.Company,
+		BillingSvc:   r.Billing,
+		PlatformSvc:  r.Platform,
+		WalletSvc:    r.Infra.wallet,
+		CompanyGate:  r.CompanyGate,
 	}
 }
 
@@ -61,17 +74,21 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 
 func buildServiceRegistry(cfg config.Config, i infra, services domainServices) ServiceRegistry {
 	return ServiceRegistry{
-		Config:    cfg,
-		Store:     i.store,
-		Infra:     i,
-		Session:   services.session,
-		Org:       services.org,
-		Budget:    services.budget,
-		Keys:      services.keys,
-		Models:    services.models,
-		Dashboard: services.dashboard,
-		Audit:     services.audit,
-		Ingest:    services.ingest,
-		Rebalance: services.rebalance,
+		Config:      cfg,
+		Store:       i.store,
+		Infra:       i,
+		Session:     services.session,
+		Org:         services.org,
+		Budget:      services.budget,
+		Keys:        services.keys,
+		Models:      services.models,
+		Dashboard:   services.dashboard,
+		Audit:       services.audit,
+		Ingest:      services.ingest,
+		Rebalance:   services.rebalance,
+		Company:     services.company,
+		Billing:     services.billing,
+		Platform:    httpmiddleware.NewPlatformAuthService(cfg, i.store),
+		CompanyGate: i.companyGate,
 	}
 }

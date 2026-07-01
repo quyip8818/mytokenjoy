@@ -12,15 +12,24 @@ import (
 
 func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
+	ctx := testutil.Ctx()
 	result := testutil.ImportFeishuOrg(t, env)
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
 	}
-	if pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDFeishuDept1) == nil {
+	departments, err := env.Store.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkgorg.FindDepartment(departments, seed.IDFeishuDept1) == nil {
 		t.Fatal("expected imported department in tree")
 	}
+	members, err := env.Store.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	foundMember := false
-	for _, member := range env.Store.Org().Members() {
+	for _, member := range members {
 		if member.ExternalID != nil && *member.ExternalID == seed.IDFeishuExtUser1 {
 			foundMember = true
 			break
@@ -33,8 +42,12 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 
 func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
+	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments := env.Store.Org().Departments()
+	departments, err := env.Store.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for i := range departments {
 		for j := range departments[i].Children {
 			if departments[i].Children[j].ID == seed.IDDept2 {
@@ -43,10 +56,16 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 			}
 		}
 	}
-	_ = env.Store.Org().SetDepartments(departments)
+	if err := env.Store.Org().SetDepartments(ctx, departments); err != nil {
+		t.Fatal(err)
+	}
 	testutil.ImportFeishuOrg(t, env)
 
-	dept := pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDDept2)
+	departments, err = env.Store.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dept := pkgorg.FindDepartment(departments, seed.IDDept2)
 	if dept == nil || dept.Name != "技术部" {
 		t.Fatalf("manual department should keep name, got %+v", dept)
 	}
@@ -54,11 +73,20 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 
 func TestImportSecondRunIdempotent(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
+	ctx := testutil.Ctx()
 	first := testutil.ImportFeishuOrg(t, env)
-	beforeMembers := len(env.Store.Org().Members())
+	members, err := env.Store.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeMembers := len(members)
 	second := testutil.ImportFeishuOrg(t, env)
-	if len(env.Store.Org().Members()) != beforeMembers {
-		t.Fatalf("expected member count unchanged, before=%d after=%d", beforeMembers, len(env.Store.Org().Members()))
+	members, err = env.Store.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(members) != beforeMembers {
+		t.Fatalf("expected member count unchanged, before=%d after=%d", beforeMembers, len(members))
 	}
 	if second.SuccessMembers > first.SuccessMembers {
 		t.Fatalf("expected no duplicate member imports, first=%+v second=%+v", first, second)
@@ -67,12 +95,21 @@ func TestImportSecondRunIdempotent(t *testing.T) {
 
 func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
+	ctx := testutil.Ctx()
 	testutil.ImportFeishuOrg(t, env)
-	if budget.FindBudgetNode(env.Store.Budget().Tree(), seed.IDFeishuDept1) == nil {
+	budgetTree, err := env.Store.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if budget.FindBudgetNode(budgetTree, seed.IDFeishuDept1) == nil {
 		t.Fatal("expected budget node for imported department")
 	}
+	rules, err := env.Store.Models().RoutingRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	foundRule := false
-	for _, rule := range env.Store.Models().RoutingRules() {
+	for _, rule := range rules {
 		if rule.NodeID == seed.IDFeishuDept1 {
 			foundRule = true
 			break

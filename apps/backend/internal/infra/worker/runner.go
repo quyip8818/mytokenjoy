@@ -10,6 +10,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -103,14 +104,19 @@ func (r *Runner) processOrgSync(ctx context.Context) error {
 	if r.syncSvc == nil {
 		return nil
 	}
-	return r.syncSvc.RunScheduledSync(ctx)
+	return r.syncSvc.RunScheduledSync(company.WithDefaultCompany(ctx, r.cfg.DefaultCompanyID))
 }
 
 // RunOnce executes one worker cycle (outbox + rebalance + log compensation).
 func (r *Runner) RunOnce(ctx context.Context) { r.tick(ctx) }
 
+func (r *Runner) workerCtx(ctx context.Context, companyID int64) context.Context {
+	return company.WithDefaultCompany(ctx, companyID)
+}
+
 func (r *Runner) processRelayOutbox(ctx context.Context) error {
-	entries, err := r.relayOutbox.ClaimPendingRelayOutbox(20)
+	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	entries, err := r.relayOutbox.ClaimPendingRelayOutbox(workerCtx, 20)
 	if err != nil {
 		return err
 	}
@@ -123,85 +129,94 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				processErr = fmt.Errorf("unmarshal create token payload: %w", err)
 				break
 			}
-			_, processErr = r.lifecycle.TrySyncCreate(ctx, payload.PlatformKeyID)
+			entryCtx := r.workerCtx(ctx, payload.CompanyID)
+			_, processErr = r.lifecycle.TrySyncCreate(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindUpdateToken:
 			var payload relay.UpdateTokenOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
 				processErr = fmt.Errorf("unmarshal update token payload: %w", err)
 				break
 			}
-			processErr = r.lifecycle.SyncUpdatePlatformKey(ctx, payload.PlatformKeyID)
+			entryCtx := r.workerCtx(ctx, payload.CompanyID)
+			processErr = r.lifecycle.SyncUpdatePlatformKey(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindRevokeToken:
 			var payload relay.UpdateTokenOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
 				processErr = fmt.Errorf("unmarshal revoke token payload: %w", err)
 				break
 			}
-			processErr = r.lifecycle.SyncRevokePlatformKey(ctx, payload.PlatformKeyID)
+			entryCtx := r.workerCtx(ctx, payload.CompanyID)
+			processErr = r.lifecycle.SyncRevokePlatformKey(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindUpsertChannel:
 			var payload relay.UpsertChannelOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
 				processErr = fmt.Errorf("unmarshal upsert channel payload: %w", err)
 				break
 			}
-			processErr = r.lifecycle.SyncUpsertProviderKey(ctx, payload.ProviderKeyID)
+			entryCtx := r.workerCtx(ctx, payload.CompanyID)
+			processErr = r.lifecycle.SyncUpsertProviderKey(entryCtx, payload.ProviderKeyID)
 		case store.OutboxKindUpdateModelLimits:
 			var payload relay.UpdateModelLimitsOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
 				processErr = fmt.Errorf("unmarshal update model limits payload: %w", err)
 				break
 			}
-			processErr = r.lifecycle.SyncModelLimitsForDepartment(ctx, payload.DepartmentID)
+			entryCtx := r.workerCtx(ctx, payload.CompanyID)
+			processErr = r.lifecycle.SyncModelLimitsForDepartment(entryCtx, payload.DepartmentID)
 		case store.OutboxKindRebalanceToken:
 			var payload relay.RebalanceAxisOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
 				processErr = fmt.Errorf("unmarshal rebalance payload: %w", err)
 				break
 			}
-			processErr = r.rebalance.ProcessAxis(ctx, payload.AxisKind, payload.AxisID)
+			entryCtx := r.workerCtx(ctx, payload.CompanyID)
+			processErr = r.rebalance.ProcessAxis(entryCtx, payload.AxisKind, payload.AxisID)
 		default:
 			processErr = fmt.Errorf("unknown relay outbox kind: %s", entry.Kind)
 		}
 		if processErr != nil {
 			next := time.Now().Add(backoff(entry.Attempts))
-			r.markRelayOutboxRetry(entry.ID, next, processErr.Error())
+			r.markRelayOutboxRetry(workerCtx, entry.ID, next, processErr.Error())
 			continue
 		}
-		r.markRelayOutboxDone(entry.ID)
+		r.markRelayOutboxDone(workerCtx, entry.ID)
 	}
 	return nil
 }
 
 func (r *Runner) processWebhookOutbox(ctx context.Context) error {
-	entries, err := r.webhookOutbox.ClaimPendingWebhookOutbox(20)
+	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	entries, err := r.webhookOutbox.ClaimPendingWebhookOutbox(workerCtx, 20)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		if err := r.ingest.IngestFromOutbox(ctx, entry.Payload); err != nil {
+		if err := r.ingest.IngestFromOutbox(workerCtx, entry.Payload); err != nil {
 			next := time.Now().Add(backoff(entry.Attempts))
-			r.markWebhookOutboxRetry(entry.ID, next, err.Error())
+			r.markWebhookOutboxRetry(workerCtx, entry.ID, next, err.Error())
 			continue
 		}
-		r.markWebhookOutboxDone(entry.ID)
+		r.markWebhookOutboxDone(workerCtx, entry.ID)
 	}
 	return nil
 }
 
 func (r *Runner) processRebalance(ctx context.Context) error {
-	entries, err := r.rebalanceQueue.ClaimPendingRebalance(20)
+	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	entries, err := r.rebalanceQueue.ClaimPendingRebalance(workerCtx, 20)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		if err := r.rebalance.ProcessAxis(ctx, entry.AxisKind, entry.AxisID); err != nil {
-			r.logger.Warn("rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "error", err)
-			if enqueueErr := r.lifecycle.EnqueueRebalanceAxis(entry.AxisKind, entry.AxisID); enqueueErr != nil {
+		entryCtx := r.workerCtx(ctx, entry.CompanyID)
+		if err := r.rebalance.ProcessAxis(entryCtx, entry.AxisKind, entry.AxisID); err != nil {
+			r.logger.Warn("rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "company_id", entry.CompanyID, "error", err)
+			if enqueueErr := r.lifecycle.EnqueueRebalanceAxis(entryCtx, entry.AxisKind, entry.AxisID); enqueueErr != nil {
 				r.logger.Warn("re-enqueue rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "error", enqueueErr)
 			}
 			continue
 		}
-		r.markRebalanceDone(entry.ID)
+		r.markRebalanceDone(workerCtx, entry.ID)
 	}
 	return nil
 }
@@ -210,7 +225,8 @@ func (r *Runner) compensateLogs(ctx context.Context) error {
 	if r.client == nil {
 		return nil
 	}
-	lastID, err := r.syncCursor.GetLastLogID()
+	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	lastID, err := r.syncCursor.GetLastLogID(workerCtx)
 	if err != nil {
 		return err
 	}
@@ -238,32 +254,32 @@ func backoff(attempts int) time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
-func (r *Runner) markRelayOutboxRetry(id string, next time.Time, reason string) {
-	if err := r.relayOutbox.MarkRelayOutboxRetry(id, next, reason); err != nil {
+func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, next time.Time, reason string) {
+	if err := r.relayOutbox.MarkRelayOutboxRetry(ctx, id, next, reason); err != nil {
 		r.logger.Warn("mark relay outbox retry failed", "id", id, "error", err)
 	}
 }
 
-func (r *Runner) markRelayOutboxDone(id string) {
-	if err := r.relayOutbox.MarkRelayOutboxDone(id); err != nil {
+func (r *Runner) markRelayOutboxDone(ctx context.Context, id string) {
+	if err := r.relayOutbox.MarkRelayOutboxDone(ctx, id); err != nil {
 		r.logger.Warn("mark relay outbox done failed", "id", id, "error", err)
 	}
 }
 
-func (r *Runner) markWebhookOutboxRetry(id string, next time.Time, reason string) {
-	if err := r.webhookOutbox.MarkWebhookOutboxRetry(id, next, reason); err != nil {
+func (r *Runner) markWebhookOutboxRetry(ctx context.Context, id string, next time.Time, reason string) {
+	if err := r.webhookOutbox.MarkWebhookOutboxRetry(ctx, id, next, reason); err != nil {
 		r.logger.Warn("mark webhook outbox retry failed", "id", id, "error", err)
 	}
 }
 
-func (r *Runner) markWebhookOutboxDone(id string) {
-	if err := r.webhookOutbox.MarkWebhookOutboxDone(id); err != nil {
+func (r *Runner) markWebhookOutboxDone(ctx context.Context, id string) {
+	if err := r.webhookOutbox.MarkWebhookOutboxDone(ctx, id); err != nil {
 		r.logger.Warn("mark webhook outbox done failed", "id", id, "error", err)
 	}
 }
 
-func (r *Runner) markRebalanceDone(id string) {
-	if err := r.rebalanceQueue.MarkRebalanceDone(id); err != nil {
+func (r *Runner) markRebalanceDone(ctx context.Context, id string) {
+	if err := r.rebalanceQueue.MarkRebalanceDone(ctx, id); err != nil {
 		r.logger.Warn("mark rebalance done failed", "id", id, "error", err)
 	}
 }

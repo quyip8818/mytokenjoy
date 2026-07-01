@@ -58,8 +58,12 @@ func (s *service) dashboardNow() time.Time {
 	return t
 }
 
-func (s *service) resolveScope(_ context.Context, scope domainusage.SessionScope, requestedDeptID string) ([]string, error) {
-	return domainusage.ResolveScopeDepartments(s.store.Org().Departments(), scope, requestedDeptID)
+func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID string) ([]string, error) {
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return domainusage.ResolveScopeDepartments(departments, scope, requestedDeptID)
 }
 
 func withRange(base types.UsageAggregateQuery, rng budget.ResolvedRange) types.UsageAggregateQuery {

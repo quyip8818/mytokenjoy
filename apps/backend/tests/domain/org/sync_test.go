@@ -1,7 +1,6 @@
 package org_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -15,13 +14,19 @@ import (
 
 func TestSyncThresholdBlocksDeletion(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
+	ctx := testutil.Ctx()
 	importedExternalID := "ou-gone"
-	members := env.Store.Org().Members()
+	members, err := env.Store.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	members = append(members, types.Member{
 		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: seed.IDDept3, DepartmentName: "研发部",
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &importedExternalID,
 	})
-	_ = env.Store.Org().SetMembers(members)
+	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
 	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
 		DeleteMemberThreshold: 0, DeleteDepartmentThreshold: 5,
@@ -29,7 +34,7 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 	env.Cfg.FeishuBaseURL = env.ServerURL
 	env.Svc = testutil.NewOrgService(t, env.Cfg, env.Store)
 
-	_, err := env.Svc.TriggerSync(context.Background())
+	_, err = env.Svc.TriggerSync(testutil.Ctx())
 	if err == nil {
 		t.Fatal("expected threshold error")
 	}
@@ -43,23 +48,36 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	deptName := "Mock Dept"
 	server := testutil.StartMutableFeishuServer(t, &deptName, testutil.DefaultFeishuUsers())
 	env := testutil.SetupImportedFeishuOrgWithServer(t, server.URL)
+	ctx := testutil.Ctx()
 	deptName = "Renamed Dept"
 	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
-	if _, err := env.Svc.TriggerSync(context.Background()); err != nil {
+	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	dept := pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDFeishuDept1)
+	departments, err := env.Store.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dept := pkgorg.FindDepartment(departments, seed.IDFeishuDept1)
 	if dept == nil || dept.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed department, got %+v", dept)
 	}
-	node := budget.FindBudgetNode(env.Store.Budget().Tree(), seed.IDFeishuDept1)
+	budgetTree, err := env.Store.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node := budget.FindBudgetNode(budgetTree, seed.IDFeishuDept1)
 	if node == nil || node.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed budget node, got %+v", node)
 	}
-	for _, rule := range env.Store.Models().RoutingRules() {
+	rules, err := env.Store.Models().RoutingRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rule := range rules {
 		if rule.NodeID == seed.IDFeishuDept1 && rule.NodeName != "Renamed Dept" {
 			t.Fatalf("expected renamed routing rule, got %+v", rule)
 		}
@@ -68,21 +86,31 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 
 func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 	env := testutil.SetupImportedFeishuOrg(t)
+	ctx := testutil.Ctx()
 	externalID := "ou-gone"
-	members := env.Store.Org().Members()
+	members, err := env.Store.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	members = append(members, types.Member{
 		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: seed.IDDept3,
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &externalID,
 	})
-	_ = env.Store.Org().SetMembers(members)
+	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
 	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
-	if _, err := env.Svc.TriggerSync(context.Background()); err != nil {
+	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	for _, member := range env.Store.Org().Members() {
+	members, err = env.Store.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, member := range members {
 		if member.ID == "m-feishu-ou-gone" && member.Status != "inactive" {
 			t.Fatalf("expected soft-deleted member, got status %s", member.Status)
 		}
@@ -91,8 +119,12 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 
 func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	env := testutil.SetupImportedFeishuOrg(t)
+	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments := env.Store.Org().Departments()
+	departments, err := env.Store.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for i := range departments {
 		for j := range departments[i].Children {
 			if departments[i].Children[j].ID == seed.IDDept2 {
@@ -101,15 +133,21 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 			}
 		}
 	}
-	_ = env.Store.Org().SetDepartments(departments)
+	if err := env.Store.Org().SetDepartments(ctx, departments); err != nil {
+		t.Fatal(err)
+	}
 	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
-	if _, err := env.Svc.TriggerSync(context.Background()); err != nil {
+	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	if pkgorg.FindDepartment(env.Store.Org().Departments(), seed.IDDept2) == nil {
+	departments, err = env.Store.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkgorg.FindDepartment(departments, seed.IDDept2) == nil {
 		t.Fatal("manual department should remain after sync")
 	}
 }

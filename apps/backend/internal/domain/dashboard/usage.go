@@ -28,7 +28,10 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	for _, row := range rows {
 		total += row.CostCNY
 	}
-	catalog := s.store.Models().Models()
+	catalog, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return nil, err
+	}
 	result := make([]types.ModelUsage, 0, len(rows))
 	for _, row := range rows {
 		provider := ""
@@ -64,9 +67,19 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	if err != nil {
 		return nil, err
 	}
-	departments := org.FlattenDepartmentTree(s.store.Org().Departments())
-	tree := s.store.Budget().Tree()
-	members := s.store.Org().Members()
+	deptTree, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return nil, err
+	}
+	departments := org.FlattenDepartmentTree(deptTree)
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return nil, err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByDepartment, ScopeDeptIDs: scopeDeptIDs,

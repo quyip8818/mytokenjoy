@@ -16,11 +16,11 @@ import (
 )
 
 type Service interface {
-	ListModels() []types.ModelInfo
+	ListModels(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
 	ToggleModel(ctx context.Context, id string, enabled bool) error
-	ListRoutingRules() []types.RoutingRule
-	ResolveRouting(deptID string) types.ResolvedWhitelist
+	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
+	ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error)
 	UpdateRoutingRule(ctx context.Context, id string, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
 }
 
@@ -42,8 +42,8 @@ func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, li
 	}
 }
 
-func (s *service) ListModels() []types.ModelInfo {
-	return s.store.Models().Models()
+func (s *service) ListModels(ctx context.Context) ([]types.ModelInfo, error) {
+	return s.store.Models().Models(ctx)
 }
 
 func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error) {
@@ -65,9 +65,12 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		Enabled:      true,
 		Capabilities: []string{"chat"},
 	}
-	models := s.store.Models().Models()
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.ModelInfo{}, err
+	}
 	models = append(models, model)
-	if err := s.store.Models().SetModels(models); err != nil {
+	if err := s.store.Models().SetModels(ctx, models); err != nil {
 		return types.ModelInfo{}, fmt.Errorf("persist models: %w", err)
 	}
 	return model, nil
@@ -77,11 +80,14 @@ func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) erro
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	models := s.store.Models().Models()
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range models {
 		if models[i].ID == id {
 			models[i].Enabled = enabled
-			if err := s.store.Models().SetModels(models); err != nil {
+			if err := s.store.Models().SetModels(ctx, models); err != nil {
 				return fmt.Errorf("persist models: %w", err)
 			}
 			return nil
@@ -90,14 +96,23 @@ func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) erro
 	return domain.NotFound("Not found")
 }
 
-func (s *service) ListRoutingRules() []types.RoutingRule {
-	return s.store.Models().RoutingRules()
+func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
+	return s.store.Models().RoutingRules(ctx)
 }
 
-func (s *service) ResolveRouting(deptID string) types.ResolvedWhitelist {
-	departments := s.store.Org().Departments()
-	rules := s.store.Models().RoutingRules()
-	models := s.store.Models().Models()
+func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error) {
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.ResolvedWhitelist{}, err
+	}
+	rules, err := s.store.Models().RoutingRules(ctx)
+	if err != nil {
+		return types.ResolvedWhitelist{}, err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.ResolvedWhitelist{}, err
+	}
 	rule := common.GetRoutingRuleForDept(deptID, rules, departments)
 	if rule == nil {
 		allowed := make([]string, 0)
@@ -110,7 +125,7 @@ func (s *service) ResolveRouting(deptID string) types.ResolvedWhitelist {
 			Inherited:     false,
 			AllowedModels: allowed,
 			ParentCount:   len(models),
-		}
+		}, nil
 	}
 	parentID := common.GetParentDeptID(rule.NodeID, departments)
 	parentCount := len(rule.AllowedModels)
@@ -127,7 +142,7 @@ func (s *service) ResolveRouting(deptID string) types.ResolvedWhitelist {
 		Inherited:     rule.Inherited,
 		AllowedModels: allowedModels,
 		ParentCount:   parentCount,
-	}
+	}, nil
 }
 
 func (s *service) UpdateRoutingRule(
@@ -138,7 +153,10 @@ func (s *service) UpdateRoutingRule(
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.RoutingRule{}, err
 	}
-	rules := s.store.Models().RoutingRules()
+	rules, err := s.store.Models().RoutingRules(ctx)
+	if err != nil {
+		return types.RoutingRule{}, err
+	}
 	idx := -1
 	for i := range rules {
 		if rules[i].ID == id {
@@ -164,14 +182,18 @@ func (s *service) UpdateRoutingRule(
 	}
 	rules[idx] = updated
 	if input.AllowedModels != nil {
+		departments, err := s.store.Org().Departments(ctx)
+		if err != nil {
+			return types.RoutingRule{}, err
+		}
 		rules = common.ShrinkChildRoutingRules(
 			updated.NodeID,
 			updated.AllowedModels,
 			rules,
-			s.store.Org().Departments(),
+			departments,
 		)
 	}
-	if err := s.store.Models().SetRoutingRules(rules); err != nil {
+	if err := s.store.Models().SetRoutingRules(ctx, rules); err != nil {
 		return types.RoutingRule{}, fmt.Errorf("persist routing rules: %w", err)
 	}
 	if s.client != nil && s.cfg.NewAPIEnabled {
@@ -179,8 +201,12 @@ func (s *service) UpdateRoutingRule(
 			return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
 		}
 		if s.lifecycle != nil {
-			deptIDs := org.CollectDescendantDeptIDs(s.store.Org().Departments(), updated.NodeID)
-			if err := s.lifecycle.EnqueueModelLimitsForDepartments(deptIDs); err != nil {
+			departments, err := s.store.Org().Departments(ctx)
+			if err != nil {
+				return types.RoutingRule{}, err
+			}
+			deptIDs := org.CollectDescendantDeptIDs(departments, updated.NodeID)
+			if err := s.lifecycle.EnqueueModelLimitsForDepartments(ctx, deptIDs); err != nil {
 				return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
 			}
 		}

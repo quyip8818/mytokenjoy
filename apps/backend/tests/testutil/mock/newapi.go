@@ -8,11 +8,15 @@ import (
 
 type StubAdminClient struct {
 	Token newapi.Token
+	User  newapi.User
 
 	CreateTokenFn      func(ctx context.Context, req newapi.CreateTokenRequest) (newapi.Token, error)
 	UpdateTokenFn      func(ctx context.Context, req newapi.UpdateTokenRequest) (newapi.Token, error)
 	GetTokenFn         func(ctx context.Context, tokenID int64) (newapi.Token, error)
 	DeleteTokenFn      func(ctx context.Context, tokenID int64) error
+	CreateUserFn       func(ctx context.Context, req newapi.CreateUserRequest) (newapi.User, error)
+	GetUserQuotaFn     func(ctx context.Context, userID int64) (int64, error)
+	TopUpFn            func(ctx context.Context, req newapi.TopUpRequest) error
 	UpsertChannelFn    func(ctx context.Context, req newapi.UpsertChannelRequest) (newapi.Channel, error)
 	RebuildAbilitiesFn func(ctx context.Context) error
 	ListLogsFn         func(ctx context.Context, params newapi.ListLogsParams) ([]newapi.LogEntry, error)
@@ -21,6 +25,9 @@ type StubAdminClient struct {
 	UpdateTokenCalls      int
 	GetTokenCalls         int
 	DeleteTokenCalls      int
+	CreateUserCalls       int
+	GetUserQuotaCalls     int
+	TopUpCalls            int
 	UpsertChannelCalls    int
 	RebuildAbilitiesCalls int
 	ListLogsCalls         int
@@ -54,6 +61,30 @@ func (s *StubAdminClient) DeleteToken(ctx context.Context, tokenID int64) error 
 	s.DeleteTokenCalls++
 	if s.DeleteTokenFn != nil {
 		return s.DeleteTokenFn(ctx, tokenID)
+	}
+	return nil
+}
+
+func (s *StubAdminClient) CreateUser(ctx context.Context, req newapi.CreateUserRequest) (newapi.User, error) {
+	s.CreateUserCalls++
+	if s.CreateUserFn != nil {
+		return s.CreateUserFn(ctx, req)
+	}
+	return s.User, nil
+}
+
+func (s *StubAdminClient) GetUserQuota(ctx context.Context, userID int64) (int64, error) {
+	s.GetUserQuotaCalls++
+	if s.GetUserQuotaFn != nil {
+		return s.GetUserQuotaFn(ctx, userID)
+	}
+	return s.User.Quota, nil
+}
+
+func (s *StubAdminClient) TopUp(ctx context.Context, req newapi.TopUpRequest) error {
+	s.TopUpCalls++
+	if s.TopUpFn != nil {
+		return s.TopUpFn(ctx, req)
 	}
 	return nil
 }

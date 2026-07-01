@@ -47,6 +47,14 @@ func ToNewAPIUnits(cnyRemaining float64, models []types.ModelInfo, whitelist []s
 	return int64(units)
 }
 
+func FromNewAPIUnits(units int64, models []types.ModelInfo, whitelist []string) float64 {
+	if units <= 0 {
+		return 0
+	}
+	price := HighestModelPriceCNY(models, whitelist)
+	return float64(units) / float64(common.QuotaPerUnit) * price
+}
+
 func FormatModelLimits(models []string) string {
 	if len(models) == 0 {
 		return ""

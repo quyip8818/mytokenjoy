@@ -16,13 +16,34 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	members := s.store.Org().Members()
-	departments := s.store.Org().Departments()
-	rules := s.store.Models().RoutingRules()
-	models := s.store.Models().Models()
-	pools := s.store.Budget().MemberQuotaPools()
-	platformKeys := s.store.Keys().PlatformKeys()
-	groups := s.store.Budget().Groups()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	rules, err := s.store.Models().RoutingRules(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	pools, err := s.store.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	groups, err := s.store.Budget().Groups(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
 
 	if input.BudgetGroupID != nil {
 		var group *types.BudgetGroup
@@ -90,7 +111,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		CreatedAt:      time.Now().Format("2006-01-02"),
 	}
 	platformKeys = append(platformKeys, created)
-	if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return types.PlatformKey{}, err
 	}
 
@@ -117,11 +138,15 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		}
 		fullKey, err := s.lifecycle.TrySyncCreate(ctx, created.ID)
 		if err != nil {
-			s.lifecycle.RollbackFailedCreate(created.ID)
+			s.lifecycle.RollbackFailedCreate(ctx, created.ID)
 			return types.PlatformKey{}, domain.ServiceUnavailable("Relay 同步失败，请稍后重试")
 		}
 		_ = fullKey
-		for _, key := range s.store.Keys().PlatformKeys() {
+		refreshed, err := s.store.Keys().PlatformKeys(ctx)
+		if err != nil {
+			return types.PlatformKey{}, err
+		}
+		for _, key := range refreshed {
 			if key.ID == created.ID {
 				return key, nil
 			}
@@ -134,7 +159,10 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	platformKeys := s.store.Keys().PlatformKeys()
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
 	idx := -1
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
@@ -146,12 +174,30 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		return types.PlatformKey{}, domain.NotFound("Not found")
 	}
 	existing := platformKeys[idx]
-	members := s.store.Org().Members()
-	departments := s.store.Org().Departments()
-	rules := s.store.Models().RoutingRules()
-	models := s.store.Models().Models()
-	pools := s.store.Budget().MemberQuotaPools()
-	groups := s.store.Budget().Groups()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	rules, err := s.store.Models().RoutingRules(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	pools, err := s.store.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	groups, err := s.store.Budget().Groups(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
 
 	if len(input.ModelWhitelist) > 0 && existing.MemberID != nil {
 		if msg := common.ValidateModelsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
@@ -195,11 +241,11 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		existing.ModelWhitelist = append([]string{}, input.ModelWhitelist...)
 	}
 	platformKeys[idx] = existing
-	if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return types.PlatformKey{}, err
 	}
 	if s.lifecycle != nil && s.lifecycle.Enabled() {
-		if err := s.lifecycle.EnqueueUpdatePlatformKey(id); err != nil {
+		if err := s.lifecycle.EnqueueUpdatePlatformKey(ctx, id); err != nil {
 			return types.PlatformKey{}, err
 		}
 	}
@@ -210,7 +256,10 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	platformKeys := s.store.Keys().PlatformKeys()
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			if enabled {
@@ -218,11 +267,11 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 			} else {
 				platformKeys[i].Status = "disabled"
 			}
-			if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return types.PlatformKey{}, err
 			}
 			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				if err := s.lifecycle.EnqueueUpdatePlatformKey(id); err != nil {
+				if err := s.lifecycle.EnqueueUpdatePlatformKey(ctx, id); err != nil {
 					return types.PlatformKey{}, err
 				}
 			}
@@ -236,7 +285,10 @@ func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.Platf
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	platformKeys := s.store.Keys().PlatformKeys()
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			fullKey := fmt.Sprintf("tj-rot-%d-demo-secret", time.Now().UnixMilli())
@@ -246,7 +298,7 @@ func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.Platf
 				prefix = prefix[:12] + "..."
 			}
 			platformKeys[i].KeyPrefix = prefix
-			if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return types.PlatformKey{}, err
 			}
 			return platformKeys[i], nil
@@ -259,11 +311,14 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	platformKeys := s.store.Keys().PlatformKeys()
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			platformKeys[i].Status = "revoked"
-			if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return err
 			}
 			if s.lifecycle != nil && s.lifecycle.Enabled() {
@@ -275,12 +330,15 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 	return domain.NotFound("Not found")
 }
 
-func (s *service) DeletePlatformKey(id string) error {
-	platformKeys := s.store.Keys().PlatformKeys()
+func (s *service) DeletePlatformKey(ctx context.Context, id string) error {
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			platformKeys = append(platformKeys[:i], platformKeys[i+1:]...)
-			if err := s.store.Keys().SetPlatformKeys(platformKeys); err != nil {
+			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return err
 			}
 			return nil

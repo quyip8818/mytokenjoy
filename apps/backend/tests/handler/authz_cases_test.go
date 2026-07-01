@@ -46,6 +46,7 @@ func authzWriteCases() []authzCase {
 		{name: "audit settings forbidden", method: http.MethodPut, path: "/api/audit/settings", body: `{"retentionDays":30}`, cookie: testutil.SessionCookie(seed.IDMemberPure), wantStatus: http.StatusForbidden},
 		{name: "datasource update forbidden", method: http.MethodPut, path: "/api/org/data-source", body: `{"platform":"feishu","appId":"a","appSecret":"b"}`, cookie: testutil.SessionCookie(seed.IDMemberPure), wantStatus: http.StatusForbidden},
 		{name: "dashboard forbidden without permission", method: http.MethodGet, path: "/api/dashboard/cost/summary", cookie: testutil.SessionCookie(seed.IDMemberPure), wantStatus: http.StatusForbidden},
+		{name: "billing wallet forbidden", method: http.MethodGet, path: "/api/billing/wallet", cookie: testutil.SessionCookie(seed.IDMemberPure), wantStatus: http.StatusForbidden},
 		{name: "sync trigger unauthorized", method: http.MethodPost, path: "/api/org/sync/trigger", wantStatus: http.StatusUnauthorized},
 	}
 }

@@ -5,6 +5,7 @@ const MemberSourceSchema = z.enum(['imported', 'manual', 'invited'])
 
 export const MemberSchema = z.object({
   id: z.string(),
+  companyId: z.number(),
   name: z.string(),
   phone: z.string(),
   email: z.string(),
@@ -16,6 +17,7 @@ export const MemberSchema = z.object({
 })
 
 export const SessionContextSchema = z.object({
+  companyId: z.number(),
   member: MemberSchema,
   permissions: z.array(z.string()),
   readOnly: z.boolean(),

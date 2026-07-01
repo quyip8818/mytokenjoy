@@ -1,9 +1,6 @@
-//go:build testhook
-
 package testutil
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -22,8 +19,7 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	}
 	st := NewMemoryStore(t, cfg)
 	if cfg.IsDemoProfile() {
-		ctx := context.Background()
-		if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+		if err := seed.ApplyUsageBuckets(Ctx(), st, cfg); err != nil {
 			t.Fatalf("apply usage buckets: %v", err)
 		}
 	}

@@ -12,7 +12,6 @@ import (
 
 type Store struct {
 	pool   *pgxpool.Pool
-	ctx    context.Context
 	relay  *relayRepo
 	domain domainRepos
 }
@@ -39,7 +38,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		return nil, err
 	}
 
-	s := &Store{pool: pool, ctx: ctx}
+	s := &Store{pool: pool}
 	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
 		pool.Close()
 		return nil, err
@@ -50,13 +49,29 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			return nil, err
 		}
 	}
-	s.relay = newRelayRepo(ctx, pool)
-	s.domain = newDomainRepoSet(ctx, pool)
+	s.relay = newRelayRepo(pool)
+	s.domain = newDomainRepoSet(pool)
 	return s, nil
 }
 
+func (s *Store) Company() store.CompanyRepository {
+	return newCompanyRepo(s.pool)
+}
+
+func (s *Store) Invite() store.InviteRepository {
+	return newInviteRepo(s.pool)
+}
+
+func (s *Store) Platform() store.PlatformRepository {
+	return newPlatformRepo(s.pool)
+}
+
+func (s *Store) Billing() store.BillingRepository {
+	return newBillingRepo(s.pool)
+}
+
 func (s *Store) Credential() store.CredentialRepository {
-	return &credentialRepo{ctx: s.ctx, db: s.pool}
+	return &credentialRepo{db: s.pool}
 }
 
 func (s *Store) SchedulerLock() store.SchedulerLockRepository {

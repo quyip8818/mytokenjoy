@@ -16,10 +16,6 @@ func BadRequest(msg string) error {
 	return NewDomainError(StatusBadRequest, msg)
 }
 
-func NotImplemented(msg string) error {
-	return NewDomainError(StatusNotImplemented, msg)
-}
-
 func ServiceUnavailable(msg string) error {
 	return NewDomainError(StatusServiceUnavailable, msg)
 }

@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -47,29 +48,36 @@ func NewService(
 	}
 }
 
-func (s *service) recalcRoleMemberCounts(roles []types.Role) {
-	members := s.store.Org().Members()
+func (s *service) recalcRoleMemberCounts(ctx context.Context, roles []types.Role) error {
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range roles {
 		roles[i].MemberCount = pkgorg.CountMembersByRole(members, roles[i].Name)
 	}
+	return nil
 }
 
-func (s *service) ListPermissions() []types.Permission {
-	return s.store.Org().Permissions()
+func (s *service) ListPermissions(ctx context.Context) ([]types.Permission, error) {
+	return s.store.Org().Permissions(ctx)
 }
 
-func (s *service) GetSyncConfig() types.SyncConfig {
-	return s.store.Org().SyncConfig()
+func (s *service) GetSyncConfig(ctx context.Context) (types.SyncConfig, error) {
+	return s.store.Org().SyncConfig(ctx)
 }
 
-func (s *service) UpdateSyncConfig(cfg types.SyncConfig) error {
-	return s.store.Org().SetSyncConfig(cfg)
+func (s *service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
+	return s.store.Org().SetSyncConfig(ctx, cfg)
 }
 
-func (s *service) ListSyncLogs(page, pageSize int) types.PageResult[types.SyncLog] {
-	logs := s.store.Org().SyncLogs()
+func (s *service) ListSyncLogs(ctx context.Context, page, pageSize int) (types.PageResult[types.SyncLog], error) {
+	logs, err := s.store.Org().SyncLogs(ctx)
+	if err != nil {
+		return types.PageResult[types.SyncLog]{}, err
+	}
 	items, total, safePage, safeSize := common.Paginate(logs, page, pageSize)
 	return types.PageResult[types.SyncLog]{
 		Items: items, Total: total, Page: safePage, PageSize: safeSize,
-	}
+	}, nil
 }

@@ -1,7 +1,6 @@
 package testutil
 
 import (
-	"context"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -33,7 +32,7 @@ func SetupFeishuConnected(t *testing.T) FeishuOrgEnv {
 
 func ImportFeishuOrg(t *testing.T, env FeishuOrgEnv) types.ImportResult {
 	t.Helper()
-	result, err := env.Svc.ImportDataSource(context.Background())
+	result, err := env.Svc.ImportDataSource(Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +63,7 @@ func SetupImportedFeishuOrgWithServer(t *testing.T, serverURL string) FeishuOrgE
 
 func WithSyncConfig(t *testing.T, env FeishuOrgEnv, cfg types.SyncConfig) FeishuOrgEnv {
 	t.Helper()
-	if err := env.Store.Org().SetSyncConfig(cfg); err != nil {
+	if err := env.Store.Org().SetSyncConfig(Ctx(), cfg); err != nil {
 		t.Fatal(err)
 	}
 	env.Svc = NewOrgService(t, env.Cfg, env.Store)

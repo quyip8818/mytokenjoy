@@ -1,18 +1,16 @@
 package postgres
 
 import (
-	"context"
-
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func newDomainRepoSet(ctx context.Context, db dbQuerier) domainRepos {
+func newDomainRepoSet(db dbQuerier) domainRepos {
 	return domainRepos{
-		org:    &pgOrgRepo{ctx: ctx, db: db},
-		budget: &pgBudgetRepo{ctx: ctx, db: db},
-		keys:   &pgKeysRepo{ctx: ctx, db: db},
-		models: &pgModelsRepo{ctx: ctx, db: db},
-		audit:  &pgAuditRepo{ctx: ctx, db: db},
+		org:    &pgOrgRepo{db: db},
+		budget: &pgBudgetRepo{db: db},
+		keys:   &pgKeysRepo{db: db},
+		models: &pgModelsRepo{db: db},
+		audit:  &pgAuditRepo{db: db},
 	}
 }
 

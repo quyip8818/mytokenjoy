@@ -1,7 +1,6 @@
 package budget_test
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"testing"
@@ -24,31 +23,45 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 		testutil.WithNewAPIWebhookSecret("secret"),
 	)
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub)
+	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	ingest := budget.NewIngestService(cfg, st, lifecycle, notifier, logger)
+	ctx := testutil.Ctx()
 
-	tree := st.Budget().Tree()
+	tree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 24999)
-	st.Budget().SetTree(tree)
+	if err := st.Budget().SetTree(ctx, tree); err != nil {
+		t.Fatal(err)
+	}
 
 	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
 
 	payload := newapi.WebhookLogPayload{
 		ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
 	}
-	if err := ingest.Ingest(context.Background(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
 		t.Fatal(err)
 	}
 
-	node := findDept3(st.Budget().Tree())
+	tree, err = st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node := findDept3(tree)
 	if node == nil || node.Consumed < node.Budget {
 		t.Fatalf("expected dept-3 consumed >= budget, consumed=%v budget=%v", node.Consumed, node.Budget)
 	}
 
+	keys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var plk1 *types.PlatformKey
-	for _, key := range st.Keys().PlatformKeys() {
+	for _, key := range keys {
 		if key.ID == seed.IDPlatformKey1 {
 			copy := key
 			plk1 = &copy

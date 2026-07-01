@@ -3,17 +3,18 @@
 package postgres_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestBudgetTreeRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
 	parentID := "dept-roundtrip-parent"
 	childID := "dept-roundtrip-child"
 	parent := parentID
@@ -36,10 +37,13 @@ func TestBudgetTreeRoundTrip(t *testing.T) {
 			},
 		},
 	}
-	if err := st.Budget().SetTree(tree); err != nil {
+	if err := st.Budget().SetTree(ctx, tree); err != nil {
 		t.Fatal(err)
 	}
-	got := st.Budget().Tree()
+	got, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(got) != 1 || got[0].ID != parentID {
 		t.Fatalf("unexpected root: %+v", got)
 	}
@@ -53,6 +57,7 @@ func TestBudgetTreeRoundTrip(t *testing.T) {
 
 func TestKeysRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
 	keys := []types.ProviderKey{
 		{
 			ID:        "pk-roundtrip",
@@ -64,10 +69,13 @@ func TestKeysRoundTrip(t *testing.T) {
 			CreatedAt: "2026-06-01",
 		},
 	}
-	if err := st.Keys().SetProviderKeys(keys); err != nil {
+	if err := st.Keys().SetProviderKeys(ctx, keys); err != nil {
 		t.Fatal(err)
 	}
-	got := st.Keys().ProviderKeys()
+	got, err := st.Keys().ProviderKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	found := false
 	for _, key := range got {
 		if key.ID == "pk-roundtrip" {
@@ -84,6 +92,7 @@ func TestKeysRoundTrip(t *testing.T) {
 
 func TestModelsRoutingRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
 	models := []types.ModelInfo{
 		{
 			ID:           "model-roundtrip",
@@ -110,13 +119,16 @@ func TestModelsRoutingRoundTrip(t *testing.T) {
 			Inherited:     false,
 		},
 	}
-	if err := st.Models().SetModels(models); err != nil {
+	if err := st.Models().SetModels(ctx, models); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Models().SetRoutingRules(rules); err != nil {
+	if err := st.Models().SetRoutingRules(ctx, rules); err != nil {
 		t.Fatal(err)
 	}
-	gotModels := st.Models().Models()
+	gotModels, err := st.Models().Models(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	foundModel := false
 	for _, model := range gotModels {
 		if model.ID == "model-roundtrip" {
@@ -129,7 +141,10 @@ func TestModelsRoutingRoundTrip(t *testing.T) {
 	if !foundModel {
 		t.Fatal("model not found after round-trip")
 	}
-	gotRules := st.Models().RoutingRules()
+	gotRules, err := st.Models().RoutingRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	foundRule := false
 	for _, rule := range gotRules {
 		if rule.ID == "rr-roundtrip" {
@@ -147,22 +162,29 @@ func TestModelsRoutingRoundTrip(t *testing.T) {
 func TestWithTxRollback(t *testing.T) {
 	st := testPostgresStore(t)
 	pool := testDBPool(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
 	before := memberUpdatedAt(t, pool, seed.IDMember1)
-	originalName := findMemberName(st.Org().Members(), seed.IDMember1)
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalName := findMemberName(members, seed.IDMember1)
 	if originalName == "" {
 		t.Fatalf("member %s not found", seed.IDMember1)
 	}
 
-	err := st.WithTx(ctx, func(tx store.Store) error {
-		members := tx.Org().Members()
+	err = st.WithTx(ctx, func(tx store.Store) error {
+		members, err := tx.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 		for i := range members {
 			if members[i].ID == seed.IDMember1 {
 				members[i].Name = "ShouldRollback"
 			}
 		}
-		if err := tx.Org().SetMembers(members); err != nil {
+		if err := tx.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
 		return errors.New("force rollback")
@@ -172,7 +194,11 @@ func TestWithTxRollback(t *testing.T) {
 	}
 
 	after := memberUpdatedAt(t, pool, seed.IDMember1)
-	if got := findMemberName(st.Org().Members(), seed.IDMember1); got != originalName {
+	members, err = st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := findMemberName(members, seed.IDMember1); got != originalName {
 		t.Fatalf("expected name %q after rollback, got %q", originalName, got)
 	}
 	if !after.Equal(before) {

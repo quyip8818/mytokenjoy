@@ -1,105 +1,191 @@
 package memory
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type memoryOrgRepo struct{ store *Store }
 
-func (r *memoryOrgRepo) DataSourceStatus() types.DataSourceStatus {
+func (r *memoryOrgRepo) DataSourceStatus(ctx context.Context) (types.DataSourceStatus, error) {
+	if err := ctx.Err(); err != nil {
+		return types.DataSourceStatus{}, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return r.store.data.DataSourceStatus
+	return r.store.companySnapshot(store.CompanyID(ctx)).DataSourceStatus, nil
 }
 
-func (r *memoryOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) error {
+func (r *memoryOrgRepo) SetDataSourceStatus(ctx context.Context, status types.DataSourceStatus) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.DataSourceStatus = status
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.DataSourceStatus = status
+	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
 
-func (r *memoryOrgRepo) ImportFailures() []types.ImportFailure {
+func (r *memoryOrgRepo) ImportFailures(ctx context.Context) ([]types.ImportFailure, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return store.CloneImportFailures(r.store.data.ImportFailures)
+	return store.CloneImportFailures(r.store.companySnapshot(store.CompanyID(ctx)).ImportFailures), nil
 }
 
-func (r *memoryOrgRepo) SetImportFailures(failures []types.ImportFailure) error {
+func (r *memoryOrgRepo) SetImportFailures(ctx context.Context, failures []types.ImportFailure) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.ImportFailures = store.CloneImportFailures(failures)
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.ImportFailures = store.CloneImportFailures(failures)
+	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
 
-func (r *memoryOrgRepo) SyncConfig() types.SyncConfig {
+func (r *memoryOrgRepo) SyncConfig(ctx context.Context) (types.SyncConfig, error) {
+	if err := ctx.Err(); err != nil {
+		return types.SyncConfig{}, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return r.store.data.SyncConfig
+	return r.store.companySnapshot(store.CompanyID(ctx)).SyncConfig, nil
 }
 
-func (r *memoryOrgRepo) SetSyncConfig(cfg types.SyncConfig) error {
+func (r *memoryOrgRepo) SetSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.SyncConfig = cfg
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.SyncConfig = cfg
+	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
 
-func (r *memoryOrgRepo) SyncLogs() []types.SyncLog {
+func (r *memoryOrgRepo) SyncLogs(ctx context.Context) ([]types.SyncLog, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return store.CloneSyncLogs(r.store.data.SyncLogs)
+	return store.CloneSyncLogs(r.store.companySnapshot(store.CompanyID(ctx)).SyncLogs), nil
 }
 
-func (r *memoryOrgRepo) AppendSyncLog(log types.SyncLog) error {
+func (r *memoryOrgRepo) AppendSyncLog(ctx context.Context, log types.SyncLog) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.SyncLogs = append([]types.SyncLog{log}, r.store.data.SyncLogs...)
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.SyncLogs = append([]types.SyncLog{log}, snap.SyncLogs...)
+	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
 
-func (r *memoryOrgRepo) Departments() []types.Department {
+func (r *memoryOrgRepo) Departments(ctx context.Context) ([]types.Department, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return store.CloneDepartments(r.store.data.Departments)
+	return store.CloneDepartments(r.store.companySnapshot(store.CompanyID(ctx)).Departments), nil
 }
 
-func (r *memoryOrgRepo) SetDepartments(departments []types.Department) error {
+func (r *memoryOrgRepo) SetDepartments(ctx context.Context, departments []types.Department) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.Departments = store.CloneDepartments(departments)
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.Departments = store.CloneDepartments(departments)
+	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
 
-func (r *memoryOrgRepo) Members() []types.Member {
+func (r *memoryOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return store.CloneMembers(r.store.data.Members)
+	return store.CloneMembers(r.store.companySnapshot(store.CompanyID(ctx)).Members), nil
 }
 
-func (r *memoryOrgRepo) SetMembers(members []types.Member) error {
+func (r *memoryOrgRepo) SetMembers(ctx context.Context, members []types.Member) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.Members = store.CloneMembers(members)
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.Members = store.CloneMembers(members)
+	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
 
-func (r *memoryOrgRepo) Roles() []types.Role {
-	r.store.mu.RLock()
-	defer r.store.mu.RUnlock()
-	return store.CloneRoles(r.store.data.Roles)
+func memberPasswordKey(companyID int64, memberID string) string {
+	return fmt.Sprintf("%d:%s", companyID, memberID)
 }
 
-func (r *memoryOrgRepo) SetRoles(roles []types.Role) error {
+func (r *memoryOrgRepo) SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.store.mu.Lock()
 	defer r.store.mu.Unlock()
-	r.store.data.Roles = store.CloneRoles(roles)
+	if r.store.memberPasswordHashes == nil {
+		r.store.memberPasswordHashes = make(map[string]string)
+	}
+	r.store.memberPasswordHashes[memberPasswordKey(store.CompanyID(ctx), memberID)] = passwordHash
 	return nil
 }
 
-func (r *memoryOrgRepo) Permissions() []types.Permission {
+func (r *memoryOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.store.mu.RLock()
 	defer r.store.mu.RUnlock()
-	return store.ClonePermissions(r.store.data.Permissions)
+	return store.CloneRoles(r.store.companySnapshot(store.CompanyID(ctx)).Roles), nil
+}
+
+func (r *memoryOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.Roles = store.CloneRoles(roles)
+	r.store.setCompanySnapshot(tid, snap)
+	return nil
+}
+
+func (r *memoryOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	return store.ClonePermissions(r.store.permissions), nil
 }

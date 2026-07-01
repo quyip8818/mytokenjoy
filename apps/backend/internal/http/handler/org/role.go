@@ -8,7 +8,8 @@ import (
 )
 
 func (h *Handler) RolesList(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListRoles())
+	roles, err := h.service.ListRoles(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, roles, err)
 }
 
 func (h *Handler) RoleCreate(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +21,7 @@ func (h *Handler) RoleCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	role, err := h.service.CreateRole(body.Name, body.Permissions)
+	role, err := h.service.CreateRole(r.Context(), body.Name, body.Permissions)
 	httputil.WriteJSON(w, http.StatusOK, role, err)
 }
 
@@ -34,19 +35,20 @@ func (h *Handler) RoleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := chi.URLParam(r, "id")
-	role, err := h.service.UpdateRole(id, body.Name, body.Permissions)
+	role, err := h.service.UpdateRole(r.Context(), id, body.Name, body.Permissions)
 	httputil.WriteJSON(w, http.StatusOK, role, err)
 }
 
 func (h *Handler) RoleDelete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	err := h.service.DeleteRole(id)
+	err := h.service.DeleteRole(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) RoleMembersList(w http.ResponseWriter, r *http.Request) {
 	roleID := chi.URLParam(r, "roleId")
-	httputil.WriteOK(w, h.service.ListRoleMembers(roleID))
+	members, err := h.service.ListRoleMembers(r.Context(), roleID)
+	httputil.WriteJSON(w, http.StatusOK, members, err)
 }
 
 func (h *Handler) RoleMemberAdd(w http.ResponseWriter, r *http.Request) {
@@ -58,17 +60,18 @@ func (h *Handler) RoleMemberAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleID := chi.URLParam(r, "roleId")
-	err := h.service.AddRoleMember(roleID, body.MemberID)
+	err := h.service.AddRoleMember(r.Context(), roleID, body.MemberID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) RoleMemberRemove(w http.ResponseWriter, r *http.Request) {
 	roleID := chi.URLParam(r, "roleId")
 	memberID := chi.URLParam(r, "memberId")
-	err := h.service.RemoveRoleMember(roleID, memberID)
+	err := h.service.RemoveRoleMember(r.Context(), roleID, memberID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) PermissionsList(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListPermissions())
+	perms, err := h.service.ListPermissions(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, perms, err)
 }

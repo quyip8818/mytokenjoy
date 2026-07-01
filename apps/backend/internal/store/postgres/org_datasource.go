@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -9,20 +10,21 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgOrgRepo) DataSourceStatus() types.DataSourceStatus {
+func (r *pgOrgRepo) DataSourceStatus(ctx context.Context) (types.DataSourceStatus, error) {
+	companyID := store.CompanyID(ctx)
 	var platform *string
 	var connected bool
 	var lastImport *time.Time
 	var lastImportOK, lastImportFail *int
-	err := r.db.QueryRow(r.ctx, `
+	err := r.db.QueryRow(ctx, `
 		SELECT platform, connected, last_import, last_import_ok, last_import_fail
-		FROM org_data_source_status WHERE id = 1
-	`).Scan(&platform, &connected, &lastImport, &lastImportOK, &lastImportFail)
+		FROM org_data_source_status WHERE company_id = $1
+	`, companyID).Scan(&platform, &connected, &lastImport, &lastImportOK, &lastImportFail)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return types.DataSourceStatus{}
+			return types.DataSourceStatus{}, nil
 		}
-		return types.DataSourceStatus{}
+		return types.DataSourceStatus{}, err
 	}
 	status := types.DataSourceStatus{Connected: connected}
 	if platform != nil && *platform != "" {
@@ -43,10 +45,11 @@ func (r *pgOrgRepo) DataSourceStatus() types.DataSourceStatus {
 		}
 		status.LastImportResult = &result
 	}
-	return status
+	return status, nil
 }
 
-func (r *pgOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) error {
+func (r *pgOrgRepo) SetDataSourceStatus(ctx context.Context, status types.DataSourceStatus) error {
+	companyID := store.CompanyID(ctx)
 	var platform *string
 	if status.Platform != nil {
 		s := string(*status.Platform)
@@ -67,51 +70,56 @@ func (r *pgOrgRepo) SetDataSourceStatus(status types.DataSourceStatus) error {
 		fail := len(status.LastImportResult.Failures)
 		lastImportFail = &fail
 	}
-	_, err := r.db.Exec(r.ctx, `
-		INSERT INTO org_data_source_status (id, platform, connected, last_import, last_import_ok, last_import_fail, updated_at)
-		VALUES (1, $1, $2, $3, $4, $5, NOW())
-		ON CONFLICT (id) DO UPDATE SET
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO org_data_source_status (company_id, platform, connected, last_import, last_import_ok, last_import_fail, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		ON CONFLICT (company_id) DO UPDATE SET
 			platform = EXCLUDED.platform,
 			connected = EXCLUDED.connected,
 			last_import = EXCLUDED.last_import,
 			last_import_ok = EXCLUDED.last_import_ok,
 			last_import_fail = EXCLUDED.last_import_fail,
 			updated_at = NOW()
-	`, platform, status.Connected, lastImport, lastImportOK, lastImportFail)
+	`, companyID, platform, status.Connected, lastImport, lastImportOK, lastImportFail)
 	if err != nil {
 		return fmt.Errorf("upsert data source status: %w", err)
 	}
 	return nil
 }
 
-func (r *pgOrgRepo) ImportFailures() []types.ImportFailure {
-	rows, err := r.db.Query(r.ctx, `
-		SELECT id, name, employee_id, reason FROM org_import_failures
-	`)
+func (r *pgOrgRepo) ImportFailures(ctx context.Context) ([]types.ImportFailure, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, employee_id, reason FROM org_import_failures WHERE company_id = $1
+	`, companyID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	items := make([]types.ImportFailure, 0)
 	for rows.Next() {
 		var item types.ImportFailure
 		if err := rows.Scan(&item.ID, &item.Name, &item.EmployeeID, &item.Reason); err != nil {
-			return nil
+			return nil, err
 		}
 		items = append(items, item)
 	}
-	return store.CloneImportFailures(items)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneImportFailures(items), nil
 }
 
-func (r *pgOrgRepo) SetImportFailures(failures []types.ImportFailure) error {
-	if _, err := r.db.Exec(r.ctx, `DELETE FROM org_import_failures`); err != nil {
+func (r *pgOrgRepo) SetImportFailures(ctx context.Context, failures []types.ImportFailure) error {
+	companyID := store.CompanyID(ctx)
+	if _, err := r.db.Exec(ctx, `DELETE FROM org_import_failures WHERE company_id = $1`, companyID); err != nil {
 		return fmt.Errorf("clear import failures: %w", err)
 	}
 	for _, item := range failures {
-		if _, err := r.db.Exec(r.ctx, `
-			INSERT INTO org_import_failures (id, name, employee_id, reason)
-			VALUES ($1, $2, $3, $4)
-		`, item.ID, item.Name, item.EmployeeID, item.Reason); err != nil {
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO org_import_failures (id, company_id, name, employee_id, reason)
+			VALUES ($1, $2, $3, $4, $5)
+		`, item.ID, companyID, item.Name, item.EmployeeID, item.Reason); err != nil {
 			return fmt.Errorf("insert import failure: %w", err)
 		}
 	}

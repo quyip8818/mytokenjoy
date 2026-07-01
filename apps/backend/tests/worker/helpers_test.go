@@ -21,7 +21,7 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 		testutil.WithNewAPIBaseURL("http://relay.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub)
+	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
 	orgSvc := testutil.NewOrgService(t, cfg, st)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
@@ -32,7 +32,7 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 }
 
 func pendingRelayOutbox(st store.Store, kind string) int {
-	entries, err := st.Relay().ClaimPendingRelayOutbox(100)
+	entries, err := st.Relay().ClaimPendingRelayOutbox(testutil.Ctx(), 100)
 	if err != nil {
 		return 0
 	}
@@ -46,7 +46,7 @@ func pendingRelayOutbox(st store.Store, kind string) int {
 }
 
 func pendingWebhookOutbox(st store.Store) int {
-	entries, err := st.Relay().ClaimPendingWebhookOutbox(100)
+	entries, err := st.Relay().ClaimPendingWebhookOutbox(testutil.Ctx(), 100)
 	if err != nil {
 		return 0
 	}

@@ -51,4 +51,5 @@ yarn.lock
 
 # Go binaries
 apps/backend/server
+*.test
 

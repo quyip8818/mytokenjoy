@@ -9,7 +9,8 @@ import (
 )
 
 func (h *Handler) SyncConfigGet(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.GetSyncConfig())
+	cfg, err := h.service.GetSyncConfig(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, cfg, err)
 }
 
 func (h *Handler) SyncConfigUpdate(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +19,7 @@ func (h *Handler) SyncConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	err := h.service.UpdateSyncConfig(body)
+	err := h.service.UpdateSyncConfig(r.Context(), body)
 	httputil.WriteVoid(w, err)
 }
 
@@ -30,5 +31,6 @@ func (h *Handler) SyncTrigger(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) SyncLogs(w http.ResponseWriter, r *http.Request) {
 	page := common.ParseIntParam(r.URL.Query().Get("page"), 1)
 	pageSize := common.ParseIntParam(r.URL.Query().Get("pageSize"), 10)
-	httputil.WriteOK(w, h.service.ListSyncLogs(page, pageSize))
+	result, err := h.service.ListSyncLogs(r.Context(), page, pageSize)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

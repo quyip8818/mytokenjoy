@@ -101,7 +101,12 @@ func TestSyncTriggerWritesLogHTTP(t *testing.T) {
 		cfg.FeishuBaseURL = server.URL
 	})
 	testutil.ConnectFeishuDataSource(t, &app.Config, app.Store, app.Config.FeishuBaseURL)
-	before := len(app.Store.Org().SyncLogs())
+	ctx := testutil.Ctx()
+	syncLogs, err := app.Store.Org().SyncLogs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(syncLogs)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/sync/trigger", nil)
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()
@@ -109,7 +114,11 @@ func TestSyncTriggerWritesLogHTTP(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(app.Store.Org().SyncLogs()) <= before {
+	syncLogs, err = app.Store.Org().SyncLogs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(syncLogs) <= before {
 		t.Fatal("expected sync log after trigger")
 	}
 }

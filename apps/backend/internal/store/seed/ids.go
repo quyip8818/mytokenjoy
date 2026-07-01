@@ -1,6 +1,8 @@
 package seed
 
 const (
+	DefaultCompanyID int64 = 1
+
 	IDDept2          = "dept-2"
 	IDDept3          = "dept-3"
 	IDDept4          = "dept-4"

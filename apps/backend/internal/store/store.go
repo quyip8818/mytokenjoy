@@ -8,6 +8,7 @@ import (
 )
 
 type Snapshot struct {
+	Company             Company
 	DataSourceStatus    types.DataSourceStatus
 	SyncConfig          types.SyncConfig
 	SyncLogs            []types.SyncLog
@@ -34,6 +35,10 @@ type Snapshot struct {
 }
 
 type Store interface {
+	Company() CompanyRepository
+	Invite() InviteRepository
+	Platform() PlatformRepository
+	Billing() BillingRepository
 	Org() OrgRepository
 	Budget() BudgetRepository
 	Keys() KeysRepository
@@ -48,27 +53,28 @@ type Store interface {
 }
 
 type OrgRepository interface {
-	DataSourceStatus() types.DataSourceStatus
-	SetDataSourceStatus(status types.DataSourceStatus) error
-	ImportFailures() []types.ImportFailure
-	SetImportFailures(failures []types.ImportFailure) error
-	SyncConfig() types.SyncConfig
-	SetSyncConfig(cfg types.SyncConfig) error
-	SyncLogs() []types.SyncLog
-	AppendSyncLog(log types.SyncLog) error
-	Departments() []types.Department
-	SetDepartments(departments []types.Department) error
-	Members() []types.Member
-	SetMembers(members []types.Member) error
-	Roles() []types.Role
-	SetRoles(roles []types.Role) error
-	Permissions() []types.Permission
+	DataSourceStatus(ctx context.Context) (types.DataSourceStatus, error)
+	SetDataSourceStatus(ctx context.Context, status types.DataSourceStatus) error
+	ImportFailures(ctx context.Context) ([]types.ImportFailure, error)
+	SetImportFailures(ctx context.Context, failures []types.ImportFailure) error
+	SyncConfig(ctx context.Context) (types.SyncConfig, error)
+	SetSyncConfig(ctx context.Context, cfg types.SyncConfig) error
+	SyncLogs(ctx context.Context) ([]types.SyncLog, error)
+	AppendSyncLog(ctx context.Context, log types.SyncLog) error
+	Departments(ctx context.Context) ([]types.Department, error)
+	SetDepartments(ctx context.Context, departments []types.Department) error
+	Members(ctx context.Context) ([]types.Member, error)
+	SetMembers(ctx context.Context, members []types.Member) error
+	SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error
+	Roles(ctx context.Context) ([]types.Role, error)
+	SetRoles(ctx context.Context, roles []types.Role) error
+	Permissions(ctx context.Context) ([]types.Permission, error)
 }
 
 type CredentialRepository interface {
-	GetCredential() (*types.StoredCredential, error)
-	SaveCredential(platform types.Platform, encrypted []byte) error
-	ClearCredential() error
+	GetCredential(ctx context.Context) (*types.StoredCredential, error)
+	SaveCredential(ctx context.Context, platform types.Platform, encrypted []byte) error
+	ClearCredential(ctx context.Context) error
 }
 
 type SchedulerLockRepository interface {
@@ -77,39 +83,40 @@ type SchedulerLockRepository interface {
 }
 
 type BudgetRepository interface {
-	Tree() []types.BudgetNode
-	SetTree(tree []types.BudgetNode) error
-	Groups() []types.BudgetGroup
-	SetGroups(groups []types.BudgetGroup) error
-	OverrunPolicy() types.OverrunPolicyConfig
-	SetOverrunPolicy(policy types.OverrunPolicyConfig) error
-	AlertRules() []types.AlertRule
-	SetAlertRules(rules []types.AlertRule) error
-	MemberQuotaPools() map[string]types.MemberQuotaPool
-	SetMemberQuotaPools(pools map[string]types.MemberQuotaPool) error
+	Tree(ctx context.Context) ([]types.BudgetNode, error)
+	SetTree(ctx context.Context, tree []types.BudgetNode) error
+	Groups(ctx context.Context) ([]types.BudgetGroup, error)
+	SetGroups(ctx context.Context, groups []types.BudgetGroup) error
+	OverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error)
+	SetOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) error
+	AlertRules(ctx context.Context) ([]types.AlertRule, error)
+	SetAlertRules(ctx context.Context, rules []types.AlertRule) error
+	MemberQuotaPools(ctx context.Context) (map[string]types.MemberQuotaPool, error)
+	SetMemberQuotaPools(ctx context.Context, pools map[string]types.MemberQuotaPool) error
 }
 
 type KeysRepository interface {
-	ProviderKeys() []types.ProviderKey
-	SetProviderKeys(keys []types.ProviderKey) error
-	PlatformKeys() []types.PlatformKey
-	SetPlatformKeys(keys []types.PlatformKey) error
-	Approvals() []types.KeyApproval
-	SetApprovals(approvals []types.KeyApproval) error
+	ProviderKeys(ctx context.Context) ([]types.ProviderKey, error)
+	SetProviderKeys(ctx context.Context, keys []types.ProviderKey) error
+	PlatformKeys(ctx context.Context) ([]types.PlatformKey, error)
+	SetPlatformKeys(ctx context.Context, keys []types.PlatformKey) error
+	Approvals(ctx context.Context) ([]types.KeyApproval, error)
+	SetApprovals(ctx context.Context, approvals []types.KeyApproval) error
 }
 
 type ModelsRepository interface {
-	Models() []types.ModelInfo
-	SetModels(models []types.ModelInfo) error
-	RoutingRules() []types.RoutingRule
-	SetRoutingRules(rules []types.RoutingRule) error
+	Models(ctx context.Context) ([]types.ModelInfo, error)
+	SetModels(ctx context.Context, models []types.ModelInfo) error
+	RoutingRules(ctx context.Context) ([]types.RoutingRule, error)
+	SetRoutingRules(ctx context.Context, rules []types.RoutingRule) error
 }
 
 type AuditRepository interface {
-	Settings() types.AuditSettings
-	SetSettings(settings types.AuditSettings) error
-	OperationLogs() []types.OperationLog
-	CallLogs() []types.CallLog
+	Settings(ctx context.Context) (types.AuditSettings, error)
+	SetSettings(ctx context.Context, settings types.AuditSettings) error
+	OperationLogs(ctx context.Context) ([]types.OperationLog, error)
+	AppendOperationLog(ctx context.Context, log types.OperationLog) error
+	CallLogs(ctx context.Context) ([]types.CallLog, error)
 }
 
 type UsageRepository interface {

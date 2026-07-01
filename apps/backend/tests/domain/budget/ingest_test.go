@@ -1,7 +1,6 @@
 package budget_test
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -16,17 +15,26 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	ctx := testutil.Ctx()
 
-	keys := st.Keys().PlatformKeys()
+	keys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for i := range keys {
 		if keys[i].ID == seed.IDPlatformKey1 {
 			keys[i].Used = 0
-			st.Keys().SetPlatformKeys(keys)
+			if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
+				t.Fatal(err)
+			}
 			break
 		}
 	}
 
-	tree := st.Budget().Tree()
+	tree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var leaf *types.BudgetNode
 	var walk func([]types.BudgetNode)
 	walk = func(nodes []types.BudgetNode) {
@@ -48,26 +56,32 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	payload := newapi.WebhookLogPayload{
 		ID: 1001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
 	}
-	if err := ingest.Ingest(context.Background(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
 		t.Fatal(err)
 	}
-	if err := ingest.Ingest(context.Background(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
 		t.Fatal(err)
 	}
 
-	exists, err := st.Relay().HasIngestedLogID(1001)
+	exists, err := st.Relay().HasIngestedLogID(ctx, 1001)
 	if err != nil || !exists {
 		t.Fatalf("expected ingested log id, exists=%v err=%v", exists, err)
 	}
 
-	keys = st.Keys().PlatformKeys()
+	keys, err = st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, key := range keys {
 		if key.ID == seed.IDPlatformKey1 && key.Used <= 0 {
 			t.Fatalf("expected key used > 0, got %v", key.Used)
 		}
 	}
 
-	tree = st.Budget().Tree()
+	tree, err = st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	walk = func(nodes []types.BudgetNode) {
 		for i := range nodes {
 			if nodes[i].ID == seed.IDDept3 {
@@ -90,6 +104,7 @@ func TestIngestFromOutbox(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	ctx := testutil.Ctx()
 
 	raw, err := json.Marshal(newapi.WebhookLogPayload{
 		ID: 2002, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
@@ -97,10 +112,10 @@ func TestIngestFromOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ingest.IngestFromOutbox(context.Background(), raw); err != nil {
+	if err := ingest.IngestFromOutbox(testutil.Ctx(), raw); err != nil {
 		t.Fatal(err)
 	}
-	ingested, err := st.Relay().HasIngestedLogID(2002)
+	ingested, err := st.Relay().HasIngestedLogID(ctx, 2002)
 	if err != nil || !ingested {
 		t.Fatalf("expected log 2002 ingested via outbox, err=%v ingested=%v", err, ingested)
 	}
@@ -114,13 +129,13 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 	payload := newapi.WebhookLogPayload{
 		ID: 4001, TokenID: 99, Quota: 100000, Model: "gpt-4o", CreatedAt: 1717200000,
 	}
-	if err := ingest.Ingest(context.Background(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
 		t.Fatal(err)
 	}
 
 	testutil.AssertUsageBucketCount(t, st, 1)
 
-	if err := ingest.Ingest(context.Background(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
 		t.Fatal(err)
 	}
 	testutil.AssertUsageBucketCount(t, st, 1)
@@ -129,12 +144,13 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 func TestEnqueueFailed(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
+	ctx := testutil.Ctx()
 
 	payload := newapi.WebhookLogPayload{ID: 3003, TokenID: 1, Quota: 100, Model: "gpt-4o"}
-	if err := ingest.EnqueueFailed(payload, errors.New("simulated failure")); err != nil {
+	if err := ingest.EnqueueFailed(ctx, payload, errors.New("simulated failure")); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := st.Relay().ClaimPendingWebhookOutbox(10)
+	entries, err := st.Relay().ClaimPendingWebhookOutbox(ctx, 10)
 	if err != nil {
 		t.Fatal(err)
 	}

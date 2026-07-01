@@ -66,7 +66,10 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 	truncated := false
 	totalLogs := 0
 	aggregated := make(map[seriesAggKey]types.UsageSeriesPoint)
-	models := a.store.Models().Models()
+	models, err := a.store.Models().Models(ctx)
+	if err != nil {
+		return types.UsageSeriesResponse{}, fmt.Errorf("load models: %w", err)
+	}
 	loc, err := common.LoadLocation(q.Timezone)
 	if err != nil {
 		return types.UsageSeriesResponse{}, err
@@ -104,7 +107,7 @@ func (a *LogAggregator) Series(ctx context.Context, q types.UsageSeriesQuery) (t
 			if createdAt.Before(q.Start) || !createdAt.Before(q.End) {
 				continue
 			}
-			mapping, err := a.store.Relay().GetMappingByNewAPITokenID(entry.TokenID)
+			mapping, err := a.store.Relay().GetMappingByNewAPITokenID(ctx, entry.TokenID)
 			if err != nil {
 				return types.UsageSeriesResponse{}, fmt.Errorf("lookup relay mapping: %w", err)
 			}

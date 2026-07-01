@@ -29,7 +29,11 @@ func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams,
 	if err != nil {
 		return types.CostSummary{}, err
 	}
-	memberCount := float64(len(s.store.Org().Members()))
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.CostSummary{}, err
+	}
+	memberCount := float64(len(members))
 	avgCostPerRequest := safeDiv(currentTotals.CostCNY, float64(currentTotals.CallCount))
 	prevAvgCostPerRequest := safeDiv(prevTotals.CostCNY, float64(prevTotals.CallCount))
 	avgCostPerMember := safeDiv(currentTotals.CostCNY, memberCount)
@@ -56,7 +60,10 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	if err != nil {
 		return nil, err
 	}
-	departments := s.store.Org().Departments()
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return nil, err
+	}
 	childIDs := storeChildDepartmentIDs(departments, parentID)
 	if len(childIDs) == 0 {
 		return []types.DepartmentCost{}, nil
@@ -94,7 +101,11 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 }
 
 func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error) {
-	if !domainusage.IsDepartmentAccessible(s.store.Org().Departments(), scope, deptID) {
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !domainusage.IsDepartmentAccessible(departments, scope, deptID) {
 		return nil, domain.Forbidden("Department not accessible")
 	}
 	rng, err := s.resolveRange(params)
@@ -112,7 +123,10 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	if err != nil {
 		return nil, err
 	}
-	members := s.store.Org().Members()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return nil, err
+	}
 	result := make([]types.DepartmentCostMember, 0, len(rows))
 	for _, row := range rows {
 		name := row.MemberID
@@ -171,8 +185,14 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	if err != nil {
 		return nil, err
 	}
-	members := s.store.Org().Members()
-	departments := s.store.Org().Departments()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return nil, err
+	}
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return nil, err
+	}
 	result := make([]types.TopConsumer, 0, len(rows))
 	for _, row := range rows {
 		name := row.MemberID

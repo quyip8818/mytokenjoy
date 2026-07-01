@@ -10,13 +10,6 @@ func CostCNYFromLog(quota int64, modelName string, models []types.ModelInfo) flo
 	return newapi.CostCNYFromQuota(quota, price)
 }
 
-func ResolveLogModel(modelName string) string {
-	if modelName != "" {
-		return modelName
-	}
-	return ""
-}
-
 func ResolveWebhookModel(payload newapi.WebhookLogPayload) string {
 	if payload.Model != "" {
 		return payload.Model

@@ -1,10 +1,14 @@
 package handler_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 type getContractCase struct {
@@ -80,5 +84,56 @@ func TestSessionUnauthorizedWithoutCookie(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+}
+
+func saasContractRouter(t *testing.T) (http.Handler, string, string) {
+	t.Helper()
+	mock := testutil.StartNewAPIMock(t)
+	app := newTestApp(t, func(cfg *config.Config) {
+		testutil.ApplySaaSConfig(cfg)
+		mock.ApplyToConfig(cfg)
+	})
+	router := app.Router
+	platformCookie := testutil.LoginPlatform(t, router)
+	provisioned := testutil.ProvisionCompanyHTTP(t, router, platformCookie,
+		"contract-co", "Contract Co", "contract@example.com", "Contract Admin", "securepass123")
+	return router, platformCookie, provisioned.MemberCookie
+}
+
+func TestSaaSContractEndpoints(t *testing.T) {
+	router, platformCookie, memberCookie := saasContractRouter(t)
+
+	cases := []struct {
+		name       string
+		method     string
+		path       string
+		cookie     string
+		wantStatus int
+	}{
+		{name: "platform companies", method: http.MethodGet, path: "/api/platform/companies", cookie: platformCookie, wantStatus: http.StatusOK},
+		{name: "billing wallet", method: http.MethodGet, path: "/api/billing/wallet", cookie: memberCookie, wantStatus: http.StatusOK},
+		{name: "platform unauthorized", method: http.MethodGet, path: "/api/platform/companies", cookie: "", wantStatus: http.StatusUnauthorized},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			if tc.cookie != "" {
+				req.Header.Set("Cookie", tc.cookie)
+			}
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != tc.wantStatus {
+				t.Fatalf("expected %d, got %d body=%s", tc.wantStatus, rec.Code, rec.Body.String())
+			}
+		})
+	}
+
+	body := []byte(`{"token":"invalid","name":"X","password":"securepass123"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("accept-invite invalid token: expected 404, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }

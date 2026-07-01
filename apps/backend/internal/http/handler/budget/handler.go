@@ -27,7 +27,8 @@ func NewHandler(cfg config.Config, service domainbudget.Service, sessionSvc sess
 }
 
 func (h *Handler) Tree(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.GetTree())
+	tree, err := h.service.GetTree(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, tree, err)
 }
 
 func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +45,7 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberQuotas(w http.ResponseWriter, r *http.Request) {
-	quotas, err := h.service.ListMemberQuotas(chi.URLParam(r, "deptId"))
+	quotas, err := h.service.ListMemberQuotas(r.Context(), chi.URLParam(r, "deptId"))
 	httputil.WriteJSON(w, http.StatusOK, quotas, err)
 }
 
@@ -59,7 +60,8 @@ func (h *Handler) UpdateMemberQuota(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GroupsList(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListGroups())
+	groups, err := h.service.ListGroups(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, groups, err)
 }
 
 func (h *Handler) GroupCreate(w http.ResponseWriter, r *http.Request) {
@@ -83,12 +85,13 @@ func (h *Handler) GroupUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GroupDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteGroup(chi.URLParam(r, "id"))
+	err := h.service.DeleteGroup(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) OverrunPolicyGet(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.GetOverrunPolicy())
+	policy, err := h.service.GetOverrunPolicy(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, policy, err)
 }
 
 func (h *Handler) OverrunPolicyUpdate(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +105,8 @@ func (h *Handler) OverrunPolicyUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AlertsList(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListAlerts())
+	rules, err := h.service.ListAlerts(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, rules, err)
 }
 
 func (h *Handler) AlertCreate(w http.ResponseWriter, r *http.Request) {
@@ -121,12 +125,12 @@ func (h *Handler) AlertUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	rule, err := h.service.UpdateAlert(chi.URLParam(r, "id"), body)
+	rule, err := h.service.UpdateAlert(r.Context(), chi.URLParam(r, "id"), body)
 	httputil.WriteJSON(w, http.StatusOK, rule, err)
 }
 
 func (h *Handler) AlertDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteAlert(chi.URLParam(r, "id"))
+	err := h.service.DeleteAlert(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 

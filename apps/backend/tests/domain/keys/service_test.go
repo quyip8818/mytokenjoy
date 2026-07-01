@@ -1,7 +1,6 @@
 package keys_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -14,7 +13,10 @@ import (
 
 func TestApprovalQuotaCheckInsufficient(t *testing.T) {
 	svc, _ := newKeysService(t)
-	check := svc.ApprovalQuotaCheck(seed.IDApproval1)
+	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), seed.IDApproval1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if check.Sufficient {
 		t.Fatal("expected apv-1 insufficient (dept-4 has no reserved pool)")
 	}
@@ -25,14 +27,17 @@ func TestApprovalQuotaCheckInsufficient(t *testing.T) {
 
 func TestApprovalQuotaCheckSufficient(t *testing.T) {
 	svc, st := newKeysService(t)
-	created, err := svc.CreateApproval(context.Background(), types.CreateApprovalInput{
+	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "test", RequestedQuota: 1000,
 		RequestedModels: []string{"gpt-4o"}, MemberID: seed.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	check := svc.ApprovalQuotaCheck(created.ID)
+	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !check.Sufficient {
 		t.Fatalf("expected sufficient, reserved=%v requested=%v", check.ReservedPool, check.Requested)
 	}
@@ -41,15 +46,23 @@ func TestApprovalQuotaCheckSufficient(t *testing.T) {
 
 func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 	svc, st := newKeysService(t)
-	before := len(st.Keys().PlatformKeys())
-	if err := svc.ApproveApproval(context.Background(), seed.IDApproval1, seed.IDMemberAdmin); err != nil {
+	ctx := testutil.Ctx()
+	keysBefore, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(keysBefore)
+	if err := svc.ApproveApproval(testutil.Ctx(), seed.IDApproval1, seed.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
 	approval := findApproval(st, seed.IDApproval1)
 	if approval == nil || approval.Status != "approved" {
 		t.Fatalf("expected apv-1 approved, got %+v", approval)
 	}
-	after := st.Keys().PlatformKeys()
+	after, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(after) != before+1 {
 		t.Fatalf("expected one new platform key, before=%d after=%d", before, len(after))
 	}
@@ -57,18 +70,26 @@ func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 
 func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	svc, st := newKeysService(t)
-	created, err := svc.CreateApproval(context.Background(), types.CreateApprovalInput{
+	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "need more", RequestedQuota: 1000,
 		RequestedModels: []string{"gpt-4o"}, MemberID: seed.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := st.Budget().MemberQuotaPools()[seed.IDMember1].PersonalQuota
-	if err := svc.ApproveApproval(context.Background(), created.ID, seed.IDMemberAdmin); err != nil {
+	poolBefore, err := st.Budget().MemberQuotaPools(testutil.Ctx())
+	if err != nil {
 		t.Fatal(err)
 	}
-	after := st.Budget().MemberQuotaPools()[seed.IDMember1].PersonalQuota
+	before := poolBefore[seed.IDMember1].PersonalQuota
+	if err := svc.ApproveApproval(testutil.Ctx(), created.ID, seed.IDMemberAdmin); err != nil {
+		t.Fatal(err)
+	}
+	poolAfter, err := st.Budget().MemberQuotaPools(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := poolAfter[seed.IDMember1].PersonalQuota
 	if after != before+1000 {
 		t.Fatalf("expected personal quota +1000, before=%v after=%v", before, after)
 	}
@@ -76,21 +97,21 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 
 func TestApproveInsufficientReserved(t *testing.T) {
 	svc, _ := newKeysService(t)
-	created, err := svc.CreateApproval(context.Background(), types.CreateApprovalInput{
+	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "too much", RequestedQuota: 9999,
 		RequestedModels: []string{"gpt-4o"}, MemberID: seed.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = svc.ApproveApproval(context.Background(), created.ID, seed.IDMemberAdmin)
+	err = svc.ApproveApproval(testutil.Ctx(), created.ID, seed.IDMemberAdmin)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
 func TestRejectApproval(t *testing.T) {
 	svc, st := newKeysService(t)
 	reason := "not needed"
-	if err := svc.RejectApproval(context.Background(), seed.IDApproval2, seed.IDMemberAdmin, &reason); err != nil {
+	if err := svc.RejectApproval(testutil.Ctx(), seed.IDApproval2, seed.IDMemberAdmin, &reason); err != nil {
 		t.Fatal(err)
 	}
 	approval := findApproval(st, seed.IDApproval2)
@@ -102,7 +123,7 @@ func TestRejectApproval(t *testing.T) {
 func TestCreatePlatformKeySuccess(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := seed.IDMember1
-	created, err := svc.CreatePlatformKey(context.Background(), types.CreatePlatformKeyInput{
+	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
 		ModelWhitelist: []string{"gpt-4o"},
 	})
@@ -117,7 +138,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := seed.IDMember1
-	_, err := svc.CreatePlatformKey(context.Background(), types.CreatePlatformKeyInput{
+	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "too-big", MemberID: &memberID, Quota: 99999,
 		ModelWhitelist: []string{"gpt-4o"},
 	})
@@ -127,7 +148,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := seed.IDMember1
-	_, err := svc.CreatePlatformKey(context.Background(), types.CreatePlatformKeyInput{
+	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "bad-models", MemberID: &memberID, Quota: 1000,
 		ModelWhitelist: []string{"nonexistent-model"},
 	})
@@ -136,7 +157,7 @@ func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 
 func TestCreateApprovalInvalidModels(t *testing.T) {
 	svc, _ := newKeysService(t)
-	_, err := svc.CreateApproval(context.Background(), types.CreateApprovalInput{
+	_, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "bad models", RequestedQuota: 1000,
 		RequestedModels: []string{"nonexistent-model"}, MemberID: seed.IDMember1,
 	})
@@ -147,7 +168,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 	svc, _ := newKeysService(t)
 	groupID := seed.IDBudgetGroup1
 	memberID := seed.IDMember1
-	_, err := svc.CreatePlatformKey(context.Background(), types.CreatePlatformKeyInput{
+	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Quota: 99999,
 		ModelWhitelist: []string{"gpt-4o"},
 	})
@@ -157,7 +178,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 func TestUpdatePlatformKeyQuota(t *testing.T) {
 	svc, _ := newKeysService(t)
 	quota := 99999.0
-	_, err := svc.UpdatePlatformKey(context.Background(), seed.IDPlatformKey1, types.UpdatePlatformKeyInput{
+	_, err := svc.UpdatePlatformKey(testutil.Ctx(), seed.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Quota: &quota,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -166,22 +187,22 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	svc, st := newKeysService(t)
 	memberID := seed.IDMember1
-	created, err := svc.CreatePlatformKey(context.Background(), types.CreatePlatformKeyInput{
+	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", MemberID: &memberID, Quota: 500,
 		ModelWhitelist: []string{"gpt-4o"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	beforeSummary, err := svc.QuotaSummary(memberID)
+	beforeSummary, err := svc.QuotaSummary(testutil.Ctx(), memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	before := beforeSummary.Remaining
-	if err := svc.DeletePlatformKey(created.ID); err != nil {
+	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID); err != nil {
 		t.Fatal(err)
 	}
-	afterSummary, err := svc.QuotaSummary(memberID)
+	afterSummary, err := svc.QuotaSummary(testutil.Ctx(), memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,10 +215,15 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 
 func TestRevokePlatformKey(t *testing.T) {
 	svc, st := newKeysService(t)
-	if err := svc.RevokePlatformKey(context.Background(), seed.IDPlatformKey1); err != nil {
+	ctx := testutil.Ctx()
+	if err := svc.RevokePlatformKey(testutil.Ctx(), seed.IDPlatformKey1); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range st.Keys().PlatformKeys() {
+	keys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range keys {
 		if key.ID == seed.IDPlatformKey1 && key.Status != "revoked" {
 			t.Fatalf("expected revoked status, got %s", key.Status)
 		}

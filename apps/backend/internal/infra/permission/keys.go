@@ -1,27 +1,29 @@
 package permission
 
 const (
-	OrgRead        = "org:read"
-	OrgDatasource  = "org:datasource"
-	OrgStructure   = "org:structure"
-	OrgRoles       = "org:roles"
-	OrgMembers     = "org:members"
-	BudgetRead     = "budget:read"
-	BudgetAllocate = "budget:allocate"
-	BudgetApprove  = "budget:approve"
-	BudgetPolicy   = "budget:policy"
-	ModelManage    = "model:manage"
-	ModelRead      = "model:read"
-	ModelWhitelist = "model:whitelist"
-	KeysAdmin      = "keys:admin"
-	KeysRead       = "keys:read"
-	KeysProvider   = "keys:provider"
-	SelfKeys       = "self:keys"
-	SelfApproval   = "self:approval"
-	DashboardCost  = "dashboard:cost"
-	DashboardUsage = "dashboard:usage"
-	AuditRead      = "audit:read"
-	APICall        = "api:call"
+	OrgRead         = "org:read"
+	OrgDatasource   = "org:datasource"
+	OrgStructure    = "org:structure"
+	OrgRoles        = "org:roles"
+	OrgMembers      = "org:members"
+	BudgetRead      = "budget:read"
+	BudgetAllocate  = "budget:allocate"
+	BudgetApprove   = "budget:approve"
+	BudgetPolicy    = "budget:policy"
+	ModelManage     = "model:manage"
+	ModelRead       = "model:read"
+	ModelWhitelist  = "model:whitelist"
+	KeysAdmin       = "keys:admin"
+	KeysRead        = "keys:read"
+	KeysProvider    = "keys:provider"
+	SelfKeys        = "self:keys"
+	SelfApproval    = "self:approval"
+	DashboardCost   = "dashboard:cost"
+	DashboardUsage  = "dashboard:usage"
+	AuditRead       = "audit:read"
+	APICall         = "api:call"
+	BillingRead     = "billing:read"
+	BillingRecharge = "billing:recharge"
 )
 
 var AllPermissions = []string{
@@ -46,6 +48,8 @@ var AllPermissions = []string{
 	DashboardUsage,
 	AuditRead,
 	APICall,
+	BillingRead,
+	BillingRecharge,
 }
 
 var PermissionIDMap = map[string]string{
@@ -70,4 +74,6 @@ var PermissionIDMap = map[string]string{
 	"p-19": OrgRead,
 	"p-20": KeysRead,
 	"p-21": ModelRead,
+	"p-22": BillingRead,
+	"p-23": BillingRecharge,
 }

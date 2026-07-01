@@ -17,19 +17,20 @@ type usageRepo struct {
 }
 
 func (r *usageRepo) UpsertBucket(ctx context.Context, row types.UsageBucketRow) error {
+	companyID := store.CompanyID(ctx)
 	memberID := row.MemberID
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO usage_buckets (
-			bucket_start, department_id, member_id, model,
+			company_id, bucket_start, department_id, member_id, model,
 			cost_cny, call_count, input_tokens, output_tokens, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-		ON CONFLICT (bucket_start, department_id, member_id, model) DO UPDATE SET
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+		ON CONFLICT (company_id, bucket_start, department_id, member_id, model) DO UPDATE SET
 			cost_cny = usage_buckets.cost_cny + EXCLUDED.cost_cny,
 			call_count = usage_buckets.call_count + EXCLUDED.call_count,
 			input_tokens = usage_buckets.input_tokens + EXCLUDED.input_tokens,
 			output_tokens = usage_buckets.output_tokens + EXCLUDED.output_tokens,
 			updated_at = NOW()
-	`, row.BucketStart.UTC(), row.DepartmentID, memberID, row.Model,
+	`, companyID, row.BucketStart.UTC(), row.DepartmentID, memberID, row.Model,
 		row.CostCNY, row.CallCount, row.InputTokens, row.OutputTokens)
 	return err
 }
@@ -96,7 +97,8 @@ func (r *usageRepo) fetchFilteredRows(
 	departmentID, memberID string,
 	departmentIDs, scopeDeptIDs []string,
 ) ([]types.UsageBucketRow, error) {
-	where, args := buildUsageWhere(start, end, departmentID, memberID, departmentIDs, scopeDeptIDs)
+	companyID := store.CompanyID(ctx)
+	where, args := buildUsageWhere(companyID, start, end, departmentID, memberID, departmentIDs, scopeDeptIDs)
 	query := fmt.Sprintf(`
 		SELECT bucket_start, department_id, member_id, model,
 			cost_cny, call_count, input_tokens, output_tokens
@@ -125,16 +127,18 @@ func (r *usageRepo) fetchFilteredRows(
 }
 
 func buildUsageWhere(
+	companyID int64,
 	start, end time.Time,
 	departmentID, memberID string,
 	departmentIDs, scopeDeptIDs []string,
 ) (string, []any) {
-	args := []any{start.UTC(), end.UTC()}
+	args := []any{companyID, start.UTC(), end.UTC()}
 	clauses := []string{
-		"bucket_start >= $1",
-		"bucket_start < $2",
+		"company_id = $1",
+		"bucket_start >= $2",
+		"bucket_start < $3",
 	}
-	idx := 3
+	idx := 4
 	if departmentID != "" {
 		clauses = append(clauses, fmt.Sprintf("department_id = $%d", idx))
 		args = append(args, departmentID)

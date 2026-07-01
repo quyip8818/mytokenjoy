@@ -12,6 +12,8 @@ type txStore struct {
 	relay        store.RelayRepository
 	usage        store.UsageRepository
 	notification store.NotificationRepository
+	company      store.CompanyRepository
+	invite       store.InviteRepository
 	parent       *Store
 }
 
@@ -41,6 +43,22 @@ func (s *txStore) Notification() store.NotificationRepository {
 	return s.notification
 }
 
+func (s *txStore) Company() store.CompanyRepository {
+	return s.company
+}
+
+func (s *txStore) Invite() store.InviteRepository {
+	return s.invite
+}
+
+func (s *txStore) Platform() store.PlatformRepository {
+	return s.parent.Platform()
+}
+
+func (s *txStore) Billing() store.BillingRepository {
+	return s.parent.Billing()
+}
+
 func (s *txStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	return fn(s)
 }
@@ -57,10 +75,12 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	defer tx.Rollback(ctx)
 
 	txView := &txStore{
-		domain:       newDomainRepoSet(ctx, tx),
-		relay:        newRelayRepo(ctx, tx),
+		domain:       newDomainRepoSet(tx),
+		relay:        newRelayRepo(tx),
 		usage:        &usageRepo{db: tx},
 		notification: &notificationRepo{db: tx},
+		company:      newCompanyRepo(tx),
+		invite:       newInviteRepo(tx),
 		parent:       s,
 	}
 	if err := fn(txView); err != nil {

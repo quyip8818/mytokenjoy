@@ -46,6 +46,7 @@ func New(cfg config.Config, logger *slog.Logger, opts ...Option) (*App, error) {
 }
 
 func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Option) (*App, error) {
+	ctx := context.Background()
 	var o options
 	for _, opt := range opts {
 		opt(&o)
@@ -57,6 +58,9 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}
 
 	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger))
+	if err := registry.Platform.BootstrapIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 	runner := registry.WorkerRunner(logger)
 
 	router := httpapi.NewRouter(registry.HTTPDeps(logger))

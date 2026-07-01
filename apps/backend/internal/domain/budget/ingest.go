@@ -9,6 +9,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -22,7 +23,7 @@ import (
 type Ingestor interface {
 	Ingest(ctx context.Context, payload newapi.WebhookLogPayload) error
 	IngestFromOutbox(ctx context.Context, raw json.RawMessage) error
-	EnqueueFailed(payload newapi.WebhookLogPayload, ingestErr error) error
+	EnqueueFailed(ctx context.Context, payload newapi.WebhookLogPayload, ingestErr error) error
 }
 
 type IngestService struct {
@@ -44,7 +45,7 @@ func NewIngestService(
 }
 
 func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPayload) error {
-	exists, err := s.store.Relay().HasIngestedLogID(payload.ID)
+	exists, err := s.store.Relay().HasIngestedLogID(ctx, payload.ID)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		return nil
 	}
 
-	mapping, err := s.store.Relay().GetMappingByNewAPITokenID(payload.TokenID)
+	mapping, err := s.store.Relay().FindMappingByNewAPITokenID(ctx, payload.TokenID)
 	if err != nil {
 		return err
 	}
@@ -60,8 +61,15 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		s.logger.Warn("ingest rejected: mapping missing", "token_id", payload.TokenID, "log_id", payload.ID)
 		return domain.NotFound(fmt.Sprintf("mapping not found for token %d", payload.TokenID))
 	}
+	ctx, err = s.companyContextFromMapping(ctx, mapping)
+	if err != nil {
+		return err
+	}
 
-	models := s.store.Models().Models()
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return err
+	}
 	modelName := domainusage.ResolveWebhookModel(payload)
 	costCNY := domainusage.CostCNYFromLog(payload.Quota, modelName, models)
 
@@ -71,7 +79,10 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 	}
 
 	if err := s.store.WithTx(ctx, func(st store.Store) error {
-		platformKeys := st.Keys().PlatformKeys()
+		platformKeys, err := st.Keys().PlatformKeys(ctx)
+		if err != nil {
+			return err
+		}
 		keyIdx := -1
 		for i := range platformKeys {
 			if platformKeys[i].ID == mapping.PlatformKeyID {
@@ -83,32 +94,41 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 			return domain.NotFound(fmt.Sprintf("platform key not found: %s", mapping.PlatformKeyID))
 		}
 		platformKeys[keyIdx].Used += costCNY
-		if err := st.Keys().SetPlatformKeys(platformKeys); err != nil {
+		if err := st.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 			return err
 		}
 
-		tree := st.Budget().Tree()
-		members := st.Org().Members()
+		tree, err := st.Budget().Tree(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 		if memberID != nil {
 			if member, ok := pkgorg.FindMemberByID(members, *memberID); ok {
 				if err := rollupDepartmentConsumed(tree, member.DepartmentID, costCNY); err != nil {
 					return err
 				}
-				if err := st.Budget().SetTree(tree); err != nil {
+				if err := st.Budget().SetTree(ctx, tree); err != nil {
 					return err
 				}
 			}
 		}
 
 		if mapping.BudgetGroupID != nil {
-			groups := st.Budget().Groups()
+			groups, err := st.Budget().Groups(ctx)
+			if err != nil {
+				return err
+			}
 			for i := range groups {
 				if groups[i].ID == *mapping.BudgetGroupID {
 					groups[i].Consumed += costCNY
-					if err := st.Budget().SetGroups(groups); err != nil {
+					if err := st.Budget().SetGroups(ctx, groups); err != nil {
 						return err
 					}
-					if err := st.Relay().EnqueueRebalance(store.RebalanceAxisBudgetGroup, groups[i].ID); err != nil {
+					if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisBudgetGroup, groups[i].ID); err != nil {
 						return err
 					}
 					break
@@ -117,16 +137,22 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		}
 
 		if memberID != nil {
-			if err := st.Relay().EnqueueRebalance(store.RebalanceAxisMember, *memberID); err != nil {
+			if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, *memberID); err != nil {
 				return err
 			}
 		}
-		if err := st.Relay().EnqueueRebalance(store.RebalanceAxisDepartment, mapping.DepartmentID); err != nil {
+		if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisDepartment, mapping.DepartmentID); err != nil {
 			return err
 		}
 
-		tree = st.Budget().Tree()
-		members = st.Org().Members()
+		tree, err = st.Budget().Tree(ctx)
+		if err != nil {
+			return err
+		}
+		members, err = st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 		if err := s.evaluateOverrun(ctx, st, tree, members, memberID, mapping); err != nil {
 			return err
 		}
@@ -146,16 +172,16 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 			return err
 		}
 
-		if err := st.Relay().InsertIngestedLogID(payload.ID); err != nil {
+		if err := st.Relay().InsertIngestedLogID(ctx, payload.ID); err != nil {
 			return err
 		}
 		if payload.ID > 0 {
-			last, err := st.Relay().GetLastLogID()
+			last, err := st.Relay().GetLastLogID(ctx)
 			if err != nil {
 				return err
 			}
 			if payload.ID > last {
-				if err := st.Relay().SetLastLogID(payload.ID); err != nil {
+				if err := st.Relay().SetLastLogID(ctx, payload.ID); err != nil {
 					return err
 				}
 			}
@@ -222,8 +248,14 @@ func (s *IngestService) evaluateOverrun(
 	if s.lifecycle == nil || !s.lifecycle.Enabled() {
 		return nil
 	}
-	platformKeys := st.Keys().PlatformKeys()
-	pools := st.Budget().MemberQuotaPools()
+	platformKeys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
+	pools, err := st.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return err
+	}
 
 	if memberID != nil && mapping.BudgetGroupID == nil {
 		used := pkgbudget.GetUsedKeyQuota(platformKeys, *memberID)
@@ -247,7 +279,10 @@ func (s *IngestService) evaluateOverrun(
 	}
 
 	if mapping.BudgetGroupID != nil {
-		groups := st.Budget().Groups()
+		groups, err := st.Budget().Groups(ctx)
+		if err != nil {
+			return err
+		}
 		for _, group := range groups {
 			if group.ID == *mapping.BudgetGroupID && group.Consumed >= group.Budget {
 				s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, group.ID, map[string]any{
@@ -288,7 +323,7 @@ func (s *IngestService) disableMemberKeys(ctx context.Context, platformKeys []ty
 }
 
 func (s *IngestService) disableDepartmentKeys(ctx context.Context, departmentID string) error {
-	mappings, err := s.store.Relay().ListMappingsByDepartmentID(departmentID)
+	mappings, err := s.store.Relay().ListMappingsByDepartmentID(ctx, departmentID)
 	if err != nil {
 		return err
 	}
@@ -301,7 +336,7 @@ func (s *IngestService) disableDepartmentKeys(ctx context.Context, departmentID 
 }
 
 func (s *IngestService) disableBudgetGroupKeys(ctx context.Context, budgetGroupID string) error {
-	mappings, err := s.store.Relay().ListMappingsByBudgetGroupID(budgetGroupID)
+	mappings, err := s.store.Relay().ListMappingsByBudgetGroupID(ctx, budgetGroupID)
 	if err != nil {
 		return err
 	}
@@ -313,18 +348,34 @@ func (s *IngestService) disableBudgetGroupKeys(ctx context.Context, budgetGroupI
 	return nil
 }
 
-func (s *IngestService) EnqueueFailed(payload newapi.WebhookLogPayload, ingestErr error) error {
+func (s *IngestService) EnqueueFailed(ctx context.Context, payload newapi.WebhookLogPayload, ingestErr error) error {
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-	return s.store.Relay().EnqueueWebhookOutbox(store.WebhookOutboxEntry{
+	return s.store.Relay().EnqueueWebhookOutbox(ctx, store.WebhookOutboxEntry{
 		ID:        fmt.Sprintf("wh-%d", time.Now().UnixNano()),
 		Payload:   raw,
 		Status:    store.OutboxStatusPending,
 		NextRetry: time.Now(),
 		CreatedAt: time.Now(),
 	})
+}
+
+func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *store.RelayMapping) (context.Context, error) {
+	companyCtx := company.Context{CompanyID: mapping.CompanyID}
+	co, err := s.store.Company().GetByID(ctx, mapping.CompanyID)
+	if err != nil {
+		return nil, err
+	}
+	if co != nil {
+		companyCtx.Slug = co.Slug
+		companyCtx.Status = co.Status
+		if co.NewAPIWalletAccountID != nil {
+			companyCtx.NewAPIWalletAccountID = *co.NewAPIWalletAccountID
+		}
+	}
+	return company.WithContext(ctx, companyCtx), nil
 }
 
 var _ Ingestor = (*IngestService)(nil)

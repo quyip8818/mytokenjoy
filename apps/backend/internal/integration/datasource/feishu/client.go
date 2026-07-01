@@ -315,7 +315,7 @@ func (c *Client) ensureToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("%s", tokenResp.Msg)
 	}
 	if tokenResp.TenantAccessToken == "" {
-		return "", fmt.Errorf("empty tenant access token")
+		return "", fmt.Errorf("empty company access token")
 	}
 	c.accessToken = tokenResp.TenantAccessToken
 	ttl := tokenResp.Expire

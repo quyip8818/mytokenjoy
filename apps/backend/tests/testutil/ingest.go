@@ -15,7 +15,7 @@ import (
 func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *budget.IngestService {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
+	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	notifier := notification.NewService(cfg, st, logger)
 	return budget.NewIngestService(cfg, st, lifecycle, notifier, logger)
 }

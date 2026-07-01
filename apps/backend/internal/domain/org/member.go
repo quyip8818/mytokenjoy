@@ -14,10 +14,17 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) ListMembers(departmentID, keyword string, directOnly bool, page, pageSize int) types.PageResult[types.Member] {
-	items := s.store.Org().Members()
+func (s *service) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.PageResult[types.Member], error) {
+	items, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.PageResult[types.Member]{}, err
+	}
 	if departmentID != "" {
-		items = pkgorg.FilterMembersByDepartment(items, s.store.Org().Departments(), departmentID, directOnly)
+		departments, err := s.store.Org().Departments(ctx)
+		if err != nil {
+			return types.PageResult[types.Member]{}, err
+		}
+		items = pkgorg.FilterMembersByDepartment(items, departments, departmentID, directOnly)
 	}
 	if keyword != "" {
 		filtered := make([]types.Member, 0)
@@ -31,11 +38,14 @@ func (s *service) ListMembers(departmentID, keyword string, directOnly bool, pag
 	paged, total, safePage, safeSize := common.Paginate(items, page, pageSize)
 	return types.PageResult[types.Member]{
 		Items: paged, Total: total, Page: safePage, PageSize: safeSize,
-	}
+	}, nil
 }
 
-func (s *service) CreateMember(input types.Member) (types.Member, error) {
-	departments := s.store.Org().Departments()
+func (s *service) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.Member{}, err
+	}
 	dept := pkgorg.FindDepartment(departments, input.DepartmentID)
 	if dept == nil {
 		return types.Member{}, domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
@@ -53,26 +63,32 @@ func (s *service) CreateMember(input types.Member) (types.Member, error) {
 		Status: "active", Roles: []string{permission.RoleMember}, Source: "manual",
 	}
 
-	members := s.store.Org().Members()
-	members = append(members, member)
-	departments = RecalcDepartmentMemberCounts(departments, members)
-	if err := s.store.Org().SetMembers(members); err != nil {
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
 		return types.Member{}, err
 	}
-	if err := s.store.Org().SetDepartments(departments); err != nil {
+	members = append(members, member)
+	departments = RecalcDepartmentMemberCounts(departments, members)
+	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+		return types.Member{}, err
+	}
+	if err := s.store.Org().SetDepartments(ctx, departments); err != nil {
 		return types.Member{}, err
 	}
 	return member, nil
 }
 
-func (s *service) UpdateMember(id string, input types.Member) (types.Member, error) {
-	members := s.store.Org().Members()
+func (s *service) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.Member{}, err
+	}
 	for i := range members {
 		if members[i].ID == id {
 			updated := input
 			updated.ID = id
 			members[i] = updated
-			if err := s.store.Org().SetMembers(members); err != nil {
+			if err := s.store.Org().SetMembers(ctx, members); err != nil {
 				return types.Member{}, err
 			}
 			return updated, nil
@@ -87,8 +103,14 @@ func (s *service) DeleteMembers(ctx context.Context, ids []string) error {
 
 func (s *service) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		members := st.Org().Members()
-		keys := st.Keys().PlatformKeys()
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		keys, err := st.Keys().PlatformKeys(ctx)
+		if err != nil {
+			return err
+		}
 		for _, id := range ids {
 			for i := range members {
 				if members[i].ID == id {
@@ -103,10 +125,10 @@ func (s *service) UpdateMemberStatus(ctx context.Context, ids []string, status s
 				}
 			}
 		}
-		if err := st.Org().SetMembers(members); err != nil {
+		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		return st.Keys().SetPlatformKeys(keys)
+		return st.Keys().SetPlatformKeys(ctx, keys)
 	})
 }
 
@@ -116,7 +138,10 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		departments := st.Org().Departments()
+		departments, err := st.Org().Departments(ctx)
+		if err != nil {
+			return err
+		}
 		target := pkgorg.FindDepartment(departments, departmentID)
 		if target == nil {
 			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
@@ -127,7 +152,10 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 			deptName = *path
 		}
 
-		members := st.Org().Members()
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 		idSet := make(map[string]struct{}, len(ids))
 		for _, id := range ids {
 			idSet[id] = struct{}{}
@@ -140,23 +168,23 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 			members[i].DepartmentID = departmentID
 			members[i].DepartmentName = deptName
 
-			mappings, err := st.Relay().ListMappingsByMemberID(members[i].ID)
+			mappings, err := st.Relay().ListMappingsByMemberID(ctx, members[i].ID)
 			if err != nil {
 				return err
 			}
 			for _, mapping := range mappings {
 				mapping.DepartmentID = departmentID
-				if err := st.Relay().UpsertMapping(mapping); err != nil {
+				if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
 					return err
 				}
 			}
 		}
 
 		departments = RecalcDepartmentMemberCounts(departments, members)
-		if err := st.Org().SetMembers(members); err != nil {
+		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		return st.Org().SetDepartments(departments)
+		return st.Org().SetDepartments(ctx, departments)
 	})
 }
 
@@ -164,8 +192,11 @@ func (s *service) InviteMember() error {
 	return domain.NewDomainError(domain.StatusNotImplemented, "Invite member is not implemented")
 }
 
-func (s *service) BatchInvite(ids []string) types.BatchInviteResult {
-	members := s.store.Org().Members()
+func (s *service) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.BatchInviteResult{}, err
+	}
 	targets := make([]types.Member, 0)
 	if len(ids) > 0 {
 		idSet := make(map[string]struct{}, len(ids))
@@ -184,12 +215,19 @@ func (s *service) BatchInvite(ids []string) types.BatchInviteResult {
 			}
 		}
 	}
-	return types.BatchInviteResult{Sent: len(targets)}
+	return types.BatchInviteResult{Sent: len(targets)}, nil
 }
 
-func (s *service) BatchImport(rows []types.BatchImportRow) types.MemberBatchImportResult {
-	members := s.store.Org().Members()
-	flat := pkgorg.FlattenDepartmentTree(s.store.Org().Departments())
+func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.MemberBatchImportResult{}, err
+	}
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.MemberBatchImportResult{}, err
+	}
+	flat := pkgorg.FlattenDepartmentTree(departments)
 	failures := make([]types.MemberBatchImportFailure, 0)
 	imported := 0
 
@@ -216,11 +254,11 @@ func (s *service) BatchImport(rows []types.BatchImportRow) types.MemberBatchImpo
 		imported++
 	}
 
-	if err := s.store.Org().SetMembers(members); err != nil {
+	if err := s.store.Org().SetMembers(ctx, members); err != nil {
 		return types.MemberBatchImportResult{Imported: imported, Failures: append(failures, types.MemberBatchImportFailure{
 			Row: 0, Reason: "Failed to persist imported members",
-		})}
+		})}, nil
 	}
 
-	return types.MemberBatchImportResult{Imported: imported, Failures: failures}
+	return types.MemberBatchImportResult{Imported: imported, Failures: failures}, nil
 }

@@ -7,7 +7,8 @@ import (
 )
 
 func (h *Handler) DataSourceStatus(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.GetDataSourceStatus())
+	status, err := h.service.GetDataSourceStatus(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, status, err)
 }
 
 func (h *Handler) DataSourceTest(w http.ResponseWriter, r *http.Request) {

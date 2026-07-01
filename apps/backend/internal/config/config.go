@@ -35,6 +35,15 @@ type Config struct {
 
 	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"5"`
 	WorkerOrgSyncIntervalSec int `env:"WORKER_ORG_SYNC_INTERVAL_SEC" envDefault:"60"`
+
+	MultiCompany             bool   `env:"MULTI_COMPANY" envDefault:"false"`
+	DefaultCompanyID         int64  `env:"DEFAULT_COMPANY_ID" envDefault:"1"`
+	PlatformSharedRelayGroup string `env:"PLATFORM_SHARED_RELAY_GROUP" envDefault:"platform_shared"`
+	RelayGatewayEnabled      bool   `env:"RELAY_GATEWAY_ENABLED" envDefault:"false"`
+	CompanyWalletCacheTTLSec int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
+
+	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
+	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`
 }
 
 func Load() (Config, error) {

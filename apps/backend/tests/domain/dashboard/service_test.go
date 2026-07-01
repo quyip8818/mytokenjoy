@@ -1,7 +1,6 @@
 package dashboard_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 
 func TestCostSummaryFromBuckets(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 12.5, CallCount: 3})
 	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
@@ -35,7 +34,7 @@ func TestCostSummaryFromBuckets(t *testing.T) {
 
 func TestDailyCostsWeekGranularity(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 4})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 12, 9, 0, 0, 0, time.UTC),
@@ -54,7 +53,7 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 
 func TestUsageSeriesHourFromBuckets(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 3})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
@@ -77,10 +76,13 @@ func TestUsageSeriesHourFromBuckets(t *testing.T) {
 
 func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
-	tree := st.Budget().Tree()
+	ctx := testutil.Ctx()
+	tree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 999)
-	if err := st.Budget().SetTree(tree); err != nil {
+	if err := st.Budget().SetTree(ctx, tree); err != nil {
 		t.Fatal(err)
 	}
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 18.5, CallCount: 2})
@@ -104,7 +106,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 
 func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 5, 15, 8, 0, 0, 0, time.UTC),
 		CostCNY:     5,
@@ -124,7 +126,7 @@ func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 
 func TestDepartmentCostDrillDown(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 20, CallCount: 4})
 	depts, err := svc.DepartmentCosts(ctx, seed.IDDept2, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
@@ -151,7 +153,7 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 
 func TestUsageSeriesTimezoneShanghai(t *testing.T) {
 	svc, st := newDashboardSvc(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 9, 16, 0, 0, 0, time.UTC),
 		CostCNY:     3,

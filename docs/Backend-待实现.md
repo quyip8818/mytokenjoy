@@ -11,7 +11,7 @@
 | 层级     | 已完成                                                                | 主要缺口                               |
 | -------- | --------------------------------------------------------------------- | -------------------------------------- |
 | HTTP     | 契约 §5 全部管理面端点                                                | 无 LLM 代理（属 NewAPI）               |
-| 组织     | 飞书凭证/import/sync；部门 CRUD + provision 联动；成员 CRUD/转移/停用 | 邀请激活 defer                         |
+| 组织     | 飞书凭证/import/sync；部门 CRUD + provision 联动；成员 CRUD/转移/停用 | 企业内成员邀请                         |
 | 预算/Key | 树、额度、审批、白名单、ingest、超限 disable                          | 月初重置、80%/90% 预警通知             |
 | 看板     | `usage_buckets`、cost/usage API、`usage/series`（day/hour/minute）    | token 指标、租户时区 UI                |
 | 鉴权     | demo/prod profile；写操作 Session+permission                          | 生产 OIDC/JWT                          |
@@ -66,7 +66,7 @@
 
 ### US-04 — 邀请
 
-`InviteMember` / 激活链路 defer 至 Phase 5（需 `member_invites` 表 + 契约端点）。
+平台开户超管邀请：`company_invites` + `POST /api/auth/accept-invite`。企业内 `InviteMember` / `POST /org/members/invite` 待实现。
 
 ### US-05 — 鉴权
 
@@ -118,12 +118,12 @@ flowchart LR
     P05 --> P2 --> P4 --> P5
 ```
 
-| 阶段          | 目标          | 交付物                             |
-| ------------- | ------------- | ---------------------------------- |
-| **Phase 0.5** | 生产最小安全  | prod GET 读鉴权；sync trigger 保护 |
-| **Phase 2**   | 真实 API 调用 | NewAPI webhook + ingest 闭环       |
-| **Phase 4**   | 运营策略      | 预警通知；月初重置；通知渠道       |
-| **Phase 5**   | SaaS / 全平台 | 钉钉/企微；多企业（Renter）；成员邀请；公司钱包与 Gateway。API 见 [Frontend-API契约.md](./Frontend-API契约.md) §10、[Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) |
+| 阶段          | 目标          | 交付物                                                                                                                                                                                              |
+| ------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 0.5** | 生产最小安全  | prod GET 读鉴权；sync trigger 保护                                                                                                                                                                  |
+| **Phase 2**   | 真实 API 调用 | NewAPI webhook + ingest 闭环                                                                                                                                                                        |
+| **Phase 4**   | 运营策略      | 预警通知；月初重置；通知渠道                                                                                                                                                                        |
+| **Phase 5**   | SaaS / 全平台 | 钉钉/企微；企业内成员邀请；第三方支付回调；前端 `authApi`/`billingApi`/`platformApi`。见 [Frontend-API契约.md](./Frontend-API契约.md) §10、[Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) |
 
 US-01～03、US-13 主体已完成，不再列入排期表。
 

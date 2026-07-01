@@ -1,5 +1,3 @@
-//go:build testhook
-
 package app
 
 import (

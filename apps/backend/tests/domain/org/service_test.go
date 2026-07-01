@@ -23,7 +23,7 @@ func newTestOrgServiceWithStore(t *testing.T) (org.Service, store.Store) {
 
 func TestDeletePresetRoleReturns400(t *testing.T) {
 	svc := newTestOrgService(t)
-	err := svc.DeleteRole("role-1")
+	err := svc.DeleteRole(testutil.Ctx(), "role-1")
 	if err == nil {
 		t.Fatal("expected error deleting preset role")
 	}
@@ -31,7 +31,10 @@ func TestDeletePresetRoleReturns400(t *testing.T) {
 
 func TestListMembersPagination(t *testing.T) {
 	svc := newTestOrgService(t)
-	page := svc.ListMembers("", "", false, 1, 20)
+	page, err := svc.ListMembers(testutil.Ctx(), "", "", false, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(page.Items) != 20 {
 		t.Fatalf("expected 20 items, got %d", len(page.Items))
 	}
@@ -42,7 +45,7 @@ func TestListMembersPagination(t *testing.T) {
 
 func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 	svc := newTestOrgService(t)
-	err := svc.RemoveRoleMember("role-3", "m-1")
+	err := svc.RemoveRoleMember(testutil.Ctx(), "role-3", "m-1")
 	if err == nil {
 		t.Fatal("expected error removing base member role")
 	}
@@ -50,9 +53,12 @@ func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 
 func TestBatchImportUnknownDepartment(t *testing.T) {
 	svc := newTestOrgService(t)
-	result := svc.BatchImport([]types.BatchImportRow{
+	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "Test", Phone: "13800000000", Email: "t@example.com", DepartmentName: "不存在部门"},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result.Imported != 0 {
 		t.Fatalf("expected 0 imported, got %d", result.Imported)
 	}
@@ -63,15 +69,20 @@ func TestBatchImportUnknownDepartment(t *testing.T) {
 
 func TestCreateRoleAndList(t *testing.T) {
 	svc := newTestOrgService(t)
-	role, err := svc.CreateRole("测试角色", []string{"p-1"})
+	ctx := testutil.Ctx()
+	role, err := svc.CreateRole(ctx, "测试角色", []string{"p-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if role.Name != "测试角色" {
 		t.Fatalf("unexpected role name %s", role.Name)
 	}
+	roles, err := svc.ListRoles(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	found := false
-	for _, r := range svc.ListRoles() {
+	for _, r := range roles {
 		if r.ID == role.ID {
 			found = true
 			break
@@ -84,14 +95,19 @@ func TestCreateRoleAndList(t *testing.T) {
 
 func TestAddRoleMember(t *testing.T) {
 	svc := newTestOrgService(t)
-	role, err := svc.CreateRole("附加角色", []string{"p-1"})
+	ctx := testutil.Ctx()
+	role, err := svc.CreateRole(ctx, "附加角色", []string{"p-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(role.ID, "m-3"); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID, "m-3"); err != nil {
 		t.Fatal(err)
 	}
-	for _, m := range svc.ListMembers("", "", false, 1, 200).Items {
+	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range page.Items {
 		if m.ID != "m-3" {
 			continue
 		}
@@ -112,17 +128,22 @@ func TestAddRoleMember(t *testing.T) {
 
 func TestRemoveRoleMemberSuccess(t *testing.T) {
 	svc := newTestOrgService(t)
-	role, err := svc.CreateRole("可移除角色", []string{"p-2"})
+	ctx := testutil.Ctx()
+	role, err := svc.CreateRole(ctx, "可移除角色", []string{"p-2"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(role.ID, "m-3"); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID, "m-3"); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RemoveRoleMember(role.ID, "m-3"); err != nil {
+	if err := svc.RemoveRoleMember(ctx, role.ID, "m-3"); err != nil {
 		t.Fatal(err)
 	}
-	for _, m := range svc.ListMembers("", "", false, 1, 200).Items {
+	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range page.Items {
 		if m.ID != "m-3" {
 			continue
 		}

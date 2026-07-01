@@ -24,42 +24,42 @@ var leafDeptQuotas = []DeptQuota{
 func anchorMembers() []types.Member {
 	return []types.Member{
 		{
-			ID: IDMemberAdmin, Name: "管理员", Phone: "13800000001", Email: "admin@example.com",
+			ID: IDMemberAdmin, CompanyID: DefaultCompanyID, Name: "管理员", Phone: "13800000001", Email: "admin@example.com",
 			DepartmentID: "dept-1", DepartmentName: "总公司", Status: "active",
 			Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
 		},
 		{
-			ID: IDMember1, Name: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
+			ID: IDMember1, CompanyID: DefaultCompanyID, Name: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
 			DepartmentID: IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{
-			ID: "m-2", Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
+			ID: "m-2", CompanyID: DefaultCompanyID, Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
 			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleOrgAdmin, permission.RoleBudgetApprover}, Source: "imported",
 		},
 		{
-			ID: "m-3", Name: "王五", Phone: "", Email: "wangwu@example.com",
+			ID: "m-3", CompanyID: DefaultCompanyID, Name: "王五", Phone: "", Email: "wangwu@example.com",
 			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "pending",
 			Roles: []string{permission.RoleMember}, Source: "invited",
 		},
 		{
-			ID: "m-4", Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
+			ID: "m-4", CompanyID: DefaultCompanyID, Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
 			DepartmentID: "dept-4", DepartmentName: "前端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "manual",
 		},
 		{
-			ID: "m-5", Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
+			ID: "m-5", CompanyID: DefaultCompanyID, Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
 			DepartmentID: "dept-4", DepartmentName: "前端组", Status: "inactive",
 			Roles: []string{permission.RoleMember}, Source: "imported",
 		},
 		{
-			ID: "m-auditor", Name: "孙审计", Phone: "13512345678", Email: "sunaudit@example.com",
+			ID: "m-auditor", CompanyID: DefaultCompanyID, Name: "孙审计", Phone: "13512345678", Email: "sunaudit@example.com",
 			DepartmentID: "dept-8", DepartmentName: "行政部", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAuditor}, Source: "manual",
 		},
 		{
-			ID: "m-pure", Name: "周八", Phone: "13412345678", Email: "zhouba@example.com",
+			ID: "m-pure", CompanyID: DefaultCompanyID, Name: "周八", Phone: "13412345678", Email: "zhouba@example.com",
 			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember}, Source: "manual",
 		},
@@ -105,7 +105,7 @@ func buildGeneratedMember(id string, index int, departmentID, departmentName str
 		phone = buildPhone(index)
 	}
 	return types.Member{
-		ID: id, Name: name, Phone: phone, Email: buildEmail(index),
+		ID: id, CompanyID: DefaultCompanyID, Name: name, Phone: phone, Email: buildEmail(index),
 		DepartmentID: departmentID, DepartmentName: departmentName,
 		Status: pickStatus(index), Roles: []string{permission.RoleMember}, Source: pickSource(index),
 	}

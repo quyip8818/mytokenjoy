@@ -21,13 +21,6 @@ func NewFactory(cfg config.Config) Factory {
 	}
 }
 
-func NewFactoryWithHTTPClient(cfg config.Config, client *http.Client) Factory {
-	if client == nil {
-		client = &http.Client{}
-	}
-	return &factory{cfg: cfg, httpClient: client}
-}
-
 func (f *factory) ForPlatform(platform types.Platform, cred types.Credential) (Provider, error) {
 	switch platform {
 	case types.PlatformFeishu:

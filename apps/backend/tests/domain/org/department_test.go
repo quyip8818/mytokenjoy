@@ -1,7 +1,6 @@
 package org_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func asDomainError(t *testing.T, err error) *domain.DomainError {
@@ -24,8 +24,9 @@ func asDomainError(t *testing.T, err error) *domain.DomainError {
 
 func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
+	ctx := testutil.Ctx()
 
-	created, err := svc.CreateDepartment(context.Background(), "Phase0 Team", "dept-2")
+	created, err := svc.CreateDepartment(testutil.Ctx(), "Phase0 Team", "dept-2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,12 +37,19 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatalf("expected parent dept-2, got %v", created.ParentID)
 	}
 
-	tree := svc.GetDepartmentTree()
+	tree, err := svc.GetDepartmentTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if pkgorg.FindDepartment(tree, created.ID) == nil {
 		t.Fatal("created department not found in tree")
 	}
 
-	budgetNode := budget.FindBudgetNode(st.Budget().Tree(), created.ID)
+	budgetTree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgetNode := budget.FindBudgetNode(budgetTree, created.ID)
 	if budgetNode == nil {
 		t.Fatal("budget node not created")
 	}
@@ -49,7 +57,11 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatalf("expected budget 0, got %f", budgetNode.Budget)
 	}
 
-	rule := common.GetRoutingRuleForDept(created.ID, st.Models().RoutingRules(), tree)
+	rules, err := st.Models().RoutingRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := common.GetRoutingRuleForDept(created.ID, rules, tree)
 	if rule == nil {
 		t.Fatal("routing rule not created")
 	}
@@ -60,13 +72,14 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 
 func TestUpdateDepartmentPreservesParent(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
+	ctx := testutil.Ctx()
 
-	created, err := svc.CreateDepartment(context.Background(), "Rename Me", "dept-6")
+	created, err := svc.CreateDepartment(testutil.Ctx(), "Rename Me", "dept-6")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateDepartment(context.Background(), created.ID, "Renamed Team")
+	updated, err := svc.UpdateDepartment(testutil.Ctx(), created.ID, "Renamed Team")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,12 +90,24 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 		t.Fatalf("unexpected name %s", updated.Name)
 	}
 
-	budgetNode := budget.FindBudgetNode(st.Budget().Tree(), created.ID)
+	budgetTree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgetNode := budget.FindBudgetNode(budgetTree, created.ID)
 	if budgetNode == nil || budgetNode.Name != "Renamed Team" {
 		t.Fatalf("budget node name not updated: %+v", budgetNode)
 	}
 
-	rule := common.GetRoutingRuleForDept(created.ID, st.Models().RoutingRules(), svc.GetDepartmentTree())
+	deptTree, err := svc.GetDepartmentTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, err := st.Models().RoutingRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := common.GetRoutingRuleForDept(created.ID, rules, deptTree)
 	if rule == nil || rule.NodeName != "Renamed Team" {
 		t.Fatalf("routing rule name not updated: %+v", rule)
 	}
@@ -90,7 +115,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 
 func TestDeleteDepartmentWithChildren422(t *testing.T) {
 	svc := newTestOrgService(t)
-	err := svc.DeleteDepartment(context.Background(), "dept-2")
+	err := svc.DeleteDepartment(testutil.Ctx(), "dept-2")
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)
@@ -102,7 +127,7 @@ func TestDeleteDepartmentWithChildren422(t *testing.T) {
 
 func TestDeleteDepartmentWithMembers422(t *testing.T) {
 	svc := newTestOrgService(t)
-	err := svc.DeleteDepartment(context.Background(), seed.IDDept3)
+	err := svc.DeleteDepartment(testutil.Ctx(), seed.IDDept3)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)
@@ -111,24 +136,36 @@ func TestDeleteDepartmentWithMembers422(t *testing.T) {
 
 func TestDeleteLeafDepartment(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
+	ctx := testutil.Ctx()
 
-	created, err := svc.CreateDepartment(context.Background(), "Disposable", "dept-2")
+	created, err := svc.CreateDepartment(testutil.Ctx(), "Disposable", "dept-2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.DeleteDepartment(context.Background(), created.ID); err != nil {
+	if err := svc.DeleteDepartment(testutil.Ctx(), created.ID); err != nil {
 		t.Fatal(err)
 	}
 
-	tree := svc.GetDepartmentTree()
+	tree, err := svc.GetDepartmentTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if pkgorg.FindDepartment(tree, created.ID) != nil {
 		t.Fatal("department still in tree")
 	}
 
-	if budget.FindBudgetNode(st.Budget().Tree(), created.ID) != nil {
+	budgetTree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if budget.FindBudgetNode(budgetTree, created.ID) != nil {
 		t.Fatal("budget node still exists")
 	}
-	for _, rule := range st.Models().RoutingRules() {
+	rules, err := st.Models().RoutingRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rule := range rules {
 		if rule.NodeID == created.ID {
 			t.Fatal("routing rule still exists")
 		}

@@ -15,7 +15,7 @@ import (
 func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil)
+	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	return domainkeys.NewService(cfg, st, lifecycle, common.NewDelayer(false)), st
 }
 
@@ -26,12 +26,16 @@ func newTokenLifecycle(t *testing.T, stub *mock.StubAdminClient) (*relay.TokenLi
 		testutil.WithNewAPIBaseURL("http://relay.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub)
+	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
 	return lifecycle, st
 }
 
 func findApproval(st store.Store, id string) *types.KeyApproval {
-	for _, a := range st.Keys().Approvals() {
+	approvals, err := st.Keys().Approvals(testutil.Ctx())
+	if err != nil {
+		return nil
+	}
+	for _, a := range approvals {
 		if a.ID == id {
 			copy := a
 			return &copy

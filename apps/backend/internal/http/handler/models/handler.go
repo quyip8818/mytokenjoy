@@ -43,7 +43,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListModels())
+	models, err := h.service.ListModels(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, models, err)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -67,12 +68,14 @@ func (h *Handler) Toggle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RoutingList(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.ListRoutingRules())
+	rules, err := h.service.ListRoutingRules(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, rules, err)
 }
 
 func (h *Handler) RoutingResolve(w http.ResponseWriter, r *http.Request) {
 	deptID := r.URL.Query().Get("deptId")
-	httputil.WriteOK(w, h.service.ResolveRouting(deptID))
+	result, err := h.service.ResolveRouting(r.Context(), deptID)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) RoutingUpdate(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -10,30 +11,36 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) ListRoles() []types.Role {
-	return s.store.Org().Roles()
+func (s *service) ListRoles(ctx context.Context) ([]types.Role, error) {
+	return s.store.Org().Roles(ctx)
 }
 
-func (s *service) CreateRole(name string, permissions []string) (types.Role, error) {
-	roles := s.store.Org().Roles()
+func (s *service) CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error) {
+	roles, err := s.store.Org().Roles(ctx)
+	if err != nil {
+		return types.Role{}, err
+	}
 	role := types.Role{
 		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
 		Name: name, Type: "custom", Permissions: permissions, MemberCount: 0,
 	}
 	roles = append(roles, role)
-	if err := s.store.Org().SetRoles(roles); err != nil {
+	if err := s.store.Org().SetRoles(ctx, roles); err != nil {
 		return types.Role{}, fmt.Errorf("persist roles: %w", err)
 	}
 	return role, nil
 }
 
-func (s *service) UpdateRole(id, name string, permissions []string) (types.Role, error) {
-	roles := s.store.Org().Roles()
+func (s *service) UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error) {
+	roles, err := s.store.Org().Roles(ctx)
+	if err != nil {
+		return types.Role{}, err
+	}
 	for i := range roles {
 		if roles[i].ID == id {
 			roles[i].Name = name
 			roles[i].Permissions = permissions
-			if err := s.store.Org().SetRoles(roles); err != nil {
+			if err := s.store.Org().SetRoles(ctx, roles); err != nil {
 				return types.Role{}, err
 			}
 			return roles[i], nil
@@ -42,8 +49,11 @@ func (s *service) UpdateRole(id, name string, permissions []string) (types.Role,
 	return types.Role{}, domain.NewDomainError(404, "Not found")
 }
 
-func (s *service) DeleteRole(id string) error {
-	roles := s.store.Org().Roles()
+func (s *service) DeleteRole(ctx context.Context, id string) error {
+	roles, err := s.store.Org().Roles(ctx)
+	if err != nil {
+		return err
+	}
 	idx := -1
 	for i := range roles {
 		if roles[i].ID == id {
@@ -59,7 +69,10 @@ func (s *service) DeleteRole(id string) error {
 		return domain.NewDomainError(400, "Cannot delete preset role")
 	}
 
-	members := s.store.Org().Members()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range members {
 		filtered := make([]string, 0, len(members[i].Roles))
 		for _, roleName := range members[i].Roles {
@@ -69,17 +82,22 @@ func (s *service) DeleteRole(id string) error {
 		}
 		members[i].Roles = filtered
 	}
-	if err := s.store.Org().SetMembers(members); err != nil {
+	if err := s.store.Org().SetMembers(ctx, members); err != nil {
 		return err
 	}
 
 	roles = append(roles[:idx], roles[idx+1:]...)
-	s.recalcRoleMemberCounts(roles)
-	return s.store.Org().SetRoles(roles)
+	if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
+		return err
+	}
+	return s.store.Org().SetRoles(ctx, roles)
 }
 
-func (s *service) ListRoleMembers(roleID string) []types.Member {
-	roles := s.store.Org().Roles()
+func (s *service) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
+	roles, err := s.store.Org().Roles(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var role *types.Role
 	for i := range roles {
 		if roles[i].ID == roleID {
@@ -88,10 +106,13 @@ func (s *service) ListRoleMembers(roleID string) []types.Member {
 		}
 	}
 	if role == nil {
-		return []types.Member{}
+		return []types.Member{}, nil
 	}
 
-	members := s.store.Org().Members()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return nil, err
+	}
 	result := make([]types.Member, 0)
 	for _, member := range members {
 		for _, roleName := range member.Roles {
@@ -101,12 +122,18 @@ func (s *service) ListRoleMembers(roleID string) []types.Member {
 			}
 		}
 	}
-	return result
+	return result, nil
 }
 
-func (s *service) AddRoleMember(roleID, memberID string) error {
-	roles := s.store.Org().Roles()
-	members := s.store.Org().Members()
+func (s *service) AddRoleMember(ctx context.Context, roleID, memberID string) error {
+	roles, err := s.store.Org().Roles(ctx)
+	if err != nil {
+		return err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
 
 	var role *types.Role
 	for i := range roles {
@@ -125,20 +152,28 @@ func (s *service) AddRoleMember(roleID, memberID string) error {
 		}
 		if !pkgorg.ContainsRole(members[i].Roles, role.Name) {
 			members[i].Roles = append(members[i].Roles, role.Name)
-			s.recalcRoleMemberCounts(roles)
-			if err := s.store.Org().SetMembers(members); err != nil {
+			if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
 				return err
 			}
-			return s.store.Org().SetRoles(roles)
+			if err := s.store.Org().SetMembers(ctx, members); err != nil {
+				return err
+			}
+			return s.store.Org().SetRoles(ctx, roles)
 		}
 		break
 	}
 	return nil
 }
 
-func (s *service) RemoveRoleMember(roleID, memberID string) error {
-	roles := s.store.Org().Roles()
-	members := s.store.Org().Members()
+func (s *service) RemoveRoleMember(ctx context.Context, roleID, memberID string) error {
+	roles, err := s.store.Org().Roles(ctx)
+	if err != nil {
+		return err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
 
 	var role *types.Role
 	for i := range roles {
@@ -173,9 +208,11 @@ func (s *service) RemoveRoleMember(roleID, memberID string) error {
 			break
 		}
 	}
-	s.recalcRoleMemberCounts(roles)
-	if err := s.store.Org().SetMembers(members); err != nil {
+	if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
 		return err
 	}
-	return s.store.Org().SetRoles(roles)
+	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+		return err
+	}
+	return s.store.Org().SetRoles(ctx, roles)
 }

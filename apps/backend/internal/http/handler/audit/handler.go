@@ -28,7 +28,8 @@ func NewHandler(cfg config.Config, service domainaudit.Service, sessionSvc sessi
 }
 
 func (h *Handler) SettingsGet(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.GetSettings())
+	settings, err := h.service.GetSettings(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, settings, err)
 }
 
 func (h *Handler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +38,7 @@ func (h *Handler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	settings, err := h.service.UpdateSettings(body)
+	settings, err := h.service.UpdateSettings(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, settings, err)
 }
 
@@ -52,7 +53,8 @@ func (h *Handler) OperationsList(w http.ResponseWriter, r *http.Request) {
 		From:       query.Get("from"),
 		To:         query.Get("to"),
 	}
-	httputil.WriteOK(w, h.service.ListOperations(params))
+	result, err := h.service.ListOperations(r.Context(), params)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +69,8 @@ func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 		From:     query.Get("from"),
 		To:       query.Get("to"),
 	}
-	httputil.WriteOK(w, h.service.ListCalls(params))
+	result, err := h.service.ListCalls(r.Context(), params)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {

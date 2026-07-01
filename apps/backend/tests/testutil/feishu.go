@@ -121,11 +121,11 @@ func ConnectFeishuDataSource(t *testing.T, cfg *config.Config, st store.Store, b
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Credential().SaveCredential(types.PlatformFeishu, encrypted); err != nil {
+	if err := st.Credential().SaveCredential(Ctx(), types.PlatformFeishu, encrypted); err != nil {
 		t.Fatal(err)
 	}
 	platform := types.PlatformFeishu
-	if err := st.Org().SetDataSourceStatus(types.DataSourceStatus{
+	if err := st.Org().SetDataSourceStatus(Ctx(), types.DataSourceStatus{
 		Connected: true,
 		Platform:  &platform,
 	}); err != nil {

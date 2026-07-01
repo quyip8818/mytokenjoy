@@ -19,6 +19,7 @@ export { mockDepartments }
 
 const mockMember: Member = {
   id: 'm-admin',
+  companyId: 1,
   name: '管理员',
   phone: '13800000000',
   email: 'admin@test.com',
@@ -34,6 +35,7 @@ export function createMockSession(
   readOnly = false,
 ): SessionContext {
   return {
+    companyId: 1,
     member: mockMember,
     permissions,
     readOnly,

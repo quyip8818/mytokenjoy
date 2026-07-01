@@ -18,7 +18,7 @@ type importOptions struct {
 }
 
 func (s *service) ImportDataSource(ctx context.Context) (types.ImportResult, error) {
-	provider, platform, err := s.providerForStored()
+	provider, platform, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
@@ -26,7 +26,7 @@ func (s *service) ImportDataSource(ctx context.Context) (types.ImportResult, err
 }
 
 func (s *service) RetryImport(ctx context.Context, ids []string) (types.ImportResult, error) {
-	provider, platform, err := s.providerForStored()
+	provider, platform, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
@@ -55,11 +55,15 @@ func (s *service) importFromProvider(
 	}
 
 	if retryOnly {
-		remoteMembers = filterRemoteMembersForRetry(remoteMembers, opts.retryExternalIDs, s.store.Org().ImportFailures())
+		importFailures, err := s.store.Org().ImportFailures(ctx)
+		if err != nil {
+			return types.ImportResult{}, err
+		}
+		remoteMembers = filterRemoteMembersForRetry(remoteMembers, opts.retryExternalIDs, importFailures)
 		if len(remoteMembers) == 0 {
 			return types.ImportResult{
 				SuccessMembers: 0, SuccessDepartments: 0,
-				Failures: s.store.Org().ImportFailures(),
+				Failures: importFailures,
 			}, nil
 		}
 		deptSet := make(map[string]struct{})
@@ -79,14 +83,21 @@ func (s *service) importFromProvider(
 	changedDeptIDs := make([]string, 0)
 
 	err = s.store.WithTx(ctx, func(st store.Store) error {
-		departments := st.Org().Departments()
-		members := st.Org().Members()
-		roles := st.Org().Roles()
-		state := &ProvisionState{
-			Departments: departments,
-			BudgetTree:  st.Budget().Tree(),
-			Rules:       st.Models().RoutingRules(),
-			Models:      st.Models().Models(),
+		departments, err := st.Org().Departments(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		roles, err := st.Org().Roles(ctx)
+		if err != nil {
+			return err
+		}
+		state, err := loadProvisionState(ctx, st, departments)
+		if err != nil {
+			return err
 		}
 
 		externalToLocal := buildDeptExternalMap(state.Departments)
@@ -189,42 +200,47 @@ func (s *service) importFromProvider(
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
-		s.recalcRoleMemberCounts(roles)
+		if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
+			return err
+		}
 
-		if err := st.Org().SetDepartments(state.Departments); err != nil {
+		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
 			return err
 		}
-		if err := st.Budget().SetTree(state.BudgetTree); err != nil {
+		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
 			return err
 		}
-		if err := st.Models().SetRoutingRules(state.Rules); err != nil {
+		if err := st.Models().SetRoutingRules(ctx, state.Rules); err != nil {
 			return err
 		}
-		if err := st.Org().SetMembers(members); err != nil {
+		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		if err := st.Org().SetRoles(roles); err != nil {
+		if err := st.Org().SetRoles(ctx, roles); err != nil {
 			return err
 		}
 
 		now := time.Now().Format("2006-01-02 15:04")
-		status := st.Org().DataSourceStatus()
+		status, err := st.Org().DataSourceStatus(ctx)
+		if err != nil {
+			return err
+		}
 		status.Connected = true
 		platformCopy := platform
 		status.Platform = &platformCopy
 		status.LastImport = &now
 		status.LastImportResult = &result
-		return st.Org().SetDataSourceStatus(status)
+		return st.Org().SetDataSourceStatus(ctx, status)
 	})
 	if err != nil {
 		return types.ImportResult{}, err
 	}
 
-	if err := s.store.Org().SetImportFailures(result.Failures); err != nil {
+	if err := s.store.Org().SetImportFailures(ctx, result.Failures); err != nil {
 		return types.ImportResult{}, fmt.Errorf("persist import failures: %w", err)
 	}
 	if s.lifecycle != nil && len(changedDeptIDs) > 0 {
-		if err := s.lifecycle.EnqueueModelLimitsForDepartments(changedDeptIDs); err != nil {
+		if err := s.lifecycle.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
 			return types.ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
 		}
 	}

@@ -1,6 +1,9 @@
 package testutil
 
-import "github.com/tokenjoy/backend/internal/config"
+import (
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/store/seed"
+)
 
 const defaultDemoToday = "2026-06-19"
 
@@ -36,10 +39,24 @@ func WithProfile(profile string) ConfigOption {
 	}
 }
 
+func WithMultiCompany(enabled bool) ConfigOption {
+	return func(cfg *config.Config) {
+		cfg.MultiCompany = enabled
+	}
+}
+
+func WithPlatformBootstrap(email, password string) ConfigOption {
+	return func(cfg *config.Config) {
+		cfg.PlatformBootstrapEmail = email
+		cfg.PlatformBootstrapPassword = password
+	}
+}
+
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
-		DemoToday:     defaultDemoToday,
-		SimulateDelay: false,
+		DemoToday:        defaultDemoToday,
+		SimulateDelay:    false,
+		DefaultCompanyID: seed.DefaultCompanyID,
 	}
 	for _, opt := range opts {
 		opt(&cfg)

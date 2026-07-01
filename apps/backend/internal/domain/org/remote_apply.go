@@ -30,7 +30,10 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 	}
 
 	err := s.store.WithTx(ctx, func(st store.Store) error {
-		members := st.Org().Members()
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 		for _, removed := range diff.removeMembers {
 			for i := range members {
 				if members[i].ID != removed.ID {
@@ -41,11 +44,13 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 			}
 		}
 
-		state := &ProvisionState{
-			Departments: st.Org().Departments(),
-			BudgetTree:  st.Budget().Tree(),
-			Rules:       st.Models().RoutingRules(),
-			Models:      st.Models().Models(),
+		departments, err := st.Org().Departments(ctx)
+		if err != nil {
+			return err
+		}
+		state, err := loadProvisionState(ctx, st, departments)
+		if err != nil {
+			return err
 		}
 		for _, removed := range diff.removeDepartment {
 			if err := DeprovisionDepartment(state, removed.ID); err != nil {
@@ -55,16 +60,16 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
-		if err := st.Org().SetDepartments(state.Departments); err != nil {
+		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
 			return err
 		}
-		if err := st.Budget().SetTree(state.BudgetTree); err != nil {
+		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
 			return err
 		}
-		if err := st.Models().SetRoutingRules(state.Rules); err != nil {
+		if err := st.Models().SetRoutingRules(ctx, state.Rules); err != nil {
 			return err
 		}
-		return st.Org().SetMembers(members)
+		return st.Org().SetMembers(ctx, members)
 	})
 	return result, err
 }

@@ -16,11 +16,14 @@ func (s *service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
 }
 
 func (s *service) RunScheduledSync(ctx context.Context) error {
-	cfg := s.store.Org().SyncConfig()
+	cfg, err := s.store.Org().SyncConfig(ctx)
+	if err != nil {
+		return err
+	}
 	if !cfg.Enabled {
 		return nil
 	}
-	if !s.shouldRunScheduledSync(cfg) {
+	if !s.shouldRunScheduledSync(ctx, cfg) {
 		return nil
 	}
 
@@ -42,11 +45,11 @@ func (s *service) RunScheduledSync(ctx context.Context) error {
 	return syncErr
 }
 
-func (s *service) shouldRunScheduledSync(cfg types.SyncConfig) bool {
+func (s *service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConfig) bool {
 	if cfg.FrequencyHours <= 0 {
 		return false
 	}
-	lastRun := s.lastScheduledSyncTime()
+	lastRun := s.lastScheduledSyncTime(ctx)
 	if lastRun != nil && time.Since(*lastRun) < time.Duration(cfg.FrequencyHours)*time.Hour {
 		return false
 	}
@@ -63,8 +66,11 @@ func (s *service) shouldRunScheduledSync(cfg types.SyncConfig) bool {
 	return !now.Before(startToday)
 }
 
-func (s *service) lastScheduledSyncTime() *time.Time {
-	logs := s.store.Org().SyncLogs()
+func (s *service) lastScheduledSyncTime(ctx context.Context) *time.Time {
+	logs, err := s.store.Org().SyncLogs(ctx)
+	if err != nil {
+		return nil
+	}
 	for _, entry := range logs {
 		if entry.Type != types.SyncTypeScheduled {
 			continue
@@ -83,7 +89,7 @@ func (s *service) schedulerHolder() string {
 }
 
 func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.ImportResult, error) {
-	provider, platform, err := s.providerForStored()
+	provider, platform, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
@@ -97,28 +103,38 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	localDepts := pkgorg.FlattenDepartmentTree(s.store.Org().Departments())
-	localMembers := s.store.Org().Members()
+	localDeptsTree, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.ImportResult{}, err
+	}
+	localDepts := pkgorg.FlattenDepartmentTree(localDeptsTree)
+	localMembers, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.ImportResult{}, err
+	}
 	diff := buildSyncDiff(localDepts, localMembers, remoteDepts, remoteMembers)
 
-	cfg := s.store.Org().SyncConfig()
+	cfg, err := s.store.Org().SyncConfig(ctx)
+	if err != nil {
+		return types.ImportResult{}, err
+	}
 	if len(diff.removeMembers) > cfg.DeleteMemberThreshold {
 		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.removeMembers), cfg.DeleteMemberThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)
-		_ = s.appendSyncLog(syncType, types.SyncResultFailure, detail)
+		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
 	if len(diff.removeDepartment) > cfg.DeleteDepartmentThreshold {
 		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.removeDepartment), cfg.DeleteDepartmentThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)
-		_ = s.appendSyncLog(syncType, types.SyncResultFailure, detail)
+		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
 
 	result, applyErr := s.applySyncDiff(ctx, platform, diff)
 	result.Failures = append(result.Failures, fetchFailures...)
 	if applyErr != nil {
-		_ = s.appendSyncLog(syncType, types.SyncResultFailure, applyErr.Error())
+		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, applyErr.Error())
 		return result, applyErr
 	}
 
@@ -130,11 +146,11 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 		"成功 %d 人，%d 部门；失败 %d 人",
 		result.SuccessMembers, result.SuccessDepartments, len(result.Failures),
 	)
-	_ = s.appendSyncLog(syncType, syncResult, detail)
+	_ = s.appendSyncLog(ctx, syncType, syncResult, detail)
 	return result, nil
 }
 
-func (s *service) appendSyncLog(syncType, result, detail string) error {
+func (s *service) appendSyncLog(ctx context.Context, syncType, result, detail string) error {
 	logEntry := types.SyncLog{
 		ID:     fmt.Sprintf("sync-%d", time.Now().UnixNano()),
 		Time:   time.Now().Format("2006-01-02 15:04"),
@@ -142,5 +158,5 @@ func (s *service) appendSyncLog(syncType, result, detail string) error {
 		Result: result,
 		Detail: detail,
 	}
-	return s.store.Org().AppendSyncLog(logEntry)
+	return s.store.Org().AppendSyncLog(ctx, logEntry)
 }

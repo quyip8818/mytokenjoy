@@ -1,7 +1,6 @@
 package notification_test
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"testing"
@@ -17,7 +16,7 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	svc := notification.NewService(cfg, st, logger)
 
-	if err := svc.Send(context.Background(), types.Notification{
+	if err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventSyncThreshold,
 		Recipient: "ops",
 		Payload:   map[string]any{"detail": "test"},
@@ -41,7 +40,7 @@ func TestWebhookFailureDoesNotReturnError(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	svc := notification.NewService(cfg, st, logger)
 
-	err := svc.Send(context.Background(), types.Notification{
+	err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventOverrunBlocked,
 		Payload:   map[string]any{"scope": "member"},
 	})

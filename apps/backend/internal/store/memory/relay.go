@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -30,18 +31,70 @@ func newMemoryRelayRepo(m *Store) *memoryRelayRepo {
 	return r
 }
 
-func (r *memoryRelayRepo) GetMappingByPlatformKeyID(platformKeyID string) (*store.RelayMapping, error) {
+func mappingBelongsToCompany(mapping store.RelayMapping, companyID int64) bool {
+	return mapping.CompanyID == companyID
+}
+
+func (r *memoryRelayRepo) GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	m, ok := r.data.mappings[platformKeyID]
-	if !ok {
+	if !ok || !mappingBelongsToCompany(m, store.CompanyID(ctx)) {
 		return nil, nil
 	}
 	copy := m
 	return &copy, nil
 }
 
-func (r *memoryRelayRepo) GetMappingByNewAPITokenID(tokenID int64) (*store.RelayMapping, error) {
+func (r *memoryRelayRepo) GetMappingByFullKey(ctx context.Context, fullKey string) (*store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	for companyID, snap := range r.store.dataByCompany {
+		for _, key := range snap.PlatformKeys {
+			if key.FullKey == nil || *key.FullKey != fullKey {
+				continue
+			}
+			r.mu.Lock()
+			m, ok := r.data.mappings[key.ID]
+			r.mu.Unlock()
+			if !ok || m.CompanyID != companyID {
+				continue
+			}
+			copy := m
+			return &copy, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *memoryRelayRepo) GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	id, ok := r.data.tokenIndex[tokenID]
+	if !ok {
+		return nil, nil
+	}
+	m := r.data.mappings[id]
+	if !mappingBelongsToCompany(m, store.CompanyID(ctx)) {
+		return nil, nil
+	}
+	copy := m
+	return &copy, nil
+}
+
+func (r *memoryRelayRepo) FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	id, ok := r.data.tokenIndex[tokenID]
@@ -53,11 +106,18 @@ func (r *memoryRelayRepo) GetMappingByNewAPITokenID(tokenID int64) (*store.Relay
 	return &copy, nil
 }
 
-func (r *memoryRelayRepo) ListMappingsByMemberID(memberID string) ([]store.RelayMapping, error) {
+func (r *memoryRelayRepo) ListMappingsByMemberID(ctx context.Context, memberID string) ([]store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	tid := store.CompanyID(ctx)
 	out := make([]store.RelayMapping, 0)
 	for _, m := range r.data.mappings {
+		if !mappingBelongsToCompany(m, tid) {
+			continue
+		}
 		if m.MemberID != nil && *m.MemberID == memberID {
 			out = append(out, m)
 		}
@@ -65,11 +125,18 @@ func (r *memoryRelayRepo) ListMappingsByMemberID(memberID string) ([]store.Relay
 	return out, nil
 }
 
-func (r *memoryRelayRepo) ListMappingsByDepartmentID(departmentID string) ([]store.RelayMapping, error) {
+func (r *memoryRelayRepo) ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	tid := store.CompanyID(ctx)
 	out := make([]store.RelayMapping, 0)
 	for _, m := range r.data.mappings {
+		if !mappingBelongsToCompany(m, tid) {
+			continue
+		}
 		if m.DepartmentID == departmentID {
 			out = append(out, m)
 		}
@@ -77,11 +144,18 @@ func (r *memoryRelayRepo) ListMappingsByDepartmentID(departmentID string) ([]sto
 	return out, nil
 }
 
-func (r *memoryRelayRepo) ListMappingsByBudgetGroupID(budgetGroupID string) ([]store.RelayMapping, error) {
+func (r *memoryRelayRepo) ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	tid := store.CompanyID(ctx)
 	out := make([]store.RelayMapping, 0)
 	for _, m := range r.data.mappings {
+		if !mappingBelongsToCompany(m, tid) {
+			continue
+		}
 		if m.BudgetGroupID != nil && *m.BudgetGroupID == budgetGroupID {
 			out = append(out, m)
 		}
@@ -89,11 +163,18 @@ func (r *memoryRelayRepo) ListMappingsByBudgetGroupID(budgetGroupID string) ([]s
 	return out, nil
 }
 
-func (r *memoryRelayRepo) ListActiveMappings() ([]store.RelayMapping, error) {
+func (r *memoryRelayRepo) ListActiveMappings(ctx context.Context) ([]store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	tid := store.CompanyID(ctx)
 	out := make([]store.RelayMapping, 0)
 	for _, m := range r.data.mappings {
+		if !mappingBelongsToCompany(m, tid) {
+			continue
+		}
 		if m.SyncStatus == store.RelaySyncStatusSynced {
 			out = append(out, m)
 		}
@@ -101,9 +182,31 @@ func (r *memoryRelayRepo) ListActiveMappings() ([]store.RelayMapping, error) {
 	return out, nil
 }
 
-func (r *memoryRelayRepo) UpsertMapping(mapping store.RelayMapping) error {
+func (r *memoryRelayRepo) ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]store.RelayMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	out := make([]store.RelayMapping, 0)
+	for _, m := range r.data.mappings {
+		if !mappingBelongsToCompany(m, companyID) {
+			continue
+		}
+		if m.SyncStatus == store.RelaySyncStatusSynced {
+			out = append(out, m)
+		}
+	}
+	return out, nil
+}
+
+func (r *memoryRelayRepo) UpsertMapping(ctx context.Context, mapping store.RelayMapping) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	mapping.CompanyID = store.CompanyID(ctx)
 	r.data.mappings[mapping.PlatformKeyID] = mapping
 	if mapping.NewAPITokenID != nil {
 		r.data.tokenIndex[*mapping.NewAPITokenID] = mapping.PlatformKeyID
@@ -112,16 +215,20 @@ func (r *memoryRelayRepo) UpsertMapping(mapping store.RelayMapping) error {
 }
 
 func (r *memoryRelayRepo) UpdateMappingSync(
+	ctx context.Context,
 	platformKeyID string,
 	tokenID int64,
 	status string,
 	remainQuota *int64,
 	syncedAt time.Time,
 ) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	m, ok := r.data.mappings[platformKeyID]
-	if !ok {
+	if !ok || !mappingBelongsToCompany(m, store.CompanyID(ctx)) {
 		return fmt.Errorf("mapping not found: %s", platformKeyID)
 	}
 	m.NewAPITokenID = &tokenID
@@ -133,11 +240,14 @@ func (r *memoryRelayRepo) UpdateMappingSync(
 	return nil
 }
 
-func (r *memoryRelayRepo) UpdateMappingRemainQuota(platformKeyID string, remainQuota int64) error {
+func (r *memoryRelayRepo) UpdateMappingRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	m, ok := r.data.mappings[platformKeyID]
-	if !ok {
+	if !ok || !mappingBelongsToCompany(m, store.CompanyID(ctx)) {
 		return fmt.Errorf("mapping not found: %s", platformKeyID)
 	}
 	m.RelayRemainQuota = &remainQuota
@@ -145,14 +255,20 @@ func (r *memoryRelayRepo) UpdateMappingRemainQuota(platformKeyID string, remainQ
 	return nil
 }
 
-func (r *memoryRelayRepo) EnqueueRelayOutbox(entry store.RelayOutboxEntry) error {
+func (r *memoryRelayRepo) EnqueueRelayOutbox(ctx context.Context, entry store.RelayOutboxEntry) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.data.relayOutbox = append(r.data.relayOutbox, entry)
 	return nil
 }
 
-func (r *memoryRelayRepo) ClaimPendingRelayOutbox(limit int) ([]store.RelayOutboxEntry, error) {
+func (r *memoryRelayRepo) ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]store.RelayOutboxEntry, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := time.Now()
@@ -169,7 +285,10 @@ func (r *memoryRelayRepo) ClaimPendingRelayOutbox(limit int) ([]store.RelayOutbo
 	return out, nil
 }
 
-func (r *memoryRelayRepo) MarkRelayOutboxDone(id string) error {
+func (r *memoryRelayRepo) MarkRelayOutboxDone(ctx context.Context, id string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.data.relayOutbox {
@@ -181,7 +300,10 @@ func (r *memoryRelayRepo) MarkRelayOutboxDone(id string) error {
 	return nil
 }
 
-func (r *memoryRelayRepo) MarkRelayOutboxRetry(id string, nextRetry time.Time, lastError string) error {
+func (r *memoryRelayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.data.relayOutbox {
@@ -207,14 +329,20 @@ func (r *memoryRelayRepo) relayOutboxEntry(id string) (store.RelayOutboxEntry, b
 	return store.RelayOutboxEntry{}, false
 }
 
-func (r *memoryRelayRepo) EnqueueWebhookOutbox(entry store.WebhookOutboxEntry) error {
+func (r *memoryRelayRepo) EnqueueWebhookOutbox(ctx context.Context, entry store.WebhookOutboxEntry) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.data.webhookOutbox = append(r.data.webhookOutbox, entry)
 	return nil
 }
 
-func (r *memoryRelayRepo) ClaimPendingWebhookOutbox(limit int) ([]store.WebhookOutboxEntry, error) {
+func (r *memoryRelayRepo) ClaimPendingWebhookOutbox(ctx context.Context, limit int) ([]store.WebhookOutboxEntry, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := time.Now()
@@ -231,7 +359,10 @@ func (r *memoryRelayRepo) ClaimPendingWebhookOutbox(limit int) ([]store.WebhookO
 	return out, nil
 }
 
-func (r *memoryRelayRepo) MarkWebhookOutboxDone(id string) error {
+func (r *memoryRelayRepo) MarkWebhookOutboxDone(ctx context.Context, id string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.data.webhookOutbox {
@@ -243,7 +374,10 @@ func (r *memoryRelayRepo) MarkWebhookOutboxDone(id string) error {
 	return nil
 }
 
-func (r *memoryRelayRepo) MarkWebhookOutboxRetry(id string, nextRetry time.Time, lastError string) error {
+func (r *memoryRelayRepo) MarkWebhookOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.data.webhookOutbox {
@@ -258,51 +392,71 @@ func (r *memoryRelayRepo) MarkWebhookOutboxRetry(id string, nextRetry time.Time,
 	return nil
 }
 
-func (r *memoryRelayRepo) HasIngestedLogID(logID int64) (bool, error) {
+func (r *memoryRelayRepo) HasIngestedLogID(ctx context.Context, logID int64) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	_, ok := r.data.ingestedLogs[logID]
 	return ok, nil
 }
 
-func (r *memoryRelayRepo) InsertIngestedLogID(logID int64) error {
+func (r *memoryRelayRepo) InsertIngestedLogID(ctx context.Context, logID int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.data.ingestedLogs[logID] = struct{}{}
 	return nil
 }
 
-func (r *memoryRelayRepo) GetLastLogID() (int64, error) {
+func (r *memoryRelayRepo) GetLastLogID(ctx context.Context) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.data.lastLogID, nil
 }
 
-func (r *memoryRelayRepo) SetLastLogID(logID int64) error {
+func (r *memoryRelayRepo) SetLastLogID(ctx context.Context, logID int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.data.lastLogID = logID
 	return nil
 }
 
-func (r *memoryRelayRepo) EnqueueRebalance(axisKind, axisID string) error {
+func (r *memoryRelayRepo) EnqueueRebalance(ctx context.Context, axisKind, axisID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	companyID := store.CompanyID(ctx)
 	for _, e := range r.data.rebalance {
-		if e.AxisKind == axisKind && e.AxisID == axisID && e.Status == store.OutboxStatusPending {
+		if e.CompanyID == companyID && e.AxisKind == axisKind && e.AxisID == axisID && e.Status == store.OutboxStatusPending {
 			return nil
 		}
 	}
 	r.data.rebalance = append(r.data.rebalance, store.RebalanceQueueEntry{
-		ID:       fmt.Sprintf("rb-%s-%s-%d", axisKind, axisID, time.Now().UnixNano()),
-		AxisKind: axisKind,
-		AxisID:   axisID,
-		Status:   store.OutboxStatusPending,
+		ID:        fmt.Sprintf("rb-%d-%s-%s-%d", companyID, axisKind, axisID, time.Now().UnixNano()),
+		CompanyID: companyID,
+		AxisKind:  axisKind,
+		AxisID:    axisID,
+		Status:    store.OutboxStatusPending,
 	})
 	return nil
 }
 
-func (r *memoryRelayRepo) ClaimPendingRebalance(limit int) ([]store.RebalanceQueueEntry, error) {
+func (r *memoryRelayRepo) ClaimPendingRebalance(ctx context.Context, limit int) ([]store.RebalanceQueueEntry, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	out := make([]store.RebalanceQueueEntry, 0, limit)
@@ -317,7 +471,10 @@ func (r *memoryRelayRepo) ClaimPendingRebalance(limit int) ([]store.RebalanceQue
 	return out, nil
 }
 
-func (r *memoryRelayRepo) MarkRebalanceDone(id string) error {
+func (r *memoryRelayRepo) MarkRebalanceDone(ctx context.Context, id string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.data.rebalance {
@@ -328,3 +485,5 @@ func (r *memoryRelayRepo) MarkRebalanceDone(id string) error {
 	}
 	return nil
 }
+
+var _ store.RelayRepository = (*memoryRelayRepo)(nil)

@@ -19,8 +19,8 @@ func (s *service) budgetPeriod() string {
 	return time.Now().Format("2006-01")
 }
 
-func (s *service) GetDepartmentTree() []types.Department {
-	return s.store.Org().Departments()
+func (s *service) GetDepartmentTree(ctx context.Context) ([]types.Department, error) {
+	return s.store.Org().Departments(ctx)
 }
 
 func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error) {
@@ -35,13 +35,17 @@ func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (
 	var created types.Department
 
 	err := s.store.WithTx(ctx, func(st store.Store) error {
-		departments := st.Org().Departments()
-		members := st.Org().Members()
-		state := &ProvisionState{
-			Departments: departments,
-			BudgetTree:  st.Budget().Tree(),
-			Rules:       st.Models().RoutingRules(),
-			Models:      st.Models().Models(),
+		departments, err := st.Org().Departments(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		state, err := loadProvisionState(ctx, st, departments)
+		if err != nil {
+			return err
 		}
 		if err := ProvisionDepartment(state, ProvisionInput{
 			ID: deptID, Name: name, ParentID: parentID, Period: s.budgetPeriod(),
@@ -53,13 +57,13 @@ func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
-		if err := st.Org().SetDepartments(state.Departments); err != nil {
+		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
 			return err
 		}
-		if err := st.Budget().SetTree(state.BudgetTree); err != nil {
+		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
 			return err
 		}
-		if err := st.Models().SetRoutingRules(state.Rules); err != nil {
+		if err := st.Models().SetRoutingRules(ctx, state.Rules); err != nil {
 			return err
 		}
 
@@ -85,12 +89,17 @@ func (s *service) UpdateDepartment(ctx context.Context, id, name string) (types.
 
 	var updated types.Department
 	err := s.store.WithTx(ctx, func(st store.Store) error {
-		members := st.Org().Members()
-		state := &ProvisionState{
-			Departments: st.Org().Departments(),
-			BudgetTree:  st.Budget().Tree(),
-			Rules:       st.Models().RoutingRules(),
-			Models:      st.Models().Models(),
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		departments, err := st.Org().Departments(ctx)
+		if err != nil {
+			return err
+		}
+		state, err := loadProvisionState(ctx, st, departments)
+		if err != nil {
+			return err
 		}
 		if pkgorg.FindDepartment(state.Departments, id) == nil {
 			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
@@ -100,13 +109,13 @@ func (s *service) UpdateDepartment(ctx context.Context, id, name string) (types.
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
-		if err := st.Org().SetDepartments(state.Departments); err != nil {
+		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
 			return err
 		}
-		if err := st.Budget().SetTree(state.BudgetTree); err != nil {
+		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
 			return err
 		}
-		if err := st.Models().SetRoutingRules(state.Rules); err != nil {
+		if err := st.Models().SetRoutingRules(ctx, state.Rules); err != nil {
 			return err
 		}
 
@@ -129,8 +138,14 @@ func (s *service) DeleteDepartment(ctx context.Context, id string) error {
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		departments := st.Org().Departments()
-		members := st.Org().Members()
+		departments, err := st.Org().Departments(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 
 		if pkgorg.FindDepartment(departments, id) == nil {
 			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
@@ -139,23 +154,21 @@ func (s *service) DeleteDepartment(ctx context.Context, id string) error {
 			return domain.NewDomainError(domain.StatusUnprocessable, DeptDeleteBlockedMsg)
 		}
 
-		state := &ProvisionState{
-			Departments: departments,
-			BudgetTree:  st.Budget().Tree(),
-			Rules:       st.Models().RoutingRules(),
-			Models:      st.Models().Models(),
+		state, err := loadProvisionState(ctx, st, departments)
+		if err != nil {
+			return err
 		}
 		if err := DeprovisionDepartment(state, id); err != nil {
 			return domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
 		}
 
 		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
-		if err := st.Org().SetDepartments(state.Departments); err != nil {
+		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
 			return err
 		}
-		if err := st.Budget().SetTree(state.BudgetTree); err != nil {
+		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
 			return err
 		}
-		return st.Models().SetRoutingRules(state.Rules)
+		return st.Models().SetRoutingRules(ctx, state.Rules)
 	})
 }

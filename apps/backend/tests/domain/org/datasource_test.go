@@ -1,7 +1,6 @@
 package org_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -17,7 +16,7 @@ func TestTestDataSourceInvalidCredential422(t *testing.T) {
 	st := testutil.NewMemoryStore(t, cfg)
 	svc := testutil.NewOrgService(t, cfg, st)
 
-	result, err := svc.TestDataSource(context.Background(), types.Credential{
+	result, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformFeishu,
 		Feishu: &types.FeishuCredential{
 			Platform: types.PlatformFeishu, AppID: "bad", AppSecret: "bad",
@@ -47,14 +46,17 @@ func TestUpdateDataSourcePersistsCredential(t *testing.T) {
 			Platform: types.PlatformFeishu, AppID: "cli_test", AppSecret: "secret_test",
 		},
 	}
-	if err := svc.UpdateDataSource(context.Background(), cred, false); err != nil {
+	if err := svc.UpdateDataSource(testutil.Ctx(), cred, false); err != nil {
 		t.Fatal(err)
 	}
-	stored, err := st.Credential().GetCredential()
+	stored, err := st.Credential().GetCredential(testutil.Ctx())
 	if err != nil || stored == nil {
 		t.Fatalf("expected stored credential, err=%v stored=%v", err, stored)
 	}
-	status := svc.GetDataSourceStatus()
+	status, err := svc.GetDataSourceStatus(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !status.Connected || status.Platform == nil || *status.Platform != types.PlatformFeishu {
 		t.Fatalf("unexpected status %+v", status)
 	}
@@ -68,7 +70,7 @@ func TestSearchDataSourceUsesProvider(t *testing.T) {
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
 	svc := testutil.NewOrgService(t, cfg, st)
 
-	result, err := svc.SearchDataSource(context.Background(), "Mock")
+	result, err := svc.SearchDataSource(testutil.Ctx(), "Mock")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +81,7 @@ func TestSearchDataSourceUsesProvider(t *testing.T) {
 
 func TestUnsupportedPlatformReturns422(t *testing.T) {
 	_, _, svc := testutil.NewOrgServiceFromStore(t)
-	_, err := svc.TestDataSource(context.Background(), types.Credential{
+	_, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformDingtalk,
 		Dingtalk: &types.DingtalkCredential{
 			Platform: types.PlatformDingtalk, CorpID: "c", AppKey: "k", AppSecret: "s",
@@ -102,7 +104,7 @@ func TestUpdateDataSourceSwitchPlatformRequiresForce(t *testing.T) {
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
 	svc := testutil.NewOrgService(t, cfg, st)
 
-	err := svc.UpdateDataSource(context.Background(), types.Credential{
+	err := svc.UpdateDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformDingtalk,
 		Dingtalk: &types.DingtalkCredential{
 			Platform: types.PlatformDingtalk, CorpID: "c", AppKey: "k", AppSecret: "s",

@@ -14,6 +14,7 @@ type Token struct {
 }
 
 type CreateTokenRequest struct {
+	UserID             int64  `json:"user_id,omitempty"`
 	Name               string `json:"name"`
 	RemainQuota        int64  `json:"remain_quota"`
 	UnlimitedQuota     bool   `json:"unlimited_quota"`

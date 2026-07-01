@@ -1,7 +1,6 @@
 package budget_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -15,14 +14,18 @@ import (
 func TestUpdateNodeSuccess(t *testing.T) {
 	svc, st := newBudgetService(t)
 	reserved := 1500.0
-	updated, err := svc.UpdateNode(context.Background(), seed.IDDept3, 21000, &reserved)
+	updated, err := svc.UpdateNode(testutil.Ctx(), seed.IDDept3, 21000, &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.Budget != 21000 {
 		t.Fatalf("expected budget 21000, got %v", updated.Budget)
 	}
-	node := findDept3(st.Budget().Tree())
+	nodeTree, err := st.Budget().Tree(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	node := findDept3(nodeTree)
 	if node == nil || node.Budget != 21000 {
 		t.Fatalf("expected persisted budget 21000, got %+v", node)
 	}
@@ -31,13 +34,13 @@ func TestUpdateNodeSuccess(t *testing.T) {
 func TestUpdateNodeOversell(t *testing.T) {
 	svc, _ := newBudgetService(t)
 	reserved := 1500.0
-	_, err := svc.UpdateNode(context.Background(), seed.IDDept3, 90000, &reserved)
+	_, err := svc.UpdateNode(testutil.Ctx(), seed.IDDept3, 90000, &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
 func TestUpdateMemberQuotaBelowAllocated(t *testing.T) {
 	svc, _ := newBudgetService(t)
-	_, err := svc.UpdateMemberQuota(context.Background(), seed.IDMember1, 1000)
+	_, err := svc.UpdateMemberQuota(testutil.Ctx(), seed.IDMember1, 1000)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -55,14 +58,18 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	st = testutil.NewMemoryStoreFromSnapshot(snapshot)
 	svc := budget.NewService(cfg, st, common.NewDelayer(false))
 
-	result, err := svc.UpdateMemberQuota(context.Background(), seed.IDMember1, 15000)
+	result, err := svc.UpdateMemberQuota(testutil.Ctx(), seed.IDMember1, 15000)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if result.PersonalQuota != 15000 {
 		t.Fatalf("expected personal quota 15000, got %v", result.PersonalQuota)
 	}
-	pool := st.Budget().MemberQuotaPools()[seed.IDMember1]
+	poolMap, err := st.Budget().MemberQuotaPools(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool := poolMap[seed.IDMember1]
 	if pool.PersonalQuota != 15000 {
 		t.Fatalf("expected pool personal quota 15000, got %v", pool.PersonalQuota)
 	}
@@ -70,13 +77,13 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 
 func TestListMemberQuotasUnknownDept(t *testing.T) {
 	svc, _ := newBudgetService(t)
-	_, err := svc.ListMemberQuotas("dept-missing")
+	_, err := svc.ListMemberQuotas(testutil.Ctx(), "dept-missing")
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestCreateGroup(t *testing.T) {
 	svc, st := newBudgetService(t)
-	created, err := svc.CreateGroup(context.Background(), types.BudgetGroup{
+	created, err := svc.CreateGroup(testutil.Ctx(), types.BudgetGroup{
 		Name: "Test Group", Budget: 5000,
 	})
 	if err != nil {
@@ -85,8 +92,12 @@ func TestCreateGroup(t *testing.T) {
 	if created.ID == "" {
 		t.Fatal("expected created group id")
 	}
+	groups, err := st.Budget().Groups(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
 	found := false
-	for _, group := range st.Budget().Groups() {
+	for _, group := range groups {
 		if group.ID == created.ID && group.Name == "Test Group" {
 			found = true
 			break
@@ -99,10 +110,14 @@ func TestCreateGroup(t *testing.T) {
 
 func TestDeleteGroup(t *testing.T) {
 	svc, st := newBudgetService(t)
-	if err := svc.DeleteGroup(seed.IDBudgetGroup4); err != nil {
+	if err := svc.DeleteGroup(testutil.Ctx(), seed.IDBudgetGroup4); err != nil {
 		t.Fatal(err)
 	}
-	for _, group := range st.Budget().Groups() {
+	groups, err := st.Budget().Groups(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, group := range groups {
 		if group.ID == seed.IDBudgetGroup4 {
 			t.Fatal("expected bg-4 deleted")
 		}

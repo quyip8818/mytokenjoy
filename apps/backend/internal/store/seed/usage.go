@@ -6,11 +6,15 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) error {
+	if _, ok := company.FromContext(ctx); !ok {
+		ctx = company.DefaultContext(DefaultCompanyID)
+	}
 	empty, err := usageBucketsEmpty(ctx, st)
 	if err != nil {
 		return fmt.Errorf("check usage buckets: %w", err)

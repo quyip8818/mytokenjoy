@@ -1,7 +1,6 @@
 package testutil
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -50,7 +49,7 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 	if opts.CallCount == 0 {
 		opts.CallCount = def.CallCount
 	}
-	if err := st.Usage().UpsertBucket(context.Background(), types.UsageBucketRow{
+	if err := st.Usage().UpsertBucket(Ctx(), types.UsageBucketRow{
 		BucketStart: opts.BucketStart, DepartmentID: opts.DepartmentID, MemberID: opts.MemberID,
 		Model: opts.Model, CostCNY: opts.CostCNY, CallCount: opts.CallCount,
 	}); err != nil {

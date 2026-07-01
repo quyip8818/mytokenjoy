@@ -110,13 +110,19 @@ func budgetTreeSignature(tree []types.BudgetNode) (int, string) {
 
 func TestLoadOrSeedDomain(t *testing.T) {
 	st := testPostgresStore(t)
-	if len(st.Org().Departments()) == 0 {
+	ctx := testutil.Ctx()
+	departments, err := st.Org().Departments(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(departments) == 0 {
 		t.Fatal("expected seeded departments")
 	}
 }
 
 func TestRelayMappingRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
 	tokenID := int64(99001)
 	memberID := "m-1"
 	mapping := store.RelayMapping{
@@ -127,10 +133,10 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 		SyncStatus:    store.RelaySyncStatusSynced,
 		RelayGroup:    "dept-dept-3",
 	}
-	if err := st.Relay().UpsertMapping(mapping); err != nil {
+	if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Relay().GetMappingByPlatformKeyID("plk-persist-test")
+	got, err := st.Relay().GetMappingByPlatformKeyID(ctx, "plk-persist-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,16 +153,23 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 
 func TestMemberPersistAcrossRestart(t *testing.T) {
 	dbURL := requireDatabaseURL(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	cfg := testutil.TestConfig()
 	cfg.DatabaseURL = dbURL
 
-	st1, err := postgres.New(ctx, cfg)
+	st1, err := postgres.New(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	budgetLen, budgetRoot := budgetTreeSignature(st1.Budget().Tree())
-	members := st1.Org().Members()
+	budgetTree, err := st1.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgetLen, budgetRoot := budgetTreeSignature(budgetTree)
+	members, err := st1.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	updated := false
 	for i := range members {
 		if members[i].ID == seed.IDMember1 {
@@ -168,7 +181,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	if !updated {
 		t.Fatalf("member %s not found in seed", seed.IDMember1)
 	}
-	if err := st1.Org().SetMembers(members); err != nil {
+	if err := st1.Org().SetMembers(ctx, members); err != nil {
 		t.Fatal(err)
 	}
 	if pg, ok := st1.(*postgres.Store); ok {
@@ -176,10 +189,18 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	}
 
 	st2 := reopenPostgresStore(t, dbURL)
-	if got := findMemberName(st2.Org().Members(), seed.IDMember1); got != "PersistTest" {
+	members, err = st2.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := findMemberName(members, seed.IDMember1); got != "PersistTest" {
 		t.Fatalf("expected persisted member name, got %q", got)
 	}
-	gotLen, gotRoot := budgetTreeSignature(st2.Budget().Tree())
+	budgetTree, err = st2.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotLen, gotRoot := budgetTreeSignature(budgetTree)
 	if gotLen != budgetLen || gotRoot != budgetRoot {
 		t.Fatalf("budget tree changed: before (%d,%q) after (%d,%q)", budgetLen, budgetRoot, gotLen, gotRoot)
 	}
@@ -188,27 +209,33 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 func TestWithTxCommitsDomainWrites(t *testing.T) {
 	st := testPostgresStore(t)
 	pool := testDBPool(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
 	modelsBefore := modelUpdatedAt(t, pool, "model-1")
 	memberBefore := memberUpdatedAt(t, pool, seed.IDMember1)
 	budgetBefore := budgetNodeUpdatedAt(t, pool, "dept-1")
 
 	err := st.WithTx(ctx, func(tx store.Store) error {
-		members := tx.Org().Members()
+		members, err := tx.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
 		for i := range members {
 			if members[i].ID == seed.IDMember1 {
 				members[i].Name = "TxTest"
 			}
 		}
-		if err := tx.Org().SetMembers(members); err != nil {
+		if err := tx.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		tree := tx.Budget().Tree()
+		tree, err := tx.Budget().Tree(ctx)
+		if err != nil {
+			return err
+		}
 		if len(tree) > 0 {
 			tree[0].Name = tree[0].Name + "-tx"
 		}
-		return tx.Budget().SetTree(tree)
+		return tx.Budget().SetTree(ctx, tree)
 	})
 	if err != nil {
 		t.Fatal(err)

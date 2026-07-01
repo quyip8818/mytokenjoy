@@ -29,6 +29,9 @@ func TestLoadSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot := seed.Load(cfg)
+	if snapshot.Company.ID != seed.DefaultCompanyID || snapshot.Company.Slug != "default" {
+		t.Fatalf("expected default company, got %+v", snapshot.Company)
+	}
 	if len(snapshot.Departments) == 0 {
 		t.Fatal("expected departments in snapshot")
 	}

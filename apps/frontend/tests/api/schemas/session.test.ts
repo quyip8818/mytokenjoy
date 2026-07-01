@@ -4,8 +4,10 @@ import { SessionContextSchema } from '@/api/schemas/session'
 describe('SessionContextSchema', () => {
   it('accepts valid session payloads', () => {
     const result = SessionContextSchema.safeParse({
+      companyId: 1,
       member: {
         id: 'm1',
+        companyId: 1,
         name: 'Admin',
         phone: '13800000000',
         email: 'admin@test.com',
@@ -24,7 +26,8 @@ describe('SessionContextSchema', () => {
 
   it('rejects invalid session payloads', () => {
     const result = SessionContextSchema.safeParse({
-      member: { id: 'm1' },
+      companyId: 1,
+      member: { id: 'm1', companyId: 1 },
       permissions: [],
       readOnly: false,
     })

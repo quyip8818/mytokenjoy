@@ -8,7 +8,8 @@ import (
 )
 
 func (h *Handler) DepartmentTree(w http.ResponseWriter, r *http.Request) {
-	httputil.WriteOK(w, h.service.GetDepartmentTree())
+	tree, err := h.service.GetDepartmentTree(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, tree, err)
 }
 
 func (h *Handler) DepartmentCreate(w http.ResponseWriter, r *http.Request) {

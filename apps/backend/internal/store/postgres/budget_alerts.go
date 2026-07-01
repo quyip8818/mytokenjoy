@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -8,56 +9,59 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgBudgetRepo) OverrunPolicy() types.OverrunPolicyConfig {
+func (r *pgBudgetRepo) OverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error) {
+	companyID := store.CompanyID(ctx)
 	var policy types.OverrunPolicyConfig
-	err := r.db.QueryRow(r.ctx, `
+	err := r.db.QueryRow(ctx, `
 		SELECT thresholds, notify_email, notify_phone, notify_im, block_message
-		FROM overrun_policy WHERE id = 1
-	`).Scan(&policy.Thresholds, &policy.NotifyEmail, &policy.NotifyPhone, &policy.NotifyIm, &policy.BlockMessage)
+		FROM overrun_policy WHERE company_id = $1
+	`, companyID).Scan(&policy.Thresholds, &policy.NotifyEmail, &policy.NotifyPhone, &policy.NotifyIm, &policy.BlockMessage)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return types.OverrunPolicyConfig{}
+			return types.OverrunPolicyConfig{}, nil
 		}
-		return types.OverrunPolicyConfig{}
+		return types.OverrunPolicyConfig{}, err
 	}
-	return policy
+	return policy, nil
 }
 
-func (r *pgBudgetRepo) SetOverrunPolicy(policy types.OverrunPolicyConfig) error {
-	_, err := r.db.Exec(r.ctx, `
-		INSERT INTO overrun_policy (id, thresholds, notify_email, notify_phone, notify_im, block_message, updated_at)
-		VALUES (1, $1, $2, $3, $4, $5, NOW())
-		ON CONFLICT (id) DO UPDATE SET
+func (r *pgBudgetRepo) SetOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO overrun_policy (company_id, thresholds, notify_email, notify_phone, notify_im, block_message, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		ON CONFLICT (company_id) DO UPDATE SET
 			thresholds = EXCLUDED.thresholds,
 			notify_email = EXCLUDED.notify_email,
 			notify_phone = EXCLUDED.notify_phone,
 			notify_im = EXCLUDED.notify_im,
 			block_message = EXCLUDED.block_message,
 			updated_at = NOW()
-	`, policy.Thresholds, policy.NotifyEmail, policy.NotifyPhone, policy.NotifyIm, policy.BlockMessage)
+	`, companyID, policy.Thresholds, policy.NotifyEmail, policy.NotifyPhone, policy.NotifyIm, policy.BlockMessage)
 	if err != nil {
 		return fmt.Errorf("upsert overrun policy: %w", err)
 	}
 	return nil
 }
 
-func (r *pgBudgetRepo) AlertRules() []types.AlertRule {
-	rows, err := r.db.Query(r.ctx, `
-		SELECT id, node_id, node_name, thresholds, enabled FROM alert_rules ORDER BY id
-	`)
+func (r *pgBudgetRepo) AlertRules(ctx context.Context) ([]types.AlertRule, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, node_id, node_name, thresholds, enabled FROM alert_rules WHERE company_id = $1 ORDER BY id
+	`, companyID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	items := make([]types.AlertRule, 0)
 	for rows.Next() {
 		var rule types.AlertRule
 		if err := rows.Scan(&rule.ID, &rule.NodeID, &rule.NodeName, &rule.Thresholds, &rule.Enabled); err != nil {
-			return nil
+			return nil, err
 		}
-		roleRows, err := r.db.Query(r.ctx, `
-			SELECT role_id FROM alert_rule_notify_roles WHERE rule_id = $1 ORDER BY role_id
-		`, rule.ID)
+		roleRows, err := r.db.Query(ctx, `
+			SELECT role_id FROM alert_rule_notify_roles WHERE company_id = $1 AND rule_id = $2 ORDER BY role_id
+		`, companyID, rule.ID)
 		if err == nil {
 			for roleRows.Next() {
 				var roleID string
@@ -69,56 +73,61 @@ func (r *pgBudgetRepo) AlertRules() []types.AlertRule {
 		}
 		items = append(items, rule)
 	}
-	return store.CloneAlertRules(items)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneAlertRules(items), nil
 }
 
-func (r *pgBudgetRepo) SetAlertRules(rules []types.AlertRule) error {
+func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRule) error {
+	companyID := store.CompanyID(ctx)
 	cloned := store.CloneAlertRules(rules)
 	ids := make([]string, len(cloned))
 	for i, rule := range cloned {
 		ids[i] = rule.ID
-		if _, err := r.db.Exec(r.ctx, `
-			INSERT INTO alert_rules (id, node_id, node_name, thresholds, enabled, updated_at)
-			VALUES ($1, $2, $3, $4, $5, NOW())
-			ON CONFLICT (id) DO UPDATE SET
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO alert_rules (id, company_id, node_id, node_name, thresholds, enabled, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, NOW())
+			ON CONFLICT (company_id, id) DO UPDATE SET
 				node_id = EXCLUDED.node_id,
 				node_name = EXCLUDED.node_name,
 				thresholds = EXCLUDED.thresholds,
 				enabled = EXCLUDED.enabled,
 				updated_at = NOW()
-		`, rule.ID, rule.NodeID, rule.NodeName, rule.Thresholds, rule.Enabled); err != nil {
+		`, rule.ID, companyID, rule.NodeID, rule.NodeName, rule.Thresholds, rule.Enabled); err != nil {
 			return fmt.Errorf("upsert alert rule %s: %w", rule.ID, err)
 		}
-		if _, err := r.db.Exec(r.ctx, `DELETE FROM alert_rule_notify_roles WHERE rule_id = $1`, rule.ID); err != nil {
+		if _, err := r.db.Exec(ctx, `DELETE FROM alert_rule_notify_roles WHERE company_id = $1 AND rule_id = $2`, companyID, rule.ID); err != nil {
 			return err
 		}
 		for _, roleID := range rule.NotifyRoleIDs {
-			if _, err := r.db.Exec(r.ctx, `
-				INSERT INTO alert_rule_notify_roles (rule_id, role_id) VALUES ($1, $2)
-			`, rule.ID, roleID); err != nil {
+			if _, err := r.db.Exec(ctx, `
+				INSERT INTO alert_rule_notify_roles (company_id, rule_id, role_id) VALUES ($1, $2, $3)
+			`, companyID, rule.ID, roleID); err != nil {
 				return err
 			}
 		}
 	}
 	if len(ids) == 0 {
-		if _, err := r.db.Exec(r.ctx, `DELETE FROM alert_rule_notify_roles`); err != nil {
+		if _, err := r.db.Exec(ctx, `DELETE FROM alert_rule_notify_roles WHERE company_id = $1`, companyID); err != nil {
 			return err
 		}
-		_, err := r.db.Exec(r.ctx, `DELETE FROM alert_rules`)
+		_, err := r.db.Exec(ctx, `DELETE FROM alert_rules WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumn(r.ctx, r.db, "alert_rule_notify_roles", "rule_id", ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "alert_rule_notify_roles", "rule_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByID(r.ctx, r.db, "alert_rules", ids)
+	return pruneByIDForCompany(ctx, r.db, "alert_rules", companyID, ids)
 }
 
-func (r *pgBudgetRepo) MemberQuotaPools() map[string]types.MemberQuotaPool {
-	rows, err := r.db.Query(r.ctx, `
-		SELECT member_id, personal_quota FROM member_quota_pools
-	`)
+func (r *pgBudgetRepo) MemberQuotaPools(ctx context.Context) (map[string]types.MemberQuotaPool, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT member_id, personal_quota FROM member_quota_pools WHERE company_id = $1
+	`, companyID)
 	if err != nil {
-		return map[string]types.MemberQuotaPool{}
+		return nil, err
 	}
 	defer rows.Close()
 	pools := make(map[string]types.MemberQuotaPool)
@@ -126,23 +135,27 @@ func (r *pgBudgetRepo) MemberQuotaPools() map[string]types.MemberQuotaPool {
 		var memberID string
 		var pool types.MemberQuotaPool
 		if err := rows.Scan(&memberID, &pool.PersonalQuota); err != nil {
-			return map[string]types.MemberQuotaPool{}
+			return nil, err
 		}
 		pools[memberID] = pool
 	}
-	return store.CloneMemberQuotaPools(pools)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneMemberQuotaPools(pools), nil
 }
 
-func (r *pgBudgetRepo) SetMemberQuotaPools(pools map[string]types.MemberQuotaPool) error {
+func (r *pgBudgetRepo) SetMemberQuotaPools(ctx context.Context, pools map[string]types.MemberQuotaPool) error {
+	companyID := store.CompanyID(ctx)
 	cloned := store.CloneMemberQuotaPools(pools)
-	if _, err := r.db.Exec(r.ctx, `DELETE FROM member_quota_pools`); err != nil {
+	if _, err := r.db.Exec(ctx, `DELETE FROM member_quota_pools WHERE company_id = $1`, companyID); err != nil {
 		return fmt.Errorf("clear member quota pools: %w", err)
 	}
 	for memberID, pool := range cloned {
-		if _, err := r.db.Exec(r.ctx, `
-			INSERT INTO member_quota_pools (member_id, personal_quota, updated_at)
-			VALUES ($1, $2, NOW())
-		`, memberID, pool.PersonalQuota); err != nil {
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO member_quota_pools (company_id, member_id, personal_quota, updated_at)
+			VALUES ($1, $2, $3, NOW())
+		`, companyID, memberID, pool.PersonalQuota); err != nil {
 			return fmt.Errorf("insert member quota pool: %w", err)
 		}
 	}

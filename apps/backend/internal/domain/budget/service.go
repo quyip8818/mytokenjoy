@@ -14,20 +14,20 @@ import (
 )
 
 type Service interface {
-	GetTree() []types.BudgetNode
+	GetTree(ctx context.Context) ([]types.BudgetNode, error)
 	UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error)
-	ListMemberQuotas(deptID string) ([]types.MemberBudgetQuota, error)
+	ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error)
 	UpdateMemberQuota(ctx context.Context, memberID string, personalQuota float64) (types.MemberBudgetQuota, error)
-	ListGroups() []types.BudgetGroup
+	ListGroups(ctx context.Context) ([]types.BudgetGroup, error)
 	CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error)
 	UpdateGroup(ctx context.Context, id string, patch types.BudgetGroup) (types.BudgetGroup, error)
-	DeleteGroup(id string) error
-	GetOverrunPolicy() types.OverrunPolicyConfig
+	DeleteGroup(ctx context.Context, id string) error
+	GetOverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error)
 	UpdateOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) (types.OverrunPolicyConfig, error)
-	ListAlerts() []types.AlertRule
+	ListAlerts(ctx context.Context) ([]types.AlertRule, error)
 	CreateAlert(ctx context.Context, rule types.AlertRule) (types.AlertRule, error)
-	UpdateAlert(id string, patch types.AlertRule) (types.AlertRule, error)
-	DeleteAlert(id string) error
+	UpdateAlert(ctx context.Context, id string, patch types.AlertRule) (types.AlertRule, error)
+	DeleteAlert(ctx context.Context, id string) error
 }
 
 type service struct {
@@ -44,15 +44,18 @@ func NewService(cfg config.Config, st store.Store, delayer common.Delayer) Servi
 	}
 }
 
-func (s *service) GetTree() []types.BudgetNode {
-	return s.store.Budget().Tree()
+func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
+	return s.store.Budget().Tree(ctx)
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetNode{}, err
 	}
-	tree := s.store.Budget().Tree()
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return types.BudgetNode{}, err
+	}
 	existing := pkgbudget.FindBudgetNode(tree, id)
 	if existing == nil {
 		return types.BudgetNode{}, domain.NotFound("Node not found")
@@ -72,21 +75,33 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
 		return types.BudgetNode{}, domain.NotFound("Node not found")
 	}
-	if err := s.store.Budget().SetTree(tree); err != nil {
+	if err := s.store.Budget().SetTree(ctx, tree); err != nil {
 		return types.BudgetNode{}, fmt.Errorf("persist budget tree: %w", err)
 	}
 	updated := pkgbudget.FindBudgetNode(tree, id)
 	return *updated, nil
 }
 
-func (s *service) ListMemberQuotas(deptID string) ([]types.MemberBudgetQuota, error) {
-	tree := s.store.Budget().Tree()
+func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if pkgbudget.FindBudgetNode(tree, deptID) == nil {
 		return nil, domain.NotFound("Department not found")
 	}
-	members := s.store.Org().Members()
-	pools := s.store.Budget().MemberQuotaPools()
-	platformKeys := s.store.Keys().PlatformKeys()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pools, err := s.store.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return nil, err
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
 	quotas := make([]types.MemberBudgetQuota, 0)
 	for _, member := range members {
 		if member.DepartmentID == deptID {
@@ -100,29 +115,44 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	tree := s.store.Budget().Tree()
-	members := s.store.Org().Members()
-	pools := s.store.Budget().MemberQuotaPools()
-	platformKeys := s.store.Keys().PlatformKeys()
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return types.MemberBudgetQuota{}, err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.MemberBudgetQuota{}, err
+	}
+	pools, err := s.store.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return types.MemberBudgetQuota{}, err
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.MemberBudgetQuota{}, err
+	}
 	if msg := pkgbudget.ValidateMemberQuotaUpdate(tree, members, pools, platformKeys, memberID, personalQuota); msg != nil {
 		return types.MemberBudgetQuota{}, domain.Validation(*msg)
 	}
 	result := pkgbudget.ApplyMemberQuotaUpdate(members, pools, platformKeys, memberID, personalQuota)
-	if err := s.store.Budget().SetMemberQuotaPools(pools); err != nil {
+	if err := s.store.Budget().SetMemberQuotaPools(ctx, pools); err != nil {
 		return types.MemberBudgetQuota{}, fmt.Errorf("persist member quota pools: %w", err)
 	}
 	return result, nil
 }
 
-func (s *service) ListGroups() []types.BudgetGroup {
-	return s.store.Budget().Groups()
+func (s *service) ListGroups(ctx context.Context) ([]types.BudgetGroup, error) {
+	return s.store.Budget().Groups(ctx)
 }
 
 func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetGroup{}, err
 	}
-	groups := s.store.Budget().Groups()
+	groups, err := s.store.Budget().Groups(ctx)
+	if err != nil {
+		return types.BudgetGroup{}, err
+	}
 	created := types.BudgetGroup{
 		ID:   fmt.Sprintf("bg-%d", time.Now().UnixMilli()),
 		Name: group.Name, Budget: group.Budget, Consumed: 0,
@@ -130,7 +160,7 @@ func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (typ
 		DepartmentIDs: append([]string{}, group.DepartmentIDs...),
 	}
 	groups = append(groups, created)
-	if err := s.store.Budget().SetGroups(groups); err != nil {
+	if err := s.store.Budget().SetGroups(ctx, groups); err != nil {
 		return types.BudgetGroup{}, fmt.Errorf("persist budget groups: %w", err)
 	}
 	return created, nil
@@ -140,7 +170,10 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetGroup{}, err
 	}
-	groups := s.store.Budget().Groups()
+	groups, err := s.store.Budget().Groups(ctx)
+	if err != nil {
+		return types.BudgetGroup{}, err
+	}
 	for i := range groups {
 		if groups[i].ID == id {
 			if patch.Name != "" {
@@ -155,7 +188,7 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 			if patch.DepartmentIDs != nil {
 				groups[i].DepartmentIDs = append([]string{}, patch.DepartmentIDs...)
 			}
-			if err := s.store.Budget().SetGroups(groups); err != nil {
+			if err := s.store.Budget().SetGroups(ctx, groups); err != nil {
 				return types.BudgetGroup{}, fmt.Errorf("persist budget groups: %w", err)
 			}
 			return groups[i], nil
@@ -164,12 +197,15 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 	return types.BudgetGroup{}, domain.NotFound("Not found")
 }
 
-func (s *service) DeleteGroup(id string) error {
-	groups := s.store.Budget().Groups()
+func (s *service) DeleteGroup(ctx context.Context, id string) error {
+	groups, err := s.store.Budget().Groups(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range groups {
 		if groups[i].ID == id {
 			groups = append(groups[:i], groups[i+1:]...)
-			if err := s.store.Budget().SetGroups(groups); err != nil {
+			if err := s.store.Budget().SetGroups(ctx, groups); err != nil {
 				return fmt.Errorf("persist budget groups: %w", err)
 			}
 			return nil
@@ -178,22 +214,22 @@ func (s *service) DeleteGroup(id string) error {
 	return domain.NotFound("Not found")
 }
 
-func (s *service) GetOverrunPolicy() types.OverrunPolicyConfig {
-	return s.store.Budget().OverrunPolicy()
+func (s *service) GetOverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error) {
+	return s.store.Budget().OverrunPolicy(ctx)
 }
 
 func (s *service) UpdateOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) (types.OverrunPolicyConfig, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.OverrunPolicyConfig{}, err
 	}
-	if err := s.store.Budget().SetOverrunPolicy(policy); err != nil {
+	if err := s.store.Budget().SetOverrunPolicy(ctx, policy); err != nil {
 		return types.OverrunPolicyConfig{}, fmt.Errorf("persist overrun policy: %w", err)
 	}
 	return policy, nil
 }
 
-func (s *service) ListAlerts() []types.AlertRule {
-	return s.store.Budget().AlertRules()
+func (s *service) ListAlerts(ctx context.Context) ([]types.AlertRule, error) {
+	return s.store.Budget().AlertRules(ctx)
 }
 
 func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.AlertRule, error) {
@@ -202,16 +238,22 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 	}
 	created := rule
 	created.ID = fmt.Sprintf("alert-%d", time.Now().UnixMilli())
-	rules := s.store.Budget().AlertRules()
+	rules, err := s.store.Budget().AlertRules(ctx)
+	if err != nil {
+		return types.AlertRule{}, err
+	}
 	rules = append(rules, created)
-	if err := s.store.Budget().SetAlertRules(rules); err != nil {
+	if err := s.store.Budget().SetAlertRules(ctx, rules); err != nil {
 		return types.AlertRule{}, fmt.Errorf("persist alert rules: %w", err)
 	}
 	return created, nil
 }
 
-func (s *service) UpdateAlert(id string, patch types.AlertRule) (types.AlertRule, error) {
-	rules := s.store.Budget().AlertRules()
+func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertRule) (types.AlertRule, error) {
+	rules, err := s.store.Budget().AlertRules(ctx)
+	if err != nil {
+		return types.AlertRule{}, err
+	}
 	for i := range rules {
 		if rules[i].ID == id {
 			if patch.NodeID != "" {
@@ -227,7 +269,7 @@ func (s *service) UpdateAlert(id string, patch types.AlertRule) (types.AlertRule
 				rules[i].NotifyRoleIDs = append([]string{}, patch.NotifyRoleIDs...)
 			}
 			rules[i].Enabled = patch.Enabled
-			if err := s.store.Budget().SetAlertRules(rules); err != nil {
+			if err := s.store.Budget().SetAlertRules(ctx, rules); err != nil {
 				return types.AlertRule{}, fmt.Errorf("persist alert rules: %w", err)
 			}
 			return rules[i], nil
@@ -236,8 +278,11 @@ func (s *service) UpdateAlert(id string, patch types.AlertRule) (types.AlertRule
 	return types.AlertRule{}, domain.NotFound("Not found")
 }
 
-func (s *service) DeleteAlert(id string) error {
-	rules := s.store.Budget().AlertRules()
+func (s *service) DeleteAlert(ctx context.Context, id string) error {
+	rules, err := s.store.Budget().AlertRules(ctx)
+	if err != nil {
+		return err
+	}
 	filtered := make([]types.AlertRule, 0, len(rules))
 	found := false
 	for _, rule := range rules {
@@ -250,7 +295,7 @@ func (s *service) DeleteAlert(id string) error {
 	if !found {
 		return domain.NotFound("Not found")
 	}
-	if err := s.store.Budget().SetAlertRules(filtered); err != nil {
+	if err := s.store.Budget().SetAlertRules(ctx, filtered); err != nil {
 		return fmt.Errorf("persist alert rules: %w", err)
 	}
 	return nil

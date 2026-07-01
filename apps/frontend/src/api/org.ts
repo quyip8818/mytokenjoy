@@ -79,7 +79,7 @@ export const memberApi = {
   }) => {
     return request<Paginated<Member>>(`/org/members${buildQuery(params)}`)
   },
-  create: (data: Omit<Member, 'id' | 'status' | 'roles' | 'source'>) =>
+  create: (data: Omit<Member, 'id' | 'status' | 'roles' | 'source' | 'companyId'>) =>
     request<Member>('/org/members', {
       method: 'POST',
       body: JSON.stringify(data),

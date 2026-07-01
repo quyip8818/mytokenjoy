@@ -16,7 +16,11 @@ func newAuditService(t *testing.T) audit.Service {
 
 func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 	svc := newAuditService(t)
-	all := svc.ListOperations(types.AuditOperationsQueryParams{Page: 1, PageSize: 100})
+	ctx := testutil.Ctx()
+	all, err := svc.ListOperations(ctx, types.AuditOperationsQueryParams{Page: 1, PageSize: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if all.Total == 0 {
 		t.Fatal("expected operation logs in seed")
 	}
@@ -25,9 +29,12 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 	}
 
 	firstAction := all.Items[0].Action
-	filtered := svc.ListOperations(types.AuditOperationsQueryParams{
+	filtered, err := svc.ListOperations(ctx, types.AuditOperationsQueryParams{
 		Page: 1, PageSize: 20, Action: firstAction,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, item := range filtered.Items {
 		if item.Action != firstAction {
 			t.Fatalf("expected action %s, got %s", firstAction, item.Action)
@@ -37,11 +44,15 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 
 func TestListCallsDateFilter(t *testing.T) {
 	svc := newAuditService(t)
+	ctx := testutil.Ctx()
 	const from = "2026-06-10"
 	const to = "2026-06-15"
-	filtered := svc.ListCalls(types.AuditCallsQueryParams{
+	filtered, err := svc.ListCalls(ctx, types.AuditCallsQueryParams{
 		Page: 1, PageSize: 100, From: from, To: to,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if filtered.Total == 0 {
 		t.Fatal("expected call logs in date range")
 	}

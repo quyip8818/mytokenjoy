@@ -46,7 +46,7 @@ func (h *WebhookHandler) HandleNewAPILog(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if err := h.ingest.Ingest(r.Context(), payload); err != nil {
-		if enqueueErr := h.ingest.EnqueueFailed(payload, err); enqueueErr != nil {
+		if enqueueErr := h.ingest.EnqueueFailed(r.Context(), payload, err); enqueueErr != nil {
 			h.logger.Error("ingest failed and enqueue to outbox failed",
 				"ingest_error", err,
 				"enqueue_error", enqueueErr,

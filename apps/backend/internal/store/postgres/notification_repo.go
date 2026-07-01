@@ -12,10 +12,11 @@ type notificationRepo struct {
 }
 
 func (r *notificationRepo) Append(ctx context.Context, entry types.NotificationLogEntry) error {
+	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO notification_log (id, channel, event_type, recipient, payload, status, error, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), NOW())
-	`, entry.ID, entry.Channel, entry.EventType, entry.Recipient, entry.Payload, entry.Status, entry.Error)
+		INSERT INTO notification_log (id, company_id, channel, event_type, recipient, payload, status, error, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), NOW())
+	`, entry.ID, companyID, entry.Channel, entry.EventType, entry.Recipient, entry.Payload, entry.Status, entry.Error)
 	return err
 }
 

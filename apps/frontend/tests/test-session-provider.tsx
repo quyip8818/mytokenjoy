@@ -6,6 +6,7 @@ import type { Member } from '@/api/types'
 
 const mockMember: Member = {
   id: 'm-admin',
+  companyId: 1,
   name: '管理员',
   phone: '13800000000',
   email: 'admin@test.com',

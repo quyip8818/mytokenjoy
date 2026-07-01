@@ -37,7 +37,7 @@ func RequireSession(cfg config.Config, sessionSvc session.Service) func(http.Han
 				return
 			}
 
-			sessionCtx, err := sessionSvc.GetByMemberID(memberID)
+			sessionCtx, err := sessionSvc.GetByMemberID(r.Context(), memberID)
 			if err != nil {
 				var domainErr *domain.DomainError
 				if errors.As(err, &domainErr) && domainErr.Status == domain.StatusNotFound {

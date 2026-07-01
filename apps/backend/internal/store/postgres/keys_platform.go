@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,14 +9,15 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgKeysRepo) PlatformKeys() []types.PlatformKey {
-	rows, err := r.db.Query(r.ctx, `
+func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
 		SELECT id, name, key_prefix, full_key, member_id, member_name, app_name,
 			budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
-		FROM platform_keys ORDER BY id
-	`)
+		FROM platform_keys WHERE company_id = $1 ORDER BY id
+	`, companyID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	items := make([]types.PlatformKey, 0)
@@ -28,16 +30,16 @@ func (r *pgKeysRepo) PlatformKeys() []types.PlatformKey {
 			&item.AppName, &item.BudgetGroupID, &item.BudgetGroupName, &item.Status,
 			&item.Quota, &item.Used, &createdAt, &expiresAt,
 		); err != nil {
-			return nil
+			return nil, err
 		}
 		item.CreatedAt = formatDateOnly(createdAt)
 		if expiresAt != nil {
 			s := formatDateOnly(*expiresAt)
 			item.ExpiresAt = &s
 		}
-		modelRows, err := r.db.Query(r.ctx, `
-			SELECT model_name FROM platform_key_models WHERE platform_key_id = $1 ORDER BY model_name
-		`, item.ID)
+		modelRows, err := r.db.Query(ctx, `
+			SELECT model_name FROM platform_key_models WHERE company_id = $1 AND platform_key_id = $2 ORDER BY model_name
+		`, companyID, item.ID)
 		if err == nil {
 			for modelRows.Next() {
 				var modelName string
@@ -49,10 +51,14 @@ func (r *pgKeysRepo) PlatformKeys() []types.PlatformKey {
 		}
 		items = append(items, item)
 	}
-	return store.ClonePlatformKeys(items)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.ClonePlatformKeys(items), nil
 }
 
-func (r *pgKeysRepo) SetPlatformKeys(keys []types.PlatformKey) error {
+func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformKey) error {
+	companyID := store.CompanyID(ctx)
 	cloned := store.ClonePlatformKeys(keys)
 	ids := make([]string, len(cloned))
 	for i, key := range cloned {
@@ -69,12 +75,12 @@ func (r *pgKeysRepo) SetPlatformKeys(keys []types.PlatformKey) error {
 			}
 			expiresAt = &t
 		}
-		if _, err := r.db.Exec(r.ctx, `
+		if _, err := r.db.Exec(ctx, `
 			INSERT INTO platform_keys (
-				id, name, key_prefix, full_key, member_id, member_name, app_name,
+				id, company_id, name, key_prefix, full_key, member_id, member_name, app_name,
 				budget_group_id, budget_group_name, status, quota, used, created_at, expires_at, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
-			ON CONFLICT (id) DO UPDATE SET
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				key_prefix = EXCLUDED.key_prefix,
 				full_key = EXCLUDED.full_key,
@@ -88,31 +94,31 @@ func (r *pgKeysRepo) SetPlatformKeys(keys []types.PlatformKey) error {
 				used = EXCLUDED.used,
 				expires_at = EXCLUDED.expires_at,
 				updated_at = NOW()
-		`, key.ID, key.Name, key.KeyPrefix, key.FullKey, key.MemberID, key.MemberName,
+		`, key.ID, companyID, key.Name, key.KeyPrefix, key.FullKey, key.MemberID, key.MemberName,
 			key.AppName, key.BudgetGroupID, key.BudgetGroupName, key.Status,
 			key.Quota, key.Used, createdAt, expiresAt); err != nil {
 			return fmt.Errorf("upsert platform key %s: %w", key.ID, err)
 		}
-		if _, err := r.db.Exec(r.ctx, `DELETE FROM platform_key_models WHERE platform_key_id = $1`, key.ID); err != nil {
+		if _, err := r.db.Exec(ctx, `DELETE FROM platform_key_models WHERE company_id = $1 AND platform_key_id = $2`, companyID, key.ID); err != nil {
 			return err
 		}
 		for _, modelName := range key.ModelWhitelist {
-			if _, err := r.db.Exec(r.ctx, `
-				INSERT INTO platform_key_models (platform_key_id, model_name) VALUES ($1, $2)
-			`, key.ID, modelName); err != nil {
+			if _, err := r.db.Exec(ctx, `
+				INSERT INTO platform_key_models (company_id, platform_key_id, model_name) VALUES ($1, $2, $3)
+			`, companyID, key.ID, modelName); err != nil {
 				return err
 			}
 		}
 	}
 	if len(ids) == 0 {
-		if _, err := r.db.Exec(r.ctx, `DELETE FROM platform_key_models`); err != nil {
+		if _, err := r.db.Exec(ctx, `DELETE FROM platform_key_models WHERE company_id = $1`, companyID); err != nil {
 			return err
 		}
-		_, err := r.db.Exec(r.ctx, `DELETE FROM platform_keys`)
+		_, err := r.db.Exec(ctx, `DELETE FROM platform_keys WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumn(r.ctx, r.db, "platform_key_models", "platform_key_id", ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "platform_key_models", "platform_key_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByID(r.ctx, r.db, "platform_keys", ids)
+	return pruneByIDForCompany(ctx, r.db, "platform_keys", companyID, ids)
 }

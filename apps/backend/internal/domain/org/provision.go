@@ -1,12 +1,14 @@
 package org
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 const (
@@ -26,6 +28,27 @@ type ProvisionState struct {
 	BudgetTree  []types.BudgetNode
 	Rules       []types.RoutingRule
 	Models      []types.ModelInfo
+}
+
+func loadProvisionState(ctx context.Context, st store.Store, departments []types.Department) (*ProvisionState, error) {
+	tree, err := st.Budget().Tree(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := st.Models().RoutingRules(ctx)
+	if err != nil {
+		return nil, err
+	}
+	models, err := st.Models().Models(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &ProvisionState{
+		Departments: departments,
+		BudgetTree:  tree,
+		Rules:       rules,
+		Models:      models,
+	}, nil
 }
 
 func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {

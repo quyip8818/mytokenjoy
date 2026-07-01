@@ -11,8 +11,8 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) GetDataSourceStatus() types.DataSourceStatus {
-	return s.store.Org().DataSourceStatus()
+func (s *service) GetDataSourceStatus(ctx context.Context) (types.DataSourceStatus, error) {
+	return s.store.Org().DataSourceStatus(ctx)
 }
 
 func (s *service) TestDataSource(ctx context.Context, cred types.Credential) (types.DataSourceTestResult, error) {
@@ -36,7 +36,10 @@ func (s *service) UpdateDataSource(ctx context.Context, cred types.Credential, f
 		return domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	current := s.store.Org().DataSourceStatus()
+	current, err := s.store.Org().DataSourceStatus(ctx)
+	if err != nil {
+		return err
+	}
 	if current.Connected && current.Platform != nil && *current.Platform != cred.Platform && !force {
 		return domain.NewDomainError(
 			domain.StatusUnprocessable,
@@ -57,20 +60,23 @@ func (s *service) UpdateDataSource(ctx context.Context, cred types.Credential, f
 	}
 
 	if current.Connected && current.Platform != nil && *current.Platform != cred.Platform && force {
-		if err := s.store.Credential().ClearCredential(); err != nil {
+		if err := s.store.Credential().ClearCredential(ctx); err != nil {
 			return err
 		}
 	}
 
-	if err := s.saveCredential(cred); err != nil {
+	if err := s.saveCredential(ctx, cred); err != nil {
 		return err
 	}
 
 	platform := cred.Platform
-	status := s.store.Org().DataSourceStatus()
+	status, err := s.store.Org().DataSourceStatus(ctx)
+	if err != nil {
+		return err
+	}
 	status.Connected = true
 	status.Platform = &platform
-	return s.store.Org().SetDataSourceStatus(status)
+	return s.store.Org().SetDataSourceStatus(ctx, status)
 }
 
 func (s *service) SearchDataSource(ctx context.Context, keyword string) (types.DataSourceSearchResult, error) {
@@ -79,7 +85,7 @@ func (s *service) SearchDataSource(ctx context.Context, keyword string) (types.D
 		return types.DataSourceSearchResult{}, nil
 	}
 
-	provider, _, err := s.providerForStored()
+	provider, _, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.DataSourceSearchResult{}, err
 	}
@@ -102,7 +108,10 @@ func (s *service) SearchDataSource(ctx context.Context, keyword string) (types.D
 		}
 	}
 
-	localDepts := s.store.Org().Departments()
+	localDepts, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.DataSourceSearchResult{}, err
+	}
 	mappingOK := false
 	for _, dept := range pkgorg.FlattenDepartmentTree(localDepts) {
 		if dept.ExternalID != nil && *dept.ExternalID == remote.DepartmentExternalID {

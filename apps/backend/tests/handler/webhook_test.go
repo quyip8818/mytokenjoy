@@ -62,7 +62,12 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	beforeBuckets := testutil.UsageBucketCount(app.Store)
 	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
 
-	beforeConsumed := testutil.Dept3Consumed(t, app.Store.Budget().Tree())
+	ctx := testutil.Ctx()
+	budgetTree, err := app.Store.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeConsumed := testutil.Dept3Consumed(t, budgetTree)
 	beforeUsed := platformKeyUsed(t, app.Store, seed.IDPlatformKey1)
 
 	payload := newapi.WebhookLogPayload{
@@ -85,7 +90,11 @@ func TestWebhookIngestSuccess(t *testing.T) {
 		t.Fatalf("expected status ok, got %q", resp["status"])
 	}
 
-	afterConsumed := testutil.Dept3Consumed(t, app.Store.Budget().Tree())
+	budgetTree, err = app.Store.Budget().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterConsumed := testutil.Dept3Consumed(t, budgetTree)
 	if afterConsumed <= beforeConsumed {
 		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
 	}
@@ -119,7 +128,11 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 
 func platformKeyUsed(t *testing.T, st store.Store, keyID string) float64 {
 	t.Helper()
-	for _, key := range st.Keys().PlatformKeys() {
+	keys, err := st.Keys().PlatformKeys(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range keys {
 		if key.ID == keyID {
 			return key.Used
 		}

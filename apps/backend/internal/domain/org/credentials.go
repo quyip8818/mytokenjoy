@@ -1,6 +1,8 @@
 package org
 
 import (
+	"context"
+
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
@@ -24,8 +26,8 @@ func (s *service) credentialKey() ([]byte, error) {
 	return nil, domain.NewDomainError(domain.StatusUnprocessable, "DATA_SOURCE_CREDENTIAL_KEY is required")
 }
 
-func (s *service) loadStoredCredential() (types.Credential, error) {
-	stored, err := s.store.Credential().GetCredential()
+func (s *service) loadStoredCredential(ctx context.Context) (types.Credential, error) {
+	stored, err := s.store.Credential().GetCredential(ctx)
 	if err != nil {
 		return types.Credential{}, err
 	}
@@ -43,7 +45,7 @@ func (s *service) loadStoredCredential() (types.Credential, error) {
 	return types.UnmarshalCredentialPayload(stored.Platform, raw)
 }
 
-func (s *service) saveCredential(cred types.Credential) error {
+func (s *service) saveCredential(ctx context.Context, cred types.Credential) error {
 	key, err := s.credentialKey()
 	if err != nil {
 		return err
@@ -56,11 +58,11 @@ func (s *service) saveCredential(cred types.Credential) error {
 	if err != nil {
 		return err
 	}
-	return s.store.Credential().SaveCredential(cred.Platform, encrypted)
+	return s.store.Credential().SaveCredential(ctx, cred.Platform, encrypted)
 }
 
-func (s *service) providerForStored() (datasource.Provider, types.Platform, error) {
-	cred, err := s.loadStoredCredential()
+func (s *service) providerForStored(ctx context.Context) (datasource.Provider, types.Platform, error) {
+	cred, err := s.loadStoredCredential(ctx)
 	if err != nil {
 		return nil, "", err
 	}

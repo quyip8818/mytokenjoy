@@ -18,9 +18,9 @@ import (
 func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
-	if err := st.Relay().EnqueueRelayOutbox(store.RelayOutboxEntry{
+	if err := st.Relay().EnqueueRelayOutbox(ctx, store.RelayOutboxEntry{
 		ID: "outbox-unknown", Kind: "unknown_kind", Payload: []byte(`{}`), Status: store.OutboxStatusPending,
 	}); err != nil {
 		t.Fatal(err)
@@ -46,16 +46,21 @@ func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
 func TestProcessRelayOutbox(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	runner, st, lifecycle := newWorkerRunner(t, stub)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
 	memberID := seed.IDMember1
 	key := types.PlatformKey{
 		ID: "plk-worker", Name: "worker-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
 	}
-	keys := st.Keys().PlatformKeys()
+	keys, err := st.Keys().PlatformKeys(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
 	keys = append(keys, key)
-	st.Keys().SetPlatformKeys(keys)
+	if err := st.Keys().SetPlatformKeys(testutil.Ctx(), keys); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := lifecycle.SyncCreatePlatformKey(ctx, key, seed.IDDept3); err != nil {
 		t.Fatal(err)
@@ -77,7 +82,7 @@ func TestProcessRelayOutbox(t *testing.T) {
 func TestProcessWebhookOutbox(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
 	tokenID := int64(77)
 	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
@@ -90,7 +95,7 @@ func TestProcessWebhookOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Relay().EnqueueWebhookOutbox(store.WebhookOutboxEntry{
+	if err := st.Relay().EnqueueWebhookOutbox(testutil.Ctx(), store.WebhookOutboxEntry{
 		ID: "wh-1", Payload: payload, Status: store.OutboxStatusPending,
 	}); err != nil {
 		t.Fatal(err)
@@ -104,7 +109,7 @@ func TestProcessWebhookOutbox(t *testing.T) {
 	if pendingWebhookOutbox(st) != 0 {
 		t.Fatal("expected webhook outbox done after RunOnce")
 	}
-	ingested, err := st.Relay().HasIngestedLogID(1001)
+	ingested, err := st.Relay().HasIngestedLogID(testutil.Ctx(), 1001)
 	if err != nil || !ingested {
 		t.Fatalf("expected log 1001 ingested, err=%v ingested=%v", err, ingested)
 	}
@@ -127,19 +132,19 @@ func TestCompensateLogs(t *testing.T) {
 		},
 	}
 	runner, st, _ := newWorkerRunner(t, stub)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
 	tokenID := int64(88)
 	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
 		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
-	if err := st.Relay().SetLastLogID(0); err != nil {
+	if err := st.Relay().SetLastLogID(testutil.Ctx(), 0); err != nil {
 		t.Fatal(err)
 	}
 
 	runner.RunOnce(ctx)
 
-	ingested, err := st.Relay().HasIngestedLogID(500)
+	ingested, err := st.Relay().HasIngestedLogID(testutil.Ctx(), 500)
 	if err != nil || !ingested {
 		t.Fatalf("expected log 500 ingested via compensation, err=%v ingested=%v", err, ingested)
 	}

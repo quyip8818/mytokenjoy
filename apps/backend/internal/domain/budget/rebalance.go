@@ -2,8 +2,10 @@ package budget
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -34,11 +36,17 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 	var err error
 	switch axisKind {
 	case store.RebalanceAxisMember:
-		mappings, err = s.store.Relay().ListMappingsByMemberID(axisID)
+		mappings, err = s.store.Relay().ListMappingsByMemberID(ctx, axisID)
 	case store.RebalanceAxisDepartment:
-		mappings, err = s.store.Relay().ListMappingsByDepartmentID(axisID)
+		mappings, err = s.store.Relay().ListMappingsByDepartmentID(ctx, axisID)
 	case store.RebalanceAxisBudgetGroup:
-		mappings, err = s.store.Relay().ListMappingsByBudgetGroupID(axisID)
+		mappings, err = s.store.Relay().ListMappingsByBudgetGroupID(ctx, axisID)
+	case store.RebalanceAxisCompany:
+		companyID, parseErr := strconv.ParseInt(axisID, 10, 64)
+		if parseErr != nil {
+			return parseErr
+		}
+		mappings, err = s.store.Relay().ListActiveMappingsByCompany(ctx, companyID)
 	default:
 		return nil
 	}
@@ -57,7 +65,10 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 }
 
 func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.RelayMapping) error {
-	platformKeys := s.store.Keys().PlatformKeys()
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
 	key, ok := findPlatformKeyByID(platformKeys, mapping.PlatformKeyID)
 	if !ok || key.Status != "active" {
 		return nil
@@ -67,21 +78,46 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 		return err
 	}
 
-	departments := s.store.Org().Departments()
-	rules := s.store.Models().RoutingRules()
-	models := s.store.Models().Models()
-	pools := s.store.Budget().MemberQuotaPools()
-	groups := s.store.Budget().Groups()
-	tree := s.store.Budget().Tree()
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return err
+	}
+	rules, err := s.store.Models().RoutingRules(ctx)
+	if err != nil {
+		return err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return err
+	}
+	pools, err := s.store.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return err
+	}
+	groups, err := s.store.Budget().Groups(ctx)
+	if err != nil {
+		return err
+	}
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return err
+	}
 
 	deptAllowed := common.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
 	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
-	newRemain := newapi.ToNewAPIUnits(
+	allocated := newapi.ToNewAPIUnits(
 		relay.ComputeRemainQuotaCNY(key, tree, pools, platformKeys, groups, mapping.DepartmentID),
 		models,
 		effective,
 	)
-	if newRemain >= token.RemainQuota {
+	newRemain := allocated
+	if walletID := s.walletUserID(ctx, mapping.CompanyID); walletID > 0 {
+		walletUnits, walletErr := s.walletAvailable(ctx, walletID, mapping, allocated)
+		if walletErr == nil && walletUnits < newRemain {
+			newRemain = walletUnits
+		}
+	}
+	if newRemain == token.RemainQuota {
 		return nil
 	}
 	remain := newRemain
@@ -93,7 +129,44 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	if err != nil {
 		return err
 	}
-	return s.store.Relay().UpdateMappingRemainQuota(mapping.PlatformKeyID, updated.RemainQuota)
+	return s.store.Relay().UpdateMappingRemainQuota(ctx, mapping.PlatformKeyID, updated.RemainQuota)
+}
+
+func (s *RebalanceService) walletUserID(ctx context.Context, companyID int64) int64 {
+	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletAccountID > 0 {
+		return companyCtx.NewAPIWalletAccountID
+	}
+	company, err := s.store.Company().GetByID(ctx, companyID)
+	if err != nil || company == nil || company.NewAPIWalletAccountID == nil {
+		return 0
+	}
+	return *company.NewAPIWalletAccountID
+}
+
+func (s *RebalanceService) walletAvailable(ctx context.Context, walletID int64, mapping store.RelayMapping, allocated int64) (int64, error) {
+	quota, err := s.client.GetUserQuota(ctx, walletID)
+	if err != nil {
+		return allocated, err
+	}
+	mappings, err := s.store.Relay().ListActiveMappingsByCompany(ctx, mapping.CompanyID)
+	if err != nil {
+		return allocated, err
+	}
+	var used int64
+	for _, m := range mappings {
+		if m.PlatformKeyID == mapping.PlatformKeyID || m.RelayRemainQuota == nil {
+			continue
+		}
+		used += *m.RelayRemainQuota
+	}
+	available := quota - used
+	if available < 0 {
+		return 0, nil
+	}
+	if allocated < available {
+		return allocated, nil
+	}
+	return available, nil
 }
 
 func findPlatformKeyByID(platformKeys []types.PlatformKey, id string) (types.PlatformKey, bool) {

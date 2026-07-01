@@ -9,6 +9,7 @@ type OperationLog struct {
 	Action     string `json:"action"`
 	Operator   string `json:"operator"`
 	OperatorID string `json:"operatorId"`
+	ActorType  string `json:"actorType"`
 	Target     string `json:"target"`
 	Detail     string `json:"detail"`
 	IP         string `json:"ip"`

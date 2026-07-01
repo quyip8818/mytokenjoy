@@ -10,6 +10,17 @@ import (
 )
 
 func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
+	if s.cfg.MultiCompany {
+		return types.ProviderKey{}, domain.Forbidden("provider keys are managed by platform in SaaS mode")
+	}
+	return s.createProviderKey(ctx, input)
+}
+
+func (s *service) CreatePlatformProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
+	return s.createProviderKey(ctx, input)
+}
+
+func (s *service) createProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return types.ProviderKey{}, err
 	}
@@ -27,13 +38,16 @@ func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProvi
 		RotateEnabled: false,
 		SecretKey:     input.Key,
 	}
-	keys := s.store.Keys().ProviderKeys()
+	keys, err := s.store.Keys().ProviderKeys(ctx)
+	if err != nil {
+		return types.ProviderKey{}, err
+	}
 	keys = append(keys, created)
-	if err := s.store.Keys().SetProviderKeys(keys); err != nil {
+	if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 		return types.ProviderKey{}, err
 	}
 	if s.lifecycle != nil && s.lifecycle.Enabled() {
-		if err := s.lifecycle.EnqueueUpsertProviderKey(created.ID); err != nil {
+		if err := s.lifecycle.EnqueueUpsertProviderKey(ctx, created.ID); err != nil {
 			return types.ProviderKey{}, err
 		}
 		if err := s.lifecycle.SyncUpsertProviderKey(ctx, created.ID); err != nil {
@@ -44,10 +58,16 @@ func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProvi
 }
 
 func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
+	if s.cfg.MultiCompany {
+		return domain.Forbidden("provider keys are managed by platform in SaaS mode")
+	}
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	keys := s.store.Keys().ProviderKeys()
+	keys, err := s.store.Keys().ProviderKeys(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range keys {
 		if keys[i].ID == id {
 			if keys[i].Status == "active" {
@@ -55,11 +75,11 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 			} else {
 				keys[i].Status = "active"
 			}
-			if err := s.store.Keys().SetProviderKeys(keys); err != nil {
+			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return err
 			}
 			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				if err := s.lifecycle.EnqueueUpsertProviderKey(id); err != nil {
+				if err := s.lifecycle.EnqueueUpsertProviderKey(ctx, id); err != nil {
 					return err
 				}
 			}
@@ -70,16 +90,22 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 }
 
 func (s *service) RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error) {
+	if s.cfg.MultiCompany {
+		return types.ProviderKey{}, domain.Forbidden("provider keys are managed by platform in SaaS mode")
+	}
 	if err := s.delayer.Wait(ctx, time.Second); err != nil {
 		return types.ProviderKey{}, err
 	}
-	keys := s.store.Keys().ProviderKeys()
+	keys, err := s.store.Keys().ProviderKeys(ctx)
+	if err != nil {
+		return types.ProviderKey{}, err
+	}
 	for i := range keys {
 		if keys[i].ID == id {
 			keys[i].KeyPrefix = fmt.Sprintf("sk-rot-%x...", time.Now().UnixMilli())
 			lastUsed := time.Now().Format("2006-01-02 15:04")
 			keys[i].LastUsed = &lastUsed
-			if err := s.store.Keys().SetProviderKeys(keys); err != nil {
+			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return types.ProviderKey{}, err
 			}
 			return keys[i], nil
@@ -88,12 +114,18 @@ func (s *service) RotateProviderKey(ctx context.Context, id string) (types.Provi
 	return types.ProviderKey{}, domain.NotFound("Not found")
 }
 
-func (s *service) DeleteProviderKey(id string) error {
-	keys := s.store.Keys().ProviderKeys()
+func (s *service) DeleteProviderKey(ctx context.Context, id string) error {
+	if s.cfg.MultiCompany {
+		return domain.Forbidden("provider keys are managed by platform in SaaS mode")
+	}
+	keys, err := s.store.Keys().ProviderKeys(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range keys {
 		if keys[i].ID == id {
 			keys = append(keys[:i], keys[i+1:]...)
-			if err := s.store.Keys().SetProviderKeys(keys); err != nil {
+			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return err
 			}
 			return nil

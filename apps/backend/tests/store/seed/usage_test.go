@@ -1,7 +1,6 @@
 package seed_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 func TestApplyUsageBucketsSeedsMemoryStore(t *testing.T) {
 	cfg := testutil.TestConfig()
 	st := testutil.NewMemoryStore(t, cfg)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 
 	if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)
@@ -32,7 +31,7 @@ func TestApplyUsageBucketsSeedsMemoryStore(t *testing.T) {
 func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	cfg := testutil.TestConfig()
 	st := testutil.NewMemoryStore(t, cfg)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)
 	}

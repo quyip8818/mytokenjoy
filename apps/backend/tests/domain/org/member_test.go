@@ -1,7 +1,6 @@
 package org_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -12,8 +11,9 @@ import (
 
 func TestCreateMemberPersists(t *testing.T) {
 	svc := newTestOrgService(t)
+	ctx := testutil.Ctx()
 
-	member, err := svc.CreateMember(types.Member{
+	member, err := svc.CreateMember(ctx, types.Member{
 		Name: "Phase0 User", Phone: "13900001111", Email: "phase0@example.com",
 		DepartmentID: "dept-5",
 	})
@@ -24,8 +24,12 @@ func TestCreateMemberPersists(t *testing.T) {
 		t.Fatal("expected member id")
 	}
 
+	page, err := svc.ListMembers(ctx, "dept-5", "", true, 1, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
 	found := false
-	for _, item := range svc.ListMembers("dept-5", "", true, 1, 200).Items {
+	for _, item := range page.Items {
 		if item.ID == member.ID {
 			found = true
 			break
@@ -38,7 +42,7 @@ func TestCreateMemberPersists(t *testing.T) {
 
 func TestCreateMemberUnknownDepartment404(t *testing.T) {
 	svc := newTestOrgService(t)
-	_, err := svc.CreateMember(types.Member{
+	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
 		Name: "Ghost", Phone: "13900002222", Email: "ghost@example.com",
 		DepartmentID: "missing-dept",
 	})
@@ -46,22 +50,28 @@ func TestCreateMemberUnknownDepartment404(t *testing.T) {
 }
 
 func TestDeleteMembersDisablesKeys(t *testing.T) {
-	svc := newTestOrgService(t)
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc = testutil.NewOrgService(t, cfg, st)
+	svc := testutil.NewOrgService(t, cfg, st)
+	ctx := testutil.Ctx()
 
-	if err := svc.DeleteMembers(context.Background(), []string{seed.IDMember1}); err != nil {
+	if err := svc.DeleteMembers(testutil.Ctx(), []string{seed.IDMember1}); err != nil {
 		t.Fatal(err)
 	}
 
-	members := st.Org().Members()
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, member := range members {
 		if member.ID == seed.IDMember1 && member.Status != "inactive" {
 			t.Fatalf("expected inactive status, got %s", member.Status)
 		}
 	}
 
-	keys := st.Keys().PlatformKeys()
+	keys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, key := range keys {
 		if key.MemberID != nil && *key.MemberID == seed.IDMember1 && key.Status != "disabled" {
 			t.Fatalf("expected disabled key, got %s", key.Status)
@@ -72,10 +82,11 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	svc := testutil.NewOrgService(t, cfg, st)
+	ctx := testutil.Ctx()
 
 	memberID := seed.IDMember1
 	targetDept := "dept-4"
-	if err := st.Relay().UpsertMapping(store.RelayMapping{
+	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
 		PlatformKeyID: seed.IDPlatformKey1,
 		MemberID:      &memberID,
 		DepartmentID:  seed.IDDept3,
@@ -85,11 +96,14 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.TransferMembers(context.Background(), []string{memberID}, targetDept); err != nil {
+	if err := svc.TransferMembers(testutil.Ctx(), []string{memberID}, targetDept); err != nil {
 		t.Fatal(err)
 	}
 
-	members := st.Org().Members()
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, member := range members {
 		if member.ID != memberID {
 			continue
@@ -99,7 +113,7 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 		}
 	}
 
-	mappings, err := st.Relay().ListMappingsByMemberID(memberID)
+	mappings, err := st.Relay().ListMappingsByMemberID(ctx, memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,11 +128,16 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	svc := testutil.NewOrgService(t, cfg, st)
+	ctx := testutil.Ctx()
 
-	if err := svc.UpdateMemberStatus(context.Background(), []string{seed.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{seed.IDMember1}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range st.Keys().PlatformKeys() {
+	keys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range keys {
 		if key.MemberID != nil && *key.MemberID == seed.IDMember1 && key.Status != "disabled" {
 			t.Fatalf("expected disabled key, got %s", key.Status)
 		}

@@ -17,3 +17,10 @@ func formatSyncLogTime(t time.Time) string {
 func formatDateOnly(t time.Time) string {
 	return t.Format("2006-01-02")
 }
+
+func parseTimeOrNow(value string) (time.Time, error) {
+	if value == "" {
+		return time.Now().UTC(), nil
+	}
+	return timeparse.Parse(value)
+}

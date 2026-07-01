@@ -13,22 +13,23 @@ import (
 )
 
 type Service interface {
-	ListProviderKeys() []types.ProviderKey
+	ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error)
 	CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
+	CreatePlatformProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
 	ToggleProviderKey(ctx context.Context, id string) error
 	RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error)
-	DeleteProviderKey(id string) error
-	ListPlatformKeys(memberID, budgetGroupID string) types.PageResult[types.PlatformKey]
-	QuotaSummary(memberID string) (types.MemberQuotaSummary, error)
+	DeleteProviderKey(ctx context.Context, id string) error
+	ListPlatformKeys(ctx context.Context, memberID, budgetGroupID string) (types.PageResult[types.PlatformKey], error)
+	QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
 	UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
 	TogglePlatformKey(ctx context.Context, id string, enabled bool) (types.PlatformKey, error)
 	RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error)
 	RevokePlatformKey(ctx context.Context, id string) error
-	DeletePlatformKey(id string) error
-	ListApprovals(tab, memberID string) []types.KeyApproval
+	DeletePlatformKey(ctx context.Context, id string) error
+	ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error)
 	CreateApproval(ctx context.Context, input types.CreateApprovalInput) (types.KeyApproval, error)
-	ApprovalQuotaCheck(id string) types.ApprovalQuotaCheck
+	ApprovalQuotaCheck(ctx context.Context, id string) (types.ApprovalQuotaCheck, error)
 	ApproveApproval(ctx context.Context, id string, approverMemberID string) error
 	RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error
 }
@@ -49,12 +50,15 @@ func NewService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle, de
 	}
 }
 
-func (s *service) ListProviderKeys() []types.ProviderKey {
-	return s.store.Keys().ProviderKeys()
+func (s *service) ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error) {
+	return s.store.Keys().ProviderKeys(ctx)
 }
 
-func (s *service) ListPlatformKeys(memberID, budgetGroupID string) types.PageResult[types.PlatformKey] {
-	items := s.store.Keys().PlatformKeys()
+func (s *service) ListPlatformKeys(ctx context.Context, memberID, budgetGroupID string) (types.PageResult[types.PlatformKey], error) {
+	items, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.PageResult[types.PlatformKey]{}, err
+	}
 	filtered := make([]types.PlatformKey, 0, len(items))
 	for _, key := range items {
 		if memberID != "" && (key.MemberID == nil || *key.MemberID != memberID) {
@@ -67,23 +71,38 @@ func (s *service) ListPlatformKeys(memberID, budgetGroupID string) types.PageRes
 	}
 	return types.PageResult[types.PlatformKey]{
 		Items: filtered, Total: len(filtered), Page: 1, PageSize: 20,
-	}
+	}, nil
 }
 
-func (s *service) QuotaSummary(memberID string) (types.MemberQuotaSummary, error) {
+func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error) {
 	if memberID == "" {
 		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
 	}
-	tree := s.store.Budget().Tree()
-	members := s.store.Org().Members()
-	pools := s.store.Budget().MemberQuotaPools()
-	platformKeys := s.store.Keys().PlatformKeys()
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return types.MemberQuotaSummary{}, err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.MemberQuotaSummary{}, err
+	}
+	pools, err := s.store.Budget().MemberQuotaPools(ctx)
+	if err != nil {
+		return types.MemberQuotaSummary{}, err
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.MemberQuotaSummary{}, err
+	}
 	reservedPool := budget.GetReservedPoolForMember(tree, members, memberID)
 	return budget.BuildQuotaSummary(pools, platformKeys, memberID, reservedPool), nil
 }
 
-func (s *service) ListApprovals(tab, memberID string) []types.KeyApproval {
-	items := s.store.Keys().Approvals()
+func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error) {
+	items, err := s.store.Keys().Approvals(ctx)
+	if err != nil {
+		return nil, err
+	}
 	filtered := make([]types.KeyApproval, 0, len(items))
 	for _, item := range items {
 		if tab == "pending" && item.Status != "pending" {
@@ -94,11 +113,14 @@ func (s *service) ListApprovals(tab, memberID string) []types.KeyApproval {
 		}
 		filtered = append(filtered, item)
 	}
-	return filtered
+	return filtered, nil
 }
 
-func (s *service) ApprovalQuotaCheck(id string) types.ApprovalQuotaCheck {
-	approvals := s.store.Keys().Approvals()
+func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.ApprovalQuotaCheck, error) {
+	approvals, err := s.store.Keys().Approvals(ctx)
+	if err != nil {
+		return types.ApprovalQuotaCheck{}, err
+	}
 	var approval *types.KeyApproval
 	for i := range approvals {
 		if approvals[i].ID == id {
@@ -110,11 +132,17 @@ func (s *service) ApprovalQuotaCheck(id string) types.ApprovalQuotaCheck {
 	reservedPool := 0.0
 	if approval != nil {
 		requested = approval.RequestedQuota
-		tree := s.store.Budget().Tree()
-		members := s.store.Org().Members()
+		tree, err := s.store.Budget().Tree(ctx)
+		if err != nil {
+			return types.ApprovalQuotaCheck{}, err
+		}
+		members, err := s.store.Org().Members(ctx)
+		if err != nil {
+			return types.ApprovalQuotaCheck{}, err
+		}
 		reservedPool = budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
 	}
 	return types.ApprovalQuotaCheck{
 		Sufficient: requested <= reservedPool, ReservedPool: reservedPool, Requested: requested,
-	}
+	}, nil
 }

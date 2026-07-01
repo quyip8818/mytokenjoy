@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 )
@@ -25,9 +26,11 @@ const (
 	RebalanceAxisMember      = "member"
 	RebalanceAxisDepartment  = "department"
 	RebalanceAxisBudgetGroup = "budget_group"
+	RebalanceAxisCompany     = "company"
 )
 
 type RelayMapping struct {
+	CompanyID        int64
 	PlatformKeyID    string
 	NewAPITokenID    *int64
 	MemberID         *string
@@ -61,49 +64,53 @@ type WebhookOutboxEntry struct {
 }
 
 type RebalanceQueueEntry struct {
-	ID       string
-	AxisKind string
-	AxisID   string
-	Status   string
+	ID        string
+	CompanyID int64
+	AxisKind  string
+	AxisID    string
+	Status    string
 }
 
 type RelayMappingRepository interface {
-	GetMappingByPlatformKeyID(platformKeyID string) (*RelayMapping, error)
-	GetMappingByNewAPITokenID(tokenID int64) (*RelayMapping, error)
-	ListMappingsByMemberID(memberID string) ([]RelayMapping, error)
-	ListMappingsByDepartmentID(departmentID string) ([]RelayMapping, error)
-	ListMappingsByBudgetGroupID(budgetGroupID string) ([]RelayMapping, error)
-	ListActiveMappings() ([]RelayMapping, error)
-	UpsertMapping(mapping RelayMapping) error
-	UpdateMappingSync(platformKeyID string, tokenID int64, status string, remainQuota *int64, syncedAt time.Time) error
-	UpdateMappingRemainQuota(platformKeyID string, remainQuota int64) error
+	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*RelayMapping, error)
+	GetMappingByFullKey(ctx context.Context, fullKey string) (*RelayMapping, error)
+	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
+	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
+	ListMappingsByMemberID(ctx context.Context, memberID string) ([]RelayMapping, error)
+	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]RelayMapping, error)
+	ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]RelayMapping, error)
+	ListActiveMappings(ctx context.Context) ([]RelayMapping, error)
+	ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]RelayMapping, error)
+	UpsertMapping(ctx context.Context, mapping RelayMapping) error
+	UpdateMappingSync(ctx context.Context, platformKeyID string, tokenID int64, status string, remainQuota *int64, syncedAt time.Time) error
+	UpdateMappingRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error
 }
 
 type RelayOutboxRepository interface {
-	EnqueueRelayOutbox(entry RelayOutboxEntry) error
-	ClaimPendingRelayOutbox(limit int) ([]RelayOutboxEntry, error)
-	MarkRelayOutboxDone(id string) error
-	MarkRelayOutboxRetry(id string, nextRetry time.Time, lastError string) error
+	EnqueueRelayOutbox(ctx context.Context, entry RelayOutboxEntry) error
+	ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]RelayOutboxEntry, error)
+	MarkRelayOutboxDone(ctx context.Context, id string) error
+	MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
 }
 
 type WebhookOutboxRepository interface {
-	EnqueueWebhookOutbox(entry WebhookOutboxEntry) error
-	ClaimPendingWebhookOutbox(limit int) ([]WebhookOutboxEntry, error)
-	MarkWebhookOutboxDone(id string) error
-	MarkWebhookOutboxRetry(id string, nextRetry time.Time, lastError string) error
+	EnqueueWebhookOutbox(ctx context.Context, entry WebhookOutboxEntry) error
+	ClaimPendingWebhookOutbox(ctx context.Context, limit int) ([]WebhookOutboxEntry, error)
+	MarkWebhookOutboxDone(ctx context.Context, id string) error
+	MarkWebhookOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
 }
 
 type IngestDedupRepository interface {
-	HasIngestedLogID(logID int64) (bool, error)
-	InsertIngestedLogID(logID int64) error
-	GetLastLogID() (int64, error)
-	SetLastLogID(logID int64) error
+	HasIngestedLogID(ctx context.Context, logID int64) (bool, error)
+	InsertIngestedLogID(ctx context.Context, logID int64) error
+	GetLastLogID(ctx context.Context) (int64, error)
+	SetLastLogID(ctx context.Context, logID int64) error
 }
 
 type RebalanceQueueRepository interface {
-	EnqueueRebalance(axisKind, axisID string) error
-	ClaimPendingRebalance(limit int) ([]RebalanceQueueEntry, error)
-	MarkRebalanceDone(id string) error
+	EnqueueRebalance(ctx context.Context, axisKind, axisID string) error
+	ClaimPendingRebalance(ctx context.Context, limit int) ([]RebalanceQueueEntry, error)
+	MarkRebalanceDone(ctx context.Context, id string) error
 }
 
 type RelayRepository interface {

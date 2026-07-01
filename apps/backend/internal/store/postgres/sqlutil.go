@@ -16,13 +16,24 @@ func pruneByID(ctx context.Context, db dbQuerier, table string, ids []string) er
 	return nil
 }
 
-func pruneByColumn(ctx context.Context, db dbQuerier, table, column string, ids []string) error {
+func pruneByIDForCompany(ctx context.Context, db dbQuerier, table string, companyID int64, ids []string) error {
 	if len(ids) == 0 {
-		_, err := db.Exec(ctx, fmt.Sprintf(`DELETE FROM %s`, table))
+		_, err := db.Exec(ctx, fmt.Sprintf(`DELETE FROM %s WHERE company_id = $1`, table), companyID)
 		return err
 	}
-	query := fmt.Sprintf(`DELETE FROM %s WHERE NOT (%s = ANY($1))`, table, column)
-	if _, err := db.Exec(ctx, query, ids); err != nil {
+	if _, err := db.Exec(ctx, fmt.Sprintf(`DELETE FROM %s WHERE company_id = $1 AND NOT (id = ANY($2))`, table), companyID, ids); err != nil {
+		return fmt.Errorf("prune %s: %w", table, err)
+	}
+	return nil
+}
+
+func pruneByColumnForCompany(ctx context.Context, db dbQuerier, table, column string, companyID int64, ids []string) error {
+	if len(ids) == 0 {
+		_, err := db.Exec(ctx, fmt.Sprintf(`DELETE FROM %s WHERE company_id = $1`, table), companyID)
+		return err
+	}
+	query := fmt.Sprintf(`DELETE FROM %s WHERE company_id = $1 AND NOT (%s = ANY($2))`, table, column)
+	if _, err := db.Exec(ctx, query, companyID, ids); err != nil {
 		return fmt.Errorf("prune %s: %w", table, err)
 	}
 	return nil

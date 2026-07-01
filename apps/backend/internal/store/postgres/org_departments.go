@@ -1,20 +1,23 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgOrgRepo) Departments() []types.Department {
-	rows, err := r.db.Query(r.ctx, `
+func (r *pgOrgRepo) Departments(ctx context.Context) ([]types.Department, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
 		SELECT id, name, parent_id, member_count, external_id, source, manager_id, sort_order
 		FROM departments
+		WHERE company_id = $1
 		ORDER BY sort_order
-	`)
+	`, companyID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	flat := make([]flatDepartment, 0)
@@ -24,23 +27,27 @@ func (r *pgOrgRepo) Departments() []types.Department {
 			&row.ID, &row.Name, &row.ParentID, &row.MemberCount,
 			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
 		); err != nil {
-			return nil
+			return nil, err
 		}
 		flat = append(flat, row)
 	}
-	return store.CloneDepartments(buildDepartmentTree(flat))
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneDepartments(buildDepartmentTree(flat)), nil
 }
 
-func (r *pgOrgRepo) SetDepartments(departments []types.Department) error {
+func (r *pgOrgRepo) SetDepartments(ctx context.Context, departments []types.Department) error {
+	companyID := store.CompanyID(ctx)
 	flat := flattenDepartmentsWithOrder(store.CloneDepartments(departments))
 	ids := make([]string, len(flat))
 	for i, row := range flat {
 		ids[i] = row.ID
-		if _, err := r.db.Exec(r.ctx, `
+		if _, err := r.db.Exec(ctx, `
 			INSERT INTO departments (
-				id, name, parent_id, member_count, external_id, source, manager_id, sort_order, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-			ON CONFLICT (id) DO UPDATE SET
+				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				parent_id = EXCLUDED.parent_id,
 				member_count = EXCLUDED.member_count,
@@ -49,10 +56,10 @@ func (r *pgOrgRepo) SetDepartments(departments []types.Department) error {
 				manager_id = EXCLUDED.manager_id,
 				sort_order = EXCLUDED.sort_order,
 				updated_at = NOW()
-		`, row.ID, row.Name, row.ParentID, row.MemberCount,
+		`, row.ID, companyID, row.Name, row.ParentID, row.MemberCount,
 			row.ExternalID, row.Source, row.ManagerID, row.sortOrder); err != nil {
 			return fmt.Errorf("upsert department %s: %w", row.ID, err)
 		}
 	}
-	return pruneByID(r.ctx, r.db, "departments", ids)
+	return pruneByIDForCompany(ctx, r.db, "departments", companyID, ids)
 }

@@ -2,6 +2,7 @@ package types
 
 type Member struct {
 	ID             string   `json:"id"`
+	CompanyID      int64    `json:"companyId"`
 	Name           string   `json:"name"`
 	Phone          string   `json:"phone"`
 	Email          string   `json:"email"`
@@ -22,6 +23,7 @@ type Role struct {
 }
 
 type SessionContext struct {
+	CompanyID   int64    `json:"companyId"`
 	Member      Member   `json:"member"`
 	Permissions []string `json:"permissions"`
 	ReadOnly    bool     `json:"readOnly"`

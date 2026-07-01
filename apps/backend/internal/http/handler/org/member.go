@@ -14,9 +14,10 @@ func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 	page := common.ParseIntParam(query.Get("page"), 1)
 	pageSize := common.ParseIntParam(query.Get("pageSize"), 20)
 	directOnly := query.Get("directOnly") == "true"
-	httputil.WriteOK(w, h.service.ListMembers(
+	result, err := h.service.ListMembers(r.Context(),
 		query.Get("departmentId"), query.Get("keyword"), directOnly, page, pageSize,
-	))
+	)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	member, err := h.service.CreateMember(body)
+	member, err := h.service.CreateMember(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, member, err)
 }
 
@@ -36,7 +37,7 @@ func (h *Handler) MemberUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := chi.URLParam(r, "id")
-	member, err := h.service.UpdateMember(id, body)
+	member, err := h.service.UpdateMember(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, member, err)
 }
 
@@ -96,7 +97,8 @@ func (h *Handler) MembersBatchInvite(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	httputil.WriteOK(w, h.service.BatchInvite(body.IDs))
+	result, err := h.service.BatchInvite(r.Context(), body.IDs)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) MembersBatchImport(w http.ResponseWriter, r *http.Request) {
@@ -107,5 +109,6 @@ func (h *Handler) MembersBatchImport(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	httputil.WriteOK(w, h.service.BatchImport(body.Rows))
+	result, err := h.service.BatchImport(r.Context(), body.Rows)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

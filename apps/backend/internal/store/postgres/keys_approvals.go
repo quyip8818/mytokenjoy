@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,14 +9,15 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgKeysRepo) Approvals() []types.KeyApproval {
-	rows, err := r.db.Query(r.ctx, `
+func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
 		SELECT id, type, applicant, applicant_id, department, reason, requested_quota,
 			status, approver, reject_reason, created_at, resolved_at
-		FROM key_approvals ORDER BY created_at DESC
-	`)
+		FROM key_approvals WHERE company_id = $1 ORDER BY created_at DESC
+	`, companyID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	items := make([]types.KeyApproval, 0)
@@ -28,16 +30,16 @@ func (r *pgKeysRepo) Approvals() []types.KeyApproval {
 			&item.Reason, &item.RequestedQuota, &item.Status, &item.Approver, &item.RejectReason,
 			&createdAt, &resolvedAt,
 		); err != nil {
-			return nil
+			return nil, err
 		}
 		item.CreatedAt = formatSyncLogTime(createdAt)
 		if resolvedAt != nil {
 			s := formatSyncLogTime(*resolvedAt)
 			item.ResolvedAt = &s
 		}
-		modelRows, err := r.db.Query(r.ctx, `
-			SELECT model_name FROM key_approval_models WHERE approval_id = $1 ORDER BY model_name
-		`, item.ID)
+		modelRows, err := r.db.Query(ctx, `
+			SELECT model_name FROM key_approval_models WHERE company_id = $1 AND approval_id = $2 ORDER BY model_name
+		`, companyID, item.ID)
 		if err == nil {
 			for modelRows.Next() {
 				var modelName string
@@ -49,10 +51,14 @@ func (r *pgKeysRepo) Approvals() []types.KeyApproval {
 		}
 		items = append(items, item)
 	}
-	return store.CloneApprovals(items)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneApprovals(items), nil
 }
 
-func (r *pgKeysRepo) SetApprovals(approvals []types.KeyApproval) error {
+func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyApproval) error {
+	companyID := store.CompanyID(ctx)
 	cloned := store.CloneApprovals(approvals)
 	ids := make([]string, len(cloned))
 	for i, approval := range cloned {
@@ -69,12 +75,12 @@ func (r *pgKeysRepo) SetApprovals(approvals []types.KeyApproval) error {
 			}
 			resolvedAt = &t
 		}
-		if _, err := r.db.Exec(r.ctx, `
+		if _, err := r.db.Exec(ctx, `
 			INSERT INTO key_approvals (
-				id, type, applicant, applicant_id, department, reason, requested_quota,
+				id, company_id, type, applicant, applicant_id, department, reason, requested_quota,
 				status, approver, reject_reason, created_at, resolved_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-			ON CONFLICT (id) DO UPDATE SET
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			ON CONFLICT (company_id, id) DO UPDATE SET
 				type = EXCLUDED.type,
 				applicant = EXCLUDED.applicant,
 				applicant_id = EXCLUDED.applicant_id,
@@ -86,31 +92,31 @@ func (r *pgKeysRepo) SetApprovals(approvals []types.KeyApproval) error {
 				reject_reason = EXCLUDED.reject_reason,
 				created_at = EXCLUDED.created_at,
 				resolved_at = EXCLUDED.resolved_at
-		`, approval.ID, approval.Type, approval.Applicant, approval.ApplicantID, approval.Department,
+		`, approval.ID, companyID, approval.Type, approval.Applicant, approval.ApplicantID, approval.Department,
 			approval.Reason, approval.RequestedQuota, approval.Status, approval.Approver,
 			approval.RejectReason, createdAt, resolvedAt); err != nil {
 			return fmt.Errorf("upsert approval %s: %w", approval.ID, err)
 		}
-		if _, err := r.db.Exec(r.ctx, `DELETE FROM key_approval_models WHERE approval_id = $1`, approval.ID); err != nil {
+		if _, err := r.db.Exec(ctx, `DELETE FROM key_approval_models WHERE company_id = $1 AND approval_id = $2`, companyID, approval.ID); err != nil {
 			return err
 		}
 		for _, modelName := range approval.RequestedModels {
-			if _, err := r.db.Exec(r.ctx, `
-				INSERT INTO key_approval_models (approval_id, model_name) VALUES ($1, $2)
-			`, approval.ID, modelName); err != nil {
+			if _, err := r.db.Exec(ctx, `
+				INSERT INTO key_approval_models (company_id, approval_id, model_name) VALUES ($1, $2, $3)
+			`, companyID, approval.ID, modelName); err != nil {
 				return err
 			}
 		}
 	}
 	if len(ids) == 0 {
-		if _, err := r.db.Exec(r.ctx, `DELETE FROM key_approval_models`); err != nil {
+		if _, err := r.db.Exec(ctx, `DELETE FROM key_approval_models WHERE company_id = $1`, companyID); err != nil {
 			return err
 		}
-		_, err := r.db.Exec(r.ctx, `DELETE FROM key_approvals`)
+		_, err := r.db.Exec(ctx, `DELETE FROM key_approvals WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumn(r.ctx, r.db, "key_approval_models", "approval_id", ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "key_approval_models", "approval_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByID(r.ctx, r.db, "key_approvals", ids)
+	return pruneByIDForCompany(ctx, r.db, "key_approvals", companyID, ids)
 }

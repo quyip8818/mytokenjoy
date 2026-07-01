@@ -17,10 +17,22 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	if err := s.delayer.Wait(ctx, 400*time.Millisecond); err != nil {
 		return types.KeyApproval{}, err
 	}
-	members := s.store.Org().Members()
-	departments := s.store.Org().Departments()
-	rules := s.store.Models().RoutingRules()
-	models := s.store.Models().Models()
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.KeyApproval{}, err
+	}
+	departments, err := s.store.Org().Departments(ctx)
+	if err != nil {
+		return types.KeyApproval{}, err
+	}
+	rules, err := s.store.Models().RoutingRules(ctx)
+	if err != nil {
+		return types.KeyApproval{}, err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.KeyApproval{}, err
+	}
 	if msg := common.ValidateModelsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 		return types.KeyApproval{}, domain.Validation(*msg)
 	}
@@ -37,9 +49,12 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 		RequestedModels: append([]string{}, input.RequestedModels...),
 		Status:          "pending", CreatedAt: time.Now().Format("2006-01-02 15:04"),
 	}
-	approvals := s.store.Keys().Approvals()
+	approvals, err := s.store.Keys().Approvals(ctx)
+	if err != nil {
+		return types.KeyApproval{}, err
+	}
 	approvals = append(approvals, created)
-	if err := s.store.Keys().SetApprovals(approvals); err != nil {
+	if err := s.store.Keys().SetApprovals(ctx, approvals); err != nil {
 		return types.KeyApproval{}, err
 	}
 	return created, nil
@@ -49,7 +64,10 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return err
 	}
-	approvals := s.store.Keys().Approvals()
+	approvals, err := s.store.Keys().Approvals(ctx)
+	if err != nil {
+		return err
+	}
 	idx := -1
 	for i := range approvals {
 		if approvals[i].ID == id {
@@ -61,16 +79,28 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return domain.NotFound("Not found")
 	}
 	approval := approvals[idx]
-	tree := s.store.Budget().Tree()
-	members := s.store.Org().Members()
+	tree, err := s.store.Budget().Tree(ctx)
+	if err != nil {
+		return err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
 	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
 	if approval.Type == "quota" && approval.RequestedQuota > reservedPool {
 		return domain.Validation("Reserved pool insufficient")
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		pools := st.Budget().MemberQuotaPools()
-		platformKeys := st.Keys().PlatformKeys()
+		pools, err := st.Budget().MemberQuotaPools(ctx)
+		if err != nil {
+			return err
+		}
+		platformKeys, err := st.Keys().PlatformKeys(ctx)
+		if err != nil {
+			return err
+		}
 		if approval.Type == "key" {
 			keyQuota := approval.RequestedQuota
 			remaining := budget.GetQuotaRemaining(pools, platformKeys, approval.ApplicantID)
@@ -91,13 +121,13 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 				ModelWhitelist: append([]string{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})
-			if err := st.Keys().SetPlatformKeys(platformKeys); err != nil {
+			if err := st.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return err
 			}
 		} else if approval.Type == "quota" {
 			budget.AddPersonalQuota(pools, approval.ApplicantID, approval.RequestedQuota)
 		}
-		if err := st.Budget().SetMemberQuotaPools(pools); err != nil {
+		if err := st.Budget().SetMemberQuotaPools(ctx, pools); err != nil {
 			return err
 		}
 
@@ -106,7 +136,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		approvals[idx].Status = "approved"
 		approvals[idx].Approver = &approver
 		approvals[idx].ResolvedAt = &now
-		return st.Keys().SetApprovals(approvals)
+		return st.Keys().SetApprovals(ctx, approvals)
 	})
 }
 
@@ -114,8 +144,14 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return err
 	}
-	approvals := s.store.Keys().Approvals()
-	members := s.store.Org().Members()
+	approvals, err := s.store.Keys().Approvals(ctx)
+	if err != nil {
+		return err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
 	for i := range approvals {
 		if approvals[i].ID == id {
 			approver := common.ResolveDemoMemberName(approverMemberID, members)
@@ -124,7 +160,7 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 			approvals[i].Approver = &approver
 			approvals[i].RejectReason = reason
 			approvals[i].ResolvedAt = &now
-			return s.store.Keys().SetApprovals(approvals)
+			return s.store.Keys().SetApprovals(ctx, approvals)
 		}
 	}
 	return nil

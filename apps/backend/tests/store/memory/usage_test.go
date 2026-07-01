@@ -1,7 +1,6 @@
 package memory_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 
 func TestUsageBucketQuerySeriesHour(t *testing.T) {
 	_, st := testutil.NewMemoryStoreFromConfig(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 3})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		BucketStart: time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),

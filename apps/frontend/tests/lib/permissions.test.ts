@@ -21,6 +21,7 @@ const roles: Role[] = [
 function memberWithRoles(roleNames: string[]): Member {
   return {
     id: 'm1',
+    companyId: 1,
     name: 'Test',
     phone: '13800000000',
     email: 'test@test.com',
