@@ -199,7 +199,7 @@ flowchart TB
 | 存储             | 详见 [Backend-存储架构.md](./Backend-存储架构.md) |
 | Worker 测试      | `app.WithoutWorker()`                             |
 
-功能 backlog 见 [Backend-待实现.md](./Backend-待实现.md)。
+功能 backlog 见 [Backend-待实现.md](./Backend-待实现.md)。SaaS 多企业改造见 [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md)、[NewAPI-SaaS多企业配置.md](./NewAPI-SaaS多企业配置.md)。
 
 ---
 

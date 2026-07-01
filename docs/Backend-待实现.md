@@ -96,7 +96,7 @@ ingest 后算 `used/capacity` → `AlertRule` 覆盖 ?? `OverrunPolicy` → `ale
 
 ### US-13 — 看板 defer
 
-`input_tokens`/`output_tokens` 非零写入；`groupBy` 多系列 UI；租户 `timezone` 配置 UI。架构见 [Backend-设计.md](./Backend-设计.md) §10。
+`input_tokens`/`output_tokens` 非零写入；`groupBy` 多系列 UI；企业 `timezone` 配置 UI。架构见 [Backend-设计.md](./Backend-设计.md) §10。
 
 ---
 
@@ -113,7 +113,7 @@ flowchart LR
     P05[Phase 0.5 鉴权]
     P2[Phase 2 NewAPI闭环]
     P4[Phase 4 通知+预警+重置]
-    P5[Phase 5 钉钉企微+多租户+邀请]
+    P5[Phase 5 钉钉企微+SaaS多企业+邀请]
 
     P05 --> P2 --> P4 --> P5
 ```
@@ -123,7 +123,7 @@ flowchart LR
 | **Phase 0.5** | 生产最小安全  | prod GET 读鉴权；sync trigger 保护 |
 | **Phase 2**   | 真实 API 调用 | NewAPI webhook + ingest 闭环       |
 | **Phase 4**   | 运营策略      | 预警通知；月初重置；通知渠道       |
-| **Phase 5**   | SaaS / 全平台 | 钉钉/企微；多租户；邀请全链路      |
+| **Phase 5**   | SaaS / 全平台 | 钉钉/企微；多企业（Renter）；成员邀请；公司钱包与 Gateway。API 见 [Frontend-API契约.md](./Frontend-API契约.md) §10、[Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) |
 
 US-01～03、US-13 主体已完成，不再列入排期表。
 
