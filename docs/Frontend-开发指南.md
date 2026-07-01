@@ -17,7 +17,7 @@
 
 ## 2. 技术栈
 
-React 19、React Router 7、Vite 8、TypeScript 6、Tailwind CSS 4、shadcn/ui、TanStack Table、Recharts、react-hook-form、Zustand、TanStack Query、Vitest。
+React 19、React Router 7、Vite 8、TypeScript 5.x、Tailwind CSS 4、Base UI / shadcn、TanStack Table、Recharts、react-hook-form、Zustand、TanStack Query、Vitest。CI 使用 Node 24、Go 1.24。
 
 路径别名：`@/` → `src/`，`@tests/` → `tests/`。
 
@@ -76,6 +76,8 @@ apps/frontend/
 
 改 API 须同步：`api/{domain}.ts`、`api/types/`、契约文档、`query-keys.ts`（读操作）。
 
+**SaaS 未接入：** 后端已实现 `auth` / `billing` / `platform` API（契约 §10），但 `AppApis` 仅 14 个命名空间；控制台无 `/platform/login`、`/invite/accept`、充值页。
+
 ---
 
 ## 7. 页面架构
@@ -126,7 +128,7 @@ apps/frontend/
 | `pnpm lint`   | ESLint + check-conventions |
 | `pnpm test`   | Vitest                     |
 | `pnpm build`  | tsc + vite build           |
-| `pnpm verify` | lint + test + build        |
+| `pnpm verify` | lint + test + build + backend build:check |
 
 ---
 
@@ -138,19 +140,7 @@ apps/frontend/
 
 ---
 
-## 13. 后续工作（按需）
-
-| 项               | 说明                     |
-| ---------------- | ------------------------ |
-| 页面 Hook 单测   | 优先 keys / budget / org |
-| 生产 OIDC        | 替换 dev cookie          |
-| `groupBy` 多系列 | usage 看板 defer         |
-
-81 端点已对接；`usage/series` minute/hour UI 已完成。
-
----
-
-## 14. PR 自检
+## 13. PR 自检
 
 - [ ] 新页面只改 `ROUTE_DEFINITIONS` 一条
 - [ ] 页面从 `use-*-page` 取数，无内联 `useApis`

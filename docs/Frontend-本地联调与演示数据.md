@@ -136,8 +136,11 @@ Seed 目录 `apps/backend/internal/store/seed/` 包含例如：
 - 模型列表与路由规则
 - 看板费用/用量（`usage_buckets` 由 seed 灌入）
 - 操作日志、调用日志（`data/*.json`）
+- 企业域 demo 数据（`seed_company.go`，私有化默认 `company_id=1`）
 
 默认 `APP_PROFILE=demo`：多数 **GET 读接口** 在 demo 模式下可不挂 Session（见 `PublicOrReadRoutes`）；**写接口** 仍需 Session + 权限。完整联调仍建议先 Dev 登录。
+
+契约 §10（billing / platform / accept-invite）后端已实现，控制台与 `AppApis` 尚未接入。
 
 ### 4.3 环境变量微调演示
 

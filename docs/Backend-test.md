@@ -10,18 +10,23 @@
 
 ```
 tests/
-├── testutil/          # bootstrap、assert、mock；memory store 入口
-├── handler/           # HTTP 契约 + 行为
-├── domain/{audit,budget,keys,models,org,session,dashboard}/
+├── testutil/              # bootstrap、assert、mock、saas、gateway_scenario
+├── handler/               # HTTP 契约 + 行为（含 onboarding、gateway、platform、billing）
+├── domain/
+│   ├── audit/、budget/、keys/、models/、org/、session/、dashboard/
+│   ├── company/、billing/、platform/、renter/、usage/
 ├── pkg/
-│   ├── budget/            # 镜像 internal/pkg/budget
-│   ├── common/            # 镜像 internal/pkg/common
-│   └── newapi/            # integration client 纯函数
-├── infra/permission/      # 权限解析（镜像 internal/infra/permission）
+│   ├── budget/、common/、newapi/
+├── infra/
+│   ├── permission/
+│   └── notification/
+├── integration/datasource/feishu/
 ├── store/
-│   ├── seed/              # seed Load / ApplyUsageBuckets 测试
+│   ├── seed/
+│   ├── memory/
 │   └── postgres/          # integration tag
-└── worker/                # 镜像 internal/infra/worker
+├── worker/
+└── config/
 ```
 
 | 规则         | 说明                                                                              |
@@ -29,6 +34,7 @@ tests/
 | 包名         | `package <name>_test`，黑盒 import `internal/...`                                 |
 | Fixture      | `testutil.TestConfig()` + `testutil.NewMemoryStore(t, cfg)`                       |
 | Handler 集成 | `testutil.NewTestApp(t)`（`-tags=testhook`；`app.NewWithStore` + `store/memory`） |
+| SaaS         | `testutil.ApplySaaSConfig`、`saas.go` helper；见 [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md) §十一 |
 | 确定性       | `SimulateDelay=false`；单测不走 Postgres；`config.Load()` 需 `DATABASE_URL`       |
 
 ---
@@ -53,6 +59,7 @@ go test ./tests/domain/keys/... -v # 单包
 | L1 纯函数     | `tests/pkg/budget`、`tests/pkg/common` | `verify`              |
 | L2 Domain     | `tests/domain/*`                       | `verify`              |
 | L3 Handler    | `tests/handler/*`                      | `verify`              |
+| L4 Integration| `tests/integration/*`                  | 手工 / 按需           |
 | L5 Postgres   | `tests/store/postgres`                 | `backend-integration` |
 | L6 Relay 全栈 | `apps/newapi/scripts/gate-verify.sh`   | 手工                  |
 

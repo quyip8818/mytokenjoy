@@ -4,7 +4,7 @@
 
 不涉及 SQL 字段明细、Repository 或 HTTP 层。
 
-相关文档：[Backend-设计.md](./Backend-设计.md) · [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md)
+相关文档：[Backend-设计.md](./Backend-设计.md) · [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)
 
 ---
 
@@ -270,98 +270,9 @@ erDiagram
 
 ---
 
-## 10. 表结构简化方案
+## 10. SaaS 多企业
 
-44 张表里约一半可合并，在 TokenJoy 规模（成员数百、白名单数十）下**不影响功能与性能**，多数读路径反而更快。
-
-### 10.1 表数量从哪来
-
-| 类别      | 张数 | 原因                                              |
-| --------- | ---- | ------------------------------------------------- |
-| 关联表    | 10   | 多对多拆表，父行读写时需删插子表                  |
-| 单行配置  | 6    | 每个 `id = 1` 独占一表                            |
-| 双树结构  | 2    | `departments` 与 `budget_nodes` ID 对齐但分表     |
-| 1:1 扩展  | 2    | `relay_mappings`、`member_quota_pools` 可并入父表 |
-| 双 Outbox | 2    | `relay_outbox` / `webhook_outbox` 结构相同        |
-| 高频/日志 | 8    | 不宜合并                                          |
-| 核心主表  | ~10  | `members`、`platform_keys`、`models` 等           |
-
-### 10.2 分三阶段
-
-```mermaid
-flowchart LR
-  P0[现状 40 表] --> P1[阶段一 30 表]
-  P1 --> P2[阶段二 26 表]
-  P2 --> P3[阶段三 22 表]
-```
-
-#### 阶段一：关联表 → `TEXT[]` 列（−10 表，优先）
-
-| 删除的表                                            | 并入                                          |
-| --------------------------------------------------- | --------------------------------------------- |
-| `member_roles`                                      | `members.role_ids`                            |
-| `role_permission_grants`                            | `roles.permission_refs`                       |
-| `budget_group_members` / `budget_group_departments` | `budget_groups.member_ids` / `department_ids` |
-| `alert_rule_notify_roles`                           | `alert_rules.notify_role_ids`                 |
-| `model_capabilities`                                | `models.capabilities`                         |
-| `routing_rule_models`                               | `routing_rules.allowed_models`                |
-| `platform_key_models`                               | `platform_keys.model_whitelist`               |
-| `key_approval_models`                               | `key_approvals.requested_models`              |
-
-- **功能**：不变。
-- **性能**：消除读 `platform_keys` 时的 N+1 子表查询，**更快**。
-- **代价**：失去关联表 FK；反向查询（如「拥有某角色的成员」）需 GIN 索引或应用过滤。
-
-#### 阶段二：单行配置与 1:1 扩展（−4～6 表）
-
-| 删除的表                                                   | 并入                               |
-| ---------------------------------------------------------- | ---------------------------------- |
-| `org_data_source_status` + `org_sync_config`               | `org_settings`                     |
-| `overrun_policy` + `audit_settings` + `relay_sync_cursors` | `system_settings`（JSONB 按 key）  |
-| `member_quota_pools`                                       | `members.personal_quota`           |
-| `relay_mappings`                                           | `platform_keys` 的 relay 列（1:1） |
-| `relay_outbox` + `webhook_outbox`                          | `outbox`（加 `queue` 列）          |
-
-- **`datasource_credentials` 建议保持独立**（加密边界清晰）。
-
-#### 阶段三：结构合并（−4 表，可选）
-
-| 删除的表                                | 方案                                |
-| --------------------------------------- | ----------------------------------- |
-| `budget_nodes`                          | 预算字段并入 `departments`          |
-| `routing_rules` + `routing_rule_models` | 路由字段并入节点行                  |
-| `permissions`                           | 权限目录固化在应用代码（seed 只读） |
-| `org_import_failures`                   | 写入 `org_settings` JSONB           |
-
-- **代价**：组织与预算/路由绑在同一张宽表，后续演进成本更高。
-
-### 10.3 不建议合并的表
-
-| 表                                 | 原因                         |
-| ---------------------------------- | ---------------------------- |
-| `usage_buckets`                    | 高频 UPSERT + 多维聚合主键   |
-| `call_logs` / `operation_logs`     | 追加型日志，索引维度不同     |
-| `ingested_log_ids`                 | Webhook 幂等；行数随调用增长 |
-| `scheduler_locks`                  | 租约语义独立                 |
-| `rebalance_queue`                  | 与 Outbox 消费模型不同       |
-| `notification_log`                 | 追加审计，与管理配置分离     |
-| `provider_keys` vs `platform_keys` | 生命周期与 Relay 逻辑不同    |
-
-### 10.4 目标与落地
-
-| 目标        | 表数    | 风险           |
-| ----------- | ------- | -------------- |
-| 只做阶段一  | **30**  | 低，性价比最高 |
-| 阶段一 + 二 | **~26** | 低             |
-| 全部三阶段  | **~22** | 中             |
-
-改 schema 后清库重建，主要改动 Postgres repo 层的读写逻辑。
-
----
-
-## 11. SaaS 多企业
-
-产品 **企业（Company）** 对应表 `companies`、列 `company_id`。详见 [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) §五。
+产品 **企业（Company）** 对应表 `companies`、列 `company_id`。详见 [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md) §五。
 
 | 项         | 说明                                                                                |
 | ---------- | ----------------------------------------------------------------------------------- |
@@ -374,7 +285,7 @@ NewAPI 侧每企业一个 **企业服务账户**（公司钱包），不新增 P
 
 ---
 
-## 12. 小结
+## 11. 小结
 
 | 问题                | 答案                                         |
 | ------------------- | -------------------------------------------- |
@@ -384,4 +295,3 @@ NewAPI 侧每企业一个 **企业服务账户**（公司钱包），不新增 P
 | 部门与预算？        | `departments.id` = `budget_nodes.id`         |
 | 模型白名单？        | 关联表存 `model_name`，非 `models.id`        |
 | 用量 vs 审计？      | `usage_buckets` 供看板；`call_logs` 供审计   |
-| 能否减表？          | 可以；40 → 22～30，见 §10                    |

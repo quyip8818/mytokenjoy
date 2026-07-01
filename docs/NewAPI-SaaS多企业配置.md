@@ -1,7 +1,7 @@
 # NewAPI SaaS 多企业配置指南
 
 > **读者**：平台运维 / 后端  
-> **前置**：[Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md)  
+> **前置**：[Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)  
 > **约定**：产品称 **企业（Company）**；NewAPI 里的 `users` 在本方案中仅作 **企业服务账户（公司钱包）**，不是企业员工登录账号。
 
 ---
@@ -247,6 +247,6 @@ TokenJoy 已提供 `POST /api/internal/webhooks/newapi-log`；若上游未原生
 
 ## 12. 相关文档
 
-- [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) — 架构与 Store
+- [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md) — 架构与 Store
 - `apps/newapi/.env.example` — 本地环境变量模板
 - `apps/newapi/docker-compose.yml` — 本地 Relay 栈
