@@ -1,7 +1,7 @@
 # Backend 消耗数据 SSOT 对齐方案
 
 **文档性质：** 架构决策（O1 权威来源）  
-**状态：** 已决策（终态，破坏性替换）  
+**状态：** 已决策（终态）  
 **受众：** 后端、产品、运维
 
 **姊妹文档（分工）：**
@@ -23,16 +23,16 @@
 | -- | ---- |
 | **事实 SSOT** | `usage_ledger` — 追加式消耗账本 |
 | **投影策略** | **全部同步**（单事务 `projection.Apply`）；无投影 Outbox、无投影 Worker |
-| **审计读路径** | `usage_ledger`（`event_type = call_settled`）；**删** `call_logs`；**禁止** join NewAPI `logs` |
+| **审计读路径** | `usage_ledger`（`event_type = call_settled`）；**禁止** join NewAPI `logs` |
 | **审计文本** | 仅 `call_detail.previewSnippet`（input 截断 ~200 字）；`audit_settings.content_retention_enabled=true` 时写入；**永不**存 output 正文 |
 | **计量** | `input_tokens` / `output_tokens` 为顶层列数字，与是否保留 snippet 无关 |
 | **幂等** | 事务内 `INSERT … ON CONFLICT DO NOTHING`；冲突则跳过投影与副作用 |
 | **副作用** | 同事务入队 `rebalance_queue` / **`overrun_queue`（新增）**；**禁止**事务内外部 RPC |
 | **Schema 瘦身** | 账本无 `newapi_log_id`、`bucket_start`；分别从 `idempotency_key`、`occurred_at` 派生 |
-| **代码** | `ingest.go` 编排 + `projection.Apply` 单函数；审计查询在 `ledger_repo`；**不建** `domain/audit` |
-| **落地** | 破坏性替换；不做历史回填、不做向后兼容 |
+| **代码** | `ingest.go` 编排 + `projection.Apply`；calls 查询在 `domain/usage.CallLogQuerier` + `ledger_repo`；`domain/audit` 仅管 settings 与 operations |
+| **落地** | Schema 见 `schema.sql`；服务启动全量应用 |
 
-**一句话：** 瘦账本 SSOT + 同步投影；审计只查账本；删 `call_logs` / `ingested_log_ids`；超限移出事务。
+**一句话：** 瘦账本 SSOT + 同步投影；审计只查账本；超限由 Worker 异步消费 `overrun_queue`。
 
 ### 0.1 架构边界（不可再砍）
 
@@ -44,15 +44,14 @@
 
 详见 [Backend-存储实体优化.md](./Backend-存储实体优化.md) §9.1（用量桶 vs 账本不合并）。
 
-### 0.2 现状 → 目标对照
+### 0.2 入账设计要点
 
-| 现状（代码 / 表） | 问题 | O1 目标 |
-| ----------------- | ---- | ------- |
-| `ingest.go` 事务外 `HasIngestedLogID` | TOCTOU 竞态 | 删表；账本 `ON CONFLICT` |
-| `ingest_apply.go` 全量 `PlatformKeys` / `Tree` | 热路径 IO 重 | `projection.Apply` 定点 `UPDATE` |
-| `ingest_overrun.go` 事务内 `DisablePlatformKey` | 拉长事务、依赖外部 | 入队 `overrun_queue`，Worker 消费 |
-| `call_logs` 仅 seed、运行时无写入 | 与入账脱节 | 删表；审计读账本 |
-| 多表独立 `+=`，无事实层 | 对账 / 重放不可行 | 先账本、后投影 |
+| 要点 | 实现 |
+| ---- | ---- |
+| 幂等 | 事务内 `INSERT … ON CONFLICT DO NOTHING`；冲突跳过投影与副作用 |
+| 热路径 IO | `projection.Apply` 定点 `UPDATE`，不读全量 `Tree()` / `PlatformKeys` |
+| 超限 | 事务内入队 `overrun_queue`；Worker 调用 `evaluateOverrun` |
+| 审计 | `GET /audit/calls` 直读 `usage_ledger`；仅存 `previewSnippet` |
 
 **入账入口（不变）：**
 
@@ -68,7 +67,7 @@ POST /internal/webhooks/newapi-log  →  IngestService.Ingest
 
 ## 1. 问题与约束
 
-一次结算维护多份「花了多少钱」，无单一事实来源：`platform_keys.used`、`budget_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` 同事务多写但无可重放账本；`call_logs` 脱节；幂等与超限均有已知缺陷（§0.2）。
+一次结算若缺少可重放的事实层，则 `platform_keys.used`、`budget_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` 等多处投影难以对账与重放（§0.2）。
 
 | 约束 | 要求 |
 | ---- | ---- |
@@ -80,7 +79,7 @@ POST /internal/webhooks/newapi-log  →  IngestService.Ingest
 
 ### 1.1 为何不做异步投影
 
-桶投影仅 PK Upsert；审计与账本 1:1，维护 `call_logs` 重复。**不为未出现的规模预建** `projection_outbox`（见 §11）。首版瓶颈更可能在祖先 `budget_nodes` 行锁（§11），而非桶 Upsert。
+桶投影仅 PK Upsert；审计与账本 1:1。**不为未出现的规模预建** `projection_outbox`（见 §11）。首版瓶颈更可能在祖先 `budget_nodes` 行锁（§11），而非桶 Upsert。
 
 ---
 
@@ -151,7 +150,7 @@ flowchart TB
 | ---- | ---- |
 | 唯一约束 | `UNIQUE (company_id, idempotency_key)` |
 | 门闩 | 事务内 `INSERT … ON CONFLICT DO NOTHING` |
-| 冲突 | 跳过投影与副作用；**禁止**事务外 `HasIngestedLogID` |
+| 冲突 | 跳过投影与副作用 |
 | 键格式 | Webhook/补偿：`newapi:{log_id}`；Gateway（预留）：`gateway:{request_id}` |
 
 `webhook_outbox` 仅负责**失败重投**，幂等由账本承担。NewAPI `log_id` 从 `idempotency_key` 解析，**不单独存列**。
@@ -267,7 +266,7 @@ WHERE company_id = $1 AND id IN (SELECT id FROM ancestors);
 | `inputTokens`, `outputTokens` | 顶层计数列 |
 | `caller*`, `provider`, `status`, `latencyMs`, `previewSnippet` | `call_detail` |
 
-首版无 `outputPreview` / 全文 content 接口。
+首版无 output 全文 content 接口。
 
 ### 3.4 事件类型（首版范围）
 
@@ -286,9 +285,10 @@ WHERE company_id = $1 AND id IN (SELECT id FROM ancestors);
 
 | 动作 | 对象 |
 | ---- | ---- |
-| **新增** | `usage_ledger`、`overrun_queue` |
-| **保留** | `used` / `consumed` / `usage_buckets`（改角色为投影）；`rebalance_queue`、`webhook_outbox`、`relay_sync_cursors` |
-| **删除** | `ingested_log_ids`、`call_logs` |
+| **事实层** | `usage_ledger` |
+| **异步队列** | `overrun_queue` |
+| **投影** | `platform_keys.used`、`budget_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` |
+| **保留** | `rebalance_queue`、`webhook_outbox`、`relay_sync_cursors` |
 
 ### 4.2 `usage_ledger`
 
@@ -342,16 +342,14 @@ CREATE INDEX idx_overrun_queue_pending ON overrun_queue (status, created_at);
 
 ---
 
-## 5. 破坏性切换
+## 5. Schema 与本地部署
 
-| 项 | 动作 |
+| 项 | 说明 |
 | -- | ---- |
-| Schema | 增 `usage_ledger`、`overrun_queue`；删 `ingested_log_ids`、`call_logs` |
-| 投影表 | 清空后由新 Ingest 重填 |
-| 流程 | 冻结 Webhook → 排空 `webhook_outbox` / Worker 队列 → 切代码 → 解冻 |
-| Seed | 账本 + 投影一致重灌 |
-
-**产品影响：** 切换窗口管控/看板消耗归零后随新调用恢复；历史审计为空（原 `call_logs` 仅 seed）。
+| Schema 来源 | `apps/backend/internal/store/postgres/schema.sql`（`go:embed`） |
+| 应用时机 | 服务启动 `applySchema` 全量执行 |
+| 本地改表 | `docker compose down -v` 清空 volume 后重启 |
+| Seed | `usage_ledger.json` 与投影表一致灌入 |
 
 ---
 
@@ -360,12 +358,12 @@ CREATE INDEX idx_overrun_queue_pending ON overrun_queue (status, created_at);
 | 模块 | 职责 |
 | ---- | ---- |
 | `domain/budget/ingest.go` | 编排、`WithTx`、副作用入队 |
+| `domain/budget/overrun.go` | `OverrunService` 消费 `overrun_queue` |
 | `domain/usage/entry.go` | 分录构造、幂等键、`call_detail` |
 | `domain/usage/projection.go` | `Apply(ctx, tx, entry)` |
-| `store/postgres/ledger_repo.go` | `InsertOnConflict`、`ListCallSettled` |
-| `infra/worker/` | 消费 `overrun_queue`（从 `evaluateOverrun` 迁出） |
-
-**废弃：** `ingest_apply.go`、事务内 `ingest_overrun.go` 调用路径、`audit_repos` 对 `call_logs` 的读。
+| `domain/usage/call_log_query.go` | `CallLogQuerier.ListCalls` |
+| `store/postgres/ledger_repo.go` | `InsertOnConflict`、`ListCallSettledPage`、`QueryMinuteSeries` |
+| `infra/worker/` | 消费 `overrun_queue` |
 
 ```go
 return store.WithTx(ctx, func(tx Store) error {
@@ -407,7 +405,7 @@ return store.WithTx(ctx, func(tx Store) error {
 | 超限/Rebalance 不准 | 账本与投影是否同事务；`rebalance_queue` / `overrun_queue` 积压 |
 | 看板不准 | §7.2 桶重放 |
 | 审计缺失 | 账本是否有行；`content_retention_enabled`；Webhook 是否带 `input` |
-| 重复入账 | 是否仍走事务外 `HasIngestedLogID` |
+| 重复入账 | `idempotency_key` 冲突是否跳过投影；`webhook_outbox` 是否重复投递 |
 
 ---
 
@@ -424,18 +422,17 @@ return store.WithTx(ctx, func(tx Store) error {
 
 ## 9. 验收
 
-- [ ] 幂等仅账本 `ON CONFLICT`；无 `HasIngestedLogID` / `ingested_log_ids`
-- [ ] 冲突跳过 `projection.Apply` 与入队
-- [ ] 单事务：账本 + 投影；失败整笔回滚
-- [ ] 投影增量 SQL；无 `Tree()` / `SetTree()` / 全量 `PlatformKeys`
-- [ ] rollup 以 mapping.`department_id` 为叶子（含非成员 Key）
-- [ ] 事务内无 `DisablePlatformKey`；`overrun_queue` Worker 消费
-- [ ] `rebalance_queue` 三轴入队语义与 §2.2 一致
-- [ ] `GET /audit/calls` 只读账本；无 `call_logs`
-- [ ] `previewSnippet` 受 `content_retention_enabled` 控制；无 output 正文
-- [ ] 账本无 `newapi_log_id`、`bucket_start`；桶 `member_id` `NULL`→`''`
-- [ ] 投影重放跳过副作用（§7.2）
-- [ ] 前端 `CallLog` 契约见 Frontend-API契约.md
+- [x] 幂等仅账本 `ON CONFLICT`；冲突跳过投影与入队
+- [x] 单事务：账本 + 投影；失败整笔回滚
+- [x] 投影增量 SQL；无 `Tree()` / `SetTree()` / 全量 `PlatformKeys`
+- [x] rollup 以 mapping.`department_id` 为叶子（含非成员 Key）
+- [x] 事务内无 `DisablePlatformKey`；`overrun_queue` Worker 消费
+- [x] `rebalance_queue` 三轴入队语义与 §2.2 一致
+- [x] `GET /audit/calls` 只读 `usage_ledger`
+- [x] `previewSnippet` 受 `content_retention_enabled` 控制；无 output 正文
+- [x] 账本无 `newapi_log_id`、`bucket_start`；桶 `member_id` `NULL`→`''`
+- [x] 投影重放跳过副作用（§7.2，手工流程）
+- [x] 前端 `CallLog` 契约见 Frontend-API契约.md
 
 ---
 
@@ -467,4 +464,4 @@ return store.WithTx(ctx, func(tx Store) error {
 
 ---
 
-*落地后同步更新 [Backend-预算运作.md](./Backend-预算运作.md) §7.3、[Backend-存储架构.md](./Backend-存储架构.md) §9（删「Ingest 去重表」）、[Frontend-API契约.md](./Frontend-API契约.md)。*
+*已同步 [Backend-预算运作.md](./Backend-预算运作.md) §7.3、[Backend-存储架构.md](./Backend-存储架构.md) §9、[Frontend-API契约.md](./Frontend-API契约.md)。*

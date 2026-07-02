@@ -12,8 +12,7 @@
     "latencyMs": 800,
     "cost": 4.6,
     "createdAt": "2026-06-01 08:00:00",
-    "inputPreview": "请帮我优化这段 Go 代码的性能...",
-    "outputPreview": "以下是优化建议：1. 使用 sync.Pool..."
+    "previewSnippet": "请帮我优化这段 Go 代码的性能..."
   },
   {
     "id": "call-2",
@@ -28,8 +27,7 @@
     "latencyMs": 1250,
     "cost": 7.8,
     "createdAt": "2026-06-02 09:07:13",
-    "inputPreview": "用户问题：如何重置密码？",
-    "outputPreview": "您可以通过以下步骤重置密码..."
+    "previewSnippet": "用户问题：如何重置密码？"
   },
   {
     "id": "call-3",
@@ -44,8 +42,7 @@
     "latencyMs": 1700,
     "cost": 11,
     "createdAt": "2026-06-03 10:14:26",
-    "inputPreview": "分析这个系统架构的瓶颈...",
-    "outputPreview": "根据架构图分析，主要瓶颈在..."
+    "previewSnippet": "分析这个系统架构的瓶颈..."
   },
   {
     "id": "call-4",
@@ -60,8 +57,7 @@
     "latencyMs": 2150,
     "cost": 5.4,
     "createdAt": "2026-06-04 11:21:39",
-    "inputPreview": "请生成一个 React 组件...",
-    "outputPreview": "Error: rate_limit_exceeded"
+    "previewSnippet": "请生成一个 React 组件..."
   },
   {
     "id": "call-5",
@@ -76,8 +72,7 @@
     "latencyMs": 2600,
     "cost": 17.4,
     "createdAt": "2026-06-05 12:28:52",
-    "inputPreview": "Review this pull request diff...",
-    "outputPreview": "## Code Review Summary\n..."
+    "previewSnippet": "Review this pull request diff..."
   },
   {
     "id": "call-6",
@@ -92,8 +87,7 @@
     "latencyMs": 3050,
     "cost": 0,
     "createdAt": "2026-06-06 13:35:05",
-    "inputPreview": "[内容已脱敏]",
-    "outputPreview": "[触发合规过滤规则]"
+    "previewSnippet": "[内容已脱敏]"
   },
   {
     "id": "call-7",
@@ -108,8 +102,7 @@
     "latencyMs": 3500,
     "cost": 11.8,
     "createdAt": "2026-06-07 14:42:18",
-    "inputPreview": "帮我写一个正则表达式...",
-    "outputPreview": "这是匹配邮箱的正则：..."
+    "previewSnippet": "帮我写一个正则表达式..."
   },
   {
     "id": "call-8",
@@ -124,8 +117,7 @@
     "latencyMs": 3950,
     "cost": 15,
     "createdAt": "2026-06-08 15:49:31",
-    "inputPreview": "用户问题：订单状态查询",
-    "outputPreview": "您的订单当前状态为..."
+    "previewSnippet": "用户问题：订单状态查询"
   },
   {
     "id": "call-9",
@@ -140,8 +132,7 @@
     "latencyMs": 4400,
     "cost": 8.6,
     "createdAt": "2026-06-09 16:56:44",
-    "inputPreview": "生成营销文案：夏季促销...",
-    "outputPreview": "夏日清凉，限时五折起..."
+    "previewSnippet": "生成营销文案：夏季促销..."
   },
   {
     "id": "call-10",
@@ -156,8 +147,7 @@
     "latencyMs": 4850,
     "cost": 11.8,
     "createdAt": "2026-06-10 17:03:57",
-    "inputPreview": "解释这段 SQL 查询逻辑...",
-    "outputPreview": "该查询使用了 LEFT JOIN..."
+    "previewSnippet": "解释这段 SQL 查询逻辑..."
   },
   {
     "id": "call-11",
@@ -172,8 +162,7 @@
     "latencyMs": 800,
     "cost": 15,
     "createdAt": "2026-06-11 18:10:10",
-    "inputPreview": "请帮我优化这段 Go 代码的性能...",
-    "outputPreview": "以下是优化建议：1. 使用 sync.Pool..."
+    "previewSnippet": "请帮我优化这段 Go 代码的性能..."
   },
   {
     "id": "call-12",
@@ -188,8 +177,7 @@
     "latencyMs": 1250,
     "cost": 5.4,
     "createdAt": "2026-06-12 19:17:23",
-    "inputPreview": "用户问题：如何重置密码？",
-    "outputPreview": "您可以通过以下步骤重置密码..."
+    "previewSnippet": "用户问题：如何重置密码？"
   },
   {
     "id": "call-13",
@@ -204,8 +192,7 @@
     "latencyMs": 1700,
     "cost": 9.4,
     "createdAt": "2026-06-13 08:24:36",
-    "inputPreview": "分析这个系统架构的瓶颈...",
-    "outputPreview": "根据架构图分析，主要瓶颈在..."
+    "previewSnippet": "分析这个系统架构的瓶颈..."
   },
   {
     "id": "call-14",
@@ -220,8 +207,7 @@
     "latencyMs": 2150,
     "cost": 12.6,
     "createdAt": "2026-06-14 09:31:49",
-    "inputPreview": "请生成一个 React 组件...",
-    "outputPreview": "Error: rate_limit_exceeded"
+    "previewSnippet": "请生成一个 React 组件..."
   },
   {
     "id": "call-15",
@@ -236,8 +222,7 @@
     "latencyMs": 2600,
     "cost": 15.8,
     "createdAt": "2026-06-15 10:38:02",
-    "inputPreview": "Review this pull request diff...",
-    "outputPreview": "## Code Review Summary\n..."
+    "previewSnippet": "Review this pull request diff..."
   },
   {
     "id": "call-16",
@@ -252,8 +237,7 @@
     "latencyMs": 3050,
     "cost": 19,
     "createdAt": "2026-06-16 11:45:15",
-    "inputPreview": "[内容已脱敏]",
-    "outputPreview": "[触发合规过滤规则]"
+    "previewSnippet": "[内容已脱敏]"
   },
   {
     "id": "call-17",
@@ -268,8 +252,7 @@
     "latencyMs": 3500,
     "cost": 0,
     "createdAt": "2026-06-17 12:52:28",
-    "inputPreview": "帮我写一个正则表达式...",
-    "outputPreview": "这是匹配邮箱的正则：..."
+    "previewSnippet": "帮我写一个正则表达式..."
   },
   {
     "id": "call-18",
@@ -284,8 +267,7 @@
     "latencyMs": 3950,
     "cost": 3,
     "createdAt": "2026-06-18 13:59:41",
-    "inputPreview": "用户问题：订单状态查询",
-    "outputPreview": "您的订单当前状态为..."
+    "previewSnippet": "用户问题：订单状态查询"
   },
   {
     "id": "call-19",
@@ -300,8 +282,7 @@
     "latencyMs": 4400,
     "cost": 7,
     "createdAt": "2026-06-19 14:06:54",
-    "inputPreview": "生成营销文案：夏季促销...",
-    "outputPreview": "夏日清凉，限时五折起..."
+    "previewSnippet": "生成营销文案：夏季促销..."
   },
   {
     "id": "call-20",
@@ -316,8 +297,7 @@
     "latencyMs": 4850,
     "cost": 10.2,
     "createdAt": "2026-06-01 15:13:07",
-    "inputPreview": "解释这段 SQL 查询逻辑...",
-    "outputPreview": "该查询使用了 LEFT JOIN..."
+    "previewSnippet": "解释这段 SQL 查询逻辑..."
   },
   {
     "id": "call-21",
@@ -332,8 +312,7 @@
     "latencyMs": 800,
     "cost": 13.4,
     "createdAt": "2026-06-02 16:20:20",
-    "inputPreview": "请帮我优化这段 Go 代码的性能...",
-    "outputPreview": "以下是优化建议：1. 使用 sync.Pool..."
+    "previewSnippet": "请帮我优化这段 Go 代码的性能..."
   },
   {
     "id": "call-22",
@@ -348,8 +327,7 @@
     "latencyMs": 1250,
     "cost": 16.6,
     "createdAt": "2026-06-03 17:27:33",
-    "inputPreview": "用户问题：如何重置密码？",
-    "outputPreview": "您可以通过以下步骤重置密码..."
+    "previewSnippet": "用户问题：如何重置密码？"
   },
   {
     "id": "call-23",
@@ -364,8 +342,7 @@
     "latencyMs": 1700,
     "cost": 9,
     "createdAt": "2026-06-04 18:34:46",
-    "inputPreview": "分析这个系统架构的瓶颈...",
-    "outputPreview": "根据架构图分析，主要瓶颈在..."
+    "previewSnippet": "分析这个系统架构的瓶颈..."
   },
   {
     "id": "call-24",
@@ -380,8 +357,7 @@
     "latencyMs": 2150,
     "cost": 23,
     "createdAt": "2026-06-05 19:41:59",
-    "inputPreview": "请生成一个 React 组件...",
-    "outputPreview": "Error: rate_limit_exceeded"
+    "previewSnippet": "请生成一个 React 组件..."
   },
   {
     "id": "call-25",
@@ -396,7 +372,6 @@
     "latencyMs": 2600,
     "cost": 4.6,
     "createdAt": "2026-06-06 08:48:12",
-    "inputPreview": "Review this pull request diff...",
-    "outputPreview": "## Code Review Summary\n..."
+    "previewSnippet": "Review this pull request diff..."
   }
 ]

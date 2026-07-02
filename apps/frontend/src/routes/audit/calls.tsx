@@ -1,7 +1,10 @@
+import { useMemo } from 'react'
 import { Activity } from 'lucide-react'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
 import { AuditListToolbar } from '@/components/audit/audit-list-toolbar'
+import { AuditTablePagination } from '@/components/audit/audit-table-pagination'
 import { OptionsSelect } from '@/components/ui/options-select'
+import { useAuditModelOptions } from '@/hooks/use-audit-model-options'
 import { CALL_LOG_STATUS_LABELS } from '@/lib/labels'
 import { CallLogsTable } from '@/routes/audit/components/call-logs-table'
 import { useAuditCallsPage } from '@/routes/audit/hooks/use-audit-calls-page'
@@ -9,15 +12,21 @@ import { useAuditCallsPage } from '@/routes/audit/hooks/use-audit-calls-page'
 export default function CallLogsPage() {
   const {
     logs,
+    total,
+    page,
+    totalPages,
+    setPage,
     loading,
     error,
     refresh,
     statusFilter,
     callerId,
+    modelFilter,
     datePreset,
     keyword,
     setStatusFilter,
     setCallerId,
+    setModelFilter,
     setDatePreset,
     setKeyword,
     expandedId,
@@ -25,6 +34,11 @@ export default function CallLogsPage() {
     handleExport,
     toggleExpanded,
   } = useAuditCallsPage()
+  const { models } = useAuditModelOptions()
+  const modelOptions = useMemo(
+    () => Object.fromEntries(models.map((model) => [model.name, model.displayName])),
+    [models],
+  )
 
   return (
     <AuditFilteredPage
@@ -56,6 +70,13 @@ export default function CallLogsPage() {
             allLabel="全部状态"
             className="w-32"
           />
+          <OptionsSelect
+            value={modelFilter}
+            onValueChange={setModelFilter}
+            options={modelOptions}
+            allLabel="全部模型"
+            className="w-40"
+          />
         </AuditListToolbar>
       }
     >
@@ -64,6 +85,12 @@ export default function CallLogsPage() {
         expandedId={expandedId}
         contentRetentionEnabled={contentRetentionEnabled}
         onToggleExpanded={toggleExpanded}
+      />
+      <AuditTablePagination
+        total={total}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
       />
     </AuditFilteredPage>
   )

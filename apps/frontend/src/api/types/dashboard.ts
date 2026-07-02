@@ -20,7 +20,7 @@ export type UsageGranularity = 'day' | 'hour' | 'minute'
 
 export type UsageSeriesGroupBy = 'none' | 'department' | 'member' | 'model'
 
-export type UsageSeriesSource = 'buckets' | 'logs'
+export type UsageSeriesSource = 'buckets' | 'ledger'
 
 export type UsageMappingAsOf = 'ingest_time' | 'query_time'
 

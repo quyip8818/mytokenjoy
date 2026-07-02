@@ -29,8 +29,7 @@ type CallLog struct {
 	Status        string  `json:"status"`
 	Cost          float64 `json:"cost"`
 	CreatedAt     string  `json:"createdAt"`
-	InputPreview  string  `json:"inputPreview"`
-	OutputPreview string  `json:"outputPreview"`
+	PreviewSnippet string `json:"previewSnippet"`
 }
 
 type AuditOperationsQueryParams struct {

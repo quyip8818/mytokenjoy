@@ -25,14 +25,7 @@ func (s *service) UsageSeries(ctx context.Context, q types.UsageSeriesQuery, sco
 
 	switch q.Granularity {
 	case types.UsageGranularityMinute:
-		resp, err := s.logAggregator.Series(ctx, q)
-		if err != nil {
-			if s.cfg.IsDemoProfile() && domainusage.IsNewAPIUnavailable(err) {
-				return s.seriesFromBuckets(ctx, q, types.UsageGranularityHour, true)
-			}
-			return types.UsageSeriesResponse{}, err
-		}
-		return resp, nil
+		return domainusage.MinuteSeriesFromLedger(ctx, s.store, q)
 	case types.UsageGranularityDay, types.UsageGranularityHour:
 		return s.seriesFromBuckets(ctx, q, q.Granularity, false)
 	default:

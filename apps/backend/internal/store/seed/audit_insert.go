@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"encoding/json"
 
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
@@ -30,21 +31,23 @@ func insertAudit(ctx context.Context, exec tableWriter, tid int64, snap store.Sn
 			return err
 		}
 	}
-	for _, log := range snap.CallLogs {
-		createdAt, err := pkgtime.Parse(log.CreatedAt)
+	for _, entry := range snap.UsageLedger {
+		detailJSON, err := json.Marshal(entry.CallDetail)
 		if err != nil {
 			return err
 		}
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO call_logs (
-				id, company_id, caller, caller_id, caller_type, model, provider,
-				input_tokens, output_tokens, latency_ms, status, cost,
-				input_preview, output_preview, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+			INSERT INTO usage_ledger (
+				id, company_id, event_type, idempotency_key, amount_cny,
+				department_id, member_id, budget_group_id, platform_key_id,
+				source, occurred_at, model, input_tokens, output_tokens,
+				call_detail, created_at
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, log.ID, tid, log.Caller, log.CallerID, log.CallerType, log.Model, log.Provider,
-			log.InputTokens, log.OutputTokens, log.LatencyMs, log.Status, log.Cost,
-			log.InputPreview, log.OutputPreview, createdAt); err != nil {
+		`, entry.ID, tid, entry.EventType, entry.IdempotencyKey, entry.AmountCNY,
+			entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
+			entry.Source, entry.OccurredAt.UTC(), entry.Model, entry.InputTokens, entry.OutputTokens,
+			detailJSON, entry.CreatedAt.UTC()); err != nil {
 			return err
 		}
 	}

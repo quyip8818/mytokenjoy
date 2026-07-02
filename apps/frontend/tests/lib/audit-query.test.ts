@@ -43,10 +43,11 @@ describe('audit-query', () => {
       buildCallsQuery({
         status: AUDIT_FILTER_ALL,
         callerId: 'm-1',
+        model: 'gpt-4o',
         datePreset: AUDIT_DATE_PRESET.ALL,
         keyword: '',
       }),
-    ).toEqual({ callerId: 'm-1' })
+    ).toEqual({ callerId: 'm-1', model: 'gpt-4o' })
   })
 
   it('buildOperationsQuery maps domain filters', () => {

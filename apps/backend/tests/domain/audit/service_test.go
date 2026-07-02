@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -43,11 +44,12 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 }
 
 func TestListCallsDateFilter(t *testing.T) {
-	svc := newAuditService(t)
+	_, st := testutil.NewMemoryStoreFromConfig(t)
+	querier := domainusage.NewCallLogQuerier(st)
 	ctx := testutil.Ctx()
 	const from = "2026-06-10"
 	const to = "2026-06-15"
-	filtered, err := svc.ListCalls(ctx, types.AuditCallsQueryParams{
+	filtered, err := querier.ListCalls(ctx, types.AuditCallsQueryParams{
 		Page: 1, PageSize: 100, From: from, To: to,
 	})
 	if err != nil {

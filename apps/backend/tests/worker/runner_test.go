@@ -109,9 +109,9 @@ func TestProcessWebhookOutbox(t *testing.T) {
 	if pendingWebhookOutbox(st) != 0 {
 		t.Fatal("expected webhook outbox done after RunOnce")
 	}
-	ingested, err := st.Relay().HasIngestedLogID(testutil.Ctx(), 1001)
+	ingested, err := testutil.HasLedgerLogID(st, 1001)
 	if err != nil || !ingested {
-		t.Fatalf("expected log 1001 ingested, err=%v ingested=%v", err, ingested)
+		t.Fatalf("expected log 1001 in ledger, err=%v ingested=%v", err, ingested)
 	}
 }
 
@@ -144,8 +144,8 @@ func TestCompensateLogs(t *testing.T) {
 
 	runner.RunOnce(ctx)
 
-	ingested, err := st.Relay().HasIngestedLogID(testutil.Ctx(), 500)
+	ingested, err := testutil.HasLedgerLogID(st, 500)
 	if err != nil || !ingested {
-		t.Fatalf("expected log 500 ingested via compensation, err=%v ingested=%v", err, ingested)
+		t.Fatalf("expected log 500 in ledger via compensation, err=%v ingested=%v", err, ingested)
 	}
 }

@@ -69,6 +69,7 @@ func (m *Store) Budget() store.BudgetRepository   { return &memoryBudgetRepo{sto
 func (m *Store) Keys() store.KeysRepository       { return &memoryKeysRepo{store: m} }
 func (m *Store) Models() store.ModelsRepository   { return &memoryModelsRepo{store: m} }
 func (m *Store) Audit() store.AuditRepository     { return &memoryAuditRepo{store: m} }
+func (m *Store) Ledger() store.LedgerRepository   { return &memoryLedgerRepo{store: m} }
 func (m *Store) Relay() store.RelayRepository     { return m.relayRepo }
 func (m *Store) Credential() store.CredentialRepository {
 	return &memoryCredentialRepo{store: m}

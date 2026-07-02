@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -76,6 +77,96 @@ func (r *pgAuditRepo) OperationLogs(ctx context.Context) ([]types.OperationLog, 
 	return store.CloneOperationLogs(items), nil
 }
 
+func (r *pgAuditRepo) ListOperationsPage(ctx context.Context, filter store.AuditOperationFilter) ([]types.OperationLog, int, error) {
+	companyID := store.CompanyID(ctx)
+	where, args := buildAuditOperationWhere(companyID, filter)
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM operation_logs WHERE %s`, where)
+	var total int
+	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	page, pageSize := normalizeAuditPage(filter.Page, filter.PageSize)
+	offset := (page - 1) * pageSize
+	listArgs := append(append([]any{}, args...), pageSize, offset)
+	listQuery := fmt.Sprintf(`
+		SELECT id, action, operator, operator_id, COALESCE(actor_type, 'member'), target, detail, ip, created_at
+		FROM operation_logs
+		WHERE %s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, where, len(args)+1, len(args)+2)
+
+	rows, err := r.db.Query(ctx, listQuery, listArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	items := make([]types.OperationLog, 0)
+	for rows.Next() {
+		var item types.OperationLog
+		var createdAt time.Time
+		if err := rows.Scan(
+			&item.ID, &item.Action, &item.Operator, &item.OperatorID, &item.ActorType,
+			&item.Target, &item.Detail, &item.IP, &createdAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		item.CreatedAt = formatSyncLogTime(createdAt)
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return store.CloneOperationLogs(items), total, nil
+}
+
+func buildAuditOperationWhere(companyID int64, filter store.AuditOperationFilter) (string, []any) {
+	clauses := []string{"company_id = $1"}
+	args := []any{companyID}
+	idx := 2
+
+	if filter.Action != "" {
+		clauses = append(clauses, fmt.Sprintf("action = $%d", idx))
+		args = append(args, filter.Action)
+		idx++
+	}
+	if filter.OperatorID != "" {
+		clauses = append(clauses, fmt.Sprintf("operator_id = $%d", idx))
+		args = append(args, filter.OperatorID)
+		idx++
+	}
+	if filter.From != "" {
+		clauses = append(clauses, fmt.Sprintf("created_at::date >= $%d::date", idx))
+		args = append(args, filter.From)
+		idx++
+	}
+	if filter.To != "" {
+		clauses = append(clauses, fmt.Sprintf("created_at::date <= $%d::date", idx))
+		args = append(args, filter.To)
+		idx++
+	}
+	if kw := strings.TrimSpace(filter.Keyword); kw != "" {
+		clauses = append(clauses, fmt.Sprintf(`(
+			detail ILIKE $%d OR target ILIKE $%d OR operator ILIKE $%d
+		)`, idx, idx, idx))
+		args = append(args, "%"+kw+"%")
+		idx++
+	}
+	return strings.Join(clauses, " AND "), args
+}
+
+func normalizeAuditPage(page, pageSize int) (int, int) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	return page, pageSize
+}
+
 func (r *pgAuditRepo) AppendOperationLog(ctx context.Context, log types.OperationLog) error {
 	companyID := store.CompanyID(ctx)
 	createdAt, err := parseTimeOrNow(log.CreatedAt)
@@ -94,39 +185,4 @@ func (r *pgAuditRepo) AppendOperationLog(ctx context.Context, log types.Operatio
 	return err
 }
 
-func (r *pgAuditRepo) CallLogs(ctx context.Context) ([]types.CallLog, error) {
-	companyID := store.CompanyID(ctx)
-	rows, err := r.db.Query(ctx, `
-		SELECT id, caller, caller_id, caller_type, model, provider,
-			input_tokens, output_tokens, latency_ms, status, cost,
-			input_preview, output_preview, created_at
-		FROM call_logs
-		WHERE company_id = $1
-		ORDER BY created_at DESC
-	`, companyID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	items := make([]types.CallLog, 0)
-	for rows.Next() {
-		var item types.CallLog
-		var createdAt time.Time
-		if err := rows.Scan(
-			&item.ID, &item.Caller, &item.CallerID, &item.CallerType,
-			&item.Model, &item.Provider,
-			&item.InputTokens, &item.OutputTokens, &item.LatencyMs,
-			&item.Status, &item.Cost,
-			&item.InputPreview, &item.OutputPreview, &createdAt,
-		); err != nil {
-			return nil, err
-		}
-		item.CreatedAt = formatSyncLogTime(createdAt)
-		items = append(items, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return store.CloneCallLogs(items), nil
-}
+var _ store.AuditRepository = (*pgAuditRepo)(nil)

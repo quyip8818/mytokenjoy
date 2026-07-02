@@ -1,5 +1,7 @@
 import { resolveLast7DaysRange } from '@/lib/date'
 
+export const AUDIT_PAGE_SIZE = 20
+
 export const AUDIT_DATE_PRESET = {
   ALL: 'all',
   LAST_7_DAYS: 'last_7_days',

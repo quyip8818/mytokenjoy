@@ -12,6 +12,7 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/infra/platformauth"
@@ -29,8 +30,10 @@ type ServiceRegistry struct {
 	Keys        domainkeys.Service
 	Models      domainmodels.Service
 	Dashboard   domaindashboard.Service
-	Audit       domainaudit.Service
-	Ingest      domainbudget.Ingestor
+	Audit           domainaudit.Service
+	CallLogQuerier  domainusage.CallLogQuerier
+	Ingest          domainbudget.Ingestor
+	Overrun     domainbudget.OverrunProcessor
 	Rebalance   domainbudget.Rebalancer
 	Company     domaincompany.Service
 	Billing     domainbilling.Service
@@ -49,8 +52,9 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 		KeysSvc:      r.Keys,
 		ModelsSvc:    r.Models,
 		DashboardSvc: r.Dashboard,
-		AuditSvc:     r.Audit,
-		IngestSvc:    r.Ingest,
+		AuditSvc:         r.Audit,
+		CallLogQuerier:   r.CallLogQuerier,
+		IngestSvc:        r.Ingest,
 		CompanySvc:   r.Company,
 		BillingSvc:   r.Billing,
 		PlatformSvc:  r.Platform,
@@ -66,6 +70,7 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 		r.Infra.adminClient,
 		r.Infra.lifecycle,
 		r.Ingest,
+		r.Overrun,
 		r.Rebalance,
 		r.Org,
 		logger,
@@ -83,8 +88,10 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 		Keys:        services.keys,
 		Models:      services.models,
 		Dashboard:   services.dashboard,
-		Audit:       services.audit,
-		Ingest:      services.ingest,
+		Audit:           services.audit,
+		CallLogQuerier:  services.callLogQuerier,
+		Ingest:          services.ingest,
+		Overrun:     services.overrun,
 		Rebalance:   services.rebalance,
 		Company:     services.company,
 		Billing:     services.billing,

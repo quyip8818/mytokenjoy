@@ -36,6 +36,6 @@ func Load(cfg config.Config) store.Snapshot {
 		RoutingRules:   buildRoutingRules(),
 		AuditSettings:  buildAuditSettings(),
 		OperationLogs:  loadOperationLogs(),
-		CallLogs:       loadCallLogs(),
+		UsageLedger:    loadUsageLedger(),
 	}
 }

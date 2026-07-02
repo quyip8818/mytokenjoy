@@ -58,6 +58,8 @@ func TruncateBucket(t time.Time, granularity string, loc *time.Location) time.Ti
 		return common.TruncateInTZ(t, 24*time.Hour, loc)
 	case types.UsageGranularityHour:
 		return common.TruncateInTZ(t, time.Hour, loc)
+	case types.UsageGranularityMinute:
+		return common.TruncateInTZ(t, time.Minute, loc)
 	case types.UsageGranularityWeek:
 		return common.TruncateWeekInTZ(t, loc)
 	case types.UsageGranularityMonth:

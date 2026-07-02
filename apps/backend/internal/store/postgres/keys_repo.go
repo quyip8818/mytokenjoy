@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -203,6 +204,15 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 	return pruneByIDForCompany(ctx, r.db, "platform_keys", companyID, ids)
 }
 
+func (r *pgKeysRepo) AddPlatformKeyUsed(ctx context.Context, keyID string, amountCNY float64) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE platform_keys SET used = used + $3, updated_at = NOW()
+		WHERE company_id = $1 AND id = $2
+	`, companyID, keyID, amountCNY)
+	return err
+}
+
 func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
@@ -313,4 +323,90 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 		return err
 	}
 	return pruneByIDForCompany(ctx, r.db, "key_approvals", companyID, ids)
+}
+
+func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.PlatformKey, error) {
+	companyID := store.CompanyID(ctx)
+	row := r.db.QueryRow(ctx, `
+		SELECT id, name, key_prefix, full_key, member_id, member_name, app_name,
+			budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
+		FROM platform_keys WHERE company_id = $1 AND id = $2
+	`, companyID, keyID)
+	var item types.PlatformKey
+	var createdAt time.Time
+	var expiresAt *time.Time
+	if err := row.Scan(
+		&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID, &item.MemberName,
+		&item.AppName, &item.BudgetGroupID, &item.BudgetGroupName, &item.Status,
+		&item.Quota, &item.Used, &createdAt, &expiresAt,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	item.CreatedAt = formatDateOnly(createdAt)
+	if expiresAt != nil {
+		s := formatDateOnly(*expiresAt)
+		item.ExpiresAt = &s
+	}
+	modelRows, err := r.db.Query(ctx, `
+		SELECT model_name FROM platform_key_models WHERE company_id = $1 AND platform_key_id = $2 ORDER BY model_name
+	`, companyID, item.ID)
+	if err == nil {
+		for modelRows.Next() {
+			var modelName string
+			if err := modelRows.Scan(&modelName); err == nil {
+				item.ModelWhitelist = append(item.ModelWhitelist, modelName)
+			}
+		}
+		modelRows.Close()
+	}
+	cloned := store.ClonePlatformKey(item)
+	return &cloned, nil
+}
+
+func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string) (float64, error) {
+	companyID := store.CompanyID(ctx)
+	var total float64
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(used), 0) FROM platform_keys
+		WHERE company_id = $1 AND member_id = $2 AND budget_group_id IS NULL
+	`, companyID, memberID).Scan(&total)
+	return total, err
+}
+
+func (r *pgKeysRepo) ListActiveMemberKeys(ctx context.Context, memberID string) ([]types.PlatformKey, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, key_prefix, full_key, member_id, member_name, app_name,
+			budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
+		FROM platform_keys
+		WHERE company_id = $1 AND member_id = $2 AND budget_group_id IS NULL AND status = 'active'
+		ORDER BY id
+	`, companyID, memberID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]types.PlatformKey, 0)
+	for rows.Next() {
+		var item types.PlatformKey
+		var createdAt time.Time
+		var expiresAt *time.Time
+		if err := rows.Scan(
+			&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID, &item.MemberName,
+			&item.AppName, &item.BudgetGroupID, &item.BudgetGroupName, &item.Status,
+			&item.Quota, &item.Used, &createdAt, &expiresAt,
+		); err != nil {
+			return nil, err
+		}
+		item.CreatedAt = formatDateOnly(createdAt)
+		if expiresAt != nil {
+			s := formatDateOnly(*expiresAt)
+			item.ExpiresAt = &s
+		}
+		items = append(items, item)
+	}
+	return store.ClonePlatformKeys(items), rows.Err()
 }

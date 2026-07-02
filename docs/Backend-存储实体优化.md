@@ -92,24 +92,23 @@ mindmap
 
 ## 3. O1：消耗数据的单一事实来源（SSOT）
 
-### 3.1 现状
+### 3.1 当前实现
 
-一次 API 调用经 Webhook Ingest 入账时，`applyIngestTx`（`internal/domain/budget/ingest_apply.go`）会在**同一次事务**里更新多处「已消耗」：
+一次 API 调用经 Webhook Ingest 入账时，`ingest.go` 在 **`WithTx`** 内先写 `usage_ledger`，再经 `domain/usage/projection.go` 同步更新投影：
 
 | #   | 存储位置    | 字段 / 表                                     | 写入方式                                       |
 | --- | ----------- | --------------------------------------------- | ---------------------------------------------- |
-| 1   | 平台密钥    | `platform_keys.used`                          | `Used += costCNY`                              |
-| 2   | 预算树      | `budget_nodes.consumed`                       | `rollupDepartmentConsumed` 沿部门祖先累加      |
-| 3   | 预算组      | `budget_groups.consumed`                      | 若 Key 挂组则 `Consumed += costCNY`            |
-| 4   | 用量桶      | `usage_buckets`                               | `UpsertBucket` 按小时 × 部门 × 成员 × 模型聚合 |
-| 5   | Relay 侧    | `relay_mappings.newapi_token_remain_quota`    | Rebalance 流程与 NewAPI 同步（间接）           |
-| 6   | NewAPI 外部 | 企业钱包 `users.quota` / Token `remain_quota` | 不在 Postgres                                  |
+| 1   | 消耗账本    | `usage_ledger`                                | `InsertOnConflict`；幂等键 `newapi:{log_id}`   |
+| 2   | 平台密钥    | `platform_keys.used`                          | `Used += costCNY`                              |
+| 3   | 预算树      | `budget_nodes.consumed`                       | `RollupDepartmentConsumed` 沿部门祖先累加      |
+| 4   | 预算组      | `budget_groups.consumed`                      | 若 Key 挂组则 `Consumed += costCNY`            |
+| 5   | 用量桶      | `usage_buckets`                               | `UpsertBucket` 按小时 × 部门 × 成员 × 模型聚合 |
+| 6   | Relay 侧    | `relay_mappings.newapi_token_remain_quota`    | Rebalance 流程与 NewAPI 同步（间接）           |
+| 7   | NewAPI 外部 | 企业钱包 `users.quota` / Token `remain_quota` | 不在 Postgres                                  |
 
-此外，`call_logs` 由**独立审计链路**写入，记录逐条调用明细。
+审计调用明细与入账同事务写入 **`usage_ledger`**（`call_detail.previewSnippet`）；`GET /audit/calls` 只读账本。
 
-[Backend-存储架构.md](./Backend-存储架构.md) 中写有「Ingest **只写用量桶**，不会回写预算 `consumed`」——与**当前代码不一致**。文档需要修正；实体设计更需要明确「谁是权威」。
-
-### 3.2 为什么要优化
+### 3.2 设计动机
 
 | 问题          | 后果                                                                                |
 | ------------- | ----------------------------------------------------------------------------------- |
@@ -120,9 +119,9 @@ mindmap
 
 这不是「表太多」，而是**缺少写入契约**。
 
-### 3.3 目标形态
+### 3.3 架构（已实现）
 
-**已决策：** 见 **[Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)** — 账本 SSOT + 全同步投影；审计直读账本；仅存 `previewSnippet`（§3.4）。
+详见 **[Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)**。
 
 ```mermaid
 flowchart LR
@@ -135,13 +134,12 @@ flowchart LR
   EV --> AUD[审计列表直读账本]
 ```
 
-### 3.4 代价与建议
+### 3.4 状态
 
 | 项 | 说明 |
 | -- | ---- |
-| 实现代价 | 中；账本 + 同步投影 + Ingest 重构 |
-| 切换代价 | 破坏性替换；删除 `ingested_log_ids`、`call_logs` |
-| **建议** | 按 SSOT 方案一次性切换；异步投影留作规模触发的后续扩展 |
+| 状态 | **已完成** |
+| 后续 | 规模触发的异步投影见 SSOT §11 |
 
 ---
 
@@ -182,7 +180,7 @@ flowchart LR
 合并为 **`org_nodes`**（名称可讨论，下文用此名）：
 
 ```sql
--- 示意，非最终 migration
+-- 示意 DDL
 CREATE TABLE org_nodes (
     id              TEXT NOT NULL,
     company_id      BIGINT NOT NULL REFERENCES companies (id),
@@ -241,6 +239,8 @@ CREATE TABLE org_nodes (
 | 优先级   | **P2**（高价值，但改动面大）                                                                               |
 | 前置     | 完成 **O1**；在设计与评审中已统一「组织节点」叙事（[Backend-存储架构.md](./Backend-存储架构.md) §12.6 P0） |
 | 触发条件 | 双树 / 三表联动 bug 或改造工单明显增多时再动刀                                                             |
+
+**可执行实施方案（迁移阶段、验收清单、代码影响面）：** [Backend-O2-组织节点合并方案.md](./Backend-O2-组织节点合并方案.md)
 
 ---
 
@@ -463,7 +463,7 @@ CREATE INDEX idx_outbox_pending ON outbox (channel, status, next_retry);
 
 以下拆分**是在减复杂度**，不宜为「少几张表」并回去。
 
-### 9.1 用量桶 vs 审计（O1 后）
+### 9.1 用量桶 vs 审计
 
 |      | `usage_buckets`             | `usage_ledger`               |
 | ---- | --------------------------- | ------------------------------ |
@@ -529,9 +529,9 @@ CREATE INDEX idx_outbox_pending ON outbox (channel, status, next_retry);
 
 `models.company_id` 表明模型目录是**租户级**，非全局共享；与「全局目录」口语略有出入，但多租户下合理。
 
-### 10.4 `ingested_log_ids` 无 `company_id`
+### 10.4 `usage_ledger` 线性增长
 
-主键仅 `log_id BIGINT`。多租户规模下需规划 TTL / 分区 / 归档，属运维演进而非概念冗余。
+账本按调用逐笔追加；`previewSnippet` 受 `content_retention_enabled` 控制，单行有界。长期需规划归档或分区，属运维演进。
 
 ---
 
@@ -585,12 +585,12 @@ gantt
 
 | 阶段 | 动作                                                                                              | 验收标准                           |
 | ---- | ------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| P0   | 修正 [Backend-存储架构.md](./Backend-存储架构.md) 中 Ingest 与 `consumed` 描述；团队书面约定 SSOT | 文档与 `ingest_apply.go` 一致      |
+| P0   | SSOT 文档与姊妹文档对齐 | **已完成**                         |
 | P1   | `member_quota_pools` → `members.personal_quota`                                                   | **已完成**                         |
 | P2   | 引入 `org_nodes` + `model_allowlist`；下线旧四表                                                  | 树变更单写；集成测试覆盖 provision |
 | P3   | `org_integration`、统一 `outbox`                                                                  | 控制台集成页单 Repo                |
 
-**迁移注意：** 项目当前策略为全量 `schema.sql`、**不做增量 migration**（见 [Backend-设计.md](./Backend-设计.md) §4）。实体合并后开发环境需 `docker compose down -v` 重建；若未来要上生产，需另立 migration 策略，不在本文展开。
+**本地开发：** 表结构只改 `schema.sql`；改结构后 `docker compose down -v` 重建（见 [Backend-设计.md](./Backend-设计.md) §4）。
 
 ---
 
@@ -604,7 +604,7 @@ gantt
 建议：
 
 1. 存储架构 §12 保留精简版「可收敛方向」，详细论证链到本文；
-2. 存储架构 §8 / §9 中关于 Ingest 与 `consumed` 的表述按 **O1** 修正；
+2. 存储架构 §8 / §9 中 Ingest 与 `consumed` 表述已与 SSOT 对齐；
 3. 评审新功能时，用本文 §9「不建议合并」作 checklist，避免回退。
 
 ---
@@ -616,6 +616,6 @@ gantt
 | 44 张表算多吗？                     | 概念约 18 个；表多是关联表 / 日志 / 队列拆分，本身合理                         |
 | 最先该做什么？                      | **O1** 统一消耗语义；**O3** 若顺手可做                                         |
 | 收益最大但最难的是什么？            | **O2** 组织节点三表合一                                                        |
-| Ingest 到底写不写 budget consumed？ | **写**（见 `ingest_apply.go`）；与旧版存储架构文档不符，以代码为准直至文档修正 |
+| Ingest 到底写不写 budget consumed？ | **写**（`projection.Apply` → `RollupDepartmentConsumed`） |
 | 能不能把表删到 18 张？              | 不建议；会牺牲性能或产品能力                                                   |
 | 私有化要单独一套实体吗？            | 否；`company_id=1` 默认企业，表结构一致                                        |

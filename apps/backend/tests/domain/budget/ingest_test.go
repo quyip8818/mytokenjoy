@@ -56,16 +56,16 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	payload := newapi.WebhookLogPayload{
 		ID: 1001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
 	}
-	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 
-	exists, err := st.Relay().HasIngestedLogID(ctx, 1001)
+	exists, err := testutil.HasLedgerLogID(st, 1001)
 	if err != nil || !exists {
-		t.Fatalf("expected ingested log id, exists=%v err=%v", exists, err)
+		t.Fatalf("expected ledger entry for log 1001, exists=%v err=%v", exists, err)
 	}
 
 	keys, err = st.Keys().PlatformKeys(ctx)
@@ -104,7 +104,6 @@ func TestIngestFromOutbox(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
-	ctx := testutil.Ctx()
 
 	raw, err := json.Marshal(newapi.WebhookLogPayload{
 		ID: 2002, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
@@ -115,9 +114,9 @@ func TestIngestFromOutbox(t *testing.T) {
 	if err := ingest.IngestFromOutbox(testutil.Ctx(), raw); err != nil {
 		t.Fatal(err)
 	}
-	ingested, err := st.Relay().HasIngestedLogID(ctx, 2002)
+	ingested, err := testutil.HasLedgerLogID(st, 2002)
 	if err != nil || !ingested {
-		t.Fatalf("expected log 2002 ingested via outbox, err=%v ingested=%v", err, ingested)
+		t.Fatalf("expected log 2002 in ledger via outbox, err=%v ingested=%v", err, ingested)
 	}
 }
 
@@ -129,13 +128,13 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 	payload := newapi.WebhookLogPayload{
 		ID: 4001, TokenID: 99, Quota: 100000, Model: "gpt-4o", CreatedAt: 1717200000,
 	}
-	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 
 	testutil.AssertUsageBucketCount(t, st, 1)
 
-	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 	testutil.AssertUsageBucketCount(t, st, 1)

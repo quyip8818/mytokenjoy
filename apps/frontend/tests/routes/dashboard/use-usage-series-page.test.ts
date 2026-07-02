@@ -8,7 +8,7 @@ describe('useUsageSeriesPage', () => {
   it('loads usage series with approximate metadata', async () => {
     const getUsageSeries = vi.fn().mockResolvedValue({
       granularity: 'minute',
-      source: 'logs',
+      source: 'ledger',
       timezone: 'Asia/Shanghai',
       approximate: true,
       mappingAsOf: 'query_time',

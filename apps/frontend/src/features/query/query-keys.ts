@@ -41,8 +41,9 @@ export const queryKeys = {
     all: ['audit'] as const,
     settings: () => [...queryKeys.audit.all, 'settings'] as const,
     members: () => [...queryKeys.audit.all, 'members'] as const,
-    operations: (filter: unknown) => [...queryKeys.audit.all, 'operations', filter] as const,
-    calls: (filter: unknown) => [...queryKeys.audit.all, 'calls', filter] as const,
+    operations: (params: unknown) => [...queryKeys.audit.all, 'operations', params] as const,
+    calls: (params: unknown) => [...queryKeys.audit.all, 'calls', params] as const,
+    models: () => [...queryKeys.audit.all, 'models'] as const,
   },
   dashboard: {
     all: ['dashboard'] as const,

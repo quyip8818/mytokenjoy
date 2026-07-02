@@ -81,26 +81,6 @@ func (r *memoryRelayRepo) relayOutboxEntry(id string) (store.RelayOutboxEntry, b
 	return store.RelayOutboxEntry{}, false
 }
 
-func (r *memoryRelayRepo) HasIngestedLogID(ctx context.Context, logID int64) (bool, error) {
-	if err := ctx.Err(); err != nil {
-		return false, err
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	_, ok := r.data.ingestedLogs[logID]
-	return ok, nil
-}
-
-func (r *memoryRelayRepo) InsertIngestedLogID(ctx context.Context, logID int64) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.data.ingestedLogs[logID] = struct{}{}
-	return nil
-}
-
 func (r *memoryRelayRepo) GetLastLogID(ctx context.Context) (int64, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err

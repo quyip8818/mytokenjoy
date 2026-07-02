@@ -29,7 +29,7 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 			budget_group_members, budget_group_departments,
 			platform_key_models, key_approval_models, routing_rule_models,
 			key_approvals, platform_keys, provider_keys,
-			operation_logs, call_logs,
+			operation_logs, usage_ledger,
 			alert_rules, routing_rules, model_capabilities,
 			budget_groups, budget_nodes, members, departments,
 			roles, permissions, models,

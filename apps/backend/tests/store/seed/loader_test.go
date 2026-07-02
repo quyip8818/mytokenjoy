@@ -60,8 +60,8 @@ func TestLoadSnapshot(t *testing.T) {
 	if len(snapshot.OperationLogs) == 0 {
 		t.Fatal("expected operation logs")
 	}
-	if len(snapshot.CallLogs) == 0 {
-		t.Fatal("expected call logs")
+	if len(snapshot.UsageLedger) == 0 {
+		t.Fatal("expected usage ledger entries")
 	}
 	if !snapshot.AuditSettings.ContentRetentionEnabled {
 		t.Fatal("expected audit content retention enabled")

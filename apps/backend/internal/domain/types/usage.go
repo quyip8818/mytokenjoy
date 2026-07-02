@@ -17,7 +17,7 @@ const (
 	UsageGroupByModel      = "model"
 
 	UsageSourceBuckets = "buckets"
-	UsageSourceLogs    = "logs"
+	UsageSourceLedger  = "ledger"
 
 	UsageMappingAsOfIngestTime = "ingest_time"
 	UsageMappingAsOfQueryTime  = "query_time"

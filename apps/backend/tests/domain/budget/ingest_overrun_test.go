@@ -9,6 +9,7 @@ import (
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -27,6 +28,10 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	ingest := budget.NewIngestService(cfg, st, lifecycle, notifier, logger)
+	overrun := budget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
+	rebalance := budget.NewRebalanceService(cfg, st, stub, lifecycle)
+	orgSvc := testutil.NewOrgService(t, cfg, st)
+	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
 	ctx := testutil.Ctx()
 
 	tree, err := st.Budget().Tree(ctx)
@@ -43,9 +48,10 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	payload := newapi.WebhookLogPayload{
 		ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
 	}
-	if err := ingest.Ingest(testutil.Ctx(), payload); err != nil {
+	if err := ingest.Ingest(testutil.Ctx(), payload, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
+	runner.RunOnce(ctx)
 
 	tree, err = st.Budget().Tree(ctx)
 	if err != nil {

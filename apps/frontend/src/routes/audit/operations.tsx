@@ -1,6 +1,7 @@
 import { ScrollText } from 'lucide-react'
 import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
 import { AuditListToolbar } from '@/components/audit/audit-list-toolbar'
+import { AuditTablePagination } from '@/components/audit/audit-table-pagination'
 import { OptionsSelect } from '@/components/ui/options-select'
 import { OPERATION_ACTION_LABELS } from '@/lib/labels'
 import { OperationsLogTable } from '@/routes/audit/components/operations-log-table'
@@ -9,6 +10,10 @@ import { useAuditOperationsPage } from '@/routes/audit/hooks/use-audit-operation
 export default function OperationLogsPage() {
   const {
     logs,
+    total,
+    page,
+    totalPages,
+    setPage,
     loading,
     error,
     refresh,
@@ -57,6 +62,12 @@ export default function OperationLogsPage() {
       }
     >
       <OperationsLogTable logs={logs} />
+      <AuditTablePagination
+        total={total}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </AuditFilteredPage>
   )
 }

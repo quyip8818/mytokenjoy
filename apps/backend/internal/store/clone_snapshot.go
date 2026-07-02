@@ -22,7 +22,7 @@ func CloneSnapshot(snapshot Snapshot) Snapshot {
 		RoutingRules:        CloneRoutingRules(snapshot.RoutingRules),
 		AuditSettings:       snapshot.AuditSettings,
 		OperationLogs:       CloneOperationLogs(snapshot.OperationLogs),
-		CallLogs:            CloneCallLogs(snapshot.CallLogs),
+		UsageLedger:         CloneUsageLedger(snapshot.UsageLedger),
 		CredentialPlatform:  snapshot.CredentialPlatform,
 		EncryptedCredential: append([]byte(nil), snapshot.EncryptedCredential...),
 	}

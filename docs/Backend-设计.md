@@ -82,7 +82,7 @@ type Store interface {
 | Postgres | 运行时（必填 `DATABASE_URL`） | 共 **44** 张表；demo 空库自动 `seed.ApplyTables`                                  |
 | Memory   | 单元/Handler 测试             | `internal/store/memory` + `testutil`；`app.NewWithStore` 仅 `-tags=testhook` 构建 |
 
-Schema 唯一来源：`internal/store/postgres/schema.sql`（`go:embed`）。**不做增量迁移**；改表结构后清空 Postgres volume 重来。
+Schema 唯一来源：`internal/store/postgres/schema.sql`（`go:embed`）；服务启动时全量应用。本地改表结构后 `docker compose down -v` 重建。
 
 **启动 bootstrap：** `postgres.New` → applySchema → 若 `members` 为空且非 prod → `seed.ApplyTables`；demo profile 下再 `ApplyUsageBuckets` 灌入看板用量。
 
@@ -177,23 +177,24 @@ Dashboard 域**全部 GET、无副作用**；端点见契约 §5.6。
 ```mermaid
 flowchart TB
   subgraph write [写入]
-    NA[NewAPI settle] --> WH[webhook] --> ING[ingest] --> UB[(usage_buckets)]
+    NA[NewAPI settle] --> WH[webhook] --> ING[ingest] --> UL[(usage_ledger)]
+    ING --> UB[(usage_buckets)]
   end
   subgraph read [只读]
     API["GET /dashboard/*"]
     API -->|day,hour| UB
-    API -->|minute| LOGS[ListLogs 聚合]
+    API -->|minute| UL
   end
 ```
 
 | 决策     | 说明                                                      |
 | -------- | --------------------------------------------------------- |
 | hour 桶  | 只持久化 hour；day/week/month 查询时 `date_trunc` 聚合    |
-| minute   | 不落库；`log_aggregator.go` 代理 NewAPI，窗口 ≤3h         |
+| minute   | 读 `usage_ledger` 按分钟聚合，窗口 ≤3h，`source: ledger` |
 | consumed | 看板读 **buckets 周期 SUM**，不读 `budget_nodes.consumed` |
-| 时区     | UTC 存桶；展示默认 `Asia/Shanghai`                        |
+| 时区     | UTC 存桶与账本；展示默认 `Asia/Shanghai`                  |
 
-**minute 语义：** `source: "logs"`、`approximate: true`；NewAPI 不可用 → 503 + `retryAfter`。
+**minute 语义：** `source: "ledger"`、`approximate: false`、`mappingAsOf: "ingest_time"`；与 hour/day 共用 SSOT 入账数据。
 
 月初 budget 重置只清 `budget_nodes.consumed`，buckets 保留；ingest 成本写入后不回溯。
 

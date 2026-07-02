@@ -77,6 +77,57 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	return store.CloneMembers(items), nil
 }
 
+func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Member, error) {
+	companyID := store.CompanyID(ctx)
+	row := r.db.QueryRow(ctx, `
+		SELECT id, name, phone, email, department_id, department_name, status, source, external_id, personal_quota
+		FROM members WHERE company_id = $1 AND id = $2
+	`, companyID, memberID)
+	var item types.Member
+	if err := row.Scan(
+		&item.ID, &item.Name, &item.Phone, &item.Email,
+		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
+		&item.PersonalQuota,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	roleRows, err := r.db.Query(ctx, `
+		SELECT ro.name FROM member_roles mr
+		JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
+		WHERE mr.company_id = $1 AND mr.member_id = $2
+		ORDER BY ro.name
+	`, companyID, item.ID)
+	if err == nil {
+		for roleRows.Next() {
+			var name string
+			if err := roleRows.Scan(&name); err == nil {
+				item.Roles = append(item.Roles, name)
+			}
+		}
+		roleRows.Close()
+	}
+	cloned := store.CloneMember(item)
+	return &cloned, nil
+}
+
+func (r *pgOrgRepo) MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error) {
+	companyID := store.CompanyID(ctx)
+	var quota float64
+	err := r.db.QueryRow(ctx, `
+		SELECT personal_quota FROM members WHERE company_id = $1 AND id = $2
+	`, companyID, memberID).Scan(&quota)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+	return quota, true, nil
+}
+
 func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) error {
 	companyID := store.CompanyID(ctx)
 	cloned := store.CloneMembers(members)

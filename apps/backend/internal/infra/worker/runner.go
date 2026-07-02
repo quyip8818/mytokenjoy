@@ -19,9 +19,11 @@ type Runner struct {
 	relayOutbox    store.RelayOutboxRepository
 	webhookOutbox  store.WebhookOutboxRepository
 	rebalanceQueue store.RebalanceQueueRepository
-	syncCursor     store.IngestDedupRepository
+	overrunQueue   store.OverrunQueueRepository
+	syncCursor     store.SyncCursorRepository
 	lifecycle      relay.Lifecycle
 	ingest         domainbudget.Ingestor
+	overrun        domainbudget.OverrunProcessor
 	rebalance      domainbudget.Rebalancer
 	syncSvc        domainorg.SyncService
 	client         newapi.AdminClient
@@ -37,6 +39,7 @@ func NewRunner(
 	client newapi.AdminClient,
 	lifecycle relay.Lifecycle,
 	ingest domainbudget.Ingestor,
+	overrun domainbudget.OverrunProcessor,
 	rebalance domainbudget.Rebalancer,
 	syncSvc domainorg.SyncService,
 	logger *slog.Logger,
@@ -47,10 +50,12 @@ func NewRunner(
 		relayOutbox:    relayRepo,
 		webhookOutbox:  relayRepo,
 		rebalanceQueue: relayRepo,
+		overrunQueue:   relayRepo,
 		syncCursor:     relayRepo,
 		client:         client,
 		lifecycle:      lifecycle,
 		ingest:         ingest,
+		overrun:        overrun,
 		rebalance:      rebalance,
 		syncSvc:        syncSvc,
 		logger:         logger,
@@ -88,6 +93,7 @@ func (r *Runner) tick(ctx context.Context) {
 	r.logStep("relay_outbox", r.processRelayOutbox(ctx))
 	r.logStep("webhook_outbox", r.processWebhookOutbox(ctx))
 	r.logStep("rebalance", r.processRebalance(ctx))
+	r.logStep("overrun", r.processOverrun(ctx))
 	r.logStep("compensate_logs", r.compensateLogs(ctx))
 }
 

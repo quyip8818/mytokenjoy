@@ -27,7 +27,7 @@ type Snapshot struct {
 	RoutingRules        []types.RoutingRule
 	AuditSettings       types.AuditSettings
 	OperationLogs       []types.OperationLog
-	CallLogs            []types.CallLog
+	UsageLedger         []types.UsageLedgerEntry
 	CredentialPlatform  *types.Platform
 	EncryptedCredential []byte
 }
@@ -42,6 +42,7 @@ type Store interface {
 	Keys() KeysRepository
 	Models() ModelsRepository
 	Audit() AuditRepository
+	Ledger() LedgerRepository
 	Relay() RelayRepository
 	Credential() CredentialRepository
 	SchedulerLock() SchedulerLockRepository

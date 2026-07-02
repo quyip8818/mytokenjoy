@@ -404,7 +404,7 @@ HTTP 非 2xx 时，body 应包含：
 | 路径           | 数据源                     | 说明                                                                                                                                                                                             |
 | -------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `day` / `hour` | `usage_buckets`            | `source: "buckets"`，`approximate: false`，`mappingAsOf: "ingest_time"`                                                                                                                          |
-| `minute`       | NewAPI `ListLogs` 只读聚合 | `source: "logs"`，`approximate: true`，`mappingAsOf: "query_time"`；**最大窗口 3h**；禁止与 hour/day 混合环比；NewAPI 不可用返回 **503**，error body 可含 `retryAfter`（秒，建议客户端退避重试） |
+| `minute`       | `usage_ledger` 分钟聚合    | `source: "ledger"`，`approximate: false`，`mappingAsOf: "ingest_time"`；**最大窗口 3h**；禁止与 hour/day 混合环比 |
 
 **`groupBy` 与响应上限：** `none` 时每个 time bucket 聚合成单点；`len(points) ≤ 10000` 超限 **422**。
 
@@ -441,7 +441,7 @@ HTTP 非 2xx 时，body 应包含：
 
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
-**调用审计（O1 后）：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) §3.4、§4.3。
+**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) §3.4、§4.3。
 
 ---
 
@@ -531,7 +531,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **UsageSeriesGroupBy：** `none` \| `department` \| `member` \| `model`
 
-**UsageSeriesSource：** `buckets` \| `logs`
+**UsageSeriesSource：** `buckets` \| `ledger`
 
 **UsageMappingAsOf：** `ingest_time` \| `query_time`
 
@@ -545,11 +545,11 @@ HTTP 非 2xx 时，body 应包含：
 
 | 字段            | buckets 路径    | minute 路径                   |
 | --------------- | --------------- | ----------------------------- |
-| `source`        | `"buckets"`     | `"logs"`                      |
-| `approximate`   | `false`         | `true`                        |
-| `mappingAsOf`   | `"ingest_time"` | `"query_time"`                |
-| `unmappedCount` | 省略或 `0`      | ≥ `0`（无 mapping 的 log 数） |
-| `truncated`     | 省略或 `false`  | 分页触顶时为 `true`           |
+| `source`        | `"buckets"`     | `"ledger"`                    |
+| `approximate`   | `false`         | `false`                       |
+| `mappingAsOf`   | `"ingest_time"` | `"ingest_time"`               |
+| `unmappedCount` | 省略            | 省略                          |
+| `truncated`     | 省略或 `false`  | 省略或 `false`                |
 
 当前实现：`inputTokens` / `outputTokens` 恒为 `0`（webhook 未带 token 字段）。
 
@@ -577,7 +577,7 @@ HTTP 非 2xx 时，body 应包含：
 
 - `previewSnippet`：仅 **input** 截断 ~200 字；`contentRetentionEnabled=false` 或 Webhook 无 `input` 时为空串
 - `outputTokens`：completion token **计数**，非 output 正文
-- 首版**不提供** input 全文或 output 原文；已移除 `inputPreview` / `outputPreview` / `hasContent`；展开行仅展示 `previewSnippet`
+- 首版**不提供** input 全文或 output 原文；展开行仅展示 `previewSnippet`
 
 **AuditSettings：** `contentRetentionEnabled` — `false` 时不写 `previewSnippet`
 

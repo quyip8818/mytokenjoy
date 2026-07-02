@@ -100,9 +100,20 @@ type WebhookOutboxRepository interface {
 	MarkWebhookOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
 }
 
-type IngestDedupRepository interface {
-	HasIngestedLogID(ctx context.Context, logID int64) (bool, error)
-	InsertIngestedLogID(ctx context.Context, logID int64) error
+type OverrunQueueEntry struct {
+	ID        string
+	CompanyID int64
+	Payload   json.RawMessage
+	Status    string
+}
+
+type OverrunQueueRepository interface {
+	EnqueueOverrun(ctx context.Context, payload json.RawMessage) error
+	ClaimPendingOverrun(ctx context.Context, limit int) ([]OverrunQueueEntry, error)
+	MarkOverrunDone(ctx context.Context, id string) error
+}
+
+type SyncCursorRepository interface {
 	GetLastLogID(ctx context.Context) (int64, error)
 	SetLastLogID(ctx context.Context, logID int64) error
 }
@@ -117,6 +128,7 @@ type RelayRepository interface {
 	RelayMappingRepository
 	RelayOutboxRepository
 	WebhookOutboxRepository
-	IngestDedupRepository
+	SyncCursorRepository
 	RebalanceQueueRepository
+	OverrunQueueRepository
 }

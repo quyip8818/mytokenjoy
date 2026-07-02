@@ -61,6 +61,20 @@ func UsageBucketCount(st store.Store) int {
 	return len(UsageBucketRows(st))
 }
 
+func HasLedgerLogID(st store.Store, logID int64) (bool, error) {
+	entries, _, err := st.Ledger().ListCallSettledPage(Ctx(), store.LedgerCallFilter{Page: 1, PageSize: 10000})
+	if err != nil {
+		return false, err
+	}
+	key := domainusage.NewAPIIdempotencyKey(logID)
+	for _, entry := range entries {
+		if entry.IdempotencyKey == key {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func AssertUsageBucketCount(t *testing.T, st store.Store, want int) {
 	t.Helper()
 	got := UsageBucketCount(st)

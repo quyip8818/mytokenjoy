@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
@@ -17,13 +18,15 @@ import (
 
 type Handler struct {
 	shared.SessionHandlerBase
-	service domainaudit.Service
+	service        domainaudit.Service
+	callLogQuerier domainusage.CallLogQuerier
 }
 
-func NewHandler(cfg config.Config, service domainaudit.Service, sessionSvc session.Service) *Handler {
+func NewHandler(cfg config.Config, service domainaudit.Service, callLogQuerier domainusage.CallLogQuerier, sessionSvc session.Service) *Handler {
 	return &Handler{
 		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
+		callLogQuerier:     callLogQuerier,
 	}
 }
 
@@ -69,7 +72,7 @@ func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 		From:     query.Get("from"),
 		To:       query.Get("to"),
 	}
-	result, err := h.service.ListCalls(r.Context(), params)
+	result, err := h.callLogQuerier.ListCalls(r.Context(), params)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 

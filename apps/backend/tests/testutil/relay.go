@@ -11,6 +11,7 @@ type RelayMappingOpts struct {
 	PlatformKeyID string
 	NewAPITokenID int64
 	MemberID      string
+	NoMember      bool
 	DepartmentID  string
 	RelayGroup    string
 }
@@ -33,12 +34,19 @@ func UpsertRelayMapping(t *testing.T, st store.Store, opts RelayMappingOpts) {
 	if opts.RelayGroup == "" {
 		opts.RelayGroup = "dept-" + opts.DepartmentID
 	}
-	memberID := opts.MemberID
+	var memberID *string
+	if !opts.NoMember {
+		m := opts.MemberID
+		if m == "" {
+			m = seed.IDMember1
+		}
+		memberID = &m
+	}
 	tokenID := opts.NewAPITokenID
 	if err := st.Relay().UpsertMapping(Ctx(), store.RelayMapping{
 		PlatformKeyID: opts.PlatformKeyID,
 		NewAPITokenID: &tokenID,
-		MemberID:      &memberID,
+		MemberID:      memberID,
 		DepartmentID:  opts.DepartmentID,
 		SyncStatus:    store.RelaySyncStatusSynced,
 		RelayGroup:    opts.RelayGroup,

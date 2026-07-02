@@ -42,10 +42,29 @@ func cloneOperationLogs(items []types.OperationLog) []types.OperationLog {
 	return result
 }
 
-func cloneCallLogs(items []types.CallLog) []types.CallLog {
-	result := make([]types.CallLog, len(items))
-	copy(result, items)
+func cloneUsageLedger(items []types.UsageLedgerEntry) []types.UsageLedgerEntry {
+	result := make([]types.UsageLedgerEntry, len(items))
+	for i, item := range items {
+		result[i] = CloneUsageLedgerEntry(item)
+	}
 	return result
+}
+
+func CloneUsageLedgerEntry(item types.UsageLedgerEntry) types.UsageLedgerEntry {
+	cloned := item
+	if item.MemberID != nil {
+		memberID := *item.MemberID
+		cloned.MemberID = &memberID
+	}
+	if item.BudgetGroupID != nil {
+		groupID := *item.BudgetGroupID
+		cloned.BudgetGroupID = &groupID
+	}
+	return cloned
+}
+
+func CloneUsageLedger(items []types.UsageLedgerEntry) []types.UsageLedgerEntry {
+	return cloneUsageLedger(items)
 }
 
 func CloneModels(items []types.ModelInfo) []types.ModelInfo { return cloneModels(items) }
@@ -57,5 +76,3 @@ func CloneRoutingRules(items []types.RoutingRule) []types.RoutingRule {
 func CloneOperationLogs(items []types.OperationLog) []types.OperationLog {
 	return cloneOperationLogs(items)
 }
-
-func CloneCallLogs(items []types.CallLog) []types.CallLog { return cloneCallLogs(items) }

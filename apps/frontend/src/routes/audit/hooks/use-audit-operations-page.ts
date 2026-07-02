@@ -24,6 +24,11 @@ export type { AuditOperationsFilter }
 export function useAuditOperationsPage(injectedApis?: AppApis) {
   const {
     items: logs,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    setPage,
     filter,
     patchFilter,
     loading,
@@ -36,9 +41,10 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
   >({
     initialFilter: INITIAL_FILTER,
     toQueryParams: buildOperationsQuery,
-    fetchItems: (apis, query) => apis.auditApi.getOperations(query).then((res) => res.items),
+    fetchPage: (apis, query) => apis.auditApi.getOperations(query),
     injectedApis,
-    queryKeyFactory: (filter) => queryKeys.audit.operations(filter),
+    queryKeyFactory: ({ filter, page: currentPage }) =>
+      queryKeys.audit.operations({ filter, page: currentPage }),
   })
 
   const handleExport = useCallback(() => {
@@ -51,6 +57,11 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
 
   return {
     logs,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    setPage,
     loading,
     error,
     refresh,

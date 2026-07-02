@@ -23,18 +23,16 @@ type Service interface {
 }
 
 type service struct {
-	cfg           config.Config
-	store         store.Store
-	logAggregator *domainusage.LogAggregator
-	now           func() time.Time
+	cfg   config.Config
+	store store.Store
+	now   func() time.Time
 }
 
-func NewService(cfg config.Config, st store.Store, logAggregator *domainusage.LogAggregator) Service {
+func NewService(cfg config.Config, st store.Store) Service {
 	return &service{
-		cfg:           cfg,
-		store:         st,
-		logAggregator: logAggregator,
-		now:           time.Now,
+		cfg:   cfg,
+		store: st,
+		now:   time.Now,
 	}
 }
 

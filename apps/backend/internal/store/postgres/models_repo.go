@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -49,6 +50,38 @@ func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 		return nil, err
 	}
 	return store.CloneModels(items), nil
+}
+
+func (r *pgModelsRepo) ModelByName(ctx context.Context, name string) (*types.ModelInfo, error) {
+	companyID := store.CompanyID(ctx)
+	row := r.db.QueryRow(ctx, `
+		SELECT id, provider, name, display_name, input_price, output_price, max_context, enabled
+		FROM models WHERE company_id = $1 AND name = $2
+	`, companyID, name)
+	var item types.ModelInfo
+	if err := row.Scan(
+		&item.ID, &item.Provider, &item.Name, &item.DisplayName,
+		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.Enabled,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	capRows, err := r.db.Query(ctx, `
+		SELECT capability FROM model_capabilities WHERE company_id = $1 AND model_id = $2 ORDER BY capability
+	`, companyID, item.ID)
+	if err == nil {
+		for capRows.Next() {
+			var cap string
+			if err := capRows.Scan(&cap); err == nil {
+				item.Capabilities = append(item.Capabilities, cap)
+			}
+		}
+		capRows.Close()
+	}
+	cloned := store.CloneModels([]types.ModelInfo{item})[0]
+	return &cloned, nil
 }
 
 func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) error {

@@ -18,6 +18,8 @@ type OrgRepository interface {
 	Departments(ctx context.Context) ([]types.Department, error)
 	SetDepartments(ctx context.Context, departments []types.Department) error
 	Members(ctx context.Context) ([]types.Member, error)
+	MemberByID(ctx context.Context, memberID string) (*types.Member, error)
+	MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error)
 	SetMembers(ctx context.Context, members []types.Member) error
 	UpdateMemberPersonalQuota(ctx context.Context, memberID string, personalQuota float64) error
 	SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error

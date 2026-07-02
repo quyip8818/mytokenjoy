@@ -9,6 +9,7 @@ import (
 
 type txStore struct {
 	domain       domainRepos
+	ledger       store.LedgerRepository
 	relay        store.RelayRepository
 	usage        store.UsageRepository
 	notification store.NotificationRepository
@@ -22,6 +23,7 @@ func (s *txStore) Budget() store.BudgetRepository { return s.domain.budget }
 func (s *txStore) Keys() store.KeysRepository     { return s.domain.keys }
 func (s *txStore) Models() store.ModelsRepository { return s.domain.models }
 func (s *txStore) Audit() store.AuditRepository   { return s.domain.audit }
+func (s *txStore) Ledger() store.LedgerRepository { return s.ledger }
 
 func (s *txStore) Relay() store.RelayRepository {
 	return s.relay
@@ -76,6 +78,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 
 	txView := &txStore{
 		domain:       newDomainRepoSet(tx),
+		ledger:       &pgLedgerRepo{db: tx},
 		relay:        newRelayRepo(tx),
 		usage:        &usageRepo{db: tx},
 		notification: &notificationRepo{db: tx},

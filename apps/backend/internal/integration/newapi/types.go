@@ -67,11 +67,15 @@ type ListLogsParams struct {
 }
 
 type WebhookLogPayload struct {
-	ID        int64  `json:"id"`
-	TokenID   int64  `json:"token_id"`
-	Quota     int64  `json:"quota"`
-	Model     string `json:"model"`
-	CreatedAt int64  `json:"created_at"`
+	ID               int64  `json:"id"`
+	TokenID          int64  `json:"token_id"`
+	Quota            int64  `json:"quota"`
+	Model            string `json:"model"`
+	CreatedAt        int64  `json:"created_at"`
+	PromptTokens     int64  `json:"prompt_tokens"`
+	CompletionTokens int64  `json:"completion_tokens"`
+	UseTime          int64  `json:"use_time"`
+	Input            string `json:"input"`
 }
 
 const (

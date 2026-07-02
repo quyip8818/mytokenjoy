@@ -27,6 +27,7 @@ export function buildAuditBaseQuery(filter: AuditBaseFilter): {
 export interface AuditCallsFilter extends AuditBaseFilter {
   status: string
   callerId: string
+  model: string
 }
 
 export function buildCallsQuery(filter: AuditCallsFilter): AuditCallsQueryParams {
@@ -34,6 +35,7 @@ export function buildCallsQuery(filter: AuditCallsFilter): AuditCallsQueryParams
     ...buildAuditBaseQuery(filter),
     status: omitAll(filter.status),
     callerId: omitAll(filter.callerId),
+    model: omitAll(filter.model),
   }
 }
 

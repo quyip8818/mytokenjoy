@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
@@ -45,7 +46,7 @@ func (h *WebhookHandler) HandleNewAPILog(w http.ResponseWriter, r *http.Request)
 		httputil.WriteError(w, domain.BadRequest(err.Error()))
 		return
 	}
-	if err := h.ingest.Ingest(r.Context(), payload); err != nil {
+	if err := h.ingest.Ingest(r.Context(), payload, types.SourceWebhook); err != nil {
 		if enqueueErr := h.ingest.EnqueueFailed(r.Context(), payload, err); enqueueErr != nil {
 			h.logger.Error("ingest failed and enqueue to outbox failed",
 				"ingest_error", err,

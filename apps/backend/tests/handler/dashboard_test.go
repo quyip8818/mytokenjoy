@@ -14,9 +14,9 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestUsageSeriesMinuteDemoFallbackWithoutNewAPI(t *testing.T) {
+func TestUsageSeriesMinuteFromLedgerDemo(t *testing.T) {
 	app := testutil.NewTestApp(t, nil)
-	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T10:00:00%2B08:00&end=2026-06-10T11:00:00%2B08:00", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T08:00:00Z&end=2026-06-10T10:00:00Z", nil)
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
@@ -27,28 +27,31 @@ func TestUsageSeriesMinuteDemoFallbackWithoutNewAPI(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatal(err)
 	}
-	if resp.Source != types.UsageSourceBuckets || !resp.Approximate {
-		t.Fatalf("expected demo bucket fallback, got %+v", resp)
+	if resp.Source != types.UsageSourceLedger || resp.Approximate {
+		t.Fatalf("expected ledger minute series, got %+v", resp)
+	}
+	if len(resp.Points) == 0 {
+		t.Fatalf("expected seeded ledger points in demo window, got %+v", resp)
 	}
 }
 
-func TestUsageSeriesMinuteUnavailableInProdProfile(t *testing.T) {
+func TestUsageSeriesMinuteFromLedgerProdProfile(t *testing.T) {
 	app := testutil.NewTestApp(t, func(cfg *config.Config) {
 		cfg.Profile = config.ProfileProd
 	})
-	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T10:00:00%2B08:00&end=2026-06-10T11:00:00%2B08:00", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T08:00:00Z&end=2026-06-10T10:00:00Z", nil)
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	var body map[string]any
-	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+	var resp types.UsageSeriesResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatal(err)
 	}
-	if body["retryAfter"].(float64) != float64(types.UsageMinuteRetryAfterSecs) {
-		t.Fatalf("expected retryAfter=%d, got %+v", types.UsageMinuteRetryAfterSecs, body["retryAfter"])
+	if resp.Source != types.UsageSourceLedger {
+		t.Fatalf("expected ledger source, got %+v", resp)
 	}
 }
 
@@ -108,23 +111,19 @@ func TestUsageSeriesGroupByDepartmentHTTP(t *testing.T) {
 }
 
 func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
-	var serverURL string
-	app := testutil.NewTestApp(t, func(cfg *config.Config) {
-		now := time.Now().UTC()
-		server := testutil.StartNewAPIMockServer(t, []newapi.LogEntry{
-			testutil.SampleMappedLog(42, now.Add(-10*time.Minute)),
-		})
-		serverURL = server.URL
-		cfg.NewAPIEnabled = true
-		cfg.NewAPIBaseURL = serverURL
-		cfg.NewAPIAdminToken = "test-token"
-	})
+	app := testutil.NewTestApp(t, nil)
 	testutil.UpsertRelayMapping(t, app.Store, testutil.RelayMappingOpts{
 		PlatformKeyID: "plk-minute-test", NewAPITokenID: 42,
 	})
-	start := time.Now().Add(-30 * time.Minute).UTC().Format(time.RFC3339)
-	end := time.Now().UTC().Format(time.RFC3339)
-	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start="+start+"&end="+end+"&groupBy=none", nil)
+	ingest := testutil.NewIngestService(t, testutil.TestConfig(), app.Store)
+	occurredAt := time.Date(2026, 6, 10, 9, 3, 0, 0, time.UTC)
+	if err := ingest.Ingest(testutil.Ctx(), newapi.WebhookLogPayload{
+		ID: 88001, TokenID: 42, Quota: 500000, Model: "gpt-4o", CreatedAt: occurredAt.Unix(),
+		PromptTokens: 100, CompletionTokens: 50, UseTime: 200,
+	}, types.SourceWebhook); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T09:00:00Z&end=2026-06-10T10:00:00Z&groupBy=none", nil)
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
@@ -135,8 +134,11 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatal(err)
 	}
-	if resp.Source != types.UsageSourceLogs || !resp.Approximate || resp.MappingAsOf != types.UsageMappingAsOfQueryTime {
+	if resp.Source != types.UsageSourceLedger || resp.Approximate || resp.MappingAsOf != types.UsageMappingAsOfIngestTime {
 		t.Fatalf("unexpected minute response meta: %+v", resp)
+	}
+	if len(resp.Points) == 0 {
+		t.Fatalf("expected minute points from ledger, got %+v", resp)
 	}
 }
 

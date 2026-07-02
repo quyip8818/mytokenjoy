@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -255,21 +256,6 @@ func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRet
 	return err
 }
 
-func (r *relayRepo) HasIngestedLogID(ctx context.Context, logID int64) (bool, error) {
-	var exists bool
-	err := r.db.QueryRow(ctx, `
-		SELECT EXISTS (SELECT 1 FROM ingested_log_ids WHERE log_id = $1)
-	`, logID).Scan(&exists)
-	return exists, err
-}
-
-func (r *relayRepo) InsertIngestedLogID(ctx context.Context, logID int64) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO ingested_log_ids (log_id) VALUES ($1) ON CONFLICT DO NOTHING
-	`, logID)
-	return err
-}
-
 func (r *relayRepo) GetLastLogID(ctx context.Context) (int64, error) {
 	companyID := store.CompanyID(ctx)
 	var id int64
@@ -325,6 +311,47 @@ func (r *relayRepo) ClaimPendingRebalance(ctx context.Context, limit int) ([]sto
 func (r *relayRepo) MarkRebalanceDone(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE rebalance_queue SET status = $2 WHERE id = $1
+	`, id, store.OutboxStatusDone)
+	return err
+}
+
+func (r *relayRepo) EnqueueOverrun(ctx context.Context, payload json.RawMessage) error {
+	companyID := store.CompanyID(ctx)
+	id := fmt.Sprintf("ovr-%d-%d", companyID, time.Now().UnixNano())
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO overrun_queue (id, company_id, payload, status)
+		VALUES ($1, $2, $3, $4)
+	`, id, companyID, payload, store.OutboxStatusPending)
+	return err
+}
+
+func (r *relayRepo) ClaimPendingOverrun(ctx context.Context, limit int) ([]store.OverrunQueueEntry, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, company_id, payload, status
+		FROM overrun_queue
+		WHERE status = $1
+		ORDER BY created_at
+		LIMIT $2
+		FOR UPDATE SKIP LOCKED
+	`, store.OutboxStatusPending, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]store.OverrunQueueEntry, 0)
+	for rows.Next() {
+		var e store.OverrunQueueEntry
+		if err := rows.Scan(&e.ID, &e.CompanyID, &e.Payload, &e.Status); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+func (r *relayRepo) MarkOverrunDone(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE overrun_queue SET status = $2 WHERE id = $1
 	`, id, store.OutboxStatusDone)
 	return err
 }

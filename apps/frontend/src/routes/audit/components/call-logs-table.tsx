@@ -90,22 +90,12 @@ export function CallLogsTable({
               {isExpanded && canExpand && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={10} className="bg-blue-50/20 p-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <div className="mb-1 text-xs font-medium text-muted-foreground">
-                          输入内容
-                        </div>
-                        <div className="rounded-md border border-border/40 bg-background p-3 text-xs">
-                          {log.inputPreview}
-                        </div>
+                    <div className="text-sm">
+                      <div className="mb-1 text-xs font-medium text-muted-foreground">
+                        输入预览
                       </div>
-                      <div>
-                        <div className="mb-1 text-xs font-medium text-muted-foreground">
-                          输出内容
-                        </div>
-                        <div className="rounded-md border border-border/40 bg-background p-3 text-xs">
-                          {log.outputPreview}
-                        </div>
+                      <div className="rounded-md border border-border/40 bg-background p-3 text-xs">
+                        {log.previewSnippet || '—'}
                       </div>
                     </div>
                   </TableCell>

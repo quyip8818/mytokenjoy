@@ -26,8 +26,9 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, notifier, logger)
+	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, stub, lifecycle)
-	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, rebalance, orgSvc, logger)
+	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
 	return runner, st, lifecycle
 }
 

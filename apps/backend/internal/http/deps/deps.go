@@ -12,6 +12,7 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/infra/platformauth"
 	"github.com/tokenjoy/backend/internal/store"
@@ -27,8 +28,9 @@ type Deps struct {
 	KeysSvc      domainkeys.Service
 	ModelsSvc    domainmodels.Service
 	DashboardSvc domaindashboard.Service
-	AuditSvc     domainaudit.Service
-	IngestSvc    domainbudget.Ingestor
+	AuditSvc         domainaudit.Service
+	CallLogQuerier   domainusage.CallLogQuerier
+	IngestSvc        domainbudget.Ingestor
 	CompanySvc   domaincompany.Service
 	BillingSvc   domainbilling.Service
 	PlatformSvc  platformauth.Service

@@ -96,4 +96,8 @@ func CloneRoles(items []types.Role) []types.Role { return cloneRoles(items) }
 
 func CloneMembers(items []types.Member) []types.Member { return cloneMembers(items) }
 
+func CloneMember(member types.Member) types.Member {
+	return cloneMembers([]types.Member{member})[0]
+}
+
 func CloneDepartments(items []types.Department) []types.Department { return cloneDepartments(items) }

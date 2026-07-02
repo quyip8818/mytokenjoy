@@ -50,10 +50,11 @@ flowchart TB
 | 路径                                       | 职责                                                           |
 | ------------------------------------------ | -------------------------------------------------------------- |
 | `internal/domain/budget/service.go`        | 控制台 CRUD：预算树、成员额度、预算组、预警规则、超限策略      |
-| `internal/domain/budget/ingest.go`         | Webhook 入账入口、幂等、企业上下文                             |
-| `internal/domain/budget/ingest_apply.go`   | 单次调用入账：写 `used` / `consumed` / 用量桶 / Rebalance 入队 |
-| `internal/domain/budget/ingest_rollup.go`  | 部门树 `consumed` 向祖先累加                                   |
-| `internal/domain/budget/ingest_overrun.go` | 花超后禁用 Key + 发通知                                        |
+| `internal/domain/budget/ingest.go`              | Webhook 入账编排、幂等、`WithTx`                               |
+| `internal/domain/budget/ingest_side_effects.go` | 副作用入队：`rebalance_queue` / `overrun_queue` / 游标         |
+| `internal/domain/budget/ingest_overrun.go`      | Worker 消费 `overrun_queue` 后评估超限并禁用 Key               |
+| `internal/domain/usage/projection.go`           | 同步投影：`used` / `consumed` / `usage_buckets`                |
+| `internal/domain/usage/entry.go`                | 构造 `usage_ledger` 分录、幂等键、`previewSnippet`             |
 | `internal/domain/budget/rebalance.go`      | 按轴重算 NewAPI Token `remain_quota`                           |
 | `internal/pkg/budget/*`                    | 纯函数：树操作、校验、额度计算（无 IO）                        |
 | `internal/domain/relay/quota.go`           | `ComputeRemainQuotaCNY`：多约束取最小值                        |
@@ -91,8 +92,9 @@ flowchart TB
 | `platform_keys`    | `quota`（分配额）、`used`（已消耗）；可挂 `member_id` 或 `budget_group_id` |
 | `relay_mappings`   | 冗余部门/组 ID；`newapi_token_remain_quota` 缓存 NewAPI 侧剩余             |
 | `usage_buckets`    | 看板聚合事实，非预算管控主账                                               |
+| `usage_ledger`     | 消耗事实 SSOT；幂等键 `UNIQUE (company_id, idempotency_key)`               |
 | `rebalance_queue`  | 异步再平衡待办                                                             |
-| `ingested_log_ids` | Ingest 幂等                                                                |
+| `overrun_queue`    | 超限封禁待办（Worker 异步消费）                                            |
 
 ### 3.1 预算节点字段
 
@@ -219,47 +221,48 @@ sequenceDiagram
     ING->>WO: EnqueueFailed
     WO->>W: 重试 IngestFromOutbox
   end
-  ING->>DB: WithTx applyIngestTx
+  ING->>DB: WithTx 账本 + projection + 入队
 ```
 
-Worker 还会通过 `relay_sync_cursors` **补偿轮询** NewAPI 日志（`org_sync_processor`），同样走 `Ingest`。
+Worker 还会通过 `relay_sync_cursors` **补偿轮询** NewAPI 日志（`org_sync_processor`），同样走 `Ingest`（`source=compensate`）。
 
 ### 7.2 Ingest 主流程
 
 `IngestService.Ingest`（`ingest.go`）：
 
-1. `HasIngestedLogID` → 已处理则直接返回（幂等）
-2. `FindMappingByNewAPITokenID` → 定位 `relay_mappings` 与 `company_id`
-3. 解析模型名、用 `domain/usage.CostCNYFromLog` 算 **costCNY**（基于 NewAPI quota 与模型单价）
-4. `store.WithTx` → `applyIngestTx`
+1. `FindMappingByNewAPITokenID` → 定位 `relay_mappings` 与 `company_id`
+2. `domain/usage.BuildCallSettledEntry` → 构造 `usage_ledger` 分录（含 `idempotency_key = newapi:{log_id}`）
+3. `store.WithTx`：
+   - `Ledger().InsertOnConflict` → 冲突则整笔跳过（幂等）
+   - `projection.Apply` → 增量更新投影表
+   - `enqueueSideEffects` → `rebalance_queue` / `overrun_queue` / `relay_sync_cursors`
 
 ### 7.3 单次入账写入了什么
 
-`applyIngestTx`（`ingest_apply.go`）在**同一事务**内顺序执行：
+同事务内顺序（账本 → 投影 → 副作用入队）：
 
-| 步骤 | 写入                                           | 说明                                  |
-| ---- | ---------------------------------------------- | ------------------------------------- |
-| 1    | `platform_keys.used += costCNY`                | Key 级已用额                          |
-| 2    | `budget_nodes.consumed` 向上 rollup            | 成员所在部门及所有祖先节点 += costCNY |
-| 3    | `budget_groups.consumed`                       | 若 mapping 有 `budget_group_id`       |
-| 4    | `rebalance_queue` 入队                         | member / department / budget_group 轴 |
-| 5    | `evaluateOverrun`                              | 见 §9                                 |
-| 6    | `usage_buckets` Upsert                         | 按**小时桶** × 部门 × 成员 × 模型聚合 |
-| 7    | `ingested_log_ids` + 更新 `relay_sync_cursors` | 幂等与补偿游标                        |
+| 步骤 | 写入 / 动作 | 说明 |
+| ---- | ----------- | ---- |
+| 1 | `usage_ledger` INSERT ON CONFLICT | 事实 SSOT；`event_type=call_settled` |
+| 2 | `platform_keys.used += costCNY` | `projection.Apply` 定点 UPDATE |
+| 3 | `budget_groups.consumed += costCNY` | 若有 `budget_group_id` |
+| 4 | `budget_nodes.consumed` 祖先 rollup | 以 mapping.`department_id` 为叶子（含应用 Key） |
+| 5 | `usage_buckets` Upsert | 小时桶 × 部门 × 成员 × 模型 |
+| 6 | `rebalance_queue` 入队 | member / department / budget_group 轴 |
+| 7 | `overrun_queue` 入队 | Worker 异步 `evaluateOverrun`（§9） |
+| 8 | `relay_sync_cursors` 推进 | 补偿游标 |
 
-**rollup 逻辑**（`ingest_rollup.go`）：从成员叶子部门开始，`Consumed += cost`，再对 `collectAncestorIDs` 返回的每个祖先同样 `+= cost`。因此父节点 `consumed` 含整棵子树花费。
+**rollup 逻辑**（`domain/usage/projection.go` → `RollupDepartmentConsumed`）：以 mapping.`department_id` 为叶子，叶子及所有祖先 `consumed += cost`。父节点 `consumed` 含整棵子树花费。
 
 ### 7.4 与看板的关系
 
-| 数据                    | 用途                     | 写入方（O1 后）                                      |
+| 数据                    | 用途                     | 写入方                                               |
 | ----------------------- | ------------------------ | ---------------------------------------------------- |
 | `budget_nodes.consumed` | 预算树展示、超限判断     | Ingest（账本同步投影）                               |
 | `usage_buckets`         | Dashboard 趋势、成本汇总 | Ingest（账本同步投影）                               |
 | `usage_ledger` | 审计列表、财务 SSOT | Ingest（瘦行 + `previewSnippet`） |
 
-> **O1 决策：** 废弃 `call_logs`；审计直读 `usage_ledger`；仅存 `previewSnippet`。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)。
-
-看板 `dashboard.Service` 读 `usage_buckets`（`UsageSourceBuckets`），**不读** `budget_nodes.consumed`。两者同源事件、不同聚合，短期可能因舍入或重试边界略有差异。
+看板 `dashboard.Service` 读 `usage_buckets`（`UsageSourceBuckets`），**不读** `budget_nodes.consumed`。两者同源事件、不同聚合，短期可能因舍入或重试边界略有差异。审计列表读 `usage_ledger`（`previewSnippet` 受 `contentRetentionEnabled` 控制）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)。
 
 ---
 
@@ -320,7 +323,7 @@ return min(candidates)
 
 ### 9.1 实际生效逻辑
 
-`ingest_overrun.evaluateOverrun` 在每次 Ingest **累加 consumed 之后**检查（硬比较 `>=`，**不用** `overrun_policy.thresholds` 百分比）：
+`ingest_overrun.evaluateOverrun` 由 Worker 消费 `overrun_queue` 后执行（**不在 Ingest 事务内**），读取**最新投影**后硬比较 `>=`（**不用** `overrun_policy.thresholds` 百分比）：
 
 | 范围   | 条件                                                | 动作                                          |
 | ------ | --------------------------------------------------- | --------------------------------------------- |
@@ -336,7 +339,7 @@ return min(candidates)
 
 | 实体             | 控制台可配                     | 运行时是否使用                   |
 | ---------------- | ------------------------------ | -------------------------------- |
-| `overrun_policy` | 阈值、通知渠道、`blockMessage` | **Ingest 未读取**；仅 CRUD 存储  |
+| `overrun_policy` | 阈值、通知渠道、`blockMessage` | **Overrun Worker 未读取**；仅 CRUD 存储 |
 | `alert_rules`    | 节点阈值 %、`notifyRoleIds`    | **无 Worker 评估**；仅 CRUD 存储 |
 
 当前真正执行「花超即封」的是 §9.1 的 **100% 硬门禁**，不是预警规则里的 80%/90% 阶梯通知。
@@ -361,12 +364,13 @@ return min(candidates)
 
 ```mermaid
 flowchart LR
-  A[relay_outbox 消费] --> B[rebalance_queue 消费]
-  B --> C[webhook_outbox 重试 Ingest]
-  C --> D[NewAPI 日志补偿 Ingest]
+  A[relay_outbox 消费] --> B[webhook_outbox 重试 Ingest]
+  B --> C[rebalance_queue 消费]
+  C --> D[overrun_queue 消费]
+  D --> E[NewAPI 日志补偿 Ingest]
 ```
 
-与预算直接相关的是 **B**（同步 Token 配额）和 **C/D**（入账写 consumed）。
+与预算直接相关的是 **C/D**（同步 Token 配额 / 超限封禁）和 **B/E**（入账写 consumed）。
 
 ---
 
@@ -441,7 +445,7 @@ sequenceDiagram
 | 主题         | 文件                                                                       |
 | ------------ | -------------------------------------------------------------------------- |
 | 预算 Service | `internal/domain/budget/service.go`                                        |
-| Ingest       | `internal/domain/budget/ingest.go`, `ingest_apply.go`                      |
+| Ingest       | `internal/domain/budget/ingest.go`, `ingest_side_effects.go`, `domain/usage/projection.go` |
 | 超限         | `internal/domain/budget/ingest_overrun.go`                                 |
 | Rebalance    | `internal/domain/budget/rebalance.go`                                      |
 | 额度合成     | `internal/domain/relay/quota.go`                                           |

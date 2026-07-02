@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -18,9 +19,13 @@ import (
 )
 
 type Ingestor interface {
-	Ingest(ctx context.Context, payload newapi.WebhookLogPayload) error
+	Ingest(ctx context.Context, payload newapi.WebhookLogPayload, source string) error
 	IngestFromOutbox(ctx context.Context, raw json.RawMessage) error
 	EnqueueFailed(ctx context.Context, payload newapi.WebhookLogPayload, ingestErr error) error
+}
+
+type OverrunProcessor interface {
+	ProcessOverrunPayload(ctx context.Context, raw json.RawMessage) error
 }
 
 type IngestService struct {
@@ -41,15 +46,7 @@ func NewIngestService(
 	return &IngestService{cfg: cfg, store: st, lifecycle: lifecycle, notifier: notifier, logger: logger}
 }
 
-func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPayload) error {
-	exists, err := s.store.Relay().HasIngestedLogID(ctx, payload.ID)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-
+func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPayload, source string) error {
 	mapping, err := s.store.Relay().FindMappingByNewAPITokenID(ctx, payload.TokenID)
 	if err != nil {
 		return err
@@ -63,20 +60,24 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		return err
 	}
 
-	models, err := s.store.Models().Models(ctx)
+	buildInput, err := domainusage.LoadEntryBuildInput(ctx, s.store, mapping, payload, source)
 	if err != nil {
 		return err
 	}
-	modelName := domainusage.ResolveWebhookModel(payload)
-	costCNY := domainusage.CostCNYFromLog(payload.Quota, modelName, models)
-
-	var memberID *string
-	if mapping.MemberID != nil {
-		memberID = mapping.MemberID
+	entry, err := domainusage.BuildCallSettledEntry(buildInput)
+	if err != nil {
+		return err
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		return s.applyIngestTx(ctx, st, payload, mapping, memberID, modelName, costCNY)
+		inserted, err := st.Ledger().InsertOnConflict(ctx, entry)
+		if err != nil || !inserted {
+			return err
+		}
+		if err := domainusage.Apply(ctx, st, entry); err != nil {
+			return err
+		}
+		return enqueueSideEffects(ctx, st, entry)
 	})
 }
 
@@ -85,7 +86,7 @@ func (s *IngestService) IngestFromOutbox(ctx context.Context, raw json.RawMessag
 	if err := json.Unmarshal(raw, &payload); err != nil {
 		return err
 	}
-	return s.Ingest(ctx, payload)
+	return s.Ingest(ctx, payload, types.SourceWebhook)
 }
 
 func (s *IngestService) EnqueueFailed(ctx context.Context, payload newapi.WebhookLogPayload, ingestErr error) error {

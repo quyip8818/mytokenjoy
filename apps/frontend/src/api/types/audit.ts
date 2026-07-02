@@ -37,8 +37,7 @@ export interface CallLog {
   status: 'success' | 'error' | 'filtered'
   cost: number
   createdAt: string
-  inputPreview: string
-  outputPreview: string
+  previewSnippet: string
 }
 
 export interface AuditSettings {

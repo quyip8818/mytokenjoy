@@ -129,6 +129,35 @@ func (r *memoryOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	return store.CloneMembers(r.store.companySnapshot(store.CompanyID(ctx)).Members), nil
 }
 
+func (r *memoryOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Member, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	for _, member := range r.store.companySnapshot(store.CompanyID(ctx)).Members {
+		if member.ID == memberID {
+			cloned := store.CloneMember(member)
+			return &cloned, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *memoryOrgRepo) MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, false, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	for _, member := range r.store.companySnapshot(store.CompanyID(ctx)).Members {
+		if member.ID == memberID {
+			return member.PersonalQuota, true, nil
+		}
+	}
+	return 0, false, nil
+}
+
 func (r *memoryOrgRepo) SetMembers(ctx context.Context, members []types.Member) error {
 	if err := ctx.Err(); err != nil {
 		return err

@@ -20,8 +20,7 @@ const sampleCallLog: CallLog = {
   latencyMs: 1200,
   status: 'success',
   cost: 0.05,
-  inputPreview: 'hello',
-  outputPreview: 'world',
+  previewSnippet: 'hello',
 }
 
 const sampleOperationLog: OperationLog = {

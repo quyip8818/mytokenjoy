@@ -375,28 +375,33 @@ CREATE INDEX IF NOT EXISTS idx_operation_logs_created ON operation_logs (company
 CREATE INDEX IF NOT EXISTS idx_operation_logs_operator ON operation_logs (company_id, operator_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_operation_logs_action ON operation_logs (company_id, action, created_at DESC);
 
-CREATE TABLE IF NOT EXISTS call_logs (
-    id             TEXT NOT NULL,
-    company_id      BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    caller         TEXT NOT NULL,
-    caller_id      TEXT NOT NULL,
-    caller_type    TEXT NOT NULL,
-    model          TEXT NOT NULL,
-    provider       TEXT NOT NULL,
-    input_tokens   NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    output_tokens  NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    latency_ms     NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    status         TEXT NOT NULL,
-    cost           NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    input_preview  TEXT NOT NULL DEFAULT '',
-    output_preview TEXT NOT NULL DEFAULT '',
-    created_at     TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (company_id, id)
+CREATE TABLE IF NOT EXISTS usage_ledger (
+    id               TEXT NOT NULL,
+    company_id       BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    event_type       TEXT NOT NULL,
+    idempotency_key  TEXT NOT NULL,
+    amount_cny       NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    department_id    TEXT NOT NULL,
+    member_id        TEXT,
+    budget_group_id  TEXT,
+    platform_key_id  TEXT NOT NULL,
+    source           TEXT NOT NULL,
+    occurred_at      TIMESTAMPTZ NOT NULL,
+    model            TEXT NOT NULL,
+    input_tokens     BIGINT NOT NULL DEFAULT 0,
+    output_tokens    BIGINT NOT NULL DEFAULT 0,
+    call_detail      JSONB NOT NULL DEFAULT '{}',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, id),
+    UNIQUE (company_id, idempotency_key)
 );
 
-CREATE INDEX IF NOT EXISTS idx_call_logs_created ON call_logs (company_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_call_logs_caller ON call_logs (company_id, caller_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_call_logs_model ON call_logs (company_id, model, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_ledger_call_settled_occurred
+    ON usage_ledger (company_id, occurred_at DESC)
+    WHERE event_type = 'call_settled';
+
+CREATE INDEX IF NOT EXISTS idx_usage_ledger_dept_occurred
+    ON usage_ledger (company_id, department_id, occurred_at DESC);
 
 -- Infrastructure
 CREATE TABLE IF NOT EXISTS relay_mappings (
@@ -449,11 +454,6 @@ CREATE TABLE IF NOT EXISTS webhook_outbox (
 
 CREATE INDEX IF NOT EXISTS idx_webhook_outbox_pending ON webhook_outbox (status, next_retry);
 
-CREATE TABLE IF NOT EXISTS ingested_log_ids (
-    log_id       BIGINT PRIMARY KEY,
-    ingested_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS relay_sync_cursors (
     company_id    BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
     last_log_id  BIGINT NOT NULL DEFAULT 0,
@@ -473,6 +473,16 @@ CREATE TABLE IF NOT EXISTS rebalance_queue (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rebalance_queue_pending ON rebalance_queue (status, created_at);
+
+CREATE TABLE IF NOT EXISTS overrun_queue (
+    id           TEXT PRIMARY KEY,
+    company_id   BIGINT NOT NULL DEFAULT 1,
+    payload      JSONB NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_overrun_queue_pending ON overrun_queue (status, created_at);
 
 CREATE TABLE IF NOT EXISTS datasource_credentials (
     company_id   BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),

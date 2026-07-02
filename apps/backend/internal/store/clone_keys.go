@@ -102,4 +102,8 @@ func ClonePlatformKeys(items []types.PlatformKey) []types.PlatformKey {
 	return clonePlatformKeys(items)
 }
 
+func ClonePlatformKey(key types.PlatformKey) types.PlatformKey {
+	return clonePlatformKey(key)
+}
+
 func CloneApprovals(items []types.KeyApproval) []types.KeyApproval { return cloneApprovals(items) }

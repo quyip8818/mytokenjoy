@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
@@ -35,7 +36,7 @@ func (r *Runner) compensateLogs(ctx context.Context) error {
 			Model:     newapi.LogEntryModel(logEntry),
 			CreatedAt: logEntry.CreatedAt,
 		}
-		if err := r.ingest.Ingest(ctx, payload); err != nil {
+		if err := r.ingest.Ingest(ctx, payload, types.SourceCompensate); err != nil {
 			r.logger.Warn("log compensation ingest failed", "log_id", logEntry.ID, "error", err)
 		}
 	}

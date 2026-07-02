@@ -67,6 +67,62 @@ func (r *pgBudgetRepo) SetTree(ctx context.Context, tree []types.BudgetNode) err
 	return pruneByIDForCompany(ctx, r.db, "budget_nodes", companyID, ids)
 }
 
+func (r *pgBudgetRepo) AddGroupConsumed(ctx context.Context, groupID string, amountCNY float64) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE budget_groups SET consumed = consumed + $3, updated_at = NOW()
+		WHERE company_id = $1 AND id = $2
+	`, companyID, groupID, amountCNY)
+	return err
+}
+
+func (r *pgBudgetRepo) RollupDepartmentConsumed(ctx context.Context, departmentID string, amountCNY float64) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		WITH RECURSIVE ancestors AS (
+			SELECT id, parent_id FROM budget_nodes
+			WHERE company_id = $1 AND id = $2
+			UNION ALL
+			SELECT n.id, n.parent_id FROM budget_nodes n
+			INNER JOIN ancestors a ON n.id = a.parent_id
+			WHERE n.company_id = $1 AND a.parent_id IS NOT NULL
+		)
+		UPDATE budget_nodes SET consumed = consumed + $3, updated_at = NOW()
+		WHERE company_id = $1 AND id IN (SELECT id FROM ancestors)
+	`, companyID, departmentID, amountCNY)
+	return err
+}
+
+func (r *pgBudgetRepo) GetDepartmentBudget(ctx context.Context, departmentID string) (float64, float64, bool, error) {
+	companyID := store.CompanyID(ctx)
+	var budget, consumed float64
+	err := r.db.QueryRow(ctx, `
+		SELECT budget, consumed FROM budget_nodes WHERE company_id = $1 AND id = $2
+	`, companyID, departmentID).Scan(&budget, &consumed)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, 0, false, nil
+		}
+		return 0, 0, false, err
+	}
+	return budget, consumed, true, nil
+}
+
+func (r *pgBudgetRepo) GetGroupBudget(ctx context.Context, groupID string) (float64, float64, bool, error) {
+	companyID := store.CompanyID(ctx)
+	var budget, consumed float64
+	err := r.db.QueryRow(ctx, `
+		SELECT budget, consumed FROM budget_groups WHERE company_id = $1 AND id = $2
+	`, companyID, groupID).Scan(&budget, &consumed)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, 0, false, nil
+		}
+		return 0, 0, false, err
+	}
+	return budget, consumed, true, nil
+}
+
 func (r *pgBudgetRepo) Groups(ctx context.Context) ([]types.BudgetGroup, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
