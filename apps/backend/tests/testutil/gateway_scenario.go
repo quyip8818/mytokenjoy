@@ -8,30 +8,30 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	relayhandler "github.com/tokenjoy/backend/internal/http/handler/relay"
+	relayhttp "github.com/tokenjoy/backend/internal/http/handler/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 type GatewayScenarioOpts struct {
-	CompanyID       int64
-	WalletQuota     int64
-	WalletAccountID int64
-	DepartmentID    string
-	Budget          float64
-	Consumed        float64
-	RemainQuota     int64
-	CompanyStatus   string
-	UseRealWallet   bool
-	NewAPIMock      *NewAPIMock
-	ProxyBackendURL string
+	CompanyID          int64
+	WalletQuota        int64
+	NewAPIWalletUserID int64
+	DepartmentID       string
+	Budget             float64
+	Consumed           float64
+	RemainQuota        int64
+	CompanyStatus      string
+	UseRealWallet      bool
+	NewAPIMock         *NewAPIMock
+	ProxyBackendURL    string
 }
 
 type GatewayScenario struct {
-	Gateway *relayhandler.Gateway
+	Gateway *relayhttp.Gateway
 	Store   store.Store
 	Cfg     config.Config
 	FullKey string
@@ -45,8 +45,8 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	if opts.DepartmentID == "" {
 		opts.DepartmentID = seed.IDDept3
 	}
-	if opts.WalletAccountID == 0 {
-		opts.WalletAccountID = 99
+	if opts.NewAPIWalletUserID == 0 {
+		opts.NewAPIWalletUserID = 99
 	}
 	if opts.RemainQuota == 0 {
 		opts.RemainQuota = 10000
@@ -56,7 +56,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	}
 
 	ctx := CtxForCompany(opts.CompanyID)
-	if err := st.Company().UpdateWalletAccountID(ctx, opts.CompanyID, opts.WalletAccountID); err != nil {
+	if err := st.Company().UpdateNewAPIWalletUserID(ctx, opts.CompanyID, opts.NewAPIWalletUserID); err != nil {
 		t.Fatal(err)
 	}
 	if opts.CompanyStatus != store.CompanyStatusActive {
@@ -113,14 +113,14 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	tokenID := int64(42)
 	remain := opts.RemainQuota
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		CompanyID:        opts.CompanyID,
-		PlatformKeyID:    platformKeyID,
-		NewAPITokenID:    &tokenID,
-		MemberID:         StrPtr(seed.IDMember1),
-		DepartmentID:     opts.DepartmentID,
-		SyncStatus:       store.RelaySyncStatusSynced,
-		RelayGroup:       "dept-dept-3",
-		RelayRemainQuota: &remain,
+		CompanyID:              opts.CompanyID,
+		PlatformKeyID:          platformKeyID,
+		NewAPITokenID:          &tokenID,
+		MemberID:               StrPtr(seed.IDMember1),
+		DepartmentID:           opts.DepartmentID,
+		SyncStatus:             store.RelaySyncStatusSynced,
+		RelayGroup:             "dept-dept-3",
+		NewAPITokenRemainQuota: &remain,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -144,8 +144,8 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	cfg.RelayGatewayEnabled = true
 
 	wallet := gatewayWallet(cfg, opts)
-	precheck := relay.NewPrecheckService(st, wallet)
-	gw, err := relayhandler.NewGateway(cfg, st, precheck)
+	precheck := domainrelay.NewPrecheckService(st, wallet)
+	gw, err := relayhttp.NewGateway(cfg, st, precheck)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 
 func gatewayWallet(cfg config.Config, opts GatewayScenarioOpts) company.WalletService {
 	if opts.UseRealWallet && opts.NewAPIMock != nil {
-		opts.NewAPIMock.SetQuota(opts.WalletAccountID, opts.WalletQuota)
+		opts.NewAPIMock.SetQuota(opts.NewAPIWalletUserID, opts.WalletQuota)
 		opts.NewAPIMock.ApplyToConfig(&cfg)
 		client := newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
 		return company.NewWalletService(cfg, client)

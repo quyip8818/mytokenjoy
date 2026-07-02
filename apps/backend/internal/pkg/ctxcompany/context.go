@@ -5,10 +5,10 @@ import "context"
 type contextKey struct{}
 
 type Info struct {
-	CompanyID             int64
-	Slug                  string
-	NewAPIWalletAccountID int64
-	Status                string
+	CompanyID          int64
+	Slug               string
+	NewAPIWalletUserID int64
+	Status             string
 }
 
 func With(ctx context.Context, info Info) context.Context {

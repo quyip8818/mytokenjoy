@@ -91,7 +91,7 @@ func (r *memoryCompanyRepo) UpdatePackageID(ctx context.Context, id int64, packa
 	return nil
 }
 
-func (r *memoryCompanyRepo) UpdateWalletAccountID(ctx context.Context, id int64, walletAccountID int64) error {
+func (r *memoryCompanyRepo) UpdateNewAPIWalletUserID(ctx context.Context, id int64, walletUserID int64) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (r *memoryCompanyRepo) UpdateWalletAccountID(ctx context.Context, id int64,
 	if !ok {
 		return nil
 	}
-	t.NewAPIWalletAccountID = &walletAccountID
+	t.NewAPIWalletUserID = &walletUserID
 	t.UpdatedAt = time.Now().UTC()
 	r.store.companies[id] = t
 	return nil

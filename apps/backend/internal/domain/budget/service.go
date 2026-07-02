@@ -94,10 +94,6 @@ func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.
 	if err != nil {
 		return nil, err
 	}
-	pools, err := s.store.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return nil, err
-	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return nil, err
@@ -105,7 +101,7 @@ func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.
 	quotas := make([]types.MemberBudgetQuota, 0)
 	for _, member := range members {
 		if member.DepartmentID == deptID {
-			quotas = append(quotas, pkgbudget.BuildMemberBudgetQuota(member, pools, platformKeys))
+			quotas = append(quotas, pkgbudget.BuildMemberBudgetQuota(member, platformKeys))
 		}
 	}
 	return quotas, nil
@@ -123,20 +119,16 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	pools, err := s.store.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return types.MemberBudgetQuota{}, err
-	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	if msg := pkgbudget.ValidateMemberQuotaUpdate(tree, members, pools, platformKeys, memberID, personalQuota); msg != nil {
+	if msg := pkgbudget.ValidateMemberQuotaUpdate(tree, members, platformKeys, memberID, personalQuota); msg != nil {
 		return types.MemberBudgetQuota{}, domain.Validation(*msg)
 	}
-	result := pkgbudget.ApplyMemberQuotaUpdate(members, pools, platformKeys, memberID, personalQuota)
-	if err := s.store.Budget().SetMemberQuotaPools(ctx, pools); err != nil {
-		return types.MemberBudgetQuota{}, fmt.Errorf("persist member quota pools: %w", err)
+	result, updatedMembers := pkgbudget.ApplyMemberQuotaUpdate(members, platformKeys, memberID, personalQuota)
+	if err := s.store.Org().SetMembers(ctx, updatedMembers); err != nil {
+		return types.MemberBudgetQuota{}, fmt.Errorf("persist member personal quota: %w", err)
 	}
 	return result, nil
 }

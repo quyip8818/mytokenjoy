@@ -122,12 +122,12 @@ apps/frontend/
 
 ## 11. 工具链
 
-| 命令          | 作用                       |
-| ------------- | -------------------------- |
-| `pnpm start`  | backend + frontend         |
-| `pnpm lint`   | ESLint + check-conventions |
-| `pnpm test`   | Vitest                     |
-| `pnpm build`  | tsc + vite build           |
+| 命令          | 作用                                      |
+| ------------- | ----------------------------------------- |
+| `pnpm start`  | backend + frontend                        |
+| `pnpm lint`   | ESLint + check-conventions                |
+| `pnpm test`   | Vitest                                    |
+| `pnpm build`  | tsc + vite build                          |
 | `pnpm verify` | lint + test + build + backend build:check |
 
 ---

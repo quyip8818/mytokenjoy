@@ -1,4 +1,4 @@
-package billinghandler
+package billing
 
 import (
 	"encoding/json"

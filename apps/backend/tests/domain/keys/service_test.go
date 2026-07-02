@@ -6,6 +6,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -77,19 +78,19 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	poolBefore, err := st.Budget().MemberQuotaPools(testutil.Ctx())
+	membersBefore, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := poolBefore[seed.IDMember1].PersonalQuota
+	before := budget.GetPersonalQuota(membersBefore, seed.IDMember1)
 	if err := svc.ApproveApproval(testutil.Ctx(), created.ID, seed.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
-	poolAfter, err := st.Budget().MemberQuotaPools(testutil.Ctx())
+	membersAfter, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
-	after := poolAfter[seed.IDMember1].PersonalQuota
+	after := budget.GetPersonalQuota(membersAfter, seed.IDMember1)
 	if after != before+1000 {
 		t.Fatalf("expected personal quota +1000, before=%v after=%v", before, after)
 	}

@@ -4,19 +4,19 @@ import (
 	"context"
 	"time"
 
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/timeparse"
 )
 
 func insertKeys(ctx context.Context, exec tableWriter, tid int64, snap store.Snapshot) error {
 	for _, key := range snap.ProviderKeys {
-		createdAt, err := timeparse.Parse(key.CreatedAt)
+		createdAt, err := pkgtime.Parse(key.CreatedAt)
 		if err != nil {
 			createdAt = time.Now().UTC()
 		}
 		var lastUsed *time.Time
 		if key.LastUsed != nil {
-			t, err := timeparse.Parse(*key.LastUsed)
+			t, err := pkgtime.Parse(*key.LastUsed)
 			if err != nil {
 				return err
 			}
@@ -34,13 +34,13 @@ func insertKeys(ctx context.Context, exec tableWriter, tid int64, snap store.Sna
 		}
 	}
 	for _, key := range snap.PlatformKeys {
-		createdAt, err := timeparse.Parse(key.CreatedAt)
+		createdAt, err := pkgtime.Parse(key.CreatedAt)
 		if err != nil {
 			createdAt = time.Now().UTC()
 		}
 		var expiresAt *time.Time
 		if key.ExpiresAt != nil {
-			t, err := timeparse.Parse(*key.ExpiresAt)
+			t, err := pkgtime.Parse(*key.ExpiresAt)
 			if err != nil {
 				return err
 			}
@@ -67,13 +67,13 @@ func insertKeys(ctx context.Context, exec tableWriter, tid int64, snap store.Sna
 		}
 	}
 	for _, approval := range snap.Approvals {
-		createdAt, err := timeparse.Parse(approval.CreatedAt)
+		createdAt, err := pkgtime.Parse(approval.CreatedAt)
 		if err != nil {
 			return err
 		}
 		var resolvedAt *time.Time
 		if approval.ResolvedAt != nil {
-			t, err := timeparse.Parse(*approval.ResolvedAt)
+			t, err := pkgtime.Parse(*approval.ResolvedAt)
 			if err != nil {
 				return err
 			}

@@ -61,6 +61,7 @@ func (s *service) CreateMember(ctx context.Context, input types.Member) (types.M
 		Name: input.Name, Phone: input.Phone, Email: input.Email,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
 		Status: "active", Roles: []string{permission.RoleMember}, Source: "manual",
+		PersonalQuota: common.DefaultPersonalQuota,
 	}
 
 	members, err := s.store.Org().Members(ctx)

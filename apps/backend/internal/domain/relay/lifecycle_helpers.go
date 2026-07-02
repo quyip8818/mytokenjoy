@@ -8,16 +8,16 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
-func (l *TokenLifecycle) walletUserID(ctx context.Context) int64 {
-	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletAccountID > 0 {
-		return companyCtx.NewAPIWalletAccountID
+func (l *TokenLifecycle) newAPIWalletUserID(ctx context.Context) int64 {
+	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletUserID > 0 {
+		return companyCtx.NewAPIWalletUserID
 	}
 	companyID := company.CompanyID(ctx)
 	company, err := l.store.Company().GetByID(ctx, companyID)
-	if err != nil || company == nil || company.NewAPIWalletAccountID == nil {
+	if err != nil || company == nil || company.NewAPIWalletUserID == nil {
 		return 0
 	}
-	return *company.NewAPIWalletAccountID
+	return *company.NewAPIWalletUserID
 }
 
 func (l *TokenLifecycle) capRemainUnits(ctx context.Context, remainCNY float64, models []types.ModelInfo, effective []string) int64 {
@@ -25,7 +25,7 @@ func (l *TokenLifecycle) capRemainUnits(ctx context.Context, remainCNY float64, 
 	if l.wallet == nil {
 		return allocated
 	}
-	walletID := l.walletUserID(ctx)
+	walletID := l.newAPIWalletUserID(ctx)
 	if walletID <= 0 {
 		return allocated
 	}

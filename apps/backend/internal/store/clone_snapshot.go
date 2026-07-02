@@ -15,7 +15,6 @@ func CloneSnapshot(snapshot Snapshot) Snapshot {
 		BudgetGroups:        CloneBudgetGroups(snapshot.BudgetGroups),
 		OverrunPolicy:       snapshot.OverrunPolicy,
 		AlertRules:          CloneAlertRules(snapshot.AlertRules),
-		MemberQuotaPools:    CloneMemberQuotaPools(snapshot.MemberQuotaPools),
 		ProviderKeys:        CloneProviderKeys(snapshot.ProviderKeys),
 		PlatformKeys:        ClonePlatformKeys(snapshot.PlatformKeys),
 		Approvals:           CloneApprovals(snapshot.Approvals),

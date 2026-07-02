@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	domainplatform "github.com/tokenjoy/backend/internal/domain/platform"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -49,11 +48,11 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			if err != nil {
 				return fmt.Errorf("create newapi wallet account: %w", err)
 			}
-			if err := tx.Company().UpdateWalletAccountID(ctx, company.ID, user.ID); err != nil {
+			if err := tx.Company().UpdateNewAPIWalletUserID(ctx, company.ID, user.ID); err != nil {
 				return err
 			}
 			walletID := user.ID
-			company.NewAPIWalletAccountID = &walletID
+			company.NewAPIWalletUserID = &walletID
 		}
 		rootDeptID := fmt.Sprintf("dept-root-%d", company.ID)
 		rootDept := types.Department{
@@ -106,7 +105,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	if err != nil {
 		return CreateCompanyResult{}, err
 	}
-	_ = domainplatform.AppendAudit(ctx, s.store, result.Company.ID, "platform.company.create", "platform", result.Company.Slug,
+	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", "platform", result.Company.Slug,
 		fmt.Sprintf("created company %d invite for %s", result.Company.ID, req.SuperAdminEmail))
 	return result, nil
 }

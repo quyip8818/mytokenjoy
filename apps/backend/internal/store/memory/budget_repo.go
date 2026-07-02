@@ -96,25 +96,3 @@ func (r *memoryBudgetRepo) SetAlertRules(ctx context.Context, rules []types.Aler
 	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
-
-func (r *memoryBudgetRepo) MemberQuotaPools(ctx context.Context) (map[string]types.MemberQuotaPool, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	r.store.mu.RLock()
-	defer r.store.mu.RUnlock()
-	return store.CloneMemberQuotaPools(r.store.companySnapshot(store.CompanyID(ctx)).MemberQuotaPools), nil
-}
-
-func (r *memoryBudgetRepo) SetMemberQuotaPools(ctx context.Context, pools map[string]types.MemberQuotaPool) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	r.store.mu.Lock()
-	defer r.store.mu.Unlock()
-	tid := store.CompanyID(ctx)
-	snap := r.store.companySnapshot(tid)
-	snap.MemberQuotaPools = store.CloneMemberQuotaPools(pools)
-	r.store.setCompanySnapshot(tid, snap)
-	return nil
-}

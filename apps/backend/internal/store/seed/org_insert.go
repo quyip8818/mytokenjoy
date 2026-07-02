@@ -6,8 +6,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/timeparse"
 )
 
 func insertPermissions(ctx context.Context, exec tableWriter, permissions []types.Permission) error {
@@ -70,11 +70,12 @@ func insertMembers(ctx context.Context, exec tableWriter, tid int64, members []t
 	for _, member := range members {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO members (
-				id, company_id, name, phone, email, department_id, department_name, status, source, external_id
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				id, company_id, name, phone, email, department_id, department_name,
+				status, source, external_id, personal_quota
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, member.ID, member.CompanyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID); err != nil {
+			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID, member.PersonalQuota); err != nil {
 			return fmt.Errorf("seed member %s: %w", member.ID, err)
 		}
 		for _, roleName := range member.Roles {
@@ -119,7 +120,7 @@ func insertOrgConfig(ctx context.Context, exec tableWriter, tid int64, snap stor
 		return err
 	}
 	for _, log := range snap.SyncLogs {
-		t, err := timeparse.Parse(log.Time)
+		t, err := pkgtime.Parse(log.Time)
 		if err != nil {
 			return err
 		}

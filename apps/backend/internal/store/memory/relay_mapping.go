@@ -207,13 +207,13 @@ func (r *memoryRelayRepo) UpdateMappingSync(
 	m.NewAPITokenID = &tokenID
 	m.SyncStatus = status
 	m.SyncedAt = &syncedAt
-	m.RelayRemainQuota = remainQuota
+	m.NewAPITokenRemainQuota = remainQuota
 	r.data.mappings[platformKeyID] = m
 	r.data.tokenIndex[tokenID] = platformKeyID
 	return nil
 }
 
-func (r *memoryRelayRepo) UpdateMappingRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error {
+func (r *memoryRelayRepo) UpdateMappingNewAPITokenRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func (r *memoryRelayRepo) UpdateMappingRemainQuota(ctx context.Context, platform
 	if !ok || !mappingBelongsToCompany(m, store.CompanyID(ctx)) {
 		return fmt.Errorf("mapping not found: %s", platformKeyID)
 	}
-	m.RelayRemainQuota = &remainQuota
+	m.NewAPITokenRemainQuota = &remainQuota
 	r.data.mappings[platformKeyID] = m
 	return nil
 }

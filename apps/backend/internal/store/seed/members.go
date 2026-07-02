@@ -3,6 +3,7 @@ package seed
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -127,7 +128,27 @@ func BuildMembers() []types.Member {
 	}
 
 	assignSpecialRoles(members)
+	applyMemberPersonalQuotas(members)
 	return members
+}
+
+var anchorPersonalQuotas = map[string]float64{
+	IDMemberAdmin: 50000,
+	IDMember1:     10000,
+	"m-2":         15000,
+	"m-4":         12000,
+	"m-auditor":   5000,
+	"m-pure":      3000,
+}
+
+func applyMemberPersonalQuotas(members []types.Member) {
+	for i := range members {
+		if quota, ok := anchorPersonalQuotas[members[i].ID]; ok {
+			members[i].PersonalQuota = quota
+			continue
+		}
+		members[i].PersonalQuota = common.DefaultPersonalQuota
+	}
 }
 
 func assignSpecialRoles(members []types.Member) {

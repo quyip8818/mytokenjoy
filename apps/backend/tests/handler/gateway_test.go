@@ -100,8 +100,8 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 		"router-gw", "Router GW", "router-gw@example.com", "Router Admin", "securepass123")
 
 	walletID := int64(0)
-	if provisioned.Company.NewAPIWalletAccountID != nil {
-		walletID = *provisioned.Company.NewAPIWalletAccountID
+	if provisioned.Company.NewAPIWalletUserID != nil {
+		walletID = *provisioned.Company.NewAPIWalletUserID
 	}
 	units := newapi.ToNewAPIUnits(100, nil, nil)
 	mock.SetQuota(walletID, units)
@@ -109,10 +109,10 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	testutil.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
 
 	fullKey := testutil.ConfigureGatewayStore(t, app.Store, testutil.GatewayScenarioOpts{
-		CompanyID:       provisioned.Company.ID,
-		WalletAccountID: walletID,
-		DepartmentID:    rootDept,
-		Budget:          1000,
+		CompanyID:          provisioned.Company.ID,
+		NewAPIWalletUserID: walletID,
+		DepartmentID:       rootDept,
+		Budget:             1000,
 	})
 
 	rec := httptest.NewRecorder()

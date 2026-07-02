@@ -1,4 +1,4 @@
-package timeparse
+package timeutil
 
 import (
 	"fmt"
@@ -25,4 +25,19 @@ func Parse(value string) (time.Time, error) {
 		return t, nil
 	}
 	return time.Time{}, fmt.Errorf("unsupported time format: %q", value)
+}
+
+func ParseOrNow(value string) (time.Time, error) {
+	if value == "" {
+		return time.Now().UTC(), nil
+	}
+	return Parse(value)
+}
+
+func FormatSyncLog(t time.Time) string {
+	return t.Format("2006-01-02 15:04")
+}
+
+func FormatDateOnly(t time.Time) string {
+	return t.Format("2006-01-02")
 }

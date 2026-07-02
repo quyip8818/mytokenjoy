@@ -142,6 +142,24 @@ func (r *memoryOrgRepo) SetMembers(ctx context.Context, members []types.Member) 
 	return nil
 }
 
+func (r *memoryOrgRepo) UpdateMemberPersonalQuota(ctx context.Context, memberID string, personalQuota float64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	for i := range snap.Members {
+		if snap.Members[i].ID == memberID {
+			snap.Members[i].PersonalQuota = personalQuota
+			r.store.setCompanySnapshot(tid, snap)
+			return nil
+		}
+	}
+	return nil
+}
+
 func memberPasswordKey(companyID int64, memberID string) string {
 	return fmt.Sprintf("%d:%s", companyID, memberID)
 }

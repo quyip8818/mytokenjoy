@@ -1,4 +1,4 @@
-package relayhandler
+package relay
 
 import (
 	"bytes"
@@ -48,11 +48,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
-	if company.NewAPIWalletAccountID != nil {
+	if company.NewAPIWalletUserID != nil {
 		ctx = domaincompany.WithContext(ctx, domaincompany.Context{
-			CompanyID:             mapping.CompanyID,
-			NewAPIWalletAccountID: *company.NewAPIWalletAccountID,
-			Status:                company.Status,
+			CompanyID:          mapping.CompanyID,
+			NewAPIWalletUserID: *company.NewAPIWalletUserID,
+			Status:             company.Status,
 		})
 	}
 	body, err := readAndRestoreBody(r)

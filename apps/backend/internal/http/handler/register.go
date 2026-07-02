@@ -5,22 +5,22 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
-	authhandler "github.com/tokenjoy/backend/internal/http/handler/auth"
-	billinghandler "github.com/tokenjoy/backend/internal/http/handler/billing"
+	"github.com/tokenjoy/backend/internal/http/handler/auth"
+	"github.com/tokenjoy/backend/internal/http/handler/billing"
 	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
 	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
 	keyshandler "github.com/tokenjoy/backend/internal/http/handler/keys"
 	modelshandler "github.com/tokenjoy/backend/internal/http/handler/models"
 	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
-	platformhandler "github.com/tokenjoy/backend/internal/http/handler/platform"
+	"github.com/tokenjoy/backend/internal/http/handler/platform"
 )
 
 type Registry struct {
 	cfg       config.Config
 	session   *SessionHandler
-	auth      *authhandler.Handler
-	platform  *platformhandler.Handler
-	billing   *billinghandler.Handler
+	auth      *auth.Handler
+	platform  *platform.Handler
+	billing   *billing.Handler
 	org       *orghandler.Handler
 	budget    *budgethandler.Handler
 	keys      *keyshandler.Handler
@@ -34,9 +34,9 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 	return Registry{
 		cfg:       deps.Config,
 		session:   NewSessionHandler(deps.Config, deps.SessionSvc),
-		auth:      authhandler.NewHandler(deps.CompanySvc),
-		platform:  platformhandler.NewHandler(deps.Config, deps.CompanySvc, deps.BillingSvc, deps.KeysSvc, deps.PlatformSvc),
-		billing:   billinghandler.NewHandler(deps.Config, deps.BillingSvc, deps.SessionSvc),
+		auth:      auth.NewHandler(deps.CompanySvc),
+		platform:  platform.NewHandler(deps.Config, deps.CompanySvc, deps.BillingSvc, deps.KeysSvc, deps.PlatformSvc),
+		billing:   billing.NewHandler(deps.Config, deps.BillingSvc, deps.SessionSvc),
 		org:       orghandler.NewHandler(deps.Config, deps.OrgSvc, deps.SessionSvc),
 		budget:    budgethandler.NewHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc),
 		keys:      keyshandler.NewHandler(deps.Config, deps.KeysSvc, deps.SessionSvc),

@@ -49,7 +49,3 @@ type MemberBudgetQuota struct {
 type UpdateMemberQuotaInput struct {
 	PersonalQuota float64 `json:"personalQuota"`
 }
-
-type MemberQuotaPool struct {
-	PersonalQuota float64
-}

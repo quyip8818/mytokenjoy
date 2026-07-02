@@ -94,18 +94,18 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		"dual-axis", "Dual Axis", "dual@example.com", "Dual Admin", "securepass123")
 
 	walletID := int64(0)
-	if provisioned.Company.NewAPIWalletAccountID != nil {
-		walletID = *provisioned.Company.NewAPIWalletAccountID
+	if provisioned.Company.NewAPIWalletUserID != nil {
+		walletID = *provisioned.Company.NewAPIWalletUserID
 	}
 	rootDept := fmt.Sprintf("dept-root-%d", provisioned.Company.ID)
 
 	// No recharge: wallet 0 -> 403
 	fullKey := testutil.ConfigureGatewayStore(t, app.Store, testutil.GatewayScenarioOpts{
-		CompanyID:       provisioned.Company.ID,
-		WalletAccountID: walletID,
-		WalletQuota:     0,
-		DepartmentID:    rootDept,
-		Budget:          1000,
+		CompanyID:          provisioned.Company.ID,
+		NewAPIWalletUserID: walletID,
+		WalletQuota:        0,
+		DepartmentID:       rootDept,
+		Budget:             1000,
 	})
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewayRequest(fullKey))
@@ -117,12 +117,12 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	testutil.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 	mock.SetQuota(walletID, newapi.ToNewAPIUnits(100, nil, nil))
 	fullKey = testutil.ConfigureGatewayStore(t, app.Store, testutil.GatewayScenarioOpts{
-		CompanyID:       provisioned.Company.ID,
-		WalletAccountID: walletID,
-		WalletQuota:     newapi.ToNewAPIUnits(100, nil, nil),
-		DepartmentID:    rootDept,
-		Budget:          0,
-		UseRealWallet:   false,
+		CompanyID:          provisioned.Company.ID,
+		NewAPIWalletUserID: walletID,
+		WalletQuota:        newapi.ToNewAPIUnits(100, nil, nil),
+		DepartmentID:       rootDept,
+		Budget:             0,
+		UseRealWallet:      false,
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewayRequest(fullKey))
@@ -133,12 +133,12 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	// Both wallet and budget -> 200
 	testutil.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
 	fullKey = testutil.ConfigureGatewayStore(t, app.Store, testutil.GatewayScenarioOpts{
-		CompanyID:       provisioned.Company.ID,
-		WalletAccountID: walletID,
-		DepartmentID:    rootDept,
-		Budget:          1000,
-		UseRealWallet:   true,
-		NewAPIMock:      mock,
+		CompanyID:          provisioned.Company.ID,
+		NewAPIWalletUserID: walletID,
+		DepartmentID:       rootDept,
+		Budget:             1000,
+		UseRealWallet:      true,
+		NewAPIMock:         mock,
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewayRequest(fullKey))

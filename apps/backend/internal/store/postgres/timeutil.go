@@ -3,24 +3,21 @@ package postgres
 import (
 	"time"
 
-	"github.com/tokenjoy/backend/internal/store/timeparse"
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 )
 
 func parseAPITime(value string) (time.Time, error) {
-	return timeparse.Parse(value)
+	return pkgtime.Parse(value)
 }
 
 func formatSyncLogTime(t time.Time) string {
-	return t.Format("2006-01-02 15:04")
+	return pkgtime.FormatSyncLog(t)
 }
 
 func formatDateOnly(t time.Time) string {
-	return t.Format("2006-01-02")
+	return pkgtime.FormatDateOnly(t)
 }
 
 func parseTimeOrNow(value string) (time.Time, error) {
-	if value == "" {
-		return time.Now().UTC(), nil
-	}
-	return timeparse.Parse(value)
+	return pkgtime.ParseOrNow(value)
 }

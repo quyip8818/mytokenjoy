@@ -58,7 +58,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	if err != nil {
 		return err
 	}
-	pools, err := l.store.Budget().MemberQuotaPools(ctx)
+	members, err := l.store.Org().Members(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 
 	deptAllowed := common.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
 	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
-	remainCNY := ComputeRemainQuotaCNY(key, tree, pools, platformKeys, groups, mapping.DepartmentID)
+	remainCNY := ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, mapping.DepartmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effective)
 	status := newapi.TokenStatusEnabled
 	if key.Status != "active" {

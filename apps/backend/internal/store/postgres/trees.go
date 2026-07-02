@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
-	"github.com/tokenjoy/backend/internal/store/treeutil"
 )
 
 type flatDepartment struct {
@@ -81,7 +81,7 @@ type flatBudgetNode struct {
 }
 
 func flattenBudgetNodesWithOrder(nodes []types.BudgetNode) []flatBudgetNode {
-	flat := treeutil.FlattenBudgetTree(nodes)
+	flat := pkgbudget.FlattenBudgetTree(nodes)
 	result := make([]flatBudgetNode, len(flat))
 	for i, node := range flat {
 		cloned := node

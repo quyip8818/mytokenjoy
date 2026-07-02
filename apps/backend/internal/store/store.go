@@ -20,7 +20,6 @@ type Snapshot struct {
 	BudgetGroups        []types.BudgetGroup
 	OverrunPolicy       types.OverrunPolicyConfig
 	AlertRules          []types.AlertRule
-	MemberQuotaPools    map[string]types.MemberQuotaPool
 	ProviderKeys        []types.ProviderKey
 	PlatformKeys        []types.PlatformKey
 	Approvals           []types.KeyApproval

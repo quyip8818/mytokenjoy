@@ -11,15 +11,15 @@ const (
 )
 
 type Company struct {
-	ID                    int64
-	Slug                  string
-	Name                  string
-	Status                string
-	RootDeptID            *string
-	NewAPIWalletAccountID *int64
-	PackageID             *string
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	ID                 int64
+	Slug               string
+	Name               string
+	Status             string
+	RootDeptID         *string
+	NewAPIWalletUserID *int64
+	PackageID          *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 type CompanyRepository interface {
@@ -28,7 +28,7 @@ type CompanyRepository interface {
 	Create(ctx context.Context, company Company) error
 	UpdateStatus(ctx context.Context, id int64, status string) error
 	UpdatePackageID(ctx context.Context, id int64, packageID *string) error
-	UpdateWalletAccountID(ctx context.Context, id int64, walletAccountID int64) error
+	UpdateNewAPIWalletUserID(ctx context.Context, id int64, walletUserID int64) error
 	UpdateRootDeptID(ctx context.Context, id int64, rootDeptID string) error
 	List(ctx context.Context) ([]Company, error)
 }

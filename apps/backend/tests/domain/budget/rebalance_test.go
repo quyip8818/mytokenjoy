@@ -22,14 +22,14 @@ func TestRebalanceBidirectional(t *testing.T) {
 	tokenID := int64(42)
 	remainQuota := int64(1000)
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		CompanyID:        seed.DefaultCompanyID,
-		PlatformKeyID:    seed.IDPlatformKey1,
-		NewAPITokenID:    &tokenID,
-		MemberID:         testutil.StrPtr(seed.IDMember1),
-		DepartmentID:     seed.IDDept3,
-		SyncStatus:       store.RelaySyncStatusSynced,
-		RelayGroup:       "dept-dept-3",
-		RelayRemainQuota: &remainQuota,
+		CompanyID:              seed.DefaultCompanyID,
+		PlatformKeyID:          seed.IDPlatformKey1,
+		NewAPITokenID:          &tokenID,
+		MemberID:               testutil.StrPtr(seed.IDMember1),
+		DepartmentID:           seed.IDDept3,
+		SyncStatus:             store.RelaySyncStatusSynced,
+		RelayGroup:             "dept-dept-3",
+		NewAPITokenRemainQuota: &remainQuota,
 	}); err != nil {
 		t.Fatal(err)
 	}

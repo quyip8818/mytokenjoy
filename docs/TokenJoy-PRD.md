@@ -46,14 +46,14 @@ graph LR
     D -.->|审计视角| C
 ```
 
-**SaaS** 在之上增加 **平台运营**（企业开户、全局 Channel、代充）；企业内角色与私有化一致。成员登录 TokenJoy 控制台，**不**登录 NewAPI；公司钱包在 NewAPI 侧以 **企业服务账户** 存在（见 [NewAPI-SaaS多企业配置.md](./NewAPI-SaaS多企业配置.md)）。
+**SaaS** 在之上增加 **平台运营**（企业开户、全局 Channel、代充）；企业内角色与私有化一致。成员登录 TokenJoy 控制台，**不**登录 NewAPI；企业钱包在 NewAPI 侧以 **企业钱包用户**（`newapi_wallet_user_id`）存在（见 [NewAPI-SaaS多企业配置.md](./NewAPI-SaaS多企业配置.md)）。
 
-| 角色       | 范围       | 核心诉求                       |
-| ---------- | ---------- | ------------------------------ |
-| 平台运营   | 全平台     | 企业 CRUD、代充、上游 Channel  |
-| 公司超管   | 本企业     | 充值、公司余额、组织、部门预算 |
-| 部门负责人 | 本企业部门 | 审批 Key、本部门用量           |
-| 普通成员   | 本企业     | 申请 Key、调用 API             |
+| 角色       | 范围       | 核心诉求                           |
+| ---------- | ---------- | ---------------------------------- |
+| 平台运营   | 全平台     | 企业 CRUD、代充、上游 Channel      |
+| 企业超管   | 本企业     | 充值、企业钱包余额、组织、部门预算 |
+| 部门负责人 | 本企业部门 | 审批 Key、本部门用量               |
+| 普通成员   | 本企业     | 申请 Key、调用 API                 |
 
 ### 1.4 业务阶段与依赖关系
 
@@ -800,8 +800,8 @@ erDiagram
 | [Frontend-API契约.md](./Frontend-API契约.md) | 端点与类型权威来源                          |
 | [Backend-待实现.md](./Backend-待实现.md)     | PRD 与后端的剩余差距（预警、通知、OIDC 等） |
 
-**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、Relay Gateway、公司钱包与 SaaS API 见 [Backend-SaaS多租户改造.md](./Backend-SaaS多租户改造.md) §八。
+**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、Relay Gateway、企业钱包与 SaaS API 见 [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)。
 
-**数据模型命名差异（非差距）：** `Member` 不含 `personal_quota`（见 `MemberBudgetQuota`）；`MODEL_WHITELIST` 对应 `RoutingRule`。
+**数据模型命名差异（非差距）：** HTTP `Member` JSON 不暴露 `personalQuota`（存储于 `members.personal_quota`；预算 API 经 `MemberBudgetQuota` 返回）；`MODEL_WHITELIST` 对应 `RoutingRule`。
 
 PRD 或契约变更时，先更新契约与 `api/types/`，再同步 [Backend-待实现.md](./Backend-待实现.md)。

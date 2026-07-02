@@ -1,5 +1,3 @@
-export type OverrunPolicy = 'hard_reject' | 'approval' | 'downgrade'
-
 export interface BudgetNode {
   id: string
   name: string

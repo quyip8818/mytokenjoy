@@ -3,22 +3,34 @@ package budget
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func GetPersonalQuota(pools map[string]types.MemberQuotaPool, memberID string) float64 {
-	if pool, ok := pools[memberID]; ok {
-		return pool.PersonalQuota
+func GetPersonalQuota(members []types.Member, memberID string) float64 {
+	member, ok := org.FindMemberByID(members, memberID)
+	if !ok {
+		return common.DefaultPersonalQuota
+	}
+	if member.PersonalQuota > 0 {
+		return member.PersonalQuota
 	}
 	return common.DefaultPersonalQuota
 }
 
-func AddPersonalQuota(pools map[string]types.MemberQuotaPool, memberID string, amount float64) {
-	current := GetPersonalQuota(pools, memberID)
-	pools[memberID] = types.MemberQuotaPool{PersonalQuota: current + amount}
+func AddMemberPersonalQuota(members []types.Member, memberID string, amount float64) []types.Member {
+	current := GetPersonalQuota(members, memberID)
+	return SetMemberPersonalQuota(members, memberID, current+amount)
 }
 
-func SetPersonalQuota(pools map[string]types.MemberQuotaPool, memberID string, personalQuota float64) {
-	pools[memberID] = types.MemberQuotaPool{PersonalQuota: personalQuota}
+func SetMemberPersonalQuota(members []types.Member, memberID string, personalQuota float64) []types.Member {
+	result := append([]types.Member{}, members...)
+	for i := range result {
+		if result[i].ID == memberID {
+			result[i].PersonalQuota = personalQuota
+			return result
+		}
+	}
+	return append(result, types.Member{ID: memberID, PersonalQuota: personalQuota})
 }
 
 func GetAllocatedKeyQuota(platformKeys []types.PlatformKey, memberID string) float64 {
@@ -41,18 +53,18 @@ func GetUsedKeyQuota(platformKeys []types.PlatformKey, memberID string) float64 
 	return sum
 }
 
-func GetQuotaRemaining(pools map[string]types.MemberQuotaPool, platformKeys []types.PlatformKey, memberID string) float64 {
-	remaining := GetPersonalQuota(pools, memberID) - GetAllocatedKeyQuota(platformKeys, memberID)
+func GetQuotaRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID string) float64 {
+	remaining := GetPersonalQuota(members, memberID) - GetAllocatedKeyQuota(platformKeys, memberID)
 	if remaining < 0 {
 		return 0
 	}
 	return remaining
 }
 
-func BuildQuotaSummary(pools map[string]types.MemberQuotaPool, platformKeys []types.PlatformKey, memberID string, reservedPool float64) types.MemberQuotaSummary {
-	totalQuota := GetPersonalQuota(pools, memberID)
+func BuildQuotaSummary(members []types.Member, platformKeys []types.PlatformKey, memberID string, reservedPool float64) types.MemberQuotaSummary {
+	totalQuota := GetPersonalQuota(members, memberID)
 	used := GetUsedKeyQuota(platformKeys, memberID)
-	remaining := GetQuotaRemaining(pools, platformKeys, memberID)
+	remaining := GetQuotaRemaining(members, platformKeys, memberID)
 	return types.MemberQuotaSummary{
 		TotalQuota: totalQuota, Used: used, Remaining: remaining, ReservedPool: reservedPool,
 	}

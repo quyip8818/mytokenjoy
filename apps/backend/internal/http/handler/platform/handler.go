@@ -1,4 +1,4 @@
-package platformhandler
+package platform
 
 import (
 	"encoding/json"

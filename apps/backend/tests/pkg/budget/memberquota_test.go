@@ -10,10 +10,10 @@ import (
 
 func TestGetQuotaRemaining(t *testing.T) {
 	snapshot := seed.Load(testutil.TestConfig())
-	pools := snapshot.MemberQuotaPools
+	members := snapshot.Members
 	keys := snapshot.PlatformKeys
 
-	remaining := budget.GetQuotaRemaining(pools, keys, seed.IDMember1)
+	remaining := budget.GetQuotaRemaining(members, keys, seed.IDMember1)
 	if remaining != 3000 {
 		t.Fatalf("expected remaining 3000 (10000 personal - 7000 allocated), got %v", remaining)
 	}
@@ -21,11 +21,11 @@ func TestGetQuotaRemaining(t *testing.T) {
 
 func TestBuildQuotaSummary(t *testing.T) {
 	snapshot := seed.Load(testutil.TestConfig())
-	pools := snapshot.MemberQuotaPools
+	members := snapshot.Members
 	keys := snapshot.PlatformKeys
-	reserved := budget.GetReservedPoolForMember(snapshot.BudgetTree, snapshot.Members, seed.IDMember1)
+	reserved := budget.GetReservedPoolForMember(snapshot.BudgetTree, members, seed.IDMember1)
 
-	summary := budget.BuildQuotaSummary(pools, keys, seed.IDMember1, reserved)
+	summary := budget.BuildQuotaSummary(members, keys, seed.IDMember1, reserved)
 	if summary.TotalQuota != 10000 {
 		t.Fatalf("expected total quota 10000, got %v", summary.TotalQuota)
 	}

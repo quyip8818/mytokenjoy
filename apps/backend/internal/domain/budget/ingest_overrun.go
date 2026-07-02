@@ -23,14 +23,10 @@ func (s *IngestService) evaluateOverrun(
 	if err != nil {
 		return err
 	}
-	pools, err := st.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return err
-	}
 
 	if memberID != nil && mapping.BudgetGroupID == nil {
 		used := pkgbudget.GetUsedKeyQuota(platformKeys, *memberID)
-		capacity := pkgbudget.GetPersonalQuota(pools, *memberID)
+		capacity := pkgbudget.GetPersonalQuota(members, *memberID)
 		if used >= capacity {
 			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, *memberID, map[string]any{
 				"scope": "member", "memberId": *memberID, "used": used, "capacity": capacity,

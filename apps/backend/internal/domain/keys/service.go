@@ -86,16 +86,12 @@ func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.Memb
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
-	pools, err := s.store.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return types.MemberQuotaSummary{}, err
-	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
 	reservedPool := budget.GetReservedPoolForMember(tree, members, memberID)
-	return budget.BuildQuotaSummary(pools, platformKeys, memberID, reservedPool), nil
+	return budget.BuildQuotaSummary(members, platformKeys, memberID, reservedPool), nil
 }
 
 func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error) {

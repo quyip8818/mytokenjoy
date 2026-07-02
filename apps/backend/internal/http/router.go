@@ -5,10 +5,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	httphandler "github.com/tokenjoy/backend/internal/http/handler"
-	relayhandler "github.com/tokenjoy/backend/internal/http/handler/relay"
+	relayhttp "github.com/tokenjoy/backend/internal/http/handler/relay"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
 )
@@ -23,8 +23,8 @@ func NewRouter(deps httpdeps.Deps) http.Handler {
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
 	if deps.Config.RelayGatewayEnabled && deps.Config.NewAPIEnabled {
-		precheck := relay.NewPrecheckService(deps.Store, deps.WalletSvc)
-		if gw, err := relayhandler.NewGateway(deps.Config, deps.Store, precheck); err == nil {
+		precheck := domainrelay.NewPrecheckService(deps.Store, deps.WalletSvc)
+		if gw, err := relayhttp.NewGateway(deps.Config, deps.Store, precheck); err == nil {
 			r.Handle("/v1/*", gw)
 		} else if deps.Logger != nil {
 			deps.Logger.Error("relay gateway disabled", "error", err)

@@ -2,7 +2,10 @@ package postgres
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -29,4 +32,489 @@ func (r *pgOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error)
 		return nil, err
 	}
 	return store.ClonePermissions(items), nil
+}
+
+func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, phone, email, department_id, department_name, status, source, external_id, personal_quota
+		FROM members WHERE company_id = $1 ORDER BY id
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]types.Member, 0)
+	for rows.Next() {
+		var item types.Member
+		if err := rows.Scan(
+			&item.ID, &item.Name, &item.Phone, &item.Email,
+			&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
+			&item.PersonalQuota,
+		); err != nil {
+			return nil, err
+		}
+		roleRows, err := r.db.Query(ctx, `
+			SELECT ro.name FROM member_roles mr
+			JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
+			WHERE mr.company_id = $1 AND mr.member_id = $2
+			ORDER BY ro.name
+		`, companyID, item.ID)
+		if err == nil {
+			for roleRows.Next() {
+				var name string
+				if err := roleRows.Scan(&name); err == nil {
+					item.Roles = append(item.Roles, name)
+				}
+			}
+			roleRows.Close()
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneMembers(items), nil
+}
+
+func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) error {
+	companyID := store.CompanyID(ctx)
+	cloned := store.CloneMembers(members)
+	roleIDByName, err := loadRoleNameIndex(ctx, r.db, companyID)
+	if err != nil {
+		return err
+	}
+	ids := make([]string, len(cloned))
+	for i, member := range cloned {
+		ids[i] = member.ID
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO members (
+				id, company_id, name, phone, email, department_id, department_name,
+				status, source, external_id, personal_quota, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+			ON CONFLICT (company_id, id) DO UPDATE SET
+				name = EXCLUDED.name,
+				phone = EXCLUDED.phone,
+				email = EXCLUDED.email,
+				department_id = EXCLUDED.department_id,
+				department_name = EXCLUDED.department_name,
+				status = EXCLUDED.status,
+				source = EXCLUDED.source,
+				external_id = EXCLUDED.external_id,
+				personal_quota = EXCLUDED.personal_quota,
+				updated_at = NOW()
+		`, member.ID, companyID, member.Name, member.Phone, member.Email,
+			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID, member.PersonalQuota); err != nil {
+			return fmt.Errorf("upsert member %s: %w", member.ID, err)
+		}
+		if _, err := r.db.Exec(ctx, `DELETE FROM member_roles WHERE company_id = $1 AND member_id = $2`, companyID, member.ID); err != nil {
+			return fmt.Errorf("clear member roles: %w", err)
+		}
+		for _, roleName := range member.Roles {
+			roleID, ok := roleIDByName[roleName]
+			if !ok {
+				continue
+			}
+			if _, err := r.db.Exec(ctx, `
+				INSERT INTO member_roles (company_id, member_id, role_id) VALUES ($1, $2, $3)
+				ON CONFLICT DO NOTHING
+			`, companyID, member.ID, roleID); err != nil {
+				return fmt.Errorf("insert member role: %w", err)
+			}
+		}
+	}
+	if len(ids) == 0 {
+		if _, err := r.db.Exec(ctx, `DELETE FROM member_roles WHERE company_id = $1`, companyID); err != nil {
+			return err
+		}
+		_, err := r.db.Exec(ctx, `DELETE FROM members WHERE company_id = $1`, companyID)
+		return err
+	}
+	if err := pruneByColumnForCompany(ctx, r.db, "member_roles", "member_id", companyID, ids); err != nil {
+		return err
+	}
+	return pruneByIDForCompany(ctx, r.db, "members", companyID, ids)
+}
+
+func (r *pgOrgRepo) UpdateMemberPersonalQuota(ctx context.Context, memberID string, personalQuota float64) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE members SET personal_quota = $3, updated_at = NOW()
+		WHERE company_id = $1 AND id = $2
+	`, companyID, memberID, personalQuota)
+	if err != nil {
+		return fmt.Errorf("update member personal quota: %w", err)
+	}
+	return nil
+}
+
+func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID int64) (map[string]string, error) {
+	rows, err := db.Query(ctx, `SELECT id, name FROM roles WHERE company_id = $1`, companyID)
+	if err != nil {
+		return nil, fmt.Errorf("load roles index: %w", err)
+	}
+	defer rows.Close()
+	index := make(map[string]string)
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, err
+		}
+		index[name] = id
+	}
+	return index, rows.Err()
+}
+
+func (r *pgOrgRepo) SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE members SET password_hash = $3, updated_at = NOW()
+		WHERE company_id = $1 AND id = $2
+	`, companyID, memberID, passwordHash)
+	if err != nil {
+		return fmt.Errorf("set member password: %w", err)
+	}
+	return nil
+}
+
+func (r *pgOrgRepo) Departments(ctx context.Context) ([]types.Department, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, parent_id, member_count, external_id, source, manager_id, sort_order
+		FROM departments
+		WHERE company_id = $1
+		ORDER BY sort_order
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	flat := make([]flatDepartment, 0)
+	for rows.Next() {
+		var row flatDepartment
+		if err := rows.Scan(
+			&row.ID, &row.Name, &row.ParentID, &row.MemberCount,
+			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
+		); err != nil {
+			return nil, err
+		}
+		flat = append(flat, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneDepartments(buildDepartmentTree(flat)), nil
+}
+
+func (r *pgOrgRepo) SetDepartments(ctx context.Context, departments []types.Department) error {
+	companyID := store.CompanyID(ctx)
+	flat := flattenDepartmentsWithOrder(store.CloneDepartments(departments))
+	ids := make([]string, len(flat))
+	for i, row := range flat {
+		ids[i] = row.ID
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO departments (
+				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+			ON CONFLICT (company_id, id) DO UPDATE SET
+				name = EXCLUDED.name,
+				parent_id = EXCLUDED.parent_id,
+				member_count = EXCLUDED.member_count,
+				external_id = EXCLUDED.external_id,
+				source = EXCLUDED.source,
+				manager_id = EXCLUDED.manager_id,
+				sort_order = EXCLUDED.sort_order,
+				updated_at = NOW()
+		`, row.ID, companyID, row.Name, row.ParentID, row.MemberCount,
+			row.ExternalID, row.Source, row.ManagerID, row.sortOrder); err != nil {
+			return fmt.Errorf("upsert department %s: %w", row.ID, err)
+		}
+	}
+	return pruneByIDForCompany(ctx, r.db, "departments", companyID, ids)
+}
+
+func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `SELECT id, name, type, member_count FROM roles WHERE company_id = $1 ORDER BY id`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]types.Role, 0)
+	for rows.Next() {
+		var role types.Role
+		if err := rows.Scan(&role.ID, &role.Name, &role.Type, &role.MemberCount); err != nil {
+			return nil, err
+		}
+		grantRows, err := r.db.Query(ctx, `
+			SELECT permission_ref FROM role_permission_grants WHERE company_id = $1 AND role_id = $2 ORDER BY permission_ref
+		`, companyID, role.ID)
+		if err == nil {
+			for grantRows.Next() {
+				var ref string
+				if err := grantRows.Scan(&ref); err == nil {
+					role.Permissions = append(role.Permissions, ref)
+				}
+			}
+			grantRows.Close()
+		}
+		items = append(items, role)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneRoles(items), nil
+}
+
+func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
+	companyID := store.CompanyID(ctx)
+	cloned := store.CloneRoles(roles)
+	ids := make([]string, len(cloned))
+	for i, role := range cloned {
+		ids[i] = role.ID
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO roles (id, company_id, name, type, member_count) VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (company_id, id) DO UPDATE SET
+				name = EXCLUDED.name,
+				type = EXCLUDED.type,
+				member_count = EXCLUDED.member_count
+		`, role.ID, companyID, role.Name, role.Type, role.MemberCount); err != nil {
+			return fmt.Errorf("upsert role %s: %w", role.ID, err)
+		}
+		if _, err := r.db.Exec(ctx, `DELETE FROM role_permission_grants WHERE company_id = $1 AND role_id = $2`, companyID, role.ID); err != nil {
+			return fmt.Errorf("clear role grants: %w", err)
+		}
+		for _, perm := range role.Permissions {
+			if _, err := r.db.Exec(ctx, `
+				INSERT INTO role_permission_grants (company_id, role_id, permission_ref) VALUES ($1, $2, $3)
+			`, companyID, role.ID, perm); err != nil {
+				return fmt.Errorf("insert role grant: %w", err)
+			}
+		}
+	}
+	if len(ids) == 0 {
+		if _, err := r.db.Exec(ctx, `DELETE FROM role_permission_grants WHERE company_id = $1`, companyID); err != nil {
+			return err
+		}
+		_, err := r.db.Exec(ctx, `DELETE FROM roles WHERE company_id = $1`, companyID)
+		return err
+	}
+	if err := pruneByColumnForCompany(ctx, r.db, "role_permission_grants", "role_id", companyID, ids); err != nil {
+		return err
+	}
+	return pruneByIDForCompany(ctx, r.db, "roles", companyID, ids)
+}
+
+func (r *pgOrgRepo) DataSourceStatus(ctx context.Context) (types.DataSourceStatus, error) {
+	companyID := store.CompanyID(ctx)
+	var platform *string
+	var connected bool
+	var lastImport *time.Time
+	var lastImportOK, lastImportFail *int
+	err := r.db.QueryRow(ctx, `
+		SELECT platform, connected, last_import, last_import_ok, last_import_fail
+		FROM org_data_source_status WHERE company_id = $1
+	`, companyID).Scan(&platform, &connected, &lastImport, &lastImportOK, &lastImportFail)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return types.DataSourceStatus{}, nil
+		}
+		return types.DataSourceStatus{}, err
+	}
+	status := types.DataSourceStatus{Connected: connected}
+	if platform != nil && *platform != "" {
+		p := types.Platform(*platform)
+		status.Platform = &p
+	}
+	if lastImport != nil {
+		s := formatSyncLogTime(*lastImport)
+		status.LastImport = &s
+	}
+	if lastImportOK != nil || lastImportFail != nil {
+		result := types.ImportResult{}
+		if lastImportOK != nil {
+			result.SuccessMembers = *lastImportOK
+		}
+		if lastImportFail != nil {
+			result.Failures = make([]types.ImportFailure, *lastImportFail)
+		}
+		status.LastImportResult = &result
+	}
+	return status, nil
+}
+
+func (r *pgOrgRepo) SetDataSourceStatus(ctx context.Context, status types.DataSourceStatus) error {
+	companyID := store.CompanyID(ctx)
+	var platform *string
+	if status.Platform != nil {
+		s := string(*status.Platform)
+		platform = &s
+	}
+	var lastImport *time.Time
+	if status.LastImport != nil {
+		t, err := parseAPITime(*status.LastImport)
+		if err != nil {
+			return err
+		}
+		lastImport = &t
+	}
+	var lastImportOK, lastImportFail *int
+	if status.LastImportResult != nil {
+		ok := status.LastImportResult.SuccessMembers
+		lastImportOK = &ok
+		fail := len(status.LastImportResult.Failures)
+		lastImportFail = &fail
+	}
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO org_data_source_status (company_id, platform, connected, last_import, last_import_ok, last_import_fail, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		ON CONFLICT (company_id) DO UPDATE SET
+			platform = EXCLUDED.platform,
+			connected = EXCLUDED.connected,
+			last_import = EXCLUDED.last_import,
+			last_import_ok = EXCLUDED.last_import_ok,
+			last_import_fail = EXCLUDED.last_import_fail,
+			updated_at = NOW()
+	`, companyID, platform, status.Connected, lastImport, lastImportOK, lastImportFail)
+	if err != nil {
+		return fmt.Errorf("upsert data source status: %w", err)
+	}
+	return nil
+}
+
+func (r *pgOrgRepo) ImportFailures(ctx context.Context) ([]types.ImportFailure, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, employee_id, reason FROM org_import_failures WHERE company_id = $1
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]types.ImportFailure, 0)
+	for rows.Next() {
+		var item types.ImportFailure
+		if err := rows.Scan(&item.ID, &item.Name, &item.EmployeeID, &item.Reason); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneImportFailures(items), nil
+}
+
+func (r *pgOrgRepo) SetImportFailures(ctx context.Context, failures []types.ImportFailure) error {
+	companyID := store.CompanyID(ctx)
+	if _, err := r.db.Exec(ctx, `DELETE FROM org_import_failures WHERE company_id = $1`, companyID); err != nil {
+		return fmt.Errorf("clear import failures: %w", err)
+	}
+	for _, item := range failures {
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO org_import_failures (id, company_id, name, employee_id, reason)
+			VALUES ($1, $2, $3, $4, $5)
+		`, item.ID, companyID, item.Name, item.EmployeeID, item.Reason); err != nil {
+			return fmt.Errorf("insert import failure: %w", err)
+		}
+	}
+	return nil
+}
+
+func (r *pgOrgRepo) SyncConfig(ctx context.Context) (types.SyncConfig, error) {
+	companyID := store.CompanyID(ctx)
+	var cfg types.SyncConfig
+	err := r.db.QueryRow(ctx, `
+		SELECT enabled, start_time, frequency_hours,
+			delete_member_threshold, delete_department_threshold,
+			notify_phone, notify_email, notify_im
+		FROM org_sync_config WHERE company_id = $1
+	`, companyID).Scan(
+		&cfg.Enabled, &cfg.StartTime, &cfg.FrequencyHours,
+		&cfg.DeleteMemberThreshold, &cfg.DeleteDepartmentThreshold,
+		&cfg.NotifyPhone, &cfg.NotifyEmail, &cfg.NotifyIm,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return types.SyncConfig{}, nil
+		}
+		return types.SyncConfig{}, err
+	}
+	return cfg, nil
+}
+
+func (r *pgOrgRepo) SetSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO org_sync_config (
+			company_id, enabled, start_time, frequency_hours,
+			delete_member_threshold, delete_department_threshold,
+			notify_phone, notify_email, notify_im, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+		ON CONFLICT (company_id) DO UPDATE SET
+			enabled = EXCLUDED.enabled,
+			start_time = EXCLUDED.start_time,
+			frequency_hours = EXCLUDED.frequency_hours,
+			delete_member_threshold = EXCLUDED.delete_member_threshold,
+			delete_department_threshold = EXCLUDED.delete_department_threshold,
+			notify_phone = EXCLUDED.notify_phone,
+			notify_email = EXCLUDED.notify_email,
+			notify_im = EXCLUDED.notify_im,
+			updated_at = NOW()
+	`, companyID, cfg.Enabled, cfg.StartTime, cfg.FrequencyHours,
+		cfg.DeleteMemberThreshold, cfg.DeleteDepartmentThreshold,
+		cfg.NotifyPhone, cfg.NotifyEmail, cfg.NotifyIm)
+	if err != nil {
+		return fmt.Errorf("upsert sync config: %w", err)
+	}
+	return nil
+}
+
+func (r *pgOrgRepo) SyncLogs(ctx context.Context) ([]types.SyncLog, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT id, time, type, result, detail
+		FROM org_sync_logs
+		WHERE company_id = $1
+		ORDER BY time DESC
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]types.SyncLog, 0)
+	for rows.Next() {
+		var item types.SyncLog
+		var t time.Time
+		if err := rows.Scan(&item.ID, &t, &item.Type, &item.Result, &item.Detail); err != nil {
+			return nil, err
+		}
+		item.Time = formatSyncLogTime(t)
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return store.CloneSyncLogs(items), nil
+}
+
+func (r *pgOrgRepo) AppendSyncLog(ctx context.Context, log types.SyncLog) error {
+	companyID := store.CompanyID(ctx)
+	t, err := parseAPITime(log.Time)
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(ctx, `
+		INSERT INTO org_sync_logs (id, company_id, time, type, result, detail)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (company_id, id) DO UPDATE SET
+			time = EXCLUDED.time,
+			type = EXCLUDED.type,
+			result = EXCLUDED.result,
+			detail = EXCLUDED.detail
+	`, log.ID, companyID, t, log.Type, log.Result, log.Detail)
+	if err != nil {
+		return fmt.Errorf("append sync log: %w", err)
+	}
+	return nil
 }

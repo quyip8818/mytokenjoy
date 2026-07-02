@@ -1,4 +1,4 @@
-package platform
+package company
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func AppendAudit(ctx context.Context, st store.Store, companyID int64, action, operatorID, target, detail string) error {
-	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: companyID})
+func AppendPlatformOperationLog(ctx context.Context, st store.Store, companyID int64, action, operatorID, target, detail string) error {
+	companyCtx := WithContext(ctx, Context{CompanyID: companyID})
 	return st.Audit().AppendOperationLog(companyCtx, types.OperationLog{
 		ID:         fmt.Sprintf("op-%d", time.Now().UnixNano()),
 		Action:     action,

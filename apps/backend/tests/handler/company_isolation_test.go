@@ -23,7 +23,7 @@ func provisionTwoCompanies(t *testing.T) (http.Handler, testutil.ProvisionedComp
 	return router, coA, coB
 }
 
-func TestTenantIsolationMembers(t *testing.T) {
+func TestCompanyIsolationMembers(t *testing.T) {
 	router, coA, coB := provisionTwoCompanies(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/org/members", nil)
@@ -45,7 +45,7 @@ func TestTenantIsolationMembers(t *testing.T) {
 	}
 }
 
-func TestTenantIsolationBudgetTree(t *testing.T) {
+func TestCompanyIsolationBudgetTree(t *testing.T) {
 	router, coA, coB := provisionTwoCompanies(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/budget/tree", nil)
@@ -71,7 +71,7 @@ func TestTenantIsolationBudgetTree(t *testing.T) {
 	}
 }
 
-func TestTenantIsolationPlatformKeys(t *testing.T) {
+func TestCompanyIsolationPlatformKeys(t *testing.T) {
 	router, coA, coB := provisionTwoCompanies(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/keys/platform", nil)

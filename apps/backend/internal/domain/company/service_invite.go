@@ -9,6 +9,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -37,10 +38,10 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		return types.Member{}, domain.NotFound("company not found")
 	}
 	companyCtx := WithContext(ctx, Context{
-		CompanyID:             company.ID,
-		Slug:                  company.Slug,
-		NewAPIWalletAccountID: walletIDValue(company),
-		Status:                company.Status,
+		CompanyID:          company.ID,
+		Slug:               company.Slug,
+		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
+		Status:             company.Status,
 	})
 	departments, err := s.store.Org().Departments(companyCtx)
 	if err != nil {
@@ -52,13 +53,14 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	}
 	memberID := fmt.Sprintf("member-%d-%d", company.ID, time.Now().UnixNano())
 	member := types.Member{
-		ID:           memberID,
-		CompanyID:    company.ID,
-		Name:         req.Name,
-		Email:        invite.Email,
-		DepartmentID: deptID,
-		Status:       "active",
-		Roles:        []string{"超级管理员"},
+		ID:            memberID,
+		CompanyID:     company.ID,
+		Name:          req.Name,
+		Email:         invite.Email,
+		DepartmentID:  deptID,
+		Status:        "active",
+		Roles:         []string{"超级管理员"},
+		PersonalQuota: common.DefaultPersonalQuota,
 	}
 	members, err := s.store.Org().Members(companyCtx)
 	if err != nil {

@@ -65,13 +65,19 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	if result.PersonalQuota != 15000 {
 		t.Fatalf("expected personal quota 15000, got %v", result.PersonalQuota)
 	}
-	poolMap, err := st.Budget().MemberQuotaPools(testutil.Ctx())
+	poolMap, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
-	pool := poolMap[seed.IDMember1]
-	if pool.PersonalQuota != 15000 {
-		t.Fatalf("expected pool personal quota 15000, got %v", pool.PersonalQuota)
+	var pool float64
+	for _, member := range poolMap {
+		if member.ID == seed.IDMember1 {
+			pool = member.PersonalQuota
+			break
+		}
+	}
+	if pool != 15000 {
+		t.Fatalf("expected member personal quota 15000, got %v", pool)
 	}
 }
 

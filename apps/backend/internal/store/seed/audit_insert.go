@@ -3,8 +3,8 @@ package seed
 import (
 	"context"
 
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/timeparse"
 )
 
 func insertAudit(ctx context.Context, exec tableWriter, tid int64, snap store.Snapshot) error {
@@ -15,7 +15,7 @@ func insertAudit(ctx context.Context, exec tableWriter, tid int64, snap store.Sn
 		return err
 	}
 	for _, log := range snap.OperationLogs {
-		createdAt, err := timeparse.Parse(log.CreatedAt)
+		createdAt, err := pkgtime.Parse(log.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -31,7 +31,7 @@ func insertAudit(ctx context.Context, exec tableWriter, tid int64, snap store.Sn
 		}
 	}
 	for _, log := range snap.CallLogs {
-		createdAt, err := timeparse.Parse(log.CreatedAt)
+		createdAt, err := pkgtime.Parse(log.CreatedAt)
 		if err != nil {
 			return err
 		}

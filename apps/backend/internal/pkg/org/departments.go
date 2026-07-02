@@ -2,17 +2,15 @@ package org
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/tree"
 )
 
 func FlattenDepartmentTree(departments []types.Department) []types.Department {
-	result := make([]types.Department, 0)
-	for _, dept := range departments {
-		result = append(result, dept)
-		if len(dept.Children) > 0 {
-			result = append(result, FlattenDepartmentTree(dept.Children)...)
-		}
-	}
-	return result
+	return tree.Flatten(departments, func(dept types.Department) []types.Department {
+		return dept.Children
+	}, func(dept *types.Department) {
+		dept.Children = nil
+	})
 }
 
 func GetDeptPath(departments []types.Department, targetID string) *string {

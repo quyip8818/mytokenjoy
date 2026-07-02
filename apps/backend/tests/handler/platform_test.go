@@ -105,15 +105,15 @@ func TestPlatformCreateChannelAndSaaSProviderForbidden(t *testing.T) {
 
 	providerBody, _ := json.Marshal(map[string]string{
 		"provider": "openai",
-		"name":     "tenant-key",
-		"key":      "sk-tenant",
+		"name":     "company-key",
+		"key":      "sk-company",
 	})
 	req = httptest.NewRequest(http.MethodPost, "/api/keys/provider", bytes.NewReader(providerBody))
 	req.Header.Set("Cookie", testutil.DefaultSeedMemberCookie())
 	rec = httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden {
-		t.Fatalf("tenant provider create: expected 403, got %d", rec.Code)
+		t.Fatalf("company provider create: expected 403, got %d", rec.Code)
 	}
 }
 
@@ -149,7 +149,7 @@ func TestCompanyIsolationUsesSessionCompany(t *testing.T) {
 	}
 }
 
-func TestSuspendedCompanyBlocksTenantWrites(t *testing.T) {
+func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 	mock := testutil.StartNewAPIMock(t)
 	router := saasApp(t, mock)
 	platformCookie := testutil.LoginPlatform(t, router)

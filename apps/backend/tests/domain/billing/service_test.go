@@ -27,13 +27,13 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 		t.Fatal(err)
 	}
 	walletID := int64(501)
-	if err := st.Company().UpdateWalletAccountID(context.Background(), seed.DefaultCompanyID, walletID); err != nil {
+	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), seed.DefaultCompanyID, walletID); err != nil {
 		t.Fatal(err)
 	}
 	ctx := company.WithContext(context.Background(), company.Context{
-		CompanyID:             seed.DefaultCompanyID,
-		NewAPIWalletAccountID: walletID,
-		Status:                co.Status,
+		CompanyID:          seed.DefaultCompanyID,
+		NewAPIWalletUserID: walletID,
+		Status:             co.Status,
 	})
 	return svc, st, ctx
 }
@@ -57,7 +57,7 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 	}
 }
 
-func TestGetWalletWithoutWalletAccountReturnsZero(t *testing.T) {
+func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(true))
 	st := memory.New(seed.Load(cfg))
 	client := &mock.StubAdminClient{}

@@ -1,8 +1,8 @@
 # NewAPI SaaS 多企业配置指南
 
 > **读者**：平台运维 / 后端  
-> **前置**：[Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)  
-> **约定**：产品称 **企业（Company）**；NewAPI 里的 `users` 在本方案中仅作 **企业服务账户（公司钱包）**，不是企业员工登录账号。
+> **前置**：[Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md) · [Backend-命名规范.md](./Backend-命名规范.md)  
+> **约定**：产品称 **企业（Company）**；NewAPI 里的 `users` 在本方案中仅作 **企业钱包用户**（`newapi_wallet_user_id`），不是成员登录账号。
 
 ---
 
@@ -34,7 +34,7 @@ flowchart LR
 
 | 组件             | 数量            | 说明                                                         |
 | ---------------- | --------------- | ------------------------------------------------------------ |
-| NewAPI 进程      | **1**（单集群） | 所有企业共用；**逻辑按企业服务账户隔离**                     |
+| NewAPI 进程      | **1**（单集群） | 所有企业共用；**逻辑按 `newapi_wallet_user_id` 隔离**        |
 | TokenJoy Backend | 1+              | `SUPPORT_SAAS=true`；唯一持有 NewAPI Admin Token             |
 | Postgres         | 1 实例，两库    | `tokenjoy` + `newapi`（见 `apps/newapi/docker-compose.yml`） |
 | Redis            | 1               | NewAPI 会话与缓存                                            |
@@ -45,12 +45,12 @@ flowchart LR
 
 ## 2. NewAPI 侧隔离模型
 
-| 对象                    | 多企业 SaaS 配置                                                 | 隔离方式                         |
-| ----------------------- | ---------------------------------------------------------------- | -------------------------------- |
-| **Channel（上游线路）** | 平台统一维护；`group = platform_shared`                          | 全局共享，无企业 ID              |
-| **企业服务账户**        | 每企业 1 个 `users` 行；`quota` = 公司钱包                       | `user_id` 不同                   |
-| **Token（sk-）**        | 创建时指定 `user_id` = 该企业服务账户；`group = platform_shared` | 扣费进对应企业钱包               |
-| **logs**                | webhook 回传 `token_id`                                          | TokenJoy 映射表反查 `company_id` |
+| 对象                    | 多企业 SaaS 配置                                                                   | 隔离方式                         |
+| ----------------------- | ---------------------------------------------------------------------------------- | -------------------------------- |
+| **Channel（上游线路）** | 平台统一维护；`group = platform_shared`                                            | 全局共享，无企业 ID              |
+| **企业钱包用户**        | 每企业 1 个 `users` 行；`quota` = 企业钱包                                         | `user_id` 不同                   |
+| **Token（sk-）**        | 创建时指定 `user_id` = 该企业的 `newapi_wallet_user_id`；`group = platform_shared` | 扣费进对应企业钱包               |
+| **logs**                | webhook 回传 `token_id`                                                            | TokenJoy 映射表反查 `company_id` |
 
 ```mermaid
 flowchart TB
@@ -160,8 +160,8 @@ TokenJoy 已提供 `POST /api/internal/webhooks/newapi-log`；若上游未原生
 
 | 步骤 | NewAPI Admin API（概念）       | 结果                                                                  |
 | ---- | ------------------------------ | --------------------------------------------------------------------- |
-| 1    | `CreateUser`                   | 企业服务账户；`quota = 0`；`username` 建议 `company-{id}` 或企业 slug |
-| 2    | —                              | 将返回的 `user_id` 写入 `companies.newapi_wallet_account_id`          |
+| 1    | `CreateUser`                   | 企业钱包用户；`quota = 0`；`username` 建议 `company-{id}` 或企业 slug |
+| 2    | —                              | 将返回的 `user_id` 写入 `companies.newapi_wallet_user_id`             |
 | 3    | （可选）`CreateToken` 暂不创建 | 等成员申请 Platform Key 时再建                                        |
 
 **禁止**：为企业员工在 NewAPI 注册可登录的人机账号；员工只登录 TokenJoy 控制台。
@@ -174,7 +174,7 @@ TokenJoy 已提供 `POST /api/internal/webhooks/newapi-log`；若上游未原生
 
 | 参数                                    | SaaS 多企业值                                |
 | --------------------------------------- | -------------------------------------------- |
-| `user_id`                               | 该企业的 `newapi_wallet_account_id`          |
+| `user_id`                               | 该企业的 `newapi_wallet_user_id`             |
 | `group`                                 | `platform_shared`                            |
 | `remain_quota`                          | `min(部门/Key 分配额, 企业钱包剩余可分配额)` |
 | `model_limits` / `model_limits_enabled` | 与 TokenJoy 白名单一致                       |
@@ -188,7 +188,7 @@ TokenJoy 已提供 `POST /api/internal/webhooks/newapi-log`；若上游未原生
 
 | 步骤 | 操作                                                                |
 | ---- | ------------------------------------------------------------------- |
-| 1    | TokenJoy `TopUp(newapi_wallet_account_id, amount)`                  |
+| 1    | TokenJoy `TopUp(newapi_wallet_user_id, amount)`                     |
 | 2    | 写 `company_recharge_orders`                                        |
 | 3    | 触发企业内 `rebalance`，按部门预算把额度分到各 Token `remain_quota` |
 | 4    | 约束：`Σ Token remain_quota` ≤ `users.quota`                        |
@@ -226,9 +226,9 @@ TokenJoy 已提供 `POST /api/internal/webhooks/newapi-log`；若上游未原生
 
 | 项           | 配置                                                                   |
 | ------------ | ---------------------------------------------------------------------- |
-| NewAPI       | 仍一套；一个企业级 `newapi_wallet_account_id`                          |
+| NewAPI       | 仍一套；一个企业级 `newapi_wallet_user_id`                             |
 | Channel      | 企业管理员可 CRUD `provider_keys`；Token `group = dept-{departmentId}` |
-| 企业服务账户 | 1 个；与现网迁移对齐                                                   |
+| 企业钱包用户 | 1 个 `newapi_wallet_user_id`；与现网迁移对齐                           |
 | 公网         | 可选直连 NewAPI 或经 Gateway                                           |
 
 ---

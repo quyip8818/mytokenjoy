@@ -20,10 +20,14 @@ func GetMemberQuotaCapacity(deptNode types.BudgetNode) float64 {
 	return capacity
 }
 
-func BuildMemberBudgetQuota(member types.Member, pools map[string]types.MemberQuotaPool, platformKeys []types.PlatformKey) types.MemberBudgetQuota {
+func BuildMemberBudgetQuota(member types.Member, platformKeys []types.PlatformKey) types.MemberBudgetQuota {
+	quota := member.PersonalQuota
+	if quota <= 0 {
+		quota = GetPersonalQuota([]types.Member{member}, member.ID)
+	}
 	return types.MemberBudgetQuota{
 		MemberID: member.ID, MemberName: member.Name, DepartmentID: member.DepartmentID,
-		PersonalQuota: GetPersonalQuota(pools, member.ID),
+		PersonalQuota: quota,
 		Allocated:     GetAllocatedKeyQuota(platformKeys, member.ID),
 		Used:          GetUsedKeyQuota(platformKeys, member.ID),
 	}
@@ -32,7 +36,6 @@ func BuildMemberBudgetQuota(member types.Member, pools map[string]types.MemberQu
 func ValidateMemberQuotaUpdate(
 	tree []types.BudgetNode,
 	members []types.Member,
-	pools map[string]types.MemberQuotaPool,
 	platformKeys []types.PlatformKey,
 	memberID string,
 	personalQuota float64,
@@ -59,7 +62,7 @@ func ValidateMemberQuotaUpdate(
 	otherSum := 0.0
 	for _, m := range members {
 		if m.DepartmentID == member.DepartmentID && m.ID != memberID {
-			otherSum += GetPersonalQuota(pools, m.ID)
+			otherSum += GetPersonalQuota(members, m.ID)
 		}
 	}
 	if otherSum+personalQuota > capacity {
@@ -75,21 +78,20 @@ func ValidateMemberQuotaUpdate(
 
 func ApplyMemberQuotaUpdate(
 	members []types.Member,
-	pools map[string]types.MemberQuotaPool,
 	platformKeys []types.PlatformKey,
 	memberID string,
 	personalQuota float64,
-) types.MemberBudgetQuota {
-	SetPersonalQuota(pools, memberID, personalQuota)
-	member, ok := org.FindMemberByID(members, memberID)
+) (types.MemberBudgetQuota, []types.Member) {
+	updatedMembers := SetMemberPersonalQuota(members, memberID, personalQuota)
+	member, ok := org.FindMemberByID(updatedMembers, memberID)
 	if !ok {
 		return types.MemberBudgetQuota{
 			MemberID: memberID, PersonalQuota: personalQuota,
 			Allocated: GetAllocatedKeyQuota(platformKeys, memberID),
 			Used:      GetUsedKeyQuota(platformKeys, memberID),
-		}
+		}, updatedMembers
 	}
-	return BuildMemberBudgetQuota(*member, pools, platformKeys)
+	return BuildMemberBudgetQuota(*member, platformKeys), updatedMembers
 }
 
 func formatMoney(value float64) string {

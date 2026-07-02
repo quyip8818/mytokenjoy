@@ -3,12 +3,12 @@ package seed
 import (
 	"context"
 
+	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/treeutil"
 )
 
 func insertBudget(ctx context.Context, exec tableWriter, tid int64, snap store.Snapshot) error {
-	flat := treeutil.FlattenBudgetTree(snap.BudgetTree)
+	flat := budget.FlattenBudgetTree(snap.BudgetTree)
 	for i, node := range flat {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO budget_nodes (
@@ -64,14 +64,6 @@ func insertBudget(ctx context.Context, exec tableWriter, tid int64, snap store.S
 			`, tid, rule.ID, roleID); err != nil {
 				return err
 			}
-		}
-	}
-	for memberID, pool := range snap.MemberQuotaPools {
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO member_quota_pools (company_id, member_id, personal_quota)
-			VALUES ($1, $2, $3) ON CONFLICT (company_id, member_id) DO NOTHING
-		`, tid, memberID, pool.PersonalQuota); err != nil {
-			return err
 		}
 	}
 	return nil

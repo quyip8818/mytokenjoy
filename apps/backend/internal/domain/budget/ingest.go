@@ -111,8 +111,8 @@ func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *
 	if co != nil {
 		companyCtx.Slug = co.Slug
 		companyCtx.Status = co.Status
-		if co.NewAPIWalletAccountID != nil {
-			companyCtx.NewAPIWalletAccountID = *co.NewAPIWalletAccountID
+		if co.NewAPIWalletUserID != nil {
+			companyCtx.NewAPIWalletUserID = *co.NewAPIWalletUserID
 		}
 	}
 	return company.WithContext(ctx, companyCtx), nil

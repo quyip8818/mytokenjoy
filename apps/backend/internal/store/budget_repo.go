@@ -15,6 +15,4 @@ type BudgetRepository interface {
 	SetOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) error
 	AlertRules(ctx context.Context) ([]types.AlertRule, error)
 	SetAlertRules(ctx context.Context, rules []types.AlertRule) error
-	MemberQuotaPools(ctx context.Context) (map[string]types.MemberQuotaPool, error)
-	SetMemberQuotaPools(ctx context.Context, pools map[string]types.MemberQuotaPool) error
 }

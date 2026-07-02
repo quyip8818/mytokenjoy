@@ -12,6 +12,7 @@ type Member struct {
 	Roles          []string `json:"roles"`
 	Source         string   `json:"source"`
 	ExternalID     *string  `json:"externalId,omitempty"`
+	PersonalQuota  float64  `json:"-"`
 }
 
 type Role struct {

@@ -93,7 +93,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		pools, err := st.Budget().MemberQuotaPools(ctx)
+		members, err := st.Org().Members(ctx)
 		if err != nil {
 			return err
 		}
@@ -103,9 +103,9 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		}
 		if approval.Type == "key" {
 			keyQuota := approval.RequestedQuota
-			remaining := budget.GetQuotaRemaining(pools, platformKeys, approval.ApplicantID)
+			remaining := budget.GetQuotaRemaining(members, platformKeys, approval.ApplicantID)
 			if keyQuota > remaining {
-				budget.AddPersonalQuota(pools, approval.ApplicantID, keyQuota-remaining)
+				members = budget.AddMemberPersonalQuota(members, approval.ApplicantID, keyQuota-remaining)
 			}
 			memberName := approval.Applicant
 			memberID := approval.ApplicantID
@@ -125,9 +125,9 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 				return err
 			}
 		} else if approval.Type == "quota" {
-			budget.AddPersonalQuota(pools, approval.ApplicantID, approval.RequestedQuota)
+			members = budget.AddMemberPersonalQuota(members, approval.ApplicantID, approval.RequestedQuota)
 		}
-		if err := st.Budget().SetMemberQuotaPools(ctx, pools); err != nil {
+		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
 

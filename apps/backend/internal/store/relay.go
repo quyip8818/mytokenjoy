@@ -30,16 +30,16 @@ const (
 )
 
 type RelayMapping struct {
-	CompanyID        int64
-	PlatformKeyID    string
-	NewAPITokenID    *int64
-	MemberID         *string
-	DepartmentID     string
-	BudgetGroupID    *string
-	RelayGroup       string
-	SyncStatus       string
-	SyncedAt         *time.Time
-	RelayRemainQuota *int64
+	CompanyID              int64
+	PlatformKeyID          string
+	NewAPITokenID          *int64
+	MemberID               *string
+	DepartmentID           string
+	BudgetGroupID          *string
+	RelayGroup             string
+	SyncStatus             string
+	SyncedAt               *time.Time
+	NewAPITokenRemainQuota *int64
 }
 
 type RelayOutboxEntry struct {
@@ -74,8 +74,8 @@ type RebalanceQueueEntry struct {
 type RelayMappingRepository interface {
 	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*RelayMapping, error)
 	GetMappingByFullKey(ctx context.Context, fullKey string) (*RelayMapping, error)
-	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)  // tenant-scoped: filters by ctx company_id
-	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error) // global lookup for webhook ingest (no tenant in ctx)
+	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)  // company-scoped: filters by ctx company_id
+	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error) // global lookup for webhook ingest (no company in ctx)
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]RelayMapping, error)
 	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]RelayMapping, error)
 	ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]RelayMapping, error)
@@ -83,7 +83,7 @@ type RelayMappingRepository interface {
 	ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]RelayMapping, error)
 	UpsertMapping(ctx context.Context, mapping RelayMapping) error
 	UpdateMappingSync(ctx context.Context, platformKeyID string, tokenID int64, status string, remainQuota *int64, syncedAt time.Time) error
-	UpdateMappingRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error
+	UpdateMappingNewAPITokenRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error
 }
 
 type RelayOutboxRepository interface {

@@ -21,10 +21,10 @@ func (s *service) ResolveFromMember(ctx context.Context, memberID string) (Conte
 		for _, member := range members {
 			if member.ID == memberID {
 				return Context{
-					CompanyID:             company.ID,
-					Slug:                  company.Slug,
-					NewAPIWalletAccountID: walletIDValue(&company),
-					Status:                company.Status,
+					CompanyID:          company.ID,
+					Slug:               company.Slug,
+					NewAPIWalletUserID: newAPIWalletUserIDValue(&company),
+					Status:             company.Status,
 				}, nil
 			}
 		}
@@ -38,16 +38,16 @@ func (s *service) ResolveCompanyContext(ctx context.Context, companyID int64) (C
 		return Context{}, domain.NotFound("company not found")
 	}
 	return Context{
-		CompanyID:             company.ID,
-		Slug:                  company.Slug,
-		NewAPIWalletAccountID: walletIDValue(company),
-		Status:                company.Status,
+		CompanyID:          company.ID,
+		Slug:               company.Slug,
+		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
+		Status:             company.Status,
 	}, nil
 }
 
-func walletIDValue(t *store.Company) int64 {
-	if t.NewAPIWalletAccountID != nil {
-		return *t.NewAPIWalletAccountID
+func newAPIWalletUserIDValue(t *store.Company) int64 {
+	if t.NewAPIWalletUserID != nil {
+		return *t.NewAPIWalletUserID
 	}
 	return 0
 }

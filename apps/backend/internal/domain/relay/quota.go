@@ -8,7 +8,7 @@ import (
 func ComputeRemainQuotaCNY(
 	key types.PlatformKey,
 	tree []types.BudgetNode,
-	pools map[string]types.MemberQuotaPool,
+	members []types.Member,
 	platformKeys []types.PlatformKey,
 	groups []types.BudgetGroup,
 	departmentID string,
@@ -32,7 +32,7 @@ func ComputeRemainQuotaCNY(
 		}
 	} else if key.MemberID != nil {
 		memberUsed := budget.GetUsedKeyQuota(platformKeys, *key.MemberID)
-		memberCap := budget.GetPersonalQuota(pools, *key.MemberID)
+		memberCap := budget.GetPersonalQuota(members, *key.MemberID)
 		memberRemaining := memberCap - memberUsed
 		if memberRemaining < 0 {
 			memberRemaining = 0

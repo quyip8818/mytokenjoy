@@ -39,6 +39,7 @@ func cloneMembers(items []types.Member) []types.Member {
 			ID: member.ID, CompanyID: member.CompanyID, Name: member.Name, Phone: member.Phone, Email: member.Email,
 			DepartmentID: member.DepartmentID, DepartmentName: member.DepartmentName,
 			Status: member.Status, Roles: append([]string{}, member.Roles...), Source: member.Source,
+			PersonalQuota: member.PersonalQuota,
 		}
 		if member.ExternalID != nil {
 			externalID := *member.ExternalID

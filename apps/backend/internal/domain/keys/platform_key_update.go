@@ -45,10 +45,6 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	pools, err := s.store.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
 	groups, err := s.store.Budget().Groups(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
@@ -81,7 +77,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 					otherAllocated += key.Quota
 				}
 			}
-			if otherAllocated+*input.Quota > budget.GetPersonalQuota(pools, *existing.MemberID) {
+			if otherAllocated+*input.Quota > budget.GetPersonalQuota(members, *existing.MemberID) {
 				return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 			}
 		}

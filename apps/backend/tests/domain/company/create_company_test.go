@@ -73,8 +73,8 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 	if err != nil || stored == nil {
 		t.Fatal("expected company to exist")
 	}
-	if stored.NewAPIWalletAccountID == nil || *stored.NewAPIWalletAccountID != 501 {
-		t.Fatalf("expected wallet account 501, got %v", stored.NewAPIWalletAccountID)
+	if stored.NewAPIWalletUserID == nil || *stored.NewAPIWalletUserID != 501 {
+		t.Fatalf("expected wallet account 501, got %v", stored.NewAPIWalletUserID)
 	}
 	invite, err := st.Invite().GetInviteByToken(ctx, result.InviteToken)
 	if err != nil || invite == nil {

@@ -49,10 +49,10 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 }
 
 func (p *PrecheckService) checkWallet(ctx context.Context, company *store.Company) error {
-	if company.NewAPIWalletAccountID == nil || p.wallet == nil {
+	if company.NewAPIWalletUserID == nil || p.wallet == nil {
 		return nil
 	}
-	quota, err := p.wallet.AvailableQuota(ctx, *company.NewAPIWalletAccountID)
+	quota, err := p.wallet.AvailableQuota(ctx, *company.NewAPIWalletUserID)
 	if err != nil {
 		return fmt.Errorf("wallet unavailable")
 	}
@@ -82,7 +82,7 @@ func (p *PrecheckService) checkDepartmentBudget(ctx context.Context, mapping *st
 }
 
 func (p *PrecheckService) checkTokenRemainQuota(mapping *store.RelayMapping) error {
-	if mapping.RelayRemainQuota == nil || *mapping.RelayRemainQuota <= 0 {
+	if mapping.NewAPITokenRemainQuota == nil || *mapping.NewAPITokenRemainQuota <= 0 {
 		return fmt.Errorf("insufficient token quota")
 	}
 	return nil

@@ -12,10 +12,9 @@ func TestValidateMemberQuotaBelowAllocated(t *testing.T) {
 	snapshot := seed.Load(testutil.TestConfig())
 	tree := snapshot.BudgetTree
 	members := snapshot.Members
-	pools := snapshot.MemberQuotaPools
 	platformKeys := snapshot.PlatformKeys
 
-	msg := budget.ValidateMemberQuotaUpdate(tree, members, pools, platformKeys, seed.IDMember1, 1000)
+	msg := budget.ValidateMemberQuotaUpdate(tree, members, platformKeys, seed.IDMember1, 1000)
 	if msg == nil {
 		t.Fatal("expected validation error when quota below allocated")
 	}

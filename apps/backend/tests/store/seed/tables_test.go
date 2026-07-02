@@ -26,7 +26,7 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 	_, err := pool.Exec(ctx, `
 		TRUNCATE TABLE
 			member_roles, role_permission_grants, alert_rule_notify_roles,
-			budget_group_members, budget_group_departments, member_quota_pools,
+			budget_group_members, budget_group_departments,
 			platform_key_models, key_approval_models, routing_rule_models,
 			key_approvals, platform_keys, provider_keys,
 			operation_logs, call_logs,

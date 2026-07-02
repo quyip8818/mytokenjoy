@@ -11,7 +11,7 @@
 3. Session 校验 — [`apps/frontend/src/api/schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)
 4. 后端类型 — [`apps/backend/internal/domain/types/`](../apps/backend/internal/domain/types/)
 
-文档索引见 [README.md](./README.md)；前端分层见 [Frontend-开发指南.md](./Frontend-开发指南.md)。
+文档索引见 [README.md](./README.md)；命名规范见 [Backend-命名规范.md](./Backend-命名规范.md)；前端分层见 [Frontend-开发指南.md](./Frontend-开发指南.md)。
 
 ---
 
@@ -171,7 +171,7 @@ HTTP 非 2xx 时，body 应包含：
 | `dashboard:usage`  | 用量看板                                        |
 | `audit:read`       | 审计日志                                        |
 | `api:call`         | API 调用权限                                    |
-| `billing:read`     | 公司钱包只读（`GET /billing/wallet`）           |
+| `billing:read`     | 企业钱包只读（`GET /billing/wallet`）           |
 | `billing:recharge` | 企业自助充值（`POST /billing/recharge`）        |
 | `platform:*`       | 平台运营（独立 Session，不走成员权限表）        |
 
@@ -631,7 +631,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ## 10. SaaS 多企业
 
-产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（公司钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)。
+产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)。
 
 **共 11 个端点**（路径均相对于 `API_BASE_PATH`）。
 
@@ -649,17 +649,17 @@ HTTP 非 2xx 时，body 应包含：
 
 后端已实现；前端尚无 `billingApi` / `AppApis` 命名空间。
 
-| 方法 | 路径                           | Body / 查询                  | 响应            | 权限               | 说明                                |
-| ---- | ------------------------------ | ---------------------------- | --------------- | ------------------ | ----------------------------------- |
-| GET  | `/billing/wallet`              | —                            | `WalletSummary` | `billing:read`     | 读 NewAPI 公司钱包                  |
-| POST | `/billing/recharge`            | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单                 |
-| POST | `/billing/recharge/{id}/confirm` | —                          | `void`          | `billing:recharge` | 确认支付并入账（demo / 回调模拟）   |
+| 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                              |
+| ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | --------------------------------- |
+| GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 NewAPI 企业钱包                |
+| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单               |
+| POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并入账（demo / 回调模拟） |
 
 **`WalletSummary`**
 
 | 字段          | 类型     | 说明                                 |
 | ------------- | -------- | ------------------------------------ |
-| `balance`     | `number` | 公司钱包余额（CNY）                  |
+| `balance`     | `number` | 企业钱包余额（CNY）                  |
 | `allocatable` | `number` | 可分配到 Token 的上限（≤ `balance`） |
 | `currency`    | `'CNY'`  | 固定                                 |
 | `companyId`   | `number` | 企业 ID                              |
@@ -724,22 +724,22 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 10.5 既有端点的 SaaS 行为差异
 
-| 端点 / 域                      | 私有化          | SaaS                                                |
-| ------------------------------ | --------------- | --------------------------------------------------- |
-| `GET /session`                 | `companyId = 1` | `companyId` = 成员所属企业                          |
-| `provider-keys` 写             | 允许            | **403**                                             |
-| `POST /keys/platform`          | 不变            | 不变；后端 Token 绑企业服务账户 + `platform_shared` |
-| 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                         |
-| 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                          |
+| 端点 / 域                      | 私有化          | SaaS                                                            |
+| ------------------------------ | --------------- | --------------------------------------------------------------- |
+| `GET /session`                 | `companyId = 1` | `companyId` = 成员所属企业                                      |
+| `provider-keys` 写             | 允许            | **403**                                                         |
+| `POST /keys/platform`          | 不变            | 不变；后端 Token 绑 `newapi_wallet_user_id` + `platform_shared` |
+| 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                                     |
+| 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                                      |
 
 ### 10.6 前端接入现状
 
-| 项 | 后端 | 前端 `AppApis` | 控制台页面 |
-| --- | --- | --- | --- |
-| 企业面 §5 域 API | 已实现 | 已接入（14 命名空间） | 16 业务页 |
-| `auth/accept-invite` | 已实现 | 未接入 | 无 `/invite/accept` |
-| `billing/*` | 已实现 | 未接入 | 无充值页 |
-| `platform/*` | 已实现（`SUPPORT_SAAS=true`） | 未接入 | 无 `/platform/login` |
-| `billing:*` 权限 | 已定义于后端 | `permission-keys.ts` 未含 | — |
+| 项                   | 后端                          | 前端 `AppApis`            | 控制台页面           |
+| -------------------- | ----------------------------- | ------------------------- | -------------------- |
+| 企业面 §5 域 API     | 已实现                        | 已接入（14 命名空间）     | 16 业务页            |
+| `auth/accept-invite` | 已实现                        | 未接入                    | 无 `/invite/accept`  |
+| `billing/*`          | 已实现                        | 未接入                    | 无充值页             |
+| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                    | 无 `/platform/login` |
+| `billing:*` 权限     | 已定义于后端                  | `permission-keys.ts` 未含 | —                    |
 
 后端详案：[Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)。NewAPI 部署：[NewAPI-SaaS多企业配置.md](./NewAPI-SaaS多企业配置.md)。

@@ -57,17 +57,6 @@ func cloneAlertRules(items []types.AlertRule) []types.AlertRule {
 	return result
 }
 
-func cloneMemberQuotaPools(pools map[string]types.MemberQuotaPool) map[string]types.MemberQuotaPool {
-	if pools == nil {
-		return map[string]types.MemberQuotaPool{}
-	}
-	result := make(map[string]types.MemberQuotaPool, len(pools))
-	for key, pool := range pools {
-		result[key] = pool
-	}
-	return result
-}
-
 func CloneBudgetTree(items []types.BudgetNode) []types.BudgetNode { return cloneBudgetTree(items) }
 
 func CloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
@@ -75,7 +64,3 @@ func CloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
 }
 
 func CloneAlertRules(items []types.AlertRule) []types.AlertRule { return cloneAlertRules(items) }
-
-func CloneMemberQuotaPools(pools map[string]types.MemberQuotaPool) map[string]types.MemberQuotaPool {
-	return cloneMemberQuotaPools(pools)
-}

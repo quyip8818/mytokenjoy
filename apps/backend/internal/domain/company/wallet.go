@@ -10,7 +10,7 @@ import (
 )
 
 type WalletService interface {
-	AvailableQuota(ctx context.Context, walletAccountID int64) (int64, error)
+	AvailableQuota(ctx context.Context, walletUserID int64) (int64, error)
 }
 
 type walletService struct {
@@ -44,27 +44,27 @@ func NewWalletService(cfg config.Config, client interface {
 
 type noopWalletService struct{}
 
-func (n *noopWalletService) AvailableQuota(ctx context.Context, walletAccountID int64) (int64, error) {
+func (n *noopWalletService) AvailableQuota(ctx context.Context, walletUserID int64) (int64, error) {
 	return 0, nil
 }
 
-func (s *walletService) AvailableQuota(ctx context.Context, walletAccountID int64) (int64, error) {
-	if walletAccountID <= 0 {
+func (s *walletService) AvailableQuota(ctx context.Context, walletUserID int64) (int64, error) {
+	if walletUserID <= 0 {
 		return 0, domain.NewDomainError(400, "wallet account not configured")
 	}
 	now := time.Now()
 	s.mu.RLock()
-	if entry, ok := s.cache[walletAccountID]; ok && now.Before(entry.expiresAt) {
+	if entry, ok := s.cache[walletUserID]; ok && now.Before(entry.expiresAt) {
 		s.mu.RUnlock()
 		return entry.quota, nil
 	}
 	s.mu.RUnlock()
-	quota, err := s.client.GetUserQuota(ctx, walletAccountID)
+	quota, err := s.client.GetUserQuota(ctx, walletUserID)
 	if err != nil {
 		return 0, err
 	}
 	s.mu.Lock()
-	s.cache[walletAccountID] = walletCacheEntry{quota: quota, expiresAt: now.Add(s.cacheTTL)}
+	s.cache[walletUserID] = walletCacheEntry{quota: quota, expiresAt: now.Add(s.cacheTTL)}
 	s.mu.Unlock()
 	return quota, nil
 }

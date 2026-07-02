@@ -73,10 +73,6 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if err != nil {
 		return "", err
 	}
-	pools, err := l.store.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return "", err
-	}
 	groups, err := l.store.Budget().Groups(ctx)
 	if err != nil {
 		return "", err
@@ -106,10 +102,10 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 
 	deptAllowed := common.ResolveDeptAllowedModels(departmentID, departments, rules, models)
 	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
-	remainCNY := ComputeRemainQuotaCNY(key, tree, pools, platformKeys, groups, departmentID)
+	remainCNY := ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, departmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effective)
 
-	walletUserID := l.walletUserID(ctx)
+	walletUserID := l.newAPIWalletUserID(ctx)
 	req := newapi.CreateTokenRequest{
 		UserID:             walletUserID,
 		Name:               key.Name,

@@ -32,10 +32,6 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	pools, err := s.store.Budget().MemberQuotaPools(ctx)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
@@ -71,7 +67,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if msg := common.ValidateModelsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if input.Quota > budget.GetQuotaRemaining(pools, platformKeys, *input.MemberID) {
+		if input.Quota > budget.GetQuotaRemaining(members, platformKeys, *input.MemberID) {
 			return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 		}
 	}

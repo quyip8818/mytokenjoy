@@ -1,6 +1,9 @@
 package budget
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/tree"
+)
 
 func SumChildrenBudget(node types.BudgetNode) float64 {
 	sum := 0.0
@@ -83,4 +86,12 @@ func UpdateBudgetNodeName(nodes []types.BudgetNode, id, name string) bool {
 		}
 	}
 	return false
+}
+
+func FlattenBudgetTree(nodes []types.BudgetNode) []types.BudgetNode {
+	return tree.Flatten(nodes, func(node types.BudgetNode) []types.BudgetNode {
+		return node.Children
+	}, func(node *types.BudgetNode) {
+		node.Children = nil
+	})
 }

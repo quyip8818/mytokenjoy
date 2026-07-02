@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS companies (
     name                      TEXT NOT NULL,
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              TEXT,
-    newapi_wallet_account_id  BIGINT,
+    newapi_wallet_user_id     BIGINT,
     package_id                TEXT,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS members (
     source          TEXT NOT NULL DEFAULT '',
     external_id     TEXT,
     password_hash   TEXT,
+    personal_quota  NUMERIC(18, 6) NOT NULL DEFAULT 5000,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id)
@@ -232,14 +233,6 @@ CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
     rule_id   TEXT NOT NULL,
     role_id   TEXT NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
     PRIMARY KEY (company_id, rule_id, role_id)
-);
-
-CREATE TABLE IF NOT EXISTS member_quota_pools (
-    company_id      BIGINT NOT NULL DEFAULT 1,
-    member_id      TEXT NOT NULL,
-    personal_quota NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, member_id)
 );
 
 -- Models domain (before keys FK references)
@@ -416,7 +409,7 @@ CREATE TABLE IF NOT EXISTS relay_mappings (
     relay_group        TEXT NOT NULL,
     sync_status        TEXT NOT NULL DEFAULT 'pending',
     synced_at          TIMESTAMPTZ,
-    relay_remain_quota BIGINT,
+    newapi_token_remain_quota BIGINT,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, platform_key_id)
