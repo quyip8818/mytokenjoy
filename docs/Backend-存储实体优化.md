@@ -120,50 +120,28 @@ mindmap
 
 这不是「表太多」，而是**缺少写入契约**。
 
-### 3.3 目标形态（两种路线）
+### 3.3 目标形态
 
-#### 路线 A：短期 — 明确主从，不改表
-
-定死读写契约，例如：
-
-| 角色         | 权威数据源                                                              | 用途                      |
-| ------------ | ----------------------------------------------------------------------- | ------------------------- |
-| **预算管控** | `budget_nodes.consumed`、`budget_groups.consumed`、`platform_keys.used` | 超限判断、Rebalance、预警 |
-| **趋势分析** | `usage_buckets`                                                         | 看板、按模型/时间聚合     |
-| **审计追溯** | `call_logs`                                                             | 逐条列表、合规            |
-
-约定：
-
-- Ingest **允许**写管控侧（与现码一致），但必须在文档与代码注释中写清；
-- `usage_buckets` 视为**可重建**的分析副本（可从 `call_logs` 或事件重算，允许延迟）；
-- 禁止在非 Ingest 路径悄悄改 `consumed` / `used` 而不同步其它视图。
-
-#### 路线 B：中长期 — 事件 + 聚合
-
-新增 `usage_events`（或仅保留 `usage_buckets` 作为唯一写入点），管控侧 `consumed` 由：
-
-- 同步聚合（Ingest 内一次算出所有维度），或
-- 异步 Worker 汇总，
-
-避免 4 处手写 `+=`。
+**已决策：** 见 **[Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)** — 账本 SSOT + 全同步投影；审计直读账本；仅存 `previewSnippet`（§3.4）。
 
 ```mermaid
 flowchart LR
-  WH[Webhook Ingest] --> EV[usage_events 或单写点]
-  EV --> UB[usage_buckets 分析]
-  EV --> AGG[聚合 Worker]
+  WH[Webhook Ingest] --> EV[usage_ledger SSOT]
+  EV --> AGG[同步投影 同事务]
   AGG --> BN[budget_nodes.consumed]
   AGG --> BG[budget_groups.consumed]
   AGG --> PK[platform_keys.used]
+  AGG --> UB[usage_buckets]
+  EV --> AUD[审计列表直读账本]
 ```
 
 ### 3.4 代价与建议
 
-| 项          | 说明                                                |
-| ----------- | --------------------------------------------------- |
-| 路线 A 代价 | 几乎为零；需改文档 + 团队共识                       |
-| 路线 B 代价 | 中等；要动 Ingest、Rebalance、看板查询              |
-| **建议**    | **立即做 P0（路线 A）**；若对账工单变多再评估路线 B |
+| 项 | 说明 |
+| -- | ---- |
+| 实现代价 | 中；账本 + 同步投影 + Ingest 重构 |
+| 切换代价 | 破坏性替换；删除 `ingested_log_ids`、`call_logs` |
+| **建议** | 按 SSOT 方案一次性切换；异步投影留作规模触发的后续扩展 |
 
 ---
 
@@ -485,15 +463,15 @@ CREATE INDEX idx_outbox_pending ON outbox (channel, status, next_retry);
 
 以下拆分**是在减复杂度**，不宜为「少几张表」并回去。
 
-### 9.1 用量桶 vs 调用日志
+### 9.1 用量桶 vs 审计（O1 后）
 
-|      | `usage_buckets`             | `call_logs`  |
-| ---- | --------------------------- | ------------ |
-| 粒度 | 时间桶 × 部门 × 成员 × 模型 | 每次调用一行 |
-| 读者 | 看板、趋势                  | 审计列表     |
-| 增长 | 有界（桶数）                | 线性暴涨     |
+|      | `usage_buckets`             | `usage_ledger`               |
+| ---- | --------------------------- | ------------------------------ |
+| 粒度 | 时间桶 × 部门 × 成员 × 模型 | 逐笔元数据 + 可选 snippet      |
+| 读者 | 看板、趋势                  | 审计列表、财务                 |
+| 增长 | 有界（桶数）                | 账本线性；snippet ≤ ~200 字/行 |
 
-合并后：看板要么扫全表明细，要么审计与 Ingest 强耦合——**性能与职责双输**。
+合并后：看板要么扫全表明细，要么审计与 Ingest 强耦合——**性能与职责双输**（仍不做合并）。
 
 ### 9.2 平台密钥 vs Relay 映射
 

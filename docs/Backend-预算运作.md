@@ -251,11 +251,13 @@ Worker 还会通过 `relay_sync_cursors` **补偿轮询** NewAPI 日志（`org_s
 
 ### 7.4 与看板的关系
 
-| 数据                    | 用途                     | 写入方                  |
-| ----------------------- | ------------------------ | ----------------------- |
-| `budget_nodes.consumed` | 预算树展示、超限判断     | Ingest                  |
-| `usage_buckets`         | Dashboard 趋势、成本汇总 | Ingest                  |
-| `call_logs`             | 审计逐条明细             | **独立链路**，非 Ingest |
+| 数据                    | 用途                     | 写入方（O1 后）                                      |
+| ----------------------- | ------------------------ | ---------------------------------------------------- |
+| `budget_nodes.consumed` | 预算树展示、超限判断     | Ingest（账本同步投影）                               |
+| `usage_buckets`         | Dashboard 趋势、成本汇总 | Ingest（账本同步投影）                               |
+| `usage_ledger` | 审计列表、财务 SSOT | Ingest（瘦行 + `previewSnippet`） |
+
+> **O1 决策：** 废弃 `call_logs`；审计直读 `usage_ledger`；仅存 `previewSnippet`。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)。
 
 看板 `dashboard.Service` 读 `usage_buckets`（`UsageSourceBuckets`），**不读** `budget_nodes.consumed`。两者同源事件、不同聚合，短期可能因舍入或重试边界略有差异。
 

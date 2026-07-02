@@ -16,6 +16,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [Backend-存储架构.md](./Backend-存储架构.md)                       | 后端               | Postgres 44 张表、实体关系                             |
 | [Backend-存储实体优化.md](./Backend-存储实体优化.md)               | 架构               | 实体收敛方向与优先级                                   |
 | [Backend-预算运作.md](./Backend-预算运作.md)                       | 后端 / 架构        | 预算域、Ingest、Rebalance、企业钱包                    |
+| [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) | 架构 / 后端        | 消耗数据单一事实来源终极方案（ledger + 投影）          |
 | [Backend-命名规范.md](./Backend-命名规范.md)                       | 全员               | 跨系统字段与术语权威命名（含 `newapi_wallet_user_id`） |
 | [Backend-test.md](./Backend-test.md)                               | 后端               | 测试目录、运行方式、编写规范                           |
 

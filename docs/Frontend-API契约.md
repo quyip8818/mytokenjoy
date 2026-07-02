@@ -441,6 +441,8 @@ HTTP 非 2xx 时，body 应包含：
 
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
+**调用审计（O1 后）：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) §3.4、§4.3。
+
 ---
 
 ## 6. 类型参考
@@ -571,9 +573,13 @@ HTTP 非 2xx 时，body 应包含：
 
 **OperationLog：** `id`, `action`, `operator`, `operatorId`, `target`, `detail`, `ip`, `createdAt`
 
-**CallLog：** `id`, `caller`, `callerId`, `callerType`（`member` \| `platform_key`）, `model`, `provider`, `inputTokens`, `outputTokens`, `latencyMs`, `status`, `cost`, `createdAt`, `inputPreview`, `outputPreview`
+**CallLog：** `id`, `caller`, `callerId`, `callerType`（`member` \| `platform_key`）, `model`, `provider`, `inputTokens`, `outputTokens`, `latencyMs`, `status`, `cost`, `createdAt`, `previewSnippet`
 
-**AuditSettings：** `contentRetentionEnabled`
+- `previewSnippet`：仅 **input** 截断 ~200 字；`contentRetentionEnabled=false` 或 Webhook 无 `input` 时为空串
+- `outputTokens`：completion token **计数**，非 output 正文
+- 首版**不提供** input 全文或 output 原文；已移除 `inputPreview` / `outputPreview` / `hasContent`；展开行仅展示 `previewSnippet`
+
+**AuditSettings：** `contentRetentionEnabled` — `false` 时不写 `previewSnippet`
 
 ---
 
