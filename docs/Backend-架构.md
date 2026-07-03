@@ -1,0 +1,321 @@
+# Backend 架构
+
+`apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Relay 集成与看板读路径。
+
+**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储.md](./Backend-存储.md) · [Backend-预算.md](./Backend-预算.md) · [Frontend.md](./Frontend.md)
+
+---
+
+## 1. 技术选型
+
+| 类别 | 选型 |
+| ---- | ---- |
+| 语言 | Go 1.24 |
+| HTTP | chi v5 + `net/http` |
+| 配置 | `caarlos0/env` 环境变量 |
+| 日志 | `log/slog` JSON |
+| JSON | `encoding/json`，camelCase 对齐前端 |
+| 测试 | `testing` + `httptest`，用例在 `tests/` |
+| DI | 构造函数注入，组合根 `internal/app/` |
+
+---
+
+## 2. 分层
+
+```mermaid
+flowchart TB
+  subgraph http [HTTP 层]
+    MW[middleware]
+    H[handler]
+  end
+  subgraph domain [领域层]
+    SVC[domain.Service]
+  end
+  subgraph store [持久化]
+    ST[store.Store]
+    PG[(Postgres)]
+  end
+  Client --> MW --> H --> SVC --> ST --> PG
+```
+
+```
+HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
+     → handler（解析请求、写状态码）
+     → domain.Service（业务规则）
+     → store.Store（持久化）
+```
+
+- 域 DTO 统一定义在 `internal/domain/types/`。
+- 各 domain 包保留 Service 接口与业务逻辑；跨域编排放在调用方或 `app/wiring_*.go`。
+- HTTP 错误收敛到 `httputil`；Service 返回 `domain.DomainError`，Handler 映射 400/401/403/404/422/500。
+
+---
+
+## 3. 项目结构
+
+```
+apps/backend/
+├── cmd/server/main.go
+├── internal/
+│   ├── app/                 # DI 组合根（app.go + wiring_*.go + registry.go）
+│   ├── config/
+│   ├── domain/
+│   │   ├── session/         # Session 解析
+│   │   ├── org/             # 组织、数据源、同步
+│   │   ├── budget/          # 预算树、组、预警、rebalance、overrun
+│   │   ├── keys/            # 平台/上游 Key、审批
+│   │   ├── models/          # 模型目录、路由白名单
+│   │   ├── dashboard/       # 看板只读聚合
+│   │   ├── audit/           # 操作审计、调用审计读模型
+│   │   ├── usage/           # Ingest、projection、Reader
+│   │   ├── relay/           # TokenLifecycle、Gateway 预检、quota 合成
+│   │   ├── company/         # 企业、开户、邀请
+│   │   ├── billing/         # 充值、钱包
+│   │   └── platform/        # 平台运营
+│   ├── http/
+│   │   ├── router.go
+│   │   ├── handler/         # register.go + 子包
+│   │   ├── middleware/
+│   │   └── httputil/、response/、deps/
+│   ├── infra/
+│   │   ├── permission/
+│   │   ├── worker/          # outbox、rebalance、overrun、org sync
+│   │   └── notification/
+│   ├── integration/
+│   │   ├── newapi/
+│   │   └── datasource/feishu/
+│   ├── pkg/                 # budget/、org/、common/、ctxcompany/
+│   └── store/               # postgres/、memory/、seed/
+├── tests/
+└── Makefile
+```
+
+---
+
+## 4. 管理面请求链
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant V as Vite proxy
+  participant MW as Middleware
+  participant H as Handler
+  participant S as domain.Service
+  participant DB as Postgres
+
+  B->>V: GET /api/org/members
+  V->>MW: 转发
+  MW->>MW: CompanyResolve
+  MW->>MW: Session + Authz
+  MW->>H: 已鉴权请求
+  H->>S: 业务调用
+  S->>DB: WHERE company_id = ctx
+  DB-->>S: 结果
+  S-->>H: DTO
+  H-->>B: JSON
+```
+
+### 4.1 中间件
+
+| 中间件 | 作用域 | 行为 |
+| ------ | ------ | ---- |
+| `Recover` | 全局 | panic 恢复 |
+| `CORS` | 全局 | 允许前端源 |
+| `CompanyResolve` | `/api/*`（非 platform） | 从 Session 注入 `company_id`；私有化 `DEFAULT_COMPANY_ID` |
+| `Session` | 写操作 + prod 读 | 解析 `tokenjoy_session_member` 或 Bearer |
+| `PlatformAuth` | `/api/platform/*` | `tokenjoy_platform_session`；`SUPPORT_SAAS=false` 时路由 404 |
+| `Authz` | 需权限的路由 | 对照 `permissions` 表与 Session 权限 key |
+
+**CompanyResolve 规则：**
+
+| 场景 | 企业来源 |
+| ---- | -------- |
+| 已登录成员（企业面） | **仅** Session `companyId`；忽略 `X-Company-Id` |
+| 邀请激活 | token 内嵌 `company_id` |
+| 平台面 | 不经 CompanyResolve；路径显式 `{id}` |
+| 私有化 | 固定 `DEFAULT_COMPANY_ID`（默认 `1`） |
+
+### 4.2 鉴权 Profile
+
+| Profile | GET | 写 |
+| ------- | --- | -- |
+| `demo`（默认） | 多数 GET 免 Session | Session + permission |
+| `prod` | Session + 读权限 | Session + 写权限 |
+
+Session：`GET /api/session`；响应含 `member`、`permissions[]`、`companyId`。Webhook：`POST /api/internal/webhooks/newapi-log`，Header `X-Webhook-Secret`。
+
+---
+
+## 5. Store 抽象
+
+```go
+type Store interface {
+    Company() CompanyRepository
+    Org() OrgRepository
+    Budget() BudgetRepository
+    Keys() KeysRepository
+    Models() ModelsRepository
+    Audit() AuditRepository
+    Ledger() LedgerRepository
+    Relay() RelayRepository
+    Usage() UsageRepository
+    WithTx(ctx context.Context, fn func(Store) error) error
+}
+```
+
+| 模式 | 条件 | 说明 |
+| ---- | ---- | ---- |
+| Postgres | 运行时（必填 `DATABASE_URL`） | 36 张表；详见 [Backend-存储.md](./Backend-存储.md) |
+| Memory | 单测 / Handler 测试 | `-tags=testhook`；`app.NewWithStore` |
+
+- Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
+- Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.ApplyTables`；demo 下 `ApplyUsageBuckets`。
+- 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
+
+---
+
+## 6. Relay Gateway 请求链
+
+`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。
+
+```mermaid
+sequenceDiagram
+  participant C as 客户端 sk-xxx
+  participant GW as Relay Gateway
+  participant TJ as TokenJoy 预检
+  participant NA as NewAPI
+
+  C->>GW: OpenAI 兼容请求
+  GW->>TJ: relay_mappings 解析 company
+  alt 预检失败
+    GW-->>C: 403
+  else 通过
+    GW->>NA: 原样透传
+    NA-->>GW: 响应
+    GW-->>C: 原样返回
+    NA-->>TJ: webhook settle
+  end
+```
+
+预检依赖 `relay.PrecheckService`（`OrgNodeRepository` + `KeysRepository`）；放行条件见 [Backend-预算.md](./Backend-预算.md) §1 与 [Backend.md](./Backend.md) SaaS 章节。
+
+---
+
+## 7. NewAPI 集成（可选）
+
+`NEW_API_ENABLED=true` 时启用 Relay 同步、Worker、Ingest。
+
+```mermaid
+flowchart TB
+  subgraph lifecycle [Token 生命周期]
+    KEYS[keys.Service] --> LC[TokenLifecycle]
+    LC --> NA_API[NewAPI Admin API]
+    LC --> OB_R[outbox channel=relay]
+  end
+
+  subgraph ingest [消耗入账]
+    WH[webhook] --> ING[usage.IngestService]
+    COMP[补偿轮询] --> ING
+    ING --> LEDGER[(usage_ledger)]
+    ING --> PROJ[projection]
+  end
+
+  subgraph worker [Worker.Runner]
+    OB_R --> LC
+    OB_W[outbox webhook] --> ING
+    RBQ[rebalance_queue] --> RBS[RebalanceService]
+    ORQ[overrun_queue] --> OVS[OverrunService]
+  end
+```
+
+| 组件 | 包 | 职责 |
+| ---- | -- | ---- |
+| `TokenLifecycle` | `domain/relay` | Create/Update/Disable Token；同步 Channel |
+| `IngestService` | `domain/usage` | Webhook 入账（不依赖 Lifecycle） |
+| `RebalanceService` | `domain/budget` | CNY → `remain_quota` |
+| `OverrunService` | `domain/budget` | 超限封禁 Key |
+| `PrecheckService` | `domain/relay` | Gateway 预检 |
+
+**Relay 子接口（DI 收窄）：**
+
+| 消费者 | 接口 |
+| ------ | ---- |
+| `keys` | `KeysRelaySync` |
+| `models` / `org` | `ModelLimitsEnqueuer` |
+| `overrun` | `OverrunRelayControl` |
+| Worker relay outbox | `RelayOutboxSync` |
+
+`TokenLifecycle` 实现上述子接口及完整 `Lifecycle`。
+
+### 7.1 Worker 一轮
+
+```mermaid
+flowchart LR
+  A[outbox relay] --> B[outbox webhook 重试 Ingest]
+  B --> C[rebalance_queue]
+  C --> D[overrun_queue]
+  D --> E[NewAPI 日志补偿 Ingest]
+  E --> F[org 定时同步]
+```
+
+`WORKER_POLL_INTERVAL_SEC` 控制轮询；`WORKER_ORG_SYNC_INTERVAL_SEC` 控制组织同步。
+
+---
+
+## 8. 看板读路径
+
+Dashboard 域**全部 GET、无副作用**；端点见 [Frontend.md](./Frontend.md) §5.4。
+
+```mermaid
+flowchart TB
+  subgraph write [写入路径]
+    NA[NewAPI settle] --> WH[webhook] --> ING[ingest]
+    ING --> UL[(usage_ledger)]
+    ING --> UB[(usage_buckets)]
+  end
+  subgraph read [只读路径]
+    API["GET /dashboard/*"]
+    API --> RDR[usage.Reader]
+    RDR -->|day,hour| UB
+    RDR -->|minute| UL
+  end
+```
+
+| 决策 | 说明 |
+| ---- | ---- |
+| `usage.Reader` | 统一 buckets/ledger 聚合；`NewReader` 不依赖完整 Store |
+| hour 桶 | 只持久化 hour；day/week/month 用 `date_trunc` |
+| minute | 读 `usage_ledger`，窗口 ≤3h，`source: ledger` |
+| cost consumed | 读 **buckets 周期 SUM**，不读 `org_nodes.consumed` |
+| 时区 | UTC 存储；展示默认 `Asia/Shanghai` |
+
+组织元数据（部门树、模型目录）仍直读 store；`common.LoadDepartments` / `LoadBudgetTree` / `LoadRoutingRules` 签名收窄为 `OrgNodeRepository`（+ `ModelAllowlistRepository`）。
+
+---
+
+## 9. 命名与权限（HTTP 边界）
+
+HTTP JSON **camelCase**；DB **snake_case**。
+
+| 约定 | 说明 |
+| ---- | ---- |
+| `departmentId` | org/budget 域 = `org_nodes.id` |
+| `deptId` | dashboard 钻取 query/path |
+| `RoutingRule.id` | = `nodeId` |
+
+权限 key：`internal/infra/permission/keys.go` ↔ `apps/frontend/src/lib/permission-keys.ts`。
+
+存储侧字段语义见 [Backend-存储.md](./Backend-存储.md) §8。
+
+---
+
+## 10. 维护要点
+
+| 项 | 说明 |
+| -- | ---- |
+| Context | domain 内避免滥用 `context.Background()` |
+| 读鉴权 | prod profile 下各域 GET 挂 Session + 读权限 |
+| Worker 测试 | `app.WithoutWorker()` |
+| 新 GET | `tests/handler/contract_test.go` 追加用例 |
+
+变更检查清单见 [Backend.md](./Backend.md)。

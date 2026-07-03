@@ -1,21 +1,86 @@
-# Frontend API 契约
+# TokenJoy Frontend
 
-本文档描述 TokenJoy 前端 `src/api/` 层调用的 REST 接口契约，供前后端实现对齐。
+`apps/frontend` 现状：架构、API 契约、本地联调。后端见 [Backend.md](./Backend.md)（索引）；差距见 [Roadmap.md](./Roadmap.md)。
 
-**当前状态：** Monorepo 已包含 Go 后端（[`apps/backend/`](../apps/backend/)），实现契约 §5 全部 **82** 个企业面端点 + §10 **11** 个 SaaS 端点。本地联调：根目录 `pnpm start`（并发 backend + frontend，`.env.development` 代理到 `:8080`）。Dev 环境在 `/login` 选择成员并写入 `tokenjoy_session_member` cookie。前后端行为均以本文档及 `api/types/` 为准；后端设计见 [Backend-设计.md](./Backend-设计.md)。
-
-**权威来源（按优先级）：**
-
-1. 类型定义 — [`apps/frontend/src/api/types/`](../apps/frontend/src/api/types/)
-2. HTTP 客户端 — [`apps/frontend/src/api/{domain}.ts`](../apps/frontend/src/api/)
-3. Session 校验 — [`apps/frontend/src/api/schemas/session.ts`](../apps/frontend/src/api/schemas/session.ts)
-4. 后端类型 — [`apps/backend/internal/domain/types/`](../apps/backend/internal/domain/types/)
-
-文档索引见 [README.md](./README.md)；命名规范见 [Backend-命名规范.md](./Backend-命名规范.md)；前端分层见 [Frontend-开发指南.md](./Frontend-开发指南.md)。
+**权威来源：** API 路径与 JSON → 本文 §5 + `apps/frontend/src/api/types/`。
 
 ---
 
-## 1. 调用架构
+## 1. 技术栈与运行时
+
+React 19、React Router 7、Vite 8、TypeScript 5.x、Tailwind CSS 4、Base UI / shadcn、TanStack Table、Recharts、react-hook-form、Zustand、TanStack Query、Vitest。CI：Node 24、Go 1.24。
+
+路径别名：`@/` → `src/`，`@tests/` → `tests/`。
+
+```
+main.tsx → App.tsx
+└─ AdminLayout
+   ├─ ApiProvider + QueryProvider
+   ├─ AuthSessionProvider + AuthUnauthorizedBridge + SessionNavigationBridge
+   └─ WorkflowProvider → Sidebar / Header / Outlet / WorkflowPanelStack
+```
+
+- `pnpm start`：backend `:8080` + Vite `:5173`；`/api` 反代 Go（`vite-api-proxy.ts`）
+- Dev 登录：`/login` 选成员 → `tokenjoy_session_member` → `GET /session`
+- 首页 `/` 按权限跳转 `HOME_PATH_CANDIDATES`
+
+---
+
+## 2. 目录与分层
+
+```
+apps/frontend/
+├── tests/                  Vitest（镜像 src）
+└── src/
+    ├── config/             routes.ts、nav.ts、app.ts
+    ├── routes/{domain}/    页面 + hooks/ + components/
+    ├── components/         ui/、layout/、auth/、{domain}/
+    ├── features/           session/、workflow/、query/
+    ├── api/                client + 域 API + types/
+    ├── hooks/
+    └── lib/
+```
+
+| 代码 | 位置 |
+| ---- | ---- |
+| 页面入口 | `routes/{domain}/{page}.tsx` |
+| 页面逻辑 | `routes/{domain}/hooks/use-{page}-page.ts` |
+| 单页 UI | `routes/{domain}/components/` |
+| 跨页 UI | `components/{domain}/` |
+| HTTP / DTO | `api/{domain}.ts`、`api/types/` |
+| 纯逻辑 | `lib/` |
+
+禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。约定详见 [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc)。
+
+---
+
+## 3. 路由
+
+[`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一源，派生 `ROUTES`、`APP_ROUTES` 等。
+
+当前 **16** 业务页：dashboard（cost、usage）、org（3）、budget（3）、keys（4）、models（2）、audit（2）。
+
+新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `{page}.tsx` + `hooks/use-{page}-page.ts`。
+
+---
+
+## 4. API 层与页面架构
+
+- `api/client.ts`：`request()`、`ApiError`、`buildQuery()`；`credentials: 'include'`
+- `app-apis.ts`：`AppApis` + `defaultApis`（**14** 命名空间）
+- 生产 `AdminLayout` 注入 `defaultApis`；测试 `createMockApis()`
+
+**薄页面 → 页面 Hook → 展示组件**：Hook 用 `useApis()`、`useInjectedQuery` + `queryKeys`；组件 props 受控。
+
+**Workflow：** `features/workflow/` Zustand 侧滑栈；`workflows/{name}.tsx` + `definitions/` 注册。
+
+**SaaS 未接入：** 后端已有 auth/billing/platform API（§5.9），前端无对应 `AppApis` 与页面。见 [Roadmap.md](./Roadmap.md)。
+
+---
+
+## 5. API 契约
+
+### 5.0 调用架构
 
 ```
 页面 / Hook
@@ -42,9 +107,9 @@
 
 ---
 
-## 2. 通用约定
+#### 5.4.1 通用约定
 
-### 2.1 Base URL
+#### 5.1.1 Base URL
 
 | 常量            | 值               | 定义                                                  |
 | --------------- | ---------------- | ----------------------------------------------------- |
@@ -54,22 +119,22 @@
 
 开发环境通过 Vite dev/preview 将 `{BASE_URL}/api` 同域反代到 Go（默认 `http://127.0.0.1:8080`，可用 `VITE_API_PROXY_TARGET` 覆盖）。生产使用 nginx 等同域反代，见 [`deploy/nginx.conf.example`](../deploy/nginx.conf.example)。
 
-### 2.2 请求头
+#### 5.1.2 请求头
 
 | Header          | 必填       | 说明                                                                                                                                   |
 | --------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `Accept`        | 是         | `application/json`（`client.request` 默认注入）                                                                                        |
 | `Content-Type`  | 有 body 时 | `application/json`（`client.request` 默认注入）                                                                                        |
-| `Cookie`        | Session    | `credentials: 'include'` 自动携带；企业面 `tokenjoy_session_member`；平台面 `tokenjoy_platform_session`（`SUPPORT_SAAS=true`，见 §10） |
+| `Cookie`        | Session    | `credentials: 'include'` 自动携带；企业面 `tokenjoy_session_member`；平台面 `tokenjoy_platform_session`（`SUPPORT_SAAS=true`，见 §5.9） |
 | `Authorization` | 可选       | `Bearer {token}`（生产网关）                                                                                                           |
 
-### 2.3 成功响应
+#### 5.1.3 成功响应
 
 - HTTP 2xx
 - 返回 JSON，结构与 `api/types/` 一致
 - `void` 类型端点：TypeScript 侧为 `void`；**注意** `request()` 始终调用 `res.json()`，后端对无 body 端点应返回 `{}` 或 `null`，避免空 body 导致解析失败
 
-### 2.4 错误响应
+#### 5.1.4 错误响应
 
 HTTP 非 2xx 时，body 应包含：
 
@@ -89,7 +154,7 @@ HTTP 非 2xx 时，body 应包含：
 | `422`  | 业务校验失败                                            |
 | `503`  | minute 粒度 NewAPI 不可用（可能含 `retryAfter`）        |
 
-### 2.5 分页
+#### 5.1.5 分页
 
 **查询参数：** `page`、`pageSize`（及领域特定筛选字段）
 
@@ -104,13 +169,13 @@ HTTP 非 2xx 时，body 应包含：
 }
 ```
 
-### 2.6 查询参数构建
+#### 5.1.6 查询参数构建
 
 `buildQuery()` 会跳过 `undefined`、`null`、空字符串。布尔值序列化为 `"true"` / `"false"`。
 
-### 2.7 命名与参数约定
+#### 5.1.7 命名与参数约定
 
-跨层术语见 [Backend-命名规范.md](./Backend-命名规范.md)。HTTP 契约要点：
+跨层术语见 [Backend-存储.md](./Backend-存储.md) §10。HTTP 契约要点：
 
 | 约定                                                  | 说明                                                                       |
 | ----------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -125,9 +190,9 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 3. 鉴权与权限
+#### 5.4.2 鉴权与权限
 
-### 3.1 Session 端点
+#### 5.2.1 Session 端点
 
 | 调用方式                  | 说明                                                                           |
 | ------------------------- | ------------------------------------------------------------------------------ |
@@ -137,7 +202,7 @@ HTTP 非 2xx 时，body 应包含：
 
 本地 dev：在 `/login` 选择成员写入 cookie 后调用 `getCurrent()`。
 
-### 3.2 后端 Profile（`APP_PROFILE`）
+#### 5.2.2 后端 Profile（`APP_PROFILE`）
 
 | Profile | 值     | GET 读接口（demo）    | Session 身份解析                           |
 | ------- | ------ | --------------------- | ------------------------------------------ |
@@ -146,11 +211,11 @@ HTTP 非 2xx 时，body 应包含：
 
 写操作（POST / PUT / DELETE）在两种 Profile 下均要求 Session + 写权限。本地默认 `demo`；部署生产应设置 `APP_PROFILE=prod`。
 
-### 3.3 其他端点
+#### 5.2.3 其他端点
 
 真实后端按 permission key 校验：未登录 → `401`；已登录但无权限 → `403`。前端通过 `GET /session` 返回的 `permissions[]` 驱动 `PermissionGate` / `usePermissions()`。
 
-### 3.5 SaaS 双 Session
+#### 5.2.5 SaaS 双 Session
 
 | 面     | Cookie                      | 登录入口                    | 说明                                                             |
 | ------ | --------------------------- | --------------------------- | ---------------------------------------------------------------- |
@@ -159,7 +224,7 @@ HTTP 非 2xx 时，body 应包含：
 
 平台控制台与企业控制台应使用独立 `ApiProvider` 或独立 `client` 配置，避免 Cookie 混用。
 
-### 3.4 权限 Key
+#### 5.2.4 权限 Key
 
 定义于 [`lib/permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)：
 
@@ -207,7 +272,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 4. 共享类型
+#### 5.4.3 共享类型
 
 定义于 [`api/types/common.ts`](../apps/frontend/src/api/types/common.ts)。
 
@@ -226,11 +291,11 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 5. 端点清单
+#### 5.4.4 端点清单
 
-路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个端点。类型详情见 §6。
+路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个端点。类型详情见 §5.5。
 
-### 5.1 Session
+#### 5.4.1 Session
 
 客户端：[`sessionApi`](../apps/frontend/src/api/session.ts)
 
@@ -240,7 +305,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-### 5.2 Org（组织管理）
+#### 5.4.2 Org（组织管理）
 
 客户端：[`org.ts`](../apps/frontend/src/api/org.ts)
 
@@ -302,7 +367,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-### 5.3 Budget（预算管理）
+#### 5.4.3 Budget（预算管理）
 
 客户端：[`budgetApi`](../apps/frontend/src/api/budget.ts)
 
@@ -325,7 +390,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-### 5.4 Keys（API Key 管理）
+#### 5.4.4 Keys（API Key 管理）
 
 客户端：[`keys.ts`](../apps/frontend/src/api/keys.ts)
 
@@ -364,7 +429,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-### 5.5 Models（模型与路由）
+#### 5.4.5 Models（模型与路由）
 
 客户端：[`models.ts`](../apps/frontend/src/api/models.ts)
 
@@ -386,11 +451,11 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-### 5.6 Dashboard（数据看板）
+#### 5.4.6 Dashboard（数据看板）
 
 客户端：[`dashboardApi`](../apps/frontend/src/api/dashboard.ts)
 
-**只读约束：** 本节 **全部端点为 `GET`**，查询用量/成本，**无副作用**（不写库、不触发 ingest、不修改预算）。实现架构见 [Backend-设计.md](./Backend-设计.md) §10。
+**只读约束：** 本节 **全部端点为 `GET`**，查询用量/成本，**无副作用**（不写库、不触发 ingest、不修改预算）。实现架构见 [Backend-架构.md](./Backend-架构.md) §8。
 
 成本类接口共享查询参数 `CostQueryParams`（`period` 默认 `current_month`）：
 
@@ -439,7 +504,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-### 5.7 Audit（审计日志）
+#### 5.4.7 Audit（审计日志）
 
 客户端：[`auditApi`](../apps/frontend/src/api/audit.ts)
 
@@ -456,15 +521,15 @@ HTTP 非 2xx 时，body 应包含：
 
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
-**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) §3.4、§4.3。
+**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-存储.md](./Backend-存储.md) §6、[Backend-预算.md](./Backend-预算.md) §2。
 
 ---
 
-## 6. 类型参考
+### 5.5 类型参考
 
 完整定义以源码为准。以下列出各域核心类型字段。
 
-### 6.1 Org — [`types/org.ts`](../apps/frontend/src/api/types/org.ts)
+#### 5.5.1 Org — [`types/org.ts`](../apps/frontend/src/api/types/org.ts)
 
 **Credential**（discriminated union by `platform`）：
 
@@ -496,7 +561,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **Permission：** `id`, `name`, `group`
 
-### 6.2 Budget — [`types/budget.ts`](../apps/frontend/src/api/types/budget.ts)
+#### 5.5.2 Budget — [`types/budget.ts`](../apps/frontend/src/api/types/budget.ts)
 
 **BudgetNode：** `id`, `name`, `parentId`, `budget`, `consumed`, `reservedPool?`, `children?`, `period`
 
@@ -514,7 +579,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **ResolvedWhitelist：** `inherited`, `allowedModels`, `parentCount`
 
-### 6.3 Keys — [`types/keys.ts`](../apps/frontend/src/api/types/keys.ts)
+#### 5.5.3 Keys — [`types/keys.ts`](../apps/frontend/src/api/types/keys.ts)
 
 **ProviderType：** `openai` \| `anthropic` \| `deepseek` \| `qwen` \| `custom`
 
@@ -530,13 +595,13 @@ HTTP 非 2xx 时，body 应包含：
 
 **MemberQuotaSummary：** `totalQuota`, `used`, `remaining`, `reservedPool`
 
-### 6.4 Models — [`types/models.ts`](../apps/frontend/src/api/types/models.ts)
+#### 5.5.4 Models — [`types/models.ts`](../apps/frontend/src/api/types/models.ts)
 
 **ModelInfo：** `id`, `provider`, `name`, `displayName`, `inputPrice`, `outputPrice`, `maxContext`, `enabled`, `capabilities`
 
 **RoutingRule：** `id`（= `nodeId`）, `nodeId`, `nodeName`, `allowedModels`, `defaultModel`, `fallbackModel`, `inherited`
 
-### 6.5 Dashboard — [`types/dashboard.ts`](../apps/frontend/src/api/types/dashboard.ts)
+#### 5.5.5 Dashboard — [`types/dashboard.ts`](../apps/frontend/src/api/types/dashboard.ts)
 
 **CostPeriod：** `current_month` \| `last_month` \| `last_7_days` \| `custom`
 
@@ -582,7 +647,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **TeamUsage：** `departmentId`, `departmentName`, `quota`, `consumed`, `memberCount`, `topModel`
 
-### 6.6 Audit — [`types/audit.ts`](../apps/frontend/src/api/types/audit.ts)
+#### 5.5.6 Audit — [`types/audit.ts`](../apps/frontend/src/api/types/audit.ts)
 
 **AuditAction：** `key_create` \| `key_disable` \| `key_rotate` \| `budget_change` \| `budget_approve` \| `permission_change` \| `role_assign` \| `model_whitelist_change` \| `member_add` \| `member_remove` \| `org_structure_change`
 
@@ -598,9 +663,9 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 7. AppApis 聚合
+### 5.6 AppApis 聚合
 
-[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 14 个命名空间（SaaS 落地后预计增加 `authApi`、`billingApi`、`platformApi`，见 §10）：
+[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 14 个命名空间（SaaS 落地后预计增加 `authApi`、`billingApi`、`platformApi`，见 §5.9）：
 
 `sessionApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`
 
@@ -608,9 +673,9 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 8. 开发与部署
+### 5.7 开发与部署
 
-### 8.1 环境变量
+#### 5.7.1 环境变量
 
 | 变量                    | 说明                                                     |
 | ----------------------- | -------------------------------------------------------- |
@@ -619,7 +684,7 @@ HTTP 非 2xx 时，body 应包含：
 
 根目录 `pnpm start` 并发启动 backend + frontend；[`apps/frontend/.env.development`](../apps/frontend/.env.development) 默认配置代理目标。
 
-### 8.2 鉴权
+#### 5.7.2 鉴权
 
 - **企业面 Dev**：访问 [`/login`](../apps/frontend/src/routes/auth/login.tsx) 选择成员，写入 `tokenjoy_session_member` cookie
 - **企业面生产**：网关或后端签发 `Authorization: Bearer` token
@@ -627,7 +692,7 @@ HTTP 非 2xx 时，body 应包含：
 - **邀请激活（SaaS）**：`POST /auth/accept-invite` 设密并创建成员 Session
 - 401 时 `AuthUnauthorizedBridge` 跳转对应登录页（企业 `/login`；平台 `/platform/login`）
 
-### 8.3 联调验收
+#### 5.7.3 联调验收
 
 1. 启动 `pnpm start` 或分别启动 backend / frontend
 2. 登录后逐域抽查：session → org → budget → keys → models → dashboard → audit
@@ -635,7 +700,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-## 9. 变更检查清单
+### 5.8 变更检查清单
 
 新增或修改 API 时，同步更新：
 
@@ -644,19 +709,19 @@ HTTP 非 2xx 时，body 应包含：
 - [ ] `api/app-apis.ts` — 若新增域 API 对象
 - [ ] `api/schemas/` — 若响应需运行时校验（如 Session）
 - [ ] `features/query/query-keys.ts` — 若读操作使用 React Query
-- [ ] 本文档 §5 端点清单（SaaS 见 §10）
+- [ ] 本文档 §5.4 端点清单（SaaS 见 §5.9）
 - [ ] 后端 handler + domain service（[`apps/backend/`](../apps/backend/)）
 - [ ] 页面 Hook / 测试 — 按需补充
 
 ---
 
-## 10. SaaS 多企业
+### 5.9 SaaS 多企业
 
-产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)。
+产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-预算.md](./Backend-预算.md) §1、[Backend.md](./Backend.md) §2。
 
 **共 11 个端点**（路径均相对于 `API_BASE_PATH`）。
 
-### 10.1 企业面：认证
+#### 5.9.1 企业面：认证
 
 后端已实现；前端尚无 `authApi` / `AppApis` 命名空间。
 
@@ -666,7 +731,7 @@ HTTP 非 2xx 时，body 应包含：
 
 无需 Session；成功后与 `GET /session` 结构一致（含 `companyId`）。
 
-### 10.2 企业面：计费
+#### 5.9.2 企业面：计费
 
 后端已实现；前端尚无 `billingApi` / `AppApis` 命名空间。
 
@@ -698,7 +763,7 @@ HTTP 非 2xx 时，body 应包含：
 
 充值**不**自动涨部门 `budget`；入账后前端应引导超管进入预算页分配（见后端 §4.1.1）。
 
-### 10.3 平台面：认证
+#### 5.9.3 平台面：认证
 
 后端已实现；前端尚无 `platformApi` / 平台路由。
 
@@ -714,7 +779,7 @@ HTTP 非 2xx 时，body 应包含：
 
 其余 `/platform/*` 须携带平台 Session；`SUPPORT_SAAS=false` 时返回 404。
 
-### 10.4 平台面：企业与 Channel
+#### 5.9.4 平台面：企业与 Channel
 
 | 方法  | 路径                               | Body / 查询                     | 响应                 | 说明                            |
 | ----- | ---------------------------------- | ------------------------------- | -------------------- | ------------------------------- |
@@ -743,7 +808,7 @@ HTTP 非 2xx 时，body 应包含：
 
 > 路径以 `companies` 为准。
 
-### 10.5 既有端点的 SaaS 行为差异
+#### 5.9.5 既有端点的 SaaS 行为差异
 
 | 端点 / 域                      | 私有化          | SaaS                                                            |
 | ------------------------------ | --------------- | --------------------------------------------------------------- |
@@ -753,7 +818,7 @@ HTTP 非 2xx 时，body 应包含：
 | 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                                     |
 | 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                                      |
 
-### 10.6 前端接入现状
+#### 5.9.6 前端接入现状
 
 | 项                   | 后端                          | 前端 `AppApis`            | 控制台页面           |
 | -------------------- | ----------------------------- | ------------------------- | -------------------- |
@@ -763,4 +828,41 @@ HTTP 非 2xx 时，body 应包含：
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                    | 无 `/platform/login` |
 | `billing:*` 权限     | 已定义于后端                  | `permission-keys.ts` 未含 | —                    |
 
-后端详案：[Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)。NewAPI 部署：[NewAPI-SaaS多企业配置.md](./NewAPI-SaaS多企业配置.md)。
+后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
+
+---
+
+## 6. 本地联调
+
+```bash
+pnpm install && pnpm start
+```
+
+| 服务 | 地址 |
+| ---- | ---- |
+| 前端 | http://localhost:5173 |
+| 后端 | http://localhost:8080 |
+
+1. `/login` 选演示成员 → cookie
+2. 空库自动 `seed.ApplyTables`；看板锚定 `DEMO_TODAY=2026-06-19`
+3. 重置：`pnpm docker:reset && pnpm start`
+
+| 变量 | 说明 |
+| ---- | ---- |
+| `VITE_API_PROXY_TARGET` | 反代目标，默认 `http://127.0.0.1:8080` |
+| `DATABASE_URL` | 后端 Postgres |
+
+可选 Relay：`pnpm start:relay` + `NEW_API_ENABLED=true`。验收：`pnpm verify`、`pnpm test:e2e`。
+
+生产同域：`deploy/nginx.conf.example`（`/api/` 须在 SPA fallback 之前）。
+
+---
+
+## 7. 测试与 PR 自检
+
+`tests/setup.ts`、`createMockApis()`、`renderHookWithProviders()`；不依赖 backend 进程。
+
+- [ ] 新页面只改 `ROUTE_DEFINITIONS` 一条
+- [ ] 页面从 `use-*-page` 取数
+- [ ] 新 API：§5.4 契约 + `api/` + `queryKeys` + 后端 handler
+- [ ] `pnpm lint` 与 `pnpm test` 通过

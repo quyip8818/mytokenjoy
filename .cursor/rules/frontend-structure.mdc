@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Frontend Structure Conventions
 
-Follow [docs/Frontend-开发指南.md](../docs/Frontend-开发指南.md) (especially §8 shared components). Summary:
+Follow [docs/Frontend.md](../docs/Frontend.md) (especially §2 shared components). Summary:
 
 ## Where code goes
 
@@ -56,7 +56,7 @@ Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`
 1. List all importers (route pages + workflow)
 2. Pick directory per table above
 3. Never put domain-named files in `components/ui/` (`budget-*`, `org-*`, etc.)
-4. Update §8 shared component inventory in [Frontend-开发指南.md](../docs/Frontend-开发指南.md) when adding shared components
+4. Update §2 shared component inventory in [Frontend.md](../docs/Frontend.md) when adding shared components
 
 ## Page template
 
