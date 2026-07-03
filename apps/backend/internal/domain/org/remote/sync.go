@@ -1,4 +1,4 @@
-package org
+package remote
 
 import (
 	"context"
@@ -12,12 +12,12 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
+func (s *Service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
 	return s.syncFromProvider(ctx, types.SyncTypeManual)
 }
 
-func (s *service) RunScheduledSync(ctx context.Context) error {
-	cfg, err := s.store.Org().Integration(ctx)
+func (s *Service) RunScheduledSync(ctx context.Context) error {
+	cfg, err := s.d.Store.Org().Integration(ctx)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (s *service) RunScheduledSync(ctx context.Context) error {
 	}
 
 	holder := s.schedulerHolder()
-	acquired, err := s.store.SchedulerLock().TryAcquire(
+	acquired, err := s.d.Store.SchedulerLock().TryAcquire(
 		ctx, types.SchedulerLockOrgSync, holder, 15*time.Minute,
 	)
 	if err != nil {
@@ -39,14 +39,14 @@ func (s *service) RunScheduledSync(ctx context.Context) error {
 		return nil
 	}
 	defer func() {
-		_ = s.store.SchedulerLock().Release(ctx, types.SchedulerLockOrgSync, holder)
+		_ = s.d.Store.SchedulerLock().Release(ctx, types.SchedulerLockOrgSync, holder)
 	}()
 
 	_, syncErr := s.syncFromProvider(ctx, types.SyncTypeScheduled)
 	return syncErr
 }
 
-func (s *service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConfig) bool {
+func (s *Service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConfig) bool {
 	if cfg.FrequencyHours <= 0 {
 		return false
 	}
@@ -59,7 +59,7 @@ func (s *service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConf
 	}
 	parsed, err := time.Parse("15:04", cfg.StartTime)
 	if err != nil {
-		s.logger.Warn("invalid sync start time", "start_time", cfg.StartTime, "error", err)
+		s.d.Logger.Warn("invalid sync start time", "start_time", cfg.StartTime, "error", err)
 		return false
 	}
 	now := time.Now()
@@ -67,8 +67,8 @@ func (s *service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConf
 	return !now.Before(startToday)
 }
 
-func (s *service) lastScheduledSyncTime(ctx context.Context) *time.Time {
-	logs, err := s.store.Org().SyncLogs(ctx)
+func (s *Service) lastScheduledSyncTime(ctx context.Context) *time.Time {
+	logs, err := s.d.Store.Org().SyncLogs(ctx)
 	if err != nil {
 		return nil
 	}
@@ -85,11 +85,11 @@ func (s *service) lastScheduledSyncTime(ctx context.Context) *time.Time {
 	return nil
 }
 
-func (s *service) schedulerHolder() string {
+func (s *Service) schedulerHolder() string {
 	return fmt.Sprintf("worker-%d", time.Now().UnixNano())
 }
 
-func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.ImportResult, error) {
+func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.ImportResult, error) {
 	provider, platform, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
@@ -104,31 +104,31 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	localDeptsTree, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	localDeptsTree, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.ImportResult{}, err
 	}
 	localDepts := pkgorg.FlattenDepartmentTree(localDeptsTree)
-	localMembers, err := s.store.Org().Members(ctx)
+	localMembers, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
 	diff := buildSyncDiff(localDepts, localMembers, remoteDepts, remoteMembers)
 
-	integration, err := s.store.Org().Integration(ctx)
+	integration, err := s.d.Store.Org().Integration(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
 	cfg := integration.ToSyncConfig()
 	if len(diff.removeMembers) > cfg.DeleteMemberThreshold {
 		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.removeMembers), cfg.DeleteMemberThreshold)
-		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)
+		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
 	if len(diff.removeDepartment) > cfg.DeleteDepartmentThreshold {
 		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.removeDepartment), cfg.DeleteDepartmentThreshold)
-		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)
+		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
@@ -152,7 +152,7 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 	return result, nil
 }
 
-func (s *service) appendSyncLog(ctx context.Context, syncType, result, detail string) error {
+func (s *Service) appendSyncLog(ctx context.Context, syncType, result, detail string) error {
 	logEntry := types.SyncLog{
 		ID:     fmt.Sprintf("sync-%d", time.Now().UnixNano()),
 		Time:   time.Now().Format("2006-01-02 15:04"),
@@ -160,5 +160,33 @@ func (s *service) appendSyncLog(ctx context.Context, syncType, result, detail st
 		Result: result,
 		Detail: detail,
 	}
-	return s.store.Org().AppendSyncLog(ctx, logEntry)
+	return s.d.Store.Org().AppendSyncLog(ctx, logEntry)
+}
+
+func (s *Service) GetSyncConfig(ctx context.Context) (types.SyncConfig, error) {
+	integration, err := s.d.Store.Org().Integration(ctx)
+	if err != nil {
+		return types.SyncConfig{}, err
+	}
+	return integration.ToSyncConfig(), nil
+}
+
+func (s *Service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
+	integration, err := s.d.Store.Org().Integration(ctx)
+	if err != nil {
+		return err
+	}
+	integration.ApplySyncConfig(cfg)
+	return s.d.Store.Org().SetIntegration(ctx, integration)
+}
+
+func (s *Service) ListSyncLogs(ctx context.Context, page, pageSize int) (types.PageResult[types.SyncLog], error) {
+	logs, err := s.d.Store.Org().SyncLogs(ctx)
+	if err != nil {
+		return types.PageResult[types.SyncLog]{}, err
+	}
+	items, total, safePage, safeSize := common.Paginate(logs, page, pageSize)
+	return types.PageResult[types.SyncLog]{
+		Items: items, Total: total, Page: safePage, PageSize: safeSize,
+	}, nil
 }

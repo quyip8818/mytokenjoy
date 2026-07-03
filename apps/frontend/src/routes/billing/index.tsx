@@ -26,11 +26,7 @@ export default function BillingPage() {
             </p>
           )}
           <PermissionGate permission={PERMISSION.BILLING_RECHARGE} write>
-            <Button
-              type="button"
-              onClick={handleRecharge}
-              disabled={!canWrite || rechargePending}
-            >
+            <Button type="button" onClick={handleRecharge} disabled={!canWrite || rechargePending}>
               充值 100
             </Button>
           </PermissionGate>

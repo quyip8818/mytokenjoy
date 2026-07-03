@@ -1,4 +1,4 @@
-package org
+package remote
 
 import "github.com/tokenjoy/backend/internal/domain/types"
 

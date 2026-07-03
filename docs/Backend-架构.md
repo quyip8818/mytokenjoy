@@ -61,7 +61,10 @@ apps/backend/
 │   ├── config/
 │   ├── identity/            # sessiontoken、credentials、authz、httpx
 │   ├── domain/
-│   │   ├── org/             # 组织、数据源、同步
+│   │   ├── org/             # 组织域（见下）；对外仍 domain/org.Service
+│   │   │   ├── core/        # Deps、provision、authz bump
+│   │   │   ├── structure/   # 本地成员/角色/部门
+│   │   │   └── remote/      # 数据源凭证、导入、同步（消费 datasource.Provider）
 │   │   ├── budget/          # 预算树、组、预警、rebalance、overrun
 │   │   ├── keys/            # 平台/上游 Key、审批
 │   │   ├── models/          # 模型目录、路由白名单
@@ -177,6 +180,18 @@ type Store interface {
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
 - Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.ApplyTables`；demo 下 `ApplyUsageBuckets`。
 - 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
+- `OrgRepository` 实现按职责拆为多文件（`org_repo.go` + `org_repo_members.go` / `org_repo_roles.go` / `org_repo_integration.go`；postgres 与 memory 对称），接口不变。
+
+### 5.1 组织域（`domain/org`）
+
+| 子包            | 职责                                                                    |
+| --------------- | ----------------------------------------------------------------------- |
+| `org`（根）     | `Service` 接口、`NewService`；嵌入 `structure.Local` + `remote.Service` |
+| `org/core`      | 共享 `Deps`、部门树 provision、authz revision bump                      |
+| `org/structure` | 成员/角色/部门 CRUD、CSV 批量导入                                       |
+| `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步                        |
+
+**扩展钉钉/企微**：在 `integration/datasource` 实现 `Provider` 并扩展 `factory.ForPlatform`；`org/remote` 保持平台无关，通常无需修改。
 
 ---
 

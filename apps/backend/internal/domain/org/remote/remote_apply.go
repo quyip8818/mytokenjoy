@@ -1,15 +1,16 @@
-package org
+package remote
 
 import (
 	"context"
 
+	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, diff syncDiff) (types.ImportResult, error) {
+func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, diff syncDiff) (types.ImportResult, error) {
 	remoteDepts := append([]datasource.RemoteDepartment{}, diff.addDepartments...)
 	remoteDepts = append(remoteDepts, diff.updateDepartments...)
 	remoteMembers := append([]datasource.RemoteMember{}, diff.addMembers...)
@@ -29,7 +30,7 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		return result, nil
 	}
 
-	err := s.store.WithTx(ctx, func(st store.Store) error {
+	err := s.d.Store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {
 			return err
@@ -50,33 +51,33 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		if err != nil {
 			return err
 		}
-		state, err := loadProvisionState(ctx, st, nodes)
+		state, err := core.LoadProvisionState(ctx, st, nodes)
 		if err != nil {
 			return err
 		}
 		for _, removed := range diff.removeDepartment {
-			if err := DeprovisionDepartment(state, removed.ID); err != nil {
+			if err := core.DeprovisionDepartment(state, removed.ID); err != nil {
 				return err
 			}
 			result.SuccessDepartments++
 		}
 
-		state.Nodes = RecalcDepartmentMemberCounts(state.Nodes, members)
-		if err := persistProvisionState(ctx, st, state); err != nil {
+		state.Nodes = core.RecalcDepartmentMemberCounts(state.Nodes, members)
+		if err := core.PersistProvisionState(ctx, st, state); err != nil {
 			return err
 		}
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
 		if membersDeactivated {
-			return s.bumpAuthzRevisionStore(ctx, st)
+			return core.BumpAuthzRevisionStore(ctx, st)
 		}
 		return nil
 	})
 	return result, err
 }
 
-func (s *service) importRemoteSnapshot(
+func (s *Service) importRemoteSnapshot(
 	ctx context.Context,
 	platform types.Platform,
 	remoteDepts []datasource.RemoteDepartment,
@@ -203,7 +204,7 @@ func resolveParentLocalID(
 	externalToLocal map[string]string,
 ) string {
 	if parentExternal == "" || parentExternal == "0" {
-		return RootDepartmentID
+		return core.RootDepartmentID
 	}
 	if localID, ok := externalToLocal[parentExternal]; ok {
 		return localID

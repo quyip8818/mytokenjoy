@@ -1,4 +1,4 @@
-package org
+package remote
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
@@ -17,7 +18,7 @@ type importOptions struct {
 	retryExternalIDs map[string]struct{}
 }
 
-func (s *service) ImportDataSource(ctx context.Context) (types.ImportResult, error) {
+func (s *Service) ImportDataSource(ctx context.Context) (types.ImportResult, error) {
 	provider, platform, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
@@ -25,7 +26,7 @@ func (s *service) ImportDataSource(ctx context.Context) (types.ImportResult, err
 	return s.importFromProvider(ctx, provider, platform, importOptions{})
 }
 
-func (s *service) RetryImport(ctx context.Context, ids []string) (types.ImportResult, error) {
+func (s *Service) RetryImport(ctx context.Context, ids []string) (types.ImportResult, error) {
 	provider, platform, err := s.providerForStored(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
@@ -37,7 +38,7 @@ func (s *service) RetryImport(ctx context.Context, ids []string) (types.ImportRe
 	return s.importFromProvider(ctx, provider, platform, importOptions{retryExternalIDs: retrySet})
 }
 
-func (s *service) importFromProvider(
+func (s *Service) importFromProvider(
 	ctx context.Context,
 	provider datasource.Provider,
 	platform types.Platform,
@@ -55,7 +56,7 @@ func (s *service) importFromProvider(
 	}
 
 	if retryOnly {
-		importFailures, err := s.store.Org().ImportFailures(ctx)
+		importFailures, err := s.d.Store.Org().ImportFailures(ctx)
 		if err != nil {
 			return types.ImportResult{}, err
 		}
@@ -82,7 +83,7 @@ func (s *service) importFromProvider(
 	result := types.ImportResult{Failures: append([]types.ImportFailure{}, fetchFailures...)}
 	changedDeptIDs := make([]string, 0)
 
-	err = s.store.WithTx(ctx, func(st store.Store) error {
+	err = s.d.Store.WithTx(ctx, func(st store.Store) error {
 		membersAdded := false
 		nodes, err := st.Org().Nodes().Tree(ctx)
 		if err != nil {
@@ -96,11 +97,11 @@ func (s *service) importFromProvider(
 		if err != nil {
 			return err
 		}
-		state, err := loadProvisionState(ctx, st, nodes)
+		state, err := core.LoadProvisionState(ctx, st, nodes)
 		if err != nil {
 			return err
 		}
-		departments := departmentsFromState(state)
+		departments := core.DepartmentsFromState(state)
 
 		externalToLocal := buildDeptExternalMap(departments)
 		parentMap := make(map[string]string, len(remoteDepts))
@@ -122,8 +123,8 @@ func (s *service) importFromProvider(
 			}
 
 			if existing == nil {
-				if err := ProvisionDepartment(state, ProvisionInput{
-					ID: localID, Name: remote.Name, ParentID: parentLocalID, Period: s.budgetPeriod(),
+				if err := core.ProvisionDepartment(state, core.ProvisionInput{
+					ID: localID, Name: remote.Name, ParentID: parentLocalID, Period: s.d.BudgetPeriod(),
 				}); err != nil {
 					return err
 				}
@@ -135,7 +136,7 @@ func (s *service) importFromProvider(
 						node.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
 					}
 				}
-				departments = departmentsFromState(state)
+				departments = core.DepartmentsFromState(state)
 				externalToLocal[remote.ExternalID] = localID
 				changedDeptIDs = append(changedDeptIDs, localID)
 				result.SuccessDepartments++
@@ -143,7 +144,7 @@ func (s *service) importFromProvider(
 			}
 
 			if existing.Name != remote.Name {
-				if err := RenameDepartment(state, localID, remote.Name); err != nil {
+				if err := core.RenameDepartment(state, localID, remote.Name); err != nil {
 					return err
 				}
 				changedDeptIDs = append(changedDeptIDs, localID)
@@ -156,7 +157,7 @@ func (s *service) importFromProvider(
 					node.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
 				}
 			}
-			departments = departmentsFromState(state)
+			departments = core.DepartmentsFromState(state)
 			result.SuccessDepartments++
 		}
 
@@ -207,12 +208,12 @@ func (s *service) importFromProvider(
 			membersAdded = true
 		}
 
-		state.Nodes = RecalcDepartmentMemberCounts(state.Nodes, members)
-		if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
+		state.Nodes = core.RecalcDepartmentMemberCounts(state.Nodes, members)
+		if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
 			return err
 		}
 
-		if err := persistProvisionState(ctx, st, state); err != nil {
+		if err := core.PersistProvisionState(ctx, st, state); err != nil {
 			return err
 		}
 		if err := st.Org().SetMembers(ctx, members); err != nil {
@@ -238,7 +239,7 @@ func (s *service) importFromProvider(
 			return err
 		}
 		if membersAdded {
-			return s.bumpAuthzRevisionStore(ctx, st)
+			return core.BumpAuthzRevisionStore(ctx, st)
 		}
 		return nil
 	})
@@ -246,11 +247,11 @@ func (s *service) importFromProvider(
 		return types.ImportResult{}, err
 	}
 
-	if err := s.store.Org().SetImportFailures(ctx, result.Failures); err != nil {
+	if err := s.d.Store.Org().SetImportFailures(ctx, result.Failures); err != nil {
 		return types.ImportResult{}, fmt.Errorf("persist import failures: %w", err)
 	}
-	if s.modelLimits != nil && len(changedDeptIDs) > 0 {
-		if err := s.modelLimits.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
+	if s.d.ModelLimits != nil && len(changedDeptIDs) > 0 {
+		if err := s.d.ModelLimits.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
 			return types.ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
 		}
 	}

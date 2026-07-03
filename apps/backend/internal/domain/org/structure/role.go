@@ -1,4 +1,4 @@
-package org
+package structure
 
 import (
 	"context"
@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) ListRoles(ctx context.Context) ([]types.Role, error) {
-	return s.store.Org().Roles(ctx)
+func (s *Local) ListRoles(ctx context.Context) ([]types.Role, error) {
+	return s.d.Store.Org().Roles(ctx)
 }
 
-func (s *service) CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error) {
-	roles, err := s.store.Org().Roles(ctx)
+func (s *Local) CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error) {
+	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return types.Role{}, err
 	}
@@ -25,17 +26,17 @@ func (s *service) CreateRole(ctx context.Context, name string, permissions []str
 		Name: name, Type: "custom", Permissions: permissions, MemberCount: 0,
 	}
 	roles = append(roles, role)
-	if err := s.store.Org().SetRoles(ctx, roles); err != nil {
+	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
 		return types.Role{}, fmt.Errorf("persist roles: %w", err)
 	}
-	if err := s.bumpAuthzRevision(ctx); err != nil {
+	if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 		return types.Role{}, err
 	}
 	return role, nil
 }
 
-func (s *service) UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error) {
-	roles, err := s.store.Org().Roles(ctx)
+func (s *Local) UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error) {
+	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return types.Role{}, err
 	}
@@ -43,10 +44,10 @@ func (s *service) UpdateRole(ctx context.Context, id, name string, permissions [
 		if roles[i].ID == id {
 			roles[i].Name = name
 			roles[i].Permissions = permissions
-			if err := s.store.Org().SetRoles(ctx, roles); err != nil {
+			if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
 				return types.Role{}, err
 			}
-			if err := s.bumpAuthzRevision(ctx); err != nil {
+			if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 				return types.Role{}, err
 			}
 			return roles[i], nil
@@ -55,8 +56,8 @@ func (s *service) UpdateRole(ctx context.Context, id, name string, permissions [
 	return types.Role{}, domain.NewDomainError(404, "Not found")
 }
 
-func (s *service) DeleteRole(ctx context.Context, id string) error {
-	roles, err := s.store.Org().Roles(ctx)
+func (s *Local) DeleteRole(ctx context.Context, id string) error {
+	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
 	}
@@ -75,7 +76,7 @@ func (s *service) DeleteRole(ctx context.Context, id string) error {
 		return domain.NewDomainError(400, "Cannot delete preset role")
 	}
 
-	members, err := s.store.Org().Members(ctx)
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return err
 	}
@@ -88,22 +89,22 @@ func (s *service) DeleteRole(ctx context.Context, id string) error {
 		}
 		members[i].Roles = filtered
 	}
-	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 		return err
 	}
 
 	roles = append(roles[:idx], roles[idx+1:]...)
-	if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
+	if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
 		return err
 	}
-	if err := s.store.Org().SetRoles(ctx, roles); err != nil {
+	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
 		return err
 	}
-	return s.bumpAuthzRevision(ctx)
+	return core.BumpAuthzRevision(ctx, s.d)
 }
 
-func (s *service) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
-	roles, err := s.store.Org().Roles(ctx)
+func (s *Local) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
+	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func (s *service) ListRoleMembers(ctx context.Context, roleID string) ([]types.M
 		return []types.Member{}, nil
 	}
 
-	members, err := s.store.Org().Members(ctx)
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,12 +135,12 @@ func (s *service) ListRoleMembers(ctx context.Context, roleID string) ([]types.M
 	return result, nil
 }
 
-func (s *service) AddRoleMember(ctx context.Context, roleID, memberID string) error {
-	roles, err := s.store.Org().Roles(ctx)
+func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) error {
+	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
 	}
-	members, err := s.store.Org().Members(ctx)
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return err
 	}
@@ -161,28 +162,28 @@ func (s *service) AddRoleMember(ctx context.Context, roleID, memberID string) er
 		}
 		if !pkgorg.ContainsRole(members[i].Roles, role.Name) {
 			members[i].Roles = append(members[i].Roles, role.Name)
-			if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
+			if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
 				return err
 			}
-			if err := s.store.Org().SetMembers(ctx, members); err != nil {
+			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 				return err
 			}
-			if err := s.bumpAuthzRevision(ctx); err != nil {
+			if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 				return err
 			}
-			return s.store.Org().SetRoles(ctx, roles)
+			return s.d.Store.Org().SetRoles(ctx, roles)
 		}
 		break
 	}
 	return nil
 }
 
-func (s *service) RemoveRoleMember(ctx context.Context, roleID, memberID string) error {
-	roles, err := s.store.Org().Roles(ctx)
+func (s *Local) RemoveRoleMember(ctx context.Context, roleID, memberID string) error {
+	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
 	}
-	members, err := s.store.Org().Members(ctx)
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return err
 	}
@@ -220,14 +221,18 @@ func (s *service) RemoveRoleMember(ctx context.Context, roleID, memberID string)
 			break
 		}
 	}
-	if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
+	if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
 		return err
 	}
-	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 		return err
 	}
-	if err := s.bumpAuthzRevision(ctx); err != nil {
+	if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 		return err
 	}
-	return s.store.Org().SetRoles(ctx, roles)
+	return s.d.Store.Org().SetRoles(ctx, roles)
+}
+
+func (s *Local) ListPermissions(ctx context.Context) ([]types.Permission, error) {
+	return s.d.Store.Org().Permissions(ctx)
 }

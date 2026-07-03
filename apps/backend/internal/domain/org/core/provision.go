@@ -1,4 +1,4 @@
-package org
+package core
 
 import (
 	"context"
@@ -28,7 +28,7 @@ type ProvisionState struct {
 	NodeAllowlists map[string][]string
 }
 
-func loadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNode) (*ProvisionState, error) {
+func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNode) (*ProvisionState, error) {
 	models, err := st.Models().Models(ctx)
 	if err != nil {
 		return nil, err
@@ -54,11 +54,11 @@ func rulesFromState(state *ProvisionState) []types.RoutingRule {
 	return common.RoutingRulesFromNodes(state.Nodes, state.NodeAllowlists)
 }
 
-func departmentsFromState(state *ProvisionState) []types.Department {
+func DepartmentsFromState(state *ProvisionState) []types.Department {
 	return types.OrgNodesToDepartments(state.Nodes)
 }
 
-func persistProvisionState(ctx context.Context, st store.Store, state *ProvisionState) error {
+func PersistProvisionState(ctx context.Context, st store.Store, state *ProvisionState) error {
 	if err := st.Org().Nodes().SetTree(ctx, state.Nodes); err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 		return fmt.Errorf("failed to insert department")
 	}
 
-	departments := departmentsFromState(state)
+	departments := DepartmentsFromState(state)
 	rules := rulesFromState(state)
 	parentAllowed := common.ResolveDeptAllowedModels(
 		input.ParentID, departments, rules, state.Models,

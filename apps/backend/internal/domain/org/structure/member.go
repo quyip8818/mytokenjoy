@@ -1,4 +1,4 @@
-package org
+package structure
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -15,13 +16,13 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.PageResult[types.Member], error) {
-	items, err := s.store.Org().Members(ctx)
+func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.PageResult[types.Member], error) {
+	items, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.PageResult[types.Member]{}, err
 	}
 	if departmentID != "" {
-		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+		departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 		if err != nil {
 			return types.PageResult[types.Member]{}, err
 		}
@@ -42,8 +43,8 @@ func (s *service) ListMembers(ctx context.Context, departmentID, keyword string,
 	}, nil
 }
 
-func (s *service) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+func (s *Local) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
+	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.Member{}, err
 	}
@@ -65,18 +66,18 @@ func (s *service) CreateMember(ctx context.Context, input types.Member) (types.M
 		PersonalQuota: common.DefaultPersonalQuota,
 	}
 
-	members, err := s.store.Org().Members(ctx)
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.Member{}, err
 	}
 	members = append(members, member)
-	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 		return types.Member{}, err
 	}
-	if err := persistRecalculatedMemberCounts(ctx, s.store, members); err != nil {
+	if err := persistRecalculatedMemberCounts(ctx, s.d.Store, members); err != nil {
 		return types.Member{}, err
 	}
-	if err := s.bumpAuthzRevision(ctx); err != nil {
+	if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 		return types.Member{}, err
 	}
 	return member, nil
@@ -87,12 +88,12 @@ func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, member
 	if err != nil {
 		return err
 	}
-	nodes = RecalcDepartmentMemberCounts(nodes, members)
+	nodes = core.RecalcDepartmentMemberCounts(nodes, members)
 	return st.Org().Nodes().SetTree(ctx, nodes)
 }
 
-func (s *service) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
-	members, err := s.store.Org().Members(ctx)
+func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.Member{}, err
 	}
@@ -102,11 +103,11 @@ func (s *service) UpdateMember(ctx context.Context, id string, input types.Membe
 			updated := input
 			updated.ID = id
 			members[i] = updated
-			if err := s.store.Org().SetMembers(ctx, members); err != nil {
+			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 				return types.Member{}, err
 			}
 			if rolesChanged {
-				if err := s.bumpAuthzRevision(ctx); err != nil {
+				if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 					return types.Member{}, err
 				}
 			}
@@ -116,12 +117,12 @@ func (s *service) UpdateMember(ctx context.Context, id string, input types.Membe
 	return types.Member{}, domain.NewDomainError(404, "types.Member not found")
 }
 
-func (s *service) DeleteMembers(ctx context.Context, ids []string) error {
+func (s *Local) DeleteMembers(ctx context.Context, ids []string) error {
 	return s.UpdateMemberStatus(ctx, ids, "inactive")
 }
 
-func (s *service) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
-	return s.store.WithTx(ctx, func(st store.Store) error {
+func (s *Local) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
+	return s.d.Store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {
 			return err
@@ -150,16 +151,16 @@ func (s *service) UpdateMemberStatus(ctx context.Context, ids []string, status s
 		if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 			return err
 		}
-		return s.bumpAuthzRevisionStore(ctx, st)
+		return core.BumpAuthzRevisionStore(ctx, st)
 	})
 }
 
-func (s *service) TransferMembers(ctx context.Context, ids []string, departmentID string) error {
+func (s *Local) TransferMembers(ctx context.Context, ids []string, departmentID string) error {
 	if len(ids) == 0 {
 		return nil
 	}
 
-	return s.store.WithTx(ctx, func(st store.Store) error {
+	return s.d.Store.WithTx(ctx, func(st store.Store) error {
 		departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
 		if err != nil {
 			return err
@@ -209,12 +210,12 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 	})
 }
 
-func (s *service) InviteMember() error {
+func (s *Local) InviteMember() error {
 	return domain.NewDomainError(domain.StatusNotImplemented, "Invite member is not implemented")
 }
 
-func (s *service) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
-	members, err := s.store.Org().Members(ctx)
+func (s *Local) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.BatchInviteResult{}, err
 	}
@@ -239,12 +240,12 @@ func (s *service) BatchInvite(ctx context.Context, ids []string) (types.BatchInv
 	return types.BatchInviteResult{Sent: len(targets)}, nil
 }
 
-func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
-	members, err := s.store.Org().Members(ctx)
+func (s *Local) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
+	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}
@@ -275,13 +276,13 @@ func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) 
 		imported++
 	}
 
-	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 		return types.MemberBatchImportResult{Imported: imported, Failures: append(failures, types.MemberBatchImportFailure{
 			Row: 0, Reason: "Failed to persist imported members",
 		})}, nil
 	}
 	if imported > 0 {
-		if err := s.bumpAuthzRevision(ctx); err != nil {
+		if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 			return types.MemberBatchImportResult{}, err
 		}
 	}
