@@ -20,11 +20,11 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store)
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -74,7 +74,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 
 	var fullKeyPtr *string
 	keyPrefix := "pending..."
-	if s.lifecycle == nil || !s.lifecycle.Enabled() {
+	if s.relaySync == nil || !s.relaySync.Enabled() {
 		fullKey := fmt.Sprintf("%s%d-demo-secret-key", common.DemoKeyPrefix, time.Now().UnixMilli())
 		fullKeyPtr = &fullKey
 		keyPrefix = fullKey
@@ -111,7 +111,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		return types.PlatformKey{}, err
 	}
 
-	if s.lifecycle != nil && s.lifecycle.Enabled() {
+	if s.relaySync != nil && s.relaySync.Enabled() {
 		departmentID := ""
 		if input.MemberID != nil {
 			if member, ok := org.FindMemberByID(members, *input.MemberID); ok {
@@ -129,12 +129,12 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if departmentID == "" {
 			return types.PlatformKey{}, domain.Validation("无法解析部门用于 Relay 同步")
 		}
-		if err := s.lifecycle.SyncCreatePlatformKey(ctx, created, departmentID); err != nil {
+		if err := s.relaySync.SyncCreatePlatformKey(ctx, created, departmentID); err != nil {
 			return types.PlatformKey{}, fmt.Errorf("relay sync enqueue: %w", err)
 		}
-		fullKey, err := s.lifecycle.TrySyncCreate(ctx, created.ID)
+		fullKey, err := s.relaySync.TrySyncCreate(ctx, created.ID)
 		if err != nil {
-			s.lifecycle.RollbackFailedCreate(ctx, created.ID)
+			s.relaySync.RollbackFailedCreate(ctx, created.ID)
 			return types.PlatformKey{}, domain.ServiceUnavailable("Relay 同步失败，请稍后重试")
 		}
 		_ = fullKey

@@ -69,7 +69,7 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 	return worker.NewRunner(
 		r.Config,
-		r.Store,
+		r.Store.Relay(),
 		r.Infra.adminClient,
 		r.Infra.lifecycle,
 		r.Ingest,

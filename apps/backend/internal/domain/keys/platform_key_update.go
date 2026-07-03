@@ -33,11 +33,11 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store)
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -95,8 +95,8 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return types.PlatformKey{}, err
 	}
-	if s.lifecycle != nil && s.lifecycle.Enabled() {
-		if err := s.lifecycle.EnqueueUpdatePlatformKey(ctx, id); err != nil {
+	if s.relaySync != nil && s.relaySync.Enabled() {
+		if err := s.relaySync.EnqueueUpdatePlatformKey(ctx, id); err != nil {
 			return types.PlatformKey{}, err
 		}
 	}

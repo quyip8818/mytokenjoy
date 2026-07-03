@@ -38,15 +38,15 @@ type service struct {
 	cfg       config.Config
 	store     store.Store
 	delayer   common.Delayer
-	lifecycle relay.Lifecycle
+	relaySync relay.KeysRelaySync
 }
 
-func NewService(cfg config.Config, st store.Store, lifecycle relay.Lifecycle, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, relaySync relay.KeysRelaySync, delayer common.Delayer) Service {
 	return &service{
 		cfg:       cfg,
 		store:     st,
 		delayer:   delayer,
-		lifecycle: lifecycle,
+		relaySync: relaySync,
 	}
 }
 
@@ -78,7 +78,7 @@ func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.Memb
 	if memberID == "" {
 		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
 	}
-	tree, err := common.LoadBudgetTree(ctx, s.store)
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
@@ -128,7 +128,7 @@ func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.Appr
 	reservedPool := 0.0
 	if approval != nil {
 		requested = approval.RequestedQuota
-		tree, err := common.LoadBudgetTree(ctx, s.store)
+		tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.ApprovalQuotaCheck{}, err
 		}

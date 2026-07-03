@@ -31,7 +31,7 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				break
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			_, processErr = r.lifecycle.TrySyncCreate(entryCtx, payload.PlatformKeyID)
+			_, processErr = r.relaySync.TrySyncCreate(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindUpdateToken:
 			var payload relay.UpdateTokenOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
@@ -39,7 +39,7 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				break
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			processErr = r.lifecycle.SyncUpdatePlatformKey(entryCtx, payload.PlatformKeyID)
+			processErr = r.relaySync.SyncUpdatePlatformKey(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindRevokeToken:
 			var payload relay.UpdateTokenOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
@@ -47,7 +47,7 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				break
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			processErr = r.lifecycle.SyncRevokePlatformKey(entryCtx, payload.PlatformKeyID)
+			processErr = r.relaySync.SyncRevokePlatformKey(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindUpsertChannel:
 			var payload relay.UpsertChannelOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
@@ -55,7 +55,7 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				break
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			processErr = r.lifecycle.SyncUpsertProviderKey(entryCtx, payload.ProviderKeyID)
+			processErr = r.relaySync.SyncUpsertProviderKey(entryCtx, payload.ProviderKeyID)
 		case store.OutboxKindUpdateModelLimits:
 			var payload relay.UpdateModelLimitsOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
@@ -63,7 +63,7 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				break
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			processErr = r.lifecycle.SyncModelLimitsForDepartment(entryCtx, payload.DepartmentID)
+			processErr = r.relaySync.SyncModelLimitsForDepartment(entryCtx, payload.DepartmentID)
 		case store.OutboxKindRebalanceToken:
 			var payload relay.RebalanceAxisOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {

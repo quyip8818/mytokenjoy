@@ -46,11 +46,11 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 	if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 		return types.ProviderKey{}, err
 	}
-	if s.lifecycle != nil && s.lifecycle.Enabled() {
-		if err := s.lifecycle.EnqueueUpsertProviderKey(ctx, created.ID); err != nil {
+	if s.relaySync != nil && s.relaySync.Enabled() {
+		if err := s.relaySync.EnqueueUpsertProviderKey(ctx, created.ID); err != nil {
 			return types.ProviderKey{}, err
 		}
-		if err := s.lifecycle.SyncUpsertProviderKey(ctx, created.ID); err != nil {
+		if err := s.relaySync.SyncUpsertProviderKey(ctx, created.ID); err != nil {
 			return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel 同步失败")
 		}
 	}
@@ -78,8 +78,8 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return err
 			}
-			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				if err := s.lifecycle.EnqueueUpsertProviderKey(ctx, id); err != nil {
+			if s.relaySync != nil && s.relaySync.Enabled() {
+				if err := s.relaySync.EnqueueUpsertProviderKey(ctx, id); err != nil {
 					return err
 				}
 			}

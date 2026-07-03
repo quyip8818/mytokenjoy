@@ -29,7 +29,7 @@
 | **幂等** | 事务内 `INSERT … ON CONFLICT DO NOTHING`；冲突则跳过投影与副作用 |
 | **副作用** | 同事务入队 `rebalance_queue` / `overrun_queue`；**禁止**事务内外部 RPC |
 | **Schema 瘦身** | 账本无 `newapi_log_id`、`bucket_start`；分别从 `idempotency_key`、`occurred_at` 派生 |
-| **代码** | `domain/usage/ingest.go` 编排 + `projection.Apply`；calls 查询在 `domain/usage.ReadModel` + `ledger_repo`；`domain/audit` 仅管 settings 与 operations |
+| **代码** | `domain/usage/ingest.go` 编排 + `projection.Apply`；入账前 `LoadEntryBuildInput` 经 `EntryBuildReader`（Models/Audit/Org/Keys）；calls 与分钟 series 经 `usage.Reader`（`UsageRepository` + `LedgerRepository`）；`domain/audit` 仅管 settings 与 operations |
 | **落地** | Schema 见 `schema.sql`；服务启动全量应用 |
 
 **一句话：** 瘦账本 SSOT + 同步投影；审计只查账本；超限由 Worker 异步消费 `overrun_queue`。
@@ -357,13 +357,13 @@ CREATE INDEX idx_overrun_queue_pending ON overrun_queue (status, created_at);
 
 | 模块 | 职责 |
 | ---- | ---- |
-| `domain/usage/interfaces.go` | `Ingestor`、`CallLogQuerier`、`ReadModel` 契约 |
+| `domain/usage/interfaces.go` | `Ingestor`、`EntryBuildReader`、`CallLogQuerier`、`ReadModel`、`Reader` 契约 |
 | `domain/usage/ingest.go` | 编排、`WithTx`、副作用入队 |
 | `domain/usage/side_effects.go` | rebalance / overrun / cursor 入队 |
-| `domain/usage/entry.go` | 分录构造、幂等键、`call_detail` |
+| `domain/usage/entry.go` | 分录构造、幂等键、`call_detail`；`LoadEntryBuildInput(deps EntryBuildReader)` |
 | `domain/usage/projection.go` | `Apply(ctx, tx, entry)` |
-| `domain/usage/read_model.go` | `ReadModel`（审计 calls + 分钟 series） |
-| `domain/usage/call_log_query.go` | `CallLogQuerier.ListCalls` |
+| `domain/usage/read_model.go` | `NewReader(usage, ledger)` — 审计 calls + 分钟 series + bucket 聚合 |
+| `domain/usage/call_log_query.go` | `CallLogQuerier.ListCalls`、`MinuteSeriesFromLedger` |
 | `domain/budget/overrun.go` | `OverrunService` 消费 `overrun_queue`（管控面） |
 | `domain/budget/rebalance.go` | `RebalanceService`（管控面） |
 | `store/postgres/ledger_repo.go` | `InsertOnConflict`、`ListCallSettledPage`、`QueryMinuteSeries` |

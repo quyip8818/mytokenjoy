@@ -32,7 +32,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		}
 	}
 
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		}
 	}
 
-	tree, err = common.LoadBudgetTree(ctx, st)
+	tree, err = common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -62,9 +62,11 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 | 事实 | `usage_ledger` | `usage.IngestService` | 审计 `/audit/calls`、分钟级看板 |
 | 投影 | `used` / `consumed` / `usage_buckets` | `usage.Apply`（同事务） | 超限/Rebalance、小时/天看板 |
 
-**NewAPI（可选）：** `NEW_API_ENABLED=true` 时，`relay.TokenLifecycle` 同步 Token/Channel；`worker.Runner` 消费 outbox；`usage.IngestService` 处理 webhook 入账（不依赖 Lifecycle）；`budget.OverrunService` / `RebalanceService` 读投影做管控。`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*` OpenAI 兼容网关；`relay.PrecheckService` 仅依赖 `OrgNodeRepository` + `KeysRepository`。
+**NewAPI（可选）：** `NEW_API_ENABLED=true` 时，`relay.TokenLifecycle` 同步 Token/Channel；`worker.Runner` 依赖 `RelayRepository` + `RelayOutboxSync`（非完整 Store）；`usage.IngestService` 处理 webhook 入账（不依赖 Lifecycle）；`budget.OverrunService` 经 `OverrunRelayControl` 禁用 Key，`RebalanceService` 无 relay 依赖。`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*` OpenAI 兼容网关；`relay.PrecheckService` 仅依赖 `OrgNodeRepository` + `KeysRepository`。
 
-**看板读路径：** `dashboard.Service` 的 bucket/ledger 聚合统一经 `usage.Reader`（`AnalyticsQuerier` + `ReadModel`）；组织元数据（Members、Models catalog、部门树）仍直读 `store`。
+**Relay 子接口（DI 收窄）：** `keys` → `KeysRelaySync`；`models` / `org` import → `ModelLimitsEnqueuer`；`overrun` → `OverrunRelayControl`；Worker relay outbox → `RelayOutboxSync`。`TokenLifecycle` 实现上述子接口及完整 `Lifecycle`。
+
+**看板读路径：** `dashboard.Service` 的 bucket/ledger 聚合统一经 `usage.Reader`（`AnalyticsQuerier` + `ReadModel`）；`NewReader(usage, ledger)` 不依赖完整 Store。入账前 `LoadEntryBuildInput` 经 `EntryBuildReader`（Models/Audit/Org/Keys）。组织元数据（Members、Models catalog、部门树）仍直读 `store`；`common.LoadDepartments` / `LoadBudgetTree` / `LoadRoutingRules` 签名收窄为 `OrgNodeRepository`（+ `ModelAllowlistRepository`），不再要求完整 Store。
 
 ---
 

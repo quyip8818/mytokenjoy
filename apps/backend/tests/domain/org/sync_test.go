@@ -58,7 +58,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	departments, err := common.LoadDepartments(ctx, env.Store)
+	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if dept == nil || dept.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed department, got %+v", dept)
 	}
-	budgetTree, err := common.LoadBudgetTree(ctx, env.Store)
+	budgetTree, err := common.LoadBudgetTree(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if node == nil || node.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed budget node, got %+v", node)
 	}
-	rules, err := common.LoadRoutingRules(ctx, env.Store)
+	rules, err := common.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	env := testutil.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments, err := common.LoadDepartments(ctx, env.Store)
+	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	departments, err = common.LoadDepartments(ctx, env.Store)
+	departments, err = common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

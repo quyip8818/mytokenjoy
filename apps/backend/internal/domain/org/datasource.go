@@ -111,7 +111,7 @@ func (s *service) SearchDataSource(ctx context.Context, keyword string) (types.D
 		}
 	}
 
-	localDepts, err := common.LoadDepartments(ctx, s.store)
+	localDepts, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.DataSourceSearchResult{}, err
 	}

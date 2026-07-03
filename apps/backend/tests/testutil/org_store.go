@@ -11,7 +11,7 @@ import (
 
 func LoadBudgetTreeT(t *testing.T, ctx context.Context, st store.Store) []types.BudgetNode {
 	t.Helper()
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func PersistBudgetTree(ctx context.Context, st store.Store, tree []types.BudgetN
 
 func LoadDepartmentsT(t *testing.T, ctx context.Context, st store.Store) []types.Department {
 	t.Helper()
-	depts, err := common.LoadDepartments(ctx, st)
+	depts, err := common.LoadDepartments(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

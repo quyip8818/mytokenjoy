@@ -60,7 +60,7 @@ func (s *service) dashboardNow() time.Time {
 }
 
 func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID string) ([]string, error) {
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

@@ -21,11 +21,11 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	if err != nil {
 		return types.KeyApproval{}, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.KeyApproval{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store)
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.KeyApproval{}, err
 	}
@@ -79,7 +79,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return domain.NotFound("Not found")
 	}
 	approval := approvals[idx]
-	tree, err := common.LoadBudgetTree(ctx, s.store)
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return err
 	}

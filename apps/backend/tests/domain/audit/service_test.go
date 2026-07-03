@@ -45,7 +45,7 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 
 func TestListCallsDateFilter(t *testing.T) {
 	_, st := testutil.NewMemoryStoreFromConfig(t)
-	querier := domainusage.NewCallLogQuerier(st)
+	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 	const from = "2026-06-10"
 	const to = "2026-06-15"

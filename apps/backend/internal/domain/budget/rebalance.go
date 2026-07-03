@@ -18,14 +18,13 @@ type Rebalancer interface {
 }
 
 type RebalanceService struct {
-	cfg       config.Config
-	store     store.Store
-	client    newapi.AdminClient
-	lifecycle relay.Lifecycle
+	cfg    config.Config
+	store  store.Store
+	client newapi.AdminClient
 }
 
-func NewRebalanceService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle) *RebalanceService {
-	return &RebalanceService{cfg: cfg, store: st, client: client, lifecycle: lifecycle}
+func NewRebalanceService(cfg config.Config, st store.Store, client newapi.AdminClient) *RebalanceService {
+	return &RebalanceService{cfg: cfg, store: st, client: client}
 }
 
 func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID string) error {
@@ -78,11 +77,11 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 		return err
 	}
 
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store)
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return err
 	}
@@ -98,7 +97,7 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	if err != nil {
 		return err
 	}
-	tree, err := common.LoadBudgetTree(ctx, s.store)
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return err
 	}

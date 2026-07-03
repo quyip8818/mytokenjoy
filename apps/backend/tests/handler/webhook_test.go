@@ -64,7 +64,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
 
 	ctx := testutil.Ctx()
-	budgetTree, err := common.LoadBudgetTree(ctx, app.Store)
+	budgetTree, err := common.LoadBudgetTree(ctx, app.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 		t.Fatalf("expected status ok, got %q", resp["status"])
 	}
 
-	budgetTree, err = common.LoadBudgetTree(ctx, app.Store)
+	budgetTree, err = common.LoadBudgetTree(ctx, app.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -27,8 +27,8 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return types.PlatformKey{}, err
 			}
-			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				if err := s.lifecycle.EnqueueUpdatePlatformKey(ctx, id); err != nil {
+			if s.relaySync != nil && s.relaySync.Enabled() {
+				if err := s.relaySync.EnqueueUpdatePlatformKey(ctx, id); err != nil {
 					return types.PlatformKey{}, err
 				}
 			}
@@ -78,8 +78,8 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return err
 			}
-			if s.lifecycle != nil && s.lifecycle.Enabled() {
-				return s.lifecycle.SyncRevokePlatformKey(ctx, id)
+			if s.relaySync != nil && s.relaySync.Enabled() {
+				return s.relaySync.SyncRevokePlatformKey(ctx, id)
 			}
 			return nil
 		}

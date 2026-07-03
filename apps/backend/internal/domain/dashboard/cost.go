@@ -61,7 +61,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	if err != nil {
 		return nil, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 }
 
 func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error) {
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	if err != nil {
 		return nil, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

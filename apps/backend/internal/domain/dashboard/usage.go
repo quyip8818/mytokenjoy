@@ -69,12 +69,12 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	if err != nil {
 		return nil, err
 	}
-	deptTree, err := common.LoadDepartments(ctx, s.store)
+	deptTree, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
 	departments := org.FlattenDepartmentTree(deptTree)
-	tree, err := common.LoadBudgetTree(ctx, s.store)
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

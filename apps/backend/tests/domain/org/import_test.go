@@ -18,7 +18,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
 	}
-	departments, err := common.LoadDepartments(ctx, env.Store)
+	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments, err := common.LoadDepartments(ctx, env.Store)
+	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	testutil.PersistDepartmentsT(t, ctx, env.Store, departments)
 	testutil.ImportFeishuOrg(t, env)
 
-	departments, err = common.LoadDepartments(ctx, env.Store)
+	departments, err = common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,14 +96,14 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	testutil.ImportFeishuOrg(t, env)
-	budgetTree, err := common.LoadBudgetTree(ctx, env.Store)
+	budgetTree, err := common.LoadBudgetTree(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if budget.FindBudgetNode(budgetTree, seed.IDFeishuDept1) == nil {
 		t.Fatal("expected budget node for imported department")
 	}
-	rules, err := common.LoadRoutingRules(ctx, env.Store)
+	rules, err := common.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}

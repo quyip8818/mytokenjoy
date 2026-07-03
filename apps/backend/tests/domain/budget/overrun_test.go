@@ -32,7 +32,7 @@ func TestOverrunDisablesDepartmentKeys(t *testing.T) {
 	overrun := budget.NewOverrunService(cfg, st, relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg)), notification.NewService(cfg, st, slog.Default()), slog.Default())
 	ctx := testutil.Ctx()
 
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

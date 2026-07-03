@@ -10,34 +10,38 @@ import (
 
 type readerService struct {
 	callLogQueryService
+	usage store.UsageRepository
 }
 
-func NewReader(st store.Store) Reader {
-	return &readerService{callLogQueryService: callLogQueryService{store: st}}
+func NewReader(usage store.UsageRepository, ledger store.LedgerRepository) Reader {
+	return &readerService{
+		callLogQueryService: callLogQueryService{ledger: ledger},
+		usage:               usage,
+	}
 }
 
-func NewReadModel(st store.Store) ReadModel {
-	return NewReader(st)
+func NewReadModel(usage store.UsageRepository, ledger store.LedgerRepository) ReadModel {
+	return NewReader(usage, ledger)
 }
 
 func (s *readerService) UsageMinuteSeries(ctx context.Context, q types.UsageSeriesQuery) (types.UsageSeriesResponse, error) {
-	return MinuteSeriesFromLedger(ctx, s.store, q)
+	return MinuteSeriesFromLedger(ctx, s.ledger, q)
 }
 
 func (s *readerService) QuerySummary(ctx context.Context, q types.UsageAggregateQuery) (types.UsageSummaryTotals, error) {
-	return s.store.Usage().QuerySummary(ctx, q)
+	return s.usage.QuerySummary(ctx, q)
 }
 
 func (s *readerService) QueryAggregates(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error) {
-	return s.store.Usage().QueryAggregates(ctx, q)
+	return s.usage.QueryAggregates(ctx, q)
 }
 
 func (s *readerService) QuerySeries(ctx context.Context, q types.UsageSeriesQuery) ([]types.UsageSeriesPoint, error) {
-	return s.store.Usage().QuerySeries(ctx, q)
+	return s.usage.QuerySeries(ctx, q)
 }
 
 func (s *readerService) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error) {
-	rows, err := s.store.Usage().QueryFilteredBuckets(ctx, q)
+	rows, err := s.usage.QueryFilteredBuckets(ctx, q)
 	if err != nil {
 		return nil, err
 	}

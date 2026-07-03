@@ -22,7 +22,7 @@ type overrunPayload struct {
 type OverrunService struct {
 	cfg       config.Config
 	store     store.Store
-	lifecycle relay.Lifecycle
+	relay     relay.OverrunRelayControl
 	notifier  notification.Notifier
 	logger    *slog.Logger
 }
@@ -30,11 +30,11 @@ type OverrunService struct {
 func NewOverrunService(
 	cfg config.Config,
 	st store.Store,
-	lifecycle relay.Lifecycle,
+	relayControl relay.OverrunRelayControl,
 	notifier notification.Notifier,
 	logger *slog.Logger,
 ) *OverrunService {
-	return &OverrunService{cfg: cfg, store: st, lifecycle: lifecycle, notifier: notifier, logger: logger}
+	return &OverrunService{cfg: cfg, store: st, relay: relayControl, notifier: notifier, logger: logger}
 }
 
 func (s *OverrunService) ProcessOverrunPayload(ctx context.Context, raw json.RawMessage) error {
@@ -46,7 +46,7 @@ func (s *OverrunService) ProcessOverrunPayload(ctx context.Context, raw json.Raw
 }
 
 func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPayload) error {
-	if s.lifecycle == nil || !s.lifecycle.Enabled() {
+	if s.relay == nil || !s.relay.Enabled() {
 		return nil
 	}
 	st := s.store
@@ -109,7 +109,7 @@ func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string)
 		return err
 	}
 	for _, key := range keys {
-		if err := s.lifecycle.DisablePlatformKey(ctx, key.ID); err != nil {
+		if err := s.relay.DisablePlatformKey(ctx, key.ID); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,7 @@ func (s *OverrunService) disableDepartmentKeys(ctx context.Context, departmentID
 		return err
 	}
 	for _, mapping := range mappings {
-		if err := s.lifecycle.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+		if err := s.relay.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
 			return err
 		}
 	}
@@ -135,7 +135,7 @@ func (s *OverrunService) disableBudgetGroupKeys(ctx context.Context, budgetGroup
 		return err
 	}
 	for _, mapping := range mappings {
-		if err := s.lifecycle.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+		if err := s.relay.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
 			return err
 		}
 	}

@@ -17,7 +17,7 @@ import (
 func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	return dashboard.NewService(cfg, st, domainusage.NewReader(st)), st
+	return dashboard.NewService(cfg, st, domainusage.NewReader(st.Usage(), st.Ledger())), st
 }
 
 func TestCostSummaryFromBuckets(t *testing.T) {
@@ -78,7 +78,7 @@ func TestUsageSeriesHourFromBuckets(t *testing.T) {
 func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

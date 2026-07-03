@@ -122,13 +122,13 @@ func resolveProvider(modelName string, models []types.ModelInfo) string {
 	return ""
 }
 
-func LoadEntryBuildInput(ctx context.Context, st store.Store, mapping *store.RelayMapping, payload newapi.WebhookLogPayload, source string) (EntryBuildInput, error) {
+func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, payload newapi.WebhookLogPayload, source string) (EntryBuildInput, error) {
 	modelName := ResolveWebhookModel(payload)
-	model, err := st.Models().ModelByName(ctx, modelName)
+	model, err := deps.Models().ModelByName(ctx, modelName)
 	if err != nil {
 		return EntryBuildInput{}, err
 	}
-	settings, err := st.Audit().Settings(ctx)
+	settings, err := deps.Audit().Settings(ctx)
 	if err != nil {
 		return EntryBuildInput{}, err
 	}
@@ -140,13 +140,13 @@ func LoadEntryBuildInput(ctx context.Context, st store.Store, mapping *store.Rel
 		Settings: settings,
 	}
 	if mapping.MemberID != nil {
-		member, err := st.Org().MemberByID(ctx, *mapping.MemberID)
+		member, err := deps.Org().MemberByID(ctx, *mapping.MemberID)
 		if err != nil {
 			return EntryBuildInput{}, err
 		}
 		input.Member = member
 	}
-	platformKey, err := st.Keys().PlatformKeyByID(ctx, mapping.PlatformKeyID)
+	platformKey, err := deps.Keys().PlatformKeyByID(ctx, mapping.PlatformKeyID)
 	if err != nil {
 		return EntryBuildInput{}, err
 	}

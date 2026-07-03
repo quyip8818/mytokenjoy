@@ -12,7 +12,7 @@ func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainu
 }
 
 func wireReader(i infra) domainusage.Reader {
-	return domainusage.NewReader(i.store)
+	return domainusage.NewReader(i.store.Usage(), i.store.Ledger())
 }
 
 func wireReadModel(i infra) domainusage.ReadModel {

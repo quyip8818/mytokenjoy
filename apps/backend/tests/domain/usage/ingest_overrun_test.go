@@ -31,12 +31,12 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	notifier := notification.NewService(cfg, st, logger)
 	ingest := usage.NewIngestService(cfg, st, notifier, logger)
 	overrun := budget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
-	rebalance := budget.NewRebalanceService(cfg, st, stub, lifecycle)
+	rebalance := budget.NewRebalanceService(cfg, st, stub)
 	orgSvc := testutil.NewOrgService(t, cfg, st)
-	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
+	runner := worker.NewRunner(cfg, st.Relay(), stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
 	ctx := testutil.Ctx()
 
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	}
 	runner.RunOnce(ctx)
 
-	tree, err = common.LoadBudgetTree(ctx, st)
+	tree, err = common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

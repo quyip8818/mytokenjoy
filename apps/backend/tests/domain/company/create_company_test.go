@@ -88,7 +88,7 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 		t.Fatal("expected root department")
 	}
 	companyCtx := company.WithContext(ctx, company.Context{CompanyID: result.Company.ID})
-	tree, err := common.LoadBudgetTree(companyCtx, st)
+	tree, err := common.LoadBudgetTree(companyCtx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

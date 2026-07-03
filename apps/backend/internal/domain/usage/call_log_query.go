@@ -8,16 +8,16 @@ import (
 )
 
 type callLogQueryService struct {
-	store store.Store
+	ledger store.LedgerRepository
 }
 
-func NewCallLogQuerier(st store.Store) CallLogQuerier {
-	return &callLogQueryService{store: st}
+func NewCallLogQuerier(ledger store.LedgerRepository) CallLogQuerier {
+	return &callLogQueryService{ledger: ledger}
 }
 
 func (s *callLogQueryService) ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error) {
 	page, pageSize := types.NormalizePageParams(params.Page, params.PageSize)
-	entries, total, err := s.store.Ledger().ListCallSettledPage(ctx, store.LedgerCallFilter{
+	entries, total, err := s.ledger.ListCallSettledPage(ctx, store.LedgerCallFilter{
 		Model:    params.Model,
 		Status:   params.Status,
 		CallerID: params.CallerID,
@@ -39,7 +39,7 @@ func (s *callLogQueryService) ListCalls(ctx context.Context, params types.AuditC
 	}, nil
 }
 
-func MinuteSeriesFromLedger(ctx context.Context, st store.Store, q types.UsageSeriesQuery) (types.UsageSeriesResponse, error) {
+func MinuteSeriesFromLedger(ctx context.Context, ledger store.LedgerRepository, q types.UsageSeriesQuery) (types.UsageSeriesResponse, error) {
 	if q.Timezone == "" {
 		q.Timezone = ResolveTimezone("")
 	}
@@ -49,7 +49,7 @@ func MinuteSeriesFromLedger(ctx context.Context, st store.Store, q types.UsageSe
 	if err := ValidateWindow(q.Start, q.End, q.Granularity); err != nil {
 		return types.UsageSeriesResponse{}, err
 	}
-	points, err := st.Ledger().QueryMinuteSeries(ctx, q)
+	points, err := ledger.QueryMinuteSeries(ctx, q)
 	if err != nil {
 		return types.UsageSeriesResponse{}, err
 	}

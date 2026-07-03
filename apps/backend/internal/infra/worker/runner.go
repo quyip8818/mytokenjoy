@@ -22,7 +22,7 @@ type Runner struct {
 	rebalanceQueue store.RebalanceQueueRepository
 	overrunQueue   store.OverrunQueueRepository
 	syncCursor     store.SyncCursorRepository
-	lifecycle      relay.Lifecycle
+	relaySync      relay.RelayOutboxSync
 	ingest         domainusage.Ingestor
 	overrun        domainbudget.OverrunProcessor
 	rebalance      domainbudget.Rebalancer
@@ -36,16 +36,15 @@ type Runner struct {
 
 func NewRunner(
 	cfg config.Config,
-	st store.Store,
+	relayRepo store.RelayRepository,
 	client newapi.AdminClient,
-	lifecycle relay.Lifecycle,
+	relaySync relay.RelayOutboxSync,
 	ingest domainusage.Ingestor,
 	overrun domainbudget.OverrunProcessor,
 	rebalance domainbudget.Rebalancer,
 	syncSvc domainorg.SyncService,
 	logger *slog.Logger,
 ) *Runner {
-	relayRepo := st.Relay()
 	return &Runner{
 		cfg:            cfg,
 		relayOutbox:    relayRepo,
@@ -54,7 +53,7 @@ func NewRunner(
 		overrunQueue:   relayRepo,
 		syncCursor:     relayRepo,
 		client:         client,
-		lifecycle:      lifecycle,
+		relaySync:      relaySync,
 		ingest:         ingest,
 		overrun:        overrun,
 		rebalance:      rebalance,

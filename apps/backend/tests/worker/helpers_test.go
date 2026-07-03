@@ -28,8 +28,8 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 	notifier := notification.NewService(cfg, st, logger)
 	ingest := domainusage.NewIngestService(cfg, st, notifier, logger)
 	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
-	rebalance := domainbudget.NewRebalanceService(cfg, st, stub, lifecycle)
-	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
+	rebalance := domainbudget.NewRebalanceService(cfg, st, stub)
+	runner := worker.NewRunner(cfg, st.Relay(), stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
 	return runner, st, lifecycle
 }
 

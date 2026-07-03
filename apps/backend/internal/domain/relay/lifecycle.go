@@ -30,7 +30,13 @@ func NewTokenLifecycle(cfg config.Config, st store.Store, client newapi.AdminCli
 	}
 }
 
-var _ Lifecycle = (*TokenLifecycle)(nil)
+var (
+	_ Lifecycle           = (*TokenLifecycle)(nil)
+	_ ModelLimitsEnqueuer = (*TokenLifecycle)(nil)
+	_ OverrunRelayControl = (*TokenLifecycle)(nil)
+	_ KeysRelaySync       = (*TokenLifecycle)(nil)
+	_ RelayOutboxSync     = (*TokenLifecycle)(nil)
+)
 
 func (l *TokenLifecycle) Enabled() bool {
 	return l.cfg.NewAPIEnabled && l.client != nil

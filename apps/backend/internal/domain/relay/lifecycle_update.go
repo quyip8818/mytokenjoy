@@ -46,11 +46,11 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	if !ok {
 		return fmt.Errorf("platform key not found")
 	}
-	departments, err := common.LoadDepartments(ctx, l.store)
+	departments, err := common.LoadDepartments(ctx, l.store.Org().Nodes())
 	if err != nil {
 		return err
 	}
-	rules, err := common.LoadRoutingRules(ctx, l.store)
+	rules, err := common.LoadRoutingRules(ctx, l.store.Org().Nodes(), l.store.Models().Allowlist())
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	if err != nil {
 		return err
 	}
-	tree, err := common.LoadBudgetTree(ctx, l.store)
+	tree, err := common.LoadBudgetTree(ctx, l.store.Org().Nodes())
 	if err != nil {
 		return err
 	}

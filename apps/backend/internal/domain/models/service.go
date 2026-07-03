@@ -25,20 +25,20 @@ type Service interface {
 }
 
 type service struct {
-	cfg       config.Config
-	store     store.Store
-	delayer   common.Delayer
-	client    newapi.AdminClient
-	lifecycle relay.Lifecycle
+	cfg         config.Config
+	store       store.Store
+	delayer     common.Delayer
+	client      newapi.AdminClient
+	modelLimits relay.ModelLimitsEnqueuer
 }
 
-func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, lifecycle relay.Lifecycle, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, modelLimits relay.ModelLimitsEnqueuer, delayer common.Delayer) Service {
 	return &service{
-		cfg:       cfg,
-		store:     st,
-		delayer:   delayer,
-		client:    client,
-		lifecycle: lifecycle,
+		cfg:         cfg,
+		store:       st,
+		delayer:     delayer,
+		client:      client,
+		modelLimits: modelLimits,
 	}
 }
 
@@ -97,15 +97,15 @@ func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) erro
 }
 
 func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
-	return common.LoadRoutingRules(ctx, s.store)
+	return common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 }
 
 func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error) {
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store)
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
@@ -153,7 +153,7 @@ func (s *service) UpdateRoutingRule(
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.RoutingRule{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store)
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.RoutingRule{}, err
 	}
@@ -182,7 +182,7 @@ func (s *service) UpdateRoutingRule(
 	}
 	rules[idx] = updated
 	if input.AllowedModels != nil {
-		departments, err := common.LoadDepartments(ctx, s.store)
+		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.RoutingRule{}, err
 		}
@@ -204,13 +204,13 @@ func (s *service) UpdateRoutingRule(
 		if err := s.client.RebuildAbilities(ctx); err != nil {
 			return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
 		}
-		if s.lifecycle != nil {
-			departments, err := common.LoadDepartments(ctx, s.store)
+		if s.modelLimits != nil {
+			departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 			if err != nil {
 				return types.RoutingRule{}, err
 			}
 			deptIDs := org.CollectDescendantDeptIDs(departments, updated.NodeID)
-			if err := s.lifecycle.EnqueueModelLimitsForDepartments(ctx, deptIDs); err != nil {
+			if err := s.modelLimits.EnqueueModelLimitsForDepartments(ctx, deptIDs); err != nil {
 				return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
 			}
 		}

@@ -21,7 +21,7 @@ func (s *service) budgetPeriod() string {
 }
 
 func (s *service) GetDepartmentTree(ctx context.Context) ([]types.Department, error) {
-	return common.LoadDepartments(ctx, s.store)
+	return common.LoadDepartments(ctx, s.store.Org().Nodes())
 }
 
 func (s *service) CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error) {
@@ -131,7 +131,7 @@ func (s *service) DeleteDepartment(ctx context.Context, id string) error {
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		departments, err := common.LoadDepartments(ctx, st)
+		departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
 		if err != nil {
 			return err
 		}

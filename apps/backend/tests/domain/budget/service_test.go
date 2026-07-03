@@ -21,7 +21,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	if updated.Budget != 21000 {
 		t.Fatalf("expected budget 21000, got %v", updated.Budget)
 	}
-	nodeTree, err := common.LoadBudgetTree(testutil.Ctx(), st)
+	nodeTree, err := common.LoadBudgetTree(testutil.Ctx(), st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

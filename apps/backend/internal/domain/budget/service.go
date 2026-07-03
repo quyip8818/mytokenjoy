@@ -45,7 +45,7 @@ func NewService(cfg config.Config, st store.Store, delayer common.Delayer) Servi
 }
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
-	return common.LoadBudgetTree(ctx, s.store)
+	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
@@ -85,7 +85,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 }
 
 func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
-	tree, err := common.LoadBudgetTree(ctx, s.store)
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	tree, err := common.LoadBudgetTree(ctx, s.store)
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}

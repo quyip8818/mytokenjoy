@@ -42,7 +42,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
 		t.Fatal(err)
 	}
-	got, err := common.LoadBudgetTree(ctx, st)
+	got, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	if !foundModel {
 		t.Fatal("model not found after round-trip")
 	}
-	gotRules, err := common.LoadRoutingRules(ctx, st)
+	gotRules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}

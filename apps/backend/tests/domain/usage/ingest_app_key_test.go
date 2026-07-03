@@ -22,7 +22,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		DepartmentID:  seed.IDDept3,
 	})
 
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tree, err = common.LoadBudgetTree(ctx, st)
+	tree, err = common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

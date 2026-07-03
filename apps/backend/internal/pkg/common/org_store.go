@@ -8,30 +8,30 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func LoadDepartments(ctx context.Context, st store.Store) ([]types.Department, error) {
-	nodes, err := st.Org().Nodes().Tree(ctx)
+func LoadDepartments(ctx context.Context, orgNodes store.OrgNodeRepository) ([]types.Department, error) {
+	nodes, err := orgNodes.Tree(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return types.OrgNodesToDepartments(nodes), nil
 }
 
-func LoadBudgetTree(ctx context.Context, st store.Store) ([]types.BudgetNode, error) {
-	nodes, err := st.Org().Nodes().Tree(ctx)
+func LoadBudgetTree(ctx context.Context, orgNodes store.OrgNodeRepository) ([]types.BudgetNode, error) {
+	nodes, err := orgNodes.Tree(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return types.OrgNodesToBudgetTree(nodes), nil
 }
 
-func LoadRoutingRules(ctx context.Context, st store.Store) ([]types.RoutingRule, error) {
-	nodes, err := st.Org().Nodes().Tree(ctx)
+func LoadRoutingRules(ctx context.Context, orgNodes store.OrgNodeRepository, allowlist store.ModelAllowlistRepository) ([]types.RoutingRule, error) {
+	nodes, err := orgNodes.Tree(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rules := make([]types.RoutingRule, 0)
 	for _, node := range pkgorg.FlattenOrgNodeTree(nodes) {
-		allowed, err := st.Models().Allowlist().List(ctx, types.AllowlistOwnerOrgNode, node.ID)
+		allowed, err := allowlist.List(ctx, types.AllowlistOwnerOrgNode, node.ID)
 		if err != nil {
 			return nil, err
 		}

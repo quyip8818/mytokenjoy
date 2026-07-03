@@ -20,7 +20,7 @@ func (s *service) ListMembers(ctx context.Context, departmentID, keyword string,
 		return types.PageResult[types.Member]{}, err
 	}
 	if departmentID != "" {
-		departments, err := common.LoadDepartments(ctx, s.store)
+		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.PageResult[types.Member]{}, err
 		}
@@ -42,7 +42,7 @@ func (s *service) ListMembers(ctx context.Context, departmentID, keyword string,
 }
 
 func (s *service) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.Member{}, err
 	}
@@ -147,7 +147,7 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		departments, err := common.LoadDepartments(ctx, st)
+		departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) 
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}

@@ -104,7 +104,7 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	localDeptsTree, err := common.LoadDepartments(ctx, s.store)
+	localDeptsTree, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.ImportResult{}, err
 	}

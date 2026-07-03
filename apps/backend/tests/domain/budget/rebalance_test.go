@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/budget"
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
@@ -15,8 +14,7 @@ import (
 func TestRebalanceBidirectional(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
-	rebalance := budget.NewRebalanceService(cfg, st, stub, lifecycle)
+	rebalance := budget.NewRebalanceService(cfg, st, stub)
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)

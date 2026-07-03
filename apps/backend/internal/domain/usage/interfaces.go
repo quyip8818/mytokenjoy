@@ -6,7 +6,16 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/store"
 )
+
+// EntryBuildReader loads catalog, audit settings, members, and platform keys for ingest entry construction.
+type EntryBuildReader interface {
+	Models() store.ModelsRepository
+	Audit() store.AuditRepository
+	Org() store.OrgRepository
+	Keys() store.KeysRepository
+}
 
 // Ingestor is the write-path owner for consumption settlement.
 // Single entry: ledger insert → projection.Apply → side-effect enqueue (all in one tx).

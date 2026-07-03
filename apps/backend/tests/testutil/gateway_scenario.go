@@ -65,7 +65,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 		}
 	}
 
-	tree, err := common.LoadBudgetTree(ctx, st)
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
