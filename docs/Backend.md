@@ -184,6 +184,7 @@ make test-integration   # -tags=integration
 | 层       | 目录                   | CI                  |
 | -------- | ---------------------- | ------------------- |
 | 纯函数   | `tests/pkg/*`          | verify              |
+|          | `tests/pkg/org/`       | `remote_ids`、`sync_diff` 等 |
 | Domain   | `tests/domain/<域>/`   | verify              |
 | Handler  | `tests/handler/<域>/`  | verify              |
 | Postgres | `tests/store/postgres` | backend-integration |

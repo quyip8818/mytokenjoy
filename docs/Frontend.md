@@ -58,7 +58,7 @@ apps/frontend/
 
 [`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一源，派生 `ROUTES`、`APP_ROUTES` 等。
 
-当前 **16** 业务页：dashboard（cost、usage）、org（3）、budget（3）、keys（4）、models（2）、audit（2）。
+当前 **17** 业务页：dashboard（cost、usage）、org（3）、budget（3）、keys（4）、models（2）、billing（1）、audit（2）。
 
 新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `{page}.tsx` + `hooks/use-{page}-page.ts`。
 
@@ -67,14 +67,14 @@ apps/frontend/
 ## 4. API 层与页面架构
 
 - `api/client.ts`：`request()`、`ApiError`、`buildQuery()`；`credentials: 'include'`
-- `app-apis.ts`：`AppApis` + `defaultApis`（**14** 命名空间）
+- `app-apis.ts`：`AppApis` + `defaultApis`（**16** 命名空间；仍缺 `platformApi`）
 - 生产 `AdminLayout` 注入 `defaultApis`；测试 `createMockApis()`
 
 **薄页面 → 页面 Hook → 展示组件**：Hook 用 `useApis()`、`useInjectedQuery` + `queryKeys`；组件 props 受控。
 
 **Workflow：** `features/workflow/` Zustand 侧滑栈；`workflows/{name}.tsx` + `definitions/` 注册。
 
-**SaaS 未接入：** 后端已有 auth/billing/platform API（§5.9），前端无对应 `AppApis` 与页面。见 [Roadmap.md](./Roadmap.md)。
+**SaaS 部分接入：** 企业面 `authApi`（login/logout）、`billingApi`（wallet/recharge）与 `/billing` 页已接入；`accept-invite` 与 `/platform/*` 仍无前端。见 §5.9.6、[Roadmap.md](./Roadmap.md)。
 
 ---
 
@@ -93,7 +93,7 @@ apps/frontend/
 | 模块                    | 路径                                   | 职责                                                                |
 | ----------------------- | -------------------------------------- | ------------------------------------------------------------------- |
 | `client.ts`             | `api/client.ts`                        | `request()`、`ApiError`、`buildQuery()`、`setUnauthorizedHandler()` |
-| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（14 个命名空间）                |
+| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（16 个命名空间）                |
 | `api-context.ts`        | `api/api-context.ts`                   | `ApiContext` React Context                                          |
 | `context.tsx`           | `api/context.tsx`                      | `ApiProvider` 注入                                                  |
 | `use-apis.ts`           | `api/use-apis.ts`                      | `useApis()`、`useInjectedApis()`                                    |
@@ -107,7 +107,7 @@ apps/frontend/
 
 ---
 
-#### 5.4.1 通用约定
+### 5.1 通用约定
 
 #### 5.1.1 Base URL
 
@@ -190,7 +190,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-#### 5.4.2 鉴权与权限（目标态）
+### 5.2 鉴权与权限（目标态）
 
 **方案 B**：签名 Session JWT（仅 identity）+ 服务端 PDP；UI **一次** `GET /session` → Context。破坏性实现规格见 [权限管理.md](./权限管理.md)。
 
@@ -209,7 +209,7 @@ HTTP 非 2xx 时，body 应包含：
 | 范围         | 要求                                           |
 | ------------ | ---------------------------------------------- |
 | 全部业务 API | Session JWT + 对应读/写 capability             |
-| 公开         | `POST /auth/login`、`POST /auth/accept-invite` |
+| 公开         | `POST /auth/login`、`POST /auth/logout`、`POST /auth/accept-invite` |
 
 **删除**：`APP_PROFILE=demo` 下 GET 免 Session。
 
@@ -232,13 +232,13 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-#### 5.4.3 共享类型
+### 5.3 共享类型
 
 定义于 [`api/types/common.ts`](../apps/frontend/src/api/types/common.ts)。
 
 ### Paginated\<T\>
 
-见 §2.5。
+见 §5.1.5。
 
 ### SessionContext
 
@@ -252,9 +252,9 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-#### 5.4.4 端点清单
+### 5.4 端点清单
 
-路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个端点。类型详情见 §5.5。
+路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个企业面业务端点（session → audit，不含 §5.9 的 auth/billing/platform 扩展）。类型详情见 §5.5。
 
 #### 5.4.1 Session
 
@@ -626,7 +626,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.6 AppApis 聚合
 
-[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 14 个命名空间（SaaS 落地后预计增加 `authApi`、`billingApi`、`platformApi`，见 §5.9）：
+[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **16** 个命名空间（仍缺 `platformApi`，见 §5.9）：
 
 `sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`
 
@@ -647,9 +647,9 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.7.2 鉴权（目标态）
 
-- **企业面**：[`/login`](../apps/frontend/src/routes/auth/login.tsx) 表单 → `POST /auth/login` → 后端 `Set-Cookie`（JWT）
-- **平台面（SaaS）**：`POST /platform/auth/login` → 平台 JWT Cookie
-- **邀请激活**：`POST /auth/accept-invite` 签发企业 JWT
+- **企业面**：[`/login`](../apps/frontend/src/routes/auth/login.tsx) 表单 → `POST /auth/login` → 后端 `Set-Cookie`（JWT）；登出 `authApi.logout()` → `POST /auth/logout`
+- **平台面（SaaS）**：`POST /platform/auth/login` → 平台 JWT Cookie（前端未接入）
+- **邀请激活**：`POST /auth/accept-invite` 签发企业 JWT（前端未接入独立页）
 - 401 → `AuthUnauthorizedBridge` 跳转 `/login`（或 `/platform/login`）
 
 **删除**：Dev 成员选择器直写裸 `member_id`；见 [权限管理.md](./权限管理.md) §2。
@@ -657,7 +657,7 @@ HTTP 非 2xx 时，body 应包含：
 #### 5.7.3 联调验收
 
 1. 启动 `pnpm start` 或分别启动 backend / frontend
-2. 登录后逐域抽查：session → org → budget → keys → models → dashboard → audit
+2. 登录后逐域抽查：session → org → budget → keys → models → dashboard → billing → audit
 3. 看板 `/dashboard/cost` 切换 `granularity`（day/week/month）应即时刷新
 
 ---
@@ -685,23 +685,24 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.1 企业面：认证
 
-后端已实现；前端尚无 `authApi` / `AppApis` 命名空间。
+客户端：[`auth.ts`](../apps/frontend/src/api/auth.ts)。`login` / `logout` 已接入 `AppApis`；`accept-invite` 尚无前端封装与路由。
 
-| 方法 | 路径                  | Body                         | 响应             | 说明                                                     |
-| ---- | --------------------- | ---------------------------- | ---------------- | -------------------------------------------------------- |
-| POST | `/auth/login`         | `{ email, password }`        | `void`           | 签发企业 JWT Cookie                                      |
-| POST | `/auth/accept-invite` | `{ token, password, name? }` | `SessionContext` | 邀请激活；签发 JWT Cookie；`token` 一次性、默认 7 天有效 |
+| 方法 | 路径                  | Body                         | 响应                        | 说明                                                     |
+| ---- | --------------------- | ---------------------------- | --------------------------- | -------------------------------------------------------- |
+| POST | `/auth/login`         | `{ email, password }`        | `{ memberId: string }`      | 签发企业 JWT Cookie                                      |
+| POST | `/auth/logout`        | —                            | `void`                      | 清 Cookie；MVP 不维护服务端吊销集                        |
+| POST | `/auth/accept-invite` | `{ token, password, name? }` | `SessionContext`            | 邀请激活；签发 JWT Cookie；`token` 一次性、默认 7 天有效 |
 
-无需 Session；成功后与 `GET /session` 结构一致（含 `companyId`）。
+无需 Session；`accept-invite` 成功后与 `GET /session` 结构一致（含 `companyId`）。
 
 #### 5.9.2 企业面：计费
 
-后端已实现；前端尚无 `billingApi` / `AppApis` 命名空间。
+客户端：[`billing.ts`](../apps/frontend/src/api/billing.ts)。`getWallet` / `recharge` 已接入；**`confirm` 尚未接入**（自助充值须 create → confirm 两步，见后端 `billing_test.go`）。
 
 | 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                              |
 | ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | --------------------------------- |
 | GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 NewAPI 企业钱包                |
-| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单               |
+| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202** |
 | POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并入账（demo / 回调模拟） |
 
 **`WalletSummary`**
@@ -783,13 +784,18 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.6 前端接入现状
 
-| 项                   | 后端                          | 前端 `AppApis`            | 控制台页面           |
-| -------------------- | ----------------------------- | ------------------------- | -------------------- |
-| 企业面 §5 域 API     | 已实现                        | 已接入（14 命名空间）     | 16 业务页            |
-| `auth/accept-invite` | 已实现                        | 未接入                    | 无 `/invite/accept`  |
-| `billing/*`          | 已实现                        | 未接入                    | 无充值页             |
-| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                    | 无 `/platform/login` |
-| `billing:*` 权限     | 已定义于后端                  | `permission-keys.ts` 未含 | —                    |
+| 项                   | 后端                          | 前端 `AppApis`                         | 控制台页面                          |
+| -------------------- | ----------------------------- | -------------------------------------- | ----------------------------------- |
+| 企业面 §5.4 域 API   | 已实现                        | 已接入（16 命名空间，缺 `platformApi`） | 17 业务页                           |
+| `auth/login`         | 已实现                        | `authApi.login`                        | `/login`                            |
+| `auth/logout`        | 已实现                        | `authApi.logout`                       | —                                   |
+| `auth/accept-invite` | 已实现                        | 未接入                                 | 无 `/invite/accept`                 |
+| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                 | `/billing`（读余额）                |
+| `billing/recharge`   | 已实现                        | `billingApi.recharge`（无 `confirm`）  | `/billing`（演示充值，未走完入账） |
+| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                 | 无 `/platform/login`                |
+| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含              | `PermissionGate` 已用于 `/billing` |
+
+> **类型对齐：** 后端 `WalletSummary` 字段为 `balance` / `allocatable`；前端 `billing.ts` 当前 `WalletView` 使用 `availableQuota`，须与后端 JSON 对齐后余额页方可正确展示。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

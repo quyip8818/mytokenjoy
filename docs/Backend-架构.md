@@ -87,7 +87,7 @@ apps/backend/
 │   ├── integration/
 │   │   ├── newapi/
 │   │   └── datasource/feishu/
-│   ├── pkg/                 # budget/、org/、common/、ctxcompany/
+│   ├── pkg/                 # budget/、org/（含 sync_diff、remote_ids）、common/、ctxcompany/
 │   └── store/               # postgres/、memory/、seed/
 ├── tests/
 │   ├── testutil/            # 根 + org/saas/http/relay/worker 子包
@@ -150,7 +150,7 @@ sequenceDiagram
 | 范围                               | 要求                                                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------- |
 | 全部业务 GET / POST / PUT / DELETE | Session JWT + 读/写 capability                                               |
-| 公开                               | 仅 `POST /auth/login`、`POST /auth/accept-invite`、健康检查、Webhook（密钥） |
+| 公开                               | `POST /auth/login`、`POST /auth/logout`、`POST /auth/accept-invite`、`GET /healthz`、Webhook（密钥） |
 
 **删除**：`APP_PROFILE` 鉴权分叉（demo GET 免 Session）。
 
@@ -194,7 +194,15 @@ type Store interface {
 | `org`（根）     | `Service` 接口、`NewService`；嵌入 `structure.Local` + `remote.Service` |
 | `org/core`      | 共享 `Deps`、部门树 provision、authz revision bump                      |
 | `org/structure` | 成员/角色/部门 CRUD、CSV 批量导入                                       |
-| `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步                        |
+| `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步（消费 `pkg/org` 的 diff/ID 工具） |
+
+**`pkg/org`（组织纯函数，供 domain 与测试复用）**
+
+| 文件            | 职责                                              |
+| --------------- | ------------------------------------------------- |
+| `remote_ids.go` | 第三方 `external_id` ↔ 本地 `org_nodes` / 成员映射 |
+| `sync_diff.go`  | `BuildSyncDiff`：远程与本地部门/成员 diff         |
+| `departments.go` / `members.go` / `roles.go` / `org_nodes.go` | 树组装、成员筛选等共享逻辑 |
 
 **扩展钉钉/企微**：在 `integration/datasource` 实现 `Provider` 并扩展 `factory.ForPlatform`；`org/remote` 保持平台无关，通常无需修改。
 
@@ -345,5 +353,6 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | 新 GET      | `tests/handler/core/contract_test.go` 追加用例       |
 | Handler 测  | 按域分子目录；fixture 用 `testutil/http`、`testutil/saas` |
 | Domain 测   | 共享 helper 收拢至 `tests/domain/<域>/helpers_test.go` |
+| pkg 测      | `tests/pkg/org/` 等；组织 diff/ID 与 `internal/pkg/org` 对称 |
 
 变更检查清单见 [Backend.md](./Backend.md)。

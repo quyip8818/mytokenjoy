@@ -326,6 +326,5 @@ sequenceDiagram
 | ------------------------ | -------------------------- |
 | `alert_rules` 百分比预警 | 表可配；**无 Worker 接线** |
 | `overrun_policy` 软阈值  | 表可配；运行时硬 `>=`      |
-| `billing:*` 细粒度权限   | 部分未挂 Authz             |
 
 完整列表见 [Roadmap.md](./Roadmap.md)。
