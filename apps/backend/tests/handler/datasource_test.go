@@ -19,7 +19,7 @@ func TestDataSourceTestInvalidCredential422(t *testing.T) {
 	body := []byte(`{"platform":"feishu","appId":"bad","appSecret":"bad"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/data-source/test", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -39,7 +39,7 @@ func TestDataSourceImportRetryWithIDs(t *testing.T) {
 	body := []byte(`{"ids":["fail-1"]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/data-source/import/retry", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

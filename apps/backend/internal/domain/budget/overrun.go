@@ -20,11 +20,11 @@ type overrunPayload struct {
 }
 
 type OverrunService struct {
-	cfg       config.Config
-	store     store.Store
-	relay     relay.OverrunRelayControl
-	notifier  notification.Notifier
-	logger    *slog.Logger
+	cfg      config.Config
+	store    store.Store
+	relay    relay.OverrunRelayControl
+	notifier notification.Notifier
+	logger   *slog.Logger
 }
 
 func NewOverrunService(

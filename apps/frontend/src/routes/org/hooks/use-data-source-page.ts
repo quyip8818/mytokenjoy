@@ -5,12 +5,14 @@ import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { ImportResult } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
+import { broadcastAuthzChange, useSession } from '@/features/session'
 import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { ROUTES } from '@/config/routes'
 
 export function useDataSourcePage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
+  const { refreshSession } = useSession()
   const navigate = useNavigate()
   const credentialCta = useCtaHighlight('CREDENTIAL')
   const importCta = useCtaHighlight('IMPORT')
@@ -56,6 +58,8 @@ export function useDataSourcePage(injectedApis?: AppApis) {
       const result = await apis.dataSourceApi.import()
       setImportResult(result)
       toast.success(`导入完成：${result.successMembers} 人 / ${result.successDepartments} 个部门`)
+      await refreshSession()
+      broadcastAuthzChange()
     } finally {
       setImporting(false)
     }

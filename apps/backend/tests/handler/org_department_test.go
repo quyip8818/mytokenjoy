@@ -17,7 +17,7 @@ func TestDepartmentUpdateHTTP(t *testing.T) {
 	body := []byte(`{"name":"Updated Team"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/org/departments/dept-5", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -30,7 +30,7 @@ func TestDepartmentDeleteLeafHTTP(t *testing.T) {
 	createBody := []byte(`{"name":"Temp Leaf","parentId":"dept-2"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/api/org/departments", bytes.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("Cookie", sessionCookie)
+	createReq.Header.Set("Cookie", adminSessionCookie(t))
 	createRec := httptest.NewRecorder()
 	router.ServeHTTP(createRec, createReq)
 	if createRec.Code != http.StatusOK {
@@ -43,7 +43,7 @@ func TestDepartmentDeleteLeafHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := httptest.NewRequest(http.MethodDelete, "/api/org/departments/"+created.ID, nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -56,7 +56,7 @@ func TestMembersTransferHTTP(t *testing.T) {
 	body := []byte(`{"memberIds":["` + seed.IDMember1 + `"],"departmentId":"dept-4"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/transfer", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -72,7 +72,7 @@ func TestDataSourceUpdateSuccessHTTP(t *testing.T) {
 	body := []byte(`{"platform":"feishu","appId":"cli_test","appSecret":"secret_test"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/org/data-source", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -87,7 +87,7 @@ func TestDataSourceImportHTTP(t *testing.T) {
 	})
 	testutil.ConnectFeishuDataSource(t, &app.Config, app.Store, app.Config.FeishuBaseURL)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/data-source/import", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -108,7 +108,7 @@ func TestSyncTriggerWritesLogHTTP(t *testing.T) {
 	}
 	before := len(syncLogs)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/sync/trigger", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

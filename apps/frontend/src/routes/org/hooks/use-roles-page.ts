@@ -5,7 +5,7 @@ import { useInjectedApis } from '@/api/use-apis'
 import type { Member, Role } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useWorkflow } from '@/features/workflow/use-workflow'
-import { useSession } from '@/features/session'
+import { useSession, broadcastAuthzChange } from '@/features/session'
 
 export function useRolesPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
@@ -100,6 +100,7 @@ export function useRolesPage(injectedApis?: AppApis) {
     setDeleteConfirm(null)
     await refreshRoles()
     await refreshSession()
+    broadcastAuthzChange()
   }
 
   const handleRemoveMember = (member: Member) => {
@@ -120,6 +121,7 @@ export function useRolesPage(injectedApis?: AppApis) {
     if (removeConfirm.member.id === memberId) {
       await refreshSession()
     }
+    broadcastAuthzChange()
   }
 
   const handleAddMember = () => {
@@ -132,6 +134,7 @@ export function useRolesPage(injectedApis?: AppApis) {
         await refreshMembers()
         await refreshRoles()
         await refreshSession()
+        broadcastAuthzChange()
       },
     })
   }

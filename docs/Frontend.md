@@ -21,7 +21,7 @@ main.tsx → App.tsx
 ```
 
 - `pnpm start`：backend `:8080` + Vite `:5173`；`/api` 反代 Go（`vite-api-proxy.ts`）
-- Dev 登录：`/login` 选成员 → `tokenjoy_session_member` → `GET /session`
+- 登录：`POST /auth/login`（邮箱密码）→ HttpOnly JWT Cookie → `GET /session`
 - 首页 `/` 按权限跳转 `HOME_PATH_CANDIDATES`
 
 ---
@@ -41,14 +41,14 @@ apps/frontend/
     └── lib/
 ```
 
-| 代码 | 位置 |
-| ---- | ---- |
-| 页面入口 | `routes/{domain}/{page}.tsx` |
-| 页面逻辑 | `routes/{domain}/hooks/use-{page}-page.ts` |
-| 单页 UI | `routes/{domain}/components/` |
-| 跨页 UI | `components/{domain}/` |
-| HTTP / DTO | `api/{domain}.ts`、`api/types/` |
-| 纯逻辑 | `lib/` |
+| 代码       | 位置                                       |
+| ---------- | ------------------------------------------ |
+| 页面入口   | `routes/{domain}/{page}.tsx`               |
+| 页面逻辑   | `routes/{domain}/hooks/use-{page}-page.ts` |
+| 单页 UI    | `routes/{domain}/components/`              |
+| 跨页 UI    | `components/{domain}/`                     |
+| HTTP / DTO | `api/{domain}.ts`、`api/types/`            |
+| 纯逻辑     | `lib/`                                     |
 
 禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。约定详见 [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc)。
 
@@ -121,12 +121,12 @@ apps/frontend/
 
 #### 5.1.2 请求头
 
-| Header          | 必填       | 说明                                                                                                                                   |
-| --------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `Accept`        | 是         | `application/json`（`client.request` 默认注入）                                                                                        |
-| `Content-Type`  | 有 body 时 | `application/json`（`client.request` 默认注入）                                                                                        |
+| Header          | 必填       | 说明                                                                                                                                    |
+| --------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `Accept`        | 是         | `application/json`（`client.request` 默认注入）                                                                                         |
+| `Content-Type`  | 有 body 时 | `application/json`（`client.request` 默认注入）                                                                                         |
 | `Cookie`        | Session    | `credentials: 'include'` 自动携带；企业面 `tokenjoy_session_member`；平台面 `tokenjoy_platform_session`（`SUPPORT_SAAS=true`，见 §5.9） |
-| `Authorization` | 可选       | `Bearer {token}`（生产网关）                                                                                                           |
+| `Authorization` | 可选       | `Bearer {token}`（生产网关）                                                                                                            |
 
 #### 5.1.3 成功响应
 
@@ -190,85 +190,45 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-#### 5.4.2 鉴权与权限
+#### 5.4.2 鉴权与权限（目标态）
+
+**方案 B**：签名 Session JWT（仅 identity）+ 服务端 PDP；UI **一次** `GET /session` → Context。破坏性实现规格见 [权限管理.md](./权限管理.md)。
 
 #### 5.2.1 Session 端点
 
-| 调用方式                  | 说明                                                                           |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| `sessionApi.getCurrent()` | `GET /session`；凭 cookie `tokenjoy_session_member` 或 `Authorization: Bearer` |
+| 调用方式                  | 说明                                                                |
+| ------------------------- | ------------------------------------------------------------------- |
+| `sessionApi.getCurrent()` | `GET /session`；凭 HttpOnly Cookie（JWT）或 `Authorization: Bearer` |
 
-响应经 `SessionContextSchema`（Zod）校验。成员不存在 → 404；未鉴权 → 401。加载失败由 `SessionGate` 展示错误页。
+响应经 `SessionContextSchema`（Zod）校验，**必含** `authzRevision`。未鉴权 → `401`；成员不存在 → `404`。`SessionGate` 处理加载失败。
 
-本地 dev：在 `/login` 选择成员写入 cookie 后调用 `getCurrent()`。
+**删除（目标态）**：`/login` 选择成员写裸 `member_id` cookie；改为 `POST /auth/login`。
 
-#### 5.2.2 后端 Profile（`APP_PROFILE`）
+#### 5.2.2 鉴权策略
 
-| Profile | 值     | GET 读接口（demo）    | Session 身份解析                           |
-| ------- | ------ | --------------------- | ------------------------------------------ |
-| Demo    | `demo` | 多数 GET 免 Session   | cookie `tokenjoy_session_member` 或 Bearer |
-| 生产    | `prod` | 要求 Session + 读权限 | 同上                                       |
+| 范围         | 要求                                           |
+| ------------ | ---------------------------------------------- |
+| 全部业务 API | Session JWT + 对应读/写 capability             |
+| 公开         | `POST /auth/login`、`POST /auth/accept-invite` |
 
-写操作（POST / PUT / DELETE）在两种 Profile 下均要求 Session + 写权限。本地默认 `demo`；部署生产应设置 `APP_PROFILE=prod`。
+**删除**：`APP_PROFILE=demo` 下 GET 免 Session。
 
-#### 5.2.3 其他端点
+#### 5.2.3 权限驱动 UI
 
-真实后端按 permission key 校验：未登录 → `401`；已登录但无权限 → `403`。前端通过 `GET /session` 返回的 `permissions[]` 驱动 `PermissionGate` / `usePermissions()`。
+- `permissions[]` **仅**来自 `GET /session`；禁止前端 `resolveMemberPermissions` 生产路径。
+- `PermissionGate` / `usePermissions()`：**零** per-component session 请求。
+- 失效：`refreshSession()`（PAP mutation、focus、broadcast、403）；比对 `authzRevision`。
 
 #### 5.2.5 SaaS 双 Session
 
-| 面     | Cookie                      | 登录入口                    | 说明                                                             |
-| ------ | --------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| 企业面 | `tokenjoy_session_member`   | `/login` 或邀请激活         | `GET /session`；`companyId` 来自 Session，**不可**用 Header 覆盖 |
-| 平台面 | `tokenjoy_platform_session` | `POST /platform/auth/login` | 与企业 Session 互不影响；`SUPPORT_SAAS=false` 时平台路由 404     |
-
-平台控制台与企业控制台应使用独立 `ApiProvider` 或独立 `client` 配置，避免 Cookie 混用。
+| 面     | Cookie                      | 登录入口                     | 说明                          |
+| ------ | --------------------------- | ---------------------------- | ----------------------------- |
+| 企业面 | `tokenjoy_session_member`   | `POST /auth/login`、邀请激活 | JWT；`companyId` 来自 Session |
+| 平台面 | `tokenjoy_platform_session` | `POST /platform/auth/login`  | 独立 JWT；不走企业 RBAC       |
 
 #### 5.2.4 权限 Key
 
-定义于 [`lib/permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)：
-
-| Key                | 含义                                            |
-| ------------------ | ----------------------------------------------- |
-| `org:read`         | 组织域只读（部门树、成员列表、角色等 GET）      |
-| `org:datasource`   | 数据源配置与导入                                |
-| `org:structure`    | 部门结构                                        |
-| `org:roles`        | 角色管理                                        |
-| `org:members`      | 成员管理                                        |
-| `budget:read`      | 预算只读（预算树、配额、告警等 GET）            |
-| `budget:allocate`  | 预算分配                                        |
-| `budget:approve`   | 预算审批                                        |
-| `budget:policy`    | 超支策略与告警                                  |
-| `model:read`       | 模型域只读（模型列表、路由 GET）                |
-| `model:manage`     | 模型管理                                        |
-| `model:whitelist`  | 模型白名单 / 路由                               |
-| `keys:read`        | Keys 域只读（供应商、平台 Key、审批列表等 GET） |
-| `keys:admin`       | 平台 Key 管理                                   |
-| `keys:provider`    | 供应商 Key 管理                                 |
-| `self:keys`        | 我的 Key                                        |
-| `self:approval`    | 我的审批                                        |
-| `dashboard:cost`   | 成本看板                                        |
-| `dashboard:usage`  | 用量看板                                        |
-| `audit:read`       | 审计日志                                        |
-| `api:call`         | API 调用权限                                    |
-| `billing:read`     | 企业钱包只读（`GET /billing/wallet`）           |
-| `billing:recharge` | 企业自助充值（`POST /billing/recharge`）        |
-| `platform:*`       | 平台运营（独立 Session，不走成员权限表）        |
-
-`readOnly: true` 表示当前 Session 无任何写权限 capability（见 `lib/permissions.ts` 中 `isReadOnlySession`）。
-
-**生产 Profile GET 读权限映射（后端）：**
-
-| API 前缀           | 所需读权限                                    |
-| ------------------ | --------------------------------------------- |
-| `/api/org/*`       | `org:read`                                    |
-| `/api/budget/*`    | `budget:read`                                 |
-| `/api/keys/*`      | `keys:read`                                   |
-| `/api/models/*`    | `model:read`                                  |
-| `/api/audit/*`     | `audit:read`                                  |
-| `/api/dashboard/*` | `dashboard:cost` 与 `dashboard:usage`（均需） |
-
-审计员（`RoleAuditor`）预设角色包含上述读权限，可用于只读浏览。
+由 **`manifest.json` 生成** [`permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)（目标态）。完整表见 [权限管理.md](./权限管理.md) §14.1。
 
 ---
 
@@ -282,12 +242,13 @@ HTTP 非 2xx 时，body 应包含：
 
 ### SessionContext
 
-| 字段          | 类型       | 说明                                |
-| ------------- | ---------- | ----------------------------------- |
-| `member`      | `Member`   | 当前成员                            |
-| `permissions` | `string[]` | 权限 key 列表                       |
-| `readOnly`    | `boolean`  | 无写权限时为 `true`                 |
-| `companyId`   | `number`   | 当前成员所属企业 ID；私有化默认 `1` |
+| 字段            | 类型       | 说明                                  |
+| --------------- | ---------- | ------------------------------------- |
+| `member`        | `Member`   | 当前成员                              |
+| `permissions`   | `string[]` | PDP 输出的 capability 列表            |
+| `readOnly`      | `boolean`  | 无写 capability 时为 `true`           |
+| `companyId`     | `number`   | 当前成员所属企业 ID                   |
+| `authzRevision` | `number`   | 租户授权版本；UI stale 检测（目标态） |
 
 ---
 
@@ -301,7 +262,7 @@ HTTP 非 2xx 时，body 应包含：
 
 | 方法 | 路径       | 查询 / Body | 响应             | 说明                                   |
 | ---- | ---------- | ----------- | ---------------- | -------------------------------------- |
-| GET  | `/session` | —           | `SessionContext` | Cookie / Bearer 解析成员；未鉴权 → 401 |
+| GET  | `/session` | —           | `SessionContext` | 签名 JWT Cookie / Bearer；未鉴权 → 401 |
 
 ---
 
@@ -667,7 +628,7 @@ HTTP 非 2xx 时，body 应包含：
 
 [`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 14 个命名空间（SaaS 落地后预计增加 `authApi`、`billingApi`、`platformApi`，见 §5.9）：
 
-`sessionApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`
+`sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`
 
 所有 HTTP 调用均经 `client.request()`，无其他 `fetch('/api/...')` 直连。
 
@@ -684,13 +645,14 @@ HTTP 非 2xx 时，body 应包含：
 
 根目录 `pnpm start` 并发启动 backend + frontend；[`apps/frontend/.env.development`](../apps/frontend/.env.development) 默认配置代理目标。
 
-#### 5.7.2 鉴权
+#### 5.7.2 鉴权（目标态）
 
-- **企业面 Dev**：访问 [`/login`](../apps/frontend/src/routes/auth/login.tsx) 选择成员，写入 `tokenjoy_session_member` cookie
-- **企业面生产**：网关或后端签发 `Authorization: Bearer` token
-- **平台面（SaaS）**：`POST /platform/auth/login` → `tokenjoy_platform_session`；与企业面分离
-- **邀请激活（SaaS）**：`POST /auth/accept-invite` 设密并创建成员 Session
-- 401 时 `AuthUnauthorizedBridge` 跳转对应登录页（企业 `/login`；平台 `/platform/login`）
+- **企业面**：[`/login`](../apps/frontend/src/routes/auth/login.tsx) 表单 → `POST /auth/login` → 后端 `Set-Cookie`（JWT）
+- **平台面（SaaS）**：`POST /platform/auth/login` → 平台 JWT Cookie
+- **邀请激活**：`POST /auth/accept-invite` 签发企业 JWT
+- 401 → `AuthUnauthorizedBridge` 跳转 `/login`（或 `/platform/login`）
+
+**删除**：Dev 成员选择器直写裸 `member_id`；见 [权限管理.md](./权限管理.md) §2。
 
 #### 5.7.3 联调验收
 
@@ -725,9 +687,10 @@ HTTP 非 2xx 时，body 应包含：
 
 后端已实现；前端尚无 `authApi` / `AppApis` 命名空间。
 
-| 方法 | 路径                  | Body                         | 响应             | 说明                                                                    |
-| ---- | --------------------- | ---------------------------- | ---------------- | ----------------------------------------------------------------------- |
-| POST | `/auth/accept-invite` | `{ token, password, name? }` | `SessionContext` | 邀请激活；写入 `tokenjoy_session_member`；`token` 一次性、默认 7 天有效 |
+| 方法 | 路径                  | Body                         | 响应             | 说明                                                     |
+| ---- | --------------------- | ---------------------------- | ---------------- | -------------------------------------------------------- |
+| POST | `/auth/login`         | `{ email, password }`        | `void`           | 签发企业 JWT Cookie                                      |
+| POST | `/auth/accept-invite` | `{ token, password, name? }` | `SessionContext` | 邀请激活；签发 JWT Cookie；`token` 一次性、默认 7 天有效 |
 
 无需 Session；成功后与 `GET /session` 结构一致（含 `companyId`）。
 
@@ -838,19 +801,19 @@ HTTP 非 2xx 时，body 应包含：
 pnpm install && pnpm start
 ```
 
-| 服务 | 地址 |
-| ---- | ---- |
+| 服务 | 地址                  |
+| ---- | --------------------- |
 | 前端 | http://localhost:5173 |
 | 后端 | http://localhost:8080 |
 
-1. `/login` 选演示成员 → cookie
+1. `/login` 用种子账号登录（见 `权限管理.md` WP-2.6）→ JWT Cookie
 2. 空库自动 `seed.ApplyTables`；看板锚定 `DEMO_TODAY=2026-06-19`
 3. 重置：`pnpm docker:reset && pnpm start`
 
-| 变量 | 说明 |
-| ---- | ---- |
+| 变量                    | 说明                                   |
+| ----------------------- | -------------------------------------- |
 | `VITE_API_PROXY_TARGET` | 反代目标，默认 `http://127.0.0.1:8080` |
-| `DATABASE_URL` | 后端 Postgres |
+| `DATABASE_URL`          | 后端 Postgres                          |
 
 可选 Relay：`pnpm start:relay` + `NEW_API_ENABLED=true`。验收：`pnpm verify`、`pnpm test:e2e`。
 

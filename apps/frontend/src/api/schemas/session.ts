@@ -18,6 +18,7 @@ export const MemberSchema = z.object({
 
 export const SessionContextSchema = z.object({
   companyId: z.number(),
+  authzRevision: z.number(),
   member: MemberSchema,
   permissions: z.array(z.string()),
   readOnly: z.boolean(),

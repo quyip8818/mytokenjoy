@@ -136,4 +136,33 @@ func (r *memoryCompanyRepo) List(ctx context.Context) ([]store.Company, error) {
 	return out, nil
 }
 
+func (r *memoryCompanyRepo) GetAuthzRevision(ctx context.Context, id int64) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	t, ok := r.store.companies[id]
+	if !ok {
+		return 0, nil
+	}
+	return t.AuthzRevision, nil
+}
+
+func (r *memoryCompanyRepo) BumpAuthzRevision(ctx context.Context, id int64) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	t, ok := r.store.companies[id]
+	if !ok {
+		return 0, nil
+	}
+	t.AuthzRevision++
+	t.UpdatedAt = time.Now().UTC()
+	r.store.companies[id] = t
+	return t.AuthzRevision, nil
+}
+
 var _ store.CompanyRepository = (*memoryCompanyRepo)(nil)

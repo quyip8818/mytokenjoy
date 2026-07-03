@@ -18,6 +18,7 @@ type Company struct {
 	RootDeptID         *string
 	NewAPIWalletUserID *int64
 	PackageID          *string
+	AuthzRevision      int64
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }
@@ -30,5 +31,7 @@ type CompanyRepository interface {
 	UpdatePackageID(ctx context.Context, id int64, packageID *string) error
 	UpdateNewAPIWalletUserID(ctx context.Context, id int64, walletUserID int64) error
 	UpdateRootDeptID(ctx context.Context, id int64, rootDeptID string) error
+	GetAuthzRevision(ctx context.Context, id int64) (int64, error)
+	BumpAuthzRevision(ctx context.Context, id int64) (int64, error)
 	List(ctx context.Context) ([]Company, error)
 }

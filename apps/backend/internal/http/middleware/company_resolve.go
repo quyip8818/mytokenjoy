@@ -8,16 +8,15 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 )
 
 type CompanyService interface {
 	ResolveCompanyContext(ctx context.Context, companyID int64) (company.Context, error)
-	ResolveFromMember(ctx context.Context, memberID string) (company.Context, error)
 }
 
-func CompanyResolve(cfg config.Config, companySvc CompanyService) func(http.Handler) http.Handler {
+func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer sessiontoken.Issuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, "/api/platform/") {
@@ -28,24 +27,19 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService) func(http.Hand
 				next.ServeHTTP(w, r)
 				return
 			}
-			var companyID int64
-			var companyCtx company.Context
-			var err error
-			if !cfg.SupportSaas {
-				companyID = cfg.DefaultCompanyID
-				companyCtx, err = companySvc.ResolveCompanyContext(r.Context(), companyID)
-			} else if memberID := common.ResolveMemberID(r); memberID != "" {
-				companyCtx, err = companySvc.ResolveFromMember(r.Context(), memberID)
-			} else {
-				companyID = cfg.DefaultCompanyID
-				companyCtx, err = companySvc.ResolveCompanyContext(r.Context(), companyID)
+
+			companyID := cfg.DefaultCompanyID
+			if claims, ok := httpx.ResolveMemberClaims(r, tokenIssuer); ok && claims.CompanyID > 0 {
+				companyID = claims.CompanyID
 			}
+
+			companyCtx, err := companySvc.ResolveCompanyContext(r.Context(), companyID)
 			if err != nil {
 				httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
 				return
 			}
 			if companyCtx.Status == "" {
-				companyCtx.Status = store.CompanyStatusActive
+				companyCtx.Status = "active"
 			}
 			ctx := company.WithContext(r.Context(), companyCtx)
 			next.ServeHTTP(w, r.WithContext(ctx))

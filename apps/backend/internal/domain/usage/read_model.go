@@ -49,7 +49,7 @@ func (s *readerService) TopModelsByDepartments(ctx context.Context, q types.Usag
 }
 
 var (
-	_ ReadModel         = (*readerService)(nil)
-	_ AnalyticsQuerier  = (*readerService)(nil)
-	_ Reader            = (*readerService)(nil)
+	_ ReadModel        = (*readerService)(nil)
+	_ AnalyticsQuerier = (*readerService)(nil)
+	_ Reader           = (*readerService)(nil)
 )

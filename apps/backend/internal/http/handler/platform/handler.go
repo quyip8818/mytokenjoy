@@ -6,38 +6,26 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
-	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 )
 
 type Handler struct {
-	cfg         config.Config
-	companySvc  domaincompany.Service
-	billingSvc  domainbilling.Service
-	keysSvc     domainkeys.Service
-	platformSvc httpmiddleware.PlatformService
+	p httpdeps.Platform
 }
 
-func NewHandler(
-	cfg config.Config,
-	companySvc domaincompany.Service,
-	billingSvc domainbilling.Service,
-	keysSvc domainkeys.Service,
-	platformSvc httpmiddleware.PlatformService,
-) *Handler {
-	return &Handler{cfg: cfg, companySvc: companySvc, billingSvc: billingSvc, keysSvc: keysSvc, platformSvc: platformSvc}
+func NewHandler(p httpdeps.Platform) *Handler {
+	return &Handler{p: p}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/login", h.Login)
 	r.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.PlatformAuth(h.cfg, h.platformSvc))
+		r.Use(httpmiddleware.PlatformAuth(h.p.Cfg, h.p.PlatformSessionToken))
 		r.Get("/companies", h.ListCompanies)
 		r.Post("/companies", h.CreateCompany)
 		r.Patch("/companies/{id}", h.UpdateCompany)
@@ -58,12 +46,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorID, err := h.platformSvc.Authenticate(r.Context(), body.Email, body.Password)
+	operatorID, err := h.p.Credentials.AuthenticatePlatform(r.Context(), body.Email, body.Password)
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return
 	}
-	common.SetPlatformSessionCookie(w, operatorID)
+	token, err := h.p.PlatformSessionToken.Issue(0, operatorID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	httpx.SetPlatformSessionCookie(w, token, h.p.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{"operatorId": operatorID}, nil)
 }
 
@@ -80,14 +73,14 @@ func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	result, err := h.companySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
+	result, err := h.p.CompanySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
 		Slug: body.Slug, Name: body.Name, SuperAdminEmail: body.SuperAdminEmail, PackageID: body.PackageID,
 	})
 	httputil.WriteJSON(w, http.StatusCreated, result, err)
 }
 
 func (h *Handler) ListCompanies(w http.ResponseWriter, r *http.Request) {
-	companies, err := h.companySvc.ListCompanies(r.Context())
+	companies, err := h.p.CompanySvc.ListCompanies(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, companies, err)
 }
 
@@ -108,7 +101,7 @@ func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.Status != nil || body.PackageID != nil {
-		err = h.companySvc.UpdateCompany(r.Context(), id, domaincompany.UpdateCompanyPatch{
+		err = h.p.CompanySvc.UpdateCompany(r.Context(), id, domaincompany.UpdateCompanyPatch{
 			Status:    body.Status,
 			PackageID: body.PackageID,
 		})
@@ -132,12 +125,12 @@ func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
-	err = h.billingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
+	err = h.p.BillingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) ListChannels(w http.ResponseWriter, r *http.Request) {
-	keys, err := h.keysSvc.ListProviderKeys(r.Context())
+	keys, err := h.p.KeysSvc.ListProviderKeys(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 
@@ -147,6 +140,6 @@ func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	key, err := h.keysSvc.CreatePlatformProviderKey(r.Context(), body)
+	key, err := h.p.KeysSvc.CreatePlatformProviderKey(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusCreated, key, err)
 }

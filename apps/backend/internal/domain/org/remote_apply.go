@@ -34,13 +34,15 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		if err != nil {
 			return err
 		}
+		membersDeactivated := false
 		for _, removed := range diff.removeMembers {
 			for i := range members {
 				if members[i].ID != removed.ID {
 					continue
 				}
-				members[i].Status = "inactive"
+				members[i].Status = types.MemberStatusInactive
 				result.SuccessMembers++
+				membersDeactivated = true
 			}
 		}
 
@@ -63,7 +65,13 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		if err := persistProvisionState(ctx, st, state); err != nil {
 			return err
 		}
-		return st.Org().SetMembers(ctx, members)
+		if err := st.Org().SetMembers(ctx, members); err != nil {
+			return err
+		}
+		if membersDeactivated {
+			return s.bumpAuthzRevisionStore(ctx, st)
+		}
+		return nil
 	})
 	return result, err
 }

@@ -9,7 +9,8 @@
 //   __DOMAIN__ *__DOMAIN__handler.Handler
 
 // Add handler construction in NewRegistry:
-//   __DOMAIN__: __DOMAIN__handler.NewHandler(deps.Config, deps.__DOMAIN_TITLE__Svc, deps.SessionSvc),
+//   p := deps.Protected()
+//   __DOMAIN__: __DOMAIN__handler.NewHandler(p, deps.__DOMAIN_TITLE__Svc),
 
 // Add route registration in RegisterAPIRoutes:
 //   r.Route("/__DOMAIN__", reg.__DOMAIN__.RegisterRoutes)

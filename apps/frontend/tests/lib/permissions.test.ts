@@ -1,37 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import type { Member, Role } from '@/api/types'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { ROUTES } from '@/config/routes'
 import { PERMISSION } from '@/lib/permission-keys'
-import { ROLE_API_CALLER, ROLE_AUDITOR, ROLE_MEMBER, ROLE_SUPER_ADMIN } from '@/lib/role-constants'
 import {
   canAccessRoute,
+  canWriteSession,
   getDefaultHomePath,
   hasPermission,
   isReadOnlySession,
-  resolveMemberPermissions,
 } from '@/lib/permissions'
 
-const roles: Role[] = [
-  { id: 'r1', name: ROLE_SUPER_ADMIN, type: 'preset', permissions: [], memberCount: 1 },
-  { id: 'r2', name: ROLE_MEMBER, type: 'preset', permissions: [], memberCount: 1 },
-  { id: 'r3', name: ROLE_AUDITOR, type: 'preset', permissions: [], memberCount: 1 },
-  { id: 'r4', name: ROLE_API_CALLER, type: 'preset', permissions: [], memberCount: 1 },
-]
+const manifestPath = join(
+  import.meta.dirname,
+  '../../../backend/internal/infra/permission/manifest.json',
+)
 
-function memberWithRoles(roleNames: string[]): Member {
-  return {
-    id: 'm1',
-    companyId: 1,
-    name: 'Test',
-    phone: '13800000000',
-    email: 'test@test.com',
-    departmentId: 'd1',
-    departmentName: '总部',
-    status: 'active',
-    roles: roleNames,
-    source: 'manual',
-  }
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+  capabilities: string[]
 }
+
+describe('manifest contract', () => {
+  it('matches backend manifest capability count', () => {
+    const keys = Object.values(PERMISSION)
+    expect(keys).toHaveLength(manifest.capabilities.length)
+    expect(new Set(keys)).toEqual(new Set(manifest.capabilities))
+  })
+})
 
 describe('hasPermission', () => {
   it.each([
@@ -48,46 +43,29 @@ describe('hasPermission', () => {
 })
 
 describe('isReadOnlySession', () => {
-  it('returns false for sessions with write capabilities', () => {
-    expect(isReadOnlySession([PERMISSION.ORG_STRUCTURE])).toBe(false)
+  it('returns false when server marks session writable', () => {
+    expect(isReadOnlySession([PERMISSION.ORG_STRUCTURE], false)).toBe(false)
   })
 
-  it('returns true for read-only auditor permissions', () => {
-    const perms = resolveMemberPermissions(memberWithRoles([ROLE_AUDITOR]), roles)
-    expect(isReadOnlySession(perms)).toBe(true)
+  it('returns true when server marks session read-only', () => {
+    expect(isReadOnlySession([PERMISSION.ORG_READ], true)).toBe(true)
+  })
+
+  it('returns false for wildcard permissions when writable', () => {
+    expect(isReadOnlySession(['*'], false)).toBe(false)
   })
 })
 
-describe('resolveMemberPermissions', () => {
-  it('expands preset super admin to all permissions', () => {
-    const perms = resolveMemberPermissions(memberWithRoles([ROLE_SUPER_ADMIN]), roles)
-    expect(perms).toContain(PERMISSION.ORG_STRUCTURE)
-    expect(perms).toContain(PERMISSION.BUDGET_READ)
-  })
-
-  it('expands auditor role to read capabilities', () => {
-    const perms = resolveMemberPermissions(memberWithRoles([ROLE_AUDITOR]), roles)
-    expect(perms).toContain(PERMISSION.ORG_READ)
-    expect(perms).toContain(PERMISSION.BUDGET_READ)
-    expect(perms).toContain(PERMISSION.KEYS_READ)
-    expect(perms).toContain(PERMISSION.MODEL_READ)
-    expect(perms).toContain(PERMISSION.AUDIT_READ)
-  })
-
-  it('expands member role to self-service permissions', () => {
-    const perms = resolveMemberPermissions(memberWithRoles([ROLE_MEMBER]), roles)
-    expect(perms).toEqual([PERMISSION.SELF_KEYS, PERMISSION.SELF_APPROVAL])
+describe('canWriteSession', () => {
+  it('mirrors server readOnly flag', () => {
+    expect(canWriteSession([PERMISSION.ORG_STRUCTURE], false)).toBe(true)
+    expect(canWriteSession([PERMISSION.ORG_READ], true)).toBe(false)
   })
 })
 
 describe('canAccessRoute', () => {
   it('allows access when user has required route permission', () => {
     expect(canAccessRoute(ROUTES.orgStructure, [PERMISSION.ORG_STRUCTURE])).toBe(true)
-  })
-
-  it('allows auditor to access org structure route', () => {
-    const perms = resolveMemberPermissions(memberWithRoles([ROLE_AUDITOR]), roles)
-    expect(canAccessRoute(ROUTES.orgStructure, perms)).toBe(true)
   })
 
   it('denies access when user lacks required route permission', () => {

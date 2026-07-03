@@ -13,27 +13,32 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
-	"github.com/tokenjoy/backend/internal/domain/session"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/platformauth"
+	"github.com/tokenjoy/backend/internal/identity/authz"
+	"github.com/tokenjoy/backend/internal/identity/credentials"
+	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Deps struct {
-	Config       config.Config
-	Logger       *slog.Logger
-	SessionSvc   session.Service
-	OrgSvc       domainorg.Service
-	BudgetSvc    domainbudget.Service
-	KeysSvc      domainkeys.Service
-	ModelsSvc    domainmodels.Service
-	DashboardSvc domaindashboard.Service
-	AuditSvc     domainaudit.Service
-	ReadModel    domainusage.ReadModel
-	IngestSvc    domainusage.Ingestor
-	CompanySvc   domaincompany.Service
-	BillingSvc   domainbilling.Service
-	PlatformSvc  platformauth.Service
-	WalletSvc    domaincompany.WalletService
-	CompanyGate  *domaincompany.Gate
-	RelayGateway domainrelay.GatewayService
+	Config               config.Config
+	Logger               *slog.Logger
+	Store                store.Store
+	AuthzSvc             authz.Service
+	Credentials          credentials.Service
+	SessionToken         sessiontoken.Issuer
+	PlatformSessionToken sessiontoken.Issuer
+	OrgSvc               domainorg.Service
+	BudgetSvc            domainbudget.Service
+	KeysSvc              domainkeys.Service
+	ModelsSvc            domainmodels.Service
+	DashboardSvc         domaindashboard.Service
+	AuditSvc             domainaudit.Service
+	ReadModel            domainusage.ReadModel
+	IngestSvc            domainusage.Ingestor
+	CompanySvc           domaincompany.Service
+	BillingSvc           domainbilling.Service
+	WalletSvc            domaincompany.WalletService
+	CompanyGate          *domaincompany.Gate
+	RelayGateway         domainrelay.GatewayService
 }

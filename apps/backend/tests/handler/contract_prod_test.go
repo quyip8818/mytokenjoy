@@ -42,7 +42,7 @@ func TestProdGetContractWithAdminCookie(t *testing.T) {
 		}
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
-			req.Header.Set("Cookie", sessionCookie)
+			req.Header.Set("Cookie", adminSessionCookie(t))
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, req)
 			if rec.Code != http.StatusOK {

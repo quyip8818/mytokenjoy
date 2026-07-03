@@ -3,6 +3,7 @@ package org
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -60,7 +61,7 @@ func (s *service) CreateMember(ctx context.Context, input types.Member) (types.M
 		ID:   fmt.Sprintf("m-%d", time.Now().UnixMilli()),
 		Name: input.Name, Phone: input.Phone, Email: input.Email,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
-		Status: "active", Roles: []string{permission.RoleMember}, Source: "manual",
+		Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "manual",
 		PersonalQuota: common.DefaultPersonalQuota,
 	}
 
@@ -73,6 +74,9 @@ func (s *service) CreateMember(ctx context.Context, input types.Member) (types.M
 		return types.Member{}, err
 	}
 	if err := persistRecalculatedMemberCounts(ctx, s.store, members); err != nil {
+		return types.Member{}, err
+	}
+	if err := s.bumpAuthzRevision(ctx); err != nil {
 		return types.Member{}, err
 	}
 	return member, nil
@@ -94,11 +98,17 @@ func (s *service) UpdateMember(ctx context.Context, id string, input types.Membe
 	}
 	for i := range members {
 		if members[i].ID == id {
+			rolesChanged := !slices.Equal(members[i].Roles, input.Roles)
 			updated := input
 			updated.ID = id
 			members[i] = updated
 			if err := s.store.Org().SetMembers(ctx, members); err != nil {
 				return types.Member{}, err
+			}
+			if rolesChanged {
+				if err := s.bumpAuthzRevision(ctx); err != nil {
+					return types.Member{}, err
+				}
 			}
 			return updated, nil
 		}
@@ -137,7 +147,10 @@ func (s *service) UpdateMemberStatus(ctx context.Context, ids []string, status s
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		return st.Keys().SetPlatformKeys(ctx, keys)
+		if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
+			return err
+		}
+		return s.bumpAuthzRevisionStore(ctx, st)
 	})
 }
 
@@ -218,7 +231,7 @@ func (s *service) BatchInvite(ctx context.Context, ids []string) (types.BatchInv
 		}
 	} else {
 		for _, member := range members {
-			if member.Status == "pending" || member.Status == "inactive" {
+			if member.Status == types.MemberStatusPending || member.Status == types.MemberStatusInactive {
 				targets = append(targets, member)
 			}
 		}
@@ -257,7 +270,7 @@ func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) 
 			ID:   fmt.Sprintf("m-import-%d-%d", time.Now().UnixMilli(), index),
 			Name: row.Name, Phone: row.Phone, Email: row.Email,
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
-			Status: "active", Roles: []string{permission.RoleMember}, Source: "imported",
+			Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "imported",
 		})
 		imported++
 	}
@@ -266,6 +279,11 @@ func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) 
 		return types.MemberBatchImportResult{Imported: imported, Failures: append(failures, types.MemberBatchImportFailure{
 			Row: 0, Reason: "Failed to persist imported members",
 		})}, nil
+	}
+	if imported > 0 {
+		if err := s.bumpAuthzRevision(ctx); err != nil {
+			return types.MemberBatchImportResult{}, err
+		}
 	}
 
 	return types.MemberBatchImportResult{Imported: imported, Failures: failures}, nil

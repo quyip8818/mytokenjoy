@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
 const defaultCompanyID int64 = 1
@@ -32,6 +33,7 @@ func New(snapshot store.Snapshot) *Store {
 		memberPasswordHashes: make(map[string]string),
 	}
 	m.initFromSnapshot(snapshot)
+	m.applyDemoPasswords()
 	m.relayRepo = newMemoryRelayRepo(m)
 	return m
 }
@@ -44,6 +46,17 @@ func (m *Store) initFromSnapshot(snapshot store.Snapshot) {
 	m.permissions = store.ClonePermissions(snap.Permissions)
 	m.providerKeys = store.CloneProviderKeys(snap.ProviderKeys)
 	m.dataByCompany[tid] = snap
+}
+
+func (m *Store) applyDemoPasswords() {
+	hash := seed.DemoPasswordHash()
+	for companyID, snap := range m.dataByCompany {
+		for _, member := range snap.Members {
+			if member.Status == "active" && member.Email != "" {
+				m.memberPasswordHashes[memberPasswordKey(companyID, member.ID)] = hash
+			}
+		}
+	}
 }
 
 func (m *Store) companySnapshot(companyID int64) store.Snapshot {
@@ -106,6 +119,7 @@ func (m *Store) LoadSnapshot(snapshot store.Snapshot) {
 	m.permissions = nil
 	m.providerKeys = nil
 	m.initFromSnapshot(snapshot)
+	m.applyDemoPasswords()
 }
 
 func (m *Store) RelayOutboxEntry(id string) (store.RelayOutboxEntry, bool) {

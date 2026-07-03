@@ -1,11 +1,74 @@
 package testutil
 
-const SessionCookieAdmin = "tokenjoy_session_member=m-admin"
+import (
+	"net/http"
+	"testing"
 
-func SessionCookie(memberID string) string {
-	return "tokenjoy_session_member=" + memberID
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/store/seed"
+)
+
+const TestSessionSecret = "test-session-secret"
+
+func SessionIssuer(t *testing.T) sessiontoken.Issuer {
+	t.Helper()
+	issuer, err := sessiontoken.NewIssuer(TestSessionSecret, 86400)
+	if err != nil {
+		t.Fatalf("session issuer: %v", err)
+	}
+	return issuer
 }
 
-func PlatformSessionCookie(operatorID string) string {
-	return "tokenjoy_platform_session=" + operatorID
+func IssueSessionJWT(t *testing.T, companyID int64, memberID string) string {
+	t.Helper()
+	token, err := SessionIssuer(t).Issue(companyID, memberID)
+	if err != nil {
+		t.Fatalf("issue session jwt: %v", err)
+	}
+	return token
+}
+
+func SessionCookie(t *testing.T, memberID string) string {
+	t.Helper()
+	return SessionCookieForCompany(t, seed.DefaultCompanyID, memberID)
+}
+
+func SessionCookieForCompany(t *testing.T, companyID int64, memberID string) string {
+	t.Helper()
+	token := IssueSessionJWT(t, companyID, memberID)
+	return httpx.SessionCookie + "=" + token
+}
+
+func SessionCookieAdmin(t *testing.T) string {
+	t.Helper()
+	return SessionCookie(t, seed.IDMemberAdmin)
+}
+
+func PlatformSessionCookie(t *testing.T, operatorID string) string {
+	t.Helper()
+	issuer, err := sessiontoken.NewIssuer(TestSessionSecret, 86400)
+	if err != nil {
+		t.Fatalf("platform session issuer: %v", err)
+	}
+	token, err := issuer.Issue(0, operatorID)
+	if err != nil {
+		t.Fatalf("issue platform jwt: %v", err)
+	}
+	return httpx.PlatformSessionCookie + "=" + token
+}
+
+func WithSessionConfig(cfg config.Config) config.Config {
+	cfg.SessionSecret = TestSessionSecret
+	cfg.PlatformSessionSecret = TestSessionSecret
+	if cfg.SessionTTLSec == 0 {
+		cfg.SessionTTLSec = 86400
+	}
+	return cfg
+}
+
+func SetSessionAuth(req *http.Request, t *testing.T, memberID string) {
+	t.Helper()
+	req.Header.Set("Cookie", SessionCookie(t, memberID))
 }

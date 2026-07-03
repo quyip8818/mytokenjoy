@@ -5,12 +5,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
-	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -19,14 +18,14 @@ import (
 )
 
 type Handler struct {
-	shared.SessionHandlerBase
+	shared.ProtectedHandlerBase
 	service domaindashboard.Service
 }
 
-func NewHandler(cfg config.Config, service domaindashboard.Service, sessionSvc session.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domaindashboard.Service) *Handler {
 	return &Handler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
-		service:            service,
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
+		service:              service,
 	}
 }
 
@@ -123,15 +122,17 @@ func (h *Handler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Cfg, h.SessionSvc, permission.DashboardCost, permission.DashboardUsage)
-	read.Get("/cost/summary", h.CostSummary)
-	read.Get("/cost/departments", h.DepartmentCosts)
-	read.Get("/cost/departments/{deptId}/members", h.DepartmentMemberCosts)
-	read.Get("/cost/daily", h.DailyCosts)
-	read.Get("/cost/top", h.TopConsumers)
-	read.Get("/usage/models", h.ModelUsage)
-	read.Get("/usage/teams", h.TeamUsage)
-	read.Get("/usage/series", h.UsageSeries)
+	costRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardCost)
+	costRead.Get("/cost/summary", h.CostSummary)
+	costRead.Get("/cost/departments", h.DepartmentCosts)
+	costRead.Get("/cost/departments/{deptId}/members", h.DepartmentMemberCosts)
+	costRead.Get("/cost/daily", h.DailyCosts)
+	costRead.Get("/cost/top", h.TopConsumers)
+
+	usageRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardUsage)
+	usageRead.Get("/usage/models", h.ModelUsage)
+	usageRead.Get("/usage/teams", h.TeamUsage)
+	usageRead.Get("/usage/series", h.UsageSeries)
 }
 
 func (h *Handler) withScope(w http.ResponseWriter, r *http.Request, fn func(context.Context, domainusage.SessionScope)) {

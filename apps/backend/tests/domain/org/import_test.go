@@ -14,6 +14,10 @@ import (
 func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
+	before, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result := testutil.ImportFeishuOrg(t, env)
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
@@ -38,6 +42,13 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	}
 	if !foundMember {
 		t.Fatal("expected imported member")
+	}
+	after, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SuccessMembers < 1 || after <= before {
+		t.Fatalf("expected authz revision bump on new members, before=%d after=%d members=%d", before, after, result.SuccessMembers)
 	}
 }
 

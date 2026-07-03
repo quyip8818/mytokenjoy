@@ -2,28 +2,27 @@ package org
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/domain/session"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 type Handler struct {
-	shared.SessionHandlerBase
+	shared.ProtectedHandlerBase
 	service domainorg.Service
 }
 
-func NewHandler(cfg config.Config, service domainorg.Service, sessionSvc session.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domainorg.Service) *Handler {
 	return &Handler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
-		service:            service,
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
+		service:              service,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.OrgRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.OrgRead)
 	read.Get("/data-source/status", h.DataSourceStatus)
 	read.Get("/data-source/search", h.DataSourceSearch)
 	read.Get("/sync/config", h.SyncConfigGet)
@@ -34,7 +33,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/roles/{roleId}/members", h.RoleMembersList)
 	read.Get("/permissions", h.PermissionsList)
 
-	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
+	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
 	datasourceWrite := write.With(httpmiddleware.RequireAnyPermission(permission.OrgDatasource))
 	datasourceWrite.Post("/data-source/test", h.DataSourceTest)
@@ -43,7 +42,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	datasourceWrite.Post("/data-source/import/retry", h.DataSourceImportRetry)
 	datasourceWrite.Put("/sync/config", h.SyncConfigUpdate)
 
-	r.With(httpmiddleware.AllowSyncTrigger(h.Cfg, h.SessionSvc)).Post("/sync/trigger", h.SyncTrigger)
+	r.With(httpmiddleware.AllowSyncTrigger(h.Protected)).Post("/sync/trigger", h.SyncTrigger)
 
 	structureWrite := write.With(httpmiddleware.RequireAnyPermission(permission.OrgStructure))
 	structureWrite.Post("/departments", h.DepartmentCreate)

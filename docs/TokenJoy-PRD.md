@@ -797,10 +797,10 @@ erDiagram
 
 管理面 REST（**82** 端点）以 [Frontend.md](./Frontend.md) 为准；企业面 16 页均已对接。**不含 US-15（合规审查）**；SaaS 后端 11 端点已实现、前端未接入。
 
-| 文档 | 职责 |
-| ---- | ---- |
-| [Frontend.md](./Frontend.md) | 端点与类型权威来源 |
-| [Roadmap.md](./Roadmap.md) | PRD 与实现的剩余差距 |
+| 文档                         | 职责                 |
+| ---------------------------- | -------------------- |
+| [Frontend.md](./Frontend.md) | 端点与类型权威来源   |
+| [Roadmap.md](./Roadmap.md)   | PRD 与实现的剩余差距 |
 
 **契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、Relay、企业钱包与 SaaS API 见 [Backend.md](./Backend.md) §2、[Backend-架构.md](./Backend-架构.md)。
 

@@ -45,6 +45,11 @@ type Config struct {
 
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`
+
+	SessionSecret         string `env:"SESSION_SECRET"`
+	SessionTTLSec         int    `env:"SESSION_TTL_SEC" envDefault:"86400"`
+	PlatformSessionSecret string `env:"PLATFORM_SESSION_SECRET"`
+	AuthzCacheSize        int    `env:"AUTHZ_CACHE_SIZE" envDefault:"4096"`
 }
 
 func Load() (Config, error) {
@@ -76,6 +81,12 @@ func (c Config) validate() error {
 	if !c.SupportSaas && strings.TrimSpace(c.CompanyName) == "" {
 		return fmt.Errorf("COMPANY_NAME is required when SUPPORT_SAAS=false")
 	}
+	if strings.TrimSpace(c.SessionSecret) == "" {
+		return fmt.Errorf("SESSION_SECRET is required")
+	}
+	if c.SupportSaas && strings.TrimSpace(c.PlatformSessionSecret) == "" {
+		return fmt.Errorf("PLATFORM_SESSION_SECRET is required when SUPPORT_SAAS=true")
+	}
 	if !c.NewAPIEnabled {
 		return nil
 	}
@@ -101,4 +112,11 @@ func (c Config) CORSOriginList() []string {
 		}
 	}
 	return origins
+}
+
+func (c Config) ResolvedPlatformSessionSecret() string {
+	if c.PlatformSessionSecret != "" {
+		return c.PlatformSessionSecret
+	}
+	return c.SessionSecret
 }

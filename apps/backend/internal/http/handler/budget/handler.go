@@ -4,10 +4,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -15,14 +14,14 @@ import (
 )
 
 type Handler struct {
-	shared.SessionHandlerBase
+	shared.ProtectedHandlerBase
 	service domainbudget.Service
 }
 
-func NewHandler(cfg config.Config, service domainbudget.Service, sessionSvc session.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domainbudget.Service) *Handler {
 	return &Handler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
-		service:            service,
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
+		service:              service,
 	}
 }
 
@@ -135,14 +134,14 @@ func (h *Handler) AlertDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.BudgetRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
 	read.Get("/departments/{departmentId}/member-quotas", h.MemberQuotas)
 	read.Get("/groups", h.GroupsList)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
 
-	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
+	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
 	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
 	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)

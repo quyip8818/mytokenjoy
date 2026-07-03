@@ -9,7 +9,10 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-const sessionCookie = testutil.SessionCookieAdmin
+func adminSessionCookie(t *testing.T) string {
+	t.Helper()
+	return testutil.SessionCookieAdmin(t)
+}
 
 func newTestRouter(t *testing.T) http.Handler {
 	t.Helper()

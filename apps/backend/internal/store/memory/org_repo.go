@@ -148,6 +148,51 @@ func (r *memoryOrgRepo) MemberByID(ctx context.Context, memberID string) (*types
 	return nil, nil
 }
 
+func (r *memoryOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	for _, member := range r.store.companySnapshot(companyID).Members {
+		if member.Email == email {
+			cloned := store.CloneMember(member)
+			hash := r.store.memberPasswordHashes[memberPasswordKey(companyID, member.ID)]
+			return &cloned, hash, nil
+		}
+	}
+	return nil, "", nil
+}
+
+func (r *memoryOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	var member *types.Member
+	for _, item := range r.store.companySnapshot(companyID).Members {
+		if item.ID == memberID {
+			cloned := store.CloneMember(item)
+			member = &cloned
+			break
+		}
+	}
+	if member == nil {
+		return nil, nil
+	}
+	company, ok := r.store.companies[companyID]
+	revision := int64(0)
+	if ok {
+		revision = company.AuthzRevision
+	}
+	return &store.MemberAuthz{
+		Member:        *member,
+		Roles:         store.CloneRoles(r.store.companySnapshot(companyID).Roles),
+		AuthzRevision: revision,
+	}, nil
+}
+
 func (r *memoryOrgRepo) MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, false, err

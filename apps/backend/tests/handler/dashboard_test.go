@@ -17,7 +17,7 @@ import (
 func TestUsageSeriesMinuteFromLedgerDemo(t *testing.T) {
 	app := testutil.NewTestApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T08:00:00Z&end=2026-06-10T10:00:00Z", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -40,7 +40,7 @@ func TestUsageSeriesMinuteFromLedgerProdProfile(t *testing.T) {
 		cfg.Profile = config.ProfileProd
 	})
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T08:00:00Z&end=2026-06-10T10:00:00Z", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -58,7 +58,7 @@ func TestUsageSeriesMinuteFromLedgerProdProfile(t *testing.T) {
 func TestCostDailyInvalidGranularity(t *testing.T) {
 	app := testutil.NewTestApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/cost/daily?period=current_month&granularity=minute", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -69,7 +69,7 @@ func TestCostDailyInvalidGranularity(t *testing.T) {
 func TestUsageSeriesWindowTooLarge(t *testing.T) {
 	app := testutil.NewTestApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=day&start=2024-01-01&end=2026-01-01", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -95,7 +95,7 @@ func TestUsageSeriesGroupByDepartmentHTTP(t *testing.T) {
 		DepartmentID: seed.IDDept4, MemberID: "m-4", CostCNY: 6,
 	})
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=day&start=2026-06-10&end=2026-06-11&groupBy=department", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -124,7 +124,7 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T09:00:00Z&end=2026-06-10T10:00:00Z&groupBy=none", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -158,7 +158,7 @@ func TestDashboardEndpointsAreReadOnly(t *testing.T) {
 	}
 	for _, path := range paths {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
-		req.Header.Set("Cookie", sessionCookie)
+		req.Header.Set("Cookie", adminSessionCookie(t))
 		rec := httptest.NewRecorder()
 		app.Router.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {

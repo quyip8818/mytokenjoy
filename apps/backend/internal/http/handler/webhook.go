@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )

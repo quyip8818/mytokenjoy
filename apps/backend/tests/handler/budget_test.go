@@ -15,7 +15,7 @@ func TestUpdateNodeHTTPSuccess(t *testing.T) {
 	body := []byte(`{"budget":21000,"reservedPool":1500}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

@@ -17,7 +17,7 @@ func newCompanyRepo(db dbQuerier) *companyRepo {
 
 func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, created_at, updated_at
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at
 		FROM companies WHERE id = $1
 	`, id)
 	return scanCompany(row)
@@ -25,7 +25,7 @@ func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, er
 
 func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, created_at, updated_at
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at
 		FROM companies WHERE slug = $1
 	`, slug)
 	return scanCompany(row)
@@ -33,10 +33,10 @@ func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Compan
 
 func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO companies (id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO companies (id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`, company.ID, company.Slug, company.Name, company.Status, company.RootDeptID,
-		company.NewAPIWalletUserID, company.PackageID, company.CreatedAt, company.UpdatedAt)
+		company.NewAPIWalletUserID, company.PackageID, company.AuthzRevision, company.CreatedAt, company.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create company: %w", err)
 	}
@@ -69,7 +69,7 @@ func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id int64, rootDeptID
 
 func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, created_at, updated_at
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at
 		FROM companies ORDER BY id
 	`)
 	if err != nil {
@@ -94,11 +94,27 @@ type scannable interface {
 func scanCompany(row scannable) (*store.Company, error) {
 	var c store.Company
 	err := row.Scan(&c.ID, &c.Slug, &c.Name, &c.Status, &c.RootDeptID,
-		&c.NewAPIWalletUserID, &c.PackageID, &c.CreatedAt, &c.UpdatedAt)
+		&c.NewAPIWalletUserID, &c.PackageID, &c.AuthzRevision, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &c, nil
+}
+
+func (r *companyRepo) GetAuthzRevision(ctx context.Context, id int64) (int64, error) {
+	var revision int64
+	err := r.db.QueryRow(ctx, `SELECT authz_revision FROM companies WHERE id = $1`, id).Scan(&revision)
+	return revision, err
+}
+
+func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id int64) (int64, error) {
+	var revision int64
+	err := r.db.QueryRow(ctx, `
+		UPDATE companies SET authz_revision = authz_revision + 1, updated_at = NOW()
+		WHERE id = $1
+		RETURNING authz_revision
+	`, id).Scan(&revision)
+	return revision, err
 }
 
 func scanCompanyRow(rows interface {

@@ -6,6 +6,12 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
+type MemberAuthz struct {
+	Member        types.Member
+	Roles         []types.Role
+	AuthzRevision int64
+}
+
 type OrgRepository interface {
 	Integration(ctx context.Context) (types.OrgIntegration, error)
 	SetIntegration(ctx context.Context, integration types.OrgIntegration) error
@@ -19,6 +25,8 @@ type OrgRepository interface {
 	Nodes() OrgNodeRepository
 	Members(ctx context.Context) ([]types.Member, error)
 	MemberByID(ctx context.Context, memberID string) (*types.Member, error)
+	MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error)
+	GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*MemberAuthz, error)
 	MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error)
 	SetMembers(ctx context.Context, members []types.Member) error
 	UpdateMemberPersonalQuota(ctx context.Context, memberID string, personalQuota float64) error

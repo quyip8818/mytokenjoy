@@ -109,7 +109,7 @@ func TestPlatformCreateChannelAndSaaSProviderForbidden(t *testing.T) {
 		"key":      "sk-company",
 	})
 	req = httptest.NewRequest(http.MethodPost, "/api/keys/provider", bytes.NewReader(providerBody))
-	req.Header.Set("Cookie", testutil.DefaultSeedMemberCookie())
+	req.Header.Set("Cookie", testutil.DefaultSeedMemberCookie(t))
 	rec = httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden {

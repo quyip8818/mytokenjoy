@@ -24,8 +24,9 @@ type Role struct {
 }
 
 type SessionContext struct {
-	CompanyID   int64    `json:"companyId"`
-	Member      Member   `json:"member"`
-	Permissions []string `json:"permissions"`
-	ReadOnly    bool     `json:"readOnly"`
+	CompanyID     int64    `json:"companyId"`
+	AuthzRevision int64    `json:"authzRevision"`
+	Member        Member   `json:"member"`
+	Permissions   []string `json:"permissions"`
+	ReadOnly      bool     `json:"readOnly"`
 }

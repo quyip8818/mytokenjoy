@@ -82,15 +82,21 @@ func insertModelAllowlist(ctx context.Context, exec tableWriter, tid int64, rows
 }
 
 func insertMembers(ctx context.Context, exec tableWriter, tid int64, members []types.Member, roleIDByName map[string]string) error {
+	demoHash := DemoPasswordHash()
 	for _, member := range members {
+		var passwordHash *string
+		if member.Status == "active" && member.Email != "" {
+			hash := demoHash
+			passwordHash = &hash
+		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO members (
 				id, company_id, name, phone, email, department_id, department_name,
-				status, source, external_id, personal_quota
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+				status, source, external_id, personal_quota, password_hash
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, member.ID, member.CompanyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID, member.PersonalQuota); err != nil {
+			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID, member.PersonalQuota, passwordHash); err != nil {
 			return fmt.Errorf("seed member %s: %w", member.ID, err)
 		}
 		for _, roleName := range member.Roles {

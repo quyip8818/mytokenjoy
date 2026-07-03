@@ -31,7 +31,8 @@ func NewRouter(deps httpdeps.Deps) http.Handler {
 	httphandler.RegisterHealthRoutes(r)
 
 	r.Route("/api", func(api chi.Router) {
-		api.Use(httpmiddleware.CompanyResolve(deps.Config, deps.CompanySvc))
+		api.Use(httpmiddleware.CompanyResolve(deps.Config, deps.CompanySvc, deps.SessionToken))
+		api.Use(httpmiddleware.AuthzRevisionHeader(deps.Store))
 		if deps.CompanyGate != nil {
 			api.Use(httpmiddleware.CompanyReadOnlyMiddleware(deps.CompanyGate))
 		}

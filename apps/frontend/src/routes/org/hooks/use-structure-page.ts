@@ -10,6 +10,7 @@ import { usePageSubtitle } from '@/hooks/use-page-subtitle'
 import { useApprovalPendingCountQuery } from '@/hooks/use-approval-pending-count-query'
 import { flattenDepartments, flattenDepartmentTree, getDeptPath } from '@/lib/org'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useSession, broadcastAuthzChange } from '@/features/session'
 import type { ConfirmActionState } from '@/components/ui/confirm-action-dialog'
 
 const PAGE_SIZE = 10
@@ -27,6 +28,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const { open } = useWorkflow()
   const { setSubtitle } = usePageSubtitle()
   const { canWrite } = usePermissions()
+  const { refreshSession } = useSession()
   const [selectedDeptId, setSelectedDeptId] = useState<string | undefined>()
   const [page, setPage] = useState(1)
   const [directOnly, setDirectOnly] = useState(false)
@@ -139,6 +141,8 @@ export function useStructurePage(injectedApis?: AppApis) {
         setConfirmState((s) => ({ ...s, open: false }))
         setRowSelection({})
         refreshMembers()
+        await refreshSession()
+        broadcastAuthzChange()
       },
     })
   }

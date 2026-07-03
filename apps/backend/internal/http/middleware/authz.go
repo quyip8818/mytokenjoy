@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/identity/authz"
 )
 
 func RequireAnyPermission(required ...string) func(http.Handler) http.Handler {
@@ -15,7 +15,7 @@ func RequireAnyPermission(required ...string) func(http.Handler) http.Handler {
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}
-			if !permission.HasAny(sessionCtx.Permissions, required...) {
+			if !authz.HasAny(sessionCtx.Permissions, required...) {
 				httputil.WriteStatus(w, http.StatusForbidden, httputil.MsgForbidden)
 				return
 			}

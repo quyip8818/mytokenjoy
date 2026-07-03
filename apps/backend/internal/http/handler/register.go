@@ -2,7 +2,6 @@ package handler
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
 	"github.com/tokenjoy/backend/internal/http/handler/auth"
@@ -16,7 +15,7 @@ import (
 )
 
 type Registry struct {
-	cfg       config.Config
+	cfg       httpdeps.Deps
 	session   *SessionHandler
 	auth      *auth.Handler
 	platform  *platform.Handler
@@ -31,18 +30,19 @@ type Registry struct {
 }
 
 func NewRegistry(deps httpdeps.Deps) Registry {
+	p := deps.Protected()
 	return Registry{
-		cfg:       deps.Config,
-		session:   NewSessionHandler(deps.Config, deps.SessionSvc),
-		auth:      auth.NewHandler(deps.CompanySvc),
-		platform:  platform.NewHandler(deps.Config, deps.CompanySvc, deps.BillingSvc, deps.KeysSvc, deps.PlatformSvc),
-		billing:   billing.NewHandler(deps.Config, deps.BillingSvc, deps.SessionSvc),
-		org:       orghandler.NewHandler(deps.Config, deps.OrgSvc, deps.SessionSvc),
-		budget:    budgethandler.NewHandler(deps.Config, deps.BudgetSvc, deps.SessionSvc),
-		keys:      keyshandler.NewHandler(deps.Config, deps.KeysSvc, deps.SessionSvc),
-		models:    modelshandler.NewHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc),
-		dashboard: dashboardhandler.NewHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc),
-		audit:     audithandler.NewHandler(deps.Config, deps.AuditSvc, deps.ReadModel, deps.SessionSvc),
+		cfg:       deps,
+		session:   NewSessionHandler(p),
+		auth:      auth.NewHandler(deps.Public(), deps.CompanySvc),
+		platform:  platform.NewHandler(deps.Platform()),
+		billing:   billing.NewHandler(p, deps.BillingSvc),
+		org:       orghandler.NewHandler(p, deps.OrgSvc),
+		budget:    budgethandler.NewHandler(p, deps.BudgetSvc),
+		keys:      keyshandler.NewHandler(p, deps.KeysSvc),
+		models:    modelshandler.NewHandler(p, deps.ModelsSvc),
+		dashboard: dashboardhandler.NewHandler(p, deps.DashboardSvc),
+		audit:     audithandler.NewHandler(p, deps.AuditSvc, deps.ReadModel),
 		webhook:   NewWebhookHandler(deps.Config, deps.IngestSvc, deps.Logger),
 	}
 }
@@ -52,7 +52,7 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	reg.auth.RegisterRoutes(r)
 	reg.webhook.RegisterRoutes(r)
 	reg.billing.RegisterRoutes(r)
-	if reg.cfg.SupportSaas {
+	if reg.cfg.Config.SupportSaas {
 		r.Route("/platform", reg.platform.RegisterRoutes)
 	}
 	r.Route("/org", reg.org.RegisterRoutes)

@@ -1,6 +1,8 @@
 import type { Member } from '@/api/types'
 
 export interface AppSession {
+  companyId: number
+  authzRevision: number
   memberId: string
   member: Member | null
   permissions: string[]

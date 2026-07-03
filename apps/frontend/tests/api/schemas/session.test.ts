@@ -5,6 +5,7 @@ describe('SessionContextSchema', () => {
   it('accepts valid session payloads', () => {
     const result = SessionContextSchema.safeParse({
       companyId: 1,
+      authzRevision: 1,
       member: {
         id: 'm1',
         companyId: 1,
@@ -17,7 +18,7 @@ describe('SessionContextSchema', () => {
         roles: ['超级管理员'],
         source: 'manual',
       },
-      permissions: ['org.structure'],
+      permissions: ['org:structure'],
       readOnly: false,
     })
 
@@ -27,6 +28,7 @@ describe('SessionContextSchema', () => {
   it('rejects invalid session payloads', () => {
     const result = SessionContextSchema.safeParse({
       companyId: 1,
+      authzRevision: 0,
       member: { id: 'm1', companyId: 1 },
       permissions: [],
       readOnly: false,

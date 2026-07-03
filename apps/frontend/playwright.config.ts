@@ -31,6 +31,7 @@ export default defineConfig({
       env: {
         DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable',
         COMPANY_NAME: 'Demo Company',
+        SESSION_SECRET: 'e2e-test-session-secret',
       },
     },
     {

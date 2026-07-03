@@ -9,6 +9,6 @@ export function usePermissions() {
     readOnly,
     loading,
     has: (required: PermissionKey | PermissionKey[]) => hasPermission(permissions, required),
-    canWrite: canWriteSession(permissions),
+    canWrite: canWriteSession(permissions, readOnly),
   }
 }

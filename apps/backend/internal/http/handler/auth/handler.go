@@ -6,20 +6,63 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 )
 
 type Handler struct {
+	pub        httpdeps.Public
 	companySvc domaincompany.Service
 }
 
-func NewHandler(companySvc domaincompany.Service) *Handler {
-	return &Handler{companySvc: companySvc}
+func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service) *Handler {
+	return &Handler{
+		pub:        pub,
+		companySvc: companySvc,
+	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Post("/auth/login", h.Login)
+	r.Post("/auth/logout", h.Logout)
 	r.Post("/auth/accept-invite", h.AcceptInvite)
+}
+
+type loginBody struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var body loginBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	companyCtx, ok := ctxcompany.From(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
+		return
+	}
+	member, err := h.pub.Credentials.AuthenticateMember(r.Context(), companyCtx.CompanyID, body.Email, body.Password)
+	if err != nil {
+		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
+		return
+	}
+	token, err := h.pub.SessionToken.Issue(member.CompanyID, member.ID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	httpx.SetSessionCookie(w, token, h.pub.SecureCookie)
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": member.ID}, nil)
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	httpx.ClearSessionCookie(w)
+	httputil.WriteStatus(w, http.StatusNoContent, "")
 }
 
 type acceptInviteBody struct {
@@ -41,9 +84,11 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name: common.SessionCookie, Value: member.ID, Path: "/",
-		HttpOnly: true, SameSite: http.SameSiteLaxMode,
-	})
+	token, err := h.pub.SessionToken.Issue(member.CompanyID, member.ID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	httpx.SetSessionCookie(w, token, h.pub.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, member, nil)
 }

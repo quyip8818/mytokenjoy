@@ -126,7 +126,7 @@ func LoginPlatform(t *testing.T, router http.Handler) string {
 	}
 	for _, c := range rec.Result().Cookies() {
 		if c.Name == "tokenjoy_platform_session" && c.Value != "" {
-			return PlatformSessionCookie(c.Value)
+			return "tokenjoy_platform_session=" + c.Value
 		}
 	}
 	t.Fatal("platform session cookie not set")
@@ -173,7 +173,7 @@ func AcceptInviteHTTP(t *testing.T, router http.Handler, inviteToken, name, pass
 	var sessionCookie string
 	for _, c := range rec.Result().Cookies() {
 		if c.Name == "tokenjoy_session_member" && c.Value != "" {
-			sessionCookie = SessionCookie(c.Value)
+			sessionCookie = "tokenjoy_session_member=" + c.Value
 			break
 		}
 	}
@@ -240,6 +240,7 @@ func UpdateBudgetNodeHTTP(t *testing.T, router http.Handler, memberCookie, nodeI
 	}
 }
 
-func DefaultSeedMemberCookie() string {
-	return SessionCookie(seed.IDMemberAdmin)
+func DefaultSeedMemberCookie(t *testing.T) string {
+	t.Helper()
+	return SessionCookie(t, seed.IDMemberAdmin)
 }

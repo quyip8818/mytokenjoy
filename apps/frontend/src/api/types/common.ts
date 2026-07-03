@@ -9,6 +9,7 @@ export interface Paginated<T> {
 
 export interface SessionContext {
   companyId: number
+  authzRevision: number
   member: Member
   permissions: string[]
   readOnly: boolean

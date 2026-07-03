@@ -5,9 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
-	"github.com/tokenjoy/backend/internal/domain/session"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -15,21 +14,21 @@ import (
 )
 
 type Handler struct {
-	shared.SessionHandlerBase
+	shared.ProtectedHandlerBase
 	billingSvc domainbilling.Service
 }
 
-func NewHandler(cfg config.Config, billingSvc domainbilling.Service, sessionSvc session.Service) *Handler {
+func NewHandler(p httpdeps.Protected, billingSvc domainbilling.Service) *Handler {
 	return &Handler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
-		billingSvc:         billingSvc,
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
+		billingSvc:           billingSvc,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Cfg, h.SessionSvc, permission.BillingRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRead)
 	read.Get("/billing/wallet", h.GetWallet)
-	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc, permission.BillingRecharge)
+	write := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRecharge)
 	write.Post("/billing/recharge", h.CreateRecharge)
 	write.Post("/billing/recharge/{id}/confirm", h.ConfirmRecharge)
 }

@@ -4,11 +4,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
-	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -17,16 +16,16 @@ import (
 )
 
 type Handler struct {
-	shared.SessionHandlerBase
-	service        domainaudit.Service
-	readModel      domainusage.ReadModel
+	shared.ProtectedHandlerBase
+	service   domainaudit.Service
+	readModel domainusage.ReadModel
 }
 
-func NewHandler(cfg config.Config, service domainaudit.Service, readModel domainusage.ReadModel, sessionSvc session.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domainaudit.Service, readModel domainusage.ReadModel) *Handler {
 	return &Handler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
-		service:            service,
-		readModel:          readModel,
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
+		service:              service,
+		readModel:            readModel,
 	}
 }
 
@@ -77,12 +76,12 @@ func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.AuditRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.AuditRead)
 	read.Get("/settings", h.SettingsGet)
 	read.Get("/operations", h.OperationsList)
 	read.Get("/calls", h.CallsList)
 
-	httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc).
+	httpmiddleware.ReadRoutes(r, h.Protected).
 		With(httpmiddleware.RequireAnyPermission(permission.AuditRead)).
 		Put("/settings", h.SettingsUpdate)
 }

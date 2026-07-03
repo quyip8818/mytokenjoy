@@ -28,6 +28,9 @@ func (s *service) CreateRole(ctx context.Context, name string, permissions []str
 	if err := s.store.Org().SetRoles(ctx, roles); err != nil {
 		return types.Role{}, fmt.Errorf("persist roles: %w", err)
 	}
+	if err := s.bumpAuthzRevision(ctx); err != nil {
+		return types.Role{}, err
+	}
 	return role, nil
 }
 
@@ -41,6 +44,9 @@ func (s *service) UpdateRole(ctx context.Context, id, name string, permissions [
 			roles[i].Name = name
 			roles[i].Permissions = permissions
 			if err := s.store.Org().SetRoles(ctx, roles); err != nil {
+				return types.Role{}, err
+			}
+			if err := s.bumpAuthzRevision(ctx); err != nil {
 				return types.Role{}, err
 			}
 			return roles[i], nil
@@ -90,7 +96,10 @@ func (s *service) DeleteRole(ctx context.Context, id string) error {
 	if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
 		return err
 	}
-	return s.store.Org().SetRoles(ctx, roles)
+	if err := s.store.Org().SetRoles(ctx, roles); err != nil {
+		return err
+	}
+	return s.bumpAuthzRevision(ctx)
 }
 
 func (s *service) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
@@ -158,6 +167,9 @@ func (s *service) AddRoleMember(ctx context.Context, roleID, memberID string) er
 			if err := s.store.Org().SetMembers(ctx, members); err != nil {
 				return err
 			}
+			if err := s.bumpAuthzRevision(ctx); err != nil {
+				return err
+			}
 			return s.store.Org().SetRoles(ctx, roles)
 		}
 		break
@@ -212,6 +224,9 @@ func (s *service) RemoveRoleMember(ctx context.Context, roleID, memberID string)
 		return err
 	}
 	if err := s.store.Org().SetMembers(ctx, members); err != nil {
+		return err
+	}
+	if err := s.bumpAuthzRevision(ctx); err != nil {
 		return err
 	}
 	return s.store.Org().SetRoles(ctx, roles)

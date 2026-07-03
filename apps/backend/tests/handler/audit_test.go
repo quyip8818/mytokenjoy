@@ -15,7 +15,7 @@ func TestSettingsUpdateHTTP(t *testing.T) {
 	body := []byte(`{"contentRetentionEnabled":false}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/audit/settings", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

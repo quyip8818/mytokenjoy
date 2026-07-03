@@ -2,29 +2,17 @@ package middleware
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/session"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 )
 
-func SessionRoutes(r chi.Router, cfg config.Config, sess session.Service) chi.Router {
-	return r.With(RequireSession(cfg, sess))
+func SessionRoutes(r chi.Router, p httpdeps.Protected) chi.Router {
+	return r.With(RequireSession(p))
 }
 
-func ReadRoutes(r chi.Router, cfg config.Config, sess session.Service, perms ...string) chi.Router {
-	chain := SessionRoutes(r, cfg, sess)
+func ReadRoutes(r chi.Router, p httpdeps.Protected, perms ...string) chi.Router {
+	chain := SessionRoutes(r, p)
 	if len(perms) > 0 {
 		chain = chain.With(RequireAnyPermission(perms...))
 	}
 	return chain
-}
-
-func WriteRoutes(r chi.Router, cfg config.Config, sess session.Service, perms ...string) chi.Router {
-	return ReadRoutes(r, cfg, sess, perms...)
-}
-
-func PublicOrReadRoutes(cfg config.Config, r chi.Router, sess session.Service, perms ...string) chi.Router {
-	if cfg.IsDemoProfile() {
-		return r
-	}
-	return ReadRoutes(r, cfg, sess, perms...)
 }

@@ -4,66 +4,25 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
-	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
-	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
-	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
-	"github.com/tokenjoy/backend/internal/domain/session"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
-	"github.com/tokenjoy/backend/internal/infra/platformauth"
 	"github.com/tokenjoy/backend/internal/infra/worker"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 type ServiceRegistry struct {
-	Config         config.Config
-	Store          store.Store
-	Infra          infra
-	Session        session.Service
-	Org            domainorg.Service
-	OrgSync        domainorg.SyncService
-	Budget         domainbudget.Service
-	Keys           domainkeys.Service
-	Models         domainmodels.Service
-	Dashboard      domaindashboard.Service
-	Audit          domainaudit.Service
-	ReadModel      domainusage.ReadModel
-	Ingest         domainusage.Ingestor
-	Overrun        domainbudget.OverrunProcessor
-	Rebalance      domainbudget.Rebalancer
-	Company        domaincompany.Service
-	Billing        domainbilling.Service
-	Platform       platformauth.Service
-	CompanyGate    *domaincompany.Gate
-	RelayGateway   domainrelay.GatewayService
+	httpdeps.Deps
+	Infra     infra
+	OrgSync   domainorg.SyncService
+	Overrun   domainbudget.OverrunProcessor
+	Rebalance domainbudget.Rebalancer
 }
 
 func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
-	return httpdeps.Deps{
-		Config:       r.Config,
-		Logger:       logger,
-		SessionSvc:   r.Session,
-		OrgSvc:       r.Org,
-		BudgetSvc:    r.Budget,
-		KeysSvc:      r.Keys,
-		ModelsSvc:    r.Models,
-		DashboardSvc: r.Dashboard,
-		AuditSvc:     r.Audit,
-		ReadModel:    r.ReadModel,
-		IngestSvc:    r.Ingest,
-		CompanySvc:   r.Company,
-		BillingSvc:   r.Billing,
-		PlatformSvc:  r.Platform,
-		WalletSvc:    r.Infra.wallet,
-		CompanyGate:  r.CompanyGate,
-		RelayGateway: r.RelayGateway,
-	}
+	d := r.Deps
+	d.Logger = logger
+	return d
 }
 
 func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
@@ -72,7 +31,7 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 		r.Store.Relay(),
 		r.Infra.adminClient,
 		r.Infra.lifecycle,
-		r.Ingest,
+		r.IngestSvc,
 		r.Overrun,
 		r.Rebalance,
 		r.OrgSync,
@@ -88,26 +47,35 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			relayGateway = gw
 		}
 	}
+	authzSvc, credSvc, memberToken, platformToken, err := wireIdentity(cfg, i.store)
+	if err != nil {
+		panic(err)
+	}
 	return ServiceRegistry{
-		Config:       cfg,
-		Store:        i.store,
-		Infra:        i,
-		Session:      services.session,
-		Org:          services.org,
-		OrgSync:      services.org,
-		Budget:       services.budget,
-		Keys:         services.keys,
-		Models:       services.models,
-		Dashboard:    services.dashboard,
-		Audit:        services.audit,
-		ReadModel:    services.readModel,
-		Ingest:       services.ingest,
-		Overrun:      services.overrun,
-		Rebalance:    services.rebalance,
-		Company:      services.company,
-		Billing:      services.billing,
-		Platform:     platformauth.NewService(cfg, i.store),
-		CompanyGate:  i.companyGate,
-		RelayGateway: relayGateway,
+		Deps: httpdeps.Deps{
+			Config:               cfg,
+			Store:                i.store,
+			AuthzSvc:             authzSvc,
+			Credentials:          credSvc,
+			SessionToken:         memberToken,
+			PlatformSessionToken: platformToken,
+			OrgSvc:               services.org,
+			BudgetSvc:            services.budget,
+			KeysSvc:              services.keys,
+			ModelsSvc:            services.models,
+			DashboardSvc:         services.dashboard,
+			AuditSvc:             services.audit,
+			ReadModel:            services.readModel,
+			IngestSvc:            services.ingest,
+			CompanySvc:           services.company,
+			BillingSvc:           services.billing,
+			WalletSvc:            i.wallet,
+			CompanyGate:          i.companyGate,
+			RelayGateway:         relayGateway,
+		},
+		Infra:     i,
+		OrgSync:   services.org,
+		Overrun:   services.overrun,
+		Rebalance: services.rebalance,
 	}
 }

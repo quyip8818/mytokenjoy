@@ -8,15 +8,15 @@
 
 ## 1. 技术选型
 
-| 类别 | 选型 |
-| ---- | ---- |
-| 语言 | Go 1.24 |
-| HTTP | chi v5 + `net/http` |
-| 配置 | `caarlos0/env` 环境变量 |
-| 日志 | `log/slog` JSON |
-| JSON | `encoding/json`，camelCase 对齐前端 |
+| 类别 | 选型                                    |
+| ---- | --------------------------------------- |
+| 语言 | Go 1.24                                 |
+| HTTP | chi v5 + `net/http`                     |
+| 配置 | `caarlos0/env` 环境变量                 |
+| 日志 | `log/slog` JSON                         |
+| JSON | `encoding/json`，camelCase 对齐前端     |
 | 测试 | `testing` + `httptest`，用例在 `tests/` |
-| DI | 构造函数注入，组合根 `internal/app/` |
+| DI   | 构造函数注入，组合根 `internal/app/`    |
 
 ---
 
@@ -57,10 +57,10 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 apps/backend/
 ├── cmd/server/main.go
 ├── internal/
-│   ├── app/                 # DI 组合根（app.go + wiring_*.go + registry.go）
+│   ├── app/                 # DI 组合根（wire_identity + wire_domain_services + wire_relay + registry）
 │   ├── config/
+│   ├── identity/            # sessiontoken、credentials、authz、httpx
 │   ├── domain/
-│   │   ├── session/         # Session 解析
 │   │   ├── org/             # 组织、数据源、同步
 │   │   ├── budget/          # 预算树、组、预警、rebalance、overrun
 │   │   ├── keys/            # 平台/上游 Key、审批
@@ -70,13 +70,13 @@ apps/backend/
 │   │   ├── usage/           # Ingest、projection、Reader
 │   │   ├── relay/           # TokenLifecycle、Gateway 预检、quota 合成
 │   │   ├── company/         # 企业、开户、邀请
-│   │   ├── billing/         # 充值、钱包
-│   │   └── platform/        # 平台运营
+│   │   └── billing/         # 充值、钱包
 │   ├── http/
 │   │   ├── router.go
+│   │   ├── deps/            # Deps、Public、Protected、Platform
 │   │   ├── handler/         # register.go + 子包
 │   │   ├── middleware/
-│   │   └── httputil/、response/、deps/
+│   │   └── httputil/、response/
 │   ├── infra/
 │   │   ├── permission/
 │   │   ├── worker/          # outbox、rebalance、overrun、org sync
@@ -117,32 +117,38 @@ sequenceDiagram
 
 ### 4.1 中间件
 
-| 中间件 | 作用域 | 行为 |
-| ------ | ------ | ---- |
-| `Recover` | 全局 | panic 恢复 |
-| `CORS` | 全局 | 允许前端源 |
-| `CompanyResolve` | `/api/*`（非 platform） | 从 Session 注入 `company_id`；私有化 `DEFAULT_COMPANY_ID` |
-| `Session` | 写操作 + prod 读 | 解析 `tokenjoy_session_member` 或 Bearer |
-| `PlatformAuth` | `/api/platform/*` | `tokenjoy_platform_session`；`SUPPORT_SAAS=false` 时路由 404 |
-| `Authz` | 需权限的路由 | 对照 `permissions` 表与 Session 权限 key |
+| 中间件           | 作用域                  | 行为                                                                   |
+| ---------------- | ----------------------- | ---------------------------------------------------------------------- |
+| `Recover`        | 全局                    | panic 恢复                                                             |
+| `CORS`           | 全局                    | 允许前端源                                                             |
+| `CompanyResolve` | `/api/*`（非 platform） | 从 Session 注入 `company_id`；私有化 `DEFAULT_COMPANY_ID`              |
+| `Session`        | 全部 `/api/*` 业务路由  | **PEP**：解析签名 Session JWT → `SessionContext`（含 `authzRevision`） |
+| `PlatformAuth`   | `/api/platform/*`       | 平台签名 JWT；`SUPPORT_SAAS=false` 时路由 404                          |
+| `Authz`          | 需权限的路由            | **PEP**：`RequireAnyPermission` 对照 PDP 展开的 capability             |
+
+**目标架构**（破坏性替换、无 demo 鉴权分叉）：[权限管理.md](./权限管理.md)。
 
 **CompanyResolve 规则：**
 
-| 场景 | 企业来源 |
-| ---- | -------- |
+| 场景                 | 企业来源                                        |
+| -------------------- | ----------------------------------------------- |
 | 已登录成员（企业面） | **仅** Session `companyId`；忽略 `X-Company-Id` |
-| 邀请激活 | token 内嵌 `company_id` |
-| 平台面 | 不经 CompanyResolve；路径显式 `{id}` |
-| 私有化 | 固定 `DEFAULT_COMPANY_ID`（默认 `1`） |
+| 邀请激活             | token 内嵌 `company_id`                         |
+| 平台面               | 不经 CompanyResolve；路径显式 `{id}`            |
+| 私有化               | 固定 `DEFAULT_COMPANY_ID`（默认 `1`）           |
 
-### 4.2 鉴权 Profile
+### 4.2 鉴权（目标态）
 
-| Profile | GET | 写 |
-| ------- | --- | -- |
-| `demo`（默认） | 多数 GET 免 Session | Session + permission |
-| `prod` | Session + 读权限 | Session + 写权限 |
+| 范围                               | 要求                                                                         |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| 全部业务 GET / POST / PUT / DELETE | Session JWT + 读/写 capability                                               |
+| 公开                               | 仅 `POST /auth/login`、`POST /auth/accept-invite`、健康检查、Webhook（密钥） |
 
-Session：`GET /api/session`；响应含 `member`、`permissions[]`、`companyId`。Webhook：`POST /api/internal/webhooks/newapi-log`，Header `X-Webhook-Secret`。
+**删除**：`APP_PROFILE` 鉴权分叉（demo GET 免 Session）。
+
+`GET /api/session`：返回 `member`、`permissions[]`、`authzRevision`、`companyId`。详见 [权限管理.md](./权限管理.md) §4.5。
+
+Webhook：`POST /api/internal/webhooks/newapi-log`，Header `X-Webhook-Secret`。
 
 ---
 
@@ -163,10 +169,10 @@ type Store interface {
 }
 ```
 
-| 模式 | 条件 | 说明 |
-| ---- | ---- | ---- |
+| 模式     | 条件                          | 说明                                               |
+| -------- | ----------------------------- | -------------------------------------------------- |
 | Postgres | 运行时（必填 `DATABASE_URL`） | 36 张表；详见 [Backend-存储.md](./Backend-存储.md) |
-| Memory | 单测 / Handler 测试 | `-tags=testhook`；`app.NewWithStore` |
+| Memory   | 单测 / Handler 测试           | `-tags=testhook`；`app.NewWithStore`               |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
 - Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.ApplyTables`；demo 下 `ApplyUsageBuckets`。
@@ -228,22 +234,22 @@ flowchart TB
   end
 ```
 
-| 组件 | 包 | 职责 |
-| ---- | -- | ---- |
-| `TokenLifecycle` | `domain/relay` | Create/Update/Disable Token；同步 Channel |
-| `IngestService` | `domain/usage` | Webhook 入账（不依赖 Lifecycle） |
-| `RebalanceService` | `domain/budget` | CNY → `remain_quota` |
-| `OverrunService` | `domain/budget` | 超限封禁 Key |
-| `PrecheckService` | `domain/relay` | Gateway 预检 |
+| 组件               | 包              | 职责                                      |
+| ------------------ | --------------- | ----------------------------------------- |
+| `TokenLifecycle`   | `domain/relay`  | Create/Update/Disable Token；同步 Channel |
+| `IngestService`    | `domain/usage`  | Webhook 入账（不依赖 Lifecycle）          |
+| `RebalanceService` | `domain/budget` | CNY → `remain_quota`                      |
+| `OverrunService`   | `domain/budget` | 超限封禁 Key                              |
+| `PrecheckService`  | `domain/relay`  | Gateway 预检                              |
 
 **Relay 子接口（DI 收窄）：**
 
-| 消费者 | 接口 |
-| ------ | ---- |
-| `keys` | `KeysRelaySync` |
-| `models` / `org` | `ModelLimitsEnqueuer` |
-| `overrun` | `OverrunRelayControl` |
-| Worker relay outbox | `RelayOutboxSync` |
+| 消费者              | 接口                  |
+| ------------------- | --------------------- |
+| `keys`              | `KeysRelaySync`       |
+| `models` / `org`    | `ModelLimitsEnqueuer` |
+| `overrun`           | `OverrunRelayControl` |
+| Worker relay outbox | `RelayOutboxSync`     |
 
 `TokenLifecycle` 实现上述子接口及完整 `Lifecycle`。
 
@@ -281,13 +287,13 @@ flowchart TB
   end
 ```
 
-| 决策 | 说明 |
-| ---- | ---- |
+| 决策           | 说明                                                   |
+| -------------- | ------------------------------------------------------ |
 | `usage.Reader` | 统一 buckets/ledger 聚合；`NewReader` 不依赖完整 Store |
-| hour 桶 | 只持久化 hour；day/week/month 用 `date_trunc` |
-| minute | 读 `usage_ledger`，窗口 ≤3h，`source: ledger` |
-| cost consumed | 读 **buckets 周期 SUM**，不读 `org_nodes.consumed` |
-| 时区 | UTC 存储；展示默认 `Asia/Shanghai` |
+| hour 桶        | 只持久化 hour；day/week/month 用 `date_trunc`          |
+| minute         | 读 `usage_ledger`，窗口 ≤3h，`source: ledger`          |
+| cost consumed  | 读 **buckets 周期 SUM**，不读 `org_nodes.consumed`     |
+| 时区           | UTC 存储；展示默认 `Asia/Shanghai`                     |
 
 组织元数据（部门树、模型目录）仍直读 store；`common.LoadDepartments` / `LoadBudgetTree` / `LoadRoutingRules` 签名收窄为 `OrgNodeRepository`（+ `ModelAllowlistRepository`）。
 
@@ -297,13 +303,13 @@ flowchart TB
 
 HTTP JSON **camelCase**；DB **snake_case**。
 
-| 约定 | 说明 |
-| ---- | ---- |
-| `departmentId` | org/budget 域 = `org_nodes.id` |
-| `deptId` | dashboard 钻取 query/path |
-| `RoutingRule.id` | = `nodeId` |
+| 约定             | 说明                           |
+| ---------------- | ------------------------------ |
+| `departmentId`   | org/budget 域 = `org_nodes.id` |
+| `deptId`         | dashboard 钻取 query/path      |
+| `RoutingRule.id` | = `nodeId`                     |
 
-权限 key：`internal/infra/permission/keys.go` ↔ `apps/frontend/src/lib/permission-keys.ts`。
+权限 key 以 [`manifest.json`](../apps/backend/internal/infra/permission/manifest.json) 为唯一真相（目标态）；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
 
 存储侧字段语义见 [Backend-存储.md](./Backend-存储.md) §8。
 
@@ -311,11 +317,11 @@ HTTP JSON **camelCase**；DB **snake_case**。
 
 ## 10. 维护要点
 
-| 项 | 说明 |
-| -- | ---- |
-| Context | domain 内避免滥用 `context.Background()` |
-| 读鉴权 | prod profile 下各域 GET 挂 Session + 读权限 |
-| Worker 测试 | `app.WithoutWorker()` |
-| 新 GET | `tests/handler/contract_test.go` 追加用例 |
+| 项          | 说明                                                |
+| ----------- | --------------------------------------------------- |
+| Context     | domain 内避免滥用 `context.Background()`            |
+| 读鉴权      | 全部 GET 挂 Session + 读 capability（无 demo 例外） |
+| Worker 测试 | `app.WithoutWorker()`                               |
+| 新 GET      | `tests/handler/contract_test.go` 追加用例           |
 
 变更检查清单见 [Backend.md](./Backend.md)。

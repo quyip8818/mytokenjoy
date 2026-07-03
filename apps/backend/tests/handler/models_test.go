@@ -15,7 +15,7 @@ func TestRoutingUpdateHTTP(t *testing.T) {
 	body := []byte(`{"allowedModels":["gpt-4o"]}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -35,7 +35,7 @@ func TestModelCreateHTTP(t *testing.T) {
 	body := []byte(`{"name":"custom-model","displayName":"Custom","baseUrl":"http://llm.test","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -48,7 +48,7 @@ func TestModelToggleHTTP(t *testing.T) {
 	body := []byte(`{"enabled":false}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/models/model-1/toggle", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

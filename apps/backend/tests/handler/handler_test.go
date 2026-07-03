@@ -23,14 +23,14 @@ func TestSessionDemoMissingMemberID(t *testing.T) {
 	}
 }
 
-func TestSessionDemoNotFound(t *testing.T) {
+func TestSessionInvalidToken(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	req.Header.Set("Cookie", "tokenjoy_session_member=missing")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", rec.Code)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }
 
@@ -47,7 +47,7 @@ func TestSessionProductionUnauthorized(t *testing.T) {
 func TestSessionDemoSuccess(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
-	req.Header.Set("Cookie", testutil.SessionCookie(seed.IDMemberAdmin))
+	req.Header.Set("Cookie", testutil.SessionCookie(t, seed.IDMemberAdmin))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -121,6 +121,7 @@ func TestHealthz(t *testing.T) {
 func TestOrgRolesList(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/org/roles", nil)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -149,6 +150,7 @@ func TestOrgRolesList(t *testing.T) {
 func TestOrgDataSourceStatus(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/org/data-source/status", nil)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -167,6 +169,7 @@ func TestOrgDataSourceStatus(t *testing.T) {
 func TestBudgetTree(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/budget/tree", nil)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -184,6 +187,7 @@ func TestBudgetTree(t *testing.T) {
 func TestKeysProviderList(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/keys/provider", nil)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -205,7 +209,7 @@ func TestKeysPlatformCreateMissingMemberID(t *testing.T) {
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -216,6 +220,7 @@ func TestKeysPlatformCreateMissingMemberID(t *testing.T) {
 func TestModelsList(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -233,7 +238,7 @@ func TestModelsList(t *testing.T) {
 func TestDashboardCostSummary(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/cost/summary", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -251,6 +256,7 @@ func TestDashboardCostSummary(t *testing.T) {
 func TestAuditOperations(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/audit/operations", nil)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -273,7 +279,7 @@ func TestBudgetNodeUpdateOversell(t *testing.T) {
 	body := []byte(`{"budget":90000,"reservedPool":1500}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnprocessableEntity {

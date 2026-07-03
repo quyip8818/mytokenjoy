@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS companies (
     root_dept_id              TEXT,
     newapi_wallet_user_id     BIGINT,
     package_id                TEXT,
+    authz_revision            BIGINT NOT NULL DEFAULT 0,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -4,20 +4,19 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/session"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 )
 
 type SessionHandler struct {
-	shared.SessionHandlerBase
+	shared.ProtectedHandlerBase
 }
 
-func NewSessionHandler(cfg config.Config, service session.Service) *SessionHandler {
+func NewSessionHandler(p httpdeps.Protected) *SessionHandler {
 	return &SessionHandler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, service),
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 	}
 }
 
@@ -26,11 +25,16 @@ func (h *SessionHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *SessionHandler) Get(w http.ResponseWriter, r *http.Request) {
-	memberID := common.ResolveMemberID(r)
-	if memberID == "" {
+	claims, err := httpx.ParseMemberToken(r, h.SessionToken)
+	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	ctx, err := h.SessionSvc.GetByMemberID(r.Context(), memberID)
-	httputil.WriteJSON(w, http.StatusOK, ctx, err)
+	ctx, err := h.AuthzSvc.GetSessionContext(r.Context(), claims.CompanyID, claims.Subject)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	httpx.SetAuthzRevisionHeader(w, ctx.AuthzRevision)
+	httputil.WriteJSON(w, http.StatusOK, ctx, nil)
 }

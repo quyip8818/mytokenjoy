@@ -83,6 +83,7 @@ func (s *service) importFromProvider(
 	changedDeptIDs := make([]string, 0)
 
 	err = s.store.WithTx(ctx, func(st store.Store) error {
+		membersAdded := false
 		nodes, err := st.Org().Nodes().Tree(ctx)
 		if err != nil {
 			return err
@@ -203,6 +204,7 @@ func (s *service) importFromProvider(
 			})
 			memberIndex[remote.ExternalID] = members[len(members)-1]
 			result.SuccessMembers++
+			membersAdded = true
 		}
 
 		state.Nodes = RecalcDepartmentMemberCounts(state.Nodes, members)
@@ -232,7 +234,13 @@ func (s *service) importFromProvider(
 		status.LastImport = &now
 		status.LastImportResult = &result
 		integration.ApplyDataSourceStatus(status)
-		return st.Org().SetIntegration(ctx, integration)
+		if err := st.Org().SetIntegration(ctx, integration); err != nil {
+			return err
+		}
+		if membersAdded {
+			return s.bumpAuthzRevisionStore(ctx, st)
+		}
+		return nil
 	})
 	if err != nil {
 		return types.ImportResult{}, err

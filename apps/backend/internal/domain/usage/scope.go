@@ -6,6 +6,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
@@ -55,10 +56,10 @@ func IsDepartmentAccessible(departments []types.Department, scope SessionScope, 
 }
 
 func hasOrgWideDashboardAccess(permissions []string) bool {
-	if permission.HasAny(permissions, "*") {
+	if authz.HasAny(permissions, "*") {
 		return true
 	}
-	return permission.HasAny(permissions, permission.DashboardCost, permission.DashboardUsage)
+	return authz.HasAny(permissions, permission.DashboardCost, permission.DashboardUsage)
 }
 
 func collectSubtreeIDs(departments []types.Department, rootID string) []string {

@@ -15,4 +15,8 @@ const (
 	SyncResultFailure = "failure"
 
 	SchedulerLockOrgSync = "org_sync"
+
+	MemberStatusActive   = "active"
+	MemberStatusInactive = "inactive"
+	MemberStatusPending  = "pending"
 )

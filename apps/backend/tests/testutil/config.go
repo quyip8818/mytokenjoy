@@ -54,10 +54,13 @@ func WithPlatformBootstrap(email, password string) ConfigOption {
 
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
-		DemoToday:        defaultDemoToday,
-		SimulateDelay:    false,
-		CompanyName:      "Demo Company",
-		DefaultCompanyID: seed.DefaultCompanyID,
+		DemoToday:             defaultDemoToday,
+		SimulateDelay:         false,
+		CompanyName:           "Demo Company",
+		DefaultCompanyID:      seed.DefaultCompanyID,
+		SessionSecret:         TestSessionSecret,
+		PlatformSessionSecret: TestSessionSecret,
+		SessionTTLSec:         86400,
 	}
 	for _, opt := range opts {
 		opt(&cfg)

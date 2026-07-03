@@ -36,6 +36,7 @@ export function createMockSession(
 ): SessionContext {
   return {
     companyId: 1,
+    authzRevision: 0,
     member: mockMember,
     permissions,
     readOnly,
@@ -56,6 +57,8 @@ function withOverrides<K extends keyof AppApis>(
 
 function mergeApis(base: AppApis, overrides: ApiNamespaceOverrides): AppApis {
   return {
+    authApi: withOverrides(base, 'authApi', overrides.authApi),
+    billingApi: withOverrides(base, 'billingApi', overrides.billingApi),
     budgetApi: withOverrides(base, 'budgetApi', overrides.budgetApi),
     auditApi: withOverrides(base, 'auditApi', overrides.auditApi),
     dashboardApi: withOverrides(base, 'dashboardApi', overrides.dashboardApi),

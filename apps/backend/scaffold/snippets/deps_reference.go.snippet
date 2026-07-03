@@ -1,22 +1,8 @@
 // Reference: internal/http/deps/deps.go (full Deps struct)
-// New domains typically add only __DOMAIN_TITLE__Svc; fields below usually unchanged.
+// Protected routes: use deps.Protected() — see internal/http/deps/protected.go
 //
-// type Deps struct {
-// 	Config       config.Config
-// 	Logger       *slog.Logger
-// 	SessionSvc   session.Service
-// 	OrgSvc       domainorg.Service
-// 	BudgetSvc    domainbudget.Service
-// 	KeysSvc      domainkeys.Service
-// 	ModelsSvc    domainmodels.Service
-// 	DashboardSvc domaindashboard.Service
-// 	AuditSvc     domainaudit.Service
-// 	ReadModel    domainusage.ReadModel
-// 	IngestSvc    domainusage.Ingestor
-// 	CompanySvc   domaincompany.Service
-// 	BillingSvc   domainbilling.Service
-// 	PlatformSvc  platformauth.Service
-// 	WalletSvc    domaincompany.WalletService
-// 	CompanyGate  *domaincompany.Gate
-// 	RelayGateway domainrelay.GatewayService
+// type Protected struct {
+// 	Cfg          config.Config
+// 	AuthzSvc     authz.Service
+// 	SessionToken sessiontoken.Issuer
 // }

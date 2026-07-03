@@ -164,6 +164,15 @@ export const ROUTE_DEFINITIONS = [
     navGroup: '数据中心',
   },
   {
+    key: 'billing',
+    path: '/billing',
+    label: '企业钱包',
+    icon: Wallet,
+    requiredPermissions: [PERMISSION.BILLING_READ],
+    lazy: () => import('@/routes/billing/index'),
+    navGroup: '运营',
+  },
+  {
     key: 'auditOperations',
     path: '/audit/operations',
     label: '操作审计',

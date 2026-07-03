@@ -13,7 +13,7 @@ import (
 
 func TestAuthzWriteEndpoints(t *testing.T) {
 	router := newTestRouter(t)
-	for _, tc := range authzWriteCases() {
+	for _, tc := range authzWriteCases(t) {
 		t.Run(tc.name, func(t *testing.T) {
 			var body *bytes.Reader
 			if tc.body != "" {
@@ -40,7 +40,7 @@ func TestAuthzWriteEndpoints(t *testing.T) {
 
 func TestProdGetReadForbiddenForMember(t *testing.T) {
 	router := newProdTestRouter(t)
-	for _, tc := range prodGetForbiddenCases() {
+	for _, tc := range prodGetForbiddenCases(t) {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(tc.method, tc.path, nil)
 			if tc.cookie != "" {

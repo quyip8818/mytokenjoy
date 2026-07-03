@@ -15,7 +15,7 @@ func TestMemberCreateHTTP(t *testing.T) {
 	body := []byte(`{"name":"测试用户","phone":"13800000000","email":"test@example.com","departmentId":"dept-3"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -37,7 +37,7 @@ func TestBatchImportHTTP(t *testing.T) {
 	body := []byte(`{"rows":[{"name":"导入用户","phone":"13900000000","email":"import@example.com","departmentName":"后端组"}]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/batch-import", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

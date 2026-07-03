@@ -58,7 +58,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}
 
 	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger))
-	if err := registry.Platform.BootstrapIfNeeded(ctx); err != nil {
+	if err := registry.Credentials.BootstrapPlatformIfNeeded(ctx); err != nil {
 		return nil, err
 	}
 	runner := registry.WorkerRunner(logger)

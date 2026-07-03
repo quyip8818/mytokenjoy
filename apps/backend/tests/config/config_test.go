@@ -12,6 +12,7 @@ func TestProdRequiresDatabaseURL(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
 	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
 
 	_, err := config.Load()
 	if err == nil {
@@ -27,6 +28,7 @@ func TestDemoRequiresDatabaseURL(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
 	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
 
 	_, err := config.Load()
 	if err == nil {
@@ -42,6 +44,7 @@ func TestDemoLoadsWithDatabaseURL(t *testing.T) {
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
 	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -64,6 +67,7 @@ func TestPrivateRequiresCompanyName(t *testing.T) {
 	t.Setenv("COMPANY_NAME", "")
 	t.Setenv("SUPPORT_SAAS", "false")
 	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
 
 	_, err := config.Load()
 	if err == nil {
@@ -80,6 +84,9 @@ func TestSaaSResolvesTestCompanyName(t *testing.T) {
 	t.Setenv("COMPANY_NAME", "")
 	t.Setenv("SUPPORT_SAAS", "true")
 	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
+	t.Setenv("PLATFORM_SESSION_SECRET", "test-platform-secret")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
 
 	cfg, err := config.Load()
 	if err != nil {

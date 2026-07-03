@@ -8,25 +8,25 @@
 
 ## 文档地图
 
-| 文档 | 内容 |
-| ---- | ---- |
+| 文档                                 | 内容                                                       |
+| ------------------------------------ | ---------------------------------------------------------- |
 | [Backend-架构.md](./Backend-架构.md) | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储.md](./Backend-存储.md) | 36 表、管理面/运行面、ER、四张合并表、ID 约定 |
-| [Backend-预算.md](./Backend-预算.md) | 双轴、Ingest、projection、Rebalance、Overrun、分配规则 |
+| [Backend-存储.md](./Backend-存储.md) | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
+| [Backend-预算.md](./Backend-预算.md) | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 
 ---
 
 ## 1. 概览
 
-| 类别 | 选型 |
-| ---- | ---- |
-| 语言 | Go 1.24 |
-| HTTP | chi v5 + `net/http` |
-| 配置 | `caarlos0/env` |
-| 日志 | `log/slog` JSON |
-| JSON | camelCase 对齐前端 |
+| 类别 | 选型                                    |
+| ---- | --------------------------------------- |
+| 语言 | Go 1.24                                 |
+| HTTP | chi v5 + `net/http`                     |
+| 配置 | `caarlos0/env`                          |
+| 日志 | `log/slog` JSON                         |
+| JSON | camelCase 对齐前端                      |
 | 测试 | `testing` + `httptest`，用例在 `tests/` |
-| DI | 构造函数注入，组合根 `internal/app/` |
+| DI   | 构造函数注入，组合根 `internal/app/`    |
 
 ---
 
@@ -36,13 +36,13 @@
 
 ### 2.1 ADR
 
-| 决策 | 结论 |
-| ---- | ---- |
-| NewAPI 企业隔离 | 单集群；每企业一个 `newapi_wallet_user_id` |
-| 计费主账 | 企业钱包 `users.quota`；充值只进钱包 |
-| Token `remain_quota` | 分配视图；`rebalance` 保证 Σ ≤ 钱包 |
-| 双轴 | 钱包=预付资金；部门 budget=组织内花费配额 |
-| Gateway | 预检后透传 NewAPI |
+| 决策                 | 结论                                       |
+| -------------------- | ------------------------------------------ |
+| NewAPI 企业隔离      | 单集群；每企业一个 `newapi_wallet_user_id` |
+| 计费主账             | 企业钱包 `users.quota`；充值只进钱包       |
+| Token `remain_quota` | 分配视图；`rebalance` 保证 Σ ≤ 钱包        |
+| 双轴                 | 钱包=预付资金；部门 budget=组织内花费配额  |
+| Gateway              | 预检后透传 NewAPI                          |
 
 计费双轴与 Ingest 详见 [Backend-预算.md](./Backend-预算.md)。
 
@@ -81,10 +81,10 @@ flowchart TB
 
 ### 2.3 部署形态
 
-| 形态 | Channel | Token group |
-| ---- | ------- | ----------- |
-| 私有化 | 企业 `provider_keys` | `dept-{departmentId}` |
-| SaaS | 平台全局 `provider_keys` | `platform_shared` |
+| 形态   | Channel                  | Token group           |
+| ------ | ------------------------ | --------------------- |
+| 私有化 | 企业 `provider_keys`     | `dept-{departmentId}` |
+| SaaS   | 平台全局 `provider_keys` | `platform_shared`     |
 
 ### 2.4 开户与充值
 
@@ -113,16 +113,17 @@ sequenceDiagram
 
 ## 3. 环境变量与运行
 
-| 变量 | 默认 | 说明 |
-| ---- | ---- | ---- |
-| `PORT` | `8080` | HTTP |
-| `DATABASE_URL` | **必填** | Postgres |
-| `APP_PROFILE` | `demo` | `demo` / `prod` |
-| `DEMO_TODAY` | `2026-06-19` | Demo 看板锚定 |
-| `NEW_API_ENABLED` | `false` | Relay + worker |
-| `RELAY_GATEWAY_ENABLED` | `false` | `/v1/*` Gateway |
-| `SUPPORT_SAAS` | `false` | SaaS 多企业 |
-| `PLATFORM_SHARED_RELAY_GROUP` | `platform_shared` | SaaS Token 分组 |
+| 变量                          | 默认               | 说明                                                                          |
+| ----------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `PORT`                        | `8080`             | HTTP                                                                          |
+| `DATABASE_URL`                | **必填**           | Postgres                                                                      |
+| `SESSION_SECRET`              | **必填（目标态）** | 企业面 Session JWT 签名；见 [权限管理.md](./权限管理.md) §10                  |
+| `APP_PROFILE`                 | `demo`             | 仅非鉴权用途（如延迟模拟）；**鉴权不再分叉**，见 [权限管理.md](./权限管理.md) |
+| `DEMO_TODAY`                  | `2026-06-19`       | Demo 看板锚定                                                                 |
+| `NEW_API_ENABLED`             | `false`            | Relay + worker                                                                |
+| `RELAY_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
+| `SUPPORT_SAAS`                | `false`            | SaaS 多企业                                                                   |
+| `PLATFORM_SHARED_RELAY_GROUP` | `platform_shared`  | SaaS Token 分组                                                               |
 
 完整列表见 `apps/backend/.env.example`。
 
@@ -154,11 +155,11 @@ flowchart LR
   BE --> NA
 ```
 
-| 组件 | 说明 |
-| ---- | ---- |
-| NewAPI | 单集群；按 `newapi_wallet_user_id` 逻辑隔离 |
-| Postgres | `tokenjoy` + `newapi` 两库 |
-| Redis | NewAPI 会话与缓存 |
+| 组件     | 说明                                        |
+| -------- | ------------------------------------------- |
+| NewAPI   | 单集群；按 `newapi_wallet_user_id` 逻辑隔离 |
+| Postgres | `tokenjoy` + `newapi` 两库                  |
+| Redis    | NewAPI 会话与缓存                           |
 
 **Bootstrap：** `docker compose -f apps/newapi/docker-compose.yml up -d` → NewAPI 根管理员 → `NEW_API_ADMIN_TOKEN` → Webhook secret 对齐 → Channel `group=platform_shared`。
 
@@ -180,11 +181,11 @@ make test-unit          # go test -tags=testhook ./tests/...
 make test-integration   # -tags=integration
 ```
 
-| 层 | 目录 | CI |
-| -- | ---- | -- |
-| 纯函数 | `tests/pkg/*` | verify |
-| Domain | `tests/domain/*` | verify |
-| Handler | `tests/handler/*` | verify |
+| 层       | 目录                   | CI                  |
+| -------- | ---------------------- | ------------------- |
+| 纯函数   | `tests/pkg/*`          | verify              |
+| Domain   | `tests/domain/*`       | verify              |
+| Handler  | `tests/handler/*`      | verify              |
 | Postgres | `tests/store/postgres` | backend-integration |
 
 新 GET 端点追加 `contract_test.go`。SaaS：`testutil.ApplySaaSConfig`。

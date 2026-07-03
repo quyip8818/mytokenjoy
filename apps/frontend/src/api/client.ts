@@ -1,4 +1,5 @@
 import { API_BASE_PATH } from '@/config/app'
+import { AUTHZ_REVISION_HEADER } from '@/features/session/authz-sync'
 
 export class ApiError extends Error {
   status: number
@@ -13,9 +14,19 @@ export class ApiError extends Error {
 }
 
 let unauthorizedHandler: (() => void) | null = null
+let forbiddenHandler: ((path: string) => void) | null = null
+let authzRevisionHandler: ((revision: number) => void) | null = null
 
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler
+}
+
+export function setForbiddenHandler(handler: ((path: string) => void) | null): void {
+  forbiddenHandler = handler
+}
+
+export function setAuthzRevisionHandler(handler: ((revision: number) => void) | null): void {
+  authzRevisionHandler = handler
 }
 
 const NON_JSON_RESPONSE_MESSAGE =
@@ -43,6 +54,15 @@ async function readJsonBody<T>(res: Response): Promise<T> {
   }
 }
 
+function notifyAuthzRevision(res: Response): void {
+  const revisionHeader = res.headers.get(AUTHZ_REVISION_HEADER)
+  if (!revisionHeader) return
+  const revision = Number(revisionHeader)
+  if (Number.isFinite(revision)) {
+    authzRevisionHandler?.(revision)
+  }
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_PATH}${path}`
   const res = await fetch(url, {
@@ -55,6 +75,8 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     ...options,
   })
 
+  notifyAuthzRevision(res)
+
   if (!res.ok) {
     let body: { message?: string; retryAfter?: number } = {}
     try {
@@ -66,6 +88,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
     if (res.status === 401) {
       unauthorizedHandler?.()
+    }
+    if (res.status === 403 && path !== '/session') {
+      forbiddenHandler?.(path)
     }
     throw new ApiError(
       res.status,

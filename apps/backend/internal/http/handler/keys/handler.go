@@ -4,38 +4,38 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
-	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/infra/permission"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 type Handler struct {
-	shared.SessionHandlerBase
+	shared.ProtectedHandlerBase
 	service domainkeys.Service
 }
 
-func NewHandler(cfg config.Config, service domainkeys.Service, sessionSvc session.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domainkeys.Service) *Handler {
 	return &Handler{
-		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
-		service:            service,
+		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
+		service:              service,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.KeysRead)
-	read.Get("/provider", h.ProviderList)
-	read.Get("/platform", h.PlatformList)
-	read.Get("/platform/quota-summary", h.PlatformQuotaSummary)
-	read.Get("/approvals", h.ApprovalsList)
-	read.Get("/approvals/{id}/quota-check", h.ApprovalQuotaCheck)
+	adminRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead)
+	adminRead.Get("/provider", h.ProviderList)
+	adminRead.Get("/platform", h.PlatformList)
+	adminRead.Get("/platform/quota-summary", h.PlatformQuotaSummary)
 
-	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
+	approvalRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead, permission.BudgetApprove)
+	approvalRead.Get("/approvals", h.ApprovalsList)
+	approvalRead.Get("/approvals/{id}/quota-check", h.ApprovalQuotaCheck)
+
+	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
 	providerWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysProvider))
 	providerWrite.Post("/provider", h.ProviderCreate)
@@ -177,8 +177,12 @@ func (h *Handler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
-	approverID := common.ResolveMemberID(r)
-	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), approverID)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID)
 	httputil.WriteVoid(w, err)
 }
 
@@ -188,7 +192,11 @@ func (h *Handler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	approverID := common.ResolveMemberID(r)
-	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), approverID, body.Reason)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID, body.Reason)
 	httputil.WriteVoid(w, err)
 }

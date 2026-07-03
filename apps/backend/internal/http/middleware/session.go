@@ -5,39 +5,27 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/session"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 )
 
-type sessionContextKey struct{}
-
-func WithSessionContext(ctx context.Context, sessionCtx types.SessionContext) context.Context {
-	return context.WithValue(ctx, sessionContextKey{}, sessionCtx)
-}
-
 func SessionFromContext(ctx context.Context) (types.SessionContext, bool) {
-	sessionCtx, ok := ctx.Value(sessionContextKey{}).(types.SessionContext)
-	return sessionCtx, ok
+	return httpx.SessionFromContext(ctx)
 }
 
-func RequireSession(cfg config.Config, sessionSvc session.Service) func(http.Handler) http.Handler {
+func RequireSession(p httpdeps.Protected) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if cfg.IsProdProfile() && common.UsedBearerAuth(r) {
-				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-				return
-			}
-			memberID := common.ResolveMemberID(r)
-			if memberID == "" {
+			claims, err := httpx.ParseMemberToken(r, p.SessionToken)
+			if err != nil {
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}
 
-			sessionCtx, err := sessionSvc.GetByMemberID(r.Context(), memberID)
+			sessionCtx, err := p.AuthzSvc.GetSessionContext(r.Context(), claims.CompanyID, claims.Subject)
 			if err != nil {
 				var domainErr *domain.DomainError
 				if errors.As(err, &domainErr) && domainErr.Status == domain.StatusNotFound {
@@ -47,8 +35,17 @@ func RequireSession(cfg config.Config, sessionSvc session.Service) func(http.Han
 				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 				return
 			}
+			if sessionCtx.CompanyID != claims.CompanyID || sessionCtx.Member.ID != claims.Subject {
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+				return
+			}
+			if sessionCtx.Member.Status != types.MemberStatusActive {
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+				return
+			}
 
-			ctx := WithSessionContext(r.Context(), sessionCtx)
+			ctx := httpx.WithSessionClaims(r.Context(), claims)
+			ctx = httpx.WithSessionContext(ctx, sessionCtx)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

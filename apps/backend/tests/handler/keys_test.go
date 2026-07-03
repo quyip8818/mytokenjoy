@@ -12,7 +12,7 @@ import (
 func TestApprovalApproveHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodPut, "/api/keys/approvals/apv-1/approve", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -25,7 +25,7 @@ func TestApprovalRejectHTTP(t *testing.T) {
 	body := []byte(`{"reason":"not needed"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/keys/approvals/apv-2/reject", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -38,7 +38,7 @@ func TestPlatformKeyCreateHTTP(t *testing.T) {
 	body := []byte(`{"name":"http-key","memberId":"m-1","quota":200,"modelWhitelist":["gpt-4o"]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -49,7 +49,7 @@ func TestPlatformKeyCreateHTTP(t *testing.T) {
 func TestPlatformKeyDeleteHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodDelete, "/api/keys/platform/plk-1", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -60,7 +60,7 @@ func TestPlatformKeyDeleteHTTP(t *testing.T) {
 func TestProviderKeyDeleteNotFoundHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodDelete, "/api/keys/provider/missing-provider-key", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {
@@ -71,7 +71,7 @@ func TestProviderKeyDeleteNotFoundHTTP(t *testing.T) {
 func TestPlatformKeyDeleteNotFoundHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodDelete, "/api/keys/platform/missing-platform-key", nil)
-	req.Header.Set("Cookie", sessionCookie)
+	req.Header.Set("Cookie", adminSessionCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {
@@ -84,7 +84,7 @@ func TestApprovalCreateHTTP(t *testing.T) {
 	body := []byte(`{"type":"quota","reason":"need more","requestedQuota":500,"memberId":"m-1"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/keys/approvals", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", testutil.SessionCookie("m-1"))
+	req.Header.Set("Cookie", testutil.SessionCookie(t, "m-1"))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

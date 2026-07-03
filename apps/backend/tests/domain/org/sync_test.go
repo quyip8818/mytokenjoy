@@ -104,8 +104,19 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
+	before, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
+	}
+	after, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after <= before {
+		t.Fatalf("expected authz revision to increase after sync soft-delete, before=%d after=%d", before, after)
 	}
 	members, err = env.Store.Org().Members(ctx)
 	if err != nil {
