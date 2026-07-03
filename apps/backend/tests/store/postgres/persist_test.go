@@ -4,9 +4,10 @@ package postgres_test
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
+
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -16,25 +17,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
-
-func requireDatabaseURL(t *testing.T) string {
-	t.Helper()
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		t.Skip("DATABASE_URL not set")
-	}
-	return dbURL
-}
-
-func testDBPool(t *testing.T) *pgxpool.Pool {
-	t.Helper()
-	pool, err := pgxpool.New(context.Background(), requireDatabaseURL(t))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { pool.Close() })
-	return pool
-}
 
 func memberUpdatedAt(t *testing.T, pool *pgxpool.Pool, memberID string) time.Time {
 	t.Helper()
@@ -70,27 +52,6 @@ func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID string) time.Time 
 		t.Fatalf("read model %s updated_at: %v", modelID, err)
 	}
 	return ts
-}
-
-func reopenPostgresStore(t *testing.T, dbURL string) store.Store {
-	t.Helper()
-	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = dbURL
-	st, err := postgres.New(context.Background(), cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if pg, ok := st.(*postgres.Store); ok {
-			pg.Close()
-		}
-	})
-	return st
-}
-
-func testPostgresStore(t *testing.T) store.Store {
-	t.Helper()
-	return reopenPostgresStore(t, requireDatabaseURL(t))
 }
 
 func findMemberName(members []types.Member, id string) string {
@@ -236,7 +197,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 		if len(tree) > 0 {
 			tree[0].Name = tree[0].Name + "-tx"
 		}
-		return testutil.PersistBudgetTree(ctx, tx, tree)
+		return orgfix.PersistBudgetTree(ctx, tx, tree)
 	})
 	if err != nil {
 		t.Fatal(err)

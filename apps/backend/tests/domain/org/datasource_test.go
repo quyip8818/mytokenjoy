@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -14,7 +16,7 @@ func TestTestDataSourceInvalidCredential422(t *testing.T) {
 	server := testutil.StartFeishuAuthErrorServer(t)
 	cfg.FeishuBaseURL = server.URL
 	st := testutil.NewMemoryStore(t, cfg)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 
 	result, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformFeishu,
@@ -38,7 +40,7 @@ func TestUpdateDataSourcePersistsCredential(t *testing.T) {
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL
 	st := testutil.NewMemoryStore(t, cfg)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 
 	cred := types.Credential{
 		Platform: types.PlatformFeishu,
@@ -68,7 +70,7 @@ func TestSearchDataSourceUsesProvider(t *testing.T) {
 	cfg.FeishuBaseURL = server.URL
 	st := testutil.NewMemoryStore(t, cfg)
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 
 	result, err := svc.SearchDataSource(testutil.Ctx(), "Mock")
 	if err != nil {
@@ -80,7 +82,7 @@ func TestSearchDataSourceUsesProvider(t *testing.T) {
 }
 
 func TestUnsupportedPlatformReturns422(t *testing.T) {
-	_, _, svc := testutil.NewOrgServiceFromStore(t)
+	_, _, svc := orgfix.NewServiceFromStore(t)
 	_, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformDingtalk,
 		Dingtalk: &types.DingtalkCredential{
@@ -102,7 +104,7 @@ func TestUpdateDataSourceSwitchPlatformRequiresForce(t *testing.T) {
 	cfg.FeishuBaseURL = server.URL
 	st := testutil.NewMemoryStore(t, cfg)
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 
 	err := svc.UpdateDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformDingtalk,

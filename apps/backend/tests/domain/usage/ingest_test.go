@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -15,7 +17,7 @@ import (
 func TestIngestIdempotentAndRollup(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 	ctx := testutil.Ctx()
 
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -104,7 +106,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 func TestIngestFromOutbox(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	raw, err := json.Marshal(newapi.WebhookLogPayload{
 		ID: 2002, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
@@ -124,7 +126,7 @@ func TestIngestFromOutbox(t *testing.T) {
 func TestIngestWritesUsageBucket(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	payload := newapi.WebhookLogPayload{
 		ID: 4001, TokenID: 99, Quota: 100000, Model: "gpt-4o", CreatedAt: 1717200000,

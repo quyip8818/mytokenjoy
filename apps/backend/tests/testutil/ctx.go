@@ -10,3 +10,7 @@ import (
 func Ctx() context.Context {
 	return company.DefaultContext(seed.DefaultCompanyID)
 }
+
+func CtxForCompany(companyID int64) context.Context {
+	return company.DefaultContext(companyID)
+}

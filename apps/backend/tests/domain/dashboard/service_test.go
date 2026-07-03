@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
 	"github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -83,7 +85,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 999)
-	testutil.PersistBudgetTreeT(t, ctx, st, tree)
+	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 18.5, CallCount: 2})
 	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, domainusage.SessionScope{
 		MemberID: seed.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},

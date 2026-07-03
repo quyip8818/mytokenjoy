@@ -19,7 +19,8 @@ make scaffold-domain DOMAIN=notification
 | `internal/domain/<DOMAIN>/service.go`       | Service interface + 空实现    |
 | `internal/http/handler/<DOMAIN>/handler.go` | Handler + RegisterRoutes 骨架 |
 | `tests/domain/<DOMAIN>/service_test.go`     | 领域单测                      |
-| `tests/handler/<DOMAIN>_test.go`            | HTTP 契约测骨架               |
+| `tests/domain/<DOMAIN>/helpers_test.go`     | 域内共享 fixture（可选）      |
+| `tests/handler/<DOMAIN>/<DOMAIN>_test.go`   | HTTP 契约测骨架               |
 
 脚本会在终端打印需手动粘贴到以下文件的代码片段：
 

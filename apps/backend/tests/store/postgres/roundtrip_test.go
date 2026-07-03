@@ -6,6 +6,8 @@ import (
 	"errors"
 	"testing"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -38,7 +40,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 			},
 		},
 	}
-	nodes := testutil.OrgNodesFromBudgetTree(tree)
+	nodes := orgfix.OrgNodesFromBudgetTree(tree)
 	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
 		t.Fatal(err)
 	}

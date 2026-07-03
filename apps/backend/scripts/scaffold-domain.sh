@@ -37,14 +37,15 @@ DOMAIN_DIR="$ROOT/internal/domain/$DOMAIN"
 HANDLER_DIR="$ROOT/internal/http/handler/$DOMAIN"
 HANDLER_FILE="$HANDLER_DIR/handler.go"
 DOMAIN_TEST_DIR="$ROOT/tests/domain/$DOMAIN"
-HANDLER_TEST_FILE="$ROOT/tests/handler/${DOMAIN}_test.go"
+HANDLER_TEST_DIR="$ROOT/tests/handler/$DOMAIN"
+HANDLER_TEST_FILE="$HANDLER_TEST_DIR/${DOMAIN}_test.go"
 
 if [[ -e "$DOMAIN_DIR" || -e "$HANDLER_FILE" ]]; then
   echo "error: domain '$DOMAIN' already exists" >&2
   exit 1
 fi
 
-mkdir -p "$DOMAIN_DIR" "$DOMAIN_TEST_DIR" "$HANDLER_DIR"
+mkdir -p "$DOMAIN_DIR" "$DOMAIN_TEST_DIR" "$HANDLER_DIR" "$HANDLER_TEST_DIR"
 
 render "$SCAFFOLD/domain/service.go.tmpl" "$DOMAIN_DIR/service.go"
 render "$SCAFFOLD/domain/service_test.go.tmpl" "$DOMAIN_TEST_DIR/service_test.go"
@@ -55,7 +56,7 @@ echo "Created:"
 echo "  internal/domain/$DOMAIN/service.go"
 echo "  internal/http/handler/$DOMAIN/handler.go"
 echo "  tests/domain/$DOMAIN/service_test.go"
-echo "  tests/handler/${DOMAIN}_test.go"
+echo "  tests/handler/$DOMAIN/${DOMAIN}_test.go"
 echo ""
 echo "Manual registration required:"
 echo ""

@@ -26,4 +26,33 @@ func TestValidateBudgetNodeUpdate(t *testing.T) {
 	}
 }
 
-func floatPtr(v float64) *float64 { return &v }
+func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
+	tree := []types.BudgetNode{
+		{
+			ID: "root", Budget: 100000, ReservedPool: floatPtr(10000),
+			Children: []types.BudgetNode{
+				{ID: "dept-a", Budget: 40000, ReservedPool: floatPtr(5000)},
+				{ID: "dept-b", Budget: 40000},
+			},
+		},
+	}
+	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-b", 55000, 0); msg == nil {
+		t.Fatal("expected sibling sum to exceed parent capacity")
+	}
+}
+
+func TestGetMemberQuotaCapacity(t *testing.T) {
+	reserved := 2000.0
+	node := types.BudgetNode{
+		ID: "dept", Budget: 20000, ReservedPool: &reserved,
+		Children: []types.BudgetNode{
+			{ID: "child-a", Budget: 8000},
+			{ID: "child-b", Budget: 5000},
+		},
+	}
+	capacity := budget.GetMemberQuotaCapacity(node)
+	want := 20000.0 - 2000.0 - 8000.0 - 5000.0
+	if capacity != want {
+		t.Fatalf("expected capacity %f, got %f", want, capacity)
+	}
+}

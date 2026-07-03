@@ -6,6 +6,9 @@ import (
 	"os"
 	"testing"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
@@ -37,8 +40,8 @@ func TestOverrunDisablesDepartmentKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 25000)
-	testutil.PersistBudgetTreeT(t, ctx, st, tree)
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  seed.IDDept3,
@@ -75,7 +78,7 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 	overrun := newOverrunService(t, cfg, st, stub)
 	ctx := testutil.Ctx()
 
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)

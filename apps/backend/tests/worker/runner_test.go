@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -85,7 +87,7 @@ func TestProcessWebhookOutbox(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(77)
-	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
+	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
 		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
 
@@ -135,7 +137,7 @@ func TestCompensateLogs(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(88)
-	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
+	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
 		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
 	if err := st.Relay().SetLastLogID(testutil.Ctx(), 0); err != nil {

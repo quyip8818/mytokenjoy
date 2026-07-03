@@ -6,6 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -25,7 +26,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := findDept3(nodeTree)
+	node := pkgbudget.FindBudgetNode(nodeTree, seed.IDDept3)
 	if node == nil || node.Budget != 21000 {
 		t.Fatalf("expected persisted budget 21000, got %+v", node)
 	}
@@ -127,5 +128,30 @@ func TestDeleteGroup(t *testing.T) {
 		if group.ID == seed.IDBudgetGroup4 {
 			t.Fatal("expected bg-4 deleted")
 		}
+	}
+}
+
+func TestDeptRemainingAllocatableBudget(t *testing.T) {
+	_, st := newBudgetService(t)
+	ctx := testutil.Ctx()
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dept3 := pkgbudget.FindBudgetNode(tree, seed.IDDept3)
+	if dept3 == nil {
+		t.Fatal("dept-3 not found")
+	}
+	childrenSum := 0.0
+	for _, child := range dept3.Children {
+		childrenSum += child.Budget
+	}
+	reserved := 0.0
+	if dept3.ReservedPool != nil {
+		reserved = *dept3.ReservedPool
+	}
+	remaining := dept3.Budget - reserved - childrenSum
+	if remaining <= 0 {
+		t.Fatalf("expected positive remaining allocatable, got %f", remaining)
 	}
 }

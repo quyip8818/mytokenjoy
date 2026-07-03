@@ -14,19 +14,20 @@ import (
 	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
+	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 )
 
 func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
-	mock := testutil.StartNewAPIMock(t)
+	mock := saas.StartNewAPIMock(t)
 	app := testutil.NewTestApp(t, func(cfg *config.Config) {
-		testutil.ApplySaaSConfig(cfg)
+		saas.ApplyConfig(cfg)
 		mock.ApplyToConfig(cfg)
 	})
 	router := app.Router
-	platformCookie := testutil.LoginPlatform(t, router)
-	created := testutil.CreateCompanyHTTP(t, router, platformCookie,
+	platformCookie := saas.LoginPlatform(t, router)
+	created := saas.CreateCompanyHTTP(t, router, platformCookie,
 		"accept-co", "Accept Co", "accept@example.com")
-	_, memberCookie := testutil.AcceptInviteHTTP(t, router, created.InviteToken,
+	_, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteToken,
 		"Accept Admin", "securepass123")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)

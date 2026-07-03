@@ -3,6 +3,8 @@ package usage_test
 import (
 	"testing"
 
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -15,7 +17,7 @@ func TestIngestVisibleInAuditCalls(t *testing.T) {
 	callLogQuerier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	const logID int64 = 9100
 	const input = "audit e2e snippet"

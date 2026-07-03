@@ -20,3 +20,18 @@ func TestValidateMemberQuotaBelowAllocated(t *testing.T) {
 		t.Fatal("expected validation error when quota below allocated")
 	}
 }
+
+func TestValidateMemberQuotaExceedsDeptCapacity(t *testing.T) {
+	tree := []types.BudgetNode{
+		{ID: "dept-3", Budget: 20000, ReservedPool: floatPtr(2000)},
+	}
+	members := []types.Member{
+		{ID: "m-1", DepartmentID: "dept-3", PersonalQuota: 10000},
+		{ID: "m-2", DepartmentID: "dept-3", PersonalQuota: 5000},
+	}
+	msg := budget.ValidateMemberQuotaUpdate(tree, members, nil, "m-2", 10000)
+	if msg == nil {
+		t.Fatal("expected validation error when exceeding dept capacity")
+	}
+}
+

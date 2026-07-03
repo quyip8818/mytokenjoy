@@ -2,7 +2,10 @@ package org_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
+
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -14,7 +17,7 @@ import (
 )
 
 func TestSyncThresholdBlocksDeletion(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
+	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	importedExternalID := "ou-gone"
 	members, err := env.Store.Org().Members(ctx)
@@ -28,12 +31,12 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
 		t.Fatal(err)
 	}
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
 		DeleteMemberThreshold: 0, DeleteDepartmentThreshold: 5,
 	})
 	env.Cfg.FeishuBaseURL = env.ServerURL
-	env.Svc = testutil.NewOrgService(t, env.Cfg, env.Store)
+	env.Svc = orgfix.NewService(t, env.Cfg, env.Store)
 
 	_, err = env.Svc.TriggerSync(testutil.Ctx())
 	if err == nil {
@@ -48,10 +51,10 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	deptName := "Mock Dept"
 	server := testutil.StartMutableFeishuServer(t, &deptName, testutil.DefaultFeishuUsers())
-	env := testutil.SetupImportedFeishuOrgWithServer(t, server.URL)
+	env := orgfix.SetupImportedFeishuOrgWithServer(t, server.URL)
 	ctx := testutil.Ctx()
 	deptName = "Renamed Dept"
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
@@ -86,7 +89,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 }
 
 func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
-	env := testutil.SetupImportedFeishuOrg(t)
+	env := orgfix.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	externalID := "ou-gone"
 	members, err := env.Store.Org().Members(ctx)
@@ -100,7 +103,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
 		t.Fatal(err)
 	}
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
@@ -130,7 +133,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 }
 
 func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
-	env := testutil.SetupImportedFeishuOrg(t)
+	env := orgfix.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
 	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
@@ -145,8 +148,8 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 			}
 		}
 	}
-	testutil.PersistDepartmentsT(t, ctx, env.Store, departments)
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	orgfix.PersistDepartmentsT(t, ctx, env.Store, departments)
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
@@ -159,5 +162,50 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	}
 	if pkgorg.FindDepartment(departments, seed.IDDept2) == nil {
 		t.Fatal("manual department should remain after sync")
+	}
+}
+
+func TestSyncConfigRoundTrip(t *testing.T) {
+	svc := newTestOrgService(t)
+	ctx := testutil.Ctx()
+
+	cfg := types.SyncConfig{
+		Enabled: true, StartTime: "02:30", FrequencyHours: 4,
+		DeleteMemberThreshold: 3, DeleteDepartmentThreshold: 2,
+	}
+	if err := svc.UpdateSyncConfig(ctx, cfg); err != nil {
+		t.Fatal(err)
+	}
+	got, err := svc.GetSyncConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Enabled || got.StartTime != "02:30" || got.FrequencyHours != 4 {
+		t.Fatalf("unexpected config %+v", got)
+	}
+	if got.DeleteMemberThreshold != 3 || got.DeleteDepartmentThreshold != 2 {
+		t.Fatalf("unexpected thresholds %+v", got)
+	}
+}
+
+func TestListSyncLogsPagination(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	for i := 0; i < 3; i++ {
+		if err := st.Org().AppendSyncLog(ctx, types.SyncLog{
+			ID: fmt.Sprintf("log-%d", i), Time: "2026-06-01 10:00",
+			Type: types.SyncTypeManual, Result: types.SyncResultSuccess, Detail: "ok",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page, err := svc.ListSyncLogs(ctx, 1, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 2 || page.Total < 3 {
+		t.Fatalf("unexpected page %+v", page)
 	}
 }

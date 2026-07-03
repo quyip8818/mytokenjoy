@@ -114,11 +114,11 @@ func (s *Service) importFromProvider(
 			parentLocalID := resolveParentLocalID(remote.ParentExternalID, platform, externalToLocal)
 			localID, exists := externalToLocal[remote.ExternalID]
 			if !exists {
-				localID = localDeptID(platform, remote.ExternalID)
+				localID = pkgorg.LocalDeptID(platform, remote.ExternalID)
 			}
 
 			existing := pkgorg.FindDepartment(departments, localID)
-			if existing != nil && isManualDeptSource(existing.Source) {
+			if existing != nil && pkgorg.IsManualDeptSource(existing.Source) {
 				continue
 			}
 
@@ -133,7 +133,7 @@ func (s *Service) importFromProvider(
 					node.ExternalID = stringPtr(remote.ExternalID)
 					node.Source = stringPtr(types.DeptSourceImported)
 					if remote.LeaderUserID != "" {
-						node.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
+						node.ManagerID = stringPtr(pkgorg.LocalMemberID(platform, remote.LeaderUserID))
 					}
 				}
 				departments = core.DepartmentsFromState(state)
@@ -154,7 +154,7 @@ func (s *Service) importFromProvider(
 				node.ExternalID = stringPtr(remote.ExternalID)
 				node.Source = stringPtr(types.DeptSourceImported)
 				if remote.LeaderUserID != "" {
-					node.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
+					node.ManagerID = stringPtr(pkgorg.LocalMemberID(platform, remote.LeaderUserID))
 				}
 			}
 			departments = core.DepartmentsFromState(state)
@@ -166,9 +166,9 @@ func (s *Service) importFromProvider(
 
 		for _, remote := range remoteMembers {
 			localDept := resolveLocalDeptID(departments, platform, remote.DepartmentExternalID, externalToLocal)
-			memberID := localMemberID(platform, remote.ExternalID)
+			memberID := pkgorg.LocalMemberID(platform, remote.ExternalID)
 			if existing, ok := memberIndex[remote.ExternalID]; ok {
-				if isManualMemberSource(existing.Source) {
+				if pkgorg.IsManualMemberSource(existing.Source) {
 					continue
 				}
 				for i := range members {

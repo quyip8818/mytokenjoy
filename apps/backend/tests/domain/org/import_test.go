@@ -3,6 +3,8 @@ package org_test
 import (
 	"testing"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -12,13 +14,13 @@ import (
 )
 
 func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
+	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	before, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := testutil.ImportFeishuOrg(t, env)
+	result := orgfix.ImportFeishuOrg(t, env)
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
 	}
@@ -53,7 +55,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 }
 
 func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
+	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
 	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
@@ -68,8 +70,8 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 			}
 		}
 	}
-	testutil.PersistDepartmentsT(t, ctx, env.Store, departments)
-	testutil.ImportFeishuOrg(t, env)
+	orgfix.PersistDepartmentsT(t, ctx, env.Store, departments)
+	orgfix.ImportFeishuOrg(t, env)
 
 	departments, err = common.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
@@ -82,15 +84,15 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 }
 
 func TestImportSecondRunIdempotent(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
+	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
-	first := testutil.ImportFeishuOrg(t, env)
+	first := orgfix.ImportFeishuOrg(t, env)
 	members, err := env.Store.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	beforeMembers := len(members)
-	second := testutil.ImportFeishuOrg(t, env)
+	second := orgfix.ImportFeishuOrg(t, env)
 	members, err = env.Store.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -104,9 +106,9 @@ func TestImportSecondRunIdempotent(t *testing.T) {
 }
 
 func TestImportProvisionsBudgetAndRouting(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
+	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
-	testutil.ImportFeishuOrg(t, env)
+	orgfix.ImportFeishuOrg(t, env)
 	budgetTree, err := common.LoadBudgetTree(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
@@ -127,5 +129,22 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	}
 	if !foundRule {
 		t.Fatal("expected routing rule for imported department")
+	}
+}
+
+func TestRetryImportFiltersByFailureIDs(t *testing.T) {
+	env := orgfix.SetupFeishuConnected(t)
+	ctx := testutil.Ctx()
+	if err := env.Store.Org().SetImportFailures(ctx, []types.ImportFailure{
+		{ID: "fail-1", Name: "Retry Me", EmployeeID: "ou-retry", Reason: "network"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := env.Svc.RetryImport(ctx, []string{"fail-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SuccessMembers < 0 {
+		t.Fatalf("unexpected result %+v", result)
 	}
 }

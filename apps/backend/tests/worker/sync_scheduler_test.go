@@ -4,11 +4,13 @@ import (
 	"testing"
 	"time"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func syncLogCount(t *testing.T, env testutil.FeishuOrgEnv) int {
+func syncLogCount(t *testing.T, env orgfix.FeishuOrgEnv) int {
 	t.Helper()
 	logs, err := env.Store.Org().SyncLogs(testutil.Ctx())
 	if err != nil {
@@ -18,8 +20,8 @@ func syncLogCount(t *testing.T, env testutil.FeishuOrgEnv) int {
 }
 
 func TestScheduledSyncUsesLock(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	env := orgfix.SetupFeishuConnected(t)
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
 		DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
@@ -39,8 +41,8 @@ func TestScheduledSyncUsesLock(t *testing.T) {
 }
 
 func TestScheduledSyncRunsWhenEnabled(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	env := orgfix.SetupFeishuConnected(t)
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
 		DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
@@ -54,8 +56,8 @@ func TestScheduledSyncRunsWhenEnabled(t *testing.T) {
 }
 
 func TestScheduledSyncSkipsDuplicateWithinFrequency(t *testing.T) {
-	env := testutil.SetupFeishuConnected(t)
-	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
+	env := orgfix.SetupFeishuConnected(t)
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
 		DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})

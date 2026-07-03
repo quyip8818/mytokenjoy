@@ -1,39 +1,22 @@
 package usage_test
 
 import (
-	"log/slog"
-	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/domain/budget"
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/notification"
-	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
 func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
-		testutil.WithNewAPIEnabled(true),
-		testutil.WithNewAPIBaseURL("http://relay.test"),
-		testutil.WithNewAPIAdminToken("token"),
-		testutil.WithNewAPIWebhookSecret("secret"),
-	)
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	notifier := notification.NewService(cfg, st, logger)
-	ingest := usage.NewIngestService(cfg, st, notifier, logger)
-	overrun := budget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
-	rebalance := budget.NewRebalanceService(cfg, st, stub)
-	orgSvc := testutil.NewOrgService(t, cfg, st)
-	runner := worker.NewRunner(cfg, st.Relay(), stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
+	runner, st, _, ingest := workerfix.NewRunner(t, stub)
 	ctx := testutil.Ctx()
 
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
@@ -41,9 +24,9 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 24999)
-	testutil.PersistBudgetTreeT(t, ctx, st, tree)
+	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
 
-	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	payload := newapi.WebhookLogPayload{
 		ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,

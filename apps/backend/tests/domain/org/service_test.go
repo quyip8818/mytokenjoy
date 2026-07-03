@@ -3,23 +3,9 @@ package org_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
-
-func newTestOrgService(t *testing.T) org.Service {
-	t.Helper()
-	_, _, svc := testutil.NewOrgServiceFromStore(t)
-	return svc
-}
-
-func newTestOrgServiceWithStore(t *testing.T) (org.Service, store.Store) {
-	t.Helper()
-	_, st, svc := testutil.NewOrgServiceFromStore(t)
-	return svc, st
-}
 
 func TestDeletePresetRoleReturns400(t *testing.T) {
 	svc := newTestOrgService(t)

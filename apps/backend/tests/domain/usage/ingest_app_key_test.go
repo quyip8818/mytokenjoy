@@ -3,6 +3,8 @@ package usage_test
 import (
 	"testing"
 
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -15,7 +17,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 	ingest := testutil.NewIngestService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	testutil.UpsertRelayMapping(t, st, testutil.RelayMappingOpts{
+	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
 		PlatformKeyID: "plk-3",
 		NewAPITokenID: 77,
 		NoMember:      true,

@@ -184,11 +184,27 @@ make test-integration   # -tags=integration
 | 层       | 目录                   | CI                  |
 | -------- | ---------------------- | ------------------- |
 | 纯函数   | `tests/pkg/*`          | verify              |
-| Domain   | `tests/domain/*`       | verify              |
-| Handler  | `tests/handler/*`      | verify              |
+| Domain   | `tests/domain/<域>/`   | verify              |
+| Handler  | `tests/handler/<域>/`  | verify              |
 | Postgres | `tests/store/postgres` | backend-integration |
 
-新 GET 端点追加 `contract_test.go`。SaaS：`testutil.ApplySaaSConfig`。
+### 5.1 `testutil` 子包
+
+| 子包 | 职责 |
+| ---- | ---- |
+| `testutil/`（根） | 通用：`config`、`ctx`、`memory`、`assert`、`store`、`app`、`session` |
+| `testutil/org` | Org Service、Feishu fixture、预算树持久化 |
+| `testutil/saas` | SaaS 配置、NewAPI mock、平台 HTTP 开户 |
+| `testutil/http` | Router、AdminCookie、ServeAuthz、ProdRouter |
+| `testutil/relay` | Gateway 场景、StubWallet、Mapping |
+| `testutil/worker` | Runner 栈、Outbox 断言 |
+
+### 5.2 目录约定
+
+- **Domain**：按 bounded context 分子目录；共享 helper 放在 `helpers_test.go`（如 `tests/domain/org/helpers_test.go`）。
+- **Handler**：按 API 域分子包（`core/`、`authz/`、`org/`、`billing/`、`platform/`、`gateway/` 等），每目录独立 `package *_test`；HTTP fixture 统一用 `testutil/http` 与 `testutil/saas`。
+
+新 GET 端点追加 `tests/handler/core/contract_test.go`。SaaS 配置：`testutil/saas.ApplyConfig`。
 
 ---
 
@@ -197,5 +213,5 @@ make test-integration   # -tags=integration
 - [ ] `apps/frontend/src/api/` + [Frontend.md](./Frontend.md) API 契约
 - [ ] `internal/domain/` + `internal/http/handler/`
 - [ ] `internal/store/seed/`（demo 数据）
-- [ ] `tests/handler/contract_test.go`（新 GET）
+- [ ] `tests/handler/core/contract_test.go`（新 GET）
 - [ ] 已实现项从 [Roadmap.md](./Roadmap.md) 移除

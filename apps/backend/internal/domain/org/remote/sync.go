@@ -113,21 +113,21 @@ func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.
 	if err != nil {
 		return types.ImportResult{}, err
 	}
-	diff := buildSyncDiff(localDepts, localMembers, remoteDepts, remoteMembers)
+	diff := pkgorg.BuildSyncDiff(localDepts, localMembers, remoteDepts, remoteMembers)
 
 	integration, err := s.d.Store.Org().Integration(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
 	cfg := integration.ToSyncConfig()
-	if len(diff.removeMembers) > cfg.DeleteMemberThreshold {
-		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.removeMembers), cfg.DeleteMemberThreshold)
+	if len(diff.RemoveMembers) > cfg.DeleteMemberThreshold {
+		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.RemoveMembers), cfg.DeleteMemberThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
-	if len(diff.removeDepartment) > cfg.DeleteDepartmentThreshold {
-		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.removeDepartment), cfg.DeleteDepartmentThreshold)
+	if len(diff.RemoveDepartments) > cfg.DeleteDepartmentThreshold {
+		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.RemoveDepartments), cfg.DeleteDepartmentThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)

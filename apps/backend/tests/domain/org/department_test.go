@@ -1,7 +1,6 @@
 package org_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -12,15 +11,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
-
-func asDomainError(t *testing.T, err error) *domain.DomainError {
-	t.Helper()
-	var de *domain.DomainError
-	if !errors.As(err, &de) {
-		t.Fatalf("expected domain error, got %v", err)
-	}
-	return de
-}
 
 func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)

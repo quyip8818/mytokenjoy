@@ -1,19 +1,18 @@
 package relay_test
 
 import (
-	"context"
 	"testing"
 
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/tests/testutil"
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 )
 
 func TestPrecheckRejectsZeroBudget(t *testing.T) {
 	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := testutil.ConfigureGatewayStore(t, st, testutil.GatewayScenarioOpts{Budget: 0})
+	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 0})
 
 	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
 	if err != nil || mapping == nil {
@@ -24,7 +23,7 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), &stubWallet{quota: newapi.ToNewAPIUnits(100, nil, nil)})
+	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -38,7 +37,7 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := testutil.ConfigureGatewayStore(t, st, testutil.GatewayScenarioOpts{Budget: 1000})
+	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -60,7 +59,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), &stubWallet{quota: newapi.ToNewAPIUnits(100, nil, nil)})
+	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -71,12 +70,53 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 	}
 }
 
-type stubWallet struct {
-	quota int64
+func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
+	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	ctx := testutil.Ctx()
+	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
+
+	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
+	if err != nil || mapping == nil {
+		t.Fatal("expected relay mapping")
+	}
+	company, err := st.Company().GetByID(ctx, mapping.CompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	err = precheck.Run(ctx, domainrelay.PrecheckInput{
+		Mapping: mapping,
+		Company: company,
+		Model:   "unknown-model",
+	})
+	if err == nil {
+		t.Fatal("expected model not allowed error")
+	}
 }
 
-func (s *stubWallet) AvailableQuota(_ context.Context, _ int64) (int64, error) {
-	return s.quota, nil
-}
+func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
+	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	ctx := testutil.Ctx()
+	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
-var _ domaincompany.WalletService = (*stubWallet)(nil)
+	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
+	if err != nil || mapping == nil {
+		t.Fatal("expected relay mapping")
+	}
+	company, err := st.Company().GetByID(ctx, mapping.CompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	company.Status = "suspended"
+
+	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	err = precheck.Run(ctx, domainrelay.PrecheckInput{
+		Mapping: mapping,
+		Company: company,
+		Model:   "gpt-4o",
+	})
+	if err == nil {
+		t.Fatal("expected suspended company error")
+	}
+}

@@ -90,6 +90,11 @@ apps/backend/
 │   ├── pkg/                 # budget/、org/、common/、ctxcompany/
 │   └── store/               # postgres/、memory/、seed/
 ├── tests/
+│   ├── testutil/            # 根 + org/saas/http/relay/worker 子包
+│   ├── pkg/
+│   ├── domain/<域>/         # helpers_test.go + 主题测试文件
+│   ├── handler/<域>/        # 按 API 域分子包（core/authz/org/...）
+│   └── store/postgres/
 └── Makefile
 ```
 
@@ -337,6 +342,8 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | Context     | domain 内避免滥用 `context.Background()`            |
 | 读鉴权      | 全部 GET 挂 Session + 读 capability（无 demo 例外） |
 | Worker 测试 | `app.WithoutWorker()`                               |
-| 新 GET      | `tests/handler/contract_test.go` 追加用例           |
+| 新 GET      | `tests/handler/core/contract_test.go` 追加用例       |
+| Handler 测  | 按域分子目录；fixture 用 `testutil/http`、`testutil/saas` |
+| Domain 测   | 共享 helper 收拢至 `tests/domain/<域>/helpers_test.go` |
 
 变更检查清单见 [Backend.md](./Backend.md)。

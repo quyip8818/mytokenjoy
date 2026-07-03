@@ -10,11 +10,11 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, diff syncDiff) (types.ImportResult, error) {
-	remoteDepts := append([]datasource.RemoteDepartment{}, diff.addDepartments...)
-	remoteDepts = append(remoteDepts, diff.updateDepartments...)
-	remoteMembers := append([]datasource.RemoteMember{}, diff.addMembers...)
-	remoteMembers = append(remoteMembers, diff.updateMembers...)
+func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, diff pkgorg.SyncDiff) (types.ImportResult, error) {
+	remoteDepts := append([]datasource.RemoteDepartment{}, diff.AddDepartments...)
+	remoteDepts = append(remoteDepts, diff.UpdateDepartments...)
+	remoteMembers := append([]datasource.RemoteMember{}, diff.AddMembers...)
+	remoteMembers = append(remoteMembers, diff.UpdateMembers...)
 
 	result := types.ImportResult{}
 	if len(remoteDepts) > 0 || len(remoteMembers) > 0 {
@@ -26,7 +26,7 @@ func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		result.SuccessMembers += importResult.SuccessMembers
 	}
 
-	if len(diff.removeMembers) == 0 && len(diff.removeDepartment) == 0 {
+	if len(diff.RemoveMembers) == 0 && len(diff.RemoveDepartments) == 0 {
 		return result, nil
 	}
 
@@ -36,7 +36,7 @@ func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, di
 			return err
 		}
 		membersDeactivated := false
-		for _, removed := range diff.removeMembers {
+		for _, removed := range diff.RemoveMembers {
 			for i := range members {
 				if members[i].ID != removed.ID {
 					continue
@@ -55,7 +55,7 @@ func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, di
 		if err != nil {
 			return err
 		}
-		for _, removed := range diff.removeDepartment {
+		for _, removed := range diff.RemoveDepartments {
 			if err := core.DeprovisionDepartment(state, removed.ID); err != nil {
 				return err
 			}
@@ -195,7 +195,7 @@ func resolveLocalDeptID(
 			return dept.ID
 		}
 	}
-	return localDeptID(platform, externalID)
+	return pkgorg.LocalDeptID(platform, externalID)
 }
 
 func resolveParentLocalID(
@@ -209,5 +209,9 @@ func resolveParentLocalID(
 	if localID, ok := externalToLocal[parentExternal]; ok {
 		return localID
 	}
-	return localDeptID(platform, parentExternal)
+	return pkgorg.LocalDeptID(platform, parentExternal)
+}
+
+func stringPtr(value string) *string {
+	return &value
 }

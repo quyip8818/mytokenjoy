@@ -3,6 +3,8 @@ package org_test
 import (
 	"testing"
 
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
@@ -51,7 +53,7 @@ func TestCreateMemberUnknownDepartment404(t *testing.T) {
 
 func TestDeleteMembersDisablesKeys(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	if err := svc.DeleteMembers(testutil.Ctx(), []string{seed.IDMember1}); err != nil {
@@ -79,9 +81,30 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 	}
 }
 
+func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.TransferMembers(ctx, []string{seed.IDMember1}, "dept-4"); err != nil {
+		t.Fatal(err)
+	}
+	after, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after != before {
+		t.Fatalf("expected authz revision unchanged after transfer, before=%d after=%d", before, after)
+	}
+}
+
 func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	memberID := seed.IDMember1
@@ -127,7 +150,7 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 
 func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{seed.IDMember1}, "inactive"); err != nil {
@@ -146,7 +169,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 
 func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
@@ -170,7 +193,7 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 
 func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
@@ -203,7 +226,7 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 
 func TestBatchImportBumpsAuthzRevision(t *testing.T) {
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	svc := testutil.NewOrgService(t, cfg, st)
+	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
@@ -225,5 +248,90 @@ func TestBatchImportBumpsAuthzRevision(t *testing.T) {
 	}
 	if after <= before {
 		t.Fatalf("expected authz revision to increase, before=%d after=%d", before, after)
+	}
+}
+
+func TestListMembersDirectOnly(t *testing.T) {
+	svc := newTestOrgService(t)
+	ctx := testutil.Ctx()
+
+	allPage, err := svc.ListMembers(ctx, "dept-2", "", false, 1, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	directPage, err := svc.ListMembers(ctx, "dept-2", "", true, 1, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(directPage.Items) >= len(allPage.Items) {
+		t.Fatalf("directOnly should return fewer members: direct=%d all=%d", len(directPage.Items), len(allPage.Items))
+	}
+	if directPage.Total >= allPage.Total {
+		t.Fatalf("directOnly total should be smaller: direct=%d all=%d", directPage.Total, allPage.Total)
+	}
+}
+
+func TestBatchInviteByIDs(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range members {
+		if members[i].ID == "m-pending" {
+			continue
+		}
+		if members[i].Status == types.MemberStatusActive {
+			members[i].Status = types.MemberStatusPending
+		}
+	}
+	members = append(members, types.Member{
+		ID: "m-pending", Name: "Pending User", DepartmentID: "dept-5",
+		Status: types.MemberStatusPending, Roles: []string{"普通成员"},
+	})
+	if err := st.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := svc.BatchInvite(ctx, []string{"m-pending"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Sent != 1 {
+		t.Fatalf("expected sent=1, got %d", result.Sent)
+	}
+}
+
+func TestBatchInviteAllPending(t *testing.T) {
+	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pendingCount := 0
+	for i := range members {
+		if members[i].Status == types.MemberStatusPending || members[i].Status == types.MemberStatusInactive {
+			pendingCount++
+			continue
+		}
+		members[i].Status = types.MemberStatusInactive
+		pendingCount++
+	}
+	if err := st.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := svc.BatchInvite(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Sent != pendingCount {
+		t.Fatalf("expected sent=%d, got %d", pendingCount, result.Sent)
 	}
 }
