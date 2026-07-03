@@ -27,14 +27,13 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 		TRUNCATE TABLE
 			member_roles, role_permission_grants, alert_rule_notify_roles,
 			budget_group_members, budget_group_departments,
-			platform_key_models, key_approval_models, routing_rule_models,
-			key_approvals, platform_keys, provider_keys,
+			model_allowlist, key_approvals, platform_keys, provider_keys,
 			operation_logs, usage_ledger,
-			alert_rules, routing_rules, model_capabilities,
-			budget_groups, budget_nodes, members, departments,
+			alert_rules, model_capabilities,
+			budget_groups, org_nodes, members,
 			roles, permissions, models,
 			org_sync_logs, org_import_failures,
-			org_data_source_status, org_sync_config, overrun_policy, audit_settings,
+			org_integration, overrun_policy, audit_settings,
 			companies
 		RESTART IDENTITY CASCADE
 	`)

@@ -83,7 +83,7 @@ func (s *service) importFromProvider(
 	changedDeptIDs := make([]string, 0)
 
 	err = s.store.WithTx(ctx, func(st store.Store) error {
-		departments, err := st.Org().Departments(ctx)
+		nodes, err := st.Org().Nodes().Tree(ctx)
 		if err != nil {
 			return err
 		}
@@ -95,12 +95,13 @@ func (s *service) importFromProvider(
 		if err != nil {
 			return err
 		}
-		state, err := loadProvisionState(ctx, st, departments)
+		state, err := loadProvisionState(ctx, st, nodes)
 		if err != nil {
 			return err
 		}
+		departments := departmentsFromState(state)
 
-		externalToLocal := buildDeptExternalMap(state.Departments)
+		externalToLocal := buildDeptExternalMap(departments)
 		parentMap := make(map[string]string, len(remoteDepts))
 		for _, remote := range remoteDepts {
 			parentMap[remote.ExternalID] = remote.ParentExternalID
@@ -114,7 +115,7 @@ func (s *service) importFromProvider(
 				localID = localDeptID(platform, remote.ExternalID)
 			}
 
-			existing := pkgorg.FindDepartment(state.Departments, localID)
+			existing := pkgorg.FindDepartment(departments, localID)
 			if existing != nil && isManualDeptSource(existing.Source) {
 				continue
 			}
@@ -125,14 +126,15 @@ func (s *service) importFromProvider(
 				}); err != nil {
 					return err
 				}
-				dept := pkgorg.FindDepartment(state.Departments, localID)
-				if dept != nil {
-					dept.ExternalID = stringPtr(remote.ExternalID)
-					dept.Source = stringPtr(types.DeptSourceImported)
+				node := pkgorg.FindOrgNode(state.Nodes, localID)
+				if node != nil {
+					node.ExternalID = stringPtr(remote.ExternalID)
+					node.Source = stringPtr(types.DeptSourceImported)
 					if remote.LeaderUserID != "" {
-						dept.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
+						node.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
 					}
 				}
+				departments = departmentsFromState(state)
 				externalToLocal[remote.ExternalID] = localID
 				changedDeptIDs = append(changedDeptIDs, localID)
 				result.SuccessDepartments++
@@ -145,19 +147,23 @@ func (s *service) importFromProvider(
 				}
 				changedDeptIDs = append(changedDeptIDs, localID)
 			}
-			existing.ExternalID = stringPtr(remote.ExternalID)
-			existing.Source = stringPtr(types.DeptSourceImported)
-			if remote.LeaderUserID != "" {
-				existing.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
+			node := pkgorg.FindOrgNode(state.Nodes, localID)
+			if node != nil {
+				node.ExternalID = stringPtr(remote.ExternalID)
+				node.Source = stringPtr(types.DeptSourceImported)
+				if remote.LeaderUserID != "" {
+					node.ManagerID = stringPtr(localMemberID(platform, remote.LeaderUserID))
+				}
 			}
+			departments = departmentsFromState(state)
 			result.SuccessDepartments++
 		}
 
-		deptNameByID := flattenDeptNames(state.Departments)
+		deptNameByID := flattenDeptNames(departments)
 		memberIndex := buildMemberExternalIndex(members)
 
 		for _, remote := range remoteMembers {
-			localDept := resolveLocalDeptID(state.Departments, platform, remote.DepartmentExternalID, externalToLocal)
+			localDept := resolveLocalDeptID(departments, platform, remote.DepartmentExternalID, externalToLocal)
 			memberID := localMemberID(platform, remote.ExternalID)
 			if existing, ok := memberIndex[remote.ExternalID]; ok {
 				if isManualMemberSource(existing.Source) {
@@ -199,18 +205,12 @@ func (s *service) importFromProvider(
 			result.SuccessMembers++
 		}
 
-		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
+		state.Nodes = RecalcDepartmentMemberCounts(state.Nodes, members)
 		if err := s.recalcRoleMemberCounts(ctx, roles); err != nil {
 			return err
 		}
 
-		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
-			return err
-		}
-		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
-			return err
-		}
-		if err := st.Models().SetRoutingRules(ctx, state.Rules); err != nil {
+		if err := persistProvisionState(ctx, st, state); err != nil {
 			return err
 		}
 		if err := st.Org().SetMembers(ctx, members); err != nil {
@@ -221,16 +221,18 @@ func (s *service) importFromProvider(
 		}
 
 		now := time.Now().Format("2006-01-02 15:04")
-		status, err := st.Org().DataSourceStatus(ctx)
+		integration, err := st.Org().Integration(ctx)
 		if err != nil {
 			return err
 		}
+		status := integration.ToDataSourceStatus()
 		status.Connected = true
 		platformCopy := platform
 		status.Platform = &platformCopy
 		status.LastImport = &now
 		status.LastImportResult = &result
-		return st.Org().SetDataSourceStatus(ctx, status)
+		integration.ApplyDataSourceStatus(status)
+		return st.Org().SetIntegration(ctx, integration)
 	})
 	if err != nil {
 		return types.ImportResult{}, err

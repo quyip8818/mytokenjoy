@@ -17,7 +17,7 @@ func Apply(ctx context.Context, st store.Store, entry types.UsageLedgerEntry) er
 			return err
 		}
 	}
-	if err := st.Budget().RollupDepartmentConsumed(ctx, entry.DepartmentID, entry.AmountCNY); err != nil {
+	if err := st.Org().Nodes().RollupConsumed(ctx, entry.DepartmentID, entry.AmountCNY); err != nil {
 		return err
 	}
 	memberID := ""

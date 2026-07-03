@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
@@ -32,13 +33,13 @@ func TestLoadSnapshot(t *testing.T) {
 	if snapshot.Company.ID != seed.DefaultCompanyID || snapshot.Company.Slug != "default" {
 		t.Fatalf("expected default company, got %+v", snapshot.Company)
 	}
-	if len(snapshot.Departments) == 0 {
+	if len(snapshot.OrgNodes) == 0 {
 		t.Fatal("expected departments in snapshot")
 	}
 	if len(snapshot.Roles) != 6 {
 		t.Fatalf("expected 6 roles, got %d", len(snapshot.Roles))
 	}
-	if len(snapshot.BudgetTree) == 0 || snapshot.BudgetTree[0].ID != "dept-1" {
+	if len(types.OrgNodesToBudgetTree(snapshot.OrgNodes)) == 0 || types.OrgNodesToBudgetTree(snapshot.OrgNodes)[0].ID != "dept-1" {
 		t.Fatal("expected budget tree root")
 	}
 	if len(snapshot.ProviderKeys) < 8 {

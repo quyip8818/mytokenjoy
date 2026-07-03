@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -64,7 +65,7 @@ func (p *PrecheckService) checkWallet(ctx context.Context, company *store.Compan
 }
 
 func (p *PrecheckService) checkDepartmentBudget(ctx context.Context, mapping *store.RelayMapping) error {
-	tree, err := p.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, p.store)
 	if err != nil {
 		return err
 	}

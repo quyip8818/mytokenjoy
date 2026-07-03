@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -34,14 +35,12 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)
 	ctx := testutil.Ctx()
 
-	tree, err := st.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 24999)
-	if err := st.Budget().SetTree(ctx, tree); err != nil {
-		t.Fatal(err)
-	}
+	testutil.PersistBudgetTreeT(t, ctx, st, tree)
 
 	testutil.UpsertRelayMapping(t, st, testutil.DefaultRelayMappingOpts())
 
@@ -53,7 +52,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	}
 	runner.RunOnce(ctx)
 
-	tree, err = st.Budget().Tree(ctx)
+	tree, err = common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}

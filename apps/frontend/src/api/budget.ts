@@ -11,8 +11,11 @@ import type {
 export const budgetApi = {
   getTree: (period?: string) =>
     request<BudgetNode[]>(`/budget/tree${period ? `?period=${period}` : ''}`),
-  updateNode: (id: string, data: { budget: number; reservedPool?: number }) =>
-    request<BudgetNode>(`/budget/nodes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateNode: (departmentId: string, data: { budget: number; reservedPool?: number }) =>
+    request<BudgetNode>(`/budget/departments/${departmentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   getMemberQuotas: (departmentId: string) =>
     request<MemberBudgetQuota[]>(`/budget/departments/${departmentId}/member-quotas`),
   updateMemberQuota: (memberId: string, data: UpdateMemberQuotaInput) =>

@@ -40,12 +40,12 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	node, err := h.service.UpdateNode(r.Context(), chi.URLParam(r, "id"), body.Budget, body.ReservedPool)
+	node, err := h.service.UpdateNode(r.Context(), chi.URLParam(r, "departmentId"), body.Budget, body.ReservedPool)
 	httputil.WriteJSON(w, http.StatusOK, node, err)
 }
 
 func (h *Handler) MemberQuotas(w http.ResponseWriter, r *http.Request) {
-	quotas, err := h.service.ListMemberQuotas(r.Context(), chi.URLParam(r, "deptId"))
+	quotas, err := h.service.ListMemberQuotas(r.Context(), chi.URLParam(r, "departmentId"))
 	httputil.WriteJSON(w, http.StatusOK, quotas, err)
 }
 
@@ -137,7 +137,7 @@ func (h *Handler) AlertDelete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.PublicOrReadRoutes(h.Cfg, r, h.SessionSvc, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
-	read.Get("/departments/{deptId}/member-quotas", h.MemberQuotas)
+	read.Get("/departments/{departmentId}/member-quotas", h.MemberQuotas)
 	read.Get("/groups", h.GroupsList)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
@@ -145,7 +145,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	write := httpmiddleware.WriteRoutes(r, h.Cfg, h.SessionSvc)
 
 	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
-	allocateWrite.Put("/nodes/{id}", h.UpdateNode)
+	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)
 	allocateWrite.Put("/members/{memberId}", h.UpdateMemberQuota)
 	allocateWrite.Post("/groups", h.GroupCreate)
 	allocateWrite.Put("/groups/{id}", h.GroupUpdate)

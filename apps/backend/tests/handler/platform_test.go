@@ -159,7 +159,7 @@ func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 	testutil.UpdateCompanyStatusHTTP(t, router, platformCookie, provisioned.Company.ID, store.CompanyStatusSuspended)
 
 	body, _ := json.Marshal(map[string]float64{"budget": 1000})
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/budget/nodes/dept-root-%d", provisioned.Company.ID), bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/budget/departments/dept-root-%d", provisioned.Company.ID), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", provisioned.MemberCookie)
 	rec := httptest.NewRecorder()

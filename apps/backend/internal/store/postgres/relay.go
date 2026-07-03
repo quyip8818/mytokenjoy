@@ -207,21 +207,21 @@ func (r *relayRepo) UpdateMappingNewAPITokenRemainQuota(ctx context.Context, pla
 
 func (r *relayRepo) EnqueueRelayOutbox(ctx context.Context, entry store.RelayOutboxEntry) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO relay_outbox (id, kind, payload, status, attempts, next_retry, last_error, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
-	`, entry.ID, entry.Kind, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
+		INSERT INTO outbox (id, channel, kind, payload, status, attempts, next_retry, last_error, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+	`, entry.ID, store.OutboxChannelRelay, entry.Kind, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
 	return err
 }
 
 func (r *relayRepo) ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]store.RelayOutboxEntry, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
-		FROM relay_outbox
-		WHERE status = $1 AND next_retry <= NOW()
+		FROM outbox
+		WHERE channel = $1 AND status = $2 AND next_retry <= NOW()
 		ORDER BY created_at
-		LIMIT $2
+		LIMIT $3
 		FOR UPDATE SKIP LOCKED
-	`, store.OutboxStatusPending, limit)
+	`, store.OutboxChannelRelay, store.OutboxStatusPending, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -243,16 +243,16 @@ func scanRelayOutbox(rows pgx.Rows) ([]store.RelayOutboxEntry, error) {
 
 func (r *relayRepo) MarkRelayOutboxDone(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE relay_outbox SET status = $2, updated_at = NOW() WHERE id = $1
-	`, id, store.OutboxStatusDone)
+		UPDATE outbox SET status = $2, updated_at = NOW() WHERE id = $1 AND channel = $3
+	`, id, store.OutboxStatusDone, store.OutboxChannelRelay)
 	return err
 }
 
 func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE relay_outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
-		WHERE id = $1
-	`, id, nextRetry, lastError)
+		UPDATE outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
+		WHERE id = $1 AND channel = $4
+	`, id, nextRetry, lastError, store.OutboxChannelRelay)
 	return err
 }
 
@@ -358,21 +358,21 @@ func (r *relayRepo) MarkOverrunDone(ctx context.Context, id string) error {
 
 func (r *relayRepo) EnqueueWebhookOutbox(ctx context.Context, entry store.WebhookOutboxEntry) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO webhook_outbox (id, payload, status, attempts, next_retry, last_error, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
-	`, entry.ID, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
+		INSERT INTO outbox (id, channel, kind, payload, status, attempts, next_retry, last_error, created_at, updated_at)
+		VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, NOW())
+	`, entry.ID, store.OutboxChannelWebhook, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
 	return err
 }
 
 func (r *relayRepo) ClaimPendingWebhookOutbox(ctx context.Context, limit int) ([]store.WebhookOutboxEntry, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, payload, status, attempts, next_retry, last_error, created_at
-		FROM webhook_outbox
-		WHERE status = $1 AND next_retry <= NOW()
+		FROM outbox
+		WHERE channel = $1 AND status = $2 AND next_retry <= NOW()
 		ORDER BY created_at
-		LIMIT $2
+		LIMIT $3
 		FOR UPDATE SKIP LOCKED
-	`, store.OutboxStatusPending, limit)
+	`, store.OutboxChannelWebhook, store.OutboxStatusPending, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -390,15 +390,15 @@ func (r *relayRepo) ClaimPendingWebhookOutbox(ctx context.Context, limit int) ([
 
 func (r *relayRepo) MarkWebhookOutboxDone(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE webhook_outbox SET status = $2, updated_at = NOW() WHERE id = $1
-	`, id, store.OutboxStatusDone)
+		UPDATE outbox SET status = $2, updated_at = NOW() WHERE id = $1 AND channel = $3
+	`, id, store.OutboxStatusDone, store.OutboxChannelWebhook)
 	return err
 }
 
 func (r *relayRepo) MarkWebhookOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE webhook_outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
-		WHERE id = $1
-	`, id, nextRetry, lastError)
+		UPDATE outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
+		WHERE id = $1 AND channel = $4
+	`, id, nextRetry, lastError, store.OutboxChannelWebhook)
 	return err
 }

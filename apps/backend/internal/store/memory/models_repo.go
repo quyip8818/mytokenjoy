@@ -7,7 +7,14 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type memoryModelsRepo struct{ store *Store }
+type memoryModelsRepo struct {
+	store     *Store
+	allowlist *memoryModelAllowlistRepo
+}
+
+func (r *memoryModelsRepo) Allowlist() store.ModelAllowlistRepository {
+	return r.allowlist
+}
 
 func (r *memoryModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 	if err := ctx.Err(); err != nil {
@@ -44,26 +51,4 @@ func (r *memoryModelsRepo) ModelByName(ctx context.Context, name string) (*types
 		}
 	}
 	return nil, nil
-}
-
-func (r *memoryModelsRepo) RoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	r.store.mu.RLock()
-	defer r.store.mu.RUnlock()
-	return store.CloneRoutingRules(r.store.companySnapshot(store.CompanyID(ctx)).RoutingRules), nil
-}
-
-func (r *memoryModelsRepo) SetRoutingRules(ctx context.Context, rules []types.RoutingRule) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	r.store.mu.Lock()
-	defer r.store.mu.Unlock()
-	tid := store.CompanyID(ctx)
-	snap := r.store.companySnapshot(tid)
-	snap.RoutingRules = store.CloneRoutingRules(rules)
-	r.store.setCompanySnapshot(tid, snap)
-	return nil
 }

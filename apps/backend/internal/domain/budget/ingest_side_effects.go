@@ -10,10 +10,10 @@ import (
 )
 
 type overrunPayload struct {
-	DepartmentID   string  `json:"departmentId"`
-	MemberID       *string `json:"memberId,omitempty"`
-	BudgetGroupID  *string `json:"budgetGroupId,omitempty"`
-	PlatformKeyID  string  `json:"platformKeyId"`
+	DepartmentID  string  `json:"departmentId"`
+	MemberID      *string `json:"memberId,omitempty"`
+	BudgetGroupID *string `json:"budgetGroupId,omitempty"`
+	PlatformKeyID string  `json:"platformKeyId"`
 }
 
 func enqueueSideEffects(ctx context.Context, st store.Store, entry types.UsageLedgerEntry) error {

@@ -29,10 +29,6 @@ func (s *txStore) Relay() store.RelayRepository {
 	return s.relay
 }
 
-func (s *txStore) Credential() store.CredentialRepository {
-	return s.parent.Credential()
-}
-
 func (s *txStore) SchedulerLock() store.SchedulerLockRepository {
 	return s.parent.SchedulerLock()
 }

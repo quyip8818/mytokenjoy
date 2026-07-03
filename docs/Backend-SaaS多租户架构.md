@@ -209,12 +209,12 @@ sequenceDiagram
 
 ### 4.1 职责
 
-| 层级                 | 存储                               | 角色                                         |
-| -------------------- | ---------------------------------- | -------------------------------------------- |
-| **企业钱包（主账）** | NewAPI `users.quota`               | 充值；PreConsume/Settle **唯一扣费**         |
-| **部门花费配额**     | `budget_nodes.budget` + `consumed` | 组织内「本月最多花多少」；Gateway 预检       |
-| **Token 分配**       | `tokens.remain_quota`              | Key 可用上限；`TokenLifecycle` + `rebalance` |
-| **部门已用（报表）** | `usage_buckets` / ingest           | 看板、预警                                   |
+| 层级                 | 存储                            | 角色                                         |
+| -------------------- | ------------------------------- | -------------------------------------------- |
+| **企业钱包（主账）** | NewAPI `users.quota`            | 充值；PreConsume/Settle **唯一扣费**         |
+| **部门花费配额**     | `org_nodes.budget` + `consumed` | 组织内「本月最多花多少」；Gateway 预检       |
+| **Token 分配**       | `tokens.remain_quota`           | Key 可用上限；`TokenLifecycle` + `rebalance` |
+| **部门已用（报表）** | `usage_buckets` / ingest        | 看板、预警                                   |
 
 ```mermaid
 flowchart LR
@@ -390,7 +390,7 @@ type Context struct {
 }
 ```
 
-Store 按 company-scoped 读写；`relay_outbox` / `webhook_outbox` / `rebalance_queue` payload 带 `company_id`；Worker 按企业消费或 payload 内过滤。
+Store 按 company-scoped 读写；`outbox`（`channel='relay'` / `channel='webhook'`）/ `rebalance_queue` payload 带 `company_id`；Worker 按企业消费或 payload 内过滤。
 
 ---
 

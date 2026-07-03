@@ -12,24 +12,24 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/session"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 )
 
 type domainServices struct {
-	session       session.Service
-	org           domainorg.Service
-	budget        domainbudget.Service
-	keys          domainkeys.Service
-	models        domainmodels.Service
-	dashboard     domaindashboard.Service
-	audit         domainaudit.Service
+	session        session.Service
+	org            domainorg.Service
+	budget         domainbudget.Service
+	keys           domainkeys.Service
+	models         domainmodels.Service
+	dashboard      domaindashboard.Service
+	audit          domainaudit.Service
 	callLogQuerier domainusage.CallLogQuerier
-	ingest        domainbudget.Ingestor
-	overrun       domainbudget.OverrunProcessor
-	rebalance     domainbudget.Rebalancer
-	company       domaincompany.Service
-	billing       domainbilling.Service
+	ingest         domainbudget.Ingestor
+	overrun        domainbudget.OverrunProcessor
+	rebalance      domainbudget.Rebalancer
+	company        domaincompany.Service
+	billing        domainbilling.Service
 }
 
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {

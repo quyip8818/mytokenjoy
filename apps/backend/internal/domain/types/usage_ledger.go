@@ -3,14 +3,14 @@ package types
 import "time"
 
 const (
-	EventTypeCallSettled     = "call_settled"
-	SourceWebhook            = "webhook"
-	SourceCompensate         = "compensate"
-	IdempotencyPrefixNewAPI  = "newapi:"
-	PreviewSnippetMaxLen     = 200
-	CallerTypeMember         = "member"
-	CallerTypePlatformKey    = "platform_key"
-	CallStatusSuccess        = "success"
+	EventTypeCallSettled    = "call_settled"
+	SourceWebhook           = "webhook"
+	SourceCompensate        = "compensate"
+	IdempotencyPrefixNewAPI = "newapi:"
+	PreviewSnippetMaxLen    = 200
+	CallerTypeMember        = "member"
+	CallerTypePlatformKey   = "platform_key"
+	CallStatusSuccess       = "success"
 )
 
 type UsageCallDetail struct {
@@ -24,20 +24,20 @@ type UsageCallDetail struct {
 }
 
 type UsageLedgerEntry struct {
-	ID              string
-	CompanyID       int64
-	EventType       string
-	IdempotencyKey  string
-	AmountCNY       float64
-	DepartmentID    string
-	MemberID        *string
-	BudgetGroupID   *string
-	PlatformKeyID   string
-	Source          string
-	OccurredAt      time.Time
-	Model           string
-	InputTokens     int64
-	OutputTokens    int64
-	CallDetail      UsageCallDetail
-	CreatedAt       time.Time
+	ID             string
+	CompanyID      int64
+	EventType      string
+	IdempotencyKey string
+	AmountCNY      float64
+	DepartmentID   string
+	MemberID       *string
+	BudgetGroupID  *string
+	PlatformKeyID  string
+	Source         string
+	OccurredAt     time.Time
+	Model          string
+	InputTokens    int64
+	OutputTokens   int64
+	CallDetail     UsageCallDetail
+	CreatedAt      time.Time
 }

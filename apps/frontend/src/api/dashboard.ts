@@ -17,9 +17,9 @@ export const dashboardApi = {
     request<CostSummary>(`/dashboard/cost/summary${buildQuery(params ?? {})}`),
   getDepartmentCosts: (params?: CostQueryParams & { parentId?: string }) =>
     request<DepartmentCost[]>(`/dashboard/cost/departments${buildQuery(params ?? {})}`),
-  getDepartmentMemberCosts: (deptId: string, params?: CostQueryParams) =>
+  getDepartmentMemberCosts: (departmentId: string, params?: CostQueryParams) =>
     request<DepartmentCostMember[]>(
-      `/dashboard/cost/departments/${deptId}/members${buildQuery(params ?? {})}`,
+      `/dashboard/cost/departments/${departmentId}/members${buildQuery(params ?? {})}`,
     ),
   getDailyCosts: (params?: CostQueryParams) =>
     request<DailyCost[]>(`/dashboard/cost/daily${buildQuery(params ?? {})}`),

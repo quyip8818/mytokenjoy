@@ -7,6 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -31,7 +32,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		}
 	}
 
-	tree, err := st.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		}
 	}
 
-	tree, err = st.Budget().Tree(ctx)
+	tree, err = common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}

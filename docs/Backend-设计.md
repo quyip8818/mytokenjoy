@@ -79,7 +79,7 @@ type Store interface {
 
 | 模式     | 条件                          | 说明                                                                              |
 | -------- | ----------------------------- | --------------------------------------------------------------------------------- |
-| Postgres | 运行时（必填 `DATABASE_URL`） | 共 **44** 张表；demo 空库自动 `seed.ApplyTables`                                  |
+| Postgres | 运行时（必填 `DATABASE_URL`） | 共 **36** 张表；demo 空库自动 `seed.ApplyTables`                                  |
 | Memory   | 单元/Handler 测试             | `internal/store/memory` + `testutil`；`app.NewWithStore` 仅 `-tags=testhook` 构建 |
 
 Schema 唯一来源：`internal/store/postgres/schema.sql`（`go:embed`）；服务启动时全量应用。本地改表结构后 `docker compose down -v` 重建。
@@ -150,7 +150,7 @@ Dev：访问 `/login` 选成员 → cookie → `/api/*` 经 Vite 代理到 Go。
 ```
 Browser → /api/* → apps/backend:8080 → Postgres
                                       ├─ 管理面（org/budget/keys/models/audit）
-                                      ├─ usage_buckets / relay / credential
+                                      ├─ usage_buckets / relay / org_integration
                                       └─ 空库首次启动由 store/seed 初始化
 ```
 
@@ -187,16 +187,16 @@ flowchart TB
   end
 ```
 
-| 决策     | 说明                                                      |
-| -------- | --------------------------------------------------------- |
-| hour 桶  | 只持久化 hour；day/week/month 查询时 `date_trunc` 聚合    |
+| 决策     | 说明                                                     |
+| -------- | -------------------------------------------------------- |
+| hour 桶  | 只持久化 hour；day/week/month 查询时 `date_trunc` 聚合   |
 | minute   | 读 `usage_ledger` 按分钟聚合，窗口 ≤3h，`source: ledger` |
-| consumed | 看板读 **buckets 周期 SUM**，不读 `budget_nodes.consumed` |
-| 时区     | UTC 存桶与账本；展示默认 `Asia/Shanghai`                  |
+| consumed | 看板读 **buckets 周期 SUM**，不读 `org_nodes.consumed`   |
+| 时区     | UTC 存桶与账本；展示默认 `Asia/Shanghai`                 |
 
 **minute 语义：** `source: "ledger"`、`approximate: false`、`mappingAsOf: "ingest_time"`；与 hour/day 共用 SSOT 入账数据。
 
-月初 budget 重置只清 `budget_nodes.consumed`，buckets 保留；ingest 成本写入后不回溯。
+月初 budget 重置只清 `org_nodes.consumed`，buckets 保留；ingest 成本写入后不回溯。
 
 关键代码：`internal/domain/usage/`、`internal/domain/dashboard/`、`usage_buckets` 表。
 

@@ -229,7 +229,7 @@ func UpdateCompanyStatusHTTP(t *testing.T, router http.Handler, platformCookie s
 func UpdateBudgetNodeHTTP(t *testing.T, router http.Handler, memberCookie, nodeID string, budget float64) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]float64{"budget": budget})
-	url := fmt.Sprintf("/api/budget/nodes/%s", nodeID)
+	url := fmt.Sprintf("/api/budget/departments/%s", nodeID)
 	req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", memberCookie)

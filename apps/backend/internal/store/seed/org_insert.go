@@ -50,17 +50,32 @@ func buildRoleNameIndex(roles []types.Role) map[string]string {
 	return index
 }
 
-func insertDepartments(ctx context.Context, exec tableWriter, tid int64, departments []types.Department) error {
-	flat := pkgorg.FlattenDepartmentTree(departments)
-	for i, dept := range flat {
+func insertOrgNodes(ctx context.Context, exec tableWriter, tid int64, nodes []types.OrgNode) error {
+	flat := pkgorg.FlattenOrgNodeTree(nodes)
+	for i, node := range flat {
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO departments (
-				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			INSERT INTO org_nodes (
+				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order,
+				budget, consumed, reserved_pool, period, default_model, fallback_model, routing_inherited
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, dept.ID, tid, dept.Name, dept.ParentID, dept.MemberCount,
-			dept.ExternalID, dept.Source, dept.ManagerID, i); err != nil {
-			return fmt.Errorf("seed department %s: %w", dept.ID, err)
+		`, node.ID, tid, node.Name, node.ParentID, node.MemberCount,
+			node.ExternalID, node.Source, node.ManagerID, i,
+			node.Budget, node.Consumed, node.ReservedPool, node.Period,
+			node.DefaultModel, node.FallbackModel, node.RoutingInherited); err != nil {
+			return fmt.Errorf("seed org node %s: %w", node.ID, err)
+		}
+	}
+	return nil
+}
+
+func insertModelAllowlist(ctx context.Context, exec tableWriter, tid int64, rows []store.ModelAllowlistRow) error {
+	for _, row := range rows {
+		if _, err := exec.Exec(ctx, `
+			INSERT INTO model_allowlist (company_id, owner_type, owner_id, model_name)
+			VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING
+		`, tid, row.OwnerType, row.OwnerID, row.ModelName); err != nil {
+			return fmt.Errorf("seed allowlist %s/%s: %w", row.OwnerType, row.OwnerID, err)
 		}
 	}
 	return nil
@@ -94,29 +109,27 @@ func insertMembers(ctx context.Context, exec tableWriter, tid int64, members []t
 	return nil
 }
 
-func insertOrgConfig(ctx context.Context, exec tableWriter, tid int64, snap store.Snapshot) error {
+func insertOrgIntegration(ctx context.Context, exec tableWriter, tid int64, snap store.Snapshot) error {
+	integration := snap.OrgIntegration
 	var platform *string
-	if snap.DataSourceStatus.Platform != nil {
-		s := string(*snap.DataSourceStatus.Platform)
+	if integration.Platform != nil {
+		s := string(*integration.Platform)
 		platform = &s
 	}
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO org_data_source_status (company_id, platform, connected)
-		VALUES ($1, $2, $3) ON CONFLICT (company_id) DO NOTHING
-	`, tid, platform, snap.DataSourceStatus.Connected); err != nil {
-		return err
-	}
-	cfg := snap.SyncConfig
-	if _, err := exec.Exec(ctx, `
-		INSERT INTO org_sync_config (
-			company_id, enabled, start_time, frequency_hours,
+		INSERT INTO org_integration (
+			company_id, platform, connected,
+			enabled, start_time, frequency_hours,
 			delete_member_threshold, delete_department_threshold,
-			notify_phone, notify_email, notify_im
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			notify_phone, notify_email, notify_im,
+			encrypted_credential
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (company_id) DO NOTHING
-	`, tid, cfg.Enabled, cfg.StartTime, cfg.FrequencyHours,
-		cfg.DeleteMemberThreshold, cfg.DeleteDepartmentThreshold,
-		cfg.NotifyPhone, cfg.NotifyEmail, cfg.NotifyIm); err != nil {
+	`, tid, platform, integration.Connected,
+		integration.Enabled, integration.StartTime, integration.FrequencyHours,
+		integration.DeleteMemberThreshold, integration.DeleteDepartmentThreshold,
+		integration.NotifyPhone, integration.NotifyEmail, integration.NotifyIm,
+		integration.EncryptedCredential); err != nil {
 		return err
 	}
 	for _, log := range snap.SyncLogs {

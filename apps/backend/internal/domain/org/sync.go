@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -16,14 +17,14 @@ func (s *service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
 }
 
 func (s *service) RunScheduledSync(ctx context.Context) error {
-	cfg, err := s.store.Org().SyncConfig(ctx)
+	cfg, err := s.store.Org().Integration(ctx)
 	if err != nil {
 		return err
 	}
 	if !cfg.Enabled {
 		return nil
 	}
-	if !s.shouldRunScheduledSync(ctx, cfg) {
+	if !s.shouldRunScheduledSync(ctx, cfg.ToSyncConfig()) {
 		return nil
 	}
 
@@ -103,7 +104,7 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	localDeptsTree, err := s.store.Org().Departments(ctx)
+	localDeptsTree, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
@@ -114,10 +115,11 @@ func (s *service) syncFromProvider(ctx context.Context, syncType string) (types.
 	}
 	diff := buildSyncDiff(localDepts, localMembers, remoteDepts, remoteMembers)
 
-	cfg, err := s.store.Org().SyncConfig(ctx)
+	integration, err := s.store.Org().Integration(ctx)
 	if err != nil {
 		return types.ImportResult{}, err
 	}
+	cfg := integration.ToSyncConfig()
 	if len(diff.removeMembers) > cfg.DeleteMemberThreshold {
 		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.removeMembers), cfg.DeleteMemberThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.notifier, cfg, detail)

@@ -1,5 +1,8 @@
 package store
 
+// Store aggregates domain repositories. Naming: "Org" is the organization-management
+// domain (members, roles, integration, nodes); OrgNode (Org().Nodes()) is the org-tree
+// entity backed by org_nodes. company_id is the tenant boundary.
 import (
 	"context"
 
@@ -7,29 +10,25 @@ import (
 )
 
 type Snapshot struct {
-	Company             Company
-	DataSourceStatus    types.DataSourceStatus
-	SyncConfig          types.SyncConfig
-	SyncLogs            []types.SyncLog
-	ImportFailures      []types.ImportFailure
-	Departments         []types.Department
-	Members             []types.Member
-	Roles               []types.Role
-	Permissions         []types.Permission
-	BudgetTree          []types.BudgetNode
-	BudgetGroups        []types.BudgetGroup
-	OverrunPolicy       types.OverrunPolicyConfig
-	AlertRules          []types.AlertRule
-	ProviderKeys        []types.ProviderKey
-	PlatformKeys        []types.PlatformKey
-	Approvals           []types.KeyApproval
-	Models              []types.ModelInfo
-	RoutingRules        []types.RoutingRule
-	AuditSettings       types.AuditSettings
-	OperationLogs       []types.OperationLog
-	UsageLedger         []types.UsageLedgerEntry
-	CredentialPlatform  *types.Platform
-	EncryptedCredential []byte
+	Company        Company
+	OrgIntegration types.OrgIntegration
+	SyncLogs       []types.SyncLog
+	ImportFailures []types.ImportFailure
+	OrgNodes       []types.OrgNode
+	ModelAllowlist []ModelAllowlistRow
+	Members        []types.Member
+	Roles          []types.Role
+	Permissions    []types.Permission
+	BudgetGroups   []types.BudgetGroup
+	OverrunPolicy  types.OverrunPolicyConfig
+	AlertRules     []types.AlertRule
+	ProviderKeys   []types.ProviderKey
+	PlatformKeys   []types.PlatformKey
+	Approvals      []types.KeyApproval
+	Models         []types.ModelInfo
+	AuditSettings  types.AuditSettings
+	OperationLogs  []types.OperationLog
+	UsageLedger    []types.UsageLedgerEntry
 }
 
 type Store interface {
@@ -44,7 +43,6 @@ type Store interface {
 	Audit() AuditRepository
 	Ledger() LedgerRepository
 	Relay() RelayRepository
-	Credential() CredentialRepository
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository

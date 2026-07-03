@@ -83,7 +83,7 @@ func TestLedgerQueryMinuteSeries(t *testing.T) {
 	if _, err := st.Ledger().InsertOnConflict(ctx, types.UsageLedgerEntry{
 		ID: "ul-minute-2", EventType: types.EventTypeCallSettled, IdempotencyKey: "newapi:99003",
 		AmountCNY: 3, DepartmentID: seed.IDDept3, PlatformKeyID: seed.IDPlatformKey1,
-		Source: types.SourceWebhook,
+		Source:     types.SourceWebhook,
 		OccurredAt: occurredAt.Add(2 * time.Minute), Model: "gpt-4o-mini",
 		InputTokens: 2, OutputTokens: 2, CreatedAt: occurredAt.Add(2 * time.Minute),
 	}); err != nil {
@@ -91,11 +91,11 @@ func TestLedgerQueryMinuteSeries(t *testing.T) {
 	}
 
 	points, err := st.Ledger().QueryMinuteSeries(ctx, types.UsageSeriesQuery{
-		Granularity: types.UsageGranularityMinute,
-		Start:       time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-		End:         time.Date(2026, 6, 10, 10, 0, 0, 0, time.UTC),
-		GroupBy:     types.UsageGroupByNone,
-		Timezone:    types.UsageDefaultTimezone,
+		Granularity:  types.UsageGranularityMinute,
+		Start:        time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
+		End:          time.Date(2026, 6, 10, 10, 0, 0, 0, time.UTC),
+		GroupBy:      types.UsageGroupByNone,
+		Timezone:     types.UsageDefaultTimezone,
 		ScopeDeptIDs: []string{seed.IDDept3},
 	})
 	if err != nil {

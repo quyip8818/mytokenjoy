@@ -70,10 +70,6 @@ func (s *Store) Billing() store.BillingRepository {
 	return newBillingRepo(s.pool)
 }
 
-func (s *Store) Credential() store.CredentialRepository {
-	return &credentialRepo{db: s.pool}
-}
-
 func (s *Store) SchedulerLock() store.SchedulerLockRepository {
 	return &schedulerLockRepo{db: s.pool}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -77,14 +78,12 @@ func TestUsageSeriesHourFromBuckets(t *testing.T) {
 func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	tree, err := st.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
 	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 999)
-	if err := st.Budget().SetTree(ctx, tree); err != nil {
-		t.Fatal(err)
-	}
+	testutil.PersistBudgetTreeT(t, ctx, st, tree)
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 18.5, CallCount: 2})
 	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, domainusage.SessionScope{
 		MemberID: seed.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},

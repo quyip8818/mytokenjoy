@@ -57,14 +57,6 @@ func insertKeys(ctx context.Context, exec tableWriter, tid int64, snap store.Sna
 			key.Quota, key.Used, createdAt, expiresAt); err != nil {
 			return err
 		}
-		for _, modelName := range key.ModelWhitelist {
-			if _, err := exec.Exec(ctx, `
-				INSERT INTO platform_key_models (company_id, platform_key_id, model_name) VALUES ($1, $2, $3)
-				ON CONFLICT DO NOTHING
-			`, tid, key.ID, modelName); err != nil {
-				return err
-			}
-		}
 	}
 	for _, approval := range snap.Approvals {
 		createdAt, err := pkgtime.Parse(approval.CreatedAt)
@@ -89,14 +81,6 @@ func insertKeys(ctx context.Context, exec tableWriter, tid int64, snap store.Sna
 			approval.Reason, approval.RequestedQuota, approval.Status, approval.Approver,
 			approval.RejectReason, createdAt, resolvedAt); err != nil {
 			return err
-		}
-		for _, modelName := range approval.RequestedModels {
-			if _, err := exec.Exec(ctx, `
-				INSERT INTO key_approval_models (company_id, approval_id, model_name) VALUES ($1, $2, $3)
-				ON CONFLICT DO NOTHING
-			`, tid, approval.ID, modelName); err != nil {
-				return err
-			}
 		}
 	}
 	return nil

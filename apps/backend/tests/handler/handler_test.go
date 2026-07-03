@@ -271,7 +271,7 @@ func TestAuditOperations(t *testing.T) {
 func TestBudgetNodeUpdateOversell(t *testing.T) {
 	router := newTestRouter(t)
 	body := []byte(`{"budget":90000,"reservedPool":1500}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/budget/nodes/dept-3", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()

@@ -13,7 +13,7 @@ import (
 func TestRoutingUpdateHTTP(t *testing.T) {
 	router := newTestRouter(t)
 	body := []byte(`{"allowedModels":["gpt-4o"]}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/rr-3", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", sessionCookie)
 	rec := httptest.NewRecorder()

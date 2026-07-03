@@ -11,7 +11,8 @@ import (
 )
 
 type pgKeysRepo struct {
-	db dbQuerier
+	db        dbQuerier
+	allowlist *pgModelAllowlistRepo
 }
 
 func (r *pgKeysRepo) ProviderKeys(ctx context.Context) ([]types.ProviderKey, error) {
@@ -119,8 +120,10 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 			item.ExpiresAt = &s
 		}
 		modelRows, err := r.db.Query(ctx, `
-			SELECT model_name FROM platform_key_models WHERE company_id = $1 AND platform_key_id = $2 ORDER BY model_name
-		`, companyID, item.ID)
+			SELECT model_name FROM model_allowlist
+			WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
+			ORDER BY model_name
+		`, companyID, types.AllowlistOwnerPlatformKey, item.ID)
 		if err == nil {
 			for modelRows.Next() {
 				var modelName string
@@ -180,25 +183,18 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 			key.Quota, key.Used, createdAt, expiresAt); err != nil {
 			return fmt.Errorf("upsert platform key %s: %w", key.ID, err)
 		}
-		if _, err := r.db.Exec(ctx, `DELETE FROM platform_key_models WHERE company_id = $1 AND platform_key_id = $2`, companyID, key.ID); err != nil {
+		if err := r.allowlist.Replace(ctx, types.AllowlistOwnerPlatformKey, key.ID, key.ModelWhitelist); err != nil {
 			return err
-		}
-		for _, modelName := range key.ModelWhitelist {
-			if _, err := r.db.Exec(ctx, `
-				INSERT INTO platform_key_models (company_id, platform_key_id, model_name) VALUES ($1, $2, $3)
-			`, companyID, key.ID, modelName); err != nil {
-				return err
-			}
 		}
 	}
 	if len(ids) == 0 {
-		if _, err := r.db.Exec(ctx, `DELETE FROM platform_key_models WHERE company_id = $1`, companyID); err != nil {
+		if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerPlatformKey, nil); err != nil {
 			return err
 		}
 		_, err := r.db.Exec(ctx, `DELETE FROM platform_keys WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompany(ctx, r.db, "platform_key_models", "platform_key_id", companyID, ids); err != nil {
+	if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerPlatformKey, ids); err != nil {
 		return err
 	}
 	return pruneByIDForCompany(ctx, r.db, "platform_keys", companyID, ids)
@@ -242,8 +238,10 @@ func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error)
 			item.ResolvedAt = &s
 		}
 		modelRows, err := r.db.Query(ctx, `
-			SELECT model_name FROM key_approval_models WHERE company_id = $1 AND approval_id = $2 ORDER BY model_name
-		`, companyID, item.ID)
+			SELECT model_name FROM model_allowlist
+			WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
+			ORDER BY model_name
+		`, companyID, types.AllowlistOwnerKeyApproval, item.ID)
 		if err == nil {
 			for modelRows.Next() {
 				var modelName string
@@ -301,25 +299,18 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 			approval.RejectReason, createdAt, resolvedAt); err != nil {
 			return fmt.Errorf("upsert approval %s: %w", approval.ID, err)
 		}
-		if _, err := r.db.Exec(ctx, `DELETE FROM key_approval_models WHERE company_id = $1 AND approval_id = $2`, companyID, approval.ID); err != nil {
+		if err := r.allowlist.Replace(ctx, types.AllowlistOwnerKeyApproval, approval.ID, approval.RequestedModels); err != nil {
 			return err
-		}
-		for _, modelName := range approval.RequestedModels {
-			if _, err := r.db.Exec(ctx, `
-				INSERT INTO key_approval_models (company_id, approval_id, model_name) VALUES ($1, $2, $3)
-			`, companyID, approval.ID, modelName); err != nil {
-				return err
-			}
 		}
 	}
 	if len(ids) == 0 {
-		if _, err := r.db.Exec(ctx, `DELETE FROM key_approval_models WHERE company_id = $1`, companyID); err != nil {
+		if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerKeyApproval, nil); err != nil {
 			return err
 		}
 		_, err := r.db.Exec(ctx, `DELETE FROM key_approvals WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompany(ctx, r.db, "key_approval_models", "approval_id", companyID, ids); err != nil {
+	if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerKeyApproval, ids); err != nil {
 		return err
 	}
 	return pruneByIDForCompany(ctx, r.db, "key_approvals", companyID, ids)
@@ -351,8 +342,10 @@ func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.
 		item.ExpiresAt = &s
 	}
 	modelRows, err := r.db.Query(ctx, `
-		SELECT model_name FROM platform_key_models WHERE company_id = $1 AND platform_key_id = $2 ORDER BY model_name
-	`, companyID, item.ID)
+		SELECT model_name FROM model_allowlist
+		WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
+		ORDER BY model_name
+	`, companyID, types.AllowlistOwnerPlatformKey, item.ID)
 	if err == nil {
 		for modelRows.Next() {
 			var modelName string

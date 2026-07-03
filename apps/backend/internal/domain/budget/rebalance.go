@@ -78,11 +78,11 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 		return err
 	}
 
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return err
 	}
-	rules, err := s.store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, s.store)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	if err != nil {
 		return err
 	}
-	tree, err := s.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, s.store)
 	if err != nil {
 		return err
 	}

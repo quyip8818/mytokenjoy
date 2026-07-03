@@ -74,22 +74,31 @@ CREATE TABLE IF NOT EXISTS role_permission_grants (
     PRIMARY KEY (company_id, role_id, permission_ref)
 );
 
-CREATE TABLE IF NOT EXISTS departments (
-    id            TEXT NOT NULL,
-    company_id     BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    name          TEXT NOT NULL,
-    parent_id     TEXT,
-    member_count  INT NOT NULL DEFAULT 0,
-    external_id   TEXT,
-    source        TEXT,
-    manager_id    TEXT,
-    sort_order    INT NOT NULL DEFAULT 0,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+CREATE TABLE IF NOT EXISTS org_nodes (
+    id                TEXT NOT NULL,
+    company_id        BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    name              TEXT NOT NULL,
+    parent_id         TEXT,
+    member_count      INT NOT NULL DEFAULT 0,
+    external_id       TEXT,
+    source            TEXT,
+    manager_id        TEXT,
+    sort_order        INT NOT NULL DEFAULT 0,
+    budget            NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    consumed          NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    reserved_pool     NUMERIC(18, 6),
+    period            TEXT NOT NULL,
+    default_model     TEXT,
+    fallback_model    TEXT,
+    routing_inherited BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_departments_parent ON departments (company_id, parent_id);
+CREATE INDEX IF NOT EXISTS idx_org_nodes_parent ON org_nodes (company_id, parent_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_org_nodes_external
+    ON org_nodes (company_id, external_id) WHERE external_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS members (
     id              TEXT NOT NULL,
@@ -122,27 +131,23 @@ CREATE TABLE IF NOT EXISTS member_roles (
 
 CREATE INDEX IF NOT EXISTS idx_member_roles_role ON member_roles (role_id);
 
-CREATE TABLE IF NOT EXISTS org_data_source_status (
-    company_id        BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
-    platform         TEXT,
-    connected        BOOLEAN NOT NULL DEFAULT FALSE,
-    last_import      TIMESTAMPTZ,
-    last_import_ok   INT,
-    last_import_fail INT,
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS org_sync_config (
+CREATE TABLE IF NOT EXISTS org_integration (
     company_id                   BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
-    enabled                     BOOLEAN NOT NULL DEFAULT FALSE,
-    start_time                  TEXT NOT NULL DEFAULT '',
-    frequency_hours             INT NOT NULL DEFAULT 24,
-    delete_member_threshold     INT NOT NULL DEFAULT 0,
-    delete_department_threshold INT NOT NULL DEFAULT 0,
-    notify_phone                BOOLEAN NOT NULL DEFAULT FALSE,
-    notify_email                BOOLEAN NOT NULL DEFAULT FALSE,
-    notify_im                   BOOLEAN NOT NULL DEFAULT FALSE,
-    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    platform                     TEXT,
+    connected                    BOOLEAN NOT NULL DEFAULT FALSE,
+    last_import                  TIMESTAMPTZ,
+    last_import_ok               INT,
+    last_import_fail             INT,
+    enabled                      BOOLEAN NOT NULL DEFAULT FALSE,
+    start_time                   TEXT NOT NULL DEFAULT '',
+    frequency_hours              INT NOT NULL DEFAULT 24,
+    delete_member_threshold      INT NOT NULL DEFAULT 0,
+    delete_department_threshold  INT NOT NULL DEFAULT 0,
+    notify_phone                 BOOLEAN NOT NULL DEFAULT FALSE,
+    notify_email                 BOOLEAN NOT NULL DEFAULT FALSE,
+    notify_im                    BOOLEAN NOT NULL DEFAULT FALSE,
+    encrypted_credential         BYTEA,
+    updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS org_sync_logs (
@@ -166,22 +171,7 @@ CREATE TABLE IF NOT EXISTS org_import_failures (
     PRIMARY KEY (company_id, id)
 );
 
--- Budget domain
-CREATE TABLE IF NOT EXISTS budget_nodes (
-    id            TEXT NOT NULL,
-    company_id     BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    name          TEXT NOT NULL,
-    parent_id     TEXT,
-    budget        NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    consumed      NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    reserved_pool NUMERIC(18, 6),
-    period        TEXT NOT NULL,
-    sort_order    INT NOT NULL DEFAULT 0,
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_budget_nodes_parent ON budget_nodes (company_id, parent_id);
+-- Budget domain (groups and alerts; org tree in org_nodes)
 
 CREATE TABLE IF NOT EXISTS budget_groups (
     id         TEXT NOT NULL,
@@ -257,26 +247,18 @@ CREATE TABLE IF NOT EXISTS model_capabilities (
     PRIMARY KEY (company_id, model_id, capability)
 );
 
-CREATE TABLE IF NOT EXISTS routing_rules (
-    id             TEXT NOT NULL,
-    company_id      BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    node_id        TEXT NOT NULL,
-    node_name      TEXT NOT NULL,
-    default_model  TEXT,
-    fallback_model TEXT,
-    inherited      BOOLEAN NOT NULL DEFAULT FALSE,
-    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
+CREATE TABLE IF NOT EXISTS model_allowlist (
+    company_id   BIGINT NOT NULL DEFAULT 1,
+    owner_type   TEXT NOT NULL,
+    owner_id     TEXT NOT NULL,
+    model_name   TEXT NOT NULL,
+    PRIMARY KEY (company_id, owner_type, owner_id, model_name),
+    CONSTRAINT chk_model_allowlist_owner_type
+        CHECK (owner_type IN ('platform_key', 'org_node', 'key_approval'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_routing_rules_node ON routing_rules (node_id);
-
-CREATE TABLE IF NOT EXISTS routing_rule_models (
-    company_id  BIGINT NOT NULL DEFAULT 1,
-    rule_id    TEXT NOT NULL,
-    model_name TEXT NOT NULL,
-    PRIMARY KEY (company_id, rule_id, model_name)
-);
+CREATE INDEX IF NOT EXISTS idx_model_allowlist_owner
+    ON model_allowlist (company_id, owner_type, owner_id);
 
 -- Keys domain
 CREATE TABLE IF NOT EXISTS provider_keys (
@@ -317,13 +299,6 @@ CREATE TABLE IF NOT EXISTS platform_keys (
 CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id, member_id);
 CREATE INDEX IF NOT EXISTS idx_platform_keys_budget_group ON platform_keys (company_id, budget_group_id);
 
-CREATE TABLE IF NOT EXISTS platform_key_models (
-    company_id       BIGINT NOT NULL DEFAULT 1,
-    platform_key_id TEXT NOT NULL,
-    model_name      TEXT NOT NULL,
-    PRIMARY KEY (company_id, platform_key_id, model_name)
-);
-
 CREATE TABLE IF NOT EXISTS key_approvals (
     id              TEXT NOT NULL,
     company_id       BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
@@ -342,13 +317,6 @@ CREATE TABLE IF NOT EXISTS key_approvals (
 );
 
 CREATE INDEX IF NOT EXISTS idx_key_approvals_status ON key_approvals (status, created_at DESC);
-
-CREATE TABLE IF NOT EXISTS key_approval_models (
-    company_id   BIGINT NOT NULL DEFAULT 1,
-    approval_id TEXT NOT NULL,
-    model_name  TEXT NOT NULL,
-    PRIMARY KEY (company_id, approval_id, model_name)
-);
 
 -- Audit domain
 CREATE TABLE IF NOT EXISTS audit_settings (
@@ -427,32 +395,21 @@ CREATE INDEX IF NOT EXISTS idx_relay_mappings_company_member ON relay_mappings (
 CREATE INDEX IF NOT EXISTS idx_relay_mappings_company_department ON relay_mappings (company_id, department_id);
 CREATE INDEX IF NOT EXISTS idx_relay_mappings_company_budget_group ON relay_mappings (company_id, budget_group_id);
 
-CREATE TABLE IF NOT EXISTS relay_outbox (
+CREATE TABLE IF NOT EXISTS outbox (
     id           TEXT PRIMARY KEY,
-    kind         TEXT NOT NULL,
+    channel      TEXT NOT NULL,
+    kind         TEXT,
     payload      JSONB NOT NULL,
     status       TEXT NOT NULL DEFAULT 'pending',
     attempts     INT NOT NULL DEFAULT 0,
     next_retry   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_error   TEXT,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_outbox_channel CHECK (channel IN ('relay', 'webhook'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_relay_outbox_pending ON relay_outbox (status, next_retry);
-
-CREATE TABLE IF NOT EXISTS webhook_outbox (
-    id           TEXT PRIMARY KEY,
-    payload      JSONB NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'pending',
-    attempts     INT NOT NULL DEFAULT 0,
-    next_retry   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    last_error   TEXT,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_webhook_outbox_pending ON webhook_outbox (status, next_retry);
+CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox (channel, status, next_retry);
 
 CREATE TABLE IF NOT EXISTS relay_sync_cursors (
     company_id    BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
@@ -483,13 +440,6 @@ CREATE TABLE IF NOT EXISTS overrun_queue (
 );
 
 CREATE INDEX IF NOT EXISTS idx_overrun_queue_pending ON overrun_queue (status, created_at);
-
-CREATE TABLE IF NOT EXISTS datasource_credentials (
-    company_id   BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
-    platform    TEXT NOT NULL,
-    encrypted   BYTEA NOT NULL,
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 CREATE TABLE IF NOT EXISTS scheduler_locks (
     lock_name    TEXT PRIMARY KEY,

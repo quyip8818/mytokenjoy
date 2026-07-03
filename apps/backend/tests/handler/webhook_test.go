@@ -9,6 +9,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -63,7 +64,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	testutil.UpsertRelayMapping(t, app.Store, testutil.DefaultRelayMappingOpts())
 
 	ctx := testutil.Ctx()
-	budgetTree, err := app.Store.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, app.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +91,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 		t.Fatalf("expected status ok, got %q", resp["status"])
 	}
 
-	budgetTree, err = app.Store.Budget().Tree(ctx)
+	budgetTree, err = common.LoadBudgetTree(ctx, app.Store)
 	if err != nil {
 		t.Fatal(err)
 	}

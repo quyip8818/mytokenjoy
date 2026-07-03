@@ -55,15 +55,15 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			company.NewAPIWalletUserID = &walletID
 		}
 		rootDeptID := fmt.Sprintf("dept-root-%d", company.ID)
-		rootDept := types.Department{
-			ID: rootDeptID, Name: req.Name, MemberCount: 0,
-		}
-		departments, err := tx.Org().Departments(companyCtx)
+		nodes, err := tx.Org().Nodes().Tree(companyCtx)
 		if err != nil {
 			return err
 		}
-		departments = append(departments, rootDept)
-		if err := tx.Org().SetDepartments(companyCtx, departments); err != nil {
+		nodes = append(nodes, types.OrgNode{
+			ID: rootDeptID, Name: req.Name, MemberCount: 0,
+			Budget: 0, Consumed: 0, Period: time.Now().Format("2006-01"),
+		})
+		if err := tx.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 			return err
 		}
 		if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(company.ID)); err != nil {
@@ -73,16 +73,6 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			return err
 		}
 		company.RootDeptID = &rootDeptID
-		budgetTree, err := tx.Budget().Tree(companyCtx)
-		if err != nil {
-			return err
-		}
-		budgetTree = append(budgetTree, types.BudgetNode{
-			ID: rootDeptID, Name: req.Name, Budget: 0, Consumed: 0, Period: "monthly",
-		})
-		if err := tx.Budget().SetTree(companyCtx, budgetTree); err != nil {
-			return err
-		}
 		inviteToken, err := randomToken()
 		if err != nil {
 			return err

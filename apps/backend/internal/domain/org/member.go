@@ -20,7 +20,7 @@ func (s *service) ListMembers(ctx context.Context, departmentID, keyword string,
 		return types.PageResult[types.Member]{}, err
 	}
 	if departmentID != "" {
-		departments, err := s.store.Org().Departments(ctx)
+		departments, err := common.LoadDepartments(ctx, s.store)
 		if err != nil {
 			return types.PageResult[types.Member]{}, err
 		}
@@ -42,7 +42,7 @@ func (s *service) ListMembers(ctx context.Context, departmentID, keyword string,
 }
 
 func (s *service) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return types.Member{}, err
 	}
@@ -69,14 +69,22 @@ func (s *service) CreateMember(ctx context.Context, input types.Member) (types.M
 		return types.Member{}, err
 	}
 	members = append(members, member)
-	departments = RecalcDepartmentMemberCounts(departments, members)
 	if err := s.store.Org().SetMembers(ctx, members); err != nil {
 		return types.Member{}, err
 	}
-	if err := s.store.Org().SetDepartments(ctx, departments); err != nil {
+	if err := persistRecalculatedMemberCounts(ctx, s.store, members); err != nil {
 		return types.Member{}, err
 	}
 	return member, nil
+}
+
+func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, members []types.Member) error {
+	nodes, err := st.Org().Nodes().Tree(ctx)
+	if err != nil {
+		return err
+	}
+	nodes = RecalcDepartmentMemberCounts(nodes, members)
+	return st.Org().Nodes().SetTree(ctx, nodes)
 }
 
 func (s *service) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
@@ -139,7 +147,7 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 	}
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		departments, err := st.Org().Departments(ctx)
+		departments, err := common.LoadDepartments(ctx, st)
 		if err != nil {
 			return err
 		}
@@ -181,11 +189,10 @@ func (s *service) TransferMembers(ctx context.Context, ids []string, departmentI
 			}
 		}
 
-		departments = RecalcDepartmentMemberCounts(departments, members)
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		return st.Org().SetDepartments(ctx, departments)
+		return persistRecalculatedMemberCounts(ctx, st, members)
 	})
 }
 
@@ -224,7 +231,7 @@ func (s *service) BatchImport(ctx context.Context, rows []types.BatchImportRow) 
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}

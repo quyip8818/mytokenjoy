@@ -5,7 +5,7 @@
 **相关文档：**
 
 - 实体与表：[Backend-存储架构.md](./Backend-存储架构.md)
-- 实体优化方向：[Backend-存储实体优化.md](./Backend-存储实体优化.md)
+- 核心实体：[Backend-存储实体优化.md](./Backend-存储实体优化.md)
 - 钱包与多企业：[Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md)
 - 命名规范：[Backend-命名规范.md](./Backend-命名规范.md)
 
@@ -18,7 +18,7 @@
 | 轴           | 权威数据源                                                | 管什么                              | 谁改                            |
 | ------------ | --------------------------------------------------------- | ----------------------------------- | ------------------------------- |
 | **企业钱包** | NewAPI `users.quota`（`companies.newapi_wallet_user_id`） | 企业预付资金硬上限                  | 充值 → `billing.Service` TopUp  |
-| **组织预算** | Postgres `budget_*` 表                                    | 部门树内额度分配、成员/Key/组级花费 | 控制台 + Ingest 累加 `consumed` |
+| **组织预算** | Postgres `org_nodes` 等                              | 部门树内额度分配、成员/Key/组级花费 | 控制台 + Ingest 累加 `consumed` |
 
 ```mermaid
 flowchart TB
@@ -27,7 +27,7 @@ flowchart TB
   end
 
   subgraph org [组织预算轴]
-    BT[budget_nodes 树] --> MEM[members.personal_quota]
+    BT[org_nodes 树] --> MEM[members.personal_quota]
     BT --> BG[budget_groups]
     MQ --> PK[platform_keys.quota / used]
     BG --> PK
@@ -39,7 +39,7 @@ flowchart TB
   ING --> UB[usage_buckets 看板]
 ```
 
-**充值只涨钱包，不自动涨部门 `budget`。** 超管在控制台给 `budget_nodes` 分配额度；成员个人额度、Key 配额、预算组额度都从组织预算轴往下切。
+**充值只涨钱包，不自动涨部门 `budget`。** 超管在控制台给 `org_nodes` 分配额度；成员个人额度、Key 配额、预算组额度都从组织预算轴往下切。
 
 ---
 
@@ -47,20 +47,20 @@ flowchart TB
 
 ### 2.1 包与职责
 
-| 路径                                       | 职责                                                           |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| `internal/domain/budget/service.go`        | 控制台 CRUD：预算树、成员额度、预算组、预警规则、超限策略      |
-| `internal/domain/budget/ingest.go`              | Webhook 入账编排、幂等、`WithTx`                               |
-| `internal/domain/budget/ingest_side_effects.go` | 副作用入队：`rebalance_queue` / `overrun_queue` / 游标         |
-| `internal/domain/budget/ingest_overrun.go`      | Worker 消费 `overrun_queue` 后评估超限并禁用 Key               |
-| `internal/domain/usage/projection.go`           | 同步投影：`used` / `consumed` / `usage_buckets`                |
-| `internal/domain/usage/entry.go`                | 构造 `usage_ledger` 分录、幂等键、`previewSnippet`             |
-| `internal/domain/budget/rebalance.go`      | 按轴重算 NewAPI Token `remain_quota`                           |
-| `internal/pkg/budget/*`                    | 纯函数：树操作、校验、额度计算（无 IO）                        |
-| `internal/domain/relay/quota.go`           | `ComputeRemainQuotaCNY`：多约束取最小值                        |
-| `internal/http/handler/budget/handler.go`  | `/api/budget/*` HTTP 层                                        |
-| `internal/store/budget_repo.go`            | `BudgetRepository` 接口                                        |
-| `internal/infra/worker/runner.go`          | 定时消费 Outbox、Rebalance 队列、补偿 Ingest                   |
+| 路径                                            | 职责                                                      |
+| ----------------------------------------------- | --------------------------------------------------------- |
+| `internal/domain/budget/service.go`             | 控制台 CRUD：预算树、成员额度、预算组、预警规则、超限策略 |
+| `internal/domain/budget/ingest.go`              | Webhook 入账编排、幂等、`WithTx`                          |
+| `internal/domain/budget/ingest_side_effects.go` | 副作用入队：`rebalance_queue` / `overrun_queue` / 游标    |
+| `internal/domain/budget/ingest_overrun.go`      | Worker 消费 `overrun_queue` 后评估超限并禁用 Key          |
+| `internal/domain/usage/projection.go`           | 同步投影：`used` / `consumed` / `usage_buckets`           |
+| `internal/domain/usage/entry.go`                | 构造 `usage_ledger` 分录、幂等键、`previewSnippet`        |
+| `internal/domain/budget/rebalance.go`           | 按轴重算 NewAPI Token `remain_quota`                      |
+| `internal/pkg/budget/*`                         | 纯函数：树操作、校验、额度计算（无 IO）                   |
+| `internal/domain/relay/quota.go`                | `ComputeRemainQuotaCNY`：多约束取最小值                   |
+| `internal/http/handler/budget/handler.go`       | `/api/budget/*` HTTP 层                                   |
+| `internal/store/budget_repo.go`                 | `BudgetRepository` 接口                                   |
+| `internal/infra/worker/runner.go`               | 定时消费 Outbox、Rebalance 队列、补偿 Ingest              |
 
 ### 2.2 依赖注入（组合根）
 
@@ -77,24 +77,24 @@ flowchart TB
 
 `BudgetRepository` 暴露的存储（`internal/store/budget_repo.go`）：
 
-| 方法                                        | 表                                        | 说明                          |
-| ------------------------------------------- | ----------------------------------------- | ----------------------------- |
-| `Tree` / `SetTree`                          | `budget_nodes`                            | 预算树；**节点 ID = 部门 ID** |
-| `Groups` / `SetGroups`                      | `budget_groups` + 两个关联表              | 跨部门/成员共享池             |
-| `Org.Members` / `UpdateMemberPersonalQuota` | `members.personal_quota`                  | 成员个人额度上限              |
-| `OverrunPolicy` / `SetOverrunPolicy`        | `overrun_policy`                          | 每企业一行超限策略配置        |
-| `AlertRules` / `SetAlertRules`              | `alert_rules` + `alert_rule_notify_roles` | 节点预警规则                  |
+| 方法                                        | 表                                        | 说明                   |
+| ------------------------------------------- | ----------------------------------------- | ---------------------- |
+| `Groups` / `SetGroups`                      | `budget_groups` + 两个关联表              | 跨部门/成员共享池      |
+| `Org.Members` / `UpdateMemberPersonalQuota` | `members.personal_quota`                  | 成员个人额度上限       |
+| `OverrunPolicy` / `SetOverrunPolicy`        | `overrun_policy`                          | 每企业一行超限策略配置 |
+| `AlertRules` / `SetAlertRules`              | `alert_rules` + `alert_rule_notify_roles` | 节点预警规则           |
 
-与预算强相关、但不在 `BudgetRepository` 的表：
+与预算强相关、但不在 `BudgetRepository` 的表 / 接口：
 
-| 表                 | 关系                                                                       |
-| ------------------ | -------------------------------------------------------------------------- |
-| `platform_keys`    | `quota`（分配额）、`used`（已消耗）；可挂 `member_id` 或 `budget_group_id` |
-| `relay_mappings`   | 冗余部门/组 ID；`newapi_token_remain_quota` 缓存 NewAPI 侧剩余             |
-| `usage_buckets`    | 看板聚合事实，非预算管控主账                                               |
-| `usage_ledger`     | 消耗事实 SSOT；幂等键 `UNIQUE (company_id, idempotency_key)`               |
-| `rebalance_queue`  | 异步再平衡待办                                                             |
-| `overrun_queue`    | 超限封禁待办（Worker 异步消费）                                            |
+| 表 / 接口                      | 关系                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `org_nodes`（`Org().Nodes()`） | 预算树 CRUD、`RollupConsumed`；**节点 ID = 部门 ID**                       |
+| `platform_keys`                | `quota`（分配额）、`used`（已消耗）；可挂 `member_id` 或 `budget_group_id` |
+| `relay_mappings`               | 冗余部门/组 ID；`newapi_token_remain_quota` 缓存 NewAPI 侧剩余             |
+| `usage_buckets`                | 看板聚合事实，非预算管控主账                                               |
+| `usage_ledger`                 | 消耗事实 SSOT；幂等键 `UNIQUE (company_id, idempotency_key)`               |
+| `rebalance_queue`              | 异步再平衡待办                                                             |
+| `overrun_queue`                | 超限封禁待办（Worker 异步消费）                                            |
 
 ### 3.1 预算节点字段
 
@@ -122,7 +122,7 @@ type BudgetNode struct {
 
 ```mermaid
 flowchart TB
-  ROOT[根节点 budget_nodes<br/>budget - reserved - Σ子节点budget]
+  ROOT[根节点 org_nodes<br/>budget - reserved - Σ子节点budget]
   ROOT --> DEPT[子部门节点]
   DEPT --> CAP[部门可分给成员的 capacity<br/>budget - reserved - Σ子节点 - Σ成员personal_quota]
   CAP --> MEM[members.personal_quota]
@@ -132,7 +132,7 @@ flowchart TB
 
 ### 4.1 节点预算校验
 
-`pkg/budget/validate.ValidateBudgetNodeUpdate` 在 `PUT /api/budget/nodes/{id}` 时执行：
+`pkg/budget/validate.ValidateBudgetNodeUpdate` 在 `PUT /api/budget/departments/{departmentId}` 时执行：
 
 1. **对子级：** `newBudget >= Σ子节点.budget + reservedPool`
 2. **对父级：** `newBudget + Σ兄弟.budget + reservedPool <= 父.budget - 父.reservedPool`
@@ -170,13 +170,13 @@ flowchart TB
 
 ## 5. 与组织树的联动
 
-部门与预算节点 **同 ID**，不是外键。组织变更必须在事务内联动三份状态：
+部门与预算节点 **同 ID**（同一 `org_nodes` 行）。组织变更经 `provision.go` 单事务 `Org().Nodes().SetTree` + `Models().Allowlist().Replace`：
 
-| 组织操作 | 同步写入                                                           |
-| -------- | ------------------------------------------------------------------ |
-| 新建部门 | `departments` + `budget_nodes` + `routing_rules`（`provision.go`） |
-| 改名     | 三处 `name` / `node_name`                                          |
-| 删除     | 三处移除节点                                                       |
+| 组织操作 | 同步写入                                                      |
+| -------- | ------------------------------------------------------------- |
+| 新建部门 | `org_nodes` 新节点 + 路由白名单                               |
+| 改名     | `org_nodes.name`；同步 `members.department_name` 等反范式字段 |
+| 删除     | 从树中移除节点及关联 allowlist                                |
 
 预算树本身的 **额度调整** 仅通过 `budget.Service.UpdateNode`，不经过 `org` 包；但读树时 ID 与部门一一对应。
 
@@ -186,15 +186,15 @@ flowchart TB
 
 路由注册：`internal/http/handler/budget/handler.go`
 
-| 方法                | 路径                                             | 权限                   | 行为                        |
-| ------------------- | ------------------------------------------------ | ---------------------- | --------------------------- |
-| GET                 | `/api/budget/tree`                               | `budget:read`          | 返回嵌套预算树              |
-| PUT                 | `/api/budget/nodes/{id}`                         | `budget:allocate`      | 改 `budget`、`reservedPool` |
-| GET                 | `/api/budget/departments/{deptId}/member-quotas` | read                   | 部门成员额度一览            |
-| PUT                 | `/api/budget/members/{memberId}`                 | allocate               | 改个人额度                  |
-| GET/POST/PUT/DELETE | `/api/budget/groups*`                            | read / allocate        | 预算组 CRUD                 |
-| GET/PUT             | `/api/budget/overrun-policy`                     | read / `budget:policy` | 超限策略配置                |
-| GET/POST/PUT/DELETE | `/api/budget/alerts*`                            | read / policy          | 预警规则 CRUD               |
+| 方法                | 路径                                                   | 权限                   | 行为                        |
+| ------------------- | ------------------------------------------------------ | ---------------------- | --------------------------- |
+| GET                 | `/api/budget/tree`                                     | `budget:read`          | 返回嵌套预算树              |
+| PUT                 | `/api/budget/departments/{departmentId}`               | `budget:allocate`      | 改 `budget`、`reservedPool` |
+| GET                 | `/api/budget/departments/{departmentId}/member-quotas` | read                   | 部门成员额度一览            |
+| PUT                 | `/api/budget/members/{memberId}`                       | allocate               | 改个人额度                  |
+| GET/POST/PUT/DELETE | `/api/budget/groups*`                                  | read / allocate        | 预算组 CRUD                 |
+| GET/PUT             | `/api/budget/overrun-policy`                           | read / `budget:policy` | 超限策略配置                |
+| GET/POST/PUT/DELETE | `/api/budget/alerts*`                                  | read / policy          | 预警规则 CRUD               |
 
 写操作经 `common.Delayer` 人为延迟 300ms（demo 体感），与业务规则无关。
 
@@ -210,7 +210,7 @@ flowchart TB
 sequenceDiagram
   participant NA as NewAPI
   participant WH as Webhook Handler
-  participant WO as webhook_outbox
+  participant WO as outbox webhook
   participant W as worker.Runner
   participant ING as IngestService
   participant DB as Postgres
@@ -241,28 +241,28 @@ Worker 还会通过 `relay_sync_cursors` **补偿轮询** NewAPI 日志（`org_s
 
 同事务内顺序（账本 → 投影 → 副作用入队）：
 
-| 步骤 | 写入 / 动作 | 说明 |
-| ---- | ----------- | ---- |
-| 1 | `usage_ledger` INSERT ON CONFLICT | 事实 SSOT；`event_type=call_settled` |
-| 2 | `platform_keys.used += costCNY` | `projection.Apply` 定点 UPDATE |
-| 3 | `budget_groups.consumed += costCNY` | 若有 `budget_group_id` |
-| 4 | `budget_nodes.consumed` 祖先 rollup | 以 mapping.`department_id` 为叶子（含应用 Key） |
-| 5 | `usage_buckets` Upsert | 小时桶 × 部门 × 成员 × 模型 |
-| 6 | `rebalance_queue` 入队 | member / department / budget_group 轴 |
-| 7 | `overrun_queue` 入队 | Worker 异步 `evaluateOverrun`（§9） |
-| 8 | `relay_sync_cursors` 推进 | 补偿游标 |
+| 步骤 | 写入 / 动作                         | 说明                                            |
+| ---- | ----------------------------------- | ----------------------------------------------- |
+| 1    | `usage_ledger` INSERT ON CONFLICT   | 事实 SSOT；`event_type=call_settled`            |
+| 2    | `platform_keys.used += costCNY`     | `projection.Apply` 定点 UPDATE                  |
+| 3    | `budget_groups.consumed += costCNY` | 若有 `budget_group_id`                          |
+| 4    | `org_nodes.consumed` 祖先 rollup    | 以 mapping.`department_id` 为叶子（含应用 Key） |
+| 5    | `usage_buckets` Upsert              | 小时桶 × 部门 × 成员 × 模型                     |
+| 6    | `rebalance_queue` 入队              | member / department / budget_group 轴           |
+| 7    | `overrun_queue` 入队                | Worker 异步 `evaluateOverrun`（§9）             |
+| 8    | `relay_sync_cursors` 推进           | 补偿游标                                        |
 
-**rollup 逻辑**（`domain/usage/projection.go` → `RollupDepartmentConsumed`）：以 mapping.`department_id` 为叶子，叶子及所有祖先 `consumed += cost`。父节点 `consumed` 含整棵子树花费。
+**rollup 逻辑**（`domain/usage/projection.go` → `Org().Nodes().RollupConsumed`）：以 mapping.`department_id` 为叶子，叶子及所有祖先 `consumed += cost`。父节点 `consumed` 含整棵子树花费。
 
 ### 7.4 与看板的关系
 
-| 数据                    | 用途                     | 写入方                                               |
-| ----------------------- | ------------------------ | ---------------------------------------------------- |
-| `budget_nodes.consumed` | 预算树展示、超限判断     | Ingest（账本同步投影）                               |
-| `usage_buckets`         | Dashboard 趋势、成本汇总 | Ingest（账本同步投影）                               |
-| `usage_ledger` | 审计列表、财务 SSOT | Ingest（瘦行 + `previewSnippet`） |
+| 数据                 | 用途                     | 写入方                            |
+| -------------------- | ------------------------ | --------------------------------- |
+| `org_nodes.consumed` | 预算树展示、超限判断     | Ingest（账本同步投影）            |
+| `usage_buckets`      | Dashboard 趋势、成本汇总 | Ingest（账本同步投影）            |
+| `usage_ledger`       | 审计列表、财务 SSOT      | Ingest（瘦行 + `previewSnippet`） |
 
-看板 `dashboard.Service` 读 `usage_buckets`（`UsageSourceBuckets`），**不读** `budget_nodes.consumed`。两者同源事件、不同聚合，短期可能因舍入或重试边界略有差异。审计列表读 `usage_ledger`（`previewSnippet` 受 `contentRetentionEnabled` 控制）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)。
+看板 `dashboard.Service` 读 `usage_buckets`（`UsageSourceBuckets`），**不读** `org_nodes.consumed`。两者同源事件、不同聚合，短期可能因舍入或重试边界略有差异。审计列表读 `usage_ledger`（`previewSnippet` 受 `contentRetentionEnabled` 控制）。详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)。
 
 ---
 
@@ -337,10 +337,10 @@ return min(candidates)
 
 ### 9.2 配置项 vs 实现差距（阅读代码时需注意）
 
-| 实体             | 控制台可配                     | 运行时是否使用                   |
-| ---------------- | ------------------------------ | -------------------------------- |
+| 实体             | 控制台可配                     | 运行时是否使用                          |
+| ---------------- | ------------------------------ | --------------------------------------- |
 | `overrun_policy` | 阈值、通知渠道、`blockMessage` | **Overrun Worker 未读取**；仅 CRUD 存储 |
-| `alert_rules`    | 节点阈值 %、`notifyRoleIds`    | **无 Worker 评估**；仅 CRUD 存储 |
+| `alert_rules`    | 节点阈值 %、`notifyRoleIds`    | **无 Worker 评估**；仅 CRUD 存储        |
 
 当前真正执行「花超即封」的是 §9.1 的 **100% 硬门禁**，不是预警规则里的 80%/90% 阶梯通知。
 
@@ -354,7 +354,7 @@ return min(candidates)
 2. 充值 `topUpAndFinish` → NewAPI `TopUp` → 订单状态 `topped_up`
 3. 成功后 `EnqueueRebalance(company)` → 全企业 active mapping 重算 Token 配额
 
-**充值不改变 `budget_nodes.budget`。** 若钱包有钱但部门 budget 为 0，`ComputeRemainQuotaCNY` 仍可能得到 0，API 不可用——产品引导「分配组织预算」。
+**充值不改变 `org_nodes.budget`。** 若钱包有钱但部门 budget 为 0，`ComputeRemainQuotaCNY` 仍可能得到 0，API 不可用——产品引导「分配组织预算」。
 
 ---
 
@@ -364,7 +364,7 @@ return min(candidates)
 
 ```mermaid
 flowchart LR
-  A[relay_outbox 消费] --> B[webhook_outbox 重试 Ingest]
+  A[outbox relay] --> B[outbox webhook 重试 Ingest]
   B --> C[rebalance_queue 消费]
   C --> D[overrun_queue 消费]
   D --> E[NewAPI 日志补偿 Ingest]
@@ -433,7 +433,7 @@ sequenceDiagram
 
 ## 15. 已知限制与演进参考
 
-1. **消耗多写点：** Ingest 同时写 `used`、`consumed`、`usage_buckets`；详见 [Backend-存储实体优化.md](./Backend-存储实体优化.md) §O1。
+1. **消耗多写点：** Ingest 同时写 `used`、`consumed`、`usage_buckets`；详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) §0.2。
 2. **预警与策略未接线：** `alert_rules`、`overrun_policy` 仅有 API 存储，无定时/Ingest 评估。
 3. **部门 consumed rollup：** 祖先节点包含子孙花费，与「仅本节点花费」的 UI 理解需一致。
 4. **预算组与成员轴互斥：** Key 挂组时不走成员个人额度超限分支（`ingest_overrun` 中 `BudgetGroupID == nil` 才检查成员）。
@@ -442,15 +442,15 @@ sequenceDiagram
 
 ## 16. 源码索引
 
-| 主题         | 文件                                                                       |
-| ------------ | -------------------------------------------------------------------------- |
-| 预算 Service | `internal/domain/budget/service.go`                                        |
+| 主题         | 文件                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| 预算 Service | `internal/domain/budget/service.go`                                                        |
 | Ingest       | `internal/domain/budget/ingest.go`, `ingest_side_effects.go`, `domain/usage/projection.go` |
-| 超限         | `internal/domain/budget/ingest_overrun.go`                                 |
-| Rebalance    | `internal/domain/budget/rebalance.go`                                      |
-| 额度合成     | `internal/domain/relay/quota.go`                                           |
-| 树校验       | `internal/pkg/budget/validate.go`, `memberbudgetquota.go`, `groupquota.go` |
-| HTTP         | `internal/http/handler/budget/handler.go`                                  |
-| Worker       | `internal/infra/worker/runner.go`, `rebalance_processor.go`                |
-| Schema       | `internal/store/postgres/schema.sql`（`budget_*` 段）                      |
-| 测试         | `tests/domain/budget/*`                                                    |
+| 超限         | `internal/domain/budget/ingest_overrun.go`                                                 |
+| Rebalance    | `internal/domain/budget/rebalance.go`                                                      |
+| 额度合成     | `internal/domain/relay/quota.go`                                                           |
+| 树校验       | `internal/pkg/budget/validate.go`, `memberbudgetquota.go`, `groupquota.go`                 |
+| HTTP         | `internal/http/handler/budget/handler.go`                                                  |
+| Worker       | `internal/infra/worker/runner.go`, `rebalance_processor.go`                                |
+| Schema       | `internal/store/postgres/schema.sql`（`budget_*` 段）                                      |
+| 测试         | `tests/domain/budget/*`                                                                    |

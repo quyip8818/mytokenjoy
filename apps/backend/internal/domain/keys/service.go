@@ -78,7 +78,7 @@ func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.Memb
 	if memberID == "" {
 		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
 	}
-	tree, err := s.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, s.store)
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
@@ -128,7 +128,7 @@ func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.Appr
 	reservedPool := 0.0
 	if approval != nil {
 		requested = approval.RequestedQuota
-		tree, err := s.store.Budget().Tree(ctx)
+		tree, err := common.LoadBudgetTree(ctx, s.store)
 		if err != nil {
 			return types.ApprovalQuotaCheck{}, err
 		}

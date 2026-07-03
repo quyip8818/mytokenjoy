@@ -27,7 +27,7 @@ func (s *service) credentialKey() ([]byte, error) {
 }
 
 func (s *service) loadStoredCredential(ctx context.Context) (types.Credential, error) {
-	stored, err := s.store.Credential().GetCredential(ctx)
+	stored, err := s.store.Org().GetIntegrationCredential(ctx)
 	if err != nil {
 		return types.Credential{}, err
 	}
@@ -58,7 +58,7 @@ func (s *service) saveCredential(ctx context.Context, cred types.Credential) err
 	if err != nil {
 		return err
 	}
-	return s.store.Credential().SaveCredential(ctx, cred.Platform, encrypted)
+	return s.store.Org().SaveIntegrationCredential(ctx, cred.Platform, encrypted)
 }
 
 func (s *service) providerForStored(ctx context.Context) (datasource.Provider, types.Platform, error) {

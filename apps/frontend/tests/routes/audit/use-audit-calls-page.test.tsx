@@ -55,7 +55,9 @@ describe('useAuditCallsPage', () => {
   it('applies status filter and resets page', async () => {
     const apis = createMockApis({
       auditApi: {
-        getCalls: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: AUDIT_PAGE_SIZE }),
+        getCalls: vi
+          .fn()
+          .mockResolvedValue({ items: [], total: 0, page: 1, pageSize: AUDIT_PAGE_SIZE }),
         getSettings: vi.fn().mockResolvedValue({ contentRetentionEnabled: true }),
       },
     })
@@ -84,7 +86,9 @@ describe('useAuditCallsPage', () => {
   it('applies model filter', async () => {
     const apis = createMockApis({
       auditApi: {
-        getCalls: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: AUDIT_PAGE_SIZE }),
+        getCalls: vi
+          .fn()
+          .mockResolvedValue({ items: [], total: 0, page: 1, pageSize: AUDIT_PAGE_SIZE }),
         getSettings: vi.fn().mockResolvedValue({ contentRetentionEnabled: true }),
       },
     })

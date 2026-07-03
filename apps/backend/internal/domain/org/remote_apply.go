@@ -44,11 +44,11 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 			}
 		}
 
-		departments, err := st.Org().Departments(ctx)
+		nodes, err := st.Org().Nodes().Tree(ctx)
 		if err != nil {
 			return err
 		}
-		state, err := loadProvisionState(ctx, st, departments)
+		state, err := loadProvisionState(ctx, st, nodes)
 		if err != nil {
 			return err
 		}
@@ -59,14 +59,8 @@ func (s *service) applySyncDiff(ctx context.Context, platform types.Platform, di
 			result.SuccessDepartments++
 		}
 
-		state.Departments = RecalcDepartmentMemberCounts(state.Departments, members)
-		if err := st.Org().SetDepartments(ctx, state.Departments); err != nil {
-			return err
-		}
-		if err := st.Budget().SetTree(ctx, state.BudgetTree); err != nil {
-			return err
-		}
-		if err := st.Models().SetRoutingRules(ctx, state.Rules); err != nil {
+		state.Nodes = RecalcDepartmentMemberCounts(state.Nodes, members)
+		if err := persistProvisionState(ctx, st, state); err != nil {
 			return err
 		}
 		return st.Org().SetMembers(ctx, members)

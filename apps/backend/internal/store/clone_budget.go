@@ -2,36 +2,6 @@ package store
 
 import "github.com/tokenjoy/backend/internal/domain/types"
 
-func cloneBudgetNode(node types.BudgetNode) types.BudgetNode {
-	cloned := types.BudgetNode{
-		ID: node.ID, Name: node.Name, Budget: node.Budget,
-		Consumed: node.Consumed, Period: node.Period,
-	}
-	if node.ParentID != nil {
-		parentID := *node.ParentID
-		cloned.ParentID = &parentID
-	}
-	if node.ReservedPool != nil {
-		reserved := *node.ReservedPool
-		cloned.ReservedPool = &reserved
-	}
-	if len(node.Children) > 0 {
-		cloned.Children = make([]types.BudgetNode, len(node.Children))
-		for i, child := range node.Children {
-			cloned.Children[i] = cloneBudgetNode(child)
-		}
-	}
-	return cloned
-}
-
-func cloneBudgetTree(items []types.BudgetNode) []types.BudgetNode {
-	result := make([]types.BudgetNode, len(items))
-	for i, node := range items {
-		result[i] = cloneBudgetNode(node)
-	}
-	return result
-}
-
 func cloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
 	result := make([]types.BudgetGroup, len(items))
 	for i, group := range items {
@@ -56,8 +26,6 @@ func cloneAlertRules(items []types.AlertRule) []types.AlertRule {
 	}
 	return result
 }
-
-func CloneBudgetTree(items []types.BudgetNode) []types.BudgetNode { return cloneBudgetTree(items) }
 
 func CloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
 	return cloneBudgetGroups(items)

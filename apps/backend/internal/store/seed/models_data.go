@@ -14,21 +14,3 @@ func buildModels() []types.ModelInfo {
 		{ID: "model-8", Provider: "qwen", Name: "qwen-plus", DisplayName: "Qwen Plus", InputPrice: 0.8, OutputPrice: 2.0, MaxContext: 131072, Enabled: true, Capabilities: []string{"chat", "vision"}},
 	}
 }
-
-func buildRoutingRules() []types.RoutingRule {
-	gpt4oMini := "gpt-4o-mini"
-	deepseek := "deepseek-v3"
-	claudeSonnet := "claude-sonnet-4-6"
-	gpt4o := "gpt-4o"
-	qwenPlus := "qwen-plus"
-	return []types.RoutingRule{
-		{ID: "rr-1", NodeID: "dept-1", NodeName: "总公司", AllowedModels: []string{"gpt-4o", "gpt-4o-mini", "claude-sonnet-4-6", "deepseek-v3", "qwen-plus"}, DefaultModel: &gpt4oMini, FallbackModel: &deepseek, Inherited: false},
-		{ID: "rr-2", NodeID: "dept-2", NodeName: "技术部", AllowedModels: []string{"gpt-4o", "gpt-4o-mini", "claude-sonnet-4-6", "claude-opus-4-8", "deepseek-v3"}, DefaultModel: &gpt4o, FallbackModel: &deepseek, Inherited: false},
-		{ID: "rr-3", NodeID: IDDept3, NodeName: "后端组", AllowedModels: []string{"gpt-4o", "claude-sonnet-4-6", "deepseek-v3"}, Inherited: true},
-		{ID: "rr-4", NodeID: "dept-6", NodeName: "产品部", AllowedModels: []string{"gpt-4o-mini", "deepseek-v3", "qwen-plus"}, DefaultModel: &gpt4oMini, FallbackModel: &qwenPlus, Inherited: false},
-		{ID: "rr-5", NodeID: "dept-4", NodeName: "前端组", AllowedModels: []string{"gpt-4o-mini", "claude-sonnet-4-6", "deepseek-v3"}, DefaultModel: &claudeSonnet, FallbackModel: &gpt4oMini, Inherited: true},
-		{ID: "rr-6", NodeID: "dept-5", NodeName: "测试组", AllowedModels: []string{"gpt-4o-mini", "deepseek-v3"}, DefaultModel: &deepseek, FallbackModel: &gpt4oMini, Inherited: true},
-		{ID: "rr-7", NodeID: "dept-7", NodeName: "市场部", AllowedModels: []string{"gpt-4o-mini", "qwen-plus", "deepseek-v3"}, DefaultModel: &qwenPlus, FallbackModel: &gpt4oMini, Inherited: false},
-		{ID: "rr-8", NodeID: "dept-8", NodeName: "行政部", AllowedModels: []string{"gpt-4o-mini"}, DefaultModel: &gpt4oMini, Inherited: true},
-	}
-}

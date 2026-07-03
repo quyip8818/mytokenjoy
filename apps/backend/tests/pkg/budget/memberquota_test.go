@@ -3,6 +3,7 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -23,7 +24,7 @@ func TestBuildQuotaSummary(t *testing.T) {
 	snapshot := seed.Load(testutil.TestConfig())
 	members := snapshot.Members
 	keys := snapshot.PlatformKeys
-	reserved := budget.GetReservedPoolForMember(snapshot.BudgetTree, members, seed.IDMember1)
+	reserved := budget.GetReservedPoolForMember(types.OrgNodesToBudgetTree(snapshot.OrgNodes), members, seed.IDMember1)
 
 	summary := budget.BuildQuotaSummary(members, keys, seed.IDMember1, reserved)
 	if summary.TotalQuota != 10000 {

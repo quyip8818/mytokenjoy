@@ -42,9 +42,7 @@ function TestHarness({
 
 describe('CallLogsTable', () => {
   it('does not expand rows when content retention is disabled', () => {
-    renderWithProviders(
-      <TestHarness logs={[baseLog]} contentRetentionEnabled={false} />,
-    )
+    renderWithProviders(<TestHarness logs={[baseLog]} contentRetentionEnabled={false} />)
 
     expect(screen.queryByText('输入预览')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('张三'))
@@ -52,9 +50,7 @@ describe('CallLogsTable', () => {
   })
 
   it('expands and shows preview snippet when content retention is enabled', () => {
-    renderWithProviders(
-      <TestHarness logs={[baseLog]} contentRetentionEnabled={true} />,
-    )
+    renderWithProviders(<TestHarness logs={[baseLog]} contentRetentionEnabled={true} />)
 
     fireEvent.click(screen.getByText('张三'))
     expect(screen.getByText('输入预览')).toBeInTheDocument()
@@ -63,10 +59,7 @@ describe('CallLogsTable', () => {
 
   it('shows placeholder when preview snippet is empty', () => {
     renderWithProviders(
-      <TestHarness
-        logs={[{ ...baseLog, previewSnippet: '' }]}
-        contentRetentionEnabled={true}
-      />,
+      <TestHarness logs={[{ ...baseLog, previewSnippet: '' }]} contentRetentionEnabled={true} />,
     )
 
     fireEvent.click(screen.getByText('张三'))

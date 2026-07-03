@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/usagequery"
 )

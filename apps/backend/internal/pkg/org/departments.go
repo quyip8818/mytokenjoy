@@ -1,36 +1,64 @@
 package org
 
-import (
-	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/tree"
-)
+import "github.com/tokenjoy/backend/internal/domain/types"
 
 func FlattenDepartmentTree(departments []types.Department) []types.Department {
-	return tree.Flatten(departments, func(dept types.Department) []types.Department {
-		return dept.Children
-	}, func(dept *types.Department) {
-		dept.Children = nil
-	})
+	return types.OrgNodesToDepartments(FlattenOrgNodeTree(departmentsToOrgNodes(departments)))
 }
 
 func GetDeptPath(departments []types.Department, targetID string) *string {
-	var walk func(nodes []types.Department, path []string) *string
-	walk = func(nodes []types.Department, path []string) *string {
-		for _, node := range nodes {
-			current := append(path, node.Name)
-			if node.ID == targetID {
-				joined := joinPath(current)
-				return &joined
-			}
-			if len(node.Children) > 0 {
-				if found := walk(node.Children, current); found != nil {
-					return found
-				}
-			}
-		}
+	return GetOrgNodePath(departmentsToOrgNodes(departments), targetID)
+}
+
+func FindDepartment(departments []types.Department, id string) *types.Department {
+	node := FindOrgNode(departmentsToOrgNodes(departments), id)
+	if node == nil {
 		return nil
 	}
-	return walk(departments, nil)
+	dept := types.OrgNodeToDepartment(*node)
+	return &dept
+}
+
+func InsertDepartmentChild(departments []types.Department, parentID string, dept types.Department) bool {
+	nodes := departmentsToOrgNodes(departments)
+	if !InsertOrgNodeChild(nodes, parentID, departmentToOrgNode(dept)) {
+		return false
+	}
+	syncDepartmentChildren(departments, nodes)
+	return true
+}
+
+func RemoveDepartment(departments []types.Department, id string) ([]types.Department, bool) {
+	nodes := departmentsToOrgNodes(departments)
+	before := orgNodeTreeSize(nodes)
+	updated := RemoveOrgNodeByID(nodes, id)
+	return types.OrgNodesToDepartments(updated), orgNodeTreeSize(updated) != before
+}
+
+func UpdateDepartmentName(departments []types.Department, id, name string) bool {
+	nodes := departmentsToOrgNodes(departments)
+	if !UpdateOrgNodeName(nodes, id, name) {
+		return false
+	}
+	syncDepartmentNames(departments, nodes)
+	return true
+}
+
+func HasDirectChildDepartments(departments []types.Department, id string) bool {
+	return HasDirectChildOrgNodes(departmentsToOrgNodes(departments), id)
+}
+
+func HasDirectActiveMembers(members []types.Member, deptID string) bool {
+	for _, member := range members {
+		if member.DepartmentID == deptID && member.Status == "active" {
+			return true
+		}
+	}
+	return false
+}
+
+func RecalcMemberCounts(departments []types.Department, members []types.Member) []types.Department {
+	return types.OrgNodesToDepartments(RecalcOrgNodeMemberCounts(departmentsToOrgNodes(departments), members))
 }
 
 func joinPath(parts []string) string {
@@ -44,102 +72,22 @@ func joinPath(parts []string) string {
 	return result
 }
 
-func FindDepartment(departments []types.Department, id string) *types.Department {
+func syncDepartmentChildren(departments []types.Department, nodes []types.OrgNode) {
 	for i := range departments {
-		if departments[i].ID == id {
-			return &departments[i]
-		}
-		if len(departments[i].Children) > 0 {
-			if found := FindDepartment(departments[i].Children, id); found != nil {
-				return found
-			}
-		}
-	}
-	return nil
-}
-
-func InsertDepartmentChild(departments []types.Department, parentID string, dept types.Department) bool {
-	for i := range departments {
-		if departments[i].ID == parentID {
-			departments[i].Children = append(departments[i].Children, dept)
-			return true
-		}
-		if len(departments[i].Children) > 0 && InsertDepartmentChild(departments[i].Children, parentID, dept) {
-			return true
-		}
-	}
-	return false
-}
-
-func RemoveDepartment(departments []types.Department, id string) ([]types.Department, bool) {
-	filtered := make([]types.Department, 0, len(departments))
-	removed := false
-	for _, dept := range departments {
-		if dept.ID == id {
-			removed = true
+		if i >= len(nodes) || departments[i].ID != nodes[i].ID {
 			continue
 		}
-		cloned := dept
-		if len(dept.Children) > 0 {
-			var childRemoved bool
-			cloned.Children, childRemoved = RemoveDepartment(dept.Children, id)
-			removed = removed || childRemoved
-		}
-		filtered = append(filtered, cloned)
+		departments[i].Children = types.OrgNodesToDepartments(nodes[i].Children)
+		syncDepartmentChildren(departments[i].Children, nodes[i].Children)
 	}
-	return filtered, removed
 }
 
-func UpdateDepartmentName(departments []types.Department, id, name string) bool {
+func syncDepartmentNames(departments []types.Department, nodes []types.OrgNode) {
 	for i := range departments {
-		if departments[i].ID == id {
-			departments[i].Name = name
-			return true
+		if i >= len(nodes) || departments[i].ID != nodes[i].ID {
+			continue
 		}
-		if len(departments[i].Children) > 0 && UpdateDepartmentName(departments[i].Children, id, name) {
-			return true
-		}
+		departments[i].Name = nodes[i].Name
+		syncDepartmentNames(departments[i].Children, nodes[i].Children)
 	}
-	return false
-}
-
-func HasDirectChildDepartments(departments []types.Department, id string) bool {
-	dept := FindDepartment(departments, id)
-	if dept == nil {
-		return false
-	}
-	return len(dept.Children) > 0
-}
-
-func HasDirectActiveMembers(members []types.Member, deptID string) bool {
-	for _, member := range members {
-		if member.DepartmentID == deptID && member.Status == "active" {
-			return true
-		}
-	}
-	return false
-}
-
-func RecalcMemberCounts(departments []types.Department, members []types.Member) []types.Department {
-	directCounts := make(map[string]int)
-	for _, member := range members {
-		directCounts[member.DepartmentID]++
-	}
-
-	var walk func(nodes []types.Department) []types.Department
-	walk = func(nodes []types.Department) []types.Department {
-		result := make([]types.Department, len(nodes))
-		for i, node := range nodes {
-			cloned := node
-			cloned.Children = walk(node.Children)
-			total := directCounts[node.ID]
-			for _, child := range cloned.Children {
-				total += child.MemberCount
-			}
-			cloned.MemberCount = total
-			result[i] = cloned
-		}
-		return result
-	}
-	return walk(departments)
 }

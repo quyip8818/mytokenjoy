@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/internal/store/seed"
@@ -51,7 +52,7 @@ func budgetNodeUpdatedAt(t *testing.T, pool *pgxpool.Pool, nodeID string) time.T
 	t.Helper()
 	var ts time.Time
 	err := pool.QueryRow(context.Background(), `
-		SELECT updated_at FROM budget_nodes WHERE id = $1
+		SELECT updated_at FROM org_nodes WHERE id = $1
 	`, nodeID).Scan(&ts)
 	if err != nil {
 		t.Fatalf("read budget node %s updated_at: %v", nodeID, err)
@@ -111,7 +112,7 @@ func budgetTreeSignature(tree []types.BudgetNode) (int, string) {
 func TestLoadOrSeedDomain(t *testing.T) {
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	departments, err := st.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +162,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	budgetTree, err := st1.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, st1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +197,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	if got := findMemberName(members, seed.IDMember1); got != "PersistTest" {
 		t.Fatalf("expected persisted member name, got %q", got)
 	}
-	budgetTree, err = st2.Budget().Tree(ctx)
+	budgetTree, err = common.LoadBudgetTree(ctx, st2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,14 +229,14 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 		if err := tx.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		tree, err := tx.Budget().Tree(ctx)
+		tree, err := common.LoadBudgetTree(ctx, tx)
 		if err != nil {
 			return err
 		}
 		if len(tree) > 0 {
 			tree[0].Name = tree[0].Name + "-tx"
 		}
-		return tx.Budget().SetTree(ctx, tree)
+		return testutil.PersistBudgetTree(ctx, tx, tree)
 	})
 	if err != nil {
 		t.Fatal(err)

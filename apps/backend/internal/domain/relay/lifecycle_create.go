@@ -61,11 +61,11 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if err != nil {
 		return "", err
 	}
-	departments, err := l.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, l.store)
 	if err != nil {
 		return "", err
 	}
-	rules, err := l.store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, l.store)
 	if err != nil {
 		return "", err
 	}
@@ -77,7 +77,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if err != nil {
 		return "", err
 	}
-	tree, err := l.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, l.store)
 	if err != nil {
 		return "", err
 	}

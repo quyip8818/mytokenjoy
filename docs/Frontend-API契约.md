@@ -108,6 +108,21 @@ HTTP 非 2xx 时，body 应包含：
 
 `buildQuery()` 会跳过 `undefined`、`null`、空字符串。布尔值序列化为 `"true"` / `"false"`。
 
+### 2.7 命名与参数约定
+
+跨层术语见 [Backend-命名规范.md](./Backend-命名规范.md)。HTTP 契约要点：
+
+| 约定                                                  | 说明                                                                       |
+| ----------------------------------------------------- | -------------------------------------------------------------------------- |
+| `departmentId`（JSON）                                | 组织节点 ID（`org_nodes.id`）；与存储列 `department_id` 同语义             |
+| `departmentId`（budget path / JSON）                  | org_node ID；`/budget/departments/:departmentId` 与响应字段同名            |
+| `deptId`（path / query，非 budget）                   | dashboard `/cost/departments/{deptId}/...`、`?deptId=` 等                  |
+| 前端 API 客户端参数                                   | budget 域用 `departmentId`；dashboard/models query 映射为 `deptId`         |
+| `PUT /budget/departments/:departmentId`               | 更新部门节点预算                                                           |
+| `GET /budget/departments/:departmentId/member-quotas` | 该部门下成员配额列表                                                       |
+| `GET /dashboard/usage/teams`                          | 产品「团队用量」；响应字段仍为 `departmentId` / `departmentName`           |
+| `RoutingRule.id` 与 `nodeId`                          | 同值；新代码优先读 `nodeId`；`PUT /models/routing/:id` 中 `:id` = `nodeId` |
+
 ---
 
 ## 3. 鉴权与权限
@@ -291,22 +306,22 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`budgetApi`](../apps/frontend/src/api/budget.ts)
 
-| 方法   | 路径                                        | Body / 查询                                      | 响应                  | 备注                              |
-| ------ | ------------------------------------------- | ------------------------------------------------ | --------------------- | --------------------------------- |
-| GET    | `/budget/tree`                              | query: `period?`                                 | `BudgetNode[]`        |                                   |
-| PUT    | `/budget/nodes/:id`                         | `{ budget, reservedPool? }`                      | `BudgetNode`          |                                   |
-| GET    | `/budget/departments/:deptId/member-quotas` | —                                                | `MemberBudgetQuota[]` |                                   |
-| PUT    | `/budget/members/:memberId`                 | `UpdateMemberQuotaInput`                         | `MemberBudgetQuota`   | 部门内超卖 / 低于已分配 Key → 422 |
-| GET    | `/budget/groups`                            | —                                                | `BudgetGroup[]`       |                                   |
-| POST   | `/budget/groups`                            | `Omit<BudgetGroup, 'id' \| 'consumed'>`          | `BudgetGroup`         |                                   |
-| PUT    | `/budget/groups/:id`                        | `Partial<Omit<BudgetGroup, 'id' \| 'consumed'>>` | `BudgetGroup`         |                                   |
-| DELETE | `/budget/groups/:id`                        | —                                                | `void`                |                                   |
-| GET    | `/budget/overrun-policy`                    | —                                                | `OverrunPolicyConfig` |                                   |
-| PUT    | `/budget/overrun-policy`                    | `OverrunPolicyConfig`                            | `OverrunPolicyConfig` |                                   |
-| GET    | `/budget/alerts`                            | —                                                | `AlertRule[]`         |                                   |
-| POST   | `/budget/alerts`                            | `Omit<AlertRule, 'id'>`                          | `AlertRule`           |                                   |
-| PUT    | `/budget/alerts/:id`                        | `Partial<AlertRule>`                             | `AlertRule`           |                                   |
-| DELETE | `/budget/alerts/:id`                        | —                                                | `void`                |                                   |
+| 方法   | 路径                                              | Body / 查询                                      | 响应                  | 备注                              |
+| ------ | ------------------------------------------------- | ------------------------------------------------ | --------------------- | --------------------------------- |
+| GET    | `/budget/tree`                                    | query: `period?`                                 | `BudgetNode[]`        |                                   |
+| PUT    | `/budget/departments/:departmentId`               | `{ budget, reservedPool? }`                      | `BudgetNode`          |                                   |
+| GET    | `/budget/departments/:departmentId/member-quotas` | —                                                | `MemberBudgetQuota[]` |                                   |
+| PUT    | `/budget/members/:memberId`                       | `UpdateMemberQuotaInput`                         | `MemberBudgetQuota`   | 部门内超卖 / 低于已分配 Key → 422 |
+| GET    | `/budget/groups`                                  | —                                                | `BudgetGroup[]`       |                                   |
+| POST   | `/budget/groups`                                  | `Omit<BudgetGroup, 'id' \| 'consumed'>`          | `BudgetGroup`         |                                   |
+| PUT    | `/budget/groups/:id`                              | `Partial<Omit<BudgetGroup, 'id' \| 'consumed'>>` | `BudgetGroup`         |                                   |
+| DELETE | `/budget/groups/:id`                              | —                                                | `void`                |                                   |
+| GET    | `/budget/overrun-policy`                          | —                                                | `OverrunPolicyConfig` |                                   |
+| PUT    | `/budget/overrun-policy`                          | `OverrunPolicyConfig`                            | `OverrunPolicyConfig` |                                   |
+| GET    | `/budget/alerts`                                  | —                                                | `AlertRule[]`         |                                   |
+| POST   | `/budget/alerts`                                  | `Omit<AlertRule, 'id'>`                          | `AlertRule`           |                                   |
+| PUT    | `/budget/alerts/:id`                              | `Partial<AlertRule>`                             | `AlertRule`           |                                   |
+| DELETE | `/budget/alerts/:id`                              | —                                                | `void`                |                                   |
 
 ---
 
@@ -388,8 +403,8 @@ HTTP 非 2xx 时，body 应包含：
 
 **数据源约定**
 
-- `cost/*`、`usage/models`、`usage/teams` 的 **consumed / cost** 均来自 **`usage_buckets` 周期聚合**（不读 `budget_nodes.consumed`）。
-- `usage/teams` 的 **quota** 来自 **`budget_nodes`** 预算树。
+- `cost/*`、`usage/models`、`usage/teams` 的 **consumed / cost** 均来自 **`usage_buckets` 周期聚合**（不读 `org_nodes.consumed`）。
+- `usage/teams` 的 **quota** 来自 **`org_nodes`** 预算树。
 - 聚合/展示时区默认 **`Asia/Shanghai`**（IANA）；响应 `timezone` 字段返回实际使用值；企业可配置覆盖。
 - `week` / `month` 由服务端对 buckets 做 `date_trunc('week' \| 'month', …)`，不走 `usage/series`。
 
@@ -401,10 +416,10 @@ HTTP 非 2xx 时，body 应包含：
 
 `UsageSeriesQuery`：`granularity`（`day` \| `hour` \| `minute`，必填）、`start`、`end`（ISO8601 或 `YYYY-MM-DD`）、`groupBy?`（`none` \| `department` \| `member` \| `model`，**单选**）、`departmentId?`、`memberId?`
 
-| 路径           | 数据源                     | 说明                                                                                                                                                                                             |
-| -------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `day` / `hour` | `usage_buckets`            | `source: "buckets"`，`approximate: false`，`mappingAsOf: "ingest_time"`                                                                                                                          |
-| `minute`       | `usage_ledger` 分钟聚合    | `source: "ledger"`，`approximate: false`，`mappingAsOf: "ingest_time"`；**最大窗口 3h**；禁止与 hour/day 混合环比 |
+| 路径           | 数据源                  | 说明                                                                                                              |
+| -------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `day` / `hour` | `usage_buckets`         | `source: "buckets"`，`approximate: false`，`mappingAsOf: "ingest_time"`                                           |
+| `minute`       | `usage_ledger` 分钟聚合 | `source: "ledger"`，`approximate: false`，`mappingAsOf: "ingest_time"`；**最大窗口 3h**；禁止与 hour/day 混合环比 |
 
 **`groupBy` 与响应上限：** `none` 时每个 time bucket 聚合成单点；`len(points) ≤ 10000` 超限 **422**。
 
@@ -519,7 +534,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **ModelInfo：** `id`, `provider`, `name`, `displayName`, `inputPrice`, `outputPrice`, `maxContext`, `enabled`, `capabilities`
 
-**RoutingRule：** `id`, `nodeId`, `nodeName`, `allowedModels`, `defaultModel`, `fallbackModel`, `inherited`
+**RoutingRule：** `id`（= `nodeId`）, `nodeId`, `nodeName`, `allowedModels`, `defaultModel`, `fallbackModel`, `inherited`
 
 ### 6.5 Dashboard — [`types/dashboard.ts`](../apps/frontend/src/api/types/dashboard.ts)
 
@@ -543,13 +558,13 @@ HTTP 非 2xx 时，body 应包含：
 
 **UsageSeriesResponse：** `granularity`, `source`, `timezone`（默认 `Asia/Shanghai`）, `approximate`, `mappingAsOf`, `unmappedCount?`, `truncated?`, `points: UsageSeriesPoint[]`
 
-| 字段            | buckets 路径    | minute 路径                   |
-| --------------- | --------------- | ----------------------------- |
-| `source`        | `"buckets"`     | `"ledger"`                    |
-| `approximate`   | `false`         | `false`                       |
-| `mappingAsOf`   | `"ingest_time"` | `"ingest_time"`               |
-| `unmappedCount` | 省略            | 省略                          |
-| `truncated`     | 省略或 `false`  | 省略或 `false`                |
+| 字段            | buckets 路径    | minute 路径     |
+| --------------- | --------------- | --------------- |
+| `source`        | `"buckets"`     | `"ledger"`      |
+| `approximate`   | `false`         | `false`         |
+| `mappingAsOf`   | `"ingest_time"` | `"ingest_time"` |
+| `unmappedCount` | 省略            | 省略            |
+| `truncated`     | 省略或 `false`  | 省略或 `false`  |
 
 当前实现：`inputTokens` / `outputTokens` 恒为 `0`（webhook 未带 token 字段）。
 

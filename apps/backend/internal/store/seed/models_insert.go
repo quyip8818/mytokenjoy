@@ -28,23 +28,3 @@ func insertModels(ctx context.Context, exec tableWriter, tid int64, models []typ
 	}
 	return nil
 }
-
-func insertRoutingRules(ctx context.Context, exec tableWriter, tid int64, rules []types.RoutingRule) error {
-	for _, rule := range rules {
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO routing_rules (id, company_id, node_id, node_name, default_model, fallback_model, inherited)
-			VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (company_id, id) DO NOTHING
-		`, rule.ID, tid, rule.NodeID, rule.NodeName, rule.DefaultModel, rule.FallbackModel, rule.Inherited); err != nil {
-			return err
-		}
-		for _, modelName := range rule.AllowedModels {
-			if _, err := exec.Exec(ctx, `
-				INSERT INTO routing_rule_models (company_id, rule_id, model_name) VALUES ($1, $2, $3)
-				ON CONFLICT DO NOTHING
-			`, tid, rule.ID, modelName); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}

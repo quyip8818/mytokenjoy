@@ -49,41 +49,6 @@ func cloneMembers(items []types.Member) []types.Member {
 	return result
 }
 
-func cloneDepartments(items []types.Department) []types.Department {
-	result := make([]types.Department, len(items))
-	for i, dept := range items {
-		result[i] = cloneDepartment(dept)
-	}
-	return result
-}
-
-func cloneDepartment(dept types.Department) types.Department {
-	cloned := types.Department{ID: dept.ID, Name: dept.Name, MemberCount: dept.MemberCount}
-	if dept.ParentID != nil {
-		parentID := *dept.ParentID
-		cloned.ParentID = &parentID
-	}
-	if dept.ExternalID != nil {
-		externalID := *dept.ExternalID
-		cloned.ExternalID = &externalID
-	}
-	if dept.Source != nil {
-		source := *dept.Source
-		cloned.Source = &source
-	}
-	if dept.ManagerID != nil {
-		managerID := *dept.ManagerID
-		cloned.ManagerID = &managerID
-	}
-	if len(dept.Children) > 0 {
-		cloned.Children = make([]types.Department, len(dept.Children))
-		for i, child := range dept.Children {
-			cloned.Children[i] = cloneDepartment(child)
-		}
-	}
-	return cloned
-}
-
 func CloneImportFailures(items []types.ImportFailure) []types.ImportFailure {
 	return cloneImportFailures(items)
 }
@@ -99,5 +64,3 @@ func CloneMembers(items []types.Member) []types.Member { return cloneMembers(ite
 func CloneMember(member types.Member) types.Member {
 	return cloneMembers([]types.Member{member})[0]
 }
-
-func CloneDepartments(items []types.Department) []types.Department { return cloneDepartments(items) }

@@ -17,19 +17,19 @@ type OperationLog struct {
 }
 
 type CallLog struct {
-	ID            string  `json:"id"`
-	Caller        string  `json:"caller"`
-	CallerID      string  `json:"callerId"`
-	CallerType    string  `json:"callerType"`
-	Model         string  `json:"model"`
-	Provider      string  `json:"provider"`
-	InputTokens   float64 `json:"inputTokens"`
-	OutputTokens  float64 `json:"outputTokens"`
-	LatencyMs     float64 `json:"latencyMs"`
-	Status        string  `json:"status"`
-	Cost          float64 `json:"cost"`
-	CreatedAt     string  `json:"createdAt"`
-	PreviewSnippet string `json:"previewSnippet"`
+	ID             string  `json:"id"`
+	Caller         string  `json:"caller"`
+	CallerID       string  `json:"callerId"`
+	CallerType     string  `json:"callerType"`
+	Model          string  `json:"model"`
+	Provider       string  `json:"provider"`
+	InputTokens    float64 `json:"inputTokens"`
+	OutputTokens   float64 `json:"outputTokens"`
+	LatencyMs      float64 `json:"latencyMs"`
+	Status         string  `json:"status"`
+	Cost           float64 `json:"cost"`
+	CreatedAt      string  `json:"createdAt"`
+	PreviewSnippet string  `json:"previewSnippet"`
 }
 
 type AuditOperationsQueryParams struct {

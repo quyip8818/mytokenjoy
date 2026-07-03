@@ -8,11 +8,16 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 func (s *service) GetDataSourceStatus(ctx context.Context) (types.DataSourceStatus, error) {
-	return s.store.Org().DataSourceStatus(ctx)
+	integration, err := s.store.Org().Integration(ctx)
+	if err != nil {
+		return types.DataSourceStatus{}, err
+	}
+	return integration.ToDataSourceStatus(), nil
 }
 
 func (s *service) TestDataSource(ctx context.Context, cred types.Credential) (types.DataSourceTestResult, error) {
@@ -36,10 +41,11 @@ func (s *service) UpdateDataSource(ctx context.Context, cred types.Credential, f
 		return domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	current, err := s.store.Org().DataSourceStatus(ctx)
+	integration, err := s.store.Org().Integration(ctx)
 	if err != nil {
 		return err
 	}
+	current := integration.ToDataSourceStatus()
 	if current.Connected && current.Platform != nil && *current.Platform != cred.Platform && !force {
 		return domain.NewDomainError(
 			domain.StatusUnprocessable,
@@ -60,7 +66,7 @@ func (s *service) UpdateDataSource(ctx context.Context, cred types.Credential, f
 	}
 
 	if current.Connected && current.Platform != nil && *current.Platform != cred.Platform && force {
-		if err := s.store.Credential().ClearCredential(ctx); err != nil {
+		if err := s.store.Org().ClearIntegrationCredential(ctx); err != nil {
 			return err
 		}
 	}
@@ -70,13 +76,10 @@ func (s *service) UpdateDataSource(ctx context.Context, cred types.Credential, f
 	}
 
 	platform := cred.Platform
-	status, err := s.store.Org().DataSourceStatus(ctx)
-	if err != nil {
-		return err
-	}
-	status.Connected = true
-	status.Platform = &platform
-	return s.store.Org().SetDataSourceStatus(ctx, status)
+	current.Connected = true
+	current.Platform = &platform
+	integration.ApplyDataSourceStatus(current)
+	return s.store.Org().SetIntegration(ctx, integration)
 }
 
 func (s *service) SearchDataSource(ctx context.Context, keyword string) (types.DataSourceSearchResult, error) {
@@ -108,7 +111,7 @@ func (s *service) SearchDataSource(ctx context.Context, keyword string) (types.D
 		}
 	}
 
-	localDepts, err := s.store.Org().Departments(ctx)
+	localDepts, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return types.DataSourceSearchResult{}, err
 	}

@@ -7,16 +7,16 @@ import (
 )
 
 type OrgRepository interface {
-	DataSourceStatus(ctx context.Context) (types.DataSourceStatus, error)
-	SetDataSourceStatus(ctx context.Context, status types.DataSourceStatus) error
+	Integration(ctx context.Context) (types.OrgIntegration, error)
+	SetIntegration(ctx context.Context, integration types.OrgIntegration) error
+	GetIntegrationCredential(ctx context.Context) (*types.StoredCredential, error)
+	SaveIntegrationCredential(ctx context.Context, platform types.Platform, encrypted []byte) error
+	ClearIntegrationCredential(ctx context.Context) error
 	ImportFailures(ctx context.Context) ([]types.ImportFailure, error)
 	SetImportFailures(ctx context.Context, failures []types.ImportFailure) error
-	SyncConfig(ctx context.Context) (types.SyncConfig, error)
-	SetSyncConfig(ctx context.Context, cfg types.SyncConfig) error
 	SyncLogs(ctx context.Context) ([]types.SyncLog, error)
 	AppendSyncLog(ctx context.Context, log types.SyncLog) error
-	Departments(ctx context.Context) ([]types.Department, error)
-	SetDepartments(ctx context.Context, departments []types.Department) error
+	Nodes() OrgNodeRepository
 	Members(ctx context.Context) ([]types.Member, error)
 	MemberByID(ctx context.Context, memberID string) (*types.Member, error)
 	MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error)

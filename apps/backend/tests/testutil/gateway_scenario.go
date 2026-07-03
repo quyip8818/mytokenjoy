@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	relayhttp "github.com/tokenjoy/backend/internal/http/handler/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
@@ -65,14 +66,14 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 		}
 	}
 
-	tree, err := st.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !setBudgetOnTree(tree, opts.DepartmentID, opts.Budget, opts.Consumed) {
 		t.Fatalf("department %s not found in budget tree", opts.DepartmentID)
 	}
-	if err := st.Budget().SetTree(ctx, tree); err != nil {
+	if err := PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
 

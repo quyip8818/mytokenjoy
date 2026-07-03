@@ -3,6 +3,7 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -10,7 +11,7 @@ import (
 
 func TestGetReservedPoolForMember(t *testing.T) {
 	snapshot := seed.Load(testutil.TestConfig())
-	tree := snapshot.BudgetTree
+	tree := types.OrgNodesToBudgetTree(snapshot.OrgNodes)
 	members := snapshot.Members
 
 	if got := budget.GetReservedPoolForMember(tree, members, seed.IDMember1); got != 1500 {

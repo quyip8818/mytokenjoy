@@ -45,7 +45,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatal("created department not found in tree")
 	}
 
-	budgetTree, err := st.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatalf("expected budget 0, got %f", budgetNode.Budget)
 	}
 
-	rules, err := st.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 		t.Fatalf("unexpected name %s", updated.Name)
 	}
 
-	budgetTree, err := st.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rules, err := st.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,14 +154,14 @@ func TestDeleteLeafDepartment(t *testing.T) {
 		t.Fatal("department still in tree")
 	}
 
-	budgetTree, err := st.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if budget.FindBudgetNode(budgetTree, created.ID) != nil {
 		t.Fatal("budget node still exists")
 	}
-	rules, err := st.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}

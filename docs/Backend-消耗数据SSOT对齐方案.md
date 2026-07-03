@@ -1,19 +1,19 @@
 # Backend 消耗数据 SSOT 对齐方案
 
-**文档性质：** 架构决策（O1 权威来源）  
-**状态：** 已决策（终态）  
+**文档性质：** 架构决策（消耗 SSOT 权威来源）  
+**状态：** 已落地  
 **受众：** 后端、产品、运维
 
 **姊妹文档（分工）：**
 
 | 文档 | 本文覆盖 | 姊妹文档覆盖 |
 | ---- | -------- | ------------ |
-| 入账/Rebalance/超限运作细节 | 写入契约、表结构、切换 | [Backend-预算运作.md](./Backend-预算运作.md) §7～§9 |
-| 实体全景与域关系 | `usage_ledger` 定位 | [Backend-存储架构.md](./Backend-存储架构.md) §8、§9 |
-| O1 在优化路线图中的位置 | 全文 | [Backend-存储实体优化.md](./Backend-存储实体优化.md) §3 |
+| 入账/Rebalance/超限运作细节 | 写入契约、表结构 | [Backend-预算运作.md](./Backend-预算运作.md) §7～§9 |
+| 实体全景与域关系 | `usage_ledger` 定位 | [Backend-存储架构.md](./Backend-存储架构.md) §2.7、§2.8 |
+| 核心合并表 | rollup 写 `org_nodes` | [Backend-存储实体优化.md](./Backend-存储实体优化.md) |
 | 审计 API 与 `CallLog` 类型 | §4.3 字段映射 | [Frontend-API契约.md](./Frontend-API契约.md) §5 审计、`CallLog` |
 
-字段级 DDL 以 `apps/backend/internal/store/postgres/schema.sql` 为准；落地后同步更新上表姊妹文档。
+字段级 DDL 以 `apps/backend/internal/store/postgres/schema.sql` 为准。
 
 ---
 
@@ -27,7 +27,7 @@
 | **审计文本** | 仅 `call_detail.previewSnippet`（input 截断 ~200 字）；`audit_settings.content_retention_enabled=true` 时写入；**永不**存 output 正文 |
 | **计量** | `input_tokens` / `output_tokens` 为顶层列数字，与是否保留 snippet 无关 |
 | **幂等** | 事务内 `INSERT … ON CONFLICT DO NOTHING`；冲突则跳过投影与副作用 |
-| **副作用** | 同事务入队 `rebalance_queue` / **`overrun_queue`（新增）**；**禁止**事务内外部 RPC |
+| **副作用** | 同事务入队 `rebalance_queue` / `overrun_queue`；**禁止**事务内外部 RPC |
 | **Schema 瘦身** | 账本无 `newapi_log_id`、`bucket_start`；分别从 `idempotency_key`、`occurred_at` 派生 |
 | **代码** | `ingest.go` 编排 + `projection.Apply`；calls 查询在 `domain/usage.CallLogQuerier` + `ledger_repo`；`domain/audit` 仅管 settings 与 operations |
 | **落地** | Schema 见 `schema.sql`；服务启动全量应用 |
@@ -42,7 +42,7 @@
 | `used` / `consumed` / `usage_buckets` | 管控毫秒级、看板预聚合；不能每次扫账本 |
 | `rebalance_queue` + `overrun_queue` | 语义不同（配额同步 vs 超限封禁），**不合并** |
 
-详见 [Backend-存储实体优化.md](./Backend-存储实体优化.md) §9.1（用量桶 vs 账本不合并）。
+详见 [Backend-存储实体优化.md](./Backend-存储实体优化.md) §7（用量桶 vs 账本不合并）。
 
 ### 0.2 入账设计要点
 
@@ -57,7 +57,7 @@
 
 ```text
 POST /internal/webhooks/newapi-log  →  IngestService.Ingest
-失败  →  webhook_outbox 重试（at-least-once 投递，非幂等门闩）
+失败  →  `outbox`（`channel='webhook'`）重试（at-least-once 投递，非幂等门闩）
 补偿  →  org_sync_processor 轮询 ListLogs  →  同一 Ingest 路径
 ```
 
@@ -67,7 +67,7 @@ POST /internal/webhooks/newapi-log  →  IngestService.Ingest
 
 ## 1. 问题与约束
 
-一次结算若缺少可重放的事实层，则 `platform_keys.used`、`budget_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` 等多处投影难以对账与重放（§0.2）。
+一次结算若缺少可重放的事实层，则 `platform_keys.used`、`org_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` 等多处投影难以对账与重放（§0.2）。
 
 | 约束 | 要求 |
 | ---- | ---- |
@@ -79,7 +79,7 @@ POST /internal/webhooks/newapi-log  →  IngestService.Ingest
 
 ### 1.1 为何不做异步投影
 
-桶投影仅 PK Upsert；审计与账本 1:1。**不为未出现的规模预建** `projection_outbox`（见 §11）。首版瓶颈更可能在祖先 `budget_nodes` 行锁（§11），而非桶 Upsert。
+桶投影仅 PK Upsert；审计与账本 1:1。**不为未出现的规模预建** `projection_outbox`（见 §11）。首版瓶颈更可能在祖先 `org_nodes` 行锁（§11），而非桶 Upsert。
 
 ---
 
@@ -91,7 +91,7 @@ POST /internal/webhooks/newapi-log  →  IngestService.Ingest
 flowchart TB
   subgraph ingress [入账入口]
     WH[Webhook] --> ING[IngestService]
-    WO[webhook_outbox] -.->|重试| ING
+    WO["outbox channel=webhook"] -.->|重试| ING
     SYNC[org_sync 补偿] --> ING
   end
 
@@ -99,7 +99,7 @@ flowchart TB
     ING --> L[(usage_ledger)]
     ING --> P[projection.Apply]
     P --> USED[platform_keys.used]
-    P --> CONS[budget_nodes / budget_groups.consumed]
+    P --> CONS[org_nodes / budget_groups.consumed]
     P --> UB[usage_buckets]
     ING --> REB[rebalance_queue]
     ING --> OVR[overrun_queue]
@@ -153,7 +153,7 @@ flowchart TB
 | 冲突 | 跳过投影与副作用 |
 | 键格式 | Webhook/补偿：`newapi:{log_id}`；Gateway（预留）：`gateway:{request_id}` |
 
-`webhook_outbox` 仅负责**失败重投**，幂等由账本承担。NewAPI `log_id` 从 `idempotency_key` 解析，**不单独存列**。
+`outbox`（`channel='webhook'`）仅负责**失败重投**，幂等由账本承担。NewAPI `log_id` 从 `idempotency_key` 解析，**不单独存列**。
 
 ### 2.4 `projection.Apply` 内部顺序
 
@@ -161,34 +161,34 @@ flowchart TB
 | ---- | ---- | ---- |
 | a | `platform_keys.used` | `+= amount_cny`；按 `platform_key_id` 单行 UPDATE |
 | b | `budget_groups.consumed` | 有 `budget_group_id` 时 `+= amount_cny` |
-| c | `budget_nodes.consumed` | 以 **`department_id`（mapping）** 为叶子向上祖先 rollup（§2.5） |
+| c | `org_nodes.consumed` | 以 **`department_id`（mapping）** 为叶子向上祖先 rollup（§2.5） |
 | d | `usage_buckets` | UPSERT；`bucket_start = date_trunc('hour', occurred_at)`；`member_id` 空 → `''`（§2.6） |
 
 ### 2.5 祖先 rollup
 
-语义同现 `rollupDepartmentConsumed`：叶子 `department_id` 及所有祖先 `+= amount_cny`。**禁止** `Tree()` / `SetTree()`。
+语义：叶子 `department_id` 及所有祖先 `+= amount_cny`。**禁止**入账路径调用 `Tree()` / `SetTree()`。
 
 ```sql
 WITH RECURSIVE ancestors AS (
-  SELECT id, parent_id FROM budget_nodes
+  SELECT id, parent_id FROM org_nodes
   WHERE company_id = $1 AND id = $department_id
   UNION ALL
-  SELECT n.id, n.parent_id FROM budget_nodes n
+  SELECT n.id, n.parent_id FROM org_nodes n
   INNER JOIN ancestors a ON n.id = a.parent_id
   WHERE n.company_id = $1 AND a.parent_id IS NOT NULL
 )
-UPDATE budget_nodes SET consumed = consumed + $amount
+UPDATE org_nodes SET consumed = consumed + $amount
 WHERE company_id = $1 AND id IN (SELECT id FROM ancestors);
 ```
 
-> **与现网差异：** 现 `applyIngestTx` 仅在 `member_id != nil` 时 rollup；O1 统一以 mapping.`department_id` 为叶子（应用 Key / 非成员 Key 同样计入部门树）。
+rollup 以 mapping.`department_id` 为叶子（含应用 Key / 非成员 Key）。
 
 ### 2.6 `member_id` 与桶维度
 
 | 场景 | `usage_ledger.member_id` | `usage_buckets.member_id` |
 | ---- | ------------------------ | ------------------------- |
 | 成员 Key | 成员 ID | 同左 |
-| 非成员 / 应用 Key | `NULL` | `''`（现网 PK） |
+| 非成员 / 应用 Key | `NULL` | `''` |
 
 ### 2.7 派生字段（不入账）
 
@@ -287,8 +287,8 @@ WHERE company_id = $1 AND id IN (SELECT id FROM ancestors);
 | ---- | ---- |
 | **事实层** | `usage_ledger` |
 | **异步队列** | `overrun_queue` |
-| **投影** | `platform_keys.used`、`budget_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` |
-| **保留** | `rebalance_queue`、`webhook_outbox`、`relay_sync_cursors` |
+| **投影** | `platform_keys.used`、`org_nodes.consumed`、`budget_groups.consumed`、`usage_buckets` |
+| **保留** | `rebalance_queue`、`outbox`（`channel='webhook'`）、`relay_sync_cursors` |
 
 ### 4.2 `usage_ledger`
 
@@ -316,9 +316,9 @@ INDEX (company_id, occurred_at DESC) WHERE event_type = 'call_settled'
 INDEX (company_id, department_id, occurred_at DESC)
 ```
 
-### 4.3 `overrun_queue`（新增）
+### 4.3 `overrun_queue`
 
-事务内入队；Worker 执行原 `evaluateOverrun` 逻辑（[Backend-预算运作.md](./Backend-预算运作.md) §9.1）：
+事务内入队；Worker 执行 `evaluateOverrun` 逻辑（[Backend-预算运作.md](./Backend-预算运作.md) §9.1）：
 
 | 范围 | 条件（投影已更新后） | 动作 |
 | ---- | -------------------- | ---- |
@@ -388,7 +388,7 @@ return store.WithTx(ctx, func(tx Store) error {
 | ---- | ------------- |
 | `platform_keys.used` | 账本 `SUM(amount_cny) GROUP BY platform_key_id` |
 | `budget_groups.consumed` | `GROUP BY budget_group_id` |
-| `budget_nodes.consumed` | 叶子 `department_id` SUM + rollup 比对 |
+| `org_nodes.consumed` | 叶子 `department_id` SUM + rollup 比对 |
 | `usage_buckets` | `GROUP BY date_trunc('hour', occurred_at), department_id, COALESCE(member_id,''), model` |
 
 ### 7.2 投影重放
@@ -405,7 +405,7 @@ return store.WithTx(ctx, func(tx Store) error {
 | 超限/Rebalance 不准 | 账本与投影是否同事务；`rebalance_queue` / `overrun_queue` 积压 |
 | 看板不准 | §7.2 桶重放 |
 | 审计缺失 | 账本是否有行；`content_retention_enabled`；Webhook 是否带 `input` |
-| 重复入账 | `idempotency_key` 冲突是否跳过投影；`webhook_outbox` 是否重复投递 |
+| 重复入账 | `idempotency_key` 冲突是否跳过投影；`outbox`（`channel='webhook'`）是否重复投递 |
 
 ---
 
@@ -436,14 +436,12 @@ return store.WithTx(ctx, func(tx Store) error {
 
 ---
 
-## 10. 与其他优化项
+## 10. 相关文档
 
-| 项 | 关系 |
-| -- | ---- |
-| O1 | 本文 |
-| O2 组织节点 | 正交；rollup SQL 可随 `org_nodes` 演进 |
-| O3 成员额度 | 正交 |
-| O6 Outbox 合一 | 首版不动 `webhook_outbox` / `relay_outbox` |
+| 文档 | 关系 |
+| ---- | ---- |
+| [Backend-存储实体优化.md](./Backend-存储实体优化.md) | `org_nodes` rollup、`outbox` 表结构 |
+| [Backend-预算运作.md](./Backend-预算运作.md) | Rebalance / 超限运作细节 |
 
 ---
 
@@ -451,7 +449,7 @@ return store.WithTx(ctx, func(tx Store) error {
 
 | 触发 | 动作 |
 | ---- | ---- |
-| 祖先 `budget_nodes` 行锁 | rollup 策略拆分或异步投影 |
+| 祖先 `org_nodes` 行锁 | rollup 策略拆分或异步投影 |
 | 桶 Upsert 瓶颈 | `usage_buckets` 异步 Outbox |
 | input 全文 | MinIO + `inputContentRef`（§11.1） |
 | 审计 keyword 慢 | GIN / 物化视图 |
@@ -464,4 +462,4 @@ return store.WithTx(ctx, func(tx Store) error {
 
 ---
 
-*已同步 [Backend-预算运作.md](./Backend-预算运作.md) §7.3、[Backend-存储架构.md](./Backend-存储架构.md) §9、[Frontend-API契约.md](./Frontend-API契约.md)。*
+*姊妹文档：[Backend-预算运作.md](./Backend-预算运作.md) §7.3、[Backend-存储架构.md](./Backend-存储架构.md) §2.7、[Frontend-API契约.md](./Frontend-API契约.md)。*

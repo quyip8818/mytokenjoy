@@ -63,7 +63,12 @@ func SetupImportedFeishuOrgWithServer(t *testing.T, serverURL string) FeishuOrgE
 
 func WithSyncConfig(t *testing.T, env FeishuOrgEnv, cfg types.SyncConfig) FeishuOrgEnv {
 	t.Helper()
-	if err := env.Store.Org().SetSyncConfig(Ctx(), cfg); err != nil {
+	integration, err := env.Store.Org().Integration(Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	integration.ApplySyncConfig(cfg)
+	if err := env.Store.Org().SetIntegration(Ctx(), integration); err != nil {
 		t.Fatal(err)
 	}
 	env.Svc = NewOrgService(t, env.Cfg, env.Store)

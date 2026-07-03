@@ -10,6 +10,5 @@ type ModelsRepository interface {
 	Models(ctx context.Context) ([]types.ModelInfo, error)
 	ModelByName(ctx context.Context, name string) (*types.ModelInfo, error)
 	SetModels(ctx context.Context, models []types.ModelInfo) error
-	RoutingRules(ctx context.Context) ([]types.RoutingRule, error)
-	SetRoutingRules(ctx context.Context, rules []types.RoutingRule) error
+	Allowlist() ModelAllowlistRepository
 }

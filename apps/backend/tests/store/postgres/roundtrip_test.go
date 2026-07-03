@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestBudgetTreeRoundTrip(t *testing.T) {
+func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	parentID := "dept-roundtrip-parent"
@@ -37,10 +38,11 @@ func TestBudgetTreeRoundTrip(t *testing.T) {
 			},
 		},
 	}
-	if err := st.Budget().SetTree(ctx, tree); err != nil {
+	nodes := testutil.OrgNodesFromBudgetTree(tree)
+	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Budget().Tree(ctx)
+	got, err := common.LoadBudgetTree(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +92,7 @@ func TestKeysRoundTrip(t *testing.T) {
 	}
 }
 
-func TestModelsRoutingRoundTrip(t *testing.T) {
+func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	models := []types.ModelInfo{
@@ -110,7 +112,7 @@ func TestModelsRoutingRoundTrip(t *testing.T) {
 	fallbackModel := "gpt-4o"
 	rules := []types.RoutingRule{
 		{
-			ID:            "rr-roundtrip",
+			ID:            seed.IDDept3,
 			NodeID:        seed.IDDept3,
 			NodeName:      "后端组",
 			DefaultModel:  &defaultModel,
@@ -122,7 +124,11 @@ func TestModelsRoutingRoundTrip(t *testing.T) {
 	if err := st.Models().SetModels(ctx, models); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Models().SetRoutingRules(ctx, rules); err != nil {
+	nodes, err := st.Org().Nodes().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := common.PersistRoutingRules(ctx, st, nodes, rules); err != nil {
 		t.Fatal(err)
 	}
 	gotModels, err := st.Models().Models(ctx)
@@ -141,13 +147,13 @@ func TestModelsRoutingRoundTrip(t *testing.T) {
 	if !foundModel {
 		t.Fatal("model not found after round-trip")
 	}
-	gotRules, err := st.Models().RoutingRules(ctx)
+	gotRules, err := common.LoadRoutingRules(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
 	foundRule := false
 	for _, rule := range gotRules {
-		if rule.ID == "rr-roundtrip" {
+		if rule.ID == seed.IDDept3 {
 			foundRule = true
 			if len(rule.AllowedModels) != 2 || rule.DefaultModel == nil || *rule.DefaultModel != "gpt-roundtrip" {
 				t.Fatalf("routing rule mismatch: %+v", rule)

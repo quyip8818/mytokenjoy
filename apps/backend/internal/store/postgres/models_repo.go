@@ -10,7 +10,12 @@ import (
 )
 
 type pgModelsRepo struct {
-	db dbQuerier
+	db        dbQuerier
+	allowlist *pgModelAllowlistRepo
+}
+
+func (r *pgModelsRepo) Allowlist() store.ModelAllowlistRepository {
+	return r.allowlist
 }
 
 func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
@@ -129,92 +134,6 @@ func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) 
 		return err
 	}
 	if _, err := r.db.Exec(ctx, `DELETE FROM models WHERE company_id = $1 AND NOT (id = ANY($2))`, companyID, ids); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *pgModelsRepo) RoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
-	companyID := store.CompanyID(ctx)
-	rows, err := r.db.Query(ctx, `
-		SELECT id, node_id, node_name, default_model, fallback_model, inherited
-		FROM routing_rules WHERE company_id = $1 ORDER BY id
-	`, companyID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := make([]types.RoutingRule, 0)
-	for rows.Next() {
-		var rule types.RoutingRule
-		if err := rows.Scan(
-			&rule.ID, &rule.NodeID, &rule.NodeName,
-			&rule.DefaultModel, &rule.FallbackModel, &rule.Inherited,
-		); err != nil {
-			return nil, err
-		}
-		modelRows, err := r.db.Query(ctx, `
-			SELECT model_name FROM routing_rule_models WHERE company_id = $1 AND rule_id = $2 ORDER BY model_name
-		`, companyID, rule.ID)
-		if err == nil {
-			for modelRows.Next() {
-				var modelName string
-				if err := modelRows.Scan(&modelName); err == nil {
-					rule.AllowedModels = append(rule.AllowedModels, modelName)
-				}
-			}
-			modelRows.Close()
-		}
-		items = append(items, rule)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return store.CloneRoutingRules(items), nil
-}
-
-func (r *pgModelsRepo) SetRoutingRules(ctx context.Context, rules []types.RoutingRule) error {
-	companyID := store.CompanyID(ctx)
-	cloned := store.CloneRoutingRules(rules)
-	ids := make([]string, len(cloned))
-	for i, rule := range cloned {
-		ids[i] = rule.ID
-		if _, err := r.db.Exec(ctx, `
-			INSERT INTO routing_rules (
-				id, company_id, node_id, node_name, default_model, fallback_model, inherited, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-			ON CONFLICT (company_id, id) DO UPDATE SET
-				node_id = EXCLUDED.node_id,
-				node_name = EXCLUDED.node_name,
-				default_model = EXCLUDED.default_model,
-				fallback_model = EXCLUDED.fallback_model,
-				inherited = EXCLUDED.inherited,
-				updated_at = NOW()
-		`, rule.ID, companyID, rule.NodeID, rule.NodeName, rule.DefaultModel, rule.FallbackModel, rule.Inherited); err != nil {
-			return fmt.Errorf("upsert routing rule %s: %w", rule.ID, err)
-		}
-		if _, err := r.db.Exec(ctx, `DELETE FROM routing_rule_models WHERE company_id = $1 AND rule_id = $2`, companyID, rule.ID); err != nil {
-			return err
-		}
-		for _, modelName := range rule.AllowedModels {
-			if _, err := r.db.Exec(ctx, `
-				INSERT INTO routing_rule_models (company_id, rule_id, model_name) VALUES ($1, $2, $3)
-			`, companyID, rule.ID, modelName); err != nil {
-				return err
-			}
-		}
-	}
-	if len(ids) == 0 {
-		if _, err := r.db.Exec(ctx, `DELETE FROM routing_rule_models WHERE company_id = $1`, companyID); err != nil {
-			return err
-		}
-		_, err := r.db.Exec(ctx, `DELETE FROM routing_rules WHERE company_id = $1`, companyID)
-		return err
-	}
-	if _, err := r.db.Exec(ctx, `DELETE FROM routing_rule_models WHERE company_id = $1 AND NOT (rule_id = ANY($2))`, companyID, ids); err != nil {
-		return err
-	}
-	if _, err := r.db.Exec(ctx, `DELETE FROM routing_rules WHERE company_id = $1 AND NOT (id = ANY($2))`, companyID, ids); err != nil {
 		return err
 	}
 	return nil

@@ -34,7 +34,7 @@ echo "GET /healthz => 200"
 
 echo "[5/6] Budget node oversell (expect 422)..."
 CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-  -X PUT "${API_URL}/api/budget/nodes/dept-3" \
+  -X PUT "${API_URL}/api/budget/departments/dept-3" \
   -H "Content-Type: application/json" \
   -H "Cookie: tokenjoy_session_member=m-admin" \
   -d '{"budget":90000,"reservedPool":1500}')

@@ -3,40 +3,12 @@
 package postgres_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
-
-func TestCredentialEncryptRoundTrip(t *testing.T) {
-	st := testPostgresStore(t)
-	ctx := testutil.Ctx()
-	key := common.DevDefaultKey()
-	payload, err := json.Marshal(types.FeishuCredential{
-		Platform: types.PlatformFeishu, AppID: "cli_pg", AppSecret: "secret_pg",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	encrypted, err := common.Encrypt(key, payload)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := st.Credential().SaveCredential(ctx, types.PlatformFeishu, encrypted); err != nil {
-		t.Fatal(err)
-	}
-	stored, err := st.Credential().GetCredential(ctx)
-	if err != nil || stored == nil {
-		t.Fatalf("expected stored credential, err=%v stored=%v", err, stored)
-	}
-	if stored.Platform != types.PlatformFeishu {
-		t.Fatalf("unexpected platform %s", stored.Platform)
-	}
-}
 
 func TestAppendSyncLogPersists(t *testing.T) {
 	st := testPostgresStore(t)

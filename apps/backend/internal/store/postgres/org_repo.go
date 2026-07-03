@@ -11,7 +11,12 @@ import (
 )
 
 type pgOrgRepo struct {
-	db dbQuerier
+	db    dbQuerier
+	nodes *pgOrgNodeRepo
+}
+
+func (r *pgOrgRepo) Nodes() store.OrgNodeRepository {
+	return r.nodes
 }
 
 func (r *pgOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error) {
@@ -228,62 +233,6 @@ func (r *pgOrgRepo) SetMemberPasswordHash(ctx context.Context, memberID, passwor
 	return nil
 }
 
-func (r *pgOrgRepo) Departments(ctx context.Context) ([]types.Department, error) {
-	companyID := store.CompanyID(ctx)
-	rows, err := r.db.Query(ctx, `
-		SELECT id, name, parent_id, member_count, external_id, source, manager_id, sort_order
-		FROM departments
-		WHERE company_id = $1
-		ORDER BY sort_order
-	`, companyID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	flat := make([]flatDepartment, 0)
-	for rows.Next() {
-		var row flatDepartment
-		if err := rows.Scan(
-			&row.ID, &row.Name, &row.ParentID, &row.MemberCount,
-			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
-		); err != nil {
-			return nil, err
-		}
-		flat = append(flat, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return store.CloneDepartments(buildDepartmentTree(flat)), nil
-}
-
-func (r *pgOrgRepo) SetDepartments(ctx context.Context, departments []types.Department) error {
-	companyID := store.CompanyID(ctx)
-	flat := flattenDepartmentsWithOrder(store.CloneDepartments(departments))
-	ids := make([]string, len(flat))
-	for i, row := range flat {
-		ids[i] = row.ID
-		if _, err := r.db.Exec(ctx, `
-			INSERT INTO departments (
-				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-			ON CONFLICT (company_id, id) DO UPDATE SET
-				name = EXCLUDED.name,
-				parent_id = EXCLUDED.parent_id,
-				member_count = EXCLUDED.member_count,
-				external_id = EXCLUDED.external_id,
-				source = EXCLUDED.source,
-				manager_id = EXCLUDED.manager_id,
-				sort_order = EXCLUDED.sort_order,
-				updated_at = NOW()
-		`, row.ID, companyID, row.Name, row.ParentID, row.MemberCount,
-			row.ExternalID, row.Source, row.ManagerID, row.sortOrder); err != nil {
-			return fmt.Errorf("upsert department %s: %w", row.ID, err)
-		}
-	}
-	return pruneByIDForCompany(ctx, r.db, "departments", companyID, ids)
-}
-
 func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `SELECT id, name, type, member_count FROM roles WHERE company_id = $1 ORDER BY id`, companyID)
@@ -356,79 +305,130 @@ func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 	return pruneByIDForCompany(ctx, r.db, "roles", companyID, ids)
 }
 
-func (r *pgOrgRepo) DataSourceStatus(ctx context.Context) (types.DataSourceStatus, error) {
+func (r *pgOrgRepo) Integration(ctx context.Context) (types.OrgIntegration, error) {
 	companyID := store.CompanyID(ctx)
 	var platform *string
 	var connected bool
 	var lastImport *time.Time
 	var lastImportOK, lastImportFail *int
+	var encrypted []byte
+	var integration types.OrgIntegration
 	err := r.db.QueryRow(ctx, `
-		SELECT platform, connected, last_import, last_import_ok, last_import_fail
-		FROM org_data_source_status WHERE company_id = $1
-	`, companyID).Scan(&platform, &connected, &lastImport, &lastImportOK, &lastImportFail)
+		SELECT platform, connected, last_import, last_import_ok, last_import_fail,
+			enabled, start_time, frequency_hours,
+			delete_member_threshold, delete_department_threshold,
+			notify_phone, notify_email, notify_im, encrypted_credential
+		FROM org_integration WHERE company_id = $1
+	`, companyID).Scan(
+		&platform, &connected, &lastImport, &lastImportOK, &lastImportFail,
+		&integration.Enabled, &integration.StartTime, &integration.FrequencyHours,
+		&integration.DeleteMemberThreshold, &integration.DeleteDepartmentThreshold,
+		&integration.NotifyPhone, &integration.NotifyEmail, &integration.NotifyIm,
+		&encrypted,
+	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return types.DataSourceStatus{}, nil
+			return types.OrgIntegration{}, nil
 		}
-		return types.DataSourceStatus{}, err
+		return types.OrgIntegration{}, err
 	}
-	status := types.DataSourceStatus{Connected: connected}
+	integration.Connected = connected
 	if platform != nil && *platform != "" {
 		p := types.Platform(*platform)
-		status.Platform = &p
+		integration.Platform = &p
 	}
 	if lastImport != nil {
 		s := formatSyncLogTime(*lastImport)
-		status.LastImport = &s
+		integration.LastImport = &s
 	}
-	if lastImportOK != nil || lastImportFail != nil {
-		result := types.ImportResult{}
-		if lastImportOK != nil {
-			result.SuccessMembers = *lastImportOK
-		}
-		if lastImportFail != nil {
-			result.Failures = make([]types.ImportFailure, *lastImportFail)
-		}
-		status.LastImportResult = &result
+	integration.LastImportOK = lastImportOK
+	integration.LastImportFail = lastImportFail
+	if len(encrypted) > 0 {
+		integration.EncryptedCredential = append([]byte(nil), encrypted...)
 	}
-	return status, nil
+	return integration, nil
 }
 
-func (r *pgOrgRepo) SetDataSourceStatus(ctx context.Context, status types.DataSourceStatus) error {
+func (r *pgOrgRepo) SetIntegration(ctx context.Context, integration types.OrgIntegration) error {
 	companyID := store.CompanyID(ctx)
 	var platform *string
-	if status.Platform != nil {
-		s := string(*status.Platform)
+	if integration.Platform != nil {
+		s := string(*integration.Platform)
 		platform = &s
 	}
 	var lastImport *time.Time
-	if status.LastImport != nil {
-		t, err := parseAPITime(*status.LastImport)
+	if integration.LastImport != nil {
+		t, err := parseAPITime(*integration.LastImport)
 		if err != nil {
 			return err
 		}
 		lastImport = &t
 	}
-	var lastImportOK, lastImportFail *int
-	if status.LastImportResult != nil {
-		ok := status.LastImportResult.SuccessMembers
-		lastImportOK = &ok
-		fail := len(status.LastImportResult.Failures)
-		lastImportFail = &fail
-	}
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO org_data_source_status (company_id, platform, connected, last_import, last_import_ok, last_import_fail, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		INSERT INTO org_integration (
+			company_id, platform, connected, last_import, last_import_ok, last_import_fail,
+			enabled, start_time, frequency_hours,
+			delete_member_threshold, delete_department_threshold,
+			notify_phone, notify_email, notify_im, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
 		ON CONFLICT (company_id) DO UPDATE SET
 			platform = EXCLUDED.platform,
 			connected = EXCLUDED.connected,
 			last_import = EXCLUDED.last_import,
 			last_import_ok = EXCLUDED.last_import_ok,
 			last_import_fail = EXCLUDED.last_import_fail,
+			enabled = EXCLUDED.enabled,
+			start_time = EXCLUDED.start_time,
+			frequency_hours = EXCLUDED.frequency_hours,
+			delete_member_threshold = EXCLUDED.delete_member_threshold,
+			delete_department_threshold = EXCLUDED.delete_department_threshold,
+			notify_phone = EXCLUDED.notify_phone,
+			notify_email = EXCLUDED.notify_email,
+			notify_im = EXCLUDED.notify_im,
 			updated_at = NOW()
-	`, companyID, platform, status.Connected, lastImport, lastImportOK, lastImportFail)
+	`, companyID, platform, integration.Connected, lastImport,
+		integration.LastImportOK, integration.LastImportFail,
+		integration.Enabled, integration.StartTime, integration.FrequencyHours,
+		integration.DeleteMemberThreshold, integration.DeleteDepartmentThreshold,
+		integration.NotifyPhone, integration.NotifyEmail, integration.NotifyIm)
 	if err != nil {
-		return fmt.Errorf("upsert data source status: %w", err)
+		return fmt.Errorf("upsert org integration: %w", err)
+	}
+	return nil
+}
+
+func (r *pgOrgRepo) GetIntegrationCredential(ctx context.Context) (*types.StoredCredential, error) {
+	integration, err := r.Integration(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return integration.ToStoredCredential(), nil
+}
+
+func (r *pgOrgRepo) SaveIntegrationCredential(ctx context.Context, platform types.Platform, encrypted []byte) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO org_integration (company_id, platform, encrypted_credential, updated_at)
+		VALUES ($1, $2, $3, NOW())
+		ON CONFLICT (company_id) DO UPDATE SET
+			platform = EXCLUDED.platform,
+			encrypted_credential = EXCLUDED.encrypted_credential,
+			updated_at = NOW()
+	`, companyID, string(platform), encrypted)
+	if err != nil {
+		return fmt.Errorf("save credential: %w", err)
+	}
+	return nil
+}
+
+func (r *pgOrgRepo) ClearIntegrationCredential(ctx context.Context) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE org_integration SET encrypted_credential = NULL, updated_at = NOW()
+		WHERE company_id = $1
+	`, companyID)
+	if err != nil {
+		return fmt.Errorf("clear credential: %w", err)
 	}
 	return nil
 }
@@ -468,55 +468,6 @@ func (r *pgOrgRepo) SetImportFailures(ctx context.Context, failures []types.Impo
 		`, item.ID, companyID, item.Name, item.EmployeeID, item.Reason); err != nil {
 			return fmt.Errorf("insert import failure: %w", err)
 		}
-	}
-	return nil
-}
-
-func (r *pgOrgRepo) SyncConfig(ctx context.Context) (types.SyncConfig, error) {
-	companyID := store.CompanyID(ctx)
-	var cfg types.SyncConfig
-	err := r.db.QueryRow(ctx, `
-		SELECT enabled, start_time, frequency_hours,
-			delete_member_threshold, delete_department_threshold,
-			notify_phone, notify_email, notify_im
-		FROM org_sync_config WHERE company_id = $1
-	`, companyID).Scan(
-		&cfg.Enabled, &cfg.StartTime, &cfg.FrequencyHours,
-		&cfg.DeleteMemberThreshold, &cfg.DeleteDepartmentThreshold,
-		&cfg.NotifyPhone, &cfg.NotifyEmail, &cfg.NotifyIm,
-	)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return types.SyncConfig{}, nil
-		}
-		return types.SyncConfig{}, err
-	}
-	return cfg, nil
-}
-
-func (r *pgOrgRepo) SetSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
-	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO org_sync_config (
-			company_id, enabled, start_time, frequency_hours,
-			delete_member_threshold, delete_department_threshold,
-			notify_phone, notify_email, notify_im, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-		ON CONFLICT (company_id) DO UPDATE SET
-			enabled = EXCLUDED.enabled,
-			start_time = EXCLUDED.start_time,
-			frequency_hours = EXCLUDED.frequency_hours,
-			delete_member_threshold = EXCLUDED.delete_member_threshold,
-			delete_department_threshold = EXCLUDED.delete_department_threshold,
-			notify_phone = EXCLUDED.notify_phone,
-			notify_email = EXCLUDED.notify_email,
-			notify_im = EXCLUDED.notify_im,
-			updated_at = NOW()
-	`, companyID, cfg.Enabled, cfg.StartTime, cfg.FrequencyHours,
-		cfg.DeleteMemberThreshold, cfg.DeleteDepartmentThreshold,
-		cfg.NotifyPhone, cfg.NotifyEmail, cfg.NotifyIm)
-	if err != nil {
-		return fmt.Errorf("upsert sync config: %w", err)
 	}
 	return nil
 }

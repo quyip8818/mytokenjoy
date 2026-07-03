@@ -90,8 +90,8 @@ func (r *Runner) loop(ctx context.Context) {
 }
 
 func (r *Runner) tick(ctx context.Context) {
-	r.logStep("relay_outbox", r.processRelayOutbox(ctx))
-	r.logStep("webhook_outbox", r.processWebhookOutbox(ctx))
+	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
+	r.logStep("outbox_webhook", r.processWebhookOutbox(ctx))
 	r.logStep("rebalance", r.processRebalance(ctx))
 	r.logStep("overrun", r.processOverrun(ctx))
 	r.logStep("compensate_logs", r.compensateLogs(ctx))

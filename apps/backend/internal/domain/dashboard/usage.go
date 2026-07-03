@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -67,12 +68,12 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	if err != nil {
 		return nil, err
 	}
-	deptTree, err := s.store.Org().Departments(ctx)
+	deptTree, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}
 	departments := org.FlattenDepartmentTree(deptTree)
-	tree, err := s.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
 		Status:             company.Status,
 	})
-	departments, err := s.store.Org().Departments(companyCtx)
+	nodes, err := s.store.Org().Nodes().Tree(companyCtx)
 	if err != nil {
 		return types.Member{}, err
 	}
@@ -73,13 +73,13 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	if err := s.store.Org().SetMemberPasswordHash(companyCtx, memberID, string(passwordHash)); err != nil {
 		return types.Member{}, err
 	}
-	for i := range departments {
-		if departments[i].ID == deptID {
-			departments[i].MemberCount++
-			departments[i].ManagerID = &memberID
+	for i := range nodes {
+		if nodes[i].ID == deptID {
+			nodes[i].MemberCount++
+			nodes[i].ManagerID = &memberID
 		}
 	}
-	if err := s.store.Org().SetDepartments(companyCtx, departments); err != nil {
+	if err := s.store.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 		return types.Member{}, err
 	}
 	if err := s.store.Invite().MarkInviteAccepted(ctx, invite.ID, time.Now().UTC()); err != nil {

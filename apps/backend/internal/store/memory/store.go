@@ -64,16 +64,17 @@ func (m *Store) Platform() store.PlatformRepository {
 	return &memoryPlatformRepo{store: m}
 }
 func (m *Store) Billing() store.BillingRepository { return &memoryBillingRepo{store: m} }
-func (m *Store) Org() store.OrgRepository         { return &memoryOrgRepo{store: m} }
-func (m *Store) Budget() store.BudgetRepository   { return &memoryBudgetRepo{store: m} }
-func (m *Store) Keys() store.KeysRepository       { return &memoryKeysRepo{store: m} }
-func (m *Store) Models() store.ModelsRepository   { return &memoryModelsRepo{store: m} }
-func (m *Store) Audit() store.AuditRepository     { return &memoryAuditRepo{store: m} }
-func (m *Store) Ledger() store.LedgerRepository   { return &memoryLedgerRepo{store: m} }
-func (m *Store) Relay() store.RelayRepository     { return m.relayRepo }
-func (m *Store) Credential() store.CredentialRepository {
-	return &memoryCredentialRepo{store: m}
+func (m *Store) Org() store.OrgRepository {
+	return &memoryOrgRepo{store: m, nodes: &memoryOrgNodeRepo{store: m}}
 }
+func (m *Store) Budget() store.BudgetRepository { return &memoryBudgetRepo{store: m} }
+func (m *Store) Keys() store.KeysRepository     { return &memoryKeysRepo{store: m} }
+func (m *Store) Models() store.ModelsRepository {
+	return &memoryModelsRepo{store: m, allowlist: &memoryModelAllowlistRepo{store: m}}
+}
+func (m *Store) Audit() store.AuditRepository   { return &memoryAuditRepo{store: m} }
+func (m *Store) Ledger() store.LedgerRepository { return &memoryLedgerRepo{store: m} }
+func (m *Store) Relay() store.RelayRepository   { return m.relayRepo }
 func (m *Store) SchedulerLock() store.SchedulerLockRepository {
 	return &memorySchedulerLockRepo{store: m}
 }

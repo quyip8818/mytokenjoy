@@ -33,11 +33,11 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	rules, err := s.store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, s.store)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}

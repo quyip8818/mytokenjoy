@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -17,7 +18,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
 	}
-	departments, err := env.Store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +45,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments, err := env.Store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,12 +57,10 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 			}
 		}
 	}
-	if err := env.Store.Org().SetDepartments(ctx, departments); err != nil {
-		t.Fatal(err)
-	}
+	testutil.PersistDepartmentsT(t, ctx, env.Store, departments)
 	testutil.ImportFeishuOrg(t, env)
 
-	departments, err = env.Store.Org().Departments(ctx)
+	departments, err = common.LoadDepartments(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,14 +96,14 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	env := testutil.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	testutil.ImportFeishuOrg(t, env)
-	budgetTree, err := env.Store.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if budget.FindBudgetNode(budgetTree, seed.IDFeishuDept1) == nil {
 		t.Fatal("expected budget node for imported department")
 	}
-	rules, err := env.Store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}

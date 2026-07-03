@@ -7,6 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -87,7 +88,7 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 		t.Fatal("expected root department")
 	}
 	companyCtx := company.WithContext(ctx, company.Context{CompanyID: result.Company.ID})
-	tree, err := st.Budget().Tree(companyCtx)
+	tree, err := common.LoadBudgetTree(companyCtx, st)
 	if err != nil {
 		t.Fatal(err)
 	}

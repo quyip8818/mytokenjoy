@@ -97,15 +97,15 @@ func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) erro
 }
 
 func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
-	return s.store.Models().RoutingRules(ctx)
+	return common.LoadRoutingRules(ctx, s.store)
 }
 
 func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error) {
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
-	rules, err := s.store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, s.store)
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
@@ -153,7 +153,7 @@ func (s *service) UpdateRoutingRule(
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.RoutingRule{}, err
 	}
-	rules, err := s.store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, s.store)
 	if err != nil {
 		return types.RoutingRule{}, err
 	}
@@ -182,7 +182,7 @@ func (s *service) UpdateRoutingRule(
 	}
 	rules[idx] = updated
 	if input.AllowedModels != nil {
-		departments, err := s.store.Org().Departments(ctx)
+		departments, err := common.LoadDepartments(ctx, s.store)
 		if err != nil {
 			return types.RoutingRule{}, err
 		}
@@ -193,7 +193,11 @@ func (s *service) UpdateRoutingRule(
 			departments,
 		)
 	}
-	if err := s.store.Models().SetRoutingRules(ctx, rules); err != nil {
+	nodes, err := s.store.Org().Nodes().Tree(ctx)
+	if err != nil {
+		return types.RoutingRule{}, err
+	}
+	if err := common.PersistRoutingRules(ctx, s.store, nodes, rules); err != nil {
 		return types.RoutingRule{}, fmt.Errorf("persist routing rules: %w", err)
 	}
 	if s.client != nil && s.cfg.NewAPIEnabled {
@@ -201,7 +205,7 @@ func (s *service) UpdateRoutingRule(
 			return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
 		}
 		if s.lifecycle != nil {
-			departments, err := s.store.Org().Departments(ctx)
+			departments, err := common.LoadDepartments(ctx, s.store)
 			if err != nil {
 				return types.RoutingRule{}, err
 			}

@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -60,7 +61,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	if err != nil {
 		return nil, err
 	}
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 }
 
 func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error) {
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +190,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	if err != nil {
 		return nil, err
 	}
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}

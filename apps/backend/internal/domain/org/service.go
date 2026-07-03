@@ -64,11 +64,20 @@ func (s *service) ListPermissions(ctx context.Context) ([]types.Permission, erro
 }
 
 func (s *service) GetSyncConfig(ctx context.Context) (types.SyncConfig, error) {
-	return s.store.Org().SyncConfig(ctx)
+	integration, err := s.store.Org().Integration(ctx)
+	if err != nil {
+		return types.SyncConfig{}, err
+	}
+	return integration.ToSyncConfig(), nil
 }
 
 func (s *service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
-	return s.store.Org().SetSyncConfig(ctx, cfg)
+	integration, err := s.store.Org().Integration(ctx)
+	if err != nil {
+		return err
+	}
+	integration.ApplySyncConfig(cfg)
+	return s.store.Org().SetIntegration(ctx, integration)
 }
 
 func (s *service) ListSyncLogs(ctx context.Context, page, pageSize int) (types.PageResult[types.SyncLog], error) {

@@ -42,7 +42,7 @@ func TestUpdateRoutingRuleNotFound(t *testing.T) {
 func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
 	svc := newModelsService(t)
 	ctx := testutil.Ctx()
-	if _, err := svc.UpdateRoutingRule(ctx, "rr-1", types.UpdateRoutingRuleInput{
+	if _, err := svc.UpdateRoutingRule(ctx, "dept-1", types.UpdateRoutingRuleInput{
 		AllowedModels: []string{"gpt-4o"},
 	}); err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, rr := range rules {
-		if rr.ID != "rr-2" && rr.ID != "rr-3" {
+		if rr.ID != "dept-2" && rr.ID != "dept-3" {
 			continue
 		}
 		if len(rr.AllowedModels) != 1 || rr.AllowedModels[0] != "gpt-4o" {

@@ -20,6 +20,8 @@ export const routingApi = {
       fallbackModel?: string | null
     },
   ) => request<RoutingRule>(`/models/routing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  resolveWhitelist: (deptId: string) =>
-    request<ResolvedWhitelist>(`/models/routing/resolve?deptId=${encodeURIComponent(deptId)}`),
+  resolveWhitelist: (departmentId: string) =>
+    request<ResolvedWhitelist>(
+      `/models/routing/resolve?deptId=${encodeURIComponent(departmentId)}`,
+    ),
 }

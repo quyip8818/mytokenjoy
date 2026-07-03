@@ -23,13 +23,13 @@ func ApplyTables(ctx context.Context, exec tableWriter, snap store.Snapshot) err
 		return err
 	}
 	roleIDByName := buildRoleNameIndex(snap.Roles)
-	if err := insertDepartments(ctx, exec, tid, snap.Departments); err != nil {
+	if err := insertOrgNodes(ctx, exec, tid, snap.OrgNodes); err != nil {
 		return err
 	}
 	if err := insertMembers(ctx, exec, tid, snap.Members, roleIDByName); err != nil {
 		return err
 	}
-	if err := insertOrgConfig(ctx, exec, tid, snap); err != nil {
+	if err := insertOrgIntegration(ctx, exec, tid, snap); err != nil {
 		return err
 	}
 	if err := insertBudget(ctx, exec, tid, snap); err != nil {
@@ -38,7 +38,7 @@ func ApplyTables(ctx context.Context, exec tableWriter, snap store.Snapshot) err
 	if err := insertModels(ctx, exec, tid, snap.Models); err != nil {
 		return err
 	}
-	if err := insertRoutingRules(ctx, exec, tid, snap.RoutingRules); err != nil {
+	if err := insertModelAllowlist(ctx, exec, tid, snap.ModelAllowlist); err != nil {
 		return err
 	}
 	if err := insertKeys(ctx, exec, tid, snap); err != nil {

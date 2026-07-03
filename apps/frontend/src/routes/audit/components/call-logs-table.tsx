@@ -91,9 +91,7 @@ export function CallLogsTable({
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={10} className="bg-blue-50/20 p-4">
                     <div className="text-sm">
-                      <div className="mb-1 text-xs font-medium text-muted-foreground">
-                        输入预览
-                      </div>
+                      <div className="mb-1 text-xs font-medium text-muted-foreground">输入预览</div>
                       <div className="rounded-md border border-border/40 bg-background p-3 text-xs">
                         {log.previewSnippet || '—'}
                       </div>

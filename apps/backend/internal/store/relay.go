@@ -15,6 +15,9 @@ const (
 	OutboxStatusDone    = "done"
 	OutboxStatusFailed  = "failed"
 
+	OutboxChannelRelay   = "relay"
+	OutboxChannelWebhook = "webhook"
+
 	OutboxKindCreateToken       = "create_token"
 	OutboxKindUpdateToken       = "update_token"
 	OutboxKindRevokeToken       = "revoke_token"

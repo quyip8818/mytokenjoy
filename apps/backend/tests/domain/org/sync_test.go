@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -57,7 +58,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	departments, err := env.Store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +66,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if dept == nil || dept.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed department, got %+v", dept)
 	}
-	budgetTree, err := env.Store.Budget().Tree(ctx)
+	budgetTree, err := common.LoadBudgetTree(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +74,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if node == nil || node.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed budget node, got %+v", node)
 	}
-	rules, err := env.Store.Models().RoutingRules(ctx)
+	rules, err := common.LoadRoutingRules(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +122,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	env := testutil.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments, err := env.Store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,9 +134,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 			}
 		}
 	}
-	if err := env.Store.Org().SetDepartments(ctx, departments); err != nil {
-		t.Fatal(err)
-	}
+	testutil.PersistDepartmentsT(t, ctx, env.Store, departments)
 	env = testutil.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
@@ -143,7 +142,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	departments, err = env.Store.Org().Departments(ctx)
+	departments, err = common.LoadDepartments(ctx, env.Store)
 	if err != nil {
 		t.Fatal(err)
 	}

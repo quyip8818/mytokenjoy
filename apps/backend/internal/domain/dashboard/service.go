@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -57,7 +58,7 @@ func (s *service) dashboardNow() time.Time {
 }
 
 func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID string) ([]string, error) {
-	departments, err := s.store.Org().Departments(ctx)
+	departments, err := common.LoadDepartments(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}

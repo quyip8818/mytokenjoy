@@ -61,7 +61,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		}
 	}
 
-	budgetAmount, consumed, found, err := st.Budget().GetDepartmentBudget(ctx, payload.DepartmentID)
+	budgetAmount, consumed, found, err := st.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
 	if err != nil {
 		return err
 	}

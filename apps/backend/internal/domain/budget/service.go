@@ -45,17 +45,18 @@ func NewService(cfg config.Config, st store.Store, delayer common.Delayer) Servi
 }
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
-	return s.store.Budget().Tree(ctx)
+	return common.LoadBudgetTree(ctx, s.store)
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetNode{}, err
 	}
-	tree, err := s.store.Budget().Tree(ctx)
+	nodes, err := s.store.Org().Nodes().Tree(ctx)
 	if err != nil {
 		return types.BudgetNode{}, err
 	}
+	tree := types.OrgNodesToBudgetTree(nodes)
 	existing := pkgbudget.FindBudgetNode(tree, id)
 	if existing == nil {
 		return types.BudgetNode{}, domain.NotFound("Node not found")
@@ -75,7 +76,8 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
 		return types.BudgetNode{}, domain.NotFound("Node not found")
 	}
-	if err := s.store.Budget().SetTree(ctx, tree); err != nil {
+	types.ApplyBudgetTreeToOrgNodes(nodes, tree)
+	if err := s.store.Org().Nodes().SetTree(ctx, nodes); err != nil {
 		return types.BudgetNode{}, fmt.Errorf("persist budget tree: %w", err)
 	}
 	updated := pkgbudget.FindBudgetNode(tree, id)
@@ -83,7 +85,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 }
 
 func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
-	tree, err := s.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, s.store)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +113,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	tree, err := s.store.Budget().Tree(ctx)
+	tree, err := common.LoadBudgetTree(ctx, s.store)
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}

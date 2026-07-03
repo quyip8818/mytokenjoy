@@ -49,7 +49,7 @@ func TestUpdateDataSourcePersistsCredential(t *testing.T) {
 	if err := svc.UpdateDataSource(testutil.Ctx(), cred, false); err != nil {
 		t.Fatal(err)
 	}
-	stored, err := st.Credential().GetCredential(testutil.Ctx())
+	stored, err := st.Org().GetIntegrationCredential(testutil.Ctx())
 	if err != nil || stored == nil {
 		t.Fatalf("expected stored credential, err=%v stored=%v", err, stored)
 	}
