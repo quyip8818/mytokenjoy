@@ -42,7 +42,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		keys:      keyshandler.NewHandler(deps.Config, deps.KeysSvc, deps.SessionSvc),
 		models:    modelshandler.NewHandler(deps.Config, deps.ModelsSvc, deps.SessionSvc),
 		dashboard: dashboardhandler.NewHandler(deps.Config, deps.DashboardSvc, deps.SessionSvc),
-		audit:     audithandler.NewHandler(deps.Config, deps.AuditSvc, deps.CallLogQuerier, deps.SessionSvc),
+		audit:     audithandler.NewHandler(deps.Config, deps.AuditSvc, deps.ReadModel, deps.SessionSvc),
 		webhook:   NewWebhookHandler(deps.Config, deps.IngestSvc, deps.Logger),
 	}
 }

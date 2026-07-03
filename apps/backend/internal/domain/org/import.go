@@ -241,8 +241,8 @@ func (s *service) importFromProvider(
 	if err := s.store.Org().SetImportFailures(ctx, result.Failures); err != nil {
 		return types.ImportResult{}, fmt.Errorf("persist import failures: %w", err)
 	}
-	if s.lifecycle != nil && len(changedDeptIDs) > 0 {
-		if err := s.lifecycle.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
+	if s.modelLimits != nil && len(changedDeptIDs) > 0 {
+		if err := s.modelLimits.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
 			return types.ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
 		}
 	}

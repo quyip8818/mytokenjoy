@@ -48,3 +48,14 @@ type Store interface {
 	Notification() NotificationRepository
 	WithTx(ctx context.Context, fn func(Store) error) error
 }
+
+// ConsumptionWriter is the minimal store surface for ingest transactions:
+// ledger insert, projection apply, and side-effect enqueue.
+type ConsumptionWriter interface {
+	Ledger() LedgerRepository
+	Usage() UsageRepository
+	Keys() KeysRepository
+	Budget() BudgetRepository
+	Org() OrgRepository
+	Relay() RelayRepository
+}

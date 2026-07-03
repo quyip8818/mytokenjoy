@@ -15,21 +15,21 @@ import (
 )
 
 type service struct {
-	cfg       config.Config
-	store     store.Store
-	factory   datasource.Factory
-	lifecycle relay.Lifecycle
-	notifier  notification.Notifier
-	delayer   common.Delayer
-	cryptoKey []byte
-	logger    *slog.Logger
+	cfg         config.Config
+	store       store.Store
+	factory     datasource.Factory
+	modelLimits relay.ModelLimitsEnqueuer
+	notifier    notification.Notifier
+	delayer     common.Delayer
+	cryptoKey   []byte
+	logger      *slog.Logger
 }
 
 func NewService(
 	cfg config.Config,
 	st store.Store,
 	factory datasource.Factory,
-	lifecycle relay.Lifecycle,
+	modelLimits relay.ModelLimitsEnqueuer,
 	notifier notification.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,
@@ -38,13 +38,13 @@ func NewService(
 		logger = slog.Default()
 	}
 	return &service{
-		cfg:       cfg,
-		store:     st,
-		factory:   factory,
-		lifecycle: lifecycle,
-		notifier:  notifier,
-		delayer:   delayer,
-		logger:    logger,
+		cfg:         cfg,
+		store:       st,
+		factory:     factory,
+		modelLimits: modelLimits,
+		notifier:    notifier,
+		delayer:     delayer,
+		logger:      logger,
 	}
 }
 

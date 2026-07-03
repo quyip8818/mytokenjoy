@@ -94,6 +94,10 @@ func (r *memoryUsageRepo) QuerySummary(ctx context.Context, q types.UsageAggrega
 	return usagequery.SummaryTotals(rows, q.Start, q.End), nil
 }
 
+func (r *memoryUsageRepo) QueryFilteredBuckets(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageBucketRow, error) {
+	return r.queryFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.ScopeDeptIDs, q.DepartmentIDs)
+}
+
 func (r *memoryUsageRepo) queryFilteredRows(
 	ctx context.Context,
 	start, end time.Time,

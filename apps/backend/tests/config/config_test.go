@@ -10,6 +10,7 @@ import (
 func TestProdRequiresDatabaseURL(t *testing.T) {
 	t.Setenv("APP_PROFILE", config.ProfileProd)
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "false")
 
 	_, err := config.Load()
@@ -24,6 +25,7 @@ func TestProdRequiresDatabaseURL(t *testing.T) {
 func TestDemoRequiresDatabaseURL(t *testing.T) {
 	t.Setenv("APP_PROFILE", config.ProfileDemo)
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "false")
 
 	_, err := config.Load()
@@ -38,6 +40,7 @@ func TestDemoRequiresDatabaseURL(t *testing.T) {
 func TestDemoLoadsWithDatabaseURL(t *testing.T) {
 	t.Setenv("APP_PROFILE", config.ProfileDemo)
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "false")
 
 	cfg, err := config.Load()
@@ -47,7 +50,42 @@ func TestDemoLoadsWithDatabaseURL(t *testing.T) {
 	if cfg.IsProdProfile() {
 		t.Fatal("expected demo profile")
 	}
+	if cfg.ResolvedCompanyName() != "Acme Corp" {
+		t.Fatalf("expected resolved company name Acme Corp, got %q", cfg.ResolvedCompanyName())
+	}
 	if cfg.DatabaseURL != config.DefaultDatabaseURL {
 		t.Fatalf("expected default database url, got %q", cfg.DatabaseURL)
+	}
+}
+
+func TestPrivateRequiresCompanyName(t *testing.T) {
+	t.Setenv("APP_PROFILE", config.ProfileDemo)
+	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("COMPANY_NAME", "")
+	t.Setenv("SUPPORT_SAAS", "false")
+	t.Setenv("NEW_API_ENABLED", "false")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when private deployment has no COMPANY_NAME")
+	}
+	if !strings.Contains(err.Error(), "COMPANY_NAME") {
+		t.Fatalf("expected COMPANY_NAME error, got %v", err)
+	}
+}
+
+func TestSaaSResolvesTestCompanyName(t *testing.T) {
+	t.Setenv("APP_PROFILE", config.ProfileDemo)
+	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("COMPANY_NAME", "")
+	t.Setenv("SUPPORT_SAAS", "true")
+	t.Setenv("NEW_API_ENABLED", "false")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("expected saas config to load, got %v", err)
+	}
+	if cfg.ResolvedCompanyName() != config.SaaSDefaultCompanyName {
+		t.Fatalf("expected %q, got %q", config.SaaSDefaultCompanyName, cfg.ResolvedCompanyName())
 	}
 }

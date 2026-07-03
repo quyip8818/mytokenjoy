@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -15,11 +15,11 @@ import (
 
 type WebhookHandler struct {
 	cfg    config.Config
-	ingest domainbudget.Ingestor
+	ingest domainusage.Ingestor
 	logger *slog.Logger
 }
 
-func NewWebhookHandler(cfg config.Config, ingest domainbudget.Ingestor, logger *slog.Logger) *WebhookHandler {
+func NewWebhookHandler(cfg config.Config, ingest domainusage.Ingestor, logger *slog.Logger) *WebhookHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}

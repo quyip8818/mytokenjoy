@@ -37,6 +37,7 @@ type Config struct {
 	WorkerOrgSyncIntervalSec int `env:"WORKER_ORG_SYNC_INTERVAL_SEC" envDefault:"60"`
 
 	SupportSaas              bool   `env:"SUPPORT_SAAS" envDefault:"false"`
+	CompanyName              string `env:"COMPANY_NAME"`
 	DefaultCompanyID         int64  `env:"DEFAULT_COMPANY_ID" envDefault:"1"`
 	PlatformSharedRelayGroup string `env:"PLATFORM_SHARED_RELAY_GROUP" envDefault:"platform_shared"`
 	RelayGatewayEnabled      bool   `env:"RELAY_GATEWAY_ENABLED" envDefault:"false"`
@@ -71,6 +72,9 @@ func (c Config) IsProdProfile() bool {
 func (c Config) validate() error {
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if !c.SupportSaas && strings.TrimSpace(c.CompanyName) == "" {
+		return fmt.Errorf("COMPANY_NAME is required when SUPPORT_SAAS=false")
 	}
 	if !c.NewAPIEnabled {
 		return nil

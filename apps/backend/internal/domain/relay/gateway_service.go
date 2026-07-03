@@ -2,6 +2,7 @@ package relay
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,39 +12,62 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type Gateway struct {
+type RelayMappingReader interface {
+	GetMappingByFullKey(ctx context.Context, tokenKey string) (*store.RelayMapping, error)
+}
+
+type CompanyReader interface {
+	GetByID(ctx context.Context, companyID int64) (*store.Company, error)
+}
+
+type GatewayService interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
+}
+
+type gatewayService struct {
 	cfg         config.Config
-	store       store.Store
-	precheck    relay.Prechecker
+	mappings    RelayMappingReader
+	companies   CompanyReader
+	precheck    Prechecker
 	proxyTarget *url.URL
 }
 
-func NewGateway(cfg config.Config, st store.Store, precheck relay.Prechecker) (*Gateway, error) {
+func NewGatewayService(
+	cfg config.Config,
+	mappings RelayMappingReader,
+	companies CompanyReader,
+	precheck Prechecker,
+) (GatewayService, error) {
 	target, err := url.Parse(strings.TrimRight(cfg.NewAPIBaseURL, "/"))
 	if err != nil {
 		return nil, err
 	}
-	return &Gateway{cfg: cfg, store: st, precheck: precheck, proxyTarget: target}, nil
+	return &gatewayService{
+		cfg:         cfg,
+		mappings:    mappings,
+		companies:   companies,
+		precheck:    precheck,
+		proxyTarget: target,
+	}, nil
 }
 
-func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("Authorization")
 	if !strings.HasPrefix(auth, "Bearer sk-") {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	tokenKey := strings.TrimPrefix(auth, "Bearer ")
-	mapping, err := g.store.Relay().GetMappingByFullKey(r.Context(), tokenKey)
+	mapping, err := g.mappings.GetMappingByFullKey(r.Context(), tokenKey)
 	if err != nil || mapping == nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 	ctx := domaincompany.WithContext(r.Context(), domaincompany.Context{CompanyID: mapping.CompanyID})
-	company, err := g.store.Company().GetByID(ctx, mapping.CompanyID)
+	company, err := g.companies.GetByID(ctx, mapping.CompanyID)
 	if err != nil || company == nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
@@ -60,7 +84,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "read request body", http.StatusForbidden)
 		return
 	}
-	if err := g.precheck.Run(ctx, relay.PrecheckInput{
+	if err := g.precheck.Run(ctx, PrecheckInput{
 		Mapping: mapping,
 		Company: company,
 		Model:   parseRequestModel(body),
@@ -97,7 +121,7 @@ func parseRequestModel(body []byte) string {
 	return payload.Model
 }
 
-func (g *Gateway) proxy(w http.ResponseWriter, r *http.Request) {
+func (g *gatewayService) proxy(w http.ResponseWriter, r *http.Request) {
 	targetURL := *g.proxyTarget
 	targetURL.Path = strings.TrimPrefix(r.URL.Path, "/v1")
 	if targetURL.Path == "" {
@@ -113,3 +137,5 @@ func (g *Gateway) proxy(w http.ResponseWriter, r *http.Request) {
 	proxy.Transport = &http.Transport{DisableCompression: true}
 	proxy.ServeHTTP(w, r)
 }
+
+var _ GatewayService = (*gatewayService)(nil)

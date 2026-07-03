@@ -24,16 +24,18 @@ type Service interface {
 }
 
 type service struct {
-	cfg   config.Config
-	store store.Store
-	now   func() time.Time
+	cfg    config.Config
+	store  store.Store
+	reader domainusage.Reader
+	now    func() time.Time
 }
 
-func NewService(cfg config.Config, st store.Store) Service {
+func NewService(cfg config.Config, st store.Store, reader domainusage.Reader) Service {
 	return &service{
-		cfg:   cfg,
-		store: st,
-		now:   time.Now,
+		cfg:    cfg,
+		store:  st,
+		reader: reader,
+		now:    time.Now,
 	}
 }
 

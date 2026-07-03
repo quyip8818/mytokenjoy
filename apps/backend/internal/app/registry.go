@@ -12,6 +12,7 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/session"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -26,40 +27,42 @@ type ServiceRegistry struct {
 	Infra          infra
 	Session        session.Service
 	Org            domainorg.Service
+	OrgSync        domainorg.SyncService
 	Budget         domainbudget.Service
 	Keys           domainkeys.Service
 	Models         domainmodels.Service
 	Dashboard      domaindashboard.Service
 	Audit          domainaudit.Service
-	CallLogQuerier domainusage.CallLogQuerier
-	Ingest         domainbudget.Ingestor
+	ReadModel      domainusage.ReadModel
+	Ingest         domainusage.Ingestor
 	Overrun        domainbudget.OverrunProcessor
 	Rebalance      domainbudget.Rebalancer
 	Company        domaincompany.Service
 	Billing        domainbilling.Service
 	Platform       platformauth.Service
 	CompanyGate    *domaincompany.Gate
+	RelayGateway   domainrelay.GatewayService
 }
 
 func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 	return httpdeps.Deps{
-		Config:         r.Config,
-		Logger:         logger,
-		Store:          r.Store,
-		SessionSvc:     r.Session,
-		OrgSvc:         r.Org,
-		BudgetSvc:      r.Budget,
-		KeysSvc:        r.Keys,
-		ModelsSvc:      r.Models,
-		DashboardSvc:   r.Dashboard,
-		AuditSvc:       r.Audit,
-		CallLogQuerier: r.CallLogQuerier,
-		IngestSvc:      r.Ingest,
-		CompanySvc:     r.Company,
-		BillingSvc:     r.Billing,
-		PlatformSvc:    r.Platform,
-		WalletSvc:      r.Infra.wallet,
-		CompanyGate:    r.CompanyGate,
+		Config:       r.Config,
+		Logger:       logger,
+		SessionSvc:   r.Session,
+		OrgSvc:       r.Org,
+		BudgetSvc:    r.Budget,
+		KeysSvc:      r.Keys,
+		ModelsSvc:    r.Models,
+		DashboardSvc: r.Dashboard,
+		AuditSvc:     r.Audit,
+		ReadModel:    r.ReadModel,
+		IngestSvc:    r.Ingest,
+		CompanySvc:   r.Company,
+		BillingSvc:   r.Billing,
+		PlatformSvc:  r.Platform,
+		WalletSvc:    r.Infra.wallet,
+		CompanyGate:  r.CompanyGate,
+		RelayGateway: r.RelayGateway,
 	}
 }
 
@@ -72,30 +75,39 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 		r.Ingest,
 		r.Overrun,
 		r.Rebalance,
-		r.Org,
+		r.OrgSync,
 		logger,
 	)
 }
 
 func buildServiceRegistry(cfg config.Config, i infra, services domainServices) ServiceRegistry {
+	var relayGateway domainrelay.GatewayService
+	if cfg.RelayGatewayEnabled && cfg.NewAPIEnabled {
+		gw, err := wireGatewayService(cfg, i)
+		if err == nil {
+			relayGateway = gw
+		}
+	}
 	return ServiceRegistry{
-		Config:         cfg,
-		Store:          i.store,
-		Infra:          i,
-		Session:        services.session,
-		Org:            services.org,
-		Budget:         services.budget,
-		Keys:           services.keys,
-		Models:         services.models,
-		Dashboard:      services.dashboard,
-		Audit:          services.audit,
-		CallLogQuerier: services.callLogQuerier,
-		Ingest:         services.ingest,
-		Overrun:        services.overrun,
-		Rebalance:      services.rebalance,
-		Company:        services.company,
-		Billing:        services.billing,
-		Platform:       platformauth.NewService(cfg, i.store),
-		CompanyGate:    i.companyGate,
+		Config:       cfg,
+		Store:        i.store,
+		Infra:        i,
+		Session:      services.session,
+		Org:          services.org,
+		OrgSync:      services.org,
+		Budget:       services.budget,
+		Keys:         services.keys,
+		Models:       services.models,
+		Dashboard:    services.dashboard,
+		Audit:        services.audit,
+		ReadModel:    services.readModel,
+		Ingest:       services.ingest,
+		Overrun:      services.overrun,
+		Rebalance:    services.rebalance,
+		Company:      services.company,
+		Billing:      services.billing,
+		Platform:     platformauth.NewService(cfg, i.store),
+		CompanyGate:  i.companyGate,
+		RelayGateway: relayGateway,
 	}
 }

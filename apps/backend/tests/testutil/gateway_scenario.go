@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	relayhttp "github.com/tokenjoy/backend/internal/http/handler/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -32,7 +31,7 @@ type GatewayScenarioOpts struct {
 }
 
 type GatewayScenario struct {
-	Gateway *relayhttp.Gateway
+	Gateway domainrelay.GatewayService
 	Store   store.Store
 	Cfg     config.Config
 	FullKey string
@@ -145,8 +144,8 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	cfg.RelayGatewayEnabled = true
 
 	wallet := gatewayWallet(cfg, opts)
-	precheck := domainrelay.NewPrecheckService(st, wallet)
-	gw, err := relayhttp.NewGateway(cfg, st, precheck)
+	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), wallet)
+	gw, err := domainrelay.NewGatewayService(cfg, st.Relay(), st.Company(), precheck)
 	if err != nil {
 		t.Fatal(err)
 	}

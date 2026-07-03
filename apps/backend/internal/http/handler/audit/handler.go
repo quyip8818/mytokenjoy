@@ -19,14 +19,14 @@ import (
 type Handler struct {
 	shared.SessionHandlerBase
 	service        domainaudit.Service
-	callLogQuerier domainusage.CallLogQuerier
+	readModel      domainusage.ReadModel
 }
 
-func NewHandler(cfg config.Config, service domainaudit.Service, callLogQuerier domainusage.CallLogQuerier, sessionSvc session.Service) *Handler {
+func NewHandler(cfg config.Config, service domainaudit.Service, readModel domainusage.ReadModel, sessionSvc session.Service) *Handler {
 	return &Handler{
 		SessionHandlerBase: shared.NewSessionHandlerBase(cfg, sessionSvc),
 		service:            service,
-		callLogQuerier:     callLogQuerier,
+		readModel:          readModel,
 	}
 }
 
@@ -72,7 +72,7 @@ func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 		From:     query.Get("from"),
 		To:       query.Get("to"),
 	}
-	result, err := h.callLogQuerier.ListCalls(r.Context(), params)
+	result, err := h.readModel.ListCalls(r.Context(), params)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 

@@ -7,6 +7,7 @@ import (
 
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
@@ -25,7 +26,7 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 	orgSvc := testutil.NewOrgService(t, cfg, st)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
-	ingest := domainbudget.NewIngestService(cfg, st, lifecycle, notifier, logger)
+	ingest := domainusage.NewIngestService(cfg, st, notifier, logger)
 	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, stub, lifecycle)
 	runner := worker.NewRunner(cfg, st, stub, lifecycle, ingest, overrun, rebalance, orgSvc, logger)

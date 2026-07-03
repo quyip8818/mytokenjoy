@@ -6,6 +6,10 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
+type ModelLimitsEnqueuer interface {
+	EnqueueModelLimitsForDepartments(ctx context.Context, departmentIDs []string) error
+}
+
 type Lifecycle interface {
 	Enabled() bool
 	SyncCreatePlatformKey(ctx context.Context, key types.PlatformKey, departmentID string) error

@@ -4,7 +4,6 @@
 // type Deps struct {
 // 	Config       config.Config
 // 	Logger       *slog.Logger
-// 	Store        store.Store              // gateway / worker paths
 // 	SessionSvc   session.Service
 // 	OrgSvc       domainorg.Service
 // 	BudgetSvc    domainbudget.Service
@@ -12,10 +11,12 @@
 // 	ModelsSvc    domainmodels.Service
 // 	DashboardSvc domaindashboard.Service
 // 	AuditSvc     domainaudit.Service
-// 	IngestSvc    domainbudget.Ingestor     // webhook / worker ingest
+// 	ReadModel    domainusage.ReadModel
+// 	IngestSvc    domainusage.Ingestor
 // 	CompanySvc   domaincompany.Service
 // 	BillingSvc   domainbilling.Service
-// 	PlatformSvc  platformauth.Service      // platform login
-// 	WalletSvc    domaincompany.WalletService // relay gateway precheck
-// 	CompanyGate  *domaincompany.Gate         // /api suspended read-only
+// 	PlatformSvc  platformauth.Service
+// 	WalletSvc    domaincompany.WalletService
+// 	CompanyGate  *domaincompany.Gate
+// 	RelayGateway domainrelay.GatewayService
 // }

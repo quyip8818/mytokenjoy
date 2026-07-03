@@ -125,8 +125,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_members_email_company ON members (company_
 CREATE TABLE IF NOT EXISTS member_roles (
     company_id BIGINT NOT NULL DEFAULT 1,
     member_id TEXT NOT NULL,
-    role_id   TEXT NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
-    PRIMARY KEY (company_id, member_id, role_id)
+    role_id   TEXT NOT NULL,
+    PRIMARY KEY (company_id, member_id, role_id),
+    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_member_roles_role ON member_roles (role_id);
@@ -221,8 +222,9 @@ CREATE TABLE IF NOT EXISTS alert_rules (
 CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
     company_id BIGINT NOT NULL DEFAULT 1,
     rule_id   TEXT NOT NULL,
-    role_id   TEXT NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
-    PRIMARY KEY (company_id, rule_id, role_id)
+    role_id   TEXT NOT NULL,
+    PRIMARY KEY (company_id, rule_id, role_id),
+    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
 );
 
 -- Models domain (before keys FK references)
@@ -416,8 +418,6 @@ CREATE TABLE IF NOT EXISTS relay_sync_cursors (
     last_log_id  BIGINT NOT NULL DEFAULT 0,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-INSERT INTO relay_sync_cursors (company_id, last_log_id) VALUES (1, 0) ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS rebalance_queue (
     id           TEXT PRIMARY KEY,

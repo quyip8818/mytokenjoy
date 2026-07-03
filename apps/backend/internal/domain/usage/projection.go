@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func Apply(ctx context.Context, st store.Store, entry types.UsageLedgerEntry) error {
+func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry) error {
 	if err := st.Keys().AddPlatformKeyUsed(ctx, entry.PlatformKeyID, entry.AmountCNY); err != nil {
 		return err
 	}

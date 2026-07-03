@@ -41,14 +41,7 @@ func (s *service) UpdateSettings(ctx context.Context, settings types.AuditSettin
 }
 
 func (s *service) ListOperations(ctx context.Context, params types.AuditOperationsQueryParams) (types.PageResult[types.OperationLog], error) {
-	page := params.Page
-	if page < 1 {
-		page = 1
-	}
-	pageSize := params.PageSize
-	if pageSize < 1 {
-		pageSize = 20
-	}
+	page, pageSize := types.NormalizePageParams(params.Page, params.PageSize)
 	items, total, err := s.store.Audit().ListOperationsPage(ctx, store.AuditOperationFilter{
 		Action:     params.Action,
 		OperatorID: params.OperatorID,

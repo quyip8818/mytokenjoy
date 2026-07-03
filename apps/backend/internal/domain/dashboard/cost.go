@@ -22,11 +22,11 @@ func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams,
 		return types.CostSummary{}, err
 	}
 	base := types.UsageAggregateQuery{Timezone: current.Timezone, ScopeDeptIDs: scopeDeptIDs}
-	currentTotals, err := s.store.Usage().QuerySummary(ctx, withRange(base, current))
+	currentTotals, err := s.reader.QuerySummary(ctx, withRange(base, current))
 	if err != nil {
 		return types.CostSummary{}, err
 	}
-	prevTotals, err := s.store.Usage().QuerySummary(ctx, withRange(base, prev))
+	prevTotals, err := s.reader.QuerySummary(ctx, withRange(base, prev))
 	if err != nil {
 		return types.CostSummary{}, err
 	}
@@ -69,7 +69,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	if len(childIDs) == 0 {
 		return []types.DepartmentCost{}, nil
 	}
-	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
+	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByDepartment, DepartmentIDs: childIDs, ScopeDeptIDs: scopeDeptIDs,
 	})
@@ -117,7 +117,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
+	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByMember, DepartmentID: deptID, ScopeDeptIDs: scopeDeptIDs,
 	})
@@ -151,7 +151,7 @@ func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, 
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
+	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Granularity: rng.Granularity, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByNone, ScopeDeptIDs: scopeDeptIDs,
 	})
@@ -179,7 +179,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
+	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByMember, Limit: limit, ScopeDeptIDs: scopeDeptIDs,
 	})

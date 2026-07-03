@@ -24,8 +24,8 @@ type domainServices struct {
 	models         domainmodels.Service
 	dashboard      domaindashboard.Service
 	audit          domainaudit.Service
-	callLogQuerier domainusage.CallLogQuerier
-	ingest         domainbudget.Ingestor
+	readModel       domainusage.ReadModel
+	ingest         domainusage.Ingestor
 	overrun        domainbudget.OverrunProcessor
 	rebalance      domainbudget.Rebalancer
 	company        domaincompany.Service
@@ -33,15 +33,16 @@ type domainServices struct {
 }
 
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {
+	reader := wireReader(i)
 	return domainServices{
 		session:        wireSession(i.store),
 		org:            wireOrg(cfg, i, logger),
 		budget:         wireBudget(cfg, i),
 		keys:           wireKeys(cfg, i),
 		models:         wireModels(cfg, i),
-		dashboard:      wireDashboard(cfg, i),
+		dashboard:      wireDashboard(cfg, i, reader),
 		audit:          wireAudit(cfg, i),
-		callLogQuerier: wireCallLogQuerier(i),
+		readModel:      reader,
 		ingest:         wireIngestService(cfg, i, logger),
 		overrun:        wireOverrunService(cfg, i, logger),
 		rebalance:      wireRebalance(cfg, i),

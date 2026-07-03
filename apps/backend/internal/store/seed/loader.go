@@ -10,7 +10,7 @@ func Load(cfg config.Config) store.Snapshot {
 	members := BuildMembers()
 	roles := buildRoles(members)
 	return store.Snapshot{
-		Company: DefaultCompany(),
+		Company: DefaultCompany(cfg),
 		OrgIntegration: types.OrgIntegrationFromStatusAndConfig(
 			types.DataSourceStatus{Platform: nil, Connected: false, LastImport: nil, LastImportResult: nil},
 			types.SyncConfig{

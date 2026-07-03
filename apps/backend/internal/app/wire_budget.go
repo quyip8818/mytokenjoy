@@ -11,10 +11,6 @@ func wireBudget(cfg config.Config, i infra) domainbudget.Service {
 	return domainbudget.NewService(cfg, i.store, i.delayer)
 }
 
-func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainbudget.IngestService {
-	return domainbudget.NewIngestService(cfg, i.store, i.lifecycle, i.notifier, logger)
-}
-
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
 	return domainbudget.NewOverrunService(cfg, i.store, i.lifecycle, i.notifier, logger)
 }

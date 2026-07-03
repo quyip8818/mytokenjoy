@@ -169,3 +169,36 @@ func LimitByCost(rows []types.UsageAggregateRow, limit int) []types.UsageAggrega
 	})
 	return rows[:limit]
 }
+
+func TopModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[string]string {
+	if len(deptIDs) == 0 {
+		return map[string]string{}
+	}
+	deptSet := make(map[string]struct{}, len(deptIDs))
+	for _, id := range deptIDs {
+		deptSet[id] = struct{}{}
+	}
+	costs := make(map[string]map[string]float64)
+	for _, row := range rows {
+		if _, ok := deptSet[row.DepartmentID]; !ok {
+			continue
+		}
+		if costs[row.DepartmentID] == nil {
+			costs[row.DepartmentID] = make(map[string]float64)
+		}
+		costs[row.DepartmentID][row.Model] += row.CostCNY
+	}
+	result := make(map[string]string, len(deptIDs))
+	for deptID, models := range costs {
+		topModel := ""
+		topCost := 0.0
+		for model, cost := range models {
+			if cost > topCost {
+				topCost = cost
+				topModel = model
+			}
+		}
+		result[deptID] = topModel
+	}
+	return result
+}

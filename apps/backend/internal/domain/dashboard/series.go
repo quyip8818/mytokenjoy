@@ -23,9 +23,10 @@ func (s *service) UsageSeries(ctx context.Context, q types.UsageSeriesQuery, sco
 	}
 	q.ScopeDeptIDs = scopeDeptIDs
 
+	// Read contract: minute granularity reads usage_ledger; hour/day read usage_buckets.
 	switch q.Granularity {
 	case types.UsageGranularityMinute:
-		return domainusage.MinuteSeriesFromLedger(ctx, s.store, q)
+		return s.reader.UsageMinuteSeries(ctx, q)
 	case types.UsageGranularityDay, types.UsageGranularityHour:
 		return s.seriesFromBuckets(ctx, q, q.Granularity, false)
 	default:
@@ -41,7 +42,7 @@ func (s *service) seriesFromBuckets(
 ) (types.UsageSeriesResponse, error) {
 	bucketQuery := q
 	bucketQuery.Granularity = granularity
-	points, err := s.store.Usage().QuerySeries(ctx, bucketQuery)
+	points, err := s.reader.QuerySeries(ctx, bucketQuery)
 	if err != nil {
 		return types.UsageSeriesResponse{}, err
 	}

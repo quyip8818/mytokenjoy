@@ -12,6 +12,13 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+type overrunPayload struct {
+	DepartmentID  string  `json:"departmentId"`
+	MemberID      *string `json:"memberId,omitempty"`
+	BudgetGroupID *string `json:"budgetGroupId,omitempty"`
+	PlatformKeyID string  `json:"platformKeyId"`
+}
+
 type OverrunService struct {
 	cfg       config.Config
 	store     store.Store

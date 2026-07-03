@@ -1,4 +1,4 @@
-package budget_test
+package usage_test
 
 import (
 	"encoding/json"

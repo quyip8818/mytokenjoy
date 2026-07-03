@@ -1,4 +1,4 @@
-package budget
+package usage
 
 import (
 	"context"
@@ -10,40 +10,26 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type Ingestor interface {
-	Ingest(ctx context.Context, payload newapi.WebhookLogPayload, source string) error
-	IngestFromOutbox(ctx context.Context, raw json.RawMessage) error
-	EnqueueFailed(ctx context.Context, payload newapi.WebhookLogPayload, ingestErr error) error
-}
-
-type OverrunProcessor interface {
-	ProcessOverrunPayload(ctx context.Context, raw json.RawMessage) error
-}
-
 type IngestService struct {
-	cfg       config.Config
-	store     store.Store
-	lifecycle relay.Lifecycle
-	notifier  notification.Notifier
-	logger    *slog.Logger
+	cfg      config.Config
+	store    store.Store
+	notifier notification.Notifier
+	logger   *slog.Logger
 }
 
 func NewIngestService(
 	cfg config.Config,
 	st store.Store,
-	lifecycle relay.Lifecycle,
 	notifier notification.Notifier,
 	logger *slog.Logger,
 ) *IngestService {
-	return &IngestService{cfg: cfg, store: st, lifecycle: lifecycle, notifier: notifier, logger: logger}
+	return &IngestService{cfg: cfg, store: st, notifier: notifier, logger: logger}
 }
 
 func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPayload, source string) error {
@@ -60,11 +46,11 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		return err
 	}
 
-	buildInput, err := domainusage.LoadEntryBuildInput(ctx, s.store, mapping, payload, source)
+	buildInput, err := LoadEntryBuildInput(ctx, s.store, mapping, payload, source)
 	if err != nil {
 		return err
 	}
-	entry, err := domainusage.BuildCallSettledEntry(buildInput)
+	entry, err := BuildCallSettledEntry(buildInput)
 	if err != nil {
 		return err
 	}
@@ -74,7 +60,7 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 		if err != nil || !inserted {
 			return err
 		}
-		if err := domainusage.Apply(ctx, st, entry); err != nil {
+		if err := Apply(ctx, st, entry); err != nil {
 			return err
 		}
 		return enqueueSideEffects(ctx, st, entry)

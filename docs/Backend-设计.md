@@ -1,8 +1,8 @@
 # TokenJoy Backend 设计
 
-`apps/backend/` Go 服务，实现 [Frontend-API契约.md](./Frontend-API契约.md) 企业面 **82** 个端点 + SaaS **11** 个端点。种子数据在 `internal/store/seed/`；运行时持久化于 Postgres；用量事实表 `usage_buckets` + webhook ingest。
+`apps/backend/` Go 服务，实现 [Frontend-API契约.md](./Frontend-API契约.md) 企业面 **82** 个端点 + SaaS **11** 个端点。种子数据在 `internal/store/seed/`；运行时持久化于 Postgres；消耗事实 SSOT 为 `usage_ledger`，投影至 `usage_buckets` / `consumed` / `used`（详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)）。
 
-**相关文档：** [Frontend-API契约.md](./Frontend-API契约.md) · [Backend-test.md](./Backend-test.md) · [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md) · [Backend-命名规范.md](./Backend-命名规范.md)
+**相关文档：** [Frontend-API契约.md](./Frontend-API契约.md) · [Backend-test.md](./Backend-test.md) · [Backend-SaaS多租户架构.md](./Backend-SaaS多租户架构.md) · [Backend-命名规范.md](./Backend-命名规范.md) · [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md)
 
 ---
 
@@ -55,7 +55,16 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
      → store.Store（持久化）
 ```
 
-**NewAPI（可选）：** `NEW_API_ENABLED=true` 时，`relay.TokenLifecycle` 同步 Token/Channel；`worker.Runner` 消费 outbox；`budget.IngestService` 处理 webhook 入账。`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*` OpenAI 兼容网关。
+**消耗两层模型（SSOT）：**
+
+| 层 | 存储 | 写入 | 读取方 |
+| -- | ---- | ---- | ------ |
+| 事实 | `usage_ledger` | `usage.IngestService` | 审计 `/audit/calls`、分钟级看板 |
+| 投影 | `used` / `consumed` / `usage_buckets` | `usage.Apply`（同事务） | 超限/Rebalance、小时/天看板 |
+
+**NewAPI（可选）：** `NEW_API_ENABLED=true` 时，`relay.TokenLifecycle` 同步 Token/Channel；`worker.Runner` 消费 outbox；`usage.IngestService` 处理 webhook 入账（不依赖 Lifecycle）；`budget.OverrunService` / `RebalanceService` 读投影做管控。`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*` OpenAI 兼容网关；`relay.PrecheckService` 仅依赖 `OrgNodeRepository` + `KeysRepository`。
+
+**看板读路径：** `dashboard.Service` 的 bucket/ledger 聚合统一经 `usage.Reader`（`AnalyticsQuerier` + `ReadModel`）；组织元数据（Members、Models catalog、部门树）仍直读 `store`。
 
 ---
 
@@ -69,6 +78,7 @@ type Store interface {
     Keys() KeysRepository
     Models() ModelsRepository
     Audit() AuditRepository
+    Ledger() LedgerRepository
     Relay() RelayRepository
     Usage() UsageRepository
     WithTx(ctx context.Context, fn func(Store) error) error
@@ -182,8 +192,9 @@ flowchart TB
   end
   subgraph read [只读]
     API["GET /dashboard/*"]
-    API -->|day,hour| UB
-    API -->|minute| UL
+    API --> RDR[usage.Reader]
+    RDR -->|day,hour| UB
+    RDR -->|minute| UL
   end
 ```
 
@@ -198,7 +209,7 @@ flowchart TB
 
 月初 budget 重置只清 `org_nodes.consumed`，buckets 保留；ingest 成本写入后不回溯。
 
-关键代码：`internal/domain/usage/`、`internal/domain/dashboard/`、`usage_buckets` 表。
+关键代码：`internal/domain/usage/`（`IngestService` 写、`Reader` 读）、`internal/domain/dashboard/`（经 `Reader` 读 buckets/ledger）、`usage_buckets` 表。
 
 ---
 

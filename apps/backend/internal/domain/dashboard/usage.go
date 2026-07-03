@@ -18,7 +18,7 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
+	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByModel, ScopeDeptIDs: scopeDeptIDs,
 	})
@@ -33,18 +33,19 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	if err != nil {
 		return nil, err
 	}
+	catalogByName := make(map[string]types.ModelInfo, len(catalog))
+	for _, model := range catalog {
+		catalogByName[model.Name] = model
+	}
 	result := make([]types.ModelUsage, 0, len(rows))
 	for _, row := range rows {
 		provider := ""
 		displayName := row.Model
-		for _, model := range catalog {
-			if model.Name == row.Model {
-				provider = string(model.Provider)
-				displayName = model.DisplayName
-				if displayName == "" {
-					displayName = model.Name
-				}
-				break
+		if model, ok := catalogByName[row.Model]; ok {
+			provider = string(model.Provider)
+			displayName = model.DisplayName
+			if displayName == "" {
+				displayName = model.Name
 			}
 		}
 		pct := 0.0
@@ -81,7 +82,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
+	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
 		GroupBy: types.UsageGroupByDepartment, ScopeDeptIDs: scopeDeptIDs,
 	})
@@ -91,6 +92,16 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	consumedByDept := make(map[string]float64, len(rows))
 	for _, row := range rows {
 		consumedByDept[row.DepartmentID] = row.CostCNY
+	}
+	deptIDs := make([]string, 0, len(departments))
+	for _, dept := range departments {
+		deptIDs = append(deptIDs, dept.ID)
+	}
+	topModels, err := s.reader.TopModelsByDepartments(ctx, types.UsageAggregateQuery{
+		Start: rng.Start, End: rng.End, Timezone: rng.Timezone, ScopeDeptIDs: scopeDeptIDs,
+	}, deptIDs)
+	if err != nil {
+		return nil, err
 	}
 	result := make([]types.TeamUsage, 0, len(departments))
 	for _, dept := range departments {
@@ -104,19 +115,10 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 				memberCount++
 			}
 		}
-		topModel := ""
-		topRows, err := s.store.Usage().QueryAggregates(ctx, types.UsageAggregateQuery{
-			Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
-			GroupBy: types.UsageGroupByModel, DepartmentID: dept.ID, Limit: 1,
-			ScopeDeptIDs: scopeDeptIDs,
-		})
-		if err == nil && len(topRows) > 0 {
-			topModel = topRows[0].Model
-		}
 		result = append(result, types.TeamUsage{
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Quota: quota, Consumed: consumedByDept[dept.ID],
-			MemberCount: memberCount, TopModel: topModel,
+			MemberCount: memberCount, TopModel: topModels[dept.ID],
 		})
 	}
 	return result, nil

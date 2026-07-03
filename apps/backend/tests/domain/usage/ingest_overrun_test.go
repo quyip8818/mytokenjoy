@@ -1,4 +1,4 @@
-package budget_test
+package usage_test
 
 import (
 	"log/slog"
@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -28,7 +29,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
-	ingest := budget.NewIngestService(cfg, st, lifecycle, notifier, logger)
+	ingest := usage.NewIngestService(cfg, st, notifier, logger)
 	overrun := budget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
 	rebalance := budget.NewRebalanceService(cfg, st, stub, lifecycle)
 	orgSvc := testutil.NewOrgService(t, cfg, st)

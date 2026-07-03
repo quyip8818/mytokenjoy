@@ -7,10 +7,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type CallLogQuerier interface {
-	ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error)
-}
-
 type callLogQueryService struct {
 	store store.Store
 }
@@ -20,14 +16,7 @@ func NewCallLogQuerier(st store.Store) CallLogQuerier {
 }
 
 func (s *callLogQueryService) ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error) {
-	page := params.Page
-	if page < 1 {
-		page = 1
-	}
-	pageSize := params.PageSize
-	if pageSize < 1 {
-		pageSize = 20
-	}
+	page, pageSize := types.NormalizePageParams(params.Page, params.PageSize)
 	entries, total, err := s.store.Ledger().ListCallSettledPage(ctx, store.LedgerCallFilter{
 		Model:    params.Model,
 		Status:   params.Status,

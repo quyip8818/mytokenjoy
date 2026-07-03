@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm start",
     "start": "pnpm start:postgres && concurrently -n backend,frontend -c blue,green \"pnpm -F @tokenjoy/backend start\" \"pnpm start:frontend\"",
+    "docker:reset": "docker compose -f apps/newapi/docker-compose.yml down -v && docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
     "start:postgres": "docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
     "start:frontend": "wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm -F @tokenjoy/frontend start",
     "start:relay": "docker compose -f apps/newapi/docker-compose.yml up",

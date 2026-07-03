@@ -69,6 +69,10 @@ func (r *usageRepo) QuerySummary(ctx context.Context, q types.UsageAggregateQuer
 	return usagequery.SummaryTotals(rows, q.Start, q.End), nil
 }
 
+func (r *usageRepo) QueryFilteredBuckets(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageBucketRow, error) {
+	return r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+}
+
 func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error) {
 	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
 	if err != nil {

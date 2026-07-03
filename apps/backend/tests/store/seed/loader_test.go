@@ -24,6 +24,7 @@ func TestBuildMembersAnchorIDs(t *testing.T) {
 
 func TestLoadSnapshot(t *testing.T) {
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("COMPANY_NAME", "Demo Company")
 	t.Setenv("NEW_API_ENABLED", "false")
 	cfg, err := config.Load()
 	if err != nil {

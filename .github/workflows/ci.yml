@@ -65,6 +65,7 @@ jobs:
         env:
           CI: true
           DATABASE_URL: postgres://tokenjoy:tokenjoy@localhost:5432/tokenjoy?sslmode=disable
+          COMPANY_NAME: Demo Company
         run: pnpm test:e2e
 
       - name: Upload Playwright report
@@ -101,4 +102,5 @@ jobs:
       - name: Test backend integration
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/tokenjoy_test?sslmode=disable
+          COMPANY_NAME: Demo Company
         run: pnpm test:integration

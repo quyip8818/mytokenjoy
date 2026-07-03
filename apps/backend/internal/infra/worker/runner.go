@@ -10,6 +10,7 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/relay"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -22,7 +23,7 @@ type Runner struct {
 	overrunQueue   store.OverrunQueueRepository
 	syncCursor     store.SyncCursorRepository
 	lifecycle      relay.Lifecycle
-	ingest         domainbudget.Ingestor
+	ingest         domainusage.Ingestor
 	overrun        domainbudget.OverrunProcessor
 	rebalance      domainbudget.Rebalancer
 	syncSvc        domainorg.SyncService
@@ -38,7 +39,7 @@ func NewRunner(
 	st store.Store,
 	client newapi.AdminClient,
 	lifecycle relay.Lifecycle,
-	ingest domainbudget.Ingestor,
+	ingest domainusage.Ingestor,
 	overrun domainbudget.OverrunProcessor,
 	rebalance domainbudget.Rebalancer,
 	syncSvc domainorg.SyncService,

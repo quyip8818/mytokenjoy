@@ -17,7 +17,7 @@ import (
 func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	return dashboard.NewService(cfg, st), st
+	return dashboard.NewService(cfg, st, domainusage.NewReader(st)), st
 }
 
 func TestCostSummaryFromBuckets(t *testing.T) {

@@ -50,9 +50,9 @@ flowchart TB
 | 路径                                            | 职责                                                      |
 | ----------------------------------------------- | --------------------------------------------------------- |
 | `internal/domain/budget/service.go`             | 控制台 CRUD：预算树、成员额度、预算组、预警规则、超限策略 |
-| `internal/domain/budget/ingest.go`              | Webhook 入账编排、幂等、`WithTx`                          |
-| `internal/domain/budget/ingest_side_effects.go` | 副作用入队：`rebalance_queue` / `overrun_queue` / 游标    |
-| `internal/domain/budget/ingest_overrun.go`      | Worker 消费 `overrun_queue` 后评估超限并禁用 Key          |
+| `internal/domain/usage/ingest.go`               | Webhook 入账编排、幂等、`WithTx`                          |
+| `internal/domain/usage/side_effects.go`         | 副作用入队：`rebalance_queue` / `overrun_queue` / 游标    |
+| `internal/domain/budget/overrun.go`             | Worker 消费 `overrun_queue` 后评估超限并禁用 Key          |
 | `internal/domain/usage/projection.go`           | 同步投影：`used` / `consumed` / `usage_buckets`           |
 | `internal/domain/usage/entry.go`                | 构造 `usage_ledger` 分录、幂等键、`previewSnippet`        |
 | `internal/domain/budget/rebalance.go`           | 按轴重算 NewAPI Token `remain_quota`                      |
@@ -67,7 +67,7 @@ flowchart TB
 `internal/app/wiring_domain.go` 中：
 
 - `budget.NewService` → 管理面
-- `budget.NewIngestService` → 注入 `relay.Lifecycle`、`notification.Notifier`
+- `usage.NewIngestService` → 注入 `relay.Lifecycle`、`notification.Notifier`（见 [`wire_usage.go`](../apps/backend/internal/app/wire_usage.go)）
 - `budget.NewRebalanceService` → 注入 `newapi.AdminClient`、`relay.Lifecycle`
 - `billing.NewService` → 充值成功后 `EnqueueRebalance(company)` 刷新全企业 Token 配额
 
@@ -323,7 +323,7 @@ return min(candidates)
 
 ### 9.1 实际生效逻辑
 
-`ingest_overrun.evaluateOverrun` 由 Worker 消费 `overrun_queue` 后执行（**不在 Ingest 事务内**），读取**最新投影**后硬比较 `>=`（**不用** `overrun_policy.thresholds` 百分比）：
+`overrun.go` 中 `OverrunService.evaluateOverrun` 由 Worker 消费 `overrun_queue` 后执行（**不在 Ingest 事务内**），读取**最新投影**后硬比较 `>=`（**不用** `overrun_policy.thresholds` 百分比）：
 
 | 范围   | 条件                                                | 动作                                          |
 | ------ | --------------------------------------------------- | --------------------------------------------- |
@@ -436,7 +436,7 @@ sequenceDiagram
 1. **消耗多写点：** Ingest 同时写 `used`、`consumed`、`usage_buckets`；详见 [Backend-消耗数据SSOT对齐方案.md](./Backend-消耗数据SSOT对齐方案.md) §0.2。
 2. **预警与策略未接线：** `alert_rules`、`overrun_policy` 仅有 API 存储，无定时/Ingest 评估。
 3. **部门 consumed rollup：** 祖先节点包含子孙花费，与「仅本节点花费」的 UI 理解需一致。
-4. **预算组与成员轴互斥：** Key 挂组时不走成员个人额度超限分支（`ingest_overrun` 中 `BudgetGroupID == nil` 才检查成员）。
+4. **预算组与成员轴互斥：** Key 挂组时不走成员个人额度超限分支（`overrun.go` 中 `BudgetGroupID == nil` 才检查成员）。
 
 ---
 
@@ -445,12 +445,12 @@ sequenceDiagram
 | 主题         | 文件                                                                                       |
 | ------------ | ------------------------------------------------------------------------------------------ |
 | 预算 Service | `internal/domain/budget/service.go`                                                        |
-| Ingest       | `internal/domain/budget/ingest.go`, `ingest_side_effects.go`, `domain/usage/projection.go` |
-| 超限         | `internal/domain/budget/ingest_overrun.go`                                                 |
+| Ingest       | `internal/domain/usage/ingest.go`, `side_effects.go`, `projection.go` |
+| 超限         | `internal/domain/budget/overrun.go`                                   |
 | Rebalance    | `internal/domain/budget/rebalance.go`                                                      |
 | 额度合成     | `internal/domain/relay/quota.go`                                                           |
 | 树校验       | `internal/pkg/budget/validate.go`, `memberbudgetquota.go`, `groupquota.go`                 |
 | HTTP         | `internal/http/handler/budget/handler.go`                                                  |
 | Worker       | `internal/infra/worker/runner.go`, `rebalance_processor.go`                                |
 | Schema       | `internal/store/postgres/schema.sql`（`budget_*` 段）                                      |
-| 测试         | `tests/domain/budget/*`                                                                    |
+| 测试         | `tests/domain/usage/ingest_*`、`tests/domain/budget/rebalance_test.go` |

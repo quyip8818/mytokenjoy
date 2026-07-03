@@ -37,6 +37,10 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		pool.Close()
 		return nil, err
 	}
+	if err := ensureBootstrapCompany(ctx, pool, cfg); err != nil {
+		pool.Close()
+		return nil, err
+	}
 
 	s := &Store{pool: pool}
 	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {

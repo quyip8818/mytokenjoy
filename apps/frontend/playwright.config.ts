@@ -30,6 +30,7 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable',
+        COMPANY_NAME: 'Demo Company',
       },
     },
     {

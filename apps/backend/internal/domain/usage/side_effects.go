@@ -1,11 +1,10 @@
-package budget
+package usage
 
 import (
 	"context"
 	"encoding/json"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -16,7 +15,7 @@ type overrunPayload struct {
 	PlatformKeyID string  `json:"platformKeyId"`
 }
 
-func enqueueSideEffects(ctx context.Context, st store.Store, entry types.UsageLedgerEntry) error {
+func enqueueSideEffects(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry) error {
 	if entry.MemberID != nil {
 		if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {
 			return err
@@ -44,7 +43,7 @@ func enqueueSideEffects(ctx context.Context, st store.Store, entry types.UsageLe
 		return err
 	}
 
-	if logID, ok := domainusage.ParseNewAPILogID(entry.IdempotencyKey); ok && logID > 0 {
+	if logID, ok := ParseNewAPILogID(entry.IdempotencyKey); ok && logID > 0 {
 		last, err := st.Relay().GetLastLogID(ctx)
 		if err != nil {
 			return err

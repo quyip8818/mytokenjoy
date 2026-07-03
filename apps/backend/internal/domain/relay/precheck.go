@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -25,12 +24,13 @@ type Prechecker interface {
 }
 
 type PrecheckService struct {
-	store  store.Store
-	wallet domaincompany.WalletService
+	orgNodes store.OrgNodeRepository
+	keys     store.KeysRepository
+	wallet   domaincompany.WalletService
 }
 
-func NewPrecheckService(st store.Store, wallet domaincompany.WalletService) *PrecheckService {
-	return &PrecheckService{store: st, wallet: wallet}
+func NewPrecheckService(orgNodes store.OrgNodeRepository, keys store.KeysRepository, wallet domaincompany.WalletService) *PrecheckService {
+	return &PrecheckService{orgNodes: orgNodes, keys: keys, wallet: wallet}
 }
 
 func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
@@ -65,10 +65,11 @@ func (p *PrecheckService) checkWallet(ctx context.Context, company *store.Compan
 }
 
 func (p *PrecheckService) checkDepartmentBudget(ctx context.Context, mapping *store.RelayMapping) error {
-	tree, err := common.LoadBudgetTree(ctx, p.store)
+	nodes, err := p.orgNodes.Tree(ctx)
 	if err != nil {
 		return err
 	}
+	tree := types.OrgNodesToBudgetTree(nodes)
 	node := pkgbudget.FindBudgetNode(tree, mapping.DepartmentID)
 	if node == nil {
 		return fmt.Errorf("department not found")
@@ -90,7 +91,7 @@ func (p *PrecheckService) checkTokenRemainQuota(mapping *store.RelayMapping) err
 }
 
 func (p *PrecheckService) checkPlatformKey(ctx context.Context, mapping *store.RelayMapping, modelName string) error {
-	keys, err := p.store.Keys().PlatformKeys(ctx)
+	keys, err := p.keys.PlatformKeys(ctx)
 	if err != nil {
 		return err
 	}

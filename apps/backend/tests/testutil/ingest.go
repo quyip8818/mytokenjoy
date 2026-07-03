@@ -6,16 +6,14 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/budget"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *budget.IngestService {
+func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *usage.IngestService {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	notifier := notification.NewService(cfg, st, logger)
-	return budget.NewIngestService(cfg, st, lifecycle, notifier, logger)
+	return usage.NewIngestService(cfg, st, notifier, logger)
 }

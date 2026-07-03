@@ -56,6 +56,7 @@ func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
 		DemoToday:        defaultDemoToday,
 		SimulateDelay:    false,
+		CompanyName:      "Demo Company",
 		DefaultCompanyID: seed.DefaultCompanyID,
 	}
 	for _, opt := range opts {
