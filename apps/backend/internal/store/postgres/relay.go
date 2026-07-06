@@ -256,23 +256,6 @@ func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRet
 	return err
 }
 
-func (r *relayRepo) GetLastLogID(ctx context.Context) (int64, error) {
-	companyID := store.CompanyID(ctx)
-	var id int64
-	err := r.db.QueryRow(ctx, `SELECT last_log_id FROM relay_sync_cursors WHERE company_id = $1`, companyID).Scan(&id)
-	return id, err
-}
-
-func (r *relayRepo) SetLastLogID(ctx context.Context, logID int64) error {
-	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO relay_sync_cursors (company_id, last_log_id, updated_at)
-		VALUES ($1, $2, NOW())
-		ON CONFLICT (company_id) DO UPDATE SET last_log_id = EXCLUDED.last_log_id, updated_at = NOW()
-	`, companyID, logID)
-	return err
-}
-
 func (r *relayRepo) EnqueueRebalance(ctx context.Context, axisKind, axisID string) error {
 	companyID := store.CompanyID(ctx)
 	id := fmt.Sprintf("rb-%d-%s-%s-%d", companyID, axisKind, axisID, time.Now().UnixNano())
@@ -353,52 +336,5 @@ func (r *relayRepo) MarkOverrunDone(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE overrun_queue SET status = $2 WHERE id = $1
 	`, id, store.OutboxStatusDone)
-	return err
-}
-
-func (r *relayRepo) EnqueueWebhookOutbox(ctx context.Context, entry store.WebhookOutboxEntry) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO outbox (id, channel, kind, payload, status, attempts, next_retry, last_error, created_at, updated_at)
-		VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, NOW())
-	`, entry.ID, store.OutboxChannelWebhook, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
-	return err
-}
-
-func (r *relayRepo) ClaimPendingWebhookOutbox(ctx context.Context, limit int) ([]store.WebhookOutboxEntry, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT id, payload, status, attempts, next_retry, last_error, created_at
-		FROM outbox
-		WHERE channel = $1 AND status = $2 AND next_retry <= NOW()
-		ORDER BY created_at
-		LIMIT $3
-		FOR UPDATE SKIP LOCKED
-	`, store.OutboxChannelWebhook, store.OutboxStatusPending, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := make([]store.WebhookOutboxEntry, 0)
-	for rows.Next() {
-		var e store.WebhookOutboxEntry
-		if err := rows.Scan(&e.ID, &e.Payload, &e.Status, &e.Attempts, &e.NextRetry, &e.LastError, &e.CreatedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, e)
-	}
-	return out, rows.Err()
-}
-
-func (r *relayRepo) MarkWebhookOutboxDone(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE outbox SET status = $2, updated_at = NOW() WHERE id = $1 AND channel = $3
-	`, id, store.OutboxStatusDone, store.OutboxChannelWebhook)
-	return err
-}
-
-func (r *relayRepo) MarkWebhookOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
-		WHERE id = $1 AND channel = $4
-	`, id, nextRetry, lastError, store.OutboxChannelWebhook)
 	return err
 }

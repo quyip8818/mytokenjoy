@@ -13,7 +13,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -121,10 +121,11 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 	})
 	ingest := testutil.NewIngestService(t, testutil.TestConfig(), app.Store)
 	occurredAt := time.Date(2026, 6, 10, 9, 3, 0, 0, time.UTC)
-	if err := ingest.Ingest(testutil.Ctx(), newapi.WebhookLogPayload{
-		ID: 88001, TokenID: 42, Quota: 500000, Model: "gpt-4o", CreatedAt: occurredAt.Unix(),
+	testutil.SeedConsumeLog(t, app.Store, store.RawConsumeLog{
+		ID: 88001, TokenID: 42, Quota: 500000, ModelName: "gpt-4o", CreatedAt: occurredAt.Unix(),
 		PromptTokens: 100, CompletionTokens: 50, UseTime: 200,
-	}, types.SourceWebhook); err != nil {
+	})
+	if err := ingest.IngestByLogID(testutil.Ctx(), 88001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T09:00:00Z&end=2026-06-10T10:00:00Z&groupBy=none", nil)

@@ -6,7 +6,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -59,9 +58,9 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 	member := findMember(members, seed.IDMember1)
 	key := findPlatformKey(keys, seed.IDPlatformKey1)
 	entry, err := domainusage.BuildCallSettledEntry(domainusage.EntryBuildInput{
-		Payload: newapi.WebhookLogPayload{
-			ID: 9001, TokenID: 99, Quota: 100, Model: "gpt-4o", CreatedAt: 1,
-			Input: "should not be stored",
+		Raw: store.RawConsumeLog{
+			ID: 9001, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 1,
+			Content: "should not be stored",
 		},
 		Mapping: &store.RelayMapping{
 			PlatformKeyID: seed.IDPlatformKey1,
@@ -82,9 +81,9 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 	}
 
 	entry, err = domainusage.BuildCallSettledEntry(domainusage.EntryBuildInput{
-		Payload: newapi.WebhookLogPayload{
-			ID: 9002, TokenID: 99, Quota: 100, Model: "gpt-4o", CreatedAt: 1,
-			Input: "preview text", PromptTokens: 10, CompletionTokens: 5, UseTime: 120,
+		Raw: store.RawConsumeLog{
+			ID: 9002, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 1,
+			Content: "preview text", PromptTokens: 10, CompletionTokens: 5, UseTime: 120,
 		},
 		Mapping: &store.RelayMapping{
 			PlatformKeyID: seed.IDPlatformKey1,

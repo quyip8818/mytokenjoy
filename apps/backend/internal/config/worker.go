@@ -15,3 +15,31 @@ func (c Config) WorkerOrgSyncInterval() time.Duration {
 	}
 	return time.Duration(c.WorkerOrgSyncIntervalSec) * time.Second
 }
+
+func (c Config) IngestReconcileInterval() time.Duration {
+	if c.IngestReconcileIntervalSec <= 0 {
+		return 300 * time.Second
+	}
+	return time.Duration(c.IngestReconcileIntervalSec) * time.Second
+}
+
+func (c Config) ReconcileBatchSize() int {
+	if c.IngestReconcileBatchSize <= 0 {
+		return 500
+	}
+	return c.IngestReconcileBatchSize
+}
+
+func (c Config) ReconcileMaxRounds() int {
+	if c.IngestReconcileMaxRounds <= 0 {
+		return 10
+	}
+	return c.IngestReconcileMaxRounds
+}
+
+func (c Config) FailureRetryBatchSize() int {
+	if c.IngestFailureBatchSize <= 0 {
+		return 20
+	}
+	return c.IngestFailureBatchSize
+}

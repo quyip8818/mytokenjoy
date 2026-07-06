@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+SCHEMA="${ROOT}/apps/backend/internal/store/postgres/logs_schema.sql"
+
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "logs" -f "${SCHEMA}"
+
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "logs" <<-EOSQL
+	GRANT USAGE ON SCHEMA newapi, backend TO ${POSTGRES_USER};
+	GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA newapi TO ${POSTGRES_USER};
+	GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA newapi TO ${POSTGRES_USER};
+	GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA backend TO ${POSTGRES_USER};
+	ALTER DEFAULT PRIVILEGES IN SCHEMA newapi GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${POSTGRES_USER};
+	ALTER DEFAULT PRIVILEGES IN SCHEMA backend GRANT ALL ON TABLES TO ${POSTGRES_USER};
+EOSQL

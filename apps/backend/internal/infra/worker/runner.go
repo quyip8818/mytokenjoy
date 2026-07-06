@@ -2,8 +2,8 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"math"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -11,23 +11,21 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Runner struct {
 	cfg            config.Config
 	relayOutbox    store.RelayOutboxRepository
-	webhookOutbox  store.WebhookOutboxRepository
 	rebalanceQueue store.RebalanceQueueRepository
 	overrunQueue   store.OverrunQueueRepository
-	syncCursor     store.SyncCursorRepository
+	schedulerLock  store.SchedulerLockRepository
 	relaySync      relay.RelayOutboxSync
-	ingest         domainusage.Ingestor
 	overrun        domainbudget.OverrunProcessor
 	rebalance      domainbudget.Rebalancer
 	syncSvc        domainorg.SyncService
-	client         newapi.AdminClient
+	ingestWorker   *IngestWorker
 	logger         *slog.Logger
 	interval       time.Duration
 	syncEvery      time.Duration
@@ -37,41 +35,74 @@ type Runner struct {
 func NewRunner(
 	cfg config.Config,
 	relayRepo store.RelayRepository,
-	client newapi.AdminClient,
+	schedulerLock store.SchedulerLockRepository,
+	logStore store.LogStore,
+	metrics ingestmetrics.Recorder,
 	relaySync relay.RelayOutboxSync,
 	ingest domainusage.Ingestor,
+	failureRecorder domainusage.FailureRecorder,
 	overrun domainbudget.OverrunProcessor,
 	rebalance domainbudget.Rebalancer,
 	syncSvc domainorg.SyncService,
 	logger *slog.Logger,
 ) *Runner {
+	if logStore == nil {
+		logStore = store.NoopLogStore()
+	}
+	if metrics == nil {
+		metrics = ingestmetrics.NoopCollector()
+	}
+	if failureRecorder == nil {
+		failureRecorder = domainusage.NewFailureRecorder(logStore, logger)
+	}
+	holderID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
 	return &Runner{
 		cfg:            cfg,
 		relayOutbox:    relayRepo,
-		webhookOutbox:  relayRepo,
 		rebalanceQueue: relayRepo,
 		overrunQueue:   relayRepo,
-		syncCursor:     relayRepo,
-		client:         client,
+		schedulerLock:  schedulerLock,
 		relaySync:      relaySync,
-		ingest:         ingest,
 		overrun:        overrun,
 		rebalance:      rebalance,
 		syncSvc:        syncSvc,
-		logger:         logger,
-		interval:       cfg.WorkerPollInterval(),
-		syncEvery:      cfg.WorkerOrgSyncInterval(),
+		ingestWorker: NewIngestWorker(
+			cfg, logStore, ingest, metrics, schedulerLock, failureRecorder, logger, holderID, cfg.IngestReconcileInterval(),
+		),
+		logger:    logger,
+		interval:  cfg.WorkerPollInterval(),
+		syncEvery: cfg.WorkerOrgSyncInterval(),
 	}
 }
 
 func (r *Runner) Start(ctx context.Context) {
-	if !r.cfg.NewAPIEnabled {
-		return
+	if r.cfg.IngestEnabled() {
+		go r.ingestLoop(ctx)
 	}
-	go r.loop(ctx)
+	if r.cfg.NewAPIEnabled {
+		go r.relayLoop(ctx)
+	}
 }
 
-func (r *Runner) loop(ctx context.Context) {
+func (r *Runner) ingestLoop(ctx context.Context) {
+	r.logStep("ingest_reconcile_startup", r.ingestWorker.ProcessReconcile(ctx))
+	ticker := time.NewTicker(r.interval)
+	reconcileTicker := time.NewTicker(r.ingestWorker.reconcileEvery)
+	defer ticker.Stop()
+	defer reconcileTicker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			r.logStep("ingest_failures", r.ingestWorker.ProcessFailures(ctx))
+		case <-reconcileTicker.C:
+			r.logStep("ingest_reconcile", r.ingestWorker.ProcessReconcile(ctx))
+		}
+	}
+}
+
+func (r *Runner) relayLoop(ctx context.Context) {
 	ticker := time.NewTicker(r.interval)
 	defer ticker.Stop()
 	for {
@@ -80,7 +111,7 @@ func (r *Runner) loop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			r.syncTick += r.interval
-			r.tick(ctx)
+			r.relayTick(ctx)
 			if r.syncTick >= r.syncEvery {
 				r.syncTick = 0
 				r.logStep("org_sync", r.processOrgSync(ctx))
@@ -89,12 +120,10 @@ func (r *Runner) loop(ctx context.Context) {
 	}
 }
 
-func (r *Runner) tick(ctx context.Context) {
+func (r *Runner) relayTick(ctx context.Context) {
 	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
-	r.logStep("outbox_webhook", r.processWebhookOutbox(ctx))
 	r.logStep("rebalance", r.processRebalance(ctx))
 	r.logStep("overrun", r.processOverrun(ctx))
-	r.logStep("compensate_logs", r.compensateLogs(ctx))
 }
 
 func (r *Runner) logStep(step string, err error) {
@@ -103,12 +132,17 @@ func (r *Runner) logStep(step string, err error) {
 	}
 }
 
-// RunOnce executes one worker cycle (outbox + rebalance + log compensation).
-func (r *Runner) RunOnce(ctx context.Context) { r.tick(ctx) }
+func (r *Runner) RunOnce(ctx context.Context) {
+	if r.cfg.NewAPIEnabled {
+		r.relayTick(ctx)
+	}
+	if r.cfg.IngestEnabled() {
+		r.logStep("ingest_failures", r.ingestWorker.ProcessFailures(ctx))
+	}
+}
 
-func backoff(attempts int) time.Duration {
-	seconds := math.Min(300, math.Pow(2, float64(attempts)))
-	return time.Duration(seconds) * time.Second
+func (r *Runner) RunReconcileOnce(ctx context.Context) error {
+	return r.ingestWorker.ProcessReconcile(ctx)
 }
 
 func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, next time.Time, reason string) {
@@ -120,18 +154,6 @@ func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, next time.
 func (r *Runner) markRelayOutboxDone(ctx context.Context, id string) {
 	if err := r.relayOutbox.MarkRelayOutboxDone(ctx, id); err != nil {
 		r.logger.Warn("mark relay outbox done failed", "id", id, "error", err)
-	}
-}
-
-func (r *Runner) markWebhookOutboxRetry(ctx context.Context, id string, next time.Time, reason string) {
-	if err := r.webhookOutbox.MarkWebhookOutboxRetry(ctx, id, next, reason); err != nil {
-		r.logger.Warn("mark webhook outbox retry failed", "id", id, "error", err)
-	}
-}
-
-func (r *Runner) markWebhookOutboxDone(ctx context.Context, id string) {
-	if err := r.webhookOutbox.MarkWebhookOutboxDone(ctx, id); err != nil {
-		r.logger.Warn("mark webhook outbox done failed", "id", id, "error", err)
 	}
 }
 

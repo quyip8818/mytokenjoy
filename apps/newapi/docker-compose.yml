@@ -34,6 +34,7 @@ services:
       - '3000:3000'
     environment:
       SQL_DSN: postgresql://tokenjoy:tokenjoy@postgres:5432/newapi?sslmode=disable
+      LOG_SQL_DSN: postgresql://tokenjoy:tokenjoy@postgres:5432/logs?sslmode=disable&search_path=newapi
       REDIS_CONN_STRING: redis://redis:6379
       SESSION_SECRET: tokenjoy-dev-session-secret
       SYNC_FREQUENCY: 60

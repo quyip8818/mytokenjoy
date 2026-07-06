@@ -409,16 +409,10 @@ CREATE TABLE IF NOT EXISTS outbox (
     last_error   TEXT,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_outbox_channel CHECK (channel IN ('relay', 'webhook'))
+    CONSTRAINT chk_outbox_channel CHECK (channel IN ('relay'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox (channel, status, next_retry);
-
-CREATE TABLE IF NOT EXISTS relay_sync_cursors (
-    company_id    BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
-    last_log_id  BIGINT NOT NULL DEFAULT 0,
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 CREATE TABLE IF NOT EXISTS rebalance_queue (
     id           TEXT PRIMARY KEY,

@@ -24,6 +24,7 @@ type Store struct {
 	platformOperators    map[string]store.PlatformOperator
 	rechargeOrders       map[string]store.RechargeOrder
 	memberPasswordHashes map[string]string
+	logStore             store.LogStore
 }
 
 func New(snapshot store.Snapshot) *Store {
@@ -34,6 +35,7 @@ func New(snapshot store.Snapshot) *Store {
 	}
 	m.initFromSnapshot(snapshot)
 	m.applyDemoPasswords()
+	m.logStore = newMemoryLogStore()
 	m.relayRepo = newMemoryRelayRepo(m)
 	return m
 }

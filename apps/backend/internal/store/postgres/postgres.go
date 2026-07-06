@@ -11,9 +11,11 @@ import (
 )
 
 type Store struct {
-	pool   *pgxpool.Pool
-	relay  *relayRepo
-	domain domainRepos
+	pool    *pgxpool.Pool
+	logPool *pgxpool.Pool
+	relay   *relayRepo
+	logs    store.LogStore
+	domain  domainRepos
 }
 
 type domainRepos struct {
@@ -46,14 +48,39 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		return nil, err
 	}
 
-	s := &Store{pool: pool}
+	s := &Store{pool: pool, logs: store.NoopLogStore()}
+	if cfg.IngestEnabled() {
+		logPool, err := pgxpool.New(ctx, cfg.LogDatabaseURL)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("connect logs postgres: %w", err)
+		}
+		if err := logPool.Ping(ctx); err != nil {
+			logPool.Close()
+			pool.Close()
+			return nil, fmt.Errorf("ping logs postgres: %w", err)
+		}
+		if err := applyLogsSchema(ctx, logPool); err != nil {
+			logPool.Close()
+			pool.Close()
+			return nil, err
+		}
+		s.logPool = logPool
+		s.logs = newLogRepo(logPool)
+	}
 	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
 		pool.Close()
+		if s.logPool != nil {
+			s.logPool.Close()
+		}
 		return nil, err
 	}
 	if cfg.IsDemoProfile() {
 		if err := seed.ApplyUsageBuckets(ctx, s, cfg); err != nil {
 			pool.Close()
+			if s.logPool != nil {
+				s.logPool.Close()
+			}
 			return nil, err
 		}
 	}
@@ -91,6 +118,9 @@ func (s *Store) Notification() store.NotificationRepository {
 }
 
 func (s *Store) Close() {
+	if s.logPool != nil {
+		s.logPool.Close()
+	}
 	if s.pool != nil {
 		s.pool.Close()
 	}
@@ -103,6 +133,7 @@ func (s *Store) Models() store.ModelsRepository { return s.domain.models }
 func (s *Store) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *Store) Ledger() store.LedgerRepository { return &pgLedgerRepo{db: s.pool} }
 func (s *Store) Relay() store.RelayRepository   { return s.relay }
+func (s *Store) Logs() store.LogStore          { return s.logs }
 
 func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	empty, err := isDatabaseEmpty(ctx, s.pool)

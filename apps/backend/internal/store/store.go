@@ -46,6 +46,7 @@ type Store interface {
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository
+	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error
 }
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -42,7 +41,7 @@ func OccurredAtFromPayload(createdAt int64) time.Time {
 }
 
 type EntryBuildInput struct {
-	Payload     newapi.WebhookLogPayload
+	Raw         store.RawConsumeLog
 	Mapping     *store.RelayMapping
 	Source      string
 	Model       *types.ModelInfo
@@ -52,10 +51,10 @@ type EntryBuildInput struct {
 }
 
 func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error) {
-	modelName := ResolveWebhookModel(input.Payload)
-	costCNY := CostCNYFromLog(input.Payload.Quota, modelName, modelsFromInput(input))
+	modelName := ResolveConsumeModel(input.Raw)
+	costCNY := CostCNYFromLog(input.Raw.Quota, modelName, modelsFromInput(input))
 
-	occurredAt := OccurredAtFromPayload(input.Payload.CreatedAt)
+	occurredAt := OccurredAtFromPayload(input.Raw.CreatedAt)
 
 	var memberID *string
 	if input.Mapping.MemberID != nil {
@@ -67,7 +66,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 	return types.UsageLedgerEntry{
 		ID:             fmt.Sprintf("ul-%d", time.Now().UnixNano()),
 		EventType:      types.EventTypeCallSettled,
-		IdempotencyKey: NewAPIIdempotencyKey(input.Payload.ID),
+		IdempotencyKey: NewAPIIdempotencyKey(input.Raw.ID),
 		AmountCNY:      costCNY,
 		DepartmentID:   input.Mapping.DepartmentID,
 		MemberID:       memberID,
@@ -76,8 +75,8 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 		Source:         input.Source,
 		OccurredAt:     occurredAt,
 		Model:          modelName,
-		InputTokens:    input.Payload.PromptTokens,
-		OutputTokens:   input.Payload.CompletionTokens,
+		InputTokens:    input.Raw.PromptTokens,
+		OutputTokens:   input.Raw.CompletionTokens,
 		CallDetail:     detail,
 		CreatedAt:      time.Now().UTC(),
 	}, nil
@@ -94,7 +93,7 @@ func buildCallDetail(input EntryBuildInput, memberID *string, modelName string) 
 	detail := types.UsageCallDetail{
 		Provider:  resolveProvider(modelName, modelsFromInput(input)),
 		Status:    types.CallStatusSuccess,
-		LatencyMs: float64(input.Payload.UseTime),
+		LatencyMs: float64(input.Raw.UseTime),
 	}
 	if memberID != nil && input.Member != nil {
 		detail.CallerType = types.CallerTypeMember
@@ -107,8 +106,8 @@ func buildCallDetail(input EntryBuildInput, memberID *string, modelName string) 
 			detail.Caller = input.PlatformKey.Name
 		}
 	}
-	if input.Settings.ContentRetentionEnabled && input.Payload.Input != "" {
-		detail.PreviewSnippet = TruncatePreview(input.Payload.Input)
+	if input.Settings.ContentRetentionEnabled && input.Raw.Content != "" {
+		detail.PreviewSnippet = TruncatePreview(input.Raw.Content)
 	}
 	return detail
 }
@@ -122,8 +121,8 @@ func resolveProvider(modelName string, models []types.ModelInfo) string {
 	return ""
 }
 
-func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, payload newapi.WebhookLogPayload, source string) (EntryBuildInput, error) {
-	modelName := ResolveWebhookModel(payload)
+func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, raw store.RawConsumeLog, source string) (EntryBuildInput, error) {
+	modelName := ResolveConsumeModel(raw)
 	model, err := deps.Models().ModelByName(ctx, modelName)
 	if err != nil {
 		return EntryBuildInput{}, err
@@ -133,7 +132,7 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 		return EntryBuildInput{}, err
 	}
 	input := EntryBuildInput{
-		Payload:  payload,
+		Raw:      raw,
 		Mapping:  mapping,
 		Source:   source,
 		Model:    model,

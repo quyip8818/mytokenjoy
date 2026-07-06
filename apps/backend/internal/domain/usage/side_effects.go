@@ -39,20 +39,5 @@ func enqueueSideEffects(ctx context.Context, st store.ConsumptionWriter, entry t
 	if err != nil {
 		return err
 	}
-	if err := st.Relay().EnqueueOverrun(ctx, overrunRaw); err != nil {
-		return err
-	}
-
-	if logID, ok := ParseNewAPILogID(entry.IdempotencyKey); ok && logID > 0 {
-		last, err := st.Relay().GetLastLogID(ctx)
-		if err != nil {
-			return err
-		}
-		if logID > last {
-			if err := st.Relay().SetLastLogID(ctx, logID); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return st.Relay().EnqueueOverrun(ctx, overrunRaw)
 }

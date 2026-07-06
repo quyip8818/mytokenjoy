@@ -22,28 +22,35 @@ type domainServices struct {
 	models    domainmodels.Service
 	dashboard domaindashboard.Service
 	audit     domainaudit.Service
-	readModel domainusage.ReadModel
-	ingest    domainusage.Ingestor
-	overrun   domainbudget.OverrunProcessor
+	readModel       domainusage.ReadModel
+	ingest          domainusage.Ingestor
+	failureRecorder domainusage.FailureRecorder
+	overrun         domainbudget.OverrunProcessor
 	rebalance domainbudget.Rebalancer
 	company   domaincompany.Service
 	billing   domainbilling.Service
 }
 
+func wireFailureRecorder(i infra, logger *slog.Logger) domainusage.FailureRecorder {
+	return domainusage.NewFailureRecorder(i.store.Logs(), logger)
+}
+
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {
 	reader := wireReader(i)
+	failureRecorder := wireFailureRecorder(i, logger)
 	return domainServices{
-		org:       wireOrg(cfg, i, logger),
-		budget:    wireBudget(cfg, i),
-		keys:      wireKeys(cfg, i),
-		models:    wireModels(cfg, i),
-		dashboard: wireDashboard(cfg, i, reader),
-		audit:     wireAudit(cfg, i),
-		readModel: reader,
-		ingest:    wireIngestService(cfg, i, logger),
-		overrun:   wireOverrunService(cfg, i, logger),
-		rebalance: wireRebalance(cfg, i),
-		company:   wireCompany(cfg, i),
-		billing:   wireBilling(cfg, i),
+		org:             wireOrg(cfg, i, logger),
+		budget:          wireBudget(cfg, i),
+		keys:            wireKeys(cfg, i),
+		models:          wireModels(cfg, i),
+		dashboard:       wireDashboard(cfg, i, reader),
+		audit:           wireAudit(cfg, i),
+		readModel:       reader,
+		ingest:          wireIngestService(cfg, i, logger),
+		failureRecorder: failureRecorder,
+		overrun:         wireOverrunService(cfg, i, logger),
+		rebalance:       wireRebalance(cfg, i),
+		company:         wireCompany(cfg, i),
+		billing:         wireBilling(cfg, i),
 	}
 }

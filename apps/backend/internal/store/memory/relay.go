@@ -13,8 +13,6 @@ type memoryRelayRepo struct {
 		mappings      map[string]store.RelayMapping
 		tokenIndex    map[int64]string
 		relayOutbox   []store.RelayOutboxEntry
-		webhookOutbox []store.WebhookOutboxEntry
-		lastLogID     int64
 		rebalance     []store.RebalanceQueueEntry
 		overrun       []store.OverrunQueueEntry
 	}

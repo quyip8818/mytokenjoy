@@ -20,6 +20,7 @@ type Config struct {
 	Profile       string `env:"APP_PROFILE" envDefault:"demo"`
 
 	DatabaseURL         string `env:"DATABASE_URL"`
+	LogDatabaseURL      string `env:"LOG_DATABASE_URL"`
 	NewAPIEnabled       bool   `env:"NEW_API_ENABLED" envDefault:"false"`
 	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
 	NewAPIAdminToken    string `env:"NEW_API_ADMIN_TOKEN"`
@@ -35,6 +36,11 @@ type Config struct {
 
 	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"5"`
 	WorkerOrgSyncIntervalSec int `env:"WORKER_ORG_SYNC_INTERVAL_SEC" envDefault:"60"`
+
+	IngestReconcileIntervalSec int `env:"INGEST_RECONCILE_INTERVAL_SEC" envDefault:"300"`
+	IngestReconcileBatchSize   int `env:"INGEST_RECONCILE_BATCH_SIZE" envDefault:"500"`
+	IngestReconcileMaxRounds   int `env:"INGEST_RECONCILE_MAX_ROUNDS" envDefault:"10"`
+	IngestFailureBatchSize     int `env:"INGEST_FAILURE_BATCH_SIZE" envDefault:"20"`
 
 	SupportSaas              bool   `env:"SUPPORT_SAAS" envDefault:"false"`
 	CompanyName              string `env:"COMPANY_NAME"`
@@ -87,6 +93,9 @@ func (c Config) validate() error {
 	if c.SupportSaas && strings.TrimSpace(c.PlatformSessionSecret) == "" {
 		return fmt.Errorf("PLATFORM_SESSION_SECRET is required when SUPPORT_SAAS=true")
 	}
+	if c.IngestEnabled() && strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
+		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when LOG_DATABASE_URL is set")
+	}
 	if !c.NewAPIEnabled {
 		return nil
 	}
@@ -96,10 +105,11 @@ func (c Config) validate() error {
 	if strings.TrimSpace(c.NewAPIAdminToken) == "" {
 		return fmt.Errorf("NEW_API_ADMIN_TOKEN is required when NEW_API_ENABLED=true")
 	}
-	if strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
-		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when NEW_API_ENABLED=true")
-	}
 	return nil
+}
+
+func (c Config) IngestEnabled() bool {
+	return strings.TrimSpace(c.LogDatabaseURL) != ""
 }
 
 func (c Config) CORSOriginList() []string {

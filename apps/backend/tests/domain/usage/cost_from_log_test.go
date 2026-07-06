@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func TestCostCNYFromLog(t *testing.T) {
@@ -16,8 +16,8 @@ func TestCostCNYFromLog(t *testing.T) {
 	}
 }
 
-func TestResolveWebhookModel(t *testing.T) {
-	model := domainusage.ResolveWebhookModel(newapi.WebhookLogPayload{Model: "gpt-4o"})
+func TestResolveConsumeModel(t *testing.T) {
+	model := domainusage.ResolveConsumeModel(store.RawConsumeLog{ModelName: "gpt-4o"})
 	if model != "gpt-4o" {
 		t.Fatalf("expected gpt-4o, got %s", model)
 	}

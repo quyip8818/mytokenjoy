@@ -19,12 +19,5 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 	`, companyID, config.DefaultCompanySlug, name, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("bootstrap company: %w", err)
 	}
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO relay_sync_cursors (company_id, last_log_id)
-		VALUES ($1, 0)
-		ON CONFLICT DO NOTHING
-	`, companyID); err != nil {
-		return fmt.Errorf("bootstrap relay sync cursor: %w", err)
-	}
 	return nil
 }

@@ -15,8 +15,7 @@ const (
 	OutboxStatusDone    = "done"
 	OutboxStatusFailed  = "failed"
 
-	OutboxChannelRelay   = "relay"
-	OutboxChannelWebhook = "webhook"
+	OutboxChannelRelay = "relay"
 
 	OutboxKindCreateToken       = "create_token"
 	OutboxKindUpdateToken       = "update_token"
@@ -56,16 +55,6 @@ type RelayOutboxEntry struct {
 	CreatedAt time.Time
 }
 
-type WebhookOutboxEntry struct {
-	ID        string
-	Payload   json.RawMessage
-	Status    string
-	Attempts  int
-	NextRetry time.Time
-	LastError *string
-	CreatedAt time.Time
-}
-
 type RebalanceQueueEntry struct {
 	ID        string
 	CompanyID int64
@@ -77,8 +66,8 @@ type RebalanceQueueEntry struct {
 type RelayMappingRepository interface {
 	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*RelayMapping, error)
 	GetMappingByFullKey(ctx context.Context, fullKey string) (*RelayMapping, error)
-	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)  // company-scoped: filters by ctx company_id
-	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error) // global lookup for webhook ingest (no company in ctx)
+	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
+	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]RelayMapping, error)
 	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]RelayMapping, error)
 	ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]RelayMapping, error)
@@ -96,13 +85,6 @@ type RelayOutboxRepository interface {
 	MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
 }
 
-type WebhookOutboxRepository interface {
-	EnqueueWebhookOutbox(ctx context.Context, entry WebhookOutboxEntry) error
-	ClaimPendingWebhookOutbox(ctx context.Context, limit int) ([]WebhookOutboxEntry, error)
-	MarkWebhookOutboxDone(ctx context.Context, id string) error
-	MarkWebhookOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
-}
-
 type OverrunQueueEntry struct {
 	ID        string
 	CompanyID int64
@@ -116,11 +98,6 @@ type OverrunQueueRepository interface {
 	MarkOverrunDone(ctx context.Context, id string) error
 }
 
-type SyncCursorRepository interface {
-	GetLastLogID(ctx context.Context) (int64, error)
-	SetLastLogID(ctx context.Context, logID int64) error
-}
-
 type RebalanceQueueRepository interface {
 	EnqueueRebalance(ctx context.Context, axisKind, axisID string) error
 	ClaimPendingRebalance(ctx context.Context, limit int) ([]RebalanceQueueEntry, error)
@@ -130,8 +107,6 @@ type RebalanceQueueRepository interface {
 type RelayRepository interface {
 	RelayMappingRepository
 	RelayOutboxRepository
-	WebhookOutboxRepository
-	SyncCursorRepository
 	RebalanceQueueRepository
 	OverrunQueueRepository
 }

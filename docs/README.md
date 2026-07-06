@@ -11,6 +11,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构        | 分层、请求链、Relay、看板读路径                       |
 | [Backend-存储.md](./Backend-存储.md) | 后端 / DBA         | 36 表、ER、合并表、ID 约定                            |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费        | 双轴、Ingest、Rebalance、Overrun                      |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI 入账方案 B 现状与剩余缺口 |
 | [权限管理.md](./权限管理.md)         | 后端 / 前端 / 架构 | **目标架构实现文档**（破坏性替换、WP-1–6、验收 Gate） |
 | [Frontend.md](./Frontend.md)         | 前端 / 前后端      | 前端现状与 **API 契约**（82+11 端点；17 业务页）      |
 | [Roadmap.md](./Roadmap.md)           | 全员               | 未实现能力与计划优化                                  |

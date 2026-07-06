@@ -50,34 +50,6 @@ type UpsertChannelRequest struct {
 	Status int    `json:"status"`
 }
 
-type LogEntry struct {
-	ID        int64  `json:"id"`
-	TokenID   int64  `json:"token_id"`
-	Quota     int64  `json:"quota"`
-	ModelName string `json:"model_name"`
-	CreatedAt int64  `json:"created_at"`
-}
-
-type ListLogsParams struct {
-	Page          int
-	PageSize      int
-	StartID       int64
-	StartUnixTime int64
-	EndUnixTime   int64
-}
-
-type WebhookLogPayload struct {
-	ID               int64  `json:"id"`
-	TokenID          int64  `json:"token_id"`
-	Quota            int64  `json:"quota"`
-	Model            string `json:"model"`
-	CreatedAt        int64  `json:"created_at"`
-	PromptTokens     int64  `json:"prompt_tokens"`
-	CompletionTokens int64  `json:"completion_tokens"`
-	UseTime          int64  `json:"use_time"`
-	Input            string `json:"input"`
-}
-
 const (
 	TokenStatusEnabled  = 1
 	TokenStatusDisabled = 2

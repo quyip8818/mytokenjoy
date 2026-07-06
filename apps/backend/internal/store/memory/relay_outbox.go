@@ -80,22 +80,3 @@ func (r *memoryRelayRepo) relayOutboxEntry(id string) (store.RelayOutboxEntry, b
 	}
 	return store.RelayOutboxEntry{}, false
 }
-
-func (r *memoryRelayRepo) GetLastLogID(ctx context.Context) (int64, error) {
-	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.data.lastLogID, nil
-}
-
-func (r *memoryRelayRepo) SetLastLogID(ctx context.Context, logID int64) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.data.lastLogID = logID
-	return nil
-}

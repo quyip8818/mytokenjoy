@@ -57,6 +57,10 @@ func (s *txStore) Billing() store.BillingRepository {
 	return s.parent.Billing()
 }
 
+func (s *txStore) Logs() store.LogStore {
+	return s.parent.Logs()
+}
+
 func (s *txStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	return fn(s)
 }

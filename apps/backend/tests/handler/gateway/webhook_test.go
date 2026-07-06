@@ -12,7 +12,7 @@ import (
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
@@ -27,7 +27,7 @@ func TestWebhookUnauthorized(t *testing.T) {
 	})
 	router := app.Router
 
-	body, _ := json.Marshal(newapi.WebhookLogPayload{ID: 1, TokenID: 99})
+	body, _ := json.Marshal(map[string]int64{"log_id": 1})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -75,10 +75,8 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	beforeConsumed := testutil.Dept3Consumed(t, budgetTree)
 	beforeUsed := platformKeyUsed(t, app.Store, seed.IDPlatformKey1)
 
-	payload := newapi.WebhookLogPayload{
-		ID: 2001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
-	}
-	body, _ := json.Marshal(payload)
+	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(2001, 99))
+	body, _ := json.Marshal(map[string]int64{"log_id": 2001})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Webhook-Secret", webhookSecret)
@@ -116,8 +114,8 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 	})
 	beforeBuckets := testutil.UsageBucketCount(app.Store)
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
-	payload := newapi.WebhookLogPayload{ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1}
-	body, _ := json.Marshal(payload)
+	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(3001, 99))
+	body, _ := json.Marshal(map[string]int64{"log_id": 3001})
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -138,11 +136,11 @@ func TestWebhookIngestWritesLedgerFields(t *testing.T) {
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
 
 	const input = "webhook preview"
-	payload := newapi.WebhookLogPayload{
-		ID: 4002, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1717200000,
-		PromptTokens: 88, CompletionTokens: 22, UseTime: 99, Input: input,
-	}
-	body, _ := json.Marshal(payload)
+	testutil.SeedConsumeLog(t, app.Store, store.RawConsumeLog{
+		ID: 4002, TokenID: 99, Quota: 500000, ModelName: "gpt-4o", CreatedAt: 1717200000,
+		PromptTokens: 88, CompletionTokens: 22, UseTime: 99, Content: input,
+	})
+	body, _ := json.Marshal(map[string]int64{"log_id": 4002})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Webhook-Secret", webhookSecret)
@@ -176,6 +174,89 @@ func TestWebhookIngestWritesLedgerFields(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("ledger entry 4002 not found")
+	}
+}
+
+func TestWebhookLogNotFoundReturns503(t *testing.T) {
+	app := testhttp.NewApp(t, func(cfg *config.Config) {
+		cfg.NewAPIWebhookSecret = webhookSecret
+	})
+	body, _ := json.Marshal(map[string]int64{"log_id": 99999})
+	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Secret", webhookSecret)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+}
+
+func TestWebhookMappingMissingAcceptsAndRecordsFailure(t *testing.T) {
+	app := testhttp.NewApp(t, func(cfg *config.Config) {
+		testutil.WithIngestEnabled(true)(cfg)
+		cfg.NewAPIWebhookSecret = webhookSecret
+	})
+	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(8001, 55))
+	body, _ := json.Marshal(map[string]int64{"log_id": 8001})
+	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Secret", webhookSecret)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	testutil.AssertIngestFailure(t, app.Store, 8001, types.SourceWebhook)
+	ingested, err := testutil.HasLedgerLogID(app.Store, 8001)
+	if err != nil || ingested {
+		t.Fatalf("expected no ledger entry, ingested=%v err=%v", ingested, err)
+	}
+}
+
+func TestIngestMetricsEndpoint(t *testing.T) {
+	app := testhttp.NewApp(t, func(cfg *config.Config) {
+		testutil.WithIngestEnabled(true)(cfg)
+		cfg.NewAPIWebhookSecret = webhookSecret
+	})
+	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
+	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(8100, 99))
+
+	body, _ := json.Marshal(map[string]int64{"log_id": 8100})
+	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Secret", webhookSecret)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("webhook expected 200, got %d", rec.Code)
+	}
+
+	metricsReq := httptest.NewRequest(http.MethodGet, "/api/internal/metrics/ingest", nil)
+	metricsRec := httptest.NewRecorder()
+	app.Router.ServeHTTP(metricsRec, metricsReq)
+	if metricsRec.Code != http.StatusOK {
+		t.Fatalf("metrics expected 200, got %d body=%s", metricsRec.Code, metricsRec.Body.String())
+	}
+	var snap map[string]any
+	if err := json.NewDecoder(metricsRec.Body).Decode(&snap); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := snap["ingest_notify_total"]; !ok {
+		t.Fatalf("missing ingest_notify_total in %v", snap)
+	}
+	if notify, _ := snap["ingest_notify_total"].(float64); notify < 1 {
+		t.Fatalf("expected notify counter >= 1, got %v", snap["ingest_notify_total"])
+	}
+}
+
+func TestIngestMetricsDisabledReturns404(t *testing.T) {
+	app := testhttp.NewApp(t, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/internal/metrics/ingest", nil)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 when ingest disabled, got %d", rec.Code)
 	}
 }
 

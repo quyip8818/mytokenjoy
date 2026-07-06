@@ -6,8 +6,8 @@ import (
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -30,10 +30,10 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 	}
 	before := testutil.Dept3Consumed(t, tree)
 
-	payload := newapi.WebhookLogPayload{
-		ID: 8001, TokenID: 77, Quota: 500000, Model: "gpt-4o-mini", CreatedAt: 1,
-	}
-	if err := ingest.Ingest(ctx, payload, types.SourceWebhook); err != nil {
+	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{
+		ID: 8001, TokenID: 77, Quota: 500000, ModelName: "gpt-4o-mini", CreatedAt: 1,
+	})
+	if err := ingest.IngestByLogID(ctx, 8001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 

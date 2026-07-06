@@ -4,8 +4,9 @@ import "time"
 
 const (
 	EventTypeCallSettled    = "call_settled"
-	SourceWebhook           = "webhook"
-	SourceCompensate        = "compensate"
+	SourceWebhook   = "webhook"
+	SourceReconcile = "reconcile"
+	SourceRetry     = "retry"
 	IdempotencyPrefixNewAPI = "newapi:"
 	PreviewSnippetMaxLen    = 200
 	CallerTypeMember        = "member"

@@ -19,7 +19,6 @@ type StubAdminClient struct {
 	TopUpFn            func(ctx context.Context, req newapi.TopUpRequest) error
 	UpsertChannelFn    func(ctx context.Context, req newapi.UpsertChannelRequest) (newapi.Channel, error)
 	RebuildAbilitiesFn func(ctx context.Context) error
-	ListLogsFn         func(ctx context.Context, params newapi.ListLogsParams) ([]newapi.LogEntry, error)
 
 	CreateTokenCalls      int
 	UpdateTokenCalls      int
@@ -30,7 +29,6 @@ type StubAdminClient struct {
 	TopUpCalls            int
 	UpsertChannelCalls    int
 	RebuildAbilitiesCalls int
-	ListLogsCalls         int
 }
 
 func (s *StubAdminClient) CreateToken(ctx context.Context, req newapi.CreateTokenRequest) (newapi.Token, error) {
@@ -103,12 +101,4 @@ func (s *StubAdminClient) RebuildAbilities(ctx context.Context) error {
 		return s.RebuildAbilitiesFn(ctx)
 	}
 	return nil
-}
-
-func (s *StubAdminClient) ListLogs(ctx context.Context, params newapi.ListLogsParams) ([]newapi.LogEntry, error) {
-	s.ListLogsCalls++
-	if s.ListLogsFn != nil {
-		return s.ListLogsFn(ctx, params)
-	}
-	return nil, nil
 }

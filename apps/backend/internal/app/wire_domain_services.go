@@ -64,7 +64,7 @@ func wireBilling(cfg config.Config, i infra) domainbilling.Service {
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {
-	return domainusage.NewIngestService(cfg, i.store, i.notifier, logger)
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger)
 }
 
 func wireReader(i infra) domainusage.Reader {

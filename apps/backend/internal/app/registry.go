@@ -8,6 +8,7 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
+	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 )
 
@@ -29,14 +30,24 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 	return worker.NewRunner(
 		r.Config,
 		r.Store.Relay(),
-		r.Infra.adminClient,
+		r.Store.SchedulerLock(),
+		r.Store.Logs(),
+		r.IngestMetrics,
 		r.Infra.lifecycle,
 		r.IngestSvc,
+		r.IngestFailureRecorder,
 		r.Overrun,
 		r.Rebalance,
 		r.OrgSync,
 		logger,
 	)
+}
+
+func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
+	if cfg.IngestEnabled() {
+		return ingestmetrics.NewCollector()
+	}
+	return ingestmetrics.NoopCollector()
 }
 
 func buildServiceRegistry(cfg config.Config, i infra, services domainServices) ServiceRegistry {
@@ -51,6 +62,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 	if err != nil {
 		panic(err)
 	}
+	metrics := ingestMetricsRecorder(cfg)
 	return ServiceRegistry{
 		Deps: httpdeps.Deps{
 			Config:               cfg,
@@ -65,8 +77,10 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			ModelsSvc:            services.models,
 			DashboardSvc:         services.dashboard,
 			AuditSvc:             services.audit,
-			ReadModel:            services.readModel,
-			IngestSvc:            services.ingest,
+			ReadModel:             services.readModel,
+			IngestSvc:             services.ingest,
+			IngestFailureRecorder: services.failureRecorder,
+			IngestMetrics:         metrics,
 			CompanySvc:           services.company,
 			BillingSvc:           services.billing,
 			WalletSvc:            i.wallet,

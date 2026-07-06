@@ -43,36 +43,6 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	}
 }
 
-func TestWorkerProcessesWebhookOutbox(t *testing.T) {
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, _ := newWorkerRunner(t, stub)
-	ctx := testutil.Ctx()
-
-	payload, err := json.Marshal(newapi.WebhookLogPayload{
-		ID: 9001, TokenID: 99, Quota: 1000, Model: "gpt-4o", CreatedAt: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := st.Relay().EnqueueWebhookOutbox(ctx, store.WebhookOutboxEntry{
-		ID: "wh-1", Payload: payload, Status: store.OutboxStatusPending,
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	runner.RunOnce(ctx)
-	if pendingWebhookOutbox(st) != 0 {
-		t.Fatal("expected webhook outbox drained")
-	}
-	entries, _, err := st.Ledger().ListCallSettledPage(ctx, store.LedgerCallFilter{Page: 1, PageSize: 10})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) == 0 {
-		t.Fatal("expected ledger entry from webhook processor")
-	}
-}
-
 func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)

@@ -28,10 +28,8 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
-	payload := newapi.WebhookLogPayload{
-		ID: 3001, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1,
-	}
-	if err := ingest.Ingest(testutil.Ctx(), payload, types.SourceWebhook); err != nil {
+	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(3001, 99))
+	if err := ingest.IngestByLogID(testutil.Ctx(), 3001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 	runner.RunOnce(ctx)

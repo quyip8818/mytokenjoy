@@ -61,6 +61,24 @@ func TestDemoLoadsWithDatabaseURL(t *testing.T) {
 	}
 }
 
+func TestIngestRequiresWebhookSecret(t *testing.T) {
+	t.Setenv("APP_PROFILE", config.ProfileDemo)
+	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("COMPANY_NAME", "Acme Corp")
+	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5432/logs?sslmode=disable")
+	t.Setenv("NEW_API_WEBHOOK_SECRET", "")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when ingest enabled without webhook secret")
+	}
+	if !strings.Contains(err.Error(), "NEW_API_WEBHOOK_SECRET") {
+		t.Fatalf("expected webhook secret error, got %v", err)
+	}
+}
+
 func TestPrivateRequiresCompanyName(t *testing.T) {
 	t.Setenv("APP_PROFILE", config.ProfileDemo)
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -21,11 +21,11 @@ func TestIngestVisibleInAuditCalls(t *testing.T) {
 
 	const logID int64 = 9100
 	const input = "audit e2e snippet"
-	payload := newapi.WebhookLogPayload{
-		ID: logID, TokenID: 99, Quota: 500000, Model: "gpt-4o", CreatedAt: 1717200000,
-		PromptTokens: 100, CompletionTokens: 50, UseTime: 250, Input: input,
-	}
-	if err := ingest.Ingest(ctx, payload, types.SourceWebhook); err != nil {
+	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{
+		ID: logID, TokenID: 99, Quota: 500000, ModelName: "gpt-4o", CreatedAt: 1717200000,
+		PromptTokens: 100, CompletionTokens: 50, UseTime: 250, Content: input,
+	})
+	if err := ingest.IngestByLogID(ctx, logID, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 

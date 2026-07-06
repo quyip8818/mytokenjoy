@@ -2,23 +2,20 @@ package usage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/notification"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type IngestService struct {
 	cfg      config.Config
 	store    store.Store
+	logStore store.LogStore
 	notifier notification.Notifier
 	logger   *slog.Logger
 }
@@ -26,27 +23,39 @@ type IngestService struct {
 func NewIngestService(
 	cfg config.Config,
 	st store.Store,
+	logStore store.LogStore,
 	notifier notification.Notifier,
 	logger *slog.Logger,
 ) *IngestService {
-	return &IngestService{cfg: cfg, store: st, notifier: notifier, logger: logger}
+	if logStore == nil {
+		logStore = store.NoopLogStore()
+	}
+	return &IngestService{cfg: cfg, store: st, logStore: logStore, notifier: notifier, logger: logger}
 }
 
-func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPayload, source string) error {
-	mapping, err := s.store.Relay().FindMappingByNewAPITokenID(ctx, payload.TokenID)
+func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source string) error {
+	raw, err := s.logStore.GetConsumeLogByID(ctx, logID)
+	if err != nil {
+		return err
+	}
+	return s.IngestRaw(ctx, *raw, source)
+}
+
+func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, source string) error {
+	mapping, err := s.store.Relay().FindMappingByNewAPITokenID(ctx, raw.TokenID)
 	if err != nil {
 		return err
 	}
 	if mapping == nil {
-		s.logger.Warn("ingest rejected: mapping missing", "token_id", payload.TokenID, "log_id", payload.ID)
-		return domain.NotFound(fmt.Sprintf("mapping not found for token %d", payload.TokenID))
+		s.logger.Warn("ingest rejected: mapping missing", "token_id", raw.TokenID, "log_id", raw.ID)
+		return domain.NotFound(fmt.Sprintf("mapping not found for token %d", raw.TokenID))
 	}
 	ctx, err = s.companyContextFromMapping(ctx, mapping)
 	if err != nil {
 		return err
 	}
 
-	buildInput, err := LoadEntryBuildInput(ctx, s.store, mapping, payload, source)
+	buildInput, err := LoadEntryBuildInput(ctx, s.store, mapping, raw, source)
 	if err != nil {
 		return err
 	}
@@ -64,28 +73,6 @@ func (s *IngestService) Ingest(ctx context.Context, payload newapi.WebhookLogPay
 			return err
 		}
 		return enqueueSideEffects(ctx, st, entry)
-	})
-}
-
-func (s *IngestService) IngestFromOutbox(ctx context.Context, raw json.RawMessage) error {
-	var payload newapi.WebhookLogPayload
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		return err
-	}
-	return s.Ingest(ctx, payload, types.SourceWebhook)
-}
-
-func (s *IngestService) EnqueueFailed(ctx context.Context, payload newapi.WebhookLogPayload, ingestErr error) error {
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	return s.store.Relay().EnqueueWebhookOutbox(ctx, store.WebhookOutboxEntry{
-		ID:        fmt.Sprintf("wh-%d", time.Now().UnixNano()),
-		Payload:   raw,
-		Status:    store.OutboxStatusPending,
-		NextRetry: time.Now(),
-		CreatedAt: time.Now(),
 	})
 }
 

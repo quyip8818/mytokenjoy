@@ -19,7 +19,3 @@ func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, 
 func pendingRelayOutbox(st store.Store, kind string) int {
 	return workerfix.PendingRelayOutbox(st, kind)
 }
-
-func pendingWebhookOutbox(st store.Store) int {
-	return workerfix.PendingWebhookOutbox(st)
-}

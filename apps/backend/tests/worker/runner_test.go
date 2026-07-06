@@ -1,8 +1,6 @@
 package worker_test
 
 import (
-	"context"
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -81,58 +80,8 @@ func TestProcessRelayOutbox(t *testing.T) {
 	}
 }
 
-func TestProcessWebhookOutbox(t *testing.T) {
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
-	runner, st, _ := newWorkerRunner(t, stub)
-	ctx := testutil.Ctx()
-
-	tokenID := int64(77)
-	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
-	})
-
-	payload, err := json.Marshal(newapi.WebhookLogPayload{
-		ID: 1001, TokenID: 77, Quota: 500, Model: "gpt-4o", CreatedAt: time.Now().Unix(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := st.Relay().EnqueueWebhookOutbox(testutil.Ctx(), store.WebhookOutboxEntry{
-		ID: "wh-1", Payload: payload, Status: store.OutboxStatusPending,
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if pendingWebhookOutbox(st) == 0 {
-		t.Fatal("expected pending webhook outbox before RunOnce")
-	}
-
-	runner.RunOnce(ctx)
-
-	if pendingWebhookOutbox(st) != 0 {
-		t.Fatal("expected webhook outbox done after RunOnce")
-	}
-	ingested, err := testutil.HasLedgerLogID(st, 1001)
-	if err != nil || !ingested {
-		t.Fatalf("expected log 1001 in ledger, err=%v ingested=%v", err, ingested)
-	}
-}
-
-func TestCompensateLogs(t *testing.T) {
-	stub := &mock.StubAdminClient{
-		Token: newapi.Token{ID: 88, RemainQuota: 1000},
-		ListLogsFn: func(_ context.Context, params newapi.ListLogsParams) ([]newapi.LogEntry, error) {
-			logs := []newapi.LogEntry{
-				{ID: 500, TokenID: 88, Quota: 300, ModelName: "gpt-4o", CreatedAt: time.Now().Unix()},
-			}
-			out := make([]newapi.LogEntry, 0)
-			for _, entry := range logs {
-				if entry.ID > params.StartID {
-					out = append(out, entry)
-				}
-			}
-			return out, nil
-		},
-	}
+func TestReconcileLogs(t *testing.T) {
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 88, RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
@@ -140,14 +89,55 @@ func TestCompensateLogs(t *testing.T) {
 	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
 		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
-	if err := st.Relay().SetLastLogID(testutil.Ctx(), 0); err != nil {
+	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(500, tokenID))
+
+	if err := runner.RunReconcileOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	ingested, err := testutil.HasLedgerLogID(st, 500)
+	if err != nil || !ingested {
+		t.Fatalf("expected log 500 in ledger via reconcile, err=%v ingested=%v", err, ingested)
+	}
+	cursor, err := st.Logs().GetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cursor != 500 {
+		t.Fatalf("expected cursor 500, got %d", cursor)
+	}
+}
+
+type errTest string
+
+func (e errTest) Error() string { return string(e) }
+
+func TestIngestFailureMappingLateRecovery(t *testing.T) {
+	stub := &mock.StubAdminClient{}
+	runner, st, _ := newWorkerRunner(t, stub)
+	ctx := testutil.Ctx()
+
+	const logID = int64(601)
+	const tokenID = int64(77)
+	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(logID, tokenID))
+
+	if err := st.Logs().UpsertFailure(ctx, store.IngestFailureFromError(logID, types.SourceWebhook, errTest("mapping not found"))); err != nil {
 		t.Fatal(err)
 	}
 
 	runner.RunOnce(ctx)
+	if mem, ok := st.(*memory.Store); ok {
+		mem.SetIngestFailureNextRetry(store.IngestFailureID(logID), time.Now().Add(-time.Second))
+	}
 
-	ingested, err := testutil.HasLedgerLogID(st, 500)
+	opts := relayfix.DefaultMappingOpts()
+	opts.NewAPITokenID = tokenID
+	relayfix.UpsertMapping(t, st, opts)
+
+	runner.RunOnce(ctx)
+
+	ingested, err := testutil.HasLedgerLogID(st, logID)
 	if err != nil || !ingested {
-		t.Fatalf("expected log 500 in ledger via compensation, err=%v ingested=%v", err, ingested)
+		t.Fatalf("expected ledger entry after mapping recovery, err=%v ingested=%v", err, ingested)
 	}
 }

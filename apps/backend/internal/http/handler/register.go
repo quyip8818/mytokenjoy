@@ -26,7 +26,7 @@ type Registry struct {
 	models    *modelshandler.Handler
 	dashboard *dashboardhandler.Handler
 	audit     *audithandler.Handler
-	webhook   *WebhookHandler
+	internalIngest *InternalIngestHandler
 }
 
 func NewRegistry(deps httpdeps.Deps) Registry {
@@ -43,14 +43,16 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		models:    modelshandler.NewHandler(p, deps.ModelsSvc),
 		dashboard: dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:     audithandler.NewHandler(p, deps.AuditSvc, deps.ReadModel),
-		webhook:   NewWebhookHandler(deps.Config, deps.IngestSvc, deps.Logger),
+		internalIngest: NewInternalIngestHandler(deps.Config, deps.IngestSvc, deps.IngestFailureRecorder, deps.IngestMetrics, deps.Logger),
 	}
 }
 
 func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	reg.session.RegisterRoutes(r)
 	reg.auth.RegisterRoutes(r)
-	reg.webhook.RegisterRoutes(r)
+	r.Route("/internal", func(r chi.Router) {
+		reg.internalIngest.RegisterRoutes(r)
+	})
 	reg.billing.RegisterRoutes(r)
 	if reg.cfg.Config.SupportSaas {
 		r.Route("/platform", reg.platform.RegisterRoutes)

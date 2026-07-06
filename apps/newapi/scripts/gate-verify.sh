@@ -41,7 +41,7 @@ CODE=$(curl -s -o /dev/null -w "%{http_code}" \
 echo "PUT budget node => ${CODE}"
 
 echo "[6/7] Simulated NewAPI settle webhook..."
-PAYLOAD='{"id":999888777,"token_id":1,"quota":1000,"model":"gpt-4o","created_at":1717200000}'
+PAYLOAD='{"log_id":999888777}'
 WH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -X POST "${API_URL}/api/internal/webhooks/newapi-log" \
   -H "Content-Type: application/json" \

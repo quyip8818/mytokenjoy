@@ -12,11 +12,12 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
+	domainrelay 	"github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/credentials"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -36,6 +37,8 @@ type Deps struct {
 	AuditSvc             domainaudit.Service
 	ReadModel            domainusage.ReadModel
 	IngestSvc            domainusage.Ingestor
+	IngestFailureRecorder domainusage.FailureRecorder
+	IngestMetrics        ingestmetrics.Recorder
 	CompanySvc           domaincompany.Service
 	BillingSvc           domainbilling.Service
 	WalletSvc            domaincompany.WalletService

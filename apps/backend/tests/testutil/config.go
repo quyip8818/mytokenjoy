@@ -52,6 +52,17 @@ func WithPlatformBootstrap(email, password string) ConfigOption {
 	}
 }
 
+func WithIngestEnabled(enabled bool) ConfigOption {
+	return func(cfg *config.Config) {
+		if enabled {
+			cfg.LogDatabaseURL = "postgres://memory/logs"
+			cfg.NewAPIWebhookSecret = "test-webhook-secret"
+		} else {
+			cfg.LogDatabaseURL = ""
+		}
+	}
+}
+
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
 		DemoToday:             defaultDemoToday,

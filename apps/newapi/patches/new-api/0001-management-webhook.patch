@@ -1,0 +1,45 @@
+diff --git a/model/log.go b/model/log.go
+index 506bd50..32c2435 100644
+--- a/model/log.go
++++ b/model/log.go
+@@ -8,6 +8,7 @@ import (
+ 	"time"
+ 
+ 	"github.com/QuantumNous/new-api/common"
++	"github.com/QuantumNous/new-api/management"
+ 	"github.com/QuantumNous/new-api/logger"
+ 	"github.com/QuantumNous/new-api/types"
+ 
+@@ -98,6 +99,14 @@ func ensureLogRequestId(log *Log) {
+ 	}
+ }
+ 
++
++func notifyConsumeLogIfInserted(log *Log) {
++	if log == nil || log.Id <= 0 || log.Type != LogTypeConsume || log.TokenId <= 0 {
++		return
++	}
++	management.EnqueueNotify(int64(log.Id))
++}
++
+ func createLog(log *Log) error {
+ 	ensureLogRequestId(log)
+ 	return LOG_DB.Create(log).Error
+@@ -386,6 +395,8 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
+ 	err := createLog(log)
+ 	if err != nil {
+ 		logger.LogError(c, "failed to record log: "+err.Error())
++	} else {
++		notifyConsumeLogIfInserted(log)
+ 	}
+ 	if common.DataExportEnabled {
+ 		LogQuotaData(QuotaDataLogParams{
+@@ -445,6 +456,8 @@ func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
+ 	err := createLog(log)
+ 	if err != nil {
+ 		common.SysLog("failed to record task billing log: " + err.Error())
++	} else {
++		notifyConsumeLogIfInserted(log)
+ 	}
+ 	if params.LogType == LogTypeConsume && common.DataExportEnabled {
+ 		nodeName := params.NodeName
