@@ -12,6 +12,7 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainmember "github.com/tokenjoy/backend/internal/domain/member"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -61,6 +62,10 @@ func wireBilling(cfg config.Config, i infra) domainbilling.Service {
 		return i.store.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	}
 	return domainbilling.NewService(cfg, i.store, i.adminClient, i.wallet, rebalanceEnqueue)
+}
+
+func wireMember(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmember.Service {
+	return domainmember.NewService(cfg, keys, reader)
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {

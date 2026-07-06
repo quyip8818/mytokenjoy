@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FieldMapping, MappingTestResult, Platform } from '@/api/types'
-import { dataSourceApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,6 +35,7 @@ export function StepFieldMapping({
   onComplete,
   onBack,
 }: StepFieldMappingProps) {
+  const apis = useInjectedApis()
   const [mappings, setMappings] = useState<FieldMapping[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -44,11 +45,11 @@ export function StepFieldMapping({
   const [testPassed, setTestPassed] = useState(false)
 
   useEffect(() => {
-    dataSourceApi.getFieldMappings(platform).then((data) => {
+    void apis.dataSourceApi.getFieldMappings(platform).then((data) => {
       setMappings(data)
       setLoading(false)
     })
-  }, [platform])
+  }, [apis, platform])
 
   const updateMapping = (index: number, targetField: string) => {
     setMappings((prev) =>
@@ -63,7 +64,7 @@ export function StepFieldMapping({
     setTesting(true)
     setTestResult(null)
     try {
-      const result = await dataSourceApi.testFieldMapping(platform, testKeyword)
+      const result = await apis.dataSourceApi.testFieldMapping(platform, testKeyword)
       setTestResult(result)
       if (result.success) setTestPassed(true)
     } finally {
@@ -74,7 +75,7 @@ export function StepFieldMapping({
   const handleSaveAndNext = async () => {
     setSaving(true)
     try {
-      await dataSourceApi.saveFieldMappings({ platform, mappings })
+      await apis.dataSourceApi.saveFieldMappings({ platform, mappings })
       onComplete()
     } finally {
       setSaving(false)

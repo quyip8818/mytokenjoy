@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Credential, Platform } from '@/api/types'
-import { dataSourceApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ const platformLabels: Record<Platform, string> = {
 }
 
 export function StepCredentials({ platform, onConnected, onBack }: StepCredentialsProps) {
+  const apis = useInjectedApis()
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
   const [testMessage, setTestMessage] = useState('')
@@ -55,7 +56,7 @@ export function StepCredentials({ platform, onConnected, onBack }: StepCredentia
       case 'feishu':
         return { platform: 'feishu', appId: data.appId, appSecret: data.appSecret }
       case 'dingtalk':
-        return { platform: 'dingtalk', clientId: data.appKey, clientSecret: data.appSecret }
+        return { platform: 'dingtalk', corpId: data.corpId, appKey: data.appKey, appSecret: data.appSecret }
       case 'wecom':
         return { platform: 'wecom', corpId: data.corpId, secret: data.secret, agentId: data.agentId }
     }
@@ -71,12 +72,11 @@ export function StepCredentials({ platform, onConnected, onBack }: StepCredentia
     try {
       const data = getValues()
       const credential = buildCredential(data)
-      const res = await dataSourceApi.testConnection(credential)
+      const res = await apis.dataSourceApi.testConnection(credential)
       if (res.success) {
         setTestResult('success')
         setTestMessage('连接成功')
-        // Save credential on successful test
-        await dataSourceApi.save(credential)
+        await apis.dataSourceApi.save(credential)
       } else {
         setTestResult('error')
         setTestMessage(res.message || '连接失败，请检查凭证信息')
@@ -138,22 +138,33 @@ export function StepCredentials({ platform, onConnected, onBack }: StepCredentia
               </ul>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="clientId">Client ID</Label>
+              <Label htmlFor="corpId">Corp ID</Label>
               <Input
-                id="clientId"
-                placeholder="输入应用的 Client ID"
-                {...register('appKey', { required: '请输入 Client ID' })}
+                id="corpId"
+                placeholder="输入企业 CorpID"
+                {...register('corpId', { required: '请输入 CorpID' })}
+              />
+              {errors.corpId && (
+                <p className="text-destructive text-xs">{errors.corpId.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="appKey">App Key</Label>
+              <Input
+                id="appKey"
+                placeholder="输入应用的 App Key"
+                {...register('appKey', { required: '请输入 App Key' })}
               />
               {errors.appKey && (
                 <p className="text-destructive text-xs">{errors.appKey.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="clientSecret">Client Secret</Label>
+              <Label htmlFor="appSecret">App Secret</Label>
               <Input
-                id="clientSecret"
+                id="appSecret"
                 type="password"
-                placeholder="输入应用的 Client Secret"
+                placeholder="输入应用的 App Secret"
                 {...register('appSecret', { required: '请输入 Client Secret' })}
               />
               {errors.appSecret && (

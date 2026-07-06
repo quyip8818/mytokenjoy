@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
-import { budgetApi } from '@/api/budget'
+import { useInjectedApis } from '@/api/use-apis'
 import type { BudgetNode } from '@/api/types'
+import { nodeReservedPool } from '@/lib/budget'
 import { BudgetMemberPicker } from './budget-member-picker'
 import {
   Dialog,
@@ -26,6 +27,7 @@ export function BudgetProjectDialog({
   department,
   onCreated,
 }: BudgetProjectDialogProps) {
+  const apis = useInjectedApis()
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
   const [memberIds, setMemberIds] = useState<string[]>([])
@@ -33,8 +35,9 @@ export function BudgetProjectDialog({
   const [error, setError] = useState<string | null>(null)
 
   const available = useMemo(() => {
-    const childrenSum = department.children?.reduce((s: number, c: BudgetNode) => s + c.budget, 0) ?? 0
-    return department.budget - childrenSum - department.reserved
+    const childrenSum =
+      department.children?.reduce((sum: number, child: BudgetNode) => sum + child.budget, 0) ?? 0
+    return department.budget - childrenSum - nodeReservedPool(department)
   }, [department])
 
   function resetForm() {
@@ -44,9 +47,9 @@ export function BudgetProjectDialog({
     setError(null)
   }
 
-  function handleOpenChange(v: boolean) {
-    if (!v) resetForm()
-    onOpenChange(v)
+  function handleOpenChange(value: boolean) {
+    if (!value) resetForm()
+    onOpenChange(value)
   }
 
   async function handleCreate() {
@@ -58,7 +61,7 @@ export function BudgetProjectDialog({
       return
     }
     const budgetNum = parseFloat(budget)
-    if (!budget || isNaN(budgetNum) || budgetNum < 0) {
+    if (!budget || Number.isNaN(budgetNum) || budgetNum < 0) {
       setError('请输入有效的项目额度')
       return
     }
@@ -69,14 +72,11 @@ export function BudgetProjectDialog({
 
     setSaving(true)
     try {
-      await budgetApi.createProject({
+      await apis.budgetApi.createGroup({
         name: trimmedName,
-        departmentId: department.id,
-        departmentName: department.name,
         budget: budgetNum,
         memberIds,
-        overrunPolicy: 'hard_reject',
-        period: department.period,
+        departmentIds: [department.id],
       })
       resetForm()
       onCreated()
@@ -96,7 +96,6 @@ export function BudgetProjectDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          {/* Project name */}
           <div className="grid gap-1.5">
             <Label htmlFor="proj-name" className="text-xs font-medium">
               项目名称
@@ -104,13 +103,12 @@ export function BudgetProjectDialog({
             <Input
               id="proj-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
               placeholder="输入项目名称"
               className="h-8 text-sm"
             />
           </div>
 
-          {/* Budget */}
           <div className="grid gap-1.5">
             <Label htmlFor="proj-budget" className="text-xs font-medium">
               项目额度（元）
@@ -120,16 +118,13 @@ export function BudgetProjectDialog({
               type="number"
               min={0}
               value={budget}
-              onChange={(e) => setBudget(e.target.value)}
+              onChange={(event) => setBudget(event.target.value)}
               placeholder="输入额度"
               className="h-8 text-sm tabular-nums"
             />
-            <p className="text-xs text-muted-foreground">
-              可用额度：¥{available.toLocaleString()}
-            </p>
+            <p className="text-xs text-muted-foreground">可用额度：¥{available.toLocaleString()}</p>
           </div>
 
-          {/* Member picker */}
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium">关联成员</Label>
             <BudgetMemberPicker

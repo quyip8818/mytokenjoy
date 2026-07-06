@@ -1,36 +1,17 @@
-import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import { dashboardApi } from '@/api/dashboard'
-import type { CostSummary, DailyCost, DepartmentCost, TopConsumer } from '@/api/types'
 import { TrendingUp, TrendingDown, Coins, Hash, Zap, DollarSign } from 'lucide-react'
+import { useCostDashboardPage } from '@/routes/dashboard/hooks/use-cost-dashboard-page'
 
 const COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
 
 export default function CostDashboardPage() {
-  const [summary, setSummary] = useState<CostSummary | null>(null)
-  const [dailyCosts, setDailyCosts] = useState<DailyCost[]>([])
-  const [deptCosts, setDeptCosts] = useState<DepartmentCost[]>([])
-  const [topConsumers, setTopConsumers] = useState<TopConsumer[]>([])
-
-  useEffect(() => {
-    Promise.all([
-      dashboardApi.getCostSummary(),
-      dashboardApi.getDailyCosts(),
-      dashboardApi.getDepartmentCosts(),
-      dashboardApi.getTopConsumers(),
-    ]).then(([s, d, dc, tc]) => {
-      setSummary(s)
-      setDailyCosts(d)
-      setDeptCosts(dc)
-      setTopConsumers(tc)
-    })
-  }, [])
+  const { summary, dailyCosts, deptCosts, topConsumers } = useCostDashboardPage()
 
   const stats = [
     { label: '本月总花费', value: summary ? `¥${summary.totalCost.toLocaleString()}` : '-', icon: Coins, accent: 'bg-primary' },
-    { label: '环比变化', value: summary ? `${summary.monthOverMonth > 0 ? '+' : ''}${summary.monthOverMonth}%` : '-', icon: summary && summary.monthOverMonth > 0 ? TrendingUp : TrendingDown, accent: summary && summary.monthOverMonth > 0 ? 'bg-red-400' : 'bg-emerald-400' },
+    { label: '环比变化', value: summary ? `${summary.totalCostMom > 0 ? '+' : ''}${summary.totalCostMom}%` : '-', icon: summary && summary.totalCostMom > 0 ? TrendingUp : TrendingDown, accent: summary && summary.totalCostMom > 0 ? 'bg-red-400' : 'bg-emerald-400' },
     { label: '总 Token 数', value: summary ? `${(summary.totalTokens / 1000000).toFixed(1)}M` : '-', icon: Hash, accent: 'bg-violet-500' },
     { label: '总请求数', value: summary?.totalRequests.toLocaleString() ?? '-', icon: Zap, accent: 'bg-amber-400' },
     { label: '平均请求成本', value: summary ? `¥${summary.avgCostPerRequest.toFixed(2)}` : '-', icon: DollarSign, accent: 'bg-cyan-400' },

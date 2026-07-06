@@ -1,16 +1,15 @@
 import { create } from 'zustand'
+import type { AppApis } from '@/api/app-apis'
+import { defaultApis } from '@/api/app-apis'
 import type { Department, Member, Paginated } from '@/api/types'
-import { departmentApi, memberApi } from '@/api/org'
 import type { RowSelectionState } from '@tanstack/react-table'
 
 interface OrgStructureState {
-  // Department state
   departments: Department[]
   selectedDept: Department | undefined
   expanded: Set<string>
   deptLoading: boolean
 
-  // Member state
   members: Member[]
   total: number
   page: number
@@ -19,11 +18,9 @@ interface OrgStructureState {
   membersLoading: boolean
   rowSelection: RowSelectionState
 
-  // Computed
   pendingCount: number
   selectedIds: string[]
 
-  // Department actions
   loadDepartments: () => Promise<void>
   selectDept: (dept: Department | undefined) => void
   toggleExpand: (id: string) => void
@@ -31,7 +28,6 @@ interface OrgStructureState {
   updateDept: (id: string, name: string) => Promise<void>
   deleteDept: (id: string) => Promise<void>
 
-  // Member actions
   loadMembers: () => Promise<void>
   setPage: (page: number) => void
   setKeyword: (keyword: string) => void
@@ -44,8 +40,17 @@ interface OrgStructureState {
   inviteMember: (value: string) => Promise<void>
 }
 
+let structureApis: AppApis = defaultApis
+
+export function initOrgStructureApis(apis: AppApis) {
+  structureApis = apis
+}
+
+function getApis() {
+  return structureApis
+}
+
 export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
-  // Initial state
   departments: [],
   selectedDept: undefined,
   expanded: new Set<string>(),
@@ -66,11 +71,11 @@ export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
     return Object.keys(get().rowSelection)
   },
 
-  // Department actions
   loadDepartments: async () => {
+    const apis = getApis()
     set({ deptLoading: true })
     try {
-      const departments = await departmentApi.getTree()
+      const departments = await apis.departmentApi.getTree()
       set({ departments })
     } finally {
       set({ deptLoading: false })
@@ -79,8 +84,7 @@ export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
 
   selectDept: (dept) => {
     set({ selectedDept: dept, page: 1, rowSelection: {} })
-    // Auto-load members when department changes
-    get().loadMembers()
+    void get().loadMembers()
   },
 
   toggleExpand: (id) => {
@@ -93,17 +97,20 @@ export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
   },
 
   createDept: async (name, parentId) => {
-    await departmentApi.create({ name, parentId })
+    const apis = getApis()
+    await apis.departmentApi.create({ name, parentId })
     await get().loadDepartments()
   },
 
   updateDept: async (id, name) => {
-    await departmentApi.update(id, { name })
+    const apis = getApis()
+    await apis.departmentApi.update(id, { name })
     await get().loadDepartments()
   },
 
   deleteDept: async (id) => {
-    await departmentApi.delete(id)
+    const apis = getApis()
+    await apis.departmentApi.delete(id)
     const { selectedDept } = get()
     if (selectedDept?.id === id) {
       set({ selectedDept: undefined })
@@ -112,12 +119,12 @@ export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
     await get().loadMembers()
   },
 
-  // Member actions
   loadMembers: async () => {
+    const apis = getApis()
     const { page, pageSize, keyword, selectedDept } = get()
     set({ membersLoading: true })
     try {
-      const params: Parameters<typeof memberApi.list>[0] = {
+      const params: Parameters<typeof apis.memberApi.list>[0] = {
         page,
         pageSize,
         keyword: keyword || undefined,
@@ -125,7 +132,7 @@ export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
       if (selectedDept) {
         params.departmentId = selectedDept.id
       }
-      const res: Paginated<Member> = await memberApi.list(params)
+      const res: Paginated<Member> = await apis.memberApi.list(params)
       set({ members: res.items, total: res.total })
     } finally {
       set({ membersLoading: false })
@@ -134,50 +141,56 @@ export const useOrgStructureStore = create<OrgStructureState>((set, get) => ({
 
   setPage: (page) => {
     set({ page })
-    get().loadMembers()
+    void get().loadMembers()
   },
 
   setKeyword: (keyword) => {
     set({ keyword, page: 1, rowSelection: {} })
-    get().loadMembers()
+    void get().loadMembers()
   },
 
   setRowSelection: (selection) => set({ rowSelection: selection }),
 
   createMember: async (data) => {
-    await memberApi.create(data)
+    const apis = getApis()
+    await apis.memberApi.create(data)
     await get().loadMembers()
     await get().loadDepartments()
   },
 
   updateMember: async (id, data) => {
-    await memberApi.update(id, data)
+    const apis = getApis()
+    await apis.memberApi.update(id, data)
     await get().loadMembers()
   },
 
   deleteMember: async (ids) => {
-    await memberApi.delete(ids)
+    const apis = getApis()
+    await apis.memberApi.delete(ids)
     set({ rowSelection: {} })
     await get().loadMembers()
     await get().loadDepartments()
   },
 
   updateMemberStatus: async (ids, status) => {
-    await memberApi.updateStatus(ids, status)
+    const apis = getApis()
+    await apis.memberApi.updateStatus(ids, status)
     set({ rowSelection: {} })
     await get().loadMembers()
   },
 
   transferMembers: async (ids, departmentId) => {
-    await memberApi.transferDepartment(ids, departmentId)
+    const apis = getApis()
+    await apis.memberApi.transferDepartment(ids, departmentId)
     set({ rowSelection: {} })
     await get().loadMembers()
     await get().loadDepartments()
   },
 
   inviteMember: async (value) => {
+    const apis = getApis()
     const isEmail = value.includes('@')
-    await memberApi.invite(isEmail ? { email: value } : { phone: value })
+    await apis.memberApi.invite(isEmail ? { email: value } : { phone: value })
     await get().loadMembers()
   },
 }))

@@ -3,55 +3,20 @@ import {
   Send, BarChart3, Coins, Timer,
   Gauge, Clock,
 } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { ROUTES } from '@/config/routes'
+import { PERMISSION } from '@/lib/permissions'
+import { usePermissions } from '@/hooks/use-permissions'
 import {
   LineChart, Line, AreaChart, Area,
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from 'recharts'
+import { useMemberDashboardPage } from '@/routes/member/hooks/use-member-dashboard-page'
 
-// --- Mock data for the member dashboard ---
-const ACCOUNT_DATA = {
-  balance: 2.0,
-  totalSpent: 0.0,
-}
-
-const USAGE_STATS = {
-  requestCount: 0,
-  totalCount: 0,
-}
-
-const RESOURCE_CONSUMPTION = {
-  totalCost: 0.0,
-  totalTokens: 0,
-}
-
-const PERFORMANCE = {
-  avgRPM: 0.0,
-  avgTPM: 0,
-}
-
-// Chart mock data (empty state — shows no data)
-const consumptionTrend: { time: string; value: number }[] = [
-  { time: '07-03 11:00', value: 0 },
-  { time: '07-03 13:00', value: 0 },
-  { time: '07-03 15:00', value: 0 },
-  { time: '07-03 17:00', value: 0 },
-]
-
-const consumptionDistribution: { time: string; value: number }[] = [
-  { time: '07-03 11:00', value: 0 },
-  { time: '07-03 13:00', value: 0 },
-  { time: '07-03 15:00', value: 0 },
-  { time: '07-03 17:00', value: 0 },
-]
-
-const callDistribution: { name: string; value: number }[] = []
-
-const callRanking: { model: string; count: number }[] = []
-
-// --- Stat card group component ---
 function StatGroup({
   title,
   icon: Icon,
@@ -90,7 +55,6 @@ function StatGroup({
   )
 }
 
-// --- Chart section component ---
 function ChartSection({
   title,
   icon: Icon,
@@ -112,9 +76,33 @@ function ChartSection({
 }
 
 export default function MemberDashboardPage() {
+  const navigate = useNavigate()
+  const { has } = usePermissions()
+  const {
+    loading,
+    accountData,
+    usageStats,
+    resourceConsumption,
+    performance,
+    consumptionTrend,
+    consumptionDistribution,
+    callDistribution,
+    callRanking,
+    distributionTotal,
+    trendTotal,
+    callTotal,
+  } = useMemberDashboardPage()
+
+  const handleRecharge = () => {
+    if (has([PERMISSION.BILLING_READ, PERMISSION.BILLING_RECHARGE])) {
+      navigate(ROUTES.wallet)
+      return
+    }
+    toast.message('请联系管理员进行充值')
+  }
+
   return (
     <div className="space-y-6">
-      {/* Stat card groups */}
       <div className="grid grid-cols-4 gap-4">
         <StatGroup
           title="账户数据"
@@ -122,45 +110,83 @@ export default function MemberDashboardPage() {
           items={[
             {
               label: '当前余额',
-              value: `¥${ACCOUNT_DATA.balance.toFixed(2)}`,
+              value: loading ? '—' : `¥${accountData.balance.toFixed(2)}`,
               icon: Coins,
-              action: <Button variant="outline" size="sm" className="h-6 text-xs px-2">充值</Button>,
+              action: (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={handleRecharge}
+                >
+                  充值
+                </Button>
+              ),
             },
-            { label: '历史消耗', value: `¥${ACCOUNT_DATA.totalSpent.toFixed(2)}`, icon: DollarSign },
+            {
+              label: '历史消耗',
+              value: loading ? '—' : `¥${accountData.totalSpent.toFixed(2)}`,
+              icon: DollarSign,
+            },
           ]}
         />
         <StatGroup
           title="使用统计"
           icon={Zap}
           items={[
-            { label: '请求次数', value: String(USAGE_STATS.requestCount), icon: Send },
-            { label: '统计次数', value: String(USAGE_STATS.totalCount), icon: BarChart3 },
+            {
+              label: '请求次数',
+              value: loading ? '—' : String(usageStats.requestCount),
+              icon: Send,
+            },
+            {
+              label: '统计次数',
+              value: loading ? '—' : String(usageStats.totalCount),
+              icon: BarChart3,
+            },
           ]}
         />
         <StatGroup
           title="资源消耗"
           icon={DollarSign}
           items={[
-            { label: '统计额度', value: `¥${RESOURCE_CONSUMPTION.totalCost.toFixed(2)}`, icon: Coins },
-            { label: '统计 Tokens', value: String(RESOURCE_CONSUMPTION.totalTokens), icon: Activity },
+            {
+              label: '统计额度',
+              value: loading ? '—' : `¥${resourceConsumption.totalCost.toFixed(2)}`,
+              icon: Coins,
+            },
+            {
+              label: '统计 Tokens',
+              value: loading ? '—' : String(resourceConsumption.totalTokens),
+              icon: Activity,
+            },
           ]}
         />
         <StatGroup
           title="性能指标"
           icon={Activity}
           items={[
-            { label: '平均 RPM', value: PERFORMANCE.avgRPM.toFixed(3), icon: Gauge },
-            { label: '平均 TPM', value: String(PERFORMANCE.avgTPM), icon: Clock },
+            {
+              label: '平均 RPM',
+              value: loading ? '—' : performance.avgRPM.toFixed(3),
+              icon: Gauge,
+            },
+            {
+              label: '平均 TPM',
+              value: loading ? '—' : String(performance.avgTPM),
+              icon: Clock,
+            },
           ]}
         />
       </div>
 
-      {/* Charts row 1 */}
       <div className="grid grid-cols-2 gap-4">
         <ChartSection title="消耗分布" icon={BarChart3}>
           <div>
             <h4 className="text-sm font-medium">模型消耗分布</h4>
-            <p className="text-xs text-muted-foreground mb-4">总计：¥0.00</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              总计：{loading ? '—' : `¥${distributionTotal.toFixed(2)}`}
+            </p>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={consumptionDistribution}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -198,7 +224,9 @@ export default function MemberDashboardPage() {
         <ChartSection title="消耗趋势" icon={Activity}>
           <div>
             <h4 className="text-sm font-medium">模型消耗趋势</h4>
-            <p className="text-xs text-muted-foreground mb-4">总计：0</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              总计：{loading ? '—' : trendTotal.toFixed(2)}
+            </p>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={consumptionTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -234,12 +262,13 @@ export default function MemberDashboardPage() {
         </ChartSection>
       </div>
 
-      {/* Charts row 2 */}
       <div className="grid grid-cols-2 gap-4">
         <ChartSection title="调用次数分布" icon={Timer}>
           <div>
             <h4 className="text-sm font-medium">模型调用次数占比</h4>
-            <p className="text-xs text-muted-foreground mb-4">总计：0</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              总计：{loading ? '—' : String(callTotal)}
+            </p>
             {callDistribution.length === 0 ? (
               <div className="flex items-center justify-center h-[220px]">
                 <p className="text-sm text-muted-foreground">无数据</p>
@@ -271,7 +300,9 @@ export default function MemberDashboardPage() {
         <ChartSection title="调用次数排行" icon={BarChart3}>
           <div>
             <h4 className="text-sm font-medium">模型调用次数排行</h4>
-            <p className="text-xs text-muted-foreground mb-4">总计：0</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              总计：{loading ? '—' : String(callTotal)}
+            </p>
             {callRanking.length === 0 ? (
               <div className="flex items-center justify-center h-[220px]">
                 <p className="text-sm text-muted-foreground">无数据</p>

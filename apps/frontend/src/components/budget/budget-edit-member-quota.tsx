@@ -1,27 +1,34 @@
 import { useState } from 'react'
-import { budgetApi } from '@/api/budget'
-import type { BudgetNode, BudgetProject } from '@/api/types'
+import type { BudgetNode, BudgetProjectView } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { nodeReservedPool } from '@/lib/budget'
 import { cn } from '@/lib/utils'
 import { Pencil, Users, Wallet, X, Check } from 'lucide-react'
 
 interface BudgetEditMemberQuotaProps {
   node: BudgetNode
-  projects: BudgetProject[]
+  projects: BudgetProjectView[]
   onUpdated: () => void
+  onUpdateDepartment: (
+    departmentId: string,
+    data: { budget: number; reservedPool?: number },
+  ) => Promise<void>
 }
 
-export function BudgetEditMemberQuota({ node, projects, onUpdated }: BudgetEditMemberQuotaProps) {
+export function BudgetEditMemberQuota({
+  node,
+  projects,
+  onUpdated,
+  onUpdateDepartment,
+}: BudgetEditMemberQuotaProps) {
   const [editing, setEditing] = useState(false)
-  const [quotaDraft, setQuotaDraft] = useState('')
   const [reservedDraft, setReservedDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   function startEdit() {
-    setQuotaDraft(String(node.memberQuota))
-    setReservedDraft(String(node.reserved))
+    setReservedDraft(String(nodeReservedPool(node)))
     setError(null)
     setEditing(true)
   }
@@ -32,30 +39,29 @@ export function BudgetEditMemberQuota({ node, projects, onUpdated }: BudgetEditM
   }
 
   function computeAllocated(newReserved: number) {
-    const childSum = node.children?.reduce((s, c) => s + c.budget, 0) ?? 0
-    const projectSum = projects.filter((p) => p.departmentId === node.id).reduce((s, p) => s + p.budget, 0)
+    const childSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
+    const projectSum = projects
+      .filter((project) => project.departmentId === node.id)
+      .reduce((sum, project) => sum + project.budget, 0)
     return childSum + projectSum + newReserved
   }
 
   async function handleSave() {
-    const quota = parseFloat(quotaDraft)
     const reserved = parseFloat(reservedDraft)
-    if (isNaN(quota) || quota < 0) {
-      setError('平均额度无效')
-      return
-    }
-    if (isNaN(reserved) || reserved < 0) {
+    if (Number.isNaN(reserved) || reserved < 0) {
       setError('预留池余额无效')
       return
     }
     const allocated = computeAllocated(reserved)
     if (allocated > node.budget) {
-      setError(`分配总额 ¥${allocated.toLocaleString()} 超出节点额度 ¥${node.budget.toLocaleString()}`)
+      setError(
+        `分配总额 ¥${allocated.toLocaleString()} 超出节点额度 ¥${node.budget.toLocaleString()}`,
+      )
       return
     }
     setSaving(true)
     try {
-      await budgetApi.updateNode(node.id, { memberQuota: quota, reserved })
+      await onUpdateDepartment(node.id, { budget: node.budget, reservedPool: reserved })
       setEditing(false)
       onUpdated()
     } catch {
@@ -110,29 +116,20 @@ export function BudgetEditMemberQuota({ node, projects, onUpdated }: BudgetEditM
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className={cn('flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5', editing && 'items-start pt-3')}>
-          <Wallet className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5">
+          <Wallet className="size-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">平均额度/人</p>
-            {editing ? (
-              <Input
-                type="number"
-                min={0}
-                value={quotaDraft}
-                onChange={(e) => {
-                  setQuotaDraft(e.target.value)
-                  setError(null)
-                }}
-                className="mt-1 h-7 tabular-nums"
-                placeholder="元"
-              />
-            ) : (
-              <p className="text-sm font-medium tabular-nums">¥{node.memberQuota.toLocaleString()}</p>
-            )}
+            <p className="text-sm font-medium tabular-nums text-muted-foreground">—</p>
           </div>
         </div>
 
-        <div className={cn('flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5', editing && 'items-start pt-3')}>
+        <div
+          className={cn(
+            'flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5',
+            editing && 'items-start pt-3',
+          )}
+        >
           <Users className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">预留池余额</p>
@@ -141,15 +138,17 @@ export function BudgetEditMemberQuota({ node, projects, onUpdated }: BudgetEditM
                 type="number"
                 min={0}
                 value={reservedDraft}
-                onChange={(e) => {
-                  setReservedDraft(e.target.value)
+                onChange={(event) => {
+                  setReservedDraft(event.target.value)
                   setError(null)
                 }}
                 className="mt-1 h-7 tabular-nums"
                 placeholder="元"
               />
             ) : (
-              <p className="text-sm font-medium tabular-nums">¥{node.reserved.toLocaleString()}</p>
+              <p className="text-sm font-medium tabular-nums">
+                ¥{nodeReservedPool(node).toLocaleString()}
+              </p>
             )}
           </div>
         </div>
@@ -158,7 +157,7 @@ export function BudgetEditMemberQuota({ node, projects, onUpdated }: BudgetEditM
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
       <p className="mt-2 text-xs text-muted-foreground">
-        成员个人额度用尽后可申请从预留池追加，需 TL 审批通过
+        成员个人额度请在成员配额配置中管理；预留池余额可在上方编辑。
       </p>
     </div>
   )

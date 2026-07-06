@@ -92,6 +92,24 @@ type DataSourceTestResult struct {
 	Message *string `json:"message,omitempty"`
 }
 
+type FieldMapping struct {
+	SourceField string `json:"sourceField"`
+	SourceLabel string `json:"sourceLabel"`
+	TargetField string `json:"targetField"`
+	Required    bool   `json:"required"`
+}
+
+type FieldMappingConfig struct {
+	Platform Platform      `json:"platform"`
+	Mappings []FieldMapping `json:"mappings"`
+}
+
+type MappingTestResult struct {
+	Success bool              `json:"success"`
+	Preview map[string]string `json:"preview"`
+	Errors  []string          `json:"errors"`
+}
+
 type BatchInviteResult struct {
 	Sent int `json:"sent"`
 }

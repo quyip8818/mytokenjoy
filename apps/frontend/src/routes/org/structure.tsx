@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react'
-import { useOrgStructureStore } from '@/stores/org-structure'
-import type { Department, Member } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -33,90 +30,42 @@ import { MemberFormDialog } from '@/components/org/structure/member-form-dialog'
 import { BatchActionBar } from '@/components/org/structure/batch-action-bar'
 import { InviteDialog } from '@/components/org/structure/invite-dialog'
 import { AlertTriangle, Send } from 'lucide-react'
+import { useStructurePage } from './hooks/use-structure-page'
 
 export default function StructurePage() {
-  const store = useOrgStructureStore()
-
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingMember, setEditingMember] = useState<Member | null>(null)
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [transferOpen, setTransferOpen] = useState(false)
-  const [transferDeptId, setTransferDeptId] = useState('')
-  const [confirmState, setConfirmState] = useState<{
-    open: boolean; title: string; desc: string; variant: 'primary' | 'danger'; onConfirm: () => void
-  }>({ open: false, title: '', desc: '', variant: 'primary', onConfirm: () => {} })
-
-  useEffect(() => {
-    store.loadDepartments()
-    store.loadMembers()
-  }, [])
-
-  const pendingCount = store.members.filter((m) => m.status === 'pending').length
-  const selectedIds = Object.keys(store.rowSelection)
-
-  const handleMemberSubmit = async (data: {
-    name: string; phone: string; email: string; username: string
-    employeeId: string; jobTitle: string; hireDate: string; departmentId: string
-  }) => {
-    if (editingMember) {
-      await store.updateMember(editingMember.id, data)
-    } else {
-      const dept = flattenDepts(store.departments).find((d) => d.id === data.departmentId)
-      await store.createMember({ ...data, departmentName: dept?.name ?? '' })
-    }
-    setFormOpen(false)
-    setEditingMember(null)
-  }
-
-  const handleStatusChange = (ids: string[], status: 'active' | 'inactive') => {
-    setConfirmState({
-      open: true,
-      title: status === 'inactive' ? '停用成员' : '启用成员',
-      desc: status === 'inactive'
-        ? '停用后该成员的 Platform Key 将同步失效'
-        : `确定启用选中的 ${ids.length} 名成员？`,
-      variant: status === 'inactive' ? 'danger' : 'primary',
-      onConfirm: async () => {
-        await store.updateMemberStatus(ids, status)
-        setConfirmState((s) => ({ ...s, open: false }))
-      },
-    })
-  }
-
-  const handleDelete = (ids: string[]) => {
-    setConfirmState({
-      open: true,
-      title: '删除成员',
-      desc: `确定删除 ${ids.length} 名成员？此操作不可恢复`,
-      variant: 'danger',
-      onConfirm: async () => {
-        await store.deleteMember(ids)
-        setConfirmState((s) => ({ ...s, open: false }))
-      },
-    })
-  }
-
-  const handleBatchTransfer = async () => {
-    if (!transferDeptId || selectedIds.length === 0) return
-    await store.transferMembers(selectedIds, transferDeptId)
-    setTransferOpen(false)
-    setTransferDeptId('')
-  }
-
-  const flatDepts = flattenDepts(store.departments)
+  const {
+    store,
+    formOpen,
+    editingMember,
+    inviteOpen,
+    transferOpen,
+    transferDeptId,
+    confirmState,
+    pendingCount,
+    selectedIds,
+    flatDepts,
+    setInviteOpen,
+    setTransferOpen,
+    setTransferDeptId,
+    setConfirmState,
+    handleMemberSubmit,
+    handleStatusChange,
+    handleDelete,
+    handleBatchTransfer,
+    openCreateMember,
+    openEditMember,
+    closeMemberForm,
+  } = useStructurePage()
 
   return (
     <div className="flex h-[calc(100dvh-7.5rem)] rounded-lg border border-border bg-card shadow-xs overflow-hidden">
-      {/* Left: Department Tree */}
       <DepartmentPanel
         selectedId={store.selectedDept?.id}
         onSelect={store.selectDept}
         onTreeChange={store.loadDepartments}
       />
 
-      {/* Right: Member Content */}
       <div className="relative flex flex-1 flex-col gap-4 overflow-hidden p-5">
-        {/* Stats header */}
         <div className="flex items-center gap-4">
           <h3 className="text-sm font-semibold text-foreground">
             {store.selectedDept?.name ?? '全部成员'}
@@ -135,7 +84,6 @@ export default function StructurePage() {
           )}
         </div>
 
-        {/* Pending activation banner */}
         {pendingCount > 0 && (
           <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
             <AlertTriangle className="size-4 shrink-0 text-amber-600" />
@@ -149,29 +97,26 @@ export default function StructurePage() {
           </div>
         )}
 
-        {/* Toolbar */}
         <MemberToolbar
           keyword={store.keyword}
           onKeywordChange={store.setKeyword}
           onInvite={() => setInviteOpen(true)}
-          onAdd={() => { setEditingMember(null); setFormOpen(true) }}
+          onAdd={openCreateMember}
         />
 
-        {/* Table */}
         <MemberTable
           data={store.members}
           total={store.total}
           page={store.page}
           pageSize={store.pageSize}
           onPageChange={store.setPage}
-          onEdit={(m) => { setEditingMember(m); setFormOpen(true) }}
+          onEdit={openEditMember}
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}
           rowSelection={store.rowSelection}
           onRowSelectionChange={store.setRowSelection}
         />
 
-        {/* Batch action bar */}
         <BatchActionBar
           count={selectedIds.length}
           onTransfer={() => setTransferOpen(true)}
@@ -182,13 +127,12 @@ export default function StructurePage() {
         />
       </div>
 
-      {/* Dialogs */}
       <MemberFormDialog
         open={formOpen}
         member={editingMember}
         departments={store.departments}
         onSubmit={handleMemberSubmit}
-        onClose={() => { setFormOpen(false); setEditingMember(null) }}
+        onClose={closeMemberForm}
       />
 
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} onInvite={store.inviteMember} />
@@ -230,13 +174,4 @@ export default function StructurePage() {
       </AlertDialog>
     </div>
   )
-}
-
-function flattenDepts(departments: Department[], level = 0): { id: string; name: string; level: number }[] {
-  const result: { id: string; name: string; level: number }[] = []
-  for (const dept of departments) {
-    result.push({ id: dept.id, name: dept.name, level })
-    if (dept.children) result.push(...flattenDepts(dept.children, level + 1))
-  }
-  return result
 }

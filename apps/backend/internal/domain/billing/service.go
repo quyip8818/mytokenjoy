@@ -13,16 +13,19 @@ import (
 
 type Service interface {
 	GetWallet(ctx context.Context) (WalletView, error)
+	ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error)
 	PlatformRecharge(ctx context.Context, companyID int64, amount float64, operatorID string) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID string) error
 }
 
 type WalletView struct {
-	Balance     float64 `json:"balance"`
-	Allocatable float64 `json:"allocatable"`
-	Currency    string  `json:"currency"`
-	CompanyID   int64   `json:"companyId"`
+	Balance       float64 `json:"balance"`
+	Allocatable   float64 `json:"allocatable"`
+	Currency      string  `json:"currency"`
+	CompanyID     int64   `json:"companyId"`
+	TotalConsumed float64 `json:"totalConsumed"`
+	TotalRequests int64   `json:"totalRequests"`
 }
 
 type service struct {
@@ -49,16 +52,21 @@ func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
 		return WalletView{}, fmt.Errorf("company context required")
 	}
 	view := WalletView{Currency: "CNY", CompanyID: companyCtx.CompanyID}
-	if companyCtx.NewAPIWalletUserID <= 0 {
-		return view, nil
+	if companyCtx.NewAPIWalletUserID > 0 {
+		quota, err := s.wallet.AvailableQuota(ctx, companyCtx.NewAPIWalletUserID)
+		if err != nil {
+			return WalletView{}, err
+		}
+		balance := newapi.FromNewAPIUnits(quota, nil, nil)
+		view.Balance = balance
+		view.Allocatable = balance
 	}
-	quota, err := s.wallet.AvailableQuota(ctx, companyCtx.NewAPIWalletUserID)
+	consumed, requests, err := s.walletUsageStats(ctx) // TODO(real): unify wallet stats under billing domain.
 	if err != nil {
 		return WalletView{}, err
 	}
-	balance := newapi.FromNewAPIUnits(quota, nil, nil)
-	view.Balance = balance
-	view.Allocatable = balance
+	view.TotalConsumed = consumed
+	view.TotalRequests = requests
 	return view, nil
 }
 

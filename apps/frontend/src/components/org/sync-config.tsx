@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import type { SyncConfig as SyncConfigType } from '@/api/types'
-import { syncApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +21,7 @@ interface SyncConfigProps {
 }
 
 export function SyncConfigPanel({ onTriggerSync, triggeringSyc }: SyncConfigProps) {
+  const apis = useInjectedApis()
   const { register, handleSubmit, setValue, watch } = useForm<SyncConfigType>({
     defaultValues: {
       enabled: false,
@@ -39,7 +40,7 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSyc }: SyncConfigProp
   const notifyEmail = watch('notifyEmail')
 
   useEffect(() => {
-    syncApi.getConfig().then((config) => {
+    void apis.syncApi.getConfig().then((config) => {
       const fields: (keyof SyncConfigType)[] = [
         'enabled', 'startTime', 'frequencyHours',
         'deleteMemberThreshold', 'deleteDepartmentThreshold',
@@ -49,10 +50,10 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSyc }: SyncConfigProp
         setValue(key, config[key] as never)
       })
     })
-  }, [setValue])
+  }, [apis, setValue])
 
   const onSubmit = async (data: SyncConfigType) => {
-    await syncApi.saveConfig(data)
+    await apis.syncApi.saveConfig(data)
     alert('同步配置已保存')
   }
 

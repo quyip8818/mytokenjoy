@@ -28,6 +28,7 @@ func NewHandler(p httpdeps.Protected, billingSvc domainbilling.Service) *Handler
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRead)
 	read.Get("/billing/wallet", h.GetWallet)
+	read.Get("/billing/recharge-records", h.ListRechargeRecords)
 	write := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRecharge)
 	write.Post("/billing/recharge", h.CreateRecharge)
 	write.Post("/billing/recharge/{id}/confirm", h.ConfirmRecharge)
@@ -36,6 +37,11 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 func (h *Handler) GetWallet(w http.ResponseWriter, r *http.Request) {
 	view, err := h.billingSvc.GetWallet(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, view, err)
+}
+
+func (h *Handler) ListRechargeRecords(w http.ResponseWriter, r *http.Request) {
+	records, err := h.billingSvc.ListRechargeRecords(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, records, err)
 }
 
 type rechargeBody struct {

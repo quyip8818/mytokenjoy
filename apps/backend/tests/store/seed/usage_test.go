@@ -46,4 +46,9 @@ func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	if totals.CostCNY <= 0 || totals.CallCount <= 0 {
 		t.Fatalf("expected non-zero summary, got %+v", totals)
 	}
+	const expectedRootConsumed = 67500.0
+	const tolerance = 1.0
+	if totals.CostCNY < expectedRootConsumed-tolerance || totals.CostCNY > expectedRootConsumed+tolerance {
+		t.Fatalf("expected cost near %.0f, got %.2f", expectedRootConsumed, totals.CostCNY)
+	}
 }

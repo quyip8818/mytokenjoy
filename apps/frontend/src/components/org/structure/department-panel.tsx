@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { Department } from '@/api/types'
-import { departmentApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -21,6 +21,7 @@ interface DepartmentPanelProps {
 }
 
 export function DepartmentPanel({ selectedId, onSelect, onTreeChange }: DepartmentPanelProps) {
+  const apis = useInjectedApis()
   const [tree, setTree] = useState<Department[]>([])
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -33,16 +34,16 @@ export function DepartmentPanel({ selectedId, onSelect, onTreeChange }: Departme
 
   useEffect(() => {
     let cancelled = false
-    departmentApi.getTree().then((data) => {
+    void apis.departmentApi.getTree().then((data) => {
       if (cancelled) return
       setTree(data)
       setExpanded((prev) => prev.size === 0 && data.length > 0 ? new Set(data.map((d) => d.id)) : prev)
     })
     return () => { cancelled = true }
-  }, [])
+  }, [apis])
 
   const loadTree = async () => {
-    const data = await departmentApi.getTree()
+    const data = await apis.departmentApi.getTree()
     setTree(data)
   }
 
@@ -70,13 +71,13 @@ export function DepartmentPanel({ selectedId, onSelect, onTreeChange }: Departme
 
   const handleAdd = async () => {
     if (!inputValue.trim() || dialogState?.type !== 'add') return
-    await departmentApi.create({ name: inputValue.trim(), parentId: dialogState.parentId })
+    await apis.departmentApi.create({ name: inputValue.trim(), parentId: dialogState.parentId })
     setDialogState(null); setInputValue(''); loadTree(); onTreeChange()
   }
 
   const handleEdit = async () => {
     if (!inputValue.trim() || dialogState?.type !== 'edit') return
-    await departmentApi.update(dialogState.dept.id, { name: inputValue.trim() })
+    await apis.departmentApi.update(dialogState.dept.id, { name: inputValue.trim() })
     setDialogState(null); setInputValue(''); loadTree(); onTreeChange()
   }
 
@@ -92,7 +93,7 @@ export function DepartmentPanel({ selectedId, onSelect, onTreeChange }: Departme
 
   const confirmDelete = async () => {
     if (!deleteTarget || deleteError) { setDeleteTarget(null); setDeleteError(''); return }
-    await departmentApi.delete(deleteTarget.id)
+    await apis.departmentApi.delete(deleteTarget.id)
     if (selectedId === deleteTarget.id) onSelect(undefined)
     setDeleteTarget(null); loadTree(); onTreeChange()
   }

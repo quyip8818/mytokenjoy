@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Member, Role } from '@/api/types'
-import { memberApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -136,6 +136,7 @@ export function AddMemberDialog({
   onAdd,
   onClose,
 }: AddMemberDialogProps) {
+  const apis = useInjectedApis()
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState<Member[]>([])
   const [loading, setLoading] = useState(false)
@@ -150,7 +151,7 @@ export function AddMemberDialog({
     if (!keyword.trim()) return
     setLoading(true)
     try {
-      const res = await memberApi.list({ page: 1, pageSize: 20, keyword })
+      const res = await apis.memberApi.list({ page: 1, pageSize: 20, keyword })
       setResults(res.items.filter((m) => !existingMemberIds.includes(m.id)))
     } catch {
       setResults([])

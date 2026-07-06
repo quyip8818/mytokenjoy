@@ -35,6 +35,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	manageWrite := write.With(httpmiddleware.RequireAnyPermission(permission.ModelManage))
 	manageWrite.Post("/", h.Create)
+	manageWrite.Put("/{id}", h.Update)
+	manageWrite.Delete("/{id}", h.Delete)
 	manageWrite.Put("/{id}/toggle", h.Toggle)
 
 	whitelistWrite := write.With(httpmiddleware.RequireAnyPermission(permission.ModelWhitelist))
@@ -54,6 +56,21 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	model, err := h.service.CreateModel(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, model, err)
+}
+
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	var body types.UpdateModelInput
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	model, err := h.service.UpdateModel(r.Context(), chi.URLParam(r, "id"), body)
+	httputil.WriteJSON(w, http.StatusOK, model, err)
+}
+
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	err := h.service.DeleteModel(r.Context(), chi.URLParam(r, "id"))
+	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) Toggle(w http.ResponseWriter, r *http.Request) {

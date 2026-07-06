@@ -49,3 +49,20 @@ type MemberBudgetQuota struct {
 type UpdateMemberQuotaInput struct {
 	PersonalQuota float64 `json:"personalQuota"`
 }
+
+type BudgetApproval struct {
+	ID              string  `json:"id"`
+	ApplicantName   string  `json:"applicantName"`
+	DepartmentName  string  `json:"departmentName"`
+	Amount          float64 `json:"amount"`
+	Reason          string  `json:"reason"`
+	Status          string  `json:"status"`
+	CreatedAt       string  `json:"createdAt"`
+	ResolvedAt      *string `json:"resolvedAt,omitempty"`
+	RejectReason    *string `json:"rejectReason,omitempty"`
+}
+
+type ResolveBudgetApprovalInput struct {
+	Status       string  `json:"status"`
+	RejectReason *string `json:"rejectReason,omitempty"`
+}

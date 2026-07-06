@@ -10,6 +10,7 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainmember "github.com/tokenjoy/backend/internal/domain/member"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -29,6 +30,7 @@ type domainServices struct {
 	rebalance domainbudget.Rebalancer
 	company   domaincompany.Service
 	billing   domainbilling.Service
+	member    domainmember.Service
 }
 
 func wireFailureRecorder(i infra, logger *slog.Logger) domainusage.FailureRecorder {
@@ -38,10 +40,11 @@ func wireFailureRecorder(i infra, logger *slog.Logger) domainusage.FailureRecord
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {
 	reader := wireReader(i)
 	failureRecorder := wireFailureRecorder(i, logger)
+	keysSvc := wireKeys(cfg, i)
 	return domainServices{
 		org:             wireOrg(cfg, i, logger),
 		budget:          wireBudget(cfg, i),
-		keys:            wireKeys(cfg, i),
+		keys:            keysSvc,
 		models:          wireModels(cfg, i),
 		dashboard:       wireDashboard(cfg, i, reader),
 		audit:           wireAudit(cfg, i),
@@ -52,5 +55,6 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domain
 		rebalance:       wireRebalance(cfg, i),
 		company:         wireCompany(cfg, i),
 		billing:         wireBilling(cfg, i),
+		member:          wireMember(cfg, reader, keysSvc),
 	}
 }

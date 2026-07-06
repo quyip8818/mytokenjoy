@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import type { SyncLog } from '@/api/types'
-import { syncApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 
@@ -42,15 +42,16 @@ const columns = [
 ]
 
 export function SyncLogTable() {
+  const apis = useInjectedApis()
   const [logs, setLogs] = useState<SyncLog[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    syncApi.getLogs(1, 10).then((res) => {
+    void apis.syncApi.getLogs(1, 10).then((res) => {
       setLogs(res.items)
       setLoading(false)
     })
-  }, [])
+  }, [apis])
 
   const table = useReactTable({
     data: logs,

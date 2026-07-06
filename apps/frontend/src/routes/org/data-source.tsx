@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
-import type { DataSourceStatus, Platform } from '@/api/types'
-import { dataSourceApi } from '@/api/org'
+import type { Platform } from '@/api/types'
 import { Stepper } from '@/components/org/data-source/stepper'
 import { PlatformSelect } from '@/components/org/data-source/platform-select'
 import { StepCredentials } from '@/components/org/data-source/step-credentials'
@@ -9,6 +7,7 @@ import { StepSyncSchedule } from '@/components/org/data-source/step-sync-schedul
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Settings2 } from 'lucide-react'
+import { useDataSourcePage } from './hooks/use-data-source-page'
 
 const steps = [
   { title: '凭证配置', description: '连接第三方平台' },
@@ -22,52 +21,23 @@ const platformLabels: Record<Platform, string> = {
   wecom: '企业微信',
 }
 
-type WizardPhase = 'loading' | 'select' | 'steps' | 'connected'
-
 export default function DataSourcePage() {
-  const [phase, setPhase] = useState<WizardPhase>('loading')
-  const [platform, setPlatform] = useState<Platform | null>(null)
-  const [currentStep, setCurrentStep] = useState(0)
-  const [completedSteps, setCompletedSteps] = useState<number[]>([])
-  const [status, setStatus] = useState<DataSourceStatus | null>(null)
+  const {
+    phase,
+    platform,
+    currentStep,
+    completedSteps,
+    status,
+    loading,
+    handlePlatformSelected,
+    completeStep,
+    handleWizardComplete,
+    handleReconfigure,
+    goToSelect,
+    goToPreviousStep,
+  } = useDataSourcePage()
 
-  useEffect(() => {
-    dataSourceApi.getStatus().then((s) => {
-      setStatus(s)
-      if (s.connected && s.platform) {
-        setPlatform(s.platform)
-        setPhase('connected')
-      } else {
-        setPhase('select')
-      }
-    })
-  }, [])
-
-  const handlePlatformSelected = (p: Platform) => {
-    setPlatform(p)
-    setCurrentStep(0)
-    setCompletedSteps([])
-    setPhase('steps')
-  }
-
-  const completeStep = (step: number) => {
-    setCompletedSteps((prev) => (prev.includes(step) ? prev : [...prev, step]))
-    if (step < steps.length - 1) setCurrentStep(step + 1)
-  }
-
-  const handleWizardComplete = () => {
-    setCompletedSteps([0, 1, 2])
-    setPhase('connected')
-    dataSourceApi.getStatus().then(setStatus)
-  }
-
-  const handleReconfigure = () => {
-    setPhase('select')
-    setCurrentStep(0)
-    setCompletedSteps([])
-  }
-
-  if (phase === 'loading') {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-sm text-muted-foreground">加载中...</p>
@@ -75,7 +45,6 @@ export default function DataSourcePage() {
     )
   }
 
-  // Connected overview
   if (phase === 'connected' && status?.connected && platform) {
     return (
       <div className="space-y-6">
@@ -105,7 +74,6 @@ export default function DataSourcePage() {
     )
   }
 
-  // Platform selection
   if (phase === 'select') {
     return (
       <div className="mx-auto max-w-2xl py-8">
@@ -114,24 +82,32 @@ export default function DataSourcePage() {
     )
   }
 
-  // Step wizard
   return (
     <div className="space-y-6">
-      {/* Stepper header */}
       <div className="rounded-lg border border-border bg-white p-5 shadow-xs">
         <Stepper steps={steps} currentStep={currentStep} completedSteps={completedSteps} />
       </div>
 
-      {/* Step content */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-xs">
         {currentStep === 0 && platform && (
-          <StepCredentials platform={platform} onConnected={() => completeStep(0)} onBack={() => setPhase('select')} />
+          <StepCredentials
+            platform={platform}
+            onConnected={() => completeStep(0)}
+            onBack={goToSelect}
+          />
         )}
         {currentStep === 1 && platform && (
-          <StepFieldMapping platform={platform} onComplete={() => completeStep(1)} onBack={() => setCurrentStep(0)} />
+          <StepFieldMapping
+            platform={platform}
+            onComplete={() => completeStep(1)}
+            onBack={() => goToPreviousStep(0)}
+          />
         )}
         {currentStep === 2 && (
-          <StepSyncSchedule onComplete={handleWizardComplete} onBack={() => setCurrentStep(1)} />
+          <StepSyncSchedule
+            onComplete={handleWizardComplete}
+            onBack={() => goToPreviousStep(1)}
+          />
         )}
       </div>
     </div>

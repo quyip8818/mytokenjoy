@@ -133,6 +133,21 @@ func (h *Handler) AlertDelete(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
+func (h *Handler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
+	items, err := h.service.ListApprovals(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, items, err)
+}
+
+func (h *Handler) ApprovalResolve(w http.ResponseWriter, r *http.Request) {
+	var body types.ResolveBudgetApprovalInput
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	item, err := h.service.ResolveApproval(r.Context(), chi.URLParam(r, "id"), body)
+	httputil.WriteJSON(w, http.StatusOK, item, err)
+}
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
@@ -140,6 +155,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/groups", h.GroupsList)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
+	read.Get("/approvals", h.ApprovalsList)
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
@@ -155,4 +171,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	policyWrite.Post("/alerts", h.AlertCreate)
 	policyWrite.Put("/alerts/{id}", h.AlertUpdate)
 	policyWrite.Delete("/alerts/{id}", h.AlertDelete)
+
+	approveWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetApprove))
+	approveWrite.Put("/approvals/{id}", h.ApprovalResolve)
 }

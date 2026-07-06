@@ -25,6 +25,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.OrgRead)
 	read.Get("/data-source/status", h.DataSourceStatus)
 	read.Get("/data-source/search", h.DataSourceSearch)
+	read.Get("/data-source/field-mappings", h.FieldMappingsGet)
 	read.Get("/sync/config", h.SyncConfigGet)
 	read.Get("/sync/logs", h.SyncLogs)
 	read.Get("/departments/tree", h.DepartmentTree)
@@ -40,6 +41,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	datasourceWrite.Put("/data-source", h.DataSourceUpdate)
 	datasourceWrite.Post("/data-source/import", h.DataSourceImport)
 	datasourceWrite.Post("/data-source/import/retry", h.DataSourceImportRetry)
+	datasourceWrite.Put("/data-source/field-mappings", h.FieldMappingsSave)
+	datasourceWrite.Get("/data-source/field-mappings/test", h.FieldMappingsTest)
 	datasourceWrite.Put("/sync/config", h.SyncConfigUpdate)
 
 	r.With(httpmiddleware.AllowSyncTrigger(h.Protected)).Post("/sync/trigger", h.SyncTrigger)

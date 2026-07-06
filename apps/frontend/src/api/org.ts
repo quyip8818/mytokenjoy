@@ -1,4 +1,4 @@
-import { request } from './client'
+import { request, buildQuery } from './client'
 import type {
   Credential,
   DataSourceStatus,
@@ -14,6 +14,8 @@ import type {
   Role,
   SyncConfig,
   SyncLog,
+  BatchImportRow,
+  MemberBatchImportResult,
 } from './types'
 
 // 数据源
@@ -33,8 +35,7 @@ export const dataSourceApi = {
     request<{ name: string; department: string; mappingOk: boolean }>(
       `/org/data-source/search?keyword=${encodeURIComponent(keyword)}`,
     ),
-  import: () =>
-    request<ImportResult>('/org/data-source/import', { method: 'POST' }),
+  import: () => request<ImportResult>('/org/data-source/import', { method: 'POST' }),
   retryImport: (ids: string[]) =>
     request<ImportResult>('/org/data-source/import/retry', {
       method: 'POST',
@@ -61,12 +62,9 @@ export const syncApi = {
       method: 'PUT',
       body: JSON.stringify(config),
     }),
-  triggerSync: () =>
-    request<ImportResult>('/org/sync/trigger', { method: 'POST' }),
+  triggerSync: () => request<ImportResult>('/org/sync/trigger', { method: 'POST' }),
   getLogs: (page: number, pageSize: number) =>
-    request<Paginated<SyncLog>>(
-      `/org/sync/logs?page=${page}&pageSize=${pageSize}`,
-    ),
+    request<Paginated<SyncLog>>(`/org/sync/logs?page=${page}&pageSize=${pageSize}`),
 }
 
 // 部门
@@ -82,8 +80,7 @@ export const departmentApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  delete: (id: string) =>
-    request<void>(`/org/departments/${id}`, { method: 'DELETE' }),
+  delete: (id: string) => request<void>(`/org/departments/${id}`, { method: 'DELETE' }),
 }
 
 // 成员
@@ -95,15 +92,9 @@ export const memberApi = {
     pageSize: number
     keyword?: string
   }) => {
-    const qs = new URLSearchParams()
-    if (params.departmentId) qs.set('departmentId', params.departmentId)
-    if (params.directOnly) qs.set('directOnly', 'true')
-    qs.set('page', String(params.page))
-    qs.set('pageSize', String(params.pageSize))
-    if (params.keyword) qs.set('keyword', params.keyword)
-    return request<Paginated<Member>>(`/org/members?${qs}`)
+    return request<Paginated<Member>>(`/org/members${buildQuery(params)}`)
   },
-  create: (data: Omit<Member, 'id' | 'status' | 'roles' | 'source'>) =>
+  create: (data: Omit<Member, 'id' | 'status' | 'roles' | 'source' | 'companyId'>) =>
     request<Member>('/org/members', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -133,6 +124,16 @@ export const memberApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  batchInvite: (ids?: string[]) =>
+    request<{ sent: number }>('/org/members/batch-invite', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+  batchImport: (rows: BatchImportRow[]) =>
+    request<MemberBatchImportResult>('/org/members/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ rows }),
+    }),
 }
 
 // 角色
@@ -148,10 +149,8 @@ export const roleApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  delete: (id: string) =>
-    request<void>(`/org/roles/${id}`, { method: 'DELETE' }),
-  getMembers: (roleId: string) =>
-    request<Member[]>(`/org/roles/${roleId}/members`),
+  delete: (id: string) => request<void>(`/org/roles/${id}`, { method: 'DELETE' }),
+  getMembers: (roleId: string) => request<Member[]>(`/org/roles/${roleId}/members`),
   addMember: (roleId: string, memberId: string) =>
     request<void>(`/org/roles/${roleId}/members`, {
       method: 'POST',

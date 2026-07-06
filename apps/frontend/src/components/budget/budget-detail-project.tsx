@@ -1,19 +1,11 @@
-import { useState, useMemo } from 'react'
-import { budgetApi } from '@/api/budget'
-import type { BudgetProject, OverrunPolicy } from '@/api/types'
-import { mockMembers } from '@/mocks/data'
+import { useState, useEffect } from 'react'
+import { useInjectedApis } from '@/api/use-apis'
+import type { BudgetProjectView, Member, OverrunPolicy } from '@/api/types'
 import { BudgetMemberPicker } from './budget-member-picker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +23,7 @@ import { cn } from '@/lib/utils'
 import { Check, Pencil, Trash2, UserMinus, UserPlus, X } from 'lucide-react'
 
 interface BudgetDetailProjectProps {
-  project: BudgetProject
+  project: BudgetProjectView
   onUpdated: () => void
   onDeleted: () => void
 }
@@ -77,6 +69,7 @@ export function BudgetDetailProject({
   onUpdated,
   onDeleted,
 }: BudgetDetailProjectProps) {
+  const apis = useInjectedApis()
   const policy = POLICY_LABELS[project.overrunPolicy]
   const remaining = project.budget - project.consumed
   const pct = project.budget > 0 ? Math.round((project.consumed / project.budget) * 100) : 0
@@ -84,7 +77,6 @@ export function BudgetDetailProject({
   // Settings inline edit state
   const [editingSettings, setEditingSettings] = useState(false)
   const [draftBudget, setDraftBudget] = useState('')
-  const [draftPolicy, setDraftPolicy] = useState<OverrunPolicy>(project.overrunPolicy)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
 
@@ -97,14 +89,23 @@ export function BudgetDetailProject({
   // Deleting state
   const [deleting, setDeleting] = useState(false)
 
-  const members = useMemo(
-    () => mockMembers.filter((m) => project.memberIds.includes(m.id)),
-    [project.memberIds]
-  )
+  const [members, setMembers] = useState<Member[]>([])
+
+  useEffect(() => {
+    if (!project.departmentId) {
+      setMembers([])
+      return
+    }
+    void apis.memberApi
+      .list({ departmentId: project.departmentId, page: 1, pageSize: 200 })
+      .then((result) =>
+        setMembers(result.items.filter((member) => project.memberIds.includes(member.id))),
+      )
+      .catch(() => setMembers([]))
+  }, [apis, project.departmentId, project.memberIds])
 
   function startEditSettings() {
     setDraftBudget(String(project.budget))
-    setDraftPolicy(project.overrunPolicy)
     setSettingsError(null)
     setEditingSettings(true)
   }
@@ -127,9 +128,8 @@ export function BudgetDetailProject({
     }
     setSavingSettings(true)
     try {
-      await budgetApi.updateProject(project.id, {
+      await apis.budgetApi.updateGroup(project.id, {
         budget: budgetNum,
-        overrunPolicy: draftPolicy,
       })
       setEditingSettings(false)
       onUpdated()
@@ -155,7 +155,7 @@ export function BudgetDetailProject({
     setSavingMembers(true)
     setMembersError(null)
     try {
-      await budgetApi.updateProject(project.id, { memberIds: draftMemberIds })
+      await apis.budgetApi.updateGroup(project.id, { memberIds: draftMemberIds })
       setEditingMembers(false)
       onUpdated()
     } catch {
@@ -168,7 +168,7 @@ export function BudgetDetailProject({
   async function handleDelete() {
     setDeleting(true)
     try {
-      await budgetApi.deleteProject(project.id)
+      await apis.budgetApi.deleteGroup(project.id)
       onDeleted()
     } catch {
       setDeleting(false)
@@ -335,7 +335,7 @@ export function BudgetDetailProject({
                             onClick={async () => {
                               const next = project.memberIds.filter((id) => id !== m.id)
                               try {
-                                await budgetApi.updateProject(project.id, { memberIds: next })
+                                await apis.budgetApi.updateGroup(project.id, { memberIds: next })
                                 onUpdated()
                               } catch {
                                 // silent — optimistic UX not required here
@@ -424,19 +424,9 @@ export function BudgetDetailProject({
                 超限策略
               </Label>
               {editingSettings ? (
-                <Select
-                  value={draftPolicy}
-                  onValueChange={(v) => setDraftPolicy(v as OverrunPolicy)}
-                >
-                  <SelectTrigger id="proj-settings-policy" size="sm" className="h-8 w-full text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hard_reject">硬拒绝</SelectItem>
-                    <SelectItem value="approval">审批追加</SelectItem>
-                    <SelectItem value="downgrade">降级路由</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Badge variant="outline" className={cn(policy.className, 'w-fit text-xs font-normal')}>
+                  {policy.label}
+                </Badge>
               ) : (
                 <Badge
                   variant="outline"

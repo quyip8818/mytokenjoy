@@ -35,6 +35,15 @@ type ToggleModelInput struct {
 	Enabled bool `json:"enabled"`
 }
 
+type UpdateModelInput struct {
+	DisplayName  *string  `json:"displayName"`
+	Name         *string  `json:"name"`
+	InputPrice   *float64 `json:"inputPrice"`
+	OutputPrice  *float64 `json:"outputPrice"`
+	MaxContext   *int     `json:"maxContext"`
+	Capabilities []string `json:"capabilities"`
+}
+
 type UpdateRoutingRuleInput struct {
 	AllowedModels []string `json:"allowedModels"`
 	Inherited     *bool    `json:"inherited"`

@@ -1,25 +1,12 @@
-import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { dashboardApi } from '@/api/dashboard'
-import type { ModelUsage, TeamUsage } from '@/api/types'
+import { useUsageDashboardPage } from '@/routes/dashboard/hooks/use-usage-dashboard-page'
 
 export default function UsageDashboardPage() {
-  const [teamUsage, setTeamUsage] = useState<TeamUsage[]>([])
-  const [modelUsage, setModelUsage] = useState<ModelUsage[]>([])
-
-  useEffect(() => {
-    Promise.all([
-      dashboardApi.getTeamUsage(),
-      dashboardApi.getModelUsage(),
-    ]).then(([t, m]) => {
-      setTeamUsage(t)
-      setModelUsage(m)
-    })
-  }, [])
+  const { teamUsage, modelUsage } = useUsageDashboardPage()
 
   return (
     <div className="space-y-8">

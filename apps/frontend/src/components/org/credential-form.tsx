@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Credential, Platform } from '@/api/types'
-import { dataSourceApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,6 +49,7 @@ const platformLabels: Record<Platform, string> = {
 }
 
 export function CredentialForm({ connected, currentPlatform, onSaved }: CredentialFormProps) {
+  const apis = useInjectedApis()
   const [platform, setPlatform] = useState<Platform>(currentPlatform || 'feishu')
   const [testSuccess, setTestSuccess] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -85,7 +86,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
       case 'feishu':
         return { platform: 'feishu', appId: data.appId, appSecret: data.appSecret }
       case 'dingtalk':
-        return { platform: 'dingtalk', clientId: data.appKey, clientSecret: data.appSecret }
+        return { platform: 'dingtalk', corpId: data.corpId, appKey: data.appKey, appSecret: data.appSecret }
       case 'wecom':
         return { platform: 'wecom', corpId: data.corpId, secret: data.secret, agentId: data.agentId }
     }
@@ -97,7 +98,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
     setTesting(true)
     setTestMessage('')
     try {
-      const res = await dataSourceApi.testConnection(credential)
+      const res = await apis.dataSourceApi.testConnection(credential)
       if (res.success) {
         setTestSuccess(true)
         setTestMessage('连接成功')
@@ -113,7 +114,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
 
   const handleSearch = async () => {
     if (!searchKeyword.trim()) return
-    const result = await dataSourceApi.searchMember(searchKeyword)
+    const result = await apis.dataSourceApi.searchMember(searchKeyword)
     setSearchResult(result)
   }
 
@@ -130,7 +131,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
     const credential = buildCredential(values)
     setSaving(true)
     try {
-      await dataSourceApi.save(credential)
+      await apis.dataSourceApi.save(credential)
       onSaved()
     } finally {
       setSaving(false)

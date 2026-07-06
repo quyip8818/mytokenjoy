@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { budgetApi } from '@/api/budget'
+import { useState } from 'react'
 import type { BudgetApproval } from '@/api/types'
 import {
   Sheet,
@@ -15,6 +14,11 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react'
 interface BudgetApprovalDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  approvals: BudgetApproval[]
+  onResolve: (
+    id: string,
+    data: { status: 'approved' | 'rejected'; rejectReason?: string },
+  ) => Promise<void>
   onResolved: () => void
 }
 
@@ -179,46 +183,37 @@ function ResolvedItem({ item }: { item: BudgetApproval }) {
 export function BudgetApprovalDrawer({
   open,
   onOpenChange,
+  approvals,
+  onResolve,
   onResolved,
 }: BudgetApprovalDrawerProps) {
-  const [approvals, setApprovals] = useState<BudgetApproval[]>([])
   const [rejectState, setRejectState] = useState<RejectState | null>(null)
   const [resolving, setResolving] = useState(false)
 
-  function reload() {
-    budgetApi.getApprovals().then((data) => {
-      setApprovals(data)
-    }).catch(() => {
-      // silent
-    })
-  }
-
-  useEffect(() => {
-    if (open) reload()
-  }, [open])
-
-  function handleApprove(id: string) {
+  async function handleApprove(id: string) {
     setResolving(true)
-    budgetApi.resolveApproval(id, { status: 'approved' }).then(() => {
-      setResolving(false)
-      reload()
+    try {
+      await onResolve(id, { status: 'approved' })
       onResolved()
-    }).catch(() => {
+    } catch {
+      // silent
+    } finally {
       setResolving(false)
-    })
+    }
   }
 
-  function handleRejectConfirm(id: string, reason: string) {
+  async function handleRejectConfirm(id: string, reason: string) {
     if (!reason.trim()) return
     setResolving(true)
-    budgetApi.resolveApproval(id, { status: 'rejected', rejectReason: reason.trim() }).then(() => {
+    try {
+      await onResolve(id, { status: 'rejected', rejectReason: reason.trim() })
       setRejectState(null)
-      setResolving(false)
-      reload()
       onResolved()
-    }).catch(() => {
+    } catch {
+      // silent
+    } finally {
       setResolving(false)
-    })
+    }
   }
 
   const pending = approvals.filter((a) => a.status === 'pending')
@@ -233,7 +228,6 @@ export function BudgetApprovalDrawer({
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="space-y-6">
-            {/* Pending section */}
             <div>
               <h3 className="mb-3 text-xs font-medium uppercase text-muted-foreground">
                 待审批
@@ -255,14 +249,14 @@ export function BudgetApprovalDrawer({
                       item={item}
                       rejectState={rejectState?.id === item.id ? rejectState : null}
                       resolving={resolving}
-                      onApprove={() => handleApprove(item.id)}
+                      onApprove={() => void handleApprove(item.id)}
                       onRejectStart={() => setRejectState({ id: item.id, reason: '' })}
                       onRejectCancel={() => setRejectState(null)}
                       onRejectReasonChange={(reason) =>
                         setRejectState((prev) => (prev ? { ...prev, reason } : null))
                       }
                       onRejectConfirm={() =>
-                        handleRejectConfirm(item.id, rejectState?.reason ?? '')
+                        void handleRejectConfirm(item.id, rejectState?.reason ?? '')
                       }
                     />
                   ))}

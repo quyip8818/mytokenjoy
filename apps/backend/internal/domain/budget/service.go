@@ -28,6 +28,8 @@ type Service interface {
 	CreateAlert(ctx context.Context, rule types.AlertRule) (types.AlertRule, error)
 	UpdateAlert(ctx context.Context, id string, patch types.AlertRule) (types.AlertRule, error)
 	DeleteAlert(ctx context.Context, id string) error
+	ListApprovals(ctx context.Context) ([]types.BudgetApproval, error)
+	ResolveApproval(ctx context.Context, id string, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error)
 }
 
 type service struct {

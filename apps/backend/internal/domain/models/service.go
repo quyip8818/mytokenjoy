@@ -18,6 +18,8 @@ import (
 type Service interface {
 	ListModels(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
+	UpdateModel(ctx context.Context, id string, input types.UpdateModelInput) (types.ModelInfo, error)
+	DeleteModel(ctx context.Context, id string) error
 	ToggleModel(ctx context.Context, id string, enabled bool) error
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
 	ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error)
@@ -74,6 +76,70 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		return types.ModelInfo{}, fmt.Errorf("persist models: %w", err)
 	}
 	return model, nil
+}
+
+func (s *service) UpdateModel(ctx context.Context, id string, input types.UpdateModelInput) (types.ModelInfo, error) {
+	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
+		return types.ModelInfo{}, err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.ModelInfo{}, err
+	}
+	for i := range models {
+		if models[i].ID != id {
+			continue
+		}
+		if input.DisplayName != nil {
+			models[i].DisplayName = *input.DisplayName
+		}
+		if input.Name != nil {
+			models[i].Name = *input.Name
+		}
+		if input.InputPrice != nil {
+			models[i].InputPrice = *input.InputPrice
+		}
+		if input.OutputPrice != nil {
+			models[i].OutputPrice = *input.OutputPrice
+		}
+		if input.MaxContext != nil {
+			models[i].MaxContext = *input.MaxContext
+		}
+		if input.Capabilities != nil {
+			models[i].Capabilities = append([]string{}, input.Capabilities...)
+		}
+		if err := s.store.Models().SetModels(ctx, models); err != nil {
+			return types.ModelInfo{}, fmt.Errorf("persist models: %w", err)
+		}
+		return models[i], nil
+	}
+	return types.ModelInfo{}, domain.NotFound("Not found")
+}
+
+func (s *service) DeleteModel(ctx context.Context, id string) error {
+	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
+		return err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return err
+	}
+	next := make([]types.ModelInfo, 0, len(models))
+	found := false
+	for _, model := range models {
+		if model.ID == id {
+			found = true
+			continue
+		}
+		next = append(next, model)
+	}
+	if !found {
+		return domain.NotFound("Not found")
+	}
+	if err := s.store.Models().SetModels(ctx, next); err != nil {
+		return fmt.Errorf("persist models: %w", err)
+	}
+	return nil
 }
 
 func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) error {

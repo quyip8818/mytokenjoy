@@ -10,6 +10,7 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainmember "github.com/tokenjoy/backend/internal/domain/member"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainrelay 	"github.com/tokenjoy/backend/internal/domain/relay"
@@ -41,6 +42,7 @@ type Deps struct {
 	IngestMetrics        ingestmetrics.Recorder
 	CompanySvc           domaincompany.Service
 	BillingSvc           domainbilling.Service
+	MemberSvc            domainmember.Service
 	WalletSvc            domaincompany.WalletService
 	CompanyGate          *domaincompany.Gate
 	RelayGateway         domainrelay.GatewayService

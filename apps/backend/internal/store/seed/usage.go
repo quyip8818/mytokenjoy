@@ -50,36 +50,40 @@ func buildUsageBuckets(demoToday string) []types.UsageBucketRow {
 	currentMonth := time.Date(anchor.Year(), anchor.Month(), 1, 0, 0, 0, 0, time.UTC)
 	lastMonth := currentMonth.AddDate(0, -1, 0)
 
+	const rootConsumed = 67500.0
+	const rawTotal = 39.5
+	scale := rootConsumed / rawTotal
+
 	return []types.UsageBucketRow{
 		{
 			BucketStart:  time.Date(lastMonth.Year(), lastMonth.Month(), 15, 8, 0, 0, 0, time.UTC),
 			DepartmentID: IDDept3, MemberID: IDMember1, Model: "gpt-4o",
-			CostCNY: 5, CallCount: 2,
+			CostCNY: 5 * scale, CallCount: 85,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 10, 8, 0, 0, 0, time.UTC),
 			DepartmentID: IDDept3, MemberID: IDMember1, Model: "gpt-4o",
-			CostCNY: 12.5, CallCount: 3,
+			CostCNY: 12.5 * scale, CallCount: 128,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 10, 9, 0, 0, 0, time.UTC),
 			DepartmentID: IDDept3, MemberID: IDMember1, Model: "gpt-4o-mini",
-			CostCNY: 4, CallCount: 5,
+			CostCNY: 4 * scale, CallCount: 214,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 12, 10, 0, 0, 0, time.UTC),
 			DepartmentID: IDDept4, MemberID: "m-4", Model: "claude-3-5-sonnet",
-			CostCNY: 8.5, CallCount: 2,
+			CostCNY: 8.5 * scale, CallCount: 86,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 14, 11, 0, 0, 0, time.UTC),
 			DepartmentID: IDDept3, MemberID: "m-pure", Model: "gpt-4o",
-			CostCNY: 6, CallCount: 4,
+			CostCNY: 6 * scale, CallCount: 171,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 16, 14, 0, 0, 0, time.UTC),
 			DepartmentID: IDDept4, MemberID: "m-4", Model: "gpt-4o",
-			CostCNY: 3.5, CallCount: 1,
+			CostCNY: 3.5 * scale, CallCount: 43,
 		},
 	}
 }

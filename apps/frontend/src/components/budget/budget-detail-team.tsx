@@ -1,18 +1,24 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProject } from '@/api/types'
+import type { BudgetNode, BudgetProjectView } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberQuota } from './budget-edit-member-quota'
 import { BudgetProjectDialog } from './budget-project-dialog'
+import { nodeReservedPool } from '@/lib/budget'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
 
 interface BudgetDetailTeamProps {
   node: BudgetNode
-  projects: BudgetProject[]
+  projects: BudgetProjectView[]
+  overrunPolicyLabel: string
   onUpdated: () => void
   onNavigateToProject: (projectId: string) => void
+  onUpdateDepartment: (
+    departmentId: string,
+    data: { budget: number; reservedPool?: number },
+  ) => Promise<void>
 }
 
 function SummaryCard({
@@ -44,36 +50,41 @@ function SummaryCard({
   )
 }
 
-export function BudgetDetailTeam({ node, projects, onUpdated, onNavigateToProject }: BudgetDetailTeamProps) {
+export function BudgetDetailTeam({
+  node,
+  projects,
+  overrunPolicyLabel,
+  onUpdated,
+  onNavigateToProject,
+  onUpdateDepartment,
+}: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
-  const nodeProjects = projects.filter((p) => p.departmentId === node.id)
-  const childrenBudgetSum = node.children?.reduce((s, c) => s + c.budget, 0) ?? 0
-  const projectBudgetSum = nodeProjects.reduce((s, p) => s + p.budget, 0)
-  const allocated = childrenBudgetSum + projectBudgetSum + node.reserved
+  const nodeProjects = projects.filter((project) => project.departmentId === node.id)
+  const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
+  const projectBudgetSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
+  const reservedPool = nodeReservedPool(node)
+  const allocated = childrenBudgetSum + projectBudgetSum + reservedPool
   const unallocated = node.budget - allocated
   const pct = node.budget > 0 ? Math.round((node.consumed / node.budget) * 100) : 0
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-5">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <h3 className="text-sm font-semibold text-foreground">{node.name}</h3>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-4 gap-4">
         <SummaryCard label="总额度" value={node.budget} />
         <SummaryCard label="已分配" value={allocated} muted />
-        <SummaryCard label="预留池" value={node.reserved} />
+        <SummaryCard label="预留池" value={reservedPool} />
         <SummaryCard label="未分配" value={unallocated} highlight={unallocated < 0} />
       </div>
 
-      {/* Usage progress */}
       <div className="rounded-lg border border-border p-4">
         <div className="mb-2 flex items-center justify-between text-xs">
           <span className="text-muted-foreground">本月消耗</span>
-          <span className="tabular-nums font-medium">
+          <span className="font-medium tabular-nums">
             ¥{node.consumed.toLocaleString()} / ¥{node.budget.toLocaleString()}
           </span>
         </div>
@@ -83,10 +94,14 @@ export function BudgetDetailTeam({ node, projects, onUpdated, onNavigateToProjec
         </p>
       </div>
 
-      {/* Allocation table */}
-      <BudgetEditAllocation node={node} projects={projects} onUpdated={onUpdated} />
+      <BudgetEditAllocation
+        node={node}
+        projects={projects}
+        overrunPolicyLabel={overrunPolicyLabel}
+        onUpdated={onUpdated}
+        onUpdateDepartment={onUpdateDepartment}
+      />
 
-      {/* Project budget section */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-foreground">项目预算</h4>
@@ -101,24 +116,19 @@ export function BudgetDetailTeam({ node, projects, onUpdated, onNavigateToProjec
           </Button>
         </div>
 
-        <div className="rounded-lg border border-border divide-y divide-border">
+        <div className="divide-y divide-border rounded-lg border border-border">
           {nodeProjects.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">暂无项目</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCreateDialogOpen(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
                 创建第一个项目
               </Button>
             </div>
           ) : (
             nodeProjects.map((project) => {
-              const projPct = project.budget > 0
-                ? Math.round((project.consumed / project.budget) * 100)
-                : 0
+              const projectPct =
+                project.budget > 0 ? Math.round((project.consumed / project.budget) * 100) : 0
               return (
                 <div
                   key={project.id}
@@ -129,24 +139,22 @@ export function BudgetDetailTeam({ node, projects, onUpdated, onNavigateToProjec
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   )}
                   onClick={() => onNavigateToProject(project.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
                       onNavigateToProject(project.id)
                     }
                   }}
                 >
-                  <span className="flex-1 text-sm font-medium text-foreground">
-                    {project.name}
-                  </span>
+                  <span className="flex-1 text-sm font-medium text-foreground">{project.name}</span>
                   <span className="text-xs tabular-nums text-muted-foreground">
                     ¥{project.budget.toLocaleString()} / ¥{project.consumed.toLocaleString()}
                   </span>
                   <div className="w-24">
-                    <Progress value={projPct} className="h-1.5" />
+                    <Progress value={projectPct} className="h-1.5" />
                   </div>
                   <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
-                    {projPct}%
+                    {projectPct}%
                   </span>
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </div>
@@ -156,12 +164,13 @@ export function BudgetDetailTeam({ node, projects, onUpdated, onNavigateToProjec
         </div>
       </div>
 
-      {/* Member quota */}
-      {node.memberQuota > 0 && (
-        <BudgetEditMemberQuota node={node} projects={projects} onUpdated={onUpdated} />
-      )}
+      <BudgetEditMemberQuota
+        node={node}
+        projects={projects}
+        onUpdated={onUpdated}
+        onUpdateDepartment={onUpdateDepartment}
+      />
 
-      {/* Create project dialog */}
       <BudgetProjectDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}

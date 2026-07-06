@@ -9,6 +9,7 @@ import (
 	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
 	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
 	keyshandler "github.com/tokenjoy/backend/internal/http/handler/keys"
+	mehandler "github.com/tokenjoy/backend/internal/http/handler/me"
 	modelshandler "github.com/tokenjoy/backend/internal/http/handler/models"
 	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
 	"github.com/tokenjoy/backend/internal/http/handler/platform"
@@ -26,6 +27,7 @@ type Registry struct {
 	models    *modelshandler.Handler
 	dashboard *dashboardhandler.Handler
 	audit     *audithandler.Handler
+	me        *mehandler.Handler
 	internalIngest *InternalIngestHandler
 }
 
@@ -43,6 +45,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		models:    modelshandler.NewHandler(p, deps.ModelsSvc),
 		dashboard: dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:     audithandler.NewHandler(p, deps.AuditSvc, deps.ReadModel),
+		me:        mehandler.NewHandler(p, deps.MemberSvc),
 		internalIngest: NewInternalIngestHandler(deps.Config, deps.IngestSvc, deps.IngestFailureRecorder, deps.IngestMetrics, deps.Logger),
 	}
 }
@@ -63,4 +66,5 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	r.Route("/models", reg.models.RegisterRoutes)
 	r.Route("/dashboard", reg.dashboard.RegisterRoutes)
 	r.Route("/audit", reg.audit.RegisterRoutes)
+	r.Route("/me", reg.me.RegisterRoutes)
 }

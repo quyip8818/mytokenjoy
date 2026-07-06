@@ -1,17 +1,32 @@
 import { Outlet } from 'react-router'
+import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
+import { WorkflowProvider } from '@/features/workflow/workflow-context'
+import { WorkflowPanelStack } from '@/features/workflow/components/workflow-panel-stack'
+import { Toaster } from '@/components/ui/sonner'
 import { Sidebar } from './sidebar'
+import { SidebarLayoutProvider } from './sidebar-layout-provider'
 import { Header } from './header'
 
 export function AdminLayout() {
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-auto p-8">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+    <SidebarLayoutProvider>
+      <WorkflowProvider>
+        <div className="flex h-screen bg-background">
+          <Sidebar />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <Header />
+            <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-8">
+              <div className="min-h-0 flex-1 overflow-auto">
+                <AppErrorBoundary>
+                  <Outlet />
+                </AppErrorBoundary>
+              </div>
+            </main>
+          </div>
+        </div>
+        <WorkflowPanelStack />
+        <Toaster theme="light" />
+      </WorkflowProvider>
+    </SidebarLayoutProvider>
   )
 }

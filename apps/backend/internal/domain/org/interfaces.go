@@ -13,6 +13,9 @@ type DataSourceService interface {
 	SearchDataSource(ctx context.Context, keyword string) (types.DataSourceSearchResult, error)
 	ImportDataSource(ctx context.Context) (types.ImportResult, error)
 	RetryImport(ctx context.Context, ids []string) (types.ImportResult, error)
+	GetFieldMappings(ctx context.Context, platform string) ([]types.FieldMapping, error)
+	SaveFieldMappings(ctx context.Context, config types.FieldMappingConfig) error
+	TestFieldMapping(ctx context.Context, platform, keyword string) (types.MappingTestResult, error)
 }
 
 type SyncService interface {

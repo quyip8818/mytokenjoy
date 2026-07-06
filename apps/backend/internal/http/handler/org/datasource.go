@@ -3,6 +3,7 @@ package org
 import (
 	"net/http"
 
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 )
 
@@ -60,5 +61,28 @@ func (h *Handler) DataSourceImportRetry(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	result, err := h.service.RetryImport(r.Context(), body.IDs)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
+}
+
+func (h *Handler) FieldMappingsGet(w http.ResponseWriter, r *http.Request) {
+	platform := r.URL.Query().Get("platform")
+	mappings, err := h.service.GetFieldMappings(r.Context(), platform)
+	httputil.WriteJSON(w, http.StatusOK, mappings, err)
+}
+
+func (h *Handler) FieldMappingsSave(w http.ResponseWriter, r *http.Request) {
+	var body types.FieldMappingConfig
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	err := h.service.SaveFieldMappings(r.Context(), body)
+	httputil.WriteVoid(w, err)
+}
+
+func (h *Handler) FieldMappingsTest(w http.ResponseWriter, r *http.Request) {
+	platform := r.URL.Query().Get("platform")
+	keyword := r.URL.Query().Get("keyword")
+	result, err := h.service.TestFieldMapping(r.Context(), platform, keyword)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

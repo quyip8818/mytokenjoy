@@ -22,6 +22,9 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 		if err := seed.ApplyUsageBuckets(Ctx(), st, cfg); err != nil {
 			t.Fatalf("apply usage buckets: %v", err)
 		}
+		if err := seed.ApplyRechargeOrders(Ctx(), st); err != nil {
+			t.Fatalf("apply recharge orders: %v", err)
+		}
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	application, err := app.NewWithStore(cfg, logger, st, app.WithoutWorker())

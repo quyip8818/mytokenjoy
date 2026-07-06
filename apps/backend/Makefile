@@ -1,7 +1,11 @@
-.PHONY: dev test test-unit test-integration build lint format scaffold-domain
+.PHONY: start test test-unit test-integration build lint format scaffold-domain
 
-dev:
-	go run ./cmd/server
+export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
+export COMPANY_NAME ?= Demo Company
+export SESSION_SECRET ?= tokenjoy-dev-session-secret
+
+start:
+	@set -a && [ -f .env ] && . ./.env; set +a; go run ./cmd/server
 
 test: test-unit
 

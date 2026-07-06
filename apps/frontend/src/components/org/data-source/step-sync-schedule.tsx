@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { SyncConfig } from '@/api/types'
-import { syncApi } from '@/api/org'
+import { useInjectedApis } from '@/api/use-apis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +22,7 @@ interface StepSyncScheduleProps {
 }
 
 export function StepSyncSchedule({ onComplete, onBack }: StepSyncScheduleProps) {
+  const apis = useInjectedApis()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -43,7 +44,7 @@ export function StepSyncSchedule({ onComplete, onBack }: StepSyncScheduleProps) 
   const notifyEmail = watch('notifyEmail')
 
   useEffect(() => {
-    syncApi.getConfig().then((config) => {
+    void apis.syncApi.getConfig().then((config) => {
       const fields: (keyof SyncConfig)[] = [
         'enabled', 'startTime', 'frequencyHours',
         'deleteMemberThreshold', 'deleteDepartmentThreshold',
@@ -53,12 +54,12 @@ export function StepSyncSchedule({ onComplete, onBack }: StepSyncScheduleProps) 
         setValue(key, config[key] as never)
       })
     })
-  }, [setValue])
+  }, [apis, setValue])
 
   const onSubmit = async (data: SyncConfig) => {
     setSaving(true)
     try {
-      await syncApi.saveConfig(data)
+      await apis.syncApi.saveConfig(data)
       setSaved(true)
     } finally {
       setSaving(false)

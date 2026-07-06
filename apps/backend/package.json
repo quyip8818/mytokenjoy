@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "start": "DATABASE_URL=postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable COMPANY_NAME='Demo Company' make dev",
+    "start": "make start",
     "build": "make build",
     "build:check": "go build -o /dev/null ./...",
     "lint": "make lint",
