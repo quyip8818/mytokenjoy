@@ -134,3 +134,40 @@ func TestConfirmPaymentFailsWithoutWallet(t *testing.T) {
 		t.Fatalf("expected failed status, got %s", stored.Status)
 	}
 }
+
+func TestTopUpAndFinishFailsWhenNewAPIDisabled(t *testing.T) {
+	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(false))
+	st := memory.New(seed.Load(cfg))
+	client := &mock.StubAdminClient{}
+	walletID := int64(501)
+	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), seed.DefaultCompanyID, walletID); err != nil {
+		t.Fatal(err)
+	}
+	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
+	co, err := st.Company().GetByID(context.Background(), seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := company.WithContext(context.Background(), company.Context{
+		CompanyID:          seed.DefaultCompanyID,
+		NewAPIWalletUserID: walletID,
+		Status:             co.Status,
+	})
+	if err := svc.PlatformRecharge(ctx, seed.DefaultCompanyID, 25, "platform-op-disabled"); err == nil {
+		t.Fatal("expected error when newapi is disabled but wallet is configured")
+	}
+	orders, err := st.Billing().ListRechargeOrders(ctx, seed.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(orders) == 0 {
+		t.Fatal("expected recharge order to be created")
+	}
+	last := orders[len(orders)-1]
+	if last.Status != store.RechargeStatusFailed {
+		t.Fatalf("expected failed status, got %s", last.Status)
+	}
+	if client.TopUpCalls != 0 {
+		t.Fatalf("expected no TopUp calls, got %d", client.TopUpCalls)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
@@ -65,6 +66,31 @@ func TestGatewayRejectsExhaustedDepartmentBudget(t *testing.T) {
 	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for exhausted budget, got %d", rec.Code)
+	}
+}
+
+func TestGatewayProxiesFullV1Path(t *testing.T) {
+	var upstreamPath atomic.Value
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamPath.Store(r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(backend.Close)
+
+	units := newapi.ToNewAPIUnits(100, nil, nil)
+	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+		WalletQuota:     units,
+		Budget:          1000,
+		ProxyBackendURL: backend.URL,
+	})
+	rec := httptest.NewRecorder()
+	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	path, _ := upstreamPath.Load().(string)
+	if path != "/v1/chat/completions" {
+		t.Fatalf("expected upstream path /v1/chat/completions, got %q", path)
 	}
 }
 

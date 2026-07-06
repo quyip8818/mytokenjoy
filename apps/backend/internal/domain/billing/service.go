@@ -122,15 +122,17 @@ func (s *service) topUpAndFinish(ctx context.Context, order store.RechargeOrder)
 		return fmt.Errorf("company wallet not configured")
 	}
 	units := newapi.ToNewAPIUnits(order.Amount, nil, nil)
-	if s.cfg.NewAPIEnabled && s.client != nil {
-		if err := s.client.TopUp(ctx, newapi.TopUpRequest{
-			UserID: *co.NewAPIWalletUserID,
-			Quota:  units,
-			Remark: fmt.Sprintf("recharge %s", order.ID),
-		}); err != nil {
-			_ = s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusFailed, nil)
-			return err
-		}
+	if !s.cfg.NewAPIEnabled || s.client == nil {
+		_ = s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusFailed, nil)
+		return fmt.Errorf("newapi top-up required but relay is disabled")
+	}
+	if err := s.client.TopUp(ctx, newapi.TopUpRequest{
+		UserID: *co.NewAPIWalletUserID,
+		Quota:  units,
+		Remark: fmt.Sprintf("recharge %s", order.ID),
+	}); err != nil {
+		_ = s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusFailed, nil)
+		return err
 	}
 	ref := order.ID
 	if err := s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusToppedUp, &ref); err != nil {

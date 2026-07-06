@@ -123,10 +123,6 @@ func parseRequestModel(body []byte) string {
 
 func (g *gatewayService) proxy(w http.ResponseWriter, r *http.Request) {
 	targetURL := *g.proxyTarget
-	targetURL.Path = strings.TrimPrefix(r.URL.Path, "/v1")
-	if targetURL.Path == "" {
-		targetURL.Path = "/"
-	}
 	targetURL.RawQuery = r.URL.RawQuery
 	proxy := httputil.NewSingleHostReverseProxy(&targetURL)
 	originalDirector := proxy.Director
