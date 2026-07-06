@@ -15,6 +15,7 @@ type OrgIntegration struct {
 	NotifyEmail               bool
 	NotifyIm                  bool
 	EncryptedCredential       []byte
+	FieldMappings             []FieldMapping
 }
 
 func (i OrgIntegration) ToDataSourceStatus() DataSourceStatus {

@@ -1,4 +1,3 @@
-// TODO(real): persist payment method, invoice status, and display order numbers via billing domain.
 package billing
 
 import (
@@ -23,33 +22,18 @@ type RechargeRecord struct {
 	CreatedAt     string  `json:"createdAt"`
 }
 
-type rechargeOverlay struct {
-	OrderID       string
-	Method        string
-	InvoiceStatus string
-}
-
-func seedRechargeOverlays() map[string]rechargeOverlay {
-	return map[string]rechargeOverlay{
-		"tu-1": {OrderID: "ORD202606190001", Method: "alipay", InvoiceStatus: "none"},
-		"tu-2": {OrderID: "ORD202606180002", Method: "wechat", InvoiceStatus: "applied"},
-		"tu-3": {OrderID: "ORD202606150003", Method: "alipay", InvoiceStatus: "issued"},
-		"tu-4": {OrderID: "ORD202606120004", Method: "wechat", InvoiceStatus: "none"},
-		"tu-5": {OrderID: "ORD202606100005", Method: "alipay", InvoiceStatus: "issued"},
-	}
-}
-
 func (s *service) ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error) {
 	companyID := company.CompanyID(ctx)
 	orders, err := s.store.Billing().ListRechargeOrders(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
-	overlays := seedRechargeOverlays()
 	records := make([]RechargeRecord, 0, len(orders))
 	for _, order := range orders {
-		overlay := overlays[order.ID]
-		records = append(records, mapRechargeOrder(order, overlay))
+		if order.Source != store.RechargeSourceSelf {
+			continue
+		}
+		records = append(records, mapRechargeOrder(order))
 	}
 	sort.Slice(records, func(i, j int) bool {
 		return records[i].CreatedAt > records[j].CreatedAt
@@ -57,19 +41,7 @@ func (s *service) ListRechargeRecords(ctx context.Context) ([]RechargeRecord, er
 	return records, nil
 }
 
-func mapRechargeOrder(order store.RechargeOrder, overlay rechargeOverlay) RechargeRecord {
-	method := overlay.Method
-	if method == "" {
-		method = "alipay"
-	}
-	invoiceStatus := overlay.InvoiceStatus
-	if invoiceStatus == "" {
-		invoiceStatus = "none"
-	}
-	orderID := overlay.OrderID
-	if orderID == "" {
-		orderID = order.ID
-	}
+func mapRechargeOrder(order store.RechargeOrder) RechargeRecord {
 	paidAmount := 0.0
 	apiStatus := "pending"
 	switch order.Status {
@@ -90,14 +62,22 @@ func mapRechargeOrder(order store.RechargeOrder, overlay rechargeOverlay) Rechar
 	}
 	return RechargeRecord{
 		ID:            order.ID,
-		OrderID:       orderID,
-		Method:        method,
+		OrderID:       order.DisplayOrderID,
+		Method:        order.PaymentMethod,
 		Amount:        order.Amount,
 		PaidAmount:    paidAmount,
-		InvoiceStatus: invoiceStatus,
+		InvoiceStatus: order.InvoiceStatus,
 		Status:        apiStatus,
 		CreatedAt:     order.CreatedAt.In(loc).Format("2006-01-02 15:04:05"),
 	}
+}
+
+func formatDisplayOrderID(t time.Time) string {
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		loc = time.UTC
+	}
+	return "ORD" + t.In(loc).Format("20060102150405")
 }
 
 func (s *service) walletUsageStats(ctx context.Context) (float64, int64, error) {

@@ -296,3 +296,50 @@ func (s *service) DeleteAlert(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+func (s *service) ListApprovals(ctx context.Context) ([]types.BudgetApproval, error) {
+	if err := s.delayer.Wait(ctx, 100*time.Millisecond); err != nil {
+		return nil, err
+	}
+	return s.store.Budget().BudgetApprovals(ctx)
+}
+
+func (s *service) ResolveApproval(ctx context.Context, id string, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error) {
+	if err := s.delayer.Wait(ctx, 100*time.Millisecond); err != nil {
+		return types.BudgetApproval{}, err
+	}
+	if input.Status != "approved" && input.Status != "rejected" {
+		return types.BudgetApproval{}, domain.Validation("invalid status")
+	}
+	if input.Status == "rejected" && (input.RejectReason == nil || *input.RejectReason == "") {
+		return types.BudgetApproval{}, domain.Validation("reject reason required")
+	}
+	items, err := s.store.Budget().BudgetApprovals(ctx)
+	if err != nil {
+		return types.BudgetApproval{}, err
+	}
+	idx := -1
+	for i := range items {
+		if items[i].ID == id {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return types.BudgetApproval{}, domain.NotFound("Not found")
+	}
+	if items[idx].Status != "pending" {
+		return types.BudgetApproval{}, domain.Validation("approval already resolved")
+	}
+	now := time.Now().UTC()
+	if err := s.store.Budget().UpdateBudgetApproval(ctx, id, input.Status, input.RejectReason, now); err != nil {
+		return types.BudgetApproval{}, err
+	}
+	resolved := now.Format("2006-01-02 15:04")
+	items[idx].Status = input.Status
+	items[idx].ResolvedAt = &resolved
+	if input.Status == "rejected" {
+		items[idx].RejectReason = input.RejectReason
+	}
+	return items[idx], nil
+}

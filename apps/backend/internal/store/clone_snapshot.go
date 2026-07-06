@@ -7,6 +7,10 @@ func CloneOrgIntegration(integration types.OrgIntegration) types.OrgIntegration 
 	if integration.EncryptedCredential != nil {
 		cloned.EncryptedCredential = append([]byte(nil), integration.EncryptedCredential...)
 	}
+	if len(integration.FieldMappings) > 0 {
+		cloned.FieldMappings = make([]types.FieldMapping, len(integration.FieldMappings))
+		copy(cloned.FieldMappings, integration.FieldMappings)
+	}
 	return cloned
 }
 
@@ -23,8 +27,9 @@ func CloneSnapshot(snapshot Snapshot) Snapshot {
 		Permissions:    ClonePermissions(snapshot.Permissions),
 		BudgetGroups:   CloneBudgetGroups(snapshot.BudgetGroups),
 		OverrunPolicy:  snapshot.OverrunPolicy,
-		AlertRules:     CloneAlertRules(snapshot.AlertRules),
-		ProviderKeys:   CloneProviderKeys(snapshot.ProviderKeys),
+		AlertRules:      CloneAlertRules(snapshot.AlertRules),
+		BudgetApprovals: CloneBudgetApprovals(snapshot.BudgetApprovals),
+		ProviderKeys:    CloneProviderKeys(snapshot.ProviderKeys),
 		PlatformKeys:   ClonePlatformKeys(snapshot.PlatformKeys),
 		Approvals:      CloneApprovals(snapshot.Approvals),
 		Models:         CloneModels(snapshot.Models),

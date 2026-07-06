@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS company_recharge_orders (
     idempotency_key  TEXT,
     newapi_topup_ref TEXT,
     status           TEXT NOT NULL DEFAULT 'pending',
+    display_order_id TEXT NOT NULL,
+    payment_method   TEXT NOT NULL DEFAULT '',
+    invoice_status   TEXT NOT NULL DEFAULT 'none',
     created_by       TEXT NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -149,6 +152,7 @@ CREATE TABLE IF NOT EXISTS org_integration (
     notify_email                 BOOLEAN NOT NULL DEFAULT FALSE,
     notify_im                    BOOLEAN NOT NULL DEFAULT FALSE,
     encrypted_credential         BYTEA,
+    field_mappings               JSONB NOT NULL DEFAULT '[]',
     updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -227,6 +231,24 @@ CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
     PRIMARY KEY (company_id, rule_id, role_id),
     FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS budget_approvals (
+    id              TEXT NOT NULL,
+    company_id      BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    applicant_id    TEXT,
+    applicant_name  TEXT NOT NULL,
+    department_name TEXT NOT NULL,
+    amount          NUMERIC(18, 6) NOT NULL,
+    reason          TEXT NOT NULL,
+    status          TEXT NOT NULL,
+    reject_reason   TEXT,
+    created_at      TIMESTAMPTZ NOT NULL,
+    resolved_at     TIMESTAMPTZ,
+    PRIMARY KEY (company_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_budget_approvals_status
+    ON budget_approvals (company_id, status, created_at DESC);
 
 -- Models domain (before keys FK references)
 CREATE TABLE IF NOT EXISTS models (

@@ -136,3 +136,23 @@ func TestClearIntegrationCredentialSetsNull(t *testing.T) {
 		t.Fatalf("expected nil credential, got %+v", got)
 	}
 }
+
+func TestFieldMappingsPersistRoundTrip(t *testing.T) {
+	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
+
+	mappings := []types.FieldMapping{
+		{SourceField: "user_name", SourceLabel: "用户姓名", TargetField: "name", Required: true},
+		{SourceField: "mobile", SourceLabel: "手机号码", TargetField: "phone", Required: true},
+	}
+	if err := st.Org().SetFieldMappings(ctx, mappings); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.Org().FieldMappings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].TargetField != "name" || got[1].TargetField != "phone" {
+		t.Fatalf("unexpected mappings %+v", got)
+	}
+}

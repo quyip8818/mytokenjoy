@@ -27,6 +27,9 @@ func (r *memoryOrgRepo) SetIntegration(ctx context.Context, integration types.Or
 	current := snap.OrgIntegration
 	current.ApplyDataSourceStatus(integration.ToDataSourceStatus())
 	current.ApplySyncConfig(integration.ToSyncConfig())
+	if len(integration.FieldMappings) > 0 {
+		current.FieldMappings = append([]types.FieldMapping{}, integration.FieldMappings...)
+	}
 	snap.OrgIntegration = current
 	r.store.setCompanySnapshot(tid, snap)
 	return nil
@@ -53,6 +56,7 @@ func (r *memoryOrgRepo) SaveIntegrationCredential(ctx context.Context, platform 
 	snap.OrgIntegration.Platform = &p
 	snap.OrgIntegration.EncryptedCredential = make([]byte, len(encrypted))
 	copy(snap.OrgIntegration.EncryptedCredential, encrypted)
+	snap.OrgIntegration.FieldMappings = nil
 	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }
@@ -66,6 +70,30 @@ func (r *memoryOrgRepo) ClearIntegrationCredential(ctx context.Context) error {
 	tid := store.CompanyID(ctx)
 	snap := r.store.companySnapshot(tid)
 	snap.OrgIntegration.EncryptedCredential = nil
+	snap.OrgIntegration.FieldMappings = nil
+	r.store.setCompanySnapshot(tid, snap)
+	return nil
+}
+
+func (r *memoryOrgRepo) FieldMappings(ctx context.Context) ([]types.FieldMapping, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	mappings := r.store.companySnapshot(store.CompanyID(ctx)).OrgIntegration.FieldMappings
+	return append([]types.FieldMapping{}, mappings...), nil
+}
+
+func (r *memoryOrgRepo) SetFieldMappings(ctx context.Context, mappings []types.FieldMapping) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.OrgIntegration.FieldMappings = append([]types.FieldMapping{}, mappings...)
 	r.store.setCompanySnapshot(tid, snap)
 	return nil
 }

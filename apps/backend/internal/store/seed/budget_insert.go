@@ -2,7 +2,10 @@ package seed
 
 import (
 	"context"
+	"time"
 
+	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -52,6 +55,39 @@ func insertBudget(ctx context.Context, exec tableWriter, tid int64, snap store.S
 			`, tid, rule.ID, roleID); err != nil {
 				return err
 			}
+		}
+	}
+	return insertBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
+}
+
+func insertBudgetApprovals(ctx context.Context, exec tableWriter, tid int64, approvals []types.BudgetApproval) error {
+	for _, approval := range approvals {
+		createdAt, err := pkgtime.Parse(approval.CreatedAt)
+		if err != nil {
+			return err
+		}
+		var resolvedAt *time.Time
+		if approval.ResolvedAt != nil {
+			t, parseErr := pkgtime.Parse(*approval.ResolvedAt)
+			if parseErr != nil {
+				return parseErr
+			}
+			resolvedAt = &t
+		}
+		var applicantID *string
+		if approval.ApplicantID != "" {
+			applicantID = &approval.ApplicantID
+		}
+		if _, err := exec.Exec(ctx, `
+			INSERT INTO budget_approvals (
+				id, company_id, applicant_id, applicant_name, department_name,
+				amount, reason, status, reject_reason, created_at, resolved_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			ON CONFLICT (company_id, id) DO NOTHING
+		`, approval.ID, tid, applicantID, approval.ApplicantName, approval.DepartmentName,
+			approval.Amount, approval.Reason, approval.Status, approval.RejectReason,
+			createdAt, resolvedAt); err != nil {
+			return err
 		}
 	}
 	return nil

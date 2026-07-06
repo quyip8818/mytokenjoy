@@ -81,13 +81,16 @@ func (s *service) PlatformRecharge(ctx context.Context, companyID int64, amount 
 
 func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error) {
 	companyID := company.CompanyID(ctx)
-	orderID := fmt.Sprintf("rch-%d-%d", companyID, time.Now().UnixNano())
 	now := time.Now().UTC()
+	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
 	key := idempotencyKey
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Source: store.RechargeSourceSelf,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending, CreatedBy: memberID,
-		CreatedAt: now, UpdatedAt: now,
+		DisplayOrderID: formatDisplayOrderID(now),
+		PaymentMethod:  store.PaymentMethodAlipay,
+		InvoiceStatus:  store.InvoiceStatusNone,
+		CreatedAt:      now, UpdatedAt: now,
 	}
 	if err := s.store.Billing().CreateRechargeOrder(ctx, order); err != nil {
 		return store.RechargeOrder{}, err
@@ -110,12 +113,15 @@ func (s *service) ConfirmPayment(ctx context.Context, orderID string) error {
 }
 
 func (s *service) executeRecharge(ctx context.Context, companyID int64, amount float64, source, createdBy string, idempotencyKey *string) error {
-	orderID := fmt.Sprintf("rch-%d-%d", companyID, time.Now().UnixNano())
 	now := time.Now().UTC()
+	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Source: source,
 		IdempotencyKey: idempotencyKey, Status: store.RechargeStatusPaid,
-		CreatedBy: createdBy, CreatedAt: now, UpdatedAt: now,
+		DisplayOrderID: formatDisplayOrderID(now),
+		PaymentMethod:  "",
+		InvoiceStatus:  store.InvoiceStatusNone,
+		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := s.store.Billing().CreateRechargeOrder(ctx, order); err != nil {
 		return err

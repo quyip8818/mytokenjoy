@@ -22,6 +22,8 @@ type OrgRepository interface {
 	SetImportFailures(ctx context.Context, failures []types.ImportFailure) error
 	SyncLogs(ctx context.Context) ([]types.SyncLog, error)
 	AppendSyncLog(ctx context.Context, log types.SyncLog) error
+	FieldMappings(ctx context.Context) ([]types.FieldMapping, error)
+	SetFieldMappings(ctx context.Context, mappings []types.FieldMapping) error
 	Nodes() OrgNodeRepository
 	Members(ctx context.Context) ([]types.Member, error)
 	MemberByID(ctx context.Context, memberID string) (*types.Member, error)

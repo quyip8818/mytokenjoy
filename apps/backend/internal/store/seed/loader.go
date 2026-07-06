@@ -9,16 +9,18 @@ import (
 func Load(cfg config.Config) store.Snapshot {
 	members := BuildMembers()
 	roles := buildRoles(members)
+	orgIntegration := types.OrgIntegrationFromStatusAndConfig(
+		types.DataSourceStatus{Platform: nil, Connected: false, LastImport: nil, LastImportResult: nil},
+		types.SyncConfig{
+			Enabled: false, StartTime: "02:00", FrequencyHours: 12,
+			DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
+			NotifyPhone: true, NotifyEmail: true, NotifyIm: true,
+		},
+	)
+	orgIntegration.FieldMappings = buildDefaultFieldMappings()
 	return store.Snapshot{
-		Company: DefaultCompany(cfg),
-		OrgIntegration: types.OrgIntegrationFromStatusAndConfig(
-			types.DataSourceStatus{Platform: nil, Connected: false, LastImport: nil, LastImportResult: nil},
-			types.SyncConfig{
-				Enabled: false, StartTime: "02:00", FrequencyHours: 12,
-				DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
-				NotifyPhone: true, NotifyEmail: true, NotifyIm: true,
-			},
-		),
+		Company:        DefaultCompany(cfg),
+		OrgIntegration: orgIntegration,
 		SyncLogs:       buildSyncLogs(cfg.DemoToday),
 		ImportFailures: buildImportFailures(),
 		OrgNodes:       buildOrgNodes(),
@@ -27,6 +29,7 @@ func Load(cfg config.Config) store.Snapshot {
 		Roles:          roles,
 		Permissions:    buildPermissions(),
 		BudgetGroups:   buildBudgetGroups(),
+		BudgetApprovals: buildBudgetApprovals(),
 		OverrunPolicy:  buildOverrunPolicy(),
 		AlertRules:     buildAlertRules(),
 		ProviderKeys:   buildProviderKeys(cfg.DemoToday),

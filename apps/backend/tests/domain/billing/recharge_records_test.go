@@ -22,7 +22,7 @@ func TestListRechargeRecordsSeeded(t *testing.T) {
 		t.Fatalf("expected newest order first, got %+v", records[0])
 	}
 	if records[0].Method != "alipay" || records[0].InvoiceStatus != "none" {
-		t.Fatalf("expected overlay fields, got %+v", records[0])
+		t.Fatalf("expected persisted display fields, got %+v", records[0])
 	}
 }
 

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -17,19 +18,20 @@ func (r *pgOrgRepo) Integration(ctx context.Context) (types.OrgIntegration, erro
 	var lastImport *time.Time
 	var lastImportOK, lastImportFail *int
 	var encrypted []byte
+	var fieldMappingsJSON []byte
 	var integration types.OrgIntegration
 	err := r.db.QueryRow(ctx, `
 		SELECT platform, connected, last_import, last_import_ok, last_import_fail,
 			enabled, start_time, frequency_hours,
 			delete_member_threshold, delete_department_threshold,
-			notify_phone, notify_email, notify_im, encrypted_credential
+			notify_phone, notify_email, notify_im, encrypted_credential, field_mappings
 		FROM org_integration WHERE company_id = $1
 	`, companyID).Scan(
 		&platform, &connected, &lastImport, &lastImportOK, &lastImportFail,
 		&integration.Enabled, &integration.StartTime, &integration.FrequencyHours,
 		&integration.DeleteMemberThreshold, &integration.DeleteDepartmentThreshold,
 		&integration.NotifyPhone, &integration.NotifyEmail, &integration.NotifyIm,
-		&encrypted,
+		&encrypted, &fieldMappingsJSON,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -51,6 +53,11 @@ func (r *pgOrgRepo) Integration(ctx context.Context) (types.OrgIntegration, erro
 	if len(encrypted) > 0 {
 		integration.EncryptedCredential = append([]byte(nil), encrypted...)
 	}
+	mappings, err := decodeFieldMappings(fieldMappingsJSON)
+	if err != nil {
+		return types.OrgIntegration{}, err
+	}
+	integration.FieldMappings = mappings
 	return integration, nil
 }
 
@@ -102,6 +109,30 @@ func (r *pgOrgRepo) SetIntegration(ctx context.Context, integration types.OrgInt
 	return nil
 }
 
+func (r *pgOrgRepo) FieldMappings(ctx context.Context) ([]types.FieldMapping, error) {
+	integration, err := r.Integration(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return append([]types.FieldMapping{}, integration.FieldMappings...), nil
+}
+
+func (r *pgOrgRepo) SetFieldMappings(ctx context.Context, mappings []types.FieldMapping) error {
+	companyID := store.CompanyID(ctx)
+	payload, err := encodeFieldMappings(mappings)
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(ctx, `
+		UPDATE org_integration SET field_mappings = $2, updated_at = NOW()
+		WHERE company_id = $1
+	`, companyID, payload)
+	if err != nil {
+		return fmt.Errorf("set field mappings: %w", err)
+	}
+	return nil
+}
+
 func (r *pgOrgRepo) GetIntegrationCredential(ctx context.Context) (*types.StoredCredential, error) {
 	integration, err := r.Integration(ctx)
 	if err != nil {
@@ -113,11 +144,12 @@ func (r *pgOrgRepo) GetIntegrationCredential(ctx context.Context) (*types.Stored
 func (r *pgOrgRepo) SaveIntegrationCredential(ctx context.Context, platform types.Platform, encrypted []byte) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO org_integration (company_id, platform, encrypted_credential, updated_at)
-		VALUES ($1, $2, $3, NOW())
+		INSERT INTO org_integration (company_id, platform, encrypted_credential, field_mappings, updated_at)
+		VALUES ($1, $2, $3, '[]', NOW())
 		ON CONFLICT (company_id) DO UPDATE SET
 			platform = EXCLUDED.platform,
 			encrypted_credential = EXCLUDED.encrypted_credential,
+			field_mappings = '[]',
 			updated_at = NOW()
 	`, companyID, string(platform), encrypted)
 	if err != nil {
@@ -129,13 +161,32 @@ func (r *pgOrgRepo) SaveIntegrationCredential(ctx context.Context, platform type
 func (r *pgOrgRepo) ClearIntegrationCredential(ctx context.Context) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		UPDATE org_integration SET encrypted_credential = NULL, updated_at = NOW()
+		UPDATE org_integration
+		SET encrypted_credential = NULL, field_mappings = '[]', updated_at = NOW()
 		WHERE company_id = $1
 	`, companyID)
 	if err != nil {
 		return fmt.Errorf("clear credential: %w", err)
 	}
 	return nil
+}
+
+func encodeFieldMappings(mappings []types.FieldMapping) ([]byte, error) {
+	if mappings == nil {
+		return []byte("[]"), nil
+	}
+	return json.Marshal(mappings)
+}
+
+func decodeFieldMappings(data []byte) ([]types.FieldMapping, error) {
+	if len(data) == 0 {
+		return []types.FieldMapping{}, nil
+	}
+	var mappings []types.FieldMapping
+	if err := json.Unmarshal(data, &mappings); err != nil {
+		return nil, fmt.Errorf("decode field mappings: %w", err)
+	}
+	return mappings, nil
 }
 
 func (r *pgOrgRepo) ImportFailures(ctx context.Context) ([]types.ImportFailure, error) {

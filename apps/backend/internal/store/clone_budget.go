@@ -32,3 +32,22 @@ func CloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
 }
 
 func CloneAlertRules(items []types.AlertRule) []types.AlertRule { return cloneAlertRules(items) }
+
+func CloneBudgetApprovals(items []types.BudgetApproval) []types.BudgetApproval {
+	if len(items) == 0 {
+		return nil
+	}
+	cloned := make([]types.BudgetApproval, len(items))
+	for i, item := range items {
+		cloned[i] = item
+		if item.ResolvedAt != nil {
+			s := *item.ResolvedAt
+			cloned[i].ResolvedAt = &s
+		}
+		if item.RejectReason != nil {
+			s := *item.RejectReason
+			cloned[i].RejectReason = &s
+		}
+	}
+	return cloned
+}

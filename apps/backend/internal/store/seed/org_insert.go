@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -122,20 +123,24 @@ func insertOrgIntegration(ctx context.Context, exec tableWriter, tid int64, snap
 		s := string(*integration.Platform)
 		platform = &s
 	}
+	fieldMappingsJSON, err := json.Marshal(integration.FieldMappings)
+	if err != nil {
+		return fmt.Errorf("marshal field mappings: %w", err)
+	}
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO org_integration (
 			company_id, platform, connected,
 			enabled, start_time, frequency_hours,
 			delete_member_threshold, delete_department_threshold,
 			notify_phone, notify_email, notify_im,
-			encrypted_credential
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			encrypted_credential, field_mappings
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (company_id) DO NOTHING
 	`, tid, platform, integration.Connected,
 		integration.Enabled, integration.StartTime, integration.FrequencyHours,
 		integration.DeleteMemberThreshold, integration.DeleteDepartmentThreshold,
 		integration.NotifyPhone, integration.NotifyEmail, integration.NotifyIm,
-		integration.EncryptedCredential); err != nil {
+		integration.EncryptedCredential, fieldMappingsJSON); err != nil {
 		return err
 	}
 	for _, log := range snap.SyncLogs {

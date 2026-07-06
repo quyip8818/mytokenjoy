@@ -21,8 +21,9 @@ type Snapshot struct {
 	Permissions    []types.Permission
 	BudgetGroups   []types.BudgetGroup
 	OverrunPolicy  types.OverrunPolicyConfig
-	AlertRules     []types.AlertRule
-	ProviderKeys   []types.ProviderKey
+	AlertRules       []types.AlertRule
+	BudgetApprovals  []types.BudgetApproval
+	ProviderKeys     []types.ProviderKey
 	PlatformKeys   []types.PlatformKey
 	Approvals      []types.KeyApproval
 	Models         []types.ModelInfo

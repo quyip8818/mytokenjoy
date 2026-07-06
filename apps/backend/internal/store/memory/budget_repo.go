@@ -2,6 +2,8 @@ package memory
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -105,4 +107,50 @@ func (r *memoryBudgetRepo) SetAlertRules(ctx context.Context, rules []types.Aler
 	snap.AlertRules = store.CloneAlertRules(rules)
 	r.store.setCompanySnapshot(tid, snap)
 	return nil
+}
+
+func (r *memoryBudgetRepo) BudgetApprovals(ctx context.Context) ([]types.BudgetApproval, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	return store.CloneBudgetApprovals(r.store.companySnapshot(store.CompanyID(ctx)).BudgetApprovals), nil
+}
+
+func (r *memoryBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.BudgetApproval) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	snap.BudgetApprovals = store.CloneBudgetApprovals(items)
+	r.store.setCompanySnapshot(tid, snap)
+	return nil
+}
+
+func (r *memoryBudgetRepo) UpdateBudgetApproval(ctx context.Context, id, status string, rejectReason *string, resolvedAt time.Time) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	tid := store.CompanyID(ctx)
+	snap := r.store.companySnapshot(tid)
+	for i := range snap.BudgetApprovals {
+		if snap.BudgetApprovals[i].ID != id {
+			continue
+		}
+		snap.BudgetApprovals[i].Status = status
+		s := resolvedAt.Format("2006-01-02 15:04")
+		snap.BudgetApprovals[i].ResolvedAt = &s
+		if status == "rejected" {
+			snap.BudgetApprovals[i].RejectReason = rejectReason
+		}
+		r.store.setCompanySnapshot(tid, snap)
+		return nil
+	}
+	return fmt.Errorf("budget approval not found")
 }

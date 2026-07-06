@@ -61,10 +61,22 @@ type RechargeOrder struct {
 	IdempotencyKey *string
 	NewAPITopupRef *string
 	Status         string
+	DisplayOrderID string
+	PaymentMethod  string
+	InvoiceStatus  string
 	CreatedBy      string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
+
+const (
+	InvoiceStatusNone    = "none"
+	InvoiceStatusApplied = "applied"
+	InvoiceStatusIssued  = "issued"
+
+	PaymentMethodAlipay = "alipay"
+	PaymentMethodWechat = "wechat"
+)
 
 type BillingRepository interface {
 	CreateRechargeOrder(ctx context.Context, order RechargeOrder) error

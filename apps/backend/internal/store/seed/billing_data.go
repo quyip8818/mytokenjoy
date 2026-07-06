@@ -34,16 +34,19 @@ func buildSeedRechargeOrders() []store.RechargeOrder {
 		loc = time.UTC
 	}
 	specs := []struct {
-		id        string
-		amount    float64
-		status    string
-		createdAt string
+		id             string
+		amount         float64
+		status         string
+		createdAt      string
+		displayOrderID string
+		paymentMethod  string
+		invoiceStatus  string
 	}{
-		{"tu-1", 100, store.RechargeStatusToppedUp, "2026-06-19 14:30:00"},
-		{"tu-2", 50, store.RechargeStatusToppedUp, "2026-06-18 10:15:00"},
-		{"tu-3", 200, store.RechargeStatusToppedUp, "2026-06-15 09:00:00"},
-		{"tu-4", 20, store.RechargeStatusPending, "2026-06-12 16:45:00"},
-		{"tu-5", 500, store.RechargeStatusToppedUp, "2026-06-10 08:20:00"},
+		{"tu-1", 100, store.RechargeStatusToppedUp, "2026-06-19 14:30:00", "ORD202606190001", store.PaymentMethodAlipay, store.InvoiceStatusNone},
+		{"tu-2", 50, store.RechargeStatusToppedUp, "2026-06-18 10:15:00", "ORD202606180002", store.PaymentMethodWechat, store.InvoiceStatusApplied},
+		{"tu-3", 200, store.RechargeStatusToppedUp, "2026-06-15 09:00:00", "ORD202606150003", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
+		{"tu-4", 20, store.RechargeStatusPending, "2026-06-12 16:45:00", "ORD202606120004", store.PaymentMethodWechat, store.InvoiceStatusNone},
+		{"tu-5", 500, store.RechargeStatusToppedUp, "2026-06-10 08:20:00", "ORD202606100005", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
 	}
 	orders := make([]store.RechargeOrder, 0, len(specs))
 	for _, spec := range specs {
@@ -52,14 +55,17 @@ func buildSeedRechargeOrders() []store.RechargeOrder {
 			createdAt = time.Now().UTC()
 		}
 		order := store.RechargeOrder{
-			ID:        spec.id,
-			CompanyID: DefaultCompanyID,
-			Amount:    spec.amount,
-			Source:    store.RechargeSourceSelf,
-			Status:    spec.status,
-			CreatedBy: IDMemberAdmin,
-			CreatedAt: createdAt.UTC(),
-			UpdatedAt: createdAt.UTC(),
+			ID:             spec.id,
+			CompanyID:      DefaultCompanyID,
+			Amount:         spec.amount,
+			Source:         store.RechargeSourceSelf,
+			Status:         spec.status,
+			DisplayOrderID: spec.displayOrderID,
+			PaymentMethod:  spec.paymentMethod,
+			InvoiceStatus:  spec.invoiceStatus,
+			CreatedBy:      IDMemberAdmin,
+			CreatedAt:      createdAt.UTC(),
+			UpdatedAt:      createdAt.UTC(),
 		}
 		if spec.status == store.RechargeStatusToppedUp {
 			ref := spec.id
