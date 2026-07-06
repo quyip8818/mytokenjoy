@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Credential, Platform } from '@/api/types'
-import { useApis } from '@/api/use-apis'
-import { PLATFORM_LABELS } from '@/lib/labels'
+import { dataSourceApi } from '@/api/org'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,30 +42,25 @@ interface WecomFields {
 
 type FormFields = FeishuFields & DingtalkFields & WecomFields
 
+const platformLabels: Record<Platform, string> = {
+  feishu: '飞书',
+  dingtalk: '钉钉',
+  wecom: '企业微信',
+}
+
 export function CredentialForm({ connected, currentPlatform, onSaved }: CredentialFormProps) {
-  const apis = useApis()
   const [platform, setPlatform] = useState<Platform>(currentPlatform || 'feishu')
   const [testSuccess, setTestSuccess] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testMessage, setTestMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [searchResult, setSearchResult] = useState<{
-    name: string
-    department: string
-    mappingOk: boolean
-  } | null>(null)
+  const [searchResult, setSearchResult] = useState<{ name: string; department: string; mappingOk: boolean } | null>(null)
   const [showPlatformConfirm, setShowPlatformConfirm] = useState(false)
   const [showSaveConfirm, setShowSaveConfirm] = useState(false)
   const [pendingPlatform, setPendingPlatform] = useState<Platform | null>(null)
 
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    reset,
-    formState: { errors },
-  } = useForm<FormFields>()
+  const { register, handleSubmit, getValues, reset, formState: { errors } } = useForm<FormFields>()
 
   const handlePlatformChange = (newPlatform: Platform) => {
     if (newPlatform === platform) return
@@ -91,19 +85,9 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
       case 'feishu':
         return { platform: 'feishu', appId: data.appId, appSecret: data.appSecret }
       case 'dingtalk':
-        return {
-          platform: 'dingtalk',
-          corpId: data.corpId,
-          appKey: data.appKey,
-          appSecret: data.appSecret,
-        }
+        return { platform: 'dingtalk', clientId: data.appKey, clientSecret: data.appSecret }
       case 'wecom':
-        return {
-          platform: 'wecom',
-          corpId: data.corpId,
-          secret: data.secret,
-          agentId: data.agentId,
-        }
+        return { platform: 'wecom', corpId: data.corpId, secret: data.secret, agentId: data.agentId }
     }
   }
 
@@ -113,7 +97,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
     setTesting(true)
     setTestMessage('')
     try {
-      const res = await apis.dataSourceApi.testConnection(credential)
+      const res = await dataSourceApi.testConnection(credential)
       if (res.success) {
         setTestSuccess(true)
         setTestMessage('连接成功')
@@ -129,7 +113,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
 
   const handleSearch = async () => {
     if (!searchKeyword.trim()) return
-    const result = await apis.dataSourceApi.searchMember(searchKeyword)
+    const result = await dataSourceApi.searchMember(searchKeyword)
     setSearchResult(result)
   }
 
@@ -146,7 +130,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
     const credential = buildCredential(values)
     setSaving(true)
     try {
-      await apis.dataSourceApi.save(credential)
+      await dataSourceApi.save(credential)
       onSaved()
     } finally {
       setSaving(false)
@@ -166,7 +150,7 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
           {(['feishu', 'dingtalk', 'wecom'] as Platform[]).map((p) => (
             <Label key={p} className="cursor-pointer">
               <RadioGroupItem value={p} />
-              <span className="text-sm">{PLATFORM_LABELS[p]}</span>
+              <span className="text-sm">{platformLabels[p]}</span>
             </Label>
           ))}
         </RadioGroup>
@@ -179,19 +163,12 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
             <div>
               <Label className="mb-1">App ID</Label>
               <Input {...register('appId', { required: '请输入 App ID' })} />
-              {errors.appId && (
-                <p className="text-destructive text-xs mt-1">{errors.appId.message}</p>
-              )}
+              {errors.appId && <p className="text-destructive text-xs mt-1">{errors.appId.message}</p>}
             </div>
             <div>
               <Label className="mb-1">App Secret</Label>
-              <Input
-                type="password"
-                {...register('appSecret', { required: '请输入 App Secret' })}
-              />
-              {errors.appSecret && (
-                <p className="text-destructive text-xs mt-1">{errors.appSecret.message}</p>
-              )}
+              <Input type="password" {...register('appSecret', { required: '请输入 App Secret' })} />
+              {errors.appSecret && <p className="text-destructive text-xs mt-1">{errors.appSecret.message}</p>}
             </div>
           </>
         )}
@@ -200,23 +177,17 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
             <div>
               <Label className="mb-1">CorpID</Label>
               <Input {...register('corpId', { required: '请输入 CorpID' })} />
-              {errors.corpId && (
-                <p className="text-destructive text-xs mt-1">{errors.corpId.message}</p>
-              )}
+              {errors.corpId && <p className="text-destructive text-xs mt-1">{errors.corpId.message}</p>}
             </div>
             <div>
               <Label className="mb-1">AppKey</Label>
               <Input {...register('appKey', { required: '请输入 AppKey' })} />
-              {errors.appKey && (
-                <p className="text-destructive text-xs mt-1">{errors.appKey.message}</p>
-              )}
+              {errors.appKey && <p className="text-destructive text-xs mt-1">{errors.appKey.message}</p>}
             </div>
             <div>
               <Label className="mb-1">AppSecret</Label>
               <Input type="password" {...register('appSecret', { required: '请输入 AppSecret' })} />
-              {errors.appSecret && (
-                <p className="text-destructive text-xs mt-1">{errors.appSecret.message}</p>
-              )}
+              {errors.appSecret && <p className="text-destructive text-xs mt-1">{errors.appSecret.message}</p>}
             </div>
           </>
         )}
@@ -225,30 +196,29 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
             <div>
               <Label className="mb-1">CorpID</Label>
               <Input {...register('corpId', { required: '请输入 CorpID' })} />
-              {errors.corpId && (
-                <p className="text-destructive text-xs mt-1">{errors.corpId.message}</p>
-              )}
+              {errors.corpId && <p className="text-destructive text-xs mt-1">{errors.corpId.message}</p>}
             </div>
             <div>
               <Label className="mb-1">Secret</Label>
               <Input type="password" {...register('secret', { required: '请输入 Secret' })} />
-              {errors.secret && (
-                <p className="text-destructive text-xs mt-1">{errors.secret.message}</p>
-              )}
+              {errors.secret && <p className="text-destructive text-xs mt-1">{errors.secret.message}</p>}
             </div>
             <div>
               <Label className="mb-1">AgentID</Label>
               <Input {...register('agentId', { required: '请输入 AgentID' })} />
-              {errors.agentId && (
-                <p className="text-destructive text-xs mt-1">{errors.agentId.message}</p>
-              )}
+              {errors.agentId && <p className="text-destructive text-xs mt-1">{errors.agentId.message}</p>}
             </div>
           </>
         )}
 
         {/* Test Connection */}
         <div className="flex items-center gap-3">
-          <Button type="button" variant="outline" onClick={handleTestConnection} disabled={testing}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={testing}
+          >
             {testing ? '测试中...' : '测试连接'}
           </Button>
           {testMessage && (
@@ -277,21 +247,17 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
               <div className="mt-3 text-sm">
                 <p>姓名：{searchResult.name}</p>
                 <p>部门：{searchResult.department}</p>
-                <p>
-                  映射状态：
-                  {searchResult.mappingOk ? (
-                    <span className="text-green-600">正常</span>
-                  ) : (
-                    <span className="text-destructive">异常</span>
-                  )}
-                </p>
+                <p>映射状态：{searchResult.mappingOk ? <span className="text-green-600">正常</span> : <span className="text-destructive">异常</span>}</p>
               </div>
             )}
           </div>
         )}
 
         {/* Save */}
-        <Button type="submit" disabled={!testSuccess || saving}>
+        <Button
+          type="submit"
+          disabled={!testSuccess || saving}
+        >
           {saving ? '保存中...' : '保存凭证'}
         </Button>
       </form>
@@ -309,7 +275,9 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>切换平台</AlertDialogTitle>
-            <AlertDialogDescription>切换平台将清空当前配置，确定要切换吗？</AlertDialogDescription>
+            <AlertDialogDescription>
+              切换平台将清空当前配置，确定要切换吗？
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -349,7 +317,9 @@ export function CredentialForm({ connected, currentPlatform, onSaved }: Credenti
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowSaveConfirm(false)}>取消</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowSaveConfirm(false)}>
+              取消
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => {

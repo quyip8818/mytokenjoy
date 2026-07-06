@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
+import { useForm } from 'react-hook-form'
 import type { SyncConfig as SyncConfigType } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { syncApi } from '@/api/org'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,13 +17,11 @@ import {
 
 interface SyncConfigProps {
   onTriggerSync: () => void
-  triggeringSync: boolean
-  onSaved?: () => void
+  triggeringSyc: boolean
 }
 
-export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: SyncConfigProps) {
-  const apis = useApis()
-  const { register, handleSubmit, setValue, control } = useForm<SyncConfigType>({
+export function SyncConfigPanel({ onTriggerSync, triggeringSyc }: SyncConfigProps) {
+  const { register, handleSubmit, setValue, watch } = useForm<SyncConfigType>({
     defaultValues: {
       enabled: false,
       startTime: '02:00',
@@ -33,45 +30,40 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: Sync
       deleteDepartmentThreshold: 3,
       notifyPhone: true,
       notifyEmail: false,
-      notifyIm: false,
     },
   })
 
-  const enabled = useWatch({ control, name: 'enabled' })
-  const frequencyHours = useWatch({ control, name: 'frequencyHours' })
-  const notifyPhone = useWatch({ control, name: 'notifyPhone' })
-  const notifyEmail = useWatch({ control, name: 'notifyEmail' })
-  const notifyIm = useWatch({ control, name: 'notifyIm' })
+  const enabled = watch('enabled')
+  const frequencyHours = watch('frequencyHours')
+  const notifyPhone = watch('notifyPhone')
+  const notifyEmail = watch('notifyEmail')
 
   useEffect(() => {
-    apis.syncApi.getConfig().then((config) => {
+    syncApi.getConfig().then((config) => {
       const fields: (keyof SyncConfigType)[] = [
-        'enabled',
-        'startTime',
-        'frequencyHours',
-        'deleteMemberThreshold',
-        'deleteDepartmentThreshold',
-        'notifyPhone',
-        'notifyEmail',
-        'notifyIm',
+        'enabled', 'startTime', 'frequencyHours',
+        'deleteMemberThreshold', 'deleteDepartmentThreshold',
+        'notifyPhone', 'notifyEmail',
       ]
       fields.forEach((key) => {
         setValue(key, config[key] as never)
       })
     })
-  }, [apis, setValue])
+  }, [setValue])
 
   const onSubmit = async (data: SyncConfigType) => {
-    await apis.syncApi.saveConfig(data)
-    toast.success('同步策略已保存')
-    onSaved?.()
+    await syncApi.saveConfig(data)
+    alert('同步配置已保存')
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Enable toggle */}
       <div className="flex items-center gap-3">
-        <Switch checked={enabled} onCheckedChange={(checked) => setValue('enabled', checked)} />
+        <Switch
+          checked={enabled}
+          onCheckedChange={(checked) => setValue('enabled', checked)}
+        />
         <Label className="text-sm font-medium">
           {enabled ? '自动同步已开启' : '自动同步已关闭'}
         </Label>
@@ -129,9 +121,7 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: Sync
                   checked={notifyPhone}
                   onCheckedChange={(checked) => setValue('notifyPhone', !!checked)}
                 />
-                <Label htmlFor="notifyPhone" className="text-sm cursor-pointer">
-                  手机号
-                </Label>
+                <Label htmlFor="notifyPhone" className="text-sm cursor-pointer">手机号</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -139,19 +129,7 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: Sync
                   checked={notifyEmail}
                   onCheckedChange={(checked) => setValue('notifyEmail', !!checked)}
                 />
-                <Label htmlFor="notifyEmail" className="text-sm cursor-pointer">
-                  邮箱
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="notifyIm"
-                  checked={notifyIm}
-                  onCheckedChange={(checked) => setValue('notifyIm', !!checked)}
-                />
-                <Label htmlFor="notifyIm" className="text-sm cursor-pointer">
-                  IM
-                </Label>
+                <Label htmlFor="notifyEmail" className="text-sm cursor-pointer">邮箱</Label>
               </div>
             </div>
           </div>
@@ -160,8 +138,13 @@ export function SyncConfigPanel({ onTriggerSync, triggeringSync, onSaved }: Sync
 
       <div className="flex gap-3 pt-2">
         <Button type="submit">保存配置</Button>
-        <Button type="button" variant="outline" onClick={onTriggerSync} disabled={triggeringSync}>
-          {triggeringSync ? '同步中...' : '立即同步一次'}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onTriggerSync}
+          disabled={triggeringSyc}
+        >
+          {triggeringSyc ? '同步中...' : '立即同步一次'}
         </Button>
       </div>
     </form>

@@ -1,176 +1,139 @@
-import { Plug } from 'lucide-react'
-import { ImportResultView } from '@/routes/org/components/import-result'
-import { SyncLogTable } from '@/routes/org/components/sync-log-table'
-import { DataSourceInitProgress } from '@/routes/org/components/data-source-init-progress'
-import { DataSection } from '@/components/layout/data-section'
-import { PageShell } from '@/components/layout/page-shell'
-import { ErrorState } from '@/components/ui/error-state'
-import { EmptyState } from '@/components/ui/empty-state'
-import { StatusBadge } from '@/components/ui/status-badge'
+import { useEffect, useState } from 'react'
+import type { DataSourceStatus, Platform } from '@/api/types'
+import { dataSourceApi } from '@/api/org'
+import { Stepper } from '@/components/org/data-source/stepper'
+import { PlatformSelect } from '@/components/org/data-source/platform-select'
+import { StepCredentials } from '@/components/org/data-source/step-credentials'
+import { StepFieldMapping } from '@/components/org/data-source/step-field-mapping'
+import { StepSyncSchedule } from '@/components/org/data-source/step-sync-schedule'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { PLATFORM_LABELS } from '@/lib/labels'
-import { PermissionGate } from '@/components/auth/permission-gate'
-import { PERMISSION } from '@/lib/permissions'
-import { useDataSourcePage } from '@/routes/org/hooks/use-data-source-page'
+import { CheckCircle2, Settings2 } from 'lucide-react'
+
+const steps = [
+  { title: '凭证配置', description: '连接第三方平台' },
+  { title: '字段映射', description: '配置数据映射规则' },
+  { title: '定时同步', description: '设置同步策略' },
+]
+
+const platformLabels: Record<Platform, string> = {
+  feishu: '飞书',
+  dingtalk: '钉钉',
+  wecom: '企业微信',
+}
+
+type WizardPhase = 'loading' | 'select' | 'steps' | 'connected'
 
 export default function DataSourcePage() {
-  const {
-    credentialCta,
-    importCta,
-    importing,
-    displayImportResult,
-    status,
-    syncConfig,
-    loading,
-    error,
-    refresh,
-    imported,
-    setImportResult,
-    handleImport,
-    openCredential,
-    openSyncConfig,
-    navigateToStructure,
-    syncLogs,
-    syncLogsLoading,
-    handleRetryImport,
-  } = useDataSourcePage()
+  const [phase, setPhase] = useState<WizardPhase>('loading')
+  const [platform, setPlatform] = useState<Platform | null>(null)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [status, setStatus] = useState<DataSourceStatus | null>(null)
 
-  if (loading) {
+  useEffect(() => {
+    dataSourceApi.getStatus().then((s) => {
+      setStatus(s)
+      if (s.connected && s.platform) {
+        setPlatform(s.platform)
+        setPhase('connected')
+      } else {
+        setPhase('select')
+      }
+    })
+  }, [])
+
+  const handlePlatformSelected = (p: Platform) => {
+    setPlatform(p)
+    setCurrentStep(0)
+    setCompletedSteps([])
+    setPhase('steps')
+  }
+
+  const completeStep = (step: number) => {
+    setCompletedSteps((prev) => (prev.includes(step) ? prev : [...prev, step]))
+    if (step < steps.length - 1) setCurrentStep(step + 1)
+  }
+
+  const handleWizardComplete = () => {
+    setCompletedSteps([0, 1, 2])
+    setPhase('connected')
+    dataSourceApi.getStatus().then(setStatus)
+  }
+
+  const handleReconfigure = () => {
+    setPhase('select')
+    setCurrentStep(0)
+    setCompletedSteps([])
+  }
+
+  if (phase === 'loading') {
     return (
-      <PageShell>
-        <DataSection loading loadingVariant="spinner">
-          <div />
-        </DataSection>
-      </PageShell>
+      <div className="flex items-center justify-center py-12">
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      </div>
     )
   }
 
-  if (error) {
+  // Connected overview
+  if (phase === 'connected' && status?.connected && platform) {
     return (
-      <PageShell>
-        <ErrorState message={error.message} onRetry={refresh} />
-      </PageShell>
-    )
-  }
-
-  if (!status) {
-    return (
-      <PageShell>
-        <DataSection loading loadingVariant="spinner">
-          <div />
-        </DataSection>
-      </PageShell>
-    )
-  }
-
-  return (
-    <PageShell>
-      <DataSourceInitProgress connected={status.connected} imported={imported} />
-
-      {status.connected && status.platform ? (
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <StatusBadge variant="success">已连接</StatusBadge>
-            <span className="text-sm text-emerald-800">
-              当前数据源：{PLATFORM_LABELS[status.platform]}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <PermissionGate write>
-              <Button
-                id={credentialCta.id}
-                variant="outline"
-                size="sm"
-                className={cn(credentialCta.className)}
-                onClick={openCredential}
-              >
-                配置凭证
-              </Button>
-              <Button variant="outline" size="sm" onClick={openSyncConfig}>
-                编辑同步策略
-              </Button>
-            </PermissionGate>
-          </div>
-        </div>
-      ) : (
-        <PermissionGate write permission={PERMISSION.ORG_DATASOURCE}>
-          <EmptyState
-            icon={Plug}
-            title="尚未连接第三方平台"
-            description="连接后可导入组织"
-            actionLabel="配置凭证"
-            onAction={openCredential}
-            actionClassName={credentialCta.className}
-            actionId={credentialCta.id}
-          />
-        </PermissionGate>
-      )}
-
-      {status.connected && (
-        <>
-          <DataSection
-            title="全量导入"
-            headerAction={
-              <PermissionGate write permission={PERMISSION.ORG_DATASOURCE}>
-                <Button
-                  id={importCta.id}
-                  size="sm"
-                  variant="brand"
-                  className={cn(importCta.className)}
-                  onClick={handleImport}
-                  disabled={importing}
-                >
-                  {importing ? '导入中...' : '执行全量导入'}
-                </Button>
-              </PermissionGate>
-            }
-          >
-            {displayImportResult ? (
-              <ImportResultView
-                result={displayImportResult}
-                onUpdate={setImportResult}
-                onNavigateOrg={navigateToStructure}
-                onRetryImport={handleRetryImport}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                从已连接平台拉取组织与成员数据，完成后可在组织架构中查看。
-              </p>
-            )}
-          </DataSection>
-
-          <DataSection
-            title="同步策略"
-            headerAction={
-              <PermissionGate write permission={PERMISSION.ORG_DATASOURCE}>
-                <Button variant="outline" size="sm" onClick={openSyncConfig}>
-                  编辑
-                </Button>
-              </PermissionGate>
-            }
-            loading={!syncConfig}
-            loadingVariant="spinner"
-          >
-            {syncConfig && (
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>
-                  {syncConfig.enabled ? '已启用' : '未启用'} · 每 {syncConfig.frequencyHours}h ·{' '}
-                  {syncConfig.startTime} 起
-                </p>
-                <p>
-                  删除保护：成员 {syncConfig.deleteMemberThreshold} 人 / 部门{' '}
-                  {syncConfig.deleteDepartmentThreshold} 个
+      <div className="space-y-6">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex size-8 items-center justify-center rounded-md bg-emerald-50">
+                <CheckCircle2 className="size-4 text-emerald-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">数据源已连接</h3>
+                  <Badge className="bg-emerald-50 text-emerald-700">{platformLabels[platform]}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {status.lastImport ? `上次导入：${status.lastImport}` : '尚未执行导入'}
                 </p>
               </div>
-            )}
-          </DataSection>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleReconfigure}>
+              <Settings2 className="size-3.5" />
+              重新配置
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-          <DataSection title="同步记录">
-            <SyncLogTable logs={syncLogs} loading={syncLogsLoading} />
-          </DataSection>
-        </>
-      )}
-    </PageShell>
+  // Platform selection
+  if (phase === 'select') {
+    return (
+      <div className="mx-auto max-w-2xl py-8">
+        <PlatformSelect onSelect={handlePlatformSelected} />
+      </div>
+    )
+  }
+
+  // Step wizard
+  return (
+    <div className="space-y-6">
+      {/* Stepper header */}
+      <div className="rounded-lg border border-border bg-white p-5 shadow-xs">
+        <Stepper steps={steps} currentStep={currentStep} completedSteps={completedSteps} />
+      </div>
+
+      {/* Step content */}
+      <div className="rounded-lg border border-border bg-card p-6 shadow-xs">
+        {currentStep === 0 && platform && (
+          <StepCredentials platform={platform} onConnected={() => completeStep(0)} onBack={() => setPhase('select')} />
+        )}
+        {currentStep === 1 && platform && (
+          <StepFieldMapping platform={platform} onComplete={() => completeStep(1)} onBack={() => setCurrentStep(0)} />
+        )}
+        {currentStep === 2 && (
+          <StepSyncSchedule onComplete={handleWizardComplete} onBack={() => setCurrentStep(1)} />
+        )}
+      </div>
+    </div>
   )
 }

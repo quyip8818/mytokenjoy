@@ -1,39 +1,20 @@
 import path from 'path'
-import { copyFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1]
-const githubPagesBase = process.env.VITE_BASE_PATH ?? (repoName ? `/${repoName}/` : undefined)
-const apiProxyTarget = process.env.VITE_API_PROXY_TARGET
-
 // https://vite.dev/config/
 export default defineConfig({
-  base: githubPagesBase ?? '/',
-  plugins: [
-    react(),
-    tailwindcss(),
-    {
-      name: 'gh-pages-spa-fallback',
-      closeBundle() {
-        if (!githubPagesBase) return
-        const distDir = path.resolve(__dirname, 'dist')
-        copyFileSync(path.join(distDir, 'index.html'), path.join(distDir, '404.html'))
-      },
+  plugins: [react(), tailwindcss()],
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 100,
     },
-  ],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@tests': path.resolve(__dirname, './tests'),
     },
   },
-  server: apiProxyTarget
-    ? {
-        proxy: {
-          '/api': { target: apiProxyTarget, changeOrigin: true },
-        },
-      }
-    : undefined,
 })
