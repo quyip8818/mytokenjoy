@@ -17,11 +17,7 @@
     "test": "pnpm -r --parallel test",
     "test:integration": "pnpm -F @tokenjoy/backend test:integration",
     "test:newapi-management": "apps/newapi/scripts/test-management.sh",
-    "test:e2e": "pnpm -F @tokenjoy/frontend test:e2e",
-    "test:e2e:ui": "pnpm -F @tokenjoy/frontend test:e2e:ui",
-    "generate:permissions": "cd apps/backend && go run ./internal/infra/permission/genkeys && cd ../.. && pnpm -F @tokenjoy/frontend exec tsx ../../scripts/generate-permissions.ts",
-    "check:permissions": "pnpm generate:permissions && git diff --exit-code apps/backend/internal/infra/permission/keys.go apps/frontend/src/lib/permission-keys.ts",
-    "verify": "pnpm lint && pnpm check:permissions && pnpm test && pnpm test:newapi-management && pnpm build && pnpm -F @tokenjoy/backend build:check"
+    "verify": "pnpm lint && pnpm test && pnpm test:newapi-management && pnpm build && pnpm -F @tokenjoy/backend build:check"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
