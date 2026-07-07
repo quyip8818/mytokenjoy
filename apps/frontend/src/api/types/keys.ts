@@ -18,9 +18,13 @@ export interface PlatformKey {
   name: string
   keyPrefix: string
   fullKey?: string
+  type: 'member' | 'project'
   memberId: string | null
   memberName: string | null
   appName: string | null
+  projectName: string | null
+  departmentId: string
+  departmentName: string
   budgetGroupId: string | null
   budgetGroupName: string | null
   status: KeyStatus

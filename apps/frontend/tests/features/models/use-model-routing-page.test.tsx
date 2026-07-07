@@ -44,6 +44,36 @@ const rules: RoutingRule[] = [
 ]
 
 describe('useModelRoutingPage', () => {
+  it('loads routing rules and departments on mount', async () => {
+    const rules = [
+      {
+        id: 'rule-1',
+        nodeId: 'd1',
+        nodeName: 'Dept',
+        inherited: false,
+        allowedModels: ['gpt-4'],
+        defaultModel: 'gpt-4',
+        fallbackModel: null,
+      },
+    ]
+    const apis = createMockApis({
+      routingApi: {
+        getRules: vi.fn().mockResolvedValue(rules),
+      },
+      departmentApi: {
+        getTree: vi.fn().mockResolvedValue(departments),
+      },
+    })
+
+    const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
+
+    await waitForLoaded(result, 'loading')
+
+    expect(apis.routingApi.getRules).toHaveBeenCalled()
+    expect(apis.departmentApi.getTree).toHaveBeenCalled()
+    expect(result.current.rules).toEqual(rules)
+  })
+
   it('derives parent model count from department tree', async () => {
     const apis = createMockApis({
       routingApi: {

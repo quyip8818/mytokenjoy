@@ -10,6 +10,7 @@ interface StatCardProps {
   icon?: LucideIcon
   iconAccent?: string
   iconAccentStyle?: 'gradient' | 'solid'
+  iconLayout?: 'corner' | 'inline'
   className?: string
 }
 
@@ -21,9 +22,33 @@ export function StatCard({
   icon: Icon,
   iconAccent = 'from-blue-500 to-sky-500',
   iconAccentStyle = 'gradient',
+  iconLayout = 'corner',
   className,
 }: StatCardProps) {
   const isSolid = iconAccentStyle === 'solid'
+  const isInline = iconLayout === 'inline'
+
+  if (isInline && Icon) {
+    return (
+      <Card className={cn('border-border bg-card shadow-xs', className)}>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Icon className="size-3.5" strokeWidth={1.5} />
+            {label}
+          </div>
+          <p
+            className={cn(
+              'mt-2 text-xl font-semibold tracking-tight tabular-nums',
+              accent && 'text-primary',
+            )}
+          >
+            {value}
+          </p>
+          {subValue ? <p className="mt-1 text-xs text-muted-foreground">{subValue}</p> : null}
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card

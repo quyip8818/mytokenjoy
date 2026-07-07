@@ -8,6 +8,9 @@ describe('usePlatformKeysPage', () => {
   it('loads platform keys on mount', async () => {
     const items = [{ id: 'pk-1', name: 'Admin Key', status: 'active' }]
     const apis = createMockApis({
+      departmentApi: {
+        getTree: vi.fn().mockResolvedValue([]),
+      },
       platformKeyApi: {
         list: vi.fn().mockResolvedValue({ items, total: 1 }),
       },
@@ -20,6 +23,10 @@ describe('usePlatformKeysPage', () => {
       expect(result.current.keys).toEqual(items)
     })
 
-    expect(apis.platformKeyApi.list).toHaveBeenCalled()
+    expect(apis.departmentApi.getTree).toHaveBeenCalled()
+    expect(apis.platformKeyApi.list).toHaveBeenCalledWith({
+      departmentId: undefined,
+      type: 'member',
+    })
   })
 })

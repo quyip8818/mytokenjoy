@@ -100,5 +100,5 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 			return types.PlatformKey{}, err
 		}
 	}
-	return existing, nil
+	return s.enrichPlatformKeyResponse(ctx, existing)
 }

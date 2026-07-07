@@ -27,7 +27,6 @@ interface MyKeysTableProps {
   onRotate: (key: PlatformKey) => void
   onToggle: (key: PlatformKey) => void
   onDelete: (key: PlatformKey) => void
-  memberPortal?: boolean
 }
 
 function keyQuotaPercent(key: PlatformKey) {
@@ -76,7 +75,6 @@ export function MyKeysTable({
   onRotate,
   onToggle,
   onDelete,
-  memberPortal = false,
 }: MyKeysTableProps) {
   return (
     <Table>
@@ -112,7 +110,7 @@ export function MyKeysTable({
               <KeyStatusBadge status={key.status} />
             </TableCell>
             <TableCell>
-              {memberPortal ? (
+              <PermissionGate write permission={PERMISSION.SELF_KEYS}>
                 <KeyRowActions
                   keyItem={key}
                   onEdit={onEdit}
@@ -120,17 +118,7 @@ export function MyKeysTable({
                   onToggle={onToggle}
                   onDelete={onDelete}
                 />
-              ) : (
-                <PermissionGate write permission={PERMISSION.SELF_KEYS}>
-                  <KeyRowActions
-                    keyItem={key}
-                    onEdit={onEdit}
-                    onRotate={onRotate}
-                    onToggle={onToggle}
-                    onDelete={onDelete}
-                  />
-                </PermissionGate>
-              )}
+              </PermissionGate>
             </TableCell>
           </TableRow>
         ))}

@@ -82,27 +82,12 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 			keyPrefix = keyPrefix[:12] + "..."
 		}
 	}
-	memberName := (*string)(nil)
-	if input.MemberID != nil {
-		if member, ok := org.FindMemberByID(members, *input.MemberID); ok {
-			memberName = &member.Name
-		}
-	}
-	var groupName *string
-	if input.BudgetGroupID != nil {
-		for _, group := range groups {
-			if group.ID == *input.BudgetGroupID {
-				groupName = &group.Name
-				break
-			}
-		}
-	}
 	created := types.PlatformKey{
 		ID:   fmt.Sprintf("plk-%d", time.Now().UnixMilli()),
 		Name: input.Name, KeyPrefix: keyPrefix, FullKey: fullKeyPtr,
-		MemberID: input.MemberID, MemberName: memberName, AppName: input.AppName,
-		BudgetGroupID: input.BudgetGroupID, BudgetGroupName: groupName,
-		Status: "active", Quota: input.Quota, Used: 0,
+		MemberID: input.MemberID, AppName: input.AppName,
+		BudgetGroupID: input.BudgetGroupID,
+		Status:        "active", Quota: input.Quota, Used: 0,
 		ModelWhitelist: append([]string{}, input.ModelWhitelist...),
 		CreatedAt:      time.Now().Format("2006-01-02"),
 	}
@@ -144,9 +129,9 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		}
 		for _, key := range refreshed {
 			if key.ID == created.ID {
-				return key, nil
+				return s.enrichPlatformKeyResponse(ctx, key)
 			}
 		}
 	}
-	return created, nil
+	return s.enrichPlatformKeyResponse(ctx, created)
 }

@@ -1,5 +1,5 @@
-import { MyKeysPageShell, useMyKeysPage } from '@/features/keys'
+import { MyKeysAdminPageShell, useMyKeysPage } from '@/features/keys'
 
 export default function MyKeysPage() {
-  return <MyKeysPageShell {...useMyKeysPage()} />
+  return <MyKeysAdminPageShell {...useMyKeysPage()} />
 }

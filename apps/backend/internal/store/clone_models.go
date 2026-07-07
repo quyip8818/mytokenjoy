@@ -5,12 +5,18 @@ import "github.com/tokenjoy/backend/internal/domain/types"
 func cloneModels(items []types.ModelInfo) []types.ModelInfo {
 	result := make([]types.ModelInfo, len(items))
 	for i, model := range items {
-		result[i] = types.ModelInfo{
+		cloned := types.ModelInfo{
 			ID: model.ID, Provider: model.Provider, Name: model.Name,
-			DisplayName: model.DisplayName, InputPrice: model.InputPrice,
+			DisplayName: model.DisplayName, Type: model.Type, Description: model.Description,
+			Visibility: model.Visibility, InputPrice: model.InputPrice,
 			OutputPrice: model.OutputPrice, MaxContext: model.MaxContext, Enabled: model.Enabled,
 			Capabilities: append([]string{}, model.Capabilities...),
 		}
+		if model.Endpoint != nil {
+			endpoint := *model.Endpoint
+			cloned.Endpoint = &endpoint
+		}
+		result[i] = cloned
 	}
 	return result
 }

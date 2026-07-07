@@ -1,10 +1,17 @@
 import type { ProviderType } from './keys'
 
+export type ModelType = 'builtin' | 'custom'
+export type ModelVisibility = 'all' | 'department' | 'custom'
+
 export interface ModelInfo {
   id: string
   provider: ProviderType
   name: string
   displayName: string
+  type: ModelType
+  description: string
+  visibility: ModelVisibility
+  endpoint?: string
   inputPrice: number
   outputPrice: number
   maxContext: number
@@ -24,6 +31,9 @@ export interface CreateModelInput {
 export interface UpdateModelInput {
   displayName?: string
   name?: string
+  description?: string
+  visibility?: ModelVisibility
+  endpoint?: string
   inputPrice?: number
   outputPrice?: number
   maxContext?: number

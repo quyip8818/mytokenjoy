@@ -1,4 +1,4 @@
-import { DataSection } from '@/components/layout/data-section'
+import { ErrorState } from '@/components/ui/error-state'
 import { PageShell } from '@/components/layout/page-shell'
 import type { useCostDashboardPage } from '@/features/dashboard'
 import { CostSummaryStats } from './cost-summary-stats'
@@ -28,28 +28,27 @@ export function CostDashboardPageShell({
 }: CostDashboardPageShellProps) {
   return (
     <PageShell className="space-y-8" stats={<CostSummaryStats stats={stats} loading={loading} />}>
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        contentClassName="space-y-8"
-      >
-        <div className="grid grid-cols-3 gap-6">
-          <CostTrendChart dailyCosts={dailyCosts} loading={loading} granularity={granularity} />
-          <CostDistributionChart data={deptCostsWithColors} loading={loading} />
-        </div>
-        <CostDrillTable
-          drill={drill}
-          drillTitle={drillTitle}
-          deptCosts={deptCosts}
-          memberCosts={memberCosts}
-          loading={loading}
-          canDrillBack={canDrillBack}
-          onDrillBack={handleDrillBack}
-          onDrillDept={handleDrillDept}
-        />
-        <CostTopConsumersTable topConsumers={topConsumers} loading={loading} />
-      </DataSection>
+      {error ? (
+        <ErrorState message={error.message} onRetry={() => void refresh()} />
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-6">
+            <CostTrendChart dailyCosts={dailyCosts} loading={loading} granularity={granularity} />
+            <CostDistributionChart data={deptCostsWithColors} loading={loading} />
+          </div>
+          <CostDrillTable
+            drill={drill}
+            drillTitle={drillTitle}
+            deptCosts={deptCosts}
+            memberCosts={memberCosts}
+            loading={loading}
+            canDrillBack={canDrillBack}
+            onDrillBack={handleDrillBack}
+            onDrillDept={handleDrillDept}
+          />
+          <CostTopConsumersTable topConsumers={topConsumers} loading={loading} />
+        </>
+      )}
     </PageShell>
   )
 }

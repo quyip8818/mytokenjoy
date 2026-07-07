@@ -107,7 +107,6 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			if keyQuota > remaining {
 				members = budget.AddMemberPersonalQuota(members, approval.ApplicantID, keyQuota-remaining)
 			}
-			memberName := approval.Applicant
 			memberID := approval.ApplicantID
 			fullKey := fmt.Sprintf("tj-apv-%d-demo-secret-key", time.Now().UnixMilli())
 			prefix := fullKey
@@ -117,7 +116,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			platformKeys = append(platformKeys, types.PlatformKey{
 				ID:   fmt.Sprintf("plk-apv-%d", time.Now().UnixMilli()),
 				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: prefix, FullKey: &fullKey,
-				MemberID: &memberID, MemberName: &memberName, Status: "active", Quota: keyQuota, Used: 0,
+				MemberID: &memberID, Status: "active", Quota: keyQuota, Used: 0,
 				ModelWhitelist: append([]string{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})

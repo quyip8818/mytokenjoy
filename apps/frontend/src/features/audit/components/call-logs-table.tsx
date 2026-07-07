@@ -49,7 +49,7 @@ export function CallLogsTable({
           return (
             <Fragment key={log.id}>
               <TableRow
-                className={canExpand ? 'cursor-pointer' : undefined}
+                className={`even:bg-muted/40 ${canExpand ? 'cursor-pointer' : ''}`}
                 onClick={() => onToggleExpanded(log.id)}
               >
                 <TableCell className="w-6 pr-0">

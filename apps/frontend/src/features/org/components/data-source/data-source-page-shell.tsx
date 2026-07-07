@@ -38,12 +38,12 @@ export function DataSourcePageShell({
   goToPreviousStep,
 }: DataSourcePageShellProps) {
   return (
-    <PageShell className="space-y-8">
+    <PageShell className="space-y-6">
       <DataSection
         loading={loading}
         error={error}
         onRetry={() => void refresh()}
-        contentClassName="space-y-8"
+        contentClassName="space-y-6"
       >
         {phase === 'connected' && status?.connected && platform ? (
           <div className="rounded-lg border border-border bg-card p-5 shadow-xs">
@@ -76,7 +76,7 @@ export function DataSourcePageShell({
           </div>
         ) : (
           <>
-            <div className="rounded-lg border border-border bg-card p-5 shadow-xs">
+            <div className="rounded-lg border border-border bg-white p-5 shadow-xs">
               <Stepper steps={steps} currentStep={currentStep} completedSteps={completedSteps} />
             </div>
 

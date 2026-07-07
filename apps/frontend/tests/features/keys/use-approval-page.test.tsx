@@ -20,8 +20,6 @@ describe('useApprovalPage', () => {
     expect(apis.approvalApi.list).toHaveBeenCalledWith({ tab: 'pending' })
     expect(result.current.approvals).toEqual(mockApprovals)
     expect(result.current.pendingCount).toBe(1)
-    expect(result.current.hasKeyType).toBe(true)
-    expect(result.current.hasQuotaType).toBe(false)
   })
 
   it('switches tab filter', async () => {
@@ -36,11 +34,11 @@ describe('useApprovalPage', () => {
     await waitForLoaded(result, 'loading')
 
     act(() => {
-      result.current.setTab('mine')
+      result.current.setTab('approved')
     })
 
     await waitForLoaded(result, 'loading')
 
-    expect(apis.approvalApi.list).toHaveBeenCalledWith(expect.objectContaining({ tab: 'mine' }))
+    expect(apis.approvalApi.list).toHaveBeenCalledWith(expect.objectContaining({ tab: 'approved' }))
   })
 })

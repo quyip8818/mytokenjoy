@@ -5,7 +5,7 @@ export { usePlatformKeysPage } from './hooks/use-platform-keys-page'
 export { useProviderKeysPage } from './hooks/use-provider-keys-page'
 export { useApprovalPage } from './hooks/use-approval-page'
 export { MyKeysTable } from './components/my-keys-table'
-export { MyKeysPageShell } from './components/my-keys-page-shell'
+export { MyKeysAdminPageShell } from './components/my-keys-admin-page-shell'
 export { MemberKeysPageShell } from './components/member-keys-page-shell'
 export { ApprovalPageShell } from './components/approval-page-shell'
 export { PlatformKeysPageShell } from './components/platform-keys-page-shell'
@@ -15,6 +15,7 @@ export { ProviderKeyTable } from './components/provider-key-table'
 export { ApprovalTable } from './components/approval-table'
 export { PROVIDER_LABELS, PROVIDER_BADGE_STYLES, PROVIDER_CHIP_STYLES } from '@/lib/provider-labels'
 export { QUOTA_INSUFFICIENT_MESSAGE } from './lib/constants'
+export type { PlatformKeyTab, ApprovalTab } from './lib/types'
 export {
   KeyPrefixBadge,
   KeyStatusBadge,

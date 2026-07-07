@@ -19,7 +19,7 @@ type Service interface {
 	ToggleProviderKey(ctx context.Context, id string) error
 	RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error)
 	DeleteProviderKey(ctx context.Context, id string) error
-	ListPlatformKeys(ctx context.Context, memberID, budgetGroupID string) (types.PageResult[types.PlatformKey], error)
+	ListPlatformKeys(ctx context.Context, filter types.PlatformKeyListFilter) (types.PageResult[types.PlatformKey], error)
 	QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
 	UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
@@ -54,26 +54,6 @@ func (s *service) ListProviderKeys(ctx context.Context) ([]types.ProviderKey, er
 	return s.store.Keys().ProviderKeys(ctx)
 }
 
-func (s *service) ListPlatformKeys(ctx context.Context, memberID, budgetGroupID string) (types.PageResult[types.PlatformKey], error) {
-	items, err := s.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return types.PageResult[types.PlatformKey]{}, err
-	}
-	filtered := make([]types.PlatformKey, 0, len(items))
-	for _, key := range items {
-		if memberID != "" && (key.MemberID == nil || *key.MemberID != memberID) {
-			continue
-		}
-		if budgetGroupID != "" && (key.BudgetGroupID == nil || *key.BudgetGroupID != budgetGroupID) {
-			continue
-		}
-		filtered = append(filtered, key)
-	}
-	return types.PageResult[types.PlatformKey]{
-		Items: filtered, Total: len(filtered), Page: 1, PageSize: 20,
-	}, nil
-}
-
 func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error) {
 	if memberID == "" {
 		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
@@ -101,10 +81,19 @@ func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]ty
 	}
 	filtered := make([]types.KeyApproval, 0, len(items))
 	for _, item := range items {
-		if tab == "pending" && item.Status != "pending" {
-			continue
+		switch tab {
+		case "pending", "approved", "rejected":
+			if item.Status != tab {
+				continue
+			}
+		case "all", "":
+			// no status filter
+		default:
+			if item.Status != tab {
+				continue
+			}
 		}
-		if tab == "mine" && memberID != "" && item.ApplicantID != memberID {
+		if memberID != "" && item.ApplicantID != memberID {
 			continue
 		}
 		filtered = append(filtered, item)

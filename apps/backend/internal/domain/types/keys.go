@@ -19,9 +19,13 @@ type PlatformKey struct {
 	Name            string   `json:"name"`
 	KeyPrefix       string   `json:"keyPrefix"`
 	FullKey         *string  `json:"fullKey,omitempty"`
+	Type            string   `json:"type"`
 	MemberID        *string  `json:"memberId"`
 	MemberName      *string  `json:"memberName"`
 	AppName         *string  `json:"appName"`
+	ProjectName     *string  `json:"projectName"`
+	DepartmentID    string   `json:"departmentId"`
+	DepartmentName  string   `json:"departmentName"`
 	BudgetGroupID   *string  `json:"budgetGroupId"`
 	BudgetGroupName *string  `json:"budgetGroupName"`
 	Status          string   `json:"status"`
@@ -30,6 +34,13 @@ type PlatformKey struct {
 	ModelWhitelist  []string `json:"modelWhitelist"`
 	CreatedAt       string   `json:"createdAt"`
 	ExpiresAt       *string  `json:"expiresAt"`
+}
+
+type PlatformKeyListFilter struct {
+	MemberID      string
+	BudgetGroupID string
+	DepartmentID  string
+	Type          string
 }
 
 type KeyApproval struct {

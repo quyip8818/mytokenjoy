@@ -367,16 +367,16 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 平台密钥 `platformKeyApi`
 
-| 方法   | 路径                           | Body / 查询                                                            | 响应                     | 备注                                                                 |
-| ------ | ------------------------------ | ---------------------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------- |
-| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `budgetGroupId?`             | `Paginated<PlatformKey>` | `memberId` / `budgetGroupId` 过滤                                    |
-| POST   | `/keys/platform`               | `{ name, memberId?, budgetGroupId?, appName?, quota, modelWhitelist }` | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；Group Key 校验组剩余额度；白名单 → 422 |
-| PUT    | `/keys/platform/:id`           | `{ name?, quota?, modelWhitelist? }`                                   | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
-| PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                          | `PlatformKey`            |                                                                      |
-| POST   | `/keys/platform/:id/rotate`    | —                                                                      | `PlatformKey`            | 响应含 `fullKey`                                                     |
-| PUT    | `/keys/platform/:id/revoke`    | —                                                                      | `void`                   |                                                                      |
-| DELETE | `/keys/platform/:id`           | —                                                                      | `void`                   |                                                                      |
-| GET    | `/keys/platform/quota-summary` | query: `memberId`                                                      | `MemberQuotaSummary`     |                                                                      |
+| 方法   | 路径                           | Body / 查询                                                                          | 响应                     | 备注                                                                 |
+| ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
+| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `budgetGroupId?`, `departmentId?`, `type?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`type`: `member` \| `project`                   |
+| POST   | `/keys/platform`               | `{ name, memberId?, budgetGroupId?, appName?, quota, modelWhitelist }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；Group Key 校验组剩余额度；白名单 → 422 |
+| PUT    | `/keys/platform/:id`           | `{ name?, quota?, modelWhitelist? }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
+| PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
+| POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
+| PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
+| DELETE | `/keys/platform/:id`           | —                                                                                    | `void`                   |                                                                      |
+| GET    | `/keys/platform/quota-summary` | query: `memberId`                                                                    | `MemberQuotaSummary`     |                                                                      |
 
 #### 审批 `approvalApi`
 
@@ -548,7 +548,8 @@ HTTP 非 2xx 时，body 应包含：
 
 **ProviderKey：** `id`, `provider`, `name`, `keyPrefix`, `status`, `balance`, `lastUsed`, `createdAt`, `rotateEnabled`
 
-**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`, `appName`, `budgetGroupId`, `budgetGroupName`, `status`, `quota`, `used`, `modelWhitelist`, `createdAt`, `expiresAt`
+**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`†, `appName`, `budgetGroupId`, `budgetGroupName`†, `type`†, `departmentId`†, `departmentName`†, `projectName`†, `status`, `quota`, `used`, `modelWhitelist`, `createdAt`, `expiresAt`  
+† 服务端 enrich 推导，不入库 `platform_keys`（见 [下一步工作清单.md](./下一步工作清单.md) §5）
 
 **ApprovalType：** `key` \| `quota` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
 
