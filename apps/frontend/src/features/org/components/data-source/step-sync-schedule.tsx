@@ -74,7 +74,7 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold">定时同步配置</h3>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           配置自动同步策略，系统将按计划定期从数据源拉取最新数据
         </p>
       </div>

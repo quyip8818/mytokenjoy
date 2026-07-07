@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import type { useBudgetPage } from '@/features/budget/hooks/use-budget-page'
+import type { useBudgetPage } from '@/features/budget'
 import { BudgetTreePanel } from './budget-tree-panel'
 import { BudgetDetailTeam } from './budget-detail-team'
 import { BudgetDetailProject } from './budget-detail-project'
@@ -40,7 +40,7 @@ export function BudgetPageShell({
   deleteBudgetGroup,
 }: BudgetPageShellProps) {
   return (
-    <PageShell layout="fill">
+    <PageShell layout="fill" className="min-h-0 flex-1">
       <DataSection
         loading={loading}
         error={error}

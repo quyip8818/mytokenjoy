@@ -13,11 +13,7 @@ export { ProviderKeysPageShell } from './components/provider-keys-page-shell'
 export { PlatformKeyTable } from './components/platform-key-table'
 export { ProviderKeyTable } from './components/provider-key-table'
 export { ApprovalTable } from './components/approval-table'
-export {
-  PROVIDER_LABELS,
-  PROVIDER_BADGE_STYLES,
-  PROVIDER_CHIP_STYLES,
-} from '@/features/models/lib/labels'
+export { PROVIDER_LABELS, PROVIDER_BADGE_STYLES, PROVIDER_CHIP_STYLES } from '@/lib/provider-labels'
 export { QUOTA_INSUFFICIENT_MESSAGE } from './lib/constants'
 export {
   KeyPrefixBadge,

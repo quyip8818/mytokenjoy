@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import type { useMemberCallLogsPage } from '@/features/member/hooks/use-member-call-logs-page'
+import type { useMemberCallLogsPage } from '@/features/member'
 import { CallLogsList } from './call-logs-list'
 
 type MemberCallLogsPageShellProps = ReturnType<typeof useMemberCallLogsPage>

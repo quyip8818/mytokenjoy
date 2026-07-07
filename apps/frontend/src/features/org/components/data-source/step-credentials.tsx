@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
-import { PLATFORM_LABELS } from '@/features/org/lib/labels'
+import { PLATFORM_LABELS } from '@/features/org'
 
 interface StepCredentialsProps {
   platform: Platform
@@ -103,16 +103,18 @@ export function StepCredentials({
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold">配置 {PLATFORM_LABELS[platform]} 凭证</h3>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           填写应用凭证信息并测试连接，确认能正常访问组织数据
         </p>
       </div>
 
-      <div className="space-y-4 max-w-md">
+      <div className="max-w-md space-y-4">
         {platform === 'feishu' && (
           <>
             <div className="space-y-1.5">
-              <Label htmlFor="appId">App ID</Label>
+              <Label htmlFor="appId" className="text-xs text-muted-foreground">
+                App ID
+              </Label>
               <Input
                 id="appId"
                 placeholder="cli_xxxxxxxxxxxxxxxx"
@@ -121,7 +123,9 @@ export function StepCredentials({
               {errors.appId && <p className="text-destructive text-xs">{errors.appId.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="appSecret">App Secret</Label>
+              <Label htmlFor="appSecret" className="text-xs text-muted-foreground">
+                App Secret
+              </Label>
               <Input
                 id="appSecret"
                 type="password"
@@ -146,7 +150,9 @@ export function StepCredentials({
               </ul>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="corpId">Corp ID</Label>
+              <Label htmlFor="corpId" className="text-xs text-muted-foreground">
+                Corp ID
+              </Label>
               <Input
                 id="corpId"
                 placeholder="输入企业 CorpID"
@@ -155,7 +161,9 @@ export function StepCredentials({
               {errors.corpId && <p className="text-destructive text-xs">{errors.corpId.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="appKey">App Key</Label>
+              <Label htmlFor="appKey" className="text-xs text-muted-foreground">
+                App Key
+              </Label>
               <Input
                 id="appKey"
                 placeholder="输入应用的 App Key"
@@ -164,7 +172,9 @@ export function StepCredentials({
               {errors.appKey && <p className="text-destructive text-xs">{errors.appKey.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="appSecret">App Secret</Label>
+              <Label htmlFor="appSecret" className="text-xs text-muted-foreground">
+                App Secret
+              </Label>
               <Input
                 id="appSecret"
                 type="password"
@@ -180,7 +190,9 @@ export function StepCredentials({
         {platform === 'wecom' && (
           <>
             <div className="space-y-1.5">
-              <Label htmlFor="corpId">Corp ID</Label>
+              <Label htmlFor="corpId" className="text-xs text-muted-foreground">
+                Corp ID
+              </Label>
               <Input
                 id="corpId"
                 placeholder="输入企业 CorpID"
@@ -189,7 +201,9 @@ export function StepCredentials({
               {errors.corpId && <p className="text-destructive text-xs">{errors.corpId.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="secret">Secret</Label>
+              <Label htmlFor="secret" className="text-xs text-muted-foreground">
+                Secret
+              </Label>
               <Input
                 id="secret"
                 type="password"
@@ -199,7 +213,9 @@ export function StepCredentials({
               {errors.secret && <p className="text-destructive text-xs">{errors.secret.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="agentId">Agent ID</Label>
+              <Label htmlFor="agentId" className="text-xs text-muted-foreground">
+                Agent ID
+              </Label>
               <Input
                 id="agentId"
                 placeholder="输入 AgentID"

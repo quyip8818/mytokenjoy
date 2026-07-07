@@ -2,7 +2,7 @@ import { Outlet, NavLink } from 'react-router'
 import { useSession } from '@/features/session'
 import { WorkflowProvider } from '@/features/workflow'
 import { WorkflowPanelStack } from '@/features/workflow'
-import { MEMBER_ROUTE_DEFINITIONS } from '@/config/member-routes'
+import { MEMBER_ROUTE_DEFINITIONS } from '@/config/routes'
 import { cn } from '@/lib/utils'
 import { Toaster } from '@/components/ui/sonner'
 

@@ -5,7 +5,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { Department, Member } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
-import { flattenDepts } from '@/features/org/lib/department-tree'
+import { flattenDepartments } from '../lib/departments'
 import { useStructureConfirmState } from './use-structure-confirm'
 
 const PAGE_SIZE = 10
@@ -82,7 +82,7 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const pendingCount = members.filter((member) => member.status === 'pending').length
   const selectedIds = Object.keys(rowSelection)
-  const flatDepts = flattenDepts(departments)
+  const flatDepts = flattenDepartments(departments)
 
   const handleMemberSubmit = async (data: {
     name: string
@@ -101,10 +101,10 @@ export function useStructurePage(injectedApis?: AppApis) {
         email: data.email,
         departmentId: data.departmentId,
         departmentName:
-          flattenDepts(departments).find((dept) => dept.id === data.departmentId)?.name ?? '',
+          flattenDepartments(departments).find((dept) => dept.id === data.departmentId)?.name ?? '',
       })
     } else {
-      const dept = flattenDepts(departments).find((item) => item.id === data.departmentId)
+      const dept = flattenDepartments(departments).find((item) => item.id === data.departmentId)
       await apis.memberApi.create({
         name: data.name,
         phone: data.phone,

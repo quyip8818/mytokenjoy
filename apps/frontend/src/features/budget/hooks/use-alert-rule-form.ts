@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AlertRuleView } from '@/features/budget/lib/alerts'
+import type { AlertRuleView } from '../lib/alerts'
 
 export type AlertRuleFormState = {
   targetType: 'team' | 'project'

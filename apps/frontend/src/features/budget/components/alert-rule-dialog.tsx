@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { BudgetNode, BudgetProjectView, Role } from '@/api/types'
-import type { AlertRuleView } from '@/features/budget/lib/alerts'
+import type { AlertRuleView } from '@/features/budget'
 import {
   Dialog,
   DialogContent,

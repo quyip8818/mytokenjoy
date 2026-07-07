@@ -1,8 +1,11 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getRouteLazyImportPaths, validateRouteDefinitions } from '../src/config/routes.ts'
-import { getMemberRouteLazyImportPaths } from '../src/config/member-routes.ts'
+import {
+  getRouteLazyImportPaths,
+  getMemberRouteLazyImportPaths,
+  validateRouteDefinitions,
+} from '../src/config/routes.ts'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const frontendRoot = join(scriptDir, '..')
@@ -44,23 +47,34 @@ function resolveLazyPagePath(importPath: string): string | null {
   return existsSync(pagePath) ? pagePath : existsSync(indexPagePath) ? indexPagePath : null
 }
 
-for (const importPath of getRouteLazyImportPaths()) {
-  const resolvedPagePath = resolveLazyPagePath(importPath)
-  if (!resolvedPagePath) {
-    fail(`ROUTE_DEFINITIONS lazy import target not found: ${importPath}`)
-  }
+function assertRegisteredPagesImportFeatureHook(importPaths: string[], label: string) {
+  for (const importPath of importPaths) {
+    const resolvedPagePath = resolveLazyPagePath(importPath)
+    if (!resolvedPagePath) {
+      fail(`${label} lazy import target not found: ${importPath}`)
+    }
 
-  const pageSource = readFileSync(resolvedPagePath, 'utf8')
-  const hasPageHookImport = /from ['"]@\/features\/[^'"]+/.test(pageSource)
-  if (!hasPageHookImport) {
-    fail(
-      `Page ${relativeToSrc(resolvedPagePath)} must import a hook from @/features/ (use-*-page.ts pattern)`,
-    )
+    const pageSource = readFileSync(resolvedPagePath, 'utf8')
+    const hasPageHookImport = /from ['"]@\/features\/[^'"]+/.test(pageSource)
+    if (!hasPageHookImport) {
+      fail(
+        `Page ${relativeToSrc(resolvedPagePath)} must import a hook from @/features/ (use-*-page.ts pattern)`,
+      )
+    }
   }
 }
 
+assertRegisteredPagesImportFeatureHook(getRouteLazyImportPaths(), 'ROUTE_DEFINITIONS')
+assertRegisteredPagesImportFeatureHook(getMemberRouteLazyImportPaths(), 'MEMBER_ROUTE_DEFINITIONS')
+
 const pageShellExemptPaths = new Set(['routes/auth/login.tsx'])
-const pageShellWrapperPattern = /\b(PageShell|AuditFilteredPage|[A-Z]\w*(PageShell|PageContent))\b/
+const routeHookSpreadExemptPaths = new Set(['routes/auth/login.tsx'])
+const pageShellWrapperPattern = /\b(PageShell|FilteredPageShell|[A-Z]\w*PageShell)\b/
+const routeHookSpreadPattern = /\{\.\.\.use\w+\(\)\}/
+const crossFeatureLibImportPattern = /from ['"]@\/features\/([^/'"]+)\/lib\//
+const crossFeatureComponentImportPattern = /from ['"]@\/features\/([^/'"]+)\/components\//
+const selfFeatureBarrelImportPattern = /from ['"]@\/features\/([^/'"]+)['"]/
+const selfFeatureHooksImportPattern = /from ['"]@\/features\/([^/'"]+)\/hooks\//
 
 for (const importPath of [...getRouteLazyImportPaths(), ...getMemberRouteLazyImportPaths()]) {
   const resolvedPagePath = resolveLazyPagePath(importPath)
@@ -71,7 +85,19 @@ for (const importPath of [...getRouteLazyImportPaths(), ...getMemberRouteLazyImp
   if (!pageShellWrapperPattern.test(pageSource)) {
     fail(`${relativePath} must use PageShell or an approved layout wrapper`)
   }
+  if (!routeHookSpreadExemptPaths.has(relativePath) && !routeHookSpreadPattern.test(pageSource)) {
+    fail(`${relativePath} must spread a page hook: {...useX()}`)
+  }
 }
+
+walkFiles(join(srcRoot, 'features'), (filePath) => {
+  const relativePath = relativeToSrc(filePath)
+  if (!relativePath.includes('/components/')) return
+  const fileName = relativePath.split('/').pop() ?? ''
+  if (/page-content\.tsx$/i.test(fileName)) {
+    fail(`${relativePath}: use *PageShell naming instead of *PageContent`)
+  }
+})
 
 const registeredMemberPages = new Set(
   getMemberRouteLazyImportPaths()
@@ -87,34 +113,6 @@ walkFiles(join(srcRoot, 'routes', 'member'), (filePath) => {
     fail(`${relativePath} is not registered in MEMBER_ROUTE_DEFINITIONS (orphan member page)`)
   }
 })
-
-for (const importPath of getRouteLazyImportPaths()) {
-  const resolvedPagePath = resolveLazyPagePath(importPath)
-  if (!resolvedPagePath) {
-    fail(`ROUTE_DEFINITIONS lazy import target not found: ${importPath}`)
-  }
-
-  const pageSource = readFileSync(resolvedPagePath, 'utf8')
-  const hasPageHookImport = /from ['"]@\/features\/[^'"]+/.test(pageSource)
-  if (!hasPageHookImport) {
-    fail(
-      `Page ${relativeToSrc(resolvedPagePath)} must import a hook from @/features/ (use-*-page.ts pattern)`,
-    )
-  }
-}
-
-for (const importPath of getMemberRouteLazyImportPaths()) {
-  const resolvedPagePath = resolveLazyPagePath(importPath)
-  if (!resolvedPagePath) {
-    fail(`MEMBER_ROUTE_DEFINITIONS lazy import target not found: ${importPath}`)
-  }
-
-  const pageSource = readFileSync(resolvedPagePath, 'utf8')
-  const hasPageHookImport = /from ['"]@\/features\/[^'"]+/.test(pageSource)
-  if (!hasPageHookImport) {
-    fail(`Member page ${importPath} must import a hook from @/features/ (use-*-page.ts pattern)`)
-  }
-}
 
 const registeredAdminPages = new Set(
   getRouteLazyImportPaths()
@@ -228,6 +226,65 @@ walkFiles(join(srcRoot, 'features'), (filePath) => {
     )
   }
   forbidInjectedApisInComponents(filePath, 'features/*/components/')
+})
+
+walkFiles(join(srcRoot, 'features'), (filePath) => {
+  const relativePath = relativeToSrc(filePath)
+  const importerDomain = relativePath.match(/^features\/([^/]+)\//)?.[1]
+  if (!importerDomain) return
+
+  const inComponents = /^features\/([^/]+)\/components\//.test(relativePath)
+  const inHooks = /^features\/([^/]+)\/hooks\//.test(relativePath)
+  const inComponentsOrHooks = inComponents || inHooks
+
+  const source = readFileSync(filePath, 'utf8')
+  for (const line of source.split('\n')) {
+    const trimmed = line.trimStart()
+    if (!trimmed.startsWith('import')) continue
+
+    const libMatch = trimmed.match(crossFeatureLibImportPattern)
+    if (libMatch) {
+      const importedDomain = libMatch[1]
+      if (importedDomain !== importerDomain) {
+        fail(
+          `${relativePath}: cross-feature deep lib import @/features/${importedDomain}/lib/ is forbidden; use @/features/${importedDomain} barrel`,
+        )
+      }
+      if (inComponentsOrHooks && importedDomain === importerDomain) {
+        fail(
+          `${relativePath}: deep lib import @/features/${importedDomain}/lib/ is forbidden in components/hooks; use @/features/${importedDomain} barrel`,
+        )
+      }
+    }
+
+    const componentMatch = trimmed.match(crossFeatureComponentImportPattern)
+    if (componentMatch) {
+      const importedDomain = componentMatch[1]
+      if (importedDomain !== importerDomain) {
+        fail(
+          `${relativePath}: cross-feature component import @/features/${importedDomain}/components/ is forbidden; use @/features/${importedDomain} barrel`,
+        )
+      }
+    }
+
+    if (inHooks) {
+      const barrelMatch = trimmed.match(selfFeatureBarrelImportPattern)
+      if (barrelMatch?.[1] === importerDomain) {
+        fail(
+          `${relativePath}: hooks must not import from @/features/${importerDomain} barrel; use ../lib/ or sibling hook relative paths`,
+        )
+      }
+    }
+
+    if (inComponents) {
+      const hooksMatch = trimmed.match(selfFeatureHooksImportPattern)
+      if (hooksMatch?.[1] === importerDomain) {
+        fail(
+          `${relativePath}: components must not import from @/features/${importerDomain}/hooks/; use @/features/${importerDomain} barrel`,
+        )
+      }
+    }
+  }
 })
 
 const deepRelativeImportPattern = /from ['"]\.\.\/\.\.\/|import\(['"]\.\.\/\.\.\//

@@ -1,7 +1,7 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
-import type { useStructurePage } from '@/features/org/hooks/use-structure-page'
+import type { useStructurePage } from '@/features/org'
 import { DepartmentPanel } from './department-panel'
 import { MemberFormDialog } from './member-form-dialog'
 import { InviteDialog } from './invite-dialog'
@@ -55,7 +55,7 @@ export function StructurePageShell({
   closeMemberForm,
 }: StructurePageShellProps) {
   return (
-    <PageShell layout="fill">
+    <PageShell layout="fill" className="min-h-0 flex-1">
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <DataSection
           loading={departmentsLoading}

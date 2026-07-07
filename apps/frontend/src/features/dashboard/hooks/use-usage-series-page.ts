@@ -2,11 +2,8 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { UsageGranularity, UsageSeriesQuery } from '@/api/types'
 import { ApiError } from '@/api/client'
-import { USAGE_GRANULARITY } from '@/features/dashboard/lib/constants'
-import {
-  buildUsageSeriesChartData,
-  buildUsageSeriesWindow,
-} from '@/features/dashboard/lib/dashboard'
+import { USAGE_GRANULARITY } from '../lib/constants'
+import { buildUsageSeriesChartData, buildUsageSeriesWindow } from '../lib/dashboard'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 function buildQuery(granularity: UsageGranularity): UsageSeriesQuery {

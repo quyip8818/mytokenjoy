@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { BudgetNode, BudgetProjectView } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { nodeReservedPool } from '@/features/budget/lib/mappers'
+import { nodeReservedPool } from '@/features/budget'
 import { cn } from '@/lib/utils'
 import { Pencil, Users, Wallet, X, Check } from 'lucide-react'
 

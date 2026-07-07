@@ -93,7 +93,7 @@ export function StepFieldMapping({
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold">字段映射配置</h3>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           将源系统的字段映射到本系统对应字段，配置完成后测试验证映射结果
         </p>
       </div>

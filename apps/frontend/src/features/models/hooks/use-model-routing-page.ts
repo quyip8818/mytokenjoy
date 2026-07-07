@@ -3,7 +3,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { RoutingRule } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useWorkflowRefresh } from '@/features/workflow'
-import { findParentDeptId } from '@/features/org/lib/departments'
+import { findParentDeptId } from '@/features/org'
 
 export function useModelRoutingPage(injectedApis?: AppApis) {
   const { data, loading, error, refresh } = useInjectedQuery({

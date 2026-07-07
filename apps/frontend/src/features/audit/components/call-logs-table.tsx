@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { CALL_LOG_STATUS_LABELS, CALL_LOG_STATUS_VARIANTS } from '@/features/audit/lib/labels'
+import { CALL_LOG_STATUS_LABELS, CALL_LOG_STATUS_VARIANTS } from '@/features/audit'
 
 export interface CallLogsTableProps {
   logs: readonly CallLog[]

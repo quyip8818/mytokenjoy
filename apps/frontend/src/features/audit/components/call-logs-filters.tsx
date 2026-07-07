@@ -1,5 +1,5 @@
 import { OptionsSelect } from '@/components/ui/options-select'
-import { CALL_LOG_STATUS_LABELS } from '@/features/audit/lib/labels'
+import { CALL_LOG_STATUS_LABELS } from '@/features/audit'
 
 interface CallLogsFiltersProps {
   statusFilter: string

@@ -1,41 +1,41 @@
 import { Activity } from 'lucide-react'
-import { AuditFilteredPage } from './audit-filtered-page'
+import type { useAuditCallsPage } from '@/features/audit'
+import { FilteredPageShell } from '@/components/layout/filtered-page-shell'
 import { AuditListToolbar } from './audit-list-toolbar'
 import { AuditTablePagination } from './audit-table-pagination'
 import { CallLogsFilters } from './call-logs-filters'
 import { CallLogsTable } from './call-logs-table'
-import { useAuditCallsPage } from '../hooks/use-audit-calls-page'
 
-export function CallLogsPageContent() {
-  const {
-    logs,
-    total,
-    page,
-    totalPages,
-    setPage,
-    loading,
-    error,
-    refresh,
-    statusFilter,
-    callerId,
-    modelFilter,
-    datePreset,
-    keyword,
-    setStatusFilter,
-    setCallerId,
-    setModelFilter,
-    setDatePreset,
-    setKeyword,
-    expandedId,
-    contentRetentionEnabled,
-    modelOptions,
-    memberOptions,
-    handleExport,
-    toggleExpanded,
-  } = useAuditCallsPage()
+type CallLogsPageShellProps = ReturnType<typeof useAuditCallsPage>
 
+export function CallLogsPageShell({
+  logs,
+  total,
+  page,
+  totalPages,
+  setPage,
+  loading,
+  error,
+  refresh,
+  statusFilter,
+  callerId,
+  modelFilter,
+  datePreset,
+  keyword,
+  setStatusFilter,
+  setCallerId,
+  setModelFilter,
+  setDatePreset,
+  setKeyword,
+  expandedId,
+  contentRetentionEnabled,
+  modelOptions,
+  memberOptions,
+  handleExport,
+  toggleExpanded,
+}: CallLogsPageShellProps) {
   return (
-    <AuditFilteredPage
+    <FilteredPageShell
       title="调用记录"
       loading={loading}
       error={error}
@@ -80,6 +80,6 @@ export function CallLogsPageContent() {
         totalPages={totalPages}
         onPageChange={setPage}
       />
-    </AuditFilteredPage>
+    </FilteredPageShell>
   )
 }

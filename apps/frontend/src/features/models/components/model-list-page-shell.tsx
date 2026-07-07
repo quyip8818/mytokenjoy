@@ -5,7 +5,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import type { useModelListPage } from '@/features/models/hooks/use-model-list-page'
+import type { useModelListPage } from '@/features/models'
 import { ModelListTable } from './model-list-table'
 
 type ModelListPageShellProps = ReturnType<typeof useModelListPage>

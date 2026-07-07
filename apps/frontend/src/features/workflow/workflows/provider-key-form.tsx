@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWorkflow } from '../use-workflow'
-import { PROVIDER_LABELS } from '@/features/models/lib/labels'
+import { PROVIDER_LABELS } from '@/lib/provider-labels'
 
 export function ProviderKeyFormWorkflow({
   entry,

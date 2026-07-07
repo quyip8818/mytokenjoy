@@ -8,7 +8,7 @@ import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/features/workflow'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys/lib/constants'
+import { QUOTA_INSUFFICIENT_MESSAGE } from '../lib/constants'
 
 export function useMyKeysPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)

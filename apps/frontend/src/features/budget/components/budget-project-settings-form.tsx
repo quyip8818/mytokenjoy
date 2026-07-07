@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { Check, Pencil, X } from 'lucide-react'
-import { POLICY_LABELS } from '@/features/budget/lib/constants'
+import { POLICY_LABELS } from '@/features/budget'
 
 type BudgetProjectSettingsFormProps = {
   project: BudgetProjectView

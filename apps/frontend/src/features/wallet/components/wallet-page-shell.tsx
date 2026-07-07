@@ -1,6 +1,6 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import type { useWalletPage } from '@/features/wallet/hooks/use-wallet-page'
+import type { useWalletPage } from '@/features/wallet'
 import { RechargePanel } from './recharge-panel'
 import { RechargeRecordsTable } from './recharge-records-table'
 import { WalletStats } from './wallet-stats'

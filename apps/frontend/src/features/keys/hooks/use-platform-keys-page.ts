@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
-import { useKeysListPage } from '@/features/keys'
+import { useKeysListPage } from './use-keys-list-page'
 
 export function usePlatformKeysPage(injectedApis?: AppApis) {
   const { apis, keys, loading, error, refresh, flashRow, rowClass, openWithRefresh } =

@@ -2,7 +2,7 @@ import { GitBranch } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
-import type { useModelRoutingPage } from '@/features/models/hooks/use-model-routing-page'
+import type { useModelRoutingPage } from '@/features/models'
 import { RoutingRulesTable } from './routing-rules-table'
 
 type ModelRoutingPageShellProps = ReturnType<typeof useModelRoutingPage>

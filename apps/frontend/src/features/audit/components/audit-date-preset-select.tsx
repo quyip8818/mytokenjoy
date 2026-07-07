@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AUDIT_DATE_PRESET, AUDIT_DATE_PRESET_LABELS } from '@/features/audit/lib/constants'
+import { AUDIT_DATE_PRESET, AUDIT_DATE_PRESET_LABELS } from '@/features/audit'
 
 interface AuditDatePresetSelectProps {
   value: string

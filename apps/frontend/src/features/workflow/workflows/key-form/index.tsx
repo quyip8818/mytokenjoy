@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '@/features/workflow/use-workflow'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys/lib/constants'
+import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { formatQuotaContext, useKeyFormQuota, useKeyFormState } from './use-key-form-quota'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {

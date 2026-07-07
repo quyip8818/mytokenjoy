@@ -1,5 +1,5 @@
 import { Progress } from '@/components/ui/progress'
-import { getBudgetProgressClass } from '@/features/budget/lib/mappers'
+import { getBudgetProgressClass } from '@/features/budget'
 import { cn } from '@/lib/utils'
 
 interface BudgetProgressCellProps {

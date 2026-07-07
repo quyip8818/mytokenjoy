@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberQuota } from './budget-edit-member-quota'
 import { BudgetProjectDialog } from './budget-project-dialog'
-import { nodeReservedPool } from '@/features/budget/lib/mappers'
+import { nodeReservedPool } from '@/features/budget'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
 

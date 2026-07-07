@@ -13,7 +13,7 @@ interface WorkflowFormFieldProps {
 export function WorkflowFormField({ label, error, children, className }: WorkflowFormFieldProps) {
   return (
     <div className={cn(WORKFLOW_FORM_FIELD_CLASS, className)}>
-      <Label>{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
       {error ? <p className={WORKFLOW_FIELD_ERROR_CLASS}>{error}</p> : null}
     </div>

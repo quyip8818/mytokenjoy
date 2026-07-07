@@ -5,7 +5,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import type { useProviderKeysPage } from '@/features/keys/hooks/use-provider-keys-page'
+import type { useProviderKeysPage } from '@/features/keys'
 import { ProviderKeyTable } from './provider-key-table'
 
 type ProviderKeysPageShellProps = ReturnType<typeof useProviderKeysPage>

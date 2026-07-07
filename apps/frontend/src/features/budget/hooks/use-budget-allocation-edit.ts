@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { BudgetNode, BudgetProjectView } from '@/api/types'
-import { nodeReservedPool } from '@/features/budget/lib/mappers'
+import { nodeReservedPool } from '../lib/mappers'
 
 type RowDraft = {
   budget: string

@@ -5,10 +5,10 @@ import type {
   UsageGranularity,
   UsageSeriesPoint,
 } from '@/api/types'
-import { demoSeriesAnchorEnd, demoSeriesMonthStartISO } from '@/features/dashboard/lib/demo-series'
+import { demoSeriesAnchorEnd, demoSeriesMonthStartISO } from './demo-series'
 import { Coins, Hash, Zap, DollarSign, User, type LucideIcon } from 'lucide-react'
 
-export const COST_CHART_COLORS = ['#2563eb', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4']
+export const COST_CHART_COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
 
 export type DrillLevel = 'departments' | 'members'
 
@@ -118,34 +118,34 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
       value: summary ? `¥${summary.totalCost.toLocaleString()}` : '-',
       mom: summary?.totalCostMom,
       icon: Coins,
-      accent: 'from-blue-500 to-sky-500',
+      accent: 'bg-primary',
     },
     {
       label: '平均单次成本',
       value: summary ? `¥${summary.avgCostPerRequest.toFixed(2)}` : '-',
       mom: summary?.avgCostPerRequestMom,
       icon: DollarSign,
-      accent: 'from-cyan-400 to-blue-500',
+      accent: 'bg-cyan-400',
     },
     {
       label: '人均成本',
       value: summary ? `¥${summary.avgCostPerMember.toLocaleString()}` : '-',
       mom: summary?.avgCostPerMemberMom,
       icon: User,
-      accent: 'from-violet-400 to-purple-500',
+      accent: 'bg-violet-500',
     },
     {
       label: '总调用次数',
       value: summary?.totalRequests.toLocaleString() ?? '-',
       mom: summary?.totalRequestsMom,
       icon: Zap,
-      accent: 'from-amber-400 to-orange-500',
+      accent: 'bg-amber-400',
     },
     {
       label: '总 Token',
       value: summary ? formatTokenCount(summary.totalTokens) : '-',
       icon: Hash,
-      accent: 'from-blue-500 to-sky-400',
+      accent: 'bg-violet-500',
     },
   ]
 }

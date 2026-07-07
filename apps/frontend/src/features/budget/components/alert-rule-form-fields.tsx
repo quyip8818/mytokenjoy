@@ -1,6 +1,6 @@
 import type { BudgetNode, BudgetProjectView, Role } from '@/api/types'
-import { groupProjectsByTeam } from '@/features/budget/lib/alerts'
-import { ALERT_PRESET_THRESHOLDS } from '@/features/budget/lib/constants'
+import { groupProjectsByTeam } from '@/features/budget'
+import { ALERT_PRESET_THRESHOLDS } from '@/features/budget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

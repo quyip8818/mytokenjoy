@@ -5,7 +5,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import type { usePlatformKeysPage } from '@/features/keys/hooks/use-platform-keys-page'
+import type { usePlatformKeysPage } from '@/features/keys'
 import { PlatformKeyTable } from './platform-key-table'
 
 type PlatformKeysPageShellProps = ReturnType<typeof usePlatformKeysPage>

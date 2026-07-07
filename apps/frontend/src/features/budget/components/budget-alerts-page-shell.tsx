@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
-import type { useBudgetAlertRulesPage } from '@/features/budget/hooks/use-budget-alert-rules-page'
+import type { useBudgetAlertRulesPage } from '@/features/budget'
 import { AlertRuleDialog } from './alert-rule-dialog'
 import { BudgetAlertsTable } from './budget-alerts-table'
 
