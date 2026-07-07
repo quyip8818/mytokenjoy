@@ -1,4 +1,4 @@
-package postgres
+package apply
 
 import (
 	"context"
@@ -14,11 +14,11 @@ import (
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-type seedTableWriter interface {
+type TableWriter interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 }
 
-func ApplySeedTables(ctx context.Context, exec seedTableWriter, snap store.Snapshot) error {
+func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) error {
 	if err := insertSeedCompany(ctx, exec, snap); err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func ApplySeedTables(ctx context.Context, exec seedTableWriter, snap store.Snaps
 	return nil
 }
 
-func insertSeedCompany(ctx context.Context, exec seedTableWriter, snap store.Snapshot) error {
+func insertSeedCompany(ctx context.Context, exec TableWriter, snap store.Snapshot) error {
 	t := snap.Company
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO companies (id, slug, name, status) VALUES ($1, $2, $3, $4)
@@ -68,7 +68,7 @@ func insertSeedCompany(ctx context.Context, exec seedTableWriter, snap store.Sna
 	return nil
 }
 
-func insertSeedPermissions(ctx context.Context, exec seedTableWriter, permissions []types.Permission) error {
+func insertSeedPermissions(ctx context.Context, exec TableWriter, permissions []types.Permission) error {
 	for _, perm := range permissions {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO permissions (id, name, grp) VALUES ($1, $2, $3)
@@ -80,7 +80,7 @@ func insertSeedPermissions(ctx context.Context, exec seedTableWriter, permission
 	return nil
 }
 
-func insertSeedRoles(ctx context.Context, exec seedTableWriter, tid int64, roles []types.Role) error {
+func insertSeedRoles(ctx context.Context, exec TableWriter, tid int64, roles []types.Role) error {
 	for _, role := range roles {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO roles (id, company_id, name, type, member_count) VALUES ($1, $2, $3, $4, $5)
@@ -108,7 +108,7 @@ func buildSeedRoleNameIndex(roles []types.Role) map[string]string {
 	return index
 }
 
-func insertSeedOrgNodes(ctx context.Context, exec seedTableWriter, tid int64, nodes []types.OrgNode) error {
+func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode) error {
 	flat := pkgorg.FlattenOrgNodeTree(nodes)
 	for i, node := range flat {
 		if _, err := exec.Exec(ctx, `
@@ -127,7 +127,7 @@ func insertSeedOrgNodes(ctx context.Context, exec seedTableWriter, tid int64, no
 	return nil
 }
 
-func insertSeedModelAllowlist(ctx context.Context, exec seedTableWriter, tid int64, rows []store.ModelAllowlistRow) error {
+func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, rows []store.ModelAllowlistRow) error {
 	for _, row := range rows {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO model_allowlist (company_id, owner_type, owner_id, model_name)
@@ -139,7 +139,7 @@ func insertSeedModelAllowlist(ctx context.Context, exec seedTableWriter, tid int
 	return nil
 }
 
-func insertSeedMembers(ctx context.Context, exec seedTableWriter, tid int64, members []types.Member, roleIDByName map[string]string) error {
+func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members []types.Member, roleIDByName map[string]string) error {
 	demoHash := contract.DemoPasswordHash()
 	for _, member := range members {
 		var passwordHash *string
@@ -173,7 +173,7 @@ func insertSeedMembers(ctx context.Context, exec seedTableWriter, tid int64, mem
 	return nil
 }
 
-func insertSeedOrgIntegration(ctx context.Context, exec seedTableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedOrgIntegration(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	integration := snap.OrgIntegration
 	var platform *string
 	if integration.Platform != nil {
@@ -223,7 +223,7 @@ func insertSeedOrgIntegration(ctx context.Context, exec seedTableWriter, tid int
 	return nil
 }
 
-func insertSeedBudget(ctx context.Context, exec seedTableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	for _, group := range snap.BudgetGroups {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO budget_groups (id, company_id, name, budget, consumed)
@@ -274,7 +274,7 @@ func insertSeedBudget(ctx context.Context, exec seedTableWriter, tid int64, snap
 	return insertSeedBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
 }
 
-func insertSeedBudgetApprovals(ctx context.Context, exec seedTableWriter, tid int64, approvals []types.BudgetApproval) error {
+func insertSeedBudgetApprovals(ctx context.Context, exec TableWriter, tid int64, approvals []types.BudgetApproval) error {
 	for _, approval := range approvals {
 		createdAt, err := pkgtime.Parse(approval.CreatedAt)
 		if err != nil {
@@ -307,7 +307,7 @@ func insertSeedBudgetApprovals(ctx context.Context, exec seedTableWriter, tid in
 	return nil
 }
 
-func insertSeedKeys(ctx context.Context, exec seedTableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	for _, key := range snap.ProviderKeys {
 		createdAt, err := pkgtime.Parse(key.CreatedAt)
 		if err != nil {
@@ -385,7 +385,7 @@ func insertSeedKeys(ctx context.Context, exec seedTableWriter, tid int64, snap s
 	return nil
 }
 
-func insertSeedModels(ctx context.Context, exec seedTableWriter, tid int64, models []types.ModelInfo) error {
+func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models []types.ModelInfo) error {
 	for _, model := range models {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO models (
@@ -410,7 +410,7 @@ func insertSeedModels(ctx context.Context, exec seedTableWriter, tid int64, mode
 	return nil
 }
 
-func insertSeedAudit(ctx context.Context, exec seedTableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedAudit(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO audit_settings (company_id, content_retention_enabled)
 		VALUES ($1, $2) ON CONFLICT (company_id) DO NOTHING

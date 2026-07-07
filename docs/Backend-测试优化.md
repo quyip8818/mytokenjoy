@@ -41,7 +41,7 @@ cd apps/backend && make test-unit
 | 锚点 ID     | `github.com/tokenjoy/backend/seed/contract`              |
 | 全量快照    | `seed.Load(cfg)`                                         |
 | 最小快照    | `seed.LoadMinimal(cfg)`                                  |
-| 管理面落库  | `postgres.ApplySeedTables`                               |
+| 管理面落库  | `seed.ApplyTables`                                        |
 | Demo 运行态 | `seed/runtime.ApplyUsageBuckets` / `ApplyRechargeOrders` |
 
 ### 2.2 何时用 MinimalSeed

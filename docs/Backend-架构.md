@@ -184,7 +184,7 @@ type Store interface {
 | 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-测试优化.md](./Backend-测试优化.md)                    |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
-- Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.Load` + `postgres.ApplyTables`；demo 下 `seed/runtime.ApplyUsageBuckets`（见 [Backend-seed.md](./Backend-seed.md)）。
+- Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.Load` + `seed.ApplyTables`；demo 下 `seed/runtime.ApplyUsageBuckets`（见 [Backend-seed.md](./Backend-seed.md)）。
 - 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
 - `OrgRepository` 实现按职责拆为多文件（`org_repo.go` + `org_repo_members.go` / `org_repo_roles.go` / `org_repo_integration.go`），接口不变。
 
