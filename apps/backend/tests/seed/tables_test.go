@@ -68,7 +68,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := postgres.ApplySeedTables(ctx, tx, snap); err != nil {
+	if err := seed.ApplyTables(ctx, tx, snap); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(ctx); err != nil {

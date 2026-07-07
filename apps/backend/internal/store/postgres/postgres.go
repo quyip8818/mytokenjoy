@@ -164,7 +164,7 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	} else {
 		snap = seed.Load(cfg)
 	}
-	if err := ApplySeedTables(ctx, tx, snap); err != nil {
+	if err := seed.ApplyTables(ctx, tx, snap); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {

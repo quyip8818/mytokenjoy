@@ -233,6 +233,6 @@ make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
 
 - [ ] `apps/frontend/src/api/` + [Frontend.md](./Frontend.md) API 契约
 - [ ] `internal/domain/` + `internal/http/handler/`
-- [ ] `apps/backend/seed/`（demo 数据，[Backend-seed.md](./Backend-seed.md)）
+- [x] `apps/backend/seed/`（demo 数据，[Backend-seed.md](./Backend-seed.md)）
 - [ ] `tests/handler/core/contract_test.go`（新 GET）
 - [ ] 已实现项从 [Roadmap.md](./Roadmap.md) 移除
