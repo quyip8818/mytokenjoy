@@ -16,6 +16,7 @@ import (
 )
 
 func TestAuthzWriteEndpoints(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	for _, tc := range authzWriteCases(t) {
 		t.Run(tc.name, func(t *testing.T) {
@@ -43,6 +44,7 @@ func TestAuthzWriteEndpoints(t *testing.T) {
 }
 
 func TestProdGetReadForbiddenForMember(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewProdRouter(t)
 	for _, tc := range prodGetForbiddenCases(t) {
 		t.Run(tc.name, func(t *testing.T) {
@@ -60,6 +62,7 @@ func TestProdGetReadForbiddenForMember(t *testing.T) {
 }
 
 func TestSyncTriggerWithAPIKey(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		cfg.SyncTriggerAPIKey = "test-sync-key"

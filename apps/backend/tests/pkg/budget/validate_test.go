@@ -8,6 +8,7 @@ import (
 )
 
 func TestValidateBudgetNodeUpdate(t *testing.T) {
+	t.Parallel()
 	tree := []types.BudgetNode{
 		{
 			ID: "root", Budget: 100000, ReservedPool: floatPtr(10000),
@@ -27,6 +28,7 @@ func TestValidateBudgetNodeUpdate(t *testing.T) {
 }
 
 func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
+	t.Parallel()
 	tree := []types.BudgetNode{
 		{
 			ID: "root", Budget: 100000, ReservedPool: floatPtr(10000),
@@ -42,6 +44,7 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 }
 
 func TestGetMemberQuotaCapacity(t *testing.T) {
+	t.Parallel()
 	reserved := 2000.0
 	node := types.BudgetNode{
 		ID: "dept", Budget: 20000, ReservedPool: &reserved,

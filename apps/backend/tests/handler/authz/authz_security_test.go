@@ -13,6 +13,7 @@ import (
 )
 
 func TestBareMemberIDCookieRejected(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member=m-admin", "", nil)
 	if rec.Code != http.StatusUnauthorized {
@@ -21,6 +22,7 @@ func TestBareMemberIDCookieRejected(t *testing.T) {
 }
 
 func TestBareBearerMemberIDRejected(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "", "", map[string]string{
 		"Authorization": "Bearer m-admin",
@@ -31,6 +33,7 @@ func TestBareBearerMemberIDRejected(t *testing.T) {
 }
 
 func TestTamperedJWTRejected(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	token := testutil.IssueSessionJWT(t, seed.DefaultCompanyID, seed.IDMemberAdmin)
 	tampered := token[:len(token)-1] + "x"
@@ -41,6 +44,7 @@ func TestTamperedJWTRejected(t *testing.T) {
 }
 
 func TestJWTCompanyMismatchRejected(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	cookie := testutil.SessionCookieForCompany(t, 999, seed.IDMemberAdmin)
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", cookie, "", nil)
@@ -50,6 +54,7 @@ func TestJWTCompanyMismatchRejected(t *testing.T) {
 }
 
 func TestAuthLoginIssuesJWTCookie(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	rec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/auth/login", "", `{"email":"admin@example.com","password":"demo1234"}`, nil)
 	if rec.Code != http.StatusOK {
@@ -62,6 +67,7 @@ func TestAuthLoginIssuesJWTCookie(t *testing.T) {
 }
 
 func TestDisabledMemberSessionRejected(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	memberCookie := testutil.SessionCookie(t, seed.IDMemberPure)
 	disableRec := testhttp.ServeAuthz(
@@ -80,6 +86,7 @@ func TestDisabledMemberSessionRejected(t *testing.T) {
 }
 
 func TestDashboardCostWithoutUsagePermission(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	admin := testhttp.AdminCookie(t)
 	createRec := testhttp.ServeAuthz(
@@ -121,6 +128,7 @@ func TestDashboardCostWithoutUsagePermission(t *testing.T) {
 }
 
 func TestSelfApprovalWithoutKeysAdminRead(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	memberCookie := testutil.SessionCookie(t, seed.IDMemberPure)
 	approvalBody := `{"type":"quota","reason":"need more","requestedQuota":500,"memberId":"` + seed.IDMemberPure + `"}`

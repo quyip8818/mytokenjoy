@@ -14,7 +14,8 @@ import (
 )
 
 func TestGetMemberDashboardHTTP(t *testing.T) {
-	app := testutil.NewTestApp(t, nil)
+	t.Parallel()
+	app := testhttp.NewApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/me/dashboard", nil)
 	req.Header.Set("Cookie", testutil.SessionCookie(t, seed.IDMember1))
 	rec := httptest.NewRecorder()
@@ -32,7 +33,8 @@ func TestGetMemberDashboardHTTP(t *testing.T) {
 }
 
 func TestGetMemberDashboardForbiddenWithoutSelfKeys(t *testing.T) {
-	app := testutil.NewTestApp(t, nil)
+	t.Parallel()
+	app := testhttp.NewApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/me/dashboard", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

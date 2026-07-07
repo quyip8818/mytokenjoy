@@ -10,6 +10,7 @@ import (
 )
 
 func TestBuildMembersAnchorIDs(t *testing.T) {
+	t.Parallel()
 	members := seed.BuildMembers()
 	if len(members) < 120 {
 		t.Fatalf("expected at least 120 members, got %d", len(members))

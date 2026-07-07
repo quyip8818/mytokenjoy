@@ -5,6 +5,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,9 +29,19 @@ func LogPool(st store.Store) *pgxpool.Pool {
 	return pg.logPool
 }
 
-func InsertConsumeLog(ctx context.Context, pool *pgxpool.Pool, raw store.RawConsumeLog) error {
-	_, err := pool.Exec(ctx, `
-		INSERT INTO newapi.logs (
+func logTablesFromStore(st store.Store) logTables {
+	pg, ok := st.(*Store)
+	if !ok || pg.logPool == nil {
+		panic("log tables require postgres store with ingest enabled")
+	}
+	return pg.logTables
+}
+
+func InsertConsumeLog(ctx context.Context, st store.Store, raw store.RawConsumeLog) error {
+	tables := logTablesFromStore(st)
+	pool := LogPool(st)
+	query := fmt.Sprintf(`
+		INSERT INTO %s (
 			id, user_id, created_at, type, content, token_id, model_name, quota,
 			prompt_tokens, completion_tokens, use_time
 		) VALUES ($1, 0, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -43,32 +54,21 @@ func InsertConsumeLog(ctx context.Context, pool *pgxpool.Pool, raw store.RawCons
 			completion_tokens = EXCLUDED.completion_tokens,
 			use_time = EXCLUDED.use_time,
 			content = EXCLUDED.content
-	`, raw.ID, raw.CreatedAt, store.NewAPILogTypeConsume, raw.Content, raw.TokenID, raw.ModelName, raw.Quota,
+	`, tables.logs)
+	_, err := pool.Exec(ctx, query, raw.ID, raw.CreatedAt, store.NewAPILogTypeConsume, raw.Content, raw.TokenID, raw.ModelName, raw.Quota,
 		raw.PromptTokens, raw.CompletionTokens, raw.UseTime)
 	return err
 }
 
-func TruncateLogTables(ctx context.Context, pool *pgxpool.Pool) error {
-	_, err := pool.Exec(ctx, `
-		TRUNCATE TABLE newapi.logs, backend.ingest_failures, backend.reconcile_cursors RESTART IDENTITY CASCADE
-	`)
-	if err != nil {
-		return err
-	}
-	_, err = pool.Exec(ctx, `
-		INSERT INTO backend.reconcile_cursors (stream, last_log_id)
-		VALUES ($1, 0)
-		ON CONFLICT (stream) DO UPDATE SET last_log_id = 0, updated_at = NOW()
-	`, store.ReconcileStreamNewAPIConsume)
-	return err
-}
-
-func GetIngestFailureByLogID(ctx context.Context, pool *pgxpool.Pool, logID int64) (store.IngestFailure, bool, error) {
-	row := pool.QueryRow(ctx, `
+func GetIngestFailureByLogID(ctx context.Context, st store.Store, logID int64) (store.IngestFailure, bool, error) {
+	tables := logTablesFromStore(st)
+	pool := LogPool(st)
+	query := fmt.Sprintf(`
 		SELECT id, log_id, source, error, status, attempts, next_retry, created_at, updated_at
-		FROM backend.ingest_failures
+		FROM %s
 		WHERE log_id = $1
-	`, logID)
+	`, tables.ingestFailures)
+	row := pool.QueryRow(ctx, query, logID)
 	var f store.IngestFailure
 	err := row.Scan(&f.ID, &f.LogID, &f.Source, &f.Error, &f.Status, &f.Attempts, &f.NextRetry, &f.CreatedAt, &f.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {

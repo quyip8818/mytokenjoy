@@ -7,6 +7,7 @@ import (
 )
 
 func TestPaginate(t *testing.T) {
+	t.Parallel()
 	items := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 	tests := []struct {
@@ -55,6 +56,7 @@ func TestPaginate(t *testing.T) {
 }
 
 func TestPaginateEmptySlice(t *testing.T) {
+	t.Parallel()
 	result, total, _, _ := common.Paginate([]string{}, 1, 10)
 	if total != 0 {
 		t.Errorf("total = %d, want 0", total)

@@ -39,6 +39,7 @@ func newCountingAuthzService(t *testing.T) (authz.Service, *countingOrgRepo) {
 }
 
 func TestGetSessionContextCachesByRevision(t *testing.T) {
+	t.Parallel()
 	svc, orgRepo := newCountingAuthzService(t)
 	ctx := testutil.Ctx()
 	companyID := seed.DefaultCompanyID

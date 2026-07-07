@@ -8,6 +8,7 @@ import (
 )
 
 func TestDeletePresetRoleReturns400(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	err := svc.DeleteRole(testutil.Ctx(), "role-1")
 	if err == nil {
@@ -16,6 +17,7 @@ func TestDeletePresetRoleReturns400(t *testing.T) {
 }
 
 func TestListMembersPagination(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	page, err := svc.ListMembers(testutil.Ctx(), "", "", false, 1, 20)
 	if err != nil {
@@ -30,6 +32,7 @@ func TestListMembersPagination(t *testing.T) {
 }
 
 func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	err := svc.RemoveRoleMember(testutil.Ctx(), "role-3", "m-1")
 	if err == nil {
@@ -38,6 +41,7 @@ func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 }
 
 func TestBatchImportUnknownDepartment(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "Test", Phone: "13800000000", Email: "t@example.com", DepartmentName: "不存在部门"},
@@ -54,6 +58,7 @@ func TestBatchImportUnknownDepartment(t *testing.T) {
 }
 
 func TestCreateRoleAndList(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 	role, err := svc.CreateRole(ctx, "测试角色", []string{"p-1"})
@@ -80,6 +85,7 @@ func TestCreateRoleAndList(t *testing.T) {
 }
 
 func TestAddRoleMember(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 	role, err := svc.CreateRole(ctx, "附加角色", []string{"p-1"})
@@ -113,6 +119,7 @@ func TestAddRoleMember(t *testing.T) {
 }
 
 func TestRemoveRoleMemberSuccess(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 	role, err := svc.CreateRole(ctx, "可移除角色", []string{"p-2"})

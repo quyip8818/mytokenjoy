@@ -27,6 +27,7 @@ func newMemberService(t *testing.T) (domainmember.Service, context.Context) {
 }
 
 func TestGetDashboardReturnsUsageForMember(t *testing.T) {
+	t.Parallel()
 	svc, ctx := newMemberService(t)
 	view, err := svc.GetDashboard(ctx, seed.IDMember1)
 	if err != nil {

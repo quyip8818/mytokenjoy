@@ -209,7 +209,7 @@ func (r *pgOrgRepo) ImportFailures(ctx context.Context) ([]types.ImportFailure, 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneImportFailures(items), nil
+	return items, nil
 }
 
 func (r *pgOrgRepo) SetImportFailures(ctx context.Context, failures []types.ImportFailure) error {
@@ -253,7 +253,7 @@ func (r *pgOrgRepo) SyncLogs(ctx context.Context) ([]types.SyncLog, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneSyncLogs(items), nil
+	return items, nil
 }
 
 func (r *pgOrgRepo) AppendSyncLog(ctx context.Context, log types.SyncLog) error {

@@ -16,6 +16,7 @@ func newAuthzService(t *testing.T) authz.Service {
 }
 
 func TestGetSessionContextSuccess(t *testing.T) {
+	t.Parallel()
 	svc := newAuthzService(t)
 	ctx, err := svc.GetSessionContext(testutil.Ctx(), seed.DefaultCompanyID, seed.IDMemberAdmin)
 	if err != nil {
@@ -33,6 +34,7 @@ func TestGetSessionContextSuccess(t *testing.T) {
 }
 
 func TestGetSessionContextNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newAuthzService(t)
 	_, err := svc.GetSessionContext(testutil.Ctx(), seed.DefaultCompanyID, "missing")
 	if err == nil {
@@ -41,6 +43,7 @@ func TestGetSessionContextNotFound(t *testing.T) {
 }
 
 func TestGetSessionContextReadOnlyMember(t *testing.T) {
+	t.Parallel()
 	svc := newAuthzService(t)
 	ctx, err := svc.GetSessionContext(testutil.Ctx(), seed.DefaultCompanyID, "m-pure")
 	if err != nil {

@@ -74,7 +74,7 @@ func (r *pgAuditRepo) OperationLogs(ctx context.Context) ([]types.OperationLog, 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneOperationLogs(items), nil
+	return items, nil
 }
 
 func (r *pgAuditRepo) ListOperationsPage(ctx context.Context, filter store.AuditOperationFilter) ([]types.OperationLog, int, error) {
@@ -119,7 +119,7 @@ func (r *pgAuditRepo) ListOperationsPage(ctx context.Context, filter store.Audit
 	if err := rows.Err(); err != nil {
 		return nil, 0, err
 	}
-	return store.CloneOperationLogs(items), total, nil
+	return items, total, nil
 }
 
 func buildAuditOperationWhere(companyID int64, filter store.AuditOperationFilter) (string, []any) {

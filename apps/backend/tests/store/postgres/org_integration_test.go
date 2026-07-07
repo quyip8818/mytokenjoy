@@ -10,6 +10,7 @@ import (
 )
 
 func TestOrgIntegrationConnectedAndEnabledIndependent(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
@@ -36,6 +37,7 @@ func TestOrgIntegrationConnectedAndEnabledIndependent(t *testing.T) {
 }
 
 func TestIntegrationCredentialEncryptRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	key := common.DevDefaultKey()
@@ -62,6 +64,7 @@ func TestIntegrationCredentialEncryptRoundTrip(t *testing.T) {
 }
 
 func TestSaveIntegrationCredentialDoesNotOverwriteSyncConfig(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
@@ -105,6 +108,7 @@ func TestSaveIntegrationCredentialDoesNotOverwriteSyncConfig(t *testing.T) {
 }
 
 func TestClearIntegrationCredentialSetsNull(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
@@ -136,6 +140,7 @@ func TestClearIntegrationCredentialSetsNull(t *testing.T) {
 }
 
 func TestFieldMappingsPersistRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 

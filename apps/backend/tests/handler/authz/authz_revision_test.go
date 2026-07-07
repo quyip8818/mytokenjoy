@@ -11,6 +11,7 @@ import (
 )
 
 func TestRoleUpdateBumpsAuthzRevisionHeader(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	admin := testhttp.AdminCookie(t)
 
@@ -55,6 +56,7 @@ func TestRoleUpdateBumpsAuthzRevisionHeader(t *testing.T) {
 }
 
 func TestTransferMembersDoesNotBumpAuthzRevisionHeader(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	admin := testhttp.AdminCookie(t)
 

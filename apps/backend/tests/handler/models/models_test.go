@@ -13,6 +13,7 @@ import (
 )
 
 func TestRoutingUpdateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"allowedModels":["gpt-4o"]}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/dept-3", bytes.NewReader(body))
@@ -33,6 +34,7 @@ func TestRoutingUpdateHTTP(t *testing.T) {
 }
 
 func TestModelCreateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"name":"custom-model","displayName":"Custom","baseUrl":"http://llm.test","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(body))
@@ -56,6 +58,7 @@ func TestModelCreateHTTP(t *testing.T) {
 }
 
 func TestModelListHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -84,6 +87,7 @@ func TestModelListHTTP(t *testing.T) {
 }
 
 func TestModelUpdateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	createBody := []byte(`{"name":"edit-model","displayName":"Edit","baseUrl":"http://llm.old","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(createBody))
@@ -121,6 +125,7 @@ func TestModelUpdateHTTP(t *testing.T) {
 }
 
 func TestModelToggleHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"enabled":false}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/models/model-1/toggle", bytes.NewReader(body))

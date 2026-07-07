@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	runner, st, _, ingest := workerfix.NewRunner(t, stub)
 	ctx := testutil.Ctx()
@@ -38,7 +40,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := findDept3(tree)
+	node := budget.FindBudgetNode(tree, seed.IDDept3)
 	if node == nil || node.Consumed < node.Budget {
 		t.Fatalf("expected dept-3 consumed >= budget, consumed=%v budget=%v", node.Consumed, node.Budget)
 	}

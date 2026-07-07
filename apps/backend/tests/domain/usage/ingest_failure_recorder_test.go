@@ -12,6 +12,7 @@ import (
 )
 
 func TestFailureRecorderRecordFailure(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
@@ -28,6 +29,7 @@ func TestFailureRecorderRecordFailure(t *testing.T) {
 }
 
 func TestFailureRecorderApplyRetryDone(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
@@ -50,6 +52,7 @@ func TestFailureRecorderApplyRetryDone(t *testing.T) {
 }
 
 func TestFailureRecorderApplyRetryDead(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
@@ -74,6 +77,7 @@ func TestFailureRecorderApplyRetryDead(t *testing.T) {
 }
 
 func TestFailureRecorderApplyRetryBackoff(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)

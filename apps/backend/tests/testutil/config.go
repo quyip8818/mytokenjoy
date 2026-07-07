@@ -7,7 +7,10 @@ import (
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
 
-const defaultDemoToday = "2026-06-19"
+const (
+	defaultDemoToday         = "2026-06-19"
+	DefaultTestWebhookSecret = "test-webhook-secret"
+)
 
 type ConfigOption func(*config.Config)
 
@@ -64,9 +67,10 @@ func WithIngestEnabled(enabled bool) ConfigOption {
 	return func(cfg *config.Config) {
 		if enabled {
 			cfg.LogDatabaseURL = cfg.DatabaseURL
-			cfg.NewAPIWebhookSecret = "test-webhook-secret"
+			cfg.LogSchemaIsolated = true
 		} else {
 			cfg.LogDatabaseURL = ""
+			cfg.LogSchemaIsolated = false
 		}
 	}
 }
@@ -91,6 +95,9 @@ func TestConfig(opts ...ConfigOption) config.Config {
 	}
 	for _, opt := range opts {
 		opt(&cfg)
+	}
+	if cfg.IngestEnabled() && cfg.NewAPIWebhookSecret == "" {
+		cfg.NewAPIWebhookSecret = DefaultTestWebhookSecret
 	}
 	return cfg
 }

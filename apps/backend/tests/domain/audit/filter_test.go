@@ -13,6 +13,7 @@ import (
 // PRD 7.2: 调用日志 — 按状态、模型、调用人、时间范围、关键词筛选
 
 func TestListOperationsKeywordFilter(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 	ctx := testutil.Ctx()
@@ -43,6 +44,7 @@ func TestListOperationsKeywordFilter(t *testing.T) {
 }
 
 func TestListOperationsTimeRangeFilter(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 	ctx := testutil.Ctx()
@@ -60,6 +62,7 @@ func TestListOperationsTimeRangeFilter(t *testing.T) {
 }
 
 func TestListOperationsOperatorFilter(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 	ctx := testutil.Ctx()
@@ -77,6 +80,7 @@ func TestListOperationsOperatorFilter(t *testing.T) {
 }
 
 func TestListOperationsPagination(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 	ctx := testutil.Ctx()
@@ -101,6 +105,7 @@ func TestListOperationsPagination(t *testing.T) {
 }
 
 func TestListCallsModelFilter(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
@@ -130,6 +135,7 @@ func TestListCallsModelFilter(t *testing.T) {
 }
 
 func TestListCallsStatusFilter(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
@@ -149,6 +155,7 @@ func TestListCallsStatusFilter(t *testing.T) {
 }
 
 func TestListCallsPagination(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()

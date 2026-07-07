@@ -13,6 +13,7 @@ import (
 )
 
 func TestSettingsUpdateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"contentRetentionEnabled":false}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/audit/settings", bytes.NewReader(body))

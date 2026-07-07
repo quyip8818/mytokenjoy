@@ -24,6 +24,7 @@ func makeRow(bucket time.Time, dept, member, model string, cost float64, calls i
 }
 
 func TestContainsString(t *testing.T) {
+	t.Parallel()
 	items := []string{"a", "b", "c"}
 	if !usagequery.ContainsString(items, "b") {
 		t.Error("expected true for 'b'")
@@ -37,6 +38,7 @@ func TestContainsString(t *testing.T) {
 }
 
 func TestFilterRows(t *testing.T) {
+	t.Parallel()
 	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC)
 
@@ -84,6 +86,7 @@ func TestFilterRows(t *testing.T) {
 }
 
 func TestTruncateBucket(t *testing.T) {
+	t.Parallel()
 	ts := time.Date(2024, 3, 15, 14, 35, 22, 0, time.UTC)
 
 	tests := []struct {
@@ -107,6 +110,7 @@ func TestTruncateBucket(t *testing.T) {
 }
 
 func TestSummaryTotals(t *testing.T) {
+	t.Parallel()
 	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC)
 
@@ -126,6 +130,7 @@ func TestSummaryTotals(t *testing.T) {
 }
 
 func TestLimitByCost(t *testing.T) {
+	t.Parallel()
 	rows := []types.UsageAggregateRow{
 		{CostCNY: 10},
 		{CostCNY: 50},
@@ -159,6 +164,7 @@ func TestLimitByCost(t *testing.T) {
 }
 
 func TestTopModelPerDepartment(t *testing.T) {
+	t.Parallel()
 	rows := []types.UsageBucketRow{
 		makeRow(time.Now(), "d1", "m1", "gpt-4", 50, 5),
 		makeRow(time.Now(), "d1", "m1", "gpt-3.5", 10, 10),
@@ -176,6 +182,7 @@ func TestTopModelPerDepartment(t *testing.T) {
 }
 
 func TestTopModelPerDepartmentEmpty(t *testing.T) {
+	t.Parallel()
 	result := usagequery.TopModelPerDepartment(nil, nil)
 	if len(result) != 0 {
 		t.Errorf("expected empty map, got %v", result)
@@ -183,6 +190,7 @@ func TestTopModelPerDepartmentEmpty(t *testing.T) {
 }
 
 func TestAggregateRows(t *testing.T) {
+	t.Parallel()
 	rows := []types.UsageBucketRow{
 		makeRow(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 10, 1),
 		makeRow(time.Date(2024, 1, 1, 14, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 20, 2),
@@ -212,6 +220,7 @@ func TestAggregateRows(t *testing.T) {
 }
 
 func TestSortSeriesPoints(t *testing.T) {
+	t.Parallel()
 	points := []types.UsageSeriesPoint{
 		{Bucket: "2024-01-02", DepartmentID: "d1"},
 		{Bucket: "2024-01-01", DepartmentID: "d2"},

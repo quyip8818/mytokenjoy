@@ -60,6 +60,7 @@ func getContractCases() []getContractCase {
 }
 
 func TestGetContractEndpoints(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	for _, tc := range getContractCases() {
 		t.Run(tc.name, func(t *testing.T) {
@@ -81,6 +82,7 @@ func TestGetContractEndpoints(t *testing.T) {
 }
 
 func TestSessionUnauthorizedWithoutCookie(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	rec := httptest.NewRecorder()
@@ -105,6 +107,7 @@ func saasContractRouter(t *testing.T) (http.Handler, string, string) {
 }
 
 func TestSaaSContractEndpoints(t *testing.T) {
+	t.Parallel()
 	router, platformCookie, memberCookie := saasContractRouter(t)
 
 	cases := []struct {

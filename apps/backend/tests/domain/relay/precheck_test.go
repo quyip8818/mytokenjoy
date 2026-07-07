@@ -10,6 +10,7 @@ import (
 )
 
 func TestPrecheckRejectsZeroBudget(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 0})
@@ -35,6 +36,7 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 }
 
 func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
@@ -71,6 +73,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 }
 
 func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
@@ -96,6 +99,7 @@ func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
 }
 
 func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})

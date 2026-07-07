@@ -50,7 +50,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneMembers(items), nil
+	return items, nil
 }
 
 func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Member, error) {
@@ -86,8 +86,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 		}
 		roleRows.Close()
 	}
-	cloned := store.CloneMember(item)
-	return &cloned, nil
+	return &item, nil
 }
 
 func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error) {
@@ -127,8 +126,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 	if passwordHash != nil {
 		hash = *passwordHash
 	}
-	cloned := store.CloneMember(item)
-	return &cloned, hash, nil
+	return &item, hash, nil
 }
 
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
@@ -172,7 +170,7 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberI
 		return nil, err
 	}
 	return &store.MemberAuthz{
-		Member:        store.CloneMember(item),
+		Member:        item,
 		Roles:         roles,
 		AuthzRevision: revision,
 	}, nil
@@ -195,7 +193,7 @@ func (r *pgOrgRepo) MemberPersonalQuota(ctx context.Context, memberID string) (f
 
 func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneMembers(members)
+	cloned := cloneMembers(members)
 	roleIDByName, err := loadRoleNameIndex(ctx, r.db, companyID)
 	if err != nil {
 		return err

@@ -13,6 +13,7 @@ import (
 )
 
 func TestMemberCreateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"name":"测试用户","phone":"13800000000","email":"test@example.com","departmentId":"dept-3"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members", bytes.NewReader(body))
@@ -35,6 +36,7 @@ func TestMemberCreateHTTP(t *testing.T) {
 }
 
 func TestBatchImportHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"rows":[{"name":"导入用户","phone":"13900000000","email":"import@example.com","departmentName":"后端组"}]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/batch-import", bytes.NewReader(body))
@@ -58,6 +60,7 @@ func TestBatchImportHTTP(t *testing.T) {
 }
 
 func TestBatchInviteHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"ids":["m-1"]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/batch-invite", bytes.NewReader(body))

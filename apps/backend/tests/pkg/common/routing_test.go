@@ -8,6 +8,7 @@ import (
 )
 
 func TestShrinkChildRoutingRules(t *testing.T) {
+	t.Parallel()
 	parentID := "dept-1"
 	childParentID := "dept-2"
 	departments := []types.Department{
@@ -29,6 +30,7 @@ func TestShrinkChildRoutingRules(t *testing.T) {
 }
 
 func TestResolveDeptAllowedModels_NoRules(t *testing.T) {
+	t.Parallel()
 	models := []types.ModelInfo{
 		{Name: "gpt-4", Enabled: true},
 		{Name: "disabled", Enabled: false},
@@ -41,6 +43,7 @@ func TestResolveDeptAllowedModels_NoRules(t *testing.T) {
 }
 
 func TestResolveDeptAllowedModels_WithRule(t *testing.T) {
+	t.Parallel()
 	departments := []types.Department{
 		{ID: "dept-1", Name: "Root"},
 	}
@@ -59,6 +62,7 @@ func TestResolveDeptAllowedModels_WithRule(t *testing.T) {
 }
 
 func TestRemoveRuleByNodeID(t *testing.T) {
+	t.Parallel()
 	rules := []types.RoutingRule{
 		{NodeID: "a"},
 		{NodeID: "b"},
@@ -76,6 +80,7 @@ func TestRemoveRuleByNodeID(t *testing.T) {
 }
 
 func TestUpdateRuleNodeName(t *testing.T) {
+	t.Parallel()
 	rules := []types.RoutingRule{
 		{NodeID: "a", NodeName: "old-a"},
 		{NodeID: "b", NodeName: "old-b"},
@@ -90,6 +95,7 @@ func TestUpdateRuleNodeName(t *testing.T) {
 }
 
 func TestGetRoutingRuleForDept_Inherited(t *testing.T) {
+	t.Parallel()
 	parentID := "dept-1"
 	departments := []types.Department{
 		{ID: "dept-1", Name: "Parent"},
@@ -109,6 +115,7 @@ func TestGetRoutingRuleForDept_Inherited(t *testing.T) {
 }
 
 func TestGetParentDeptID(t *testing.T) {
+	t.Parallel()
 	parentID := "dept-1"
 	departments := []types.Department{
 		{ID: "dept-1", Name: "Parent"},

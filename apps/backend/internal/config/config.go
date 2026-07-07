@@ -21,6 +21,7 @@ type Config struct {
 
 	DatabaseURL         string `env:"DATABASE_URL"`
 	LogDatabaseURL      string `env:"LOG_DATABASE_URL"`
+	LogSchemaIsolated   bool
 	NewAPIEnabled       bool   `env:"NEW_API_ENABLED" envDefault:"false"`
 	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
 	NewAPIAdminToken    string `env:"NEW_API_ADMIN_TOKEN"`
@@ -92,6 +93,12 @@ func (c Config) validate() error {
 	}
 	if c.SupportSaas && strings.TrimSpace(c.PlatformSessionSecret) == "" {
 		return fmt.Errorf("PLATFORM_SESSION_SECRET is required when SUPPORT_SAAS=true")
+	}
+	if c.LogSchemaIsolated && !c.IngestEnabled() {
+		return fmt.Errorf("log schema isolation requires LOG_DATABASE_URL")
+	}
+	if c.LogSchemaIsolated && c.IsProdProfile() {
+		return fmt.Errorf("log schema isolation is not allowed in prod profile")
 	}
 	if c.IngestEnabled() && strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
 		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when LOG_DATABASE_URL is set")

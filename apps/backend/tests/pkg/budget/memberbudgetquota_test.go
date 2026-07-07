@@ -10,6 +10,7 @@ import (
 )
 
 func TestValidateMemberQuotaBelowAllocated(t *testing.T) {
+	t.Parallel()
 	snapshot := seed.Load(testutil.TestConfig())
 	tree := types.OrgNodesToBudgetTree(snapshot.OrgNodes)
 	members := snapshot.Members
@@ -22,6 +23,7 @@ func TestValidateMemberQuotaBelowAllocated(t *testing.T) {
 }
 
 func TestValidateMemberQuotaExceedsDeptCapacity(t *testing.T) {
+	t.Parallel()
 	tree := []types.BudgetNode{
 		{ID: "dept-3", Budget: 20000, ReservedPool: floatPtr(2000)},
 	}

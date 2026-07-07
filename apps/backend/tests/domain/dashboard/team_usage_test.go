@@ -10,6 +10,7 @@ import (
 )
 
 func TestTeamUsageTopModelBatch(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	base := time.Date(2026, 6, 19, 10, 0, 0, 0, time.UTC)

@@ -9,6 +9,7 @@ import (
 )
 
 func TestResolveCurrentMonth(t *testing.T) {
+	t.Parallel()
 	now := time.Date(2026, 6, 19, 12, 0, 0, 0, time.UTC)
 	rng, err := budget.Resolve(types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, now, types.UsageDefaultTimezone)
 	if err != nil {
@@ -23,6 +24,7 @@ func TestResolveCurrentMonth(t *testing.T) {
 }
 
 func TestPreviousRange(t *testing.T) {
+	t.Parallel()
 	current := budget.ResolvedRange{
 		Start: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
 		End:   time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC),

@@ -26,7 +26,7 @@ func (r *pgOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error)
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.ClonePermissions(items), nil
+	return items, nil
 }
 
 func (r *pgOrgRepo) rolesForCompany(ctx context.Context, companyID int64) ([]types.Role, error) {
@@ -92,12 +92,12 @@ func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 		grantRows.Close()
 		items = append(items, role)
 	}
-	return store.CloneRoles(items), nil
+	return items, nil
 }
 
 func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneRoles(roles)
+	cloned := cloneRoles(roles)
 	ids := make([]string, len(cloned))
 	for i, role := range cloned {
 		ids[i] = role.ID

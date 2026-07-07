@@ -14,6 +14,7 @@ import (
 )
 
 func TestDataSourceTestInvalidCredential422(t *testing.T) {
+	t.Parallel()
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		server := testutil.StartFeishuAuthErrorServer(t)
 		cfg.FeishuBaseURL = server.URL
@@ -30,6 +31,7 @@ func TestDataSourceTestInvalidCredential422(t *testing.T) {
 }
 
 func TestDataSourceImportRetryWithIDs(t *testing.T) {
+	t.Parallel()
 	var serverURL string
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		server := testutil.StartFeishuMockServer(t)

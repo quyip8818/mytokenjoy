@@ -8,7 +8,8 @@ import (
 )
 
 func TestGetFieldMappingsSeedsDefaults(t *testing.T) {
-	svc := newTestService(t)
+	t.Parallel()
+	svc := newTestOrgService(t)
 	mappings, err := svc.GetFieldMappings(testutil.Ctx(), string(types.PlatformFeishu))
 	if err != nil {
 		t.Fatal(err)
@@ -19,7 +20,8 @@ func TestGetFieldMappingsSeedsDefaults(t *testing.T) {
 }
 
 func TestSaveAndTestFieldMappings(t *testing.T) {
-	svc := newTestService(t)
+	t.Parallel()
+	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 	custom := []types.FieldMapping{
 		{SourceField: "name", SourceLabel: "Name", TargetField: "name", Required: true},

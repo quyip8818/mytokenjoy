@@ -20,6 +20,7 @@ func syncLogCount(t *testing.T, env orgfix.FeishuOrgEnv) int {
 }
 
 func TestScheduledSyncUsesLock(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
@@ -41,6 +42,7 @@ func TestScheduledSyncUsesLock(t *testing.T) {
 }
 
 func TestScheduledSyncRunsWhenEnabled(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
@@ -56,6 +58,7 @@ func TestScheduledSyncRunsWhenEnabled(t *testing.T) {
 }
 
 func TestScheduledSyncSkipsDuplicateWithinFrequency(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
 		Enabled: true, StartTime: "00:00", FrequencyHours: 1,

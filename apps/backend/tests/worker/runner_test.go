@@ -16,6 +16,7 @@ import (
 )
 
 func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
@@ -44,6 +45,7 @@ func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
 }
 
 func TestProcessRelayOutbox(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	runner, st, lifecycle := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
@@ -81,6 +83,7 @@ func TestProcessRelayOutbox(t *testing.T) {
 }
 
 func TestReconcileLogs(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 88, RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
@@ -113,6 +116,7 @@ type errTest string
 func (e errTest) Error() string { return string(e) }
 
 func TestIngestFailureMappingLateRecovery(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()

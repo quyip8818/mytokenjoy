@@ -2,19 +2,15 @@ package budget_test
 
 import (
 	"encoding/json"
-	"log/slog"
 	"testing"
 
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
-	mock "github.com/tokenjoy/backend/tests/testutil/mock"
-	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
 // PRD 3.2: 预警规则
@@ -22,19 +18,15 @@ import (
 // - "通知发送失败不影响阻断逻辑"
 
 func TestOverrunNotifiesOnDepartmentExhaustion(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
 	notifier := &testutil.RecordingNotifier{}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
-	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, slog.Default())
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	// Set budget fully consumed
-	tree, _ := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 25000) // seed budget is 25000
-	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
 
 	payload, _ := json.Marshal(map[string]any{
 		"departmentId":  seed.IDDept3,
@@ -53,43 +45,35 @@ func TestOverrunNotifiesOnDepartmentExhaustion(t *testing.T) {
 }
 
 func TestOverrunBlocksEvenIfNotificationFails(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
 	notifier := &testutil.FailingNotifier{}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
-	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, slog.Default())
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	tree, _ := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 25000)
-	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
 
 	payload, _ := json.Marshal(map[string]any{
 		"departmentId":  seed.IDDept3,
 		"platformKeyId": seed.IDPlatformKey1,
 	})
-	// Should still succeed — notification failure does NOT block overrun processing
 	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestOverrunSkipsWhenBudgetNotExhausted(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
 	notifier := &testutil.RecordingNotifier{}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
-	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, slog.Default())
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	// Budget at 50% — NOT exhausted
-	tree, _ := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 12500) // 50% of 25000
-	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 12500)
 
 	payload, _ := json.Marshal(map[string]any{
 		"departmentId":  seed.IDDept3,

@@ -7,6 +7,7 @@ import (
 )
 
 func TestParseIntParam(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		value    string

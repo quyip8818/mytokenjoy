@@ -1,0 +1,77 @@
+package org_test
+
+import (
+	"testing"
+
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/tests/testutil"
+)
+
+func TestBatchInviteByIDs(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range members {
+		if members[i].ID == "m-pending" {
+			continue
+		}
+		if members[i].Status == types.MemberStatusActive {
+			members[i].Status = types.MemberStatusPending
+		}
+	}
+	members = append(members, types.Member{
+		ID: "m-pending", Name: "Pending User", DepartmentID: "dept-5",
+		Status: types.MemberStatusPending, Roles: []string{"普通成员"},
+	})
+	if err := st.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := svc.BatchInvite(ctx, []string{"m-pending"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Sent != 1 {
+		t.Fatalf("expected sent=1, got %d", result.Sent)
+	}
+}
+
+func TestBatchInviteAllPending(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pendingCount := 0
+	for i := range members {
+		if members[i].Status == types.MemberStatusPending || members[i].Status == types.MemberStatusInactive {
+			pendingCount++
+			continue
+		}
+		members[i].Status = types.MemberStatusInactive
+		pendingCount++
+	}
+	if err := st.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := svc.BatchInvite(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Sent != pendingCount {
+		t.Fatalf("expected sent=%d, got %d", pendingCount, result.Sent)
+	}
+}

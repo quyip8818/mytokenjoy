@@ -8,6 +8,7 @@ import (
 )
 
 func TestTruncateInTZDayBoundary(t *testing.T) {
+	t.Parallel()
 	loc, err := common.LoadLocation("Asia/Shanghai")
 	if err != nil {
 		t.Fatal(err)

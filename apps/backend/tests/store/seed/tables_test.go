@@ -39,6 +39,7 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 func TestApplyTablesMatchesSnapshot(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dbURL := requireDatabaseURL(t)
 	cfg := testutil.TestConfig()

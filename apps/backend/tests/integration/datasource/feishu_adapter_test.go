@@ -10,6 +10,7 @@ import (
 )
 
 func TestFeishuAdapterListDepartments(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL

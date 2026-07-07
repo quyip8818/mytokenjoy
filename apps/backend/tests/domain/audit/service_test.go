@@ -16,6 +16,7 @@ func newAuditService(t *testing.T) audit.Service {
 }
 
 func TestListOperationsPaginationAndActionFilter(t *testing.T) {
+	t.Parallel()
 	svc := newAuditService(t)
 	ctx := testutil.Ctx()
 	all, err := svc.ListOperations(ctx, types.AuditOperationsQueryParams{Page: 1, PageSize: 100})
@@ -44,6 +45,7 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 }
 
 func TestListCallsDateFilter(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()

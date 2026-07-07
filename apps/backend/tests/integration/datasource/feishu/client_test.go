@@ -10,6 +10,7 @@ import (
 )
 
 func TestClientUsesMockServer(t *testing.T) {
+	t.Parallel()
 	server := testutil.StartFeishuMockServer(t)
 	client := feishu.NewClient(server.URL, types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "cli_test", AppSecret: "secret",
@@ -33,6 +34,7 @@ func TestClientUsesMockServer(t *testing.T) {
 }
 
 func TestClientInvalidCredential(t *testing.T) {
+	t.Parallel()
 	server := testutil.StartFeishuAuthErrorServer(t)
 	client := feishu.NewClient(server.URL, types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "bad", AppSecret: "bad",

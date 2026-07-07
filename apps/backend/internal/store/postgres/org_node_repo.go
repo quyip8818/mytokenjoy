@@ -43,12 +43,12 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneOrgNodes(buildOrgNodeTree(flat)), nil
+	return buildOrgNodeTree(flat), nil
 }
 
 func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error {
 	companyID := store.CompanyID(ctx)
-	flat := flattenOrgNodesWithOrder(store.CloneOrgNodes(tree))
+	flat := flattenOrgNodesWithOrder(cloneOrgNodes(tree))
 	ids := make([]string, len(flat))
 	for i, row := range flat {
 		ids[i] = row.ID

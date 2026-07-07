@@ -8,6 +8,7 @@ import (
 )
 
 func TestListApprovalsSeedsPendingItems(t *testing.T) {
+	t.Parallel()
 	svc, _ := newBudgetService(t)
 	items, err := svc.ListApprovals(testutil.Ctx())
 	if err != nil {
@@ -28,6 +29,7 @@ func TestListApprovalsSeedsPendingItems(t *testing.T) {
 }
 
 func TestResolveApprovalApprove(t *testing.T) {
+	t.Parallel()
 	svc, _ := newBudgetService(t)
 	ctx := testutil.Ctx()
 	updated, err := svc.ResolveApproval(ctx, "appr-1", types.ResolveBudgetApprovalInput{Status: "approved"})
@@ -49,6 +51,7 @@ func TestResolveApprovalApprove(t *testing.T) {
 }
 
 func TestResolveApprovalRejectRequiresReason(t *testing.T) {
+	t.Parallel()
 	svc, _ := newBudgetService(t)
 	_, err := svc.ResolveApproval(testutil.Ctx(), "appr-2", types.ResolveBudgetApprovalInput{Status: "rejected"})
 	if err == nil {

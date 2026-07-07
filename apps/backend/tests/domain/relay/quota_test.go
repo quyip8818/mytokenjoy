@@ -9,6 +9,7 @@ import (
 )
 
 func TestComputeRemainQuotaCNY(t *testing.T) {
+	t.Parallel()
 	memberID := "m1"
 	groupID := "g1"
 
@@ -121,6 +122,7 @@ func TestComputeRemainQuotaCNY(t *testing.T) {
 }
 
 func TestChannelPolicyLocal(t *testing.T) {
+	t.Parallel()
 	policy := domainrelay.NewLocalChannelPolicy()
 	group := policy.ResolveRelayGroup(nil, "dept-123")
 	if group == "" {
@@ -129,6 +131,7 @@ func TestChannelPolicyLocal(t *testing.T) {
 }
 
 func TestChannelPolicySaaSShared(t *testing.T) {
+	t.Parallel()
 	policy := domainrelay.NewSaaSSharedChannelPolicy("shared-group")
 	group := policy.ResolveRelayGroup(nil, "dept-123")
 	if group != "shared-group" {
@@ -137,6 +140,7 @@ func TestChannelPolicySaaSShared(t *testing.T) {
 }
 
 func TestNewChannelPolicy(t *testing.T) {
+	t.Parallel()
 	t.Run("saas mode returns shared policy", func(t *testing.T) {
 		cfg := config.Config{SupportSaas: true, PlatformSharedRelayGroup: "my-shared"}
 		policy := domainrelay.NewChannelPolicy(cfg)

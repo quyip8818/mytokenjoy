@@ -23,6 +23,7 @@ func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 }
 
 func TestCostSummaryFromBuckets(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 12.5, CallCount: 3})
@@ -36,6 +37,7 @@ func TestCostSummaryFromBuckets(t *testing.T) {
 }
 
 func TestDailyCostsWeekGranularity(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 4})
@@ -55,6 +57,7 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 }
 
 func TestUsageSeriesHourFromBuckets(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 3})
@@ -78,6 +81,7 @@ func TestUsageSeriesHourFromBuckets(t *testing.T) {
 }
 
 func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
@@ -106,6 +110,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 }
 
 func TestCostSummaryPeriodOverPeriod(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
@@ -126,6 +131,7 @@ func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 }
 
 func TestDepartmentCostDrillDown(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 20, CallCount: 4})
@@ -153,6 +159,7 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 }
 
 func TestUsageSeriesTimezoneShanghai(t *testing.T) {
+	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{

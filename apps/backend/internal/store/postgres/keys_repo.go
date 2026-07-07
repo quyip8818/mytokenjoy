@@ -47,11 +47,11 @@ func (r *pgKeysRepo) ProviderKeys(ctx context.Context) ([]types.ProviderKey, err
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneProviderKeys(items), nil
+	return items, nil
 }
 
 func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderKey) error {
-	cloned := store.CloneProviderKeys(keys)
+	cloned := cloneProviderKeys(keys)
 	ids := make([]string, len(cloned))
 	for i, key := range cloned {
 		ids[i] = key.ID
@@ -150,12 +150,12 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 		modelRows.Close()
 		items = append(items, item)
 	}
-	return store.ClonePlatformKeys(items), nil
+	return items, nil
 }
 
 func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformKey) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.ClonePlatformKeys(keys)
+	cloned := clonePlatformKeys(keys)
 	ids := make([]string, len(cloned))
 	for i, key := range cloned {
 		ids[i] = key.ID
@@ -268,12 +268,12 @@ func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error)
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneApprovals(items), nil
+	return items, nil
 }
 
 func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyApproval) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneApprovals(approvals)
+	cloned := cloneApprovals(approvals)
 	ids := make([]string, len(cloned))
 	for i, approval := range cloned {
 		ids[i] = approval.ID
@@ -370,8 +370,7 @@ func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.
 		item.ModelWhitelist = append(item.ModelWhitelist, modelName)
 	}
 	modelRows.Close()
-	cloned := store.ClonePlatformKey(item)
-	return &cloned, nil
+	return &item, nil
 }
 
 func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string) (float64, error) {
@@ -416,5 +415,5 @@ func (r *pgKeysRepo) ListActiveMemberKeys(ctx context.Context, memberID string) 
 		}
 		items = append(items, item)
 	}
-	return store.ClonePlatformKeys(items), rows.Err()
+	return items, rows.Err()
 }

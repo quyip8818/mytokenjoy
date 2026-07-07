@@ -12,6 +12,7 @@ import (
 )
 
 func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 

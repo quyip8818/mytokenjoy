@@ -9,6 +9,7 @@ import (
 )
 
 func TestCostCNYFromLog(t *testing.T) {
+	t.Parallel()
 	models := []types.ModelInfo{{Name: "gpt-4o", InputPrice: 1, OutputPrice: 1}}
 	cost := domainusage.CostCNYFromLog(500000, "gpt-4o", models)
 	if cost != 2 {
@@ -17,6 +18,7 @@ func TestCostCNYFromLog(t *testing.T) {
 }
 
 func TestResolveConsumeModel(t *testing.T) {
+	t.Parallel()
 	model := domainusage.ResolveConsumeModel(store.RawConsumeLog{ModelName: "gpt-4o"})
 	if model != "gpt-4o" {
 		t.Fatalf("expected gpt-4o, got %s", model)

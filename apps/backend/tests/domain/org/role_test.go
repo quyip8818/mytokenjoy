@@ -10,6 +10,7 @@ import (
 )
 
 func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -40,6 +41,7 @@ func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
 }
 
 func TestUpdateRolePresetNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	_, err := svc.UpdateRole(testutil.Ctx(), "missing-role", "X", []string{"p-1"})
 	if err == nil {

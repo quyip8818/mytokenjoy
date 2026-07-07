@@ -12,6 +12,7 @@ type sampleLog struct {
 }
 
 func TestFilterByDateRange(t *testing.T) {
+	t.Parallel()
 	items := []sampleLog{
 		{CreatedAt: "2026-06-01 10:00", Detail: "a"},
 		{CreatedAt: "2026-06-15 10:00", Detail: "b"},
@@ -26,6 +27,7 @@ func TestFilterByDateRange(t *testing.T) {
 }
 
 func TestFilterByKeyword(t *testing.T) {
+	t.Parallel()
 	items := []sampleLog{
 		{CreatedAt: "2026-06-01", Detail: "create key"},
 		{CreatedAt: "2026-06-02", Detail: "delete member"},

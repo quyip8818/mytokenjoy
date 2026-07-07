@@ -13,6 +13,7 @@ import (
 )
 
 func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ingest := testutil.NewIngestService(t, cfg, st)
 	ctx := testutil.Ctx()

@@ -16,6 +16,7 @@ import (
 )
 
 func TestPlatformCompaniesUnauthorized(t *testing.T) {
+	t.Parallel()
 	router := saas.NewRouter(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
 	rec := httptest.NewRecorder()
@@ -26,6 +27,7 @@ func TestPlatformCompaniesUnauthorized(t *testing.T) {
 }
 
 func TestPlatformLoginRejectsBadCredentials(t *testing.T) {
+	t.Parallel()
 	router := saas.NewRouter(t, nil)
 	body, _ := json.Marshal(map[string]string{
 		"email": saas.PlatformBootstrapEmail, "password": "wrong-password",
@@ -39,6 +41,7 @@ func TestPlatformLoginRejectsBadCredentials(t *testing.T) {
 }
 
 func TestPlatformCreateCompanyAndRecharge(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -48,6 +51,7 @@ func TestPlatformCreateCompanyAndRecharge(t *testing.T) {
 }
 
 func TestPlatformListCompaniesIncludesCreated(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -77,6 +81,7 @@ func TestPlatformListCompaniesIncludesCreated(t *testing.T) {
 }
 
 func TestPlatformCreateChannelAndSaaSProviderForbidden(t *testing.T) {
+	t.Parallel()
 	router := saas.NewRouter(t, nil)
 	platformCookie := saas.LoginPlatform(t, router)
 
@@ -108,6 +113,7 @@ func TestPlatformCreateChannelAndSaaSProviderForbidden(t *testing.T) {
 }
 
 func TestCompanyIsolationUsesSessionCompany(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -140,6 +146,7 @@ func TestCompanyIsolationUsesSessionCompany(t *testing.T) {
 }
 
 func TestSuspendedCompanyBlocksWrites(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -168,6 +175,7 @@ func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 }
 
 func TestSuspendedCompanyGatewayRejected(t *testing.T) {
+	t.Parallel()
 	units := int64(1_000_000)
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		WalletQuota:   units,

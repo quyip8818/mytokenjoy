@@ -9,6 +9,7 @@ import (
 )
 
 func TestAuthenticateMember_Success(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@test.com", "admin123"),
 	)
@@ -25,6 +26,7 @@ func TestAuthenticateMember_Success(t *testing.T) {
 }
 
 func TestAuthenticateMember_WrongPassword(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
@@ -36,6 +38,7 @@ func TestAuthenticateMember_WrongPassword(t *testing.T) {
 }
 
 func TestAuthenticateMember_NonexistentEmail(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
@@ -47,6 +50,7 @@ func TestAuthenticateMember_NonexistentEmail(t *testing.T) {
 }
 
 func TestBootstrapPlatformIfNeeded_CreatesOperator(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
 	)
@@ -68,6 +72,7 @@ func TestBootstrapPlatformIfNeeded_CreatesOperator(t *testing.T) {
 }
 
 func TestBootstrapPlatformIfNeeded_SkipsWhenOperatorsExist(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
 	)
@@ -95,6 +100,7 @@ func TestBootstrapPlatformIfNeeded_SkipsWhenOperatorsExist(t *testing.T) {
 }
 
 func TestAuthenticatePlatform_WrongPassword(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
 	)

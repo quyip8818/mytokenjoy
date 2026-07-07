@@ -12,7 +12,7 @@ const defaultConsumeLogUnix = 1718794800 // 2026-06-19T11:00:00Z, within UsageBu
 
 func SeedConsumeLog(t *testing.T, st store.Store, raw store.RawConsumeLog) {
 	t.Helper()
-	if err := postgres.InsertConsumeLog(context.Background(), postgres.LogPool(st), raw); err != nil {
+	if err := postgres.InsertConsumeLog(context.Background(), st, raw); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -38,7 +38,7 @@ func PendingIngestFailureCount(t *testing.T, st store.Store) int {
 
 func AssertIngestFailure(t *testing.T, st store.Store, logID int64, wantSource string) store.IngestFailure {
 	t.Helper()
-	f, found, err := postgres.GetIngestFailureByLogID(context.Background(), postgres.LogPool(st), logID)
+	f, found, err := postgres.GetIngestFailureByLogID(context.Background(), st, logID)
 	if err != nil {
 		t.Fatal(err)
 	}

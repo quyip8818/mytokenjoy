@@ -11,11 +11,12 @@ import (
 )
 
 type Store struct {
-	pool    *pgxpool.Pool
-	logPool *pgxpool.Pool
-	relay   *relayRepo
-	logs    store.LogStore
-	domain  domainRepos
+	pool      *pgxpool.Pool
+	logPool   *pgxpool.Pool
+	logTables logTables
+	relay     *relayRepo
+	logs      store.LogStore
+	domain    domainRepos
 }
 
 type domainRepos struct {
@@ -46,6 +47,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 
 	s := &Store{pool: pool, logs: store.NoopLogStore()}
 	if cfg.IngestEnabled() {
+		tables := logTablesFor(cfg)
 		logPool, err := pgxpool.New(ctx, cfg.LogDatabaseURL)
 		if err != nil {
 			pool.Close()
@@ -56,13 +58,14 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			pool.Close()
 			return nil, fmt.Errorf("ping logs postgres: %w", err)
 		}
-		if err := applyLogsSchema(ctx, logPool); err != nil {
+		if err := applyLogsSchema(ctx, logPool, cfg); err != nil {
 			logPool.Close()
 			pool.Close()
 			return nil, err
 		}
 		s.logPool = logPool
-		s.logs = newLogRepo(logPool)
+		s.logTables = tables
+		s.logs = newLogRepo(logPool, tables)
 	}
 	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
 		pool.Close()

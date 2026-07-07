@@ -25,6 +25,7 @@ func provisionTwoCompanies(t *testing.T) (http.Handler, saas.ProvisionedCompany,
 }
 
 func TestCompanyIsolationMembers(t *testing.T) {
+	t.Parallel()
 	router, coA, coB := provisionTwoCompanies(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/org/members", nil)
@@ -47,6 +48,7 @@ func TestCompanyIsolationMembers(t *testing.T) {
 }
 
 func TestCompanyIsolationBudgetTree(t *testing.T) {
+	t.Parallel()
 	router, coA, coB := provisionTwoCompanies(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/budget/tree", nil)
@@ -73,6 +75,7 @@ func TestCompanyIsolationBudgetTree(t *testing.T) {
 }
 
 func TestCompanyIsolationPlatformKeys(t *testing.T) {
+	t.Parallel()
 	router, coA, coB := provisionTwoCompanies(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/keys/platform", nil)

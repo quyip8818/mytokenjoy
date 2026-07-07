@@ -68,7 +68,7 @@ func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 		capRows.Close()
 		items = append(items, item)
 	}
-	return store.CloneModels(items), nil
+	return items, nil
 }
 
 func (r *pgModelsRepo) ModelByName(ctx context.Context, name string) (*types.ModelInfo, error) {
@@ -104,13 +104,12 @@ func (r *pgModelsRepo) ModelByName(ctx context.Context, name string) (*types.Mod
 		item.Capabilities = append(item.Capabilities, cap)
 	}
 	capRows.Close()
-	cloned := store.CloneModels([]types.ModelInfo{item})[0]
-	return &cloned, nil
+	return &item, nil
 }
 
 func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneModels(models)
+	cloned := cloneModels(models)
 	ids := make([]string, len(cloned))
 	for i, model := range cloned {
 		ids[i] = model.ID

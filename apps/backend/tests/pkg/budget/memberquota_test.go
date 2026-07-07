@@ -10,6 +10,7 @@ import (
 )
 
 func TestGetQuotaRemaining(t *testing.T) {
+	t.Parallel()
 	snapshot := seed.Load(testutil.TestConfig())
 	members := snapshot.Members
 	keys := snapshot.PlatformKeys
@@ -21,6 +22,7 @@ func TestGetQuotaRemaining(t *testing.T) {
 }
 
 func TestBuildQuotaSummary(t *testing.T) {
+	t.Parallel()
 	snapshot := seed.Load(testutil.TestConfig())
 	members := snapshot.Members
 	keys := snapshot.PlatformKeys

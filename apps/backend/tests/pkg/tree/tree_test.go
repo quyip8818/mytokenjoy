@@ -12,6 +12,7 @@ type node struct {
 }
 
 func TestFlatten(t *testing.T) {
+	t.Parallel()
 	input := []node{
 		{ID: "a", Children: []node{
 			{ID: "a1", Children: nil},
@@ -42,6 +43,7 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestFlattenEmpty(t *testing.T) {
+	t.Parallel()
 	result := tree.Flatten([]node{},
 		func(n node) []node { return n.Children },
 		func(n *node) { n.Children = nil },
@@ -52,6 +54,7 @@ func TestFlattenEmpty(t *testing.T) {
 }
 
 func TestFlattenNilClearChildren(t *testing.T) {
+	t.Parallel()
 	input := []node{
 		{ID: "root", Children: []node{{ID: "child"}}},
 	}

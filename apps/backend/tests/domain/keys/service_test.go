@@ -11,6 +11,7 @@ import (
 )
 
 func TestApprovalQuotaCheckInsufficient(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), seed.IDApproval1)
 	if err != nil {
@@ -25,6 +26,7 @@ func TestApprovalQuotaCheckInsufficient(t *testing.T) {
 }
 
 func TestApprovalQuotaCheckSufficient(t *testing.T) {
+	t.Parallel()
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "test", RequestedQuota: 1000,
@@ -44,6 +46,7 @@ func TestApprovalQuotaCheckSufficient(t *testing.T) {
 }
 
 func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
+	t.Parallel()
 	svc, st, _ := newKeysServiceWithRelay(t)
 	ctx := testutil.Ctx()
 	keysBefore, err := st.Keys().PlatformKeys(ctx)
@@ -68,6 +71,7 @@ func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 }
 
 func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
+	t.Parallel()
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "need more", RequestedQuota: 1000,
@@ -95,6 +99,7 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 }
 
 func TestApproveInsufficientReserved(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "too much", RequestedQuota: 9999,
@@ -108,6 +113,7 @@ func TestApproveInsufficientReserved(t *testing.T) {
 }
 
 func TestRejectApproval(t *testing.T) {
+	t.Parallel()
 	svc, st := newKeysService(t)
 	reason := "not needed"
 	if err := svc.RejectApproval(testutil.Ctx(), seed.IDApproval2, seed.IDMemberAdmin, &reason); err != nil {
@@ -120,6 +126,7 @@ func TestRejectApproval(t *testing.T) {
 }
 
 func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	memberID := seed.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
@@ -130,6 +137,7 @@ func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
 }
 
 func TestCreatePlatformKeySuccess(t *testing.T) {
+	t.Parallel()
 	svc, _, _ := newKeysServiceWithRelay(t)
 	memberID := seed.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
@@ -145,6 +153,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 }
 
 func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	memberID := seed.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
@@ -155,6 +164,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 }
 
 func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	memberID := seed.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
@@ -165,6 +175,7 @@ func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 }
 
 func TestCreateApprovalInvalidModels(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	_, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "bad models", RequestedQuota: 1000,
@@ -174,6 +185,7 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 }
 
 func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	groupID := seed.IDBudgetGroup1
 	memberID := seed.IDMember1
@@ -185,6 +197,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 }
 
 func TestUpdatePlatformKeyQuota(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	quota := 99999.0
 	_, err := svc.UpdatePlatformKey(testutil.Ctx(), seed.IDPlatformKey1, types.UpdatePlatformKeyInput{
@@ -194,6 +207,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 }
 
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
+	t.Parallel()
 	svc, st, _ := newKeysServiceWithRelay(t)
 	memberID := seed.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
@@ -223,18 +237,21 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 }
 
 func TestRejectApprovalNotFound(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", seed.IDMemberAdmin, nil)
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestApprovalQuotaCheckNotFound(t *testing.T) {
+	t.Parallel()
 	svc, _ := newKeysService(t)
 	_, err := svc.ApprovalQuotaCheck(testutil.Ctx(), "missing-approval")
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestRevokePlatformKey(t *testing.T) {
+	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
 	if err := svc.RevokePlatformKey(testutil.Ctx(), seed.IDPlatformKey1); err != nil {

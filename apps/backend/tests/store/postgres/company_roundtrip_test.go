@@ -9,6 +9,7 @@ import (
 )
 
 func TestCompanyRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
@@ -37,6 +38,7 @@ func TestCompanyRoundTrip(t *testing.T) {
 }
 
 func TestCompanyInviteRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
@@ -64,6 +66,7 @@ func TestCompanyInviteRoundTrip(t *testing.T) {
 }
 
 func TestRechargeOrderRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()

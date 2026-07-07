@@ -7,6 +7,7 @@ import (
 )
 
 func TestListRechargeRecordsSeeded(t *testing.T) {
+	t.Parallel()
 	svc, st, ctx := newBillingService(t, nil)
 	if err := seed.ApplyRechargeOrders(ctx, st); err != nil {
 		t.Fatal(err)
@@ -27,6 +28,7 @@ func TestListRechargeRecordsSeeded(t *testing.T) {
 }
 
 func TestListRechargeRecordsMapsPendingStatus(t *testing.T) {
+	t.Parallel()
 	svc, st, ctx := newBillingService(t, nil)
 	if err := seed.ApplyRechargeOrders(ctx, st); err != nil {
 		t.Fatal(err)

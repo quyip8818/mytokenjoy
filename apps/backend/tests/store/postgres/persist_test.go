@@ -69,6 +69,7 @@ func budgetTreeSignature(tree []types.BudgetNode) (int, string) {
 }
 
 func TestLoadOrSeedDomain(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
@@ -81,6 +82,7 @@ func TestLoadOrSeedDomain(t *testing.T) {
 }
 
 func TestRelayMappingRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(99001)
@@ -112,6 +114,7 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 }
 
 func TestMemberPersistAcrossRestart(t *testing.T) {
+	t.Parallel()
 	schemaURL := testutil.TestSchemaURL(t)
 	ctx := testutil.Ctx()
 	cfg := testutil.TestConfig()
@@ -167,6 +170,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 }
 
 func TestWithTxCommitsDomainWrites(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	pool := testDBPool(t)
 	ctx := testutil.Ctx()

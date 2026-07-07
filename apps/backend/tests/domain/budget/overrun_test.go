@@ -3,45 +3,28 @@ package budget_test
 import (
 	"encoding/json"
 	"log/slog"
-	"os"
 	"testing"
 
-	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-func newOverrunService(t *testing.T, cfg config.Config, st store.Store, stub *mock.StubAdminClient) *budget.OverrunService {
-	t.Helper()
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	notifier := notification.NewService(cfg, st, logger)
-	return budget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
-}
-
 func TestOverrunDisablesDepartmentKeys(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	overrun := budget.NewOverrunService(cfg, st, relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg)), notification.NewService(cfg, st, slog.Default()), slog.Default())
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 25000)
-	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  seed.IDDept3,
@@ -59,6 +42,7 @@ func TestOverrunDisablesDepartmentKeys(t *testing.T) {
 }
 
 func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	overrun := budget.NewOverrunService(cfg, st, nil, notification.NewService(cfg, st, slog.Default()), slog.Default())
 	ctx := testutil.Ctx()
@@ -73,9 +57,10 @@ func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
 }
 
 func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	overrun := newOverrunService(t, cfg, st, stub)
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
@@ -113,9 +98,10 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 }
 
 func TestOverrunBudgetGroupAxis(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	overrun := newOverrunService(t, cfg, st, stub)
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
 	groups, err := st.Budget().Groups(ctx)
