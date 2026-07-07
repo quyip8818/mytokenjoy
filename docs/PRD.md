@@ -1,5 +1,7 @@
 # TokenJoy 产品需求文档 (PRD)
 
+> **历史副本** — 权威 PRD 见 [TokenJoy-PRD.md](./TokenJoy-PRD.md)。本文保留旧版 10 模块结构供参考。
+
 > **企业级 LLM API 管理平台** — 从组织接入到 API 调用的全链路管控
 
 ---

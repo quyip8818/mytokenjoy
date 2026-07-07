@@ -179,8 +179,8 @@ type Store interface {
 
 | 模式     | 条件                          | 说明                                               |
 | -------- | ----------------------------- | -------------------------------------------------- |
-| Postgres | 运行时（必填 `DATABASE_URL`） | 36 张表；详见 [Backend-存储.md](./Backend-存储.md) |
-| Memory   | 单测 / Handler 测试           | `-tags=testhook`；`app.NewWithStore`               |
+| Postgres | `DATABASE_URL` 已设置         | 36 张表；详见 [Backend-存储.md](./Backend-存储.md) |
+| Memory   | 无 `DATABASE_URL` 或单测      | 种子驱动；`-tags=testhook`；`app.NewWithStore`       |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
 - Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.ApplyTables`；demo 下 `ApplyUsageBuckets`。
@@ -285,12 +285,14 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  A[outbox relay] --> B[outbox webhook 重试 Ingest]
-  B --> C[rebalance_queue]
-  C --> D[overrun_queue]
-  D --> E[NewAPI 日志补偿 Ingest]
+  A[outbox relay] --> B[ingest_failures retry]
+  B --> C[reconcile_cursors 补洞]
+  C --> D[rebalance_queue]
+  D --> E[overrun_queue]
   E --> F[org 定时同步]
 ```
+
+入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → `IngestByLogID`；Worker 负责 `ingest_failures` 重试与 `reconcile_cursors` 全局水位补洞（方案 B，见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)）。**已删除** `compensateLogs`、`relay_sync_cursors`。
 
 `WORKER_POLL_INTERVAL_SEC` 控制轮询；`WORKER_ORG_SYNC_INTERVAL_SEC` 控制组织同步。
 

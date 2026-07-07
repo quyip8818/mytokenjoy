@@ -1,6 +1,6 @@
 # TokenJoy Frontend
 
-`apps/frontend` 现状：架构、API 契约、本地联调。后端见 [Backend.md](./Backend.md)（索引）；差距见 [Roadmap.md](./Roadmap.md)。
+`apps/frontend` 现状：架构、API 契约、本地联调。后端见 [Backend.md](./Backend.md)（索引）；工程待办见 [plan.md](./plan.md)；产品差距见 [Roadmap.md](./Roadmap.md)。
 
 **权威来源：** API 路径与 JSON → 本文 §5 + `apps/frontend/src/api/types/`。
 
@@ -8,16 +8,16 @@
 
 ## 1. 技术栈与运行时
 
-React 19、React Router 7、Vite 8、TypeScript 5.x、Tailwind CSS 4、Base UI / shadcn、TanStack Table、Recharts、react-hook-form、Zustand、TanStack Query、Vitest。CI：Node 24、Go 1.24。
+React 19、React Router 7、Vite 8、TypeScript 5.x、Tailwind CSS 4、Radix + shadcn、TanStack Table、Recharts、react-hook-form、Zustand、TanStack Query、Vitest。CI：Node 24、Go 1.24。
 
 路径别名：`@/` → `src/`，`@tests/` → `tests/`。
 
 ```
 main.tsx → App.tsx
-└─ AdminLayout
-   ├─ ApiProvider + QueryProvider
-   ├─ AuthSessionProvider + AuthUnauthorizedBridge + SessionNavigationBridge
-   └─ WorkflowProvider → Sidebar / Header / Outlet / WorkflowPanelStack
+└─ AppProviders（ApiProvider + QueryProvider + AuthSessionProvider）
+   └─ AdminLayout / MemberLayout
+      ├─ AuthUnauthorizedBridge + SessionNavigationBridge
+      └─ WorkflowProvider → Sidebar / Header / Outlet / WorkflowPanelStack
 ```
 
 - `pnpm start`：backend `:8080` + Vite `:5173`；`/api` 反代 Go（`vite-api-proxy.ts`）
@@ -30,27 +30,54 @@ main.tsx → App.tsx
 
 ```
 apps/frontend/
-├── tests/                  Vitest（镜像 src）
+├── tests/                  Vitest（`tests/features/` 为主；`tests/routes/` 遗留）
 └── src/
     ├── config/             routes.ts、nav.ts、app.ts
-    ├── routes/{domain}/    页面 + hooks/ + components/
-    ├── components/         ui/、layout/、auth/、{domain}/
-    ├── features/           session/、workflow/、query/
+    ├── features/{domain}/  hooks/、components/、lib/（canonical 页面逻辑）
+    ├── routes/{domain}/    薄页面入口（从 @/features/* 导入）
+    ├── components/         ui/、layout/、auth/、{domain}/（遗留，待迁入 features）
     ├── api/                client + 域 API + types/
     ├── hooks/
     └── lib/
 ```
 
-| 代码       | 位置                                       |
-| ---------- | ------------------------------------------ |
-| 页面入口   | `routes/{domain}/{page}.tsx`               |
-| 页面逻辑   | `routes/{domain}/hooks/use-{page}-page.ts` |
-| 单页 UI    | `routes/{domain}/components/`              |
-| 跨页 UI    | `components/{domain}/`                     |
-| HTTP / DTO | `api/{domain}.ts`、`api/types/`            |
-| 纯逻辑     | `lib/`                                     |
+| 代码       | 位置（目标态）                                      |
+| ---------- | --------------------------------------------------- |
+| 页面入口   | `routes/{domain}/{page}.tsx`                        |
+| 页面逻辑   | `features/{domain}/hooks/use-{page}-page.ts`        |
+| 页面 Shell | `features/{domain}/components/*-page-shell.tsx`     |
+| 域内 UI    | `features/{domain}/components/`                     |
+| 遗留 UI    | `components/{domain}/`（迁移中，见 [plan.md](./plan.md) §4） |
+| HTTP / DTO | `api/{domain}.ts`、`api/types/`                     |
+| 纯逻辑     | `lib/`、`features/{domain}/lib/`                    |
 
-禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。约定详见 [`.cursor/rules/frontend-structure.mdc`](../.cursor/rules/frontend-structure.mdc)。
+禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。工程待办见 [plan.md](./plan.md) §4。
+
+### 2.1 约定与门禁
+
+`scripts/check-conventions.ts` 在 CI/lint 中强制执行：
+
+- 页面逻辑在 `features/{domain}/hooks/use-*-page.ts`；**禁止**在 `components/{domain}/` 里直接 `useApis()`
+- `components/ui` 不得出现领域名（budget、org 等）
+- `components/` 不得反向依赖 `@/routes/`
+- 禁止 `../../` 及更深的相对路径，统一 `@/` 别名
+- 路由 `lazy` 目标文件必须存在
+
+**组件归属：**
+
+| 场景 | 放置位置 |
+| --- | --- |
+| 多路由复用 | `features/{domain}/components/`（目标）；遗留可能在 `components/{domain}/` |
+| 无业务语义 UI | `components/ui` |
+| 工作流步骤表单 | `features/workflow/workflows/*` |
+
+**页面模板：** `PageShell` → `DataSection`（loading / error / empty）→ 领域内容；Error 用 `ErrorState` + hook 的 `refresh`。
+
+### 2.2 技术选型（勿换）
+
+React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix/shadcn、Vitest + Playwright。**不引入** MSW（已移除）、Redux、Next.js。测试：Vitest 用 `createMockApis()`；E2E/dev 用真 backend。
+
+**可补充（见 plan §4）：** Zod 扩大覆盖面、OpenAPI/orval、`@tanstack/react-virtual`（大表按需）、`eslint-plugin-boundaries`。
 
 ---
 
@@ -58,9 +85,9 @@ apps/frontend/
 
 [`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一源，派生 `ROUTES`、`APP_ROUTES` 等。
 
-当前 **17** 业务页：dashboard（cost、usage）、org（3）、budget（3）、keys（4）、models（2）、billing（1）、audit（2）。
+当前 **17** 业务页：dashboard（cost、usage）、org（3）、budget（2：index、alerts）、keys（4）、models（2）、wallet（1）、audit（2）。`/billing` 重定向至 `/wallet`。
 
-新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `{page}.tsx` + `hooks/use-{page}-page.ts`。
+新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `features/{domain}/hooks/use-{page}-page.ts` + shell → `routes/{domain}/{page}.tsx` 薄入口。
 
 ---
 
@@ -68,13 +95,13 @@ apps/frontend/
 
 - `api/client.ts`：`request()`、`ApiError`、`buildQuery()`；`credentials: 'include'`
 - `app-apis.ts`：`AppApis` + `defaultApis`（**16** 命名空间；仍缺 `platformApi`）
-- 生产 `AdminLayout` 注入 `defaultApis`；测试 `createMockApis()`
+- 生产 `AppProviders`（`components/layout/app-providers.tsx`）注入 `defaultApis`；测试 `createMockApis()`
 
 **薄页面 → 页面 Hook → 展示组件**：Hook 用 `useApis()`、`useInjectedQuery` + `queryKeys`；组件 props 受控。
 
 **Workflow：** `features/workflow/` Zustand 侧滑栈；`workflows/{name}.tsx` + `definitions/` 注册。
 
-**SaaS 部分接入：** 企业面 `authApi`（login/logout）、`billingApi`（wallet/recharge）与 `/billing` 页已接入；`accept-invite` 与 `/platform/*` 仍无前端。见 §5.9.6、[Roadmap.md](./Roadmap.md)。
+**SaaS 部分接入：** 企业面 `authApi`（login/logout）、`billingApi`（wallet/recharge/confirm）与 `/wallet` 页已接入；`accept-invite` 与 `/platform/*` 仍无前端。见 §5.9.6、[Roadmap.md](./Roadmap.md)。
 
 ---
 
@@ -101,9 +128,23 @@ apps/frontend/
 | `query-keys.ts`         | `features/query/query-keys.ts`         | 各域 query key 工厂                                                 |
 | `{domain}.ts`           | `api/{domain}.ts`                      | 各资源 HTTP 方法                                                    |
 
-**依赖注入：** 生产环境 `AdminLayout` 注入 `defaultApis`；页面 Hook 支持 `injectedApis` 参数供测试覆盖；测试通过 `createMockApis()` 注入 mock API。
+**依赖注入：** 生产环境 `AppProviders` 注入 `defaultApis`；页面 Hook 支持 `injectedApis` 参数供测试覆盖；测试通过 `createMockApis()` 注入 mock API。
 
 **数据获取：** 读操作逐步迁移至 `useInjectedQuery` + `queryKeys`；写操作仍在事件处理函数中直接调用 `*Api` 方法，成功后通过 `queryClient.invalidateQueries` 或 `useWorkflowRefresh` 刷新缓存。
+
+### 5.0.1 领域数据约定（Keys / Models）
+
+| 决策 | 约定 |
+| --- | --- |
+| 列表 enrich | 扩展现有 `GET /keys/platform`、`GET /models`；**不**新增平行 `/enriched` 端点 |
+| `platform_keys` 推导字段 | **不入库**；`platform_key_enrich.go` domain join；改名后下次 GET 自动反映 |
+| 审批「我的申请」 | `memberId` 查询参数；`tab` 仅表状态维度 |
+| `models.visibility` | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7 |
+| 发布 | 前后端同发；DB 迁移 additive only |
+
+**`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `relay_mappings.department_id` 独立分层。
+
+**`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。生产迁移 SQL 见 [plan.md](./plan.md) §5。
 
 ---
 
@@ -549,7 +590,7 @@ HTTP 非 2xx 时，body 应包含：
 **ProviderKey：** `id`, `provider`, `name`, `keyPrefix`, `status`, `balance`, `lastUsed`, `createdAt`, `rotateEnabled`
 
 **PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`†, `appName`, `budgetGroupId`, `budgetGroupName`†, `type`†, `departmentId`†, `departmentName`†, `projectName`†, `status`, `quota`, `used`, `modelWhitelist`, `createdAt`, `expiresAt`  
-† 服务端 enrich 推导，不入库 `platform_keys`（见 [下一步工作清单.md](./下一步工作清单.md) §5）
+† 服务端 enrich 推导，不入库 `platform_keys`（见 §5.0.1）
 
 **ApprovalType：** `key` \| `quota` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
 
@@ -698,7 +739,7 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.2 企业面：计费
 
-客户端：[`billing.ts`](../apps/frontend/src/api/billing.ts)。`getWallet` / `recharge` 已接入；**`confirm` 尚未接入**（自助充值须 create → confirm 两步，见后端 `billing_test.go`）。
+客户端：[`billing.ts`](../apps/frontend/src/api/billing.ts)。`getWallet` / `recharge` / `confirmRecharge` 已接入 `use-wallet-page`。
 
 | 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                              |
 | ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | --------------------------------- |
@@ -791,12 +832,12 @@ HTTP 非 2xx 时，body 应包含：
 | `auth/login`         | 已实现                        | `authApi.login`                         | `/login`                           |
 | `auth/logout`        | 已实现                        | `authApi.logout`                        | —                                  |
 | `auth/accept-invite` | 已实现                        | 未接入                                  | 无 `/invite/accept`                |
-| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                  | `/billing`（读余额）               |
-| `billing/recharge`   | 已实现                        | `billingApi.recharge`（无 `confirm`）   | `/billing`（演示充值，未走完入账） |
+| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                  | `/wallet`                          |
+| `billing/recharge`   | 已实现                        | `billingApi.recharge` + `confirmRecharge` | `/wallet`（充值 create → confirm） |
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                  | 无 `/platform/login`               |
-| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含               | `PermissionGate` 已用于 `/billing` |
+| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含               | `PermissionGate` 已用于 `/wallet` |
 
-> **类型对齐：** 后端 `WalletSummary` 字段为 `balance` / `allocatable`；前端 `billing.ts` 当前 `WalletView` 使用 `availableQuota`，须与后端 JSON 对齐后余额页方可正确展示。
+> **类型对齐：** 前端 `WalletView` 已与后端 `WalletSummary` 对齐（`balance` / `allocatable`）。`totalConsumed` / `totalRequests` 为半真聚合，真实现见 [plan.md](./plan.md) §2。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

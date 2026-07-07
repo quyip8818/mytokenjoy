@@ -51,7 +51,7 @@ React 19 SPA — Vite, TypeScript, TailwindCSS v4 (CSS-first, no tailwind.config
 - **Path alias:** `@/*` → `./src/*`, `@tests/*` → `./tests/*`
 
 Key conventions:
-- Route pages: `routes/{domain}/{page}.tsx` — compose only, delegate to `hooks/use-{page}-page.ts`
+- Route pages: `routes/{domain}/{page}.tsx` — compose only, delegate to `features/{domain}/hooks/use-{page}-page.ts`
 - Page hooks use `useInjectedApis(injectedApis?)` for testability; other code uses `useApis()`
 - Shared domain UI: `components/{domain}/` (2+ consumers); page-only: `routes/{domain}/components/`
 - Never import API functions directly in business code — go through the DI layer
@@ -110,9 +110,10 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 
 ## Key Documentation
 
-- `docs/PRD.md` — Product requirements (10 modules, 23 permissions)
-- `docs/Frontend.md` — Frontend development guide
-- `docs/Backend.md` — Backend design document
+- `docs/plan.md` — Engineering backlog (single source for pending work)
+- `docs/TokenJoy-PRD.md` — Product requirements (authoritative PRD)
+- `docs/Frontend.md` — Frontend development guide and API contract
+- `docs/Backend.md` — Backend design document (index)
 - `docs/Backend-预算.md` — Budget subsystem design
 - `docs/Backend-存储.md` — Storage layer design
 - `DESIGN.md` — Design system tokens and visual conventions
