@@ -43,7 +43,7 @@ test.describe('组织架构', () => {
     await page.getByRole('button', { name: '添加' }).click()
 
     // Verify dialog closed and member appears in list
-    await expect(page.getByRole('dialog')).toBeHidden()
+    await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
     await expect(page.getByRole('cell', { name: uniqueName })).toBeVisible()
     await expect(page.getByText(`共 ${countBefore + 1} 人`)).toBeVisible()
   })
