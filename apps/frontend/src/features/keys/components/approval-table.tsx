@@ -7,67 +7,88 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { StatusBadge } from '@/components/ui/status-badge'
+import { Button } from '@/components/ui/button'
 import { ApprovalStatusBadge } from './status-badges'
 
 interface ApprovalTableProps {
   approvals: KeyApproval[]
-  hasKeyType: boolean
-  hasQuotaType: boolean
+  canApprove: boolean
   rowClass: (id: string) => string | undefined
-  onRowClick: (approval: KeyApproval) => void
+  onApprove: (id: string) => void
+  onReject: (id: string) => void
 }
 
 export function ApprovalTable({
   approvals,
-  hasKeyType,
-  hasQuotaType,
+  canApprove,
   rowClass,
-  onRowClick,
+  onApprove,
+  onReject,
 }: ApprovalTableProps) {
   return (
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead>类型</TableHead>
-          <TableHead>申请人</TableHead>
-          <TableHead>部门</TableHead>
-          <TableHead>申请理由</TableHead>
-          {hasKeyType && <TableHead>申请模型</TableHead>}
-          {hasQuotaType && <TableHead className="text-right">额度 (¥)</TableHead>}
-          <TableHead>状态</TableHead>
-          <TableHead>申请时间</TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            申请人
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            部门
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            申请理由
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            申请额度 (¥)
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            状态
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            申请时间
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            操作
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {approvals.map((a) => (
-          <TableRow
-            key={a.id}
-            className={`cursor-pointer ${rowClass(a.id)}`}
-            onClick={() => onRowClick(a)}
-          >
-            <TableCell>
-              <StatusBadge variant="neutral">
-                {a.type === 'key' ? 'Key 申请' : '额度追加'}
-              </StatusBadge>
+        {approvals.map((approval) => (
+          <TableRow key={approval.id} className={`even:bg-muted/40 ${rowClass(approval.id)}`}>
+            <TableCell className="font-medium">{approval.applicant}</TableCell>
+            <TableCell className="text-muted-foreground">{approval.department}</TableCell>
+            <TableCell className="max-w-48 truncate text-sm">{approval.reason}</TableCell>
+            <TableCell className="text-right tabular-nums">
+              {approval.requestedQuota.toLocaleString()}
             </TableCell>
-            <TableCell className="font-medium">{a.applicant}</TableCell>
-            <TableCell className="text-muted-foreground">{a.department}</TableCell>
-            <TableCell className="max-w-48 truncate text-sm">{a.reason}</TableCell>
-            {hasKeyType && (
-              <TableCell className="text-sm text-muted-foreground">
-                {a.type === 'key' ? a.requestedModels.join(', ') || '—' : '—'}
-              </TableCell>
-            )}
-            {hasQuotaType && (
-              <TableCell className="text-right">
-                {a.type === 'quota' ? a.requestedQuota.toLocaleString() : '—'}
-              </TableCell>
-            )}
             <TableCell>
-              <ApprovalStatusBadge status={a.status} />
+              <ApprovalStatusBadge status={approval.status} />
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{a.createdAt}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{approval.createdAt}</TableCell>
+            <TableCell>
+              {canApprove && approval.status === 'pending' ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-emerald-700 hover:text-emerald-800"
+                    onClick={() => onApprove(approval.id)}
+                  >
+                    通过
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-red-600 hover:text-red-700"
+                    onClick={() => onReject(approval.id)}
+                  >
+                    拒绝
+                  </Button>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

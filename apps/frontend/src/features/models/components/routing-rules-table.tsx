@@ -23,20 +23,54 @@ export function RoutingRulesTable({ rules, getParentCount, onConfigure }: Routin
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead>组织节点</TableHead>
-          <TableHead>模型范围</TableHead>
-          <TableHead>来源</TableHead>
-          <TableHead className="w-[100px]">操作</TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            组织节点
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            可用模型
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            默认模型
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            降级模型
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            来源
+          </TableHead>
+          <TableHead className="w-[100px] text-xs font-medium uppercase text-muted-foreground">
+            操作
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rules.map((rule) => (
-          <TableRow key={rule.id}>
+          <TableRow key={rule.id} className="even:bg-muted/40">
             <TableCell className="font-medium">{rule.nodeName}</TableCell>
             <TableCell>
-              <span className="text-sm">
-                已选 {rule.allowedModels.length} / 父级 {getParentCount(rule)}
-              </span>
+              <div className="flex flex-wrap gap-1">
+                {rule.allowedModels.slice(0, 3).map((model) => (
+                  <StatusBadge key={model} variant="info" className="text-xs">
+                    {model}
+                  </StatusBadge>
+                ))}
+                {rule.allowedModels.length > 3 && (
+                  <StatusBadge variant="info" className="text-xs">
+                    +{rule.allowedModels.length - 3}
+                  </StatusBadge>
+                )}
+                {rule.allowedModels.length === 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    父级 {getParentCount(rule)} 个
+                  </span>
+                )}
+              </div>
+            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {rule.defaultModel ?? '—'}
+            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {rule.fallbackModel ?? '—'}
             </TableCell>
             <TableCell>
               <StatusBadge variant={rule.inherited ? 'neutral' : 'info'}>

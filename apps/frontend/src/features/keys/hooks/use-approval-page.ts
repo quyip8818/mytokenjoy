@@ -1,20 +1,20 @@
 import { useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { KeyApproval } from '@/api/types'
-import { useSession } from '@/features/session'
 import { queryKeys } from '@/features/query'
 import { useFilteredQuery } from '@/hooks/use-filtered-query'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/features/workflow'
 import { PERMISSION } from '@/lib/permissions'
+import type { ApprovalTab } from '../lib/types'
 
-type ApprovalTab = 'pending' | 'mine' | 'all'
+export type { ApprovalTab } from '../lib/types'
 
 export function useApprovalPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
-  const { memberId } = useSession()
   const { has } = usePermissions()
   const canApprove = has(PERMISSION.BUDGET_APPROVE)
   const canSubmit = has(PERMISSION.SELF_APPROVAL)
@@ -29,11 +29,10 @@ export function useApprovalPage(injectedApis?: AppApis) {
   } = useFilteredQuery({
     injectedApis: apis,
     initialFilter: 'pending' as ApprovalTab,
-    queryKeyFactory: (filter) => queryKeys.keys.approvals(filter, memberId),
+    queryKeyFactory: (filter) => queryKeys.keys.approvals(filter),
     fetcher: (a, filter) =>
       a.approvalApi.list({
-        tab: filter === 'all' ? undefined : filter,
-        memberId: filter === 'mine' ? memberId : undefined,
+        tab: filter === 'all' ? 'all' : filter,
       }),
   })
   const { openWithRefresh } = useWorkflowRefresh({
@@ -43,12 +42,29 @@ export function useApprovalPage(injectedApis?: AppApis) {
   })
 
   const pendingCount = useMemo(
-    () => approvals.filter((a) => a.status === 'pending').length,
+    () => approvals.filter((approval) => approval.status === 'pending').length,
     [approvals],
   )
 
-  const hasKeyType = useMemo(() => approvals.some((a) => a.type === 'key'), [approvals])
-  const hasQuotaType = useMemo(() => approvals.some((a) => a.type === 'quota'), [approvals])
+  const handleApprove = useCallback(
+    async (id: string) => {
+      await apis.approvalApi.approve(id)
+      toast.success('已通过申请')
+      flashRow(id)
+      void refresh()
+    },
+    [apis, flashRow, refresh],
+  )
+
+  const handleReject = useCallback(
+    async (id: string) => {
+      await apis.approvalApi.reject(id, '已拒绝')
+      toast.success('已拒绝申请')
+      flashRow(id)
+      void refresh()
+    },
+    [apis, flashRow, refresh],
+  )
 
   const handleRowClick = useCallback(
     (approval: KeyApproval) => {
@@ -70,9 +86,9 @@ export function useApprovalPage(injectedApis?: AppApis) {
     canApprove,
     canSubmit,
     pendingCount,
-    hasKeyType,
-    hasQuotaType,
     rowClass,
+    handleApprove,
+    handleReject,
     handleRowClick,
     openSubmit,
   }

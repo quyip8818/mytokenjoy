@@ -101,7 +101,12 @@ func (h *Handler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	keys, err := h.service.ListPlatformKeys(r.Context(), query.Get("memberId"), query.Get("budgetGroupId"))
+	keys, err := h.service.ListPlatformKeys(r.Context(), types.PlatformKeyListFilter{
+		MemberID:      query.Get("memberId"),
+		BudgetGroupID: query.Get("budgetGroupId"),
+		DepartmentID:  query.Get("departmentId"),
+		Type:          query.Get("type"),
+	})
 	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 

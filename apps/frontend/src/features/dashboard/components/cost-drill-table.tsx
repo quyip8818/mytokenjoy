@@ -65,7 +65,10 @@ export function CostDrillTable({
           </TableHeader>
           <TableBody>
             {memberCosts.map((m) => (
-              <TableRow key={m.memberId} className="border-border-subtle hover:bg-muted/50">
+              <TableRow
+                key={m.memberId}
+                className="border-border-subtle even:bg-muted/40 hover:bg-muted/50"
+              >
                 <TableCell className="font-medium">
                   <Users className="mr-2 inline h-4 w-4 text-muted-foreground" />
                   {m.memberName}
@@ -100,7 +103,10 @@ export function CostDrillTable({
           </TableHeader>
           <TableBody>
             {deptCosts.map((dept) => (
-              <TableRow key={dept.departmentId} className="border-border-subtle hover:bg-muted/50">
+              <TableRow
+                key={dept.departmentId}
+                className="border-border-subtle even:bg-muted/40 hover:bg-muted/50"
+              >
                 <TableCell />
                 <TableCell className="font-medium">{dept.departmentName}</TableCell>
                 <TableCell className="text-right font-semibold">

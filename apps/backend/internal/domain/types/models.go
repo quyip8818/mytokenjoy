@@ -5,6 +5,10 @@ type ModelInfo struct {
 	Provider     string   `json:"provider"`
 	Name         string   `json:"name"`
 	DisplayName  string   `json:"displayName"`
+	Type         string   `json:"type"`
+	Description  string   `json:"description"`
+	Visibility   string   `json:"visibility"`
+	Endpoint     *string  `json:"endpoint,omitempty"`
 	InputPrice   float64  `json:"inputPrice"`
 	OutputPrice  float64  `json:"outputPrice"`
 	MaxContext   int      `json:"maxContext"`
@@ -38,6 +42,9 @@ type ToggleModelInput struct {
 type UpdateModelInput struct {
 	DisplayName  *string  `json:"displayName"`
 	Name         *string  `json:"name"`
+	Description  *string  `json:"description"`
+	Visibility   *string  `json:"visibility"`
+	Endpoint     *string  `json:"endpoint"`
 	InputPrice   *float64 `json:"inputPrice"`
 	OutputPrice  *float64 `json:"outputPrice"`
 	MaxContext   *int     `json:"maxContext"`

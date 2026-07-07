@@ -49,7 +49,7 @@ export function DataSection({
   const hasHeader = title || headerAction
 
   return (
-    <Card className={cn('border-border/50 shadow-card', className)}>
+    <Card className={cn('border-border shadow-xs', className)}>
       <CardContent className={cn('pt-5 pb-4', contentClassName)}>
         {hasHeader && (
           <div className="mb-4 flex items-center justify-between gap-3">

@@ -61,6 +61,10 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		Provider:     "custom",
 		Name:         input.Name,
 		DisplayName:  displayName,
+		Type:         "custom",
+		Description:  "",
+		Visibility:   "all",
+		Endpoint:     &input.BaseURL,
 		InputPrice:   input.InputPrice,
 		OutputPrice:  input.OutputPrice,
 		MaxContext:   128000,
@@ -95,6 +99,15 @@ func (s *service) UpdateModel(ctx context.Context, id string, input types.Update
 		}
 		if input.Name != nil {
 			models[i].Name = *input.Name
+		}
+		if input.Description != nil {
+			models[i].Description = *input.Description
+		}
+		if input.Visibility != nil {
+			models[i].Visibility = *input.Visibility
+		}
+		if input.Endpoint != nil && models[i].Type == "custom" {
+			models[i].Endpoint = input.Endpoint
 		}
 		if input.InputPrice != nil {
 			models[i].InputPrice = *input.InputPrice

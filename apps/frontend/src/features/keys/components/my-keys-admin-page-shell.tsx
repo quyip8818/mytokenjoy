@@ -1,25 +1,18 @@
-import type { ReactNode } from 'react'
-import { KeyRound, Plus } from 'lucide-react'
+import { KeyRound } from 'lucide-react'
 import { listEmpty } from '@/lib/list-empty'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatCard } from '@/components/ui/stat-card'
 import { Button } from '@/components/ui/button'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
-import { cn } from '@/lib/utils'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
 import type { useMyKeysPage } from '@/features/keys'
 import { MyKeysTable } from './my-keys-table'
 
-type MyKeysPageShellProps = ReturnType<typeof useMyKeysPage> & {
-  memberPortal?: boolean
-  description?: ReactNode
-}
+type MyKeysAdminPageShellProps = ReturnType<typeof useMyKeysPage>
 
-export function MyKeysPageShell({
-  memberPortal = false,
-  description,
+export function MyKeysAdminPageShell({
   keys,
   quota,
   loading,
@@ -36,13 +29,12 @@ export function MyKeysPageShell({
   openEditKey,
   openRotateKey,
   openWithRefresh,
-}: MyKeysPageShellProps) {
+}: MyKeysAdminPageShellProps) {
   const applyQuotaButton = (
     <Button
       id={applyQuotaCta.id}
       variant="outline"
-      size={memberPortal ? 'sm' : 'default'}
-      className={cn(applyQuotaCta.className)}
+      className={applyQuotaCta.className}
       onClick={() => openWithRefresh('approval-submit', { defaultType: 'quota' })}
     >
       申请额度
@@ -52,36 +44,24 @@ export function MyKeysPageShell({
   const createKeyButton = (
     <Button
       id={createKeyCta.id}
-      variant={memberPortal ? 'default' : 'brand'}
-      size={memberPortal ? 'sm' : 'default'}
-      className={cn(memberPortal ? 'gap-1.5' : undefined, createKeyCta.className)}
+      variant="brand"
+      className={createKeyCta.className}
       disabled={quota !== null && quota.remaining <= 0}
       onClick={() => openCreateKey()}
     >
-      <Plus className={memberPortal ? 'size-3.5' : 'mr-1.5 h-4 w-4'} />
-      {memberPortal ? '新建 Key' : '创建 Key'}
+      创建 Key
     </Button>
   )
 
   return (
     <PageShell
-      description={description}
       actions={
-        memberPortal ? (
-          <>
-            {applyQuotaButton}
+        <>
+          <PermissionGate permission={PERMISSION.SELF_APPROVAL}>{applyQuotaButton}</PermissionGate>
+          <PermissionGate write permission={PERMISSION.SELF_KEYS}>
             {createKeyButton}
-          </>
-        ) : (
-          <>
-            <PermissionGate permission={PERMISSION.SELF_APPROVAL}>
-              {applyQuotaButton}
-            </PermissionGate>
-            <PermissionGate write permission={PERMISSION.SELF_KEYS}>
-              {createKeyButton}
-            </PermissionGate>
-          </>
-        )
+          </PermissionGate>
+        </>
       }
       stats={
         quota ? (
@@ -115,7 +95,6 @@ export function MyKeysPageShell({
         <MyKeysTable
           keys={keys}
           rowClass={rowClass}
-          memberPortal={memberPortal}
           onEdit={openEditKey}
           onRotate={openRotateKey}
           onToggle={handleToggleWithFlash}

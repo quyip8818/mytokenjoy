@@ -1,16 +1,24 @@
-import { CreditCard } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import { listEmpty } from '@/lib/list-empty'
-import { PermissionGate } from '@/components/auth/permission-gate'
-import { PERMISSION } from '@/lib/permissions'
 import type { usePlatformKeysPage } from '@/features/keys'
 import { PlatformKeyTable } from './platform-key-table'
+import { PlatformKeysDeptTree } from './platform-keys-dept-tree'
+import { PlatformKeysToolbar } from './platform-keys-toolbar'
 
 type PlatformKeysPageShellProps = ReturnType<typeof usePlatformKeysPage>
 
 export function PlatformKeysPageShell({
+  departments,
+  selectedDeptId,
+  setSelectedDeptId,
+  activeTab,
+  setActiveTab,
+  treeSearch,
+  setTreeSearch,
+  search,
+  setSearch,
+  expanded,
+  toggleExpand,
   keys,
   loading,
   error,
@@ -20,29 +28,44 @@ export function PlatformKeysPageShell({
   openCreateKey,
 }: PlatformKeysPageShellProps) {
   return (
-    <PageShell
-      actions={
-        <PermissionGate write permission={PERMISSION.KEYS_ADMIN}>
-          <Button size="sm" variant="brand" onClick={() => openCreateKey()}>
-            代建 Key
-          </Button>
-        </PermissionGate>
-      }
-    >
+    <PageShell layout="fill">
       <DataSection
         loading={loading}
         error={error}
-        onRetry={refresh}
+        onRetry={() => void refresh()}
         skeletonColumns={8}
-        empty={listEmpty(loading, keys, {
-          icon: CreditCard,
-          title: '暂无全局 Key',
-          description: '成员可在「我的 Key」中创建 Platform Key，或由管理员代建',
-          actionLabel: '代建 Key',
-          onAction: () => openCreateKey(),
-        })}
+        className="flex h-full min-h-0 flex-col overflow-hidden border-border shadow-xs"
+        contentClassName="flex h-full min-h-0 flex-col p-0"
       >
-        <PlatformKeyTable keys={keys} rowClass={rowClass} onRevoke={handleRevoke} />
+        <div className="flex h-full min-h-0 overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+          <PlatformKeysDeptTree
+            departments={departments}
+            selectedId={selectedDeptId}
+            onSelect={setSelectedDeptId}
+            expanded={expanded}
+            onToggle={toggleExpand}
+            treeSearch={treeSearch}
+            onTreeSearchChange={setTreeSearch}
+          />
+
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <PlatformKeysToolbar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              search={search}
+              onSearchChange={setSearch}
+              onCreateKey={openCreateKey}
+            />
+            <div className="flex-1 overflow-auto px-5 py-4">
+              <PlatformKeyTable
+                keys={keys}
+                type={activeTab}
+                rowClass={rowClass}
+                onRevoke={handleRevoke}
+              />
+            </div>
+          </div>
+        </div>
       </DataSection>
     </PageShell>
   )

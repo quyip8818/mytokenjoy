@@ -29,7 +29,7 @@ export function OperationsLogTable({ logs }: OperationsLogTableProps) {
       </TableHeader>
       <TableBody>
         {logs.map((log) => (
-          <TableRow key={log.id}>
+          <TableRow key={log.id} className="even:bg-muted/40">
             <TableCell className="text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
               {log.createdAt}
             </TableCell>

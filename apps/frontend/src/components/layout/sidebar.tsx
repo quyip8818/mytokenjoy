@@ -51,29 +51,23 @@ function SidebarNavItem({ item, collapsed, badge }: SidebarNavItemProps) {
   const Icon = item.icon
 
   const className = cn(
-    'group/nav relative flex items-center rounded-lg transition-all duration-150',
-    collapsed ? 'justify-center p-1' : 'gap-2.5 px-2 py-1.5',
-    !collapsed &&
-      isActive &&
-      'bg-sidebar-accent font-medium text-sidebar-accent-foreground ring-1 ring-primary/5',
-    !collapsed &&
-      !isActive &&
-      'text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground',
+    'group/nav relative flex items-center transition-colors duration-100',
+    collapsed ? 'justify-center rounded-lg p-1' : 'gap-2.5 rounded-md px-3 py-2 text-sm',
+    !collapsed && isActive && 'bg-muted font-medium text-foreground',
+    !collapsed && !isActive && 'text-muted-foreground hover:bg-muted hover:text-foreground',
     collapsed && !isActive && 'hover:bg-sidebar-accent/70',
   )
 
-  const content = (
+  const content = collapsed ? (
+    <SidebarNavIcon icon={Icon} active={isActive} collapsed={collapsed} badge={badge} />
+  ) : (
     <>
-      <SidebarNavIcon icon={Icon} active={isActive} collapsed={collapsed} badge={badge} />
-      {!collapsed && (
-        <>
-          <span className="flex-1 truncate">{item.label}</span>
-          {badge > 0 && (
-            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
-              {badge}
-            </span>
-          )}
-        </>
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+      <span className="flex-1 truncate">{item.label}</span>
+      {badge > 0 && (
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
+          {badge}
+        </span>
       )}
     </>
   )
@@ -157,7 +151,6 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
 }
 
 export function Sidebar() {
-  const location = useLocation()
   const { permissions } = usePermissions()
   const navGroups = getVisibleNavGroups(permissions)
   const { data: approvalPendingCount = 0 } = useApprovalPendingCountQuery({ poll: true })
@@ -188,16 +181,12 @@ export function Sidebar() {
           )}
         >
           {navGroups.map((group, groupIndex) => {
-            const isGroupActive = group.items.some((item) =>
-              location.pathname.startsWith(item.path),
-            )
             return (
               <div key={group.group}>
                 {!collapsed && (
                   <div
                     className={cn(
-                      'mb-1.5 px-2.5 text-xs font-medium uppercase tracking-wide',
-                      isGroupActive ? 'text-primary' : 'text-muted-foreground',
+                      'mb-1.5 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground',
                       group.collapsed && 'text-muted-foreground/60',
                     )}
                   >

@@ -32,7 +32,11 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 					return types.PlatformKey{}, err
 				}
 			}
-			return platformKeys[i], nil
+			enriched, err := s.enrichPlatformKeyResponse(ctx, platformKeys[i])
+			if err != nil {
+				return types.PlatformKey{}, err
+			}
+			return enriched, nil
 		}
 	}
 	return types.PlatformKey{}, domain.NotFound("Not found")
@@ -58,7 +62,11 @@ func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.Platf
 			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return types.PlatformKey{}, err
 			}
-			return platformKeys[i], nil
+			enriched, err := s.enrichPlatformKeyResponse(ctx, platformKeys[i])
+			if err != nil {
+				return types.PlatformKey{}, err
+			}
+			return enriched, nil
 		}
 	}
 	return types.PlatformKey{}, domain.NotFound("Not found")

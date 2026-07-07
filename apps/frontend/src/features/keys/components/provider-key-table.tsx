@@ -36,18 +36,32 @@ export function ProviderKeyTable({ keys, rowClass, onToggle, onDelete }: Provide
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead>名称</TableHead>
-          <TableHead>供应商</TableHead>
-          <TableHead>Key 前缀</TableHead>
-          <TableHead>状态</TableHead>
-          <TableHead className="text-right">余额</TableHead>
-          <TableHead>最后使用</TableHead>
-          <TableHead className="w-[120px]">操作</TableHead>
+          <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
+            名称
+          </TableHead>
+          <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
+            供应商
+          </TableHead>
+          <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
+            Key 前缀
+          </TableHead>
+          <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
+            状态
+          </TableHead>
+          <TableHead className="text-right text-xs font-semibold uppercase text-muted-foreground">
+            余额
+          </TableHead>
+          <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
+            最后使用
+          </TableHead>
+          <TableHead className="w-[120px] text-xs font-semibold uppercase text-muted-foreground">
+            操作
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {keys.map((key) => (
-          <TableRow key={key.id} className={rowClass(key.id)}>
+          <TableRow key={key.id} className={`even:bg-muted/40 ${rowClass(key.id)}`}>
             <TableCell className="font-medium">{key.name}</TableCell>
             <TableCell>
               <ProviderBadge provider={key.provider} />

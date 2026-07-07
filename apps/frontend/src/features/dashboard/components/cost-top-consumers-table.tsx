@@ -42,7 +42,10 @@ export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumer
         </TableHeader>
         <TableBody>
           {topConsumers.map((c, i) => (
-            <TableRow key={c.memberId} className="border-border-subtle hover:bg-muted/50">
+            <TableRow
+              key={c.memberId}
+              className="border-border-subtle even:bg-muted/40 hover:bg-muted/50"
+            >
               <TableCell>
                 <div
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${i < 3 ? 'bg-primary' : 'bg-slate-300'}`}

@@ -31,6 +31,8 @@ export const platformKeyApi = {
     pageSize?: number
     memberId?: string
     budgetGroupId?: string
+    departmentId?: string
+    type?: 'member' | 'project'
   }) => request<Paginated<PlatformKey>>(`/keys/platform${buildQuery(params ?? {})}`),
   create: (data: {
     name: string
@@ -55,7 +57,7 @@ export const platformKeyApi = {
 }
 
 export const approvalApi = {
-  list: (params?: { tab?: 'pending' | 'mine' | 'all'; memberId?: string }) =>
+  list: (params?: { tab?: 'pending' | 'approved' | 'rejected' | 'all'; memberId?: string }) =>
     request<KeyApproval[]>(`/keys/approvals${buildQuery(params ?? {})}`),
   create: (data: {
     type: ApprovalType

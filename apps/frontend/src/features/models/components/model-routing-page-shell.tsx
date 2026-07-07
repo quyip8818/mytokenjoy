@@ -18,6 +18,7 @@ export function ModelRoutingPageShell({
   return (
     <PageShell>
       <DataSection
+        title="组织节点模型白名单"
         loading={loading}
         error={error}
         onRetry={refresh}
