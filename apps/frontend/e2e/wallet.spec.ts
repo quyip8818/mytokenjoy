@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { loginAsAdmin } from './helpers/auth'
 
-test('loads wallet page with recharge section', async ({ page }) => {
-  await loginAsAdmin(page)
+test('loads wallet page', async ({ page }) => {
   await page.goto('/wallet')
 
   await expect(page).toHaveURL(/\/wallet$/)
