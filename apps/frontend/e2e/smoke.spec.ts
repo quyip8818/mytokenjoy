@@ -1,10 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-/**
- * Smoke test: verify all 16 admin routes load without blank screens.
- * Uses page.goto with URL assertion to handle potential redirect race conditions.
- */
-
 const routes = [
   { path: '/org/data-source', heading: '数据源' },
   { path: '/org/structure', heading: '组织架构' },
@@ -25,8 +20,10 @@ const routes = [
 ]
 
 for (const { path, heading } of routes) {
-  test(`${path} loads with heading "${heading}"`, async ({ page }) => {
+  test(`${path} renders heading "${heading}"`, async ({ page }) => {
     await page.goto(path)
-    await expect(page.getByRole('banner').getByRole('heading', { name: heading })).toBeVisible()
+    await expect(
+      page.getByRole('banner').getByRole('heading', { name: heading }),
+    ).toBeVisible()
   })
 }

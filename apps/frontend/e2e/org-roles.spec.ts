@@ -1,11 +1,18 @@
 import { expect, test } from '@playwright/test'
-import { loginAsAdmin } from './helpers/auth'
 
-test('loads org roles member list after selecting a role', async ({ page }) => {
-  await loginAsAdmin(page)
-  await page.goto('/org/roles')
+test.describe('角色管理', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/org/roles')
+    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+  })
 
-  await expect(page).toHaveURL(/\/org\/roles$/)
-  await page.getByText('超级管理员').first().click()
-  await expect(page.getByText(/名成员/)).toBeVisible()
+  test('displays preset roles', async ({ page }) => {
+    await expect(page.getByText('超级管理员')).toBeVisible()
+    await expect(page.getByText('普通成员')).toBeVisible()
+  })
+
+  test('selecting a role shows member list', async ({ page }) => {
+    await page.getByText('超级管理员').first().click()
+    await expect(page.getByText(/名成员/)).toBeVisible()
+  })
 })

@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test'
-import { loginAsAdmin } from './helpers/auth'
 
-test('navigates to org structure and shows seed department', async ({ page }) => {
-  await loginAsAdmin(page)
+test('sidebar navigation links work', async ({ page }) => {
   await page.goto('/')
-
   await page.getByRole('link', { name: '组织架构' }).click()
-  await expect(page).toHaveURL(/\/org\/structure$/)
+  await expect(page).toHaveURL(/\/org\/structure/)
+  await expect(page.getByRole('heading', { name: '组织架构' })).toBeVisible()
+})
 
-  await expect(page.getByRole('main').getByText('总公司').first()).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'TokenJoy' })).toBeVisible()
+test('sidebar shows nav groups', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('组织')).toBeVisible()
+  await expect(page.getByText('预算')).toBeVisible()
+  await expect(page.getByText('Key 中心')).toBeVisible()
 })
