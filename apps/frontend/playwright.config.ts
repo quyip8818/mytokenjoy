@@ -26,11 +26,12 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'go run ./cmd/server',
+      command: 'make run',
       cwd: '../backend',
       url: 'http://127.0.0.1:8080/healthz',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
       env: {
         DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable',
         COMPANY_NAME: 'Demo Company',

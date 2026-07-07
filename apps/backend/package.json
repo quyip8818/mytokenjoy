@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "postinstall": "make install-air",
     "start": "make start",
     "build": "make build",
     "build:check": "go build -o /dev/null ./...",
