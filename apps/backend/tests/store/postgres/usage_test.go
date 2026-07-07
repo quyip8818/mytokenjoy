@@ -10,6 +10,7 @@ import (
 )
 
 func TestUsageBucketUpsertAccumulates(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	bucket := time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC)
@@ -52,6 +53,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 }
 
 func TestUsageBucketQuerySeriesDay(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)

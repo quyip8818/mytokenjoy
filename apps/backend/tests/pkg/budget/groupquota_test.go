@@ -9,6 +9,7 @@ import (
 )
 
 func TestValidateGroupKeyQuota(t *testing.T) {
+	t.Parallel()
 	snapshot := seed.Load(testutil.TestConfig())
 	groups := snapshot.BudgetGroups
 	keys := snapshot.PlatformKeys
@@ -25,6 +26,7 @@ func TestValidateGroupKeyQuota(t *testing.T) {
 }
 
 func TestGetGroupQuotaRemaining(t *testing.T) {
+	t.Parallel()
 	snapshot := seed.Load(testutil.TestConfig())
 	groups := snapshot.BudgetGroups
 	keys := snapshot.PlatformKeys

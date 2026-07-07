@@ -13,6 +13,7 @@ import (
 )
 
 func TestBudgetApprovalsList(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/budget/approvals", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -31,6 +32,7 @@ func TestBudgetApprovalsList(t *testing.T) {
 }
 
 func TestBudgetApprovalResolve(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"status":"approved"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/budget/approvals/appr-1", bytes.NewReader(body))

@@ -12,6 +12,7 @@ import (
 )
 
 func TestNotifierWritesLogEntry(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	svc := notification.NewService(cfg, st, logger)
@@ -34,6 +35,7 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 }
 
 func TestWebhookFailureDoesNotReturnError(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, func(c *config.Config) {
 		c.NotifyWebhookURL = "http://127.0.0.1:1/unreachable"
 	})

@@ -27,6 +27,7 @@ func (s *stubQuotaClient) GetUserQuota(_ context.Context, _ int64) (int64, error
 }
 
 func TestWalletServiceAvailableQuota(t *testing.T) {
+	t.Parallel()
 	client := &stubQuotaClient{quota: 50000}
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
@@ -41,6 +42,7 @@ func TestWalletServiceAvailableQuota(t *testing.T) {
 }
 
 func TestWalletServiceCachesResult(t *testing.T) {
+	t.Parallel()
 	client := &stubQuotaClient{quota: 10000}
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
@@ -56,6 +58,7 @@ func TestWalletServiceCachesResult(t *testing.T) {
 }
 
 func TestWalletServiceInvalidWalletID(t *testing.T) {
+	t.Parallel()
 	client := &stubQuotaClient{quota: 10000}
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
@@ -72,6 +75,7 @@ func TestWalletServiceInvalidWalletID(t *testing.T) {
 }
 
 func TestWalletServiceNilClient(t *testing.T) {
+	t.Parallel()
 	cfg := config.Config{}
 	svc := company.NewWalletService(cfg, nil)
 
@@ -85,6 +89,7 @@ func TestWalletServiceNilClient(t *testing.T) {
 }
 
 func TestWalletServiceClientError(t *testing.T) {
+	t.Parallel()
 	client := &stubQuotaClient{err: errors.New("network failure")}
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
@@ -96,6 +101,7 @@ func TestWalletServiceClientError(t *testing.T) {
 }
 
 func TestWalletServiceCacheExpires(t *testing.T) {
+	t.Parallel()
 	client := &stubQuotaClient{quota: 5000}
 	// Set TTL to 0 so cache expires immediately
 	cfg := config.Config{CompanyWalletCacheTTLSec: 0}
@@ -111,6 +117,7 @@ func TestWalletServiceCacheExpires(t *testing.T) {
 }
 
 func TestIsRelayBlockedStatus(t *testing.T) {
+	t.Parallel()
 	if company.IsRelayBlocked("active") {
 		t.Error("active should not be blocked")
 	}

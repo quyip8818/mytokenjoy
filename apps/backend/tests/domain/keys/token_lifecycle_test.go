@@ -12,6 +12,7 @@ import (
 )
 
 func TestSyncCreateEnqueuesOutbox(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 1, Key: "sk-test", RemainQuota: 1000}}
 	lifecycle, st := newTokenLifecycle(t, stub)
 	ctx := testutil.Ctx()
@@ -51,6 +52,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 }
 
 func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, Key: "sk-test-key", RemainQuota: 1000}}
 	lifecycle, st := newTokenLifecycle(t, stub)
 	ctx := testutil.Ctx()
@@ -108,6 +110,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 }
 
 func TestRollbackFailedCreate(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{}
 	lifecycle, st := newTokenLifecycle(t, stub)
 	ctx := testutil.Ctx()

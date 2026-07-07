@@ -11,6 +11,7 @@ import (
 )
 
 func TestIsRecoverableIngestError(t *testing.T) {
+	t.Parallel()
 	if !domainusage.IsRecoverableIngestError(domain.NotFound("mapping not found for token 1")) {
 		t.Fatal("expected mapping not found to be recoverable")
 	}
@@ -26,6 +27,7 @@ func TestIsRecoverableIngestError(t *testing.T) {
 }
 
 func TestWebhookIngestResultFor(t *testing.T) {
+	t.Parallel()
 	ok := domainusage.WebhookIngestResultFor(nil)
 	if ok.Status != http.StatusOK || !ok.RecordNotify || ok.RecordFailure {
 		t.Fatalf("unexpected ok result: %+v", ok)
@@ -45,6 +47,7 @@ func TestWebhookIngestResultFor(t *testing.T) {
 }
 
 func TestClassifyIngestError(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		err  error

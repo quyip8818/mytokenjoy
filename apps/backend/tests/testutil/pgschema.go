@@ -20,7 +20,6 @@ type testSchema struct {
 }
 
 var testSchemaByName sync.Map
-var ingestTestMu sync.Mutex
 
 func openTestSchema(t *testing.T) (baseURL, schemaURL string) {
 	t.Helper()

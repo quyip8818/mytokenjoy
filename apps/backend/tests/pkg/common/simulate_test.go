@@ -9,6 +9,7 @@ import (
 )
 
 func TestDelayerDisabled(t *testing.T) {
+	t.Parallel()
 	d := common.NewDelayer(false)
 	start := time.Now()
 	err := d.Wait(context.Background(), 5*time.Second)
@@ -22,6 +23,7 @@ func TestDelayerDisabled(t *testing.T) {
 }
 
 func TestDelayerEnabled(t *testing.T) {
+	t.Parallel()
 	d := common.NewDelayer(true)
 	start := time.Now()
 	err := d.Wait(context.Background(), 50*time.Millisecond)
@@ -35,6 +37,7 @@ func TestDelayerEnabled(t *testing.T) {
 }
 
 func TestDelayerCancelledContext(t *testing.T) {
+	t.Parallel()
 	d := common.NewDelayer(true)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

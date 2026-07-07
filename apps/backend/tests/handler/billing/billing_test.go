@@ -19,6 +19,7 @@ import (
 )
 
 func TestBillingWalletAfterPlatformRecharge(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -47,6 +48,7 @@ func TestBillingWalletAfterPlatformRecharge(t *testing.T) {
 }
 
 func TestBillingSelfRechargeConfirmFlow(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)
@@ -97,6 +99,7 @@ func TestBillingSelfRechargeConfirmFlow(t *testing.T) {
 }
 
 func TestBillingSelfRechargeIdempotencyKey(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -122,6 +125,7 @@ func TestBillingSelfRechargeIdempotencyKey(t *testing.T) {
 }
 
 func TestBillingWalletUsesNewAPIQuota(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)

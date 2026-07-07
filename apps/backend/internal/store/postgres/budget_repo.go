@@ -82,12 +82,12 @@ func (r *pgBudgetRepo) Groups(ctx context.Context) ([]types.BudgetGroup, error) 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneBudgetGroups(items), nil
+	return items, nil
 }
 
 func (r *pgBudgetRepo) SetGroups(ctx context.Context, groups []types.BudgetGroup) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneBudgetGroups(groups)
+	cloned := cloneBudgetGroups(groups)
 	ids := make([]string, len(cloned))
 	for i, group := range cloned {
 		ids[i] = group.ID
@@ -209,12 +209,12 @@ func (r *pgBudgetRepo) AlertRules(ctx context.Context) ([]types.AlertRule, error
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneAlertRules(items), nil
+	return items, nil
 }
 
 func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRule) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneAlertRules(rules)
+	cloned := cloneAlertRules(rules)
 	ids := make([]string, len(cloned))
 	for i, rule := range cloned {
 		ids[i] = rule.ID
@@ -291,12 +291,12 @@ func (r *pgBudgetRepo) BudgetApprovals(ctx context.Context) ([]types.BudgetAppro
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return store.CloneBudgetApprovals(items), nil
+	return items, nil
 }
 
 func (r *pgBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.BudgetApproval) error {
 	companyID := store.CompanyID(ctx)
-	cloned := store.CloneBudgetApprovals(items)
+	cloned := cloneBudgetApprovals(items)
 	ids := make([]string, len(cloned))
 	for i, approval := range cloned {
 		ids[i] = approval.ID

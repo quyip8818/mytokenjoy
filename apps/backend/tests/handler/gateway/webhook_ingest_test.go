@@ -20,62 +20,20 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-const webhookSecret = "test-secret"
-
 func newWebhookApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	t.Helper()
 	return testhttp.NewApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
 		testutil.WithIngestEnabled(true)(cfg)
+		testutil.WithNewAPIWebhookSecret(webhookSecret)(cfg)
 		if mutate != nil {
 			mutate(cfg)
 		}
 	})
 }
 
-func TestWebhookUnauthorized(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
-	router := app.Router
-
-	body, _ := json.Marshal(map[string]int64{"log_id": 1})
-	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 without secret, got %d", rec.Code)
-	}
-
-	req = httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Webhook-Secret", "wrong")
-	rec = httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 with wrong secret, got %d", rec.Code)
-	}
-}
-
-func TestWebhookInvalidPayload(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
-	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader([]byte(`{}`)))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Webhook-Secret", webhookSecret)
-	rec := httptest.NewRecorder()
-	app.Router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
 func TestWebhookIngestSuccess(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
+	t.Parallel()
+	app := newWebhookApp(t, nil)
 	beforeBuckets := testutil.UsageBucketCount(app.Store)
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
 
@@ -121,9 +79,8 @@ func TestWebhookIngestSuccess(t *testing.T) {
 }
 
 func TestWebhookIngestIdempotent(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
+	t.Parallel()
+	app := newWebhookApp(t, nil)
 	beforeBuckets := testutil.UsageBucketCount(app.Store)
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(3001, 99))
@@ -142,9 +99,8 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 }
 
 func TestWebhookIngestWritesLedgerFields(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
+	t.Parallel()
+	app := newWebhookApp(t, nil)
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
 
 	const input = "webhook preview"
@@ -190,9 +146,8 @@ func TestWebhookIngestWritesLedgerFields(t *testing.T) {
 }
 
 func TestWebhookLogNotFoundReturns503(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
+	t.Parallel()
+	app := newWebhookApp(t, nil)
 	body, _ := json.Marshal(map[string]int64{"log_id": 99999})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -205,10 +160,8 @@ func TestWebhookLogNotFoundReturns503(t *testing.T) {
 }
 
 func TestWebhookMappingMissingAcceptsAndRecordsFailure(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		testutil.WithIngestEnabled(true)(cfg)
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
+	t.Parallel()
+	app := newWebhookApp(t, nil)
 	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(8001, 55))
 	body, _ := json.Marshal(map[string]int64{"log_id": 8001})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
@@ -227,10 +180,8 @@ func TestWebhookMappingMissingAcceptsAndRecordsFailure(t *testing.T) {
 }
 
 func TestIngestMetricsEndpoint(t *testing.T) {
-	app := newWebhookApp(t, func(cfg *config.Config) {
-		testutil.WithIngestEnabled(true)(cfg)
-		cfg.NewAPIWebhookSecret = webhookSecret
-	})
+	t.Parallel()
+	app := newWebhookApp(t, nil)
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(8100, 99))
 
@@ -264,8 +215,9 @@ func TestIngestMetricsEndpoint(t *testing.T) {
 }
 
 func TestIngestMetricsDisabledReturns404(t *testing.T) {
+	t.Parallel()
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
-		cfg.NewAPIWebhookSecret = webhookSecret
+		testutil.WithNewAPIWebhookSecret(webhookSecret)(cfg)
 	})
 	req := httptest.NewRequest(http.MethodGet, "/api/internal/metrics/ingest", nil)
 	rec := httptest.NewRecorder()

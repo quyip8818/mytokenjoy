@@ -7,7 +7,8 @@ import (
 )
 
 func TestServiceImplementsSubInterfaces(t *testing.T) {
-	svc := newTestService(t)
+	t.Parallel()
+	svc := newTestOrgService(t)
 	var (
 		_ org.Service           = svc
 		_ org.DataSourceService = svc

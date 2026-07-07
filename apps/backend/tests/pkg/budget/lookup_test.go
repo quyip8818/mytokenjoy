@@ -10,6 +10,7 @@ import (
 )
 
 func TestGetReservedPoolForMember(t *testing.T) {
+	t.Parallel()
 	snapshot := seed.Load(testutil.TestConfig())
 	tree := types.OrgNodesToBudgetTree(snapshot.OrgNodes)
 	members := snapshot.Members

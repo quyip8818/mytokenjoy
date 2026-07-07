@@ -8,6 +8,7 @@ import (
 )
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
+	t.Parallel()
 	key := common.DevDefaultKey()
 	plaintext := []byte(`{"appId":"cli_test","appSecret":"secret"}`)
 	encrypted, err := common.Encrypt(key, plaintext)
@@ -24,6 +25,7 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 }
 
 func TestParseKeyAcceptsBase64(t *testing.T) {
+	t.Parallel()
 	key, err := common.ParseKey("dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=")
 	if err != nil {
 		t.Fatal(err)

@@ -12,6 +12,7 @@ import (
 // PRD 2.2 成员状态: [创建]→启用, [邀请]→未激活→启用, 启用⇄停用, 停用/启用→删除
 
 func TestMemberStatusTransition_ActiveToInactive(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -30,6 +31,7 @@ func TestMemberStatusTransition_ActiveToInactive(t *testing.T) {
 }
 
 func TestMemberStatusTransition_InactiveToActive(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -50,6 +52,7 @@ func TestMemberStatusTransition_InactiveToActive(t *testing.T) {
 }
 
 func TestMemberDisableDisablesAllKeys(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -79,6 +82,7 @@ func TestMemberDisableDisablesAllKeys(t *testing.T) {
 }
 
 func TestMemberDeleteSetsInactive(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -97,6 +101,7 @@ func TestMemberDeleteSetsInactive(t *testing.T) {
 }
 
 func TestBatchStatusChangeMultipleMembers(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -128,6 +133,7 @@ func TestBatchStatusChangeMultipleMembers(t *testing.T) {
 }
 
 func TestCreateMemberDefaultsToActive(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
@@ -145,6 +151,7 @@ func TestCreateMemberDefaultsToActive(t *testing.T) {
 }
 
 func TestBatchInviteSetsStatus(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()

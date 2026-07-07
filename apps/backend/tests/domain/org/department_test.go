@@ -13,6 +13,7 @@ import (
 )
 
 func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
+	t.Parallel()
 	svc, st := newTestOrgServiceWithStore(t)
 	ctx := testutil.Ctx()
 
@@ -61,6 +62,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 }
 
 func TestUpdateDepartmentPreservesParent(t *testing.T) {
+	t.Parallel()
 	svc, st := newTestOrgServiceWithStore(t)
 	ctx := testutil.Ctx()
 
@@ -104,6 +106,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 }
 
 func TestDeleteDepartmentWithChildren422(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	err := svc.DeleteDepartment(testutil.Ctx(), "dept-2")
 	de := asDomainError(t, err)
@@ -116,6 +119,7 @@ func TestDeleteDepartmentWithChildren422(t *testing.T) {
 }
 
 func TestDeleteDepartmentWithMembers422(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	err := svc.DeleteDepartment(testutil.Ctx(), seed.IDDept3)
 	de := asDomainError(t, err)
@@ -125,6 +129,7 @@ func TestDeleteDepartmentWithMembers422(t *testing.T) {
 }
 
 func TestDeleteLeafDepartment(t *testing.T) {
+	t.Parallel()
 	svc, st := newTestOrgServiceWithStore(t)
 	ctx := testutil.Ctx()
 

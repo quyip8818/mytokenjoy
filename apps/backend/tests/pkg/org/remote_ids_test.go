@@ -8,6 +8,7 @@ import (
 )
 
 func TestLocalDeptID(t *testing.T) {
+	t.Parallel()
 	got := pkgorg.LocalDeptID(types.PlatformFeishu, "ou-abc")
 	want := "dept-feishu-ou-abc"
 	if got != want {
@@ -16,6 +17,7 @@ func TestLocalDeptID(t *testing.T) {
 }
 
 func TestLocalMemberID(t *testing.T) {
+	t.Parallel()
 	got := pkgorg.LocalMemberID(types.PlatformFeishu, "ou-user")
 	want := "m-feishu-ou-user"
 	if got != want {
@@ -24,6 +26,7 @@ func TestLocalMemberID(t *testing.T) {
 }
 
 func TestIsManualDeptSource(t *testing.T) {
+	t.Parallel()
 	manual := types.DeptSourceManual
 	imported := types.DeptSourceImported
 	if !pkgorg.IsManualDeptSource(&manual) {
@@ -38,6 +41,7 @@ func TestIsManualDeptSource(t *testing.T) {
 }
 
 func TestIsManualMemberSource(t *testing.T) {
+	t.Parallel()
 	if !pkgorg.IsManualMemberSource(types.MemberSourceManual) {
 		t.Fatal("expected manual member source")
 	}

@@ -15,6 +15,7 @@ func newProdTestRouter(t *testing.T) http.Handler {
 }
 
 func TestProdGetContractRequiresSession(t *testing.T) {
+	t.Parallel()
 	router := newProdTestRouter(t)
 	for _, tc := range getContractCases() {
 		if tc.path == "/healthz" {
@@ -32,6 +33,7 @@ func TestProdGetContractRequiresSession(t *testing.T) {
 }
 
 func TestProdGetContractWithAdminCookie(t *testing.T) {
+	t.Parallel()
 	router := newProdTestRouter(t)
 	for _, tc := range getContractCases() {
 		if tc.path == "/healthz" {

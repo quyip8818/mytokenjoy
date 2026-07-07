@@ -22,17 +22,6 @@ func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Stor
 		t.Fatalf("create postgres store: %v", err)
 	}
 	clearDemoRuntimeSeed(t, st)
-	if cfg.IngestEnabled() {
-		ingestTestMu.Lock()
-		t.Cleanup(func() { ingestTestMu.Unlock() })
-		pool := postgres.LogPool(st)
-		if err := postgres.TruncateLogTables(context.Background(), pool); err != nil {
-			t.Fatalf("truncate log tables: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = postgres.TruncateLogTables(context.Background(), pool)
-		})
-	}
 	t.Cleanup(func() {
 		if pg, ok := st.(*postgres.Store); ok {
 			pg.Close()

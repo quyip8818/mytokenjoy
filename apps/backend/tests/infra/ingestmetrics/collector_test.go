@@ -10,6 +10,7 @@ import (
 )
 
 func TestCollectorRefreshAndSnapshot(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	collector := ingestmetrics.NewCollector()
@@ -51,6 +52,7 @@ func TestCollectorRefreshAndSnapshot(t *testing.T) {
 }
 
 func TestNoopCollector(t *testing.T) {
+	t.Parallel()
 	collector := ingestmetrics.NoopCollector()
 	collector.RecordNotifySuccess()
 	snap := collector.Snapshot()

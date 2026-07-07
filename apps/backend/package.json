@@ -8,6 +8,7 @@
     "build:check": "go build -o /dev/null ./...",
     "lint": "make lint",
     "format": "make format",
-    "test": "make test-unit"
+    "test": "make test-unit",
+    "test:nocache": "make test-unit-nocache"
   }
 }

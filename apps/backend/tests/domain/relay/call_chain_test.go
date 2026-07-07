@@ -13,6 +13,7 @@ import (
 // 1. Key 有效性 2. Key 启用状态 3. 模型白名单 4. 额度充足 5. 转发供应商
 
 func TestGatewayCheckOrder_InvalidKey(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		Budget:      1000,
 		WalletQuota: 999999,
@@ -29,6 +30,7 @@ func TestGatewayCheckOrder_InvalidKey(t *testing.T) {
 }
 
 func TestGatewayCheckOrder_DisabledKey(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{
@@ -69,6 +71,7 @@ func TestGatewayCheckOrder_DisabledKey(t *testing.T) {
 }
 
 func TestGatewayCheckOrder_ModelNotInWhitelist(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		Budget:      1000,
 		WalletQuota: 999999,
@@ -87,6 +90,7 @@ func TestGatewayCheckOrder_ModelNotInWhitelist(t *testing.T) {
 }
 
 func TestGatewayCheckOrder_BudgetExhausted(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		Budget:   0, // Zero budget
 		Consumed: 0,
@@ -102,6 +106,7 @@ func TestGatewayCheckOrder_BudgetExhausted(t *testing.T) {
 }
 
 func TestGatewayCheckOrder_SuccessfulProxy(t *testing.T) {
+	t.Parallel()
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify the authorization header is forwarded
 		if r.Header.Get("Authorization") == "" {

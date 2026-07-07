@@ -10,6 +10,7 @@ import (
 )
 
 func TestResolveFromMember(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{})
 	ctx := testutil.Ctx()
@@ -24,6 +25,7 @@ func TestResolveFromMember(t *testing.T) {
 }
 
 func TestResolveCompanyContext(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{})
 	ctx := testutil.Ctx()

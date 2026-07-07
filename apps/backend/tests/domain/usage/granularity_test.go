@@ -8,6 +8,7 @@ import (
 )
 
 func TestValidateCostGranularity(t *testing.T) {
+	t.Parallel()
 	if err := domainusage.ValidateCostGranularity(types.UsageGranularityWeek); err != nil {
 		t.Fatalf("expected week to be valid: %v", err)
 	}
@@ -20,6 +21,7 @@ func TestValidateCostGranularity(t *testing.T) {
 }
 
 func TestNormalizeCostGranularity(t *testing.T) {
+	t.Parallel()
 	if got := domainusage.NormalizeCostGranularity(""); got != types.UsageGranularityDay {
 		t.Fatalf("expected day default, got %s", got)
 	}

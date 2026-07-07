@@ -37,6 +37,7 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 }
 
 func TestGetWalletReturnsBalance(t *testing.T) {
+	t.Parallel()
 	client := &mock.StubAdminClient{
 		GetUserQuotaFn: func(_ context.Context, userID int64) (int64, error) {
 			return 1_000_000, nil
@@ -56,6 +57,7 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 }
 
 func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
@@ -70,6 +72,7 @@ func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 }
 
 func TestPlatformRechargeEnqueuesRebalance(t *testing.T) {
+	t.Parallel()
 	client := &mock.StubAdminClient{
 		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
 	}
@@ -83,6 +86,7 @@ func TestPlatformRechargeEnqueuesRebalance(t *testing.T) {
 }
 
 func TestConfirmPaymentIdempotent(t *testing.T) {
+	t.Parallel()
 	client := &mock.StubAdminClient{
 		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
 	}
@@ -100,6 +104,7 @@ func TestConfirmPaymentIdempotent(t *testing.T) {
 }
 
 func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
+	t.Parallel()
 	client := &mock.StubAdminClient{}
 	svc, _, ctx := newBillingService(t, client)
 	if _, err := svc.CreateSelfRecharge(ctx, 10, "dup-key", "m-admin"); err != nil {
@@ -111,6 +116,7 @@ func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 }
 
 func TestConfirmPaymentFailsWithoutWallet(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
@@ -132,6 +138,7 @@ func TestConfirmPaymentFailsWithoutWallet(t *testing.T) {
 }
 
 func TestTopUpAndFinishFailsWhenNewAPIDisabled(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(false))
 	client := &mock.StubAdminClient{}
 	walletID := int64(501)

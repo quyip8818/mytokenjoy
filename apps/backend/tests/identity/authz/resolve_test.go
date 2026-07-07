@@ -9,6 +9,7 @@ import (
 )
 
 func TestResolveMemberPermissionsSuperAdmin(t *testing.T) {
+	t.Parallel()
 	member := types.Member{
 		ID: "m-admin", Roles: []string{permission.RoleSuperAdmin},
 	}
@@ -23,6 +24,7 @@ func TestResolveMemberPermissionsSuperAdmin(t *testing.T) {
 }
 
 func TestIsReadOnlySessionMember(t *testing.T) {
+	t.Parallel()
 	perms := authz.ResolveMemberPermissions(
 		types.Member{Roles: []string{permission.RoleMember}},
 		[]types.Role{{Name: permission.RoleMember, Type: "preset"}},
@@ -33,6 +35,7 @@ func TestIsReadOnlySessionMember(t *testing.T) {
 }
 
 func TestIsReadOnlySessionOrgAdmin(t *testing.T) {
+	t.Parallel()
 	perms := authz.ResolveMemberPermissions(
 		types.Member{Roles: []string{permission.RoleOrgAdmin}},
 		[]types.Role{{Name: permission.RoleOrgAdmin, Type: "preset"}},
@@ -43,6 +46,7 @@ func TestIsReadOnlySessionOrgAdmin(t *testing.T) {
 }
 
 func TestCustomRoleBudgetApproverIncludesBudgetRead(t *testing.T) {
+	t.Parallel()
 	perms := authz.ResolveMemberPermissions(
 		types.Member{Roles: []string{permission.RoleBudgetApprover}},
 		[]types.Role{{Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}}},

@@ -13,6 +13,7 @@ import (
 // - "父级缩小 → 子级自动同步缩小"
 
 func TestValidateModelsForMember_AllowedModel(t *testing.T) {
+	t.Parallel()
 	members := []types.Member{
 		{ID: "m1", DepartmentID: "d1"},
 	}
@@ -34,6 +35,7 @@ func TestValidateModelsForMember_AllowedModel(t *testing.T) {
 }
 
 func TestValidateModelsForMember_BlockedModel(t *testing.T) {
+	t.Parallel()
 	members := []types.Member{
 		{ID: "m1", DepartmentID: "d1"},
 	}
@@ -58,6 +60,7 @@ func TestValidateModelsForMember_BlockedModel(t *testing.T) {
 }
 
 func TestValidateModelsForMember_EmptyWhitelist(t *testing.T) {
+	t.Parallel()
 	members := []types.Member{
 		{ID: "m1", DepartmentID: "d1"},
 	}
@@ -74,6 +77,7 @@ func TestValidateModelsForMember_EmptyWhitelist(t *testing.T) {
 }
 
 func TestValidateModelsForMember_NoModelsProvided(t *testing.T) {
+	t.Parallel()
 	members := []types.Member{{ID: "m1", DepartmentID: "d1"}}
 
 	// Empty model list should always be valid
@@ -89,6 +93,7 @@ func TestValidateModelsForMember_NoModelsProvided(t *testing.T) {
 }
 
 func TestWhitelistInheritance_ChildNarrowsFromParent(t *testing.T) {
+	t.Parallel()
 	parentID := "d-parent"
 	departments := []types.Department{
 		{ID: "d-parent", Name: "Parent"},
@@ -122,6 +127,7 @@ func TestWhitelistInheritance_ChildNarrowsFromParent(t *testing.T) {
 }
 
 func TestWhitelistInheritance_ParentShrinkSyncsChild(t *testing.T) {
+	t.Parallel()
 	parentID := "d-parent"
 	departments := []types.Department{
 		{ID: "d-parent", Name: "Parent"},
@@ -142,6 +148,7 @@ func TestWhitelistInheritance_ParentShrinkSyncsChild(t *testing.T) {
 }
 
 func TestResolveDeptAllowedModels_InheritedFromParent(t *testing.T) {
+	t.Parallel()
 	parentID := "d-parent"
 	departments := []types.Department{
 		{ID: "d-parent", Name: "Parent"},

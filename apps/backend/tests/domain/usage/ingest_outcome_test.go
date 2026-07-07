@@ -11,6 +11,7 @@ import (
 )
 
 func TestOutcomeForWebhook(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name           string
 		err            error
@@ -34,6 +35,7 @@ func TestOutcomeForWebhook(t *testing.T) {
 }
 
 func TestOutcomeForReconcileAdvancesCursor(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		err     error
@@ -55,6 +57,7 @@ func TestOutcomeForReconcileAdvancesCursor(t *testing.T) {
 }
 
 func TestOutcomeShouldRecordFailure(t *testing.T) {
+	t.Parallel()
 	if !domainusage.OutcomeFor(domain.BadRequest("x")).ShouldRecordFailure() {
 		t.Fatal("expected business failure to record")
 	}
@@ -67,6 +70,7 @@ func TestOutcomeShouldRecordFailure(t *testing.T) {
 }
 
 func TestOutcomeRetryDisposition(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		err  error
@@ -89,6 +93,7 @@ func TestOutcomeRetryDisposition(t *testing.T) {
 }
 
 func TestWebhookIngestResultForMatchesOutcome(t *testing.T) {
+	t.Parallel()
 	errs := []error{nil, store.ErrConsumeLogNotFound, domain.NotFound("m"), domain.ServiceUnavailable("x")}
 	for _, err := range errs {
 		if domainusage.WebhookIngestResultFor(err) != domainusage.OutcomeFor(err).Webhook() {

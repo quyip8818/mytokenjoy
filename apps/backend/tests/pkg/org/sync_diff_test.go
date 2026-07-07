@@ -28,6 +28,7 @@ func importedMember(id, extID, name, email, phone string) types.Member {
 }
 
 func TestBuildSyncDiffRemoteAdditions(t *testing.T) {
+	t.Parallel()
 	diff := pkgorg.BuildSyncDiff(
 		nil, nil,
 		[]datasource.RemoteDepartment{{ExternalID: "d1", Name: "Eng"}},
@@ -42,6 +43,7 @@ func TestBuildSyncDiffRemoteAdditions(t *testing.T) {
 }
 
 func TestBuildSyncDiffRemoteRemovals(t *testing.T) {
+	t.Parallel()
 	diff := pkgorg.BuildSyncDiff(
 		[]types.Department{importedDept("dept-1", "d1", "Eng")},
 		[]types.Member{importedMember("m-1", "u1", "Alice", "a@x.com", "138")},
@@ -56,6 +58,7 @@ func TestBuildSyncDiffRemoteRemovals(t *testing.T) {
 }
 
 func TestBuildSyncDiffRenames(t *testing.T) {
+	t.Parallel()
 	diff := pkgorg.BuildSyncDiff(
 		[]types.Department{importedDept("dept-1", "d1", "Eng")},
 		[]types.Member{importedMember("m-1", "u1", "Alice", "a@x.com", "138")},
@@ -71,6 +74,7 @@ func TestBuildSyncDiffRenames(t *testing.T) {
 }
 
 func TestBuildSyncDiffSkipsManualSources(t *testing.T) {
+	t.Parallel()
 	ext := "d-manual"
 	diff := pkgorg.BuildSyncDiff(
 		[]types.Department{manualDept("dept-manual", "Local"), importedDept("dept-1", "d1", "Eng")},

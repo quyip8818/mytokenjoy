@@ -12,6 +12,7 @@ import (
 )
 
 func TestNewAPIIdempotencyKeyAndParse(t *testing.T) {
+	t.Parallel()
 	key := domainusage.NewAPIIdempotencyKey(42)
 	if key != "newapi:42" {
 		t.Fatalf("unexpected key %q", key)
@@ -23,6 +24,7 @@ func TestNewAPIIdempotencyKeyAndParse(t *testing.T) {
 }
 
 func TestTruncatePreview(t *testing.T) {
+	t.Parallel()
 	short := "hello"
 	if domainusage.TruncatePreview(short) != short {
 		t.Fatal("short preview should be unchanged")
@@ -35,6 +37,7 @@ func TestTruncatePreview(t *testing.T) {
 }
 
 func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 

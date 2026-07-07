@@ -9,6 +9,7 @@
     "lint": "eslint . && tsx --tsconfig tsconfig.app.json scripts/check-conventions.ts",
     "preview": "vite preview",
     "test": "tsc -b tsconfig.test.json && vitest run",
+    "test:nocache": "tsc -b tsconfig.test.json && vitest run --no-cache",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

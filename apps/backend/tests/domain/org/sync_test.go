@@ -17,6 +17,7 @@ import (
 )
 
 func TestSyncThresholdBlocksDeletion(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	importedExternalID := "ou-gone"
@@ -49,6 +50,7 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 }
 
 func TestSyncRenamesBudgetAndRouting(t *testing.T) {
+	t.Parallel()
 	deptName := "Mock Dept"
 	server := testutil.StartMutableFeishuServer(t, &deptName, testutil.DefaultFeishuUsers())
 	env := orgfix.SetupImportedFeishuOrgWithServer(t, server.URL)
@@ -89,6 +91,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 }
 
 func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	externalID := "ou-gone"
@@ -133,6 +136,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 }
 
 func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
@@ -166,6 +170,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 }
 
 func TestSyncConfigRoundTrip(t *testing.T) {
+	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
@@ -189,6 +194,7 @@ func TestSyncConfigRoundTrip(t *testing.T) {
 }
 
 func TestListSyncLogsPagination(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()

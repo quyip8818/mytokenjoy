@@ -8,6 +8,7 @@ import (
 )
 
 func TestToNewAPIUnitsUsesHighestWhitelistPrice(t *testing.T) {
+	t.Parallel()
 	models := []types.ModelInfo{
 		{Name: "cheap", InputPrice: 1, OutputPrice: 1},
 		{Name: "expensive", InputPrice: 10, OutputPrice: 10},
@@ -19,6 +20,7 @@ func TestToNewAPIUnitsUsesHighestWhitelistPrice(t *testing.T) {
 }
 
 func TestCostCNYFromQuota(t *testing.T) {
+	t.Parallel()
 	cny := newapi.CostCNYFromQuota(500000, 2)
 	if cny != 2 {
 		t.Fatalf("expected 2 CNY, got %v", cny)
@@ -26,6 +28,7 @@ func TestCostCNYFromQuota(t *testing.T) {
 }
 
 func TestHighestModelPriceCNY(t *testing.T) {
+	t.Parallel()
 	models := []types.ModelInfo{
 		{Name: "cheap", InputPrice: 1, OutputPrice: 1},
 		{Name: "mid", InputPrice: 5, OutputPrice: 5},
@@ -55,6 +58,7 @@ func TestHighestModelPriceCNY(t *testing.T) {
 }
 
 func TestFromNewAPIUnits(t *testing.T) {
+	t.Parallel()
 	models := []types.ModelInfo{
 		{Name: "gpt-4", InputPrice: 10, OutputPrice: 10},
 	}
@@ -82,6 +86,7 @@ func TestFromNewAPIUnits(t *testing.T) {
 }
 
 func TestToNewAPIUnitsZeroRemaining(t *testing.T) {
+	t.Parallel()
 	units := newapi.ToNewAPIUnits(0, nil, nil)
 	if units != 0 {
 		t.Errorf("expected 0, got %d", units)
@@ -89,6 +94,7 @@ func TestToNewAPIUnitsZeroRemaining(t *testing.T) {
 }
 
 func TestFormatModelLimits(t *testing.T) {
+	t.Parallel()
 	t.Run("empty", func(t *testing.T) {
 		result := newapi.FormatModelLimits(nil)
 		if result != "" {
@@ -112,6 +118,7 @@ func TestFormatModelLimits(t *testing.T) {
 }
 
 func TestModelPriceCNY(t *testing.T) {
+	t.Parallel()
 	models := []types.ModelInfo{
 		{Name: "gpt-4", InputPrice: 10, OutputPrice: 10},
 		{Name: "free", InputPrice: 0, OutputPrice: 0},
@@ -140,6 +147,7 @@ func TestModelPriceCNY(t *testing.T) {
 }
 
 func TestEffectiveWhitelist(t *testing.T) {
+	t.Parallel()
 	t.Run("empty key whitelist returns dept allowed", func(t *testing.T) {
 		result := newapi.EffectiveWhitelist(nil, []string{"gpt-4", "claude"})
 		if len(result) != 2 {
@@ -163,6 +171,7 @@ func TestEffectiveWhitelist(t *testing.T) {
 }
 
 func TestRelayGroupForDepartment(t *testing.T) {
+	t.Parallel()
 	group := newapi.RelayGroupForDepartment("dept-123")
 	if group == "" {
 		t.Error("expected non-empty group")

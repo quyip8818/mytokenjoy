@@ -13,6 +13,7 @@ import (
 )
 
 func TestWriteError_DomainError(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	err := domain.NewDomainError(400, "bad request")
 	httputil.WriteError(w, err)
@@ -28,6 +29,7 @@ func TestWriteError_DomainError(t *testing.T) {
 }
 
 func TestWriteError_DomainErrorWithRetryAfter(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	err := domain.NewDomainErrorWithRetryAfter(429, "too many requests", 30)
 	httputil.WriteError(w, err)
@@ -46,6 +48,7 @@ func TestWriteError_DomainErrorWithRetryAfter(t *testing.T) {
 }
 
 func TestWriteError_GenericError(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteError(w, errors.New("something went wrong"))
 
@@ -60,6 +63,7 @@ func TestWriteError_GenericError(t *testing.T) {
 }
 
 func TestWriteError_Nil(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteError(w, nil)
 	if w.Code != 200 {
@@ -68,6 +72,7 @@ func TestWriteError_Nil(t *testing.T) {
 }
 
 func TestDecodeJSON_Valid(t *testing.T) {
+	t.Parallel()
 	body := strings.NewReader(`{"name":"test"}`)
 	r := httptest.NewRequest(http.MethodPost, "/", body)
 	var dst struct {
@@ -83,6 +88,7 @@ func TestDecodeJSON_Valid(t *testing.T) {
 }
 
 func TestDecodeJSON_Invalid(t *testing.T) {
+	t.Parallel()
 	body := strings.NewReader(`{invalid`)
 	r := httptest.NewRequest(http.MethodPost, "/", body)
 	var dst struct{}
@@ -100,6 +106,7 @@ func TestDecodeJSON_Invalid(t *testing.T) {
 }
 
 func TestWriteJSON_Success(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteJSON(w, 200, map[string]string{"ok": "true"}, nil)
 	if w.Code != 200 {
@@ -108,6 +115,7 @@ func TestWriteJSON_Success(t *testing.T) {
 }
 
 func TestWriteJSON_Error(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteJSON(w, 200, nil, domain.NewDomainError(404, "not found"))
 	if w.Code != 404 {
@@ -116,6 +124,7 @@ func TestWriteJSON_Error(t *testing.T) {
 }
 
 func TestWriteOK(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteOK(w, map[string]int{"count": 5})
 	if w.Code != 200 {
@@ -129,6 +138,7 @@ func TestWriteOK(t *testing.T) {
 }
 
 func TestWriteVoid_Success(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteVoid(w, nil)
 	if w.Code != 200 {
@@ -137,6 +147,7 @@ func TestWriteVoid_Success(t *testing.T) {
 }
 
 func TestWriteVoid_Error(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteVoid(w, domain.NewDomainError(403, "forbidden"))
 	if w.Code != 403 {
@@ -145,6 +156,7 @@ func TestWriteVoid_Error(t *testing.T) {
 }
 
 func TestWriteStatus(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	httputil.WriteStatus(w, 401, "Unauthorized")
 	if w.Code != 401 {

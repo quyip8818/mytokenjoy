@@ -12,6 +12,7 @@ import (
 )
 
 func TestIngestVisibleInAuditCalls(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	callLogQuerier := domainusage.NewCallLogQuerier(st.Ledger())

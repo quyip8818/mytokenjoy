@@ -16,6 +16,7 @@ func newModelsService(t *testing.T) models.Service {
 }
 
 func TestResolveRoutingWithoutRule(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	resolved, err := svc.ResolveRouting(testutil.Ctx(), "missing-dept")
 	if err != nil {
@@ -30,6 +31,7 @@ func TestResolveRoutingWithoutRule(t *testing.T) {
 }
 
 func TestUpdateRoutingRuleNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	_, err := svc.UpdateRoutingRule(testutil.Ctx(), "missing", types.UpdateRoutingRuleInput{
 		AllowedModels: []string{"gpt-4o"},
@@ -40,6 +42,7 @@ func TestUpdateRoutingRuleNotFound(t *testing.T) {
 }
 
 func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	ctx := testutil.Ctx()
 	if _, err := svc.UpdateRoutingRule(ctx, "dept-1", types.UpdateRoutingRuleInput{
@@ -62,6 +65,7 @@ func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
 }
 
 func TestResolveRoutingInherited(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	resolved, err := svc.ResolveRouting(testutil.Ctx(), "dept-3")
 	if err != nil {
@@ -76,6 +80,7 @@ func TestResolveRoutingInherited(t *testing.T) {
 }
 
 func TestCreateModel(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
 		Name: "test-model", InputPrice: 1.0, OutputPrice: 2.0,
@@ -103,6 +108,7 @@ func TestCreateModel(t *testing.T) {
 }
 
 func TestToggleModel(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	models, err := svc.ListModels(testutil.Ctx())
 	if err != nil {
@@ -128,6 +134,7 @@ func TestToggleModel(t *testing.T) {
 }
 
 func TestUpdateModel(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
 		Name: "update-me", InputPrice: 1.0, OutputPrice: 2.0,
@@ -148,6 +155,7 @@ func TestUpdateModel(t *testing.T) {
 }
 
 func TestDeleteModel(t *testing.T) {
+	t.Parallel()
 	svc := newModelsService(t)
 	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
 		Name: "delete-me", InputPrice: 1.0, OutputPrice: 2.0,

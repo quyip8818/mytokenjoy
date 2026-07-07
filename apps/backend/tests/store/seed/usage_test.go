@@ -10,6 +10,7 @@ import (
 )
 
 func TestApplyUsageBucketsSeedsMemoryStore(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	ctx := testutil.Ctx()
@@ -29,6 +30,7 @@ func TestApplyUsageBucketsSeedsMemoryStore(t *testing.T) {
 }
 
 func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	ctx := testutil.Ctx()

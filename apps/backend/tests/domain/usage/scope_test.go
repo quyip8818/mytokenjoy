@@ -10,6 +10,7 @@ import (
 )
 
 func TestValidateWindowDayLimit(t *testing.T) {
+	t.Parallel()
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := start.Add(400 * 24 * time.Hour)
 	err := domainusage.ValidateWindow(start, end, types.UsageGranularityDay)
@@ -19,6 +20,7 @@ func TestValidateWindowDayLimit(t *testing.T) {
 }
 
 func TestValidateGroupBy(t *testing.T) {
+	t.Parallel()
 	if err := domainusage.ValidateGroupBy(types.UsageGroupByModel); err != nil {
 		t.Fatalf("expected valid groupBy: %v", err)
 	}
@@ -28,6 +30,7 @@ func TestValidateGroupBy(t *testing.T) {
 }
 
 func TestValidateSeriesPointLimit(t *testing.T) {
+	t.Parallel()
 	if err := domainusage.ValidateSeriesPointLimit(types.UsageMaxSeriesPoints); err != nil {
 		t.Fatalf("expected limit at max to pass: %v", err)
 	}
@@ -37,6 +40,7 @@ func TestValidateSeriesPointLimit(t *testing.T) {
 }
 
 func TestResolveScopeDepartmentsForbidden(t *testing.T) {
+	t.Parallel()
 	departments := []types.Department{
 		{ID: "dept-1", Name: "Root", Children: []types.Department{
 			{ID: "dept-8", Name: "Admin"},

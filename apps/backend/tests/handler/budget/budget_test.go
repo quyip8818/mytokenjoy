@@ -13,6 +13,7 @@ import (
 )
 
 func TestUpdateNodeHTTPSuccess(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"budget":21000,"reservedPool":1500}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))

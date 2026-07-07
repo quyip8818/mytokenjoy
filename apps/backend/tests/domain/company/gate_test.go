@@ -9,6 +9,7 @@ import (
 )
 
 func TestGateSuspendedCompany(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	gate := domaincompany.NewGate(cfg)
 	ctx := domaincompany.WithContext(testutil.Ctx(), domaincompany.Context{
@@ -20,6 +21,7 @@ func TestGateSuspendedCompany(t *testing.T) {
 }
 
 func TestGateActiveCompany(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	gate := domaincompany.NewGate(cfg)
 	ctx := domaincompany.WithContext(testutil.Ctx(), domaincompany.Context{

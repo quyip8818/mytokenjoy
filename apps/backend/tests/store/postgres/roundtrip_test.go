@@ -14,6 +14,7 @@ import (
 )
 
 func TestOrgNodesBudgetRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	parentID := "dept-roundtrip-parent"
@@ -58,6 +59,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 }
 
 func TestKeysRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	keys := []types.ProviderKey{
@@ -93,6 +95,7 @@ func TestKeysRoundTrip(t *testing.T) {
 }
 
 func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	models := []types.ModelInfo{
@@ -168,6 +171,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 }
 
 func TestWithTxRollback(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	pool := testDBPool(t)
 	ctx := testutil.Ctx()

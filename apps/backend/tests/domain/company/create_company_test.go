@@ -13,6 +13,7 @@ import (
 )
 
 func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{
 		CreateUserFn: func(context.Context, newapi.CreateUserRequest) (newapi.User, error) {
@@ -47,6 +48,7 @@ func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
 }
 
 func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{
 		User: newapi.User{ID: 501, Quota: 0},

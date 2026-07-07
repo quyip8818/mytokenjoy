@@ -8,6 +8,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		input   string
@@ -37,6 +38,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseOrNow(t *testing.T) {
+	t.Parallel()
 	t.Run("empty returns now", func(t *testing.T) {
 		before := time.Now().UTC()
 		got, err := timeutil.ParseOrNow("")
@@ -69,6 +71,7 @@ func TestParseOrNow(t *testing.T) {
 }
 
 func TestFormatSyncLog(t *testing.T) {
+	t.Parallel()
 	input := time.Date(2024, 3, 15, 14, 30, 45, 0, time.UTC)
 	got := timeutil.FormatSyncLog(input)
 	want := "2024-03-15 14:30"
@@ -78,6 +81,7 @@ func TestFormatSyncLog(t *testing.T) {
 }
 
 func TestFormatDateOnly(t *testing.T) {
+	t.Parallel()
 	input := time.Date(2024, 12, 25, 23, 59, 59, 0, time.UTC)
 	got := timeutil.FormatDateOnly(input)
 	want := "2024-12-25"

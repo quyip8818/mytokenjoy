@@ -9,6 +9,7 @@ import (
 )
 
 func TestAppendSyncLogPersists(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	entry := types.SyncLog{
@@ -35,6 +36,7 @@ func TestAppendSyncLogPersists(t *testing.T) {
 }
 
 func TestUsageBucketQuerySeriesHour(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	bucket := time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC)

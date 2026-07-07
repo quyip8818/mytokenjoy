@@ -16,6 +16,7 @@ import (
 )
 
 func TestWorkerProcessesRebalanceQueue(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
@@ -44,6 +45,7 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 }
 
 func TestWorkerProcessesOverrunQueue(t *testing.T) {
+	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()

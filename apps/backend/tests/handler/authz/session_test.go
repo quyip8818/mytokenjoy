@@ -13,6 +13,7 @@ import (
 )
 
 func TestSessionCookieReturnsMember(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	req.Header.Set("Cookie", testutil.SessionCookie(t, "m-pure"))
@@ -34,6 +35,7 @@ func TestSessionCookieReturnsMember(t *testing.T) {
 }
 
 func TestSessionInvalidTokenReturns401(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 	req.Header.Set("Cookie", "tokenjoy_session_member=not-a-valid-jwt")

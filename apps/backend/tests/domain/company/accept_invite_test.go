@@ -17,6 +17,7 @@ import (
 )
 
 func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testutil.NewTestApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)
@@ -54,6 +55,7 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsShortPassword(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 	ctx := context.Background()
@@ -76,6 +78,7 @@ func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 	ctx := context.Background()
@@ -98,6 +101,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 	ctx := context.Background()
@@ -125,6 +129,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsInvalidToken(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 

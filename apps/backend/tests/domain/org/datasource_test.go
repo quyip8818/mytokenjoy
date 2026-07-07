@@ -12,6 +12,7 @@ import (
 )
 
 func TestTestDataSourceInvalidCredential422(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuAuthErrorServer(t)
 	cfg.FeishuBaseURL = server.URL
@@ -36,6 +37,7 @@ func TestTestDataSourceInvalidCredential422(t *testing.T) {
 }
 
 func TestUpdateDataSourcePersistsCredential(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL
@@ -65,6 +67,7 @@ func TestUpdateDataSourcePersistsCredential(t *testing.T) {
 }
 
 func TestSearchDataSourceUsesProvider(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL
@@ -82,6 +85,7 @@ func TestSearchDataSourceUsesProvider(t *testing.T) {
 }
 
 func TestUnsupportedPlatformReturns422(t *testing.T) {
+	t.Parallel()
 	_, _, svc := orgfix.NewServiceFromStore(t)
 	_, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
 		Platform: types.PlatformDingtalk,
@@ -99,6 +103,7 @@ func TestUnsupportedPlatformReturns422(t *testing.T) {
 }
 
 func TestUpdateDataSourceSwitchPlatformRequiresForce(t *testing.T) {
+	t.Parallel()
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL

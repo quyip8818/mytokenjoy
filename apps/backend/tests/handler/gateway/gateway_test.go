@@ -18,6 +18,7 @@ import (
 )
 
 func TestGatewayRejectsInsufficientWallet(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		WalletQuota: 0,
 		Budget:      1000,
@@ -30,6 +31,7 @@ func TestGatewayRejectsInsufficientWallet(t *testing.T) {
 }
 
 func TestGatewayRejectsZeroBudget(t *testing.T) {
+	t.Parallel()
 	units := newapi.ToNewAPIUnits(100, nil, nil)
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		WalletQuota: units,
@@ -43,6 +45,7 @@ func TestGatewayRejectsZeroBudget(t *testing.T) {
 }
 
 func TestGatewayAllowsWhenPrecheckPasses(t *testing.T) {
+	t.Parallel()
 	units := newapi.ToNewAPIUnits(100, nil, nil)
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		WalletQuota: units,
@@ -56,6 +59,7 @@ func TestGatewayAllowsWhenPrecheckPasses(t *testing.T) {
 }
 
 func TestGatewayRejectsExhaustedDepartmentBudget(t *testing.T) {
+	t.Parallel()
 	units := newapi.ToNewAPIUnits(100, nil, nil)
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		WalletQuota: units,
@@ -70,6 +74,7 @@ func TestGatewayRejectsExhaustedDepartmentBudget(t *testing.T) {
 }
 
 func TestGatewayProxiesFullV1Path(t *testing.T) {
+	t.Parallel()
 	var upstreamPath atomic.Value
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upstreamPath.Store(r.URL.Path)
@@ -95,6 +100,7 @@ func TestGatewayProxiesFullV1Path(t *testing.T) {
 }
 
 func TestGatewayRejectsInvalidAPIKey(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
 		Budget:      1000,
@@ -110,6 +116,7 @@ func TestGatewayRejectsInvalidAPIKey(t *testing.T) {
 }
 
 func TestGatewayMountedOnRouter(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)

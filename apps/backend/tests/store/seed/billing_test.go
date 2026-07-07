@@ -8,6 +8,7 @@ import (
 )
 
 func TestApplyRechargeOrdersSeedsMemoryStore(t *testing.T) {
+	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.CtxForCompany(seed.DefaultCompanyID)
 	if err := seed.ApplyRechargeOrders(ctx, st); err != nil {

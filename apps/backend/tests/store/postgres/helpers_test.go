@@ -16,6 +16,12 @@ func testPostgresStore(t *testing.T) store.Store {
 	return st
 }
 
+func newIngestStore(t *testing.T) store.Store {
+	t.Helper()
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
+	return st
+}
+
 func reopenPostgresStore(t *testing.T, dbURL string) store.Store {
 	t.Helper()
 	schemaURL := testutil.TestSchemaURL(t)

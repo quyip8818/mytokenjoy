@@ -19,6 +19,7 @@ import (
 )
 
 func TestOnboardingPlatformCreateAcceptInviteSession(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -48,6 +49,7 @@ func TestOnboardingPlatformCreateAcceptInviteSession(t *testing.T) {
 }
 
 func TestOnboardingRejectSecondAcceptInvite(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -68,6 +70,7 @@ func TestOnboardingRejectSecondAcceptInvite(t *testing.T) {
 }
 
 func TestAcceptInviteHTTPRejectsShortPassword(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
@@ -86,6 +89,7 @@ func TestAcceptInviteHTTPRejectsShortPassword(t *testing.T) {
 }
 
 func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
+	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)

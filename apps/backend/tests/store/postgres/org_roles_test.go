@@ -9,6 +9,7 @@ import (
 )
 
 func TestRoleMembersRoundTrip(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
@@ -81,6 +82,7 @@ func TestRoleMembersRoundTrip(t *testing.T) {
 }
 
 func TestMembersPersistByDepartment(t *testing.T) {
+	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 

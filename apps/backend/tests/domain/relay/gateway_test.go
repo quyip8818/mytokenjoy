@@ -9,6 +9,7 @@ import (
 )
 
 func TestGatewayRejectsNoAuth(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{Budget: 1000})
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
 	w := httptest.NewRecorder()
@@ -19,6 +20,7 @@ func TestGatewayRejectsNoAuth(t *testing.T) {
 }
 
 func TestGatewayRejectsInvalidToken(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{Budget: 1000})
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
 	req.Header.Set("Authorization", "Bearer sk-invalid-token")
@@ -30,6 +32,7 @@ func TestGatewayRejectsInvalidToken(t *testing.T) {
 }
 
 func TestGatewayRejectsNonBearerAuth(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{Budget: 1000})
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
 	req.Header.Set("Authorization", "Basic abc123")
@@ -41,6 +44,7 @@ func TestGatewayRejectsNonBearerAuth(t *testing.T) {
 }
 
 func TestGatewayProxiesValidRequest(t *testing.T) {
+	t.Parallel()
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"id":"chatcmpl-123"}`))
@@ -62,6 +66,7 @@ func TestGatewayProxiesValidRequest(t *testing.T) {
 }
 
 func TestGatewayRejectsSuspendedCompany(t *testing.T) {
+	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		Budget:        1000,
 		CompanyStatus: "suspended",

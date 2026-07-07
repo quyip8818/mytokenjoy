@@ -197,7 +197,7 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 ```bash
 cd apps/backend
 pnpm start:postgres   # 必须
-make test-unit        # go test -tags=testhook ./tests/...
+make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
 ```
 
 | 层       | 目录                   | CI                           |
@@ -213,6 +213,7 @@ make test-unit        # go test -tags=testhook ./tests/...
 | 子包              | 职责                                                              |
 | ----------------- | ----------------------------------------------------------------- |
 | `testutil/`（根） | 通用：`config`、`ctx`、`NewTestStore`、`assert`、`app`、`session` |
+| `testutil/budget` | Budget overrun fixture：`NewOverrunService`、`SeedDeptOverrun`    |
 | `testutil/org`    | Org Service、Feishu fixture、预算树持久化                         |
 | `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                            |
 | `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL           |

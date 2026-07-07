@@ -15,6 +15,7 @@ import (
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
@@ -102,6 +103,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 }
 
 func TestIngestByLogID(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
@@ -117,6 +119,7 @@ func TestIngestByLogID(t *testing.T) {
 }
 
 func TestIngestWritesUsageBucket(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
@@ -137,6 +140,7 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 }
 
 func TestIngestRaw(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
@@ -152,6 +156,7 @@ func TestIngestRaw(t *testing.T) {
 }
 
 func TestIngestByLogIDNotFound(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 
@@ -165,6 +170,7 @@ func TestIngestByLogIDNotFound(t *testing.T) {
 }
 
 func TestIngestByLogIDMappingMissing(t *testing.T) {
+	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(5005, 42))

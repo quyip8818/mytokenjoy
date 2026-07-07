@@ -11,6 +11,7 @@ import (
 )
 
 func TestResolveSessionTokenCookie(t *testing.T) {
+	t.Parallel()
 	token := testutil.IssueSessionJWT(t, seed.DefaultCompanyID, "cookie-id")
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Cookie", httpx.SessionCookie+"="+token)
@@ -20,6 +21,7 @@ func TestResolveSessionTokenCookie(t *testing.T) {
 }
 
 func TestResolveSessionTokenBearer(t *testing.T) {
+	t.Parallel()
 	token := testutil.IssueSessionJWT(t, seed.DefaultCompanyID, "token-id")
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -29,6 +31,7 @@ func TestResolveSessionTokenBearer(t *testing.T) {
 }
 
 func TestResolveSessionTokenEmptyWithoutCredentials(t *testing.T) {
+	t.Parallel()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	if got := httpx.ResolveSessionToken(req); got != "" {
 		t.Fatalf("expected empty, got %q", got)

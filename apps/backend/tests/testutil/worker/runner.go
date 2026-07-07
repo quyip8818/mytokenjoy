@@ -34,13 +34,12 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 	opts := []testutil.ConfigOption{
 		testutil.WithNewAPIBaseURL("http://relay.test"),
 		testutil.WithNewAPIAdminToken("token"),
-		testutil.WithNewAPIWebhookSecret("secret"),
 	}
 	if newAPIEnabled {
 		opts = append(opts, testutil.WithNewAPIEnabled(true))
 	}
 	if ingestEnabled {
-		opts = append(opts, testutil.WithIngestEnabled(true))
+		opts = append(opts, testutil.WithIngestEnabled(true), testutil.WithNewAPIWebhookSecret("secret"))
 	}
 	cfg, st := testutil.NewTestStore(t, opts...)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))

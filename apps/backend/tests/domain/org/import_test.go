@@ -14,6 +14,7 @@ import (
 )
 
 func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	before, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
@@ -55,6 +56,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 }
 
 func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
@@ -84,6 +86,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 }
 
 func TestImportSecondRunIdempotent(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	first := orgfix.ImportFeishuOrg(t, env)
@@ -106,6 +109,7 @@ func TestImportSecondRunIdempotent(t *testing.T) {
 }
 
 func TestImportProvisionsBudgetAndRouting(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	orgfix.ImportFeishuOrg(t, env)
@@ -133,6 +137,7 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 }
 
 func TestRetryImportFiltersByFailureIDs(t *testing.T) {
+	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	if err := env.Store.Org().SetImportFailures(ctx, []types.ImportFailure{

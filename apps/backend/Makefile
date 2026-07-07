@@ -1,4 +1,4 @@
-.PHONY: start test test-unit build lint format scaffold-domain
+.PHONY: start test test-unit test-unit-nocache build lint format scaffold-domain
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
@@ -11,7 +11,11 @@ test: test-unit
 
 test-unit:
 	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
-	go test -tags=testhook $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+	go test -tags=testhook -parallel 4 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+
+test-unit-nocache:
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
+	go test -tags=testhook -parallel 4 -count=1 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
 
 build:
 	go build -o bin/server ./cmd/server

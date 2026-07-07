@@ -15,6 +15,7 @@ import (
 )
 
 func TestDepartmentUpdateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"name":"Updated Team"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/org/departments/dept-5", bytes.NewReader(body))
@@ -28,6 +29,7 @@ func TestDepartmentUpdateHTTP(t *testing.T) {
 }
 
 func TestDepartmentDeleteLeafHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	createBody := []byte(`{"name":"Temp Leaf","parentId":"dept-2"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/api/org/departments", bytes.NewReader(createBody))
@@ -54,6 +56,7 @@ func TestDepartmentDeleteLeafHTTP(t *testing.T) {
 }
 
 func TestMembersTransferHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"memberIds":["` + seed.IDMember1 + `"],"departmentId":"dept-4"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/transfer", bytes.NewReader(body))
@@ -67,6 +70,7 @@ func TestMembersTransferHTTP(t *testing.T) {
 }
 
 func TestDataSourceUpdateSuccessHTTP(t *testing.T) {
+	t.Parallel()
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		server := testutil.StartFeishuMockServer(t)
 		cfg.FeishuBaseURL = server.URL
@@ -83,6 +87,7 @@ func TestDataSourceUpdateSuccessHTTP(t *testing.T) {
 }
 
 func TestDataSourceImportHTTP(t *testing.T) {
+	t.Parallel()
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		server := testutil.StartFeishuMockServer(t)
 		cfg.FeishuBaseURL = server.URL
@@ -98,6 +103,7 @@ func TestDataSourceImportHTTP(t *testing.T) {
 }
 
 func TestSyncTriggerWritesLogHTTP(t *testing.T) {
+	t.Parallel()
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		server := testutil.StartFeishuMockServer(t)
 		cfg.FeishuBaseURL = server.URL
@@ -126,6 +132,7 @@ func TestSyncTriggerWritesLogHTTP(t *testing.T) {
 }
 
 func TestSyncConfigUpdateHTTP(t *testing.T) {
+	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"enabled":true,"startTime":"01:00","frequencyHours":8,"deleteMemberThreshold":5,"deleteDepartmentThreshold":3}`)
 	putReq := httptest.NewRequest(http.MethodPut, "/api/org/sync/config", bytes.NewReader(body))

@@ -13,6 +13,7 @@ import (
 )
 
 func TestUpdateNodeSuccess(t *testing.T) {
+	t.Parallel()
 	svc, st := newBudgetService(t)
 	reserved := 1500.0
 	updated, err := svc.UpdateNode(testutil.Ctx(), seed.IDDept3, 21000, &reserved)
@@ -33,6 +34,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 }
 
 func TestUpdateNodeOversell(t *testing.T) {
+	t.Parallel()
 	svc, _ := newBudgetService(t)
 	reserved := 1500.0
 	_, err := svc.UpdateNode(testutil.Ctx(), seed.IDDept3, 90000, &reserved)
@@ -40,12 +42,14 @@ func TestUpdateNodeOversell(t *testing.T) {
 }
 
 func TestUpdateMemberQuotaBelowAllocated(t *testing.T) {
+	t.Parallel()
 	svc, _ := newBudgetService(t)
 	_, err := svc.UpdateMemberQuota(testutil.Ctx(), seed.IDMember1, 1000)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
 func TestUpdateMemberQuotaSuccess(t *testing.T) {
+	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	members, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
@@ -87,12 +91,14 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 }
 
 func TestListMemberQuotasUnknownDept(t *testing.T) {
+	t.Parallel()
 	svc, _ := newBudgetService(t)
 	_, err := svc.ListMemberQuotas(testutil.Ctx(), "dept-missing")
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestCreateGroup(t *testing.T) {
+	t.Parallel()
 	svc, st := newBudgetService(t)
 	created, err := svc.CreateGroup(testutil.Ctx(), types.BudgetGroup{
 		Name: "Test Group", Budget: 5000,
@@ -120,6 +126,7 @@ func TestCreateGroup(t *testing.T) {
 }
 
 func TestDeleteGroup(t *testing.T) {
+	t.Parallel()
 	svc, st := newBudgetService(t)
 	if err := svc.DeleteGroup(testutil.Ctx(), seed.IDBudgetGroup4); err != nil {
 		t.Fatal(err)
@@ -136,6 +143,7 @@ func TestDeleteGroup(t *testing.T) {
 }
 
 func TestDeptRemainingAllocatableBudget(t *testing.T) {
+	t.Parallel()
 	_, st := newBudgetService(t)
 	ctx := testutil.Ctx()
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
