@@ -15,7 +15,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [权限管理.md](./权限管理.md)                           | 后端 / 前端 / 架构 | **目标架构实现文档**（破坏性替换、WP-1–6、验收 Gate） |
 | [Frontend.md](./Frontend.md)                           | 前端 / 前后端      | 前端现状与 **API 契约**（82+11 端点；17 业务页）      |
 | [Roadmap.md](./Roadmap.md)                             | 全员               | 未实现能力与计划优化                                  |
-| [下一步工作清单.md](./下一步工作清单.md)               | 架构 / 前后端      | 产品模型 P0–P2 验收发布、UI 对齐收尾、Phase 3         |
+| [下一步工作清单.md](./下一步工作清单.md)               | 架构 / 前后端      | 产品模型与 UI 演进架构、发布门禁、Phase 3 路线        |
 
 ## 权威来源优先级
 

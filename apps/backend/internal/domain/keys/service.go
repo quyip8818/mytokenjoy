@@ -16,8 +16,8 @@ type Service interface {
 	ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error)
 	CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
 	CreatePlatformProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
-	ToggleProviderKey(ctx context.Context, id string) error
-	RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error)
+	ToggleProviderKey(ctx context.Context, id string, enabled bool) error
+	RotateProviderKey(ctx context.Context, id string, newKey string) (types.ProviderKey, error)
 	DeleteProviderKey(ctx context.Context, id string) error
 	ListPlatformKeys(ctx context.Context, filter types.PlatformKeyListFilter) (types.PageResult[types.PlatformKey], error)
 	QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error)
@@ -113,20 +113,19 @@ func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.Appr
 			break
 		}
 	}
-	requested := 0.0
-	reservedPool := 0.0
-	if approval != nil {
-		requested = approval.RequestedQuota
-		tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
-		if err != nil {
-			return types.ApprovalQuotaCheck{}, err
-		}
-		members, err := s.store.Org().Members(ctx)
-		if err != nil {
-			return types.ApprovalQuotaCheck{}, err
-		}
-		reservedPool = budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
+	if approval == nil {
+		return types.ApprovalQuotaCheck{}, domain.NotFound("Not found")
 	}
+	requested := approval.RequestedQuota
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	if err != nil {
+		return types.ApprovalQuotaCheck{}, err
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return types.ApprovalQuotaCheck{}, err
+	}
+	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
 	return types.ApprovalQuotaCheck{
 		Sufficient: requested <= reservedPool, ReservedPool: reservedPool, Requested: requested,
 	}, nil

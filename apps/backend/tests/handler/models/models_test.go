@@ -34,7 +34,7 @@ func TestRoutingUpdateHTTP(t *testing.T) {
 
 func TestModelCreateHTTP(t *testing.T) {
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"name":"custom-model","displayName":"Custom","baseUrl":"http://llm.test","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
+	body := []byte(`{"name":"custom-model","displayName":"Custom","baseUrl":"http://llm.test","inputPrice":1,"outputPrice":2}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -85,7 +85,7 @@ func TestModelListHTTP(t *testing.T) {
 
 func TestModelUpdateHTTP(t *testing.T) {
 	router := testhttp.NewRouter(t)
-	createBody := []byte(`{"name":"edit-model","displayName":"Edit","baseUrl":"http://llm.old","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
+	createBody := []byte(`{"name":"edit-model","displayName":"Edit","baseUrl":"http://llm.old","inputPrice":1,"outputPrice":2}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Cookie", testhttp.AdminCookie(t))

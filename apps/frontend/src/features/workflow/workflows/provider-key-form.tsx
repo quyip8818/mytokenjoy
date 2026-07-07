@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWorkflow } from '../use-workflow'
+import { workflowErrorMessage } from '../lib/error-message'
 import { PROVIDER_LABELS } from '@/lib/provider-labels'
 
 export function ProviderKeyFormWorkflow({
@@ -37,8 +38,8 @@ export function ProviderKeyFormWorkflow({
       toast.success('供应商 Key 已添加')
       onSuccess?.()
       closeAll()
-    } catch {
-      toast.error('添加失败')
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '添加失败'))
     } finally {
       setSubmitting(false)
     }

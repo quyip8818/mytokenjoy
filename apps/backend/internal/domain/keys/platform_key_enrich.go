@@ -42,13 +42,6 @@ func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.
 		if group, ok := lookups.groupByID[*key.BudgetGroupID]; ok {
 			name := group.Name
 			enriched.BudgetGroupName = &name
-		}
-		switch {
-		case enriched.BudgetGroupName != nil && *enriched.BudgetGroupName != "":
-			name := *enriched.BudgetGroupName
-			enriched.ProjectName = &name
-		case key.AppName != nil && *key.AppName != "":
-			name := *key.AppName
 			enriched.ProjectName = &name
 		}
 	} else {

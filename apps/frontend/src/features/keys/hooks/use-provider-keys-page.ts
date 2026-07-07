@@ -1,12 +1,30 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { ProviderKey } from '@/api/types'
-import { useKeysListPage } from './use-keys-list-page'
+import { queryKeys, useInjectedQuery } from '@/features/query'
+import { useRowHighlight } from '@/hooks/use-row-highlight'
+import { useWorkflowRefresh } from '@/features/workflow'
 
 export function useProviderKeysPage(injectedApis?: AppApis) {
-  const { apis, keys, loading, error, refresh, flashRow, rowClass, openWithRefresh } =
-    useKeysListPage(injectedApis, 'provider')
+  const apis = useInjectedApis(injectedApis)
+  const { flashRow, rowClass } = useRowHighlight()
+  const {
+    data: keys = [],
+    loading,
+    error,
+    refresh,
+  } = useInjectedQuery({
+    injectedApis: apis,
+    queryKey: queryKeys.keys.provider(),
+    queryFn: (a) => a.providerKeyApi.list(),
+  })
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.keys.all],
+    flashRow,
+  })
 
   const handleToggle = useCallback(
     async (key: ProviderKey) => {

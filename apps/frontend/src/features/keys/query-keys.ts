@@ -1,6 +1,5 @@
 export const keysKeys = {
   all: ['keys'] as const,
-  platform: () => [...keysKeys.all, 'platform'] as const,
   platformList: (departmentId?: string, type?: string) =>
     [...keysKeys.all, 'platform', departmentId ?? 'all', type ?? 'all'] as const,
   provider: () => [...keysKeys.all, 'provider'] as const,

@@ -51,9 +51,7 @@ export function PlatformKeyTable({ keys, type, rowClass, onRevoke }: PlatformKey
               className={`border-border-subtle even:bg-muted/40 hover:bg-muted/50 ${rowClass(key.id)}`}
             >
               <TableCell className="text-sm font-medium">
-                {type === 'member'
-                  ? (key.memberName ?? '—')
-                  : (key.projectName ?? key.budgetGroupName ?? key.appName ?? '—')}
+                {type === 'member' ? (key.memberName ?? '—') : (key.projectName ?? '—')}
               </TableCell>
               <TableCell className="text-sm">{key.name}</TableCell>
               <TableCell className="text-sm text-muted-foreground">

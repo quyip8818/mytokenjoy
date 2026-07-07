@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWorkflow } from '../use-workflow'
+import { workflowErrorMessage } from '../lib/error-message'
 
 const VISIBILITY_OPTIONS: { value: ModelVisibility; label: string }[] = [
   { value: 'all', label: '全员可见' },
@@ -51,8 +52,8 @@ export function ModelEditWorkflow({
       toast.success('模型信息已更新')
       onSuccess?.(model.id)
       closeAll()
-    } catch {
-      toast.error('更新失败')
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '更新失败'))
     } finally {
       setSubmitting(false)
     }

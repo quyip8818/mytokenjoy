@@ -8,6 +8,4 @@ const DefaultModelPriceCNY = 1
 
 const QuotaPerUnit = 500000
 
-const DemoKeyPrefix = "tj-"
-
 const RelayGroupPrefix = "dept-"

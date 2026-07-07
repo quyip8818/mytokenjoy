@@ -15,7 +15,7 @@ func insertModels(ctx context.Context, exec tableWriter, tid int64, models []typ
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, model.ID, tid, model.Provider, model.Name, model.DisplayName,
-			defaultModelType(model.Type), model.Description, defaultVisibility(model.Visibility), model.Endpoint,
+			model.Type, model.Description, model.Visibility, model.Endpoint,
 			model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled); err != nil {
 			return err
 		}
@@ -29,18 +29,4 @@ func insertModels(ctx context.Context, exec tableWriter, tid int64, models []typ
 		}
 	}
 	return nil
-}
-
-func defaultModelType(modelType string) string {
-	if modelType == "" {
-		return "builtin"
-	}
-	return modelType
-}
-
-func defaultVisibility(visibility string) string {
-	if visibility == "" {
-		return "all"
-	}
-	return visibility
 }

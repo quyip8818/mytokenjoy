@@ -7,6 +7,7 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
+import { workflowErrorMessage } from '../lib/error-message'
 
 export function ApprovalReviewWorkflow({
   entry,
@@ -38,16 +39,8 @@ export function ApprovalReviewWorkflow({
       toast.success('已通过')
       onSuccess?.()
       closeAll()
-    } catch {
-      const check = await apis.approvalApi.checkQuota(approval.id)
-      if (!check.sufficient) {
-        onPush('quota-check', {
-          reservedPool: check.reservedPool,
-          requested: check.requested,
-        })
-      } else {
-        toast.error('审批失败')
-      }
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '审批失败'))
     } finally {
       setSubmitting(false)
     }

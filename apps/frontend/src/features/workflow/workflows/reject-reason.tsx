@@ -7,6 +7,7 @@ import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useWorkflow } from '../use-workflow'
+import { workflowErrorMessage } from '../lib/error-message'
 
 export function RejectReasonWorkflow({
   entry,
@@ -32,8 +33,8 @@ export function RejectReasonWorkflow({
       toast.success('已拒绝')
       onSuccess?.()
       closeAll()
-    } catch {
-      toast.error('操作失败')
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '操作失败'))
     } finally {
       setSubmitting(false)
     }

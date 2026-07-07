@@ -76,10 +76,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     if (!search.trim()) return keys
     const lower = search.toLowerCase()
     return keys.filter((key) => {
-      const owner =
-        activeTab === 'member'
-          ? key.memberName
-          : (key.projectName ?? key.budgetGroupName ?? key.appName)
+      const owner = activeTab === 'member' ? key.memberName : key.projectName
       return (
         key.name.toLowerCase().includes(lower) ||
         (owner?.toLowerCase().includes(lower) ?? false) ||
@@ -130,7 +127,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     toggleExpand,
     keys: filteredKeys,
     loading: treeLoading || keysLoading,
-    error: treeError ?? keysError,
+    error: treeError || keysError,
     refresh,
     rowClass,
     handleRevoke,

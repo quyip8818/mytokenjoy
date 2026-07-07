@@ -48,10 +48,6 @@ func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 		memberName := *key.MemberName
 		cloned.MemberName = &memberName
 	}
-	if key.AppName != nil {
-		appName := *key.AppName
-		cloned.AppName = &appName
-	}
 	if key.BudgetGroupID != nil {
 		budgetGroupID := *key.BudgetGroupID
 		cloned.BudgetGroupID = &budgetGroupID

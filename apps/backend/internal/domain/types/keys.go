@@ -22,7 +22,6 @@ type PlatformKey struct {
 	Type            string   `json:"type"`
 	MemberID        *string  `json:"memberId"`
 	MemberName      *string  `json:"memberName"`
-	AppName         *string  `json:"appName"`
 	ProjectName     *string  `json:"projectName"`
 	DepartmentID    string   `json:"departmentId"`
 	DepartmentName  string   `json:"departmentName"`
@@ -90,7 +89,6 @@ type CreatePlatformKeyInput struct {
 	Name           string   `json:"name"`
 	MemberID       *string  `json:"memberId"`
 	BudgetGroupID  *string  `json:"budgetGroupId"`
-	AppName        *string  `json:"appName"`
 	Quota          float64  `json:"quota"`
 	ModelWhitelist []string `json:"modelWhitelist"`
 }

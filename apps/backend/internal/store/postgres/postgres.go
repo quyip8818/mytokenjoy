@@ -43,10 +43,6 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		pool.Close()
 		return nil, err
 	}
-	if err := ensureDemoMemberPasswords(ctx, pool, cfg); err != nil {
-		pool.Close()
-		return nil, err
-	}
 
 	s := &Store{pool: pool, logs: store.NoopLogStore()}
 	if cfg.IngestEnabled() {

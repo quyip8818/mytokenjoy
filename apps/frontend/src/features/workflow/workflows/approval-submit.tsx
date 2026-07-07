@@ -52,7 +52,10 @@ export function ApprovalSubmitWorkflow({
   const validateModels = async (): Promise<boolean> => {
     if (type !== 'key' || models.length === 0) return true
     const allowed = await resolveWhitelist()
-    if (!allowed?.length) return true
+    if (!allowed?.length) {
+      toast.error('无法加载可用模型白名单')
+      return false
+    }
     const invalid = models.filter((m) => !allowed.includes(m))
     if (invalid.length > 0) {
       toast.error(MODEL_NOT_IN_DEPT_MESSAGE)

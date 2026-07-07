@@ -80,7 +80,7 @@ func (h *Handler) ProviderToggle(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	err := h.service.ToggleProviderKey(r.Context(), chi.URLParam(r, "id"))
+	err := h.service.ToggleProviderKey(r.Context(), chi.URLParam(r, "id"), body.Enabled)
 	httputil.WriteVoid(w, err)
 }
 
@@ -90,7 +90,7 @@ func (h *Handler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	key, err := h.service.RotateProviderKey(r.Context(), chi.URLParam(r, "id"))
+	key, err := h.service.RotateProviderKey(r.Context(), chi.URLParam(r, "id"), body.NewKey)
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 

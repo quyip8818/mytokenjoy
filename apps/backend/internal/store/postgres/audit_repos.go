@@ -48,7 +48,7 @@ func (r *pgAuditRepo) SetSettings(ctx context.Context, settings types.AuditSetti
 func (r *pgAuditRepo) OperationLogs(ctx context.Context) ([]types.OperationLog, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, action, operator, operator_id, COALESCE(actor_type, 'member'), target, detail, ip, created_at
+		SELECT id, action, operator, operator_id, actor_type, target, detail, ip, created_at
 		FROM operation_logs
 		WHERE company_id = $1
 		ORDER BY created_at DESC
@@ -90,7 +90,7 @@ func (r *pgAuditRepo) ListOperationsPage(ctx context.Context, filter store.Audit
 	offset := (page - 1) * pageSize
 	listArgs := append(append([]any{}, args...), pageSize, offset)
 	listQuery := fmt.Sprintf(`
-		SELECT id, action, operator, operator_id, COALESCE(actor_type, 'member'), target, detail, ip, created_at
+		SELECT id, action, operator, operator_id, actor_type, target, detail, ip, created_at
 		FROM operation_logs
 		WHERE %s
 		ORDER BY created_at DESC

@@ -21,7 +21,6 @@ export interface PlatformKey {
   type: 'member' | 'project'
   memberId: string | null
   memberName: string | null
-  appName: string | null
   projectName: string | null
   departmentId: string
   departmentName: string

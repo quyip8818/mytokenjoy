@@ -132,7 +132,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT m.id, m.name, m.phone, m.email, m.department_id, m.department_name, m.status, m.source, m.external_id, m.personal_quota,
-		       COALESCE(c.authz_revision, 0)
+		       c.authz_revision
 		FROM members m
 		JOIN companies c ON c.id = m.company_id
 		WHERE m.company_id = $1 AND m.id = $2

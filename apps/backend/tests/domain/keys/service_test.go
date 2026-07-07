@@ -1,13 +1,11 @@
 package keys_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -46,7 +44,7 @@ func TestApprovalQuotaCheckSufficient(t *testing.T) {
 }
 
 func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
-	svc, st := newKeysService(t)
+	svc, st, _ := newKeysServiceWithRelay(t)
 	ctx := testutil.Ctx()
 	keysBefore, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -121,8 +119,18 @@ func TestRejectApproval(t *testing.T) {
 	}
 }
 
-func TestCreatePlatformKeySuccess(t *testing.T) {
+func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
 	svc, _ := newKeysService(t)
+	memberID := seed.IDMember1
+	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
+		Name: "test-key", MemberID: &memberID, Quota: 1000,
+		ModelWhitelist: []string{"gpt-4o"},
+	})
+	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
+}
+
+func TestCreatePlatformKeySuccess(t *testing.T) {
+	svc, _, _ := newKeysServiceWithRelay(t)
 	memberID := seed.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
@@ -131,8 +139,8 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.FullKey == nil || !strings.Contains(*created.FullKey, common.DemoKeyPrefix) {
-		t.Fatalf("expected demo full key with prefix %q, got %+v", common.DemoKeyPrefix, created.FullKey)
+	if created.FullKey == nil || *created.FullKey != "sk-test-key" {
+		t.Fatalf("expected relay full key, got %+v", created.FullKey)
 	}
 }
 
@@ -186,7 +194,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 }
 
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
-	svc, st := newKeysService(t)
+	svc, st, _ := newKeysServiceWithRelay(t)
 	memberID := seed.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", MemberID: &memberID, Quota: 500,
@@ -212,6 +220,18 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 		t.Fatalf("expected quota release after delete, before=%v after=%v", before, after)
 	}
 	_ = st
+}
+
+func TestRejectApprovalNotFound(t *testing.T) {
+	svc, _ := newKeysService(t)
+	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", seed.IDMemberAdmin, nil)
+	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
+}
+
+func TestApprovalQuotaCheckNotFound(t *testing.T) {
+	svc, _ := newKeysService(t)
+	_, err := svc.ApprovalQuotaCheck(testutil.Ctx(), "missing-approval")
+	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestRevokePlatformKey(t *testing.T) {

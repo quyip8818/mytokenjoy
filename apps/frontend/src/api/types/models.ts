@@ -23,7 +23,6 @@ export interface CreateModelInput {
   name: string
   displayName: string
   baseUrl: string
-  apiKey: string
   inputPrice: number
   outputPrice: number
 }

@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -43,33 +42,8 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 }
 
 func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error) {
-	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
-		return types.PlatformKey{}, err
-	}
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
-	for i := range platformKeys {
-		if platformKeys[i].ID == id {
-			fullKey := fmt.Sprintf("tj-rot-%d-demo-secret", time.Now().UnixMilli())
-			platformKeys[i].FullKey = &fullKey
-			prefix := fullKey
-			if len(prefix) > 12 {
-				prefix = prefix[:12] + "..."
-			}
-			platformKeys[i].KeyPrefix = prefix
-			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
-				return types.PlatformKey{}, err
-			}
-			enriched, err := s.enrichPlatformKeyResponse(ctx, platformKeys[i])
-			if err != nil {
-				return types.PlatformKey{}, err
-			}
-			return enriched, nil
-		}
-	}
-	return types.PlatformKey{}, domain.NotFound("Not found")
+	_ = id
+	return types.PlatformKey{}, domain.Unimplemented("Platform key rotation is not available")
 }
 
 func (s *service) RevokePlatformKey(ctx context.Context, id string) error {

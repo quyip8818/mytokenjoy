@@ -47,7 +47,7 @@ func authzWriteCases(t *testing.T) []authzCase {
 		{name: "budget update allowed", method: http.MethodPut, path: "/api/budget/departments/" + seed.IDDept3, body: budgetUpdateBody, cookie: adminCookie, wantStatus: http.StatusOK},
 		{name: "keys platform create unauthorized", method: http.MethodPost, path: "/api/keys/platform", body: platformKeyBody, wantStatus: http.StatusUnauthorized},
 		{name: "keys platform create forbidden", method: http.MethodPost, path: "/api/keys/platform", body: platformKeyBody, cookie: pureCookie, wantStatus: http.StatusForbidden},
-		{name: "model create forbidden", method: http.MethodPost, path: "/api/models", body: `{"name":"test-model","displayName":"Test","baseUrl":"http://x","apiKey":"k","inputPrice":1,"outputPrice":2}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
+		{name: "model create forbidden", method: http.MethodPost, path: "/api/models", body: `{"name":"test-model","displayName":"Test","baseUrl":"http://x","inputPrice":1,"outputPrice":2}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "org member create forbidden", method: http.MethodPost, path: "/api/org/members", body: memberCreateBody, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "audit settings forbidden", method: http.MethodPut, path: "/api/audit/settings", body: `{"retentionDays":30}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "datasource update forbidden", method: http.MethodPut, path: "/api/org/data-source", body: `{"platform":"feishu","appId":"a","appSecret":"b"}`, cookie: pureCookie, wantStatus: http.StatusForbidden},

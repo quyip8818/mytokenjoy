@@ -7,6 +7,7 @@ import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useWorkflow } from '../use-workflow'
+import { workflowErrorMessage } from '../lib/error-message'
 
 export function ModelCreateWorkflow({
   entry,
@@ -18,7 +19,6 @@ export function ModelCreateWorkflow({
   const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
   const [name, setName] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
-  const [apiKey, setApiKey] = useState('')
   const [inputPrice, setInputPrice] = useState('10')
   const [outputPrice, setOutputPrice] = useState('30')
   const [submitting, setSubmitting] = useState(false)
@@ -31,15 +31,14 @@ export function ModelCreateWorkflow({
         name: name.trim(),
         displayName: name.trim(),
         baseUrl: baseUrl.trim(),
-        apiKey,
         inputPrice: Number(inputPrice),
         outputPrice: Number(outputPrice),
       })
       toast.success('模型已添加')
       onSuccess?.(created.id)
       closeAll()
-    } catch {
-      toast.error('添加失败')
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '添加失败'))
     } finally {
       setSubmitting(false)
     }
@@ -79,18 +78,6 @@ export function ModelCreateWorkflow({
               onSetDirty(true)
             }}
             placeholder="https://api.example.com/v1"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label>API Key</Label>
-          <Input
-            type="password"
-            value={apiKey}
-            onChange={(e) => {
-              setApiKey(e.target.value)
-              onSetDirty(true)
-            }}
-            placeholder="sk-..."
           />
         </div>
         <div className="grid grid-cols-2 gap-4">

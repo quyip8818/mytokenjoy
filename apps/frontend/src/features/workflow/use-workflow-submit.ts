@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { QueryKey } from '@tanstack/react-query'
 import { useInjectedMutation } from '@/features/query/use-injected-mutation'
+import { workflowErrorMessage } from './lib/error-message'
 import { useWorkflow } from './use-workflow'
 
 interface UseWorkflowSubmitOptions {
@@ -40,9 +41,10 @@ export function useWorkflowSubmit({
       onSuccess?.()
       closeAll()
       return { ok: true as const }
-    } catch {
-      toast.error(errorMessage)
-      return { ok: false as const, error: errorMessage }
+    } catch (err) {
+      const message = workflowErrorMessage(err, errorMessage)
+      toast.error(message)
+      return { ok: false as const, error: message }
     }
   }, [closeAll, errorMessage, mutateAsync, onSuccess, successMessage, validate])
 

@@ -48,12 +48,12 @@ func insertKeys(ctx context.Context, exec tableWriter, tid int64, snap store.Sna
 		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO platform_keys (
-				id, company_id, name, key_prefix, full_key, member_id, member_name, app_name,
-				budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+				id, company_id, name, key_prefix, full_key, member_id,
+				budget_group_id, status, quota, used, created_at, expires_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, key.ID, tid, key.Name, key.KeyPrefix, key.FullKey, key.MemberID, key.MemberName,
-			key.AppName, key.BudgetGroupID, key.BudgetGroupName, key.Status,
+		`, key.ID, tid, key.Name, key.KeyPrefix, key.FullKey, key.MemberID,
+			key.BudgetGroupID, key.Status,
 			key.Quota, key.Used, createdAt, expiresAt); err != nil {
 			return err
 		}

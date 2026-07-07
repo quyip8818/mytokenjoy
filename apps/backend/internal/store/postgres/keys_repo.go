@@ -57,7 +57,7 @@ func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderK
 		ids[i] = key.ID
 		createdAt, err := parseAPITime(key.CreatedAt)
 		if err != nil {
-			createdAt = time.Now().UTC()
+			return err
 		}
 		var lastUsed *time.Time
 		if key.LastUsed != nil {
@@ -94,8 +94,8 @@ func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderK
 func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, key_prefix, full_key, member_id, member_name, app_name,
-			budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
+		SELECT id, name, key_prefix, full_key, member_id,
+			budget_group_id, status, quota, used, created_at, expires_at
 		FROM platform_keys WHERE company_id = $1 ORDER BY id
 	`, companyID)
 	if err != nil {
@@ -108,8 +108,8 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 		var createdAt time.Time
 		var expiresAt *time.Time
 		if err := rows.Scan(
-			&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID, &item.MemberName,
-			&item.AppName, &item.BudgetGroupID, &item.BudgetGroupName, &item.Status,
+			&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID,
+			&item.BudgetGroupID, &item.Status,
 			&item.Quota, &item.Used, &createdAt, &expiresAt,
 		); err != nil {
 			return nil, err
@@ -124,15 +124,18 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 			WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
 			ORDER BY model_name
 		`, companyID, types.AllowlistOwnerPlatformKey, item.ID)
-		if err == nil {
-			for modelRows.Next() {
-				var modelName string
-				if err := modelRows.Scan(&modelName); err == nil {
-					item.ModelWhitelist = append(item.ModelWhitelist, modelName)
-				}
-			}
-			modelRows.Close()
+		if err != nil {
+			return nil, err
 		}
+		for modelRows.Next() {
+			var modelName string
+			if err := modelRows.Scan(&modelName); err != nil {
+				modelRows.Close()
+				return nil, err
+			}
+			item.ModelWhitelist = append(item.ModelWhitelist, modelName)
+		}
+		modelRows.Close()
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -149,7 +152,7 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 		ids[i] = key.ID
 		createdAt, err := parseAPITime(key.CreatedAt)
 		if err != nil {
-			createdAt = time.Now().UTC()
+			return err
 		}
 		var expiresAt *time.Time
 		if key.ExpiresAt != nil {
@@ -161,25 +164,22 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 		}
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO platform_keys (
-				id, company_id, name, key_prefix, full_key, member_id, member_name, app_name,
-				budget_group_id, budget_group_name, status, quota, used, created_at, expires_at, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+				id, company_id, name, key_prefix, full_key, member_id,
+				budget_group_id, status, quota, used, created_at, expires_at, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				key_prefix = EXCLUDED.key_prefix,
 				full_key = EXCLUDED.full_key,
 				member_id = EXCLUDED.member_id,
-				member_name = EXCLUDED.member_name,
-				app_name = EXCLUDED.app_name,
 				budget_group_id = EXCLUDED.budget_group_id,
-				budget_group_name = EXCLUDED.budget_group_name,
 				status = EXCLUDED.status,
 				quota = EXCLUDED.quota,
 				used = EXCLUDED.used,
 				expires_at = EXCLUDED.expires_at,
 				updated_at = NOW()
-		`, key.ID, companyID, key.Name, key.KeyPrefix, key.FullKey, key.MemberID, key.MemberName,
-			key.AppName, key.BudgetGroupID, key.BudgetGroupName, key.Status,
+		`, key.ID, companyID, key.Name, key.KeyPrefix, key.FullKey, key.MemberID,
+			key.BudgetGroupID, key.Status,
 			key.Quota, key.Used, createdAt, expiresAt); err != nil {
 			return fmt.Errorf("upsert platform key %s: %w", key.ID, err)
 		}
@@ -242,15 +242,18 @@ func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error)
 			WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
 			ORDER BY model_name
 		`, companyID, types.AllowlistOwnerKeyApproval, item.ID)
-		if err == nil {
-			for modelRows.Next() {
-				var modelName string
-				if err := modelRows.Scan(&modelName); err == nil {
-					item.RequestedModels = append(item.RequestedModels, modelName)
-				}
-			}
-			modelRows.Close()
+		if err != nil {
+			return nil, err
 		}
+		for modelRows.Next() {
+			var modelName string
+			if err := modelRows.Scan(&modelName); err != nil {
+				modelRows.Close()
+				return nil, err
+			}
+			item.RequestedModels = append(item.RequestedModels, modelName)
+		}
+		modelRows.Close()
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -319,16 +322,16 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.PlatformKey, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, `
-		SELECT id, name, key_prefix, full_key, member_id, member_name, app_name,
-			budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
+		SELECT id, name, key_prefix, full_key, member_id,
+			budget_group_id, status, quota, used, created_at, expires_at
 		FROM platform_keys WHERE company_id = $1 AND id = $2
 	`, companyID, keyID)
 	var item types.PlatformKey
 	var createdAt time.Time
 	var expiresAt *time.Time
 	if err := row.Scan(
-		&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID, &item.MemberName,
-		&item.AppName, &item.BudgetGroupID, &item.BudgetGroupName, &item.Status,
+		&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID,
+		&item.BudgetGroupID, &item.Status,
 		&item.Quota, &item.Used, &createdAt, &expiresAt,
 	); err != nil {
 		if err == pgx.ErrNoRows {
@@ -346,15 +349,18 @@ func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.
 		WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
 		ORDER BY model_name
 	`, companyID, types.AllowlistOwnerPlatformKey, item.ID)
-	if err == nil {
-		for modelRows.Next() {
-			var modelName string
-			if err := modelRows.Scan(&modelName); err == nil {
-				item.ModelWhitelist = append(item.ModelWhitelist, modelName)
-			}
-		}
-		modelRows.Close()
+	if err != nil {
+		return nil, err
 	}
+	for modelRows.Next() {
+		var modelName string
+		if err := modelRows.Scan(&modelName); err != nil {
+			modelRows.Close()
+			return nil, err
+		}
+		item.ModelWhitelist = append(item.ModelWhitelist, modelName)
+	}
+	modelRows.Close()
 	cloned := store.ClonePlatformKey(item)
 	return &cloned, nil
 }
@@ -372,8 +378,8 @@ func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string) (flo
 func (r *pgKeysRepo) ListActiveMemberKeys(ctx context.Context, memberID string) ([]types.PlatformKey, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, key_prefix, full_key, member_id, member_name, app_name,
-			budget_group_id, budget_group_name, status, quota, used, created_at, expires_at
+		SELECT id, name, key_prefix, full_key, member_id,
+			budget_group_id, status, quota, used, created_at, expires_at
 		FROM platform_keys
 		WHERE company_id = $1 AND member_id = $2 AND budget_group_id IS NULL AND status = 'active'
 		ORDER BY id
@@ -388,8 +394,8 @@ func (r *pgKeysRepo) ListActiveMemberKeys(ctx context.Context, memberID string) 
 		var createdAt time.Time
 		var expiresAt *time.Time
 		if err := rows.Scan(
-			&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID, &item.MemberName,
-			&item.AppName, &item.BudgetGroupID, &item.BudgetGroupName, &item.Status,
+			&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID,
+			&item.BudgetGroupID, &item.Status,
 			&item.Quota, &item.Used, &createdAt, &expiresAt,
 		); err != nil {
 			return nil, err

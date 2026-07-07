@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '@/features/workflow/use-workflow'
+import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { formatQuotaContext, useKeyFormQuota, useKeyFormState } from './use-key-form-quota'
 
@@ -140,8 +141,8 @@ export function KeyFormWorkflow({
         fullKey: created.fullKey,
         onDone: onSuccess,
       })
-    } catch {
-      toast.error('创建失败')
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '创建失败'))
     } finally {
       setSubmitting(false)
     }
@@ -159,8 +160,8 @@ export function KeyFormWorkflow({
       toast.success('Key 已更新')
       onSuccess?.()
       closeAll()
-    } catch {
-      toast.error('保存失败')
+    } catch (err) {
+      toast.error(workflowErrorMessage(err, '保存失败'))
     } finally {
       setSubmitting(false)
     }

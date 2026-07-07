@@ -144,3 +144,14 @@ func TestApprovalsListPendingMemberIdHTTP(t *testing.T) {
 		t.Fatalf("unexpected approval: %+v", approvals[0])
 	}
 }
+
+func TestPlatformRotateHTTPNotImplemented(t *testing.T) {
+	router := testhttp.NewRouter(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform/"+seed.IDPlatformKey1+"/rotate", nil)
+	req.Header.Set("Cookie", testhttp.AdminCookie(t))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotImplemented {
+		t.Fatalf("expected 501, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}

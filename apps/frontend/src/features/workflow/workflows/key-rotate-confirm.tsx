@@ -1,4 +1,7 @@
+import { toast } from 'sonner'
+import { ApiError } from '@/api/client'
 import type { PlatformKey } from '@/api/types'
+import { PLATFORM_KEY_ROTATE_UNAVAILABLE_MESSAGE } from '@/features/keys'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -18,11 +21,19 @@ export function KeyRotateConfirmWorkflow({
 
   const handleConfirm = async () => {
     if (!onRotate) return
-    const rotated = await onRotate(key)
-    onPush('key-reveal', {
-      fullKey: rotated.fullKey ?? `${rotated.keyPrefix}rotated`,
-      onDone,
-    })
+    try {
+      const rotated = await onRotate(key)
+      onPush('key-reveal', {
+        fullKey: rotated.fullKey ?? `${rotated.keyPrefix}rotated`,
+        onDone,
+      })
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 501) {
+        toast.error(err.message || PLATFORM_KEY_ROTATE_UNAVAILABLE_MESSAGE)
+        return
+      }
+      toast.error(err instanceof Error ? err.message : '重新生成失败')
+    }
   }
 
   return (

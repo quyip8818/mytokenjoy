@@ -38,7 +38,6 @@ export const platformKeyApi = {
     name: string
     memberId?: string
     budgetGroupId?: string
-    appName?: string
     quota: number
     modelWhitelist: string[]
   }) => request<PlatformKey>('/keys/platform', { method: 'POST', body: JSON.stringify(data) }),

@@ -30,7 +30,6 @@ type CreateModelInput struct {
 	Name        string  `json:"name"`
 	DisplayName string  `json:"displayName"`
 	BaseURL     string  `json:"baseUrl"`
-	APIKey      string  `json:"apiKey"`
 	InputPrice  float64 `json:"inputPrice"`
 	OutputPrice float64 `json:"outputPrice"`
 }

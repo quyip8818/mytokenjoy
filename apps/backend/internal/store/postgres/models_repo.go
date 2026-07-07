@@ -42,15 +42,18 @@ func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 		capRows, err := r.db.Query(ctx, `
 			SELECT capability FROM model_capabilities WHERE company_id = $1 AND model_id = $2 ORDER BY capability
 		`, companyID, item.ID)
-		if err == nil {
-			for capRows.Next() {
-				var cap string
-				if err := capRows.Scan(&cap); err == nil {
-					item.Capabilities = append(item.Capabilities, cap)
-				}
-			}
-			capRows.Close()
+		if err != nil {
+			return nil, err
 		}
+		for capRows.Next() {
+			var cap string
+			if err := capRows.Scan(&cap); err != nil {
+				capRows.Close()
+				return nil, err
+			}
+			item.Capabilities = append(item.Capabilities, cap)
+		}
+		capRows.Close()
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -80,15 +83,18 @@ func (r *pgModelsRepo) ModelByName(ctx context.Context, name string) (*types.Mod
 	capRows, err := r.db.Query(ctx, `
 		SELECT capability FROM model_capabilities WHERE company_id = $1 AND model_id = $2 ORDER BY capability
 	`, companyID, item.ID)
-	if err == nil {
-		for capRows.Next() {
-			var cap string
-			if err := capRows.Scan(&cap); err == nil {
-				item.Capabilities = append(item.Capabilities, cap)
-			}
-		}
-		capRows.Close()
+	if err != nil {
+		return nil, err
 	}
+	for capRows.Next() {
+		var cap string
+		if err := capRows.Scan(&cap); err != nil {
+			capRows.Close()
+			return nil, err
+		}
+		item.Capabilities = append(item.Capabilities, cap)
+	}
+	capRows.Close()
 	cloned := store.CloneModels([]types.ModelInfo{item})[0]
 	return &cloned, nil
 }
@@ -99,6 +105,12 @@ func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) 
 	ids := make([]string, len(cloned))
 	for i, model := range cloned {
 		ids[i] = model.ID
+		if model.Type == "" {
+			return fmt.Errorf("model %s: type is required", model.ID)
+		}
+		if model.Visibility == "" {
+			return fmt.Errorf("model %s: visibility is required", model.ID)
+		}
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO models (
 				id, company_id, provider, name, display_name, model_type, description, visibility, endpoint,
@@ -118,7 +130,7 @@ func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) 
 				enabled = EXCLUDED.enabled,
 				updated_at = NOW()
 		`, model.ID, companyID, model.Provider, model.Name, model.DisplayName,
-			defaultModelType(model.Type), model.Description, defaultVisibility(model.Visibility), model.Endpoint,
+			model.Type, model.Description, model.Visibility, model.Endpoint,
 			model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled); err != nil {
 			return fmt.Errorf("upsert model %s: %w", model.ID, err)
 		}
@@ -147,18 +159,4 @@ func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) 
 		return err
 	}
 	return nil
-}
-
-func defaultModelType(modelType string) string {
-	if modelType == "" {
-		return "builtin"
-	}
-	return modelType
-}
-
-func defaultVisibility(visibility string) string {
-	if visibility == "" {
-		return "all"
-	}
-	return visibility
 }

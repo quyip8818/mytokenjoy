@@ -21,6 +21,10 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	if err != nil {
 		return types.KeyApproval{}, err
 	}
+	member, ok := org.FindMemberByID(members, input.MemberID)
+	if !ok {
+		return types.KeyApproval{}, domain.NotFound("member not found")
+	}
 	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.KeyApproval{}, err
@@ -36,15 +40,9 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	if msg := common.ValidateModelsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 		return types.KeyApproval{}, domain.Validation(*msg)
 	}
-	applicant := "申请人"
-	department := ""
-	if member, ok := org.FindMemberByID(members, input.MemberID); ok {
-		applicant = member.Name
-		department = member.DepartmentName
-	}
 	created := types.KeyApproval{
 		ID:   fmt.Sprintf("apv-%d", time.Now().UnixMilli()),
-		Type: input.Type, Applicant: applicant, ApplicantID: input.MemberID, Department: department,
+		Type: input.Type, Applicant: member.Name, ApplicantID: input.MemberID, Department: member.DepartmentName,
 		Reason: input.Reason, RequestedQuota: input.RequestedQuota,
 		RequestedModels: append([]string{}, input.RequestedModels...),
 		Status:          "pending", CreatedAt: time.Now().Format("2006-01-02 15:04"),
@@ -79,6 +77,11 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return domain.NotFound("Not found")
 	}
 	approval := approvals[idx]
+	if approval.Type == "key" {
+		if err := s.requireRelay(); err != nil {
+			return err
+		}
+	}
 	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return err
@@ -92,7 +95,8 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return domain.Validation("Reserved pool insufficient")
 	}
 
-	return s.store.WithTx(ctx, func(st store.Store) error {
+	var createdKeyID string
+	if err := s.store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {
 			return err
@@ -108,14 +112,10 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 				members = budget.AddMemberPersonalQuota(members, approval.ApplicantID, keyQuota-remaining)
 			}
 			memberID := approval.ApplicantID
-			fullKey := fmt.Sprintf("tj-apv-%d-demo-secret-key", time.Now().UnixMilli())
-			prefix := fullKey
-			if len(prefix) > 12 {
-				prefix = prefix[:12] + "..."
-			}
+			createdKeyID = fmt.Sprintf("plk-apv-%d", time.Now().UnixMilli())
 			platformKeys = append(platformKeys, types.PlatformKey{
-				ID:   fmt.Sprintf("plk-apv-%d", time.Now().UnixMilli()),
-				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: prefix, FullKey: &fullKey,
+				ID:   createdKeyID,
+				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: "pending...",
 				MemberID: &memberID, Status: "active", Quota: keyQuota, Used: 0,
 				ModelWhitelist: append([]string{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
@@ -130,13 +130,42 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 
-		approver := common.ResolveDemoMemberName(approverMemberID, members)
+		approver, err := resolveMemberName(approverMemberID, members)
+		if err != nil {
+			return err
+		}
 		now := time.Now().Format("2006-01-02 15:04")
 		approvals[idx].Status = "approved"
 		approvals[idx].Approver = &approver
 		approvals[idx].ResolvedAt = &now
 		return st.Keys().SetApprovals(ctx, approvals)
-	})
+	}); err != nil {
+		return err
+	}
+
+	if createdKeyID == "" {
+		return nil
+	}
+	applicant, ok := org.FindMemberByID(members, approval.ApplicantID)
+	if !ok || applicant.DepartmentID == "" {
+		return domain.Validation("department required for relay sync")
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
+	var created types.PlatformKey
+	for _, key := range platformKeys {
+		if key.ID == createdKeyID {
+			created = key
+			break
+		}
+	}
+	if created.ID == "" {
+		return domain.NotFound("Not found")
+	}
+	_, err = s.syncPlatformKeyCreate(ctx, created, applicant.DepartmentID)
+	return err
 }
 
 func (s *service) RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error {
@@ -153,7 +182,10 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 	}
 	for i := range approvals {
 		if approvals[i].ID == id {
-			approver := common.ResolveDemoMemberName(approverMemberID, members)
+			approver, err := resolveMemberName(approverMemberID, members)
+			if err != nil {
+				return err
+			}
 			now := time.Now().Format("2006-01-02 15:04")
 			approvals[i].Status = "rejected"
 			approvals[i].Approver = &approver
@@ -162,5 +194,5 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 			return s.store.Keys().SetApprovals(ctx, approvals)
 		}
 	}
-	return nil
+	return domain.NotFound("Not found")
 }

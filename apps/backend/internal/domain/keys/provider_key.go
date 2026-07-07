@@ -51,13 +51,13 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 			return types.ProviderKey{}, err
 		}
 		if err := s.relaySync.SyncUpsertProviderKey(ctx, created.ID); err != nil {
-			return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel 同步失败")
+			return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel sync failed")
 		}
 	}
 	return created, nil
 }
 
-func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
+func (s *service) ToggleProviderKey(ctx context.Context, id string, enabled bool) error {
 	if s.cfg.SupportSaas {
 		return domain.Forbidden("provider keys are managed by platform in SaaS mode")
 	}
@@ -70,10 +70,10 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 	}
 	for i := range keys {
 		if keys[i].ID == id {
-			if keys[i].Status == "active" {
-				keys[i].Status = "disabled"
-			} else {
+			if enabled {
 				keys[i].Status = "active"
+			} else {
+				keys[i].Status = "disabled"
 			}
 			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return err
@@ -89,9 +89,12 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string) error {
 	return domain.NotFound("Not found")
 }
 
-func (s *service) RotateProviderKey(ctx context.Context, id string) (types.ProviderKey, error) {
+func (s *service) RotateProviderKey(ctx context.Context, id string, newKey string) (types.ProviderKey, error) {
 	if s.cfg.SupportSaas {
 		return types.ProviderKey{}, domain.Forbidden("provider keys are managed by platform in SaaS mode")
+	}
+	if newKey == "" {
+		return types.ProviderKey{}, domain.BadRequest("newKey is required")
 	}
 	if err := s.delayer.Wait(ctx, time.Second); err != nil {
 		return types.ProviderKey{}, err
@@ -102,11 +105,24 @@ func (s *service) RotateProviderKey(ctx context.Context, id string) (types.Provi
 	}
 	for i := range keys {
 		if keys[i].ID == id {
-			keys[i].KeyPrefix = fmt.Sprintf("sk-rot-%x...", time.Now().UnixMilli())
+			prefix := newKey
+			if len(prefix) > 12 {
+				prefix = prefix[:12] + "..."
+			}
+			keys[i].SecretKey = newKey
+			keys[i].KeyPrefix = prefix
 			lastUsed := time.Now().Format("2006-01-02 15:04")
 			keys[i].LastUsed = &lastUsed
 			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return types.ProviderKey{}, err
+			}
+			if s.relaySync != nil && s.relaySync.Enabled() {
+				if err := s.relaySync.EnqueueUpsertProviderKey(ctx, id); err != nil {
+					return types.ProviderKey{}, err
+				}
+				if err := s.relaySync.SyncUpsertProviderKey(ctx, id); err != nil {
+					return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel sync failed")
+				}
 			}
 			return keys[i], nil
 		}
