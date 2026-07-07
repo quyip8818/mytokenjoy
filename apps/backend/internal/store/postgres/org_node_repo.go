@@ -133,43 +133,39 @@ func buildOrgNodeTree(rows []flatOrgNode) []types.OrgNode {
 	if len(rows) == 0 {
 		return nil
 	}
-	byID := make(map[string]*types.OrgNode, len(rows))
-	order := make([]flatOrgNode, len(rows))
-	copy(order, rows)
-	for i := range order {
-		node := order[i].OrgNode
-		node.Children = nil
-		byID[node.ID] = &order[i].OrgNode
-	}
-	roots := make([]types.OrgNode, 0)
-	for _, row := range order {
-		node := byID[row.ID]
-		if row.ParentID == nil || *row.ParentID == "" {
-			roots = append(roots, *node)
-			continue
-		}
-		parent, ok := byID[*row.ParentID]
-		if !ok {
-			roots = append(roots, *node)
-			continue
-		}
-		parent.Children = append(parent.Children, *node)
-	}
-	sortOrgNodeTreeChildren(roots, rows)
-	return roots
-}
-
-func sortOrgNodeTreeChildren(nodes []types.OrgNode, rows []flatOrgNode) {
+	byID := make(map[string]flatOrgNode, len(rows))
 	orderByID := make(map[string]int, len(rows))
 	for _, row := range rows {
+		byID[row.ID] = row
 		orderByID[row.ID] = row.sortOrder
 	}
-	sortOrgNodeSiblings(nodes, orderByID)
-	for i := range nodes {
-		if len(nodes[i].Children) > 0 {
-			sortOrgNodeTreeChildren(nodes[i].Children, rows)
+	var build func(id string) types.OrgNode
+	build = func(id string) types.OrgNode {
+		row := byID[id]
+		node := row.OrgNode
+		node.Children = nil
+		children := make([]types.OrgNode, 0)
+		for _, child := range rows {
+			if child.ParentID == nil || *child.ParentID != id {
+				continue
+			}
+			children = append(children, build(child.ID))
 		}
+		sortOrgNodeSiblings(children, orderByID)
+		node.Children = children
+		return node
 	}
+	roots := make([]types.OrgNode, 0)
+	for _, row := range rows {
+		if row.ParentID != nil && *row.ParentID != "" {
+			if _, ok := byID[*row.ParentID]; ok {
+				continue
+			}
+		}
+		roots = append(roots, build(row.ID))
+	}
+	sortOrgNodeSiblings(roots, orderByID)
+	return roots
 }
 
 func sortOrgNodeSiblings(nodes []types.OrgNode, orderByID map[string]int) {

@@ -40,7 +40,7 @@ func anchorMembers() []types.Member {
 			Roles: []string{permission.RoleMember, permission.RoleOrgAdmin, permission.RoleBudgetApprover}, Source: "imported",
 		},
 		{
-			ID: "m-3", CompanyID: DefaultCompanyID, Name: "王五", Phone: "", Email: "wangwu@example.com",
+			ID: IDMember3, CompanyID: DefaultCompanyID, Name: "王五", Phone: "", Email: "wangwu@example.com",
 			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "pending",
 			Roles: []string{permission.RoleMember}, Source: "invited",
 		},

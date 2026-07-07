@@ -1,422 +1,516 @@
-# Backend 测试优化
+# Backend 测试优化（实现规格）
 
-`apps/backend/tests/` 现状分析与渐进式瘦身方案。目标是在**不降低覆盖率、不牺牲本地零依赖体验**的前提下，减少重复样板、提升可读性与维护效率。
+移除 `internal/store/memory/`，测试与生产统一走 `postgres.New`。本文按**当前代码实现**编写，可直接作为开发与 PR 拆分依据。
 
-**相关：** [Backend.md](./Backend.md) §5 · [Backend-架构.md](./Backend-架构.md)
-
----
-
-## 1. 现状
-
-### 1.1 规模
-
-| 区域 | 文件数 | 行数 | 说明 |
-| ---- | ------ | ---- | ---- |
-| `tests/` 合计 | 155 | ~14,600 | 占 backend Go 总量约 37% |
-| `tests/testutil/` | 24 | ~1,700 | 项目自有测试基础设施 |
-| `tests/handler/` | 25 | ~2,900 | HTTP 集成测试 |
-| `tests/domain/` | 53 | ~5,800 | 领域服务测试 |
-
-### 1.2 技术栈
-
-- 仅使用 Go 标准库：`testing`、`httptest`、`encoding/json`
-- **未引入** `testify`、`go-cmp`、`httpexpect` 等第三方断言/HTTP 库
-- 已有较完整的 `testutil` 层（store、app、session、relay、saas、worker）
-
-### 1.3 主要痛点
-
-| 痛点 | 表现 | 典型位置 |
-| ---- | ---- | -------- |
-| HTTP 样板重复 | 每个用例 10–15 行 `NewRequest` + `ServeHTTP` + 状态码判断 | `tests/handler/core/handler_test.go` |
-| 手写断言冗长 | `if x != y { t.Fatalf(...) }` 出现 800+ 次 | 全局 |
-| 场景 setup 重复 | 相同 `CreateAlert` / `NewRouter` / service 构造写多遍 | `alert_rules_test.go`、`member_test.go` |
-| 相似用例未合并 | 3 个 session 401 测试逻辑几乎相同 | `handler_test.go` |
-| 结构体比较困难 | 多字段逐个 `if` 判断 | domain 测试 |
-
-### 1.4 不是问题的部分
-
-- `testutil` 基础设施本身（~1,700 行）——这是正确的抽象层，**不应删除**
-- memory store + seed 驱动的测试策略——保证 `make test-unit` 零 PG 依赖
-- postgres integration tests——唯一验证 SQL 正确性的途径
-- 测试/生产比约 0.58:1——对多租户 SaaS 合理，目标不是盲目砍测试
+**相关：** [Backend.md](./Backend.md) §5 · [Backend-架构.md](./Backend-架构.md) · [Backend-存储.md](./Backend-存储.md)
 
 ---
 
-## 2. 目标与非目标
+## 1. 架构决策（ADR）
 
-### 2.1 目标
-
-- 减少重复样板，预估整体测试代码 **14–20%**（约 2,000–3,000 行）
-- 新测试默认使用统一 DSL，旧测试随改动渐进迁移
-- 断言失败时输出更可读（diff、响应 body）
-- 保持 `make test-unit` / `make test-integration` 行为不变
-
-### 2.2 非目标
-
-- 不切换到 Ginkgo/Gomega BDD 范式
-- 不用 testcontainers 替代 memory store（牺牲本地开发体验）
-- 不削减 postgres 集成测试或核心业务场景覆盖
-- 不追求「换框架砍一半」——集成场景复杂度无法被库消除
+| 项 | 决策 | 依据 |
+| -- | ---- | ---- |
+| 存储实现 | 仅保留 `internal/store/postgres/` | `app.openStore` 已固定 `postgres.New`（`internal/app/app.go`） |
+| 删除 | `internal/store/memory/`（27 文件，~2,650 行） | `internal/` 无 memory 引用，纯测试遗产 |
+| 主库隔离 | 每测 `CREATE SCHEMA` + `search_path` | `schema.sql` 表名未限定 schema，跟随 `search_path` |
+| 日志库隔离 | **全局** `newapi` / `backend` schema + 测后 TRUNCATE | `logs_schema.sql` 硬编码 `newapi.logs`、`backend.ingest_failures` |
+| prod 改动 | 最小：`postgres` 增加 `testhook` 入口 | 不污染 `cmd/server` 与正常运行路径 |
+| build tag | 保持 `-tags=testhook` 跑全量 `tests/` | 与 `Makefile`、`app.NewWithStore` 一致 |
 
 ---
 
-## 3. 推荐技术选型
+## 2. 现状（代码锚点）
 
-### 3.1 依赖 additions
+### 2.1 生产启动链
 
-```bash
-cd apps/backend
-go get github.com/stretchr/testify/require
-go get github.com/google/go-cmp/cmp
+```
+cmd/server/main.go
+  → app.New(cfg, logger)
+    → openStore() → postgres.New(ctx, cfg)
+      → applySchema(schema.sql)           // internal/store/postgres/schema.go
+      → ensureBootstrapCompany()
+      → [IngestEnabled] applyLogsSchema() // internal/store/postgres/log_repo.go
+      → loadOrSeedDomain() → seed.ApplyTables()  // 空库时
+      → [IsDemoProfile] seed.ApplyUsageBuckets / ApplyRechargeOrders
 ```
 
-| 库 | 用途 | 使用约定 |
-| -- | ---- | -------- |
-| `testify/require` | 断言，失败即 `t.FailNow()` | **只用 `require`，不用 `assert`** |
-| `google/go-cmp` | 结构体/slice 深度比较 | domain、store roundtrip |
-| 项目内 `testhttp.Client` | HTTP 测试 DSL | handler 测试专用 |
+`config.validate()` 已要求 `DATABASE_URL` 必填（`internal/config/config.go:84`）。文档中「无 PG 用 memory」描述已过时。
 
-### 3.2 不采用的方案
+### 2.2 测试启动链（待替换）
 
-| 方案 | 原因 |
+```
+tests/testutil/store.go
+  NewMemoryStoreFromConfig(t)
+    → memory.New(seed.Load(cfg))
+
+tests/testutil/app.go
+  NewTestApp(t) → NewMemoryStore(t, cfg) → app.NewWithStore(cfg, logger, st, WithoutWorker())
+```
+
+**引用 memory 的测试文件：52 个**（`rg 'NewMemoryStore|memory\.New|store/memory' tests/`）。
+
+### 2.3 已有 PG 集成测试
+
+| 文件 | 模式 |
 | ---- | ---- |
-| Ginkgo + Gomega | 仪式重、与 Go 惯用法冲突，行数常不降反升 |
-| httpexpect | 不了解项目 cookie/SaaS/webhook 约定，不如薄封装 `testutil` |
-| testify/suite | struct 继承式组织测试，维护成本高 |
-| mockery 全量替换 | 现有 hand-rolled mock 够用，迁移 ROI 低 |
+| `tests/store/postgres/helpers_test.go` | `//go:build integration`，`testPostgresStore(t)` |
+| `tests/store/postgres/*_test.go` | 7 个文件，共用 `helpers_test.go` |
+
+问题：与 `test-unit` 分离，且**无 schema 隔离**（共用 `tokenjoy_test` 库）。
+
+### 2.4 双库模型
+
+| 连接 | 配置项 | 表 / schema | 测试注意 |
+| ---- | ------ | ----------- | -------- |
+| 主库 | `DATABASE_URL` | `schema.sql` 36 表（无 schema 前缀） | 可用 per-test `search_path` |
+| 日志库 | `LOG_DATABASE_URL` | `newapi.logs`、`backend.reconcile_cursors`、`backend.ingest_failures` | **不受** 主库 `search_path` 影响 |
+
+`WithIngestEnabled(true)` 当前写死 `LogDatabaseURL = "postgres://memory/logs"`（`tests/testutil/config.go:58`），仅 memory `log.go` 能工作；迁 PG 后**必须改为真实 URL**。
 
 ---
 
-## 4. 核心改造：HTTP Client DSL
+## 3. 目标架构
 
-在 `tests/testutil/http/` 新增 fluent Client，封装现有 `NewRouter` / `NewApp` / `AdminCookie` 约定。
+```mermaid
+flowchart TB
+    subgraph testutil [tests/testutil]
+        NTS[NewTestStore]
+        NTA[NewTestApp]
+        SCH[pgschema.go]
+        LOG[log.go SeedConsumeLog]
+    end
 
-### 4.1 API 设计
+    subgraph main_pg [DATABASE_URL]
+        S1["schema test_<uuid>"]
+        S2["schema test_<uuid>"]
+    end
 
-```go
-// tests/testutil/http/client.go
+    subgraph log_pg [LOG_DATABASE_URL]
+        NA[newapi.logs]
+        BE[backend.ingest_failures]
+    end
 
-type Client struct {
-    t      *testing.T
-    router http.Handler
-    cookie string
-    headers map[string]string
-}
-
-// 构造
-func NewClient(t *testing.T, opts ...ClientOption) *Client
-
-// 身份
-func (c *Client) AsAdmin() *Client
-func (c *Client) WithCookie(cookie string) *Client
-func (c *Client) WithHeader(key, value string) *Client
-
-// 请求
-func (c *Client) GET(path string) *Response
-func (c *Client) POST(path string, body any) *Response
-func (c *Client) PUT(path string, body any) *Response
-func (c *Client) DELETE(path string) *Response
-
-// 响应链
-type Response struct { ... }
-
-func (r *Response) AssertStatus(want int) *Response
-func (r *Response) AssertContentType(want string) *Response
-func (r *Response) DecodeJSON(dst any) *Response
-func (r *Response) Body() string
+    NTS --> SCH
+    SCH -->|CREATE + search_path| S1
+    SCH -->|CREATE + search_path| S2
+    NTA --> NTS
+    LOG -->|INSERT| NA
+    NTS -->|t.Cleanup DROP SCHEMA| main_pg
+    LOG -->|t.Cleanup TRUNCATE| log_pg
 ```
 
-### 4.2 改造前后对比
+### 3.1 两类测试隔离策略
 
-**Before（~15 行）：**
-
-```go
-func TestOrgRolesList(t *testing.T) {
-    router := testhttp.NewRouter(t)
-    req := httptest.NewRequest(http.MethodGet, "/api/org/roles", nil)
-    req.Header.Set("Cookie", testhttp.AdminCookie(t))
-    rec := httptest.NewRecorder()
-    router.ServeHTTP(rec, req)
-    if rec.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", rec.Code)
-    }
-    var roles []types.Role
-    if err := json.NewDecoder(rec.Body).Decode(&roles); err != nil {
-        t.Fatal(err)
-    }
-    if len(roles) != 6 {
-        t.Fatalf("expected 6 roles, got %d", len(roles))
-    }
-}
-```
-
-**After（~6 行）：**
-
-```go
-func TestOrgRolesList(t *testing.T) {
-    var roles []types.Role
-    testhttp.NewClient(t).AsAdmin().
-        GET("/api/org/roles").
-        AssertStatus(http.StatusOK).
-        DecodeJSON(&roles)
-    require.Len(t, roles, 6)
-}
-```
-
-### 4.3 SaaS / Webhook 扩展
-
-```go
-// SaaS 场景
-client := testhttp.NewSaaSClient(t, mock).AsPlatformAdmin()
-
-// Webhook
-client := testhttp.NewClient(t, testhttp.WithApp(mutate)).
-    WithHeader("X-Webhook-Secret", secret).
-    POST("/api/internal/webhooks/newapi-log", body)
-```
-
-保留现有 `ServeAuthz` 供 authz 安全测试使用，新用例优先 Client。
+| 类型 | 条件 | 隔离 | 并行 |
+| ---- | ---- | ---- | ---- |
+| **A. 域存储** | 默认；无 `WithIngestEnabled` | 主库 per-schema | `t.Parallel()` 安全 |
+| **B. Ingest / Worker** | `WithIngestEnabled(true)` | 主库 per-schema + 日志库 TRUNCATE | `tests/worker`、`tests/store/memory/log_*` 包级 `t.Parallel()` **禁用**；或 ingest 子测串行 |
 
 ---
 
-## 5. 断言规范
+## 4. 生产代码改动（最小）
 
-### 5.1 require 替换手写 if
-
-```go
-// Bad
-if err != nil {
-    t.Fatal(err)
-}
-if rule.ID == "" {
-    t.Fatal("expected non-empty ID")
-}
-
-// Good
-require.NoError(t, err)
-require.NotEmpty(t, rule.ID)
-```
-
-### 5.2 go-cmp 用于结构体
+### 4.1 新增 `internal/store/postgres/open_testhook.go`
 
 ```go
-want := []int{80, 90, 100}
-if diff := cmp.Diff(want, rule.Thresholds); diff != "" {
-    t.Fatalf("thresholds mismatch (-want +got):\n%s", diff)
-}
+//go:build testhook
 
-// 忽略不稳定字段
-cmp.Diff(want, got, cmpopts.IgnoreFields(types.AlertRule{}, "ID", "CreatedAt"))
+package postgres
+
+import (
+    "context"
+    "fmt"
+
+    "github.com/jackc/pgx/v5/pgxpool"
+    "github.com/tokenjoy/backend/internal/config"
+    "github.com/tokenjoy/backend/internal/store"
+)
+
+// NewWithSearchPath opens a store whose DDL/DML target the given PostgreSQL schema.
+// searchPath must be a safe identifier (e.g. test_<uuid>); validated in testutil.
+func NewWithSearchPath(ctx context.Context, cfg config.Config, searchPath string) (store.Store, error) {
+    poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+    if err != nil {
+        return nil, fmt.Errorf("parse database url: %w", err)
+    }
+    poolConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+        _, err := conn.Exec(ctx, "SET search_path TO "+quoteIdent(searchPath))
+        return err
+    }
+    // ... pgxpool.NewWithConfig → 复用现有 New 内逻辑（applySchema、seed 等）
+}
 ```
 
-### 5.3 保留现有 AssertDomainStatus
+**实现要点：**
 
-`testutil.AssertDomainStatus` 已封装 domain error 判断，继续用于业务错误码测试，内部可改为 `require` 实现。
+- 从 `postgres.New` 抽取 `openPools(ctx, cfg)` 与 `initStore(ctx, cfg, pool, logPool)`，避免重复。
+- `applySchema` 无需改：`CREATE TABLE IF NOT EXISTS companies` 在 `search_path` 指向的 schema 内建表。
+- `isDatabaseEmpty`（`SELECT COUNT(*) FROM members`）随 `search_path` 只查当前 schema。
+- `quoteIdent` 仅允许 `[a-z0-9_]`，由 `testutil` 生成 schema 名。
+
+**prod 运行时：** 不编译此文件（无 `testhook` tag），行为不变。
+
+### 4.2 可选：日志测试种子 `open_testhook.go` 同文件或 `log_testhook.go`
+
+```go
+//go:build testhook
+
+func InsertConsumeLog(ctx context.Context, pool *pgxpool.Pool, raw store.RawConsumeLog) error
+func TruncateLogTables(ctx context.Context, pool *pgxpool.Pool) error
+```
+
+对应 SQL（与 `log_repo.go` 查询一致）：
+
+```sql
+INSERT INTO newapi.logs (id, token_id, quota, model_name, created_at, type, ...)
+VALUES ($1, $2, ...);
+
+TRUNCATE newapi.logs, backend.ingest_failures, backend.reconcile_cursors RESTART IDENTITY CASCADE;
+-- 重新 INSERT reconcile_cursors 默认值
+```
+
+不在 `LogStore` 接口上增加 `PutConsumeLog`，避免 prod API 污染。
+
+### 4.3 不改动
+
+| 模块 | 原因 |
+| ---- | ---- |
+| `store.Store` 接口 | 不变 |
+| `internal/store/seed/` | `postgres.loadOrSeedDomain` 已调用 `seed.ApplyTables` |
+| `internal/store/clone_*.go` | postgres `keys_repo`、`org_repo_roles` 已使用 |
+| `cmd/server` | 无 memory 分支 |
 
 ---
 
-## 6. Table-Driven 与 Scenario Fixture
+## 5. testutil 实现规格
 
-### 6.1 合并相似 HTTP 用例
+### 5.1 环境变量与默认值
+
+| 变量 | 测试默认 | 来源 |
+| ---- | -------- | ---- |
+| `DATABASE_URL` | `config.DefaultDatabaseURL` | `internal/config/database.go` |
+| `LOG_DATABASE_URL` | 与 `DATABASE_URL` 同实例（见下） | `TestConfig` 注入 |
+| `SESSION_SECRET` | `TestSessionSecret` | 已有 |
+
+`TestConfig` 修改：
 
 ```go
-func TestSessionAuth(t *testing.T) {
-    tests := []struct {
-        name   string
-        cookie string
-        want   int
-    }{
-        {"missing member", "", http.StatusUnauthorized},
-        {"invalid token", "tokenjoy_session_member=missing", http.StatusUnauthorized},
+func TestConfig(opts ...ConfigOption) config.Config {
+    cfg := config.Config{
+        DatabaseURL: os.Getenv("DATABASE_URL"), // fallback DefaultDatabaseURL
+        DemoToday:   defaultDemoToday,
+        // ...
     }
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            c := testhttp.NewClient(t)
-            if tt.cookie != "" {
-                c = c.WithCookie(tt.cookie)
-            }
-            c.GET("/api/session").AssertStatus(tt.want)
-        })
+    if cfg.DatabaseURL == "" {
+        cfg.DatabaseURL = config.DefaultDatabaseURL
+    }
+    // ...
+}
+
+func WithIngestEnabled(enabled bool) ConfigOption {
+    return func(cfg *config.Config) {
+        if enabled {
+            cfg.LogDatabaseURL = cfg.DatabaseURL // 同实例；newapi/backend 为全局 schema
+            cfg.NewAPIWebhookSecret = "test-webhook-secret"
+        } else {
+            cfg.LogDatabaseURL = ""
+        }
     }
 }
 ```
 
-### 6.2 Domain Scenario Helper
-
-各 bounded context 在 `helpers_test.go` 提供场景构造，避免每个测试重复 setup。
+### 5.2 新文件 `tests/testutil/pgschema.go`
 
 ```go
-// tests/domain/budget/helpers_test.go
+func requireDatabaseURL(t *testing.T) string
+func newTestSchemaName() string                    // test_<hex>
+func createSchema(t *testing.T, adminURL, name string)
+func dropSchema(t *testing.T, adminURL, name string)
 
-func newBudgetService(t *testing.T) (budget.Service, store.Store) { ... }
-
-func newAlertRule(t *testing.T, svc budget.Service, opts ...func(*types.AlertRule)) types.AlertRule {
+func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
     t.Helper()
-    rule := types.AlertRule{
-        NodeID:     seed.IDDept3,
-        NodeName:   "后端组",
-        Thresholds: []int{80, 90, 100},
-        Enabled:    true,
-    }
-    for _, opt := range opts {
-        opt(&rule)
-    }
-    created, err := svc.CreateAlert(testutil.Ctx(), rule)
+    cfg := TestConfig(opts...)
+    schema := newTestSchemaName()
+    createSchema(t, cfg.DatabaseURL, schema)
+    st, err := postgres.NewWithSearchPath(context.Background(), cfg, schema)
     require.NoError(t, err)
-    return created
+    if cfg.IngestEnabled() {
+        registerLogCleanup(t, cfg.LogDatabaseURL)
+    }
+    t.Cleanup(func() {
+        st.Close()
+        dropSchema(t, cfg.DatabaseURL, schema)
+    })
+    return cfg, st
 }
 ```
+
+**删除：** `NewMemoryStore`、`NewMemoryStoreFromConfig`（全库替换为 `NewTestStore`）。
+
+### 5.3 修改 `tests/testutil/app.go`
 
 ```go
-func TestDisabledAlertRuleDoesNotTrigger(t *testing.T) {
-    svc, _ := newBudgetService(t)
-    rule := newAlertRule(t, svc)
-    updated, err := svc.UpdateAlert(testutil.Ctx(), rule.ID, types.AlertRule{Enabled: false})
-    require.NoError(t, err)
-    require.False(t, updated.Enabled)
+func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
+    cfg := TestConfig()
+    if mutate != nil {
+        mutate(&cfg)
+    }
+    _, st := NewTestStore(t, func(c *config.Config) { *c = cfg })
+    // postgres.New 已在 demo profile 下执行 ApplyUsageBuckets / ApplyRechargeOrders
+    // 删除手动 seed.ApplyUsageBuckets 重复调用（与 postgres.New 对齐）
+    ...
 }
 ```
 
-### 6.3 命名约定
+核对：`postgres.New` 在 `IsDemoProfile()` 时已调用 `seed.ApplyUsageBuckets`（`postgres.go:74-88`），`NewTestApp` 中重复调用可删。
 
-| 类型 | 命名 | 位置 |
-| ---- | ---- | ---- |
-| 服务构造 | `newXxxService(t)` | `helpers_test.go` |
-| 实体工厂 | `newXxx(t, svc, opts...)` | `helpers_test.go` |
-| 完整场景 | `buildXxxScenario(t, opts...)` | `testutil/relay` 风格 |
-| 纯数据 | `defaultXxx()` 无 `t` 参数 | 仅当无 error 路径 |
+### 5.4 内省 helper 改造（`memory.go` → 删除或改写）
 
----
+| 现函数 | memory 实现 | PG 实现 |
+| ------ | ----------- | ------- |
+| `NewMemoryStoreFromSnapshot` | `memory.New(snapshot)` | `NewTestStore` + 用 `Org().Members()` 等 API 改数据；或 `seed.ApplyTables` 到当前 schema 的 testhook 辅助函数 |
+| `UsageBucketRows(st)` | `mem.UsageBucketRows()` | `st.Usage().QueryFilteredBuckets(ctx, wideQuery)` |
+| `NotificationLogs(st)` | `mem.NotificationLogs()` | testhook SQL：`SELECT * FROM notification_log WHERE company_id = $1` |
+| `RelayOutboxEntry(st, id)` | `mem.RelayOutboxEntry(id)` | `ClaimPendingRelayOutbox` 过滤，或 testhook：`SELECT * FROM relay_outbox WHERE id = $1` |
+| `SeedConsumeLog(t, st, raw)` | `mem.PutConsumeLog` | `postgres.InsertConsumeLog`（testhook） |
+| `AssertIngestFailure(t, st, logID, source)` | `mem.IngestFailureByLogID` | `ClaimPendingFailures` / testhook 查 `backend.ingest_failures` |
 
-## 7. 分模块优化优先级
+**`budget/service_test.go` 快照定制用例：**
 
-### P0 — 高收益、低风险（先做）
+```go
+// 旧：裁剪 snapshot.Members → NewMemoryStoreFromSnapshot
+// 新：NewTestStore 后调用 Org repo 删除/更新成员，或 testhook seed.ApplyTables 写入裁剪数据
+```
 
-| 模块 | 文件 | 当前行数 | 手段 | 预估节省 |
-| ---- | ---- | -------- | ---- | -------- |
-| handler/core | `handler_test.go` | ~290 | Client + table-driven | 120–150 |
-| handler/gateway | `webhook_test.go` | ~276 | Client + scenario | 80–100 |
-| domain/budget | `alert_rules_test.go` | ~343 | scenario helper + require | 100–130 |
-| domain/org | `member_test.go` | ~337 | scenario helper + table-driven | 100–130 |
-| domain/audit | `filter_test.go` 等 | ~282 | 合并相似 filter 用例 | 80–100 |
+### 5.5 修改 `tests/testutil/org/service.go`、`relay/gateway.go`、`worker/runner.go`
 
-### P1 — 渐进迁移
-
-| 模块 | 手段 |
-| ---- | ---- |
-| `tests/handler/authz/` | Client + `ServeAuthz` 并存 |
-| `tests/handler/billing/` | SaaS Client 封装 |
-| `tests/domain/keys/` | go-cmp 比较 key 状态 |
-| `tests/store/postgres/` | 共享 roundtrip case 表（memory/pg 同表驱动） |
-
-### P2 — 观望
-
-| 模块 | 说明 |
-| ---- | ---- |
-| `testutil/saas` | 体积大但功能集中，暂不拆 |
-| mockery 生成 | 仅在新接口 mock 复杂时考虑 |
+统一将 `NewMemoryStoreFromConfig` 替换为 `NewTestStore`，签名保持不变。
 
 ---
 
-## 8. 迁移步骤
+## 6. 测试包与 build tag
 
-### Phase 1：基础设施（1–2 天）
+### 6.1 合并 integration tag
 
-1. `go get` 添加 `testify/require`、`go-cmp`
-2. 实现 `tests/testutil/http/client.go` + `response.go`
-3. 为 Client 本身写单元测试（`tests/testutil/http/client_test.go`）
-4. 更新 [Backend.md](./Backend.md) §5 测试说明
+| 阶段 | `tests/store/postgres/*` | 其余 `tests/**` |
+| ---- | ------------------------ | --------------- |
+| 迁移前 | `//go:build integration` | 无 tag |
+| 迁移后 | **去掉** `integration` tag | 无 tag |
 
-### Phase 2：示范迁移（2–3 天）
+全部用 `go test -tags=testhook ./tests/...`，单一入口。
 
-1. 改造 `tests/handler/core/handler_test.go` 作为 handler 范本
-2. 改造 `tests/domain/budget/alert_rules_test.go` 作为 domain 范本
-3. PR review 确认风格后固化为约定
+### 6.2 Makefile
 
-### Phase 3：渐进铺开（持续）
+```makefile
+export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 
-- **规则：触达即迁移**——修改某测试文件时，顺手改为新风格
-- **规则：新测试必须用新风格**——禁止新增手写 httptest 样板
-- 每个 PR 控制迁移范围，避免 mega-refactor
+test-unit:
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
+	go test -tags=testhook ./tests/...
 
-### 验收标准
+test-integration:
+	@echo "merged into test-unit"
+	$(MAKE) test-unit
+```
+
+### 6.3 CI（`.github/workflows/ci.yml`）
+
+`verify` job 增加 postgres service（复制 `backend-integration` 块），env：
+
+```yaml
+DATABASE_URL: postgres://postgres:postgres@localhost:5432/tokenjoy_test?sslmode=disable
+SESSION_SECRET: test-session-secret
+COMPANY_NAME: Demo Company
+```
+
+`backend-integration` job 可与 `verify` 合并或保留为冗余至迁移完成。
+
+---
+
+## 7. 删除清单
+
+```
+internal/store/memory/                    # 整目录
+tests/store/memory/                       # 整目录（用例迁至 PG 或删除等价覆盖）
+tests/testutil/memory.go                  # 内省迁 pg helper 后删除
+tests/testutil/store.go                   # 改为 NewTestStore（或合并 pgschema.go）
+```
+
+**全库确认：**
 
 ```bash
-cd apps/backend
-make test-unit
-make test-integration   # 有 DATABASE_URL 时
-make lint
-```
-
-全部通过；迁移前后测试用例数量不减少。
-
----
-
-## 9. 目录与文件变更
-
-```
-tests/testutil/http/
-├── http.go          # 现有：NewRouter、NewApp、ServeAuthz
-├── client.go        # 新增：Client DSL
-├── response.go      # 新增：Response 链式断言
-└── client_test.go   # 新增：Client 自测
-
-tests/domain/<域>/
-└── helpers_test.go  # 强化：scenario factory
-
-go.mod               # 新增 testify、go-cmp
+rg 'store/memory|memory\.New|NewMemoryStore' apps/backend
+# 期望：0 结果
 ```
 
 ---
 
-## 10. 反模式清单
+## 8. PR 拆分（推荐顺序）
 
-| 反模式 | 正确做法 |
-| ------ | -------- |
-| 每个测试 `testhttp.NewRouter(t)` + 10 行 httptest | `testhttp.NewClient(t).AsAdmin().GET(...)` |
-| `assert.Equal` 失败后继续执行 | 使用 `require.Equal` |
-| 在 `_test.go` 里构造完整 app 逻辑 | 走 `testutil.NewTestApp` / `NewClient` |
-| 为减行数删除边界用例 | 合并为 table-driven，保留覆盖 |
-| 引入 Ginkgo 重写全部测试 | 保持 `testing` + `t.Run` |
-| 在 `internal/` 新增 `*_test.go` | 遵守 `tests/` 外挂约定 |
+### PR-1：基础设施（可独立合并）
+
+| 任务 | 文件 |
+| ---- | ---- |
+| `postgres.NewWithSearchPath` + 重构 `postgres.New` | `internal/store/postgres/open_testhook.go`，`postgres.go` |
+| `InsertConsumeLog` / `TruncateLogTables` | `internal/store/postgres/log_testhook.go` |
+| `pgschema.go`、`NewTestStore` | `tests/testutil/pgschema.go` |
+| 更新 `WithIngestEnabled`、`TestConfig` | `tests/testutil/config.go` |
+| 单测验证 schema 隔离 | `tests/testutil/pgschema_test.go` |
+
+验收：`go test -tags=testhook ./tests/testutil/...`
+
+### PR-2：testutil 入口与 app
+
+| 任务 | 文件 |
+| ---- | ---- |
+| `NewTestApp` / `NewTestRouter` 改用 `NewTestStore` | `app.go` |
+| `org/service.go`、`relay/gateway.go`、`worker/runner.go` | 替换入口 |
+| 改写 `log.go` 内省 | `SeedConsumeLog`、`AssertIngestFailure` |
+
+验收：跑通 `tests/handler/core/` + `tests/domain/audit/`
+
+### PR-3：domain 批量迁移（可按子目录拆）
+
+```
+tests/domain/budget/   → tests/domain/org/   → tests/domain/usage/
+tests/domain/keys/   → tests/domain/relay/ → tests/domain/company/
+... 其余 domain 包
+```
+
+每包 PR 替换 `NewMemoryStoreFromConfig` → `NewTestStore`，改写 snapshot / 内省调用。
+
+### PR-4：handler + identity + infra + worker
+
+```
+tests/handler/**     tests/identity/**
+tests/infra/**       tests/worker/**
+```
+
+`worker` 包测试结束时 `TruncateLogTables`；包内禁止 `t.Parallel()`。
+
+### PR-5：store 测试合并 + 删 memory
+
+| 任务 | 说明 |
+| ---- | ---- |
+| `tests/store/postgres/helpers_test.go` | 改用 `NewTestStore` 或共享 `pgschema` |
+| 去掉 `//go:build integration` | 8 个 postgres 测试文件 |
+| 删除 `internal/store/memory/` | |
+| 删除 `tests/store/memory/` | |
+| 更新 Makefile、CI、Backend.md | |
+
+验收：
+
+```bash
+pnpm start:postgres
+cd apps/backend && make test-unit && make lint
+pnpm verify
+```
 
 ---
 
-## 11. 预期收益
+## 9. 文件级迁移清单（52 文件）
 
-| 手段 | 适用面 | 预估减行 | 可读性提升 |
-| ---- | ------ | -------- | ---------- |
-| HTTP Client DSL | handler ~2,900 行 | 800–1,200 | 高 |
-| testify/require | 全局 | 500–800 | 中 |
-| table-driven | handler、audit | 400–600 | 高 |
-| scenario helper | domain | 600–900 | 高 |
-| go-cmp | domain、store | 200–400 | 中 |
-| **合计** | ~14,600 行 | **2,000–3,000（14–20%）** | — |
+### 9.1 testutil（必先改）
+
+- `tests/testutil/store.go`
+- `tests/testutil/app.go`
+- `tests/testutil/config.go`
+- `tests/testutil/memory.go` → 删除
+- `tests/testutil/log.go`
+- `tests/testutil/org/feishu_env.go`
+- `tests/testutil/org/service.go`
+- `tests/testutil/relay/gateway.go`
+- `tests/testutil/worker/runner.go`
+
+### 9.2 直接 `memory.New`（需单独处理）
+
+- `tests/domain/billing/service_test.go`
+- `tests/domain/company/accept_invite_test.go`
+- `tests/domain/company/create_company_test.go`
+- `tests/worker/runner_test.go`（`*memory.Store` cast）
+- `tests/worker/ingest_worker_test.go`（`IngestFailureByLogID`）
+
+### 9.3 `tests/store/memory/` → 删除或并入 `tests/store/postgres/`
+
+- `ledger_repo_test.go`
+- `log_repo_test.go` → 迁 PG + `WithIngestEnabled`
+- `org_repo_test.go`
+- `usage_test.go`
+
+### 9.4 其余
+
+凡 `rg -l NewMemoryStoreFromConfig tests/` 列出的文件，机械替换为 `NewTestStore`（**52 文件**）。
 
 ---
 
-## 12. 不可削减的测试资产
+## 10. 性能与后续优化
 
-以下代码是正确投资，优化时应保留并复用：
+### 10.1 预期耗时
 
-- `testutil.NewMemoryStoreFromConfig` — memory store 零依赖路径
-- `testutil/relay.BuildGatewayScenario` — relay 集成场景
-- `testutil/saas.NewAPIMock` — NewAPI 边界 mock
-- `testutil/worker` — ingest/outbox 异步断言
-- `tests/store/postgres/*_test.go` — SQL 正确性保障
-- `tests/handler/core/contract_test.go` — GET 端点契约回归
+| 阶段 | 全量 `go test -tags=testhook ./tests/...` |
+| ---- | ---------------------------------------- |
+| 初版（每测 schema + migrate） | ~45–90s |
+| 优化后（template schema） | ~25–45s |
+
+### 10.2 Phase 2：template schema（可选）
+
+```sql
+-- 一次性（TestMain）
+CREATE SCHEMA IF NOT EXISTS test_template;
+SET search_path TO test_template;
+-- applySchema + seed
+
+-- 每测
+CREATE SCHEMA test_<uuid> ;
+CREATE TABLE test_<uuid>.companies (LIKE test_template.companies INCLUDING ALL);
+-- 或 pg_dump --schema-only 克隆
+```
+
+在 `tests/testutil/pgschema_test.go` 基准达标后再做，不阻塞 PR-1–5。
+
+### 10.3 并行策略
+
+| 包 | `t.Parallel()` |
+| -- | -------------- |
+| `tests/pkg/**` | 允许 |
+| `tests/domain/**`（无 ingest） | 允许 |
+| `tests/handler/**` | 允许 |
+| `tests/worker/**`、`log_repo` 相关 | **禁止**（共享 `newapi`/`backend`） |
 
 ---
 
-## 13. 检查清单
+## 11. 风险与约束
 
-新增或修改测试时：
+| 风险 | 缓解 |
+| ---- | ---- |
+| 日志表全局共享，并行 ingest 测试互相污染 | ingest 包串行 + `TruncateLogTables` cleanup |
+| `CREATE SCHEMA` + 全量 migrate 慢 | template schema（§10.2）；CI 缓存 PG |
+| `NewMemoryStoreFromSnapshot` 用例 | 改为 repo API 准备数据 |
+| 本地未起 PG | `make test-unit` 明确报错；与 `pnpm start` 一致 |
+| `platform_operators` 等全局表在 test schema 内 | 每 schema 独立一份，与多租户模型一致 |
 
-- [ ] 使用 `tests/` 目录，不在 `internal/` 写测试
-- [ ] Handler 测试使用 `testhttp.Client`，不手写 httptest 样板
-- [ ] 断言使用 `require` / `go-cmp`，避免 `if + t.Fatalf`
-- [ ] 相似用例合并为 `t.Run` + table-driven
-- [ ] 重复 setup 提取到 `helpers_test.go`
-- [ ] `t.Helper()` 标记所有 testutil 辅助函数
-- [ ] `make test-unit` 通过
-- [ ] 新 GET 端点更新 `contract_test.go`
+---
+
+## 12. 断言与 HTTP DSL（并行轨道）
+
+Store 迁移与测试 DX 优化可并行，不阻塞 PR-1：
+
+| 项 | 说明 |
+| -- | ---- |
+| `testify/require` + `go-cmp` | 见原断言规范 |
+| `testhttp.Client` | 减少 handler 样板 |
+| table-driven | 合并 session/auth 等重复用例 |
+
+Store 迁移完成后，handler 改造统一基于 `NewTestApp`（已是 PG）。
+
+---
+
+## 13. 验收检查清单
+
+- [ ] `rg 'store/memory|NewMemoryStore|memory\.New' apps/backend` 无结果
+- [ ] `go test -tags=testhook ./tests/...` 全绿（`DATABASE_URL` 已设）
+- [ ] `go test`（无 tag）不包含测试包失败
+- [ ] `pnpm verify` 通过（含 PG service）
+- [ ] `internal/` 无 `*_test.go`
+- [ ] ingest 测试跑后 `newapi.logs` 无残留（cleanup 验证）
+- [ ] [Backend.md](./Backend.md) 环境变量表与 §5 测试说明已更新

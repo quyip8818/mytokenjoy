@@ -47,11 +47,13 @@ func TestUsageBucketQuerySeriesHour(t *testing.T) {
 		t.Fatal(err)
 	}
 	points, err := st.Usage().QuerySeries(ctx, types.UsageSeriesQuery{
-		Granularity: types.UsageGranularityHour,
-		Start:       time.Date(2026, 6, 10, 0, 0, 0, 0, time.UTC),
-		End:         time.Date(2026, 6, 11, 0, 0, 0, 0, time.UTC),
-		GroupBy:     types.UsageGroupByNone,
-		Timezone:    types.UsageDefaultTimezone,
+		Granularity:  types.UsageGranularityHour,
+		Start:        time.Date(2026, 6, 10, 0, 0, 0, 0, time.UTC),
+		End:          time.Date(2026, 6, 11, 0, 0, 0, 0, time.UTC),
+		GroupBy:      types.UsageGroupByNone,
+		Timezone:     types.UsageDefaultTimezone,
+		DepartmentID: "dept-hour",
+		MemberID:     "m-hour",
 	})
 	if err != nil {
 		t.Fatal(err)

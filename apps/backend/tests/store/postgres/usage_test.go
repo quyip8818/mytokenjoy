@@ -3,18 +3,17 @@
 package postgres_test
 
 import (
-	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	st := testPostgresStore(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	bucket := time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC)
 	row := types.UsageBucketRow{
 		BucketStart:  bucket,
@@ -33,7 +32,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := getTestDB(t).url
 	conn, err := pgx.Connect(ctx, dbURL)
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +55,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 
 func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	st := testPostgresStore(t)
-	ctx := context.Background()
+	ctx := testutil.Ctx()
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: "dept-series", MemberID: "m-1",
