@@ -55,6 +55,10 @@ func NewGatewayService(
 }
 
 func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !isAllowedGatewayPath(r.URL.Path) {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
 	auth := r.Header.Get("Authorization")
 	if !strings.HasPrefix(auth, "Bearer sk-") {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -89,7 +93,7 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Company: company,
 		Model:   parseRequestModel(body),
 	}); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}
 	g.proxy(w, r)
@@ -119,6 +123,22 @@ func parseRequestModel(body []byte) string {
 		return ""
 	}
 	return payload.Model
+}
+
+var allowedGatewayPrefixes = []string{
+	"/v1/chat/completions",
+	"/v1/completions",
+	"/v1/embeddings",
+	"/v1/models",
+}
+
+func isAllowedGatewayPath(path string) bool {
+	for _, prefix := range allowedGatewayPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *gatewayService) proxy(w http.ResponseWriter, r *http.Request) {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -102,6 +103,12 @@ func (s *service) ConfirmPayment(ctx context.Context, orderID string) error {
 	order, err := s.store.Billing().GetRechargeOrder(ctx, orderID)
 	if err != nil {
 		return err
+	}
+	if order == nil {
+		return domain.NotFound("order not found")
+	}
+	if order.CompanyID != company.CompanyID(ctx) {
+		return domain.Forbidden("order does not belong to current company")
 	}
 	if order.Status == store.RechargeStatusToppedUp {
 		return nil

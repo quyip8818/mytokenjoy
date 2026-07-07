@@ -34,6 +34,9 @@ func NewPrecheckService(orgNodes store.OrgNodeRepository, keys store.KeysReposit
 }
 
 func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
+	if in.Model == "" {
+		return fmt.Errorf("model field is required")
+	}
 	if domaincompany.IsRelayBlocked(in.Company.Status) {
 		return fmt.Errorf("company not active")
 	}
