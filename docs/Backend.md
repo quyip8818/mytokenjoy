@@ -2,17 +2,18 @@
 
 `apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `internal/store/seed/`；Postgres **36** 表；消耗 SSOT 为 `usage_ledger`。
 
-差距与计划见 [Roadmap.md](./Roadmap.md)。
+差距与计划见 [Roadmap.md](./Roadmap.md)；工程待办见 [plan.md](./plan.md)。
 
 ---
 
 ## 文档地图
 
-| 文档                                 | 内容                                                       |
-| ------------------------------------ | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md) | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储.md](./Backend-存储.md) | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
-| [Backend-预算.md](./Backend-预算.md) | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| 文档                                       | 内容                                                       |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| [Backend-架构.md](./Backend-架构.md)       | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
+| [Backend-存储.md](./Backend-存储.md)     | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
+| [Backend-预算.md](./Backend-预算.md)     | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-测试优化.md](./Backend-测试优化.md) | 测试瘦身、HTTP Client DSL、断言规范、迁移计划            |
 
 ---
 
@@ -109,6 +110,22 @@ sequenceDiagram
 
 充值 `company_recharge_orders`：`pending` → `paid` → `topped_up` → 企业级 rebalance。平台 API 见 [Frontend.md](./Frontend.md) §5.5。
 
+### 2.5 Keys 域约束（Platform Key / Relay）
+
+实现待办见 [plan.md](./plan.md) §3。
+
+| 约束 | 说明 |
+| --- | --- |
+| 无增量 migration | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
+| 推导字段不入库 | `memberName` / `projectName` 等仅 JSON enrich |
+| Platform Key secret | 必须经 Relay 下发；禁止本地 placeholder |
+| Rotate 过渡期 | `RotatePlatformKey` → HTTP **501**（非最终态） |
+| 错误语义 | 不存在 `404`；Relay 不可用 `503`；未实现 `501` |
+
+**本地开发：** 创建 Platform Key / 审批发 Key 须启用 Relay（`NEW_API_ENABLED` 等）；否则 `503`。
+
+**实现索引：** `domain/keys/platform_key_enrich.go` · `platform_key_relay.go` · `platform_key_actions.go` · `domain/keys/approval.go` · `domain/relay/interface.go`
+
 ---
 
 ## 3. 环境变量与运行
@@ -174,6 +191,8 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 ## 5. 测试
 
 **所有测试在 `apps/backend/tests/`，`internal/` 禁止 `*_test.go`。**
+
+测试优化方案见 [Backend-测试优化.md](./Backend-测试优化.md)。
 
 ```bash
 cd apps/backend

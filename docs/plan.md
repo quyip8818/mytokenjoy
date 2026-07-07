@@ -2,15 +2,15 @@
 
 > **最后对齐**：2026-07-07  
 > **定位**：工程 backlog **唯一入口**；完成项打 `[x]` 或删除，不另开计划文档。  
-> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [下一步工作清单.md](./下一步工作清单.md)（发布门禁）· [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)（联调架构）
+> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend.md](./Backend.md) §2.5（Keys 约束）· [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)（联调架构）
 
 ---
 
 ## 维护约定
 
-1. 新待办只写入本文对应章节，不新建 `*-计划.md` / `*-下一步.md`
+1. 新待办只写入本文，不新建 `*-计划.md` / `*-下一步.md`
 2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](./Roadmap.md)
-3. Phase 3 性能规模化（>500 keys / P99>300ms）触发条件见 [下一步工作清单.md](./下一步工作清单.md) §8
+3. 架构约定与领域数据模型见 [Frontend.md](./Frontend.md) §2、§5.0.1
 
 ---
 
@@ -89,24 +89,30 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 
 ## §3 Keys 域兼容清理
 
-规格细节见 [archive/清理兼容与死代码-下一步.md](./archive/清理兼容与死代码-下一步.md)。
+架构约束见 [Backend.md](./Backend.md) §2.5。完整规格见 [archive/清理兼容与死代码-下一步.md](./archive/清理兼容与死代码-下一步.md)。
 
 ### P0 — Platform Key Rotate
 
 - [ ] NewAPI Admin 提供 token rotate 或等价端点
-- [ ] `relay/interface.go` 新增 `SyncRotatePlatformKey`
-- [ ] `platform_key_actions.go` 替换 HTTP 501
+- [ ] `relay/interface.go` 新增 `SyncRotatePlatformKey(ctx, platformKeyID) (fullKey string, err error)`
+- [ ] `platform_key_actions.go` 替换 HTTP 501；复用 `updatePlatformKeyFullKey`
 - [ ] 前端 `key-rotate-confirm` 成功路径恢复 `key-reveal`
+- [ ] HTTP：`POST /api/keys/platform/{id}/rotate` → 200 + PlatformKey（含新 `fullKey`）；Relay 关闭 → 503
+
+**验收：** rotate 成功更新 DB `full_key` / `key_prefix`；旧 secret 网关侧失效；不存在 key → 404
 
 ### P1 — 审批通过 + Relay 同步跨事务一致性
 
-- [ ] 设计 `provisioning` / outbox 重试状态（避免审批已通过但 `full_key` 为空且静默成功）
-- [ ] `ApproveApproval` 与 `syncPlatformKeyCreate` 失败态可解释、可重试
+- [ ] 采用 outbox / `provisioning` 状态（方案 B：与 `OutboxKindCreateToken` 一致）
+- [ ] `ApproveApproval` 与 `syncPlatformKeyCreate` 失败态可解释、可重试；不得静默成功
+
+**验收：** Relay 失败时审批与 key 状态可解释；重试成功无需重新审批
 
 ### P2 — Workflow 错误展示统一
 
 - [ ] `features/workflow/workflows/**` 内固定文案 `catch` 改为 `workflowErrorMessage(err, fallback)`
-- [ ] 覆盖：`member-form`、`budget-group-form`、`role-form`、`import-preview` 等（已接入项勿重复改）
+- [ ] 待改：`member-form`、`member-search`、`budget-group-form`、`budget-impact-preview`、`whitelist-config`、`overrun-policy`、`import-preview`、`role-form`、`role-add-member`
+- [ ] 已接入勿重复改：`key-form`、`approval-review`、`model-create/edit`、`provider-key-form`、`reject-reason`
 
 ### P3 — 种子数据契约
 
@@ -116,48 +122,54 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 
 ## §4 前端架构收尾
 
-架构指南见 [前端架构优化与模块化建议.md](./前端架构优化与模块化建议.md)。**不恢复 MSW**（Vitest 用 `createMockApis`，E2E/dev 用真 backend）。
+约定见 [Frontend.md](./Frontend.md) §2。**不恢复 MSW**。
 
 ### 迁移债务（`check-conventions` 目标态）
 
-- [ ] 删除 `routes/*/hooks/` 副本（canonical 在 `features/*/hooks/`；注册路由已从 `@/features/*` 导入）
+- [ ] 删除 `routes/*/hooks/` 副本（canonical 在 `features/*/hooks/`）
 - [ ] 迁移 `components/{budget,org,keys}/` → `features/{domain}/components/`
 - [ ] 删除 orphan 页：`routes/budget/overview.tsx`、`allocation.tsx`
-- [ ] 迁移 `tests/routes/` → `tests/features/`（当前 6 个遗留测试文件）
+- [ ] 迁移 `tests/routes/` → `tests/features/`（6 个遗留文件）
 
 ### 工程优化（非阻断）
 
 - [ ] 预算默认账期去硬编码 `2026-06`（`lib/demo-clock.ts`、`use-budget-page.ts`）
 - [ ] Workflow 按域动态 `import()`，减小首屏包体
-- [ ] Zod response schema 试点 → OpenAPI/orval 生成类型（长期）
-- [ ] 大表格页按需引入 `@tanstack/react-virtual`（行数 >500）
+- [ ] Zod response schema 试点 → OpenAPI/orval 生成类型
+- [ ] `@tanstack/react-virtual` 大表格按需引入（行数 >500）
+- [ ] `eslint-plugin-boundaries` 部分替代 `check-conventions.ts`
+- [ ] Workflow 统一 `onSubmit` 错误与 toast；步骤级 Zod + react-hook-form
 
 ### E2E 扩展
 
-实施细节见 [superpowers/plans/2026-07-07-regenerate-e2e-tests.md](./superpowers/plans/2026-07-07-regenerate-e2e-tests.md)。
+细节见 [superpowers/plans/2026-07-07-regenerate-e2e-tests.md](./superpowers/plans/2026-07-07-regenerate-e2e-tests.md)。
 
-- [ ] Task 1：Auth & Session E2E 重写
-- [ ] Task 2：Admin 路由导航覆盖
-- [ ] Task 3：Dashboard 交互
-- [ ] Task 4：成员工作台
-- [ ] Task 5：Org 域（structure / roles / data-source）
-- [ ] Task 6：Budget 域
-- [ ] Task 7：Keys 域（platform / approval / mine）
-- [ ] Task 8：Models / Audit / Wallet
+- [ ] Task 1–8：Auth、Admin 导航、Dashboard、成员工作台、Org、Budget、Keys、Models/Audit/Wallet
+- [ ] 优先：预算审批、Key 申请、组织同步 happy path
 
-**关键路径（优先于全量 Task）**
+### UI 抛光（不阻断发布）
 
-- [ ] 预算审批 happy path
-- [ ] Key 申请 happy path
-- [ ] 组织同步 happy path
+- [ ] Workflow 面板 header/footer 间距（`workflow-panel-chrome.tsx`）
+- [ ] 表单 Label 统一 `text-xs text-muted-foreground`（`workflow-form-field.tsx`）
 
 ---
 
 ## §5 发布与验收
 
-发布门禁详见 [下一步工作清单.md](./下一步工作清单.md) §5–7。Phase 3 量化触发（>500 keys / P99>300ms）不在本表重复。
+**发布顺序：** 产品模型手工验收 → 生产 DDL → 前后端同发 → UI 像素验收 → E2E。
 
-### 产品模型手工验收（阻断发布）
+| 门禁 | 级别 |
+| --- | --- |
+| 产品模型手工验收（6 项） | **阻断** |
+| Handler / Feature 单测复跑 | **阻断** |
+| `models` 四列迁移 | **阻断** |
+| 前后端同发 | **阻断** |
+| UI 像素验收 | 建议 |
+| E2E（keys / models / audit / wallet / member） | 建议 |
+
+**回滚：** DDL 仅 additive、不回滚；应用须前后端成对回滚。
+
+### 产品模型手工验收（阻断）
 
 - [ ] 平台 Key：部门树点击，列表与 `departmentId` 筛选一致
 - [ ] 平台 Key：成员 / 项目 Tab 切换正确，数据不串
@@ -166,10 +178,40 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 - [ ] Postgres 重启后 custom 模型 `endpoint` 持久化仍在
 - [ ] 改名同步：改成员名 / 预算组名后，平台 Key 列表展示名即时更新（enrich）
 
-### 自动化与 E2E（建议）
+### 自动化（发布前复跑）
 
-- [ ] 发布前复跑：`go test ./tests/handler/keys/... ./tests/handler/models/...` + 前端 keys/models feature 测试
-- [ ] E2E：`pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member`
+```bash
+cd apps/backend && go test ./tests/handler/keys/... ./tests/handler/models/... -count=1
+pnpm -F @tokenjoy/frontend test -- tests/features/keys tests/features/models
+pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
+```
+
+### 可选补强（非阻断）
+
+- [ ] 改名同步集成测试
+- [ ] 重启持久化集成测试（`endpoint` 落库）
+- [ ] 成员视角审批 `memberId` 接入 `use-approval-page`
+
+### UI 像素验收（建议）
+
+- 视觉基准 commit `716eeec`；对比 `git diff 716eeec HEAD -- apps/frontend/src/features/<domain>/components/`
+- `/keys/mine` 无基准，单独约定
+
+### `models` 四列生产迁移
+
+```sql
+ALTER TABLE models
+  ADD COLUMN IF NOT EXISTS model_type   TEXT NOT NULL DEFAULT 'builtin',
+  ADD COLUMN IF NOT EXISTS description  TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS visibility   TEXT NOT NULL DEFAULT 'all',
+  ADD COLUMN IF NOT EXISTS endpoint     TEXT;
+
+UPDATE models SET model_type = 'custom' WHERE provider = 'custom' AND model_type = 'builtin';
+UPDATE models SET model_type = 'builtin' WHERE provider <> 'custom' AND model_type = 'builtin';
+UPDATE models SET visibility = 'all' WHERE visibility = '' OR visibility IS NULL;
+```
+
+本地：`docker compose down -v` 重建（见 [Backend-存储.md](./Backend-存储.md)）。
 
 ### 权限手工 QA
 
@@ -183,4 +225,30 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 
 ## §6 长期产品差距
 
-钉钉/企微、IM 审批通知、预算阈值 Worker、OIDC、真实支付、`/platform/*` 前端、热存归档等见 [Roadmap.md](./Roadmap.md)。不在本文维护细节。
+钉钉/企微、IM 审批通知、预算阈值 Worker、OIDC、真实支付、`/platform/*` 前端、热存归档等见 [Roadmap.md](./Roadmap.md)。
+
+---
+
+## §7 Phase 3 — 性能与权限规模化
+
+**当前不必立项。** 满足以下**任一**条件时启动：
+
+- `platform_keys` 行数 > **500**
+- `GET /keys/platform` P99 > **300ms**
+
+| # | 任务 | 技术方向 |
+| --- | --- | --- |
+| 1 | 删冗余列 | `DROP member_name, budget_group_name`；repo 停读写 |
+| 2 | SQL 筛选 | `keys_repo.ListPlatformKeysFiltered`，JOIN members / budget_groups |
+| 3 | 真分页 | `page` / `pageSize` / `total` + SQL `LIMIT/OFFSET` |
+| 4 | 列表 RBAC | 非管理员默认 `departmentId=会话部门` |
+| 5 | 后端搜索 `q` | 名称/前缀模糊，替代前端全量 `search` |
+| 6 | `visibility` 运行时 | 与 `model_allowlist`、部门路由合并校验 |
+| 7 | Models `type` query | 仅当模型数 > 500 |
+
+**可提前立项（不依赖性能触发）：**
+
+- [ ] 上线前部门管理员仅能看本部门 Key（#4）
+- [ ] `visibility` 须真正限制模型访问（#6）
+
+**约束：** 不引入平行 enrich API；SQL 筛选与 enrich 同路径；RBAC 在后端强制。

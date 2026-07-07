@@ -51,7 +51,33 @@ apps/frontend/
 | HTTP / DTO | `api/{domain}.ts`、`api/types/`                     |
 | 纯逻辑     | `lib/`、`features/{domain}/lib/`                    |
 
-禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。架构指南见 [前端架构优化与模块化建议.md](./前端架构优化与模块化建议.md)。
+禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。工程待办见 [plan.md](./plan.md) §4。
+
+### 2.1 约定与门禁
+
+`scripts/check-conventions.ts` 在 CI/lint 中强制执行：
+
+- 页面逻辑在 `features/{domain}/hooks/use-*-page.ts`；**禁止**在 `components/{domain}/` 里直接 `useApis()`
+- `components/ui` 不得出现领域名（budget、org 等）
+- `components/` 不得反向依赖 `@/routes/`
+- 禁止 `../../` 及更深的相对路径，统一 `@/` 别名
+- 路由 `lazy` 目标文件必须存在
+
+**组件归属：**
+
+| 场景 | 放置位置 |
+| --- | --- |
+| 多路由复用 | `features/{domain}/components/`（目标）；遗留可能在 `components/{domain}/` |
+| 无业务语义 UI | `components/ui` |
+| 工作流步骤表单 | `features/workflow/workflows/*` |
+
+**页面模板：** `PageShell` → `DataSection`（loading / error / empty）→ 领域内容；Error 用 `ErrorState` + hook 的 `refresh`。
+
+### 2.2 技术选型（勿换）
+
+React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix/shadcn、Vitest + Playwright。**不引入** MSW（已移除）、Redux、Next.js。测试：Vitest 用 `createMockApis()`；E2E/dev 用真 backend。
+
+**可补充（见 plan §4）：** Zod 扩大覆盖面、OpenAPI/orval、`@tanstack/react-virtual`（大表按需）、`eslint-plugin-boundaries`。
 
 ---
 
@@ -102,9 +128,23 @@ apps/frontend/
 | `query-keys.ts`         | `features/query/query-keys.ts`         | 各域 query key 工厂                                                 |
 | `{domain}.ts`           | `api/{domain}.ts`                      | 各资源 HTTP 方法                                                    |
 
-**依赖注入：** 生产环境 `AdminLayout` 注入 `defaultApis`；页面 Hook 支持 `injectedApis` 参数供测试覆盖；测试通过 `createMockApis()` 注入 mock API。
+**依赖注入：** 生产环境 `AppProviders` 注入 `defaultApis`；页面 Hook 支持 `injectedApis` 参数供测试覆盖；测试通过 `createMockApis()` 注入 mock API。
 
 **数据获取：** 读操作逐步迁移至 `useInjectedQuery` + `queryKeys`；写操作仍在事件处理函数中直接调用 `*Api` 方法，成功后通过 `queryClient.invalidateQueries` 或 `useWorkflowRefresh` 刷新缓存。
+
+### 5.0.1 领域数据约定（Keys / Models）
+
+| 决策 | 约定 |
+| --- | --- |
+| 列表 enrich | 扩展现有 `GET /keys/platform`、`GET /models`；**不**新增平行 `/enriched` 端点 |
+| `platform_keys` 推导字段 | **不入库**；`platform_key_enrich.go` domain join；改名后下次 GET 自动反映 |
+| 审批「我的申请」 | `memberId` 查询参数；`tab` 仅表状态维度 |
+| `models.visibility` | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7 |
+| 发布 | 前后端同发；DB 迁移 additive only |
+
+**`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `relay_mappings.department_id` 独立分层。
+
+**`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。生产迁移 SQL 见 [plan.md](./plan.md) §5。
 
 ---
 
@@ -550,7 +590,7 @@ HTTP 非 2xx 时，body 应包含：
 **ProviderKey：** `id`, `provider`, `name`, `keyPrefix`, `status`, `balance`, `lastUsed`, `createdAt`, `rotateEnabled`
 
 **PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`†, `appName`, `budgetGroupId`, `budgetGroupName`†, `type`†, `departmentId`†, `departmentName`†, `projectName`†, `status`, `quota`, `used`, `modelWhitelist`, `createdAt`, `expiresAt`  
-† 服务端 enrich 推导，不入库 `platform_keys`（见 [下一步工作清单.md](./下一步工作清单.md) §5）
+† 服务端 enrich 推导，不入库 `platform_keys`（见 §5.0.1）
 
 **ApprovalType：** `key` \| `quota` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
 
