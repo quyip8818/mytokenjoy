@@ -24,6 +24,6 @@ func NewService(t *testing.T, cfg config.Config, st store.Store) org.Service {
 
 func NewServiceFromStore(t *testing.T, opts ...testutil.ConfigOption) (config.Config, store.Store, org.Service) {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, opts...)
+	cfg, st := testutil.NewTestStore(t, opts...)
 	return cfg, st, NewService(t, cfg, st)
 }

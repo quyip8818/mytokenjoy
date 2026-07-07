@@ -28,17 +28,29 @@ func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	items := make([]types.ModelInfo, 0)
+	type modelRow struct {
+		item types.ModelInfo
+	}
+	batch := make([]modelRow, 0)
 	for rows.Next() {
-		var item types.ModelInfo
+		var row modelRow
 		if err := rows.Scan(
-			&item.ID, &item.Provider, &item.Name, &item.DisplayName,
-			&item.Type, &item.Description, &item.Visibility, &item.Endpoint,
-			&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.Enabled,
+			&row.item.ID, &row.item.Provider, &row.item.Name, &row.item.DisplayName,
+			&row.item.Type, &row.item.Description, &row.item.Visibility, &row.item.Endpoint,
+			&row.item.InputPrice, &row.item.OutputPrice, &row.item.MaxContext, &row.item.Enabled,
 		); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		batch = append(batch, row)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	items := make([]types.ModelInfo, 0, len(batch))
+	for _, row := range batch {
+		item := row.item
 		capRows, err := r.db.Query(ctx, `
 			SELECT capability FROM model_capabilities WHERE company_id = $1 AND model_id = $2 ORDER BY capability
 		`, companyID, item.ID)
@@ -55,9 +67,6 @@ func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 		}
 		capRows.Close()
 		items = append(items, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 	return store.CloneModels(items), nil
 }

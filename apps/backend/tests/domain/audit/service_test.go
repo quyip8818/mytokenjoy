@@ -11,7 +11,7 @@ import (
 
 func newAuditService(t *testing.T) audit.Service {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	return audit.NewService(cfg, st)
 }
 
@@ -44,7 +44,7 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 }
 
 func TestListCallsDateFilter(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t)
+	_, st := testutil.NewTestStore(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 	const from = "2026-06-10"

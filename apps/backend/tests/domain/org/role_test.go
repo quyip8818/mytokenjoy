@@ -10,7 +10,7 @@ import (
 )
 
 func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 

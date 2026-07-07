@@ -8,7 +8,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
@@ -121,10 +120,7 @@ func TestIngestFailureMaxAttemptsMarksDead(t *testing.T) {
 
 	runner.RunOnce(ctx)
 
-	f, ok := st.(*memory.Store).IngestFailureByLogID(logID)
-	if !ok {
-		t.Fatal("expected failure record to remain")
-	}
+	f := testutil.AssertIngestFailure(t, st, logID, "")
 	if f.Status != store.IngestFailureStatusDead {
 		t.Fatalf("expected dead status, got %q", f.Status)
 	}

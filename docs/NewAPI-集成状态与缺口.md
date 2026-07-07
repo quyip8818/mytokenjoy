@@ -128,7 +128,7 @@ P3
 
 **本地**
 
-- [ ] `pnpm start`：默认无 NewAPI，入账靠测试 mock / memory LogStore
+- [ ] `pnpm start`：默认无 NewAPI，入账靠测试 mock / PostgreSQL `newapi.logs`（`testutil.SeedConsumeLog`）
 - [ ] `pnpm start:relay`：完整栈；Backend 需配置 `LOG_DATABASE_URL` 与 webhook secret
 
 ---

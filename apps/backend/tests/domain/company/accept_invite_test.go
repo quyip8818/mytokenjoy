@@ -11,7 +11,6 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	saas "github.com/tokenjoy/backend/tests/testutil/saas"
@@ -55,8 +54,7 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsShortPassword(t *testing.T) {
-	cfg := testutil.TestConfig()
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 	ctx := context.Background()
 
@@ -78,8 +76,7 @@ func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
-	cfg := testutil.TestConfig()
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 	ctx := context.Background()
 
@@ -101,8 +98,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
-	cfg := testutil.TestConfig()
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 	ctx := context.Background()
 
@@ -129,8 +125,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 }
 
 func TestAcceptInviteRejectsInvalidToken(t *testing.T) {
-	cfg := testutil.TestConfig()
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t)
 	svc := company.NewService(cfg, st, nil)
 
 	_, err := svc.AcceptInvite(context.Background(), company.AcceptInviteRequest{

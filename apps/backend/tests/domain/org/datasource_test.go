@@ -15,7 +15,7 @@ func TestTestDataSourceInvalidCredential422(t *testing.T) {
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuAuthErrorServer(t)
 	cfg.FeishuBaseURL = server.URL
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	svc := orgfix.NewService(t, cfg, st)
 
 	result, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
@@ -39,7 +39,7 @@ func TestUpdateDataSourcePersistsCredential(t *testing.T) {
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	svc := orgfix.NewService(t, cfg, st)
 
 	cred := types.Credential{
@@ -68,7 +68,7 @@ func TestSearchDataSourceUsesProvider(t *testing.T) {
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
 	svc := orgfix.NewService(t, cfg, st)
 
@@ -102,7 +102,7 @@ func TestUpdateDataSourceSwitchPlatformRequiresForce(t *testing.T) {
 	cfg := testutil.TestConfig()
 	server := testutil.StartFeishuMockServer(t)
 	cfg.FeishuBaseURL = server.URL
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
 	svc := orgfix.NewService(t, cfg, st)
 

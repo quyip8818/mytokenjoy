@@ -41,15 +41,15 @@ apps/frontend/
     └── lib/
 ```
 
-| 代码       | 位置（目标态）                                      |
-| ---------- | --------------------------------------------------- |
-| 页面入口   | `routes/{domain}/{page}.tsx`                        |
-| 页面逻辑   | `features/{domain}/hooks/use-{page}-page.ts`        |
-| 页面 Shell | `features/{domain}/components/*-page-shell.tsx`     |
-| 域内 UI    | `features/{domain}/components/`                     |
+| 代码       | 位置（目标态）                                               |
+| ---------- | ------------------------------------------------------------ |
+| 页面入口   | `routes/{domain}/{page}.tsx`                                 |
+| 页面逻辑   | `features/{domain}/hooks/use-{page}-page.ts`                 |
+| 页面 Shell | `features/{domain}/components/*-page-shell.tsx`              |
+| 域内 UI    | `features/{domain}/components/`                              |
 | 遗留 UI    | `components/{domain}/`（迁移中，见 [plan.md](./plan.md) §4） |
-| HTTP / DTO | `api/{domain}.ts`、`api/types/`                     |
-| 纯逻辑     | `lib/`、`features/{domain}/lib/`                    |
+| HTTP / DTO | `api/{domain}.ts`、`api/types/`                              |
+| 纯逻辑     | `lib/`、`features/{domain}/lib/`                             |
 
 禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。工程待办见 [plan.md](./plan.md) §4。
 
@@ -65,11 +65,11 @@ apps/frontend/
 
 **组件归属：**
 
-| 场景 | 放置位置 |
-| --- | --- |
-| 多路由复用 | `features/{domain}/components/`（目标）；遗留可能在 `components/{domain}/` |
-| 无业务语义 UI | `components/ui` |
-| 工作流步骤表单 | `features/workflow/workflows/*` |
+| 场景           | 放置位置                                                                   |
+| -------------- | -------------------------------------------------------------------------- |
+| 多路由复用     | `features/{domain}/components/`（目标）；遗留可能在 `components/{domain}/` |
+| 无业务语义 UI  | `components/ui`                                                            |
+| 工作流步骤表单 | `features/workflow/workflows/*`                                            |
 
 **页面模板：** `PageShell` → `DataSection`（loading / error / empty）→ 领域内容；Error 用 `ErrorState` + hook 的 `refresh`。
 
@@ -134,13 +134,13 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 ### 5.0.1 领域数据约定（Keys / Models）
 
-| 决策 | 约定 |
-| --- | --- |
-| 列表 enrich | 扩展现有 `GET /keys/platform`、`GET /models`；**不**新增平行 `/enriched` 端点 |
-| `platform_keys` 推导字段 | **不入库**；`platform_key_enrich.go` domain join；改名后下次 GET 自动反映 |
-| 审批「我的申请」 | `memberId` 查询参数；`tab` 仅表状态维度 |
-| `models.visibility` | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7 |
-| 发布 | 前后端同发；DB 迁移 additive only |
+| 决策                     | 约定                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| 列表 enrich              | 扩展现有 `GET /keys/platform`、`GET /models`；**不**新增平行 `/enriched` 端点 |
+| `platform_keys` 推导字段 | **不入库**；`platform_key_enrich.go` domain join；改名后下次 GET 自动反映     |
+| 审批「我的申请」         | `memberId` 查询参数；`tab` 仅表状态维度                                       |
+| `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
+| 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
 **`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `relay_mappings.department_id` 独立分层。
 
@@ -826,16 +826,16 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.6 前端接入现状
 
-| 项                   | 后端                          | 前端 `AppApis`                          | 控制台页面                         |
-| -------------------- | ----------------------------- | --------------------------------------- | ---------------------------------- |
-| 企业面 §5.4 域 API   | 已实现                        | 已接入（16 命名空间，缺 `platformApi`） | 17 业务页                          |
-| `auth/login`         | 已实现                        | `authApi.login`                         | `/login`                           |
-| `auth/logout`        | 已实现                        | `authApi.logout`                        | —                                  |
-| `auth/accept-invite` | 已实现                        | 未接入                                  | 无 `/invite/accept`                |
-| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                  | `/wallet`                          |
+| 项                   | 后端                          | 前端 `AppApis`                            | 控制台页面                         |
+| -------------------- | ----------------------------- | ----------------------------------------- | ---------------------------------- |
+| 企业面 §5.4 域 API   | 已实现                        | 已接入（16 命名空间，缺 `platformApi`）   | 17 业务页                          |
+| `auth/login`         | 已实现                        | `authApi.login`                           | `/login`                           |
+| `auth/logout`        | 已实现                        | `authApi.logout`                          | —                                  |
+| `auth/accept-invite` | 已实现                        | 未接入                                    | 无 `/invite/accept`                |
+| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                    | `/wallet`                          |
 | `billing/recharge`   | 已实现                        | `billingApi.recharge` + `confirmRecharge` | `/wallet`（充值 create → confirm） |
-| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                  | 无 `/platform/login`               |
-| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含               | `PermissionGate` 已用于 `/wallet` |
+| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                    | 无 `/platform/login`               |
+| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
 > **类型对齐：** 前端 `WalletView` 已与后端 `WalletSummary` 对齐（`balance` / `allocatable`）。`totalConsumed` / `totalRequests` 为半真聚合，真实现见 [plan.md](./plan.md) §2。
 

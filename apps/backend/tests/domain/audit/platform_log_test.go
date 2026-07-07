@@ -7,16 +7,22 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 
 	const targetCompanyID int64 = 2
 	const action = "platform.company.recharge"
 
+	if err := st.Company().Create(context.Background(), store.Company{
+		ID: targetCompanyID, Slug: "target-co", Name: "Target Co", Status: store.CompanyStatusActive,
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if err := company.AppendPlatformOperationLog(context.Background(), st, targetCompanyID, action, "op-1", "company:2", "amount=10"); err != nil {
 		t.Fatal(err)
 	}

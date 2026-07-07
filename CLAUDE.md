@@ -22,10 +22,11 @@ pnpm -F @tokenjoy/frontend exec vitest run tests/features/auth/use-login-page.te
 
 # Backend (apps/backend, from apps/backend/)
 make start              # go run ./cmd/server (reads .env)
-make test-unit          # go test -tags=testhook ./tests/...
-make test-integration   # go test -tags=integration ./tests/store/postgres/...
+make test-unit          # go test -tags=testhook ./tests/... (requires PostgreSQL)
 make lint               # go vet + gofmt check
 make format             # gofmt -w .
+
+# Prerequisites: pnpm start:postgres (or DATABASE_URL)
 
 # Single backend test:
 cd apps/backend && go test ./tests/domain/relay/... -run TestPrecheckRejectsZeroBudget -v
@@ -51,6 +52,7 @@ React 19 SPA — Vite, TypeScript, TailwindCSS v4 (CSS-first, no tailwind.config
 - **Path alias:** `@/*` → `./src/*`, `@tests/*` → `./tests/*`
 
 Key conventions:
+
 - Route pages: `routes/{domain}/{page}.tsx` — compose only, delegate to `features/{domain}/hooks/use-{page}-page.ts`
 - Page hooks use `useInjectedApis(injectedApis?)` for testability; other code uses `useApis()`
 - Shared domain UI: `components/{domain}/` (2+ consumers); page-only: `routes/{domain}/components/`
@@ -79,14 +81,13 @@ internal/
   integration/           — external: newapi relay, datasource (feishu)
   pkg/                   — shared utilities (budget calc, org helpers, tree)
   store/                 — repository interfaces + implementations:
-    memory/              — in-memory (default, seed-driven)
-    postgres/            — PostgreSQL
+    postgres/            — PostgreSQL (production + tests)
     seed/                — demo data seeding
 tests/                   — ALL unit tests (mirrors internal/ structure)
   testutil/              — test helpers, fixtures, stubs
 ```
 
-**Store pattern:** First version uses in-memory stores seeded from `store/seed/`. PostgreSQL is optional (integration tests only). Tests always use `testutil.NewMemoryStoreFromConfig(t)`.
+**Store pattern:** Production and tests both use `postgres.New`. Tests use per-schema isolation via `testutil.NewTestStore` / `NewTestApp` (see `docs/Backend-测试优化.md`).
 
 **Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer.
 
@@ -99,7 +100,8 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 ## Testing Patterns (Backend)
 
 - Tests live in `tests/` (external test packages, e.g., `package relay_test`)
-- Use `testutil.NewMemoryStoreFromConfig(t, opts...)` for store
+- Use `testutil.NewTestStore(t, opts...)` or `testutil.NewTestApp(t, mutate)` for store/app
+- Requires PostgreSQL: `pnpm start:postgres` before `make test-unit`
 - Use `testutil.Ctx()` for a default company context
 - Use `testutil.CtxForCompany(id)` for specific company
 - Config options: `testutil.WithNewAPIEnabled(true)`, `testutil.WithSupportSaas(true)`, etc.
@@ -121,7 +123,7 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 ## Environment Variables
 
 - `VITE_API_PROXY_TARGET=http://localhost:8080` — Frontend proxy target
-- `DATABASE_URL` — PostgreSQL connection (optional; memory store used if absent)
+- `DATABASE_URL` — PostgreSQL connection (required for tests and production)
 - `NEW_API_ENABLED=true` — Enable relay integration
 - `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — Relay service credentials
 - `SESSION_SECRET` — JWT session signing key

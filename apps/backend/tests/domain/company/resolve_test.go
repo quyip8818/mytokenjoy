@@ -10,7 +10,7 @@ import (
 )
 
 func TestResolveFromMember(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{})
 	ctx := testutil.Ctx()
 
@@ -24,7 +24,7 @@ func TestResolveFromMember(t *testing.T) {
 }
 
 func TestResolveCompanyContext(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{})
 	ctx := testutil.Ctx()
 

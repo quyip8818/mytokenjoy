@@ -32,7 +32,9 @@ test.describe('我的 Key - 自管理', () => {
 
     // Submit
     await page.getByRole('contentinfo').getByRole('button', { name: '创建 Key' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Key 已生成' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('heading', { level: 2, name: 'Key 已生成' })).toBeVisible({
+      timeout: 10_000,
+    })
     await page.getByRole('button', { name: '完成' }).dispatchEvent('click')
     await expect(page.getByRole('cell', { name: 'E2E测试Key' }).first()).toBeVisible()
   })
@@ -43,7 +45,9 @@ test.describe('我的 Key - 自管理', () => {
     await page.getByRole('menuitem', { name: '重新生成' }).click()
     await expect(page.getByRole('heading', { level: 2, name: '重新生成 Key' })).toBeVisible()
     await page.getByRole('button', { name: '确认重新生成' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Key 已生成' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('heading', { level: 2, name: 'Key 已生成' })).toBeVisible({
+      timeout: 10_000,
+    })
     await page.getByRole('button', { name: '完成' }).dispatchEvent('click')
   })
 

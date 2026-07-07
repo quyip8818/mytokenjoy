@@ -10,7 +10,7 @@ import (
 )
 
 func TestProjectionUpsertBucketIdempotent(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t)
+	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	occurred := time.Date(2026, 6, 10, 9, 30, 0, 0, time.UTC)
 	entry := types.UsageLedgerEntry{

@@ -13,9 +13,9 @@ import (
 
 // stubQuotaClient implements the GetUserQuota interface for testing.
 type stubQuotaClient struct {
-	mu       sync.Mutex
-	quota    int64
-	err      error
+	mu        sync.Mutex
+	quota     int64
+	err       error
 	callCount int
 }
 

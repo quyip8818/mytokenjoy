@@ -8,26 +8,26 @@
 
 ## 文档地图
 
-| 文档                                       | 内容                                                       |
-| ------------------------------------------ | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)       | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储.md](./Backend-存储.md)     | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
-| [Backend-预算.md](./Backend-预算.md)     | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
-| [Backend-测试优化.md](./Backend-测试优化.md) | 测试瘦身、HTTP Client DSL、断言规范、迁移计划            |
+| 文档                                         | 内容                                                          |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径    |
+| [Backend-存储.md](./Backend-存储.md)         | 36 表、管理面/运行面、ER、四张合并表、ID 约定                 |
+| [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则        |
+| [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试迁移、per-schema 隔离、ingest 约束、分阶段计划 |
 
 ---
 
 ## 1. 概览
 
-| 类别 | 选型                                    |
-| ---- | --------------------------------------- |
-| 语言 | Go 1.24                                 |
-| HTTP | chi v5 + `net/http`                     |
-| 配置 | `caarlos0/env`                          |
-| 日志 | `log/slog` JSON                         |
-| JSON | camelCase 对齐前端                      |
+| 类别 | 选型                                                                  |
+| ---- | --------------------------------------------------------------------- |
+| 语言 | Go 1.24                                                               |
+| HTTP | chi v5 + `net/http`                                                   |
+| 配置 | `caarlos0/env`                                                        |
+| 日志 | `log/slog` JSON                                                       |
+| JSON | camelCase 对齐前端                                                    |
 | 测试 | `testing` + `httptest` + PostgreSQL（`tests/` 外挂；每测独立 schema） |
-| DI   | 构造函数注入，组合根 `internal/app/`    |
+| DI   | 构造函数注入，组合根 `internal/app/`                                  |
 
 ---
 
@@ -114,13 +114,13 @@ sequenceDiagram
 
 实现待办见 [plan.md](./plan.md) §3。
 
-| 约束 | 说明 |
-| --- | --- |
-| 无增量 migration | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
-| 推导字段不入库 | `memberName` / `projectName` 等仅 JSON enrich |
-| Platform Key secret | 必须经 Relay 下发；禁止本地 placeholder |
-| Rotate 过渡期 | `RotatePlatformKey` → HTTP **501**（非最终态） |
-| 错误语义 | 不存在 `404`；Relay 不可用 `503`；未实现 `501` |
+| 约束                | 说明                                                     |
+| ------------------- | -------------------------------------------------------- |
+| 无增量 migration    | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
+| 推导字段不入库      | `memberName` / `projectName` 等仅 JSON enrich            |
+| Platform Key secret | 必须经 Relay 下发；禁止本地 placeholder                  |
+| Rotate 过渡期       | `RotatePlatformKey` → HTTP **501**（非最终态）           |
+| 错误语义            | 不存在 `404`；Relay 不可用 `503`；未实现 `501`           |
 
 **本地开发：** 创建 Platform Key / 审批发 Key 须启用 Relay（`NEW_API_ENABLED` 等）；否则 `503`。
 
@@ -133,7 +133,7 @@ sequenceDiagram
 | 变量                          | 默认               | 说明                                                                          |
 | ----------------------------- | ------------------ | ----------------------------------------------------------------------------- |
 | `PORT`                        | `8080`             | HTTP                                                                          |
-| `DATABASE_URL`                | 必填（测试与生产） | Postgres；测试见 [Backend-测试优化.md](./Backend-测试优化.md) |
+| `DATABASE_URL`                | 必填（测试与生产） | Postgres；测试见 [Backend-测试优化.md](./Backend-测试优化.md)                 |
 | `SESSION_SECRET`              | **必填（目标态）** | 企业面 Session JWT 签名；见 [权限管理.md](./权限管理.md) §10                  |
 | `APP_PROFILE`                 | `demo`             | 仅非鉴权用途（如延迟模拟）；**鉴权不再分叉**，见 [权限管理.md](./权限管理.md) |
 | `DEMO_TODAY`                  | `2026-06-19`       | Demo 看板锚定                                                                 |
@@ -192,15 +192,12 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 
 **所有测试在 `apps/backend/tests/`，`internal/` 禁止 `*_test.go`。**
 
-测试优化方案见 [Backend-测试优化.md](./Backend-测试优化.md)。
-
-测试存储迁移与 PG 隔离实现见 [Backend-测试优化.md](./Backend-测试优化.md)（含 PR 拆分与代码锚点）。
+测试方案（PostgreSQL + 每测独立 schema，破坏性迁移）见 [Backend-测试优化.md](./Backend-测试优化.md)。
 
 ```bash
 cd apps/backend
-pnpm start:postgres   # 或确保 DATABASE_URL 可用
+pnpm start:postgres   # 必须
 make test-unit        # go test -tags=testhook ./tests/...
-make test-integration # 需 LOG_DATABASE_URL 的 ingest 全链路（可选）
 ```
 
 | 层       | 目录                   | CI                           |
@@ -213,14 +210,14 @@ make test-integration # 需 LOG_DATABASE_URL 的 ingest 全链路（可选）
 
 ### 5.1 `testutil` 子包
 
-| 子包              | 职责                                                                 |
-| ----------------- | -------------------------------------------------------------------- |
-| `testutil/`（根） | 通用：`config`、`ctx`、`NewTestStore`、`assert`、`app`、`session`    |
-| `testutil/org`    | Org Service、Feishu fixture、预算树持久化                            |
-| `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                               |
-| `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL              |
-| `testutil/relay`  | Gateway 场景、StubWallet、Mapping                                    |
-| `testutil/worker` | Runner 栈、Outbox 断言                                               |
+| 子包              | 职责                                                              |
+| ----------------- | ----------------------------------------------------------------- |
+| `testutil/`（根） | 通用：`config`、`ctx`、`NewTestStore`、`assert`、`app`、`session` |
+| `testutil/org`    | Org Service、Feishu fixture、预算树持久化                         |
+| `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                            |
+| `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL           |
+| `testutil/relay`  | Gateway 场景、StubWallet、Mapping                                 |
+| `testutil/worker` | Runner 栈、Outbox 断言                                            |
 
 ### 5.2 目录约定
 

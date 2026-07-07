@@ -93,6 +93,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 			KeyPrefix: "sk-test",
 			FullKey:   &fullKey,
 			Status:    "active",
+			CreatedAt: "2026-06-19",
 		}}
 		platformKeyID = keys[0].ID
 	} else {
@@ -133,7 +134,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 
 func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenario {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	fullKey := ConfigureGatewayStore(t, st, opts)
 
 	backendURL := opts.ProxyBackendURL

@@ -31,7 +31,7 @@ func TestCreateAlertRuleWithMultipleThresholds(t *testing.T) {
 		NodeID:        seed.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
-		NotifyRoleIDs: []string{"role-admin"},
+		NotifyRoleIDs: []string{"role-1"},
 		Enabled:       true,
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func TestDisabledAlertRuleDoesNotTrigger(t *testing.T) {
 		NodeID:        seed.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
-		NotifyRoleIDs: []string{"role-admin"},
+		NotifyRoleIDs: []string{"role-1"},
 		Enabled:       true,
 	})
 	if err != nil {
@@ -144,7 +144,7 @@ func TestDeleteAlertRule(t *testing.T) {
 
 func TestOverrunDepartmentThresholdSendsNotification(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
@@ -190,7 +190,7 @@ func TestOverrunDepartmentThresholdSendsNotification(t *testing.T) {
 
 func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
@@ -243,7 +243,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 
 func TestOverrunDoesNotNotifyWhenBelowBudget(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
@@ -283,7 +283,7 @@ func TestOverrunDoesNotNotifyWhenBelowBudget(t *testing.T) {
 
 func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
@@ -340,4 +340,3 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 
 // Ensure type assertion is used (suppress unused import)
 var _ config.Config
-

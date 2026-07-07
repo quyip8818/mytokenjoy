@@ -1,5 +1,3 @@
-//go:build integration
-
 package postgres_test
 
 import (
@@ -114,10 +112,10 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 }
 
 func TestMemberPersistAcrossRestart(t *testing.T) {
-	h := getTestDB(t)
+	schemaURL := testutil.TestSchemaURL(t)
 	ctx := testutil.Ctx()
 	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = h.url
+	cfg.DatabaseURL = schemaURL
 
 	st1, err := postgres.New(context.Background(), cfg)
 	if err != nil {
@@ -150,7 +148,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 		pg.Close()
 	}
 
-	st2 := reopenPostgresStore(t, h.url)
+	st2 := reopenPostgresStore(t, schemaURL)
 	members, err = st2.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)

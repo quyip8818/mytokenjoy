@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
@@ -41,7 +42,7 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 	if ingestEnabled {
 		opts = append(opts, testutil.WithIngestEnabled(true))
 	}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, opts...)
+	cfg, st := testutil.NewTestStore(t, opts...)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
 	orgSvc := orgfix.NewService(t, cfg, st)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -55,15 +56,10 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 }
 
 func PendingRelayOutbox(st store.Store, kind string) int {
-	entries, err := st.Relay().ClaimPendingRelayOutbox(testutil.Ctx(), 100)
+	ctx := testutil.Ctx()
+	entries, err := postgres.ListPendingRelayOutbox(ctx, postgres.MainPool(st), kind, 100)
 	if err != nil {
 		return 0
 	}
-	n := 0
-	for _, e := range entries {
-		if e.Kind == kind {
-			n++
-		}
-	}
-	return n
+	return len(entries)
 }

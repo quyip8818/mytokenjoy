@@ -1,6 +1,8 @@
 package testutil
 
 import (
+	"os"
+
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store/seed"
 )
@@ -8,6 +10,12 @@ import (
 const defaultDemoToday = "2026-06-19"
 
 type ConfigOption func(*config.Config)
+
+func WithConfig(cfg config.Config) ConfigOption {
+	return func(c *config.Config) {
+		*c = cfg
+	}
+}
 
 func WithNewAPIEnabled(enabled bool) ConfigOption {
 	return func(cfg *config.Config) {
@@ -55,7 +63,7 @@ func WithPlatformBootstrap(email, password string) ConfigOption {
 func WithIngestEnabled(enabled bool) ConfigOption {
 	return func(cfg *config.Config) {
 		if enabled {
-			cfg.LogDatabaseURL = "postgres://memory/logs"
+			cfg.LogDatabaseURL = cfg.DatabaseURL
 			cfg.NewAPIWebhookSecret = "test-webhook-secret"
 		} else {
 			cfg.LogDatabaseURL = ""
@@ -63,8 +71,16 @@ func WithIngestEnabled(enabled bool) ConfigOption {
 	}
 }
 
+func defaultTestDatabaseURL() string {
+	if v := os.Getenv("DATABASE_URL"); v != "" {
+		return v
+	}
+	return config.DefaultDatabaseURL
+}
+
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
+		DatabaseURL:           defaultTestDatabaseURL(),
 		DemoToday:             defaultDemoToday,
 		SimulateDelay:         false,
 		CompanyName:           "Demo Company",

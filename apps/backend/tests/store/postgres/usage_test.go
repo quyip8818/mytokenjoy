@@ -1,5 +1,3 @@
-//go:build integration
-
 package postgres_test
 
 import (
@@ -32,7 +30,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dbURL := getTestDB(t).url
+	dbURL := testutil.TestSchemaURL(t)
 	conn, err := pgx.Connect(ctx, dbURL)
 	if err != nil {
 		t.Fatal(err)

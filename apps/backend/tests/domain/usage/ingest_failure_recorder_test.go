@@ -12,7 +12,7 @@ import (
 )
 
 func TestFailureRecorderRecordFailure(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
 	const logID = int64(9100)
@@ -28,7 +28,7 @@ func TestFailureRecorderRecordFailure(t *testing.T) {
 }
 
 func TestFailureRecorderApplyRetryDone(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
 	const logID = int64(9101)
@@ -50,7 +50,7 @@ func TestFailureRecorderApplyRetryDone(t *testing.T) {
 }
 
 func TestFailureRecorderApplyRetryDead(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
 	const logID = int64(9102)
@@ -74,7 +74,7 @@ func TestFailureRecorderApplyRetryDead(t *testing.T) {
 }
 
 func TestFailureRecorderApplyRetryBackoff(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	recorder := domainusage.NewFailureRecorder(st.Logs(), nil)
 	const logID = int64(9103)

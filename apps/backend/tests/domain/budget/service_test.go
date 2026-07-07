@@ -46,17 +46,21 @@ func TestUpdateMemberQuotaBelowAllocated(t *testing.T) {
 }
 
 func TestUpdateMemberQuotaSuccess(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
-	snapshot := seed.Load(cfg)
-	members := make([]types.Member, 0, len(snapshot.Members))
-	for _, member := range snapshot.Members {
+	cfg, st := testutil.NewTestStore(t)
+	members, err := st.Org().Members(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	filtered := make([]types.Member, 0, len(members))
+	for _, member := range members {
 		if member.DepartmentID == seed.IDDept3 && member.ID != seed.IDMember1 {
 			continue
 		}
-		members = append(members, member)
+		filtered = append(filtered, member)
 	}
-	snapshot.Members = members
-	st = testutil.NewMemoryStoreFromSnapshot(snapshot)
+	if err := st.Org().SetMembers(testutil.Ctx(), filtered); err != nil {
+		t.Fatal(err)
+	}
 	svc := budget.NewService(cfg, st, common.NewDelayer(false))
 
 	result, err := svc.UpdateMemberQuota(testutil.Ctx(), seed.IDMember1, 15000)

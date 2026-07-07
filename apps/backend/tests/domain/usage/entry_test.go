@@ -35,7 +35,7 @@ func TestTruncatePreview(t *testing.T) {
 }
 
 func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t)
+	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 
 	if err := st.Audit().SetSettings(ctx, types.AuditSettings{ContentRetentionEnabled: false}); err != nil {

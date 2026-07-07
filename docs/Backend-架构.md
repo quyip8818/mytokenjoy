@@ -88,7 +88,7 @@ apps/backend/
 │   │   ├── newapi/
 │   │   └── datasource/feishu/
 │   ├── pkg/                 # budget/、org/（含 sync_diff、remote_ids）、common/、ctxcompany/
-│   └── store/               # postgres/、seed/（memory/ 计划删除，见 Backend-测试优化.md）
+│   └── store/               # postgres/、seed/
 ├── tests/
 │   ├── testutil/            # 根 + org/saas/http/relay/worker 子包
 │   ├── pkg/
@@ -177,10 +177,10 @@ type Store interface {
 }
 ```
 
-| 模式     | 条件                  | 说明                                                                 |
-| -------- | --------------------- | -------------------------------------------------------------------- |
-| Postgres | `DATABASE_URL` 必填   | 生产与测试唯一实现；36 张表见 [Backend-存储.md](./Backend-存储.md) |
-| 测试隔离 | `testhook` + per-schema | 计划移除 `memory/`；见 [Backend-测试优化.md](./Backend-测试优化.md) |
+| 模式     | 条件                               | 说明                                                               |
+| -------- | ---------------------------------- | ------------------------------------------------------------------ |
+| Postgres | `DATABASE_URL` 必填                | 生产与测试唯一实现；36 张表见 [Backend-存储.md](./Backend-存储.md) |
+| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-测试优化.md](./Backend-测试优化.md)                    |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
 - Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.ApplyTables`；demo 下 `ApplyUsageBuckets`。

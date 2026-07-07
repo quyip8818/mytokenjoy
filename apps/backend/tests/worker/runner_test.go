@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -53,6 +52,7 @@ func TestProcessRelayOutbox(t *testing.T) {
 	key := types.PlatformKey{
 		ID: "plk-worker", Name: "worker-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
+		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(testutil.Ctx())
 	if err != nil {
@@ -126,8 +126,8 @@ func TestIngestFailureMappingLateRecovery(t *testing.T) {
 	}
 
 	runner.RunOnce(ctx)
-	if mem, ok := st.(*memory.Store); ok {
-		mem.SetIngestFailureNextRetry(store.IngestFailureID(logID), time.Now().Add(-time.Second))
+	if err := st.Logs().MarkFailureRetry(ctx, store.IngestFailureID(logID), time.Now().Add(-time.Second), "mapping not found"); err != nil {
+		t.Fatal(err)
 	}
 
 	opts := relayfix.DefaultMappingOpts()

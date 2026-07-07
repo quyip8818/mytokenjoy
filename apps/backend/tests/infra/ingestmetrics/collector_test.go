@@ -10,7 +10,7 @@ import (
 )
 
 func TestCollectorRefreshAndSnapshot(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	collector := ingestmetrics.NewCollector()
 

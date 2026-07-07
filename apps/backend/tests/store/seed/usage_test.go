@@ -11,7 +11,7 @@ import (
 
 func TestApplyUsageBucketsSeedsMemoryStore(t *testing.T) {
 	cfg := testutil.TestConfig()
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	ctx := testutil.Ctx()
 
 	if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
@@ -30,7 +30,7 @@ func TestApplyUsageBucketsSeedsMemoryStore(t *testing.T) {
 
 func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	cfg := testutil.TestConfig()
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	ctx := testutil.Ctx()
 	if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)

@@ -12,7 +12,7 @@ import (
 )
 
 func TestIngestVisibleInAuditCalls(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	callLogQuerier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()

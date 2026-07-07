@@ -9,7 +9,7 @@ import (
 )
 
 func TestAuthenticateMember_Success(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
+	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@test.com", "admin123"),
 	)
 	svc := credentials.NewService(cfg, st)
@@ -25,7 +25,7 @@ func TestAuthenticateMember_Success(t *testing.T) {
 }
 
 func TestAuthenticateMember_WrongPassword(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
 
@@ -36,7 +36,7 @@ func TestAuthenticateMember_WrongPassword(t *testing.T) {
 }
 
 func TestAuthenticateMember_NonexistentEmail(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
 
@@ -47,7 +47,7 @@ func TestAuthenticateMember_NonexistentEmail(t *testing.T) {
 }
 
 func TestBootstrapPlatformIfNeeded_CreatesOperator(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
+	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
 	)
 	svc := credentials.NewService(cfg, st)
@@ -68,7 +68,7 @@ func TestBootstrapPlatformIfNeeded_CreatesOperator(t *testing.T) {
 }
 
 func TestBootstrapPlatformIfNeeded_SkipsWhenOperatorsExist(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
+	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
 	)
 	svc := credentials.NewService(cfg, st)
@@ -95,7 +95,7 @@ func TestBootstrapPlatformIfNeeded_SkipsWhenOperatorsExist(t *testing.T) {
 }
 
 func TestAuthenticatePlatform_WrongPassword(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
+	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
 	)
 	svc := credentials.NewService(cfg, st)
