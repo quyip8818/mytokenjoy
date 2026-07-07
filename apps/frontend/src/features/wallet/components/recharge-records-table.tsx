@@ -3,9 +3,8 @@ import { Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { TopUpRecordView } from '../hooks/use-wallet-page'
+import { InvoiceStatusBadge, type TopUpRecordView } from '@/features/wallet'
 import { filterTopUpRecords } from '../lib/mappers'
-import { InvoiceStatusBadge } from './invoice-status-badge'
 
 interface RechargeRecordsTableProps {
   records: TopUpRecordView[]

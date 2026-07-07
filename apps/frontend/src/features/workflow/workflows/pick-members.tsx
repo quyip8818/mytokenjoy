@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Member } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -14,7 +14,7 @@ export function PickMembersWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'pick-members'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const departmentId = entry.payload.departmentId as string
   const selectedIds = (entry.payload.selectedIds as string[]) ?? []
   const onConfirm = entry.payload.onConfirm as

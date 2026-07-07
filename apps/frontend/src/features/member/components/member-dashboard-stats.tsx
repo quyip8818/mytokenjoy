@@ -16,7 +16,7 @@ import type {
   ResourceConsumption,
   UsageStats,
 } from '@/api/types/member'
-import { MemberStatGroup } from './member-stat-group'
+import { MemberStatGroup } from '@/features/member'
 
 interface MemberDashboardStatsProps {
   loading: boolean

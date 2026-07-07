@@ -1,17 +1,20 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { CallLog } from '@/api/types'
-import { useAuditSettings } from './use-audit-settings'
-import { AUDIT_DATE_PRESET } from '@/features/audit/lib/constants'
 import {
+  AUDIT_DATE_PRESET,
   AUDIT_FILTER_ALL,
   buildCallsQuery,
+  CALL_AUDIT_CSV_HEADERS,
+  buildCallAuditCsvRows,
+  useAuditListPage,
+  useAuditSettings,
   type AuditCallsFilter,
-} from '@/features/audit/lib/query'
-import { CALL_AUDIT_CSV_HEADERS, buildCallAuditCsvRows } from '@/features/audit/lib/export'
+} from '@/features/audit'
 import { downloadCsv } from '@/lib/csv-export'
 import { queryKeys } from '@/features/query'
-import { useAuditListPage } from './use-audit-list-page'
+import { useAuditModelOptions } from './use-audit-model-options'
+import { useAuditMemberOptions } from './use-audit-member-options'
 
 const INITIAL_FILTER: AuditCallsFilter = {
   status: AUDIT_FILTER_ALL,
@@ -45,6 +48,16 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
       queryKeys.audit.calls({ filter, page: currentPage }),
   })
   const { contentRetentionEnabled } = useAuditSettings(injectedApis)
+  const { models } = useAuditModelOptions(injectedApis)
+  const { members } = useAuditMemberOptions(injectedApis)
+  const modelOptions = useMemo(
+    () => Object.fromEntries(models.map((model) => [model.name, model.displayName])),
+    [models],
+  )
+  const memberOptions = useMemo(
+    () => Object.fromEntries(members.map((member) => [member.id, member.name])),
+    [members],
+  )
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const handleExport = useCallback(() => {
@@ -77,6 +90,8 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
     setKeyword: (keyword: string) => patchFilter({ keyword }),
     expandedId,
     contentRetentionEnabled,
+    modelOptions,
+    memberOptions,
     handleExport,
     toggleExpanded,
   }

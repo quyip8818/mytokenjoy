@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import type { ProviderKey } from '@/api/types'
-import { useKeysListPage } from './use-keys-list-page'
+import { useKeysListPage } from '@/features/keys'
 
 export function useProviderKeysPage(injectedApis?: AppApis) {
   const { apis, keys, loading, error, refresh, flashRow, rowClass, openWithRefresh } =

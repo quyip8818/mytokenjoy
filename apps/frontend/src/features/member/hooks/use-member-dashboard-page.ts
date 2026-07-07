@@ -21,7 +21,7 @@ const EMPTY_DASHBOARD: MemberDashboardView = {
 export function useMemberDashboardPage(injectedApis?: AppApis) {
   const { data, loading, error, refresh } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.me.dashboard(),
+    queryKey: queryKeys.member.dashboard(),
     queryFn: (api) => api.meApi.getDashboard(),
   })
 

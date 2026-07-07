@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
@@ -29,7 +29,7 @@ export function ApprovalSubmitWorkflow({
   onPush,
   onSetDirty,
 }: WorkflowComponentProps<'approval-submit'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
   const { resolveWhitelist } = useMemberWhitelist()

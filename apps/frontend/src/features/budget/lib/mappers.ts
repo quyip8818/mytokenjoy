@@ -38,6 +38,12 @@ export function formatBudgetPeriodLabel(period: string | undefined): string {
   return `${year} 年 ${Number(month)} 月`
 }
 
+export function shiftBudgetPeriod(period: string, delta: number): string {
+  const [y, m] = period.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function computeUnallocated(node: BudgetNode): number {
   const reserved = node.reservedPool ?? 0
   const childrenSum = sumChildrenBudget(node)

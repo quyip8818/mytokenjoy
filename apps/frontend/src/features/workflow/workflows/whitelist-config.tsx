@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { RoutingRule } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
@@ -19,7 +19,7 @@ export function WhitelistConfigWorkflow({
   onPush,
   onSetDirty,
 }: WorkflowComponentProps<'whitelist-config'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const rule = entry.payload.rule as RoutingRule
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined

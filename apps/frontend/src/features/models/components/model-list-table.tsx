@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { PROVIDER_CHIP_STYLES, PROVIDER_LABELS } from '@/lib/labels'
+import { PROVIDER_CHIP_STYLES, PROVIDER_LABELS } from '@/features/models/lib/labels'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 interface ModelListTableProps {

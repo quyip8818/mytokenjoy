@@ -1,19 +1,18 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { OperationLog } from '@/api/types'
-import { AUDIT_DATE_PRESET } from '@/features/audit/lib/constants'
 import {
+  AUDIT_DATE_PRESET,
   AUDIT_FILTER_ALL,
   buildOperationsQuery,
-  type AuditOperationsFilter,
-} from '@/features/audit/lib/query'
-import {
   OPERATION_AUDIT_CSV_HEADERS,
   buildOperationAuditCsvRows,
-} from '@/features/audit/lib/export'
+  useAuditListPage,
+  type AuditOperationsFilter,
+} from '@/features/audit'
 import { downloadCsv } from '@/lib/csv-export'
 import { queryKeys } from '@/features/query'
-import { useAuditListPage } from './use-audit-list-page'
+import { useAuditMemberOptions } from './use-audit-member-options'
 
 const INITIAL_FILTER: AuditOperationsFilter = {
   action: AUDIT_FILTER_ALL,
@@ -50,6 +49,12 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
       queryKeys.audit.operations({ filter, page: currentPage }),
   })
 
+  const { members } = useAuditMemberOptions(injectedApis)
+  const memberOptions = useMemo(
+    () => Object.fromEntries(members.map((member) => [member.id, member.name])),
+    [members],
+  )
+
   const handleExport = useCallback(() => {
     downloadCsv(
       'operation-audit.csv',
@@ -76,6 +81,7 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
     setDatePreset: (datePreset: string) => patchFilter({ datePreset }),
     setOperatorId: (operatorId: string) => patchFilter({ operatorId }),
     setKeyword: (keyword: string) => patchFilter({ keyword }),
+    memberOptions,
     handleExport,
   }
 }

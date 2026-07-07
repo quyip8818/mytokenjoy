@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { BudgetProjectView, Member } from '@/api/types'
+import type { BudgetProjectView } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
 import { getCurrentBudgetPeriod } from '@/lib/date'
@@ -10,18 +10,9 @@ import {
   mapGroupsToProjectViews,
   groupsForDepartment,
   formatOverrunPolicyLabel,
+  shiftBudgetPeriod,
 } from '@/features/budget/lib/mappers'
-import {
-  BudgetTreeResponseSchema,
-  BudgetGroupsResponseSchema,
-  BudgetApprovalsResponseSchema,
-} from '@/features/budget/schemas'
-
-function shiftPeriod(period: string, delta: number) {
-  const [y, m] = period.split('-').map(Number)
-  const d = new Date(y, m - 1 + delta, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
+import { filterProjectMembers, useBudgetDepartmentMembers } from './use-budget-department-members'
 
 export function useBudgetPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
@@ -39,7 +30,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.budget.tree(period),
-    queryFn: async (api) => BudgetTreeResponseSchema.parse(await api.budgetApi.getTree(period)),
+    queryFn: async (api) => (await api.budgetApi.getTree(period)) ?? [],
   })
 
   const {
@@ -50,7 +41,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.budget.groups(),
-    queryFn: async (api) => BudgetGroupsResponseSchema.parse(await api.budgetApi.getGroups()),
+    queryFn: async (api) => (await api.budgetApi.getGroups()) ?? [],
   })
 
   const { data: overrunPolicy } = useInjectedQuery({
@@ -62,11 +53,11 @@ export function useBudgetPage(injectedApis?: AppApis) {
   const { data: approvals = [], refresh: refreshApprovals } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.budget.approvals(),
-    queryFn: async (api) => BudgetApprovalsResponseSchema.parse(await api.budgetApi.getApprovals()),
+    queryFn: async (api) => (await api.budgetApi.getApprovals()) ?? [],
   })
 
   const pendingCount = useMemo(
-    () => approvals.filter((item) => item.status === 'pending').length,
+    () => (approvals ?? []).filter((item) => item.status === 'pending').length,
     [approvals],
   )
 
@@ -103,30 +94,15 @@ export function useBudgetPage(injectedApis?: AppApis) {
   )
 
   const departmentIdForMembers = activeProject?.departmentId ?? selectedNode?.id
-  const departmentMembersQuery = useMemo(
-    () => ({
-      departmentId: departmentIdForMembers,
-      page: 1,
-      pageSize: 200,
-    }),
-    [departmentIdForMembers],
-  )
-
-  const { data: departmentMembersResult, loading: departmentMembersLoading } = useInjectedQuery({
+  const { departmentMembers, departmentMembersLoading } = useBudgetDepartmentMembers({
     injectedApis,
-    queryKey: queryKeys.org.members(departmentMembersQuery),
-    queryFn: (api) => api.memberApi.list(departmentMembersQuery),
-    enabled: Boolean(departmentIdForMembers),
+    departmentId: departmentIdForMembers,
   })
 
-  const departmentMembers = useMemo(
-    () => departmentMembersResult?.items ?? [],
-    [departmentMembersResult?.items],
+  const projectMembers = useMemo(
+    () => (activeProject ? filterProjectMembers(departmentMembers, activeProject.memberIds) : []),
+    [activeProject, departmentMembers],
   )
-  const projectMembers = useMemo((): Member[] => {
-    if (!activeProject) return []
-    return departmentMembers.filter((member) => activeProject.memberIds.includes(member.id))
-  }, [activeProject, departmentMembers])
 
   const periodLabel = useMemo(() => formatBudgetPeriodLabel(period), [period])
 
@@ -203,7 +179,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     error,
     refresh,
     overrunPolicy,
-    shiftPeriod: (delta: number) => setPeriod((current) => shiftPeriod(current, delta)),
+    shiftPeriod: (delta: number) => setPeriod((current) => shiftBudgetPeriod(current, delta)),
     handleSelectTeam,
     setActiveProjectId,
     updateDepartment,

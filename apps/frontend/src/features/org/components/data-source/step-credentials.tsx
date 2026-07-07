@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
+import { PLATFORM_LABELS } from '@/features/org/lib/labels'
 
 interface StepCredentialsProps {
   platform: Platform
@@ -32,12 +33,6 @@ interface WecomFields {
 }
 
 type FormFields = FeishuFields & DingtalkFields & WecomFields
-
-const platformLabels: Record<Platform, string> = {
-  feishu: '飞书',
-  dingtalk: '钉钉',
-  wecom: '企业微信',
-}
 
 export function StepCredentials({
   platform,
@@ -107,7 +102,7 @@ export function StepCredentials({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold">配置 {platformLabels[platform]} 凭证</h3>
+        <h3 className="text-sm font-semibold">配置 {PLATFORM_LABELS[platform]} 凭证</h3>
         <p className="text-sm text-muted-foreground mt-1">
           填写应用凭证信息并测试连接，确认能正常访问组织数据
         </p>

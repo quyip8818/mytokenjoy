@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { KeyApproval } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
@@ -13,7 +13,7 @@ export function ApprovalReviewWorkflow({
   onPush,
   onClose,
 }: WorkflowComponentProps<'approval-review'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const approval = entry.payload.approval as KeyApproval
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined

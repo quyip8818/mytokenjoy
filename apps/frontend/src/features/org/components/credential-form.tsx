@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PLATFORM_LABELS } from '@/features/org/lib/labels'
 
 interface CredentialFormProps {
   connected: boolean
@@ -42,12 +43,6 @@ interface WecomFields {
 }
 
 type FormFields = FeishuFields & DingtalkFields & WecomFields
-
-const platformLabels: Record<Platform, string> = {
-  feishu: '飞书',
-  dingtalk: '钉钉',
-  wecom: '企业微信',
-}
 
 export function CredentialForm({
   connected,
@@ -176,7 +171,7 @@ export function CredentialForm({
           {(['feishu', 'dingtalk', 'wecom'] as Platform[]).map((p) => (
             <Label key={p} className="cursor-pointer">
               <RadioGroupItem value={p} />
-              <span className="text-sm">{platformLabels[p]}</span>
+              <span className="text-sm">{PLATFORM_LABELS[p]}</span>
             </Label>
           ))}
         </RadioGroup>

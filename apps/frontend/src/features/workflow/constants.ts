@@ -1,5 +1,3 @@
-export const QUOTA_INSUFFICIENT_MESSAGE = '额度不足，请先申请追加'
-
 export const WORKFLOW_LAYER_WIDTH = {
   layer1: '75vw',
   layer2: '62vw',

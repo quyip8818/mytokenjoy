@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { setAuthzRevisionHandler, setForbiddenHandler } from '@/api/client'
-import { SessionContextSchema } from '@/api/schemas/session'
 import { LOGIN_PATH } from '@/config/auth'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { AUTHZ_BROADCAST_CHANNEL, SESSION_FOCUS_REFRESH_MS } from './authz-sync'
@@ -26,14 +25,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
     queryKey: queryKeys.session.current(),
     enabled: !isLoginPage,
     retry: false,
-    queryFn: async (a) => {
-      const data = await a.sessionApi.getCurrent()
-      const parsed = SessionContextSchema.safeParse(data)
-      if (!parsed.success) {
-        throw new Error('Invalid session response')
-      }
-      return parsed.data
-    },
+    queryFn: (a) => a.sessionApi.getCurrent(),
   })
 
   const authzRevisionRef = useRef(0)
@@ -94,7 +86,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
     return {
       companyId: query.data?.companyId ?? 0,
       authzRevision: query.data?.authzRevision ?? 0,
-      memberId: query.data?.member.id ?? '',
+      memberId: query.data?.member?.id ?? '',
       member: query.data?.member ?? null,
       permissions: query.data?.permissions ?? [],
       readOnly: query.data?.readOnly ?? false,

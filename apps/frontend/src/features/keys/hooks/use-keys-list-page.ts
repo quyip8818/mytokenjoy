@@ -3,7 +3,7 @@ import { useInjectedApis } from '@/api/use-apis'
 import type { PlatformKey, ProviderKey } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { useWorkflowRefresh } from '@/features/workflow'
 
 export type KeysListSource = 'platform' | 'provider'
 

@@ -17,7 +17,7 @@ export const queryKeys = {
   keys: keysKeys,
   models: modelsKeys,
   audit: auditKeys,
-  billing: walletKeys,
-  me: memberKeys,
+  wallet: walletKeys,
+  member: memberKeys,
   dashboard: dashboardKeys,
 }

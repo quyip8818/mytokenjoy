@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { RoutingRule } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { useWorkflowRefresh } from '@/features/workflow'
 import { findParentDeptId } from '@/features/org/lib/departments'
 
 export function useModelRoutingPage(injectedApis?: AppApis) {

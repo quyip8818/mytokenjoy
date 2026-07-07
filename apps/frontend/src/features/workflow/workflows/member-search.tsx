@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import type { Member } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { WorkflowPickerShell } from '../components/workflow-picker-shell'
@@ -17,7 +17,7 @@ export function MemberSearchWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'member-search'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const excludeIds = (entry.payload.excludeIds as string[]) ?? []
   const onConfirm = entry.payload.onConfirm as ((members: Member[]) => void) | undefined
   const multi = entry.payload.multi !== false
