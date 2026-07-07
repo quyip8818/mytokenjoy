@@ -82,6 +82,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/calls", h.CallsList)
 
 	httpmiddleware.ReadRoutes(r, h.Protected).
-		With(httpmiddleware.RequireAnyPermission(permission.AuditRead)).
+		With(httpmiddleware.RequireAnyPermission(permission.OrgStructure)).
 		Put("/settings", h.SettingsUpdate)
 }

@@ -107,6 +107,11 @@ func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 		DepartmentID:  query.Get("departmentId"),
 		Type:          query.Get("type"),
 	})
+	if err == nil {
+		for i := range keys.Items {
+			keys.Items[i].FullKey = nil
+		}
+	}
 	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 
@@ -132,6 +137,9 @@ func (h *Handler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, err := h.service.UpdatePlatformKey(r.Context(), chi.URLParam(r, "id"), body)
+	if err == nil {
+		key.FullKey = nil
+	}
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
@@ -142,6 +150,9 @@ func (h *Handler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, err := h.service.TogglePlatformKey(r.Context(), chi.URLParam(r, "id"), body.Enabled)
+	if err == nil {
+		key.FullKey = nil
+	}
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
