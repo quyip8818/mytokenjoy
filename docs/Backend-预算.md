@@ -69,12 +69,13 @@ flowchart LR
   ING --> Q[rebalance_queue / overrun_queue]
 ```
 
-### 2.1 入账路径
+### 2.1 入账路径（方案 B）
 
-1. NewAPI settle → `POST /api/internal/webhooks/newapi-log`（或 Worker `compensateLogs`）
-2. `FindMappingByNewAPITokenID` → `company_id`、部门/成员/组归因
-3. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
-4. `store.WithTx`：ledger `INSERT ON CONFLICT` → projection → 副作用入队
+1. NewAPI settle → 写共享 `logs` 库 → `EnqueueNotify(log_id)` → `POST /api/internal/webhooks/newapi-log`
+2. Worker 兜底：`ingest_failures` 重试 + `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
+3. `FindMappingByNewAPITokenID` → `company_id`、部门/成员/组归因
+4. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
+5. `store.WithTx`：ledger `INSERT ON CONFLICT` → projection → 副作用入队
 
 ### 2.2 `projection.Apply` 顺序
 
@@ -169,9 +170,7 @@ sequenceDiagram
   ING->>DB: WithTx 账本 + projection + 入队
 ```
 
-Worker 还通过 `relay_sync_cursors` **补偿轮询** NewAPI 日志，同样走 `Ingest`。
-
-**失败重试：** webhook channel outbox；与 relay outbox 分离。
+失败重试：`ingest_failures` 表 + Worker lease 占位；与 relay outbox 分离。详见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
 
 ---
 

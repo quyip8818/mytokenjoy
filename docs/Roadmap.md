@@ -1,6 +1,6 @@
 # TokenJoy Roadmap
 
-PRD 与当前实现的差距，以及计划优化项。**现状**见 [Backend.md](./Backend.md)（索引）、[Frontend.md](./Frontend.md)。
+PRD 与当前实现的差距。**工程待办**见 [plan.md](./plan.md)；**现状**见 [Backend.md](./Backend.md)（索引）、[Frontend.md](./Frontend.md)。
 
 **图例：** ✅ 已实现 · ⚠️ 部分实现 · ❌ 未实现 · 🔥 破坏性替换（见 [权限管理.md](./权限管理.md)）
 
@@ -69,7 +69,7 @@ PRD 与当前实现的差距，以及计划优化项。**现状**见 [Backend.md
 | `POST /auth/login`         | ✅   | ✅                                                      |
 | `POST /auth/logout`        | ✅   | ✅（`authApi.logout`）                                  |
 | `POST /auth/accept-invite` | ✅   | ⚠️ 无独立页 / API 封装                                  |
-| `/billing/*`               | ✅   | ⚠️ `/billing` 页；缺 `confirm`；`WalletView` 字段待对齐 |
+| `/billing/*`               | ✅   | ⚠️ `/wallet` 为主；`/billing` → `/wallet` redirect；`confirm` 已接入 |
 | `/platform/*`              | ✅   | ❌                                                      |
 
 ---
@@ -86,7 +86,7 @@ PRD 与当前实现的差距，以及计划优化项。**现状**见 [Backend.md
 | 全部业务路由 Session + capability | ✅   | 统一 `ReadRoutes`                                      |
 | UI stale 策略                     | ✅   | revision 头 / focus / broadcast / 403                  |
 | `POST /api/auth/login`            | ✅   | 前后端均已接入                                         |
-| Billing 前端                      | ⚠️   | `/billing` + `PermissionGate`；缺 `confirm` 与类型对齐 |
+| Billing 前端                      | ⚠️   | `/wallet` + `PermissionGate`；`totalConsumed` 等待真账单域 |
 | 平台 JWT                          | ✅   | 独立 `PLATFORM_SESSION_SECRET`                         |
 | E2E 完整登录流程 spec             | ⚠️   | `auth.ts` helper 已有；spec 仅未登录重定向             |
 
@@ -117,6 +117,7 @@ PRD 与当前实现的差距，以及计划优化项。**现状**见 [Backend.md
 ## 10. 变更约定
 
 1. 实现后更新本文状态或移除条目
-2. API 变更同步 [Frontend.md](./Frontend.md) §5 + `api/types/`
+2. 工程待办同步 [plan.md](./plan.md)
+3. API 变更同步 [Frontend.md](./Frontend.md) §5 + `api/types/`
 3. 权限变更同步 [权限管理.md](./权限管理.md) + `manifest.json`
 4. 产品新需求先更新 [TokenJoy-PRD.md](./TokenJoy-PRD.md)

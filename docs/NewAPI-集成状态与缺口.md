@@ -1,6 +1,6 @@
-# NewAPI 集成状态与缺口
+# NewAPI 集成状态
 
-TokenJoy 与 NewAPI 的集成现状、已落地能力与**仍待处理**缺口。入账终态以共享 `logs` 库 + notify 主路径 + reconcile 兜底为准（方案 B）。
+TokenJoy 与 NewAPI 的集成现状与已落地能力。入账终态以共享 `logs` 库 + notify 主路径 + reconcile 兜底为准（方案 B）。**剩余缺口与联调 checklist** 见 [plan.md](./plan.md) §1。
 
 ---
 
