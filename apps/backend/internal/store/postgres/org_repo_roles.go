@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -29,33 +30,7 @@ func (r *pgOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error)
 }
 
 func (r *pgOrgRepo) rolesForCompany(ctx context.Context, companyID int64) ([]types.Role, error) {
-	rows, err := r.db.Query(ctx, `SELECT id, name, type, member_count FROM roles WHERE company_id = $1 ORDER BY id`, companyID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := make([]types.Role, 0)
-	for rows.Next() {
-		var role types.Role
-		if err := rows.Scan(&role.ID, &role.Name, &role.Type, &role.MemberCount); err != nil {
-			return nil, err
-		}
-		permRows, err := r.db.Query(ctx, `
-			SELECT permission_id FROM role_permission_grants
-			WHERE company_id = $1 AND role_id = $2 ORDER BY permission_id
-		`, companyID, role.ID)
-		if err == nil {
-			for permRows.Next() {
-				var permID string
-				if err := permRows.Scan(&permID); err == nil {
-					role.Permissions = append(role.Permissions, permID)
-				}
-			}
-			permRows.Close()
-		}
-		items = append(items, role)
-	}
-	return store.CloneRoles(items), rows.Err()
+	return r.Roles(company.WithContext(ctx, company.Context{CompanyID: companyID}))
 }
 
 func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID int64) (map[string]string, error) {
@@ -81,29 +56,41 @@ func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	items := make([]types.Role, 0)
+	type roleRow struct {
+		role types.Role
+	}
+	batch := make([]roleRow, 0)
 	for rows.Next() {
-		var role types.Role
-		if err := rows.Scan(&role.ID, &role.Name, &role.Type, &role.MemberCount); err != nil {
+		var row roleRow
+		if err := rows.Scan(&row.role.ID, &row.role.Name, &row.role.Type, &row.role.MemberCount); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		batch = append(batch, row)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	items := make([]types.Role, 0, len(batch))
+	for _, row := range batch {
+		role := row.role
 		grantRows, err := r.db.Query(ctx, `
 			SELECT permission_ref FROM role_permission_grants WHERE company_id = $1 AND role_id = $2 ORDER BY permission_ref
 		`, companyID, role.ID)
-		if err == nil {
-			for grantRows.Next() {
-				var ref string
-				if err := grantRows.Scan(&ref); err == nil {
-					role.Permissions = append(role.Permissions, ref)
-				}
-			}
-			grantRows.Close()
+		if err != nil {
+			return nil, err
 		}
+		for grantRows.Next() {
+			var ref string
+			if err := grantRows.Scan(&ref); err != nil {
+				grantRows.Close()
+				return nil, err
+			}
+			role.Permissions = append(role.Permissions, ref)
+		}
+		grantRows.Close()
 		items = append(items, role)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 	return store.CloneRoles(items), nil
 }

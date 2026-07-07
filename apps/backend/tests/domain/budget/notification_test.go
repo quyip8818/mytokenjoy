@@ -23,7 +23,7 @@ import (
 
 func TestOverrunNotifiesOnDepartmentExhaustion(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
 	notifier := &testutil.RecordingNotifier{}
@@ -54,7 +54,7 @@ func TestOverrunNotifiesOnDepartmentExhaustion(t *testing.T) {
 
 func TestOverrunBlocksEvenIfNotificationFails(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
 	notifier := &testutil.FailingNotifier{}
@@ -78,7 +78,7 @@ func TestOverrunBlocksEvenIfNotificationFails(t *testing.T) {
 
 func TestOverrunSkipsWhenBudgetNotExhausted(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
 	notifier := &testutil.RecordingNotifier{}

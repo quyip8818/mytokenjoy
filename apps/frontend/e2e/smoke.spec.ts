@@ -22,8 +22,6 @@ const routes = [
 for (const { path, heading } of routes) {
   test(`${path} renders heading "${heading}"`, async ({ page }) => {
     await page.goto(path)
-    await expect(
-      page.getByRole('banner').getByRole('heading', { name: heading }),
-    ).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('heading', { name: heading })).toBeVisible()
   })
 }

@@ -15,7 +15,7 @@ import (
 
 func newMemberService(t *testing.T) (domainmember.Service, context.Context) {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.CtxForCompany(seed.DefaultCompanyID)
 	if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)

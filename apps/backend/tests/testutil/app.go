@@ -17,12 +17,17 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	if mutate != nil {
 		mutate(&cfg)
 	}
-	st := NewMemoryStore(t, cfg)
-	if cfg.IsDemoProfile() {
-		if err := seed.ApplyUsageBuckets(Ctx(), st, cfg); err != nil {
+	storeCfg := cfg
+	if cfg.IsProdProfile() {
+		storeCfg.Profile = config.ProfileDemo
+	}
+	_, st := NewTestStore(t, func(c *config.Config) { *c = storeCfg })
+	if storeCfg.IsDemoProfile() {
+		ctx := Ctx()
+		if err := seed.ApplyUsageBuckets(ctx, st, storeCfg); err != nil {
 			t.Fatalf("apply usage buckets: %v", err)
 		}
-		if err := seed.ApplyRechargeOrders(Ctx(), st); err != nil {
+		if err := seed.ApplyRechargeOrders(ctx, st); err != nil {
 			t.Fatalf("apply recharge orders: %v", err)
 		}
 	}

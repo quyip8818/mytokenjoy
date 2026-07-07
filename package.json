@@ -15,7 +15,6 @@
     "lint": "pnpm -r --parallel lint",
     "format": "prettier --write . && pnpm -F @tokenjoy/backend format",
     "test": "pnpm -r --parallel test",
-    "test:integration": "pnpm -F @tokenjoy/backend test:integration",
     "test:e2e": "pnpm -F @tokenjoy/frontend test:e2e",
     "test:newapi-management": "apps/newapi/scripts/test-management.sh",
     "verify": "pnpm lint && pnpm test && pnpm test:newapi-management && pnpm build && pnpm -F @tokenjoy/backend build:check"

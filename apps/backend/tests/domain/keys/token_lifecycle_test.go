@@ -19,6 +19,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 	key := types.PlatformKey{
 		ID: "plk-test", Name: "test-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
+		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -57,6 +58,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	key := types.PlatformKey{
 		ID: "plk-sync", Name: "sync-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
+		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -113,6 +115,7 @@ func TestRollbackFailedCreate(t *testing.T) {
 	key := types.PlatformKey{
 		ID: "plk-rollback", Name: "rollback", MemberID: &memberID,
 		Status: "active", Quota: 500, ModelWhitelist: []string{"gpt-4o"},
+		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {

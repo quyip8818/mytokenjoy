@@ -29,6 +29,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 		); err != nil {
 			return nil, err
 		}
+		item.CompanyID = companyID
 		roleRows, err := r.db.Query(ctx, `
 			SELECT ro.name FROM member_roles mr
 			JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
@@ -69,6 +70,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 		}
 		return nil, err
 	}
+	item.CompanyID = companyID
 	roleRows, err := r.db.Query(ctx, `
 		SELECT ro.name FROM member_roles mr
 		JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id

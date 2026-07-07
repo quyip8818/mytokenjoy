@@ -15,7 +15,7 @@ import (
 
 func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	return domainkeys.NewService(cfg, st, lifecycle, common.NewDelayer(false)), st
 }
@@ -23,7 +23,7 @@ func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {
 func newKeysServiceWithRelay(t *testing.T) (domainkeys.Service, store.Store, *mock.StubAdminClient) {
 	t.Helper()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, Key: "sk-test-key", RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
+	cfg, st := testutil.NewTestStore(t,
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithNewAPIBaseURL("http://relay.test"),
 		testutil.WithNewAPIAdminToken("token"),
@@ -34,7 +34,7 @@ func newKeysServiceWithRelay(t *testing.T) (domainkeys.Service, store.Store, *mo
 
 func newTokenLifecycle(t *testing.T, stub *mock.StubAdminClient) (*relay.TokenLifecycle, store.Store) {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t,
+	cfg, st := testutil.NewTestStore(t,
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithNewAPIBaseURL("http://relay.test"),
 		testutil.WithNewAPIAdminToken("token"),

@@ -63,7 +63,7 @@
 
 **本地**
 
-- [ ] `pnpm start`：默认无 NewAPI，入账靠测试 mock / memory LogStore
+- [ ] `pnpm start`：默认无 NewAPI，入账靠测试 mock / PostgreSQL `newapi.logs`（`testutil.SeedConsumeLog`）
 - [ ] `pnpm start:relay`：完整栈；Backend 需配置 `LOG_DATABASE_URL` 与 webhook secret
 
 ---
@@ -72,13 +72,13 @@
 
 MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `// TODO(real):`）。
 
-| API | 现状 | 目标 |
-| --- | --- | --- |
-| `GET/PUT /budget/approvals` | 内存 fake（按 company 隔离，seed 5 条） | 预算审批工作流持久化 |
-| `GET/PUT/GET test /org/data-source/field-mappings` | 内存 fake（按 company + platform） | 同步引擎 + DB 持久化 |
-| `GET /billing/recharge-records` | 半真（`company_recharge_orders` + invoice/method overlay fake） | 支付渠道、发票系统 |
-| `GET /billing/wallet` 的 `totalConsumed` / `totalRequests` | 半真（usage 聚合） | 统一账单域（`billing/service.go`） |
-| `GET /me/dashboard` | fake BFF（usage 按 memberId 聚合 + keys quota 代理） | 独立成员分析域（`member/dashboard.go`） |
+| API                                                        | 现状                                                            | 目标                                    |
+| ---------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `GET/PUT /budget/approvals`                                | 内存 fake（按 company 隔离，seed 5 条）                         | 预算审批工作流持久化                    |
+| `GET/PUT/GET test /org/data-source/field-mappings`         | 内存 fake（按 company + platform）                              | 同步引擎 + DB 持久化                    |
+| `GET /billing/recharge-records`                            | 半真（`company_recharge_orders` + invoice/method overlay fake） | 支付渠道、发票系统                      |
+| `GET /billing/wallet` 的 `totalConsumed` / `totalRequests` | 半真（usage 聚合）                                              | 统一账单域（`billing/service.go`）      |
+| `GET /me/dashboard`                                        | fake BFF（usage 按 memberId 聚合 + keys quota 代理）            | 独立成员分析域（`member/dashboard.go`） |
 
 **刻意保留占位（需 UI 决策或真后端）**
 
@@ -158,14 +158,14 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 
 **发布顺序：** 产品模型手工验收 → 生产 DDL → 前后端同发 → UI 像素验收 → E2E。
 
-| 门禁 | 级别 |
-| --- | --- |
-| 产品模型手工验收（6 项） | **阻断** |
-| Handler / Feature 单测复跑 | **阻断** |
-| `models` 四列迁移 | **阻断** |
-| 前后端同发 | **阻断** |
-| UI 像素验收 | 建议 |
-| E2E（keys / models / audit / wallet / member） | 建议 |
+| 门禁                                           | 级别     |
+| ---------------------------------------------- | -------- |
+| 产品模型手工验收（6 项）                       | **阻断** |
+| Handler / Feature 单测复跑                     | **阻断** |
+| `models` 四列迁移                              | **阻断** |
+| 前后端同发                                     | **阻断** |
+| UI 像素验收                                    | 建议     |
+| E2E（keys / models / audit / wallet / member） | 建议     |
 
 **回滚：** DDL 仅 additive、不回滚；应用须前后端成对回滚。
 
@@ -236,15 +236,15 @@ UPDATE models SET visibility = 'all' WHERE visibility = '' OR visibility IS NULL
 - `platform_keys` 行数 > **500**
 - `GET /keys/platform` P99 > **300ms**
 
-| # | 任务 | 技术方向 |
-| --- | --- | --- |
-| 1 | 删冗余列 | `DROP member_name, budget_group_name`；repo 停读写 |
-| 2 | SQL 筛选 | `keys_repo.ListPlatformKeysFiltered`，JOIN members / budget_groups |
-| 3 | 真分页 | `page` / `pageSize` / `total` + SQL `LIMIT/OFFSET` |
-| 4 | 列表 RBAC | 非管理员默认 `departmentId=会话部门` |
-| 5 | 后端搜索 `q` | 名称/前缀模糊，替代前端全量 `search` |
-| 6 | `visibility` 运行时 | 与 `model_allowlist`、部门路由合并校验 |
-| 7 | Models `type` query | 仅当模型数 > 500 |
+| #   | 任务                | 技术方向                                                           |
+| --- | ------------------- | ------------------------------------------------------------------ |
+| 1   | 删冗余列            | `DROP member_name, budget_group_name`；repo 停读写                 |
+| 2   | SQL 筛选            | `keys_repo.ListPlatformKeysFiltered`，JOIN members / budget_groups |
+| 3   | 真分页              | `page` / `pageSize` / `total` + SQL `LIMIT/OFFSET`                 |
+| 4   | 列表 RBAC           | 非管理员默认 `departmentId=会话部门`                               |
+| 5   | 后端搜索 `q`        | 名称/前缀模糊，替代前端全量 `search`                               |
+| 6   | `visibility` 运行时 | 与 `model_allowlist`、部门路由合并校验                             |
+| 7   | Models `type` query | 仅当模型数 > 500                                                   |
 
 **可提前立项（不依赖性能触发）：**
 

@@ -1,4 +1,4 @@
-.PHONY: start test test-unit test-integration build lint format scaffold-domain
+.PHONY: start test test-unit build lint format scaffold-domain
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
@@ -10,10 +10,8 @@ start:
 test: test-unit
 
 test-unit:
-	go test -tags=testhook ./tests/...
-
-test-integration:
-	go test -tags=integration -count=1 ./tests/store/postgres/...
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
+	go test -tags=testhook $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
 
 build:
 	go build -o bin/server ./cmd/server

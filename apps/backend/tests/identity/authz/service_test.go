@@ -11,7 +11,7 @@ import (
 func newAuthzService(t *testing.T) authz.Service {
 	t.Helper()
 	cfg := testutil.TestConfig()
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	return authz.NewService(cfg, st)
 }
 

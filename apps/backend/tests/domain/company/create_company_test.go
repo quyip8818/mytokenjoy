@@ -8,15 +8,12 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/store/memory"
-	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
 func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
-	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(true))
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{
 		CreateUserFn: func(context.Context, newapi.CreateUserRequest) (newapi.User, error) {
 			return newapi.User{}, errors.New("newapi unavailable")
@@ -50,8 +47,7 @@ func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
 }
 
 func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
-	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(true))
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{
 		User: newapi.User{ID: 501, Quota: 0},
 	}

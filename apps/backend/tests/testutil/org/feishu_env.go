@@ -22,7 +22,7 @@ func SetupFeishuConnected(t *testing.T) FeishuOrgEnv {
 	server := testutil.StartFeishuMockServer(t)
 	cfg := testutil.TestConfig()
 	cfg.FeishuBaseURL = server.URL
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	testutil.ConnectFeishuDataSource(t, &cfg, st, server.URL)
 	return FeishuOrgEnv{
 		Cfg: cfg, Store: st,
@@ -51,7 +51,7 @@ func SetupImportedFeishuOrgWithServer(t *testing.T, serverURL string) FeishuOrgE
 	t.Helper()
 	cfg := testutil.TestConfig()
 	cfg.FeishuBaseURL = serverURL
-	st := testutil.NewMemoryStore(t, cfg)
+	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	testutil.ConnectFeishuDataSource(t, &cfg, st, serverURL)
 	env := FeishuOrgEnv{
 		Cfg: cfg, Store: st,

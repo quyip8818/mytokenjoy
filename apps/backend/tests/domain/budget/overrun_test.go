@@ -31,7 +31,7 @@ func newOverrunService(t *testing.T, cfg config.Config, st store.Store, stub *mo
 
 func TestOverrunDisablesDepartmentKeys(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	overrun := budget.NewOverrunService(cfg, st, relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg)), notification.NewService(cfg, st, slog.Default()), slog.Default())
 	ctx := testutil.Ctx()
 
@@ -59,7 +59,7 @@ func TestOverrunDisablesDepartmentKeys(t *testing.T) {
 }
 
 func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	overrun := budget.NewOverrunService(cfg, st, nil, notification.NewService(cfg, st, slog.Default()), slog.Default())
 	ctx := testutil.Ctx()
 
@@ -74,7 +74,7 @@ func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
 
 func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	overrun := newOverrunService(t, cfg, st, stub)
 	ctx := testutil.Ctx()
 
@@ -114,7 +114,7 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 
 func TestOverrunBudgetGroupAxis(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	overrun := newOverrunService(t, cfg, st, stub)
 	ctx := testutil.Ctx()
 

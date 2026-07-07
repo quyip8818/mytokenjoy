@@ -32,7 +32,7 @@ make scaffold-domain DOMAIN=notification
 ## 不自动生成（需手工）
 
 - `internal/domain/types/` 中的 DTO（与前端契约绑定）
-- `store.*Repository` 新方法（`store/memory` + Postgres 双实现）
+- `store.*Repository` 新方法（Postgres 实现，见 `internal/store/postgres/`）
 - 前端 `api/types/` 与契约文档
 
 ## 模板目录

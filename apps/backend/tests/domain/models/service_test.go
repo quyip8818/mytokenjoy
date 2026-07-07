@@ -11,7 +11,7 @@ import (
 
 func newModelsService(t *testing.T) models.Service {
 	t.Helper()
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	return models.NewService(cfg, st, nil, nil, common.NewDelayer(false))
 }
 

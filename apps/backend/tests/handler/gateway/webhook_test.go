@@ -11,6 +11,7 @@ import (
 
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 
+	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -21,8 +22,19 @@ import (
 
 const webhookSecret = "test-secret"
 
+func newWebhookApp(t *testing.T, mutate func(*config.Config)) *app.App {
+	t.Helper()
+	return testhttp.NewApp(t, func(cfg *config.Config) {
+		cfg.NewAPIWebhookSecret = webhookSecret
+		testutil.WithIngestEnabled(true)(cfg)
+		if mutate != nil {
+			mutate(cfg)
+		}
+	})
+}
+
 func TestWebhookUnauthorized(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
 	router := app.Router
@@ -47,7 +59,7 @@ func TestWebhookUnauthorized(t *testing.T) {
 }
 
 func TestWebhookInvalidPayload(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader([]byte(`{}`)))
@@ -61,7 +73,7 @@ func TestWebhookInvalidPayload(t *testing.T) {
 }
 
 func TestWebhookIngestSuccess(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
 	beforeBuckets := testutil.UsageBucketCount(app.Store)
@@ -109,7 +121,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 }
 
 func TestWebhookIngestIdempotent(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
 	beforeBuckets := testutil.UsageBucketCount(app.Store)
@@ -130,7 +142,7 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 }
 
 func TestWebhookIngestWritesLedgerFields(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
 	relayfix.UpsertMapping(t, app.Store, relayfix.DefaultMappingOpts())
@@ -178,7 +190,7 @@ func TestWebhookIngestWritesLedgerFields(t *testing.T) {
 }
 
 func TestWebhookLogNotFoundReturns503(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
 	body, _ := json.Marshal(map[string]int64{"log_id": 99999})
@@ -193,7 +205,7 @@ func TestWebhookLogNotFoundReturns503(t *testing.T) {
 }
 
 func TestWebhookMappingMissingAcceptsAndRecordsFailure(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		testutil.WithIngestEnabled(true)(cfg)
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
@@ -215,7 +227,7 @@ func TestWebhookMappingMissingAcceptsAndRecordsFailure(t *testing.T) {
 }
 
 func TestIngestMetricsEndpoint(t *testing.T) {
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
+	app := newWebhookApp(t, func(cfg *config.Config) {
 		testutil.WithIngestEnabled(true)(cfg)
 		cfg.NewAPIWebhookSecret = webhookSecret
 	})
@@ -252,7 +264,9 @@ func TestIngestMetricsEndpoint(t *testing.T) {
 }
 
 func TestIngestMetricsDisabledReturns404(t *testing.T) {
-	app := testhttp.NewApp(t, nil)
+	app := testhttp.NewApp(t, func(cfg *config.Config) {
+		cfg.NewAPIWebhookSecret = webhookSecret
+	})
 	req := httptest.NewRequest(http.MethodGet, "/api/internal/metrics/ingest", nil)
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)

@@ -29,7 +29,7 @@ func TestGatewayCheckOrder_InvalidKey(t *testing.T) {
 }
 
 func TestGatewayCheckOrder_DisabledKey(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithNewAPIEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{
 		Budget:      1000,

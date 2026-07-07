@@ -13,12 +13,18 @@ test.describe('审批中心', () => {
   })
 
   test('default tab is 待我审批', async ({ page }) => {
-    await expect(page.getByRole('tab', { name: /待我审批/ })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('tab', { name: /待我审批/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
   })
 
   test('switches between tabs', async ({ page }) => {
     await page.getByRole('tab', { name: '我的申请' }).click()
-    await expect(page.getByRole('tab', { name: '我的申请' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('tab', { name: '我的申请' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
     await page.getByRole('tab', { name: '全部' }).click()
     await expect(page.getByRole('tab', { name: '全部' })).toHaveAttribute('aria-selected', 'true')
   })

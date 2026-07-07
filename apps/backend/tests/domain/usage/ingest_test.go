@@ -15,7 +15,7 @@ import (
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 	ctx := testutil.Ctx()
@@ -102,7 +102,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 }
 
 func TestIngestByLogID(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
@@ -117,7 +117,7 @@ func TestIngestByLogID(t *testing.T) {
 }
 
 func TestIngestWritesUsageBucket(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
@@ -137,7 +137,7 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 }
 
 func TestIngestRaw(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
@@ -152,7 +152,7 @@ func TestIngestRaw(t *testing.T) {
 }
 
 func TestIngestByLogIDNotFound(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 
 	err := ingest.IngestByLogID(testutil.Ctx(), 9999, types.SourceWebhook)
@@ -165,7 +165,7 @@ func TestIngestByLogIDNotFound(t *testing.T) {
 }
 
 func TestIngestByLogIDMappingMissing(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(5005, 42))
 

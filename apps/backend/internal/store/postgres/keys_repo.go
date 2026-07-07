@@ -101,24 +101,36 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	items := make([]types.PlatformKey, 0)
+	type keyRow struct {
+		item types.PlatformKey
+	}
+	batch := make([]keyRow, 0)
 	for rows.Next() {
-		var item types.PlatformKey
+		var row keyRow
 		var createdAt time.Time
 		var expiresAt *time.Time
 		if err := rows.Scan(
-			&item.ID, &item.Name, &item.KeyPrefix, &item.FullKey, &item.MemberID,
-			&item.BudgetGroupID, &item.Status,
-			&item.Quota, &item.Used, &createdAt, &expiresAt,
+			&row.item.ID, &row.item.Name, &row.item.KeyPrefix, &row.item.FullKey, &row.item.MemberID,
+			&row.item.BudgetGroupID, &row.item.Status,
+			&row.item.Quota, &row.item.Used, &createdAt, &expiresAt,
 		); err != nil {
+			rows.Close()
 			return nil, err
 		}
-		item.CreatedAt = formatDateOnly(createdAt)
+		row.item.CreatedAt = formatDateOnly(createdAt)
 		if expiresAt != nil {
 			s := formatDateOnly(*expiresAt)
-			item.ExpiresAt = &s
+			row.item.ExpiresAt = &s
 		}
+		batch = append(batch, row)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	items := make([]types.PlatformKey, 0, len(batch))
+	for _, row := range batch {
+		item := row.item
 		modelRows, err := r.db.Query(ctx, `
 			SELECT model_name FROM model_allowlist
 			WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
@@ -137,9 +149,6 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 		}
 		modelRows.Close()
 		items = append(items, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 	return store.ClonePlatformKeys(items), nil
 }

@@ -1,4 +1,4 @@
-package memory_test
+package postgres_test
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestUpsertFailurePreservesAttemptsOnConflict(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	logID := int64(9001)
 
@@ -49,7 +49,7 @@ func TestUpsertFailurePreservesAttemptsOnConflict(t *testing.T) {
 }
 
 func TestUpsertFailureDoesNotReviveDead(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	logID := int64(9002)
 	id := store.IngestFailureID(logID)
@@ -82,7 +82,7 @@ type errTest string
 func (e errTest) Error() string { return string(e) }
 
 func TestClaimPendingFailuresLeasesRows(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	logID := int64(9003)
 
@@ -111,7 +111,7 @@ func TestClaimPendingFailuresLeasesRows(t *testing.T) {
 }
 
 func TestGetConsumeLogByIDNotFound(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 
 	_, err := st.Logs().GetConsumeLogByID(ctx, 1)
@@ -121,7 +121,7 @@ func TestGetConsumeLogByIDNotFound(t *testing.T) {
 }
 
 func TestListConsumeLogIDsAfterFiltersAndOrders(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 10, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
@@ -138,7 +138,7 @@ func TestListConsumeLogIDsAfterFiltersAndOrders(t *testing.T) {
 }
 
 func TestReconcileCursorRoundTrip(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 
 	if err := st.Logs().SetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume, 42); err != nil {
@@ -151,7 +151,7 @@ func TestReconcileCursorRoundTrip(t *testing.T) {
 }
 
 func TestMarkFailureRetryAndDone(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 	logID := int64(9004)
 	id := store.IngestFailureID(logID)
@@ -184,7 +184,7 @@ func TestMarkFailureRetryAndDone(t *testing.T) {
 }
 
 func TestIngestMetricsCounts(t *testing.T) {
-	_, st := testutil.NewMemoryStoreFromConfig(t, testutil.WithIngestEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	ctx := testutil.Ctx()
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(50, 1))

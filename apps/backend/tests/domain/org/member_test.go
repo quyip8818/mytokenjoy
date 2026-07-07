@@ -52,7 +52,7 @@ func TestCreateMemberUnknownDepartment404(t *testing.T) {
 }
 
 func TestDeleteMembersDisablesKeys(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -82,7 +82,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 }
 
 func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -103,7 +103,7 @@ func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
 }
 
 func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -149,7 +149,7 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 }
 
 func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -168,7 +168,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 }
 
 func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -192,7 +192,7 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 }
 
 func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -225,7 +225,7 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 }
 
 func TestBatchImportBumpsAuthzRevision(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -272,7 +272,7 @@ func TestListMembersDirectOnly(t *testing.T) {
 }
 
 func TestBatchInviteByIDs(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
@@ -306,7 +306,7 @@ func TestBatchInviteByIDs(t *testing.T) {
 }
 
 func TestBatchInviteAllPending(t *testing.T) {
-	cfg, st := testutil.NewMemoryStoreFromConfig(t)
+	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 

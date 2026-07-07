@@ -1,21 +1,53 @@
 package testutil
 
 import (
+	"context"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/memory"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-func NewMemoryStore(t *testing.T, cfg config.Config) store.Store {
-	t.Helper()
-	return memory.New(seed.Load(cfg))
-}
-
-func NewMemoryStoreFromConfig(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
+func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
 	t.Helper()
 	cfg := TestConfig(opts...)
-	return cfg, NewMemoryStore(t, cfg)
+	_, schemaURL := openTestSchema(t)
+	cfg.DatabaseURL = schemaURL
+	if cfg.IngestEnabled() {
+		cfg.LogDatabaseURL = schemaURL
+	}
+	st, err := postgres.New(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("create postgres store: %v", err)
+	}
+	clearDemoRuntimeSeed(t, st)
+	if cfg.IngestEnabled() {
+		ingestTestMu.Lock()
+		t.Cleanup(func() { ingestTestMu.Unlock() })
+		pool := postgres.LogPool(st)
+		if err := postgres.TruncateLogTables(context.Background(), pool); err != nil {
+			t.Fatalf("truncate log tables: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = postgres.TruncateLogTables(context.Background(), pool)
+		})
+	}
+	t.Cleanup(func() {
+		if pg, ok := st.(*postgres.Store); ok {
+			pg.Close()
+		}
+	})
+	return cfg, st
+}
+
+func clearDemoRuntimeSeed(t *testing.T, st store.Store) {
+	t.Helper()
+	pool := postgres.MainPool(st)
+	_, err := pool.Exec(context.Background(), `
+		TRUNCATE usage_buckets, company_recharge_orders RESTART IDENTITY
+	`)
+	if err != nil {
+		t.Fatalf("clear demo runtime seed: %v", err)
+	}
 }

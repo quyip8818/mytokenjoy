@@ -1,19 +1,20 @@
 package testutil
 
 import (
+	"context"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/memory"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 )
+
+const defaultConsumeLogUnix = 1718794800 // 2026-06-19T11:00:00Z, within UsageBucketRows query window
 
 func SeedConsumeLog(t *testing.T, st store.Store, raw store.RawConsumeLog) {
 	t.Helper()
-	mem, ok := st.(*memory.Store)
-	if !ok {
-		t.Fatal("SeedConsumeLog requires memory store")
+	if err := postgres.InsertConsumeLog(context.Background(), postgres.LogPool(st), raw); err != nil {
+		t.Fatal(err)
 	}
-	mem.PutConsumeLog(raw)
 }
 
 func DefaultConsumeLog(logID, tokenID int64) store.RawConsumeLog {
@@ -22,7 +23,7 @@ func DefaultConsumeLog(logID, tokenID int64) store.RawConsumeLog {
 		TokenID:   tokenID,
 		Quota:     500000,
 		ModelName: "gpt-4o",
-		CreatedAt: 1,
+		CreatedAt: defaultConsumeLogUnix,
 	}
 }
 
@@ -37,11 +38,10 @@ func PendingIngestFailureCount(t *testing.T, st store.Store) int {
 
 func AssertIngestFailure(t *testing.T, st store.Store, logID int64, wantSource string) store.IngestFailure {
 	t.Helper()
-	mem, ok := st.(*memory.Store)
-	if !ok {
-		t.Fatal("AssertIngestFailure requires memory store")
+	f, found, err := postgres.GetIngestFailureByLogID(context.Background(), postgres.LogPool(st), logID)
+	if err != nil {
+		t.Fatal(err)
 	}
-	f, found := mem.IngestFailureByLogID(logID)
 	if !found {
 		t.Fatalf("expected ingest failure for log %d", logID)
 	}

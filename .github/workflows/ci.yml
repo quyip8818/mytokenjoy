@@ -7,6 +7,20 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: tokenjoy
+          POSTGRES_PASSWORD: tokenjoy
+          POSTGRES_DB: tokenjoy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tokenjoy -d tokenjoy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
 
@@ -23,33 +37,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm verify
-
-  backend-integration:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
+      - name: Verify
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tokenjoy_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-
-      - name: Test backend integration
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/tokenjoy_test?sslmode=disable
+          DATABASE_URL: postgres://tokenjoy:tokenjoy@localhost:5432/tokenjoy?sslmode=disable
+          SESSION_SECRET: tokenjoy-dev-session-secret
           COMPANY_NAME: Demo Company
-        run: pnpm test:integration
+        run: pnpm verify

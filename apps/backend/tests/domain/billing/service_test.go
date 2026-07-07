@@ -8,7 +8,6 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/memory"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -16,8 +15,7 @@ import (
 
 func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbilling.Service, store.Store, context.Context) {
 	t.Helper()
-	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(true))
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	wallet := company.NewWalletService(cfg, client)
 	svc := domainbilling.NewService(cfg, st, client, wallet, func(ctx context.Context, companyID int64) error {
 		return st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
@@ -58,8 +56,7 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 }
 
 func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
-	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(true))
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
 	ctx := testutil.Ctx()
@@ -114,8 +111,7 @@ func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 }
 
 func TestConfirmPaymentFailsWithoutWallet(t *testing.T) {
-	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(true))
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
 	ctx := testutil.Ctx()
@@ -136,8 +132,7 @@ func TestConfirmPaymentFailsWithoutWallet(t *testing.T) {
 }
 
 func TestTopUpAndFinishFailsWhenNewAPIDisabled(t *testing.T) {
-	cfg := testutil.TestConfig(testutil.WithNewAPIEnabled(false))
-	st := memory.New(seed.Load(cfg))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(false))
 	client := &mock.StubAdminClient{}
 	walletID := int64(501)
 	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), seed.DefaultCompanyID, walletID); err != nil {

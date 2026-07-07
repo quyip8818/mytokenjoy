@@ -32,7 +32,7 @@ func (s *countingStore) Org() store.OrgRepository {
 func newCountingAuthzService(t *testing.T) (authz.Service, *countingOrgRepo) {
 	t.Helper()
 	cfg := testutil.TestConfig()
-	base := testutil.NewMemoryStore(t, cfg)
+	_, base := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	orgRepo := &countingOrgRepo{OrgRepository: base.Org()}
 	wrapped := &countingStore{Store: base, org: orgRepo}
 	return authz.NewService(cfg, wrapped), orgRepo

@@ -115,11 +115,13 @@ func TestUsageSeriesGroupByDepartmentHTTP(t *testing.T) {
 }
 
 func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
-	app := testutil.NewTestApp(t, nil)
+	app := testutil.NewTestApp(t, func(cfg *config.Config) {
+		testutil.WithIngestEnabled(true)(cfg)
+	})
 	relayfix.UpsertMapping(t, app.Store, relayfix.MappingOpts{
 		PlatformKeyID: "plk-minute-test", NewAPITokenID: 42,
 	})
-	ingest := testutil.NewIngestService(t, testutil.TestConfig(), app.Store)
+	ingest := testutil.NewIngestService(t, testutil.TestConfig(testutil.WithIngestEnabled(true)), app.Store)
 	occurredAt := time.Date(2026, 6, 10, 9, 3, 0, 0, time.UTC)
 	testutil.SeedConsumeLog(t, app.Store, store.RawConsumeLog{
 		ID: 88001, TokenID: 42, Quota: 500000, ModelName: "gpt-4o", CreatedAt: occurredAt.Unix(),
