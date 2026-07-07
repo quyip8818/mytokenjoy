@@ -1,5 +1,5 @@
-import { CallLogsPageContent } from '@/features/audit'
+import { CallLogsPageShell, useAuditCallsPage } from '@/features/audit'
 
 export default function CallLogsPage() {
-  return <CallLogsPageContent />
+  return <CallLogsPageShell {...useAuditCallsPage()} />
 }

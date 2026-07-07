@@ -8,7 +8,12 @@ interface CostDistributionChartProps {
 
 export function CostDistributionChart({ data, loading }: CostDistributionChartProps) {
   return (
-    <DataSection title="部门成本占比" loading={loading} skeletonColumns={1}>
+    <DataSection
+      title="部门成本占比"
+      loading={loading}
+      skeletonColumns={1}
+      className="border-border shadow-xs"
+    >
       <ResponsiveContainer width="100%" height={280}>
         <PieChart>
           <Pie

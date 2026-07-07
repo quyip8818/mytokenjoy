@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { PLATFORM_LABELS } from '@/features/org/lib/labels'
+import { PLATFORM_LABELS } from '@/features/org'
 
 interface CredentialFormProps {
   connected: boolean

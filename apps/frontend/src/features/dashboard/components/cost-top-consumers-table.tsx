@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { TopConsumer } from '@/api/types'
-import { formatTokenCount } from '@/features/dashboard/lib/dashboard'
+import { formatTokenCount } from '@/features/dashboard'
 
 interface CostTopConsumersTableProps {
   topConsumers: TopConsumer[]
@@ -17,24 +17,35 @@ interface CostTopConsumersTableProps {
 
 export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumersTableProps) {
   return (
-    <DataSection title="消费排行 Top 5" loading={loading} skeletonColumns={6}>
+    <DataSection
+      title="消费排行 Top 5"
+      loading={loading}
+      skeletonColumns={6}
+      className="border-border shadow-xs"
+    >
       <Table>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>排名</TableHead>
-            <TableHead>成员</TableHead>
-            <TableHead>部门</TableHead>
-            <TableHead className="text-right">花费 (¥)</TableHead>
-            <TableHead className="text-right">Token 数</TableHead>
-            <TableHead className="text-right">请求数</TableHead>
+          <TableRow className="border-border/50 hover:bg-transparent">
+            <TableHead className="text-xs font-semibold text-muted-foreground">排名</TableHead>
+            <TableHead className="text-xs font-semibold text-muted-foreground">成员</TableHead>
+            <TableHead className="text-xs font-semibold text-muted-foreground">部门</TableHead>
+            <TableHead className="text-right text-xs font-semibold text-muted-foreground">
+              花费 (¥)
+            </TableHead>
+            <TableHead className="text-right text-xs font-semibold text-muted-foreground">
+              Token 数
+            </TableHead>
+            <TableHead className="text-right text-xs font-semibold text-muted-foreground">
+              请求数
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {topConsumers.map((c, i) => (
-            <TableRow key={c.memberId}>
+            <TableRow key={c.memberId} className="border-border-subtle hover:bg-muted/50">
               <TableCell>
                 <div
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${i < 3 ? 'bg-gradient-to-br from-blue-500 to-sky-500' : 'bg-slate-300'}`}
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${i < 3 ? 'bg-primary' : 'bg-slate-300'}`}
                 >
                   {i + 1}
                 </div>

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { useLoginPage } from '@/features/auth/hooks/use-login-page'
+import type { useLoginPage } from '@/features/auth'
 
 type LoginFormProps = ReturnType<typeof useLoginPage>
 

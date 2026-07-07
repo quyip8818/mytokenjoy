@@ -2,12 +2,8 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
-import { mapGroupsToProjectViews } from '@/features/budget/lib/mappers'
-import {
-  alertRuleToView,
-  alertRuleFromView,
-  type AlertRuleView,
-} from '@/features/budget/lib/alerts'
+import { mapGroupsToProjectViews } from '../lib/mappers'
+import { alertRuleToView, alertRuleFromView, type AlertRuleView } from '../lib/alerts'
 
 export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)

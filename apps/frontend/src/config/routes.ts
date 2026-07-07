@@ -7,9 +7,11 @@ import {
   Cpu,
   CreditCard,
   Database,
+  FileText,
   GitBranch,
   Globe,
   Key,
+  LayoutDashboard,
   ScrollText,
   Shield,
   ShieldAlert,
@@ -26,19 +28,22 @@ export interface RouteDefinition {
   path: string
   label: string
   icon: LucideIcon
-  requiredPermissions: readonly PermissionKey[]
-  badgeKey?: 'approvalPending'
+  audience: 'admin' | 'member'
   lazy: () => Promise<LazyPageModule>
-  navGroup: string
+  requiredPermissions?: readonly PermissionKey[]
+  badgeKey?: 'approvalPending'
+  navGroup?: string
   navGroupCollapsed?: boolean
+  navEnd?: boolean
 }
 
-export const ROUTE_DEFINITIONS = [
+const ADMIN_ROUTE_DEFINITIONS = [
   {
     key: 'orgDataSource',
     path: '/org/data-source',
     label: '数据源',
     icon: Database,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.ORG_DATASOURCE],
     lazy: () => import('@/routes/org/data-source'),
     navGroup: '组织',
@@ -48,6 +53,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/org/structure',
     label: '组织架构',
     icon: Building2,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS, PERMISSION.ORG_READ],
     lazy: () => import('@/routes/org/structure'),
     navGroup: '组织',
@@ -57,6 +63,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/org/roles',
     label: '角色管理',
     icon: Shield,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.ORG_ROLES, PERMISSION.ORG_READ],
     lazy: () => import('@/routes/org/roles'),
     navGroup: '组织',
@@ -66,6 +73,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/budget',
     label: '预算管理',
     icon: Wallet,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.BUDGET_READ],
     lazy: () => import('@/routes/budget'),
     navGroup: '预算',
@@ -75,6 +83,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/budget/alerts',
     label: '预警规则',
     icon: ShieldAlert,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.BUDGET_POLICY],
     lazy: () => import('@/routes/budget/alerts'),
     navGroup: '预算',
@@ -84,6 +93,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/models/list',
     label: '模型列表',
     icon: Cpu,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.MODEL_MANAGE, PERMISSION.MODEL_READ],
     lazy: () => import('@/routes/models/list'),
     navGroup: '模型管理',
@@ -93,6 +103,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/models/routing',
     label: '模型白名单',
     icon: GitBranch,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.MODEL_WHITELIST],
     lazy: () => import('@/routes/models/routing'),
     navGroup: '模型管理',
@@ -102,6 +113,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/keys/mine',
     label: '我的 Key',
     icon: CreditCard,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.SELF_KEYS],
     lazy: () => import('@/routes/keys/mine'),
     navGroup: 'Key 中心',
@@ -111,6 +123,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/keys/approval',
     label: '审批中心',
     icon: CheckCircle2,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL],
     badgeKey: 'approvalPending' as const,
     lazy: () => import('@/routes/keys/approval'),
@@ -121,6 +134,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/keys/platform',
     label: 'Key 管理',
     icon: Globe,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.KEYS_ADMIN, PERMISSION.KEYS_READ],
     lazy: () => import('@/routes/keys/platform'),
     navGroup: 'Key 中心',
@@ -130,6 +144,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/keys/provider',
     label: '供应商 Key',
     icon: Key,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.KEYS_PROVIDER, PERMISSION.KEYS_READ],
     lazy: () => import('@/routes/keys/provider'),
     navGroup: 'Key 中心',
@@ -139,6 +154,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/dashboard/cost',
     label: '成本看板',
     icon: BarChart3,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.DASHBOARD_COST],
     lazy: () => import('@/routes/dashboard/cost'),
     navGroup: '数据中心',
@@ -149,6 +165,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/dashboard/usage',
     label: '用量分析',
     icon: TrendingUp,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.DASHBOARD_USAGE],
     lazy: () => import('@/routes/dashboard/usage'),
     navGroup: '数据中心',
@@ -158,6 +175,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/wallet',
     label: '钱包管理',
     icon: Wallet,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.BILLING_READ],
     lazy: () => import('@/routes/wallet'),
     navGroup: '财务管理',
@@ -167,6 +185,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/audit/operations',
     label: '操作审计',
     icon: ScrollText,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.AUDIT_READ],
     lazy: () => import('@/routes/audit/operations'),
     navGroup: '审计',
@@ -177,11 +196,54 @@ export const ROUTE_DEFINITIONS = [
     path: '/audit/calls',
     label: '调用日志',
     icon: Activity,
+    audience: 'admin',
     requiredPermissions: [PERMISSION.AUDIT_READ],
     lazy: () => import('@/routes/audit/calls'),
     navGroup: '审计',
   },
 ] as const satisfies readonly RouteDefinition[]
+
+const MEMBER_ROUTE_DEFINITIONS_INTERNAL = [
+  {
+    key: 'memberDashboard',
+    path: '/me',
+    label: '工作台',
+    icon: LayoutDashboard,
+    audience: 'member',
+    lazy: () => import('@/routes/member'),
+    navEnd: true,
+  },
+  {
+    key: 'memberKeys',
+    path: '/me/keys',
+    label: '我的 Key',
+    icon: Key,
+    audience: 'member',
+    lazy: () => import('@/routes/member/keys'),
+  },
+  {
+    key: 'memberCallLogs',
+    path: '/me/call-logs',
+    label: '使用记录',
+    icon: FileText,
+    audience: 'member',
+    lazy: () => import('@/routes/member/call-logs'),
+  },
+] as const satisfies readonly RouteDefinition[]
+
+export const ALL_ROUTE_DEFINITIONS = [
+  ...ADMIN_ROUTE_DEFINITIONS,
+  ...MEMBER_ROUTE_DEFINITIONS_INTERNAL,
+] as const satisfies readonly RouteDefinition[]
+
+export const ROUTE_DEFINITIONS = ADMIN_ROUTE_DEFINITIONS
+export const MEMBER_ROUTE_DEFINITIONS = MEMBER_ROUTE_DEFINITIONS_INTERNAL
+
+export type MemberRoutePath = (typeof MEMBER_ROUTE_DEFINITIONS)[number]['path']
+
+export const ROUTE_REDIRECTS: Record<string, string> = {
+  '/billing': '/wallet',
+}
 
 export type RouteKey = (typeof ROUTE_DEFINITIONS)[number]['key']
 
@@ -208,7 +270,7 @@ export const ROUTE_META: RouteMeta[] = ROUTE_DEFINITIONS.map((definition) => ({
   path: definition.path as RoutePath,
   label: definition.label,
   icon: definition.icon,
-  requiredPermissions: definition.requiredPermissions,
+  requiredPermissions: definition.requiredPermissions ?? [],
   ...('badgeKey' in definition && definition.badgeKey ? { badgeKey: definition.badgeKey } : {}),
 }))
 
@@ -221,6 +283,7 @@ export interface NavGroupLayoutEntry {
 export const NAV_GROUP_LAYOUT: NavGroupLayoutEntry[] = (() => {
   const groups: NavGroupLayoutEntry[] = []
   for (const definition of ROUTE_DEFINITIONS) {
+    if (!definition.navGroup) continue
     let group = groups.find((entry) => entry.group === definition.navGroup)
     if (!group) {
       group = {
@@ -273,23 +336,23 @@ export const APP_ROUTES: AppRouteEntry[] = ROUTE_DEFINITIONS.map(({ path, lazy }
 const LAZY_IMPORT_PATTERN = /import\(['"](@\/routes\/[^'"]+)['"]\)/
 
 export function validateRouteDefinitions(): void {
-  const keys = ROUTE_DEFINITIONS.map((definition) => definition.key)
-  const paths = ROUTE_DEFINITIONS.map((definition) => definition.path)
+  const keys = ALL_ROUTE_DEFINITIONS.map((definition) => definition.key)
+  const paths = ALL_ROUTE_DEFINITIONS.map((definition) => definition.path)
 
   if (new Set(keys).size !== keys.length) {
-    throw new Error('ROUTE_DEFINITIONS contains duplicate keys')
+    throw new Error('ALL_ROUTE_DEFINITIONS contains duplicate keys')
   }
 
   if (new Set(paths).size !== paths.length) {
-    throw new Error('ROUTE_DEFINITIONS contains duplicate paths')
+    throw new Error('ALL_ROUTE_DEFINITIONS contains duplicate paths')
   }
 
-  const lazyImportMatches = ROUTE_DEFINITIONS.map((definition) =>
+  const lazyImportMatches = ALL_ROUTE_DEFINITIONS.map((definition) =>
     definition.lazy.toString().match(LAZY_IMPORT_PATTERN),
   )
 
   if (lazyImportMatches.some((match) => !match)) {
-    throw new Error('ROUTE_DEFINITIONS lazy imports must use import("@/routes/...") syntax')
+    throw new Error('ALL_ROUTE_DEFINITIONS lazy imports must use import("@/routes/...") syntax')
   }
 }
 
@@ -301,6 +364,20 @@ export function getRouteLazyImportPaths(): string[] {
     }
     return match[1]
   })
+}
+
+export function getMemberRouteLazyImportPaths(): string[] {
+  return MEMBER_ROUTE_DEFINITIONS.map((definition) => {
+    const match = definition.lazy.toString().match(LAZY_IMPORT_PATTERN)
+    if (!match?.[1]) {
+      throw new Error(`Unable to resolve lazy import for member route ${definition.key}`)
+    }
+    return match[1]
+  })
+}
+
+export function toMemberRouterPath(path: MemberRoutePath): string {
+  return path.slice(1)
 }
 
 export function toRouterPath(route: RoutePath): string {

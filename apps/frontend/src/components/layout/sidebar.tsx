@@ -148,8 +148,8 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
   return (
     <div className="relative z-10 flex shrink-0 items-start gap-1 border-b border-sidebar-border/70 px-4 py-5">
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-xl font-extrabold tracking-tight text-gradient">TokenJoy</h1>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">LLM API 管理平台</p>
+        <h1 className="truncate text-base font-semibold text-primary">TokenJoy</h1>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">LLM API 管理平台</p>
       </div>
       <div className="pt-0.5">{toggleButton}</div>
     </div>
@@ -179,10 +179,6 @@ export function Sidebar() {
         )}
         style={{ boxShadow: 'var(--shadow-sidebar)' }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-sky-500/[0.015]" />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-primary/4 blur-3xl" />
-        <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 rounded-full bg-sky-400/4 blur-3xl" />
-
         <SidebarHeader collapsed={collapsed} onToggle={toggleCollapsed} />
 
         <nav
@@ -200,7 +196,7 @@ export function Sidebar() {
                 {!collapsed && (
                   <div
                     className={cn(
-                      'mb-1.5 px-2.5 text-xs font-semibold uppercase tracking-wider',
+                      'mb-1.5 px-2.5 text-xs font-medium uppercase tracking-wide',
                       isGroupActive ? 'text-primary' : 'text-muted-foreground',
                       group.collapsed && 'text-muted-foreground/60',
                     )}

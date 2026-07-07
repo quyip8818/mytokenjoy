@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { flattenDepartments } from '@/features/org/lib/departments'
+import { flattenDepartments } from '@/features/org'
 
 interface MemberFormData {
   name: string

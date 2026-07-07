@@ -9,6 +9,7 @@ interface StatCardProps {
   accent?: boolean
   icon?: LucideIcon
   iconAccent?: string
+  iconAccentStyle?: 'gradient' | 'solid'
   className?: string
 }
 
@@ -19,24 +20,31 @@ export function StatCard({
   accent,
   icon: Icon,
   iconAccent = 'from-blue-500 to-sky-500',
+  iconAccentStyle = 'gradient',
   className,
 }: StatCardProps) {
+  const isSolid = iconAccentStyle === 'solid'
+
   return (
     <Card
       className={cn(
-        'border-border/50 shadow-card transition-all duration-200',
-        Icon && 'hover:shadow-card-hover hover:-translate-y-0.5',
+        isSolid ? 'border-border shadow-xs' : 'border-border/50 shadow-card',
+        !isSolid &&
+          Icon &&
+          'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover',
         className,
       )}
     >
-      <CardContent className={cn('pt-4 pb-3', Icon ? 'px-5' : undefined)}>
+      <CardContent
+        className={cn(isSolid ? 'px-5 pt-5 pb-4' : cn('pt-4 pb-3', Icon ? 'px-5' : undefined))}
+      >
         {Icon ? (
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">{label}</span>
             <div
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br',
-                iconAccent,
+                'flex h-8 w-8 items-center justify-center rounded-lg',
+                isSolid ? iconAccent : cn('bg-gradient-to-br', iconAccent),
               )}
             >
               <Icon className="h-4 w-4 text-white" />

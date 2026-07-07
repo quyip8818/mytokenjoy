@@ -9,34 +9,34 @@ import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { cn } from '@/lib/utils'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import { useMyKeysPage } from '../hooks/use-my-keys-page'
+import type { useMyKeysPage } from '@/features/keys'
 import { MyKeysTable } from './my-keys-table'
 
-type MyKeysPageShellProps = {
+type MyKeysPageShellProps = ReturnType<typeof useMyKeysPage> & {
   memberPortal?: boolean
   description?: ReactNode
 }
 
-export function MyKeysPageShell({ memberPortal = false, description }: MyKeysPageShellProps) {
-  const {
-    keys,
-    quota,
-    loading,
-    error,
-    refresh,
-    deleteTarget,
-    setDeleteTarget,
-    applyQuotaCta,
-    createKeyCta,
-    handleDelete,
-    handleToggleWithFlash,
-    rowClass,
-    openCreateKey,
-    openEditKey,
-    openRotateKey,
-    openWithRefresh,
-  } = useMyKeysPage()
-
+export function MyKeysPageShell({
+  memberPortal = false,
+  description,
+  keys,
+  quota,
+  loading,
+  error,
+  refresh,
+  deleteTarget,
+  setDeleteTarget,
+  applyQuotaCta,
+  createKeyCta,
+  handleDelete,
+  handleToggleWithFlash,
+  rowClass,
+  openCreateKey,
+  openEditKey,
+  openRotateKey,
+  openWithRefresh,
+}: MyKeysPageShellProps) {
   const applyQuotaButton = (
     <Button
       id={applyQuotaCta.id}

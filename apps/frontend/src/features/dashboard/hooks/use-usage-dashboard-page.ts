@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { CostQueryParams } from '@/api/types'
-import { COST_PERIOD } from '@/features/dashboard/lib/constants'
+import { COST_PERIOD } from '../lib/constants'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 export function useUsageDashboardPage(injectedApis?: AppApis) {

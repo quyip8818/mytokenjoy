@@ -1,5 +1,5 @@
 import type { TeamUsage } from '@/api/types'
-import { teamUsagePercent } from '@/features/dashboard/lib/team-usage'
+import { teamUsagePercent } from '@/features/dashboard'
 import {
   Table,
   TableBody,

@@ -11,7 +11,7 @@ import {
   groupsForDepartment,
   formatOverrunPolicyLabel,
   shiftBudgetPeriod,
-} from '@/features/budget/lib/mappers'
+} from '../lib/mappers'
 import { filterProjectMembers, useBudgetDepartmentMembers } from './use-budget-department-members'
 
 export function useBudgetPage(injectedApis?: AppApis) {

@@ -1,6 +1,5 @@
 import { useInjectedApis } from '@/api/use-apis'
-import { CredentialForm } from '@/features/org/components/credential-form'
-import { SyncConfigPanel } from '@/features/org/components/sync-config'
+import { CredentialForm, SyncConfigPanel } from '@/features/org'
 import type { ComponentProps } from 'react'
 
 type CredentialBridgeProps = Omit<ComponentProps<typeof CredentialForm>, 'dataSourceApi'>

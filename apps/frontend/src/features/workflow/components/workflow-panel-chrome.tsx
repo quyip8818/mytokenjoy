@@ -25,7 +25,7 @@ export function WorkflowPanelChrome({
 }: WorkflowPanelChromeProps) {
   return (
     <div className="flex h-full flex-col bg-card">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-6">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-4">
         {showBack && onBack ? (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
@@ -33,28 +33,28 @@ export function WorkflowPanelChrome({
         ) : (
           <div className="w-8" />
         )}
-        <h2 className="flex-1 text-base font-semibold text-foreground">{title}</h2>
+        <h2 className="flex-1 text-sm font-semibold text-foreground">{title}</h2>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </header>
 
       {contextBar && (
-        <div className="shrink-0 border-b border-border/40 bg-muted/50 px-6 py-2 text-sm text-muted-foreground">
+        <div className="shrink-0 border-b border-border/40 bg-muted/50 px-5 py-2 text-sm text-muted-foreground">
           {contextBar}
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+      <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
 
       {banner && (
-        <div className="shrink-0 border-t border-amber-200/60 bg-amber-50/80 px-6 py-3 dark:border-amber-900/40 dark:bg-amber-950/30">
+        <div className="shrink-0 border-t border-amber-200/60 bg-amber-50/80 px-5 py-3 dark:border-amber-900/40 dark:bg-amber-950/30">
           {banner}
         </div>
       )}
 
       {footer && (
-        <footer className="flex h-16 shrink-0 items-center justify-end gap-3 border-t border-border/60 px-6">
+        <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border px-5 py-4">
           {footer}
         </footer>
       )}

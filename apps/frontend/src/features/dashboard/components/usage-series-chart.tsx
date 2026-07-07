@@ -7,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import type { UsageSeriesChartPoint } from '@/features/dashboard/lib/dashboard'
+import type { UsageSeriesChartPoint } from '@/features/dashboard'
 
 interface UsageSeriesChartProps {
   data: UsageSeriesChartPoint[]

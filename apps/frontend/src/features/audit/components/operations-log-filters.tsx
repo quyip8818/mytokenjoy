@@ -1,5 +1,5 @@
 import { OptionsSelect } from '@/components/ui/options-select'
-import { OPERATION_ACTION_LABELS } from '@/features/audit/lib/labels'
+import { OPERATION_ACTION_LABELS } from '@/features/audit'
 
 interface OperationsLogFiltersProps {
   actionFilter: string

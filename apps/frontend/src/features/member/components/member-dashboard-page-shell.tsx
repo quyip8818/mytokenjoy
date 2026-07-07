@@ -5,7 +5,7 @@ import { PERMISSION } from '@/lib/permissions'
 import { usePermissions } from '@/hooks/use-permissions'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import type { useMemberDashboardPage } from '@/features/member/hooks/use-member-dashboard-page'
+import type { useMemberDashboardPage } from '@/features/member'
 import { MemberConsumptionCharts } from './member-consumption-charts'
 import { MemberDashboardStats } from './member-dashboard-stats'
 

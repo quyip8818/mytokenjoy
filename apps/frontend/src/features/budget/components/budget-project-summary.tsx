@@ -1,7 +1,7 @@
 import type { BudgetProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { POLICY_LABELS } from '@/features/budget/lib/constants'
+import { POLICY_LABELS } from '@/features/budget'
 
 type BudgetProjectHeaderProps = {
   project: BudgetProjectView

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import type { useApprovalPage } from '@/features/keys/hooks/use-approval-page'
+import type { useApprovalPage } from '@/features/keys'
 import { ApprovalTable } from './approval-table'
 
 type ApprovalPageShellProps = ReturnType<typeof useApprovalPage>

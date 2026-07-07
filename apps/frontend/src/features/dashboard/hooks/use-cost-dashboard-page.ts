@@ -7,11 +7,12 @@ import type {
   DepartmentCost,
   DepartmentCostMember,
 } from '@/api/types'
-import { COST_GRANULARITY, COST_PERIOD } from '@/features/dashboard/lib/constants'
+import { COST_GRANULARITY, COST_PERIOD } from '../lib/constants'
 import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import {
   ROOT_DRILL,
+  type CostStatItem,
   type DrillState,
   buildCostStats,
   buildDeptCostsWithColors,
@@ -19,10 +20,11 @@ import {
   drillBack,
   drillIntoDepartment,
   getDrillTitle,
-} from '@/features/dashboard/lib/dashboard'
+  COST_CHART_COLORS,
+} from '../lib/dashboard'
 
-export type { CostStatItem, DrillState } from '@/features/dashboard/lib/dashboard'
-export { ROOT_DRILL, COST_CHART_COLORS } from '@/features/dashboard/lib/dashboard'
+export type { CostStatItem, DrillState }
+export { ROOT_DRILL, COST_CHART_COLORS }
 
 function buildCostQuery(period: CostPeriod, startDate: string, endDate: string): CostQueryParams {
   if (period === COST_PERIOD.CUSTOM) {

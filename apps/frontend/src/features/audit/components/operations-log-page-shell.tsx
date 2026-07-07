@@ -1,35 +1,35 @@
 import { ScrollText } from 'lucide-react'
-import { AuditFilteredPage } from './audit-filtered-page'
+import type { useAuditOperationsPage } from '@/features/audit'
+import { FilteredPageShell } from '@/components/layout/filtered-page-shell'
 import { AuditListToolbar } from './audit-list-toolbar'
 import { AuditTablePagination } from './audit-table-pagination'
 import { OperationsLogFilters } from './operations-log-filters'
 import { OperationsLogTable } from './operations-log-table'
-import { useAuditOperationsPage } from '../hooks/use-audit-operations-page'
 
-export function OperationsLogPageContent() {
-  const {
-    logs,
-    total,
-    page,
-    totalPages,
-    setPage,
-    loading,
-    error,
-    refresh,
-    actionFilter,
-    datePreset,
-    operatorId,
-    keyword,
-    setActionFilter,
-    setDatePreset,
-    setOperatorId,
-    setKeyword,
-    memberOptions,
-    handleExport,
-  } = useAuditOperationsPage()
+type OperationsLogPageShellProps = ReturnType<typeof useAuditOperationsPage>
 
+export function OperationsLogPageShell({
+  logs,
+  total,
+  page,
+  totalPages,
+  setPage,
+  loading,
+  error,
+  refresh,
+  actionFilter,
+  datePreset,
+  operatorId,
+  keyword,
+  setActionFilter,
+  setDatePreset,
+  setOperatorId,
+  setKeyword,
+  memberOptions,
+  handleExport,
+}: OperationsLogPageShellProps) {
   return (
-    <AuditFilteredPage
+    <FilteredPageShell
       title="操作记录"
       loading={loading}
       error={error}
@@ -66,6 +66,6 @@ export function OperationsLogPageContent() {
         totalPages={totalPages}
         onPageChange={setPage}
       />
-    </AuditFilteredPage>
+    </FilteredPageShell>
   )
 }

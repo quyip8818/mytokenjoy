@@ -1,5 +1,5 @@
-import { OperationsLogPageContent } from '@/features/audit'
+import { OperationsLogPageShell, useAuditOperationsPage } from '@/features/audit'
 
 export default function OperationLogsPage() {
-  return <OperationsLogPageContent />
+  return <OperationsLogPageShell {...useAuditOperationsPage()} />
 }

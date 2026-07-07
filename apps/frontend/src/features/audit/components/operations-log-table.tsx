@@ -8,10 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/status-badge'
-import {
-  getOperationActionBadgeVariant,
-  OPERATION_ACTION_LABELS,
-} from '@/features/audit/lib/labels'
+import { getOperationActionBadgeVariant, OPERATION_ACTION_LABELS } from '@/features/audit'
 
 interface OperationsLogTableProps {
   logs: OperationLog[]

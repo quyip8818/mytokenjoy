@@ -1,5 +1,5 @@
 import { StatCard } from '@/components/ui/stat-card'
-import { formatMom, type CostStatItem } from '@/features/dashboard/lib/dashboard'
+import { formatMom, type CostStatItem } from '@/features/dashboard'
 
 interface CostSummaryStatsProps {
   stats: CostStatItem[]
@@ -8,7 +8,7 @@ interface CostSummaryStatsProps {
 
 export function CostSummaryStats({ stats, loading }: CostSummaryStatsProps) {
   return (
-    <div className="grid grid-cols-2 gap-5 lg:grid-cols-5">
+    <div className="grid grid-cols-5 gap-5">
       {stats.map((stat) => (
         <StatCard
           key={stat.label}
@@ -17,6 +17,7 @@ export function CostSummaryStats({ stats, loading }: CostSummaryStatsProps) {
           subValue={!loading && stat.mom !== undefined ? `环比 ${formatMom(stat.mom)}` : undefined}
           icon={stat.icon}
           iconAccent={stat.accent}
+          iconAccentStyle="solid"
         />
       ))}
     </div>

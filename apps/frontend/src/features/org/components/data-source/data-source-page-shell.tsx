@@ -3,8 +3,8 @@ import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { useDataSourcePage } from '@/features/org/hooks/use-data-source-page'
-import { PLATFORM_LABELS } from '@/features/org/lib/labels'
+import type { useDataSourcePage } from '@/features/org'
+import { PLATFORM_LABELS } from '@/features/org'
 import { Stepper } from './stepper'
 import { PlatformSelect } from './platform-select'
 import { StepCredentials } from './step-credentials'
@@ -38,12 +38,12 @@ export function DataSourcePageShell({
   goToPreviousStep,
 }: DataSourcePageShellProps) {
   return (
-    <PageShell>
+    <PageShell className="space-y-8">
       <DataSection
         loading={loading}
         error={error}
         onRetry={() => void refresh()}
-        contentClassName="space-y-6"
+        contentClassName="space-y-8"
       >
         {phase === 'connected' && status?.connected && platform ? (
           <div className="rounded-lg border border-border bg-card p-5 shadow-xs">
@@ -76,7 +76,7 @@ export function DataSourcePageShell({
           </div>
         ) : (
           <>
-            <div className="rounded-lg border border-border bg-white p-5 shadow-xs">
+            <div className="rounded-lg border border-border bg-card p-5 shadow-xs">
               <Stepper steps={steps} currentStep={currentStep} completedSteps={completedSteps} />
             </div>
 

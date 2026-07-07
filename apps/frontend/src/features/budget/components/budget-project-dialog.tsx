@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { BudgetNode, Member } from '@/api/types'
-import { nodeReservedPool } from '@/features/budget/lib/mappers'
+import { nodeReservedPool } from '@/features/budget'
 import { BudgetMemberPicker } from './budget-member-picker'
 import {
   Dialog,

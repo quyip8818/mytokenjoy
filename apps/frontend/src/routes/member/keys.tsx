@@ -1,5 +1,5 @@
-import { MemberKeysPageShell } from '@/features/keys'
+import { MemberKeysPageShell, useMyKeysPage } from '@/features/keys'
 
 export default function MemberKeysPage() {
-  return <MemberKeysPageShell />
+  return <MemberKeysPageShell {...useMyKeysPage()} />
 }

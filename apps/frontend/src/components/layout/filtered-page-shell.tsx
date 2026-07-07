@@ -4,7 +4,7 @@ import { DataSection, type DataSectionEmptyProps } from '@/components/layout/dat
 import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
 
-interface AuditFilteredPageProps<T> {
+interface FilteredPageShellProps<T> {
   title: string
   actions: ReactNode
   loading: boolean
@@ -15,7 +15,7 @@ interface AuditFilteredPageProps<T> {
   children: ReactNode
 }
 
-export function AuditFilteredPage<T>({
+export function FilteredPageShell<T>({
   title,
   actions,
   loading,
@@ -24,7 +24,7 @@ export function AuditFilteredPage<T>({
   items,
   empty,
   children,
-}: AuditFilteredPageProps<T>) {
+}: FilteredPageShellProps<T>) {
   return (
     <PageShell actions={actions}>
       <DataSection
@@ -41,4 +41,4 @@ export function AuditFilteredPage<T>({
   )
 }
 
-export type AuditEmptyConfig = DataSectionEmptyProps & { icon: LucideIcon }
+export type FilteredPageEmptyConfig = DataSectionEmptyProps & { icon: LucideIcon }

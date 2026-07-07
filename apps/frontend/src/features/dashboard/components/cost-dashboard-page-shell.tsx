@@ -1,6 +1,6 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
-import type { useCostDashboardPage } from '@/features/dashboard/hooks/use-cost-dashboard-page'
+import type { useCostDashboardPage } from '@/features/dashboard'
 import { CostSummaryStats } from './cost-summary-stats'
 import { CostTrendChart } from './cost-trend-chart'
 import { CostDistributionChart } from './cost-distribution-chart'
@@ -27,12 +27,12 @@ export function CostDashboardPageShell({
   handleDrillBack,
 }: CostDashboardPageShellProps) {
   return (
-    <PageShell stats={<CostSummaryStats stats={stats} loading={loading} />}>
+    <PageShell className="space-y-8" stats={<CostSummaryStats stats={stats} loading={loading} />}>
       <DataSection
         loading={loading}
         error={error}
         onRetry={() => void refresh()}
-        contentClassName="space-y-6"
+        contentClassName="space-y-8"
       >
         <div className="grid grid-cols-3 gap-6">
           <CostTrendChart dailyCosts={dailyCosts} loading={loading} granularity={granularity} />

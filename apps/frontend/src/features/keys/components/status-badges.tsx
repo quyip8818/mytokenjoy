@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { PROVIDER_BADGE_STYLES, PROVIDER_LABELS } from '@/features/models/lib/labels'
+import { PROVIDER_BADGE_STYLES, PROVIDER_LABELS } from '@/lib/provider-labels'
 
 export function KeyPrefixBadge({ prefix }: { prefix: string }) {
   return (
