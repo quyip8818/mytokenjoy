@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -14,7 +14,7 @@ func TestCreateAlertRuleWithMultipleThresholds(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	rule, err := svc.CreateAlert(ctx, types.AlertRule{
-		NodeID:        seed.IDDept3,
+		NodeID:        contract.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
 		NotifyRoleIDs: []string{"role-1"},
@@ -40,7 +40,7 @@ func TestDisabledAlertRuleDoesNotTrigger(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	rule, err := svc.CreateAlert(ctx, types.AlertRule{
-		NodeID:        seed.IDDept3,
+		NodeID:        contract.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
 		NotifyRoleIDs: []string{"role-1"},
@@ -75,7 +75,7 @@ func TestUpdateAlertRuleThresholds(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	rule, err := svc.CreateAlert(ctx, types.AlertRule{
-		NodeID:     seed.IDDept3,
+		NodeID:     contract.IDDept3,
 		NodeName:   "后端组",
 		Thresholds: []int{80},
 		Enabled:    true,
@@ -102,7 +102,7 @@ func TestDeleteAlertRule(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	rule, err := svc.CreateAlert(ctx, types.AlertRule{
-		NodeID:     seed.IDDept3,
+		NodeID:     contract.IDDept3,
 		NodeName:   "后端组",
 		Thresholds: []int{80, 90, 100},
 		Enabled:    true,

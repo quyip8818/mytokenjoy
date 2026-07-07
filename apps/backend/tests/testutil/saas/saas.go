@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -247,5 +247,5 @@ func UpdateBudgetNodeHTTP(t *testing.T, router http.Handler, memberCookie, nodeI
 
 func DefaultSeedMemberCookie(t *testing.T) string {
 	t.Helper()
-	return testutil.SessionCookie(t, seed.IDMemberAdmin)
+	return testutil.SessionCookie(t, contract.IDMemberAdmin)
 }

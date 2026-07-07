@@ -1,6 +1,6 @@
 # TokenJoy Backend
 
-`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `internal/store/seed/`；Postgres **36** 表；消耗 SSOT 为 `usage_ledger`。
+`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `apps/backend/seed/`（见 [Backend-seed.md](./Backend-seed.md)）；Postgres **36** 表；消耗 SSOT 为 `usage_ledger`。
 
 差距与计划见 [Roadmap.md](./Roadmap.md)；工程待办见 [plan.md](./plan.md)。
 
@@ -8,12 +8,12 @@
 
 ## 文档地图
 
-| 文档                                         | 内容                                                          |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径    |
-| [Backend-存储.md](./Backend-存储.md)         | 36 表、管理面/运行面、ER、四张合并表、ID 约定                 |
-| [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则        |
-| [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试迁移、per-schema 隔离、ingest 约束、分阶段计划 |
+| 文档                                         | 内容                                                       |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
+| [Backend-存储.md](./Backend-存储.md)         | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
+| [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
 
 ---
 
@@ -192,7 +192,7 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 
 **所有测试在 `apps/backend/tests/`，`internal/` 禁止 `*_test.go`。**
 
-测试方案（PostgreSQL + 每测独立 schema，破坏性迁移）见 [Backend-测试优化.md](./Backend-测试优化.md)。
+测试方案（PostgreSQL + 每测独立 schema）见 [Backend-测试优化.md](./Backend-测试优化.md)。
 
 ```bash
 cd apps/backend
@@ -233,6 +233,6 @@ make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
 
 - [ ] `apps/frontend/src/api/` + [Frontend.md](./Frontend.md) API 契约
 - [ ] `internal/domain/` + `internal/http/handler/`
-- [ ] `internal/store/seed/`（demo 数据）
+- [ ] `apps/backend/seed/`（demo 数据，[Backend-seed.md](./Backend-seed.md)）
 - [ ] `tests/handler/core/contract_test.go`（新 GET）
 - [ ] 已实现项从 [Roadmap.md](./Roadmap.md) 移除

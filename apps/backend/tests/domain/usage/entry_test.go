@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -56,19 +56,19 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	model := findModel(models, "gpt-4o")
-	member := findMember(members, seed.IDMember1)
-	key := findPlatformKey(keys, seed.IDPlatformKey1)
+	member := findMember(members, contract.IDMember1)
+	key := findPlatformKey(keys, contract.IDPlatformKey1)
 	entry, err := domainusage.BuildCallSettledEntry(domainusage.EntryBuildInput{
 		Raw: store.RawConsumeLog{
 			ID: 9001, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 1,
 			Content: "should not be stored",
 		},
 		Mapping: &store.RelayMapping{
-			PlatformKeyID: seed.IDPlatformKey1,
+			PlatformKeyID: contract.IDPlatformKey1,
 			MemberID:      &memberID,
-			DepartmentID:  seed.IDDept3,
+			DepartmentID:  contract.IDDept3,
 		},
 		Source:      types.SourceWebhook,
 		Model:       model,
@@ -89,9 +89,9 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 			Content: "preview text", PromptTokens: 10, CompletionTokens: 5, UseTime: 120,
 		},
 		Mapping: &store.RelayMapping{
-			PlatformKeyID: seed.IDPlatformKey1,
+			PlatformKeyID: contract.IDPlatformKey1,
 			MemberID:      &memberID,
-			DepartmentID:  seed.IDDept3,
+			DepartmentID:  contract.IDDept3,
 		},
 		Source:      types.SourceWebhook,
 		Model:       model,

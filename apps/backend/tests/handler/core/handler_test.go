@@ -11,7 +11,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -45,7 +45,7 @@ func TestSessionDemoSuccess(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
-	req.Header.Set("Cookie", testutil.SessionCookie(t, seed.IDMemberAdmin))
+	req.Header.Set("Cookie", testutil.SessionCookie(t, contract.IDMemberAdmin))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -56,8 +56,8 @@ func TestSessionDemoSuccess(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Member.ID != seed.IDMemberAdmin {
-		t.Fatalf("expected %s, got %s", seed.IDMemberAdmin, payload.Member.ID)
+	if payload.Member.ID != contract.IDMemberAdmin {
+		t.Fatalf("expected %s, got %s", contract.IDMemberAdmin, payload.Member.ID)
 	}
 	if payload.ReadOnly {
 		t.Fatal("expected admin session to be writable")

@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -121,7 +121,7 @@ func TestDeleteDepartmentWithChildren422(t *testing.T) {
 func TestDeleteDepartmentWithMembers422(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	err := svc.DeleteDepartment(testutil.Ctx(), seed.IDDept3)
+	err := svc.DeleteDepartment(testutil.Ctx(), contract.IDDept3)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)

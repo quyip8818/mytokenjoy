@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 func UsageBucketRows(st store.Store) []types.UsageBucketRow {
@@ -24,7 +24,7 @@ func UsageBucketRows(st store.Store) []types.UsageBucketRow {
 }
 
 func NotificationLogs(st store.Store) []types.NotificationLogEntry {
-	logs, err := postgres.ListNotificationLogs(context.Background(), postgres.MainPool(st), seed.DefaultCompanyID)
+	logs, err := postgres.ListNotificationLogs(context.Background(), postgres.MainPool(st), contract.DefaultCompanyID)
 	if err != nil {
 		return nil
 	}

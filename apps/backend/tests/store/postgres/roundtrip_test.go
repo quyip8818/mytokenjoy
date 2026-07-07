@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -117,8 +117,8 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	fallbackModel := "gpt-4o"
 	rules := []types.RoutingRule{
 		{
-			ID:            seed.IDDept3,
-			NodeID:        seed.IDDept3,
+			ID:            contract.IDDept3,
+			NodeID:        contract.IDDept3,
 			NodeName:      "后端组",
 			DefaultModel:  &defaultModel,
 			FallbackModel: &fallbackModel,
@@ -158,7 +158,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	}
 	foundRule := false
 	for _, rule := range gotRules {
-		if rule.ID == seed.IDDept3 {
+		if rule.ID == contract.IDDept3 {
 			foundRule = true
 			if len(rule.AllowedModels) != 2 || rule.DefaultModel == nil || *rule.DefaultModel != "gpt-roundtrip" {
 				t.Fatalf("routing rule mismatch: %+v", rule)
@@ -176,14 +176,14 @@ func TestWithTxRollback(t *testing.T) {
 	pool := testDBPool(t)
 	ctx := testutil.Ctx()
 
-	before := memberUpdatedAt(t, pool, seed.IDMember1)
+	before := memberUpdatedAt(t, pool, contract.IDMember1)
 	members, err := st.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	originalName := findMemberName(members, seed.IDMember1)
+	originalName := findMemberName(members, contract.IDMember1)
 	if originalName == "" {
-		t.Fatalf("member %s not found", seed.IDMember1)
+		t.Fatalf("member %s not found", contract.IDMember1)
 	}
 
 	err = st.WithTx(ctx, func(tx store.Store) error {
@@ -192,7 +192,7 @@ func TestWithTxRollback(t *testing.T) {
 			return err
 		}
 		for i := range members {
-			if members[i].ID == seed.IDMember1 {
+			if members[i].ID == contract.IDMember1 {
 				members[i].Name = "ShouldRollback"
 			}
 		}
@@ -205,12 +205,12 @@ func TestWithTxRollback(t *testing.T) {
 		t.Fatal("expected transaction error")
 	}
 
-	after := memberUpdatedAt(t, pool, seed.IDMember1)
+	after := memberUpdatedAt(t, pool, contract.IDMember1)
 	members, err = st.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := findMemberName(members, seed.IDMember1); got != originalName {
+	if got := findMemberName(members, contract.IDMember1); got != originalName {
 		t.Fatalf("expected name %q after rollback, got %q", originalName, got)
 	}
 	if !after.Equal(before) {

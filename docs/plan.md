@@ -126,10 +126,10 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 
 ### 迁移债务（`check-conventions` 目标态）
 
-- [ ] 删除 `routes/*/hooks/` 副本（canonical 在 `features/*/hooks/`）
-- [ ] 迁移 `components/{budget,org,keys}/` → `features/{domain}/components/`
-- [ ] 删除 orphan 页：`routes/budget/overview.tsx`、`allocation.tsx`
-- [ ] 迁移 `tests/routes/` → `tests/features/`（6 个遗留文件）
+- [x] 删除 `routes/*/hooks/` 副本（canonical 在 `features/*/hooks/`）
+- [x] 迁移 `components/{budget,org,keys}/` → `features/{domain}/components/`
+- [x] 删除 orphan 页：`routes/budget/overview.tsx`、`allocation.tsx`、`routes/billing/`
+- [x] 删除 `tests/routes/`（canonical 在 `tests/features/`）
 
 ### 工程优化（非阻断）
 

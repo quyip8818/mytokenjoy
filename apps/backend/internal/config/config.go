@@ -18,6 +18,7 @@ type Config struct {
 	SimulateDelay bool   `env:"SIMULATE_DELAY" envDefault:"true"`
 	DemoToday     string `env:"DEMO_TODAY" envDefault:"2026-06-19"`
 	Profile       string `env:"APP_PROFILE" envDefault:"demo"`
+	MinimalSeed   bool
 
 	DatabaseURL         string `env:"DATABASE_URL"`
 	LogDatabaseURL      string `env:"LOG_DATABASE_URL"`

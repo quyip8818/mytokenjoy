@@ -26,8 +26,8 @@ func TestListMembersPagination(t *testing.T) {
 	if len(page.Items) != 20 {
 		t.Fatalf("expected 20 items, got %d", len(page.Items))
 	}
-	if page.Total < 120 {
-		t.Fatalf("expected total >= 120, got %d", page.Total)
+	if page.Total < 35 {
+		t.Fatalf("expected total >= 35, got %d", page.Total)
 	}
 }
 

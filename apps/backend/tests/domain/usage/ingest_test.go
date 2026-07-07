@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -26,7 +26,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range keys {
-		if keys[i].ID == seed.IDPlatformKey1 {
+		if keys[i].ID == contract.IDPlatformKey1 {
 			keys[i].Used = 0
 			if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 				t.Fatal(err)
@@ -43,7 +43,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	var walk func([]types.BudgetNode)
 	walk = func(nodes []types.BudgetNode) {
 		for i := range nodes {
-			if nodes[i].ID == seed.IDDept3 {
+			if nodes[i].ID == contract.IDDept3 {
 				leaf = &nodes[i]
 			}
 			if len(nodes[i].Children) > 0 {
@@ -75,7 +75,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.ID == seed.IDPlatformKey1 && key.Used <= 0 {
+		if key.ID == contract.IDPlatformKey1 && key.Used <= 0 {
 			t.Fatalf("expected key used > 0, got %v", key.Used)
 		}
 	}
@@ -86,7 +86,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	}
 	walk = func(nodes []types.BudgetNode) {
 		for i := range nodes {
-			if nodes[i].ID == seed.IDDept3 {
+			if nodes[i].ID == contract.IDDept3 {
 				leaf = &nodes[i]
 			}
 			if len(nodes[i].Children) > 0 {

@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -22,11 +22,11 @@ func TestOverrunDepartmentThresholdSendsNotification(t *testing.T) {
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 25000)
 
 	payload, err := json.Marshal(map[string]any{
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +59,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
-	if err := st.Org().UpdateMemberPersonalQuota(ctx, seed.IDMember1, 100); err != nil {
+	if err := st.Org().UpdateMemberPersonalQuota(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -67,7 +67,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range keys {
-		if keys[i].ID == seed.IDPlatformKey1 {
+		if keys[i].ID == contract.IDPlatformKey1 {
 			keys[i].Used = 9999
 			keys[i].Quota = 1000
 		}
@@ -77,9 +77,9 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"memberId":      seed.IDMember1,
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"memberId":      contract.IDMember1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -108,11 +108,11 @@ func TestOverrunDoesNotNotifyWhenBelowBudget(t *testing.T) {
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 100)
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 100)
 
 	payload, err := json.Marshal(map[string]any{
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -151,9 +151,9 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 	groupIDCopy := groupID
 	tokenID := int64(99)
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
+		PlatformKeyID: contract.IDPlatformKey1,
 		NewAPITokenID: &tokenID,
-		DepartmentID:  seed.IDDept3,
+		DepartmentID:  contract.IDDept3,
 		BudgetGroupID: &groupIDCopy,
 		SyncStatus:    store.RelaySyncStatusSynced,
 		RelayGroup:    "group-" + groupID,
@@ -163,8 +163,8 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 
 	payload, err := json.Marshal(map[string]any{
 		"budgetGroupId": groupIDCopy,
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)

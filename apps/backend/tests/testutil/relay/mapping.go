@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -19,11 +19,11 @@ type MappingOpts struct {
 
 func DefaultMappingOpts() MappingOpts {
 	return MappingOpts{
-		PlatformKeyID: seed.IDPlatformKey1,
+		PlatformKeyID: contract.IDPlatformKey1,
 		NewAPITokenID: 99,
-		MemberID:      seed.IDMember1,
-		DepartmentID:  seed.IDDept3,
-		RelayGroup:    "dept-" + seed.IDDept3,
+		MemberID:      contract.IDMember1,
+		DepartmentID:  contract.IDDept3,
+		RelayGroup:    "dept-" + contract.IDDept3,
 	}
 }
 
@@ -39,7 +39,7 @@ func UpsertMapping(t *testing.T, st store.Store, opts MappingOpts) {
 	if !opts.NoMember {
 		m := opts.MemberID
 		if m == "" {
-			m = seed.IDMember1
+			m = contract.IDMember1
 		}
 		memberID = &m
 	}

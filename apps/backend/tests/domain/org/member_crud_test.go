@@ -6,7 +6,7 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -58,7 +58,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.DeleteMembers(testutil.Ctx(), []string{seed.IDMember1}); err != nil {
+	if err := svc.DeleteMembers(testutil.Ctx(), []string{contract.IDMember1}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -67,7 +67,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, member := range members {
-		if member.ID == seed.IDMember1 && member.Status != "inactive" {
+		if member.ID == contract.IDMember1 && member.Status != "inactive" {
 			t.Fatalf("expected inactive status, got %s", member.Status)
 		}
 	}
@@ -77,7 +77,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.MemberID != nil && *key.MemberID == seed.IDMember1 && key.Status != "disabled" {
+		if key.MemberID != nil && *key.MemberID == contract.IDMember1 && key.Status != "disabled" {
 			t.Fatalf("expected disabled key, got %s", key.Status)
 		}
 	}
@@ -89,7 +89,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{seed.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{contract.IDMember1}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -97,7 +97,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.MemberID != nil && *key.MemberID == seed.IDMember1 && key.Status != "disabled" {
+		if key.MemberID != nil && *key.MemberID == contract.IDMember1 && key.Status != "disabled" {
 			t.Fatalf("expected disabled key, got %s", key.Status)
 		}
 	}

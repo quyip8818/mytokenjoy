@@ -1,0 +1,76 @@
+[
+  {
+    "id": "plk-1",
+    "name": "张三-开发调试",
+    "keyPrefix": "tj-dev-001...",
+    "memberId": "m-1",
+    "status": "active",
+    "quota": 5000,
+    "used": 3200,
+    "modelWhitelist": ["gpt-4o", "claude-sonnet-4-6"],
+    "createdAt": "2026-03-01",
+    "expiresAt": "2026-12-31"
+  },
+  {
+    "id": "plk-1b",
+    "name": "张三-个人实验",
+    "keyPrefix": "tj-dev-002...",
+    "memberId": "m-1",
+    "status": "active",
+    "quota": 2000,
+    "used": 450,
+    "modelWhitelist": ["gpt-4o-mini", "deepseek-v3"],
+    "createdAt": "2026-05-10",
+    "expiresAt": null
+  },
+  {
+    "id": "plk-2",
+    "name": "李四-后端服务",
+    "keyPrefix": "tj-svc-002...",
+    "memberId": "m-2",
+    "status": "active",
+    "quota": 10000,
+    "used": 7800,
+    "modelWhitelist": ["gpt-4o", "deepseek-v3"],
+    "createdAt": "2026-03-15",
+    "expiresAt": null
+  },
+  {
+    "id": "plk-4",
+    "name": "赵六-实验",
+    "keyPrefix": "tj-exp-004...",
+    "memberId": "m-4",
+    "budgetGroupId": "bg-1",
+    "status": "disabled",
+    "quota": 2000,
+    "used": 2000,
+    "modelWhitelist": ["gpt-4o-mini"],
+    "createdAt": "2026-05-01",
+    "expiresAt": "2026-06-30"
+  },
+  {
+    "id": "plk-5",
+    "name": "代码助手-CI",
+    "keyPrefix": "tj-ci-005...",
+    "budgetGroupId": "bg-4",
+    "status": "active",
+    "quota": 8000,
+    "used": 4500,
+    "modelWhitelist": ["claude-sonnet-4-6", "gpt-4o"],
+    "createdAt": "2026-05-15",
+    "expiresAt": null
+  },
+  {
+    "id": "plk-bg-1",
+    "name": "AI创新-共享Key",
+    "keyPrefix": "tj-bg-001...",
+    "memberId": "m-1",
+    "budgetGroupId": "bg-1",
+    "status": "active",
+    "quota": 8000,
+    "used": 4200,
+    "modelWhitelist": ["gpt-4o", "claude-sonnet-4-6"],
+    "createdAt": "2026-04-15",
+    "expiresAt": null
+  }
+]

@@ -6,7 +6,7 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -16,14 +16,14 @@ func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.TransferMembers(ctx, []string{seed.IDMember1}, "dept-4"); err != nil {
+	if err := svc.TransferMembers(ctx, []string{contract.IDMember1}, "dept-4"); err != nil {
 		t.Fatal(err)
 	}
-	after, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,12 +38,12 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	targetDept := "dept-4"
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
+		PlatformKeyID: contract.IDPlatformKey1,
 		MemberID:      &memberID,
-		DepartmentID:  seed.IDDept3,
+		DepartmentID:  contract.IDDept3,
 		RelayGroup:    "default",
 		SyncStatus:    store.RelaySyncStatusSynced,
 	}); err != nil {

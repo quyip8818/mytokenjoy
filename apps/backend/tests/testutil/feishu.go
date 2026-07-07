@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 type FeishuMockOpts struct {
@@ -22,8 +22,8 @@ type FeishuMockOpts struct {
 
 func DefaultFeishuUsers() []map[string]any {
 	return []map[string]any{{
-		"user_id": seed.IDFeishuExtUser1, "name": "Mock User", "email": "mock@example.com",
-		"mobile": "13800000000", "department_ids": []string{seed.IDFeishuExtDept1}, "employee_no": "E001",
+		"user_id": contract.IDFeishuExtUser1, "name": "Mock User", "email": "mock@example.com",
+		"mobile": "13800000000", "department_ids": []string{contract.IDFeishuExtDept1}, "employee_no": "E001",
 	}}
 }
 
@@ -67,8 +67,8 @@ func StartFeishuMockServerWithOpts(t *testing.T, opts FeishuMockOpts) *httptest.
 				"code": 0,
 				"data": map[string]any{
 					"items": []map[string]any{{
-						"department_id": seed.IDFeishuExtDept1, "name": resolveDeptName(),
-						"parent_department_id": "0", "leader_user_id": seed.IDFeishuExtUser1,
+						"department_id": contract.IDFeishuExtDept1, "name": resolveDeptName(),
+						"parent_department_id": "0", "leader_user_id": contract.IDFeishuExtUser1,
 					}},
 					"has_more": false,
 				},

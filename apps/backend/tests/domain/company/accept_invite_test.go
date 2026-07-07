@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 )
@@ -62,7 +62,7 @@ func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 
 	now := time.Now().UTC()
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
-		ID: "invite-test-2", CompanyID: seed.DefaultCompanyID,
+		ID: "invite-test-2", CompanyID: contract.DefaultCompanyID,
 		Email: "short@newco.example", Role: store.InviteRoleSuperAdmin,
 		Token: "short-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}); err != nil {
@@ -85,7 +85,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 
 	now := time.Now().UTC()
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
-		ID: "invite-expired", CompanyID: seed.DefaultCompanyID,
+		ID: "invite-expired", CompanyID: contract.DefaultCompanyID,
 		Email: "expired@example.com", Role: store.InviteRoleSuperAdmin,
 		Token: "expired-token", ExpiresAt: now.Add(-time.Hour), CreatedAt: now,
 	}); err != nil {
@@ -108,7 +108,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 
 	now := time.Now().UTC()
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
-		ID: "invite-used", CompanyID: seed.DefaultCompanyID,
+		ID: "invite-used", CompanyID: contract.DefaultCompanyID,
 		Email: "used@example.com", Role: store.InviteRoleSuperAdmin,
 		Token: "used-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}); err != nil {

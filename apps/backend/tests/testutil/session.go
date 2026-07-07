@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 const TestSessionSecret = "test-session-secret"
@@ -32,7 +32,7 @@ func IssueSessionJWT(t *testing.T, companyID int64, memberID string) string {
 
 func SessionCookie(t *testing.T, memberID string) string {
 	t.Helper()
-	return SessionCookieForCompany(t, seed.DefaultCompanyID, memberID)
+	return SessionCookieForCompany(t, contract.DefaultCompanyID, memberID)
 }
 
 func SessionCookieForCompany(t *testing.T, companyID int64, memberID string) string {
@@ -43,7 +43,7 @@ func SessionCookieForCompany(t *testing.T, companyID int64, memberID string) str
 
 func SessionCookieAdmin(t *testing.T) string {
 	t.Helper()
-	return SessionCookie(t, seed.IDMemberAdmin)
+	return SessionCookie(t, contract.IDMemberAdmin)
 }
 
 func PlatformSessionCookie(t *testing.T, operatorID string) string {

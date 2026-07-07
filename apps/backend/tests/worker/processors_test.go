@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -24,14 +24,14 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	tokenID := int64(42)
 	remainQuota := int64(1000)
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		CompanyID: seed.DefaultCompanyID, PlatformKeyID: seed.IDPlatformKey1,
-		NewAPITokenID: &tokenID, MemberID: testutil.StrPtr(seed.IDMember1),
-		DepartmentID: seed.IDDept3, SyncStatus: store.RelaySyncStatusSynced,
+		CompanyID: contract.DefaultCompanyID, PlatformKeyID: contract.IDPlatformKey1,
+		NewAPITokenID: &tokenID, MemberID: testutil.StrPtr(contract.IDMember1),
+		DepartmentID: contract.IDDept3, SyncStatus: store.RelaySyncStatusSynced,
 		RelayGroup: "dept-dept-3", NewAPITokenRemainQuota: &remainQuota,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, seed.IDMember1); err != nil {
+	if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -39,7 +39,7 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	if stub.UpdateTokenCalls == 0 {
 		t.Fatal("expected rebalance processor to update token")
 	}
-	if testutil.PendingRebalanceCount(st, seed.DefaultCompanyID) != 0 {
+	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected rebalance queue drained")
 	}
 }
@@ -54,12 +54,12 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 25000)
+	testutil.SetDeptConsumed(t, tree, contract.IDDept3, 25000)
 	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	payload, err := json.Marshal(map[string]string{
-		"departmentId": seed.IDDept3, "platformKeyId": seed.IDPlatformKey1,
+		"departmentId": contract.IDDept3, "platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +75,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.ID == seed.IDPlatformKey1 && key.Status == "active" {
+		if key.ID == contract.IDPlatformKey1 && key.Status == "active" {
 			t.Fatalf("expected plk-1 disabled after overrun processor, status=%q", key.Status)
 		}
 	}

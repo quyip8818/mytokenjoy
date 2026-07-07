@@ -8,7 +8,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -20,16 +20,16 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 	svc := domainbilling.NewService(cfg, st, client, wallet, func(ctx context.Context, companyID int64) error {
 		return st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	})
-	co, err := st.Company().GetByID(context.Background(), seed.DefaultCompanyID)
+	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	walletID := int64(501)
-	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), seed.DefaultCompanyID, walletID); err != nil {
+	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
 		t.Fatal(err)
 	}
 	ctx := company.WithContext(context.Background(), company.Context{
-		CompanyID:          seed.DefaultCompanyID,
+		CompanyID:          contract.DefaultCompanyID,
 		NewAPIWalletUserID: walletID,
 		Status:             co.Status,
 	})
@@ -51,8 +51,8 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 	if view.Balance <= 0 {
 		t.Fatalf("expected positive balance, got %v", view.Balance)
 	}
-	if view.CompanyID != seed.DefaultCompanyID {
-		t.Fatalf("expected company %d, got %d", seed.DefaultCompanyID, view.CompanyID)
+	if view.CompanyID != contract.DefaultCompanyID {
+		t.Fatalf("expected company %d, got %d", contract.DefaultCompanyID, view.CompanyID)
 	}
 }
 
@@ -77,10 +77,10 @@ func TestPlatformRechargeEnqueuesRebalance(t *testing.T) {
 		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
 	}
 	svc, st, ctx := newBillingService(t, client)
-	if err := svc.PlatformRecharge(ctx, seed.DefaultCompanyID, 50, "platform-op-1"); err != nil {
+	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 50, "platform-op-1"); err != nil {
 		t.Fatal(err)
 	}
-	if testutil.PendingRebalanceCount(st, seed.DefaultCompanyID) == 0 {
+	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected rebalance outbox entry after platform recharge")
 	}
 }
@@ -142,23 +142,23 @@ func TestTopUpAndFinishFailsWhenNewAPIDisabled(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(false))
 	client := &mock.StubAdminClient{}
 	walletID := int64(501)
-	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), seed.DefaultCompanyID, walletID); err != nil {
+	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
 		t.Fatal(err)
 	}
 	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
-	co, err := st.Company().GetByID(context.Background(), seed.DefaultCompanyID)
+	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx := company.WithContext(context.Background(), company.Context{
-		CompanyID:          seed.DefaultCompanyID,
+		CompanyID:          contract.DefaultCompanyID,
 		NewAPIWalletUserID: walletID,
 		Status:             co.Status,
 	})
-	if err := svc.PlatformRecharge(ctx, seed.DefaultCompanyID, 25, "platform-op-disabled"); err == nil {
+	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 25, "platform-op-disabled"); err == nil {
 		t.Fatal("expected error when newapi is disabled but wallet is configured")
 	}
-	orders, err := st.Billing().ListRechargeOrders(ctx, seed.DefaultCompanyID)
+	orders, err := st.Billing().ListRechargeOrders(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}

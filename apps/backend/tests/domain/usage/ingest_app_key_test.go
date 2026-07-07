@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -22,7 +22,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		PlatformKeyID: "plk-3",
 		NewAPITokenID: 77,
 		NoMember:      true,
-		DepartmentID:  seed.IDDept3,
+		DepartmentID:  contract.IDDept3,
 	})
 
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())

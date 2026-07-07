@@ -6,7 +6,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -42,8 +42,8 @@ func TestGetSessionContextCachesByRevision(t *testing.T) {
 	t.Parallel()
 	svc, orgRepo := newCountingAuthzService(t)
 	ctx := testutil.Ctx()
-	companyID := seed.DefaultCompanyID
-	memberID := seed.IDMemberAdmin
+	companyID := contract.DefaultCompanyID
+	memberID := contract.IDMemberAdmin
 
 	if _, err := svc.GetSessionContext(ctx, companyID, memberID); err != nil {
 		t.Fatalf("first GetSessionContext: %v", err)

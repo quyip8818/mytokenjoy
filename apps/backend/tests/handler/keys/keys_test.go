@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
@@ -74,7 +74,7 @@ func keysCases() []keysCase {
 		},
 		{
 			name: "platform list department filter",
-			path: "/api/keys/platform?departmentId=" + seed.IDDept3,
+			path: "/api/keys/platform?departmentId=" + contract.IDDept3,
 			assert: func(t *testing.T, body []byte) {
 				t.Helper()
 				var payload struct {

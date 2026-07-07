@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 func DeptConsumed(t *testing.T, tree []types.BudgetNode, deptID string) float64 {
@@ -19,7 +19,7 @@ func DeptConsumed(t *testing.T, tree []types.BudgetNode, deptID string) float64 
 
 func Dept3Consumed(t *testing.T, tree []types.BudgetNode) float64 {
 	t.Helper()
-	return DeptConsumed(t, tree, seed.IDDept3)
+	return DeptConsumed(t, tree, contract.IDDept3)
 }
 
 func SetDeptConsumed(t *testing.T, tree []types.BudgetNode, deptID string, consumed float64) {

@@ -6,7 +6,7 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -16,7 +16,7 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	after, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,16 +51,16 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 	}
 	var target types.Member
 	for _, member := range members {
-		if member.ID == seed.IDMember1 {
+		if member.ID == contract.IDMember1 {
 			target = member
 			break
 		}
 	}
 	target.Roles = []string{"预算审批员"}
-	if _, err := svc.UpdateMember(ctx, seed.IDMember1, target); err != nil {
+	if _, err := svc.UpdateMember(ctx, contract.IDMember1, target); err != nil {
 		t.Fatal(err)
 	}
-	after, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestBatchImportBumpsAuthzRevision(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestBatchImportBumpsAuthzRevision(t *testing.T) {
 	if result.Imported != 1 {
 		t.Fatalf("expected 1 imported, got %d", result.Imported)
 	}
-	after, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
