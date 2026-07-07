@@ -3,7 +3,15 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
 )
+
+func escapeLikePattern(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, "%", `\%`)
+	s = strings.ReplaceAll(s, "_", `\_`)
+	return s
+}
 
 func pruneByID(ctx context.Context, db dbQuerier, table string, ids []string) error {
 	if len(ids) == 0 {

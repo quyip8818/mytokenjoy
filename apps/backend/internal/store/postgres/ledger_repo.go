@@ -166,7 +166,7 @@ func buildLedgerCallWhere(companyID int64, filter store.LedgerCallFilter) (strin
 			call_detail->>'caller' ILIKE $%d OR
 			call_detail->>'previewSnippet' ILIKE $%d
 		)`, idx, idx, idx))
-		args = append(args, "%"+kw+"%")
+		args = append(args, "%"+escapeLikePattern(kw)+"%")
 		idx++
 	}
 	return strings.Join(clauses, " AND "), args

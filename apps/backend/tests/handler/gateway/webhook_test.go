@@ -233,6 +233,7 @@ func TestIngestMetricsEndpoint(t *testing.T) {
 	}
 
 	metricsReq := httptest.NewRequest(http.MethodGet, "/api/internal/metrics/ingest", nil)
+	metricsReq.Header.Set("X-Webhook-Secret", webhookSecret)
 	metricsRec := httptest.NewRecorder()
 	app.Router.ServeHTTP(metricsRec, metricsReq)
 	if metricsRec.Code != http.StatusOK {

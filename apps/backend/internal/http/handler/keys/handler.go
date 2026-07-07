@@ -107,6 +107,11 @@ func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 		DepartmentID:  query.Get("departmentId"),
 		Type:          query.Get("type"),
 	})
+	if err == nil {
+		for i := range keys.Items {
+			keys.Items[i].FullKey = nil
+		}
+	}
 	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 
@@ -132,6 +137,9 @@ func (h *Handler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, err := h.service.UpdatePlatformKey(r.Context(), chi.URLParam(r, "id"), body)
+	if err == nil {
+		key.FullKey = nil
+	}
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
@@ -142,6 +150,9 @@ func (h *Handler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, err := h.service.TogglePlatformKey(r.Context(), chi.URLParam(r, "id"), body.Enabled)
+	if err == nil {
+		key.FullKey = nil
+	}
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
@@ -171,6 +182,10 @@ func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
+	}
+	// Bind approval to authenticated session member (prevent impersonation)
+	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
+		body.MemberID = sessionCtx.Member.ID
 	}
 	approval, err := h.service.CreateApproval(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, approval, err)

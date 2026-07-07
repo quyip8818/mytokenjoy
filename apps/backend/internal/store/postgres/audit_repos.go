@@ -151,7 +151,7 @@ func buildAuditOperationWhere(companyID int64, filter store.AuditOperationFilter
 		clauses = append(clauses, fmt.Sprintf(`(
 			detail ILIKE $%d OR target ILIKE $%d OR operator ILIKE $%d
 		)`, idx, idx, idx))
-		args = append(args, "%"+kw+"%")
+		args = append(args, "%"+escapeLikePattern(kw)+"%")
 		idx++
 	}
 	return strings.Join(clauses, " AND "), args

@@ -211,7 +211,7 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 			break
 		}
 	}
-	target.Roles = []string{"组织管理员"}
+	target.Roles = []string{"预算审批员"}
 	if _, err := svc.UpdateMember(ctx, seed.IDMember1, target); err != nil {
 		t.Fatal(err)
 	}
