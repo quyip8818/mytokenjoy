@@ -10,7 +10,7 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -58,7 +58,7 @@ func TestDepartmentDeleteLeafHTTP(t *testing.T) {
 func TestMembersTransferHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"memberIds":["` + seed.IDMember1 + `"],"departmentId":"dept-4"}`)
+	body := []byte(`{"memberIds":["` + contract.IDMember1 + `"],"departmentId":"dept-4"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/transfer", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))

@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -91,7 +91,7 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 		PlatformKeyID: "plk-persist-test",
 		NewAPITokenID: &tokenID,
 		MemberID:      &memberID,
-		DepartmentID:  seed.IDDept3,
+		DepartmentID:  contract.IDDept3,
 		SyncStatus:    store.RelaySyncStatusSynced,
 		RelayGroup:    "dept-dept-3",
 	}
@@ -135,14 +135,14 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	}
 	updated := false
 	for i := range members {
-		if members[i].ID == seed.IDMember1 {
+		if members[i].ID == contract.IDMember1 {
 			members[i].Name = "PersistTest"
 			updated = true
 			break
 		}
 	}
 	if !updated {
-		t.Fatalf("member %s not found in seed", seed.IDMember1)
+		t.Fatalf("member %s not found in seed", contract.IDMember1)
 	}
 	if err := st1.Org().SetMembers(ctx, members); err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := findMemberName(members, seed.IDMember1); got != "PersistTest" {
+	if got := findMemberName(members, contract.IDMember1); got != "PersistTest" {
 		t.Fatalf("expected persisted member name, got %q", got)
 	}
 	budgetTree, err = common.LoadBudgetTree(ctx, st2.Org().Nodes())
@@ -176,7 +176,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	modelsBefore := modelUpdatedAt(t, pool, "model-1")
-	memberBefore := memberUpdatedAt(t, pool, seed.IDMember1)
+	memberBefore := memberUpdatedAt(t, pool, contract.IDMember1)
 	budgetBefore := budgetNodeUpdatedAt(t, pool, "dept-1")
 
 	err := st.WithTx(ctx, func(tx store.Store) error {
@@ -185,7 +185,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 			return err
 		}
 		for i := range members {
-			if members[i].ID == seed.IDMember1 {
+			if members[i].ID == contract.IDMember1 {
 				members[i].Name = "TxTest"
 			}
 		}
@@ -205,7 +205,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	memberAfter := memberUpdatedAt(t, pool, seed.IDMember1)
+	memberAfter := memberUpdatedAt(t, pool, contract.IDMember1)
 	budgetAfter := budgetNodeUpdatedAt(t, pool, "dept-1")
 	modelsAfter := modelUpdatedAt(t, pool, "model-1")
 

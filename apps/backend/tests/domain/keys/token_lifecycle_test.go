@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -16,7 +16,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 1, Key: "sk-test", RemainQuota: 1000}}
 	lifecycle, st := newTokenLifecycle(t, stub)
 	ctx := testutil.Ctx()
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	key := types.PlatformKey{
 		ID: "plk-test", Name: "test-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
@@ -31,7 +31,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := lifecycle.SyncCreatePlatformKey(testutil.Ctx(), key, seed.IDDept3); err != nil {
+	if err := lifecycle.SyncCreatePlatformKey(testutil.Ctx(), key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,7 +56,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, Key: "sk-test-key", RemainQuota: 1000}}
 	lifecycle, st := newTokenLifecycle(t, stub)
 	ctx := testutil.Ctx()
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	key := types.PlatformKey{
 		ID: "plk-sync", Name: "sync-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
@@ -71,7 +71,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := lifecycle.SyncCreatePlatformKey(testutil.Ctx(), key, seed.IDDept3); err != nil {
+	if err := lifecycle.SyncCreatePlatformKey(testutil.Ctx(), key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
 
@@ -114,7 +114,7 @@ func TestRollbackFailedCreate(t *testing.T) {
 	stub := &mock.StubAdminClient{}
 	lifecycle, st := newTokenLifecycle(t, stub)
 	ctx := testutil.Ctx()
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	key := types.PlatformKey{
 		ID: "plk-rollback", Name: "rollback", MemberID: &memberID,
 		Status: "active", Quota: 500, ModelWhitelist: []string{"gpt-4o"},

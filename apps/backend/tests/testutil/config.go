@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 const (
@@ -41,6 +41,12 @@ func WithNewAPIBaseURL(baseURL string) ConfigOption {
 func WithNewAPIAdminToken(token string) ConfigOption {
 	return func(cfg *config.Config) {
 		cfg.NewAPIAdminToken = token
+	}
+}
+
+func WithMinimalSeed() ConfigOption {
+	return func(cfg *config.Config) {
+		cfg.MinimalSeed = true
 	}
 }
 
@@ -88,7 +94,7 @@ func TestConfig(opts ...ConfigOption) config.Config {
 		DemoToday:             defaultDemoToday,
 		SimulateDelay:         false,
 		CompanyName:           "Demo Company",
-		DefaultCompanyID:      seed.DefaultCompanyID,
+		DefaultCompanyID:      contract.DefaultCompanyID,
 		SessionSecret:         TestSessionSecret,
 		PlatformSessionSecret: TestSessionSecret,
 		SessionTTLSec:         86400,

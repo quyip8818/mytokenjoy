@@ -82,7 +82,7 @@ internal/
   pkg/                   — shared utilities (budget calc, org helpers, tree)
   store/                 — repository interfaces + implementations:
     postgres/            — PostgreSQL (production + tests)
-    seed/                — demo data seeding
+seed/                    — demo bootstrap + contract IDs (see docs/Backend-seed.md)
 tests/                   — ALL unit tests (mirrors internal/ structure)
   testutil/              — test helpers, fixtures, stubs
 ```

@@ -1,4 +1,4 @@
-import { chromium, type FullConfig } from '@playwright/test'
+import { chromium } from '@playwright/test'
 
 const BASE_URL = 'http://127.0.0.1:4173'
 
@@ -22,6 +22,6 @@ async function loginAndSave(email: string, password: string, savePath: string) {
   await browser.close()
 }
 
-export default async function globalSetup(_config: FullConfig) {
+export default async function globalSetup() {
   await loginAndSave('admin@example.com', 'demo1234', '.auth/admin.json')
 }

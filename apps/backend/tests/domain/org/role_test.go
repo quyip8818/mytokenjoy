@@ -5,7 +5,7 @@ import (
 
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -19,7 +19,7 @@ func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
 	if updated.Name != "Renamed Role" || len(updated.Permissions) != 2 {
 		t.Fatalf("unexpected role %+v", updated)
 	}
-	after, err := st.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -43,7 +43,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	beforeConsumed := testutil.Dept3Consumed(t, budgetTree)
-	beforeUsed := platformKeyUsed(t, app.Store, seed.IDPlatformKey1)
+	beforeUsed := platformKeyUsed(t, app.Store, contract.IDPlatformKey1)
 
 	testutil.SeedConsumeLog(t, app.Store, testutil.DefaultConsumeLog(2001, 99))
 	body, _ := json.Marshal(map[string]int64{"log_id": 2001})
@@ -71,7 +71,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	if afterConsumed <= beforeConsumed {
 		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
 	}
-	afterUsed := platformKeyUsed(t, app.Store, seed.IDPlatformKey1)
+	afterUsed := platformKeyUsed(t, app.Store, contract.IDPlatformKey1)
 	if afterUsed <= beforeUsed {
 		t.Fatalf("expected platform key used increase, before=%v after=%v", beforeUsed, afterUsed)
 	}

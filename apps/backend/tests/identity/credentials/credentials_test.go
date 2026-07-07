@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/identity/credentials"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -16,12 +16,12 @@ func TestAuthenticateMember_Success(t *testing.T) {
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
 
-	member, err := svc.AuthenticateMember(ctx, seed.DefaultCompanyID, "zhangsan@example.com", seed.DemoPassword)
+	member, err := svc.AuthenticateMember(ctx, contract.DefaultCompanyID, "zhangsan@example.com", contract.DemoPassword)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if member.ID != seed.IDMember1 {
-		t.Errorf("member ID = %q, want %q", member.ID, seed.IDMember1)
+	if member.ID != contract.IDMember1 {
+		t.Errorf("member ID = %q, want %q", member.ID, contract.IDMember1)
 	}
 }
 
@@ -31,7 +31,7 @@ func TestAuthenticateMember_WrongPassword(t *testing.T) {
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
 
-	_, err := svc.AuthenticateMember(ctx, seed.DefaultCompanyID, "zhangsan@example.com", "wrong-password")
+	_, err := svc.AuthenticateMember(ctx, contract.DefaultCompanyID, "zhangsan@example.com", "wrong-password")
 	if err == nil {
 		t.Fatal("expected error for wrong password")
 	}
@@ -43,7 +43,7 @@ func TestAuthenticateMember_NonexistentEmail(t *testing.T) {
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
 
-	_, err := svc.AuthenticateMember(ctx, seed.DefaultCompanyID, "nobody@example.com", seed.DemoPassword)
+	_, err := svc.AuthenticateMember(ctx, contract.DefaultCompanyID, "nobody@example.com", contract.DemoPassword)
 	if err == nil {
 		t.Fatal("expected error for non-existent email")
 	}

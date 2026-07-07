@@ -8,7 +8,7 @@ import (
 
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -35,7 +35,7 @@ func TestBareBearerMemberIDRejected(t *testing.T) {
 func TestTamperedJWTRejected(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	token := testutil.IssueSessionJWT(t, seed.DefaultCompanyID, seed.IDMemberAdmin)
+	token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, contract.IDMemberAdmin)
 	tampered := token[:len(token)-1] + "x"
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member="+tampered, "", nil)
 	if rec.Code != http.StatusUnauthorized {
@@ -46,7 +46,7 @@ func TestTamperedJWTRejected(t *testing.T) {
 func TestJWTCompanyMismatchRejected(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	cookie := testutil.SessionCookieForCompany(t, 999, seed.IDMemberAdmin)
+	cookie := testutil.SessionCookieForCompany(t, 999, contract.IDMemberAdmin)
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", cookie, "", nil)
 	if rec.Code != http.StatusUnauthorized && rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 401 or 400, got %d body=%s", rec.Code, rec.Body.String())
@@ -69,11 +69,11 @@ func TestAuthLoginIssuesJWTCookie(t *testing.T) {
 func TestDisabledMemberSessionRejected(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	memberCookie := testutil.SessionCookie(t, seed.IDMemberPure)
+	memberCookie := testutil.SessionCookie(t, contract.IDMemberPure)
 	disableRec := testhttp.ServeAuthz(
 		t, router, http.MethodPut, "/api/org/members/status",
 		testhttp.AdminCookie(t),
-		`{"ids":["`+seed.IDMemberPure+`"],"status":"inactive"}`,
+		`{"ids":["`+contract.IDMemberPure+`"],"status":"inactive"}`,
 		nil,
 	)
 	if disableRec.Code != http.StatusNoContent && disableRec.Code != http.StatusOK {
@@ -105,14 +105,14 @@ func TestDashboardCostWithoutUsagePermission(t *testing.T) {
 	}
 	addRec := testhttp.ServeAuthz(
 		t, router, http.MethodPost, "/api/org/roles/"+role.ID+"/members", admin,
-		`{"memberId":"`+seed.IDMemberPure+`"}`,
+		`{"memberId":"`+contract.IDMemberPure+`"}`,
 		nil,
 	)
 	if addRec.Code != http.StatusOK && addRec.Code != http.StatusNoContent {
 		t.Fatalf("add role member: expected success, got %d body=%s", addRec.Code, addRec.Body.String())
 	}
 
-	memberCookie := testutil.SessionCookie(t, seed.IDMemberPure)
+	memberCookie := testutil.SessionCookie(t, contract.IDMemberPure)
 	costRec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/dashboard/cost/summary", memberCookie, "", nil)
 	if costRec.Code != http.StatusOK {
 		t.Fatalf("expected cost 200, got %d body=%s", costRec.Code, costRec.Body.String())
@@ -130,8 +130,8 @@ func TestDashboardCostWithoutUsagePermission(t *testing.T) {
 func TestSelfApprovalWithoutKeysAdminRead(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	memberCookie := testutil.SessionCookie(t, seed.IDMemberPure)
-	approvalBody := `{"type":"quota","reason":"need more","requestedQuota":500,"memberId":"` + seed.IDMemberPure + `"}`
+	memberCookie := testutil.SessionCookie(t, contract.IDMemberPure)
+	approvalBody := `{"type":"quota","reason":"need more","requestedQuota":500,"memberId":"` + contract.IDMemberPure + `"}`
 	createRec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/keys/approvals", memberCookie, approvalBody, nil)
 	if createRec.Code != http.StatusOK {
 		t.Fatalf("expected approval create 200, got %d body=%s", createRec.Code, createRec.Body.String())

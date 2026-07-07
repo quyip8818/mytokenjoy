@@ -9,7 +9,7 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	domainmember "github.com/tokenjoy/backend/internal/domain/member"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -17,7 +17,7 @@ func TestGetMemberDashboardHTTP(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/me/dashboard", nil)
-	req.Header.Set("Cookie", testutil.SessionCookie(t, seed.IDMember1))
+	req.Header.Set("Cookie", testutil.SessionCookie(t, contract.IDMember1))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

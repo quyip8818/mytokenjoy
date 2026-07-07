@@ -15,7 +15,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -77,7 +77,7 @@ func TestDashboardDefaultApp(t *testing.T) {
 		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{CostCNY: 4})
 		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{
 			BucketStart:  time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-			DepartmentID: seed.IDDept4, MemberID: "m-4", CostCNY: 6,
+			DepartmentID: contract.IDDept4, MemberID: "m-4", CostCNY: 6,
 		})
 		req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=day&start=2026-06-10&end=2026-06-11&groupBy=department", nil)
 		req.Header.Set("Cookie", adminCookie)
@@ -101,7 +101,7 @@ func TestDashboardDefaultApp(t *testing.T) {
 		paths := []string{
 			"/api/dashboard/cost/summary",
 			"/api/dashboard/cost/departments",
-			"/api/dashboard/cost/departments/" + seed.IDDept3 + "/members",
+			"/api/dashboard/cost/departments/" + contract.IDDept3 + "/members",
 			"/api/dashboard/cost/daily",
 			"/api/dashboard/cost/top?limit=5",
 			"/api/dashboard/usage/models",

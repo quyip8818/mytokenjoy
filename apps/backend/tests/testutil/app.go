@@ -8,7 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/runtime"
 )
 
 func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
@@ -24,10 +24,10 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	_, st := NewTestStore(t, func(c *config.Config) { *c = storeCfg })
 	if storeCfg.IsDemoProfile() {
 		ctx := Ctx()
-		if err := seed.ApplyUsageBuckets(ctx, st, storeCfg); err != nil {
+		if err := runtime.ApplyUsageBuckets(ctx, st, storeCfg); err != nil {
 			t.Fatalf("apply usage buckets: %v", err)
 		}
-		if err := seed.ApplyRechargeOrders(ctx, st); err != nil {
+		if err := runtime.ApplyRechargeOrders(ctx, st); err != nil {
 			t.Fatalf("apply recharge orders: %v", err)
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -15,19 +15,19 @@ func TestTeamUsageTopModelBatch(t *testing.T) {
 	ctx := testutil.Ctx()
 	base := time.Date(2026, 6, 19, 10, 0, 0, 0, time.UTC)
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		DepartmentID: seed.IDDept3,
+		DepartmentID: contract.IDDept3,
 		Model:        "gpt-4o",
 		CostCNY:      30,
 		BucketStart:  base,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		DepartmentID: seed.IDDept3,
+		DepartmentID: contract.IDDept3,
 		Model:        "gpt-4o-mini",
 		CostCNY:      5,
 		BucketStart:  base,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		DepartmentID: seed.IDDept4,
+		DepartmentID: contract.IDDept4,
 		Model:        "claude-3",
 		CostCNY:      20,
 		BucketStart:  base,
@@ -40,9 +40,9 @@ func TestTeamUsageTopModelBatch(t *testing.T) {
 	var dept3Top, dept4Top string
 	for _, team := range teams {
 		switch team.DepartmentID {
-		case seed.IDDept3:
+		case contract.IDDept3:
 			dept3Top = team.TopModel
-		case seed.IDDept4:
+		case contract.IDDept4:
 			dept4Top = team.TopModel
 		}
 	}

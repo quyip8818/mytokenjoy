@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -21,11 +21,11 @@ func TestRebalanceBidirectional(t *testing.T) {
 	tokenID := int64(42)
 	remainQuota := int64(1000)
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		CompanyID:              seed.DefaultCompanyID,
-		PlatformKeyID:          seed.IDPlatformKey1,
+		CompanyID:              contract.DefaultCompanyID,
+		PlatformKeyID:          contract.IDPlatformKey1,
 		NewAPITokenID:          &tokenID,
-		MemberID:               testutil.StrPtr(seed.IDMember1),
-		DepartmentID:           seed.IDDept3,
+		MemberID:               testutil.StrPtr(contract.IDMember1),
+		DepartmentID:           contract.IDDept3,
 		SyncStatus:             store.RelaySyncStatusSynced,
 		RelayGroup:             "dept-dept-3",
 		NewAPITokenRemainQuota: &remainQuota,
@@ -33,7 +33,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, seed.IDMember1); err != nil {
+	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 1 {
@@ -47,7 +47,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range keys {
-		if keys[i].ID == seed.IDPlatformKey1 {
+		if keys[i].ID == contract.IDPlatformKey1 {
 			keys[i].Quota = 1000
 			keys[i].Used = 999
 			if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
@@ -57,7 +57,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		}
 	}
 
-	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, seed.IDMember1); err != nil {
+	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 1 {

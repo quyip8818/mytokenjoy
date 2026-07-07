@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -39,7 +39,7 @@ func TestRoleMembersRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	targetID := seed.IDMember3
+	targetID := contract.IDMember3
 	for i := range members {
 		if members[i].ID != targetID {
 			continue
@@ -94,7 +94,7 @@ func TestMembersPersistByDepartment(t *testing.T) {
 	for _, member := range members {
 		deptCount[member.DepartmentID]++
 	}
-	if deptCount[seed.IDDept3] == 0 {
+	if deptCount[contract.IDDept3] == 0 {
 		t.Fatal("expected members in seed dept-3")
 	}
 

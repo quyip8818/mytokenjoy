@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -24,11 +24,11 @@ func TestOverrunDisablesDepartmentKeys(t *testing.T) {
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 25000)
 
 	payload, err := json.Marshal(map[string]any{
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
 	overrun := budget.NewOverrunService(cfg, st, nil, notification.NewService(cfg, st, slog.Default()), slog.Default())
 	ctx := testutil.Ctx()
 
-	payload, err := json.Marshal(map[string]any{"departmentId": seed.IDDept3})
+	payload, err := json.Marshal(map[string]any{"departmentId": contract.IDDept3})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range keys {
-		if keys[i].ID == seed.IDPlatformKey1 {
+		if keys[i].ID == contract.IDPlatformKey1 {
 			keys[i].Used = 9999
 			keys[i].Quota = 1000
 		}
@@ -77,14 +77,14 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Org().UpdateMemberPersonalQuota(ctx, seed.IDMember1, 100); err != nil {
+	if err := st.Org().UpdateMemberPersonalQuota(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"memberId":      seed.IDMember1,
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"memberId":      contract.IDMember1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -116,9 +116,9 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 	groupIDCopy := groupID
 	tokenID := int64(99)
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
-		PlatformKeyID: seed.IDPlatformKey1,
+		PlatformKeyID: contract.IDPlatformKey1,
 		NewAPITokenID: &tokenID,
-		DepartmentID:  seed.IDDept3,
+		DepartmentID:  contract.IDDept3,
 		BudgetGroupID: &groupIDCopy,
 		SyncStatus:    store.RelaySyncStatusSynced,
 		RelayGroup:    "group-" + groupID,
@@ -128,8 +128,8 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 
 	payload, err := json.Marshal(map[string]any{
 		"budgetGroupId": groupIDCopy,
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -8,7 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -26,11 +26,11 @@ func TestOverrunNotifiesOnDepartmentExhaustion(t *testing.T) {
 	notifier := &testutil.RecordingNotifier{}
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 25000)
 
 	payload, _ := json.Marshal(map[string]any{
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
 		t.Fatal(err)
@@ -53,11 +53,11 @@ func TestOverrunBlocksEvenIfNotificationFails(t *testing.T) {
 	notifier := &testutil.FailingNotifier{}
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 25000)
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 25000)
 
 	payload, _ := json.Marshal(map[string]any{
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
 		t.Fatal(err)
@@ -73,11 +73,11 @@ func TestOverrunSkipsWhenBudgetNotExhausted(t *testing.T) {
 	notifier := &testutil.RecordingNotifier{}
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	budgetfix.SeedDeptOverrun(t, st, seed.IDDept3, 12500)
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 12500)
 
 	payload, _ := json.Marshal(map[string]any{
-		"departmentId":  seed.IDDept3,
-		"platformKeyId": seed.IDPlatformKey1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
 	})
 	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
 		t.Fatal(err)

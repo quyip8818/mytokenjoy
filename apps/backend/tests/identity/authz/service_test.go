@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/identity/authz"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -18,12 +18,12 @@ func newAuthzService(t *testing.T) authz.Service {
 func TestGetSessionContextSuccess(t *testing.T) {
 	t.Parallel()
 	svc := newAuthzService(t)
-	ctx, err := svc.GetSessionContext(testutil.Ctx(), seed.DefaultCompanyID, seed.IDMemberAdmin)
+	ctx, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, contract.IDMemberAdmin)
 	if err != nil {
 		t.Fatalf("GetSessionContext: %v", err)
 	}
-	if ctx.Member.ID != seed.IDMemberAdmin {
-		t.Fatalf("expected member %s, got %s", seed.IDMemberAdmin, ctx.Member.ID)
+	if ctx.Member.ID != contract.IDMemberAdmin {
+		t.Fatalf("expected member %s, got %s", contract.IDMemberAdmin, ctx.Member.ID)
 	}
 	if len(ctx.Permissions) == 0 {
 		t.Fatal("expected permissions")
@@ -36,7 +36,7 @@ func TestGetSessionContextSuccess(t *testing.T) {
 func TestGetSessionContextNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newAuthzService(t)
-	_, err := svc.GetSessionContext(testutil.Ctx(), seed.DefaultCompanyID, "missing")
+	_, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, "missing")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -45,7 +45,7 @@ func TestGetSessionContextNotFound(t *testing.T) {
 func TestGetSessionContextReadOnlyMember(t *testing.T) {
 	t.Parallel()
 	svc := newAuthzService(t)
-	ctx, err := svc.GetSessionContext(testutil.Ctx(), seed.DefaultCompanyID, "m-pure")
+	ctx, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, "m-pure")
 	if err != nil {
 		t.Fatalf("GetSessionContext: %v", err)
 	}

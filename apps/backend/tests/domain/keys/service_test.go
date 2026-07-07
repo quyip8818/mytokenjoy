@@ -6,14 +6,14 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestApprovalQuotaCheckInsufficient(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), seed.IDApproval1)
+	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), contract.IDApproval1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestApprovalQuotaCheckSufficient(t *testing.T) {
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "test", RequestedQuota: 1000,
-		RequestedModels: []string{"gpt-4o"}, MemberID: seed.IDMember1,
+		RequestedModels: []string{"gpt-4o"}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -54,10 +54,10 @@ func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := len(keysBefore)
-	if err := svc.ApproveApproval(testutil.Ctx(), seed.IDApproval1, seed.IDMemberAdmin); err != nil {
+	if err := svc.ApproveApproval(testutil.Ctx(), contract.IDApproval1, contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
-	approval := findApproval(st, seed.IDApproval1)
+	approval := findApproval(st, contract.IDApproval1)
 	if approval == nil || approval.Status != "approved" {
 		t.Fatalf("expected apv-1 approved, got %+v", approval)
 	}
@@ -75,7 +75,7 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "need more", RequestedQuota: 1000,
-		RequestedModels: []string{"gpt-4o"}, MemberID: seed.IDMember1,
+		RequestedModels: []string{"gpt-4o"}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -84,15 +84,15 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := budget.GetPersonalQuota(membersBefore, seed.IDMember1)
-	if err := svc.ApproveApproval(testutil.Ctx(), created.ID, seed.IDMemberAdmin); err != nil {
+	before := budget.GetPersonalQuota(membersBefore, contract.IDMember1)
+	if err := svc.ApproveApproval(testutil.Ctx(), created.ID, contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
 	membersAfter, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
-	after := budget.GetPersonalQuota(membersAfter, seed.IDMember1)
+	after := budget.GetPersonalQuota(membersAfter, contract.IDMember1)
 	if after != before+1000 {
 		t.Fatalf("expected personal quota +1000, before=%v after=%v", before, after)
 	}
@@ -103,12 +103,12 @@ func TestApproveInsufficientReserved(t *testing.T) {
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "too much", RequestedQuota: 9999,
-		RequestedModels: []string{"gpt-4o"}, MemberID: seed.IDMember1,
+		RequestedModels: []string{"gpt-4o"}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = svc.ApproveApproval(testutil.Ctx(), created.ID, seed.IDMemberAdmin)
+	err = svc.ApproveApproval(testutil.Ctx(), created.ID, contract.IDMemberAdmin)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -116,10 +116,10 @@ func TestRejectApproval(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	reason := "not needed"
-	if err := svc.RejectApproval(testutil.Ctx(), seed.IDApproval2, seed.IDMemberAdmin, &reason); err != nil {
+	if err := svc.RejectApproval(testutil.Ctx(), contract.IDApproval2, contract.IDMemberAdmin, &reason); err != nil {
 		t.Fatal(err)
 	}
-	approval := findApproval(st, seed.IDApproval2)
+	approval := findApproval(st, contract.IDApproval2)
 	if approval == nil || approval.Status != "rejected" {
 		t.Fatalf("expected apv-2 rejected, got %+v", approval)
 	}
@@ -128,7 +128,7 @@ func TestRejectApproval(t *testing.T) {
 func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
 		ModelWhitelist: []string{"gpt-4o"},
@@ -139,7 +139,7 @@ func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
 func TestCreatePlatformKeySuccess(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithRelay(t)
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
 		ModelWhitelist: []string{"gpt-4o"},
@@ -155,7 +155,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "too-big", MemberID: &memberID, Quota: 99999,
 		ModelWhitelist: []string{"gpt-4o"},
@@ -166,7 +166,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "bad-models", MemberID: &memberID, Quota: 1000,
 		ModelWhitelist: []string{"nonexistent-model"},
@@ -179,7 +179,7 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 	svc, _ := newKeysService(t)
 	_, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "bad models", RequestedQuota: 1000,
-		RequestedModels: []string{"nonexistent-model"}, MemberID: seed.IDMember1,
+		RequestedModels: []string{"nonexistent-model"}, MemberID: contract.IDMember1,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -187,8 +187,8 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	groupID := seed.IDBudgetGroup1
-	memberID := seed.IDMember1
+	groupID := contract.IDBudgetGroup1
+	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Quota: 99999,
 		ModelWhitelist: []string{"gpt-4o"},
@@ -200,7 +200,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	quota := 99999.0
-	_, err := svc.UpdatePlatformKey(testutil.Ctx(), seed.IDPlatformKey1, types.UpdatePlatformKeyInput{
+	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Quota: &quota,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -209,7 +209,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	t.Parallel()
 	svc, st, _ := newKeysServiceWithRelay(t)
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", MemberID: &memberID, Quota: 500,
 		ModelWhitelist: []string{"gpt-4o"},
@@ -239,7 +239,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 func TestRejectApprovalNotFound(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", seed.IDMemberAdmin, nil)
+	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", contract.IDMemberAdmin, nil)
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
@@ -254,7 +254,7 @@ func TestRevokePlatformKey(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
-	if err := svc.RevokePlatformKey(testutil.Ctx(), seed.IDPlatformKey1); err != nil {
+	if err := svc.RevokePlatformKey(testutil.Ctx(), contract.IDPlatformKey1); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -262,7 +262,7 @@ func TestRevokePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.ID == seed.IDPlatformKey1 && key.Status != "revoked" {
+		if key.ID == contract.IDPlatformKey1 && key.Status != "revoked" {
 			t.Fatalf("expected revoked status, got %s", key.Status)
 		}
 	}

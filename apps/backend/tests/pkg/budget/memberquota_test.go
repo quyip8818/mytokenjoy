@@ -5,7 +5,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -15,7 +16,7 @@ func TestGetQuotaRemaining(t *testing.T) {
 	members := snapshot.Members
 	keys := snapshot.PlatformKeys
 
-	remaining := budget.GetQuotaRemaining(members, keys, seed.IDMember1)
+	remaining := budget.GetQuotaRemaining(members, keys, contract.IDMember1)
 	if remaining != 3000 {
 		t.Fatalf("expected remaining 3000 (10000 personal - 7000 allocated), got %v", remaining)
 	}
@@ -26,9 +27,9 @@ func TestBuildQuotaSummary(t *testing.T) {
 	snapshot := seed.Load(testutil.TestConfig())
 	members := snapshot.Members
 	keys := snapshot.PlatformKeys
-	reserved := budget.GetReservedPoolForMember(types.OrgNodesToBudgetTree(snapshot.OrgNodes), members, seed.IDMember1)
+	reserved := budget.GetReservedPoolForMember(types.OrgNodesToBudgetTree(snapshot.OrgNodes), members, contract.IDMember1)
 
-	summary := budget.BuildQuotaSummary(members, keys, seed.IDMember1, reserved)
+	summary := budget.BuildQuotaSummary(members, keys, contract.IDMember1, reserved)
 	if summary.TotalQuota != 10000 {
 		t.Fatalf("expected total quota 10000, got %v", summary.TotalQuota)
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -16,7 +16,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
 	reserved := 1500.0
-	updated, err := svc.UpdateNode(testutil.Ctx(), seed.IDDept3, 21000, &reserved)
+	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, 21000, &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := pkgbudget.FindBudgetNode(nodeTree, seed.IDDept3)
+	node := pkgbudget.FindBudgetNode(nodeTree, contract.IDDept3)
 	if node == nil || node.Budget != 21000 {
 		t.Fatalf("expected persisted budget 21000, got %+v", node)
 	}
@@ -37,14 +37,14 @@ func TestUpdateNodeOversell(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
 	reserved := 1500.0
-	_, err := svc.UpdateNode(testutil.Ctx(), seed.IDDept3, 90000, &reserved)
+	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, 90000, &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
 func TestUpdateMemberQuotaBelowAllocated(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	_, err := svc.UpdateMemberQuota(testutil.Ctx(), seed.IDMember1, 1000)
+	_, err := svc.UpdateMemberQuota(testutil.Ctx(), contract.IDMember1, 1000)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -57,7 +57,7 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	}
 	filtered := make([]types.Member, 0, len(members))
 	for _, member := range members {
-		if member.DepartmentID == seed.IDDept3 && member.ID != seed.IDMember1 {
+		if member.DepartmentID == contract.IDDept3 && member.ID != contract.IDMember1 {
 			continue
 		}
 		filtered = append(filtered, member)
@@ -67,7 +67,7 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	}
 	svc := budget.NewService(cfg, st, common.NewDelayer(false))
 
-	result, err := svc.UpdateMemberQuota(testutil.Ctx(), seed.IDMember1, 15000)
+	result, err := svc.UpdateMemberQuota(testutil.Ctx(), contract.IDMember1, 15000)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	}
 	var pool float64
 	for _, member := range poolMap {
-		if member.ID == seed.IDMember1 {
+		if member.ID == contract.IDMember1 {
 			pool = member.PersonalQuota
 			break
 		}
@@ -128,7 +128,7 @@ func TestCreateGroup(t *testing.T) {
 func TestDeleteGroup(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	if err := svc.DeleteGroup(testutil.Ctx(), seed.IDBudgetGroup4); err != nil {
+	if err := svc.DeleteGroup(testutil.Ctx(), contract.IDBudgetGroup4); err != nil {
 		t.Fatal(err)
 	}
 	groups, err := st.Budget().Groups(testutil.Ctx())
@@ -136,7 +136,7 @@ func TestDeleteGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, group := range groups {
-		if group.ID == seed.IDBudgetGroup4 {
+		if group.ID == contract.IDBudgetGroup4 {
 			t.Fatal("expected bg-4 deleted")
 		}
 	}
@@ -150,7 +150,7 @@ func TestDeptRemainingAllocatableBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dept3 := pkgbudget.FindBudgetNode(tree, seed.IDDept3)
+	dept3 := pkgbudget.FindBudgetNode(tree, contract.IDDept3)
 	if dept3 == nil {
 		t.Fatal("dept-3 not found")
 	}

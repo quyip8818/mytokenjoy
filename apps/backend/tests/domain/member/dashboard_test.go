@@ -9,15 +9,16 @@ import (
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
+	"github.com/tokenjoy/backend/seed/runtime"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func newMemberService(t *testing.T) (domainmember.Service, context.Context) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	ctx := testutil.CtxForCompany(seed.DefaultCompanyID)
-	if err := seed.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)
 	}
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
@@ -29,7 +30,7 @@ func newMemberService(t *testing.T) (domainmember.Service, context.Context) {
 func TestGetDashboardReturnsUsageForMember(t *testing.T) {
 	t.Parallel()
 	svc, ctx := newMemberService(t)
-	view, err := svc.GetDashboard(ctx, seed.IDMember1)
+	view, err := svc.GetDashboard(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -88,17 +88,17 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testutil.SetDeptConsumed(t, tree, seed.IDDept3, 999)
+	testutil.SetDeptConsumed(t, tree, contract.IDDept3, 999)
 	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 18.5, CallCount: 2})
 	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, domainusage.SessionScope{
-		MemberID: seed.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
+		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, team := range teams {
-		if team.DepartmentID != seed.IDDept3 {
+		if team.DepartmentID != contract.IDDept3 {
 			continue
 		}
 		if team.Consumed != 18.5 {
@@ -135,13 +135,13 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{CostCNY: 20, CallCount: 4})
-	depts, err := svc.DepartmentCosts(ctx, seed.IDDept2, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	depts, err := svc.DepartmentCosts(ctx, contract.IDDept2, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
 	var deptCost float64
 	for _, row := range depts {
-		if row.DepartmentID == seed.IDDept3 {
+		if row.DepartmentID == contract.IDDept3 {
 			deptCost = row.Cost
 			break
 		}
@@ -149,7 +149,7 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 	if deptCost != 20 {
 		t.Fatalf("expected dept cost 20, got %v", deptCost)
 	}
-	members, err := svc.DepartmentMemberCosts(ctx, seed.IDDept3, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	members, err := svc.DepartmentMemberCosts(ctx, contract.IDDept3, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}

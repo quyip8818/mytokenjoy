@@ -41,15 +41,14 @@ apps/frontend/
     └── lib/
 ```
 
-| 代码       | 位置（目标态）                                               |
-| ---------- | ------------------------------------------------------------ |
-| 页面入口   | `routes/{domain}/{page}.tsx`                                 |
-| 页面逻辑   | `features/{domain}/hooks/use-{page}-page.ts`                 |
-| 页面 Shell | `features/{domain}/components/*-page-shell.tsx`              |
-| 域内 UI    | `features/{domain}/components/`                              |
-| 遗留 UI    | `components/{domain}/`（迁移中，见 [plan.md](./plan.md) §4） |
-| HTTP / DTO | `api/{domain}.ts`、`api/types/`                              |
-| 纯逻辑     | `lib/`、`features/{domain}/lib/`                             |
+| 代码       | 位置（目标态）                                  |
+| ---------- | ----------------------------------------------- |
+| 页面入口   | `routes/{domain}/{page}.tsx`                    |
+| 页面逻辑   | `features/{domain}/hooks/use-{page}-page.ts`    |
+| 页面 Shell | `features/{domain}/components/*-page-shell.tsx` |
+| 域内 UI    | `features/{domain}/components/`                 |
+| HTTP / DTO | `api/{domain}.ts`、`api/types/`                 |
+| 纯逻辑     | `lib/`、`features/{domain}/lib/`                |
 
 禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。工程待办见 [plan.md](./plan.md) §4。
 

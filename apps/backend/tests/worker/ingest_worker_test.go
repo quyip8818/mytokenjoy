@@ -8,7 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
@@ -19,7 +19,7 @@ func TestReconcileMultipleLogs(t *testing.T) {
 	ctx := testutil.Ctx()
 	tokenID := int64(88)
 	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
+		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
 	for _, id := range []int64{801, 802, 803} {
 		testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(id, tokenID))
@@ -69,7 +69,7 @@ func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 901, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(902, 44))
 	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: 44,
+		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: 44,
 	})
 
 	if err := runner.RunReconcileOnce(ctx); err != nil {
@@ -91,7 +91,7 @@ func TestReconcileRunsWithoutNewAPIEnabled(t *testing.T) {
 	ctx := testutil.Ctx()
 	tokenID := int64(66)
 	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
+		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(750, tokenID))
 

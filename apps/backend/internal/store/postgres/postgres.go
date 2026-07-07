@@ -7,7 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed"
+	"github.com/tokenjoy/backend/seed/runtime"
 )
 
 type Store struct {
@@ -75,14 +76,14 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		return nil, err
 	}
 	if cfg.IsDemoProfile() {
-		if err := seed.ApplyUsageBuckets(ctx, s, cfg); err != nil {
+		if err := runtime.ApplyUsageBuckets(ctx, s, cfg); err != nil {
 			pool.Close()
 			if s.logPool != nil {
 				s.logPool.Close()
 			}
 			return nil, err
 		}
-		if err := seed.ApplyRechargeOrders(ctx, s); err != nil {
+		if err := runtime.ApplyRechargeOrders(ctx, s); err != nil {
 			pool.Close()
 			if s.logPool != nil {
 				s.logPool.Close()
@@ -157,7 +158,13 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("begin seed tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
-	if err := seed.ApplyTables(ctx, tx, seed.Load(cfg)); err != nil {
+	var snap store.Snapshot
+	if cfg.MinimalSeed {
+		snap = seed.LoadMinimal(cfg)
+	} else {
+		snap = seed.Load(cfg)
+	}
+	if err := ApplySeedTables(ctx, tx, snap); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {

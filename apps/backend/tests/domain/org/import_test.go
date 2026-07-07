@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -17,7 +17,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	t.Parallel()
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
-	before, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := env.Store.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pkgorg.FindDepartment(departments, seed.IDFeishuDept1) == nil {
+	if pkgorg.FindDepartment(departments, contract.IDFeishuDept1) == nil {
 		t.Fatal("expected imported department in tree")
 	}
 	members, err := env.Store.Org().Members(ctx)
@@ -38,7 +38,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	}
 	foundMember := false
 	for _, member := range members {
-		if member.ExternalID != nil && *member.ExternalID == seed.IDFeishuExtUser1 {
+		if member.ExternalID != nil && *member.ExternalID == contract.IDFeishuExtUser1 {
 			foundMember = true
 			break
 		}
@@ -46,7 +46,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	if !foundMember {
 		t.Fatal("expected imported member")
 	}
-	after, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := env.Store.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	}
 	for i := range departments {
 		for j := range departments[i].Children {
-			if departments[i].Children[j].ID == seed.IDDept2 {
+			if departments[i].Children[j].ID == contract.IDDept2 {
 				departments[i].Children[j].ExternalID = testutil.StrPtr("od-manual")
 				departments[i].Children[j].Source = &manual
 			}
@@ -79,7 +79,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dept := pkgorg.FindDepartment(departments, seed.IDDept2)
+	dept := pkgorg.FindDepartment(departments, contract.IDDept2)
 	if dept == nil || dept.Name != "技术部" {
 		t.Fatalf("manual department should keep name, got %+v", dept)
 	}
@@ -117,7 +117,7 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if budget.FindBudgetNode(budgetTree, seed.IDFeishuDept1) == nil {
+	if budget.FindBudgetNode(budgetTree, contract.IDFeishuDept1) == nil {
 		t.Fatal("expected budget node for imported department")
 	}
 	rules, err := common.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
@@ -126,7 +126,7 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	}
 	foundRule := false
 	for _, rule := range rules {
-		if rule.NodeID == seed.IDFeishuDept1 {
+		if rule.NodeID == contract.IDFeishuDept1 {
 			foundRule = true
 			break
 		}

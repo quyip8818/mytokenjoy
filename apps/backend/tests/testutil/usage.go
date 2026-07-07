@@ -8,7 +8,7 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 type UsageBucketOpts struct {
@@ -23,8 +23,8 @@ type UsageBucketOpts struct {
 func DefaultUsageBucketOpts() UsageBucketOpts {
 	return UsageBucketOpts{
 		BucketStart:  time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC),
-		DepartmentID: seed.IDDept3,
-		MemberID:     seed.IDMember1,
+		DepartmentID: contract.IDDept3,
+		MemberID:     contract.IDMember1,
 		Model:        "gpt-4o",
 		CostCNY:      1,
 		CallCount:    1,
@@ -85,6 +85,6 @@ func AssertUsageBucketCount(t *testing.T, st store.Store, want int) {
 
 func AdminDashboardScope() domainusage.SessionScope {
 	return domainusage.SessionScope{
-		MemberID: seed.IDMemberAdmin, Permissions: []string{permission.DashboardCost, "*"},
+		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardCost, "*"},
 	}
 }

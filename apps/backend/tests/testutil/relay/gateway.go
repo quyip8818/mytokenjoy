@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 	"github.com/tokenjoy/backend/tests/testutil/saas"
@@ -44,10 +44,10 @@ type GatewayScenario struct {
 func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpts) string {
 	t.Helper()
 	if opts.CompanyID == 0 {
-		opts.CompanyID = seed.DefaultCompanyID
+		opts.CompanyID = contract.DefaultCompanyID
 	}
 	if opts.DepartmentID == "" {
-		opts.DepartmentID = seed.IDDept3
+		opts.DepartmentID = contract.IDDept3
 	}
 	if opts.NewAPIWalletUserID == 0 {
 		opts.NewAPIWalletUserID = 99
@@ -85,7 +85,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	if err != nil {
 		t.Fatal(err)
 	}
-	platformKeyID := seed.IDPlatformKey1
+	platformKeyID := contract.IDPlatformKey1
 	if len(keys) == 0 {
 		keys = []types.PlatformKey{{
 			ID:        "plk-gateway-test",
@@ -99,7 +99,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	} else {
 		found := false
 		for i := range keys {
-			if keys[i].ID == seed.IDPlatformKey1 {
+			if keys[i].ID == contract.IDPlatformKey1 {
 				keys[i].FullKey = &fullKey
 				keys[i].Status = "active"
 				found = true
@@ -121,7 +121,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 		CompanyID:              opts.CompanyID,
 		PlatformKeyID:          platformKeyID,
 		NewAPITokenID:          &tokenID,
-		MemberID:               testutil.StrPtr(seed.IDMember1),
+		MemberID:               testutil.StrPtr(contract.IDMember1),
 		DepartmentID:           opts.DepartmentID,
 		SyncStatus:             store.RelaySyncStatusSynced,
 		RelayGroup:             "dept-dept-3",

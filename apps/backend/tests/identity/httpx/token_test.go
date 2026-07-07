@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestResolveSessionTokenCookie(t *testing.T) {
 	t.Parallel()
-	token := testutil.IssueSessionJWT(t, seed.DefaultCompanyID, "cookie-id")
+	token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, "cookie-id")
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Cookie", httpx.SessionCookie+"="+token)
 	if got := httpx.ResolveSessionToken(req); got != token {
@@ -22,7 +22,7 @@ func TestResolveSessionTokenCookie(t *testing.T) {
 
 func TestResolveSessionTokenBearer(t *testing.T) {
 	t.Parallel()
-	token := testutil.IssueSessionJWT(t, seed.DefaultCompanyID, "token-id")
+	token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, "token-id")
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	if got := httpx.ResolveSessionToken(req); got != token {

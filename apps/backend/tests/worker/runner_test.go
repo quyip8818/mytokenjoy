@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -50,7 +50,7 @@ func TestProcessRelayOutbox(t *testing.T) {
 	runner, st, lifecycle := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	memberID := seed.IDMember1
+	memberID := contract.IDMember1
 	key := types.PlatformKey{
 		ID: "plk-worker", Name: "worker-key", MemberID: &memberID,
 		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
@@ -65,7 +65,7 @@ func TestProcessRelayOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := lifecycle.SyncCreatePlatformKey(ctx, key, seed.IDDept3); err != nil {
+	if err := lifecycle.SyncCreatePlatformKey(ctx, key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
 	if pendingRelayOutbox(st, store.OutboxKindCreateToken) == 0 {
@@ -90,7 +90,7 @@ func TestReconcileLogs(t *testing.T) {
 
 	tokenID := int64(88)
 	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: seed.IDPlatformKey1, NewAPITokenID: tokenID,
+		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: tokenID,
 	})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(500, tokenID))
 

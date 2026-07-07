@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
-	"github.com/tokenjoy/backend/internal/store/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -26,7 +26,7 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 		t.Fatal(err)
 	}
 	members = append(members, types.Member{
-		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: seed.IDDept3, DepartmentName: "研发部",
+		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &importedExternalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -67,7 +67,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dept := pkgorg.FindDepartment(departments, seed.IDFeishuDept1)
+	dept := pkgorg.FindDepartment(departments, contract.IDFeishuDept1)
 	if dept == nil || dept.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed department, got %+v", dept)
 	}
@@ -75,7 +75,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := budget.FindBudgetNode(budgetTree, seed.IDFeishuDept1)
+	node := budget.FindBudgetNode(budgetTree, contract.IDFeishuDept1)
 	if node == nil || node.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed budget node, got %+v", node)
 	}
@@ -84,7 +84,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, rule := range rules {
-		if rule.NodeID == seed.IDFeishuDept1 && rule.NodeName != "Renamed Dept" {
+		if rule.NodeID == contract.IDFeishuDept1 && rule.NodeName != "Renamed Dept" {
 			t.Fatalf("expected renamed routing rule, got %+v", rule)
 		}
 	}
@@ -100,7 +100,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		t.Fatal(err)
 	}
 	members = append(members, types.Member{
-		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: seed.IDDept3,
+		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: contract.IDDept3,
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &externalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -110,14 +110,14 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		Enabled: true, DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
-	before, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	before, err := env.Store.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	after, err := env.Store.Company().GetAuthzRevision(ctx, seed.DefaultCompanyID)
+	after, err := env.Store.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	}
 	for i := range departments {
 		for j := range departments[i].Children {
-			if departments[i].Children[j].ID == seed.IDDept2 {
+			if departments[i].Children[j].ID == contract.IDDept2 {
 				departments[i].Children[j].ExternalID = testutil.StrPtr("od-manual")
 				departments[i].Children[j].Source = &manual
 			}
@@ -164,7 +164,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pkgorg.FindDepartment(departments, seed.IDDept2) == nil {
+	if pkgorg.FindDepartment(departments, contract.IDDept2) == nil {
 		t.Fatal("manual department should remain after sync")
 	}
 }
