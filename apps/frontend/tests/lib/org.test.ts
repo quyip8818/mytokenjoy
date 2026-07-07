@@ -6,7 +6,7 @@ import {
   getDeptPath,
   filterDepartmentTree,
   getDeptDeleteError,
-} from '@/lib/org'
+} from '@/features/org/lib/departments'
 import { mockDepartmentTree } from '@tests/fixtures/departments'
 
 describe('flattenDepartments', () => {

@@ -1,5 +1,11 @@
 import { request } from './client'
-import type { CreateModelInput, ModelInfo, ResolvedWhitelist, RoutingRule, UpdateModelInput } from './types'
+import type {
+  CreateModelInput,
+  ModelInfo,
+  ResolvedWhitelist,
+  RoutingRule,
+  UpdateModelInput,
+} from './types'
 
 export const modelApi = {
   list: () => request<ModelInfo[]>('/models'),

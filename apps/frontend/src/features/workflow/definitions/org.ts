@@ -1,5 +1,4 @@
-import { CredentialForm } from '@/components/org/credential-form'
-import { SyncConfigPanel } from '@/components/org/sync-config'
+import { OrgCredentialFormBridge, OrgSyncConfigBridge } from '../workflows/org-delegate-bridge'
 import { defineDelegateWorkflow } from '../define-delegate-workflow'
 import { defineWorkflow } from '../types'
 import { MemberFormWorkflow, MemberInviteWorkflow } from '../workflows/member-form'
@@ -17,7 +16,7 @@ export const orgWorkflowDefinitions = {
     id: 'credential-form',
     title: '配置凭证',
     defaultLayer: 1,
-    Child: CredentialForm,
+    Child: OrgCredentialFormBridge,
     mapProps: (payload, { onSaved }) => ({
       connected: payload.connected ?? false,
       currentPlatform: payload.currentPlatform ?? null,
@@ -28,7 +27,7 @@ export const orgWorkflowDefinitions = {
     id: 'sync-config',
     title: '同步策略',
     defaultLayer: 1,
-    Child: SyncConfigPanel,
+    Child: OrgSyncConfigBridge,
     mapProps: (payload, { onSaved }) => ({
       onTriggerSync: payload.onTriggerSync ?? (() => {}),
       triggeringSyc: payload.triggeringSync ?? false,

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
 
-import { findParentDeptId } from '@/lib/org'
+import { findParentDeptId } from '@/features/org/lib/departments'
 
 export function WhitelistConfigWorkflow({
   entry,

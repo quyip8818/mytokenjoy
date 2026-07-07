@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { AUDIT_DATE_PRESET } from '@/lib/audit-constants'
+import { AUDIT_DATE_PRESET } from '@/features/audit/lib/constants'
 import { resolveLast7DaysRange } from '@/lib/date'
 import {
   AUDIT_FILTER_ALL,
@@ -7,7 +7,7 @@ import {
   buildCallsQuery,
   buildOperationsQuery,
   omitAll,
-} from '@/lib/audit-query'
+} from '@/features/audit/lib/query'
 
 describe('audit-query', () => {
   afterEach(() => {

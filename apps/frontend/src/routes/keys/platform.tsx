@@ -1,12 +1,11 @@
 import { CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PlatformKeyTable } from '@/routes/keys/components/platform-key-table'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import { usePlatformKeysPage } from '@/routes/keys/hooks/use-platform-keys-page'
+import { PlatformKeyTable, usePlatformKeysPage } from '@/features/keys'
 
 export default function PlatformKeysPage() {
   const { keys, loading, error, refresh, rowClass, handleRevoke, openCreateKey } =

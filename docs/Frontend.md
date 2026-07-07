@@ -206,9 +206,9 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.2.2 鉴权策略
 
-| 范围         | 要求                                           |
-| ------------ | ---------------------------------------------- |
-| 全部业务 API | Session JWT + 对应读/写 capability             |
+| 范围         | 要求                                                                |
+| ------------ | ------------------------------------------------------------------- |
+| 全部业务 API | Session JWT + 对应读/写 capability                                  |
 | 公开         | `POST /auth/login`、`POST /auth/logout`、`POST /auth/accept-invite` |
 
 **删除**：`APP_PROFILE=demo` 下 GET 免 Session。
@@ -687,11 +687,11 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`auth.ts`](../apps/frontend/src/api/auth.ts)。`login` / `logout` 已接入 `AppApis`；`accept-invite` 尚无前端封装与路由。
 
-| 方法 | 路径                  | Body                         | 响应                        | 说明                                                     |
-| ---- | --------------------- | ---------------------------- | --------------------------- | -------------------------------------------------------- |
-| POST | `/auth/login`         | `{ email, password }`        | `{ memberId: string }`      | 签发企业 JWT Cookie                                      |
-| POST | `/auth/logout`        | —                            | `void`                      | 清 Cookie；MVP 不维护服务端吊销集                        |
-| POST | `/auth/accept-invite` | `{ token, password, name? }` | `SessionContext`            | 邀请激活；签发 JWT Cookie；`token` 一次性、默认 7 天有效 |
+| 方法 | 路径                  | Body                         | 响应                   | 说明                                                     |
+| ---- | --------------------- | ---------------------------- | ---------------------- | -------------------------------------------------------- |
+| POST | `/auth/login`         | `{ email, password }`        | `{ memberId: string }` | 签发企业 JWT Cookie                                      |
+| POST | `/auth/logout`        | —                            | `void`                 | 清 Cookie；MVP 不维护服务端吊销集                        |
+| POST | `/auth/accept-invite` | `{ token, password, name? }` | `SessionContext`       | 邀请激活；签发 JWT Cookie；`token` 一次性、默认 7 天有效 |
 
 无需 Session；`accept-invite` 成功后与 `GET /session` 结构一致（含 `companyId`）。
 
@@ -784,16 +784,16 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.6 前端接入现状
 
-| 项                   | 后端                          | 前端 `AppApis`                         | 控制台页面                          |
-| -------------------- | ----------------------------- | -------------------------------------- | ----------------------------------- |
-| 企业面 §5.4 域 API   | 已实现                        | 已接入（16 命名空间，缺 `platformApi`） | 17 业务页                           |
-| `auth/login`         | 已实现                        | `authApi.login`                        | `/login`                            |
-| `auth/logout`        | 已实现                        | `authApi.logout`                       | —                                   |
-| `auth/accept-invite` | 已实现                        | 未接入                                 | 无 `/invite/accept`                 |
-| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                 | `/billing`（读余额）                |
-| `billing/recharge`   | 已实现                        | `billingApi.recharge`（无 `confirm`）  | `/billing`（演示充值，未走完入账） |
-| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                 | 无 `/platform/login`                |
-| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含              | `PermissionGate` 已用于 `/billing` |
+| 项                   | 后端                          | 前端 `AppApis`                          | 控制台页面                         |
+| -------------------- | ----------------------------- | --------------------------------------- | ---------------------------------- |
+| 企业面 §5.4 域 API   | 已实现                        | 已接入（16 命名空间，缺 `platformApi`） | 17 业务页                          |
+| `auth/login`         | 已实现                        | `authApi.login`                         | `/login`                           |
+| `auth/logout`        | 已实现                        | `authApi.logout`                        | —                                  |
+| `auth/accept-invite` | 已实现                        | 未接入                                  | 无 `/invite/accept`                |
+| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                  | `/billing`（读余额）               |
+| `billing/recharge`   | 已实现                        | `billingApi.recharge`（无 `confirm`）   | `/billing`（演示充值，未走完入账） |
+| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                  | 无 `/platform/login`               |
+| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含               | `PermissionGate` 已用于 `/billing` |
 
 > **类型对齐：** 后端 `WalletSummary` 字段为 `balance` / `allocatable`；前端 `billing.ts` 当前 `WalletView` 使用 `availableQuota`，须与后端 JSON 对齐后余额页方可正确展示。
 

@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWorkflow } from '../use-workflow'
-import { flattenDepartments } from '@/lib/org'
+import { flattenDepartments } from '@/features/org/lib/departments'
 
 interface MemberFormData {
   name: string

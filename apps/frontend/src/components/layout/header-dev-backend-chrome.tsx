@@ -11,8 +11,8 @@ function HeaderDevBackendToolbarContent() {
       {member && (
         <span className="hidden text-sm text-muted-foreground sm:inline">{member.name}</span>
       )}
-      <Button variant="outline" size="sm" render={<Link to={LOGIN_PATH} />}>
-        Switch member
+      <Button variant="outline" size="sm" asChild>
+        <Link to={LOGIN_PATH}>Switch member</Link>
       </Button>
     </div>
   )

@@ -14,6 +14,11 @@ export function getMonthStartLocal(): string {
   return formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1))
 }
 
+export function getCurrentBudgetPeriod(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function resolveLast7DaysRange(): { from: string; to: string } {
   const to = new Date()
   const from = new Date()

@@ -9,14 +9,14 @@
 
 ## 1. 结论
 
-| 问题 | 答案 |
-|------|------|
-| 策略 | **一次性破坏性对齐**：删 MSW、删 MSW 类型与虚构功能，前端字段名 = 后端 JSON 字段名 |
-| 要不要重构 frontend？ | **要**（§4）：恢复 merge 前基础设施 + 新 UI 接线；**不**推倒新 UI、**不**重写已对齐的 `budgetApi` |
-| 要不要 mapper / compat？ | **不要**。无 `BudgetProjectView`、无 `reserved`↔`reservedPool` 转换层 |
-| 要不要 DB migration？ | **不要**。不新增列、不改 `schema.sql`；缺持久化能力则 **删 UI 或延后** |
-| 后端要改多少？ | **仅 models PUT/DELETE**（表已有）；其余 **零后端改动** |
-| Seed | **改 3 项**：usage 量级、预算组文案、`platform_keys.budgetGroupId` |
+| 问题                     | 答案                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| 策略                     | **一次性破坏性对齐**：删 MSW、删 MSW 类型与虚构功能，前端字段名 = 后端 JSON 字段名                |
+| 要不要重构 frontend？    | **要**（§4）：恢复 merge 前基础设施 + 新 UI 接线；**不**推倒新 UI、**不**重写已对齐的 `budgetApi` |
+| 要不要 mapper / compat？ | **不要**。无 `BudgetProjectView`、无 `reserved`↔`reservedPool` 转换层                             |
+| 要不要 DB migration？    | **不要**。不新增列、不改 `schema.sql`；缺持久化能力则 **删 UI 或延后**                            |
+| 后端要改多少？           | **仅 models PUT/DELETE**（表已有）；其余 **零后端改动**                                           |
+| Seed                     | **改 3 项**：usage 量级、预算组文案、`platform_keys.budgetGroupId`                                |
 
 **一句话**：把 MSW 层连根拔掉，**恢复老版基础设施**（Session / DI / proxy / `api/types/`），新 UI 页面接入真 API；虚构能力 **删页面**，不为 MSW 补 API 或 migration。
 
@@ -43,13 +43,13 @@ main.tsx（无 MSW）
             └─ WorkflowProvider → Sidebar / Header / Outlet / WorkflowPanelStack
 ```
 
-| 能力 | 实现 |
-|------|------|
-| 本地联调 | `vite-api-proxy.ts` 将 `/api` 反代到 `:8080`；`VITE_API_PROXY_TARGET` 可覆盖 |
-| 认证 | `POST /auth/login` → HttpOnly Cookie → `GET /session` |
-| 权限 | `GET /session` 一次拉取 permissions；`config/routes.ts` 的 `requiredPermissions` + `PermissionGate` |
-| 数据缓存 | TanStack Query + `useInjectedQuery` + `queryKeys` |
-| 侧滑表单 | `features/workflow/` Zustand 栈（预算组、Key 审批、成员配额等） |
+| 能力     | 实现                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------- |
+| 本地联调 | `vite-api-proxy.ts` 将 `/api` 反代到 `:8080`；`VITE_API_PROXY_TARGET` 可覆盖                        |
+| 认证     | `POST /auth/login` → HttpOnly Cookie → `GET /session`                                               |
+| 权限     | `GET /session` 一次拉取 permissions；`config/routes.ts` 的 `requiredPermissions` + `PermissionGate` |
+| 数据缓存 | TanStack Query + `useInjectedQuery` + `queryKeys`                                                   |
+| 侧滑表单 | `features/workflow/` Zustand 栈（预算组、Key 审批、成员配额等）                                     |
 
 `pnpm start` 在 monorepo 根目录会同时起 backend + Vite；前端**默认打真 API**，不是 Mock。
 
@@ -88,14 +88,14 @@ overview.tsx
                  └─ Vite proxy → Go /api/*
 ```
 
-| 文件 | 职责 |
-|------|------|
-| `api/client.ts` | `request`、`ApiError`、`buildQuery`、401/403/authz revision 回调 |
-| `api/app-apis.ts` | `AppApis` 接口 + `defaultApis` |
-| `api/context.tsx` | `ApiProvider` |
-| `api/use-apis.ts` | `useApis()` |
-| `api/schemas/session.ts` | Zod 校验 session 响应 |
-| `api/types/*.ts` | 按域拆分 DTO（如 `BudgetGroup`、`reservedPool`、`nodeId`） |
+| 文件                     | 职责                                                             |
+| ------------------------ | ---------------------------------------------------------------- |
+| `api/client.ts`          | `request`、`ApiError`、`buildQuery`、401/403/authz revision 回调 |
+| `api/app-apis.ts`        | `AppApis` 接口 + `defaultApis`                                   |
+| `api/context.tsx`        | `ApiProvider`                                                    |
+| `api/use-apis.ts`        | `useApis()`                                                      |
+| `api/schemas/session.ts` | Zod 校验 session 响应                                            |
+| `api/types/*.ts`         | 按域拆分 DTO（如 `BudgetGroup`、`reservedPool`、`nodeId`）       |
 
 老版 `budgetApi` **已与后端对齐**（节选）：
 
@@ -109,15 +109,15 @@ overview.tsx
 
 ### 2.4 路由与页面清单（老版 17 页）
 
-| 域 | 路由 | 说明 |
-|----|------|------|
-| 组织 | `/org/data-source`、`structure`、`roles` | 已接真 API |
-| 预算 | `/budget/overview`、`allocation`、`alerts` | 三页拆分；组/部门/配额走 workflow |
-| 看板 | `/dashboard/cost`、`usage` | 已接真 API |
-| Key | `/keys/provider`、`platform`、`approval`、`mine` | `mine` 成员视角 |
-| 模型 | `/models/list`、`routing` | toggle + 路由；无 PUT/DELETE 模型 |
-| 计费 | `/billing` | wallet + recharge |
-| 审计 | `/audit/operations`、`calls` | 已接真 API |
+| 域   | 路由                                             | 说明                              |
+| ---- | ------------------------------------------------ | --------------------------------- |
+| 组织 | `/org/data-source`、`structure`、`roles`         | 已接真 API                        |
+| 预算 | `/budget/overview`、`allocation`、`alerts`       | 三页拆分；组/部门/配额走 workflow |
+| 看板 | `/dashboard/cost`、`usage`                       | 已接真 API                        |
+| Key  | `/keys/provider`、`platform`、`approval`、`mine` | `mine` 成员视角                   |
+| 模型 | `/models/list`、`routing`                        | toggle + 路由；无 PUT/DELETE 模型 |
+| 计费 | `/billing`                                       | wallet + recharge                 |
+| 审计 | `/audit/operations`、`calls`                     | 已接真 API                        |
 
 无 `/me` 成员 Layout、无 MSW、无预算审批 UI。
 
@@ -136,28 +136,28 @@ overview.tsx
 
 ### 3.1 新 UI 带来了什么
 
-| 项 | 状态 |
-|----|------|
-| 新视觉 / 组件库 | Radix + 新 layout、预算树交互、成员端 Layout |
-| MSW 全量 Mock | `main.tsx` DEV 自动启 worker；开箱不打后端 |
-| 新路由形态 | `App.tsx` 硬编码 20+ 路由；无 `config/routes.ts` |
-| 新页面 | `/wallet`、`/me/*`、预算单页 `budget/index`（合并 overview+allocation） |
-| MSW 领域模型 | `api/types.ts` 单文件：`BudgetProject`、审批、`reserved` 等 |
+| 项              | 状态                                                                    |
+| --------------- | ----------------------------------------------------------------------- |
+| 新视觉 / 组件库 | Radix + 新 layout、预算树交互、成员端 Layout                            |
+| MSW 全量 Mock   | `main.tsx` DEV 自动启 worker；开箱不打后端                              |
+| 新路由形态      | `App.tsx` 硬编码 20+ 路由；无 `config/routes.ts`                        |
+| 新页面          | `/wallet`、`/me/*`、预算单页 `budget/index`（合并 overview+allocation） |
+| MSW 领域模型    | `api/types.ts` 单文件：`BudgetProject`、审批、`reserved` 等             |
 
 ### 3.2 merge 删掉了什么（需恢复）
 
-| 路径 / 能力 | 影响 |
-|-------------|------|
-| `vite-api-proxy.ts` | 无法 `/api` 反代 |
-| `features/session/*` | 无登录、无 SessionGate、全 API 401 |
-| `features/query/*` | 无 TanStack Query 注入模式 |
-| `api/app-apis.ts`、`use-apis.ts`、`context.tsx` | 无 DI；测试无法 `createMockApis` |
-| `api/auth.ts`、`billing.ts`、`session.ts` | 认证与计费客户端缺失 |
-| `api/types/`（按域拆分） | 后端对齐 DTO 被 MSW 单文件 `types.ts` 覆盖 |
-| `config/routes.ts`、`nav.ts`、权限门控 | 侧栏硬编码、无按权限隐藏菜单 |
-| `features/workflow/*` | 侧滑表单栈消失（预算组、配额、Key 审批等） |
-| `routes/*/hooks/use-*-page.ts`（多数） | 页面内联 `useState` + 直调 `budgetApi` / `@/mocks/data` |
-| `tests/` 大部分、`playwright`、`check-conventions` | 测试与 lint 约束缩水 |
+| 路径 / 能力                                        | 影响                                                    |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| `vite-api-proxy.ts`                                | 无法 `/api` 反代                                        |
+| `features/session/*`                               | 无登录、无 SessionGate、全 API 401                      |
+| `features/query/*`                                 | 无 TanStack Query 注入模式                              |
+| `api/app-apis.ts`、`use-apis.ts`、`context.tsx`    | 无 DI；测试无法 `createMockApis`                        |
+| `api/auth.ts`、`billing.ts`、`session.ts`          | 认证与计费客户端缺失                                    |
+| `api/types/`（按域拆分）                           | 后端对齐 DTO 被 MSW 单文件 `types.ts` 覆盖              |
+| `config/routes.ts`、`nav.ts`、权限门控             | 侧栏硬编码、无按权限隐藏菜单                            |
+| `features/workflow/*`                              | 侧滑表单栈消失（预算组、配额、Key 审批等）              |
+| `routes/*/hooks/use-*-page.ts`（多数）             | 页面内联 `useState` + 直调 `budgetApi` / `@/mocks/data` |
+| `tests/` 大部分、`playwright`、`check-conventions` | 测试与 lint 约束缩水                                    |
 
 ### 3.3 当前矛盾（同仓库两套范式并存意图）
 
@@ -180,12 +180,12 @@ use-*-page.ts + useInjectedQuery    页面内 useEffect + setState
 
 ### 4.1 结论
 
-| 问题 | 答案 |
-|------|------|
-| 要不要重构？ | **要**。当前形态无法上线（无 Session、无 proxy、契约错误） |
-| 要不要推倒新 UI？ | **不要**。保留新 UI 的 layout / 组件 / 交互 |
+| 问题                | 答案                                                                     |
+| ------------------- | ------------------------------------------------------------------------ |
+| 要不要重构？        | **要**。当前形态无法上线（无 Session、无 proxy、契约错误）               |
+| 要不要推倒新 UI？   | **不要**。保留新 UI 的 layout / 组件 / 交互                              |
 | 要不要重写 API 层？ | **不要**。从 `be29d28^` **恢复**老版 `api/` + `features/`，删掉 MSW 字段 |
-| 重构性质 | **重组**：基础设施回滚 + 页面接线改造，不是第三套架构 |
+| 重构性质            | **重组**：基础设施回滚 + 页面接线改造，不是第三套架构                    |
 
 ### 4.2 三类工作
 
@@ -250,11 +250,11 @@ schema 增量 migration                 无 migration；也不改 schema
 
 ### 6.1 整包删除
 
-| 路径 | 说明 |
-|------|------|
-| `src/mocks/` | `handlers.ts`、`data.ts`、`browser.ts` |
-| `public/mockServiceWorker.js` | MSW worker |
-| `package.json` 中 `msw` 依赖 | 卸载 |
+| 路径                          | 说明                                   |
+| ----------------------------- | -------------------------------------- |
+| `src/mocks/`                  | `handlers.ts`、`data.ts`、`browser.ts` |
+| `public/mockServiceWorker.js` | MSW worker                             |
+| `package.json` 中 `msw` 依赖  | 卸载                                   |
 
 ### 6.2 删类型与 API 方法
 
@@ -286,13 +286,13 @@ schema 增量 migration                 无 migration；也不改 schema
 
 ### 6.3 删 UI 与路由引用
 
-| 组件 / 页面 | 处理 |
-|-------------|------|
-| `budget-approval-drawer.tsx` | **删除** + 移除所有引用与角标 |
-| 钱包页充值记录 / 发票 / 推荐 Tab | **删除** Tab，仅保留余额 + 充值 |
-| `budget-edit-allocation` 中 per-node `overrunPolicy` 列 | **删除**列 |
-| 预算树 `memberQuota` 列 | **删除**；成员配额只走 `member-quotas` 子页 |
-| `@/mocks/data` 全部 import（6 处） | 改 API 或删文件 |
+| 组件 / 页面                                             | 处理                                        |
+| ------------------------------------------------------- | ------------------------------------------- |
+| `budget-approval-drawer.tsx`                            | **删除** + 移除所有引用与角标               |
+| 钱包页充值记录 / 发票 / 推荐 Tab                        | **删除** Tab，仅保留余额 + 充值             |
+| `budget-edit-allocation` 中 per-node `overrunPolicy` 列 | **删除**列                                  |
+| 预算树 `memberQuota` 列                                 | **删除**；成员配额只走 `member-quotas` 子页 |
+| `@/mocks/data` 全部 import（6 处）                      | 改 API 或删文件                             |
 
 `budget-project-dialog.tsx` → 重命名为 `budget-group-dialog.tsx`，类型改为 `BudgetGroup`。
 
@@ -304,45 +304,45 @@ schema 增量 migration                 无 migration；也不改 schema
 
 ### 7.1 基础设施（Step 1 最先）
 
-| 项 | 动作 |
-|----|------|
-| `main.tsx` | 删除 MSW bootstrap；恢复 `initMonitoring()` |
-| `vite.config.ts` + `vite-api-proxy.ts` | 从 `be29d28^` **恢复**（勿内联硬编码 proxy） |
-| `api/client.ts` | 从 `be29d28^` **恢复**（`credentials`、401/403、JSON 校验） |
-| `App.tsx` + `admin-layout.tsx` | 恢复 lazy 路由 + Provider 栈（§2.1） |
-| 登录 + `GET /session` | 从 `be29d28^` **恢复** `features/session`、`routes/auth/login`（非重写） |
-| `config/routes.ts` | 恢复 `ROUTE_DEFINITIONS`；新 UI 路由（`/me`、`budget/index`）登记入表 |
+| 项                                     | 动作                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `main.tsx`                             | 删除 MSW bootstrap；恢复 `initMonitoring()`                              |
+| `vite.config.ts` + `vite-api-proxy.ts` | 从 `be29d28^` **恢复**（勿内联硬编码 proxy）                             |
+| `api/client.ts`                        | 从 `be29d28^` **恢复**（`credentials`、401/403、JSON 校验）              |
+| `App.tsx` + `admin-layout.tsx`         | 恢复 lazy 路由 + Provider 栈（§2.1）                                     |
+| 登录 + `GET /session`                  | 从 `be29d28^` **恢复** `features/session`、`routes/auth/login`（非重写） |
+| `config/routes.ts`                     | 恢复 `ROUTE_DEFINITIONS`；新 UI 路由（`/me`、`budget/index`）登记入表    |
 
 ### 7.2 模块对照
 
-| 模块 | 动作 |
-|------|------|
-| 认证 / 会话 | **恢复** 老版 session 栈 |
-| 组织-数据源 / 同步 / 部门 / 成员 / 角色 | **直连**（恢复 DI 后接 `departmentApi` 等） |
-| 组织-字段映射向导 | **改**：静态默认 6 条映射，去掉保存/测试 API 调用；标注「同步引擎接入后再持久化」 |
-| 预算-树 | **改**：`BudgetNode` 用 `reservedPool`；删 `memberQuota`、`overrunPolicy` |
-| 预算-组 | **改**：`/budget/groups` CRUD，类型 `BudgetGroup`；复用老版 `budget-group-form` workflow |
-| 预算-部门更新 | **改**：`PUT /budget/departments/{id}`，`{ budget, reservedPool }` |
-| 预算-成员配额 | **改**：`GET .../member-quotas`、`PUT /budget/members/{id}`；复用 `member-quota-config` workflow |
-| 预算-超限策略 | **改**：仅 `GET/PUT /budget/overrun-policy`（公司级独立区块） |
-| 预算-预警 | **改**：`AlertRule` 直接用 `nodeId`/`nodeName`（`dept-*` 或 `bg-*`） |
-| 预算-审批 | **删** |
-| 供应商 Key | **直连** |
-| 平台 Key | **改**：list 接受裸数组；create body 用 `memberId`/`budgetGroupId`；query 用 `tab` |
-| Key 审批 | **改**：`?tab=pending`；复用 `approval-review` workflow |
-| 看板 | **改**：`totalCostMom`；`getDailyCosts(?period=current_month)`；`audit` 用 `from`/`to` |
-| 审计 calls | **改**：`previewSnippet` |
-| 模型 | **直连** list/toggle/routing；编辑走 Step 3 后端 PUT/DELETE |
-| 钱包 | **改**：`/wallet` → `/billing`；`billingApi`（`balance`/`allocatable` + recharge） |
-| 成员端 `/me` | **改**：keys/logs 接真 API；首页统计无后端则保留静态占位或删图表 |
-| 成员端 keys / 日志 | **改**：`keys/platform?memberId=`、`audit/calls?callerId=` |
+| 模块                                    | 动作                                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 认证 / 会话                             | **恢复** 老版 session 栈                                                                         |
+| 组织-数据源 / 同步 / 部门 / 成员 / 角色 | **直连**（恢复 DI 后接 `departmentApi` 等）                                                      |
+| 组织-字段映射向导                       | **改**：静态默认 6 条映射，去掉保存/测试 API 调用；标注「同步引擎接入后再持久化」                |
+| 预算-树                                 | **改**：`BudgetNode` 用 `reservedPool`；删 `memberQuota`、`overrunPolicy`                        |
+| 预算-组                                 | **改**：`/budget/groups` CRUD，类型 `BudgetGroup`；复用老版 `budget-group-form` workflow         |
+| 预算-部门更新                           | **改**：`PUT /budget/departments/{id}`，`{ budget, reservedPool }`                               |
+| 预算-成员配额                           | **改**：`GET .../member-quotas`、`PUT /budget/members/{id}`；复用 `member-quota-config` workflow |
+| 预算-超限策略                           | **改**：仅 `GET/PUT /budget/overrun-policy`（公司级独立区块）                                    |
+| 预算-预警                               | **改**：`AlertRule` 直接用 `nodeId`/`nodeName`（`dept-*` 或 `bg-*`）                             |
+| 预算-审批                               | **删**                                                                                           |
+| 供应商 Key                              | **直连**                                                                                         |
+| 平台 Key                                | **改**：list 接受裸数组；create body 用 `memberId`/`budgetGroupId`；query 用 `tab`               |
+| Key 审批                                | **改**：`?tab=pending`；复用 `approval-review` workflow                                          |
+| 看板                                    | **改**：`totalCostMom`；`getDailyCosts(?period=current_month)`；`audit` 用 `from`/`to`           |
+| 审计 calls                              | **改**：`previewSnippet`                                                                         |
+| 模型                                    | **直连** list/toggle/routing；编辑走 Step 3 后端 PUT/DELETE                                      |
+| 钱包                                    | **改**：`/wallet` → `/billing`；`billingApi`（`balance`/`allocatable` + recharge）               |
+| 成员端 `/me`                            | **改**：keys/logs 接真 API；首页统计无后端则保留静态占位或删图表                                 |
+| 成员端 keys / 日志                      | **改**：`keys/platform?memberId=`、`audit/calls?callerId=`                                       |
 
 ### 7.3 后端唯一增量
 
-| 路由 | 说明 |
-|------|------|
-| `PUT /models/{id}` | 更新模型元数据 |
-| `DELETE /models/{id}` | 删除模型 |
+| 路由                  | 说明           |
+| --------------------- | -------------- |
+| `PUT /models/{id}`    | 更新模型元数据 |
+| `DELETE /models/{id}` | 删除模型       |
 
 **不做**：field-mappings、budget/projects、budget/approvals、keys `status=` 别名、platform 分页包装。
 
@@ -383,11 +383,11 @@ apps/frontend/src/api/
 
 ## 9. Seed（3 项）
 
-| 项 | 文件 | 动作 |
-|----|------|------|
-| 看板量级 | `seed/usage.go` | 扩 `buildUsageBuckets`，`totalCost` 与预算树 consumed 同量级（~67.5k） |
-| 预算组文案 | `seed/budget_data.go` | 组名与 UI 文案一致 |
-| 平台 Key | `seed/data/platform_keys.json` | 补全 `budgetGroupId: "bg-*"`（当前仅 2/14） |
+| 项         | 文件                           | 动作                                                                   |
+| ---------- | ------------------------------ | ---------------------------------------------------------------------- |
+| 看板量级   | `seed/usage.go`                | 扩 `buildUsageBuckets`，`totalCost` 与预算树 consumed 同量级（~67.5k） |
+| 预算组文案 | `seed/budget_data.go`          | 组名与 UI 文案一致                                                     |
+| 平台 Key   | `seed/data/platform_keys.json` | 补全 `budgetGroupId: "bg-*"`（当前仅 2/14）                            |
 
 **不改**：成员数量、`proj-*` ID、预算审批数据、per-node overrunPolicy、MSW 随机曲线。
 
@@ -446,7 +446,7 @@ Step 2 — 新 UI 页面接线（3–4d）
 - [x] `GET /api/budget/groups` 驱动预算组列表
 - [x] `PUT /api/budget/departments/dept-3` 更新 `reservedPool`
 - [x] `GET/PUT /api/budget/overrun-policy`
-- [x] `POST /api/budget/alerts`  body 含 `nodeId`
+- [x] `POST /api/budget/alerts` body 含 `nodeId`
 - [x] `GET /api/keys/approvals?tab=pending`
 - [x] 看板 `totalCost` 非 0（seed + 真 API）
 - [x] `PUT/DELETE /api/models/{id}`（后端已实现；前端列表尚无编辑 UI）
@@ -470,15 +470,15 @@ pnpm -F @tokenjoy/frontend test
 
 ## 12. 风险与取舍
 
-| 取舍 | 说明 |
-|------|------|
-| git 恢复 vs 手写 | 恢复老版可降低 Session/DI 回归风险；合并时以新 UI 视觉文件为准 |
-| 字段映射不持久化 | 无 migration 的代价；向导可演示，同步引擎上线前再补 API + 列 |
-| 预算 UI 文案仍写「项目」 | 仅文案，代码类型统一 `BudgetGroup` |
-| `/me` 首页无聚合 API | 短期静态占位；长期可复用 `/keys/mine` 或新增 BFF |
-| 破坏性 types 改动 | 删 MSW `types.ts`，统一 `api/types/`；不做 alias 过渡 |
-| 登录链路缺失 | Step 0 必做，否则真 API 全 401 |
-| 契约长期漂移 | 恢复后补 schema 测试或 OpenAPI（Roadmap，非本次阻塞） |
+| 取舍                     | 说明                                                           |
+| ------------------------ | -------------------------------------------------------------- |
+| git 恢复 vs 手写         | 恢复老版可降低 Session/DI 回归风险；合并时以新 UI 视觉文件为准 |
+| 字段映射不持久化         | 无 migration 的代价；向导可演示，同步引擎上线前再补 API + 列   |
+| 预算 UI 文案仍写「项目」 | 仅文案，代码类型统一 `BudgetGroup`                             |
+| `/me` 首页无聚合 API     | 短期静态占位；长期可复用 `/keys/mine` 或新增 BFF               |
+| 破坏性 types 改动        | 删 MSW `types.ts`，统一 `api/types/`；不做 alias 过渡          |
+| 登录链路缺失             | Step 0 必做，否则真 API 全 401                                 |
+| 契约长期漂移             | 恢复后补 schema 测试或 OpenAPI（Roadmap，非本次阻塞）          |
 
 ---
 
@@ -500,12 +500,12 @@ pnpm -F @tokenjoy/frontend test
 
 MSW 去除后，为保留新 UI 行为而补充的临时后端能力。各 fake 实现文件顶部以英文 `// TODO(real): ...` 标注后续真实现。
 
-| API | 状态 | TODO(real) |
-|-----|------|------------|
-| `GET/PUT /budget/approvals` | 内存 fake（按 company 隔离，seed 5 条） | 对接预算审批工作流与持久化 |
-| `GET/PUT/GET test /org/data-source/field-mappings` | 内存 fake（按 company + platform） | 同步引擎 + DB 持久化 |
-| `GET /billing/recharge-records` | 半真（`company_recharge_orders` 表 + invoice/method overlay fake） | 支付渠道、发票系统 |
-| `GET /billing/wallet` 的 `totalConsumed` / `totalRequests` | 半真（usage 聚合） | 统一账单域 |
+| API                                                        | 状态                                                               | TODO(real)                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------- |
+| `GET/PUT /budget/approvals`                                | 内存 fake（按 company 隔离，seed 5 条）                            | 对接预算审批工作流与持久化 |
+| `GET/PUT/GET test /org/data-source/field-mappings`         | 内存 fake（按 company + platform）                                 | 同步引擎 + DB 持久化       |
+| `GET /billing/recharge-records`                            | 半真（`company_recharge_orders` 表 + invoice/method overlay fake） | 支付渠道、发票系统         |
+| `GET /billing/wallet` 的 `totalConsumed` / `totalRequests` | 半真（usage 聚合）                                                 | 统一账单域                 |
 
 **前端接线（不改页面 JSX）**
 
@@ -524,8 +524,8 @@ MSW 去除后，为保留新 UI 行为而补充的临时后端能力。各 fake 
 
 普通成员仅有 `self:*` 权限，无法直接调用 `dashboard:usage`。为保留 `/me` 工作台 UI，新增成员域 BFF。
 
-| API | 状态 | TODO(real) |
-|-----|------|------------|
+| API                 | 状态                                                     | TODO(real)                |
+| ------------------- | -------------------------------------------------------- | ------------------------- |
 | `GET /me/dashboard` | fake BFF（usage 按 memberId 聚合 + keys quota 余额代理） | 独立成员分析域 / 专用 BFF |
 
 **实现**
@@ -545,12 +545,12 @@ MSW 去除后，为保留新 UI 行为而补充的临时后端能力。各 fake 
 
 在 §15–§16 fake API 完成后，继续消除直调 API / 占位断链，**不改页面布局与交互**。
 
-| 项 | 动作 | 说明 |
-|----|------|------|
-| 看板 cost | `cost.tsx` → `useCostDashboardPage` | 移除 `dashboardApi` 直调，保留原 5 卡片与图表 JSX |
-| 看板 usage | `usage.tsx` → `useUsageDashboardPage` | 同上 |
-| 成员 Key 创建 | `member/keys` Dialog → workflow 预填 | `key-create` payload 增 `initialName` / `initialQuota` |
-| Seed | `platform_keys.json` | 5 条 `budgetGroupId: null` 补全为 `bg-*` |
+| 项            | 动作                                  | 说明                                                   |
+| ------------- | ------------------------------------- | ------------------------------------------------------ |
+| 看板 cost     | `cost.tsx` → `useCostDashboardPage`   | 移除 `dashboardApi` 直调，保留原 5 卡片与图表 JSX      |
+| 看板 usage    | `usage.tsx` → `useUsageDashboardPage` | 同上                                                   |
+| 成员 Key 创建 | `member/keys` Dialog → workflow 预填  | `key-create` payload 增 `initialName` / `initialQuota` |
+| Seed          | `platform_keys.json`                  | 5 条 `budgetGroupId: null` 补全为 `bg-*`               |
 
 **仍待后续（需 UI 决策或真后端）**
 
@@ -562,12 +562,12 @@ MSW 去除后，为保留新 UI 行为而补充的临时后端能力。各 fake 
 
 ## 18. 接线续作 Phase 3 收尾（org hook 薄层）
 
-| 项 | 动作 | 说明 |
-|----|------|------|
+| 项                | 动作                      | 说明                                                |
+| ----------------- | ------------------------- | --------------------------------------------------- |
 | `data-source.tsx` | `useDataSourceWizardPage` | 向导状态机 + `useInjectedQuery` 拉 status；JSX 不变 |
-| `roles.tsx` | `useRolesInlinePage` | Dialog 交互保留；`roleApi` 改走 `useInjectedApis` |
-| `structure.tsx` | `useStructureInlinePage` | 仍用 zustand store；页面仅拼 JSX |
-| Key 创建 | `openCreateKey()` | `mine` / `platform` 路由修复 `onClick` 签名 |
+| `roles.tsx`       | `useRolesInlinePage`      | Dialog 交互保留；`roleApi` 改走 `useInjectedApis`   |
+| `structure.tsx`   | `useStructureInlinePage`  | 仍用 zustand store；页面仅拼 JSX                    |
+| Key 创建          | `openCreateKey()`         | `mine` / `platform` 路由修复 `onClick` 签名         |
 
 **验收**
 
@@ -580,13 +580,13 @@ MSW 去除后，为保留新 UI 行为而补充的临时后端能力。各 fake 
 
 消除 `components/` 内对 `budgetApi` / `dataSourceApi` / `memberApi` / `syncApi` / `departmentApi` 的硬编码 import，统一走 `AppApis` 注入（`useInjectedApis` 或 props 下沉）。**不改页面布局与交互**；本阶段无需新增后端 fake API。
 
-| 批次 | 文件 | 改法 |
-|------|------|------|
-| P0 审批 | `budget-approval-drawer.tsx` | props：`approvals` / `onResolve`；数据来自 `useBudgetPage` |
-| P0 向导 | `step-credentials` / `step-field-mapping` / `step-sync-schedule` | `useInjectedApis()` |
-| P1 组织 | `credential-form`、`import-result`、`sync-config`、`sync-log-table`、`role-member-table` | `useInjectedApis()` |
-| P1 结构 | `department-panel`、`department-tree` | `useInjectedApis()` |
-| P1 Store | `stores/org-structure.ts` | `initOrgStructureApis(apis)`；`use-structure-inline-page` 初始化 |
+| 批次     | 文件                                                                                     | 改法                                                             |
+| -------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| P0 审批  | `budget-approval-drawer.tsx`                                                             | props：`approvals` / `onResolve`；数据来自 `useBudgetPage`       |
+| P0 向导  | `step-credentials` / `step-field-mapping` / `step-sync-schedule`                         | `useInjectedApis()`                                              |
+| P1 组织  | `credential-form`、`import-result`、`sync-config`、`sync-log-table`、`role-member-table` | `useInjectedApis()`                                              |
+| P1 结构  | `department-panel`、`department-tree`                                                    | `useInjectedApis()`                                              |
+| P1 Store | `stores/org-structure.ts`                                                                | `initOrgStructureApis(apis)`；`use-structure-inline-page` 初始化 |
 
 **验收**
 
@@ -604,13 +604,13 @@ pnpm -F @tokenjoy/frontend exec tsx scripts/check-conventions.ts
 
 无后端 fake 改动、UI 布局不动。
 
-| 项 | 动作 |
-|----|------|
-| 孤儿页 | 删除 `budget/overview.tsx`、`allocation.tsx` |
-| Budget 组件 DI | `alert-rule-dialog` 等 4 处 `useInjectedApis()` |
-| API 命名 | `budgetApi.updateDepartment` 正式名（Phase 6 已移除 `updateNode` 别名） |
-| 成员路由 | [`config/member-routes.ts`](apps/frontend/src/config/member-routes.ts) 驱动 `App.tsx` + `MemberLayout` |
-| 断链修复 | `/me` 充值按钮 → 有 billing 权限时跳 `/wallet`；`/me/keys`、`/wallet` 补 error + 重试 |
+| 项             | 动作                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| 孤儿页         | 删除 `budget/overview.tsx`、`allocation.tsx`                                                           |
+| Budget 组件 DI | `alert-rule-dialog` 等 4 处 `useInjectedApis()`                                                        |
+| API 命名       | `budgetApi.updateDepartment` 正式名（Phase 6 已移除 `updateNode` 别名）                                |
+| 成员路由       | [`config/member-routes.ts`](apps/frontend/src/config/member-routes.ts) 驱动 `App.tsx` + `MemberLayout` |
+| 断链修复       | `/me` 充值按钮 → 有 billing 权限时跳 `/wallet`；`/me/keys`、`/wallet` 补 error + 重试                  |
 
 > **Phase 6 说明**：原「Alternate hooks 保留」策略已撤销，见 §21。
 
@@ -627,15 +627,15 @@ pnpm -F @tokenjoy/frontend exec tsx scripts/check-conventions.ts
 
 无 UI 布局改动、无后端 fake → 真实现替换。
 
-| 项 | 动作 |
-|----|------|
-| 孤儿 org 组件 | 删除 `routes/org/components/`（10 文件）；删除未引用的 `components/org/department-tree.tsx`、`import-result.tsx` |
-| Billing 冗余 | 删除 `routes/billing/` 页面与 hook；保留 `App.tsx` 中 `/billing` → `/wallet` redirect |
-| Alternate hooks | 删除 `use-budget-overview/allocation/alerts-page`、`use-budget-tree-query` 及对应单测 |
-| Org hook 统一 | `use-*-inline-page` / `use-data-source-wizard-page` 重命名为 canonical `use-*-page` |
-| API 向后兼容 | 删除 `budgetApi.updateNode` 别名 |
-| DRY | `lib/budget.ts` 新增 `mapGroupsToProjectViews`，供 `use-budget-page` / `use-budget-alert-rules-page` 共用 |
-| Git | 纳入 member/wallet hooks、backend fake handlers/tests 等原 untracked 文件 |
+| 项              | 动作                                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 孤儿 org 组件   | 删除 `routes/org/components/`（10 文件）；删除未引用的 `components/org/department-tree.tsx`、`import-result.tsx` |
+| Billing 冗余    | 删除 `routes/billing/` 页面与 hook；保留 `App.tsx` 中 `/billing` → `/wallet` redirect                            |
+| Alternate hooks | 删除 `use-budget-overview/allocation/alerts-page`、`use-budget-tree-query` 及对应单测                            |
+| Org hook 统一   | `use-*-inline-page` / `use-data-source-wizard-page` 重命名为 canonical `use-*-page`                              |
+| API 向后兼容    | 删除 `budgetApi.updateNode` 别名                                                                                 |
+| DRY             | `lib/budget.ts` 新增 `mapGroupsToProjectViews`，供 `use-budget-page` / `use-budget-alert-rules-page` 共用        |
+| Git             | 纳入 member/wallet hooks、backend fake handlers/tests 等原 untracked 文件                                        |
 
 **验收**
 
@@ -646,4 +646,3 @@ pnpm -F @tokenjoy/backend test
 ```
 
 手工抽查：`/org/*`、`/budget`、`/budget/alerts`、`/wallet` 正常；`/billing` 仍跳转 `/wallet`。
-

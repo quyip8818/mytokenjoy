@@ -10,11 +10,11 @@ type memoryRelayRepo struct {
 	store *Store
 	mu    sync.Mutex
 	data  struct {
-		mappings      map[string]store.RelayMapping
-		tokenIndex    map[int64]string
-		relayOutbox   []store.RelayOutboxEntry
-		rebalance     []store.RebalanceQueueEntry
-		overrun       []store.OverrunQueueEntry
+		mappings    map[string]store.RelayMapping
+		tokenIndex  map[int64]string
+		relayOutbox []store.RelayOutboxEntry
+		rebalance   []store.RebalanceQueueEntry
+		overrun     []store.OverrunQueueEntry
 	}
 }
 

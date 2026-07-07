@@ -100,7 +100,7 @@ type FieldMapping struct {
 }
 
 type FieldMappingConfig struct {
-	Platform Platform      `json:"platform"`
+	Platform Platform       `json:"platform"`
 	Mappings []FieldMapping `json:"mappings"`
 }
 

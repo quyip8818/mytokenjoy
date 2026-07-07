@@ -4,7 +4,7 @@ import {
   buildUsageSeriesChartData,
   buildUsageSeriesWindow,
   formatTokenCount,
-} from '@/lib/dashboard'
+} from '@/features/dashboard/lib/dashboard'
 import type { CostSummary } from '@/api/types'
 
 describe('buildCostStats', () => {

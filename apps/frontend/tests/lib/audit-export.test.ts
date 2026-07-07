@@ -4,7 +4,7 @@ import {
   buildOperationAuditCsvRows,
   CALL_AUDIT_CSV_HEADERS,
   OPERATION_AUDIT_CSV_HEADERS,
-} from '@/lib/audit-export'
+} from '@/features/audit/lib/export'
 import type { CallLog, OperationLog } from '@/api/types'
 
 const sampleCallLog: CallLog = {

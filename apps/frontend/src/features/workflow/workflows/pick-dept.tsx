@@ -5,7 +5,7 @@ import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { WorkflowListItem, WorkflowScrollList } from '../components/workflow-list-item'
 import { WorkflowPickerShell } from '../components/workflow-picker-shell'
 import { Input } from '@/components/ui/input'
-import { flattenDepartments } from '@/lib/org'
+import { flattenDepartments } from '@/features/org/lib/departments'
 
 export function PickDeptWorkflow({
   entry,

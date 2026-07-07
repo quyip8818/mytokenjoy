@@ -9,8 +9,6 @@ import { AdminLayout } from '@/components/layout/admin-layout'
 import { MemberLayout } from '@/components/layout/member-layout'
 import { RouteFallback } from '@/components/layout/route-fallback'
 import { SessionGate } from '@/features/session/session-gate'
-import { AuthUnauthorizedBridge } from '@/components/auth/auth-unauthorized-bridge'
-import { SessionNavigationBridge } from '@/features/session'
 import { APP_ROUTES, toRouterPath } from '@/config/routes'
 
 const LoginPage = lazy(() => import('@/routes/auth/login'))
@@ -28,8 +26,6 @@ const memberLazyPages = MEMBER_ROUTE_DEFINITIONS.map((entry) => ({
 function AuthenticatedRoutes() {
   return (
     <SessionGate>
-      <AuthUnauthorizedBridge />
-      <SessionNavigationBridge />
       <Routes>
         <Route element={<AdminLayout />}>
           <Route index element={<HomeRedirect />} />

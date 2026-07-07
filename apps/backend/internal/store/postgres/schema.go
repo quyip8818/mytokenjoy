@@ -15,6 +15,10 @@ var schemaSQL string
 
 const migrationSQL = `
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS authz_revision BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE company_recharge_orders ADD COLUMN IF NOT EXISTS display_order_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_recharge_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_recharge_orders ADD COLUMN IF NOT EXISTS invoice_status TEXT NOT NULL DEFAULT 'none';
+UPDATE company_recharge_orders SET display_order_id = id WHERE display_order_id = '';
 `
 
 func applySchema(ctx context.Context, pool *pgxpool.Pool) error {

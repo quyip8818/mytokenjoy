@@ -5,8 +5,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import { ModelListTable } from '@/routes/models/components/model-list-table'
-import { useModelListPage } from '@/routes/models/hooks/use-model-list-page'
+import { ModelListTable, useModelListPage } from '@/features/models'
 
 export default function ModelListPage() {
   const {

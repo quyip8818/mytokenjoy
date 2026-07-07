@@ -10,8 +10,7 @@ import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { cn } from '@/lib/utils'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import { useMyKeysPage } from '@/routes/keys/hooks/use-my-keys-page'
-import { MyKeysTable } from '@/routes/keys/components/my-keys-table'
+import { useMyKeysPage, MyKeysTable } from '@/features/keys'
 
 export default function MyKeysPage() {
   const { flashRow, rowClass } = useRowHighlight()

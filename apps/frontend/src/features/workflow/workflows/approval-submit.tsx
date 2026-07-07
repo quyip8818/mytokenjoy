@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../use-workflow'
 import { pushModelPicker, useMemberWhitelist } from '../use-member-whitelist'
 import type { ApprovalType } from '@/api/types'
-import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/lib/dashboard-constants'
+import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/features/dashboard/lib/constants'
 
 export function ApprovalSubmitWorkflow({
   entry,

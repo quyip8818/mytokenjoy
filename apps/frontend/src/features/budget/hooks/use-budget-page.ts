@@ -1,0 +1,219 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { AppApis } from '@/api/app-apis'
+import type { BudgetProjectView, Member } from '@/api/types'
+import { queryKeys, useInjectedQuery } from '@/features/query'
+import { useInjectedApis } from '@/api/use-apis'
+import { getCurrentBudgetPeriod } from '@/lib/date'
+import {
+  findBudgetNode,
+  formatBudgetPeriodLabel,
+  mapGroupsToProjectViews,
+  groupsForDepartment,
+  formatOverrunPolicyLabel,
+} from '@/features/budget/lib/mappers'
+import {
+  BudgetTreeResponseSchema,
+  BudgetGroupsResponseSchema,
+  BudgetApprovalsResponseSchema,
+} from '@/features/budget/schemas'
+
+function shiftPeriod(period: string, delta: number) {
+  const [y, m] = period.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+export function useBudgetPage(injectedApis?: AppApis) {
+  const apis = useInjectedApis(injectedApis)
+  const [period, setPeriod] = useState(getCurrentBudgetPeriod)
+  const periodSyncedFromTree = useRef(false)
+  const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>()
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const [approvalOpen, setApprovalOpen] = useState(false)
+
+  const {
+    data: tree = [],
+    loading: treeLoading,
+    error: treeError,
+    refresh: refreshTree,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.tree(period),
+    queryFn: async (api) => BudgetTreeResponseSchema.parse(await api.budgetApi.getTree(period)),
+  })
+
+  const {
+    data: groups = [],
+    loading: groupsLoading,
+    error: groupsError,
+    refresh: refreshGroups,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.groups(),
+    queryFn: async (api) => BudgetGroupsResponseSchema.parse(await api.budgetApi.getGroups()),
+  })
+
+  const { data: overrunPolicy } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.overrunPolicy(),
+    queryFn: (api) => api.budgetApi.getOverrunPolicy(),
+  })
+
+  const { data: approvals = [], refresh: refreshApprovals } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.approvals(),
+    queryFn: async (api) => BudgetApprovalsResponseSchema.parse(await api.budgetApi.getApprovals()),
+  })
+
+  const pendingCount = useMemo(
+    () => approvals.filter((item) => item.status === 'pending').length,
+    [approvals],
+  )
+
+  useEffect(() => {
+    if (!periodSyncedFromTree.current && tree[0]?.period) {
+      setPeriod(tree[0].period)
+      periodSyncedFromTree.current = true
+    }
+  }, [tree])
+
+  const resolvedSelectedTeamId = selectedTeamId ?? tree[0]?.id
+
+  const loading = treeLoading || groupsLoading
+  const error = treeError ?? groupsError
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshTree(), refreshGroups(), refreshApprovals()])
+  }, [refreshTree, refreshGroups, refreshApprovals])
+
+  const selectedNode = useMemo(
+    () => (resolvedSelectedTeamId ? findBudgetNode(tree, resolvedSelectedTeamId) : null),
+    [tree, resolvedSelectedTeamId],
+  )
+
+  const projects = useMemo((): BudgetProjectView[] => {
+    const deptName = selectedNode?.name ?? ''
+    return mapGroupsToProjectViews(groups, deptName, period)
+  }, [groups, selectedNode?.name, period])
+
+  const activeProject = useMemo(
+    () =>
+      activeProjectId ? projects.find((project) => project.id === activeProjectId) : undefined,
+    [projects, activeProjectId],
+  )
+
+  const departmentIdForMembers = activeProject?.departmentId ?? selectedNode?.id
+  const departmentMembersQuery = useMemo(
+    () => ({
+      departmentId: departmentIdForMembers,
+      page: 1,
+      pageSize: 200,
+    }),
+    [departmentIdForMembers],
+  )
+
+  const { data: departmentMembersResult, loading: departmentMembersLoading } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.org.members(departmentMembersQuery),
+    queryFn: (api) => api.memberApi.list(departmentMembersQuery),
+    enabled: Boolean(departmentIdForMembers),
+  })
+
+  const departmentMembers = useMemo(
+    () => departmentMembersResult?.items ?? [],
+    [departmentMembersResult?.items],
+  )
+  const projectMembers = useMemo((): Member[] => {
+    if (!activeProject) return []
+    return departmentMembers.filter((member) => activeProject.memberIds.includes(member.id))
+  }, [activeProject, departmentMembers])
+
+  const periodLabel = useMemo(() => formatBudgetPeriodLabel(period), [period])
+
+  const handleSelectTeam = useCallback((nodeId: string) => {
+    setSelectedTeamId(nodeId)
+    setActiveProjectId(null)
+  }, [])
+
+  const updateDepartment = useCallback(
+    async (departmentId: string, data: { budget: number; reservedPool?: number }) => {
+      await apis.budgetApi.updateDepartment(departmentId, data)
+      await refresh()
+    },
+    [apis, refresh],
+  )
+
+  const resolveApproval = useCallback(
+    async (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) => {
+      await apis.budgetApi.resolveApproval(id, data)
+      await refreshApprovals()
+    },
+    [apis, refreshApprovals],
+  )
+
+  const createBudgetGroup = useCallback(
+    async (data: {
+      name: string
+      budget: number
+      memberIds: string[]
+      departmentIds: string[]
+    }) => {
+      await apis.budgetApi.createGroup(data)
+      await refresh()
+    },
+    [apis, refresh],
+  )
+
+  const updateBudgetGroup = useCallback(
+    async (groupId: string, data: { budget?: number; memberIds?: string[] }) => {
+      await apis.budgetApi.updateGroup(groupId, data)
+      await refresh()
+    },
+    [apis, refresh],
+  )
+
+  const deleteBudgetGroup = useCallback(
+    async (groupId: string) => {
+      await apis.budgetApi.deleteGroup(groupId)
+      await refresh()
+    },
+    [apis, refresh],
+  )
+
+  const overrunPolicyLabel = formatOverrunPolicyLabel(
+    activeProject?.overrunPolicy ?? projects[0]?.overrunPolicy ?? 'hard_reject',
+  )
+
+  return {
+    tree,
+    projects,
+    period,
+    periodLabel,
+    selectedTeamId: resolvedSelectedTeamId,
+    selectedNode,
+    activeProjectId,
+    activeProject,
+    approvalOpen,
+    setApprovalOpen,
+    pendingCount,
+    approvals,
+    refreshApprovals,
+    resolveApproval,
+    loading,
+    error,
+    refresh,
+    overrunPolicy,
+    shiftPeriod: (delta: number) => setPeriod((current) => shiftPeriod(current, delta)),
+    handleSelectTeam,
+    setActiveProjectId,
+    updateDepartment,
+    groupsForNode: (departmentId: string) => groupsForDepartment(groups, departmentId),
+    overrunPolicyLabel,
+    departmentMembers,
+    departmentMembersLoading,
+    projectMembers,
+    createBudgetGroup,
+    updateBudgetGroup,
+    deleteBudgetGroup,
+  }
+}

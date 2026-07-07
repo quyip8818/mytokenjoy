@@ -47,14 +47,14 @@ type ModelRank struct {
 }
 
 type DashboardView struct {
-	Account                 AccountStats      `json:"account"`
-	UsageStats              UsageStats        `json:"usageStats"`
+	Account                 AccountStats        `json:"account"`
+	UsageStats              UsageStats          `json:"usageStats"`
 	ResourceConsumption     ResourceConsumption `json:"resourceConsumption"`
-	Performance             PerformanceStats  `json:"performance"`
-	ConsumptionTrend        []TimeSeriesPoint `json:"consumptionTrend"`
-	ConsumptionDistribution []TimeSeriesPoint `json:"consumptionDistribution"`
-	CallDistribution        []NamedValue      `json:"callDistribution"`
-	CallRanking             []ModelRank       `json:"callRanking"`
+	Performance             PerformanceStats    `json:"performance"`
+	ConsumptionTrend        []TimeSeriesPoint   `json:"consumptionTrend"`
+	ConsumptionDistribution []TimeSeriesPoint   `json:"consumptionDistribution"`
+	CallDistribution        []NamedValue        `json:"callDistribution"`
+	CallRanking             []ModelRank         `json:"callRanking"`
 }
 
 func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardView, error) {

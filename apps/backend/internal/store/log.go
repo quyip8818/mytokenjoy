@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	NewAPILogTableName         = "logs"
-	NewAPILogTypeConsume       = 2
+	NewAPILogTableName           = "logs"
+	NewAPILogTypeConsume         = 2
 	ReconcileStreamNewAPIConsume = "newapi_consume"
 
 	IngestFailureStatusPending = "pending"

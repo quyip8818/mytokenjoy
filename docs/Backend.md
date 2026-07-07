@@ -181,24 +181,24 @@ make test-unit          # go test -tags=testhook ./tests/...
 make test-integration   # -tags=integration
 ```
 
-| 层       | 目录                   | CI                  |
-| -------- | ---------------------- | ------------------- |
-| 纯函数   | `tests/pkg/*`          | verify              |
+| 层       | 目录                   | CI                           |
+| -------- | ---------------------- | ---------------------------- |
+| 纯函数   | `tests/pkg/*`          | verify                       |
 |          | `tests/pkg/org/`       | `remote_ids`、`sync_diff` 等 |
-| Domain   | `tests/domain/<域>/`   | verify              |
-| Handler  | `tests/handler/<域>/`  | verify              |
-| Postgres | `tests/store/postgres` | backend-integration |
+| Domain   | `tests/domain/<域>/`   | verify                       |
+| Handler  | `tests/handler/<域>/`  | verify                       |
+| Postgres | `tests/store/postgres` | backend-integration          |
 
 ### 5.1 `testutil` 子包
 
-| 子包 | 职责 |
-| ---- | ---- |
+| 子包              | 职责                                                                 |
+| ----------------- | -------------------------------------------------------------------- |
 | `testutil/`（根） | 通用：`config`、`ctx`、`memory`、`assert`、`store`、`app`、`session` |
-| `testutil/org` | Org Service、Feishu fixture、预算树持久化 |
-| `testutil/saas` | SaaS 配置、NewAPI mock、平台 HTTP 开户 |
-| `testutil/http` | Router、AdminCookie、ServeAuthz、ProdRouter |
-| `testutil/relay` | Gateway 场景、StubWallet、Mapping |
-| `testutil/worker` | Runner 栈、Outbox 断言 |
+| `testutil/org`    | Org Service、Feishu fixture、预算树持久化                            |
+| `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                               |
+| `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter                          |
+| `testutil/relay`  | Gateway 场景、StubWallet、Mapping                                    |
+| `testutil/worker` | Runner 栈、Outbox 断言                                               |
 
 ### 5.2 目录约定
 

@@ -10,11 +10,11 @@ import (
 )
 
 type memoryLogStore struct {
-	mu        sync.Mutex
-	logs      map[int64]store.RawConsumeLog
-	cursor    int64
-	failures  map[string]store.IngestFailure
-	byLogID   map[int64]string
+	mu       sync.Mutex
+	logs     map[int64]store.RawConsumeLog
+	cursor   int64
+	failures map[string]store.IngestFailure
+	byLogID  map[int64]string
 }
 
 func newMemoryLogStore() *memoryLogStore {

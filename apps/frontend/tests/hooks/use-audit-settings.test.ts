@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useAuditSettings } from '@/hooks/use-audit-settings'
+import { useAuditSettings } from '@/features/audit/hooks/use-audit-settings'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 

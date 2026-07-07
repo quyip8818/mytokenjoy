@@ -50,5 +50,8 @@ export const budgetApi = {
   deleteAlert: (id: string) => request<void>(`/budget/alerts/${id}`, { method: 'DELETE' }),
   getApprovals: () => request<BudgetApproval[]>('/budget/approvals'),
   resolveApproval: (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) =>
-    request<BudgetApproval>(`/budget/approvals/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<BudgetApproval>(`/budget/approvals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 }

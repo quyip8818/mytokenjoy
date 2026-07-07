@@ -1,13 +1,15 @@
 import { useMemo } from 'react'
 import { Activity } from 'lucide-react'
-import { AuditFilteredPage } from '@/components/audit/audit-filtered-page'
-import { AuditListToolbar } from '@/components/audit/audit-list-toolbar'
-import { AuditTablePagination } from '@/components/audit/audit-table-pagination'
+import {
+  AuditFilteredPage,
+  AuditListToolbar,
+  AuditTablePagination,
+  CallLogsTable,
+  useAuditCallsPage,
+  useAuditModelOptions,
+} from '@/features/audit'
 import { OptionsSelect } from '@/components/ui/options-select'
-import { useAuditModelOptions } from '@/hooks/use-audit-model-options'
 import { CALL_LOG_STATUS_LABELS } from '@/lib/labels'
-import { CallLogsTable } from '@/routes/audit/components/call-logs-table'
-import { useAuditCallsPage } from '@/routes/audit/hooks/use-audit-calls-page'
 
 export default function CallLogsPage() {
   const {

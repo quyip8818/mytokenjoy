@@ -6,8 +6,8 @@ import (
 
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmember "github.com/tokenjoy/backend/internal/domain/member"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store/seed"
 	"github.com/tokenjoy/backend/tests/testutil"

@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups, type NavItem } from '@/config/nav'
-import { useApprovalPendingCountQuery } from '@/hooks/use-approval-pending-count-query'
+import { useApprovalPendingCountQuery } from '@/features/org'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -88,10 +88,10 @@ function SidebarNavItem({ item, collapsed, badge }: SidebarNavItemProps) {
 
   return (
     <Tooltip>
-      <TooltipTrigger
-        render={<NavLink to={item.path} aria-label={item.label} className={className} />}
-      >
-        {content}
+      <TooltipTrigger asChild>
+        <NavLink to={item.path} aria-label={item.label} className={className}>
+          {content}
+        </NavLink>
       </TooltipTrigger>
       <TooltipContent side="right" sideOffset={8}>
         {item.label}
@@ -111,23 +111,25 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
 
   const toggleButton = (
     <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className={cn(
-              'shrink-0 text-muted-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              'group-hover/sidebar:text-muted-foreground',
-            )}
-            onClick={onToggle}
-            aria-expanded={!collapsed}
-            aria-label={toggleLabel}
-          />
-        }
-      >
-        {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className={cn(
+            'shrink-0 text-muted-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            'group-hover/sidebar:text-muted-foreground',
+          )}
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          aria-label={toggleLabel}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </Button>
       </TooltipTrigger>
       <TooltipContent side={collapsed ? 'right' : 'bottom'} sideOffset={8}>
         {toggleLabel}
@@ -169,7 +171,7 @@ export function Sidebar() {
   }
 
   return (
-    <TooltipProvider delay={0}>
+    <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
           'group/sidebar relative flex shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-in-out',

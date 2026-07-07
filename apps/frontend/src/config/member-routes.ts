@@ -40,3 +40,15 @@ export const MEMBER_ROUTE_DEFINITIONS: MemberRouteDefinition[] = [
 export function toMemberRouterPath(path: MemberRouteDefinition['path']): string {
   return path.slice(1)
 }
+
+const MEMBER_LAZY_IMPORT_PATTERN = /import\(['"](@\/routes\/[^'"]+)['"]\)/
+
+export function getMemberRouteLazyImportPaths(): string[] {
+  return MEMBER_ROUTE_DEFINITIONS.map((definition) => {
+    const match = definition.lazy.toString().match(MEMBER_LAZY_IMPORT_PATTERN)
+    if (!match?.[1]) {
+      throw new Error(`Unable to resolve lazy import for member route ${definition.key}`)
+    }
+    return match[1]
+  })
+}

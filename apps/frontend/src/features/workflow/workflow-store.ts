@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { WORKFLOW_MAX_DEPTH } from './constants'
 import type { WorkflowId, WorkflowLayer, WorkflowPayloadMap, WorkflowStackEntry } from './types'
-import { getWorkflowDefinition } from './definitions'
+import { getWorkflowMeta } from './definitions'
 
 export interface WorkflowStoreState {
   stack: WorkflowStackEntry[]
@@ -15,7 +15,7 @@ export interface WorkflowStoreState {
 
 function resolveLayer(id: WorkflowId, explicitLayer?: WorkflowLayer): WorkflowLayer {
   if (explicitLayer) return explicitLayer
-  return getWorkflowDefinition(id).defaultLayer
+  return getWorkflowMeta(id).defaultLayer
 }
 
 function createEntry<T extends WorkflowId>(
@@ -24,11 +24,11 @@ function createEntry<T extends WorkflowId>(
   title?: string,
   layer?: WorkflowLayer,
 ): WorkflowStackEntry<T> {
-  const def = getWorkflowDefinition(id)
+  const meta = getWorkflowMeta(id)
   return {
     id,
     layer: resolveLayer(id, layer),
-    title: title ?? def.title,
+    title: title ?? meta.title,
     payload,
     dirty: false,
   }

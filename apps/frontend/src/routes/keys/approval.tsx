@@ -7,8 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
-import { ApprovalTable } from '@/routes/keys/components/approval-table'
-import { useApprovalPage } from '@/routes/keys/hooks/use-approval-page'
+import { ApprovalTable, useApprovalPage } from '@/features/keys'
 
 export default function ApprovalPage() {
   const {

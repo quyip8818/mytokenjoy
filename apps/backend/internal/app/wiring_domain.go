@@ -17,20 +17,20 @@ import (
 )
 
 type domainServices struct {
-	org       domainorg.Service
-	budget    domainbudget.Service
-	keys      domainkeys.Service
-	models    domainmodels.Service
-	dashboard domaindashboard.Service
-	audit     domainaudit.Service
+	org             domainorg.Service
+	budget          domainbudget.Service
+	keys            domainkeys.Service
+	models          domainmodels.Service
+	dashboard       domaindashboard.Service
+	audit           domainaudit.Service
 	readModel       domainusage.ReadModel
 	ingest          domainusage.Ingestor
 	failureRecorder domainusage.FailureRecorder
 	overrun         domainbudget.OverrunProcessor
-	rebalance domainbudget.Rebalancer
-	company   domaincompany.Service
-	billing   domainbilling.Service
-	member    domainmember.Service
+	rebalance       domainbudget.Rebalancer
+	company         domaincompany.Service
+	billing         domainbilling.Service
+	member          domainmember.Service
 }
 
 func wireFailureRecorder(i infra, logger *slog.Logger) domainusage.FailureRecorder {

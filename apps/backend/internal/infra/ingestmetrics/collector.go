@@ -11,10 +11,10 @@ import (
 const StreamNewAPIConsume = store.ReconcileStreamNewAPIConsume
 
 type Snapshot struct {
-	NotifyTotal       int64 `json:"ingest_notify_total"`
-	ReconcileGaps     int64 `json:"ingest_reconcile_gaps"`
-	FailuresPending   int   `json:"ingest_failures_pending"`
-	LagSeconds        int64 `json:"ingest_lag_seconds"`
+	NotifyTotal     int64 `json:"ingest_notify_total"`
+	ReconcileGaps   int64 `json:"ingest_reconcile_gaps"`
+	FailuresPending int   `json:"ingest_failures_pending"`
+	LagSeconds      int64 `json:"ingest_lag_seconds"`
 }
 
 type Recorder interface {

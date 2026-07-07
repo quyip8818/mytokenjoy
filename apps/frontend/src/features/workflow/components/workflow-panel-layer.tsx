@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { PageLoading } from '@/components/ui/page-loading'
 import {
   WORKFLOW_ANIMATION_MS,
   WORKFLOW_LAYER_MAX_WIDTH,
   WORKFLOW_LAYER_WIDTH,
   WORKFLOW_PEEK_WIDTH_PX,
 } from '../constants'
-import type { WorkflowId, WorkflowLayer, WorkflowPayload, WorkflowStackEntry } from '../types'
+import type {
+  WorkflowDefinition,
+  WorkflowId,
+  WorkflowLayer,
+  WorkflowPayload,
+  WorkflowStackEntry,
+} from '../types'
 import { getWorkflowDefinition } from '../definitions'
 
 interface WorkflowPanelLayerProps {
@@ -35,11 +42,20 @@ export function WorkflowPanelLayer({
   onSetDirty,
 }: WorkflowPanelLayerProps) {
   const [visible, setVisible] = useState(false)
+  const [definition, setDefinition] = useState<WorkflowDefinition | null>(null)
   const isTop = index === total - 1
   const depthFromTop = total - 1 - index
   const styles = LAYER_STYLES[entry.layer]
-  const def = getWorkflowDefinition(entry.id)
-  const Component = def.component
+
+  useEffect(() => {
+    let cancelled = false
+    void getWorkflowDefinition(entry.id).then((def) => {
+      if (!cancelled) setDefinition(def)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [entry.id])
 
   useEffect(() => {
     const timer = requestAnimationFrame(() => setVisible(true))
@@ -56,6 +72,8 @@ export function WorkflowPanelLayer({
   const handleBack = () => {
     onPop()
   }
+
+  const Component = definition?.component
 
   return (
     <div
@@ -82,13 +100,17 @@ export function WorkflowPanelLayer({
         />
       )}
       <div className="flex h-full flex-col pl-0">
-        <Component
-          entry={entry}
-          onClose={handleClose}
-          onPop={handleBack}
-          onPush={onPush}
-          onSetDirty={onSetDirty}
-        />
+        {!Component ? (
+          <PageLoading />
+        ) : (
+          <Component
+            entry={entry}
+            onClose={handleClose}
+            onPop={handleBack}
+            onPush={onPush}
+            onSetDirty={onSetDirty}
+          />
+        )}
       </div>
     </div>
   )

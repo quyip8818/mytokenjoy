@@ -34,4 +34,3 @@ func TestValidateMemberQuotaExceedsDeptCapacity(t *testing.T) {
 		t.Fatal("expected validation error when exceeding dept capacity")
 	}
 }
-

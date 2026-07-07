@@ -10,26 +10,26 @@ import (
 )
 
 type Snapshot struct {
-	Company        Company
-	OrgIntegration types.OrgIntegration
-	SyncLogs       []types.SyncLog
-	ImportFailures []types.ImportFailure
-	OrgNodes       []types.OrgNode
-	ModelAllowlist []ModelAllowlistRow
-	Members        []types.Member
-	Roles          []types.Role
-	Permissions    []types.Permission
-	BudgetGroups   []types.BudgetGroup
-	OverrunPolicy  types.OverrunPolicyConfig
-	AlertRules       []types.AlertRule
-	BudgetApprovals  []types.BudgetApproval
-	ProviderKeys     []types.ProviderKey
-	PlatformKeys   []types.PlatformKey
-	Approvals      []types.KeyApproval
-	Models         []types.ModelInfo
-	AuditSettings  types.AuditSettings
-	OperationLogs  []types.OperationLog
-	UsageLedger    []types.UsageLedgerEntry
+	Company         Company
+	OrgIntegration  types.OrgIntegration
+	SyncLogs        []types.SyncLog
+	ImportFailures  []types.ImportFailure
+	OrgNodes        []types.OrgNode
+	ModelAllowlist  []ModelAllowlistRow
+	Members         []types.Member
+	Roles           []types.Role
+	Permissions     []types.Permission
+	BudgetGroups    []types.BudgetGroup
+	OverrunPolicy   types.OverrunPolicyConfig
+	AlertRules      []types.AlertRule
+	BudgetApprovals []types.BudgetApproval
+	ProviderKeys    []types.ProviderKey
+	PlatformKeys    []types.PlatformKey
+	Approvals       []types.KeyApproval
+	Models          []types.ModelInfo
+	AuditSettings   types.AuditSettings
+	OperationLogs   []types.OperationLog
+	UsageLedger     []types.UsageLedgerEntry
 }
 
 type Store interface {

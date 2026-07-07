@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../use-workflow'
-import { findBudgetNode } from '@/lib/budget'
-import { flattenDepartments } from '@/lib/org'
+import { findBudgetNode } from '@/features/budget'
+import { flattenDepartments } from '@/features/org/lib/departments'
 
 export function BudgetGroupFormWorkflow({
   entry,

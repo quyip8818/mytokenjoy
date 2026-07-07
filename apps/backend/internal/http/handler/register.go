@@ -16,36 +16,36 @@ import (
 )
 
 type Registry struct {
-	cfg       httpdeps.Deps
-	session   *SessionHandler
-	auth      *auth.Handler
-	platform  *platform.Handler
-	billing   *billing.Handler
-	org       *orghandler.Handler
-	budget    *budgethandler.Handler
-	keys      *keyshandler.Handler
-	models    *modelshandler.Handler
-	dashboard *dashboardhandler.Handler
-	audit     *audithandler.Handler
-	me        *mehandler.Handler
+	cfg            httpdeps.Deps
+	session        *SessionHandler
+	auth           *auth.Handler
+	platform       *platform.Handler
+	billing        *billing.Handler
+	org            *orghandler.Handler
+	budget         *budgethandler.Handler
+	keys           *keyshandler.Handler
+	models         *modelshandler.Handler
+	dashboard      *dashboardhandler.Handler
+	audit          *audithandler.Handler
+	me             *mehandler.Handler
 	internalIngest *InternalIngestHandler
 }
 
 func NewRegistry(deps httpdeps.Deps) Registry {
 	p := deps.Protected()
 	return Registry{
-		cfg:       deps,
-		session:   NewSessionHandler(p),
-		auth:      auth.NewHandler(deps.Public(), deps.CompanySvc),
-		platform:  platform.NewHandler(deps.Platform()),
-		billing:   billing.NewHandler(p, deps.BillingSvc),
-		org:       orghandler.NewHandler(p, deps.OrgSvc),
-		budget:    budgethandler.NewHandler(p, deps.BudgetSvc),
-		keys:      keyshandler.NewHandler(p, deps.KeysSvc),
-		models:    modelshandler.NewHandler(p, deps.ModelsSvc),
-		dashboard: dashboardhandler.NewHandler(p, deps.DashboardSvc),
-		audit:     audithandler.NewHandler(p, deps.AuditSvc, deps.ReadModel),
-		me:        mehandler.NewHandler(p, deps.MemberSvc),
+		cfg:            deps,
+		session:        NewSessionHandler(p),
+		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc),
+		platform:       platform.NewHandler(deps.Platform()),
+		billing:        billing.NewHandler(p, deps.BillingSvc),
+		org:            orghandler.NewHandler(p, deps.OrgSvc),
+		budget:         budgethandler.NewHandler(p, deps.BudgetSvc),
+		keys:           keyshandler.NewHandler(p, deps.KeysSvc),
+		models:         modelshandler.NewHandler(p, deps.ModelsSvc),
+		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
+		audit:          audithandler.NewHandler(p, deps.AuditSvc, deps.ReadModel),
+		me:             mehandler.NewHandler(p, deps.MemberSvc),
 		internalIngest: NewInternalIngestHandler(deps.Config, deps.IngestSvc, deps.IngestFailureRecorder, deps.IngestMetrics, deps.Logger),
 	}
 }

@@ -64,13 +64,13 @@ PRD 与当前实现的差距，以及计划优化项。**现状**见 [Backend.md
 
 ## 6. SaaS 与前端
 
-| 能力                       | 后端 | 前端                                              |
-| -------------------------- | ---- | ------------------------------------------------- |
-| `POST /auth/login`         | ✅   | ✅                                                |
-| `POST /auth/logout`        | ✅   | ✅（`authApi.logout`）                            |
-| `POST /auth/accept-invite` | ✅   | ⚠️ 无独立页 / API 封装                            |
+| 能力                       | 后端 | 前端                                                    |
+| -------------------------- | ---- | ------------------------------------------------------- |
+| `POST /auth/login`         | ✅   | ✅                                                      |
+| `POST /auth/logout`        | ✅   | ✅（`authApi.logout`）                                  |
+| `POST /auth/accept-invite` | ✅   | ⚠️ 无独立页 / API 封装                                  |
 | `/billing/*`               | ✅   | ⚠️ `/billing` 页；缺 `confirm`；`WalletView` 字段待对齐 |
-| `/platform/*`              | ✅   | ❌                                                |
+| `/platform/*`              | ✅   | ❌                                                      |
 
 ---
 
@@ -78,17 +78,17 @@ PRD 与当前实现的差距，以及计划优化项。**现状**见 [Backend.md
 
 **目标架构**见 [权限管理.md](./权限管理.md) §11–§12。后端 identity 收口与 HTTP/DI 简化已完成（`internal/identity/`、`deps.Public` / `Protected` / `Platform`；middleware 与 handler 统一 `deps.Protected`）。
 
-| 项                                | 状态 | 说明                                           |
-| --------------------------------- | ---- | ---------------------------------------------- |
-| 方案 B（Identity JWT + PDP）      | ✅   | `identity/sessiontoken` + `identity/authz`     |
-| `manifest.json` 单一契约          | ✅   | `pnpm generate:permissions` + `manifest_test`  |
-| `authz_revision` + PDP 缓存       | ✅   | LRU；BatchImport / import / sync 软删除均 bump |
-| 全部业务路由 Session + capability | ✅   | 统一 `ReadRoutes`                              |
-| UI stale 策略                     | ✅   | revision 头 / focus / broadcast / 403          |
-| `POST /api/auth/login`            | ✅   | 前后端均已接入                                 |
+| 项                                | 状态 | 说明                                                   |
+| --------------------------------- | ---- | ------------------------------------------------------ |
+| 方案 B（Identity JWT + PDP）      | ✅   | `identity/sessiontoken` + `identity/authz`             |
+| `manifest.json` 单一契约          | ✅   | `pnpm generate:permissions` + `manifest_test`          |
+| `authz_revision` + PDP 缓存       | ✅   | LRU；BatchImport / import / sync 软删除均 bump         |
+| 全部业务路由 Session + capability | ✅   | 统一 `ReadRoutes`                                      |
+| UI stale 策略                     | ✅   | revision 头 / focus / broadcast / 403                  |
+| `POST /api/auth/login`            | ✅   | 前后端均已接入                                         |
 | Billing 前端                      | ⚠️   | `/billing` + `PermissionGate`；缺 `confirm` 与类型对齐 |
-| 平台 JWT                          | ✅   | 独立 `PLATFORM_SESSION_SECRET`                 |
-| E2E 完整登录流程 spec             | ⚠️   | `auth.ts` helper 已有；spec 仅未登录重定向     |
+| 平台 JWT                          | ✅   | 独立 `PLATFORM_SESSION_SECRET`                         |
+| E2E 完整登录流程 spec             | ⚠️   | `auth.ts` helper 已有；spec 仅未登录重定向             |
 
 ---
 

@@ -13,7 +13,7 @@ import (
 	domainmember "github.com/tokenjoy/backend/internal/domain/member"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainrelay 	"github.com/tokenjoy/backend/internal/domain/relay"
+	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/credentials"
@@ -23,27 +23,27 @@ import (
 )
 
 type Deps struct {
-	Config               config.Config
-	Logger               *slog.Logger
-	Store                store.Store
-	AuthzSvc             authz.Service
-	Credentials          credentials.Service
-	SessionToken         sessiontoken.Issuer
-	PlatformSessionToken sessiontoken.Issuer
-	OrgSvc               domainorg.Service
-	BudgetSvc            domainbudget.Service
-	KeysSvc              domainkeys.Service
-	ModelsSvc            domainmodels.Service
-	DashboardSvc         domaindashboard.Service
-	AuditSvc             domainaudit.Service
-	ReadModel            domainusage.ReadModel
-	IngestSvc            domainusage.Ingestor
+	Config                config.Config
+	Logger                *slog.Logger
+	Store                 store.Store
+	AuthzSvc              authz.Service
+	Credentials           credentials.Service
+	SessionToken          sessiontoken.Issuer
+	PlatformSessionToken  sessiontoken.Issuer
+	OrgSvc                domainorg.Service
+	BudgetSvc             domainbudget.Service
+	KeysSvc               domainkeys.Service
+	ModelsSvc             domainmodels.Service
+	DashboardSvc          domaindashboard.Service
+	AuditSvc              domainaudit.Service
+	ReadModel             domainusage.ReadModel
+	IngestSvc             domainusage.Ingestor
 	IngestFailureRecorder domainusage.FailureRecorder
-	IngestMetrics        ingestmetrics.Recorder
-	CompanySvc           domaincompany.Service
-	BillingSvc           domainbilling.Service
-	MemberSvc            domainmember.Service
-	WalletSvc            domaincompany.WalletService
-	CompanyGate          *domaincompany.Gate
-	RelayGateway         domainrelay.GatewayService
+	IngestMetrics         ingestmetrics.Recorder
+	CompanySvc            domaincompany.Service
+	BillingSvc            domainbilling.Service
+	MemberSvc             domainmember.Service
+	WalletSvc             domaincompany.WalletService
+	CompanyGate           *domaincompany.Gate
+	RelayGateway          domainrelay.GatewayService
 }

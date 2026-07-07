@@ -1,6 +1,6 @@
-import { RoleList } from '@/components/org/role-list'
-import { RoleForm } from '@/components/org/role-form'
-import { RoleMemberTable, AddMemberDialog } from '@/components/org/role-member-table'
+import { RoleList, RoleForm, RoleMemberTable, AddMemberDialog, useRolesPage } from '@/features/org'
+import { DataSection } from '@/components/layout/data-section'
+import { PageShell } from '@/components/layout/page-shell'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +12,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Shield } from 'lucide-react'
-import { useRolesPage } from './hooks/use-roles-page'
 
 export default function RolesPage() {
   const {
@@ -21,6 +20,12 @@ export default function RolesPage() {
     selectedRoleId,
     selectedRole,
     members,
+    rolesLoading,
+    rolesError,
+    membersLoading,
+    membersError,
+    refreshRoles,
+    refreshMembers,
     formOpen,
     editingRole,
     deleteConfirm,
@@ -39,33 +44,51 @@ export default function RolesPage() {
     handleRemoveMember,
     handleConfirmRemove,
     handleAddMember,
+    searchMembers,
   } = useRolesPage()
 
   return (
-    <div className="flex h-full rounded-lg border border-border bg-card shadow-xs overflow-hidden">
-      <RoleList
-        roles={roles}
-        selectedRoleId={selectedRoleId}
-        onSelect={handleSelectRole}
-        onAdd={handleAddRole}
-        onEdit={handleEditRole}
-        onDelete={handleDeleteRole}
-      />
-
-      <div className="flex-1 p-6 overflow-auto">
-        {selectedRole ? (
-          <RoleMemberTable
-            role={selectedRole}
-            members={members}
-            onRemoveMember={handleRemoveMember}
-            onAddMember={() => setAddMemberOpen(true)}
+    <PageShell layout="fill">
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+        <DataSection
+          loading={rolesLoading}
+          error={rolesError}
+          onRetry={() => void refreshRoles()}
+          className="shrink-0 rounded-none border-0 shadow-none"
+          contentClassName="h-full p-0"
+          loadingVariant="spinner"
+        >
+          <RoleList
+            roles={roles}
+            selectedRoleId={selectedRoleId}
+            onSelect={handleSelectRole}
+            onAdd={handleAddRole}
+            onEdit={handleEditRole}
+            onDelete={handleDeleteRole}
           />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-2">
-            <Shield className="h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">请选择一个角色</p>
-          </div>
-        )}
+        </DataSection>
+
+        <DataSection
+          loading={membersLoading}
+          error={membersError}
+          onRetry={() => void refreshMembers()}
+          className="flex min-h-0 min-w-0 flex-1 flex-col rounded-none border-0 shadow-none"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-auto p-6"
+        >
+          {selectedRole ? (
+            <RoleMemberTable
+              role={selectedRole}
+              members={members}
+              onRemoveMember={handleRemoveMember}
+              onAddMember={() => setAddMemberOpen(true)}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-2">
+              <Shield className="h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
+              <p className="text-sm text-muted-foreground">请选择一个角色</p>
+            </div>
+          )}
+        </DataSection>
       </div>
 
       <RoleForm
@@ -83,10 +106,16 @@ export default function RolesPage() {
           existingMemberIds={members.map((m) => m.id)}
           onAdd={handleAddMember}
           onClose={() => setAddMemberOpen(false)}
+          onSearchMembers={searchMembers}
         />
       )}
 
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null) }}>
+      <AlertDialog
+        open={!!deleteConfirm}
+        onOpenChange={(o) => {
+          if (!o) setDeleteConfirm(null)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>删除角色</AlertDialogTitle>
@@ -105,7 +134,12 @@ export default function RolesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!removeConfirm} onOpenChange={(o) => { if (!o) setRemoveConfirm(null) }}>
+      <AlertDialog
+        open={!!removeConfirm}
+        onOpenChange={(o) => {
+          if (!o) setRemoveConfirm(null)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>移除成员</AlertDialogTitle>
@@ -121,6 +155,6 @@ export default function RolesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

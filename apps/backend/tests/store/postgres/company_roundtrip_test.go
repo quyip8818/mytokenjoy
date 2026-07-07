@@ -77,7 +77,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 		DisplayOrderID: "ORD20260101120000",
 		PaymentMethod:  store.PaymentMethodAlipay,
 		InvoiceStatus:  store.InvoiceStatusNone,
-		CreatedBy: "m-admin", CreatedAt: now, UpdatedAt: now,
+		CreatedBy:      "m-admin", CreatedAt: now, UpdatedAt: now,
 	}
 	if err := st.Billing().CreateRechargeOrder(ctx, order); err != nil {
 		t.Fatal(err)

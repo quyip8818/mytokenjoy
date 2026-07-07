@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { computeUnallocated, sumChildrenBudget } from '@/lib/budget'
+import { computeUnallocated, sumChildrenBudget } from '@/features/budget'
 import type { BudgetNode } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'

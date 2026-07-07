@@ -18,5 +18,20 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        {
+          allowConstantExport: true,
+          allowExportNames: ['badgeVariants', 'buttonVariants', 'tabsListVariants'],
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/member-table.tsx'],
+    rules: {
+      'react-hooks/incompatible-library': 'off',
+    },
   },
 ])

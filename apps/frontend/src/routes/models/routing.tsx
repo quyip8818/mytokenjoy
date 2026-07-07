@@ -2,8 +2,7 @@ import { GitBranch } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { listEmpty } from '@/lib/list-empty'
-import { RoutingRulesTable } from '@/routes/models/components/routing-rules-table'
-import { useModelRoutingPage } from '@/routes/models/hooks/use-model-routing-page'
+import { RoutingRulesTable, useModelRoutingPage } from '@/features/models'
 
 export default function ModelRoutingPage() {
   const { rules, loading, error, refresh, getParentCount, openWhitelistConfig } =
