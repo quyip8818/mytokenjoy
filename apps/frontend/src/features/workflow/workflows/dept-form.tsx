@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Department } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -23,7 +23,7 @@ function DeptFormInner({
   onSetDirty: (dirty: boolean) => void
   onSuccess?: () => void
 }) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const [name, setName] = useState(department?.name ?? '')
   const [error, setError] = useState('')
   const { submit, submitting } = useWorkflowSubmit({

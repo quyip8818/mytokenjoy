@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { OverrunPolicyConfig } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -17,7 +17,7 @@ export function OverrunPolicyWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'overrun-policy'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [config, setConfig] = useState<OverrunPolicyConfig | null>(null)

@@ -3,4 +3,5 @@ export { useWalletPage, type PaymentMethod, type TopUpRecordView } from './hooks
 export { WalletStats } from './components/wallet-stats'
 export { RechargePanel } from './components/recharge-panel'
 export { RechargeRecordsTable } from './components/recharge-records-table'
+export { WalletPageShell } from './components/wallet-page-shell'
 export { InvoiceStatusBadge } from './components/invoice-status-badge'

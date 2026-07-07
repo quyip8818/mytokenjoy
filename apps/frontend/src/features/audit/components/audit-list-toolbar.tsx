@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
-import { AuditDatePresetSelect } from './audit-date-preset-select'
-import { AuditKeywordInput } from './audit-keyword-input'
-import { AuditMemberSelect } from './audit-member-select'
-import { AuditToolbar } from './audit-toolbar'
+import {
+  AuditDatePresetSelect,
+  AuditKeywordInput,
+  AuditMemberSelect,
+  AuditToolbar,
+} from '@/features/audit'
 
 interface AuditListToolbarProps {
   datePreset: string
@@ -10,6 +12,7 @@ interface AuditListToolbarProps {
   memberId: string
   onMemberIdChange: (value: string) => void
   memberAllLabel: string
+  memberOptions: Record<string, string>
   keyword: string
   onKeywordChange: (value: string) => void
   onExport: () => void
@@ -22,6 +25,7 @@ export function AuditListToolbar({
   memberId,
   onMemberIdChange,
   memberAllLabel,
+  memberOptions,
   keyword,
   onKeywordChange,
   onExport,
@@ -35,6 +39,7 @@ export function AuditListToolbar({
         value={memberId}
         onValueChange={onMemberIdChange}
         allLabel={memberAllLabel}
+        options={memberOptions}
       />
       <AuditKeywordInput value={keyword} onChange={onKeywordChange} />
       <AuditToolbar onExport={onExport} />

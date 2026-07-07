@@ -7,7 +7,7 @@ import { queryKeys } from '@/features/query'
 import { useFilteredQuery } from '@/hooks/use-filtered-query'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { useWorkflowRefresh } from '@/features/workflow'
 import { PERMISSION } from '@/lib/permissions'
 
 type ApprovalTab = 'pending' | 'mine' | 'all'

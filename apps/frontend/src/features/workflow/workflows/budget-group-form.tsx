@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import type { BudgetGroup, BudgetNode, Member } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -18,7 +18,7 @@ export function BudgetGroupFormWorkflow({
   onSetDirty,
   onPush,
 }: WorkflowComponentProps<'budget-group-form'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const group = entry.payload.group as BudgetGroup | undefined
   const tree = useMemo(() => (entry.payload.tree as BudgetNode[]) ?? [], [entry.payload.tree])

@@ -1,5 +1,5 @@
 import type { TopUpRecord } from '@/api/billing'
-import type { PaymentMethod, TopUpRecordView } from '../hooks/use-wallet-page'
+import type { PaymentMethod, TopUpRecordView } from '@/features/wallet'
 
 export function toTopUpRecordView(record: TopUpRecord): TopUpRecordView {
   return {

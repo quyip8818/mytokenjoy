@@ -1,5 +1,5 @@
 import type { CallLog, OperationLog } from '@/api/types'
-import { OPERATION_ACTION_LABELS } from '@/lib/labels'
+import { OPERATION_ACTION_LABELS } from '@/features/audit/lib/labels'
 
 export const CALL_AUDIT_CSV_HEADERS = [
   '时间',

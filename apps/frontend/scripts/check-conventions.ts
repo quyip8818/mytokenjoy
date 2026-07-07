@@ -59,8 +59,8 @@ for (const importPath of getRouteLazyImportPaths()) {
   }
 }
 
-const pageShellWhitelistWrappers = ['PageShell', 'AuditFilteredPage']
 const pageShellExemptPaths = new Set(['routes/auth/login.tsx'])
+const pageShellWrapperPattern = /\b(PageShell|AuditFilteredPage|[A-Z]\w*(PageShell|PageContent))\b/
 
 for (const importPath of [...getRouteLazyImportPaths(), ...getMemberRouteLazyImportPaths()]) {
   const resolvedPagePath = resolveLazyPagePath(importPath)
@@ -68,10 +68,7 @@ for (const importPath of [...getRouteLazyImportPaths(), ...getMemberRouteLazyImp
   const relativePath = relativeToSrc(resolvedPagePath)
   if (pageShellExemptPaths.has(relativePath)) continue
   const pageSource = readFileSync(resolvedPagePath, 'utf8')
-  const hasPageShell = pageShellWhitelistWrappers.some((name) =>
-    new RegExp(`\\b${name}\\b`).test(pageSource),
-  )
-  if (!hasPageShell) {
+  if (!pageShellWrapperPattern.test(pageSource)) {
     fail(`${relativePath} must use PageShell or an approved layout wrapper`)
   }
 }

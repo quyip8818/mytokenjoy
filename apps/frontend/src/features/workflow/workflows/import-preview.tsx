@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { BatchImportRow } from '@/api/types'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -20,7 +20,7 @@ export function ImportPreviewWorkflow({
   onPop,
   onClose,
 }: WorkflowComponentProps<'import-preview'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const rows = (entry.payload.rows as BatchImportRow[]) ?? []
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined

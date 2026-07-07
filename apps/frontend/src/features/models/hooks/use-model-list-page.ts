@@ -7,7 +7,7 @@ import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
+import { useWorkflowRefresh } from '@/features/workflow'
 import { PERMISSION } from '@/lib/permissions'
 
 export function useModelListPage(injectedApis?: AppApis) {

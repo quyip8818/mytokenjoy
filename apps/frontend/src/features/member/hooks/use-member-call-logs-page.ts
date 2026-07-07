@@ -12,7 +12,7 @@ export function useMemberCallLogsPage(injectedApis?: AppApis) {
 
   const { data, loading, error, refresh } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.me.callLogs(callLogsQuery),
+    queryKey: queryKeys.member.callLogs(callLogsQuery),
     queryFn: (api) =>
       api.auditApi.getCalls({
         callerId: memberId,

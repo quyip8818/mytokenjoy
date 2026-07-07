@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import type { TopUpRecordView } from '../hooks/use-wallet-page'
+import type { TopUpRecordView } from '@/features/wallet'
 
 interface InvoiceStatusBadgeProps {
   status: TopUpRecordView['invoiceStatus']

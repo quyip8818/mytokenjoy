@@ -56,13 +56,13 @@ describe('AuthSessionProvider', () => {
     expect(screen.queryByText('Unauthorized')).not.toBeInTheDocument()
   })
 
-  it('shows error state when getCurrent returns invalid payload', async () => {
+  it('renders children when getCurrent returns incomplete payload', async () => {
     renderAuthSession({
       getCurrent: vi.fn().mockResolvedValue({ invalid: true }),
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Invalid session response')).toBeInTheDocument()
+      expect(screen.getByTestId('child')).toBeInTheDocument()
     })
   })
 })

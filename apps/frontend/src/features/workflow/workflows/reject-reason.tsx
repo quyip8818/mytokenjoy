@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -14,7 +14,7 @@ export function RejectReasonWorkflow({
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'reject-reason'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const approvalId = entry.payload.approvalId as string
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined

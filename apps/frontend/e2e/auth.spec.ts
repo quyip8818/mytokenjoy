@@ -4,9 +4,12 @@ import { expect, test } from '@playwright/test'
 test.use({ storageState: { cookies: [], origins: [] } })
 
 test('redirects unauthenticated users to login', async ({ page }) => {
-  const response = await page.goto('/org/structure')
-  // Verify we end up on the login page
+  await page.goto('/org/structure')
   await expect(page).toHaveURL(/\/login/)
-  // The redirect itself is the key assertion — login page rendering
-  // is verified by the full auth flow in other tests
+})
+
+test('renders login form on login page', async ({ page }) => {
+  await page.goto('/login')
+  await expect(page.getByLabel('Email')).toBeVisible()
+  await expect(page.getByLabel('Password')).toBeVisible()
 })

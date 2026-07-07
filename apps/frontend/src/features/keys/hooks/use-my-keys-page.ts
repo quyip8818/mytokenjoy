@@ -6,14 +6,16 @@ import type { PlatformKey } from '@/api/types'
 import { useSession } from '@/features/session'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
-import { useWorkflowRefresh } from '@/hooks/use-workflow-refresh'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/workflow/constants'
+import { useRowHighlight } from '@/hooks/use-row-highlight'
+import { useWorkflowRefresh } from '@/features/workflow'
+import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys/lib/constants'
 
 export function useMyKeysPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { memberId } = useSession()
   const applyQuotaCta = useCtaHighlight('APPLY_QUOTA')
   const createKeyCta = useCtaHighlight('CREATE_KEY')
+  const { flashRow, rowClass } = useRowHighlight()
   const [deleteTarget, setDeleteTarget] = useState<PlatformKey | null>(null)
 
   const {
@@ -65,6 +67,11 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     return key.id
   }
 
+  const handleToggleWithFlash = async (key: PlatformKey) => {
+    const id = await handleToggle(key)
+    flashRow(id)
+  }
+
   const openCreateKey = (options?: { name?: string; quota?: string }) => {
     if (quota !== null && quota.remaining <= 0) {
       toast.error(QUOTA_INSUFFICIENT_MESSAGE)
@@ -99,6 +106,8 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     createKeyCta,
     handleDelete,
     handleToggle,
+    handleToggleWithFlash,
+    rowClass,
     openCreateKey,
     openEditKey,
     openRotateKey,

@@ -9,7 +9,6 @@ import {
   Bar,
   PieChart,
   Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -17,7 +16,9 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { MemberChartSection } from './member-chart-section'
+import { MemberChartSection } from '@/features/member'
+
+const CALL_DISTRIBUTION_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#06b6d4'] as const
 
 interface MemberConsumptionChartsProps {
   loading: boolean
@@ -139,18 +140,17 @@ export function MemberConsumptionCharts({
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
-                    data={callDistribution}
+                    data={callDistribution.map((item, index) => ({
+                      ...item,
+                      fill: CALL_DISTRIBUTION_COLORS[index % CALL_DISTRIBUTION_COLORS.length],
+                    }))}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
                     label
-                  >
-                    {callDistribution.map((_, i) => (
-                      <Cell key={i} fill={['#4f46e5', '#10b981', '#f59e0b', '#06b6d4'][i % 4]} />
-                    ))}
-                  </Pie>
+                  />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                   <Tooltip />
                 </PieChart>

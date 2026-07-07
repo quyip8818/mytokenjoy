@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import {
   buildCostStats,
   buildUsageSeriesChartData,
@@ -47,7 +47,12 @@ describe('buildCostStats', () => {
 })
 
 describe('buildUsageSeriesWindow', () => {
-  it('anchors dev ranges to demo today seed window', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('anchors dev ranges to the current local day window', () => {
+    vi.setSystemTime(new Date(2026, 5, 19, 12, 0, 0))
     const hourWindow = buildUsageSeriesWindow('hour')
     expect(hourWindow.end).toContain('2026-06-19')
     expect(hourWindow.start).toContain('2026-06-01')

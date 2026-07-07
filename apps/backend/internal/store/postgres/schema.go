@@ -19,6 +19,7 @@ ALTER TABLE company_recharge_orders ADD COLUMN IF NOT EXISTS display_order_id TE
 ALTER TABLE company_recharge_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT '';
 ALTER TABLE company_recharge_orders ADD COLUMN IF NOT EXISTS invoice_status TEXT NOT NULL DEFAULT 'none';
 UPDATE company_recharge_orders SET display_order_id = id WHERE display_order_id = '';
+ALTER TABLE org_integration ADD COLUMN IF NOT EXISTS field_mappings JSONB NOT NULL DEFAULT '[]';
 `
 
 func applySchema(ctx context.Context, pool *pgxpool.Pool) error {

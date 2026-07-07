@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useQueryClient, type QueryKey } from '@tanstack/react-query'
-import type { WorkflowId, WorkflowPayloadMap } from '@/features/workflow/types'
-import { useWorkflow } from '@/features/workflow/use-workflow'
+import type { WorkflowId, WorkflowPayloadMap } from './types'
+import { useWorkflow } from './use-workflow'
 
 type RefreshHandler = () => void | Promise<void>
 

@@ -5,36 +5,10 @@ import type { AppApis } from '@/api/app-apis'
 import type { Department, Member } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
-
-type ConfirmState = {
-  open: boolean
-  title: string
-  desc: string
-  variant: 'primary' | 'danger'
-  onConfirm: () => void
-}
-
-const INITIAL_CONFIRM_STATE: ConfirmState = {
-  open: false,
-  title: '',
-  desc: '',
-  variant: 'primary',
-  onConfirm: () => {},
-}
+import { flattenDepts } from '@/features/org/lib/department-tree'
+import { useStructureConfirmState } from './use-structure-confirm'
 
 const PAGE_SIZE = 10
-
-function flattenDepts(
-  departments: Department[],
-  level = 0,
-): { id: string; name: string; level: number }[] {
-  const result: { id: string; name: string; level: number }[] = []
-  for (const dept of departments) {
-    result.push({ id: dept.id, name: dept.name, level })
-    if (dept.children) result.push(...flattenDepts(dept.children, level + 1))
-  }
-  return result
-}
 
 export function useStructurePage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
@@ -49,7 +23,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferDeptId, setTransferDeptId] = useState('')
-  const [confirmState, setConfirmState] = useState<ConfirmState>(INITIAL_CONFIRM_STATE)
+  const { confirmState, setConfirmState } = useStructureConfirmState()
 
   const memberQueryParams = useMemo(
     () => ({

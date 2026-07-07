@@ -1,0 +1,170 @@
+import type { BudgetNode, BudgetProjectView } from '@/api/types'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
+type BudgetAllocationTableProps = {
+  node: BudgetNode
+  children: BudgetNode[]
+  nodeProjects: BudgetProjectView[]
+  overrunPolicyLabel: string
+  editing: boolean
+  drafts: Record<string, { budget: string }>
+  reservedDraft: string
+  error: string | null
+  remaining: number
+  onUpdateDraft: (id: string, value: string) => void
+  onUpdateReservedDraft: (value: string) => void
+}
+
+export function BudgetAllocationTable({
+  node,
+  children,
+  nodeProjects,
+  overrunPolicyLabel,
+  editing,
+  drafts,
+  reservedDraft,
+  error,
+  remaining,
+  onUpdateDraft,
+  onUpdateReservedDraft,
+}: BudgetAllocationTableProps) {
+  return (
+    <div className="rounded-lg border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border/50 hover:bg-transparent">
+            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+              名称
+            </TableHead>
+            <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
+              额度
+            </TableHead>
+            <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
+              已消耗
+            </TableHead>
+            <TableHead className="w-32 text-xs font-medium uppercase text-muted-foreground">
+              进度
+            </TableHead>
+            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+              超限策略
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {children.map((child) => {
+            const childPct =
+              child.budget > 0 ? Math.round((child.consumed / child.budget) * 100) : 0
+            const draftBudget = drafts[child.id]?.budget ?? String(child.budget)
+            const draftValue = parseFloat(draftBudget)
+            const budgetOver = editing && !Number.isNaN(draftValue) && draftValue > node.budget
+
+            return (
+              <TableRow key={child.id} className="even:bg-muted/40 hover:bg-muted/50">
+                <TableCell className="font-medium">{child.name}</TableCell>
+                <TableCell className="text-right">
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min={0}
+                      value={draftBudget}
+                      onChange={(event) => onUpdateDraft(child.id, event.target.value)}
+                      className={cn(
+                        'h-7 w-28 text-right tabular-nums',
+                        budgetOver && 'border-red-500 focus-visible:ring-red-500/30',
+                      )}
+                    />
+                  ) : (
+                    <span className="tabular-nums">¥{child.budget.toLocaleString()}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  ¥{child.consumed.toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Progress value={childPct} className="h-1.5 flex-1" />
+                    <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
+                      {childPct}%
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {overrunPolicyLabel}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            )
+          })}
+          {nodeProjects.map((project) => {
+            const projectPct =
+              project.budget > 0 ? Math.round((project.consumed / project.budget) * 100) : 0
+            return (
+              <TableRow key={project.id} className="even:bg-muted/40 hover:bg-muted/50">
+                <TableCell className="font-medium text-muted-foreground">
+                  {project.name}
+                  <span className="ml-1.5 text-xs text-muted-foreground/60">(项目)</span>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  ¥{project.budget.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  ¥{project.consumed.toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Progress value={projectPct} className="h-1.5 flex-1" />
+                    <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
+                      {projectPct}%
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {overrunPolicyLabel}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+
+      {editing && (
+        <div className="border-t border-border px-4 py-3">
+          <label className="mb-1 block text-xs text-muted-foreground">预留池余额</label>
+          <Input
+            type="number"
+            min={0}
+            value={reservedDraft}
+            onChange={(event) => onUpdateReservedDraft(event.target.value)}
+            className="h-7 w-40 tabular-nums"
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
+        {error ? <p className="text-xs text-red-600">{error}</p> : <span />}
+        <p
+          className={cn(
+            'text-xs tabular-nums',
+            remaining < 0 ? 'text-red-600' : 'text-muted-foreground',
+          )}
+        >
+          剩余可分配：¥{remaining.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  )
+}

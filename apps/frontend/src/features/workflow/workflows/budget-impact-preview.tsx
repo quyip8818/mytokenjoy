@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WORKFLOW_TABLE_HEAD_CLASS } from '../constants'
@@ -20,7 +20,7 @@ export function BudgetImpactPreviewWorkflow({
   onPop,
   onClose,
 }: WorkflowComponentProps<'budget-impact-preview'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const payload = entry.payload as unknown as PreviewPayload
   const [submitting, setSubmitting] = useState(false)

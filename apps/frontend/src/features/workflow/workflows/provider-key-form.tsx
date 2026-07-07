@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useApis } from '@/api/use-apis'
+import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -14,14 +14,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWorkflow } from '../use-workflow'
-import { PROVIDER_LABELS } from '@/lib/labels'
+import { PROVIDER_LABELS } from '@/features/models/lib/labels'
 
 export function ProviderKeyFormWorkflow({
   entry,
   onClose,
   onSetDirty,
 }: WorkflowComponentProps<'provider-key-form'>) {
-  const apis = useApis()
+  const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [provider, setProvider] = useState('openai')

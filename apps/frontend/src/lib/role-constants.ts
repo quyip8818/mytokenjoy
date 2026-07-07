@@ -1,6 +1,0 @@
-export const ROLE_SUPER_ADMIN = '超级管理员'
-export const ROLE_ORG_ADMIN = '组织管理员'
-export const ROLE_MEMBER = '普通成员'
-export const ROLE_AUDITOR = '只读审计员'
-export const ROLE_API_CALLER = 'API 调用者'
-export const ROLE_BUDGET_APPROVER = '预算审批员'

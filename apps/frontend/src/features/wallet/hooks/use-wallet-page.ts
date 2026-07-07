@@ -28,13 +28,13 @@ export function useWalletPage(injectedApis?: AppApis) {
     refresh,
   } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.billing.wallet(),
+    queryKey: queryKeys.wallet.wallet(),
     queryFn: (api) => api.billingApi.getWallet(),
   })
 
   const { data: records, refresh: refreshRecords } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.billing.rechargeRecords(),
+    queryKey: queryKeys.wallet.rechargeRecords(),
     queryFn: (api) => api.billingApi.listRechargeRecords(),
   })
 

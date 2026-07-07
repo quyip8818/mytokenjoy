@@ -1,5 +1,5 @@
 export const memberKeys = {
-  all: ['me'] as const,
+  all: ['member'] as const,
   dashboard: () => [...memberKeys.all, 'dashboard'] as const,
   callLogs: (params: unknown) => [...memberKeys.all, 'call-logs', params] as const,
 }
