@@ -1,0 +1,9 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/server ./cmd/server"
+entrypoint = ["./tmp/server"]
+exclude_dir = ["tmp", "tests", "seed", "scaffold", "scripts"]
+send_interrupt = true
+kill_delay = "2s"

@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.9.0+sha512.bd682d5d03fe525ef7c9fd6780c6884d1e756ac4c9c9fe00c538782824310dcf90e3ddc4f53835f06dfaebd5085e41855e0bcbb3b60de2ac5bbab89e5036f03b",
   "scripts": {
     "dev": "pnpm start",
-    "start": "pnpm start:postgres && concurrently -n backend,frontend -c blue,green \"pnpm -F @tokenjoy/backend start\" \"pnpm start:frontend\"",
+    "start": "pnpm start:postgres && concurrently --kill-others-on-fail -n backend,frontend -c blue,green \"pnpm -F @tokenjoy/backend start\" \"pnpm start:frontend\"",
     "docker:reset": "docker compose -f apps/newapi/docker-compose.yml down -v && docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
     "start:postgres": "docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
     "start:frontend": "wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm -F @tokenjoy/frontend start",
