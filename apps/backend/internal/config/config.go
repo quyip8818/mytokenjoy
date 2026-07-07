@@ -125,8 +125,5 @@ func (c Config) CORSOriginList() []string {
 }
 
 func (c Config) ResolvedPlatformSessionSecret() string {
-	if c.PlatformSessionSecret != "" {
-		return c.PlatformSessionSecret
-	}
-	return c.SessionSecret
+	return c.PlatformSessionSecret
 }

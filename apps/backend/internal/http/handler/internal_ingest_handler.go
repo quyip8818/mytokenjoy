@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/subtle"
 	"log/slog"
 	"net/http"
 
@@ -54,8 +55,16 @@ func (h *InternalIngestHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/metrics/ingest", h.HandleIngestMetrics)
 }
 
+func (h *InternalIngestHandler) authenticateWebhookSecret(r *http.Request) bool {
+	secret := r.Header.Get("X-Webhook-Secret")
+	if h.cfg.NewAPIWebhookSecret == "" || secret == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(secret), []byte(h.cfg.NewAPIWebhookSecret)) == 1
+}
+
 func (h *InternalIngestHandler) HandleNewAPILog(w http.ResponseWriter, r *http.Request) {
-	if h.cfg.NewAPIWebhookSecret == "" || r.Header.Get("X-Webhook-Secret") != h.cfg.NewAPIWebhookSecret {
+	if !h.authenticateWebhookSecret(r) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
@@ -90,6 +99,10 @@ func (h *InternalIngestHandler) HandleNewAPILog(w http.ResponseWriter, r *http.R
 func (h *InternalIngestHandler) HandleIngestMetrics(w http.ResponseWriter, r *http.Request) {
 	if !h.cfg.IngestEnabled() {
 		httputil.WriteStatus(w, http.StatusNotFound, "ingest not enabled")
+		return
+	}
+	if !h.authenticateWebhookSecret(r) {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
 	httputil.WriteOK(w, h.metrics.Snapshot())
