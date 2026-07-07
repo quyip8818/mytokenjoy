@@ -183,6 +183,10 @@ func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
+	// Bind approval to authenticated session member (prevent impersonation)
+	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
+		body.MemberID = sessionCtx.Member.ID
+	}
 	approval, err := h.service.CreateApproval(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, approval, err)
 }

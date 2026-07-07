@@ -16,6 +16,20 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+var protectedRoles = map[string]struct{}{
+	permission.RoleSuperAdmin: {},
+	permission.RoleOrgAdmin:   {},
+}
+
+func validateRolesNotEscalated(roles []string) error {
+	for _, role := range roles {
+		if _, protected := protectedRoles[role]; protected {
+			return domain.Forbidden("cannot assign protected role via member update")
+		}
+	}
+	return nil
+}
+
 func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.PageResult[types.Member], error) {
 	items, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
@@ -93,6 +107,9 @@ func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, member
 }
 
 func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
+	if err := validateRolesNotEscalated(input.Roles); err != nil {
+		return types.Member{}, err
+	}
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.Member{}, err
