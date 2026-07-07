@@ -26,7 +26,7 @@
 | 配置 | `caarlos0/env`                          |
 | 日志 | `log/slog` JSON                         |
 | JSON | camelCase 对齐前端                      |
-| 测试 | `testing` + `httptest`，用例在 `tests/` |
+| 测试 | `testing` + `httptest` + PostgreSQL（`tests/` 外挂；每测独立 schema） |
 | DI   | 构造函数注入，组合根 `internal/app/`    |
 
 ---
@@ -133,7 +133,7 @@ sequenceDiagram
 | 变量                          | 默认               | 说明                                                                          |
 | ----------------------------- | ------------------ | ----------------------------------------------------------------------------- |
 | `PORT`                        | `8080`             | HTTP                                                                          |
-| `DATABASE_URL`                | 可选（生产必填）   | 未设置时使用 memory store；Postgres 为生产与集成测试默认       |
+| `DATABASE_URL`                | 必填（测试与生产） | Postgres；测试见 [Backend-测试优化.md](./Backend-测试优化.md) |
 | `SESSION_SECRET`              | **必填（目标态）** | 企业面 Session JWT 签名；见 [权限管理.md](./权限管理.md) §10                  |
 | `APP_PROFILE`                 | `demo`             | 仅非鉴权用途（如延迟模拟）；**鉴权不再分叉**，见 [权限管理.md](./权限管理.md) |
 | `DEMO_TODAY`                  | `2026-06-19`       | Demo 看板锚定                                                                 |
@@ -194,28 +194,31 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 
 测试优化方案见 [Backend-测试优化.md](./Backend-测试优化.md)。
 
+测试存储迁移与 PG 隔离实现见 [Backend-测试优化.md](./Backend-测试优化.md)（含 PR 拆分与代码锚点）。
+
 ```bash
 cd apps/backend
-make test-unit          # go test -tags=testhook ./tests/...
-make test-integration   # -tags=integration
+pnpm start:postgres   # 或确保 DATABASE_URL 可用
+make test-unit        # go test -tags=testhook ./tests/...
+make test-integration # 需 LOG_DATABASE_URL 的 ingest 全链路（可选）
 ```
 
 | 层       | 目录                   | CI                           |
 | -------- | ---------------------- | ---------------------------- |
 | 纯函数   | `tests/pkg/*`          | verify                       |
 |          | `tests/pkg/org/`       | `remote_ids`、`sync_diff` 等 |
-| Domain   | `tests/domain/<域>/`   | verify                       |
-| Handler  | `tests/handler/<域>/`  | verify                       |
-| Postgres | `tests/store/postgres` | backend-integration          |
+| Domain   | `tests/domain/<域>/`   | verify（Postgres）           |
+| Handler  | `tests/handler/<域>/`  | verify（Postgres）           |
+| Postgres | `tests/store/postgres` | verify（Postgres）           |
 
 ### 5.1 `testutil` 子包
 
 | 子包              | 职责                                                                 |
 | ----------------- | -------------------------------------------------------------------- |
-| `testutil/`（根） | 通用：`config`、`ctx`、`memory`、`assert`、`store`、`app`、`session` |
+| `testutil/`（根） | 通用：`config`、`ctx`、`NewTestStore`、`assert`、`app`、`session`    |
 | `testutil/org`    | Org Service、Feishu fixture、预算树持久化                            |
 | `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                               |
-| `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter                          |
+| `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL              |
 | `testutil/relay`  | Gateway 场景、StubWallet、Mapping                                    |
 | `testutil/worker` | Runner 栈、Outbox 断言                                               |
 

@@ -114,10 +114,10 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 }
 
 func TestMemberPersistAcrossRestart(t *testing.T) {
-	dbURL := requireDatabaseURL(t)
+	h := getTestDB(t)
 	ctx := testutil.Ctx()
 	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = dbURL
+	cfg.DatabaseURL = h.url
 
 	st1, err := postgres.New(context.Background(), cfg)
 	if err != nil {
@@ -150,7 +150,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 		pg.Close()
 	}
 
-	st2 := reopenPostgresStore(t, dbURL)
+	st2 := reopenPostgresStore(t, h.url)
 	members, err = st2.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)

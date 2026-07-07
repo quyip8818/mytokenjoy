@@ -9,6 +9,7 @@ const (
 	IDDept5          = "dept-5"
 	IDMemberAdmin    = "m-admin"
 	IDMember1        = "m-1"
+	IDMember3        = "m-3"
 	IDMemberPure     = "m-pure"
 	IDMemberAuditor  = "m-auditor"
 	IDPlatformKey1   = "plk-1"

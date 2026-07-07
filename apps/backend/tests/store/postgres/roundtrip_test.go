@@ -103,6 +103,8 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 			Provider:     "openai",
 			Name:         "gpt-roundtrip",
 			DisplayName:  "GPT RoundTrip",
+			Type:         "builtin",
+			Visibility:   "all",
 			InputPrice:   1,
 			OutputPrice:  2,
 			MaxContext:   128000,
