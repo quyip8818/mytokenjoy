@@ -17,11 +17,13 @@ type pgOrgNodeRepo struct {
 func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, parent_id, member_count, external_id, source, manager_id, sort_order,
-			budget, consumed, reserved_pool, period, default_model, fallback_model, routing_inherited
-		FROM org_nodes
-		WHERE company_id = $1
-		ORDER BY sort_order
+		SELECT n.id, n.name, n.parent_id, n.external_id, n.source, n.manager_id, n.sort_order,
+			n.budget, n.reserved_pool, n.period, dm.name, fm.name, n.routing_inherited
+		FROM org_nodes n
+		LEFT JOIN models dm ON dm.company_id = n.company_id AND dm.id = n.default_model_id
+		LEFT JOIN models fm ON fm.company_id = n.company_id AND fm.id = n.fallback_model_id
+		WHERE n.company_id = $1
+		ORDER BY n.sort_order
 	`, companyID)
 	if err != nil {
 		return nil, err
@@ -31,88 +33,137 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	for rows.Next() {
 		var row flatOrgNode
 		if err := rows.Scan(
-			&row.ID, &row.Name, &row.ParentID, &row.MemberCount,
+			&row.ID, &row.Name, &row.ParentID,
 			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
-			&row.Budget, &row.Consumed, &row.ReservedPool, &row.Period,
+			&row.Budget, &row.ReservedPool, &row.Period,
 			&row.DefaultModel, &row.FallbackModel, &row.RoutingInherited,
 		); err != nil {
 			return nil, err
 		}
+		row.MemberCount = 0
+		row.Consumed = 0
 		flat = append(flat, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return buildOrgNodeTree(flat), nil
+	tree := buildOrgNodeTree(flat)
+	memberRows, err := r.db.Query(ctx, `
+		SELECT department_id FROM members WHERE company_id = $1
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer memberRows.Close()
+	members := make([]types.Member, 0)
+	for memberRows.Next() {
+		var member types.Member
+		if err := memberRows.Scan(&member.DepartmentID); err != nil {
+			return nil, err
+		}
+		members = append(members, member)
+	}
+	if err := memberRows.Err(); err != nil {
+		return nil, err
+	}
+	return pkgorg.RecalcOrgNodeMemberCounts(tree, members), nil
 }
 
 func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error {
 	companyID := store.CompanyID(ctx)
-	flat := flattenOrgNodesWithOrder(cloneOrgNodes(tree))
+	cloned := cloneOrgNodes(tree)
+	flat := flattenOrgNodesWithOrder(cloned)
+	paths := store.ComputeOrgNodePaths(cloned)
 	ids := make([]string, len(flat))
 	for i, row := range flat {
 		ids[i] = row.ID
+		path, ok := paths[row.ID]
+		if !ok {
+			path = store.OrgNodePathLabel(row.ID)
+		}
+		defaultModelID, err := r.modelIDByName(ctx, companyID, row.DefaultModel)
+		if err != nil {
+			return err
+		}
+		fallbackModelID, err := r.modelIDByName(ctx, companyID, row.FallbackModel)
+		if err != nil {
+			return err
+		}
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO org_nodes (
-				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order,
-				budget, consumed, reserved_pool, period, default_model, fallback_model, routing_inherited, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+				id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
+				budget, reserved_pool, period, default_model_id, fallback_model_id, routing_inherited, updated_at
+			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				parent_id = EXCLUDED.parent_id,
-				member_count = EXCLUDED.member_count,
+				path = EXCLUDED.path,
 				external_id = EXCLUDED.external_id,
 				source = EXCLUDED.source,
 				manager_id = EXCLUDED.manager_id,
 				sort_order = EXCLUDED.sort_order,
 				budget = EXCLUDED.budget,
-				consumed = EXCLUDED.consumed,
 				reserved_pool = EXCLUDED.reserved_pool,
 				period = EXCLUDED.period,
-				default_model = EXCLUDED.default_model,
-				fallback_model = EXCLUDED.fallback_model,
+				default_model_id = EXCLUDED.default_model_id,
+				fallback_model_id = EXCLUDED.fallback_model_id,
 				routing_inherited = EXCLUDED.routing_inherited,
 				updated_at = NOW()
-		`, row.ID, companyID, row.Name, row.ParentID, row.MemberCount,
+		`, row.ID, companyID, row.Name, row.ParentID, path,
 			row.ExternalID, row.Source, row.ManagerID, row.sortOrder,
-			row.Budget, row.Consumed, row.ReservedPool, row.Period,
-			row.DefaultModel, row.FallbackModel, row.RoutingInherited); err != nil {
+			row.Budget, row.ReservedPool, row.Period,
+			defaultModelID, fallbackModelID, row.RoutingInherited); err != nil {
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}
 	return pruneByIDForCompany(ctx, r.db, "org_nodes", companyID, ids)
 }
 
-func (r *pgOrgNodeRepo) RollupConsumed(ctx context.Context, nodeID string, amountCNY float64) error {
+func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID string) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		WITH RECURSIVE ancestors AS (
-			SELECT id, parent_id FROM org_nodes
-			WHERE company_id = $1 AND id = $2
-			UNION ALL
-			SELECT n.id, n.parent_id FROM org_nodes n
-			INNER JOIN ancestors a ON n.id = a.parent_id
-			WHERE n.company_id = $1 AND a.parent_id IS NOT NULL
-		)
-		UPDATE org_nodes SET consumed = consumed + $3, updated_at = NOW()
-		WHERE company_id = $1 AND id IN (SELECT id FROM ancestors)
-	`, companyID, nodeID, amountCNY)
-	return err
-}
-
-func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID string) (float64, float64, bool, error) {
-	companyID := store.CompanyID(ctx)
-	var budget, consumed float64
+	var budget float64
 	err := r.db.QueryRow(ctx, `
-		SELECT budget, consumed FROM org_nodes WHERE company_id = $1 AND id = $2
-	`, companyID, nodeID).Scan(&budget, &consumed)
+		SELECT budget FROM org_nodes WHERE company_id = $1 AND id = $2
+	`, companyID, nodeID).Scan(&budget)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return 0, 0, false, nil
+			return 0, false, nil
 		}
-		return 0, 0, false, err
+		return 0, false, err
 	}
-	return budget, consumed, true, nil
+	return budget, true, nil
+}
+
+func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID string) (string, bool, error) {
+	companyID := store.CompanyID(ctx)
+	var period string
+	err := r.db.QueryRow(ctx, `
+		SELECT period FROM org_nodes WHERE company_id = $1 AND id = $2
+	`, companyID, nodeID).Scan(&period)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+	return period, true, nil
+}
+
+func (r *pgOrgNodeRepo) modelIDByName(ctx context.Context, companyID int64, modelName *string) (*string, error) {
+	if modelName == nil || *modelName == "" {
+		return nil, nil
+	}
+	var id string
+	err := r.db.QueryRow(ctx, `
+		SELECT id FROM models WHERE company_id = $1 AND name = $2
+	`, companyID, *modelName).Scan(&id)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }
 
 type flatOrgNode struct {

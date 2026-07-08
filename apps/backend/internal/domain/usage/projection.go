@@ -2,25 +2,37 @@ package usage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry) error {
-	if err := st.Keys().AddPlatformKeyUsed(ctx, entry.PlatformKeyID, entry.AmountCNY); err != nil {
+func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry, snapshotPeriodKey string) error {
+	if snapshotPeriodKey == "" {
+		return fmt.Errorf("usage projection requires snapshot period key")
+	}
+	periodKey := snapshotPeriodKey
+
+	if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisPlatformKey, entry.PlatformKeyID, periodKey, entry.AmountCNY); err != nil {
 		return err
 	}
 	if entry.BudgetGroupID != nil {
-		if err := st.Budget().AddGroupConsumed(ctx, *entry.BudgetGroupID, entry.AmountCNY); err != nil {
+		if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisBudgetGroup, *entry.BudgetGroupID, periodKey, entry.AmountCNY); err != nil {
 			return err
 		}
 	}
-	if err := st.Org().Nodes().RollupConsumed(ctx, entry.DepartmentID, entry.AmountCNY); err != nil {
+	if entry.MemberID != nil {
+		if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisMember, *entry.MemberID, periodKey, entry.AmountCNY); err != nil {
+			return err
+		}
+	}
+	if err := st.BudgetSnapshots().RollupOrgNodeAncestors(ctx, entry.DepartmentID, periodKey, entry.AmountCNY); err != nil {
 		return err
 	}
-	memberID := ""
+
+	var memberID string
 	if entry.MemberID != nil {
 		memberID = *entry.MemberID
 	}

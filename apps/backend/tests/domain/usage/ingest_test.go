@@ -3,15 +3,16 @@ package usage_test
 import (
 	"errors"
 	"testing"
-
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/domain/usage"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
@@ -19,43 +20,10 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
-	ctx := testutil.Ctx()
 
-	keys, err := st.Keys().PlatformKeys(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := range keys {
-		if keys[i].ID == contract.IDPlatformKey1 {
-			keys[i].Used = 0
-			if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
-				t.Fatal(err)
-			}
-			break
-		}
-	}
-
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	var leaf *types.BudgetNode
-	var walk func([]types.BudgetNode)
-	walk = func(nodes []types.BudgetNode) {
-		for i := range nodes {
-			if nodes[i].ID == contract.IDDept3 {
-				leaf = &nodes[i]
-			}
-			if len(nodes[i].Children) > 0 {
-				walk(nodes[i].Children)
-			}
-		}
-	}
-	walk(tree)
-	if leaf == nil {
-		t.Fatal("dept-3 not found")
-	}
-	beforeConsumed := leaf.Consumed
+	beforeUsed := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	beforeConsumed := testutil.Dept3SnapshotConsumed(t, st)
+	beforeBuckets := testutil.UsageBucketCount(st)
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(1001, 99))
 	if err := ingest.IngestByLogID(testutil.Ctx(), 1001, types.SourceWebhook); err != nil {
@@ -70,36 +38,24 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		t.Fatalf("expected ledger entry for log 1001, exists=%v err=%v", exists, err)
 	}
 
-	keys, err = st.Keys().PlatformKeys(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, key := range keys {
-		if key.ID == contract.IDPlatformKey1 && key.Used <= 0 {
-			t.Fatalf("expected key used > 0, got %v", key.Used)
-		}
+	afterUsed := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	if afterUsed <= beforeUsed {
+		t.Fatalf("expected key used increase, before=%v after=%v", beforeUsed, afterUsed)
 	}
 
-	tree, err = common.LoadBudgetTree(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	walk = func(nodes []types.BudgetNode) {
-		for i := range nodes {
-			if nodes[i].ID == contract.IDDept3 {
-				leaf = &nodes[i]
-			}
-			if len(nodes[i].Children) > 0 {
-				walk(nodes[i].Children)
-			}
-		}
-	}
-	walk(tree)
-	if leaf.Consumed <= beforeConsumed {
-		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, leaf.Consumed)
+	afterConsumed := testutil.Dept3SnapshotConsumed(t, st)
+	if afterConsumed <= beforeConsumed {
+		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
 	}
 
-	testutil.AssertUsageBucketCount(t, st, 1)
+	afterBuckets := testutil.UsageBucketCount(st)
+	if afterBuckets < beforeBuckets+1 {
+		t.Fatalf("expected at least one new usage bucket, before=%d after=%d", beforeBuckets, afterBuckets)
+	}
+	if err := ingest.IngestByLogID(testutil.Ctx(), 1001, types.SourceWebhook); err != nil {
+		t.Fatal(err)
+	}
+	testutil.AssertUsageBucketCount(t, st, afterBuckets)
 }
 
 func TestIngestByLogID(t *testing.T) {
@@ -123,6 +79,7 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	beforeBuckets := testutil.UsageBucketCount(st)
 
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{
 		ID: 4001, TokenID: 99, Quota: 100000, ModelName: "gpt-4o", CreatedAt: 1717200000,
@@ -131,12 +88,15 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testutil.AssertUsageBucketCount(t, st, 1)
+	afterBuckets := testutil.UsageBucketCount(st)
+	if afterBuckets < beforeBuckets+1 {
+		t.Fatalf("expected at least one new usage bucket, before=%d after=%d", beforeBuckets, afterBuckets)
+	}
 
 	if err := ingest.IngestByLogID(testutil.Ctx(), 4001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	testutil.AssertUsageBucketCount(t, st, 1)
+	testutil.AssertUsageBucketCount(t, st, afterBuckets)
 }
 
 func TestIngestRaw(t *testing.T) {
@@ -153,6 +113,96 @@ func TestIngestRaw(t *testing.T) {
 	if err != nil || !ingested {
 		t.Fatalf("expected log 3003 in ledger, err=%v ingested=%v", err, ingested)
 	}
+}
+
+func TestIngestStoresLedgerPeriodKey(t *testing.T) {
+	t.Parallel()
+	cfg, st := newIngestStore(t)
+	ingest := testutil.NewIngestService(t, cfg, st)
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	raw := testutil.DefaultConsumeLog(8801, 99)
+	testutil.SeedConsumeLog(t, st, raw)
+	if err := ingest.IngestByLogID(testutil.Ctx(), 8801, types.SourceWebhook); err != nil {
+		t.Fatal(err)
+	}
+	occurred := usage.OccurredAtFromPayload(raw.CreatedAt)
+	want := pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred)
+	entries, _, err := st.Ledger().ListCallSettledPage(testutil.Ctx(), store.LedgerCallFilter{Page: 1, PageSize: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found *types.UsageLedgerEntry
+	for i := range entries {
+		if entries[i].IdempotencyKey == usage.NewAPIIdempotencyKey(8801) {
+			found = &entries[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("expected ledger entry for log 8801")
+	}
+	if found.PeriodKey != want {
+		t.Fatalf("PeriodKey = %q, want %q", found.PeriodKey, want)
+	}
+}
+
+func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
+	t.Parallel()
+	cfg, st := newIngestStore(t)
+	ctx := testutil.Ctx()
+	nodes, err := st.Org().Nodes().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !setOrgNodePeriodMonthly(nodes, contract.IDDept3) {
+		t.Fatal("dept-3 not found")
+	}
+	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
+		t.Fatal(err)
+	}
+
+	ingest := testutil.NewIngestService(t, cfg, st)
+	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+
+	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	snapshotPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, time.Now().UTC())
+	ledgerPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, occurred)
+	if snapshotPeriod == ledgerPeriod {
+		t.Skip("requires occurred month to differ from current month")
+	}
+
+	raw := testutil.DefaultConsumeLog(9901, 99)
+	raw.CreatedAt = occurred.Unix()
+	testutil.SeedConsumeLog(t, st, raw)
+
+	beforeSnapshot := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, snapshotPeriod)
+	beforeLedgerPeriod := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, ledgerPeriod)
+
+	if err := ingest.IngestByLogID(ctx, 9901, types.SourceWebhook); err != nil {
+		t.Fatal(err)
+	}
+
+	afterSnapshot := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, snapshotPeriod)
+	if afterSnapshot <= beforeSnapshot {
+		t.Fatalf("expected snapshot period %q consumption increase, before=%v after=%v", snapshotPeriod, beforeSnapshot, afterSnapshot)
+	}
+	afterLedgerPeriod := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, ledgerPeriod)
+	if afterLedgerPeriod != beforeLedgerPeriod {
+		t.Fatalf("expected no consumption at ledger period %q, before=%v after=%v", ledgerPeriod, beforeLedgerPeriod, afterLedgerPeriod)
+	}
+}
+
+func setOrgNodePeriodMonthly(nodes []types.OrgNode, id string) bool {
+	for i := range nodes {
+		if nodes[i].ID == id {
+			nodes[i].Period = pkgbudget.PeriodMonthly
+			return true
+		}
+		if len(nodes[i].Children) > 0 && setOrgNodePeriodMonthly(nodes[i].Children, id) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestIngestByLogIDNotFound(t *testing.T) {

@@ -2,42 +2,90 @@ package testutil
 
 import (
 	"testing"
+	"time"
 
-	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-func DeptConsumed(t *testing.T, tree []types.BudgetNode, deptID string) float64 {
-	t.Helper()
-	node := budget.FindBudgetNode(tree, deptID)
-	if node == nil {
-		t.Fatalf("department %s not found in budget tree", deptID)
-	}
-	return node.Consumed
+func demoBudgetPeriodKey() string {
+	return pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, time.Now().UTC())
 }
 
-func Dept3Consumed(t *testing.T, tree []types.BudgetNode) float64 {
+func SetDeptSnapshotConsumed(t *testing.T, st store.Store, deptID string, consumed float64) {
 	t.Helper()
-	return DeptConsumed(t, tree, contract.IDDept3)
-}
-
-func SetDeptConsumed(t *testing.T, tree []types.BudgetNode, deptID string, consumed float64) {
-	t.Helper()
-	if !inflateConsumed(tree, deptID, consumed) {
-		t.Fatalf("department %s not found in budget tree", deptID)
+	ctx := Ctx()
+	periodKey := demoBudgetPeriodKey()
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, deptID, periodKey, consumed); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func inflateConsumed(nodes []types.BudgetNode, id string, value float64) bool {
-	for i := range nodes {
-		if nodes[i].ID == id {
-			nodes[i].Consumed = value
-			return true
-		}
-		if len(nodes[i].Children) > 0 && inflateConsumed(nodes[i].Children, id, value) {
-			return true
-		}
+func SnapshotConsumed(t *testing.T, st store.Store, axisKind, axisID string) float64 {
+	t.Helper()
+	ctx := Ctx()
+	periodKey := demoBudgetPeriodKey()
+	consumed, found, err := st.BudgetSnapshots().GetConsumed(ctx, axisKind, axisID, periodKey)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return false
+	if !found {
+		return 0
+	}
+	return consumed
+}
+
+func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string) float64 {
+	t.Helper()
+	ctx := Ctx()
+	consumed, found, err := st.BudgetSnapshots().GetConsumed(ctx, axisKind, axisID, periodKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		return 0
+	}
+	return consumed
+}
+
+func Dept3SnapshotConsumed(t *testing.T, st store.Store) float64 {
+	t.Helper()
+	return SnapshotConsumed(t, st, store.SnapshotAxisOrgNode, contract.IDDept3)
+}
+
+func PlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string) float64 {
+	t.Helper()
+	return SnapshotConsumed(t, st, store.SnapshotAxisPlatformKey, keyID)
+}
+
+func SetPlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string, used float64) {
+	t.Helper()
+	SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, keyID, demoBudgetPeriodKey(), used)
+}
+
+func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string, consumed float64) {
+	t.Helper()
+	ctx := Ctx()
+	if err := st.BudgetSnapshots().SetConsumed(ctx, axisKind, axisID, periodKey, consumed); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, consumed float64) {
+	t.Helper()
+	ctx := Ctx()
+	periodKey := demoBudgetPeriodKey()
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisBudgetGroup, groupID, periodKey, consumed); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, consumed float64) {
+	t.Helper()
+	ctx := Ctx()
+	periodKey := demoBudgetPeriodKey()
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisMember, memberID, periodKey, consumed); err != nil {
+		t.Fatal(err)
+	}
 }

@@ -209,9 +209,6 @@ func (s *Service) importFromProvider(
 		}
 
 		state.Nodes = core.RecalcDepartmentMemberCounts(state.Nodes, members)
-		if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
-			return err
-		}
 
 		if err := core.PersistProvisionState(ctx, st, state); err != nil {
 			return err

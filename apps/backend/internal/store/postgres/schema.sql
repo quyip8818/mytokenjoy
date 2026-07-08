@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS companies (
 
 CREATE TABLE IF NOT EXISTS company_invites (
     id           TEXT PRIMARY KEY,
-    company_id    BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    company_id   BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     email        TEXT NOT NULL,
     role         TEXT NOT NULL DEFAULT 'super_admin',
     token        TEXT NOT NULL UNIQUE,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS platform_operators (
 
 CREATE TABLE IF NOT EXISTS company_recharge_orders (
     id               TEXT PRIMARY KEY,
-    company_id        BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     amount           NUMERIC(18, 6) NOT NULL,
     source           TEXT NOT NULL,
     idempotency_key  TEXT,
@@ -63,55 +63,78 @@ CREATE TABLE IF NOT EXISTS permissions (
 );
 
 CREATE TABLE IF NOT EXISTS roles (
-    id           TEXT NOT NULL,
-    company_id    BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    name         TEXT NOT NULL,
-    type         TEXT NOT NULL,
-    member_count INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (company_id, id)
+    id         TEXT NOT NULL,
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    type       TEXT NOT NULL,
+    PRIMARY KEY (company_id, id),
+    UNIQUE (company_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS role_permission_grants (
-    company_id      BIGINT NOT NULL DEFAULT 1,
-    role_id        TEXT NOT NULL,
-    permission_ref TEXT NOT NULL,
-    PRIMARY KEY (company_id, role_id, permission_ref)
+    company_id    BIGINT NOT NULL,
+    role_id       TEXT NOT NULL,
+    permission_id TEXT NOT NULL,
+    PRIMARY KEY (company_id, role_id, permission_id),
+    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS models (
+    id           TEXT NOT NULL,
+    company_id   BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    provider     TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    model_type   TEXT NOT NULL DEFAULT 'builtin',
+    description  TEXT NOT NULL DEFAULT '',
+    visibility   TEXT NOT NULL DEFAULT 'all',
+    endpoint     TEXT,
+    input_price  NUMERIC(18, 8) NOT NULL DEFAULT 0,
+    output_price NUMERIC(18, 8) NOT NULL DEFAULT 0,
+    max_context  INT NOT NULL DEFAULT 0,
+    enabled      BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, id),
+    UNIQUE (company_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS org_nodes (
     id                TEXT NOT NULL,
-    company_id        BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id        BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     name              TEXT NOT NULL,
     parent_id         TEXT,
-    member_count      INT NOT NULL DEFAULT 0,
+    path              LTREE NOT NULL,
     external_id       TEXT,
     source            TEXT,
     manager_id        TEXT,
     sort_order        INT NOT NULL DEFAULT 0,
     budget            NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    consumed          NUMERIC(18, 6) NOT NULL DEFAULT 0,
     reserved_pool     NUMERIC(18, 6),
     period            TEXT NOT NULL,
-    default_model     TEXT,
-    fallback_model    TEXT,
+    default_model_id  TEXT,
+    fallback_model_id TEXT,
     routing_inherited BOOLEAN NOT NULL DEFAULT FALSE,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
+    PRIMARY KEY (company_id, id),
+    FOREIGN KEY (company_id, parent_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (company_id, default_model_id) REFERENCES models (company_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (company_id, fallback_model_id) REFERENCES models (company_id, id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_org_nodes_parent ON org_nodes (company_id, parent_id);
+CREATE INDEX IF NOT EXISTS idx_org_nodes_path ON org_nodes USING GIST (path);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_org_nodes_external
     ON org_nodes (company_id, external_id) WHERE external_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS members (
     id              TEXT NOT NULL,
-    company_id       BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id      BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     phone           TEXT NOT NULL DEFAULT '',
     email           TEXT NOT NULL DEFAULT '',
     department_id   TEXT NOT NULL,
-    department_name TEXT NOT NULL DEFAULT '',
     status          TEXT NOT NULL,
     source          TEXT NOT NULL DEFAULT '',
     external_id     TEXT,
@@ -119,92 +142,98 @@ CREATE TABLE IF NOT EXISTS members (
     personal_quota  NUMERIC(18, 6) NOT NULL DEFAULT 5000,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
+    PRIMARY KEY (company_id, id),
+    FOREIGN KEY (company_id, department_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_members_department ON members (company_id, department_id);
 CREATE INDEX IF NOT EXISTS idx_members_status ON members (company_id, status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_members_email_company ON members (company_id, email) WHERE email <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_members_external
+    ON members (company_id, external_id) WHERE external_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS member_roles (
-    company_id BIGINT NOT NULL DEFAULT 1,
-    member_id TEXT NOT NULL,
-    role_id   TEXT NOT NULL,
+    company_id BIGINT NOT NULL,
+    member_id  TEXT NOT NULL,
+    role_id    TEXT NOT NULL,
     PRIMARY KEY (company_id, member_id, role_id),
+    FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE,
     FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_member_roles_role ON member_roles (role_id);
+CREATE INDEX IF NOT EXISTS idx_member_roles_role ON member_roles (company_id, role_id);
 
 CREATE TABLE IF NOT EXISTS org_integration (
-    company_id                   BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
-    platform                     TEXT,
-    connected                    BOOLEAN NOT NULL DEFAULT FALSE,
-    last_import                  TIMESTAMPTZ,
-    last_import_ok               INT,
-    last_import_fail             INT,
-    enabled                      BOOLEAN NOT NULL DEFAULT FALSE,
-    start_time                   TEXT NOT NULL DEFAULT '',
-    frequency_hours              INT NOT NULL DEFAULT 24,
-    delete_member_threshold      INT NOT NULL DEFAULT 0,
-    delete_department_threshold  INT NOT NULL DEFAULT 0,
-    notify_phone                 BOOLEAN NOT NULL DEFAULT FALSE,
-    notify_email                 BOOLEAN NOT NULL DEFAULT FALSE,
-    notify_im                    BOOLEAN NOT NULL DEFAULT FALSE,
-    encrypted_credential         BYTEA,
-    field_mappings               JSONB NOT NULL DEFAULT '[]',
-    updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    company_id                  BIGINT PRIMARY KEY REFERENCES companies (id) ON DELETE CASCADE,
+    platform                    TEXT,
+    connected                   BOOLEAN NOT NULL DEFAULT FALSE,
+    last_import                 TIMESTAMPTZ,
+    last_import_ok              INT,
+    last_import_fail            INT,
+    enabled                     BOOLEAN NOT NULL DEFAULT FALSE,
+    start_time                  TEXT NOT NULL DEFAULT '',
+    frequency_hours             INT NOT NULL DEFAULT 24,
+    delete_member_threshold     INT NOT NULL DEFAULT 0,
+    delete_department_threshold INT NOT NULL DEFAULT 0,
+    notify_phone                BOOLEAN NOT NULL DEFAULT FALSE,
+    notify_email                BOOLEAN NOT NULL DEFAULT FALSE,
+    notify_im                   BOOLEAN NOT NULL DEFAULT FALSE,
+    encrypted_credential        BYTEA,
+    field_mappings              JSONB NOT NULL DEFAULT '[]',
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS org_sync_logs (
-    id        TEXT NOT NULL,
-    company_id BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    time      TIMESTAMPTZ NOT NULL,
-    type      TEXT NOT NULL,
-    result    TEXT NOT NULL,
-    detail    TEXT NOT NULL DEFAULT '',
+    id         TEXT NOT NULL,
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    time       TIMESTAMPTZ NOT NULL,
+    type       TEXT NOT NULL,
+    result     TEXT NOT NULL,
+    detail     TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (company_id, id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_org_sync_logs_time ON org_sync_logs (time DESC);
+CREATE INDEX IF NOT EXISTS idx_org_sync_logs_company_time ON org_sync_logs (company_id, time DESC);
 
 CREATE TABLE IF NOT EXISTS org_import_failures (
     id          TEXT NOT NULL,
-    company_id   BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id  BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     name        TEXT NOT NULL,
     employee_id TEXT NOT NULL DEFAULT '',
     reason      TEXT NOT NULL,
     PRIMARY KEY (company_id, id)
 );
 
--- Budget domain (groups and alerts; org tree in org_nodes)
-
+-- Budget domain
 CREATE TABLE IF NOT EXISTS budget_groups (
     id         TEXT NOT NULL,
-    company_id  BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
     budget     NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    consumed   NUMERIC(18, 6) NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS budget_group_members (
-    company_id BIGINT NOT NULL DEFAULT 1,
-    group_id  TEXT NOT NULL,
-    member_id TEXT NOT NULL,
-    PRIMARY KEY (company_id, group_id, member_id)
+    company_id BIGINT NOT NULL,
+    group_id   TEXT NOT NULL,
+    member_id  TEXT NOT NULL,
+    PRIMARY KEY (company_id, group_id, member_id),
+    FOREIGN KEY (company_id, group_id) REFERENCES budget_groups (company_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS budget_group_departments (
-    company_id     BIGINT NOT NULL DEFAULT 1,
+    company_id    BIGINT NOT NULL,
     group_id      TEXT NOT NULL,
     department_id TEXT NOT NULL,
-    PRIMARY KEY (company_id, group_id, department_id)
+    PRIMARY KEY (company_id, group_id, department_id),
+    FOREIGN KEY (company_id, group_id) REFERENCES budget_groups (company_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (company_id, department_id) REFERENCES org_nodes (company_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS overrun_policy (
-    company_id     BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
+    company_id    BIGINT PRIMARY KEY REFERENCES companies (id) ON DELETE CASCADE,
     thresholds    INT[] NOT NULL DEFAULT '{}',
     notify_email  BOOLEAN NOT NULL DEFAULT FALSE,
     notify_phone  BOOLEAN NOT NULL DEFAULT FALSE,
@@ -215,19 +244,19 @@ CREATE TABLE IF NOT EXISTS overrun_policy (
 
 CREATE TABLE IF NOT EXISTS alert_rules (
     id         TEXT NOT NULL,
-    company_id  BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     node_id    TEXT NOT NULL,
-    node_name  TEXT NOT NULL,
     thresholds INT[] NOT NULL DEFAULT '{}',
     enabled    BOOLEAN NOT NULL DEFAULT TRUE,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
+    PRIMARY KEY (company_id, id),
+    FOREIGN KEY (company_id, node_id) REFERENCES org_nodes (company_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
-    company_id BIGINT NOT NULL DEFAULT 1,
-    rule_id   TEXT NOT NULL,
-    role_id   TEXT NOT NULL,
+    company_id BIGINT NOT NULL,
+    rule_id    TEXT NOT NULL,
+    role_id    TEXT NOT NULL,
     PRIMARY KEY (company_id, rule_id, role_id),
     FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
 );
@@ -250,38 +279,21 @@ CREATE TABLE IF NOT EXISTS budget_approvals (
 CREATE INDEX IF NOT EXISTS idx_budget_approvals_status
     ON budget_approvals (company_id, status, created_at DESC);
 
--- Models domain (before keys FK references)
-CREATE TABLE IF NOT EXISTS models (
-    id           TEXT NOT NULL,
-    company_id    BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    provider     TEXT NOT NULL,
-    name         TEXT NOT NULL,
-    display_name TEXT NOT NULL,
-    model_type   TEXT NOT NULL DEFAULT 'builtin',
-    description  TEXT NOT NULL DEFAULT '',
-    visibility   TEXT NOT NULL DEFAULT 'all',
-    endpoint     TEXT,
-    input_price  NUMERIC(18, 8) NOT NULL DEFAULT 0,
-    output_price NUMERIC(18, 8) NOT NULL DEFAULT 0,
-    max_context  INT NOT NULL DEFAULT 0,
-    enabled      BOOLEAN NOT NULL DEFAULT TRUE,
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
-);
-
 CREATE TABLE IF NOT EXISTS model_capabilities (
-    company_id    BIGINT NOT NULL DEFAULT 1,
-    model_id     TEXT NOT NULL,
-    capability   TEXT NOT NULL,
-    PRIMARY KEY (company_id, model_id, capability)
+    company_id BIGINT NOT NULL,
+    model_id   TEXT NOT NULL,
+    capability TEXT NOT NULL,
+    PRIMARY KEY (company_id, model_id, capability),
+    FOREIGN KEY (company_id, model_id) REFERENCES models (company_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS model_allowlist (
-    company_id   BIGINT NOT NULL DEFAULT 1,
-    owner_type   TEXT NOT NULL,
-    owner_id     TEXT NOT NULL,
-    model_name   TEXT NOT NULL,
-    PRIMARY KEY (company_id, owner_type, owner_id, model_name),
+    company_id BIGINT NOT NULL,
+    owner_type TEXT NOT NULL,
+    owner_id   TEXT NOT NULL,
+    model_id   TEXT NOT NULL,
+    PRIMARY KEY (company_id, owner_type, owner_id, model_id),
+    FOREIGN KEY (company_id, model_id) REFERENCES models (company_id, id) ON DELETE CASCADE,
     CONSTRAINT chk_model_allowlist_owner_type
         CHECK (owner_type IN ('platform_key', 'org_node', 'key_approval'))
 );
@@ -305,29 +317,34 @@ CREATE TABLE IF NOT EXISTS provider_keys (
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_provider_keys_status ON provider_keys (status);
+
 CREATE TABLE IF NOT EXISTS platform_keys (
-    id                TEXT NOT NULL,
-    company_id         BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    name              TEXT NOT NULL,
-    key_prefix        TEXT NOT NULL,
-    full_key          TEXT,
-    member_id         TEXT,
-    budget_group_id   TEXT,
-    status            TEXT NOT NULL,
-    quota             NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    used              NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at        TIMESTAMPTZ,
-    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
+    id              TEXT NOT NULL,
+    company_id      BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    key_prefix      TEXT NOT NULL,
+    key_hash        TEXT NOT NULL,
+    member_id       TEXT,
+    budget_group_id TEXT,
+    status          TEXT NOT NULL,
+    quota           NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ,
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, id),
+    FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (company_id, budget_group_id) REFERENCES budget_groups (company_id, id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id, member_id);
-CREATE INDEX IF NOT EXISTS idx_platform_keys_budget_group ON platform_keys (company_id, budget_group_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_keys_key_hash ON platform_keys (key_hash);
+CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id, member_id) WHERE member_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_platform_keys_budget_group ON platform_keys (company_id, budget_group_id) WHERE budget_group_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_platform_keys_active ON platform_keys (company_id, status) WHERE status = 'active';
 
 CREATE TABLE IF NOT EXISTS key_approvals (
     id              TEXT NOT NULL,
-    company_id       BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id      BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     type            TEXT NOT NULL,
     applicant       TEXT NOT NULL,
     applicant_id    TEXT NOT NULL,
@@ -342,18 +359,19 @@ CREATE TABLE IF NOT EXISTS key_approvals (
     PRIMARY KEY (company_id, id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_key_approvals_status ON key_approvals (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_key_approvals_company_status
+    ON key_approvals (company_id, status, created_at DESC);
 
 -- Audit domain
 CREATE TABLE IF NOT EXISTS audit_settings (
-    company_id                 BIGINT PRIMARY KEY DEFAULT 1 REFERENCES companies (id),
+    company_id                BIGINT PRIMARY KEY REFERENCES companies (id) ON DELETE CASCADE,
     content_retention_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS operation_logs (
     id          TEXT NOT NULL,
-    company_id   BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id  BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     action      TEXT NOT NULL,
     operator    TEXT NOT NULL,
     operator_id TEXT NOT NULL,
@@ -362,8 +380,8 @@ CREATE TABLE IF NOT EXISTS operation_logs (
     ip          TEXT NOT NULL DEFAULT '',
     actor_type  TEXT NOT NULL DEFAULT 'member',
     created_at  TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (company_id, id)
-);
+    PRIMARY KEY (company_id, id, created_at)
+) PARTITION BY RANGE (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_operation_logs_created ON operation_logs (company_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_operation_logs_operator ON operation_logs (company_id, operator_id, created_at DESC);
@@ -371,7 +389,7 @@ CREATE INDEX IF NOT EXISTS idx_operation_logs_action ON operation_logs (company_
 
 CREATE TABLE IF NOT EXISTS usage_ledger (
     id               TEXT NOT NULL,
-    company_id       BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
+    company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     event_type       TEXT NOT NULL,
     idempotency_key  TEXT NOT NULL,
     amount_cny       NUMERIC(18, 6) NOT NULL DEFAULT 0,
@@ -381,14 +399,19 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     platform_key_id  TEXT NOT NULL,
     source           TEXT NOT NULL,
     occurred_at      TIMESTAMPTZ NOT NULL,
+    period_key       TEXT NOT NULL,
     model            TEXT NOT NULL,
     input_tokens     BIGINT NOT NULL DEFAULT 0,
     output_tokens    BIGINT NOT NULL DEFAULT 0,
+    call_status      TEXT,
+    caller_id        TEXT,
+    caller_name      TEXT,
+    preview_snippet  TEXT,
     call_detail      JSONB NOT NULL DEFAULT '{}',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id),
-    UNIQUE (company_id, idempotency_key)
-);
+    PRIMARY KEY (company_id, id, occurred_at),
+    UNIQUE (company_id, idempotency_key, occurred_at)
+) PARTITION BY RANGE (occurred_at);
 
 CREATE INDEX IF NOT EXISTS idx_usage_ledger_call_settled_occurred
     ON usage_ledger (company_id, occurred_at DESC)
@@ -397,100 +420,108 @@ CREATE INDEX IF NOT EXISTS idx_usage_ledger_call_settled_occurred
 CREATE INDEX IF NOT EXISTS idx_usage_ledger_dept_occurred
     ON usage_ledger (company_id, department_id, occurred_at DESC);
 
--- Infrastructure
-CREATE TABLE IF NOT EXISTS relay_mappings (
-    platform_key_id    TEXT NOT NULL,
-    company_id          BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    newapi_token_id    BIGINT,
-    member_id          TEXT,
-    department_id      TEXT NOT NULL,
-    budget_group_id    TEXT,
-    relay_group        TEXT NOT NULL,
-    sync_status        TEXT NOT NULL DEFAULT 'pending',
-    synced_at          TIMESTAMPTZ,
-    newapi_token_remain_quota BIGINT,
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, platform_key_id)
-);
+CREATE INDEX IF NOT EXISTS idx_usage_ledger_platform_key_occurred
+    ON usage_ledger (company_id, platform_key_id, occurred_at DESC);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_relay_mappings_company_token
-    ON relay_mappings (company_id, newapi_token_id) WHERE newapi_token_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_relay_mappings_company_member ON relay_mappings (company_id, member_id);
-CREATE INDEX IF NOT EXISTS idx_relay_mappings_company_department ON relay_mappings (company_id, department_id);
-CREATE INDEX IF NOT EXISTS idx_relay_mappings_company_budget_group ON relay_mappings (company_id, budget_group_id);
-
-CREATE TABLE IF NOT EXISTS outbox (
-    id           TEXT PRIMARY KEY,
-    channel      TEXT NOT NULL,
-    kind         TEXT,
-    payload      JSONB NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'pending',
-    attempts     INT NOT NULL DEFAULT 0,
-    next_retry   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    last_error   TEXT,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_outbox_channel CHECK (channel IN ('relay'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox (channel, status, next_retry);
-
-CREATE TABLE IF NOT EXISTS rebalance_queue (
-    id           TEXT PRIMARY KEY,
-    company_id    BIGINT NOT NULL DEFAULT 1,
-    axis_kind    TEXT NOT NULL,
-    axis_id      TEXT NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'pending',
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (company_id, axis_kind, axis_id, status)
-);
-
-CREATE INDEX IF NOT EXISTS idx_rebalance_queue_pending ON rebalance_queue (status, created_at);
-
-CREATE TABLE IF NOT EXISTS overrun_queue (
-    id           TEXT PRIMARY KEY,
-    company_id   BIGINT NOT NULL DEFAULT 1,
-    payload      JSONB NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'pending',
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_overrun_queue_pending ON overrun_queue (status, created_at);
-
-CREATE TABLE IF NOT EXISTS scheduler_locks (
-    lock_name    TEXT PRIMARY KEY,
-    holder       TEXT NOT NULL,
-    lease_until  TIMESTAMPTZ NOT NULL,
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+CREATE INDEX IF NOT EXISTS idx_usage_ledger_caller_occurred
+    ON usage_ledger (company_id, caller_id, occurred_at DESC)
+    WHERE caller_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS usage_buckets (
-    company_id      BIGINT NOT NULL DEFAULT 1 REFERENCES companies (id),
-    bucket_start   TIMESTAMPTZ NOT NULL,
-    department_id  TEXT NOT NULL,
-    member_id      TEXT NOT NULL DEFAULT '',
-    model          TEXT NOT NULL,
-    cost_cny       NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    call_count     INT NOT NULL DEFAULT 0,
-    input_tokens   BIGINT NOT NULL DEFAULT 0,
-    output_tokens  BIGINT NOT NULL DEFAULT 0,
-    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, bucket_start, department_id, member_id, model)
-);
+    company_id    BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    bucket_start  TIMESTAMPTZ NOT NULL,
+    department_id TEXT NOT NULL,
+    member_id     TEXT,
+    member_scope  TEXT GENERATED ALWAYS AS (COALESCE(member_id, '')) STORED,
+    model         TEXT NOT NULL,
+    cost_cny      NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    call_count    INT NOT NULL DEFAULT 0,
+    input_tokens  BIGINT NOT NULL DEFAULT 0,
+    output_tokens BIGINT NOT NULL DEFAULT 0,
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, bucket_start, department_id, member_scope, model)
+) PARTITION BY RANGE (bucket_start);
 
 CREATE INDEX IF NOT EXISTS idx_usage_buckets_dept_time ON usage_buckets (company_id, department_id, bucket_start);
 CREATE INDEX IF NOT EXISTS idx_usage_buckets_time ON usage_buckets (company_id, bucket_start);
+CREATE INDEX IF NOT EXISTS idx_usage_buckets_member_time ON usage_buckets (company_id, member_id, bucket_start) WHERE member_id IS NOT NULL;
+
+
+-- Runtime
+CREATE TABLE IF NOT EXISTS relay_mappings (
+    company_id                BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    platform_key_id           TEXT NOT NULL,
+    newapi_token_id           BIGINT,
+    relay_group               TEXT NOT NULL,
+    sync_status               TEXT NOT NULL DEFAULT 'pending',
+    synced_at                 TIMESTAMPTZ,
+    newapi_token_remain_quota BIGINT,
+    created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, platform_key_id),
+    FOREIGN KEY (company_id, platform_key_id) REFERENCES platform_keys (company_id, id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_relay_mappings_token
+    ON relay_mappings (company_id, newapi_token_id) WHERE newapi_token_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_relay_mappings_sync_pending
+    ON relay_mappings (company_id, sync_status) WHERE sync_status = 'pending';
+
+CREATE TABLE IF NOT EXISTS budget_snapshots (
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('org_node', 'budget_group', 'platform_key', 'member')),
+    axis_id    TEXT NOT NULL,
+    period_key TEXT NOT NULL,
+    consumed   NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, axis_kind, axis_id, period_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_budget_snapshots_overrun
+    ON budget_snapshots (company_id, axis_kind, period_key);
+
+CREATE TABLE IF NOT EXISTS async_jobs (
+    id         TEXT PRIMARY KEY,
+    company_id BIGINT,
+    channel    TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    dedupe_key TEXT,
+    payload    JSONB NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'pending',
+    attempts   INT NOT NULL DEFAULT 0,
+    next_retry TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_async_jobs_dedupe
+    ON async_jobs (company_id, channel, dedupe_key)
+    WHERE dedupe_key IS NOT NULL AND status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_async_jobs_claim
+    ON async_jobs (channel, status, next_retry)
+    WHERE status = 'pending';
+
+CREATE TABLE IF NOT EXISTS scheduler_locks (
+    lock_name   TEXT PRIMARY KEY,
+    holder      TEXT NOT NULL,
+    lease_until TIMESTAMPTZ NOT NULL,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS notification_log (
-    id           TEXT PRIMARY KEY,
-    company_id    BIGINT NOT NULL DEFAULT 1,
-    channel      TEXT NOT NULL,
-    event_type   TEXT NOT NULL,
-    recipient    TEXT,
-    payload      JSONB NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'sent',
-    error        TEXT,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id         TEXT PRIMARY KEY,
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    channel    TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    recipient  TEXT,
+    payload    JSONB NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'sent',
+    error      TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
+    ON notification_log (company_id, created_at DESC);

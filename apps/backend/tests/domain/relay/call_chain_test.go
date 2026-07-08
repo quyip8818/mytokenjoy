@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 )
@@ -31,35 +32,34 @@ func TestGatewayCheckOrder_InvalidKey(t *testing.T) {
 
 func TestGatewayCheckOrder_DisabledKey(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{
-		Budget:      1000,
-		WalletQuota: 999999,
-	})
-
-	// Disable the platform key
-	keys, _ := st.Keys().PlatformKeys(ctx)
-	for i := range keys {
-		if keys[i].FullKey != nil && *keys[i].FullKey == fullKey {
-			keys[i].Status = "disabled"
-		}
-	}
-	st.Keys().SetPlatformKeys(ctx, keys)
-
-	// Build gateway with disabled key
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
 		Budget:      1000,
 		WalletQuota: 999999,
 	})
-	// Disable key in the built scenario
-	keys, _ = scenario.Store.Keys().PlatformKeys(ctx)
+	ctx := testutil.Ctx()
+
+	mapping, err := scenario.Store.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(scenario.FullKey))
+	if err != nil || mapping == nil {
+		t.Fatal("expected relay mapping")
+	}
+
+	keys, err := scenario.Store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disabled := false
 	for i := range keys {
-		if keys[i].FullKey != nil && *keys[i].FullKey == scenario.FullKey {
+		if keys[i].ID == mapping.PlatformKeyID {
 			keys[i].Status = "disabled"
+			disabled = true
 		}
 	}
-	scenario.Store.Keys().SetPlatformKeys(ctx, keys)
+	if !disabled {
+		t.Fatalf("platform key %s not found", mapping.PlatformKeyID)
+	}
+	if err := scenario.Store.Keys().SetPlatformKeys(ctx, keys); err != nil {
+		t.Fatal(err)
+	}
 
 	req := relayfix.GatewayRequest(scenario.FullKey)
 	w := httptest.NewRecorder()

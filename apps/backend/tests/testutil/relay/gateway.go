@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -69,14 +71,27 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 		}
 	}
 
+	members, err := st.Org().Members(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberID := contract.IDMember1
+	if len(members) > 0 {
+		memberID = members[0].ID
+	}
+
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !setBudgetOnTree(tree, opts.DepartmentID, opts.Budget, opts.Consumed) {
+	if !setBudgetOnTree(tree, opts.DepartmentID, opts.Budget, 0) {
 		t.Fatalf("department %s not found in budget tree", opts.DepartmentID)
 	}
 	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
+		t.Fatal(err)
+	}
+	periodKey := pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, time.Now().UTC())
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, opts.DepartmentID, periodKey, opts.Consumed); err != nil {
 		t.Fatal(err)
 	}
 
@@ -87,11 +102,13 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	}
 	platformKeyID := contract.IDPlatformKey1
 	if len(keys) == 0 {
+		m := memberID
 		keys = []types.PlatformKey{{
 			ID:        "plk-gateway-test",
 			Name:      "Gateway Test Key",
 			KeyPrefix: "sk-test",
 			FullKey:   &fullKey,
+			MemberID:  &m,
 			Status:    "active",
 			CreatedAt: "2026-06-19",
 		}}
@@ -115,13 +132,29 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 		t.Fatal(err)
 	}
 
+	for i := range keys {
+		if keys[i].ID == platformKeyID && keys[i].MemberID != nil {
+			memberID = *keys[i].MemberID
+			break
+		}
+	}
+	for i := range members {
+		if members[i].ID == memberID {
+			members[i].DepartmentID = opts.DepartmentID
+			break
+		}
+	}
+	if err := st.Org().SetMembers(ctx, members); err != nil {
+		t.Fatal(err)
+	}
+
 	tokenID := int64(42)
 	remain := opts.RemainQuota
 	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
 		CompanyID:              opts.CompanyID,
 		PlatformKeyID:          platformKeyID,
 		NewAPITokenID:          &tokenID,
-		MemberID:               testutil.StrPtr(contract.IDMember1),
+		MemberID:               testutil.StrPtr(memberID),
 		DepartmentID:           opts.DepartmentID,
 		SyncStatus:             store.RelaySyncStatusSynced,
 		RelayGroup:             "dept-dept-3",
@@ -149,7 +182,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	cfg.RelayGatewayEnabled = true
 
 	wallet := gatewayWallet(cfg, opts)
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), wallet)
+	precheck := NewPrecheckService(st, wallet)
 	gw, err := domainrelay.NewGatewayService(cfg, st.Relay(), st.Company(), precheck)
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +192,9 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 
 func gatewayWallet(cfg config.Config, opts GatewayScenarioOpts) company.WalletService {
 	if opts.UseRealWallet && opts.NewAPIMock != nil {
-		opts.NewAPIMock.SetQuota(opts.NewAPIWalletUserID, opts.WalletQuota)
+		if opts.WalletQuota > 0 {
+			opts.NewAPIMock.SetQuota(opts.NewAPIWalletUserID, opts.WalletQuota)
+		}
 		opts.NewAPIMock.ApplyToConfig(&cfg)
 		client := newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
 		return company.NewWalletService(cfg, client)
@@ -167,11 +202,25 @@ func gatewayWallet(cfg config.Config, opts GatewayScenarioOpts) company.WalletSe
 	return NewStubWallet(opts.WalletQuota)
 }
 
+func NewPrecheckService(st store.Store, wallet company.WalletService) *domainrelay.PrecheckService {
+	return domainrelay.NewPrecheckService(
+		st.BudgetSnapshots(),
+		st.Org().Nodes(),
+		st.Budget(),
+		st.Org(),
+		st.Keys(),
+		st.Models(),
+		wallet,
+	)
+}
+
 func setBudgetOnTree(nodes []types.BudgetNode, deptID string, budget, consumed float64) bool {
 	for i := range nodes {
 		if nodes[i].ID == deptID {
 			nodes[i].Budget = budget
-			nodes[i].Consumed = consumed
+			if consumed > 0 {
+				nodes[i].Consumed = consumed
+			}
 			return true
 		}
 		if len(nodes[i].Children) > 0 && setBudgetOnTree(nodes[i].Children, deptID, budget, consumed) {

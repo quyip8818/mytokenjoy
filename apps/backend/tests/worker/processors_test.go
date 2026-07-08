@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -50,12 +48,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	testutil.SetDeptConsumed(t, tree, contract.IDDept3, 25000)
-	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
+	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 25000)
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	payload, err := json.Marshal(map[string]string{

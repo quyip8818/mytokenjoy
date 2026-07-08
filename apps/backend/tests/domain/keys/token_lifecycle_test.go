@@ -100,8 +100,9 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	}
 	for _, k := range keys {
 		if k.ID == "plk-sync" {
-			if k.FullKey == nil || *k.FullKey != "sk-test-key" {
-				t.Fatalf("expected full key set, got %+v", k.FullKey)
+			byHash, err := st.Keys().PlatformKeyByHash(ctx, store.HashPlatformKey("sk-test-key"))
+			if err != nil || byHash == nil || byHash.ID != "plk-sync" {
+				t.Fatalf("expected key hash lookup, err=%v key=%v", err, byHash)
 			}
 			return
 		}

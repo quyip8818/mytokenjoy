@@ -250,6 +250,21 @@ func TestApprovalQuotaCheckNotFound(t *testing.T) {
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
+func TestQuotaSummaryIncludesSnapshotUsed(t *testing.T) {
+	t.Parallel()
+	svc, st := newKeysService(t)
+	ctx := testutil.Ctx()
+	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 1000)
+	testutil.SetPlatformKeySnapshotUsed(t, st, "plk-1b", 234.5)
+	summary, err := svc.QuotaSummary(ctx, contract.IDMember1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Used != 1234.5 {
+		t.Fatalf("expected used 1234.5 from snapshot, got %v", summary.Used)
+	}
+}
+
 func TestRevokePlatformKey(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)

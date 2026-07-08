@@ -28,13 +28,13 @@ func (r *pgLedgerRepo) InsertOnConflict(ctx context.Context, entry types.UsageLe
 		INSERT INTO usage_ledger (
 			id, company_id, event_type, idempotency_key, amount_cny,
 			department_id, member_id, budget_group_id, platform_key_id,
-			source, occurred_at, model, input_tokens, output_tokens,
+			source, occurred_at, period_key, model, input_tokens, output_tokens,
 			call_detail, created_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-		ON CONFLICT (company_id, idempotency_key) DO NOTHING
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+		ON CONFLICT (company_id, idempotency_key, occurred_at) DO NOTHING
 	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.AmountCNY,
 		entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
-		entry.Source, entry.OccurredAt.UTC(), entry.Model, entry.InputTokens, entry.OutputTokens,
+		entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,
 		detailJSON, entry.CreatedAt.UTC())
 	if err != nil {
 		return false, err
@@ -58,7 +58,7 @@ func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.Led
 	listArgs := append(append([]any{}, args...), pageSize, offset)
 	listQuery := fmt.Sprintf(`
 		SELECT id, event_type, idempotency_key, amount_cny, department_id, member_id,
-			budget_group_id, platform_key_id, source, occurred_at, model,
+			budget_group_id, platform_key_id, source, occurred_at, period_key, model,
 			input_tokens, output_tokens, call_detail, created_at
 		FROM usage_ledger
 		WHERE %s
@@ -214,7 +214,7 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 		if err := rows.Scan(
 			&item.ID, &item.EventType, &item.IdempotencyKey, &item.AmountCNY,
 			&item.DepartmentID, &memberID, &budgetGroupID, &item.PlatformKeyID,
-			&item.Source, &occurredAt, &item.Model, &item.InputTokens, &item.OutputTokens,
+			&item.Source, &occurredAt, &item.PeriodKey, &item.Model, &item.InputTokens, &item.OutputTokens,
 			&detailJSON, &createdAt,
 		); err != nil {
 			return nil, err

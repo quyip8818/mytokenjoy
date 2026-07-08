@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -63,13 +65,23 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if err != nil {
 		return err
 	}
+	nodes := s.store.Org().Nodes()
+	ledgerPeriodKey, err := pkgbudget.DepartmentPeriodKey(ctx, nodes, entry.DepartmentID, entry.OccurredAt)
+	if err != nil {
+		return err
+	}
+	snapshotPeriodKey, err := pkgbudget.DepartmentPeriodKey(ctx, nodes, entry.DepartmentID, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	entry.PeriodKey = ledgerPeriodKey
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
 		inserted, err := st.Ledger().InsertOnConflict(ctx, entry)
 		if err != nil || !inserted {
 			return err
 		}
-		if err := Apply(ctx, st, entry); err != nil {
+		if err := Apply(ctx, st, entry, snapshotPeriodKey); err != nil {
 			return err
 		}
 		return enqueueSideEffects(ctx, st, entry)

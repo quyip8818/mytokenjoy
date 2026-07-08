@@ -14,7 +14,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -45,7 +45,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	groups, err := s.store.Budget().Groups(ctx)
+	groups, err := budget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}

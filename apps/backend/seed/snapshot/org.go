@@ -61,7 +61,7 @@ func buildSyncLogs(demoToday string) []types.SyncLog {
 }
 
 func buildRoles(members []types.Member) []types.Role {
-	return []types.Role{
+	roles := []types.Role{
 		{ID: "role-1", Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
 		{ID: "role-2", Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
 		{ID: "role-3", Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
@@ -69,6 +69,18 @@ func buildRoles(members []types.Member) []types.Role {
 		{ID: "role-5", Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
 		{ID: "role-6", Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover)},
 	}
+	for i := range roles {
+		roles[i].Permissions = mustRoleGrantIDs(roles[i])
+	}
+	return roles
+}
+
+func mustRoleGrantIDs(role types.Role) []string {
+	ids, err := permission.RoleGrantIDs(role.Type, role.Name, role.Permissions)
+	if err != nil {
+		panic(err)
+	}
+	return ids
 }
 
 func buildPermissions() []types.Permission {

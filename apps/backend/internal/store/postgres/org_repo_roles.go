@@ -52,7 +52,14 @@ func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID int64) (map[
 
 func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 	companyID := store.CompanyID(ctx)
-	rows, err := r.db.Query(ctx, `SELECT id, name, type, member_count FROM roles WHERE company_id = $1 ORDER BY id`, companyID)
+	rows, err := r.db.Query(ctx, `
+		SELECT r.id, r.name, r.type, COUNT(mr.member_id)::int
+		FROM roles r
+		LEFT JOIN member_roles mr ON mr.company_id = r.company_id AND mr.role_id = r.id
+		WHERE r.company_id = $1
+		GROUP BY r.id, r.name, r.type
+		ORDER BY r.id
+	`, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +83,7 @@ func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 	for _, row := range batch {
 		role := row.role
 		grantRows, err := r.db.Query(ctx, `
-			SELECT permission_ref FROM role_permission_grants WHERE company_id = $1 AND role_id = $2 ORDER BY permission_ref
+			SELECT permission_id FROM role_permission_grants WHERE company_id = $1 AND role_id = $2 ORDER BY permission_id
 		`, companyID, role.ID)
 		if err != nil {
 			return nil, err
@@ -102,12 +109,11 @@ func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 	for i, role := range cloned {
 		ids[i] = role.ID
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO roles (id, company_id, name, type, member_count) VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, $4)
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
-				type = EXCLUDED.type,
-				member_count = EXCLUDED.member_count
-		`, role.ID, companyID, role.Name, role.Type, role.MemberCount); err != nil {
+				type = EXCLUDED.type
+		`, role.ID, companyID, role.Name, role.Type); err != nil {
 			return fmt.Errorf("upsert role %s: %w", role.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `DELETE FROM role_permission_grants WHERE company_id = $1 AND role_id = $2`, companyID, role.ID); err != nil {
@@ -115,7 +121,7 @@ func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 		}
 		for _, perm := range role.Permissions {
 			if _, err := r.db.Exec(ctx, `
-				INSERT INTO role_permission_grants (company_id, role_id, permission_ref) VALUES ($1, $2, $3)
+				INSERT INTO role_permission_grants (company_id, role_id, permission_id) VALUES ($1, $2, $3)
 			`, companyID, role.ID, perm); err != nil {
 				return fmt.Errorf("insert role grant: %w", err)
 			}

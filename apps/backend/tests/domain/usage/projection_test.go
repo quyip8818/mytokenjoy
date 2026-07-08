@@ -6,6 +6,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/usage"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -17,15 +20,16 @@ func TestProjectionUpsertBucketIdempotent(t *testing.T) {
 	entry := types.UsageLedgerEntry{
 		ID: "ledger-1", PlatformKeyID: "plk-1", DepartmentID: "dept-3",
 		Model: "gpt-4o", AmountCNY: 1.5, OccurredAt: occurred,
+		PeriodKey:   pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred),
 		InputTokens: 100, OutputTokens: 50,
 	}
-	if err := usage.Apply(ctx, st, entry); err != nil {
+	if err := usage.Apply(ctx, st, entry, pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred)); err != nil {
 		t.Fatal(err)
 	}
 	entry2 := entry
 	entry2.ID = "ledger-2"
 	entry2.AmountCNY = 2.0
-	if err := usage.Apply(ctx, st, entry2); err != nil {
+	if err := usage.Apply(ctx, st, entry2, pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred)); err != nil {
 		t.Fatal(err)
 	}
 	points, err := st.Usage().QuerySeries(ctx, types.UsageSeriesQuery{
@@ -44,5 +48,38 @@ func TestProjectionUpsertBucketIdempotent(t *testing.T) {
 	want := 3.5
 	if points[0].CostCNY != want {
 		t.Fatalf("expected aggregated cost %f, got %f", want, points[0].CostCNY)
+	}
+}
+
+func TestProjectionUsesOrgPeriodKey(t *testing.T) {
+	t.Parallel()
+	_, st := testutil.NewTestStore(t)
+	ctx := testutil.Ctx()
+	occurred := time.Date(2026, 7, 15, 9, 30, 0, 0, time.UTC)
+	wantPeriod := pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred)
+	calendarPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, occurred)
+	if calendarPeriod == wantPeriod {
+		t.Fatal("test setup: calendar period must differ from org period")
+	}
+
+	beforeOrg := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, wantPeriod)
+	beforeCalendar := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, calendarPeriod)
+
+	entry := types.UsageLedgerEntry{
+		ID: "ledger-period", PlatformKeyID: contract.IDPlatformKey1, DepartmentID: contract.IDDept3,
+		Model: "gpt-4o", AmountCNY: 1.0, OccurredAt: occurred,
+		PeriodKey: wantPeriod,
+	}
+	if err := usage.Apply(ctx, st, entry, wantPeriod); err != nil {
+		t.Fatal(err)
+	}
+
+	afterOrg := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, wantPeriod)
+	if afterOrg != beforeOrg+1.0 {
+		t.Fatalf("expected org period consumption +1, before=%v after=%v", beforeOrg, afterOrg)
+	}
+	afterCalendar := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, calendarPeriod)
+	if afterCalendar != beforeCalendar {
+		t.Fatalf("expected no change at calendar period %q, before=%v after=%v", calendarPeriod, beforeCalendar, afterCalendar)
 	}
 }

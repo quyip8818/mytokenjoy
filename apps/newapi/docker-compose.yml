@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:17-alpine
+    command: ['postgres', '-c', 'max_locks_per_transaction=1024', '-c', 'max_connections=300']
     environment:
       POSTGRES_USER: tokenjoy
       POSTGRES_PASSWORD: tokenjoy

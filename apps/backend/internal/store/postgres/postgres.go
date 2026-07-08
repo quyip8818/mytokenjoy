@@ -139,8 +139,12 @@ func (s *Store) Keys() store.KeysRepository     { return s.domain.keys }
 func (s *Store) Models() store.ModelsRepository { return s.domain.models }
 func (s *Store) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *Store) Ledger() store.LedgerRepository { return &pgLedgerRepo{db: s.pool} }
-func (s *Store) Relay() store.RelayRepository   { return s.relay }
-func (s *Store) Logs() store.LogStore           { return s.logs }
+func (s *Store) BudgetSnapshots() store.BudgetSnapshotRepository {
+	return newBudgetSnapshotRepo(s.pool)
+}
+
+func (s *Store) Relay() store.RelayRepository { return s.relay }
+func (s *Store) Logs() store.LogStore         { return s.logs }
 
 func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	empty, err := isDatabaseEmpty(ctx, s.pool)

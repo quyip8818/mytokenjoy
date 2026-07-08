@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"time"
 )
@@ -11,11 +13,19 @@ const (
 	RelaySyncStatusSynced  = "synced"
 	RelaySyncStatusFailed  = "failed"
 
-	OutboxStatusPending = "pending"
-	OutboxStatusDone    = "done"
-	OutboxStatusFailed  = "failed"
+	JobStatusPending = "pending"
+	JobStatusDone    = "done"
+	JobStatusFailed  = "failed"
 
-	OutboxChannelRelay = "relay"
+	JobChannelRelay     = "relay"
+	JobChannelRebalance = "rebalance"
+	JobChannelOverrun   = "overrun"
+
+	OutboxStatusPending = JobStatusPending
+	OutboxStatusDone    = JobStatusDone
+	OutboxStatusFailed  = JobStatusFailed
+
+	OutboxChannelRelay = JobChannelRelay
 
 	OutboxKindCreateToken       = "create_token"
 	OutboxKindUpdateToken       = "update_token"
@@ -31,6 +41,17 @@ const (
 	RebalanceAxisCompany     = "company"
 )
 
+const asyncJobClaimLease = 5 * time.Minute
+
+func JobClaimLease() time.Duration {
+	return asyncJobClaimLease
+}
+
+func HashPlatformKey(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
+}
+
 type RelayMapping struct {
 	CompanyID              int64
 	PlatformKeyID          string
@@ -42,6 +63,20 @@ type RelayMapping struct {
 	SyncStatus             string
 	SyncedAt               *time.Time
 	NewAPITokenRemainQuota *int64
+}
+
+type AsyncJob struct {
+	ID        string
+	CompanyID *int64
+	Channel   string
+	Kind      string
+	DedupeKey *string
+	Payload   json.RawMessage
+	Status    string
+	Attempts  int
+	NextRetry time.Time
+	LastError *string
+	CreatedAt time.Time
 }
 
 type RelayOutboxEntry struct {
@@ -63,9 +98,16 @@ type RebalanceQueueEntry struct {
 	Status    string
 }
 
+type OverrunQueueEntry struct {
+	ID        string
+	CompanyID int64
+	Payload   json.RawMessage
+	Status    string
+}
+
 type RelayMappingRepository interface {
 	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*RelayMapping, error)
-	GetMappingByFullKey(ctx context.Context, fullKey string) (*RelayMapping, error)
+	GetMappingByKeyHash(ctx context.Context, keyHash string) (*RelayMapping, error)
 	GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
 	FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*RelayMapping, error)
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]RelayMapping, error)
@@ -78,18 +120,18 @@ type RelayMappingRepository interface {
 	UpdateMappingNewAPITokenRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error
 }
 
+type AsyncJobRepository interface {
+	EnqueueJob(ctx context.Context, job AsyncJob) error
+	ClaimPendingJobs(ctx context.Context, channel string, limit int) ([]AsyncJob, error)
+	MarkJobDone(ctx context.Context, id string) error
+	MarkJobRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
+}
+
 type RelayOutboxRepository interface {
 	EnqueueRelayOutbox(ctx context.Context, entry RelayOutboxEntry) error
 	ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]RelayOutboxEntry, error)
 	MarkRelayOutboxDone(ctx context.Context, id string) error
 	MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
-}
-
-type OverrunQueueEntry struct {
-	ID        string
-	CompanyID int64
-	Payload   json.RawMessage
-	Status    string
 }
 
 type OverrunQueueRepository interface {
@@ -106,6 +148,7 @@ type RebalanceQueueRepository interface {
 
 type RelayRepository interface {
 	RelayMappingRepository
+	AsyncJobRepository
 	RelayOutboxRepository
 	RebalanceQueueRepository
 	OverrunQueueRepository

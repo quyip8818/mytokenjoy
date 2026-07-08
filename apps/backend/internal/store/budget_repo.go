@@ -8,7 +8,6 @@ import (
 )
 
 type BudgetRepository interface {
-	AddGroupConsumed(ctx context.Context, groupID string, amountCNY float64) error
 	GetGroupBudget(ctx context.Context, groupID string) (budget, consumed float64, found bool, err error)
 	Groups(ctx context.Context) ([]types.BudgetGroup, error)
 	SetGroups(ctx context.Context, groups []types.BudgetGroup) error

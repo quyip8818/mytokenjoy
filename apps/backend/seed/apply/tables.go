@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
@@ -30,7 +31,11 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 		return err
 	}
 	roleIDByName := buildSeedRoleNameIndex(snap.Roles)
-	if err := insertSeedOrgNodes(ctx, exec, tid, snap.OrgNodes); err != nil {
+	modelIDByName := buildModelNameIndex(snap.Models)
+	if err := insertSeedModels(ctx, exec, tid, snap.Models); err != nil {
+		return err
+	}
+	if err := insertSeedOrgNodes(ctx, exec, tid, snap.OrgNodes, modelIDByName); err != nil {
 		return err
 	}
 	if err := insertSeedMembers(ctx, exec, tid, snap.Members, roleIDByName); err != nil {
@@ -42,10 +47,10 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 	if err := insertSeedBudget(ctx, exec, tid, snap); err != nil {
 		return err
 	}
-	if err := insertSeedModels(ctx, exec, tid, snap.Models); err != nil {
+	if err := insertSeedBudgetSnapshots(ctx, exec, tid, snap); err != nil {
 		return err
 	}
-	if err := insertSeedModelAllowlist(ctx, exec, tid, snap.ModelAllowlist); err != nil {
+	if err := insertSeedModelAllowlist(ctx, exec, tid, snap.ModelAllowlist, modelIDByName); err != nil {
 		return err
 	}
 	if err := insertSeedKeys(ctx, exec, tid, snap); err != nil {
@@ -83,14 +88,14 @@ func insertSeedPermissions(ctx context.Context, exec TableWriter, permissions []
 func insertSeedRoles(ctx context.Context, exec TableWriter, tid int64, roles []types.Role) error {
 	for _, role := range roles {
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO roles (id, company_id, name, type, member_count) VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, $4)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, role.ID, tid, role.Name, role.Type, role.MemberCount); err != nil {
+		`, role.ID, tid, role.Name, role.Type); err != nil {
 			return fmt.Errorf("seed role %s: %w", role.ID, err)
 		}
 		for _, perm := range role.Permissions {
 			if _, err := exec.Exec(ctx, `
-				INSERT INTO role_permission_grants (company_id, role_id, permission_ref) VALUES ($1, $2, $3)
+				INSERT INTO role_permission_grants (company_id, role_id, permission_id) VALUES ($1, $2, $3)
 				ON CONFLICT DO NOTHING
 			`, tid, role.ID, perm); err != nil {
 				return fmt.Errorf("seed role grant: %w", err)
@@ -108,31 +113,61 @@ func buildSeedRoleNameIndex(roles []types.Role) map[string]string {
 	return index
 }
 
-func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode) error {
+func buildModelNameIndex(models []types.ModelInfo) map[string]string {
+	index := make(map[string]string, len(models))
+	for _, model := range models {
+		index[model.Name] = model.ID
+	}
+	return index
+}
+
+func resolveModelID(index map[string]string, modelName *string) *string {
+	if modelName == nil || *modelName == "" {
+		return nil
+	}
+	id, ok := index[*modelName]
+	if !ok {
+		return nil
+	}
+	return &id
+}
+
+func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode, modelIDByName map[string]string) error {
+	paths := store.ComputeOrgNodePaths(nodes)
 	flat := pkgorg.FlattenOrgNodeTree(nodes)
 	for i, node := range flat {
+		path, ok := paths[node.ID]
+		if !ok {
+			path = store.OrgNodePathLabel(node.ID)
+		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO org_nodes (
-				id, company_id, name, parent_id, member_count, external_id, source, manager_id, sort_order,
-				budget, consumed, reserved_pool, period, default_model, fallback_model, routing_inherited
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+				id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
+				budget, reserved_pool, period, default_model_id, fallback_model_id, routing_inherited
+			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, node.ID, tid, node.Name, node.ParentID, node.MemberCount,
+		`, node.ID, tid, node.Name, node.ParentID, path,
 			node.ExternalID, node.Source, node.ManagerID, i,
-			node.Budget, node.Consumed, node.ReservedPool, node.Period,
-			node.DefaultModel, node.FallbackModel, node.RoutingInherited); err != nil {
+			node.Budget, node.ReservedPool, node.Period,
+			resolveModelID(modelIDByName, node.DefaultModel),
+			resolveModelID(modelIDByName, node.FallbackModel),
+			node.RoutingInherited); err != nil {
 			return fmt.Errorf("seed org node %s: %w", node.ID, err)
 		}
 	}
 	return nil
 }
 
-func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, rows []store.ModelAllowlistRow) error {
+func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, rows []store.ModelAllowlistRow, modelIDByName map[string]string) error {
 	for _, row := range rows {
+		modelID, ok := modelIDByName[row.ModelName]
+		if !ok {
+			return fmt.Errorf("seed allowlist %s/%s: unknown model %q", row.OwnerType, row.OwnerID, row.ModelName)
+		}
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO model_allowlist (company_id, owner_type, owner_id, model_name)
+			INSERT INTO model_allowlist (company_id, owner_type, owner_id, model_id)
 			VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING
-		`, tid, row.OwnerType, row.OwnerID, row.ModelName); err != nil {
+		`, tid, row.OwnerType, row.OwnerID, modelID); err != nil {
 			return fmt.Errorf("seed allowlist %s/%s: %w", row.OwnerType, row.OwnerID, err)
 		}
 	}
@@ -149,12 +184,12 @@ func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members
 		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO members (
-				id, company_id, name, phone, email, department_id, department_name,
+				id, company_id, name, phone, email, department_id,
 				status, source, external_id, personal_quota, password_hash
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, member.ID, member.CompanyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID, member.PersonalQuota, passwordHash); err != nil {
+			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalQuota, passwordHash); err != nil {
 			return fmt.Errorf("seed member %s: %w", member.ID, err)
 		}
 		for _, roleName := range member.Roles {
@@ -226,9 +261,9 @@ func insertSeedOrgIntegration(ctx context.Context, exec TableWriter, tid int64, 
 func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	for _, group := range snap.BudgetGroups {
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO budget_groups (id, company_id, name, budget, consumed)
-			VALUES ($1, $2, $3, $4, $5) ON CONFLICT (company_id, id) DO NOTHING
-		`, group.ID, tid, group.Name, group.Budget, group.Consumed); err != nil {
+			INSERT INTO budget_groups (id, company_id, name, budget)
+			VALUES ($1, $2, $3, $4) ON CONFLICT (company_id, id) DO NOTHING
+		`, group.ID, tid, group.Name, group.Budget); err != nil {
 			return err
 		}
 		for _, memberID := range group.MemberIDs {
@@ -257,9 +292,9 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 	}
 	for _, rule := range snap.AlertRules {
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO alert_rules (id, company_id, node_id, node_name, thresholds, enabled)
-			VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (company_id, id) DO NOTHING
-		`, rule.ID, tid, rule.NodeID, rule.NodeName, rule.Thresholds, rule.Enabled); err != nil {
+			INSERT INTO alert_rules (id, company_id, node_id, thresholds, enabled)
+			VALUES ($1, $2, $3, $4, $5) ON CONFLICT (company_id, id) DO NOTHING
+		`, rule.ID, tid, rule.NodeID, rule.Thresholds, rule.Enabled); err != nil {
 			return err
 		}
 		for _, roleID := range rule.NotifyRoleIDs {
@@ -272,6 +307,54 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 		}
 	}
 	return insertSeedBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
+}
+
+func seedPeriodKey(nodes []types.OrgNode) string {
+	flat := pkgorg.FlattenOrgNodeTree(nodes)
+	for _, node := range flat {
+		if node.ParentID == nil || *node.ParentID == "" {
+			return pkgbudget.SnapshotKey(node.Period, time.Now().UTC())
+		}
+	}
+	return pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, time.Now().UTC())
+}
+
+func insertSeedBudgetSnapshots(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+	periodKey := seedPeriodKey(snap.OrgNodes)
+	for _, node := range pkgorg.FlattenOrgNodeTree(snap.OrgNodes) {
+		if node.Consumed <= 0 {
+			continue
+		}
+		if err := insertBudgetSnapshotRow(ctx, exec, tid, store.SnapshotAxisOrgNode, node.ID, periodKey, node.Consumed); err != nil {
+			return fmt.Errorf("seed budget snapshot org node %s: %w", node.ID, err)
+		}
+	}
+	for _, group := range snap.BudgetGroups {
+		if group.Consumed <= 0 {
+			continue
+		}
+		if err := insertBudgetSnapshotRow(ctx, exec, tid, store.SnapshotAxisBudgetGroup, group.ID, periodKey, group.Consumed); err != nil {
+			return fmt.Errorf("seed budget snapshot group %s: %w", group.ID, err)
+		}
+	}
+	for _, key := range snap.PlatformKeys {
+		if key.Used <= 0 {
+			continue
+		}
+		if err := insertBudgetSnapshotRow(ctx, exec, tid, store.SnapshotAxisPlatformKey, key.ID, periodKey, key.Used); err != nil {
+			return fmt.Errorf("seed budget snapshot platform key %s: %w", key.ID, err)
+		}
+	}
+	return nil
+}
+
+func insertBudgetSnapshotRow(ctx context.Context, exec TableWriter, tid int64, axisKind, axisID, periodKey string, consumed float64) error {
+	_, err := exec.Exec(ctx, `
+		INSERT INTO budget_snapshots (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO NOTHING
+	`, tid, axisKind, axisID, periodKey, consumed)
+	return err
 }
 
 func insertSeedBudgetApprovals(ctx context.Context, exec TableWriter, tid int64, approvals []types.BudgetApproval) error {
@@ -345,15 +428,19 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 			}
 			expiresAt = &t
 		}
+		keyHash := store.HashPlatformKey("pending:" + key.ID)
+		if key.FullKey != nil && *key.FullKey != "" {
+			keyHash = store.HashPlatformKey(*key.FullKey)
+		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO platform_keys (
-				id, company_id, name, key_prefix, full_key, member_id,
-				budget_group_id, status, quota, used, created_at, expires_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+				id, company_id, name, key_prefix, key_hash, member_id,
+				budget_group_id, status, quota, created_at, expires_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, key.ID, tid, key.Name, key.KeyPrefix, key.FullKey, key.MemberID,
+		`, key.ID, tid, key.Name, key.KeyPrefix, keyHash, key.MemberID,
 			key.BudgetGroupID, key.Status,
-			key.Quota, key.Used, createdAt, expiresAt); err != nil {
+			key.Quota, createdAt, expiresAt); err != nil {
 			return err
 		}
 	}
@@ -428,7 +515,7 @@ func insertSeedAudit(ctx context.Context, exec TableWriter, tid int64, snap stor
 		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO operation_logs (id, company_id, action, operator, operator_id, actor_type, target, detail, ip, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (company_id, id) DO NOTHING
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (company_id, id, created_at) DO NOTHING
 		`, log.ID, tid, log.Action, log.Operator, log.OperatorID, actorType, log.Target, log.Detail, log.IP, createdAt); err != nil {
 			return err
 		}
@@ -442,13 +529,13 @@ func insertSeedAudit(ctx context.Context, exec TableWriter, tid int64, snap stor
 			INSERT INTO usage_ledger (
 				id, company_id, event_type, idempotency_key, amount_cny,
 				department_id, member_id, budget_group_id, platform_key_id,
-				source, occurred_at, model, input_tokens, output_tokens,
+				source, occurred_at, period_key, model, input_tokens, output_tokens,
 				call_detail, created_at
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-			ON CONFLICT (company_id, id) DO NOTHING
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+			ON CONFLICT (company_id, id, occurred_at) DO NOTHING
 		`, entry.ID, tid, entry.EventType, entry.IdempotencyKey, entry.AmountCNY,
 			entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
-			entry.Source, entry.OccurredAt.UTC(), entry.Model, entry.InputTokens, entry.OutputTokens,
+			entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,
 			detailJSON, entry.CreatedAt.UTC()); err != nil {
 			return err
 		}

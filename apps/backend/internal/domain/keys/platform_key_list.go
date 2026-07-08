@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
@@ -12,7 +13,7 @@ func (s *service) ListPlatformKeys(
 	ctx context.Context,
 	filter types.PlatformKeyListFilter,
 ) (types.PageResult[types.PlatformKey], error) {
-	items, err := s.store.Keys().PlatformKeys(ctx)
+	items, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
 	if err != nil {
 		return types.PageResult[types.PlatformKey]{}, err
 	}
@@ -23,7 +24,6 @@ func (s *service) ListPlatformKeys(
 	}
 
 	var allowedDeptIDs map[string]struct{}
-	var groupDeptIDs map[string][]string
 
 	if filter.DepartmentID != "" {
 		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
@@ -34,13 +34,12 @@ func (s *service) ListPlatformKeys(
 		for _, id := range pkgorg.CollectDescendantDeptIDs(departments, filter.DepartmentID) {
 			allowedDeptIDs[id] = struct{}{}
 		}
-		groupDeptIDs = groupDeptIDsFromLookups(lookups)
 	}
 
 	filtered := make([]types.PlatformKey, 0, len(items))
 	for _, key := range items {
 		enriched := enrichPlatformKey(key, lookups)
-		if !matchesPlatformKeyFilter(enriched, filter, allowedDeptIDs, groupDeptIDs) {
+		if !matchesPlatformKeyFilter(enriched, filter, allowedDeptIDs, lookups.groupByID) {
 			continue
 		}
 		filtered = append(filtered, enriched)
@@ -55,7 +54,7 @@ func matchesPlatformKeyFilter(
 	key types.PlatformKey,
 	filter types.PlatformKeyListFilter,
 	allowedDeptIDs map[string]struct{},
-	groupDeptIDs map[string][]string,
+	groupByID map[string]types.BudgetGroup,
 ) bool {
 	if filter.MemberID != "" && (key.MemberID == nil || *key.MemberID != filter.MemberID) {
 		return false
@@ -76,11 +75,11 @@ func matchesPlatformKeyFilter(
 	if key.BudgetGroupID == nil {
 		return false
 	}
-	deptIDs, ok := groupDeptIDs[*key.BudgetGroupID]
+	group, ok := groupByID[*key.BudgetGroupID]
 	if !ok {
 		return false
 	}
-	for _, deptID := range deptIDs {
+	for _, deptID := range group.DepartmentIDs {
 		if _, allowed := allowedDeptIDs[deptID]; allowed {
 			return true
 		}

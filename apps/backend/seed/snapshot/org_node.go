@@ -69,7 +69,9 @@ func buildOrgNodes() []types.OrgNode {
 			Inherited:     cfg.inherited,
 		}
 	}
-	return mergeOrgNodeTree(depts, budgetTree, ruleByNode)
+	nodes := mergeOrgNodeTree(depts, budgetTree, ruleByNode)
+	types.ApplyBudgetTreeToOrgNodes(nodes, budgetTree)
+	return nodes
 }
 
 func mergeOrgNodeTree(
@@ -91,9 +93,9 @@ func mergeOrgNodeChildren(
 		budget := budgetByID[dept.ID]
 		rule := ruleByNode[dept.ID]
 		node := types.OrgNode{
-			ID: dept.ID, Name: dept.Name, ParentID: dept.ParentID, MemberCount: dept.MemberCount,
+			ID: dept.ID, Name: dept.Name, ParentID: dept.ParentID,
 			ExternalID: dept.ExternalID, Source: dept.Source, ManagerID: dept.ManagerID,
-			Budget: budget.Budget, Consumed: budget.Consumed, ReservedPool: budget.ReservedPool, Period: budget.Period,
+			Budget: budget.Budget, ReservedPool: budget.ReservedPool, Period: budget.Period,
 			DefaultModel: rule.DefaultModel, FallbackModel: rule.FallbackModel, RoutingInherited: rule.Inherited,
 		}
 		if len(dept.Children) > 0 {

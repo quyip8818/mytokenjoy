@@ -21,9 +21,13 @@ func (s *Local) CreateRole(ctx context.Context, name string, permissions []strin
 	if err != nil {
 		return types.Role{}, err
 	}
+	grantIDs, err := permission.NormalizeGrantIDs(permissions)
+	if err != nil {
+		return types.Role{}, domain.NewDomainError(400, err.Error())
+	}
 	role := types.Role{
 		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
-		Name: name, Type: "custom", Permissions: permissions, MemberCount: 0,
+		Name: name, Type: "custom", Permissions: grantIDs, MemberCount: 0,
 	}
 	roles = append(roles, role)
 	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
@@ -42,8 +46,12 @@ func (s *Local) UpdateRole(ctx context.Context, id, name string, permissions []s
 	}
 	for i := range roles {
 		if roles[i].ID == id {
+			grantIDs, err := permission.NormalizeGrantIDs(permissions)
+			if err != nil {
+				return types.Role{}, domain.NewDomainError(400, err.Error())
+			}
 			roles[i].Name = name
-			roles[i].Permissions = permissions
+			roles[i].Permissions = grantIDs
 			if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
 				return types.Role{}, err
 			}
@@ -94,9 +102,6 @@ func (s *Local) DeleteRole(ctx context.Context, id string) error {
 	}
 
 	roles = append(roles[:idx], roles[idx+1:]...)
-	if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
-		return err
-	}
 	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
 		return err
 	}
@@ -162,16 +167,10 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 		}
 		if !pkgorg.ContainsRole(members[i].Roles, role.Name) {
 			members[i].Roles = append(members[i].Roles, role.Name)
-			if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
-				return err
-			}
 			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 				return err
 			}
-			if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
-				return err
-			}
-			return s.d.Store.Org().SetRoles(ctx, roles)
+			return core.BumpAuthzRevision(ctx, s.d)
 		}
 		break
 	}
@@ -221,16 +220,10 @@ func (s *Local) RemoveRoleMember(ctx context.Context, roleID, memberID string) e
 			break
 		}
 	}
-	if err := core.RecalcRoleMemberCounts(ctx, s.d.Store, roles); err != nil {
-		return err
-	}
 	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 		return err
 	}
-	if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
-		return err
-	}
-	return s.d.Store.Org().SetRoles(ctx, roles)
+	return core.BumpAuthzRevision(ctx, s.d)
 }
 
 func (s *Local) ListPermissions(ctx context.Context) ([]types.Permission, error) {

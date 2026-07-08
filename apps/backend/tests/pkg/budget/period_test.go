@@ -34,3 +34,30 @@ func TestPreviousRange(t *testing.T) {
 		t.Fatalf("expected previous end at current start, got %+v", prev)
 	}
 }
+
+func TestSnapshotKeyFixedOrgPeriod(t *testing.T) {
+	t.Parallel()
+	at := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	got := budget.SnapshotKey("2026-06", at)
+	if got != "2026-06" {
+		t.Fatalf("SnapshotKey() = %q, want 2026-06", got)
+	}
+}
+
+func TestSnapshotKeyMonthlyFallback(t *testing.T) {
+	t.Parallel()
+	at := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	got := budget.SnapshotKey("", at)
+	if got != "2026-07" {
+		t.Fatalf("SnapshotKey() = %q, want 2026-07", got)
+	}
+}
+
+func TestSnapshotKeyMonthlySpec(t *testing.T) {
+	t.Parallel()
+	at := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	got := budget.SnapshotKey(budget.PeriodMonthly, at)
+	if got != "2026-07" {
+		t.Fatalf("SnapshotKey() = %q, want 2026-07", got)
+	}
+}
