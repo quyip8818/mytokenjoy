@@ -190,14 +190,6 @@ func (c *Client) ListDepartments(ctx context.Context) ([]Department, error) {
 			pageToken = page.PageToken
 		}
 	}
-	// If no sub-departments exist, include root so members in root dept can be imported
-	if len(result) == 0 {
-		result = append(result, Department{
-			ExternalID:       RootDepartmentExternalID,
-			Name:             "全员",
-			ParentExternalID: "",
-		})
-	}
 	return result, nil
 }
 
@@ -207,11 +199,22 @@ func (c *Client) ListMembers(ctx context.Context) ([]Member, []types.ImportFailu
 		return nil, nil, err
 	}
 
+	// Always include root department in the fetch list so members directly
+	// under root are not missed (they map to the local root/company dept).
+	type deptRef struct {
+		ExternalID string
+		Name       string
+	}
+	fetchList := []deptRef{{ExternalID: RootDepartmentExternalID, Name: "root"}}
+	for _, dept := range departments {
+		fetchList = append(fetchList, deptRef{ExternalID: dept.ExternalID, Name: dept.Name})
+	}
+
 	seenUsers := make(map[string]struct{})
 	members := make([]Member, 0)
 	failures := make([]types.ImportFailure, 0)
 
-	for _, dept := range departments {
+	for _, dept := range fetchList {
 		pageToken := ""
 		for {
 			query := url.Values{}

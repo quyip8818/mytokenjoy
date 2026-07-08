@@ -187,6 +187,10 @@ func resolveLocalDeptID(
 	externalID string,
 	externalToLocal map[string]string,
 ) string {
+	// Root department maps to the local company root
+	if externalID == "" || externalID == "0" {
+		return core.RootDepartmentID
+	}
 	if localID, ok := externalToLocal[externalID]; ok {
 		return localID
 	}
