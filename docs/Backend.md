@@ -1,6 +1,6 @@
 # TokenJoy Backend
 
-`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `apps/backend/seed/`（见 [Backend-seed.md](./Backend-seed.md)）；Postgres **36** 表；消耗 SSOT 为 `usage_ledger`。
+`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `apps/backend/seed/`（见 [Backend-seed.md](./Backend-seed.md)）；Postgres 主库 **35** 表 + 日志库 **3** 表；消耗 SSOT 为 `usage_ledger`。
 
 差距与计划见 [Roadmap.md](./Roadmap.md)；工程待办见 [plan.md](./plan.md)。
 
@@ -11,8 +11,7 @@
 | 文档                                                 | 内容                                                       |
 | ---------------------------------------------------- | ---------------------------------------------------------- |
 | [Backend-架构.md](./Backend-架构.md)                 | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储.md](./Backend-存储.md)                 | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
-| [Backend-存储实体优化.md](./Backend-存储实体优化.md) | 迁移后 consumed/used 读路径与 snapshot 接线状态            |
+| [Backend-存储架构.md](./Backend-存储架构.md)         | 双库 35+3 表、域关系、核心实体、Store 与 ID 约定 |
 | [Backend-预算.md](./Backend-预算.md)                 | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-测试优化.md](./Backend-测试优化.md)         | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
 

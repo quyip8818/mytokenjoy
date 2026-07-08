@@ -12,7 +12,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [Backend.md](./Backend.md)                             | 后端               | 索引：SaaS、运行、Relay、Keys 约束、测试         |
 | [Backend-测试优化.md](./Backend-测试优化.md)           | 后端               | 测试架构：PostgreSQL + per-schema 隔离（已完成） |
 | [Backend-架构.md](./Backend-架构.md)                   | 后端 / 架构        | 分层、请求链、Relay、看板读路径                  |
-| [Backend-存储.md](./Backend-存储.md)                   | 后端 / DBA         | 36 表、ER、合并表、ID 约定                       |
+| [Backend-存储架构.md](./Backend-存储架构.md)           | 后端 / DBA         | 双库 35+3 表、域关系、核心实体、Store 与 ID 约定 |
 | [Backend-预算.md](./Backend-预算.md)                   | 后端 / 计费        | 双轴、Ingest、Rebalance、Overrun                 |
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调        | NewAPI 入账方案 B 架构现状                       |
 | [权限管理.md](./权限管理.md)                           | 后端 / 前端 / 架构 | Identity JWT + PDP 实现与验收 Gate               |

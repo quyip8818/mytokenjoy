@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -61,7 +62,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		}
 		nodes = append(nodes, types.OrgNode{
 			ID: rootDeptID, Name: req.Name, MemberCount: 0,
-			Budget: 0, Consumed: 0, Period: time.Now().Format("2006-01"),
+			Budget: 0, Consumed: 0, Period: pkgbudget.PeriodMonthly,
 		})
 		if err := tx.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 			return err

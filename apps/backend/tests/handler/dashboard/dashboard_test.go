@@ -145,6 +145,18 @@ func TestUsageSeriesMinuteFromLedgerProdProfile(t *testing.T) {
 func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 	t.Parallel()
 	app := newIngestDashboardApp(t)
+	ctx := testutil.Ctx()
+	memberID := contract.IDMember1
+	if err := app.Store.Keys().SetPlatformKeys(ctx, []types.PlatformKey{{
+		ID:        "plk-minute-test",
+		Name:      "Minute Test Key",
+		KeyPrefix: "sk-minute",
+		MemberID:  &memberID,
+		Status:    "active",
+		CreatedAt: "2026-06-19",
+	}}); err != nil {
+		t.Fatal(err)
+	}
 	relayfix.UpsertMapping(t, app.Store, relayfix.MappingOpts{
 		PlatformKeyID: "plk-minute-test", NewAPITokenID: 42,
 	})

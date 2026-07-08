@@ -215,7 +215,7 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.1.7 命名与参数约定
 
-跨层术语见 [Backend-存储.md](./Backend-存储.md) §10。HTTP 契约要点：
+跨层术语见 [Backend-存储架构.md](./Backend-存储架构.md) §7。HTTP 契约要点：
 
 | 约定                                                  | 说明                                                                       |
 | ----------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -522,7 +522,7 @@ HTTP 非 2xx 时，body 应包含：
 
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
-**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-存储.md](./Backend-存储.md) §6、[Backend-预算.md](./Backend-预算.md) §2。
+**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-存储架构.md](./Backend-存储架构.md) §5、[Backend-预算.md](./Backend-预算.md) §2。
 
 ---
 

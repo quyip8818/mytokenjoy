@@ -2,7 +2,7 @@
 
 `apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Relay 集成与看板读路径。
 
-**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储.md](./Backend-存储.md) · [Backend-预算.md](./Backend-预算.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Frontend.md](./Frontend.md)
 
 ---
 
@@ -180,7 +180,7 @@ type Store interface {
 
 | 模式     | 条件                               | 说明                                                               |
 | -------- | ---------------------------------- | ------------------------------------------------------------------ |
-| Postgres | `DATABASE_URL` 必填                | 生产与测试唯一实现；36 张表见 [Backend-存储.md](./Backend-存储.md) |
+| Postgres | `DATABASE_URL` 必填                | 主库 35 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md) |
 | 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-测试优化.md](./Backend-测试优化.md)                    |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
@@ -342,7 +342,7 @@ HTTP JSON **camelCase**；DB **snake_case**。
 
 权限 key 以 [`manifest.json`](../apps/backend/internal/infra/permission/manifest.json) 为唯一真相（目标态）；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
 
-存储侧字段语义见 [Backend-存储.md](./Backend-存储.md) §8。
+存储侧字段语义见 [Backend-存储架构.md](./Backend-存储架构.md) §6。
 
 ---
 

@@ -2,7 +2,7 @@
 
 企业钱包 + 组织预算双轴、Ingest SSOT、projection、Rebalance、Overrun 与控制台分配规则。
 
-**相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-存储.md](./Backend-存储.md) · [Roadmap.md](./Roadmap.md)
+**相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Roadmap.md](./Roadmap.md)
 
 ---
 
