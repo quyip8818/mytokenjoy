@@ -36,6 +36,7 @@ type UsageLedgerEntry struct {
 	PlatformKeyID  string
 	Source         string
 	OccurredAt     time.Time
+	PeriodKey      string
 	Model          string
 	InputTokens    int64
 	OutputTokens   int64

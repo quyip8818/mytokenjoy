@@ -58,7 +58,7 @@ func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.Memb
 	if memberID == "" {
 		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
 	}
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
@@ -66,7 +66,7 @@ func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.Memb
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
 	if err != nil {
 		return types.MemberQuotaSummary{}, err
 	}
@@ -117,7 +117,7 @@ func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.Appr
 		return types.ApprovalQuotaCheck{}, domain.NotFound("Not found")
 	}
 	requested := approval.RequestedQuota
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
 	if err != nil {
 		return types.ApprovalQuotaCheck{}, err
 	}

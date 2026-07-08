@@ -102,11 +102,19 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 
 func defaultCompanyRoles(companyID int64) []types.Role {
 	prefix := fmt.Sprintf("%d", companyID)
-	return []types.Role{
+	roles := []types.Role{
 		{ID: "role-1-" + prefix, Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
 		{ID: "role-2-" + prefix, Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
 		{ID: "role-3-" + prefix, Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
 		{ID: "role-4-" + prefix, Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
 		{ID: "role-5-" + prefix, Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
 	}
+	for i := range roles {
+		ids, err := permission.RoleGrantIDs(roles[i].Type, roles[i].Name, roles[i].Permissions)
+		if err != nil {
+			panic(err)
+		}
+		roles[i].Permissions = ids
+	}
+	return roles
 }

@@ -7,6 +7,7 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -17,44 +18,34 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	parentID := "dept-roundtrip-parent"
-	childID := "dept-roundtrip-child"
-	parent := parentID
-	tree := []types.BudgetNode{
-		{
-			ID:       parentID,
-			Name:     "RoundTrip Root",
-			Budget:   1000,
-			Consumed: 0,
-			Period:   "2026-06",
-			Children: []types.BudgetNode{
-				{
-					ID:       childID,
-					Name:     "RoundTrip Child",
-					ParentID: &parent,
-					Budget:   500,
-					Consumed: 100,
-					Period:   "2026-06",
-				},
-			},
-		},
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := pkgbudget.FindBudgetNode(tree, contract.IDDept3)
+	if child == nil {
+		t.Fatal("dept-3 not found")
+	}
+	child.Budget = 500
+	if !pkgbudget.UpdateBudgetNodeInTree(tree, contract.IDDept3, types.BudgetNode{Budget: 500}) {
+		t.Fatal("update budget node")
 	}
 	nodes := orgfix.OrgNodesFromBudgetTree(tree)
 	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
 		t.Fatal(err)
 	}
+	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 100)
 	got, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].ID != parentID {
-		t.Fatalf("unexpected root: %+v", got)
+	updated := pkgbudget.FindBudgetNode(got, contract.IDDept3)
+	if updated == nil || updated.Budget != 500 {
+		t.Fatalf("child budget mismatch: %+v", updated)
 	}
-	if len(got[0].Children) != 1 || got[0].Children[0].ID != childID {
-		t.Fatalf("expected nested child, got %+v", got[0].Children)
-	}
-	if got[0].Children[0].Budget != 500 || got[0].Children[0].Consumed != 100 {
-		t.Fatalf("child budget mismatch: %+v", got[0].Children[0])
+	consumed := testutil.SnapshotConsumed(t, st, store.SnapshotAxisOrgNode, contract.IDDept3)
+	if consumed != 100 {
+		t.Fatalf("child consumed mismatch: got %v want 100", consumed)
 	}
 }
 
@@ -98,21 +89,23 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	models := []types.ModelInfo{
-		{
-			ID:           "model-roundtrip",
-			Provider:     "openai",
-			Name:         "gpt-roundtrip",
-			DisplayName:  "GPT RoundTrip",
-			Type:         "builtin",
-			Visibility:   "all",
-			InputPrice:   1,
-			OutputPrice:  2,
-			MaxContext:   128000,
-			Enabled:      true,
-			Capabilities: []string{"chat"},
-		},
+	existing, err := st.Models().Models(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
+	models := append(existing, types.ModelInfo{
+		ID:           "model-roundtrip",
+		Provider:     "openai",
+		Name:         "gpt-roundtrip",
+		DisplayName:  "GPT RoundTrip",
+		Type:         "builtin",
+		Visibility:   "all",
+		InputPrice:   1,
+		OutputPrice:  2,
+		MaxContext:   128000,
+		Enabled:      true,
+		Capabilities: []string{"chat"},
+	})
 	defaultModel := "gpt-roundtrip"
 	fallbackModel := "gpt-4o"
 	rules := []types.RoutingRule{
@@ -170,6 +163,16 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	}
 }
 
+func TestModelAllowlistReplaceRejectsUnknownModel(t *testing.T) {
+	t.Parallel()
+	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
+	err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, contract.IDDept3, []string{"nonexistent-model-xyz"})
+	if err == nil {
+		t.Fatal("expected error for unknown model")
+	}
+}
+
 func TestWithTxRollback(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
@@ -215,5 +218,21 @@ func TestWithTxRollback(t *testing.T) {
 	}
 	if !after.Equal(before) {
 		t.Fatalf("expected member updated_at unchanged on rollback: before=%v after=%v", before, after)
+	}
+}
+
+func TestOrgNodeTreeMemberCounts(t *testing.T) {
+	t.Parallel()
+	st := testPostgresStore(t)
+	ctx := testutil.Ctx()
+	nodes, err := st.Org().Nodes().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) == 0 {
+		t.Fatal("expected org tree")
+	}
+	if nodes[0].MemberCount <= 0 {
+		t.Fatalf("expected root memberCount > 0, got %d", nodes[0].MemberCount)
 	}
 }

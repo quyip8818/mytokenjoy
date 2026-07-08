@@ -8,12 +8,13 @@
 
 ## 文档地图
 
-| 文档                                         | 内容                                                       |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储.md](./Backend-存储.md)         | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
-| [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
-| [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
+| 文档                                                 | 内容                                                       |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| [Backend-架构.md](./Backend-架构.md)                 | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
+| [Backend-存储.md](./Backend-存储.md)                 | 36 表、管理面/运行面、ER、四张合并表、ID 约定              |
+| [Backend-存储实体优化.md](./Backend-存储实体优化.md) | 迁移后 consumed/used 读路径与 snapshot 接线状态            |
+| [Backend-预算.md](./Backend-预算.md)                 | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-测试优化.md](./Backend-测试优化.md)         | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
 
 ---
 

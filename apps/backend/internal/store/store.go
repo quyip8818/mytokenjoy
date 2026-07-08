@@ -44,6 +44,7 @@ type Store interface {
 	Audit() AuditRepository
 	Ledger() LedgerRepository
 	Relay() RelayRepository
+	BudgetSnapshots() BudgetSnapshotRepository
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository
@@ -56,8 +57,8 @@ type Store interface {
 type ConsumptionWriter interface {
 	Ledger() LedgerRepository
 	Usage() UsageRepository
-	Keys() KeysRepository
-	Budget() BudgetRepository
+	BudgetSnapshots() BudgetSnapshotRepository
 	Org() OrgRepository
+	Keys() KeysRepository
 	Relay() RelayRepository
 }

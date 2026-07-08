@@ -85,7 +85,9 @@ func buildMinimalOrgNodes() []types.OrgNode {
 			Inherited:     cfg.inherited,
 		}
 	}
-	return mergeOrgNodeTree(depts, budgetTree, ruleByNode)
+	nodes := mergeOrgNodeTree(depts, budgetTree, ruleByNode)
+	types.ApplyBudgetTreeToOrgNodes(nodes, budgetTree)
+	return nodes
 }
 
 func minimalPlatformKeys() []types.PlatformKey {

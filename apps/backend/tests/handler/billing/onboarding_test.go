@@ -143,6 +143,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	fullKey = relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
+		WalletQuota:        newapi.ToNewAPIUnits(100, nil, nil),
 		DepartmentID:       rootDept,
 		Budget:             1000,
 		UseRealWallet:      true,

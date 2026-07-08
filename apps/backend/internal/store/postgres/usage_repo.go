@@ -18,13 +18,16 @@ type usageRepo struct {
 
 func (r *usageRepo) UpsertBucket(ctx context.Context, row types.UsageBucketRow) error {
 	companyID := store.CompanyID(ctx)
-	memberID := row.MemberID
+	var memberID *string
+	if row.MemberID != "" {
+		memberID = &row.MemberID
+	}
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO usage_buckets (
 			company_id, bucket_start, department_id, member_id, model,
 			cost_cny, call_count, input_tokens, output_tokens, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-		ON CONFLICT (company_id, bucket_start, department_id, member_id, model) DO UPDATE SET
+		ON CONFLICT (company_id, bucket_start, department_id, member_scope, model) DO UPDATE SET
 			cost_cny = usage_buckets.cost_cny + EXCLUDED.cost_cny,
 			call_count = usage_buckets.call_count + EXCLUDED.call_count,
 			input_tokens = usage_buckets.input_tokens + EXCLUDED.input_tokens,
@@ -119,11 +122,15 @@ func (r *usageRepo) fetchFilteredRows(
 	result := make([]types.UsageBucketRow, 0)
 	for rows.Next() {
 		var row types.UsageBucketRow
+		var memberID *string
 		if err := rows.Scan(
-			&row.BucketStart, &row.DepartmentID, &row.MemberID, &row.Model,
+			&row.BucketStart, &row.DepartmentID, &memberID, &row.Model,
 			&row.CostCNY, &row.CallCount, &row.InputTokens, &row.OutputTokens,
 		); err != nil {
 			return nil, err
+		}
+		if memberID != nil {
+			row.MemberID = *memberID
 		}
 		result = append(result, row)
 	}

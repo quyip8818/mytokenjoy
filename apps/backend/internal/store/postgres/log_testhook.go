@@ -83,7 +83,7 @@ func GetIngestFailureByLogID(ctx context.Context, st store.Store, logID int64) (
 func GetRelayOutboxByID(ctx context.Context, pool *pgxpool.Pool, id string) (store.RelayOutboxEntry, bool, error) {
 	row := pool.QueryRow(ctx, `
 		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
-		FROM outbox
+		FROM async_jobs
 		WHERE id = $1 AND channel = $2
 	`, id, store.OutboxChannelRelay)
 	var e store.RelayOutboxEntry
@@ -100,7 +100,7 @@ func GetRelayOutboxByID(ctx context.Context, pool *pgxpool.Pool, id string) (sto
 func ListPendingRelayOutbox(ctx context.Context, pool *pgxpool.Pool, kind string, limit int) ([]store.RelayOutboxEntry, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
-		FROM outbox
+		FROM async_jobs
 		WHERE channel = $1 AND status = $2 AND ($3 = '' OR kind = $3)
 		ORDER BY created_at
 		LIMIT $4

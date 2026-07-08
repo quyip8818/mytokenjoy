@@ -9,11 +9,29 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+const memberSelect = `
+	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_quota
+	FROM members m
+	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
+`
+
+const memberListSelect = `
+	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''),
+		m.status, m.source, m.external_id, m.personal_quota,
+		COALESCE(array_agg(r.name ORDER BY r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
+	FROM members m
+	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
+	LEFT JOIN member_roles mr ON mr.company_id = m.company_id AND mr.member_id = m.id
+	LEFT JOIN roles r ON r.company_id = mr.company_id AND r.id = mr.role_id
+`
+
 func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	companyID := store.CompanyID(ctx)
-	rows, err := r.db.Query(ctx, `
-		SELECT id, name, phone, email, department_id, department_name, status, source, external_id, personal_quota
-		FROM members WHERE company_id = $1 ORDER BY id
+	rows, err := r.db.Query(ctx, memberListSelect+`
+		WHERE m.company_id = $1
+		GROUP BY m.id, m.name, m.phone, m.email, m.department_id, o.name,
+			m.status, m.source, m.external_id, m.personal_quota
+		ORDER BY m.id
 	`, companyID)
 	if err != nil {
 		return nil, err
@@ -22,43 +40,24 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	items := make([]types.Member, 0)
 	for rows.Next() {
 		var item types.Member
+		var roles []string
 		if err := rows.Scan(
 			&item.ID, &item.Name, &item.Phone, &item.Email,
 			&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
-			&item.PersonalQuota,
+			&item.PersonalQuota, &roles,
 		); err != nil {
 			return nil, err
 		}
 		item.CompanyID = companyID
-		roleRows, err := r.db.Query(ctx, `
-			SELECT ro.name FROM member_roles mr
-			JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
-			WHERE mr.company_id = $1 AND mr.member_id = $2
-			ORDER BY ro.name
-		`, companyID, item.ID)
-		if err == nil {
-			for roleRows.Next() {
-				var name string
-				if err := roleRows.Scan(&name); err == nil {
-					item.Roles = append(item.Roles, name)
-				}
-			}
-			roleRows.Close()
-		}
+		item.Roles = roles
 		items = append(items, item)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	return items, rows.Err()
 }
 
 func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Member, error) {
 	companyID := store.CompanyID(ctx)
-	row := r.db.QueryRow(ctx, `
-		SELECT id, name, phone, email, department_id, department_name, status, source, external_id, personal_quota
-		FROM members WHERE company_id = $1 AND id = $2
-	`, companyID, memberID)
+	row := r.db.QueryRow(ctx, memberSelect+` WHERE m.company_id = $1 AND m.id = $2`, companyID, memberID)
 	var item types.Member
 	if err := row.Scan(
 		&item.ID, &item.Name, &item.Phone, &item.Email,
@@ -91,9 +90,10 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 
 func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, name, phone, email, department_id, department_name, status, source, external_id, personal_quota, password_hash
-		FROM members WHERE company_id = $1 AND email = $2
-	`, companyID, email)
+		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_quota, m.password_hash
+		FROM members m
+		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
+		WHERE m.company_id = $1 AND m.email = $2`, companyID, email)
 	var item types.Member
 	var passwordHash *string
 	if err := row.Scan(
@@ -131,10 +131,11 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.name, m.phone, m.email, m.department_id, m.department_name, m.status, m.source, m.external_id, m.personal_quota,
+		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_quota,
 		       c.authz_revision
 		FROM members m
 		JOIN companies c ON c.id = m.company_id
+		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 		WHERE m.company_id = $1 AND m.id = $2
 	`, companyID, memberID)
 	var item types.Member
@@ -203,22 +204,21 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 		ids[i] = member.ID
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO members (
-				id, company_id, name, phone, email, department_id, department_name,
+				id, company_id, name, phone, email, department_id,
 				status, source, external_id, personal_quota, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				phone = EXCLUDED.phone,
 				email = EXCLUDED.email,
 				department_id = EXCLUDED.department_id,
-				department_name = EXCLUDED.department_name,
 				status = EXCLUDED.status,
 				source = EXCLUDED.source,
 				external_id = EXCLUDED.external_id,
 				personal_quota = EXCLUDED.personal_quota,
 				updated_at = NOW()
 		`, member.ID, companyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.DepartmentName, member.Status, member.Source, member.ExternalID, member.PersonalQuota); err != nil {
+			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalQuota); err != nil {
 			return fmt.Errorf("upsert member %s: %w", member.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `DELETE FROM member_roles WHERE company_id = $1 AND member_id = $2`, companyID, member.ID); err != nil {
@@ -246,6 +246,12 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 	}
 	if err := pruneByColumnForCompany(ctx, r.db, "member_roles", "member_id", companyID, ids); err != nil {
 		return err
+	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE platform_keys SET member_id = NULL, updated_at = NOW()
+		WHERE company_id = $1 AND member_id IS NOT NULL AND NOT (member_id = ANY($2))
+	`, companyID, ids); err != nil {
+		return fmt.Errorf("detach platform keys from pruned members: %w", err)
 	}
 	return pruneByIDForCompany(ctx, r.db, "members", companyID, ids)
 }

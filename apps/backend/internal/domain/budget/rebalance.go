@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -64,7 +65,7 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 }
 
 func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.RelayMapping) error {
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
 	if err != nil {
 		return err
 	}
@@ -93,11 +94,11 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	if err != nil {
 		return err
 	}
-	groups, err := s.store.Budget().Groups(ctx)
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget())
 	if err != nil {
 		return err
 	}
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
 	if err != nil {
 		return err
 	}

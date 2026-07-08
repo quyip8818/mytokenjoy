@@ -11,8 +11,8 @@ type KeysRepository interface {
 	SetProviderKeys(ctx context.Context, keys []types.ProviderKey) error
 	PlatformKeys(ctx context.Context) ([]types.PlatformKey, error)
 	PlatformKeyByID(ctx context.Context, keyID string) (*types.PlatformKey, error)
+	PlatformKeyByHash(ctx context.Context, keyHash string) (*types.PlatformKey, error)
 	SetPlatformKeys(ctx context.Context, keys []types.PlatformKey) error
-	AddPlatformKeyUsed(ctx context.Context, keyID string, amountCNY float64) error
 	SumMemberKeyUsed(ctx context.Context, memberID string) (float64, error)
 	ListActiveMemberKeys(ctx context.Context, memberID string) ([]types.PlatformKey, error)
 	Approvals(ctx context.Context) ([]types.KeyApproval, error)

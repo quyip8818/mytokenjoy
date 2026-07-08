@@ -8,11 +8,23 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
+const PeriodMonthly = "monthly"
+
 type ResolvedRange struct {
 	Start       time.Time
 	End         time.Time
 	Granularity string
 	Timezone    string
+}
+
+// SnapshotKey resolves the budget_snapshots period_key for an org period spec at a point in time.
+// Realtime gates (precheck, overrun) and snapshot projection use time.Now().UTC().
+// Ledger rows store period_key from entry.OccurredAt via DepartmentPeriodKey.
+func SnapshotKey(orgPeriod string, at time.Time) string {
+	if orgPeriod != "" && orgPeriod != PeriodMonthly {
+		return orgPeriod
+	}
+	return at.UTC().Format("2006-01")
 }
 
 func Resolve(params types.CostQueryParams, now time.Time, timezone string) (ResolvedRange, error) {

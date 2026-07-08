@@ -86,9 +86,9 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(99001)
-	memberID := "m-1"
+	memberID := contract.IDMember1
 	mapping := store.RelayMapping{
-		PlatformKeyID: "plk-persist-test",
+		PlatformKeyID: contract.IDPlatformKey1,
 		NewAPITokenID: &tokenID,
 		MemberID:      &memberID,
 		DepartmentID:  contract.IDDept3,
@@ -98,15 +98,18 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 	if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Relay().GetMappingByPlatformKeyID(ctx, "plk-persist-test")
+	got, err := st.Relay().GetMappingByPlatformKeyID(ctx, contract.IDPlatformKey1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got == nil {
 		t.Fatal("expected mapping round-trip")
 	}
-	if got.PlatformKeyID != mapping.PlatformKeyID || got.DepartmentID != mapping.DepartmentID {
+	if got.PlatformKeyID != mapping.PlatformKeyID {
 		t.Fatalf("mapping mismatch: got %+v", got)
+	}
+	if got.DepartmentID != contract.IDDept3 {
+		t.Fatalf("expected department from member join, got %q", got.DepartmentID)
 	}
 	if got.NewAPITokenID == nil || *got.NewAPITokenID != tokenID {
 		t.Fatalf("expected token id %d, got %v", tokenID, got.NewAPITokenID)

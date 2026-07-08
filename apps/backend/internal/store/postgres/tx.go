@@ -8,14 +8,15 @@ import (
 )
 
 type txStore struct {
-	domain       domainRepos
-	ledger       store.LedgerRepository
-	relay        store.RelayRepository
-	usage        store.UsageRepository
-	notification store.NotificationRepository
-	company      store.CompanyRepository
-	invite       store.InviteRepository
-	parent       *Store
+	domain          domainRepos
+	ledger          store.LedgerRepository
+	relay           store.RelayRepository
+	budgetSnapshots store.BudgetSnapshotRepository
+	usage           store.UsageRepository
+	notification    store.NotificationRepository
+	company         store.CompanyRepository
+	invite          store.InviteRepository
+	parent          *Store
 }
 
 func (s *txStore) Org() store.OrgRepository       { return s.domain.org }
@@ -24,6 +25,10 @@ func (s *txStore) Keys() store.KeysRepository     { return s.domain.keys }
 func (s *txStore) Models() store.ModelsRepository { return s.domain.models }
 func (s *txStore) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *txStore) Ledger() store.LedgerRepository { return s.ledger }
+
+func (s *txStore) BudgetSnapshots() store.BudgetSnapshotRepository {
+	return s.budgetSnapshots
+}
 
 func (s *txStore) Relay() store.RelayRepository {
 	return s.relay
@@ -77,14 +82,15 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	defer tx.Rollback(ctx)
 
 	txView := &txStore{
-		domain:       newDomainRepoSet(tx),
-		ledger:       &pgLedgerRepo{db: tx},
-		relay:        newRelayRepo(tx),
-		usage:        &usageRepo{db: tx},
-		notification: &notificationRepo{db: tx},
-		company:      newCompanyRepo(tx),
-		invite:       newInviteRepo(tx),
-		parent:       s,
+		domain:          newDomainRepoSet(tx),
+		ledger:          &pgLedgerRepo{db: tx},
+		relay:           newRelayRepo(tx),
+		budgetSnapshots: newBudgetSnapshotRepo(tx),
+		usage:           &usageRepo{db: tx},
+		notification:    &notificationRepo{db: tx},
+		company:         newCompanyRepo(tx),
+		invite:          newInviteRepo(tx),
+		parent:          s,
 	}
 	if err := fn(txView); err != nil {
 		return err

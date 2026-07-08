@@ -16,7 +16,7 @@ import (
 )
 
 type RelayMappingReader interface {
-	GetMappingByFullKey(ctx context.Context, tokenKey string) (*store.RelayMapping, error)
+	GetMappingByKeyHash(ctx context.Context, keyHash string) (*store.RelayMapping, error)
 }
 
 type CompanyReader interface {
@@ -65,7 +65,7 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tokenKey := strings.TrimPrefix(auth, "Bearer ")
-	mapping, err := g.mappings.GetMappingByFullKey(r.Context(), tokenKey)
+	mapping, err := g.mappings.GetMappingByKeyHash(r.Context(), store.HashPlatformKey(tokenKey))
 	if err != nil || mapping == nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return

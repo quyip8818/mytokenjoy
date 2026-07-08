@@ -13,6 +13,11 @@ func loadPlatformKeys() []types.PlatformKey {
 	if err := json.Unmarshal(data.PlatformKeysJSON, &keys); err != nil {
 		panic("seed: load platform keys: " + err.Error())
 	}
+	for i := range keys {
+		if used, ok := contract.DemoPlatformKeyUsed[keys[i].ID]; ok {
+			keys[i].Used = used
+		}
+	}
 	return keys
 }
 

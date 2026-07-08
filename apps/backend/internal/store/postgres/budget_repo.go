@@ -14,34 +14,25 @@ type pgBudgetRepo struct {
 	db dbQuerier
 }
 
-func (r *pgBudgetRepo) AddGroupConsumed(ctx context.Context, groupID string, amountCNY float64) error {
-	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		UPDATE budget_groups SET consumed = consumed + $3, updated_at = NOW()
-		WHERE company_id = $1 AND id = $2
-	`, companyID, groupID, amountCNY)
-	return err
-}
-
 func (r *pgBudgetRepo) GetGroupBudget(ctx context.Context, groupID string) (float64, float64, bool, error) {
 	companyID := store.CompanyID(ctx)
-	var budget, consumed float64
+	var budget float64
 	err := r.db.QueryRow(ctx, `
-		SELECT budget, consumed FROM budget_groups WHERE company_id = $1 AND id = $2
-	`, companyID, groupID).Scan(&budget, &consumed)
+		SELECT budget FROM budget_groups WHERE company_id = $1 AND id = $2
+	`, companyID, groupID).Scan(&budget)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return 0, 0, false, nil
 		}
 		return 0, 0, false, err
 	}
-	return budget, consumed, true, nil
+	return budget, 0, true, nil
 }
 
 func (r *pgBudgetRepo) Groups(ctx context.Context) ([]types.BudgetGroup, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, budget, consumed FROM budget_groups WHERE company_id = $1 ORDER BY id
+		SELECT id, name, budget FROM budget_groups WHERE company_id = $1 ORDER BY id
 	`, companyID)
 	if err != nil {
 		return nil, err
@@ -50,9 +41,10 @@ func (r *pgBudgetRepo) Groups(ctx context.Context) ([]types.BudgetGroup, error) 
 	items := make([]types.BudgetGroup, 0)
 	for rows.Next() {
 		var group types.BudgetGroup
-		if err := rows.Scan(&group.ID, &group.Name, &group.Budget, &group.Consumed); err != nil {
+		if err := rows.Scan(&group.ID, &group.Name, &group.Budget); err != nil {
 			return nil, err
 		}
+		group.Consumed = 0
 		memberRows, err := r.db.Query(ctx, `
 			SELECT member_id FROM budget_group_members WHERE company_id = $1 AND group_id = $2 ORDER BY member_id
 		`, companyID, group.ID)
@@ -92,14 +84,13 @@ func (r *pgBudgetRepo) SetGroups(ctx context.Context, groups []types.BudgetGroup
 	for i, group := range cloned {
 		ids[i] = group.ID
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO budget_groups (id, company_id, name, budget, consumed, updated_at)
-			VALUES ($1, $2, $3, $4, $5, NOW())
+			INSERT INTO budget_groups (id, company_id, name, budget, updated_at)
+			VALUES ($1, $2, $3, $4, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				budget = EXCLUDED.budget,
-				consumed = EXCLUDED.consumed,
 				updated_at = NOW()
-		`, group.ID, companyID, group.Name, group.Budget, group.Consumed); err != nil {
+		`, group.ID, companyID, group.Name, group.Budget); err != nil {
 			return fmt.Errorf("upsert budget group %s: %w", group.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `DELETE FROM budget_group_members WHERE company_id = $1 AND group_id = $2`, companyID, group.ID); err != nil {
@@ -138,6 +129,12 @@ func (r *pgBudgetRepo) SetGroups(ctx context.Context, groups []types.BudgetGroup
 	}
 	if err := pruneByColumnForCompany(ctx, r.db, "budget_group_departments", "group_id", companyID, ids); err != nil {
 		return err
+	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE platform_keys SET budget_group_id = NULL, updated_at = NOW()
+		WHERE company_id = $1 AND budget_group_id IS NOT NULL AND NOT (budget_group_id = ANY($2))
+	`, companyID, ids); err != nil {
+		return fmt.Errorf("detach platform keys from pruned budget groups: %w", err)
 	}
 	return pruneByIDForCompany(ctx, r.db, "budget_groups", companyID, ids)
 }
@@ -180,7 +177,11 @@ func (r *pgBudgetRepo) SetOverrunPolicy(ctx context.Context, policy types.Overru
 func (r *pgBudgetRepo) AlertRules(ctx context.Context) ([]types.AlertRule, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, node_id, node_name, thresholds, enabled FROM alert_rules WHERE company_id = $1 ORDER BY id
+		SELECT ar.id, ar.node_id, n.name, ar.thresholds, ar.enabled
+		FROM alert_rules ar
+		JOIN org_nodes n ON n.company_id = ar.company_id AND n.id = ar.node_id
+		WHERE ar.company_id = $1
+		ORDER BY ar.id
 	`, companyID)
 	if err != nil {
 		return nil, err
@@ -219,15 +220,14 @@ func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRul
 	for i, rule := range cloned {
 		ids[i] = rule.ID
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO alert_rules (id, company_id, node_id, node_name, thresholds, enabled, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, NOW())
+			INSERT INTO alert_rules (id, company_id, node_id, thresholds, enabled, updated_at)
+			VALUES ($1, $2, $3, $4, $5, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				node_id = EXCLUDED.node_id,
-				node_name = EXCLUDED.node_name,
 				thresholds = EXCLUDED.thresholds,
 				enabled = EXCLUDED.enabled,
 				updated_at = NOW()
-		`, rule.ID, companyID, rule.NodeID, rule.NodeName, rule.Thresholds, rule.Enabled); err != nil {
+		`, rule.ID, companyID, rule.NodeID, rule.Thresholds, rule.Enabled); err != nil {
 			return fmt.Errorf("upsert alert rule %s: %w", rule.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `DELETE FROM alert_rule_notify_roles WHERE company_id = $1 AND rule_id = $2`, companyID, rule.ID); err != nil {

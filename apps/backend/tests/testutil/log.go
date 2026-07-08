@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const defaultConsumeLogUnix = 1718794800 // 2026-06-19T11:00:00Z, within UsageBucketRows query window
+const defaultConsumeLogUnix = 1781866800 // 2026-06-19T11:00:00Z, within UsageBucketRows query window
 
 func SeedConsumeLog(t *testing.T, st store.Store, raw store.RawConsumeLog) {
 	t.Helper()

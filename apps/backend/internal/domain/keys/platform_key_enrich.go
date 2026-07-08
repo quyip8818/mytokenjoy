@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 )
 
 type platformKeyLookups struct {
@@ -29,6 +30,22 @@ func (s *service) loadPlatformKeyLookups(ctx context.Context) (platformKeyLookup
 		groupByID[group.ID] = group
 	}
 	return platformKeyLookups{memberByID: memberByID, groupByID: groupByID}, nil
+}
+
+func (l platformKeyLookups) members() []types.Member {
+	members := make([]types.Member, 0, len(l.memberByID))
+	for _, member := range l.memberByID {
+		members = append(members, member)
+	}
+	return members
+}
+
+func (l platformKeyLookups) groups() []types.BudgetGroup {
+	groups := make([]types.BudgetGroup, 0, len(l.groupByID))
+	for _, group := range l.groupByID {
+		groups = append(groups, group)
+	}
+	return groups
 }
 
 func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.PlatformKey {
@@ -59,18 +76,22 @@ func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.
 	return enriched
 }
 
+func (s *service) enrichPlatformKeyUsed(ctx context.Context, key types.PlatformKey, lookups platformKeyLookups) (types.PlatformKey, error) {
+	used, found, err := pkgbudget.PlatformKeyConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), key, lookups.members(), lookups.groups())
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	if found {
+		key.Used = used
+	}
+	return key, nil
+}
+
 func (s *service) enrichPlatformKeyResponse(ctx context.Context, key types.PlatformKey) (types.PlatformKey, error) {
 	lookups, err := s.loadPlatformKeyLookups(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	return enrichPlatformKey(key, lookups), nil
-}
-
-func groupDeptIDsFromLookups(lookups platformKeyLookups) map[string][]string {
-	groupDeptIDs := make(map[string][]string, len(lookups.groupByID))
-	for id, group := range lookups.groupByID {
-		groupDeptIDs[id] = append([]string{}, group.DepartmentIDs...)
-	}
-	return groupDeptIDs
+	enriched := enrichPlatformKey(key, lookups)
+	return s.enrichPlatformKeyUsed(ctx, enriched, lookups)
 }

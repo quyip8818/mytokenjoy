@@ -5,12 +5,12 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
@@ -21,12 +21,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	runner, st, _, ingest := workerfix.NewRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	testutil.SetDeptConsumed(t, tree, contract.IDDept3, 24999)
-	orgfix.PersistBudgetTreeT(t, ctx, st, tree)
+	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 24999.5)
 
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
@@ -36,13 +31,14 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	}
 	runner.RunOnce(ctx)
 
-	tree, err = common.LoadBudgetTree(ctx, st.Org().Nodes())
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := budget.FindBudgetNode(tree, contract.IDDept3)
-	if node == nil || node.Consumed < node.Budget {
-		t.Fatalf("expected dept-3 consumed >= budget, consumed=%v budget=%v", node.Consumed, node.Budget)
+	node := pkgbudget.FindBudgetNode(tree, contract.IDDept3)
+	consumed := testutil.SnapshotConsumed(t, st, store.SnapshotAxisOrgNode, contract.IDDept3)
+	if node == nil || consumed < node.Budget {
+		t.Fatalf("expected dept-3 consumed >= budget, consumed=%v budget=%v", consumed, node.Budget)
 	}
 
 	keys, err := st.Keys().PlatformKeys(ctx)

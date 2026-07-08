@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/org"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -47,8 +48,11 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	if err != nil {
 		return types.Member{}, err
 	}
-	deptID := fmt.Sprintf("dept-root-%d", company.ID)
-	if company.RootDeptID != nil {
+	deptID := rootOrgNodeID(nodes)
+	if deptID == "" {
+		deptID = fmt.Sprintf("dept-root-%d", company.ID)
+	}
+	if company.RootDeptID != nil && *company.RootDeptID != "" {
 		deptID = *company.RootDeptID
 	}
 	memberID := fmt.Sprintf("member-%d-%d", company.ID, time.Now().UnixNano())
@@ -75,7 +79,6 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	}
 	for i := range nodes {
 		if nodes[i].ID == deptID {
-			nodes[i].MemberCount++
 			nodes[i].ManagerID = &memberID
 		}
 	}
@@ -86,6 +89,15 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		return types.Member{}, err
 	}
 	return member, nil
+}
+
+func rootOrgNodeID(nodes []types.OrgNode) string {
+	for _, node := range org.FlattenOrgNodeTree(nodes) {
+		if node.ParentID == nil || *node.ParentID == "" {
+			return node.ID
+		}
+	}
+	return ""
 }
 
 func randomToken() (string, error) {

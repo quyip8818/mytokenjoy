@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/data"
@@ -64,6 +65,7 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 			PlatformKeyID:  contract.IDPlatformKey1,
 			Source:         types.SourceWebhook,
 			OccurredAt:     occurredAt.UTC(),
+			PeriodKey:      pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurredAt.UTC()),
 			Model:          row.Model,
 			InputTokens:    int64(row.InputTokens),
 			OutputTokens:   int64(row.OutputTokens),

@@ -180,7 +180,7 @@ func (r *pgAuditRepo) AppendOperationLog(ctx context.Context, log types.Operatio
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO operation_logs (id, company_id, action, operator, operator_id, actor_type, target, detail, ip, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		ON CONFLICT (company_id, id) DO NOTHING
+		ON CONFLICT (company_id, id, created_at) DO NOTHING
 	`, log.ID, companyID, log.Action, log.Operator, log.OperatorID, actorType, log.Target, log.Detail, log.IP, createdAt)
 	return err
 }

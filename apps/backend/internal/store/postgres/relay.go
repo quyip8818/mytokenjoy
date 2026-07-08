@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -26,13 +27,22 @@ func newRelayRepo(db dbQuerier) *relayRepo {
 	return &relayRepo{db: db}
 }
 
+const mappingSelect = `
+	SELECT rm.company_id, rm.platform_key_id, rm.newapi_token_id,
+	       pk.member_id, m.department_id, pk.budget_group_id,
+	       rm.relay_group, rm.sync_status, rm.synced_at, rm.newapi_token_remain_quota
+	FROM relay_mappings rm
+	JOIN platform_keys pk ON pk.company_id = rm.company_id AND pk.id = rm.platform_key_id
+	LEFT JOIN members m ON m.company_id = pk.company_id AND m.id = pk.member_id
+`
+
 func scanMapping(row pgx.Row) (store.RelayMapping, error) {
 	var m store.RelayMapping
-	var memberID, budgetGroupID *string
+	var memberID, budgetGroupID, departmentID *string
 	var tokenID, remainQuota *int64
 	var syncedAt *time.Time
 	err := row.Scan(
-		&m.CompanyID, &m.PlatformKeyID, &tokenID, &memberID, &m.DepartmentID, &budgetGroupID,
+		&m.CompanyID, &m.PlatformKeyID, &tokenID, &memberID, &departmentID, &budgetGroupID,
 		&m.RelayGroup, &m.SyncStatus, &syncedAt, &remainQuota,
 	)
 	if err != nil {
@@ -40,23 +50,23 @@ func scanMapping(row pgx.Row) (store.RelayMapping, error) {
 	}
 	m.NewAPITokenID = tokenID
 	m.MemberID = memberID
+	if departmentID != nil {
+		m.DepartmentID = *departmentID
+	}
+	if m.DepartmentID == "" && strings.HasPrefix(m.RelayGroup, "dept-") {
+		m.DepartmentID = strings.TrimPrefix(m.RelayGroup, "dept-")
+	}
 	m.BudgetGroupID = budgetGroupID
 	m.SyncedAt = syncedAt
 	m.NewAPITokenRemainQuota = remainQuota
 	return m, nil
 }
 
-const mappingSelect = `
-	SELECT company_id, platform_key_id, newapi_token_id, member_id, department_id, budget_group_id,
-	       relay_group, sync_status, synced_at, newapi_token_remain_quota
-	FROM relay_mappings
-`
-
 var _ store.RelayRepository = (*relayRepo)(nil)
 
 func (r *relayRepo) GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*store.RelayMapping, error) {
 	companyID := store.CompanyID(ctx)
-	row := r.db.QueryRow(ctx, mappingSelect+` WHERE company_id = $1 AND platform_key_id = $2`, companyID, platformKeyID)
+	row := r.db.QueryRow(ctx, mappingSelect+` WHERE rm.company_id = $1 AND rm.platform_key_id = $2`, companyID, platformKeyID)
 	m, err := scanMapping(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -67,12 +77,8 @@ func (r *relayRepo) GetMappingByPlatformKeyID(ctx context.Context, platformKeyID
 	return &m, nil
 }
 
-func (r *relayRepo) GetMappingByFullKey(ctx context.Context, fullKey string) (*store.RelayMapping, error) {
-	row := r.db.QueryRow(ctx, mappingSelect+`
-		WHERE (company_id, platform_key_id) IN (
-			SELECT company_id, id FROM platform_keys WHERE full_key = $1
-		)
-	`, fullKey)
+func (r *relayRepo) GetMappingByKeyHash(ctx context.Context, keyHash string) (*store.RelayMapping, error) {
+	row := r.db.QueryRow(ctx, mappingSelect+` WHERE pk.key_hash = $1`, keyHash)
 	m, err := scanMapping(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -85,7 +91,7 @@ func (r *relayRepo) GetMappingByFullKey(ctx context.Context, fullKey string) (*s
 
 func (r *relayRepo) GetMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*store.RelayMapping, error) {
 	companyID := store.CompanyID(ctx)
-	row := r.db.QueryRow(ctx, mappingSelect+` WHERE company_id = $1 AND newapi_token_id = $2`, companyID, tokenID)
+	row := r.db.QueryRow(ctx, mappingSelect+` WHERE rm.company_id = $1 AND rm.newapi_token_id = $2`, companyID, tokenID)
 	m, err := scanMapping(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -97,7 +103,7 @@ func (r *relayRepo) GetMappingByNewAPITokenID(ctx context.Context, tokenID int64
 }
 
 func (r *relayRepo) FindMappingByNewAPITokenID(ctx context.Context, tokenID int64) (*store.RelayMapping, error) {
-	row := r.db.QueryRow(ctx, mappingSelect+` WHERE newapi_token_id = $1`, tokenID)
+	row := r.db.QueryRow(ctx, mappingSelect+` WHERE rm.newapi_token_id = $1`, tokenID)
 	m, err := scanMapping(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -131,26 +137,26 @@ func (r *relayRepo) listMappings(ctx context.Context, where string, args ...any)
 
 func (r *relayRepo) ListMappingsByMemberID(ctx context.Context, memberID string) ([]store.RelayMapping, error) {
 	companyID := store.CompanyID(ctx)
-	return r.listMappings(ctx, "company_id = $1 AND member_id = $2", companyID, memberID)
+	return r.listMappings(ctx, "rm.company_id = $1 AND pk.member_id = $2", companyID, memberID)
 }
 
 func (r *relayRepo) ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]store.RelayMapping, error) {
 	companyID := store.CompanyID(ctx)
-	return r.listMappings(ctx, "company_id = $1 AND department_id = $2", companyID, departmentID)
+	return r.listMappings(ctx, "rm.company_id = $1 AND m.department_id = $2", companyID, departmentID)
 }
 
 func (r *relayRepo) ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]store.RelayMapping, error) {
 	companyID := store.CompanyID(ctx)
-	return r.listMappings(ctx, "company_id = $1 AND budget_group_id = $2", companyID, budgetGroupID)
+	return r.listMappings(ctx, "rm.company_id = $1 AND pk.budget_group_id = $2", companyID, budgetGroupID)
 }
 
 func (r *relayRepo) ListActiveMappings(ctx context.Context) ([]store.RelayMapping, error) {
 	companyID := store.CompanyID(ctx)
-	return r.listMappings(ctx, "company_id = $1 AND sync_status = $2", companyID, store.RelaySyncStatusSynced)
+	return r.listMappings(ctx, "rm.company_id = $1 AND rm.sync_status = $2", companyID, store.RelaySyncStatusSynced)
 }
 
 func (r *relayRepo) ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]store.RelayMapping, error) {
-	return r.listMappings(ctx, "company_id = $1 AND sync_status = $2", companyID, store.RelaySyncStatusSynced)
+	return r.listMappings(ctx, "rm.company_id = $1 AND rm.sync_status = $2", companyID, store.RelaySyncStatusSynced)
 }
 
 func (r *relayRepo) UpsertMapping(ctx context.Context, mapping store.RelayMapping) error {
@@ -160,21 +166,18 @@ func (r *relayRepo) UpsertMapping(ctx context.Context, mapping store.RelayMappin
 	}
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO relay_mappings (
-			platform_key_id, company_id, newapi_token_id, member_id, department_id, budget_group_id,
+			company_id, platform_key_id, newapi_token_id,
 			relay_group, sync_status, synced_at, newapi_token_remain_quota, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
 		ON CONFLICT (company_id, platform_key_id) DO UPDATE SET
 			newapi_token_id = EXCLUDED.newapi_token_id,
-			member_id = EXCLUDED.member_id,
-			department_id = EXCLUDED.department_id,
-			budget_group_id = EXCLUDED.budget_group_id,
 			relay_group = EXCLUDED.relay_group,
 			sync_status = EXCLUDED.sync_status,
 			synced_at = EXCLUDED.synced_at,
 			newapi_token_remain_quota = EXCLUDED.newapi_token_remain_quota,
 			updated_at = NOW()
-	`, mapping.PlatformKeyID, companyID, mapping.NewAPITokenID, mapping.MemberID, mapping.DepartmentID,
-		mapping.BudgetGroupID, mapping.RelayGroup, mapping.SyncStatus, mapping.SyncedAt, mapping.NewAPITokenRemainQuota)
+	`, companyID, mapping.PlatformKeyID, mapping.NewAPITokenID,
+		mapping.RelayGroup, mapping.SyncStatus, mapping.SyncedAt, mapping.NewAPITokenRemainQuota)
 	return err
 }
 
@@ -205,136 +208,198 @@ func (r *relayRepo) UpdateMappingNewAPITokenRemainQuota(ctx context.Context, pla
 	return err
 }
 
-func (r *relayRepo) EnqueueRelayOutbox(ctx context.Context, entry store.RelayOutboxEntry) error {
+func (r *relayRepo) EnqueueJob(ctx context.Context, job store.AsyncJob) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO outbox (id, channel, kind, payload, status, attempts, next_retry, last_error, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-	`, entry.ID, store.OutboxChannelRelay, entry.Kind, entry.Payload, entry.Status, entry.Attempts, entry.NextRetry, entry.LastError, entry.CreatedAt)
+		INSERT INTO async_jobs (id, company_id, channel, kind, dedupe_key, payload, status, attempts, next_retry, last_error, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+		ON CONFLICT (company_id, channel, dedupe_key)
+		WHERE dedupe_key IS NOT NULL AND status = 'pending'
+		DO NOTHING
+	`, job.ID, job.CompanyID, job.Channel, job.Kind, job.DedupeKey, job.Payload, job.Status, job.Attempts, job.NextRetry, job.LastError, job.CreatedAt)
 	return err
 }
 
-func (r *relayRepo) ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]store.RelayOutboxEntry, error) {
+func (r *relayRepo) ClaimPendingJobs(ctx context.Context, channel string, limit int) ([]store.AsyncJob, error) {
+	leaseUntil := time.Now().Add(store.JobClaimLease())
 	rows, err := r.db.Query(ctx, `
-		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
-		FROM outbox
-		WHERE channel = $1 AND status = $2 AND next_retry <= NOW()
-		ORDER BY created_at
-		LIMIT $3
-		FOR UPDATE SKIP LOCKED
-	`, store.OutboxChannelRelay, store.OutboxStatusPending, limit)
+		WITH claimed AS (
+			SELECT id
+			FROM async_jobs
+			WHERE channel = $1 AND status = $2 AND next_retry <= NOW()
+			ORDER BY created_at
+			LIMIT $3
+			FOR UPDATE SKIP LOCKED
+		)
+		UPDATE async_jobs AS j
+		SET next_retry = $4, updated_at = NOW()
+		FROM claimed
+		WHERE j.id = claimed.id
+		RETURNING j.id, j.company_id, j.channel, j.kind, j.dedupe_key, j.payload, j.status, j.attempts, j.next_retry, j.last_error, j.created_at
+	`, channel, store.JobStatusPending, limit, leaseUntil)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanRelayOutbox(rows)
+	return scanAsyncJobs(rows)
 }
 
-func scanRelayOutbox(rows pgx.Rows) ([]store.RelayOutboxEntry, error) {
-	out := make([]store.RelayOutboxEntry, 0)
+func scanAsyncJobs(rows pgx.Rows) ([]store.AsyncJob, error) {
+	out := make([]store.AsyncJob, 0)
 	for rows.Next() {
-		var e store.RelayOutboxEntry
-		if err := rows.Scan(&e.ID, &e.Kind, &e.Payload, &e.Status, &e.Attempts, &e.NextRetry, &e.LastError, &e.CreatedAt); err != nil {
+		var j store.AsyncJob
+		if err := rows.Scan(&j.ID, &j.CompanyID, &j.Channel, &j.Kind, &j.DedupeKey, &j.Payload, &j.Status, &j.Attempts, &j.NextRetry, &j.LastError, &j.CreatedAt); err != nil {
 			return nil, err
 		}
-		out = append(out, e)
+		out = append(out, j)
 	}
 	return out, rows.Err()
 }
 
-func (r *relayRepo) MarkRelayOutboxDone(ctx context.Context, id string) error {
+func (r *relayRepo) MarkJobDone(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE outbox SET status = $2, updated_at = NOW() WHERE id = $1 AND channel = $3
-	`, id, store.OutboxStatusDone, store.OutboxChannelRelay)
+		UPDATE async_jobs SET status = $2, updated_at = NOW() WHERE id = $1
+	`, id, store.JobStatusDone)
 	return err
 }
 
-func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
+func (r *relayRepo) MarkJobRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE outbox SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
-		WHERE id = $1 AND channel = $4
-	`, id, nextRetry, lastError, store.OutboxChannelRelay)
+		UPDATE async_jobs SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
+		WHERE id = $1
+	`, id, nextRetry, lastError)
 	return err
+}
+
+func (r *relayRepo) EnqueueRelayOutbox(ctx context.Context, entry store.RelayOutboxEntry) error {
+	return r.EnqueueJob(ctx, store.AsyncJob{
+		ID:        entry.ID,
+		Channel:   store.JobChannelRelay,
+		Kind:      entry.Kind,
+		Payload:   entry.Payload,
+		Status:    entry.Status,
+		Attempts:  entry.Attempts,
+		NextRetry: entry.NextRetry,
+		LastError: entry.LastError,
+		CreatedAt: entry.CreatedAt,
+	})
+}
+
+func (r *relayRepo) ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]store.RelayOutboxEntry, error) {
+	jobs, err := r.ClaimPendingJobs(ctx, store.JobChannelRelay, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]store.RelayOutboxEntry, len(jobs))
+	for i, j := range jobs {
+		out[i] = store.RelayOutboxEntry{
+			ID:        j.ID,
+			Kind:      j.Kind,
+			Payload:   j.Payload,
+			Status:    j.Status,
+			Attempts:  j.Attempts,
+			NextRetry: j.NextRetry,
+			LastError: j.LastError,
+			CreatedAt: j.CreatedAt,
+		}
+	}
+	return out, nil
+}
+
+func (r *relayRepo) MarkRelayOutboxDone(ctx context.Context, id string) error {
+	return r.MarkJobDone(ctx, id)
+}
+
+func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
+	return r.MarkJobRetry(ctx, id, nextRetry, lastError)
 }
 
 func (r *relayRepo) EnqueueRebalance(ctx context.Context, axisKind, axisID string) error {
 	companyID := store.CompanyID(ctx)
-	id := fmt.Sprintf("rb-%d-%s-%s-%d", companyID, axisKind, axisID, time.Now().UnixNano())
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO rebalance_queue (id, company_id, axis_kind, axis_id, status)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (company_id, axis_kind, axis_id, status) DO NOTHING
-	`, id, companyID, axisKind, axisID, store.OutboxStatusPending)
-	return err
+	dedupe := fmt.Sprintf("%s:%s", axisKind, axisID)
+	id := fmt.Sprintf("rb-%d-%s-%d", companyID, dedupe, time.Now().UnixNano())
+	return r.EnqueueJob(ctx, store.AsyncJob{
+		ID:        id,
+		CompanyID: &companyID,
+		Channel:   store.JobChannelRebalance,
+		Kind:      store.OutboxKindRebalanceToken,
+		DedupeKey: &dedupe,
+		Payload:   json.RawMessage(fmt.Sprintf(`{"axis_kind":%q,"axis_id":%q}`, axisKind, axisID)),
+		Status:    store.JobStatusPending,
+		CreatedAt: time.Now().UTC(),
+		NextRetry: time.Now().UTC(),
+	})
 }
 
 func (r *relayRepo) ClaimPendingRebalance(ctx context.Context, limit int) ([]store.RebalanceQueueEntry, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT id, company_id, axis_kind, axis_id, status
-		FROM rebalance_queue
-		WHERE status = $1
-		ORDER BY created_at
-		LIMIT $2
-		FOR UPDATE SKIP LOCKED
-	`, store.OutboxStatusPending, limit)
+	jobs, err := r.ClaimPendingJobs(ctx, store.JobChannelRebalance, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := make([]store.RebalanceQueueEntry, 0)
-	for rows.Next() {
-		var e store.RebalanceQueueEntry
-		if err := rows.Scan(&e.ID, &e.CompanyID, &e.AxisKind, &e.AxisID, &e.Status); err != nil {
-			return nil, err
+	out := make([]store.RebalanceQueueEntry, 0, len(jobs))
+	for _, j := range jobs {
+		if j.CompanyID == nil {
+			continue
 		}
-		out = append(out, e)
+		var payload struct {
+			AxisKind string `json:"axis_kind"`
+			AxisID   string `json:"axis_id"`
+		}
+		_ = json.Unmarshal(j.Payload, &payload)
+		axisKind := payload.AxisKind
+		axisID := payload.AxisID
+		if axisKind == "" {
+			axisKind = j.Kind
+		}
+		out = append(out, store.RebalanceQueueEntry{
+			ID:        j.ID,
+			CompanyID: *j.CompanyID,
+			AxisKind:  axisKind,
+			AxisID:    axisID,
+			Status:    j.Status,
+		})
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func (r *relayRepo) MarkRebalanceDone(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE rebalance_queue SET status = $2 WHERE id = $1
-	`, id, store.OutboxStatusDone)
-	return err
+	return r.MarkJobDone(ctx, id)
 }
 
 func (r *relayRepo) EnqueueOverrun(ctx context.Context, payload json.RawMessage) error {
 	companyID := store.CompanyID(ctx)
 	id := fmt.Sprintf("ovr-%d-%d", companyID, time.Now().UnixNano())
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO overrun_queue (id, company_id, payload, status)
-		VALUES ($1, $2, $3, $4)
-	`, id, companyID, payload, store.OutboxStatusPending)
-	return err
+	return r.EnqueueJob(ctx, store.AsyncJob{
+		ID:        id,
+		CompanyID: &companyID,
+		Channel:   store.JobChannelOverrun,
+		Kind:      "overrun",
+		Payload:   payload,
+		Status:    store.JobStatusPending,
+		CreatedAt: time.Now().UTC(),
+		NextRetry: time.Now().UTC(),
+	})
 }
 
 func (r *relayRepo) ClaimPendingOverrun(ctx context.Context, limit int) ([]store.OverrunQueueEntry, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT id, company_id, payload, status
-		FROM overrun_queue
-		WHERE status = $1
-		ORDER BY created_at
-		LIMIT $2
-		FOR UPDATE SKIP LOCKED
-	`, store.OutboxStatusPending, limit)
+	jobs, err := r.ClaimPendingJobs(ctx, store.JobChannelOverrun, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := make([]store.OverrunQueueEntry, 0)
-	for rows.Next() {
-		var e store.OverrunQueueEntry
-		if err := rows.Scan(&e.ID, &e.CompanyID, &e.Payload, &e.Status); err != nil {
-			return nil, err
+	out := make([]store.OverrunQueueEntry, 0, len(jobs))
+	for _, j := range jobs {
+		if j.CompanyID == nil {
+			continue
 		}
-		out = append(out, e)
+		out = append(out, store.OverrunQueueEntry{
+			ID:        j.ID,
+			CompanyID: *j.CompanyID,
+			Payload:   j.Payload,
+			Status:    j.Status,
+		})
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func (r *relayRepo) MarkOverrunDone(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE overrun_queue SET status = $2 WHERE id = $1
-	`, id, store.OutboxStatusDone)
-	return err
+	return r.MarkJobDone(ctx, id)
 }

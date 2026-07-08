@@ -237,7 +237,8 @@ export const ALL_ROUTE_DEFINITIONS = [
 ] as const satisfies readonly RouteDefinition[]
 
 export const ROUTE_DEFINITIONS = ADMIN_ROUTE_DEFINITIONS
-export const MEMBER_ROUTE_DEFINITIONS = MEMBER_ROUTE_DEFINITIONS_INTERNAL
+export const MEMBER_ROUTE_DEFINITIONS: readonly RouteDefinition[] =
+  MEMBER_ROUTE_DEFINITIONS_INTERNAL
 
 export type MemberRoutePath = (typeof MEMBER_ROUTE_DEFINITIONS)[number]['path']
 

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -68,7 +70,16 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		}
 	}
 
-	budgetAmount, consumed, found, err := st.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
+	snapshotPeriod, err := pkgbudget.DepartmentPeriodKey(ctx, st.Org().Nodes(), payload.DepartmentID, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+
+	budgetAmount, found, err := st.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
+	if err != nil {
+		return err
+	}
+	consumed, _, err := st.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisOrgNode, payload.DepartmentID, snapshotPeriod)
 	if err != nil {
 		return err
 	}
@@ -81,7 +92,11 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 	}
 
 	if payload.BudgetGroupID != nil {
-		groupBudget, groupConsumed, groupFound, err := st.Budget().GetGroupBudget(ctx, *payload.BudgetGroupID)
+		groupBudget, _, groupFound, err := st.Budget().GetGroupBudget(ctx, *payload.BudgetGroupID)
+		if err != nil {
+			return err
+		}
+		groupConsumed, _, err := st.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisBudgetGroup, *payload.BudgetGroupID, snapshotPeriod)
 		if err != nil {
 			return err
 		}

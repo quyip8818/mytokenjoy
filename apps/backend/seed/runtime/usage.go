@@ -51,7 +51,7 @@ func buildUsageBuckets(demoToday string) []types.UsageBucketRow {
 	currentMonth := time.Date(anchor.Year(), anchor.Month(), 1, 0, 0, 0, 0, time.UTC)
 	lastMonth := currentMonth.AddDate(0, -1, 0)
 
-	const rootConsumed = contract.DemoRootConsumed
+	rootConsumed := contract.DemoRootConsumed()
 	const rawTotal = 39.5
 	scale := rootConsumed / rawTotal
 

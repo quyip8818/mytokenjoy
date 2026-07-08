@@ -25,7 +25,7 @@ func TestUpsertFailurePreservesAttemptsOnConflict(t *testing.T) {
 	t.Parallel()
 	st := newIngestStore(t)
 	ctx := testutil.Ctx()
-	logID := int64(9001)
+	logID := int64(881001)
 
 	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
 		ID:       store.IngestFailureID(logID),

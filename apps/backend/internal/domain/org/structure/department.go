@@ -102,9 +102,6 @@ func (s *Local) UpdateDepartment(ctx context.Context, id, name string) (types.De
 		if err := core.PersistProvisionState(ctx, st, state); err != nil {
 			return err
 		}
-		if err := syncDenormalizedNodeNames(ctx, st, id, name, members); err != nil {
-			return err
-		}
 
 		found := pkgorg.FindOrgNode(state.Nodes, id)
 		if found == nil {
@@ -156,34 +153,4 @@ func (s *Local) DeleteDepartment(ctx context.Context, id string) error {
 		state.Nodes = core.RecalcDepartmentMemberCounts(state.Nodes, members)
 		return core.PersistProvisionState(ctx, st, state)
 	})
-}
-
-func syncDenormalizedNodeNames(ctx context.Context, st store.Store, nodeID, name string, members []types.Member) error {
-	changedMembers := false
-	for i := range members {
-		if members[i].DepartmentID == nodeID && members[i].DepartmentName != name {
-			members[i].DepartmentName = name
-			changedMembers = true
-		}
-	}
-	if changedMembers {
-		if err := st.Org().SetMembers(ctx, members); err != nil {
-			return err
-		}
-	}
-	rules, err := st.Budget().AlertRules(ctx)
-	if err != nil {
-		return err
-	}
-	changedAlerts := false
-	for i := range rules {
-		if rules[i].NodeID == nodeID && rules[i].NodeName != name {
-			rules[i].NodeName = name
-			changedAlerts = true
-		}
-	}
-	if changedAlerts {
-		return st.Budget().SetAlertRules(ctx, rules)
-	}
-	return nil
 }

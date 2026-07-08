@@ -26,7 +26,7 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 			member_roles, role_permission_grants, alert_rule_notify_roles,
 			budget_group_members, budget_group_departments,
 			model_allowlist, key_approvals, platform_keys, provider_keys,
-			operation_logs, usage_ledger,
+			operation_logs, usage_ledger, budget_snapshots,
 			alert_rules, model_capabilities,
 			budget_groups, org_nodes, members,
 			roles, permissions, models,
@@ -41,9 +41,9 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	dbURL := requireDatabaseURL(t)
+	schemaURL := testutil.TestSchemaURL(t)
 	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = dbURL
+	cfg.DatabaseURL = schemaURL
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {
@@ -53,7 +53,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 		pg.Close()
 	}
 
-	pool, err := pgxpool.New(ctx, dbURL)
+	pool, err := pgxpool.New(ctx, schemaURL)
 	if err != nil {
 		t.Fatal(err)
 	}

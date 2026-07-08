@@ -163,6 +163,18 @@ func (r *pgModelsRepo) SetModels(ctx context.Context, models []types.ModelInfo) 
 	if _, err := r.db.Exec(ctx, `DELETE FROM model_capabilities WHERE company_id = $1 AND NOT (model_id = ANY($2))`, companyID, ids); err != nil {
 		return err
 	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE org_nodes SET default_model_id = NULL, updated_at = NOW()
+		WHERE company_id = $1 AND default_model_id IS NOT NULL AND NOT (default_model_id = ANY($2))
+	`, companyID, ids); err != nil {
+		return err
+	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE org_nodes SET fallback_model_id = NULL, updated_at = NOW()
+		WHERE company_id = $1 AND fallback_model_id IS NOT NULL AND NOT (fallback_model_id = ANY($2))
+	`, companyID, ids); err != nil {
+		return err
+	}
 	if _, err := r.db.Exec(ctx, `DELETE FROM models WHERE company_id = $1 AND NOT (id = ANY($2))`, companyID, ids); err != nil {
 		return err
 	}

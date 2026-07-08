@@ -47,7 +47,7 @@ func NewService(cfg config.Config, st store.Store, delayer common.Delayer) Servi
 }
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
-	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	return pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
@@ -87,7 +87,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 }
 
 func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.
 	if err != nil {
 		return nil, err
 	}
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
@@ -123,7 +123,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
@@ -138,7 +138,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 }
 
 func (s *service) ListGroups(ctx context.Context) ([]types.BudgetGroup, error) {
-	return s.store.Budget().Groups(ctx)
+	return pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget())
 }
 
 func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error) {
@@ -187,7 +187,17 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 			if err := s.store.Budget().SetGroups(ctx, groups); err != nil {
 				return types.BudgetGroup{}, fmt.Errorf("persist budget groups: %w", err)
 			}
-			return groups[i], nil
+			updated := groups[i]
+			enriched, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget())
+			if err != nil {
+				return types.BudgetGroup{}, fmt.Errorf("load budget group consumption: %w", err)
+			}
+			for _, group := range enriched {
+				if group.ID == id {
+					return group, nil
+				}
+			}
+			return updated, nil
 		}
 	}
 	return types.BudgetGroup{}, domain.NotFound("Not found")

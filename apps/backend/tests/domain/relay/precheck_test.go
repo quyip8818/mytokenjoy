@@ -5,6 +5,7 @@ import (
 
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 )
@@ -15,7 +16,7 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 0})
 
-	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
+	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
 		t.Fatal("expected relay mapping")
 	}
@@ -24,7 +25,7 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -52,7 +53,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
+	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
 		t.Fatal("expected relay mapping")
 	}
@@ -61,7 +62,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -78,7 +79,7 @@ func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
-	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
+	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
 		t.Fatal("expected relay mapping")
 	}
@@ -87,7 +88,7 @@ func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -104,7 +105,7 @@ func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
 	ctx := testutil.Ctx()
 	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
-	mapping, err := st.Relay().GetMappingByFullKey(ctx, fullKey)
+	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
 		t.Fatal("expected relay mapping")
 	}
@@ -114,7 +115,7 @@ func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
 	}
 	company.Status = "suspended"
 
-	precheck := domainrelay.NewPrecheckService(st.Org().Nodes(), st.Keys(), relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,

@@ -2,6 +2,7 @@ package contract
 
 const (
 	DefaultCompanyID int64 = 1
+	DemoBudgetPeriod       = "2026-06"
 
 	IDDept2          = "dept-2"
 	IDDept3          = "dept-3"

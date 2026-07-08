@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -89,7 +90,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if !l.Enabled() {
 		return "", nil
 	}
-	platformKeys, err := l.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys())
 	if err != nil {
 		return "", err
 	}
@@ -113,11 +114,11 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if err != nil {
 		return "", err
 	}
-	groups, err := l.store.Budget().Groups(ctx)
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget())
 	if err != nil {
 		return "", err
 	}
-	tree, err := common.LoadBudgetTree(ctx, l.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org().Nodes())
 	if err != nil {
 		return "", err
 	}
@@ -229,7 +230,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	if err != nil || mapping == nil || mapping.NewAPITokenID == nil {
 		return fmt.Errorf("relay mapping missing for %s", platformKeyID)
 	}
-	platformKeys, err := l.store.Keys().PlatformKeys(ctx)
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys())
 	if err != nil {
 		return err
 	}
@@ -253,11 +254,11 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	if err != nil {
 		return err
 	}
-	groups, err := l.store.Budget().Groups(ctx)
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget())
 	if err != nil {
 		return err
 	}
-	tree, err := common.LoadBudgetTree(ctx, l.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org().Nodes())
 	if err != nil {
 		return err
 	}

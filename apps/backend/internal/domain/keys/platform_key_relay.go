@@ -51,16 +51,9 @@ func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.Platf
 	if err := s.updatePlatformKeyFullKey(ctx, created.ID, fullKey); err != nil {
 		return types.PlatformKey{}, err
 	}
-	refreshed, err := s.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
-	for _, key := range refreshed {
-		if key.ID == created.ID {
-			return s.enrichPlatformKeyResponse(ctx, key)
-		}
-	}
-	return types.PlatformKey{}, domain.NotFound("Not found")
+	created.FullKey = &fullKey
+	created.KeyPrefix = platformKeyPrefix(fullKey)
+	return s.enrichPlatformKeyResponse(ctx, created)
 }
 
 func (s *service) resolvePlatformKeyDepartmentID(
