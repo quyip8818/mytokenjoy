@@ -3,6 +3,7 @@ package structure
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -21,13 +22,25 @@ func (s *Local) CreateRole(ctx context.Context, name string, permissions []strin
 	if err != nil {
 		return types.Role{}, err
 	}
+
+	// Validate role name
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return types.Role{}, domain.Validation("role name must not be empty")
+	}
+	for _, existing := range roles {
+		if existing.Name == trimmedName {
+			return types.Role{}, domain.NewDomainError(400, "role name already exists")
+		}
+	}
+
 	grantIDs, err := permission.NormalizeGrantIDs(permissions)
 	if err != nil {
 		return types.Role{}, domain.NewDomainError(400, err.Error())
 	}
 	role := types.Role{
 		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
-		Name: name, Type: "custom", Permissions: grantIDs, MemberCount: 0,
+		Name: trimmedName, Type: "custom", Permissions: grantIDs, MemberCount: 0,
 	}
 	roles = append(roles, role)
 	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
@@ -216,6 +229,19 @@ func (s *Local) RemoveRoleMember(ctx context.Context, roleID, memberID string) e
 	}
 	if role.Name == permission.RoleMember {
 		return domain.NewDomainError(400, "Cannot remove base member role")
+	}
+
+	// Prevent removing the last super admin
+	if role.Name == permission.RoleSuperAdmin {
+		adminCount := 0
+		for _, m := range members {
+			if pkgorg.ContainsRole(m.Roles, permission.RoleSuperAdmin) {
+				adminCount++
+			}
+		}
+		if adminCount <= 1 {
+			return domain.NewDomainError(400, "Cannot remove the last super admin")
+		}
 	}
 
 	filtered := make([]string, 0, len(member.Roles))
