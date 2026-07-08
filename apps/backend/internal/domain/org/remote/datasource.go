@@ -69,6 +69,10 @@ func (s *Service) UpdateDataSource(ctx context.Context, cred types.Credential, f
 		if err := s.d.Store.Org().ClearIntegrationCredential(ctx); err != nil {
 			return err
 		}
+		// Clear stale field mappings from the old platform
+		if err := s.d.Store.Org().SetFieldMappings(ctx, nil); err != nil {
+			return err
+		}
 	}
 
 	if err := s.saveCredential(ctx, cred); err != nil {

@@ -2,7 +2,6 @@ package remote
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -245,11 +244,11 @@ func (s *Service) importFromProvider(
 	}
 
 	if err := s.d.Store.Org().SetImportFailures(ctx, result.Failures); err != nil {
-		return types.ImportResult{}, fmt.Errorf("persist import failures: %w", err)
+		s.d.Logger.Error("persist import failures", "error", err)
 	}
 	if s.d.ModelLimits != nil && len(changedDeptIDs) > 0 {
 		if err := s.d.ModelLimits.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
-			return types.ImportResult{}, fmt.Errorf("enqueue model limits: %w", err)
+			s.d.Logger.Error("enqueue model limits", "error", err)
 		}
 	}
 	return result, nil

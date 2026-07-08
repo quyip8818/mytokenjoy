@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FieldMapping, MappingTestResult, Platform } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowRight, CheckCircle2, Loader2, Search } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Loader2, Search, XCircle } from 'lucide-react'
 
 const targetFields = [
   { value: 'name', label: '姓名' },
@@ -38,7 +38,8 @@ export function StepFieldMapping({
   onBack,
 }: StepFieldMappingProps) {
   const [mappings, setMappings] = useState<FieldMapping[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loadState, setLoadState] = useState<'loading' | 'error' | 'ready'>('loading')
+  const [reloadKey, setReloadKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [testKeyword, setTestKeyword] = useState('')
   const [testing, setTesting] = useState(false)
@@ -46,11 +47,33 @@ export function StepFieldMapping({
   const [testPassed, setTestPassed] = useState(false)
 
   useEffect(() => {
-    void dataSourceApi.getFieldMappings(platform).then((data) => {
-      setMappings(data)
-      setLoading(false)
-    })
-  }, [dataSourceApi, platform])
+    let cancelled = false
+    dataSourceApi
+      .getFieldMappings(platform)
+      .then((data) => {
+        if (cancelled) return
+        setMappings(data)
+        setLoadState('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLoadState('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [dataSourceApi, platform, reloadKey])
+
+  const handleReload = () => {
+    setLoadState('loading')
+    setReloadKey((k) => k + 1)
+  }
+
+  const missingRequired = useMemo(
+    () =>
+      mappings.filter((m) => m.required && (!m.targetField || m.targetField === '_ignore')),
+    [mappings],
+  )
 
   const updateMapping = (index: number, targetField: string) => {
     setMappings((prev) => prev.map((m, i) => (i === index ? { ...m, targetField } : m)))
@@ -81,13 +104,36 @@ export function StepFieldMapping({
     }
   }
 
-  if (loading) {
+  if (loadState === 'loading') {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        正在加载字段信息...
       </div>
     )
   }
+
+  if (loadState === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16">
+        <p className="text-sm text-muted-foreground">字段信息加载失败，请重试</p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onBack}>
+            上一步
+          </Button>
+          <Button size="sm" onClick={handleReload}>
+            重新加载
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const nextDisabledReason = !testPassed
+    ? missingRequired.length > 0
+      ? `请先为必填字段（${missingRequired.map((m) => m.sourceLabel).join('、')}）选择目标字段`
+      : '请先在下方完成一次映射测试'
+    : null
 
   return (
     <div className="space-y-6">
@@ -98,8 +144,7 @@ export function StepFieldMapping({
         </p>
       </div>
 
-      {/* Mapping table */}
-      <div className="rounded-lg border">
+      <div className="max-w-2xl overflow-hidden rounded-lg border">
         <div className="grid grid-cols-[1fr_32px_1fr] gap-2 border-b bg-muted/50 px-4 py-2.5 text-xs font-medium text-muted-foreground">
           <span>源字段</span>
           <span />
@@ -109,19 +154,27 @@ export function StepFieldMapping({
           {mappings.map((mapping, index) => (
             <div
               key={mapping.sourceField}
-              className="grid grid-cols-[1fr_32px_1fr] items-center gap-2 px-4 py-3"
+              className="grid grid-cols-[1fr_32px_1fr] items-center gap-2 px-4 py-2.5 transition-colors hover:bg-muted/30"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="text-sm">{mapping.sourceLabel}</span>
-                {mapping.required && <span className="text-xs text-destructive">*</span>}
+                {mapping.required && (
+                  <span className="text-xs text-destructive" title="必填字段">
+                    *
+                  </span>
+                )}
               </div>
               <ArrowRight className="size-4 text-muted-foreground/50 justify-self-center" />
               <Select
                 value={mapping.targetField}
                 onValueChange={(val) => updateMapping(index, val)}
               >
-                <SelectTrigger size="sm">
-                  <SelectValue />
+                <SelectTrigger
+                  size="sm"
+                  aria-label={`${mapping.sourceLabel} 的目标字段`}
+                  className="w-full"
+                >
+                  <SelectValue placeholder="选择目标字段" />
                 </SelectTrigger>
                 <SelectContent>
                   {targetFields.map((f) => (
@@ -136,19 +189,27 @@ export function StepFieldMapping({
         </div>
       </div>
 
-      {/* Test area */}
-      <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-        <Label className="text-sm font-medium">测试映射</Label>
-        <div className="flex gap-2 max-w-sm">
+      <div className="max-w-2xl space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+        <div>
+          <Label className="text-sm font-medium">测试映射</Label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            输入一位成员姓名，验证按当前映射能否正确取到数据
+          </p>
+        </div>
+        <div className="flex max-w-sm gap-2">
           <Input
             value={testKeyword}
             onChange={(e) => setTestKeyword(e.target.value)}
             placeholder="输入姓名搜索测试"
-            onKeyDown={(e) => e.key === 'Enter' && handleTest()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void handleTest()
+              }
+            }}
           />
           <Button
             variant="outline"
-            size="default"
             onClick={handleTest}
             disabled={testing || !testKeyword.trim()}
           >
@@ -159,7 +220,8 @@ export function StepFieldMapping({
 
         {testResult && (
           <div
-            className={`rounded-md border px-4 py-3 text-sm ${
+            role="status"
+            className={`rounded-lg border px-4 py-3 text-sm ${
               testResult.success ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'
             }`}
           >
@@ -169,7 +231,7 @@ export function StepFieldMapping({
                   <CheckCircle2 className="size-4" />
                   映射测试通过
                 </p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emerald-700 mt-2">
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                   {Object.entries(testResult.preview).map(([key, value]) => (
                     <div key={key} className="flex gap-1.5">
                       <span className="text-muted-foreground">{key}:</span>
@@ -180,9 +242,12 @@ export function StepFieldMapping({
               </div>
             ) : (
               <div className="space-y-1 text-destructive">
-                <p className="font-medium">映射测试失败</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  <XCircle className="size-4" />
+                  映射测试失败
+                </p>
                 {testResult.errors.map((err, i) => (
-                  <p key={i} className="text-xs">
+                  <p key={i} className="pl-5.5 text-xs">
                     {err}
                   </p>
                 ))}
@@ -192,15 +257,20 @@ export function StepFieldMapping({
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 pt-2">
+      <div className="flex items-center gap-3 border-t pt-4">
         <Button variant="outline" onClick={onBack}>
           上一步
         </Button>
-        <Button onClick={handleSaveAndNext} disabled={!testPassed || saving}>
+        <Button
+          onClick={handleSaveAndNext}
+          disabled={!testPassed || missingRequired.length > 0 || saving}
+        >
           {saving && <Loader2 className="size-4 animate-spin" />}
           下一步
         </Button>
+        {nextDisabledReason && (
+          <p className="text-xs text-muted-foreground">{nextDisabledReason}</p>
+        )}
       </div>
     </div>
   )

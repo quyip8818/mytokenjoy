@@ -3,6 +3,7 @@ package structure
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -10,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *Local) ListRoles(ctx context.Context) ([]types.Role, error) {
@@ -21,13 +23,25 @@ func (s *Local) CreateRole(ctx context.Context, name string, permissions []strin
 	if err != nil {
 		return types.Role{}, err
 	}
+
+	// Validate role name
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return types.Role{}, domain.Validation("role name must not be empty")
+	}
+	for _, existing := range roles {
+		if existing.Name == trimmedName {
+			return types.Role{}, domain.NewDomainError(400, "role name already exists")
+		}
+	}
+
 	grantIDs, err := permission.NormalizeGrantIDs(permissions)
 	if err != nil {
 		return types.Role{}, domain.NewDomainError(400, err.Error())
 	}
 	role := types.Role{
 		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
-		Name: name, Type: "custom", Permissions: grantIDs, MemberCount: 0,
+		Name: trimmedName, Type: "custom", Permissions: grantIDs, MemberCount: 0,
 	}
 	roles = append(roles, role)
 	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
@@ -46,6 +60,9 @@ func (s *Local) UpdateRole(ctx context.Context, id, name string, permissions []s
 	}
 	for i := range roles {
 		if roles[i].ID == id {
+			if roles[i].Type == "preset" {
+				return types.Role{}, domain.NewDomainError(400, "Cannot modify preset role")
+			}
 			grantIDs, err := permission.NormalizeGrantIDs(permissions)
 			if err != nil {
 				return types.Role{}, domain.NewDomainError(400, err.Error())
@@ -84,28 +101,30 @@ func (s *Local) DeleteRole(ctx context.Context, id string) error {
 		return domain.NewDomainError(400, "Cannot delete preset role")
 	}
 
-	members, err := s.d.Store.Org().Members(ctx)
-	if err != nil {
-		return err
-	}
-	for i := range members {
-		filtered := make([]string, 0, len(members[i].Roles))
-		for _, roleName := range members[i].Roles {
-			if roleName != role.Name {
-				filtered = append(filtered, roleName)
-			}
+	return s.d.Store.WithTx(ctx, func(st store.Store) error {
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
 		}
-		members[i].Roles = filtered
-	}
-	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
-		return err
-	}
+		for i := range members {
+			filtered := make([]string, 0, len(members[i].Roles))
+			for _, roleName := range members[i].Roles {
+				if roleName != role.Name {
+					filtered = append(filtered, roleName)
+				}
+			}
+			members[i].Roles = filtered
+		}
+		if err := st.Org().SetMembers(ctx, members); err != nil {
+			return err
+		}
 
-	roles = append(roles[:idx], roles[idx+1:]...)
-	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
-		return err
-	}
-	return core.BumpAuthzRevision(ctx, s.d)
+		roles = append(roles[:idx], roles[idx+1:]...)
+		if err := st.Org().SetRoles(ctx, roles); err != nil {
+			return err
+		}
+		return core.BumpAuthzRevision(ctx, s.d)
+	})
 }
 
 func (s *Local) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
@@ -161,10 +180,19 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 		return domain.NewDomainError(404, "Not found")
 	}
 
+	// Prevent adding members to protected preset roles via this endpoint
+	if role.Type == "preset" {
+		if _, protected := protectedRoles[role.Name]; protected {
+			return domain.Forbidden("cannot assign protected role directly")
+		}
+	}
+
+	found := false
 	for i := range members {
 		if members[i].ID != memberID {
 			continue
 		}
+		found = true
 		if !pkgorg.ContainsRole(members[i].Roles, role.Name) {
 			members[i].Roles = append(members[i].Roles, role.Name)
 			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
@@ -173,6 +201,9 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 			return core.BumpAuthzRevision(ctx, s.d)
 		}
 		break
+	}
+	if !found {
+		return domain.NewDomainError(404, "Member not found")
 	}
 	return nil
 }
@@ -206,6 +237,19 @@ func (s *Local) RemoveRoleMember(ctx context.Context, roleID, memberID string) e
 	}
 	if role.Name == permission.RoleMember {
 		return domain.NewDomainError(400, "Cannot remove base member role")
+	}
+
+	// Prevent removing the last super admin
+	if role.Name == permission.RoleSuperAdmin {
+		adminCount := 0
+		for _, m := range members {
+			if pkgorg.ContainsRole(m.Roles, permission.RoleSuperAdmin) {
+				adminCount++
+			}
+		}
+		if adminCount <= 1 {
+			return domain.NewDomainError(400, "Cannot remove the last super admin")
+		}
 	}
 
 	filtered := make([]string, 0, len(member.Roles))

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -26,7 +25,7 @@ func (s *Local) CreateDepartment(ctx context.Context, name, parentID string) (ty
 		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Parent department is required")
 	}
 
-	deptID := fmt.Sprintf("dept-%d", time.Now().UnixMilli())
+	deptID := generateID("dept")
 	var created types.Department
 
 	err := s.d.Store.WithTx(ctx, func(st store.Store) error {

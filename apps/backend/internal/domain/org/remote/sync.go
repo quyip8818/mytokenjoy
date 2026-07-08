@@ -172,6 +172,16 @@ func (s *Service) GetSyncConfig(ctx context.Context) (types.SyncConfig, error) {
 }
 
 func (s *Service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) error {
+	if cfg.FrequencyHours < 1 {
+		return domain.Validation("frequencyHours must be at least 1")
+	}
+	if cfg.DeleteMemberThreshold < 0 {
+		return domain.Validation("deleteMemberThreshold must not be negative")
+	}
+	if cfg.DeleteDepartmentThreshold < 0 {
+		return domain.Validation("deleteDepartmentThreshold must not be negative")
+	}
+
 	integration, err := s.d.Store.Org().Integration(ctx)
 	if err != nil {
 		return err
