@@ -61,8 +61,11 @@ export function useStructurePage(injectedApis?: AppApis) {
   const total = membersResult?.total ?? 0
 
   const invalidateOrg = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.org.all })
-  }, [queryClient])
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.org.departmentTree() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.org.members(memberQueryParams) }),
+    ])
+  }, [queryClient, memberQueryParams])
 
   const selectDept = useCallback((dept: Department | undefined) => {
     setSelectedDept(dept)

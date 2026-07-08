@@ -32,6 +32,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
   const lastSessionFetchRef = useRef(0)
   const forbiddenRetriedRef = useRef(new Set<string>())
   const refreshSessionRef = useRef<() => Promise<void>>()
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   refreshSessionRef.current = async () => {
     await query.refresh()
@@ -40,6 +41,23 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
 
   const refreshSession = useCallback(async () => {
     await refreshSessionRef.current?.()
+  }, [])
+
+  // Debounced refresh: coalesce multiple revision changes within 500ms into one refresh.
+  // Also skip if session was fetched very recently (within 2s) — likely from our own mutation.
+  const debouncedRefreshSession = useCallback(() => {
+    if (refreshTimerRef.current) return
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null
+      if (Date.now() - lastSessionFetchRef.current < 2000) return
+      void refreshSession()
+    }, 500)
+  }, [refreshSession])
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -51,11 +69,11 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
     setAuthzRevisionHandler((revision) => {
       if (revision > authzRevisionRef.current) {
         authzRevisionRef.current = revision
-        void refreshSession()
+        debouncedRefreshSession()
       }
     })
     return () => setAuthzRevisionHandler(null)
-  }, [refreshSession])
+  }, [debouncedRefreshSession])
 
   useEffect(() => {
     setForbiddenHandler((path) => {
