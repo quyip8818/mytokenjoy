@@ -69,4 +69,29 @@ test.describe('组织架构', () => {
     // Verify alert dialog closes (backend may return 500 in test env but UI flow works)
     await expect(page.getByRole('alertdialog')).toBeHidden()
   })
+
+  test('deletes a member via selection and toolbar action', async ({ page }) => {
+    await page.getByRole('treeitem', { name: /总公司/ }).click()
+    await expect(page.getByRole('heading', { level: 3, name: '总公司' })).toBeVisible()
+
+    // Get current count
+    const countText = await page.getByText(/共 \d+ 人/).textContent()
+    const countBefore = parseInt(countText?.match(/\d+/)?.[0] ?? '0')
+
+    // Select first member via checkbox
+    const firstRow = page.getByRole('row').filter({ hasText: '已激活' }).first()
+    await firstRow.getByRole('checkbox').click()
+
+    // Click batch delete button
+    await page.getByRole('button', { name: /删除/ }).click()
+
+    // Confirm deletion dialog
+    await expect(page.getByRole('alertdialog', { name: '删除成员' })).toBeVisible()
+    await expect(page.getByText('删除后不可恢复')).toBeVisible()
+    await page.getByRole('button', { name: '确认' }).click()
+
+    // Verify dialog closes and member count decreases
+    await expect(page.getByRole('alertdialog')).toBeHidden()
+    await expect(page.getByText(`共 ${countBefore - 1} 人`)).toBeVisible({ timeout: 10_000 })
+  })
 })

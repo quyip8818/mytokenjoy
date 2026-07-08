@@ -171,11 +171,12 @@ func (s *Local) DeleteMembers(ctx context.Context, ids []string) error {
 			idSet[id] = struct{}{}
 		}
 
-		// Disable keys belonging to deleted members
+		// Disable keys belonging to deleted members and detach member reference
 		for i := range keys {
 			if keys[i].MemberID != nil {
 				if _, ok := idSet[*keys[i].MemberID]; ok {
 					keys[i].Status = "disabled"
+					keys[i].MemberID = nil
 				}
 			}
 		}
@@ -188,10 +189,10 @@ func (s *Local) DeleteMembers(ctx context.Context, ids []string) error {
 			}
 		}
 
-		if err := st.Org().SetMembers(ctx, filtered); err != nil {
+		if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 			return err
 		}
-		if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
+		if err := st.Org().SetMembers(ctx, filtered); err != nil {
 			return err
 		}
 		if err := persistRecalculatedMemberCounts(ctx, st, filtered); err != nil {
