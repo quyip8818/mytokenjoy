@@ -139,8 +139,8 @@ export function useStructurePage(injectedApis?: AppApis) {
   const handleDelete = (ids: string[]) => {
     setConfirmState({
       open: true,
-      title: '删除成员',
-      desc: `确定删除 ${ids.length} 名成员？此操作不可恢复`,
+      title: '停用成员',
+      desc: `确定停用 ${ids.length} 名成员？停用后可由管理员重新激活`,
       variant: 'danger',
       onConfirm: async () => {
         await apis.memberApi.delete(ids)
