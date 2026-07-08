@@ -178,10 +178,10 @@ type Store interface {
 }
 ```
 
-| 模式     | 条件                               | 说明                                                               |
-| -------- | ---------------------------------- | ------------------------------------------------------------------ |
+| 模式     | 条件                               | 说明                                                                          |
+| -------- | ---------------------------------- | ----------------------------------------------------------------------------- |
 | Postgres | `DATABASE_URL` 必填                | 主库 35 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md) |
-| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-测试优化.md](./Backend-测试优化.md)                    |
+| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-测试优化.md](./Backend-测试优化.md)                               |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
 - Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.Load` + `seed.ApplyTables`；demo 下 `seed/runtime.ApplyUsageBuckets`（见 [Backend-seed.md](./Backend-seed.md)）。
@@ -340,7 +340,7 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | `deptId`         | dashboard 钻取 query/path      |
 | `RoutingRule.id` | = `nodeId`                     |
 
-权限 key 以 [`manifest.json`](../apps/backend/internal/infra/permission/manifest.json) 为唯一真相（目标态）；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
+权限 key 以 [`manifest.json`](../packages/contracts/permission/manifest.json) 为唯一真相；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
 
 存储侧字段语义见 [Backend-存储架构.md](./Backend-存储架构.md) §6。
 

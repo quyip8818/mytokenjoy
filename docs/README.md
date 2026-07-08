@@ -1,6 +1,6 @@
 # TokenJoy 文档索引
 
-Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（Relay 本地栈）。本地联调：`pnpm start`。
+Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（Relay）；共享契约 `packages/contracts`。本地联调：`pnpm start`。
 
 ## 文档地图
 

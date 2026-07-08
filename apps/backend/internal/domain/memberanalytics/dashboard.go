@@ -1,5 +1,4 @@
-// TODO(real): replace with dedicated member analytics service and persistence.
-package member
+package memberanalytics
 
 import (
 	"context"

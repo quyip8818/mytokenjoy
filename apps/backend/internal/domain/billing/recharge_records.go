@@ -2,12 +2,10 @@ package billing
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -78,16 +76,4 @@ func formatDisplayOrderID(t time.Time) string {
 		loc = time.UTC
 	}
 	return "ORD" + t.In(loc).Format("20060102150405")
-}
-
-func (s *service) walletUsageStats(ctx context.Context) (float64, int64, error) {
-	totals, err := s.store.Usage().QuerySummary(ctx, types.UsageAggregateQuery{
-		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-		End:      time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
-		Timezone: types.UsageDefaultTimezone,
-	})
-	if err != nil {
-		return 0, 0, fmt.Errorf("query usage summary: %w", err)
-	}
-	return totals.CostCNY, int64(totals.CallCount), nil
 }

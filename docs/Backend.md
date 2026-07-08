@@ -8,12 +8,13 @@
 
 ## 文档地图
 
-| 文档                                                 | 内容                                                       |
-| ---------------------------------------------------- | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)                 | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储架构.md](./Backend-存储架构.md)         | 双库 35+3 表、域关系、核心实体、Store 与 ID 约定 |
-| [Backend-预算.md](./Backend-预算.md)                 | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
-| [Backend-测试优化.md](./Backend-测试优化.md)         | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
+| 文档                                         | 内容                                                       |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
+| [Backend-存储架构.md](./Backend-存储架构.md) | 双库 35+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
+| [Backend-计费单位.md](./Backend-计费单位.md) | CNY / NewAPI quota / token 三种计量与换算                  |
+| [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
 
 ---
 
@@ -150,7 +151,7 @@ pnpm start:relay    # 完整 NewAPI 栈
 pnpm gate:verify    # Relay 验证
 ```
 
-生产：`/api/` 反代到 Go（`deploy/nginx.conf.example`）。错误体：`{ "message": "..." }`。
+生产：nginx 将 `/api/`、`/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），`/api/` 须在 SPA fallback 之前。错误体：`{ "message": "..." }`。
 
 ---
 

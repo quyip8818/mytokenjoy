@@ -60,7 +60,7 @@ func TestGeneratedKeysMatchManifest(t *testing.T) {
 
 func TestFrontendPermissionKeysMatchManifest(t *testing.T) {
 	root := filepath.Join("..", "..", "..", "..", "..")
-	manifestPath := filepath.Join(root, "apps", "backend", "internal", "infra", "permission", "manifest.json")
+	manifestPath := filepath.Join(root, "packages", "contracts", "permission", "manifest.json")
 	keysPath := filepath.Join(root, "apps", "frontend", "src", "lib", "permission-keys.ts")
 
 	if _, err := os.Stat(manifestPath); err != nil {

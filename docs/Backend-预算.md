@@ -57,16 +57,16 @@ flowchart TB
 | **事实** | `usage_ledger`                        | `usage.IngestService`   | 审计 `/audit/calls`、minute 看板      |
 | **投影** | `used` / `consumed` / `usage_buckets` | `usage.Apply`（同事务） | 超限/Rebalance、hour/day 看板、预算树 |
 
+> **术语：** `used` 与 `consumed` 同义，统一读法见 [Backend-存储架构.md](./Backend-存储架构.md) §8。组织轴 consumed SSOT 为 `budget_snapshots`，非 `org_nodes` / `platform_keys` 列。
+
 ```mermaid
 flowchart LR
   WH[Webhook / 补偿轮询] --> ING[IngestService]
   ING --> UL[(usage_ledger)]
   ING --> PROJ[projection.Apply]
-  PROJ --> USED[platform_keys.used]
-  PROJ --> CONS[org_nodes.consumed]
-  PROG_BG[budget_groups.consumed]
+  PROJ --> SNAP[budget_snapshots.consumed]
   PROJ --> UB[(usage_buckets)]
-  ING --> Q[rebalance_queue / overrun_queue]
+  ING --> Q[async_jobs rebalance / overrun]
 ```
 
 ### 2.1 入账路径（方案 B）

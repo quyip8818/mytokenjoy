@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { WorkflowDefinition } from '@/features/workflow/types'
 import { WORKFLOW_META, getWorkflowDomain } from '@/features/workflow/definitions/workflow-meta'
-import { budgetWorkflowDefinitions } from '@/features/workflow/definitions/budget'
 import { orgWorkflowDefinitions } from '@/features/workflow/definitions/org'
 import { keysWorkflowDefinitions } from '@/features/workflow/definitions/keys'
 import { modelsWorkflowDefinitions } from '@/features/workflow/definitions/models'
 import { sharedWorkflowDefinitions } from '@/features/workflow/definitions/shared'
 
 const workflowDefinitionsByDomain: Record<string, Record<string, WorkflowDefinition>> = {
-  budget: budgetWorkflowDefinitions,
   org: orgWorkflowDefinitions,
   keys: keysWorkflowDefinitions,
   models: modelsWorkflowDefinitions,

@@ -13,7 +13,7 @@ import {
 
 const manifestPath = join(
   import.meta.dirname,
-  '../../../backend/internal/infra/permission/manifest.json',
+  '../../../../packages/contracts/permission/manifest.json',
 )
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
