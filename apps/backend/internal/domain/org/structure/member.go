@@ -2,10 +2,8 @@ package structure
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -73,25 +71,28 @@ func (s *Local) CreateMember(ctx context.Context, input types.Member) (types.Mem
 	}
 
 	member := types.Member{
-		ID:   fmt.Sprintf("m-%d", time.Now().UnixMilli()),
+		ID:   generateID("m"),
 		Name: input.Name, Phone: input.Phone, Email: input.Email,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
 		Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "manual",
 		PersonalQuota: common.DefaultPersonalQuota,
 	}
 
-	members, err := s.d.Store.Org().Members(ctx)
+	err = s.d.Store.WithTx(ctx, func(st store.Store) error {
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		members = append(members, member)
+		if err := st.Org().SetMembers(ctx, members); err != nil {
+			return err
+		}
+		if err := persistRecalculatedMemberCounts(ctx, st, members); err != nil {
+			return err
+		}
+		return core.BumpAuthzRevisionStore(ctx, st)
+	})
 	if err != nil {
-		return types.Member{}, err
-	}
-	members = append(members, member)
-	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
-		return types.Member{}, err
-	}
-	if err := persistRecalculatedMemberCounts(ctx, s.d.Store, members); err != nil {
-		return types.Member{}, err
-	}
-	if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 		return types.Member{}, err
 	}
 	return member, nil
@@ -305,7 +306,7 @@ func (s *Local) BatchImport(ctx context.Context, rows []types.BatchImportRow) (t
 			continue
 		}
 		members = append(members, types.Member{
-			ID:   fmt.Sprintf("m-import-%d-%d", time.Now().UnixMilli(), index),
+			ID:   generateID("m-import"),
 			Name: row.Name, Phone: row.Phone, Email: row.Email,
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "imported",
@@ -319,6 +320,9 @@ func (s *Local) BatchImport(ctx context.Context, rows []types.BatchImportRow) (t
 		})}, nil
 	}
 	if imported > 0 {
+		if err := persistRecalculatedMemberCounts(ctx, s.d.Store, members); err != nil {
+			return types.MemberBatchImportResult{}, err
+		}
 		if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
 			return types.MemberBatchImportResult{}, err
 		}

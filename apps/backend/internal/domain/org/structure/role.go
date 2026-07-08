@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *Local) ListRoles(ctx context.Context) ([]types.Role, error) {
@@ -100,28 +101,30 @@ func (s *Local) DeleteRole(ctx context.Context, id string) error {
 		return domain.NewDomainError(400, "Cannot delete preset role")
 	}
 
-	members, err := s.d.Store.Org().Members(ctx)
-	if err != nil {
-		return err
-	}
-	for i := range members {
-		filtered := make([]string, 0, len(members[i].Roles))
-		for _, roleName := range members[i].Roles {
-			if roleName != role.Name {
-				filtered = append(filtered, roleName)
-			}
+	return s.d.Store.WithTx(ctx, func(st store.Store) error {
+		members, err := st.Org().Members(ctx)
+		if err != nil {
+			return err
 		}
-		members[i].Roles = filtered
-	}
-	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
-		return err
-	}
+		for i := range members {
+			filtered := make([]string, 0, len(members[i].Roles))
+			for _, roleName := range members[i].Roles {
+				if roleName != role.Name {
+					filtered = append(filtered, roleName)
+				}
+			}
+			members[i].Roles = filtered
+		}
+		if err := st.Org().SetMembers(ctx, members); err != nil {
+			return err
+		}
 
-	roles = append(roles[:idx], roles[idx+1:]...)
-	if err := s.d.Store.Org().SetRoles(ctx, roles); err != nil {
-		return err
-	}
-	return core.BumpAuthzRevision(ctx, s.d)
+		roles = append(roles[:idx], roles[idx+1:]...)
+		if err := st.Org().SetRoles(ctx, roles); err != nil {
+			return err
+		}
+		return core.BumpAuthzRevision(ctx, s.d)
+	})
 }
 
 func (s *Local) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
@@ -184,10 +187,12 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 		}
 	}
 
+	found := false
 	for i := range members {
 		if members[i].ID != memberID {
 			continue
 		}
+		found = true
 		if !pkgorg.ContainsRole(members[i].Roles, role.Name) {
 			members[i].Roles = append(members[i].Roles, role.Name)
 			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
@@ -196,6 +201,9 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 			return core.BumpAuthzRevision(ctx, s.d)
 		}
 		break
+	}
+	if !found {
+		return domain.NewDomainError(404, "Member not found")
 	}
 	return nil
 }
