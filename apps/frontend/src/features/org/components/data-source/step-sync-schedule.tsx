@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
+import { toast } from 'sonner'
 import type { SyncConfig } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface StepSyncScheduleProps {
   syncApi: AppApis['syncApi']
@@ -24,7 +25,6 @@ interface StepSyncScheduleProps {
 
 export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncScheduleProps) {
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   const { register, setValue, control, handleSubmit } = useForm<SyncConfig>({
     defaultValues: {
@@ -64,7 +64,10 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
     setSaving(true)
     try {
       await syncApi.saveConfig(data)
-      setSaved(true)
+      toast.success('同步配置已保存，数据源配置完成')
+      onComplete()
+    } catch {
+      toast.error('保存同步配置失败，请稍后重试')
     } finally {
       setSaving(false)
     }
@@ -79,21 +82,29 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
-        {/* Enable toggle */}
-        <div className="flex items-center gap-3">
-          <Switch checked={enabled} onCheckedChange={(checked) => setValue('enabled', !!checked)} />
-          <Label className="text-sm font-medium">
-            {enabled ? '自动同步已开启' : '自动同步已关闭'}
-          </Label>
+      <form onSubmit={handleSubmit(onSubmit)} className="max-w-lg space-y-5">
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div>
+            <Label htmlFor="sync-enabled" className="text-sm font-medium">
+              自动同步
+            </Label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {enabled ? '系统将按以下计划自动同步组织数据' : '关闭时仅支持手动触发同步'}
+            </p>
+          </div>
+          <Switch
+            id="sync-enabled"
+            checked={enabled}
+            onCheckedChange={(checked) => setValue('enabled', !!checked)}
+          />
         </div>
 
         {enabled && (
           <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>每日开始时间</Label>
-                <Input type="time" {...register('startTime')} />
+                <Label htmlFor="sync-start-time">每日开始时间</Label>
+                <Input id="sync-start-time" type="time" {...register('startTime')} />
               </div>
               <div className="space-y-1.5">
                 <Label>同步频率</Label>
@@ -101,7 +112,7 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
                   value={String(frequencyHours)}
                   onValueChange={(val) => setValue('frequencyHours', Number(val) as 6 | 12 | 24)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="选择频率" />
                   </SelectTrigger>
                   <SelectContent>
@@ -115,26 +126,30 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>删除成员保护阈值</Label>
+                <Label htmlFor="delete-member-threshold">删除成员保护阈值</Label>
                 <Input
+                  id="delete-member-threshold"
                   type="number"
+                  min={0}
                   {...register('deleteMemberThreshold', {
                     valueAsNumber: true,
                     min: 0,
                   })}
                 />
-                <p className="text-xs text-muted-foreground">单次删除超过此数将暂停</p>
+                <p className="text-xs text-muted-foreground">单次删除超过此数将暂停同步</p>
               </div>
               <div className="space-y-1.5">
-                <Label>删除部门保护阈值</Label>
+                <Label htmlFor="delete-department-threshold">删除部门保护阈值</Label>
                 <Input
+                  id="delete-department-threshold"
                   type="number"
+                  min={0}
                   {...register('deleteDepartmentThreshold', {
                     valueAsNumber: true,
                     min: 0,
                   })}
                 />
-                <p className="text-xs text-muted-foreground">单次删除超过此数将暂停</p>
+                <p className="text-xs text-muted-foreground">单次删除超过此数将暂停同步</p>
               </div>
             </div>
 
@@ -147,7 +162,7 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
                     checked={notifyPhone}
                     onCheckedChange={(checked) => setValue('notifyPhone', !!checked)}
                   />
-                  <Label htmlFor="notifyPhone" className="text-sm cursor-pointer">
+                  <Label htmlFor="notifyPhone" className="cursor-pointer text-sm font-normal">
                     手机短信
                   </Label>
                 </div>
@@ -157,7 +172,7 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
                     checked={notifyEmail}
                     onCheckedChange={(checked) => setValue('notifyEmail', !!checked)}
                   />
-                  <Label htmlFor="notifyEmail" className="text-sm cursor-pointer">
+                  <Label htmlFor="notifyEmail" className="cursor-pointer text-sm font-normal">
                     邮箱
                   </Label>
                 </div>
@@ -166,29 +181,14 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
           </div>
         )}
 
-        {/* Save feedback */}
-        {saved && (
-          <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-4 py-2.5">
-            <CheckCircle2 className="size-4" />
-            配置已保存
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 border-t pt-4">
           <Button type="button" variant="outline" onClick={onBack}>
             上一步
           </Button>
-          {saved ? (
-            <Button type="button" onClick={onComplete}>
-              完成配置
-            </Button>
-          ) : (
-            <Button type="submit" disabled={saving}>
-              {saving && <Loader2 className="size-4 animate-spin" />}
-              保存并完成
-            </Button>
-          )}
+          <Button type="submit" disabled={saving}>
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            {saving ? '保存中...' : '保存并完成'}
+          </Button>
         </div>
       </form>
     </div>
