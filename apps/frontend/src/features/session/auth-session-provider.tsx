@@ -45,6 +45,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
   useEffect(() => {
     setAuthzRevisionHandler((revision) => {
       if (revision > authzRevisionRef.current) {
+        authzRevisionRef.current = revision
         void refreshSession()
       }
     })
