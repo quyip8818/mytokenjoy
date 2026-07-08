@@ -116,19 +116,39 @@ func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member)
 	}
 	for i := range members {
 		if members[i].ID == id {
-			rolesChanged := !slices.Equal(members[i].Roles, input.Roles)
-			updated := input
-			updated.ID = id
-			members[i] = updated
+			existing := members[i]
+			// Merge: only overwrite non-zero fields from input
+			if input.Name != "" {
+				existing.Name = input.Name
+			}
+			if input.Phone != "" {
+				existing.Phone = input.Phone
+			}
+			if input.Email != "" {
+				existing.Email = input.Email
+			}
+			if input.DepartmentID != "" {
+				existing.DepartmentID = input.DepartmentID
+				existing.DepartmentName = input.DepartmentName
+			}
+			if len(input.Roles) > 0 {
+				rolesChanged := !slices.Equal(existing.Roles, input.Roles)
+				existing.Roles = input.Roles
+				if rolesChanged {
+					if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
+						return types.Member{}, err
+					}
+				}
+			}
+			if input.Status != "" {
+				existing.Status = input.Status
+			}
+
+			members[i] = existing
 			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 				return types.Member{}, err
 			}
-			if rolesChanged {
-				if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
-					return types.Member{}, err
-				}
-			}
-			return updated, nil
+			return existing, nil
 		}
 	}
 	return types.Member{}, domain.NewDomainError(404, "types.Member not found")

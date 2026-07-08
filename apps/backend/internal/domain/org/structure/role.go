@@ -46,6 +46,9 @@ func (s *Local) UpdateRole(ctx context.Context, id, name string, permissions []s
 	}
 	for i := range roles {
 		if roles[i].ID == id {
+			if roles[i].Type == "preset" {
+				return types.Role{}, domain.NewDomainError(400, "Cannot modify preset role")
+			}
 			grantIDs, err := permission.NormalizeGrantIDs(permissions)
 			if err != nil {
 				return types.Role{}, domain.NewDomainError(400, err.Error())
@@ -159,6 +162,13 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 	}
 	if role == nil {
 		return domain.NewDomainError(404, "Not found")
+	}
+
+	// Prevent adding members to protected preset roles via this endpoint
+	if role.Type == "preset" {
+		if _, protected := protectedRoles[role.Name]; protected {
+			return domain.Forbidden("cannot assign protected role directly")
+		}
 	}
 
 	for i := range members {
