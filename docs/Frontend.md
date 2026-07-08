@@ -157,7 +157,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 本地开发与 nginx 同域部署均为 `/api`。
 
-开发环境通过 Vite dev/preview 将 `{BASE_URL}/api` 同域反代到 Go（默认 `http://127.0.0.1:8080`，可用 `VITE_API_PROXY_TARGET` 覆盖）。生产使用 nginx 等同域反代，见 [`deploy/nginx.conf.example`](../deploy/nginx.conf.example)。
+开发环境通过 Vite dev/preview 将 `{BASE_URL}/api` 同域反代到 Go（默认 `http://127.0.0.1:8080`，可用 `VITE_API_PROXY_TARGET` 覆盖）。生产使用 nginx 等同域反代：静态资源托管 `apps/frontend/dist`，`/api/` 与 `/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），**`/api/` 的 `location` 须写在 SPA `try_files` fallback 之前**。
 
 #### 5.1.2 请求头
 
@@ -864,7 +864,7 @@ pnpm install && pnpm start
 
 可选 Relay：`pnpm start:relay` + `NEW_API_ENABLED=true`。验收：`pnpm verify`、`pnpm test:e2e`。
 
-生产同域：`deploy/nginx.conf.example`（`/api/` 须在 SPA fallback 之前）。
+生产同域：静态托管 `dist`，`/api/`、`/healthz` 反代 Go；`/api/` 须在 SPA fallback 之前。
 
 ---
 

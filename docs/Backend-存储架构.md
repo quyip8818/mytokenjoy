@@ -2,7 +2,7 @@
 
 Postgres 双库：**35** 张主库表 + **3** 张日志库表。`company_id` 租户隔离，管理面配置 + 运行面入账投影。
 
-**本文定位：** 表结构、域关系、Store 映射与 ID 约定。请求链路见 [Backend-架构.md](./Backend-架构.md)；Ingest / Rebalance / Overrun 算法见 [Backend-预算.md](./Backend-预算.md)。
+**本文定位：** 表结构、域关系、Store 映射与 ID 约定。请求链路见 [Backend-架构.md](./Backend-架构.md)；Ingest / Rebalance / Overrun 算法见 [Backend-预算.md](./Backend-预算.md)；计费单位见 [Backend-计费单位.md](./Backend-计费单位.md)。
 
 | 库 | DDL | 连接 |
 | --- | --- | --- |
@@ -208,3 +208,93 @@ flowchart LR
 | 幂等键 | `newapi:{log_id}` |
 | `members` | TokenJoy 成员，非 NewAPI user |
 | `personalQuota` | 走 `MemberBudgetQuota` API，不在 Member JSON |
+
+---
+
+## 8. 消耗与额度术语
+
+代码里 `consumed` / `used` / `quota` / `budget` 并存，**语义可统一为三个概念**；下列为文档与评审的**标准读法**（不要求改字段名）。
+
+### 8.1 三个统一概念
+
+| 统一词 | 含义 | 典型计算 |
+| --- | --- | --- |
+| **limit**（上限） | 管理员配置的本周期可花额度 | 控制台写入 |
+| **consumed**（已消耗） | 本周期已累计花费（CNY） | Ingest 累加 |
+| **remaining**（剩余） | 还能花多少 | `limit - consumed`（多为 API 计算，少落库） |
+
+```mermaid
+flowchart LR
+  subgraph assign [配置 limit]
+    OB[org_nodes.budget]
+    PQ[members.personal_quota]
+    BG[budget_groups.budget]
+    PKQ[platform_keys.quota]
+    WAL[NewAPI users.quota]
+  end
+
+  subgraph spend [累计 consumed]
+    BS[(budget_snapshots.consumed)]
+    UL[(usage_ledger.amount_cny)]
+  end
+
+  subgraph api [JSON 展示]
+    C[consumed]
+    U[used]
+    R[remaining / remain]
+  end
+
+  ING[Ingest] --> BS & UL
+  BS --> C & U
+  assign --> R
+  BS --> R
+```
+
+### 8.2 两条轴（limit 归属不同）
+
+| 轴 | limit 权威源 | consumed 权威源 | 交汇点 |
+| --- | --- | --- | --- |
+| **企业钱包** | NewAPI `users.quota` | NewAPI 侧扣减（非 Postgres 主账） | rebalance 给 Token 分 `remain_quota` |
+| **组织预算** | `org_nodes.budget` · `personal_quota` · `budget_groups.budget` · `platform_keys.quota` | **`budget_snapshots.consumed`**（四轴） | Gateway 预检、预算树、Overrun |
+
+组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount_cny`。
+
+### 8.3 字段对照（代码名 → 统一词）
+
+| 统一词 | 代码 / 表字段 | 实体 | 说明 |
+| --- | --- | --- | --- |
+| **limit** | `org_nodes.budget` | 部门节点 | 组织树分配额 |
+| **limit** | `members.personal_quota` | 成员 | 个人可分配上限 |
+| **limit** | `budget_groups.budget` | 预算组 | 池额度 |
+| **limit** | `platform_keys.quota` | 平台 Key | Key 分配额 |
+| **limit** | NewAPI `users.quota` | 企业钱包 | 预付资金硬顶 |
+| **limit** | NewAPI `remain_quota` / `relay_mappings.newapi_token_remain_quota` | Token | Relay 侧剩余额度（分配视图，非组织 consumed） |
+| **consumed** | `budget_snapshots.consumed` | 四轴 | **组织轴 consumed SSOT** |
+| **consumed** | `usage_ledger.amount_cny` | 单笔调用 | 事实账本 |
+| **consumed** | `usage_buckets.cost_cny` | 看板聚合 | 展示投影 |
+| **consumed** | JSON `consumed` | `BudgetNode` · `Department` · 看板 | 读自 snapshot |
+| **consumed** | JSON `used` | `PlatformKey` · `MemberBudgetQuota` | **与 consumed 同义**，仅 JSON 名不同 |
+| **remaining** | JSON `remaining` / `remain` | `MemberQuotaSummary` 等 | 计算字段 |
+| **remaining** | NewAPI `remain_quota` | Token | Relay 配额，受钱包 rebalance 封顶 |
+
+### 8.4 读代码速查
+
+| 看到 | 统一读作 | 备注 |
+| --- | --- | --- |
+| `used` | **consumed** | 仅 Platform Key / 成员额度 API 用 `used` 字段名 |
+| `quota`（`platform_keys`） | **limit** | Key 分配上限 |
+| `quota`（NewAPI user） | **limit**（钱包轴） | 与企业组织 budget 独立 |
+| `remain_quota` | **remaining**（Token） | 不是 Postgres consumed |
+| `budget` | **limit** | 部门/预算组语境 |
+| `personalQuota` | **limit**（成员） | 不在 `Member` JSON，走专用 API |
+| `amount_cny` / `cost_cny` | **consumed**（增量/聚合） | 账本与看板 |
+
+### 8.5 不在此表内的词
+
+| 字段 | 原因 |
+| --- | --- |
+| `provider_keys.balance` | 上游供应商余额，与组织预算轴无关 |
+| `usage_ledger` 的 `input_tokens` / `output_tokens` | 用量计数，不是金额额度 |
+| `reserved_pool` | 预留池配置，不是 consumed |
+
+算法与入账顺序见 [Backend-预算.md](./Backend-预算.md) §1–§2。CNY 与 NewAPI quota、token 数的区别见 [Backend-计费单位.md](./Backend-计费单位.md)。
