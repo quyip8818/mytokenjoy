@@ -16,7 +16,6 @@ type ModelInfo struct {
 	Type         string   `json:"type"`
 	Name         string   `json:"name"`
 	Description  string   `json:"description"`
-	Visibility   string   `json:"visibility"`
 	Endpoint     *string  `json:"endpoint,omitempty"`
 	InputPrice   float64  `json:"inputPrice"`
 	OutputPrice  float64  `json:"outputPrice"`
@@ -66,7 +65,6 @@ type UpdateModelInput struct {
 	Name         *string  `json:"name"`
 	Type         *string  `json:"type"`
 	Description  *string  `json:"description"`
-	Visibility   *string  `json:"visibility"`
 	Endpoint     *string  `json:"endpoint"`
 	InputPrice   *float64 `json:"inputPrice"`
 	OutputPrice  *float64 `json:"outputPrice"`

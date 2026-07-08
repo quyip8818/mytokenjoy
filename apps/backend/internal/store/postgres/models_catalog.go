@@ -1,7 +1,7 @@
 package postgres
 
 const modelSelectColumns = `
-	model_id, company_id, provider, type, name, description, visibility, endpoint,
+	model_id, company_id, provider, type, name, description, endpoint,
 	input_price, output_price, max_context, enabled`
 
 type modelCatalog struct {

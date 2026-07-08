@@ -62,7 +62,6 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		Type:         input.Type,
 		Name:         name,
 		Description:  "",
-		Visibility:   "all",
 		Endpoint:     &input.BaseURL,
 		InputPrice:   input.InputPrice,
 		OutputPrice:  input.OutputPrice,
@@ -103,9 +102,6 @@ func (s *service) UpdateModel(ctx context.Context, id string, input types.Update
 	}
 	if input.Description != nil {
 		existing.Description = *input.Description
-	}
-	if input.Visibility != nil {
-		existing.Visibility = *input.Visibility
 	}
 	if input.Endpoint != nil && existing.IsCustom() {
 		existing.Endpoint = input.Endpoint

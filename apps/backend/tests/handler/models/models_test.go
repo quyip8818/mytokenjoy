@@ -81,13 +81,13 @@ func TestModelListHTTP(t *testing.T) {
 	}
 	found := false
 	for _, model := range models {
-		if model.Provider != "" && model.Visibility != "" {
+		if model.Provider != "" && model.Type != "" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("expected models with type and visibility, got %+v", models[0])
+		t.Fatalf("expected models with type and provider, got %+v", models[0])
 	}
 }
 
@@ -108,7 +108,7 @@ func TestModelUpdateHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updateBody := []byte(`{"name":"Edited","description":"test desc","visibility":"department","endpoint":"http://llm.new"}`)
+	updateBody := []byte(`{"name":"Edited","description":"test desc","endpoint":"http://llm.new"}`)
 	updateReq := httptest.NewRequest(http.MethodPut, "/api/models/"+strconv.FormatInt(created.ModelID, 10), bytes.NewReader(updateBody))
 	updateReq.Header.Set("Content-Type", "application/json")
 	updateReq.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -121,7 +121,7 @@ func TestModelUpdateHTTP(t *testing.T) {
 	if err := json.NewDecoder(updateRec.Body).Decode(&updated); err != nil {
 		t.Fatal(err)
 	}
-	if updated.Name != "Edited" || updated.Description != "test desc" || updated.Visibility != "department" {
+	if updated.Name != "Edited" || updated.Description != "test desc" {
 		t.Fatalf("unexpected update fields: %+v", updated)
 	}
 	if updated.Endpoint == nil || *updated.Endpoint != "http://llm.new" {

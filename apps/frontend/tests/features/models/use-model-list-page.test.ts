@@ -12,7 +12,6 @@ describe('useModelListPage', () => {
         name: 'GPT-4o',
         provider: 'openai',
         description: '',
-        visibility: 'all' as const,
         inputPrice: 0,
         outputPrice: 0,
         maxContext: 0,

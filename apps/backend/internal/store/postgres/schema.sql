@@ -87,7 +87,6 @@ CREATE TABLE IF NOT EXISTS models (
     type         TEXT NOT NULL,
     name         TEXT NOT NULL,
     description  TEXT NOT NULL DEFAULT '',
-    visibility   TEXT NOT NULL DEFAULT 'all',
     endpoint     TEXT,
     input_price  NUMERIC(18, 8) NOT NULL DEFAULT 0,
     output_price NUMERIC(18, 8) NOT NULL DEFAULT 0,

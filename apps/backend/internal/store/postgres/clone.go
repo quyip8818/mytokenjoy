@@ -140,7 +140,7 @@ func cloneModels(items []types.ModelInfo) []types.ModelInfo {
 		cloned := types.ModelInfo{
 			ModelID: model.ModelID, CompanyID: model.CompanyID, Provider: model.Provider, Type: model.Type,
 			Name: model.Name, Description: model.Description,
-			Visibility: model.Visibility, InputPrice: model.InputPrice,
+			InputPrice:  model.InputPrice,
 			OutputPrice: model.OutputPrice, MaxContext: model.MaxContext, Enabled: model.Enabled,
 			Capabilities: append([]string{}, model.Capabilities...),
 		}

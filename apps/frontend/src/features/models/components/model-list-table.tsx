@@ -13,12 +13,6 @@ import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PROVIDER_LABELS } from '@/lib/provider-labels'
 
-const VISIBILITY_LABELS: Record<string, string> = {
-  all: '全员可见',
-  department: '部门可见',
-  custom: '自定义',
-}
-
 interface ModelListTableProps {
   models: ModelInfo[]
   canManage: boolean
@@ -55,9 +49,6 @@ export function ModelListTable({
             描述
           </TableHead>
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            可见范围
-          </TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
             部署地址
           </TableHead>
           {showActions && canManage && (
@@ -82,9 +73,6 @@ export function ModelListTable({
             </TableCell>
             <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
               {model.description || '—'}
-            </TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {VISIBILITY_LABELS[model.visibility] ?? model.visibility}
             </TableCell>
             <TableCell className="max-w-xs truncate font-mono text-xs text-muted-foreground">
               {isCustomModel(model) ? (model.endpoint ?? '—') : '—'}

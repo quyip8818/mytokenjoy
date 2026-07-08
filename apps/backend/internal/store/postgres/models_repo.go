@@ -96,18 +96,15 @@ func (r *pgModelsRepo) ModelByIDs(ctx context.Context, modelIDs []int64) ([]type
 
 func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error) {
 	companyID := store.CompanyID(ctx)
-	if model.Visibility == "" {
-		return types.ModelInfo{}, fmt.Errorf("model visibility is required")
-	}
 	var modelID int64
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO models (
-			company_id, provider, type, name, description, visibility, endpoint,
+			company_id, provider, type, name, description, endpoint,
 			input_price, output_price, max_context, enabled, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
 		RETURNING model_id
 	`, companyID, model.Provider, model.Type, model.Name,
-		model.Description, model.Visibility, model.Endpoint,
+		model.Description, model.Endpoint,
 		model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled).Scan(&modelID)
 	if err != nil {
 		return types.ModelInfo{}, fmt.Errorf("insert model: %w", err)
@@ -128,16 +125,15 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			type = $4,
 			name = $5,
 			description = $6,
-			visibility = $7,
-			endpoint = $8,
-			input_price = $9,
-			output_price = $10,
-			max_context = $11,
-			enabled = $12,
+			endpoint = $7,
+			input_price = $8,
+			output_price = $9,
+			max_context = $10,
+			enabled = $11,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
 	`, model.ModelID, companyID, model.Provider, model.Type, model.Name,
-		model.Description, model.Visibility, model.Endpoint,
+		model.Description, model.Endpoint,
 		model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled)
 	if err != nil {
 		return fmt.Errorf("update model %d: %w", model.ModelID, err)
@@ -290,7 +286,7 @@ func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
 	var item types.ModelInfo
 	err := rows.Scan(
 		&item.ModelID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
-		&item.Description, &item.Visibility, &item.Endpoint,
+		&item.Description, &item.Endpoint,
 		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.Enabled,
 	)
 	return item, err
@@ -300,7 +296,7 @@ func scanModelQueryRow(row scannable) (*types.ModelInfo, error) {
 	var item types.ModelInfo
 	err := row.Scan(
 		&item.ModelID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
-		&item.Description, &item.Visibility, &item.Endpoint,
+		&item.Description, &item.Endpoint,
 		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.Enabled,
 	)
 	if err == pgx.ErrNoRows {

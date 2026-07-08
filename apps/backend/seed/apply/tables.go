@@ -464,12 +464,12 @@ func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models [
 		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO models (
-				model_id, company_id, provider, type, name, description, visibility, endpoint,
+				model_id, company_id, provider, type, name, description, endpoint,
 				input_price, output_price, max_context, enabled
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (model_id) DO NOTHING
 		`, model.ModelID, companyID, model.Provider, model.Type, model.Name,
-			model.Description, model.Visibility, model.Endpoint,
+			model.Description, model.Endpoint,
 			model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled); err != nil {
 			return err
 		}

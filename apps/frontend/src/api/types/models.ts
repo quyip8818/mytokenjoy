@@ -1,7 +1,5 @@
 import type { ProviderType } from './keys'
 
-export type ModelVisibility = 'all' | 'department' | 'custom'
-
 export const CUSTOM_MODEL_PROVIDER: ProviderType = 'custom'
 
 export interface ModelInfo {
@@ -10,7 +8,6 @@ export interface ModelInfo {
   type: string
   name: string
   description: string
-  visibility: ModelVisibility
   endpoint?: string
   inputPrice: number
   outputPrice: number
@@ -43,7 +40,6 @@ export interface UpdateModelInput {
   name?: string
   type?: string
   description?: string
-  visibility?: ModelVisibility
   endpoint?: string
   inputPrice?: number
   outputPrice?: number
