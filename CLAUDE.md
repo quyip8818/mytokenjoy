@@ -10,6 +10,7 @@ All commands run from the repo root (pnpm workspace, `pnpm@11.9.0`):
 # Full-stack
 pnpm start              # Backend + frontend together (waits for backend healthz)
 pnpm verify             # Full CI check: lint + test + build
+pnpm generate:permissions  # Regenerate permission keys from packages/contracts manifest
 
 # Frontend (apps/frontend)
 pnpm -F @tokenjoy/frontend start     # Vite dev server
@@ -38,7 +39,11 @@ pnpm gate:verify        # End-to-end relay verification
 
 ## Architecture
 
-pnpm monorepo with three apps under `apps/`:
+pnpm monorepo with apps under `apps/` and shared contracts under `packages/`:
+
+### Contracts (`packages/contracts/`)
+
+Cross-app JSON contracts and codegen. Permission manifest: `permission/manifest.json` → `pnpm generate:permissions` → backend `keys.go` + frontend `permission-keys.ts`.
 
 ### Frontend (`apps/frontend/`)
 

@@ -10,6 +10,7 @@
     "start:postgres": "docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
     "start:frontend": "wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm -F @tokenjoy/frontend start",
     "start:relay": "docker compose -f apps/newapi/docker-compose.yml up",
+    "generate:permissions": "pnpm -F @tokenjoy/contracts generate",
     "gate:verify": "apps/newapi/scripts/gate-verify.sh",
     "build": "pnpm -F @tokenjoy/frontend build",
     "lint": "pnpm -r --parallel lint",

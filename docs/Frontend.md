@@ -268,7 +268,7 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.2.4 权限 Key
 
-由 **`manifest.json` 生成** [`permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)（目标态）。完整表见 [权限管理.md](./权限管理.md) §14.1。
+由 **`packages/contracts/permission/manifest.json`** 生成 [`permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)。完整表见 [权限管理.md](./权限管理.md) §14.1。
 
 ---
 

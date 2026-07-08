@@ -340,7 +340,7 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | `deptId`         | dashboard 钻取 query/path      |
 | `RoutingRule.id` | = `nodeId`                     |
 
-权限 key 以 [`manifest.json`](../apps/backend/internal/infra/permission/manifest.json) 为唯一真相（目标态）；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
+权限 key 以 [`manifest.json`](../packages/contracts/permission/manifest.json) 为唯一真相；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
 
 存储侧字段语义见 [Backend-存储架构.md](./Backend-存储架构.md) §6。
 
