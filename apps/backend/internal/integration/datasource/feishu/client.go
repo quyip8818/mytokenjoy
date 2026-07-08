@@ -190,6 +190,14 @@ func (c *Client) ListDepartments(ctx context.Context) ([]Department, error) {
 			pageToken = page.PageToken
 		}
 	}
+	// If no sub-departments exist, include root so members in root dept can be imported
+	if len(result) == 0 {
+		result = append(result, Department{
+			ExternalID:       RootDepartmentExternalID,
+			Name:             "全员",
+			ParentExternalID: "",
+		})
+	}
 	return result, nil
 }
 
