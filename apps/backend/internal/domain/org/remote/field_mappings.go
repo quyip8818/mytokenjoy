@@ -8,6 +8,31 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
+var defaultFieldMappings = map[types.Platform][]types.FieldMapping{
+	types.PlatformFeishu: {
+		{SourceField: "name", SourceLabel: "姓名", TargetField: "name", Required: true},
+		{SourceField: "mobile", SourceLabel: "手机号", TargetField: "phone", Required: true},
+		{SourceField: "email", SourceLabel: "邮箱", TargetField: "email", Required: false},
+		{SourceField: "department_id", SourceLabel: "部门 ID", TargetField: "departmentId", Required: true},
+		{SourceField: "user_id", SourceLabel: "用户 ID", TargetField: "_ignore", Required: false},
+		{SourceField: "status", SourceLabel: "状态", TargetField: "status", Required: false},
+	},
+	types.PlatformDingtalk: {
+		{SourceField: "name", SourceLabel: "姓名", TargetField: "name", Required: true},
+		{SourceField: "mobile", SourceLabel: "手机号", TargetField: "phone", Required: true},
+		{SourceField: "email", SourceLabel: "邮箱", TargetField: "email", Required: false},
+		{SourceField: "dept_id", SourceLabel: "部门 ID", TargetField: "departmentId", Required: true},
+		{SourceField: "userid", SourceLabel: "用户 ID", TargetField: "_ignore", Required: false},
+	},
+	types.PlatformWecom: {
+		{SourceField: "name", SourceLabel: "姓名", TargetField: "name", Required: true},
+		{SourceField: "mobile", SourceLabel: "手机号", TargetField: "phone", Required: true},
+		{SourceField: "email", SourceLabel: "邮箱", TargetField: "email", Required: false},
+		{SourceField: "department", SourceLabel: "部门 ID", TargetField: "departmentId", Required: true},
+		{SourceField: "userid", SourceLabel: "用户 ID", TargetField: "_ignore", Required: false},
+	},
+}
+
 func parsePlatform(platform string) (types.Platform, error) {
 	switch types.Platform(platform) {
 	case types.PlatformFeishu, types.PlatformDingtalk, types.PlatformWecom:
@@ -32,6 +57,12 @@ func (s *Service) GetFieldMappings(ctx context.Context, platform string) ([]type
 	mappings, err := s.d.Store.Org().FieldMappings(ctx)
 	if err != nil {
 		return nil, err
+	}
+	// Return platform defaults if no custom mappings are stored
+	if len(mappings) == 0 {
+		if defaults, ok := defaultFieldMappings[p]; ok {
+			return defaults, nil
+		}
 	}
 	return append([]types.FieldMapping{}, mappings...), nil
 }
