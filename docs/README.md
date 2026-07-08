@@ -13,6 +13,8 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [Backend-测试优化.md](./Backend-测试优化.md)           | 后端               | 测试架构：PostgreSQL + per-schema 隔离（已完成） |
 | [Backend-架构.md](./Backend-架构.md)                   | 后端 / 架构        | 分层、请求链、Relay、看板读路径                  |
 | [Backend-存储架构.md](./Backend-存储架构.md)           | 后端 / DBA         | 双库 35+3 表、域关系、核心实体、Store 与 ID 约定 |
+| [Backend-模型目录实现.md](./Backend-模型目录实现.md)   | 后端 / 架构        | `models` 同表双角色、并集读取；全局内置对租户永远存在、不可禁用 |
+| [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 后端 / 架构 | 模型目录全量最优改造：modelId 统一配置面、分 5 阶段 PR |
 | [Backend-预算.md](./Backend-预算.md)                   | 后端 / 计费        | 双轴、Ingest、Rebalance、Overrun                 |
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调        | NewAPI 入账方案 B 架构现状                       |
 | [权限管理.md](./权限管理.md)                           | 后端 / 前端 / 架构 | Identity JWT + PDP 实现与验收 Gate               |

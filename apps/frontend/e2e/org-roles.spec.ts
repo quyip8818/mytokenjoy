@@ -232,7 +232,9 @@ test.describe('角色管理 - 成员管理', () => {
     // 尝试给超级管理员角色添加成员应该被拒绝
     const result = await page.evaluate(async () => {
       // 获取一个普通成员ID
-      const membersRes = await fetch('/api/org/members?page=1&pageSize=5', { credentials: 'include' })
+      const membersRes = await fetch('/api/org/members?page=1&pageSize=5', {
+        credentials: 'include',
+      })
       const members = await membersRes.json()
       const target = members.items.find((m: { id: string }) => m.id !== 'm-admin')
       if (!target) return { status: 0, skipped: true }
@@ -349,15 +351,18 @@ test.describe('角色管理 - API 数据校验', () => {
     const roleId = createRes.data.id
 
     // 更新
-    const updateRes = await page.evaluate(async ({ id, name }) => {
-      const res = await fetch(`/api/org/roles/${id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name + '-updated', permissions: ['p-1', 'p-3'] }),
-      })
-      return { status: res.status, data: await res.json() }
-    }, { id: roleId, name: roleName })
+    const updateRes = await page.evaluate(
+      async ({ id, name }) => {
+        const res = await fetch(`/api/org/roles/${id}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name + '-updated', permissions: ['p-1', 'p-3'] }),
+        })
+        return { status: res.status, data: await res.json() }
+      },
+      { id: roleId, name: roleName },
+    )
 
     expect(updateRes.status).toBe(200)
     expect(updateRes.data.name).toBe(roleName + '-updated')

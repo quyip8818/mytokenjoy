@@ -1,4 +1,5 @@
 import type { ModelInfo } from '@/api/types'
+import { isCustomModel } from '../lib/model-kind'
 import {
   Table,
   TableBody,
@@ -22,7 +23,7 @@ interface ModelListTableProps {
   models: ModelInfo[]
   canManage: boolean
   showActions?: boolean
-  rowClass: (id: string) => string | undefined
+  rowClass: (id: string | number) => string | undefined
   onToggle: (model: ModelInfo) => void
   onEdit: (model: ModelInfo) => void
   onDelete: (model: ModelInfo) => void
@@ -45,10 +46,10 @@ export function ModelListTable({
             模型名称
           </TableHead>
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            模型 ID
+            模型类型
           </TableHead>
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            模型类型
+            来源
           </TableHead>
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
             描述
@@ -69,14 +70,14 @@ export function ModelListTable({
       <TableBody>
         {models.map((model) => (
           <TableRow
-            key={model.id}
-            className={`even:bg-muted/40 ${rowClass(model.id)} ${!model.enabled ? 'opacity-50' : ''}`}
+            key={model.modelId}
+            className={`even:bg-muted/40 ${rowClass(model.modelId)} ${!model.enabled ? 'opacity-50' : ''}`}
           >
-            <TableCell className="font-medium">{model.displayName}</TableCell>
-            <TableCell className="font-mono text-xs text-muted-foreground">{model.name}</TableCell>
+            <TableCell className="font-medium">{model.name}</TableCell>
+            <TableCell className="font-mono text-xs text-muted-foreground">{model.type}</TableCell>
             <TableCell>
               <Badge variant="outline" className="border-0 bg-muted text-xs">
-                {model.type === 'builtin' ? '内置' : (PROVIDER_LABELS[model.provider] ?? '自定义')}
+                {isCustomModel(model) ? (PROVIDER_LABELS[model.provider] ?? '自定义') : '内置'}
               </Badge>
             </TableCell>
             <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
@@ -86,12 +87,12 @@ export function ModelListTable({
               {VISIBILITY_LABELS[model.visibility] ?? model.visibility}
             </TableCell>
             <TableCell className="max-w-xs truncate font-mono text-xs text-muted-foreground">
-              {model.type === 'custom' ? (model.endpoint ?? '—') : '—'}
+              {isCustomModel(model) ? (model.endpoint ?? '—') : '—'}
             </TableCell>
             {showActions && canManage && (
               <TableCell>
                 <div className="flex items-center gap-2">
-                  {model.type === 'custom' && (
+                  {isCustomModel(model) && (
                     <>
                       <Button
                         variant="ghost"
@@ -109,13 +110,23 @@ export function ModelListTable({
                       >
                         删除
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => onToggle(model)}
+                      >
+                        <StatusBadge variant={model.enabled ? 'success' : 'neutral'}>
+                          {model.enabled ? '启用' : '禁用'}
+                        </StatusBadge>
+                      </Button>
                     </>
                   )}
-                  <Button variant="ghost" size="sm" className="h-8" onClick={() => onToggle(model)}>
+                  {!isCustomModel(model) && (
                     <StatusBadge variant={model.enabled ? 'success' : 'neutral'}>
                       {model.enabled ? '启用' : '禁用'}
                     </StatusBadge>
-                  </Button>
+                  )}
                 </div>
               </TableCell>
             )}

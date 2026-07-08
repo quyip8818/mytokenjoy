@@ -57,7 +57,6 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 		t.Fatal(err)
 	}
 	memberID := contract.IDMember1
-	model := findModel(models, "gpt-4o")
 	member := findMember(members, contract.IDMember1)
 	key := findPlatformKey(keys, contract.IDPlatformKey1)
 	entry, err := domainusage.BuildCallSettledEntry(domainusage.EntryBuildInput{
@@ -71,7 +70,7 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 			DepartmentID:  contract.IDDept3,
 		},
 		Source:      types.SourceWebhook,
-		Model:       model,
+		Catalog:     models,
 		Settings:    types.AuditSettings{ContentRetentionEnabled: false},
 		Member:      member,
 		PlatformKey: key,
@@ -94,7 +93,7 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 			DepartmentID:  contract.IDDept3,
 		},
 		Source:      types.SourceWebhook,
-		Model:       model,
+		Catalog:     models,
 		Settings:    types.AuditSettings{ContentRetentionEnabled: true},
 		Member:      member,
 		PlatformKey: key,
@@ -111,15 +110,6 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 	if entry.CallDetail.LatencyMs != 120 {
 		t.Fatalf("unexpected latency %v", entry.CallDetail.LatencyMs)
 	}
-}
-
-func findModel(models []types.ModelInfo, name string) *types.ModelInfo {
-	for i := range models {
-		if models[i].Name == name {
-			return &models[i]
-		}
-	}
-	return nil
 }
 
 func findMember(members []types.Member, id string) *types.Member {

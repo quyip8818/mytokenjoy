@@ -10,6 +10,14 @@ import (
 )
 
 func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO companies (id, slug, name, status)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id) DO NOTHING
+	`, cfg.TokenJoyCompanyID, "tokenjoy", "TokenJoy", store.CompanyStatusActive); err != nil {
+		return fmt.Errorf("bootstrap tokenjoy company: %w", err)
+	}
+
 	companyID := cfg.DefaultCompanyID
 	name := cfg.ResolvedCompanyName()
 	if _, err := pool.Exec(ctx, `
@@ -19,5 +27,35 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 	`, companyID, config.DefaultCompanySlug, name, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("bootstrap company: %w", err)
 	}
+	return validateCompanyIDsForMode(ctx, pool, cfg)
+}
+
+func validateCompanyIDsForMode(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
+	if cfg.SupportSaas {
+		return nil
+	}
+	rows, err := pool.Query(ctx, `
+		SELECT id FROM companies WHERE id <> $1 AND id >= $2
+	`, cfg.TokenJoyCompanyID, saasMinCompanyID)
+	if err != nil {
+		return fmt.Errorf("validate company ids: %w", err)
+	}
+	defer rows.Close()
+	var invalid []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		invalid = append(invalid, id)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if len(invalid) > 0 {
+		return fmt.Errorf("SUPPORT_SAAS=false but found SaaS-range company ids: %v", invalid)
+	}
 	return nil
 }
+
+const saasMinCompanyID int64 = 1_000_000

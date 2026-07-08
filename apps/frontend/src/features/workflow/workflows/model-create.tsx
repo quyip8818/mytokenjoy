@@ -16,7 +16,8 @@ export function ModelCreateWorkflow({
 }: WorkflowComponentProps<'model-create'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
+  const onSuccess = entry.payload.onSuccess as ((id?: string | number) => void) | undefined
+  const [callType, setCallType] = useState('')
   const [name, setName] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [inputPrice, setInputPrice] = useState('10')
@@ -24,18 +25,18 @@ export function ModelCreateWorkflow({
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async () => {
-    if (!name.trim() || !baseUrl.trim()) return
+    if (!callType.trim() || !name.trim() || !baseUrl.trim()) return
     setSubmitting(true)
     try {
       const created = await apis.modelApi.create({
+        type: callType.trim(),
         name: name.trim(),
-        displayName: name.trim(),
         baseUrl: baseUrl.trim(),
         inputPrice: Number(inputPrice),
         outputPrice: Number(outputPrice),
       })
       toast.success('模型已添加')
-      onSuccess?.(created.id)
+      onSuccess?.(created.modelId)
       closeAll()
     } catch (err) {
       toast.error(workflowErrorMessage(err, '添加失败'))
@@ -53,20 +54,31 @@ export function ModelCreateWorkflow({
           onCancel={onClose}
           primaryLabel={submitting ? '保存中...' : '保存'}
           onPrimary={handleSubmit}
-          primaryDisabled={!name.trim() || !baseUrl.trim() || submitting}
+          primaryDisabled={!callType.trim() || !name.trim() || !baseUrl.trim() || submitting}
         />
       }
     >
       <WorkflowFormLayout>
         <div className="space-y-1.5">
-          <Label>模型名称</Label>
+          <Label>调用标识 (callType)</Label>
+          <Input
+            value={callType}
+            onChange={(e) => {
+              setCallType(e.target.value)
+              onSetDirty(true)
+            }}
+            placeholder="my-custom-model"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>展示名称</Label>
           <Input
             value={name}
             onChange={(e) => {
               setName(e.target.value)
               onSetDirty(true)
             }}
-            placeholder="my-custom-model"
+            placeholder="My Custom Model"
           />
         </div>
         <div className="space-y-1.5">
@@ -82,7 +94,7 @@ export function ModelCreateWorkflow({
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label>输入价格 (¥/1M)</Label>
+            <Label>输入单价 (¥/M tokens)</Label>
             <Input
               type="number"
               value={inputPrice}
@@ -93,7 +105,7 @@ export function ModelCreateWorkflow({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>输出价格 (¥/1M)</Label>
+            <Label>输出单价 (¥/M tokens)</Label>
             <Input
               type="number"
               value={outputPrice}

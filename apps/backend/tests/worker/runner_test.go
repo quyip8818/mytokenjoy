@@ -53,7 +53,7 @@ func TestProcessRelayOutbox(t *testing.T) {
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
 		ID: "plk-worker", Name: "worker-key", MemberID: &memberID,
-		Status: "active", Quota: 1000, ModelWhitelist: []string{"gpt-4o"},
+		Status: "active", Quota: 1000, ModelWhitelist: []int64{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(testutil.Ctx())

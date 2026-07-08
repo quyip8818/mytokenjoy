@@ -9,6 +9,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/features/workflow'
 import { PERMISSION } from '@/lib/permissions'
+import { isCustomModel, matchesModelListTab } from '../lib/model-kind'
 
 export type ModelListTab = 'all' | 'custom' | 'builtin'
 
@@ -38,24 +39,23 @@ export function useModelListPage(injectedApis?: AppApis) {
   })
 
   const filteredModels = useMemo(() => {
-    if (tab === 'all') return models
-    return models.filter((model) => model.type === tab)
+    return models.filter((model) => matchesModelListTab(model, tab))
   }, [models, tab])
 
   const counts = useMemo(
     () => ({
       all: models.length,
-      custom: models.filter((model) => model.type === 'custom').length,
-      builtin: models.filter((model) => model.type === 'builtin').length,
+      custom: models.filter((model) => isCustomModel(model)).length,
+      builtin: models.filter((model) => !isCustomModel(model)).length,
     }),
     [models],
   )
 
   const handleToggle = useCallback(
     async (model: ModelInfo) => {
-      await apis.modelApi.toggle(model.id, !model.enabled)
+      await apis.modelApi.toggle(model.modelId, !model.enabled)
       toast.success(model.enabled ? '模型已禁用' : '模型已启用')
-      flashRow(model.id)
+      flashRow(model.modelId)
       void refresh()
     },
     [apis, flashRow, refresh],
@@ -63,9 +63,9 @@ export function useModelListPage(injectedApis?: AppApis) {
 
   const handleDelete = useCallback(
     async (model: ModelInfo) => {
-      await apis.modelApi.delete(model.id)
+      await apis.modelApi.delete(model.modelId)
       toast.success('模型已删除')
-      flashRow(model.id)
+      flashRow(model.modelId)
       void refresh()
     },
     [apis, flashRow, refresh],

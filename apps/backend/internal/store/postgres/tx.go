@@ -82,7 +82,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	defer tx.Rollback(ctx)
 
 	txView := &txStore{
-		domain:          newDomainRepoSet(tx),
+		domain:          newDomainRepoSet(tx, s.tokenJoyCompanyID),
 		ledger:          &pgLedgerRepo{db: tx},
 		relay:           newRelayRepo(tx),
 		budgetSnapshots: newBudgetSnapshotRepo(tx),

@@ -1,11 +1,20 @@
 package types
 
+const (
+	ProviderCustom     = "custom"
+	modelCatalogKeySep = "\x1f"
+)
+
+func ModelCatalogKey(provider, modelType string) string {
+	return provider + modelCatalogKeySep + modelType
+}
+
 type ModelInfo struct {
-	ID           string   `json:"id"`
+	ModelID      int64    `json:"modelId"`
+	CompanyID    int64    `json:"-"`
 	Provider     string   `json:"provider"`
-	Name         string   `json:"name"`
-	DisplayName  string   `json:"displayName"`
 	Type         string   `json:"type"`
+	Name         string   `json:"name"`
 	Description  string   `json:"description"`
 	Visibility   string   `json:"visibility"`
 	Endpoint     *string  `json:"endpoint,omitempty"`
@@ -16,19 +25,34 @@ type ModelInfo struct {
 	Capabilities []string `json:"capabilities"`
 }
 
+func (m ModelInfo) IsCustom() bool {
+	return m.Provider == ProviderCustom
+}
+
+type ModelRef struct {
+	ModelID  int64  `json:"modelId"`
+	Type     string `json:"type"`
+	Name     string `json:"name"`
+	Provider string `json:"provider"`
+	Enabled  bool   `json:"enabled"`
+}
+
 type RoutingRule struct {
-	ID            string   `json:"id"`
-	NodeID        string   `json:"nodeId"`
-	NodeName      string   `json:"nodeName"`
-	AllowedModels []string `json:"allowedModels"`
-	DefaultModel  *string  `json:"defaultModel"`
-	FallbackModel *string  `json:"fallbackModel"`
-	Inherited     bool     `json:"inherited"`
+	ID              string     `json:"id"`
+	NodeID          string     `json:"nodeId"`
+	NodeName        string     `json:"nodeName"`
+	AllowedModelIds []int64    `json:"allowedModelIds"`
+	DefaultModelId  *int64     `json:"defaultModelId"`
+	FallbackModelId *int64     `json:"fallbackModelId"`
+	Inherited       bool       `json:"inherited"`
+	AllowedModels   []ModelRef `json:"allowedModels,omitempty"`
+	DefaultModel    *ModelRef  `json:"defaultModel,omitempty"`
+	FallbackModel   *ModelRef  `json:"fallbackModel,omitempty"`
 }
 
 type CreateModelInput struct {
+	Type        string  `json:"type"`
 	Name        string  `json:"name"`
-	DisplayName string  `json:"displayName"`
 	BaseURL     string  `json:"baseUrl"`
 	InputPrice  float64 `json:"inputPrice"`
 	OutputPrice float64 `json:"outputPrice"`
@@ -39,8 +63,8 @@ type ToggleModelInput struct {
 }
 
 type UpdateModelInput struct {
-	DisplayName  *string  `json:"displayName"`
 	Name         *string  `json:"name"`
+	Type         *string  `json:"type"`
 	Description  *string  `json:"description"`
 	Visibility   *string  `json:"visibility"`
 	Endpoint     *string  `json:"endpoint"`
@@ -51,14 +75,15 @@ type UpdateModelInput struct {
 }
 
 type UpdateRoutingRuleInput struct {
-	AllowedModels []string `json:"allowedModels"`
-	Inherited     *bool    `json:"inherited"`
-	DefaultModel  *string  `json:"defaultModel"`
-	FallbackModel *string  `json:"fallbackModel"`
+	AllowedModelIds []int64 `json:"allowedModelIds"`
+	Inherited       *bool   `json:"inherited"`
+	DefaultModelId  *int64  `json:"defaultModelId"`
+	FallbackModelId *int64  `json:"fallbackModelId"`
 }
 
 type ResolvedWhitelist struct {
-	Inherited     bool     `json:"inherited"`
-	AllowedModels []string `json:"allowedModels"`
-	ParentCount   int      `json:"parentCount"`
+	Inherited       bool       `json:"inherited"`
+	AllowedModelIds []int64    `json:"allowedModelIds"`
+	ParentCount     int        `json:"parentCount"`
+	AllowedModels   []ModelRef `json:"allowedModels,omitempty"`
 }

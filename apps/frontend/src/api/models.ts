@@ -11,10 +11,10 @@ export const modelApi = {
   list: () => request<ModelInfo[]>('/models'),
   create: (data: CreateModelInput) =>
     request<ModelInfo>('/models', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: UpdateModelInput) =>
+  update: (id: number, data: UpdateModelInput) =>
     request<ModelInfo>(`/models/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: string) => request<void>(`/models/${id}`, { method: 'DELETE' }),
-  toggle: (id: string, enabled: boolean) =>
+  delete: (id: number) => request<void>(`/models/${id}`, { method: 'DELETE' }),
+  toggle: (id: number, enabled: boolean) =>
     request<void>(`/models/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
 }
 
@@ -23,10 +23,10 @@ export const routingApi = {
   updateRule: (
     id: string,
     data: {
-      allowedModels: string[]
+      allowedModelIds: number[]
       inherited: boolean
-      defaultModel?: string | null
-      fallbackModel?: string | null
+      defaultModelId?: number | null
+      fallbackModelId?: number | null
     },
   ) => request<RoutingRule>(`/models/routing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   resolveWhitelist: (departmentId: string) =>

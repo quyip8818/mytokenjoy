@@ -7,9 +7,7 @@ import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 describe('useAuditCallsPage', () => {
   it('loads call logs and filter options on mount', async () => {
     const logs = [{ id: 'call-1', status: 'success', model: 'gpt-4' }]
-    const models = [
-      { id: 'm1', name: 'gpt-4', displayName: 'GPT-4', provider: 'openai', enabled: true },
-    ]
+    const models = [{ modelId: 1, type: 'gpt-4', name: 'GPT-4', provider: 'openai', enabled: true }]
     const members = [
       {
         id: 'm1',

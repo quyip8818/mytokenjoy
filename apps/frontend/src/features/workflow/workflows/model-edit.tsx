@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { useInjectedApis } from '@/api/use-apis'
 import type { ModelVisibility } from '@/api/types'
+import { isCustomModel } from '@/features/models'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -32,25 +33,25 @@ export function ModelEditWorkflow({
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const model = entry.payload.model
-  const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
-  const [displayName, setDisplayName] = useState(model.displayName)
+  const onSuccess = entry.payload.onSuccess as ((id?: string | number) => void) | undefined
+  const [label, setLabel] = useState(model.name)
   const [description, setDescription] = useState(model.description)
   const [visibility, setVisibility] = useState<ModelVisibility>(model.visibility)
   const [endpoint, setEndpoint] = useState(model.endpoint ?? '')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async () => {
-    if (!displayName.trim()) return
+    if (!label.trim()) return
     setSubmitting(true)
     try {
-      await apis.modelApi.update(model.id, {
-        displayName: displayName.trim(),
+      await apis.modelApi.update(model.modelId, {
+        name: label.trim(),
         description: description.trim(),
         visibility,
-        endpoint: model.type === 'custom' ? endpoint.trim() : undefined,
+        endpoint: isCustomModel(model) ? endpoint.trim() : undefined,
       })
       toast.success('模型信息已更新')
-      onSuccess?.(model.id)
+      onSuccess?.(model.modelId)
       closeAll()
     } catch (err) {
       toast.error(workflowErrorMessage(err, '更新失败'))
@@ -68,7 +69,7 @@ export function ModelEditWorkflow({
           onCancel={onClose}
           primaryLabel={submitting ? '保存中...' : '保存'}
           onPrimary={handleSubmit}
-          primaryDisabled={!displayName.trim() || submitting}
+          primaryDisabled={!label.trim() || submitting}
         />
       }
     >
@@ -76,9 +77,9 @@ export function ModelEditWorkflow({
         <div className="space-y-1.5">
           <Label>显示名称</Label>
           <Input
-            value={displayName}
+            value={label}
             onChange={(e) => {
-              setDisplayName(e.target.value)
+              setLabel(e.target.value)
               onSetDirty(true)
             }}
           />
@@ -116,7 +117,7 @@ export function ModelEditWorkflow({
           </Select>
           <p className="text-xs text-muted-foreground">仅展示；运行时权限以 Key / 部门白名单为准</p>
         </div>
-        {model.type === 'custom' && (
+        {isCustomModel(model) && (
           <div className="space-y-1.5">
             <Label>部署地址</Label>
             <Input

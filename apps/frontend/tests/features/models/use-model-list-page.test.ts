@@ -7,11 +7,17 @@ describe('useModelListPage', () => {
   it('loads models on mount', async () => {
     const models = [
       {
-        id: 'm1',
-        name: 'gpt-4o',
+        modelId: 1,
+        type: 'gpt-4o',
+        name: 'GPT-4o',
         provider: 'openai',
+        description: '',
+        visibility: 'all' as const,
+        inputPrice: 0,
+        outputPrice: 0,
+        maxContext: 0,
         enabled: true,
-        type: 'preset' as const,
+        capabilities: [],
       },
     ]
     const apis = createMockApis({

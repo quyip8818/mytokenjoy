@@ -17,9 +17,16 @@ interface PlatformKeyTableProps {
   type: 'member' | 'project'
   rowClass: (id: string) => string
   onRevoke: (id: string) => void
+  modelLabel?: (modelId: number) => string
 }
 
-export function PlatformKeyTable({ keys, type, rowClass, onRevoke }: PlatformKeyTableProps) {
+export function PlatformKeyTable({
+  keys,
+  type,
+  rowClass,
+  onRevoke,
+  modelLabel = (id) => `#${id}`,
+}: PlatformKeyTableProps) {
   const ownerLabel = type === 'member' ? '成员' : '项目'
 
   return (
@@ -68,9 +75,9 @@ export function PlatformKeyTable({ keys, type, rowClass, onRevoke }: PlatformKey
               </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
-                  {key.modelWhitelist.slice(0, 2).map((model) => (
-                    <StatusBadge key={model} variant="info" className="text-xs">
-                      {model}
+                  {key.modelWhitelist.slice(0, 2).map((modelId) => (
+                    <StatusBadge key={modelId} variant="info" className="text-xs">
+                      {modelLabel(modelId)}
                     </StatusBadge>
                   ))}
                   {key.modelWhitelist.length > 2 && (

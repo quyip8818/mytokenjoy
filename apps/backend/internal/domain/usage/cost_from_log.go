@@ -6,8 +6,8 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func CostCNYFromLog(quota int64, modelName string, models []types.ModelInfo) float64 {
-	price := newapi.ModelPriceCNY(models, modelName)
+func CostCNYFromLog(quota int64, callType string, models []types.ModelInfo, allowedIDs []int64) float64 {
+	price := newapi.ModelPriceCNY(models, allowedIDs, callType)
 	return newapi.CostCNYFromQuota(quota, price)
 }
 

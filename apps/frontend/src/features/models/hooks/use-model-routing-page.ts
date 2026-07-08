@@ -28,7 +28,7 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
     (rule: RoutingRule) => {
       const parentId = findParentDeptId(departments, rule.nodeId)
       const parent = parentId ? rules.find((r) => r.nodeId === parentId) : undefined
-      return parent?.allowedModels.length ?? rule.allowedModels.length
+      return parent?.allowedModelIds.length ?? rule.allowedModelIds.length
     },
     [rules, departments],
   )

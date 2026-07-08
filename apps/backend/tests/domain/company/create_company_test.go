@@ -101,3 +101,43 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 		t.Fatal("expected preset roles for new company")
 	}
 }
+
+func TestCreateCompanyAllocatesSaaSMinCompanyID(t *testing.T) {
+	const saasMinCompanyID int64 = 1_000_000
+
+	cfg, st := testutil.NewTestStore(t, testutil.WithSupportSaas(true))
+	svc := company.NewService(cfg, st, nil)
+	ctx := context.Background()
+
+	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
+		Slug:            "saas-id-min",
+		Name:            "SaaS ID Min",
+		SuperAdminEmail: "admin@saas-id-min.example",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Company.ID != saasMinCompanyID {
+		t.Fatalf("expected company id=%d, got %d", saasMinCompanyID, result.Company.ID)
+	}
+}
+
+func TestCreateCompanyAllocatesNonSaasCompanyID(t *testing.T) {
+	const nonSaasNextCompanyID int64 = 3
+
+	cfg, st := testutil.NewTestStore(t)
+	svc := company.NewService(cfg, st, nil)
+	ctx := context.Background()
+
+	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
+		Slug:            "non-saas-id",
+		Name:            "Non SaaS ID",
+		SuperAdminEmail: "admin@non-saas-id.example",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Company.ID != nonSaasNextCompanyID {
+		t.Fatalf("expected company id=%d, got %d", nonSaasNextCompanyID, result.Company.ID)
+	}
+}

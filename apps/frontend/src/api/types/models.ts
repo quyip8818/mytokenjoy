@@ -1,14 +1,14 @@
 import type { ProviderType } from './keys'
 
-export type ModelType = 'builtin' | 'custom'
 export type ModelVisibility = 'all' | 'department' | 'custom'
 
+export const CUSTOM_MODEL_PROVIDER: ProviderType = 'custom'
+
 export interface ModelInfo {
-  id: string
+  modelId: number
   provider: ProviderType
+  type: string
   name: string
-  displayName: string
-  type: ModelType
   description: string
   visibility: ModelVisibility
   endpoint?: string
@@ -19,17 +19,29 @@ export interface ModelInfo {
   capabilities: string[]
 }
 
-export interface CreateModelInput {
+export function isCustomModel(model: Pick<ModelInfo, 'provider'>): boolean {
+  return model.provider === CUSTOM_MODEL_PROVIDER
+}
+
+export interface ModelRef {
+  modelId: number
+  type: string
   name: string
-  displayName: string
+  provider: ProviderType
+  enabled: boolean
+}
+
+export interface CreateModelInput {
+  type: string
+  name: string
   baseUrl: string
   inputPrice: number
   outputPrice: number
 }
 
 export interface UpdateModelInput {
-  displayName?: string
   name?: string
+  type?: string
   description?: string
   visibility?: ModelVisibility
   endpoint?: string
@@ -43,14 +55,18 @@ export interface RoutingRule {
   id: string
   nodeId: string
   nodeName: string
-  allowedModels: string[]
-  defaultModel: string | null
-  fallbackModel: string | null
+  allowedModelIds: number[]
+  defaultModelId: number | null
+  fallbackModelId: number | null
   inherited: boolean
+  allowedModels?: ModelRef[]
+  defaultModel?: ModelRef | null
+  fallbackModel?: ModelRef | null
 }
 
 export interface ResolvedWhitelist {
   inherited: boolean
-  allowedModels: string[]
+  allowedModelIds: number[]
   parentCount: number
+  allowedModels?: ModelRef[]
 }

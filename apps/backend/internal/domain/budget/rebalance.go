@@ -103,12 +103,12 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 		return err
 	}
 
-	deptAllowed := common.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
-	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
+	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
+	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	allocated := newapi.ToNewAPIUnits(
 		relay.ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, mapping.DepartmentID),
 		models,
-		effective,
+		effectiveIDs,
 	)
 	newRemain := allocated
 	if walletID := s.newAPIWalletUserID(ctx, mapping.CompanyID); walletID > 0 {

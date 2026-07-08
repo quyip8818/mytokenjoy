@@ -40,14 +40,14 @@ func budgetNodeUpdatedAt(t *testing.T, pool *pgxpool.Pool, nodeID string) time.T
 	return ts
 }
 
-func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID string) time.Time {
+func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID int64) time.Time {
 	t.Helper()
 	var ts time.Time
 	err := pool.QueryRow(context.Background(), `
-		SELECT updated_at FROM models WHERE id = $1
+		SELECT updated_at FROM models WHERE model_id = $1
 	`, modelID).Scan(&ts)
 	if err != nil {
-		t.Fatalf("read model %s updated_at: %v", modelID, err)
+		t.Fatalf("read model %d updated_at: %v", modelID, err)
 	}
 	return ts
 }
@@ -178,7 +178,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 	pool := testDBPool(t)
 	ctx := testutil.Ctx()
 
-	modelsBefore := modelUpdatedAt(t, pool, "model-1")
+	modelsBefore := modelUpdatedAt(t, pool, contract.IDModel1)
 	memberBefore := memberUpdatedAt(t, pool, contract.IDMember1)
 	budgetBefore := budgetNodeUpdatedAt(t, pool, "dept-1")
 
@@ -210,7 +210,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 
 	memberAfter := memberUpdatedAt(t, pool, contract.IDMember1)
 	budgetAfter := budgetNodeUpdatedAt(t, pool, "dept-1")
-	modelsAfter := modelUpdatedAt(t, pool, "model-1")
+	modelsAfter := modelUpdatedAt(t, pool, contract.IDModel1)
 
 	if !memberAfter.After(memberBefore) {
 		t.Fatalf("expected member updated_at to advance: before=%v after=%v", memberBefore, memberAfter)

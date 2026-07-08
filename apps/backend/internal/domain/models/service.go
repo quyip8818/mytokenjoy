@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -52,16 +53,14 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.ModelInfo{}, err
 	}
-	displayName := input.DisplayName
-	if displayName == "" {
-		displayName = input.Name
+	name := input.Name
+	if name == "" {
+		name = input.Type
 	}
 	model := types.ModelInfo{
-		ID:           fmt.Sprintf("model-%d", time.Now().UnixMilli()),
-		Provider:     "custom",
-		Name:         input.Name,
-		DisplayName:  displayName,
-		Type:         "custom",
+		Provider:     types.ProviderCustom,
+		Type:         input.Type,
+		Name:         name,
 		Description:  "",
 		Visibility:   "all",
 		Endpoint:     &input.BaseURL,
@@ -71,112 +70,110 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		Enabled:      true,
 		Capabilities: []string{"chat"},
 	}
-	models, err := s.store.Models().Models(ctx)
-	if err != nil {
+	if err := s.validateModelProviderTypeAvailable(ctx, types.ProviderCustom, input.Type); err != nil {
 		return types.ModelInfo{}, err
 	}
-	models = append(models, model)
-	if err := s.store.Models().SetModels(ctx, models); err != nil {
-		return types.ModelInfo{}, fmt.Errorf("persist models: %w", err)
+	created, err := s.store.Models().InsertModel(ctx, model)
+	if err != nil {
+		return types.ModelInfo{}, mapModelPersistError(err)
 	}
-	return model, nil
+	return created, nil
 }
 
 func (s *service) UpdateModel(ctx context.Context, id string, input types.UpdateModelInput) (types.ModelInfo, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.ModelInfo{}, err
 	}
-	models, err := s.store.Models().Models(ctx)
+	modelID, err := parseModelID(id)
+	if err != nil {
+		return types.ModelInfo{}, domain.Validation("invalid model id")
+	}
+	existing, err := s.requireTenantModel(ctx, modelID)
 	if err != nil {
 		return types.ModelInfo{}, err
 	}
-	for i := range models {
-		if models[i].ID != id {
-			continue
+	if input.Type != nil && *input.Type != existing.Type {
+		if err := s.validateModelProviderTypeAvailable(ctx, existing.Provider, *input.Type); err != nil {
+			return types.ModelInfo{}, err
 		}
-		if input.DisplayName != nil {
-			models[i].DisplayName = *input.DisplayName
-		}
-		if input.Name != nil {
-			models[i].Name = *input.Name
-		}
-		if input.Description != nil {
-			models[i].Description = *input.Description
-		}
-		if input.Visibility != nil {
-			models[i].Visibility = *input.Visibility
-		}
-		if input.Endpoint != nil && models[i].Type == "custom" {
-			models[i].Endpoint = input.Endpoint
-		}
-		if input.InputPrice != nil {
-			models[i].InputPrice = *input.InputPrice
-		}
-		if input.OutputPrice != nil {
-			models[i].OutputPrice = *input.OutputPrice
-		}
-		if input.MaxContext != nil {
-			models[i].MaxContext = *input.MaxContext
-		}
-		if input.Capabilities != nil {
-			models[i].Capabilities = append([]string{}, input.Capabilities...)
-		}
-		if err := s.store.Models().SetModels(ctx, models); err != nil {
-			return types.ModelInfo{}, fmt.Errorf("persist models: %w", err)
-		}
-		return models[i], nil
+		existing.Type = *input.Type
 	}
-	return types.ModelInfo{}, domain.NotFound("Not found")
+	if input.Name != nil {
+		existing.Name = *input.Name
+	}
+	if input.Description != nil {
+		existing.Description = *input.Description
+	}
+	if input.Visibility != nil {
+		existing.Visibility = *input.Visibility
+	}
+	if input.Endpoint != nil && existing.IsCustom() {
+		existing.Endpoint = input.Endpoint
+	}
+	if input.InputPrice != nil {
+		existing.InputPrice = *input.InputPrice
+	}
+	if input.OutputPrice != nil {
+		existing.OutputPrice = *input.OutputPrice
+	}
+	if input.MaxContext != nil {
+		existing.MaxContext = *input.MaxContext
+	}
+	if input.Capabilities != nil {
+		existing.Capabilities = append([]string{}, input.Capabilities...)
+	}
+	if err := s.store.Models().UpdateModel(ctx, *existing); err != nil {
+		return types.ModelInfo{}, mapModelPersistError(err)
+	}
+	return *existing, nil
 }
 
 func (s *service) DeleteModel(ctx context.Context, id string) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	models, err := s.store.Models().Models(ctx)
+	modelID, err := parseModelID(id)
 	if err != nil {
+		return domain.Validation("invalid model id")
+	}
+	if _, err := s.requireTenantModel(ctx, modelID); err != nil {
 		return err
 	}
-	next := make([]types.ModelInfo, 0, len(models))
-	found := false
-	for _, model := range models {
-		if model.ID == id {
-			found = true
-			continue
-		}
-		next = append(next, model)
-	}
-	if !found {
-		return domain.NotFound("Not found")
-	}
-	if err := s.store.Models().SetModels(ctx, next); err != nil {
-		return fmt.Errorf("persist models: %w", err)
-	}
-	return nil
+	return s.store.Models().DeleteModel(ctx, modelID)
 }
 
 func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	models, err := s.store.Models().Models(ctx)
+	modelID, err := parseModelID(id)
+	if err != nil {
+		return domain.Validation("invalid model id")
+	}
+	existing, err := s.requireTenantModel(ctx, modelID)
 	if err != nil {
 		return err
 	}
-	for i := range models {
-		if models[i].ID == id {
-			models[i].Enabled = enabled
-			if err := s.store.Models().SetModels(ctx, models); err != nil {
-				return fmt.Errorf("persist models: %w", err)
-			}
-			return nil
-		}
+	existing.Enabled = enabled
+	if err := s.store.Models().UpdateModel(ctx, *existing); err != nil {
+		return mapModelPersistError(err)
 	}
-	return domain.NotFound("Not found")
+	return nil
 }
 
 func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
-	return common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	if err != nil {
+		return nil, err
+	}
+	catalog, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range rules {
+		rules[i] = common.EnrichRoutingRule(rules[i], catalog)
+	}
+	return rules, nil
 }
 
 func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error) {
@@ -194,33 +191,30 @@ func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.Reso
 	}
 	rule := common.GetRoutingRuleForDept(deptID, rules, departments)
 	if rule == nil {
-		allowed := make([]string, 0)
-		for _, model := range models {
-			if model.Enabled {
-				allowed = append(allowed, model.Name)
-			}
-		}
+		allowedIDs := modelcatalog.EnabledModelIDs(models)
 		return types.ResolvedWhitelist{
-			Inherited:     false,
-			AllowedModels: allowed,
-			ParentCount:   len(models),
+			Inherited:       false,
+			AllowedModelIds: allowedIDs,
+			AllowedModels:   modelcatalog.EnrichRefs(models, allowedIDs),
+			ParentCount:     len(models),
 		}, nil
 	}
 	parentID := common.GetParentDeptID(rule.NodeID, departments)
-	parentCount := len(rule.AllowedModels)
+	parentCount := len(rule.AllowedModelIds)
 	if parentID != nil {
 		for i := range rules {
 			if rules[i].NodeID == *parentID {
-				parentCount = len(rules[i].AllowedModels)
+				parentCount = len(rules[i].AllowedModelIds)
 				break
 			}
 		}
 	}
-	allowedModels := common.ResolveDeptAllowedModels(deptID, departments, rules, models)
+	allowedModelIDs := common.ResolveDeptAllowedModelIDs(deptID, departments, rules, models)
 	return types.ResolvedWhitelist{
-		Inherited:     rule.Inherited,
-		AllowedModels: allowedModels,
-		ParentCount:   parentCount,
+		Inherited:       rule.Inherited,
+		AllowedModelIds: allowedModelIDs,
+		AllowedModels:   modelcatalog.EnrichRefs(models, allowedModelIDs),
+		ParentCount:     parentCount,
 	}, nil
 }
 
@@ -247,27 +241,36 @@ func (s *service) UpdateRoutingRule(
 		return types.RoutingRule{}, domain.NotFound("Not found")
 	}
 	updated := rules[idx]
-	if input.AllowedModels != nil {
-		updated.AllowedModels = append([]string{}, input.AllowedModels...)
+	if input.AllowedModelIds != nil {
+		if err := s.validateWritableModelIDs(ctx, input.AllowedModelIds); err != nil {
+			return types.RoutingRule{}, err
+		}
+		updated.AllowedModelIds = append([]int64{}, input.AllowedModelIds...)
 	}
 	if input.Inherited != nil {
 		updated.Inherited = *input.Inherited
 	}
-	if input.DefaultModel != nil {
-		updated.DefaultModel = input.DefaultModel
+	if input.DefaultModelId != nil {
+		if err := s.validateWritableModelIDs(ctx, []int64{*input.DefaultModelId}); err != nil {
+			return types.RoutingRule{}, err
+		}
+		updated.DefaultModelId = input.DefaultModelId
 	}
-	if input.FallbackModel != nil {
-		updated.FallbackModel = input.FallbackModel
+	if input.FallbackModelId != nil {
+		if err := s.validateWritableModelIDs(ctx, []int64{*input.FallbackModelId}); err != nil {
+			return types.RoutingRule{}, err
+		}
+		updated.FallbackModelId = input.FallbackModelId
 	}
 	rules[idx] = updated
-	if input.AllowedModels != nil {
+	if input.AllowedModelIds != nil {
 		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.RoutingRule{}, err
 		}
 		rules = common.ShrinkChildRoutingRules(
 			updated.NodeID,
-			updated.AllowedModels,
+			updated.AllowedModelIds,
 			rules,
 			departments,
 		)
@@ -294,5 +297,9 @@ func (s *service) UpdateRoutingRule(
 			}
 		}
 	}
-	return updated, nil
+	catalog, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return types.RoutingRule{}, err
+	}
+	return common.EnrichRoutingRule(updated, catalog), nil
 }

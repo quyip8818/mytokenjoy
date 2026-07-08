@@ -18,10 +18,8 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
 		SELECT n.id, n.name, n.parent_id, n.external_id, n.source, n.manager_id, n.sort_order,
-			n.budget, n.reserved_pool, n.period, dm.name, fm.name, n.routing_inherited
+			n.budget, n.reserved_pool, n.period, n.default_model_id, n.fallback_model_id, n.routing_inherited
 		FROM org_nodes n
-		LEFT JOIN models dm ON dm.company_id = n.company_id AND dm.id = n.default_model_id
-		LEFT JOIN models fm ON fm.company_id = n.company_id AND fm.id = n.fallback_model_id
 		WHERE n.company_id = $1
 		ORDER BY n.sort_order
 	`, companyID)
@@ -36,7 +34,7 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 			&row.ID, &row.Name, &row.ParentID,
 			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
 			&row.Budget, &row.ReservedPool, &row.Period,
-			&row.DefaultModel, &row.FallbackModel, &row.RoutingInherited,
+			&row.DefaultModelId, &row.FallbackModelId, &row.RoutingInherited,
 		); err != nil {
 			return nil, err
 		}
@@ -81,14 +79,6 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 		if !ok {
 			path = store.OrgNodePathLabel(row.ID)
 		}
-		defaultModelID, err := r.modelIDByName(ctx, companyID, row.DefaultModel)
-		if err != nil {
-			return err
-		}
-		fallbackModelID, err := r.modelIDByName(ctx, companyID, row.FallbackModel)
-		if err != nil {
-			return err
-		}
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO org_nodes (
 				id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
@@ -112,7 +102,7 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 		`, row.ID, companyID, row.Name, row.ParentID, path,
 			row.ExternalID, row.Source, row.ManagerID, row.sortOrder,
 			row.Budget, row.ReservedPool, row.Period,
-			defaultModelID, fallbackModelID, row.RoutingInherited); err != nil {
+			row.DefaultModelId, row.FallbackModelId, row.RoutingInherited); err != nil {
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}
@@ -147,23 +137,6 @@ func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID string) (strin
 		return "", false, err
 	}
 	return period, true, nil
-}
-
-func (r *pgOrgNodeRepo) modelIDByName(ctx context.Context, companyID int64, modelName *string) (*string, error) {
-	if modelName == nil || *modelName == "" {
-		return nil, nil
-	}
-	var id string
-	err := r.db.QueryRow(ctx, `
-		SELECT id FROM models WHERE company_id = $1 AND name = $2
-	`, companyID, *modelName).Scan(&id)
-	if err == pgx.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &id, nil
 }
 
 type flatOrgNode struct {

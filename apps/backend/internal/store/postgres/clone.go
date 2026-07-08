@@ -78,7 +78,7 @@ func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 	cloned := types.PlatformKey{
 		ID: key.ID, Name: key.Name, KeyPrefix: key.KeyPrefix, Status: key.Status,
 		Quota: key.Quota, Used: key.Used, CreatedAt: key.CreatedAt,
-		ModelWhitelist: append([]string{}, key.ModelWhitelist...),
+		ModelWhitelist: append([]int64{}, key.ModelWhitelist...),
 	}
 	if key.FullKey != nil {
 		fullKey := *key.FullKey
@@ -114,7 +114,7 @@ func cloneApprovals(items []types.KeyApproval) []types.KeyApproval {
 			ID: approval.ID, Type: approval.Type, Applicant: approval.Applicant,
 			ApplicantID: approval.ApplicantID, Department: approval.Department,
 			Reason: approval.Reason, RequestedQuota: approval.RequestedQuota,
-			RequestedModels: append([]string{}, approval.RequestedModels...),
+			RequestedModels: append([]int64{}, approval.RequestedModels...),
 			Status:          approval.Status, CreatedAt: approval.CreatedAt,
 		}
 		if approval.Approver != nil {
@@ -138,8 +138,8 @@ func cloneModels(items []types.ModelInfo) []types.ModelInfo {
 	result := make([]types.ModelInfo, len(items))
 	for i, model := range items {
 		cloned := types.ModelInfo{
-			ID: model.ID, Provider: model.Provider, Name: model.Name,
-			DisplayName: model.DisplayName, Type: model.Type, Description: model.Description,
+			ModelID: model.ModelID, CompanyID: model.CompanyID, Provider: model.Provider, Type: model.Type,
+			Name: model.Name, Description: model.Description,
 			Visibility: model.Visibility, InputPrice: model.InputPrice,
 			OutputPrice: model.OutputPrice, MaxContext: model.MaxContext, Enabled: model.Enabled,
 			Capabilities: append([]string{}, model.Capabilities...),
@@ -208,13 +208,13 @@ func cloneOrgNode(node types.OrgNode) types.OrgNode {
 		reserved := *node.ReservedPool
 		cloned.ReservedPool = &reserved
 	}
-	if node.DefaultModel != nil {
-		defaultModel := *node.DefaultModel
-		cloned.DefaultModel = &defaultModel
+	if node.DefaultModelId != nil {
+		defaultModelID := *node.DefaultModelId
+		cloned.DefaultModelId = &defaultModelID
 	}
-	if node.FallbackModel != nil {
-		fallbackModel := *node.FallbackModel
-		cloned.FallbackModel = &fallbackModel
+	if node.FallbackModelId != nil {
+		fallbackModelID := *node.FallbackModelId
+		cloned.FallbackModelId = &fallbackModelID
 	}
 	if len(node.Children) > 0 {
 		cloned.Children = make([]types.OrgNode, len(node.Children))

@@ -6,7 +6,7 @@
     "memberId": "m-1",
     "status": "active",
     "quota": 5000,
-    "modelWhitelist": ["gpt-4o", "claude-sonnet-4-6"],
+    "modelWhitelist": [1, 4],
     "createdAt": "2026-03-01",
     "expiresAt": "2026-12-31"
   },
@@ -17,7 +17,7 @@
     "memberId": "m-1",
     "status": "active",
     "quota": 2000,
-    "modelWhitelist": ["gpt-4o-mini", "deepseek-v3"],
+    "modelWhitelist": [2, 5],
     "createdAt": "2026-05-10",
     "expiresAt": null
   },
@@ -28,7 +28,7 @@
     "memberId": "m-2",
     "status": "active",
     "quota": 10000,
-    "modelWhitelist": ["gpt-4o", "deepseek-v3"],
+    "modelWhitelist": [1, 5],
     "createdAt": "2026-03-15",
     "expiresAt": null
   },
@@ -40,7 +40,7 @@
     "budgetGroupId": "bg-1",
     "status": "disabled",
     "quota": 2000,
-    "modelWhitelist": ["gpt-4o-mini"],
+    "modelWhitelist": [2],
     "createdAt": "2026-05-01",
     "expiresAt": "2026-06-30"
   },
@@ -51,7 +51,7 @@
     "budgetGroupId": "bg-4",
     "status": "active",
     "quota": 8000,
-    "modelWhitelist": ["claude-sonnet-4-6", "gpt-4o"],
+    "modelWhitelist": [4, 1],
     "createdAt": "2026-05-15",
     "expiresAt": null
   },
@@ -63,7 +63,7 @@
     "budgetGroupId": "bg-1",
     "status": "active",
     "quota": 8000,
-    "modelWhitelist": ["gpt-4o", "claude-sonnet-4-6"],
+    "modelWhitelist": [1, 4],
     "createdAt": "2026-04-15",
     "expiresAt": null
   }

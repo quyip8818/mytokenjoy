@@ -45,7 +45,9 @@ type Config struct {
 
 	SupportSaas              bool   `env:"SUPPORT_SAAS" envDefault:"false"`
 	CompanyName              string `env:"COMPANY_NAME"`
-	DefaultCompanyID         int64  `env:"DEFAULT_COMPANY_ID" envDefault:"1"`
+	TokenJoyCompanyID        int64  `env:"TOKENJOY_COMPANY_ID" envDefault:"1"`
+	LocalCompanyID           int64  `env:"LOCAL_COMPANY_ID" envDefault:"2"`
+	DefaultCompanyID         int64  `env:"DEFAULT_COMPANY_ID" envDefault:"2"`
 	PlatformSharedRelayGroup string `env:"PLATFORM_SHARED_RELAY_GROUP" envDefault:"platform_shared"`
 	RelayGatewayEnabled      bool   `env:"RELAY_GATEWAY_ENABLED" envDefault:"false"`
 	CompanyWalletCacheTTLSec int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
@@ -67,6 +69,9 @@ func Load() (Config, error) {
 	if cfg.IsProdProfile() {
 		cfg.SimulateDelay = false
 	}
+	if !cfg.SupportSaas {
+		cfg.DefaultCompanyID = cfg.LocalCompanyID
+	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}
@@ -84,6 +89,15 @@ func (c Config) IsProdProfile() bool {
 func (c Config) validate() error {
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if c.TokenJoyCompanyID <= 0 || c.LocalCompanyID <= 0 {
+		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be positive")
+	}
+	if c.TokenJoyCompanyID == c.LocalCompanyID {
+		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must differ")
+	}
+	if c.TokenJoyCompanyID >= 1000000 || c.LocalCompanyID >= 1000000 {
+		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be < 1000000")
 	}
 	if !c.SupportSaas && strings.TrimSpace(c.CompanyName) == "" {
 		return fmt.Errorf("COMPANY_NAME is required when SUPPORT_SAAS=false")

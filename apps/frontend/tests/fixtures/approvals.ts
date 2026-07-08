@@ -9,7 +9,7 @@ export const mockApprovals: KeyApproval[] = [
     department: '研发部',
     reason: '需要 API 访问',
     requestedQuota: 0,
-    requestedModels: ['gpt-4'],
+    requestedModels: [1],
     status: 'pending',
     approver: null,
     createdAt: '2026-01-01',

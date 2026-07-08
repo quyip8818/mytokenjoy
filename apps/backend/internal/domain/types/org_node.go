@@ -22,8 +22,8 @@ type OrgNode struct {
 	Consumed         float64   `json:"consumed"`
 	ReservedPool     *float64  `json:"reservedPool,omitempty"`
 	Period           string    `json:"period"`
-	DefaultModel     *string   `json:"defaultModel,omitempty"`
-	FallbackModel    *string   `json:"fallbackModel,omitempty"`
+	DefaultModelId   *int64    `json:"defaultModelId,omitempty"`
+	FallbackModelId  *int64    `json:"fallbackModelId,omitempty"`
 	RoutingInherited bool      `json:"routingInherited"`
 }
 
@@ -91,15 +91,15 @@ func orgNodeChildrenToBudgetNodes(children []OrgNode) []BudgetNode {
 	return result
 }
 
-func OrgNodeToRoutingRule(node OrgNode, allowedModels []string) RoutingRule {
+func OrgNodeToRoutingRule(node OrgNode, allowedModelIDs []int64) RoutingRule {
 	return RoutingRule{
-		ID:            node.ID,
-		NodeID:        node.ID,
-		NodeName:      node.Name,
-		AllowedModels: append([]string{}, allowedModels...),
-		DefaultModel:  node.DefaultModel,
-		FallbackModel: node.FallbackModel,
-		Inherited:     node.RoutingInherited,
+		ID:              node.ID,
+		NodeID:          node.ID,
+		NodeName:        node.Name,
+		AllowedModelIds: append([]int64{}, allowedModelIDs...),
+		DefaultModelId:  node.DefaultModelId,
+		FallbackModelId: node.FallbackModelId,
+		Inherited:       node.RoutingInherited,
 	}
 }
 

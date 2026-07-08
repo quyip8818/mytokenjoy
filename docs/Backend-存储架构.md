@@ -125,7 +125,7 @@ erDiagram
 | ---- | ------------------------------------------------------------ | ----------------------------------------------- |
 | 树   | `id`, `parent_id`, `path`, `name`, `manager_id`              | `Org().Nodes()`                                 |
 | 预算 | `budget`, `reserved_pool`, `period`                          | `budget.Service`；consumed → `budget_snapshots` |
-| 路由 | `default_model_id`, `fallback_model_id`, `routing_inherited` | `models.Service`；白名单 → `model_allowlist`    |
+| 路由 | `default_model_id`, `fallback_model_id`, `routing_inherited` | `models.Service`；白名单 → `model_allowlist`（`model_id`）；管理 API 读写 `modelId[]`，读路径 enrich `ModelRef` |
 
 ### 密钥与 Relay
 
@@ -183,7 +183,7 @@ flowchart LR
 | 组织   | `org_nodes`, `members`, `roles`, `permissions`, `role_permission_grants`, `member_roles`, `org_integration`, `org_sync_logs`, `org_import_failures`                     |
 | 预算   | `budget_groups`, `budget_snapshots`, `budget_group_members`, `budget_group_departments`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `budget_approvals` |
 | 密钥   | `provider_keys`, `platform_keys`, `key_approvals`, `relay_mappings`                                                                                                     |
-| 模型   | `models`, `model_capabilities`, `model_allowlist`                                                                                                                       |
+| 模型   | `models`, `model_capabilities`, `model_allowlist`（`models` 同表承载平台源与租户自有模型，读取并集）                                                                 |
 | 审计   | `audit_settings`, `operation_logs`, `usage_ledger`                                                                                                                      |
 | 运行面 | `usage_buckets`, `async_jobs`, `scheduler_locks`, `notification_log`                                                                                                    |
 
@@ -205,6 +205,9 @@ flowchart LR
 | `RoutingRule.id`        | = `nodeId`                                                    |
 | `sk-xxx`                | → `platform_keys.key_hash` → `relay_mappings.newapi_token_id` |
 | `newapi_wallet_user_id` | → NewAPI `users.quota`                                        |
+| `TOKENJOY_COMPANY_ID`   | 平台模型源公司 ID（默认 `1`）                                 |
+| `LOCAL_COMPANY_ID`      | 本地化部署业务公司 ID（默认 `2`）                             |
+| SaaS 公司 ID            | 从 `1000000` 起分配                                            |
 | 幂等键                  | `newapi:{log_id}`                                             |
 | `members`               | TokenJoy 成员，非 NewAPI user                                 |
 | `personalQuota`         | 走 `MemberBudgetQuota` API，不在 Member JSON                  |

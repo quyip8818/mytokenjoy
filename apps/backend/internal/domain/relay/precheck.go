@@ -208,7 +208,7 @@ func (p *PrecheckService) checkPlatformKey(ctx context.Context, mapping *store.R
 	if !hasAny {
 		return nil
 	}
-	allowed, err := p.models.Allowlist().IsAllowed(ctx, types.AllowlistOwnerPlatformKey, mapping.PlatformKeyID, modelName)
+	allowed, err := p.models.Allowlist().IsCallTypeAllowed(ctx, types.AllowlistOwnerPlatformKey, mapping.PlatformKeyID, modelName)
 	if err != nil {
 		return err
 	}

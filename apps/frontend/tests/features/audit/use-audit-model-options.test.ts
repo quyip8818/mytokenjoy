@@ -5,9 +5,7 @@ import { createMockApis, renderHookWithProviders } from '@tests/utils'
 
 describe('useAuditModelOptions', () => {
   it('loads model options on mount', async () => {
-    const models = [
-      { id: 'm1', name: 'gpt-4', displayName: 'GPT-4', provider: 'openai', enabled: true },
-    ]
+    const models = [{ modelId: 1, type: 'gpt-4', name: 'GPT-4', provider: 'openai', enabled: true }]
     const apis = createMockApis({
       modelApi: {
         list: vi.fn().mockResolvedValue(models),

@@ -1,8 +1,19 @@
 package contract
 
 const (
-	DefaultCompanyID int64 = 1
-	DemoBudgetPeriod       = "2026-06"
+	TokenJoyCompanyID int64 = 1
+	LocalCompanyID    int64 = 2
+	DefaultCompanyID  int64 = LocalCompanyID
+	DemoBudgetPeriod        = "2026-06"
+
+	IDModel1 int64 = 1
+	IDModel2 int64 = 2
+	IDModel3 int64 = 3
+	IDModel4 int64 = 4
+	IDModel5 int64 = 5
+	IDModel6 int64 = 6
+	IDModel7 int64 = 7
+	IDModel8 int64 = 8
 
 	IDDept2          = "dept-2"
 	IDDept3          = "dept-3"

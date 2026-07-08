@@ -54,7 +54,8 @@ type TopConsumer struct {
 }
 
 type ModelUsage struct {
-	ModelID    string  `json:"modelId"`
+	CallType   string  `json:"callType"`
+	ModelID    *int64  `json:"modelId,omitempty"`
 	ModelName  string  `json:"modelName"`
 	Provider   string  `json:"provider"`
 	Requests   float64 `json:"requests"`

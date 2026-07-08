@@ -7,35 +7,35 @@ export function useMemberWhitelist() {
   const apis = useInjectedApis()
   const { memberId } = useSession()
 
-  const resolveWhitelist = useCallback(async (): Promise<string[] | undefined> => {
+  const resolveAllowedModelIds = useCallback(async (): Promise<number[] | undefined> => {
     const res = await apis.memberApi.list({ page: 1, pageSize: 500 })
     const member = res.items.find((m) => m.id === memberId)
     if (!member) return undefined
     const resolved = await apis.routingApi.resolveWhitelist(member.departmentId)
-    return resolved.allowedModels
+    return resolved.allowedModelIds
   }, [apis, memberId])
 
-  return { resolveWhitelist }
+  return { resolveAllowedModelIds }
 }
 
 export async function pushModelPicker(
   onPush: WorkflowComponentProps['onPush'],
-  resolveWhitelist: () => Promise<string[] | undefined>,
+  resolveAllowedModelIds: () => Promise<number[] | undefined>,
   {
-    selectedModels,
+    selectedModelIds,
     onConfirm,
     onSetDirty,
   }: {
-    selectedModels: string[]
-    onConfirm: (picked: string[]) => void
+    selectedModelIds: number[]
+    onConfirm: (picked: number[]) => void
     onSetDirty?: (dirty: boolean) => void
   },
 ) {
-  const parentWhitelist = await resolveWhitelist()
+  const parentAllowedModelIds = await resolveAllowedModelIds()
   onPush('model-picker', {
-    selectedModels,
-    parentWhitelist,
-    onConfirm: (picked: string[]) => {
+    selectedModelIds,
+    parentAllowedModelIds,
+    onConfirm: (picked: number[]) => {
       onConfirm(picked)
       onSetDirty?.(true)
     },

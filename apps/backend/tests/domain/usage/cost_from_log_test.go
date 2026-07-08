@@ -10,8 +10,8 @@ import (
 
 func TestCostCNYFromLog(t *testing.T) {
 	t.Parallel()
-	models := []types.ModelInfo{{Name: "gpt-4o", InputPrice: 1, OutputPrice: 1}}
-	cost := domainusage.CostCNYFromLog(500000, "gpt-4o", models)
+	models := []types.ModelInfo{{Type: "gpt-4o", InputPrice: 1, OutputPrice: 1}}
+	cost := domainusage.CostCNYFromLog(500000, "gpt-4o", models, nil)
 	if cost != 2 {
 		t.Fatalf("expected cost 2, got %v", cost)
 	}

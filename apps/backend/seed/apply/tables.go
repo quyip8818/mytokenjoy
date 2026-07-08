@@ -31,11 +31,10 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 		return err
 	}
 	roleIDByName := buildSeedRoleNameIndex(snap.Roles)
-	modelIDByName := buildModelNameIndex(snap.Models)
 	if err := insertSeedModels(ctx, exec, tid, snap.Models); err != nil {
 		return err
 	}
-	if err := insertSeedOrgNodes(ctx, exec, tid, snap.OrgNodes, modelIDByName); err != nil {
+	if err := insertSeedOrgNodes(ctx, exec, tid, snap.OrgNodes); err != nil {
 		return err
 	}
 	if err := insertSeedMembers(ctx, exec, tid, snap.Members, roleIDByName); err != nil {
@@ -50,7 +49,7 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 	if err := insertSeedBudgetSnapshots(ctx, exec, tid, snap); err != nil {
 		return err
 	}
-	if err := insertSeedModelAllowlist(ctx, exec, tid, snap.ModelAllowlist, modelIDByName); err != nil {
+	if err := insertSeedModelAllowlist(ctx, exec, tid, snap.ModelAllowlist); err != nil {
 		return err
 	}
 	if err := insertSeedKeys(ctx, exec, tid, snap); err != nil {
@@ -63,6 +62,12 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 }
 
 func insertSeedCompany(ctx context.Context, exec TableWriter, snap store.Snapshot) error {
+	if _, err := exec.Exec(ctx, `
+		INSERT INTO companies (id, slug, name, status) VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id) DO NOTHING
+	`, contract.TokenJoyCompanyID, "tokenjoy", "TokenJoy", store.CompanyStatusActive); err != nil {
+		return fmt.Errorf("seed tokenjoy company: %w", err)
+	}
 	t := snap.Company
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO companies (id, slug, name, status) VALUES ($1, $2, $3, $4)
@@ -113,26 +118,7 @@ func buildSeedRoleNameIndex(roles []types.Role) map[string]string {
 	return index
 }
 
-func buildModelNameIndex(models []types.ModelInfo) map[string]string {
-	index := make(map[string]string, len(models))
-	for _, model := range models {
-		index[model.Name] = model.ID
-	}
-	return index
-}
-
-func resolveModelID(index map[string]string, modelName *string) *string {
-	if modelName == nil || *modelName == "" {
-		return nil
-	}
-	id, ok := index[*modelName]
-	if !ok {
-		return nil
-	}
-	return &id
-}
-
-func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode, modelIDByName map[string]string) error {
+func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode) error {
 	paths := store.ComputeOrgNodePaths(nodes)
 	flat := pkgorg.FlattenOrgNodeTree(nodes)
 	for i, node := range flat {
@@ -149,8 +135,7 @@ func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes 
 		`, node.ID, tid, node.Name, node.ParentID, path,
 			node.ExternalID, node.Source, node.ManagerID, i,
 			node.Budget, node.ReservedPool, node.Period,
-			resolveModelID(modelIDByName, node.DefaultModel),
-			resolveModelID(modelIDByName, node.FallbackModel),
+			node.DefaultModelId, node.FallbackModelId,
 			node.RoutingInherited); err != nil {
 			return fmt.Errorf("seed org node %s: %w", node.ID, err)
 		}
@@ -158,16 +143,12 @@ func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes 
 	return nil
 }
 
-func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, rows []store.ModelAllowlistRow, modelIDByName map[string]string) error {
+func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, rows []store.ModelAllowlistRow) error {
 	for _, row := range rows {
-		modelID, ok := modelIDByName[row.ModelName]
-		if !ok {
-			return fmt.Errorf("seed allowlist %s/%s: unknown model %q", row.OwnerType, row.OwnerID, row.ModelName)
-		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO model_allowlist (company_id, owner_type, owner_id, model_id)
 			VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING
-		`, tid, row.OwnerType, row.OwnerID, modelID); err != nil {
+		`, tid, row.OwnerType, row.OwnerID, row.ModelID); err != nil {
 			return fmt.Errorf("seed allowlist %s/%s: %w", row.OwnerType, row.OwnerID, err)
 		}
 	}
@@ -474,25 +455,40 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 
 func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models []types.ModelInfo) error {
 	for _, model := range models {
+		companyID := model.CompanyID
+		if companyID == 0 {
+			companyID = contract.TokenJoyCompanyID
+		}
+		if companyID != contract.TokenJoyCompanyID && companyID != tid {
+			continue
+		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO models (
-				id, company_id, provider, name, display_name, model_type, description, visibility, endpoint,
+				model_id, company_id, provider, type, name, description, visibility, endpoint,
 				input_price, output_price, max_context, enabled
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-			ON CONFLICT (company_id, id) DO NOTHING
-		`, model.ID, tid, model.Provider, model.Name, model.DisplayName,
-			model.Type, model.Description, model.Visibility, model.Endpoint,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			ON CONFLICT (model_id) DO NOTHING
+		`, model.ModelID, companyID, model.Provider, model.Type, model.Name,
+			model.Description, model.Visibility, model.Endpoint,
 			model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled); err != nil {
 			return err
 		}
 		for _, cap := range model.Capabilities {
 			if _, err := exec.Exec(ctx, `
-				INSERT INTO model_capabilities (company_id, model_id, capability) VALUES ($1, $2, $3)
+				INSERT INTO model_capabilities (model_id, capability) VALUES ($1, $2)
 				ON CONFLICT DO NOTHING
-			`, tid, model.ID, cap); err != nil {
+			`, model.ModelID, cap); err != nil {
 				return err
 			}
 		}
+	}
+	if _, err := exec.Exec(ctx, `
+		SELECT setval(
+			pg_get_serial_sequence('models', 'model_id'),
+			(SELECT COALESCE(MAX(model_id), 1) FROM models)
+		)
+	`); err != nil {
+		return fmt.Errorf("reset models identity: %w", err)
 	}
 	return nil
 }

@@ -18,8 +18,7 @@
     "test": "pnpm -r --parallel test",
     "test:all": "pnpm -r --parallel test:nocache",
     "test:e2e": "pnpm -F @tokenjoy/frontend test:e2e",
-    "test:newapi-management": "apps/newapi/scripts/test-management.sh",
-    "verify": "pnpm lint && pnpm test && pnpm test:newapi-management && pnpm build && pnpm -F @tokenjoy/backend build:check"
+    "test:newapi-management": "apps/newapi/scripts/test-management.sh"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

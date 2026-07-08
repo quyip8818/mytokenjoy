@@ -8,12 +8,12 @@ type RefreshHandler = () => void | Promise<void>
 export interface WorkflowRefreshOptions {
   refresh?: RefreshHandler
   invalidateKeys?: QueryKey[]
-  flashRow?: (id: string) => void
+  flashRow?: (id: string | number) => void
 }
 
 export function useWorkflowRefresh(
   refreshOrOptions: RefreshHandler | WorkflowRefreshOptions,
-  flashRow?: (id: string) => void,
+  flashRow?: (id: string | number) => void,
 ) {
   const { open } = useWorkflow()
   const queryClient = useQueryClient()
@@ -39,16 +39,16 @@ export function useWorkflowRefresh(
   const openWithRefresh = useCallback(
     <T extends WorkflowId>(id: T, payload?: WorkflowPayloadMap[T], title?: string) => {
       const { onSuccess, ...rest } = (payload ?? {}) as WorkflowPayloadMap[T] & {
-        onSuccess?: (id?: string) => void
+        onSuccess?: (id?: string | number) => void
       }
       open(
         id,
         {
           ...rest,
-          onSuccess: (resultId?: string) => {
+          onSuccess: (resultId?: string | number) => {
             onSuccess?.(resultId)
             void runRefresh()
-            if (resultId && highlightRow) {
+            if (resultId != null && highlightRow) {
               highlightRow(resultId)
             }
           },

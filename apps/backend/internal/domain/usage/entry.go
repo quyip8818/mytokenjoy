@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -44,7 +46,8 @@ type EntryBuildInput struct {
 	Raw         store.RawConsumeLog
 	Mapping     *store.RelayMapping
 	Source      string
-	Model       *types.ModelInfo
+	Catalog     []types.ModelInfo
+	AllowedIDs  []int64
 	Settings    types.AuditSettings
 	Member      *types.Member
 	PlatformKey *types.PlatformKey
@@ -52,7 +55,7 @@ type EntryBuildInput struct {
 
 func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error) {
 	modelName := ResolveConsumeModel(input.Raw)
-	costCNY := CostCNYFromLog(input.Raw.Quota, modelName, modelsFromInput(input))
+	costCNY := CostCNYFromLog(input.Raw.Quota, modelName, input.Catalog, input.AllowedIDs)
 
 	occurredAt := OccurredAtFromPayload(input.Raw.CreatedAt)
 
@@ -83,10 +86,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 }
 
 func modelsFromInput(input EntryBuildInput) []types.ModelInfo {
-	if input.Model == nil {
-		return nil
-	}
-	return []types.ModelInfo{*input.Model}
+	return input.Catalog
 }
 
 func buildCallDetail(input EntryBuildInput, memberID *string, modelName string) types.UsageCallDetail {
@@ -114,7 +114,7 @@ func buildCallDetail(input EntryBuildInput, memberID *string, modelName string) 
 
 func resolveProvider(modelName string, models []types.ModelInfo) string {
 	for _, model := range models {
-		if model.Name == modelName {
+		if model.Type == modelName {
 			return model.Provider
 		}
 	}
@@ -123,7 +123,7 @@ func resolveProvider(modelName string, models []types.ModelInfo) string {
 
 func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, raw store.RawConsumeLog, source string) (EntryBuildInput, error) {
 	modelName := ResolveConsumeModel(raw)
-	model, err := deps.Models().ModelByName(ctx, modelName)
+	catalog, err := deps.Models().Models(ctx)
 	if err != nil {
 		return EntryBuildInput{}, err
 	}
@@ -131,12 +131,15 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 	if err != nil {
 		return EntryBuildInput{}, err
 	}
+	platformKey, err := deps.Keys().PlatformKeyByID(ctx, mapping.PlatformKeyID)
+	if err != nil {
+		return EntryBuildInput{}, err
+	}
+	allowedIDs := resolveBillingAllowedIDs(ctx, deps, mapping, platformKey)
 	input := EntryBuildInput{
-		Raw:      raw,
-		Mapping:  mapping,
-		Source:   source,
-		Model:    model,
-		Settings: settings,
+		Raw: raw, Mapping: mapping, Source: source,
+		Catalog: catalog, AllowedIDs: allowedIDs, Settings: settings,
+		PlatformKey: platformKey,
 	}
 	if mapping.MemberID != nil {
 		member, err := deps.Org().MemberByID(ctx, *mapping.MemberID)
@@ -145,10 +148,27 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 		}
 		input.Member = member
 	}
-	platformKey, err := deps.Keys().PlatformKeyByID(ctx, mapping.PlatformKeyID)
-	if err != nil {
-		return EntryBuildInput{}, err
-	}
-	input.PlatformKey = platformKey
+	_ = modelName
 	return input, nil
+}
+
+func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, platformKey *types.PlatformKey) []int64 {
+	if platformKey == nil {
+		return nil
+	}
+	keyIDs := append([]int64{}, platformKey.ModelWhitelist...)
+	departments, err := common.LoadDepartments(ctx, deps.Org().Nodes())
+	if err != nil {
+		return keyIDs
+	}
+	rules, err := common.LoadRoutingRules(ctx, deps.Org().Nodes(), deps.Models().Allowlist())
+	if err != nil {
+		return keyIDs
+	}
+	catalog, err := deps.Models().Models(ctx)
+	if err != nil {
+		return keyIDs
+	}
+	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, catalog)
+	return newapi.EffectiveWhitelistIDs(keyIDs, deptAllowed)
 }

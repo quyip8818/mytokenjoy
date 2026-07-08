@@ -12,12 +12,13 @@ import (
 )
 
 type Store struct {
-	pool      *pgxpool.Pool
-	logPool   *pgxpool.Pool
-	logTables logTables
-	relay     *relayRepo
-	logs      store.LogStore
-	domain    domainRepos
+	pool              *pgxpool.Pool
+	logPool           *pgxpool.Pool
+	logTables         logTables
+	relay             *relayRepo
+	logs              store.LogStore
+	domain            domainRepos
+	tokenJoyCompanyID int64
 }
 
 type domainRepos struct {
@@ -46,7 +47,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		return nil, err
 	}
 
-	s := &Store{pool: pool, logs: store.NoopLogStore()}
+	s := &Store{pool: pool, logs: store.NoopLogStore(), tokenJoyCompanyID: cfg.TokenJoyCompanyID}
 	if cfg.IngestEnabled() {
 		tables := logTablesFor(cfg)
 		logPool, err := pgxpool.New(ctx, cfg.LogDatabaseURL)
@@ -92,7 +93,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		}
 	}
 	s.relay = newRelayRepo(pool)
-	s.domain = newDomainRepoSet(pool)
+	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID)
 	return s, nil
 }
 

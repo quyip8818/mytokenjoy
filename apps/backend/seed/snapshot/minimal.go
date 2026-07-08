@@ -78,11 +78,12 @@ func buildMinimalOrgNodes() []types.OrgNode {
 	ruleByNode := make(map[string]types.RoutingRule, len(routing))
 	for nodeID, cfg := range routing {
 		ruleByNode[nodeID] = types.RoutingRule{
-			ID: nodeID, NodeID: nodeID,
-			AllowedModels: cfg.allowedModels,
-			DefaultModel:  cfg.defaultModel,
-			FallbackModel: cfg.fallbackModel,
-			Inherited:     cfg.inherited,
+			ID:              nodeID,
+			NodeID:          nodeID,
+			AllowedModelIds: append([]int64{}, cfg.allowedModelIDs...),
+			DefaultModelId:  cfg.defaultModelID,
+			FallbackModelId: cfg.fallbackModelID,
+			Inherited:       cfg.inherited,
 		}
 	}
 	nodes := mergeOrgNodeTree(depts, budgetTree, ruleByNode)
@@ -105,20 +106,20 @@ func minimalModelAllowlist(keys []types.PlatformKey) []store.ModelAllowlistRow {
 		if nodeID != contract.IDDept3 && nodeID != "dept-1" {
 			continue
 		}
-		for _, modelName := range cfg.allowedModels {
+		for _, modelID := range cfg.allowedModelIDs {
 			rows = append(rows, store.ModelAllowlistRow{
 				OwnerType: types.AllowlistOwnerOrgNode,
 				OwnerID:   nodeID,
-				ModelName: modelName,
+				ModelID:   modelID,
 			})
 		}
 	}
 	for _, key := range keys {
-		for _, modelName := range key.ModelWhitelist {
+		for _, modelID := range key.ModelWhitelist {
 			rows = append(rows, store.ModelAllowlistRow{
 				OwnerType: types.AllowlistOwnerPlatformKey,
 				OwnerID:   key.ID,
-				ModelName: modelName,
+				ModelID:   modelID,
 			})
 		}
 	}

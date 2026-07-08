@@ -46,7 +46,7 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
   const { models } = useAuditModelOptions(injectedApis)
   const { members } = useAuditMemberOptions(injectedApis)
   const modelOptions = useMemo(
-    () => Object.fromEntries(models.map((model) => [model.name, model.displayName])),
+    () => Object.fromEntries(models.map((model) => [model.type, model.name])),
     [models],
   )
   const memberOptions = useMemo(

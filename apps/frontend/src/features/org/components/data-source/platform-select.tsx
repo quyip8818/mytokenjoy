@@ -55,7 +55,11 @@ export function PlatformSelect({ onSelect }: PlatformSelectProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" role="radiogroup" aria-label="数据源平台">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        role="radiogroup"
+        aria-label="数据源平台"
+      >
         {platforms.map((p) => {
           const Icon = p.icon
           const isSelected = selected === p.id

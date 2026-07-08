@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
 func buildDeptParentMap(departments []types.Department) map[string]*string {
@@ -44,22 +45,16 @@ func getParentDeptID(deptID string, parents map[string]*string) *string {
 	return parents[deptID]
 }
 
-func ResolveDeptAllowedModels(
+func ResolveDeptAllowedModelIDs(
 	deptID string,
 	departments []types.Department,
 	rules []types.RoutingRule,
 	models []types.ModelInfo,
-) []string {
+) []int64 {
 	parents := buildDeptParentMap(departments)
 	rule := getRoutingRuleForDept(deptID, rules, parents)
 	if rule == nil {
-		allowed := make([]string, 0)
-		for _, model := range models {
-			if model.Enabled {
-				allowed = append(allowed, model.Name)
-			}
-		}
-		return allowed
+		return modelcatalog.EnabledModelIDs(models)
 	}
 
 	parentID := getParentDeptID(rule.NodeID, parents)
@@ -73,35 +68,36 @@ func ResolveDeptAllowedModels(
 		}
 	}
 
-	allowedModels := append([]string{}, rule.AllowedModels...)
+	allowedModelIDs := append([]int64{}, rule.AllowedModelIds...)
 	if rule.Inherited && parentRule != nil {
-		filtered := make([]string, 0)
-		for _, model := range allowedModels {
-			for _, parentModel := range parentRule.AllowedModels {
-				if model == parentModel {
-					filtered = append(filtered, model)
-					break
-				}
+		filtered := make([]int64, 0)
+		parentSet := make(map[int64]struct{}, len(parentRule.AllowedModelIds))
+		for _, id := range parentRule.AllowedModelIds {
+			parentSet[id] = struct{}{}
+		}
+		for _, id := range allowedModelIDs {
+			if _, ok := parentSet[id]; ok {
+				filtered = append(filtered, id)
 			}
 		}
-		allowedModels = filtered
-		if len(allowedModels) == 0 {
-			allowedModels = append([]string{}, parentRule.AllowedModels...)
+		allowedModelIDs = filtered
+		if len(allowedModelIDs) == 0 {
+			allowedModelIDs = append([]int64{}, parentRule.AllowedModelIds...)
 		}
 	}
-	return allowedModels
+	return modelcatalog.FilterEnabledIDs(models, allowedModelIDs)
 }
 
-func ValidateModelsForMember(
+func ValidateModelIDsForMember(
 	memberID string,
-	models []string,
+	modelIDs []int64,
 	members []types.Member,
 	departments []types.Department,
 	rules []types.RoutingRule,
 	modelCatalog []types.ModelInfo,
 	notInDeptMessage string,
 ) *string {
-	if len(models) == 0 {
+	if len(modelIDs) == 0 {
 		return nil
 	}
 	var member *types.Member
@@ -114,13 +110,13 @@ func ValidateModelsForMember(
 	if member == nil {
 		return nil
 	}
-	allowed := ResolveDeptAllowedModels(member.DepartmentID, departments, rules, modelCatalog)
-	allowedSet := make(map[string]struct{}, len(allowed))
-	for _, name := range allowed {
-		allowedSet[name] = struct{}{}
+	allowed := ResolveDeptAllowedModelIDs(member.DepartmentID, departments, rules, modelCatalog)
+	allowedSet := make(map[int64]struct{}, len(allowed))
+	for _, id := range allowed {
+		allowedSet[id] = struct{}{}
 	}
-	for _, model := range models {
-		if _, ok := allowedSet[model]; !ok {
+	for _, id := range modelIDs {
+		if _, ok := allowedSet[id]; !ok {
 			return &notInDeptMessage
 		}
 	}
@@ -143,7 +139,7 @@ func GetParentDeptID(deptID string, departments []types.Department) *string {
 
 func ShrinkChildRoutingRules(
 	parentNodeID string,
-	parentAllowed []string,
+	parentAllowed []int64,
 	rules []types.RoutingRule,
 	departments []types.Department,
 ) []types.RoutingRule {
@@ -157,17 +153,19 @@ func cloneRoutingRulesSlice(rules []types.RoutingRule) []types.RoutingRule {
 	result := make([]types.RoutingRule, len(rules))
 	for i, rule := range rules {
 		result[i] = types.RoutingRule{
-			ID: rule.ID, NodeID: rule.NodeID, NodeName: rule.NodeName,
-			AllowedModels: append([]string{}, rule.AllowedModels...),
-			Inherited:     rule.Inherited,
+			ID:              rule.ID,
+			NodeID:          rule.NodeID,
+			NodeName:        rule.NodeName,
+			AllowedModelIds: append([]int64{}, rule.AllowedModelIds...),
+			Inherited:       rule.Inherited,
 		}
-		if rule.DefaultModel != nil {
-			defaultModel := *rule.DefaultModel
-			result[i].DefaultModel = &defaultModel
+		if rule.DefaultModelId != nil {
+			defaultModelID := *rule.DefaultModelId
+			result[i].DefaultModelId = &defaultModelID
 		}
-		if rule.FallbackModel != nil {
-			fallbackModel := *rule.FallbackModel
-			result[i].FallbackModel = &fallbackModel
+		if rule.FallbackModelId != nil {
+			fallbackModelID := *rule.FallbackModelId
+			result[i].FallbackModelId = &fallbackModelID
 		}
 	}
 	return result
@@ -176,15 +174,15 @@ func cloneRoutingRulesSlice(rules []types.RoutingRule) []types.RoutingRule {
 func AppendInheritedRule(
 	rules []types.RoutingRule,
 	deptID, deptName string,
-	parentAllowed []string,
+	parentAllowed []int64,
 	ruleID string,
 ) []types.RoutingRule {
 	return append(rules, types.RoutingRule{
-		ID:            ruleID,
-		NodeID:        deptID,
-		NodeName:      deptName,
-		AllowedModels: append([]string{}, parentAllowed...),
-		Inherited:     true,
+		ID:              ruleID,
+		NodeID:          deptID,
+		NodeName:        deptName,
+		AllowedModelIds: append([]int64{}, parentAllowed...),
+		Inherited:       true,
 	})
 }
 
@@ -207,9 +205,30 @@ func UpdateRuleNodeName(rules []types.RoutingRule, nodeID, name string) []types.
 	return rules
 }
 
+func EnrichRoutingRule(rule types.RoutingRule, catalog []types.ModelInfo) types.RoutingRule {
+	validIDs := modelcatalog.FilterValidIDs(catalog, rule.AllowedModelIds)
+	rule.AllowedModelIds = validIDs
+	rule.AllowedModels = modelcatalog.EnrichRefs(catalog, validIDs)
+	if rule.DefaultModelId != nil {
+		if ref := modelcatalog.EnrichRef(catalog, rule.DefaultModelId); ref != nil {
+			rule.DefaultModel = ref
+		} else {
+			rule.DefaultModelId = nil
+		}
+	}
+	if rule.FallbackModelId != nil {
+		if ref := modelcatalog.EnrichRef(catalog, rule.FallbackModelId); ref != nil {
+			rule.FallbackModel = ref
+		} else {
+			rule.FallbackModelId = nil
+		}
+	}
+	return rule
+}
+
 func shrinkChildRoutingRules(
 	parentNodeID string,
-	parentAllowed []string,
+	parentAllowed []int64,
 	rules []types.RoutingRule,
 	parents map[string]*string,
 ) {
@@ -218,19 +237,20 @@ func shrinkChildRoutingRules(
 		if parentID == nil || *parentID != parentNodeID {
 			continue
 		}
-		filtered := make([]string, 0)
-		for _, model := range rules[i].AllowedModels {
-			for _, allowed := range parentAllowed {
-				if model == allowed {
-					filtered = append(filtered, model)
-					break
-				}
+		filtered := make([]int64, 0)
+		parentSet := make(map[int64]struct{}, len(parentAllowed))
+		for _, id := range parentAllowed {
+			parentSet[id] = struct{}{}
+		}
+		for _, id := range rules[i].AllowedModelIds {
+			if _, ok := parentSet[id]; ok {
+				filtered = append(filtered, id)
 			}
 		}
 		if len(filtered) == 0 && len(parentAllowed) > 0 {
-			filtered = append([]string{}, parentAllowed...)
+			filtered = append([]int64{}, parentAllowed...)
 		}
-		rules[i].AllowedModels = filtered
-		shrinkChildRoutingRules(rules[i].NodeID, rules[i].AllowedModels, rules, parents)
+		rules[i].AllowedModelIds = filtered
+		shrinkChildRoutingRules(rules[i].NodeID, rules[i].AllowedModelIds, rules, parents)
 	}
 }

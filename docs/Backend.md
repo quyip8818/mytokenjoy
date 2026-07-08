@@ -12,7 +12,9 @@
 | -------------------------------------------- | ---------------------------------------------------------- |
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 35+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
-| [Backend-计费单位.md](./Backend-计费单位.md) | CNY / NewAPI quota / token 三种计量与换算                  |
+| [Backend-计费单位.md](./Backend-计费单位.md) | 计费单位、币种目录、Money 与 relay 点数换算                |
+| [Backend-模型目录实现.md](./Backend-模型目录实现.md) | 同表双角色：平台模型源 + 租户自有模型；全局内置对租户永远存在、不可禁用 |
+| [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 终态架构：管理面 `modelId`、Relay/审计 `callType`；`ModelRef` enrich |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
 
@@ -34,7 +36,7 @@
 
 ## 2. SaaS 多租户
 
-`SUPPORT_SAAS=true` 开启多企业；私有化 `company_id=1`。
+`SUPPORT_SAAS=true` 开启多企业；本地化部署为单租户模式。
 
 ### 2.1 ADR
 
@@ -42,6 +44,7 @@
 | -------------------- | ------------------------------------------ |
 | NewAPI 企业隔离      | 单集群；每企业一个 `newapi_wallet_user_id` |
 | 计费主账             | 企业钱包 `users.quota`；充值只进钱包       |
+| 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Relay 运行时仍用 `callType` |
 | Token `remain_quota` | 分配视图；`rebalance` 保证 Σ ≤ 钱包        |
 | 双轴                 | 钱包=预付资金；部门 budget=组织内花费配额  |
 | Gateway              | 预检后透传 NewAPI                          |
@@ -87,6 +90,8 @@ flowchart TB
 | ------ | ------------------------ | --------------------- |
 | 私有化 | 企业 `provider_keys`     | `dept-{departmentId}` |
 | SaaS   | 平台全局 `provider_keys` | `platform_shared`     |
+
+**部署约束：** 单租户与 SaaS 模式不可切换。SaaS 公司 ID 从 `1000000` 起分配；`TOKENJOY_COMPANY_ID`、`LOCAL_COMPANY_ID` 小于 `1000000`。
 
 ### 2.4 开户与充值
 
@@ -141,9 +146,17 @@ sequenceDiagram
 | `NEW_API_ENABLED`             | `false`            | Relay + worker                                                                |
 | `RELAY_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
 | `SUPPORT_SAAS`                | `false`            | SaaS 多企业                                                                   |
+| `TOKENJOY_COMPANY_ID`         | `1`                | 平台模型源公司 ID（默认模型与默认价格提供方）                                |
+| `LOCAL_COMPANY_ID`            | `2`                | 本地化部署业务公司 ID（单租户固定）                                          |
 | `PLATFORM_SHARED_RELAY_GROUP` | `platform_shared`  | SaaS Token 分组                                                               |
 
 完整列表见 `apps/backend/.env.example`。
+
+部署模式约束：
+
+- `SUPPORT_SAAS=false`：单租户本地化部署，仅 `LOCAL_COMPANY_ID` 生效
+- `SUPPORT_SAAS=true`：业务租户 ID 从 `1000000` 开始分配
+- 单租户与 SaaS 模式不可切换
 
 ```bash
 pnpm start          # Postgres + backend :8080 + frontend :5173

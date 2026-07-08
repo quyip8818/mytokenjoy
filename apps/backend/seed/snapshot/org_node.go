@@ -7,50 +7,60 @@ import (
 )
 
 type orgNodeRoutingSeed struct {
-	allowedModels []string
-	defaultModel  *string
-	fallbackModel *string
-	inherited     bool
+	allowedModelIDs []int64
+	defaultModelID  *int64
+	fallbackModelID *int64
+	inherited       bool
 }
 
 func orgNodeRoutingByID() map[string]orgNodeRoutingSeed {
-	gpt4oMini := "gpt-4o-mini"
-	deepseek := "deepseek-v3"
-	claudeSonnet := "claude-sonnet-4-6"
-	gpt4o := "gpt-4o"
-	qwenPlus := "qwen-plus"
 	return map[string]orgNodeRoutingSeed{
 		"dept-1": {
-			allowedModels: []string{"gpt-4o", "gpt-4o-mini", "claude-sonnet-4-6", "deepseek-v3", "qwen-plus"},
-			defaultModel:  &gpt4oMini, fallbackModel: &deepseek,
+			allowedModelIDs: []int64{
+				contract.IDModel1, contract.IDModel2, contract.IDModel4,
+				contract.IDModel5, contract.IDModel8,
+			},
+			defaultModelID:  modelIDPtr("gpt-4o-mini"),
+			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
 		"dept-2": {
-			allowedModels: []string{"gpt-4o", "gpt-4o-mini", "claude-sonnet-4-6", "claude-opus-4-8", "deepseek-v3"},
-			defaultModel:  &gpt4o, fallbackModel: &deepseek,
+			allowedModelIDs: []int64{
+				contract.IDModel1, contract.IDModel2, contract.IDModel4,
+				contract.IDModel3, contract.IDModel5,
+			},
+			defaultModelID:  modelIDPtr("gpt-4o"),
+			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
 		contract.IDDept3: {
-			allowedModels: []string{"gpt-4o", "claude-sonnet-4-6", "deepseek-v3"},
-			inherited:     true,
+			allowedModelIDs: []int64{contract.IDModel1, contract.IDModel4, contract.IDModel5},
+			inherited:       true,
 		},
 		"dept-6": {
-			allowedModels: []string{"gpt-4o-mini", "deepseek-v3", "qwen-plus"},
-			defaultModel:  &gpt4oMini, fallbackModel: &qwenPlus,
+			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel5, contract.IDModel8},
+			defaultModelID:  modelIDPtr("gpt-4o-mini"),
+			fallbackModelID: modelIDPtr("qwen-plus"),
 		},
 		"dept-4": {
-			allowedModels: []string{"gpt-4o-mini", "claude-sonnet-4-6", "deepseek-v3"},
-			defaultModel:  &claudeSonnet, fallbackModel: &gpt4oMini, inherited: true,
+			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel4, contract.IDModel5},
+			defaultModelID:  modelIDPtr("claude-sonnet-4-6"),
+			fallbackModelID: modelIDPtr("gpt-4o-mini"),
+			inherited:       true,
 		},
 		"dept-5": {
-			allowedModels: []string{"gpt-4o-mini", "deepseek-v3"},
-			defaultModel:  &deepseek, fallbackModel: &gpt4oMini, inherited: true,
+			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel5},
+			defaultModelID:  modelIDPtr("deepseek-v3"),
+			fallbackModelID: modelIDPtr("gpt-4o-mini"),
+			inherited:       true,
 		},
 		"dept-7": {
-			allowedModels: []string{"gpt-4o-mini", "qwen-plus", "deepseek-v3"},
-			defaultModel:  &qwenPlus, fallbackModel: &gpt4oMini,
+			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel8, contract.IDModel5},
+			defaultModelID:  modelIDPtr("qwen-plus"),
+			fallbackModelID: modelIDPtr("gpt-4o-mini"),
 		},
 		"dept-8": {
-			allowedModels: []string{"gpt-4o-mini"},
-			defaultModel:  &gpt4oMini, inherited: true,
+			allowedModelIDs: []int64{contract.IDModel2},
+			defaultModelID:  modelIDPtr("gpt-4o-mini"),
+			inherited:       true,
 		},
 	}
 }
@@ -62,11 +72,12 @@ func buildOrgNodes() []types.OrgNode {
 	ruleByNode := make(map[string]types.RoutingRule, len(routing))
 	for nodeID, cfg := range routing {
 		ruleByNode[nodeID] = types.RoutingRule{
-			ID: nodeID, NodeID: nodeID,
-			AllowedModels: cfg.allowedModels,
-			DefaultModel:  cfg.defaultModel,
-			FallbackModel: cfg.fallbackModel,
-			Inherited:     cfg.inherited,
+			ID:              nodeID,
+			NodeID:          nodeID,
+			AllowedModelIds: append([]int64{}, cfg.allowedModelIDs...),
+			DefaultModelId:  cfg.defaultModelID,
+			FallbackModelId: cfg.fallbackModelID,
+			Inherited:       cfg.inherited,
 		}
 	}
 	nodes := mergeOrgNodeTree(depts, budgetTree, ruleByNode)
@@ -96,7 +107,8 @@ func mergeOrgNodeChildren(
 			ID: dept.ID, Name: dept.Name, ParentID: dept.ParentID,
 			ExternalID: dept.ExternalID, Source: dept.Source, ManagerID: dept.ManagerID,
 			Budget: budget.Budget, ReservedPool: budget.ReservedPool, Period: budget.Period,
-			DefaultModel: rule.DefaultModel, FallbackModel: rule.FallbackModel, RoutingInherited: rule.Inherited,
+			DefaultModelId: rule.DefaultModelId, FallbackModelId: rule.FallbackModelId,
+			RoutingInherited: rule.Inherited,
 		}
 		if len(dept.Children) > 0 {
 			node.Children = mergeOrgNodeChildren(dept.Children, budgetByID, ruleByNode)
@@ -126,29 +138,29 @@ func flattenBudgetByID(tree []types.BudgetNode) map[string]types.BudgetNode {
 func buildModelAllowlist() []store.ModelAllowlistRow {
 	rows := make([]store.ModelAllowlistRow, 0)
 	for nodeID, cfg := range orgNodeRoutingByID() {
-		for _, modelName := range cfg.allowedModels {
+		for _, modelID := range cfg.allowedModelIDs {
 			rows = append(rows, store.ModelAllowlistRow{
 				OwnerType: types.AllowlistOwnerOrgNode,
 				OwnerID:   nodeID,
-				ModelName: modelName,
+				ModelID:   modelID,
 			})
 		}
 	}
 	for _, key := range loadPlatformKeys() {
-		for _, modelName := range key.ModelWhitelist {
+		for _, modelID := range key.ModelWhitelist {
 			rows = append(rows, store.ModelAllowlistRow{
 				OwnerType: types.AllowlistOwnerPlatformKey,
 				OwnerID:   key.ID,
-				ModelName: modelName,
+				ModelID:   modelID,
 			})
 		}
 	}
 	for _, approval := range buildApprovals() {
-		for _, modelName := range approval.RequestedModels {
+		for _, modelID := range approval.RequestedModels {
 			rows = append(rows, store.ModelAllowlistRow{
 				OwnerType: types.AllowlistOwnerKeyApproval,
 				OwnerID:   approval.ID,
-				ModelName: modelName,
+				ModelID:   modelID,
 			})
 		}
 	}

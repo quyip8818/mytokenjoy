@@ -30,8 +30,8 @@ func authzWriteCases(t *testing.T) []authzCase {
 		contract.IDDept3,
 	)
 	platformKeyBody := fmt.Sprintf(
-		`{"name":"k","memberId":%q,"quota":100,"modelWhitelist":["gpt-4o"]}`,
-		contract.IDMember1,
+		`{"name":"k","memberId":%q,"quota":100,"modelWhitelist":[%d]}`,
+		contract.IDMember1, contract.IDModel1,
 	)
 	budgetUpdateBody := fmt.Sprintf(`{"budget":%d}`, validDept3Budget)
 	deptCreateBody := fmt.Sprintf(`{"name":"Auth Test","parentId":%q}`, contract.IDDept2)
@@ -47,7 +47,7 @@ func authzWriteCases(t *testing.T) []authzCase {
 		{name: "budget update allowed", method: http.MethodPut, path: "/api/budget/departments/" + contract.IDDept3, body: budgetUpdateBody, cookie: adminCookie, wantStatus: http.StatusOK},
 		{name: "keys platform create unauthorized", method: http.MethodPost, path: "/api/keys/platform", body: platformKeyBody, wantStatus: http.StatusUnauthorized},
 		{name: "keys platform create forbidden", method: http.MethodPost, path: "/api/keys/platform", body: platformKeyBody, cookie: pureCookie, wantStatus: http.StatusForbidden},
-		{name: "model create forbidden", method: http.MethodPost, path: "/api/models", body: `{"name":"test-model","displayName":"Test","baseUrl":"http://x","inputPrice":1,"outputPrice":2}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
+		{name: "model create forbidden", method: http.MethodPost, path: "/api/models", body: `{"type":"test-model","name":"Test","baseUrl":"http://x","inputPrice":1,"outputPrice":2}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "org member create forbidden", method: http.MethodPost, path: "/api/org/members", body: memberCreateBody, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "audit settings forbidden", method: http.MethodPut, path: "/api/audit/settings", body: `{"retentionDays":30}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "datasource update forbidden", method: http.MethodPut, path: "/api/org/data-source", body: `{"platform":"feishu","appId":"a","appSecret":"b"}`, cookie: pureCookie, wantStatus: http.StatusForbidden},

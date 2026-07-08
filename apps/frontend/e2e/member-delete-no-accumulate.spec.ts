@@ -9,9 +9,7 @@ test.describe('成员删除 - 请求不累积', () => {
     await expect(page.getByRole('heading', { level: 3, name: '总公司' })).toBeVisible()
   })
 
-  test('deleting members sequentially does not accumulate extra API requests', async ({
-    page,
-  }) => {
+  test('deleting members sequentially does not accumulate extra API requests', async ({ page }) => {
     // Helper to delete the first active member and count resulting API calls
     async function deleteFirstMemberAndCountRequests(): Promise<{
       sessionCalls: number

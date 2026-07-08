@@ -40,7 +40,12 @@ const PLATFORM_FIELDS: Record<Platform, FieldConfig[]> = {
   dingtalk: [
     { name: 'corpId', label: 'Corp ID', placeholder: '输入企业 CorpID' },
     { name: 'appKey', label: 'App Key', placeholder: '输入应用的 App Key' },
-    { name: 'appSecret', label: 'App Secret', placeholder: '输入应用的 App Secret', password: true },
+    {
+      name: 'appSecret',
+      label: 'App Secret',
+      placeholder: '输入应用的 App Secret',
+      password: true,
+    },
   ],
   wecom: [
     { name: 'corpId', label: 'Corp ID', placeholder: '输入企业 CorpID' },

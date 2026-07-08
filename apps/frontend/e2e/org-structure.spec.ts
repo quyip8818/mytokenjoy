@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Response } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 /**
  * 组织架构页面 E2E 测试
@@ -164,7 +164,6 @@ test.describe('组织架构 - 成员 CRUD', () => {
 
   test('编辑成员：修改姓名后列表更新', async ({ page }) => {
     const activeRow = page.getByRole('row').filter({ hasText: '已激活' }).first()
-    const originalName = await activeRow.getByRole('cell').nth(1).textContent()
 
     await activeRow.getByRole('button', { name: '编辑' }).click()
     await expect(page.getByRole('dialog', { name: '编辑成员' })).toBeVisible()
@@ -242,8 +241,8 @@ test.describe('组织架构 - 批量操作', () => {
 
 test.describe('组织架构 - API 数据校验', () => {
   test('departments/tree 接口返回正确结构', async ({ page }) => {
-    const responsePromise = page.waitForResponse((r) =>
-      r.url().includes('/api/org/departments/tree') && r.status() === 200,
+    const responsePromise = page.waitForResponse(
+      (r) => r.url().includes('/api/org/departments/tree') && r.status() === 200,
     )
     await page.goto('/org/structure')
     const response = await responsePromise
@@ -271,8 +270,8 @@ test.describe('组织架构 - API 数据校验', () => {
   })
 
   test('members 接口返回分页结构和完整字段', async ({ page }) => {
-    const responsePromise = page.waitForResponse((r) =>
-      r.url().includes('/api/org/members') && r.status() === 200,
+    const responsePromise = page.waitForResponse(
+      (r) => r.url().includes('/api/org/members') && r.status() === 200,
     )
     await page.goto('/org/structure')
     const response = await responsePromise

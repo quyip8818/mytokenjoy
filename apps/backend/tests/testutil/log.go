@@ -1,3 +1,5 @@
+//go:build testhook
+
 package testutil
 
 import (

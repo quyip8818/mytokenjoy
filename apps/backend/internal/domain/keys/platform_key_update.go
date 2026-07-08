@@ -51,7 +51,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	}
 
 	if len(input.ModelWhitelist) > 0 && existing.MemberID != nil {
-		if msg := common.ValidateModelsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+		if msg := common.ValidateModelIDsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}
@@ -89,7 +89,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		existing.Quota = *input.Quota
 	}
 	if input.ModelWhitelist != nil {
-		existing.ModelWhitelist = append([]string{}, input.ModelWhitelist...)
+		existing.ModelWhitelist = append([]int64{}, input.ModelWhitelist...)
 	}
 	platformKeys[idx] = existing
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {

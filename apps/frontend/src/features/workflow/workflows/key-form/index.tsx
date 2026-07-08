@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys'
+import { useModelLabels } from '@/features/models/hooks/use-model-labels'
 import { formatQuotaContext, useKeyFormQuota, useKeyFormState } from './use-key-form-quota'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
@@ -34,7 +35,7 @@ export function KeyFormWorkflow({
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
-  const { resolveWhitelist } = useMemberWhitelist()
+  const { resolveAllowedModelIds } = useMemberWhitelist()
   const isCreate = entry.id === 'key-create'
   const key =
     entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined
@@ -68,6 +69,7 @@ export function KeyFormWorkflow({
     initialQuota: isCreate && entry.id === 'key-create' ? entry.payload.initialQuota : undefined,
   })
 
+  const { labelFor } = useModelLabels(apis)
   const effectiveMemberId = adminCreate ? targetMemberId : memberId
   const isGroupKey = Boolean(budgetGroupId)
 
@@ -102,8 +104,8 @@ export function KeyFormWorkflow({
   }
 
   const handlePickModels = () => {
-    void pushModelPicker(onPush, resolveWhitelist, {
-      selectedModels: models,
+    void pushModelPicker(onPush, resolveAllowedModelIds, {
+      selectedModelIds: models,
       onConfirm: setModels,
       onSetDirty,
     })
@@ -175,9 +177,9 @@ export function KeyFormWorkflow({
       </Button>
       {models.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {models.map((m) => (
-            <Badge key={m} variant="outline" className="text-xs">
-              {m}
+          {models.map((modelId) => (
+            <Badge key={modelId} variant="outline" className="text-xs">
+              {labelFor(modelId)}
             </Badge>
           ))}
         </div>

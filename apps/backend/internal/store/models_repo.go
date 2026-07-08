@@ -8,7 +8,12 @@ import (
 
 type ModelsRepository interface {
 	Models(ctx context.Context) ([]types.ModelInfo, error)
-	ModelByName(ctx context.Context, name string) (*types.ModelInfo, error)
-	SetModels(ctx context.Context, models []types.ModelInfo) error
+	ModelByType(ctx context.Context, modelType string) (*types.ModelInfo, error)
+	ModelByProviderType(ctx context.Context, provider, modelType string) (*types.ModelInfo, error)
+	ModelByID(ctx context.Context, modelID int64) (*types.ModelInfo, error)
+	ModelByIDs(ctx context.Context, modelIDs []int64) ([]types.ModelInfo, error)
+	InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error)
+	UpdateModel(ctx context.Context, model types.ModelInfo) error
+	DeleteModel(ctx context.Context, modelID int64) error
 	Allowlist() ModelAllowlistRepository
 }

@@ -11,7 +11,19 @@ describe('useUsageDashboardPage', () => {
         getTeamUsage: vi
           .fn()
           .mockResolvedValue([{ departmentId: 'd1', departmentName: 'HQ', tokens: 100 }]),
-        getModelUsage: vi.fn().mockResolvedValue([{ model: 'gpt-4', tokens: 50 }]),
+        getModelUsage: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              callType: 'gpt-4',
+              modelName: 'GPT-4',
+              tokens: 50,
+              cost: 1,
+              requests: 1,
+              percentage: 100,
+              provider: 'openai',
+            },
+          ]),
       },
     })
 

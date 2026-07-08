@@ -22,6 +22,7 @@ import { useWorkflow } from '../use-workflow'
 import { pushModelPicker, useMemberWhitelist } from '../use-member-whitelist'
 import type { ApprovalType } from '@/api/types'
 import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/features/dashboard'
+import { useModelLabels } from '@/features/models/hooks/use-model-labels'
 
 export function ApprovalSubmitWorkflow({
   entry,
@@ -32,18 +33,19 @@ export function ApprovalSubmitWorkflow({
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
-  const { resolveWhitelist } = useMemberWhitelist()
+  const { resolveAllowedModelIds } = useMemberWhitelist()
+  const { labelFor } = useModelLabels(apis)
   const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'quota'
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
   const [quota, setQuota] = useState('3000')
-  const [models, setModels] = useState<string[]>([])
+  const [models, setModels] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   const handlePickModels = () => {
-    void pushModelPicker(onPush, resolveWhitelist, {
-      selectedModels: models,
+    void pushModelPicker(onPush, resolveAllowedModelIds, {
+      selectedModelIds: models,
       onConfirm: setModels,
       onSetDirty,
     })
@@ -51,12 +53,13 @@ export function ApprovalSubmitWorkflow({
 
   const validateModels = async (): Promise<boolean> => {
     if (type !== 'key' || models.length === 0) return true
-    const allowed = await resolveWhitelist()
+    const allowed = await resolveAllowedModelIds()
     if (!allowed?.length) {
       toast.error('无法加载可用模型白名单')
       return false
     }
-    const invalid = models.filter((m) => !allowed.includes(m))
+    const allowedSet = new Set(allowed)
+    const invalid = models.filter((id) => !allowedSet.has(id))
     if (invalid.length > 0) {
       toast.error(MODEL_NOT_IN_DEPT_MESSAGE)
       return false
@@ -145,17 +148,15 @@ export function ApprovalSubmitWorkflow({
           <div className="space-y-3">
             <Label>申请模型</Label>
             <Button variant="outline" onClick={handlePickModels}>
-              选择模型 {models.length > 0 && `(${models.length})`}
+              选择模型 ({models.length})
             </Button>
-            {models.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {models.map((m) => (
-                  <Badge key={m} variant="outline" className="text-xs">
-                    {m}
-                  </Badge>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-1">
+              {models.map((modelId) => (
+                <Badge key={modelId} variant="outline" className="text-xs">
+                  {labelFor(modelId)}
+                </Badge>
+              ))}
+            </div>
           </div>
         )}
       </WorkflowFormLayout>

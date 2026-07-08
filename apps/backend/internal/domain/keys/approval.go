@@ -37,14 +37,14 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	if err != nil {
 		return types.KeyApproval{}, err
 	}
-	if msg := common.ValidateModelsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+	if msg := common.ValidateModelIDsForMember(input.MemberID, input.RequestedModels, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 		return types.KeyApproval{}, domain.Validation(*msg)
 	}
 	created := types.KeyApproval{
 		ID:   fmt.Sprintf("apv-%d", time.Now().UnixMilli()),
 		Type: input.Type, Applicant: member.Name, ApplicantID: input.MemberID, Department: member.DepartmentName,
 		Reason: input.Reason, RequestedQuota: input.RequestedQuota,
-		RequestedModels: append([]string{}, input.RequestedModels...),
+		RequestedModels: append([]int64{}, input.RequestedModels...),
 		Status:          "pending", CreatedAt: time.Now().Format("2006-01-02 15:04"),
 	}
 	approvals, err := s.store.Keys().Approvals(ctx)
@@ -117,7 +117,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 				ID:   createdKeyID,
 				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: "pending...",
 				MemberID: &memberID, Status: "active", Quota: keyQuota, Used: 0,
-				ModelWhitelist: append([]string{}, approval.RequestedModels...),
+				ModelWhitelist: append([]int64{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})
 			if err := st.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {

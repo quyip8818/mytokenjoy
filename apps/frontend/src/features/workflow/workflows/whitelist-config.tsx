@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import type { RoutingRule } from '@/api/types'
+import type { ModelRef, RoutingRule } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
@@ -10,8 +10,19 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
-
 import { findParentDeptId } from '@/features/org'
+import { modelRefLabel } from '@/features/models'
+
+function refsFromRule(rule: RoutingRule): ModelRef[] {
+  if (rule.allowedModels?.length) return rule.allowedModels
+  return rule.allowedModelIds.map((modelId) => ({
+    modelId,
+    type: `#${modelId}`,
+    name: `#${modelId}`,
+    provider: 'custom',
+    enabled: true,
+  }))
+}
 
 export function WhitelistConfigWorkflow({
   entry,
@@ -24,9 +35,23 @@ export function WhitelistConfigWorkflow({
   const rule = entry.payload.rule as RoutingRule
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [inherited, setInherited] = useState(rule.inherited)
-  const [models, setModels] = useState<string[]>(rule.allowedModels)
-  const [parentWhitelist, setParentWhitelist] = useState<string[]>([])
+  const [modelIds, setModelIds] = useState<number[]>(rule.allowedModelIds)
+  const [parentRefs, setParentRefs] = useState<ModelRef[]>(refsFromRule(rule))
   const [submitting, setSubmitting] = useState(false)
+
+  const selectedRefs = useMemo(() => {
+    const byId = new Map((rule.allowedModels ?? []).map((ref) => [ref.modelId, ref]))
+    return modelIds.map(
+      (id) =>
+        byId.get(id) ?? {
+          modelId: id,
+          type: `#${id}`,
+          name: `#${id}`,
+          provider: 'custom' as const,
+          enabled: true,
+        },
+    )
+  }, [modelIds, rule.allowedModels])
 
   useEffect(() => {
     void (async () => {
@@ -36,23 +61,23 @@ export function WhitelistConfigWorkflow({
       ])
       const parentId = findParentDeptId(depts, rule.nodeId)
       const parentRule = parentId ? rules.find((r) => r.nodeId === parentId) : undefined
-      setParentWhitelist(parentRule?.allowedModels ?? rule.allowedModels)
+      setParentRefs(parentRule ? refsFromRule(parentRule) : refsFromRule(rule))
     })()
-  }, [apis, rule.nodeId, rule.allowedModels])
+  }, [apis, rule])
 
   const handlePickModels = () => {
     onPush('model-picker', {
-      selectedModels: models,
-      parentWhitelist,
-      onConfirm: (picked: string[]) => {
-        setModels(picked)
+      selectedModelIds: modelIds,
+      parentAllowedModelIds: parentRefs.map((ref) => ref.modelId),
+      onConfirm: (picked: number[]) => {
+        setModelIds(picked)
         onSetDirty(true)
       },
     })
   }
 
   const handleSave = async () => {
-    if (!inherited && models.length === 0) {
+    if (!inherited && modelIds.length === 0) {
       toast.error('请至少选择一个模型')
       return
     }
@@ -60,7 +85,7 @@ export function WhitelistConfigWorkflow({
     try {
       await apis.routingApi.updateRule(rule.id, {
         inherited,
-        allowedModels: inherited ? rule.allowedModels : models,
+        allowedModelIds: inherited ? rule.allowedModelIds : modelIds,
       })
       toast.success('白名单已保存')
       onSuccess?.()
@@ -107,12 +132,12 @@ export function WhitelistConfigWorkflow({
             <div className="space-y-3">
               <Label>允许模型</Label>
               <Button variant="outline" onClick={handlePickModels}>
-                选择模型 ({models.length})
+                选择模型 ({modelIds.length})
               </Button>
               <div className="flex flex-wrap gap-1">
-                {models.map((m) => (
-                  <Badge key={m} variant="outline" className="text-xs">
-                    {m}
+                {selectedRefs.map((ref) => (
+                  <Badge key={ref.modelId} variant="outline" className="text-xs">
+                    {modelRefLabel(ref)}
                   </Badge>
                 ))}
               </div>
@@ -120,16 +145,16 @@ export function WhitelistConfigWorkflow({
           )}
           {inherited && (
             <p className="text-sm text-muted-foreground">
-              当前继承父级，共 {parentWhitelist.length} 个可用模型
+              当前继承父级，共 {parentRefs.length} 个可用模型
             </p>
           )}
         </div>
         <WorkflowInfoBox fullWidth className="space-y-2">
           <h4 className="font-semibold">父级白名单参考</h4>
           <div className="flex flex-wrap gap-1">
-            {parentWhitelist.map((m) => (
-              <Badge key={m} variant="outline" className="text-xs">
-                {m}
+            {parentRefs.map((ref) => (
+              <Badge key={ref.modelId} variant="outline" className="text-xs">
+                {modelRefLabel(ref)}
               </Badge>
             ))}
           </div>

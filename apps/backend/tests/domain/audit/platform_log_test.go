@@ -16,7 +16,7 @@ func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t)
 	svc := audit.NewService(cfg, st)
 
-	const targetCompanyID int64 = 2
+	const targetCompanyID int64 = 3
 	const action = "platform.company.recharge"
 
 	if err := st.Company().Create(context.Background(), store.Company{
@@ -24,7 +24,7 @@ func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := company.AppendPlatformOperationLog(context.Background(), st, targetCompanyID, action, "op-1", "company:2", "amount=10"); err != nil {
+	if err := company.AppendPlatformOperationLog(context.Background(), st, targetCompanyID, action, "op-1", "company:3", "amount=10"); err != nil {
 		t.Fatal(err)
 	}
 

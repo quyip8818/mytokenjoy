@@ -260,7 +260,7 @@ func TestKeysPlatformCreateMissingMemberID(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body, _ := json.Marshal(map[string]any{
-		"name": "test", "quota": 1000, "modelWhitelist": []string{"gpt-4o"},
+		"name": "test", "quota": 1000, "modelWhitelist": []int64{contract.IDModel1},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

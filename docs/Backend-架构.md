@@ -130,7 +130,7 @@ sequenceDiagram
 | ---------------- | ----------------------- | ---------------------------------------------------------------------- |
 | `Recover`        | 全局                    | panic 恢复                                                             |
 | `CORS`           | 全局                    | 允许前端源                                                             |
-| `CompanyResolve` | `/api/*`（非 platform） | 从 Session 注入 `company_id`；私有化 `DEFAULT_COMPANY_ID`              |
+| `CompanyResolve` | `/api/*`（非 platform） | 从 Session 注入 `company_id`；私有化固定 `LOCAL_COMPANY_ID`            |
 | `Session`        | 全部 `/api/*` 业务路由  | **PEP**：解析签名 Session JWT → `SessionContext`（含 `authzRevision`） |
 | `PlatformAuth`   | `/api/platform/*`       | 平台签名 JWT；`SUPPORT_SAAS=false` 时路由 404                          |
 | `Authz`          | 需权限的路由            | **PEP**：`RequireAnyPermission` 对照 PDP 展开的 capability             |
@@ -144,7 +144,13 @@ sequenceDiagram
 | 已登录成员（企业面） | **仅** Session `companyId`；忽略 `X-Company-Id` |
 | 邀请激活             | token 内嵌 `company_id`                         |
 | 平台面               | 不经 CompanyResolve；路径显式 `{id}`            |
-| 私有化               | 固定 `DEFAULT_COMPANY_ID`（默认 `1`）           |
+| 私有化               | 固定 `LOCAL_COMPANY_ID`                          |
+
+部署模式约束：
+
+- `SUPPORT_SAAS=false`：单租户本地化部署，仅 `LOCAL_COMPANY_ID` 作为业务租户
+- `SUPPORT_SAAS=true`：SaaS 多租户，业务租户 ID 从 `1000000` 起分配
+- 单租户与 SaaS 模式不可切换
 
 ### 4.2 鉴权（目标态）
 

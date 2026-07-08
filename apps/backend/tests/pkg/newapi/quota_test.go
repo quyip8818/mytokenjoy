@@ -10,10 +10,10 @@ import (
 func TestToNewAPIUnitsUsesHighestWhitelistPrice(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{Name: "cheap", InputPrice: 1, OutputPrice: 1},
-		{Name: "expensive", InputPrice: 10, OutputPrice: 10},
+		{ModelID: 1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
+		{ModelID: 2, Type: "expensive", InputPrice: 10, OutputPrice: 10, Enabled: true},
 	}
-	units := newapi.ToNewAPIUnits(20, models, []string{"cheap", "expensive"})
+	units := newapi.ToNewAPIUnits(20, models, []int64{1, 2})
 	if units <= 0 {
 		t.Fatalf("expected positive units, got %d", units)
 	}
@@ -30,9 +30,9 @@ func TestCostCNYFromQuota(t *testing.T) {
 func TestHighestModelPriceCNY(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{Name: "cheap", InputPrice: 1, OutputPrice: 1},
-		{Name: "mid", InputPrice: 5, OutputPrice: 5},
-		{Name: "expensive", InputPrice: 10, OutputPrice: 10},
+		{ModelID: 1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
+		{ModelID: 2, Type: "mid", InputPrice: 5, OutputPrice: 5, Enabled: true},
+		{ModelID: 3, Type: "expensive", InputPrice: 10, OutputPrice: 10, Enabled: true},
 	}
 
 	t.Run("all models", func(t *testing.T) {
@@ -43,7 +43,7 @@ func TestHighestModelPriceCNY(t *testing.T) {
 	})
 
 	t.Run("whitelist subset", func(t *testing.T) {
-		price := newapi.HighestModelPriceCNY(models, []string{"cheap", "mid"})
+		price := newapi.HighestModelPriceCNY(models, []int64{1, 2})
 		if price != 10 {
 			t.Errorf("expected 10, got %v", price)
 		}
@@ -60,11 +60,11 @@ func TestHighestModelPriceCNY(t *testing.T) {
 func TestFromNewAPIUnits(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{Name: "gpt-4", InputPrice: 10, OutputPrice: 10},
+		{ModelID: 1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
 	}
 
 	t.Run("positive units", func(t *testing.T) {
-		cny := newapi.FromNewAPIUnits(500000, models, []string{"gpt-4"})
+		cny := newapi.FromNewAPIUnits(500000, models, []int64{1})
 		if cny <= 0 {
 			t.Errorf("expected positive CNY, got %v", cny)
 		}
@@ -120,50 +120,50 @@ func TestFormatModelLimits(t *testing.T) {
 func TestModelPriceCNY(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{Name: "gpt-4", InputPrice: 10, OutputPrice: 10},
-		{Name: "free", InputPrice: 0, OutputPrice: 0},
+		{ModelID: 1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
+		{ModelID: 2, Type: "free", InputPrice: 0, OutputPrice: 0, Enabled: true},
 	}
 
 	t.Run("found model", func(t *testing.T) {
-		price := newapi.ModelPriceCNY(models, "gpt-4")
+		price := newapi.ModelPriceCNY(models, []int64{1}, "gpt-4")
 		if price != 20 {
 			t.Errorf("expected 20, got %v", price)
 		}
 	})
 
 	t.Run("zero price returns default", func(t *testing.T) {
-		price := newapi.ModelPriceCNY(models, "free")
+		price := newapi.ModelPriceCNY(models, []int64{2}, "free")
 		if price <= 0 {
 			t.Errorf("expected positive default, got %v", price)
 		}
 	})
 
 	t.Run("not found returns default", func(t *testing.T) {
-		price := newapi.ModelPriceCNY(models, "unknown")
+		price := newapi.ModelPriceCNY(models, nil, "unknown")
 		if price <= 0 {
 			t.Errorf("expected positive default, got %v", price)
 		}
 	})
 }
 
-func TestEffectiveWhitelist(t *testing.T) {
+func TestEffectiveWhitelistIDs(t *testing.T) {
 	t.Parallel()
 	t.Run("empty key whitelist returns dept allowed", func(t *testing.T) {
-		result := newapi.EffectiveWhitelist(nil, []string{"gpt-4", "claude"})
+		result := newapi.EffectiveWhitelistIDs(nil, []int64{1, 2})
 		if len(result) != 2 {
 			t.Fatalf("expected 2, got %d", len(result))
 		}
 	})
 
 	t.Run("intersection of key and dept", func(t *testing.T) {
-		result := newapi.EffectiveWhitelist([]string{"gpt-4", "gpt-3.5"}, []string{"gpt-4", "claude"})
-		if len(result) != 1 || result[0] != "gpt-4" {
-			t.Errorf("expected [gpt-4], got %v", result)
+		result := newapi.EffectiveWhitelistIDs([]int64{1, 3}, []int64{1, 2})
+		if len(result) != 1 || result[0] != 1 {
+			t.Errorf("expected [1], got %v", result)
 		}
 	})
 
 	t.Run("no overlap returns empty", func(t *testing.T) {
-		result := newapi.EffectiveWhitelist([]string{"gpt-3.5"}, []string{"gpt-4"})
+		result := newapi.EffectiveWhitelistIDs([]int64{3}, []int64{1})
 		if len(result) != 0 {
 			t.Errorf("expected empty, got %v", result)
 		}

@@ -29,7 +29,7 @@ export interface PlatformKey {
   status: KeyStatus
   quota: number
   used: number
-  modelWhitelist: string[]
+  modelWhitelist: number[]
   createdAt: string
   expiresAt: string | null
 }
@@ -45,7 +45,7 @@ export interface KeyApproval {
   department: string
   reason: string
   requestedQuota: number
-  requestedModels: string[]
+  requestedModels: number[]
   status: ApprovalStatus
   approver: string | null
   rejectReason?: string | null

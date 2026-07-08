@@ -75,7 +75,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertCount(t, ctx, pool, "companies", 1)
+	assertCount(t, ctx, pool, "companies", 2)
 	assertCount(t, ctx, pool, "members", len(snap.Members))
 	assertCount(t, ctx, pool, "roles", len(snap.Roles))
 	assertCount(t, ctx, pool, "models", len(snap.Models))

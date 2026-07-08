@@ -89,16 +89,10 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	existing, err := st.Models().Models(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	models := append(existing, types.ModelInfo{
-		ID:           "model-roundtrip",
-		Provider:     "openai",
-		Name:         "gpt-roundtrip",
-		DisplayName:  "GPT RoundTrip",
-		Type:         "builtin",
+	inserted, err := st.Models().InsertModel(ctx, types.ModelInfo{
+		Provider:     types.ProviderCustom,
+		Type:         "gpt-roundtrip",
+		Name:         "GPT RoundTrip",
 		Visibility:   "all",
 		InputPrice:   1,
 		OutputPrice:  2,
@@ -106,21 +100,21 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 		Enabled:      true,
 		Capabilities: []string{"chat"},
 	})
-	defaultModel := "gpt-roundtrip"
-	fallbackModel := "gpt-4o"
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultModelID := inserted.ModelID
+	fallbackModelID := contract.IDModel1
 	rules := []types.RoutingRule{
 		{
-			ID:            contract.IDDept3,
-			NodeID:        contract.IDDept3,
-			NodeName:      "后端组",
-			DefaultModel:  &defaultModel,
-			FallbackModel: &fallbackModel,
-			AllowedModels: []string{"gpt-roundtrip", "gpt-4o"},
-			Inherited:     false,
+			ID:              contract.IDDept3,
+			NodeID:          contract.IDDept3,
+			NodeName:        "后端组",
+			DefaultModelId:  &defaultModelID,
+			FallbackModelId: &fallbackModelID,
+			AllowedModelIds: []int64{inserted.ModelID, contract.IDModel1},
+			Inherited:       false,
 		},
-	}
-	if err := st.Models().SetModels(ctx, models); err != nil {
-		t.Fatal(err)
 	}
 	nodes, err := st.Org().Nodes().Tree(ctx)
 	if err != nil {
@@ -135,7 +129,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	}
 	foundModel := false
 	for _, model := range gotModels {
-		if model.ID == "model-roundtrip" {
+		if model.Type == "gpt-roundtrip" {
 			foundModel = true
 			if len(model.Capabilities) != 1 || model.Capabilities[0] != "chat" {
 				t.Fatalf("capabilities mismatch: %+v", model.Capabilities)
@@ -153,7 +147,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	for _, rule := range gotRules {
 		if rule.ID == contract.IDDept3 {
 			foundRule = true
-			if len(rule.AllowedModels) != 2 || rule.DefaultModel == nil || *rule.DefaultModel != "gpt-roundtrip" {
+			if len(rule.AllowedModelIds) != 2 || rule.DefaultModelId == nil || *rule.DefaultModelId != defaultModelID {
 				t.Fatalf("routing rule mismatch: %+v", rule)
 			}
 		}
@@ -167,7 +161,7 @@ func TestModelAllowlistReplaceRejectsUnknownModel(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, contract.IDDept3, []string{"nonexistent-model-xyz"})
+	err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, contract.IDDept3, []int64{999999})
 	if err == nil {
 		t.Fatal("expected error for unknown model")
 	}

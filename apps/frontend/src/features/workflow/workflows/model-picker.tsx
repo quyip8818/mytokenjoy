@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ModelInfo } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
@@ -8,6 +8,7 @@ import { WORKFLOW_LIST_ITEM_CLASS, WORKFLOW_LIST_ITEM_SELECTED_CLASS } from '../
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+import { isBuiltinModel } from '@/features/models'
 
 export function ModelPickerWorkflow({
   entry,
@@ -16,36 +17,44 @@ export function ModelPickerWorkflow({
   onSetDirty,
 }: WorkflowComponentProps<'model-picker'>) {
   const apis = useInjectedApis()
-  const selected = (entry.payload.selectedModels as string[]) ?? []
-  const parentWhitelist = (entry.payload.parentWhitelist as string[] | undefined) ?? undefined
-  const onConfirm = entry.payload.onConfirm as ((models: string[]) => void) | undefined
+  const selectedModelIds = useMemo(
+    () => (entry.payload.selectedModelIds as number[]) ?? [],
+    [entry.payload.selectedModelIds],
+  )
+  const parentAllowedModelIds =
+    (entry.payload.parentAllowedModelIds as number[] | undefined) ?? undefined
+  const onConfirm = entry.payload.onConfirm as ((modelIds: number[]) => void) | undefined
   const [models, setModels] = useState<ModelInfo[]>([])
   const [search, setSearch] = useState('')
-  const [picked, setPicked] = useState<string[]>(selected)
+  const [pickedIds, setPickedIds] = useState<number[]>(() => [...selectedModelIds])
 
   useEffect(() => {
     apis.modelApi.list().then((list) => {
       let enabled = list.filter((m) => m.enabled)
-      if (parentWhitelist?.length) {
-        enabled = enabled.filter((m) => parentWhitelist.includes(m.name))
+      if (parentAllowedModelIds?.length) {
+        const allowed = new Set(parentAllowedModelIds)
+        enabled = enabled.filter((m) => allowed.has(m.modelId))
       }
       setModels(enabled)
+      setPickedIds((prev) => (prev.length > 0 ? prev : [...selectedModelIds]))
     })
-  }, [apis, parentWhitelist])
+  }, [apis, parentAllowedModelIds, selectedModelIds])
 
   const filtered = models.filter(
     (m) =>
-      m.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      m.name.toLowerCase().includes(search.toLowerCase()),
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.type.toLowerCase().includes(search.toLowerCase()),
   )
 
-  const toggle = (name: string) => {
-    setPicked((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
+  const toggle = (modelId: number) => {
+    setPickedIds((prev) =>
+      prev.includes(modelId) ? prev.filter((id) => id !== modelId) : [...prev, modelId],
+    )
     onSetDirty(true)
   }
 
   const handleConfirm = () => {
-    onConfirm?.(picked)
+    onConfirm?.(pickedIds)
     onPop()
   }
 
@@ -58,9 +67,9 @@ export function ModelPickerWorkflow({
       footer={
         <WorkflowPanelFooter
           onCancel={onPop}
-          primaryLabel={`确认 (${picked.length})`}
+          primaryLabel={`确认 (${pickedIds.length})`}
           onPrimary={handleConfirm}
-          primaryDisabled={picked.length === 0}
+          primaryDisabled={pickedIds.length === 0}
         />
       }
     >
@@ -73,17 +82,25 @@ export function ModelPickerWorkflow({
         <div className="space-y-1 max-h-[60vh] overflow-y-auto">
           {filtered.map((m) => (
             <label
-              key={m.id}
+              key={m.modelId}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 cursor-pointer',
                 WORKFLOW_LIST_ITEM_CLASS,
-                picked.includes(m.name) && WORKFLOW_LIST_ITEM_SELECTED_CLASS,
+                pickedIds.includes(m.modelId) && WORKFLOW_LIST_ITEM_SELECTED_CLASS,
+                !m.enabled && 'opacity-50',
               )}
             >
-              <Checkbox checked={picked.includes(m.name)} onCheckedChange={() => toggle(m.name)} />
+              <Checkbox
+                checked={pickedIds.includes(m.modelId)}
+                disabled={!m.enabled}
+                onCheckedChange={() => toggle(m.modelId)}
+              />
               <div className="flex-1">
-                <div className="font-medium text-sm">{m.displayName}</div>
-                <div className="text-xs text-muted-foreground">{m.name}</div>
+                <div className="font-medium text-sm">{m.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {m.type}
+                  {isBuiltinModel(m) ? ` · ${m.provider}` : ''}
+                </div>
               </div>
             </label>
           ))}

@@ -110,7 +110,7 @@ export function useKeyFormState({
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
   const [quota, setQuota] = useState(String(key?.quota ?? initialQuota ?? '5000'))
-  const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
+  const [models, setModels] = useState<number[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(
     adminCreate ? (initialTargetMemberId ?? '') : defaultMemberId,
   )

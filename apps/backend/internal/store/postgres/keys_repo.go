@@ -25,14 +25,12 @@ const platformKeySelect = `
 const platformKeyListSelect = `
 	SELECT pk.id, pk.name, pk.key_prefix, pk.member_id,
 		pk.budget_group_id, pk.status, pk.quota, pk.created_at, pk.expires_at,
-		COALESCE(array_agg(m.name ORDER BY m.name) FILTER (WHERE m.name IS NOT NULL), '{}') AS model_names
+		COALESCE(array_agg(ma.model_id ORDER BY ma.model_id) FILTER (WHERE ma.model_id IS NOT NULL), '{}') AS model_ids
 	FROM platform_keys pk
 	LEFT JOIN model_allowlist ma
 		ON ma.company_id = pk.company_id
 		AND ma.owner_type = 'platform_key'
 		AND ma.owner_id = pk.id
-	LEFT JOIN models m
-		ON m.company_id = ma.company_id AND m.id = ma.model_id
 `
 
 func (r *pgKeysRepo) ProviderKeys(ctx context.Context) ([]types.ProviderKey, error) {
@@ -392,12 +390,12 @@ func scanPlatformKeyWithModels(rows pgx.Rows) (types.PlatformKey, error) {
 	var item types.PlatformKey
 	var createdAt time.Time
 	var expiresAt *time.Time
-	var modelNames []string
+	var modelIDs []int64
 	if err := rows.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
 		&item.BudgetGroupID, &item.Status,
 		&item.Quota, &createdAt, &expiresAt,
-		&modelNames,
+		&modelIDs,
 	); err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -407,7 +405,7 @@ func scanPlatformKeyWithModels(rows pgx.Rows) (types.PlatformKey, error) {
 		s := formatDateOnly(*expiresAt)
 		item.ExpiresAt = &s
 	}
-	item.ModelWhitelist = modelNames
+	item.ModelWhitelist = modelIDs
 	return item, nil
 }
 

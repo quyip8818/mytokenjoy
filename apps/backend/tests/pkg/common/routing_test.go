@@ -17,45 +17,45 @@ func TestShrinkChildRoutingRules(t *testing.T) {
 		{ID: "dept-3", Name: "Grandchild", ParentID: &childParentID},
 	}
 	rules := []types.RoutingRule{
-		{ID: "r-1", NodeID: "dept-2", AllowedModels: []string{"gpt-4o", "claude", "deepseek"}},
-		{ID: "r-2", NodeID: "dept-3", AllowedModels: []string{"gpt-4o", "claude", "deepseek"}},
+		{ID: "r-1", NodeID: "dept-2", AllowedModelIds: []int64{1, 2, 3}},
+		{ID: "r-2", NodeID: "dept-3", AllowedModelIds: []int64{1, 2, 3}},
 	}
-	updated := common.ShrinkChildRoutingRules("dept-1", []string{"gpt-4o"}, rules, departments)
-	if len(updated[0].AllowedModels) != 1 || updated[0].AllowedModels[0] != "gpt-4o" {
-		t.Fatalf("expected child rule to shrink to gpt-4o, got %v", updated[0].AllowedModels)
+	updated := common.ShrinkChildRoutingRules("dept-1", []int64{1}, rules, departments)
+	if len(updated[0].AllowedModelIds) != 1 || updated[0].AllowedModelIds[0] != 1 {
+		t.Fatalf("expected child rule to shrink to model 1, got %v", updated[0].AllowedModelIds)
 	}
-	if len(updated[1].AllowedModels) != 1 || updated[1].AllowedModels[0] != "gpt-4o" {
-		t.Fatalf("expected grandchild rule to shrink to gpt-4o, got %v", updated[1].AllowedModels)
+	if len(updated[1].AllowedModelIds) != 1 || updated[1].AllowedModelIds[0] != 1 {
+		t.Fatalf("expected grandchild rule to shrink to model 1, got %v", updated[1].AllowedModelIds)
 	}
 }
 
-func TestResolveDeptAllowedModels_NoRules(t *testing.T) {
+func TestResolveDeptAllowedModelIDs_NoRules(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{Name: "gpt-4", Enabled: true},
-		{Name: "disabled", Enabled: false},
-		{Name: "claude", Enabled: true},
+		{ModelID: 1, Type: "gpt-4", Enabled: true},
+		{ModelID: 2, Type: "disabled", Enabled: false},
+		{ModelID: 3, Type: "claude", Enabled: true},
 	}
-	result := common.ResolveDeptAllowedModels("dept-1", nil, nil, models)
+	result := common.ResolveDeptAllowedModelIDs("dept-1", nil, nil, models)
 	if len(result) != 2 {
 		t.Fatalf("expected 2 enabled models, got %d: %v", len(result), result)
 	}
 }
 
-func TestResolveDeptAllowedModels_WithRule(t *testing.T) {
+func TestResolveDeptAllowedModelIDs_WithRule(t *testing.T) {
 	t.Parallel()
 	departments := []types.Department{
 		{ID: "dept-1", Name: "Root"},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "dept-1", AllowedModels: []string{"gpt-4", "claude"}},
+		{NodeID: "dept-1", AllowedModelIds: []int64{1, 3}},
 	}
 	models := []types.ModelInfo{
-		{Name: "gpt-4", Enabled: true},
-		{Name: "claude", Enabled: true},
-		{Name: "other", Enabled: true},
+		{ModelID: 1, Type: "gpt-4", Enabled: true},
+		{ModelID: 3, Type: "claude", Enabled: true},
+		{ModelID: 4, Type: "other", Enabled: true},
 	}
-	result := common.ResolveDeptAllowedModels("dept-1", departments, rules, models)
+	result := common.ResolveDeptAllowedModelIDs("dept-1", departments, rules, models)
 	if len(result) != 2 {
 		t.Fatalf("expected 2 models from rule, got %d: %v", len(result), result)
 	}
@@ -102,9 +102,8 @@ func TestGetRoutingRuleForDept_Inherited(t *testing.T) {
 		{ID: "dept-2", Name: "Child", ParentID: &parentID},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "dept-1", AllowedModels: []string{"gpt-4"}},
+		{NodeID: "dept-1", AllowedModelIds: []int64{1}},
 	}
-	// Child has no rule, should inherit from parent
 	rule := common.GetRoutingRuleForDept("dept-2", rules, departments)
 	if rule == nil {
 		t.Fatal("expected to find parent rule")

@@ -30,7 +30,7 @@ func TestApprovalQuotaCheckSufficient(t *testing.T) {
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "test", RequestedQuota: 1000,
-		RequestedModels: []string{"gpt-4o"}, MemberID: contract.IDMember1,
+		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +75,7 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "need more", RequestedQuota: 1000,
-		RequestedModels: []string{"gpt-4o"}, MemberID: contract.IDMember1,
+		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +103,7 @@ func TestApproveInsufficientReserved(t *testing.T) {
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "too much", RequestedQuota: 9999,
-		RequestedModels: []string{"gpt-4o"}, MemberID: contract.IDMember1,
+		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +131,7 @@ func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
-		ModelWhitelist: []string{"gpt-4o"},
+		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
 }
@@ -142,7 +142,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
-		ModelWhitelist: []string{"gpt-4o"},
+		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +158,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "too-big", MemberID: &memberID, Quota: 99999,
-		ModelWhitelist: []string{"gpt-4o"},
+		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -169,7 +169,7 @@ func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "bad-models", MemberID: &memberID, Quota: 1000,
-		ModelWhitelist: []string{"nonexistent-model"},
+		ModelWhitelist: []int64{999999},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -179,7 +179,7 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 	svc, _ := newKeysService(t)
 	_, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "quota", Reason: "bad models", RequestedQuota: 1000,
-		RequestedModels: []string{"nonexistent-model"}, MemberID: contract.IDMember1,
+		RequestedModels: []int64{999999}, MemberID: contract.IDMember1,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -191,7 +191,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Quota: 99999,
-		ModelWhitelist: []string{"gpt-4o"},
+		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -212,7 +212,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", MemberID: &memberID, Quota: 500,
-		ModelWhitelist: []string{"gpt-4o"},
+		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -25,7 +25,7 @@ type ProvisionInput struct {
 type ProvisionState struct {
 	Nodes          []types.OrgNode
 	Models         []types.ModelInfo
-	NodeAllowlists map[string][]string
+	NodeAllowlists map[string][]int64
 }
 
 func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNode) (*ProvisionState, error) {
@@ -33,7 +33,7 @@ func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNo
 	if err != nil {
 		return nil, err
 	}
-	allowlists := make(map[string][]string)
+	allowlists := make(map[string][]int64)
 	for _, node := range pkgorg.FlattenOrgNodeTree(nodes) {
 		allowed, err := st.Models().Allowlist().List(ctx, types.AllowlistOwnerOrgNode, node.ID)
 		if err != nil {
@@ -99,13 +99,13 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 
 	departments := DepartmentsFromState(state)
 	rules := rulesFromState(state)
-	parentAllowed := common.ResolveDeptAllowedModels(
+	parentAllowed := common.ResolveDeptAllowedModelIDs(
 		input.ParentID, departments, rules, state.Models,
 	)
 	if state.NodeAllowlists == nil {
-		state.NodeAllowlists = make(map[string][]string)
+		state.NodeAllowlists = make(map[string][]int64)
 	}
-	state.NodeAllowlists[input.ID] = append([]string{}, parentAllowed...)
+	state.NodeAllowlists[input.ID] = append([]int64{}, parentAllowed...)
 	return nil
 }
 

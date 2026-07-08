@@ -28,18 +28,18 @@ const rules: RoutingRule[] = [
     nodeId: 'dept-2',
     nodeName: '技术部',
     inherited: false,
-    allowedModels: ['gpt-4o', 'claude-3'],
-    defaultModel: 'gpt-4o',
-    fallbackModel: null,
+    allowedModelIds: [1, 2],
+    defaultModelId: 1,
+    fallbackModelId: null,
   },
   {
     id: 'rule-3',
     nodeId: 'dept-3',
     nodeName: '后端组',
     inherited: true,
-    allowedModels: ['gpt-4o'],
-    defaultModel: 'gpt-4o',
-    fallbackModel: null,
+    allowedModelIds: [1],
+    defaultModelId: 1,
+    fallbackModelId: null,
   },
 ]
 
@@ -51,9 +51,9 @@ describe('useModelRoutingPage', () => {
         nodeId: 'd1',
         nodeName: 'Dept',
         inherited: false,
-        allowedModels: ['gpt-4'],
-        defaultModel: 'gpt-4',
-        fallbackModel: null,
+        allowedModelIds: [10],
+        defaultModelId: 10,
+        fallbackModelId: null,
       },
     ]
     const apis = createMockApis({

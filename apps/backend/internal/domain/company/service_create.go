@@ -12,6 +12,8 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+const saasMinCompanyID int64 = 1_000_000
+
 func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error) {
 	companies, err := s.store.Company().List(ctx)
 	if err != nil {
@@ -22,6 +24,9 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if t.ID >= nextID {
 			nextID = t.ID + 1
 		}
+	}
+	if s.cfg.SupportSaas && nextID < saasMinCompanyID {
+		nextID = saasMinCompanyID
 	}
 	now := time.Now().UTC()
 	var result CreateCompanyResult

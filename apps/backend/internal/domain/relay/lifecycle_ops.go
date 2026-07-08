@@ -28,8 +28,8 @@ func (l *TokenLifecycle) newAPIWalletUserID(ctx context.Context) int64 {
 	return *company.NewAPIWalletUserID
 }
 
-func (l *TokenLifecycle) capRemainUnits(ctx context.Context, remainCNY float64, models []types.ModelInfo, effective []string) int64 {
-	allocated := newapi.ToNewAPIUnits(remainCNY, models, effective)
+func (l *TokenLifecycle) capRemainUnits(ctx context.Context, remainCNY float64, models []types.ModelInfo, effectiveIDs []int64) int64 {
+	allocated := newapi.ToNewAPIUnits(remainCNY, models, effectiveIDs)
 	if l.wallet == nil {
 		return allocated
 	}
@@ -141,10 +141,11 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 		return "", fmt.Errorf("department not resolved for key")
 	}
 
-	deptAllowed := common.ResolveDeptAllowedModels(departmentID, departments, rules, models)
-	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
+	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
+	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
+	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
 	remainCNY := ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, departmentID)
-	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effective)
+	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)
 	req := newapi.CreateTokenRequest{
@@ -152,8 +153,8 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 		Name:               key.Name,
 		RemainQuota:        remainUnits,
 		UnlimitedQuota:     false,
-		ModelLimitsEnabled: len(effective) > 0,
-		ModelLimits:        newapi.FormatModelLimits(effective),
+		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
+		ModelLimits:        newapi.FormatModelLimits(effectiveCallTypes),
 		Group:              l.channelPolicy.ResolveRelayGroup(ctx, departmentID),
 		ExpiredTime:        -1,
 	}
@@ -263,23 +264,24 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 		return err
 	}
 
-	deptAllowed := common.ResolveDeptAllowedModels(mapping.DepartmentID, departments, rules, models)
-	effective := newapi.EffectiveWhitelist(key.ModelWhitelist, deptAllowed)
+	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
+	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
+	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
 	remainCNY := ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, mapping.DepartmentID)
-	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effective)
+	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 	status := newapi.TokenStatusEnabled
 	if key.Status != "active" {
 		status = newapi.TokenStatusDisabled
 	}
 	remain := remainUnits
-	enabled := len(effective) > 0
+	enabled := len(effectiveCallTypes) > 0
 	req := newapi.UpdateTokenRequest{
 		ID:                 *mapping.NewAPITokenID,
 		Name:               key.Name,
 		Status:             &status,
 		RemainQuota:        &remain,
 		ModelLimitsEnabled: &enabled,
-		ModelLimits:        newapi.FormatModelLimits(effective),
+		ModelLimits:        newapi.FormatModelLimits(effectiveCallTypes),
 		Group:              mapping.RelayGroup,
 	}
 	token, err := l.client.UpdateToken(ctx, req)

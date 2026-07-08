@@ -410,8 +410,8 @@ HTTP 非 2xx 时，body 应包含：
 | 方法   | 路径                           | Body / 查询                                                                          | 响应                     | 备注                                                                 |
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
 | GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `budgetGroupId?`, `departmentId?`, `type?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`type`: `member` \| `project`                   |
-| POST   | `/keys/platform`               | `{ name, memberId?, budgetGroupId?, appName?, quota, modelWhitelist }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；Group Key 校验组剩余额度；白名单 → 422 |
-| PUT    | `/keys/platform/:id`           | `{ name?, quota?, modelWhitelist? }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
+| POST   | `/keys/platform`               | `{ name, memberId?, budgetGroupId?, appName?, quota, modelWhitelist: number[] }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；Group Key 校验组剩余额度；白名单 → 422 |
+| PUT    | `/keys/platform/:id`           | `{ name?, quota?, modelWhitelist?: number[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
 | PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
 | POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
 | PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
@@ -423,7 +423,7 @@ HTTP 非 2xx 时，body 应包含：
 | 方法 | 路径                              | Body / 查询                                                   | 响应                                      | 备注                                |
 | ---- | --------------------------------- | ------------------------------------------------------------- | ----------------------------------------- | ----------------------------------- |
 | GET  | `/keys/approvals`                 | query: `tab?`, `memberId?`                                    | `KeyApproval[]`                           | `tab`: `pending` \| `mine` \| `all` |
-| POST | `/keys/approvals`                 | `{ type, reason, requestedQuota, requestedModels, memberId }` | `KeyApproval`                             | 白名单校验 → 422                    |
+| POST | `/keys/approvals`                 | `{ type, reason, requestedQuota, requestedModels: number[], memberId }` | `KeyApproval`                             | 白名单校验 → 422                    |
 | PUT  | `/keys/approvals/:id/approve`     | —                                                             | `void`                                    | 预留池不足 → 422                    |
 | PUT  | `/keys/approvals/:id/reject`      | `{ reason? }`                                                 | `void`                                    |                                     |
 | GET  | `/keys/approvals/:id/quota-check` | —                                                             | `{ sufficient, reservedPool, requested }` |                                     |
@@ -447,7 +447,7 @@ HTTP 非 2xx 时，body 应包含：
 | 方法 | 路径                      | Body / 查询                                                   | 响应                |
 | ---- | ------------------------- | ------------------------------------------------------------- | ------------------- |
 | GET  | `/models/routing`         | —                                                             | `RoutingRule[]`     |
-| PUT  | `/models/routing/:id`     | `{ allowedModels, inherited, defaultModel?, fallbackModel? }` | `RoutingRule`       |
+| PUT  | `/models/routing/:id`     | `{ allowedModelIds: number[], inherited, defaultModelId?, fallbackModelId? }` | `RoutingRule`       |
 | GET  | `/models/routing/resolve` | query: `deptId`                                               | `ResolvedWhitelist` |
 
 ---
@@ -576,9 +576,11 @@ HTTP 非 2xx 时，body 应包含：
 
 **AlertRule：** `id`, `nodeId`, `nodeName`, `thresholds`, `notifyRoleIds`, `enabled`
 
-**CreateModelInput：** `name`, `displayName`, `baseUrl`, `apiKey`, `inputPrice`, `outputPrice`
+**CreateModelInput：** `type`（调用标识）, `name`（展示名）, `baseUrl`, `inputPrice`, `outputPrice`
 
-**ResolvedWhitelist：** `inherited`, `allowedModels`, `parentCount`
+**ModelRef：** `modelId`, `type`, `name`, `provider`, `enabled`（路由 / 白名单读路径 enrich）
+
+**ResolvedWhitelist：** `inherited`, `allowedModelIds`, `parentCount`, `allowedModels?`（enrich）
 
 #### 5.5.3 Keys — [`types/keys.ts`](../apps/frontend/src/api/types/keys.ts)
 
@@ -588,20 +590,20 @@ HTTP 非 2xx 时，body 应包含：
 
 **ProviderKey：** `id`, `provider`, `name`, `keyPrefix`, `status`, `balance`, `lastUsed`, `createdAt`, `rotateEnabled`
 
-**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`†, `appName`, `budgetGroupId`, `budgetGroupName`†, `type`†, `departmentId`†, `departmentName`†, `projectName`†, `status`, `quota`, `used`, `modelWhitelist`, `createdAt`, `expiresAt`  
+**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`†, `appName`, `budgetGroupId`, `budgetGroupName`†, `type`†, `departmentId`†, `departmentName`†, `projectName`†, `status`, `quota`, `used`, `modelWhitelist: number[]`, `createdAt`, `expiresAt`  
 † 服务端 enrich 推导，不入库 `platform_keys`（见 §5.0.1）
 
 **ApprovalType：** `key` \| `quota` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
 
-**KeyApproval：** `id`, `type`, `applicant`, `applicantId`, `department`, `reason`, `requestedQuota`, `requestedModels`, `status`, `approver`, `rejectReason?`, `createdAt`, `resolvedAt`
+**KeyApproval：** `id`, `type`, `applicant`, `applicantId`, `department`, `reason`, `requestedQuota`, `requestedModels: number[]`, `status`, `approver`, `rejectReason?`, `createdAt`, `resolvedAt`
 
 **MemberQuotaSummary：** `totalQuota`, `used`, `remaining`, `reservedPool`
 
 #### 5.5.4 Models — [`types/models.ts`](../apps/frontend/src/api/types/models.ts)
 
-**ModelInfo：** `id`, `provider`, `name`, `displayName`, `inputPrice`, `outputPrice`, `maxContext`, `enabled`, `capabilities`
+**ModelInfo：** `modelId`, `provider`, `type`（调用标识）, `name`（展示名）, `description`, `visibility`, `endpoint?`, `inputPrice`, `outputPrice`, `maxContext`, `enabled`, `capabilities`
 
-**RoutingRule：** `id`（= `nodeId`）, `nodeId`, `nodeName`, `allowedModels`, `defaultModel`, `fallbackModel`, `inherited`
+**RoutingRule：** `id`（= `nodeId`）, `nodeId`, `nodeName`, `allowedModelIds`, `defaultModelId`, `fallbackModelId`, `inherited`, `allowedModels?`, `defaultModel?`, `fallbackModel?`（后三项为 enrich）
 
 #### 5.5.5 Dashboard — [`types/dashboard.ts`](../apps/frontend/src/api/types/dashboard.ts)
 
@@ -645,7 +647,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **TopConsumer：** `memberId`, `memberName`, `department`, `cost`, `tokens`, `requests`
 
-**ModelUsage：** `modelId`, `modelName`, `provider`, `requests`, `tokens`, `cost`, `percentage`
+**ModelUsage：** `callType`, `modelName`, `provider`, `requests`, `tokens`, `cost`, `percentage`, `modelId?`
 
 **TeamUsage：** `departmentId`, `departmentName`, `quota`, `consumed`, `memberCount`, `topModel`
 

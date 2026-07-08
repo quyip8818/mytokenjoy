@@ -70,8 +70,7 @@ export function StepFieldMapping({
   }
 
   const missingRequired = useMemo(
-    () =>
-      mappings.filter((m) => m.required && (!m.targetField || m.targetField === '_ignore')),
+    () => mappings.filter((m) => m.required && (!m.targetField || m.targetField === '_ignore')),
     [mappings],
   )
 
@@ -208,11 +207,7 @@ export function StepFieldMapping({
               }
             }}
           />
-          <Button
-            variant="outline"
-            onClick={handleTest}
-            disabled={testing || !testKeyword.trim()}
-          >
+          <Button variant="outline" onClick={handleTest} disabled={testing || !testKeyword.trim()}>
             {testing ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
             测试
           </Button>

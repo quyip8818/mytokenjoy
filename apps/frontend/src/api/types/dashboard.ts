@@ -95,7 +95,8 @@ export interface TopConsumer {
 }
 
 export interface ModelUsage {
-  modelId: string
+  callType: string
+  modelId?: number
   modelName: string
   provider: ProviderType
   requests: number

@@ -94,6 +94,8 @@ func TestConfig(opts ...ConfigOption) config.Config {
 		DemoToday:             defaultDemoToday,
 		SimulateDelay:         false,
 		CompanyName:           "Demo Company",
+		TokenJoyCompanyID:     contract.TokenJoyCompanyID,
+		LocalCompanyID:        contract.LocalCompanyID,
 		DefaultCompanyID:      contract.DefaultCompanyID,
 		SessionSecret:         TestSessionSecret,
 		PlatformSessionSecret: TestSessionSecret,
@@ -101,6 +103,9 @@ func TestConfig(opts ...ConfigOption) config.Config {
 	}
 	for _, opt := range opts {
 		opt(&cfg)
+	}
+	if !cfg.SupportSaas {
+		cfg.DefaultCompanyID = cfg.LocalCompanyID
 	}
 	if cfg.IngestEnabled() && cfg.NewAPIWebhookSecret == "" {
 		cfg.NewAPIWebhookSecret = DefaultTestWebhookSecret

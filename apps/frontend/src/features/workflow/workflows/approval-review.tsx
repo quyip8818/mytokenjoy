@@ -8,6 +8,7 @@ import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
+import { useModelLabels } from '@/features/models/hooks/use-model-labels'
 
 export function ApprovalReviewWorkflow({
   entry,
@@ -15,6 +16,7 @@ export function ApprovalReviewWorkflow({
   onClose,
 }: WorkflowComponentProps<'approval-review'>) {
   const apis = useInjectedApis()
+  const { labelFor } = useModelLabels(apis)
   const { closeAll } = useWorkflow()
   const approval = entry.payload.approval as KeyApproval
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
@@ -111,9 +113,9 @@ export function ApprovalReviewWorkflow({
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">申请模型</h4>
             <div className="flex flex-wrap gap-1">
-              {approval.requestedModels.map((m) => (
-                <Badge key={m} variant="outline" className="text-xs">
-                  {m}
+              {approval.requestedModels.map((modelId) => (
+                <Badge key={modelId} variant="outline" className="text-xs">
+                  {labelFor(modelId)}
                 </Badge>
               ))}
             </div>

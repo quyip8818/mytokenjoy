@@ -33,19 +33,26 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	if err != nil {
 		return nil, err
 	}
-	catalogByName := make(map[string]types.ModelInfo, len(catalog))
+	catalogByType := make(map[string]types.ModelInfo, len(catalog))
 	for _, model := range catalog {
-		catalogByName[model.Name] = model
+		existing, ok := catalogByType[model.Type]
+		if !ok {
+			catalogByType[model.Type] = model
+			continue
+		}
+		if model.IsCustom() && !existing.IsCustom() {
+			catalogByType[model.Type] = model
+		}
 	}
 	result := make([]types.ModelUsage, 0, len(rows))
 	for _, row := range rows {
 		provider := ""
 		displayName := row.Model
-		if model, ok := catalogByName[row.Model]; ok {
+		if model, ok := catalogByType[row.Model]; ok {
 			provider = string(model.Provider)
-			displayName = model.DisplayName
+			displayName = model.Name
 			if displayName == "" {
-				displayName = model.Name
+				displayName = model.Type
 			}
 		}
 		pct := 0.0
@@ -53,7 +60,7 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 			pct = row.CostCNY / total * 100
 		}
 		result = append(result, types.ModelUsage{
-			ModelID: row.Model, ModelName: displayName, Provider: provider,
+			CallType: row.Model, ModelName: displayName, Provider: provider,
 			Requests: float64(row.CallCount), Tokens: 0, Cost: row.CostCNY, Percentage: pct,
 		})
 	}

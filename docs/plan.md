@@ -150,6 +150,16 @@ MSW 已移除；以下接口仍有 `// TODO(real):` 或半真实现。
 - [ ] Workflow 面板 header/footer 间距（`workflow-panel-chrome.tsx`）
 - [ ] 表单 Label 统一 `text-xs text-muted-foreground`（`workflow-form-field.tsx`）
 
+### 模型目录最优改造（全量）
+
+完整方案见 **[Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md)**（5 阶段 PR：modelcatalog 基础包 → 路由/白名单 modelId 化 → Keys/precheck/计费 → 前端 → SaaS/文档）。
+
+- [x] Phase 0：`internal/pkg/modelcatalog` + enabled 过滤
+- [x] Phase 1：路由 / allowlist API → `modelId[]`（Breaking）
+- [x] Phase 2：PlatformKey 白名单、precheck、计费闭环
+- [x] Phase 3：前端 model-create 双字段、picker/routing/keys 对齐
+- [x] Phase 4：SaaS ID 分配器、启动校验、`ModelUsage.callType`、文档同步（`pnpm verify` 待后续执行）
+
 ---
 
 ## §5 发布与验收
