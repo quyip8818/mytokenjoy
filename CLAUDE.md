@@ -117,7 +117,7 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 - `docs/Frontend.md` — Frontend development guide and API contract
 - `docs/Backend.md` — Backend design document (index)
 - `docs/Backend-预算.md` — Budget subsystem design
-- `docs/Backend-存储.md` — Storage layer design
+- `docs/Backend-存储架构.md` — Storage layer design
 - `DESIGN.md` — Design system tokens and visual conventions
 
 ## Environment Variables

@@ -10,14 +10,17 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/seed/contract"
+	"github.com/tokenjoy/backend/seed/runtime"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func newMemberService(t *testing.T) (domainmember.Service, context.Context) {
 	t.Helper()
-	_, st := testutil.NewTestStore(t)
+	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
-	cfg := testutil.TestConfig()
+	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+		t.Fatal(err)
+	}
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	keysSvc := domainkeys.NewService(cfg, st, lifecycle, common.NewDelayer(false))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())

@@ -2,7 +2,7 @@ package types
 
 // OrgNode is the storage SSOT for the company org tree (table org_nodes).
 // Physical columns named department_id (e.g. members.department_id) refer to OrgNode.ID;
-// see docs/Backend-存储.md §10.
+// see docs/Backend-存储架构.md §7.
 const (
 	AllowlistOwnerPlatformKey = "platform_key"
 	AllowlistOwnerOrgNode     = "org_node"

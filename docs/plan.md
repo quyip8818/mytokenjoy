@@ -211,7 +211,7 @@ UPDATE models SET model_type = 'builtin' WHERE provider <> 'custom' AND model_ty
 UPDATE models SET visibility = 'all' WHERE visibility = '' OR visibility IS NULL;
 ```
 
-本地：`docker compose down -v` 重建（见 [Backend-存储.md](./Backend-存储.md)）。
+本地：`docker compose down -v` 重建（见 [Backend-存储架构.md](./Backend-存储架构.md)）。
 
 ### 权限手工 QA
 
