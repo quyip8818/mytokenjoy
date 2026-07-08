@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -32,6 +33,7 @@ type WalletView struct {
 type service struct {
 	cfg           config.Config
 	store         store.Store
+	reader        domainusage.Reader
 	client        newapi.AdminClient
 	wallet        company.WalletService
 	rebalanceAxis func(ctx context.Context, companyID int64) error
@@ -40,11 +42,12 @@ type service struct {
 func NewService(
 	cfg config.Config,
 	st store.Store,
+	reader domainusage.Reader,
 	client newapi.AdminClient,
 	wallet company.WalletService,
 	rebalanceAxis func(ctx context.Context, companyID int64) error,
 ) Service {
-	return &service{cfg: cfg, store: st, client: client, wallet: wallet, rebalanceAxis: rebalanceAxis}
+	return &service{cfg: cfg, store: st, reader: reader, client: client, wallet: wallet, rebalanceAxis: rebalanceAxis}
 }
 
 func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
@@ -62,7 +65,7 @@ func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
 		view.Balance = balance
 		view.Allocatable = balance
 	}
-	consumed, requests, err := s.walletUsageStats(ctx) // TODO(real): unify wallet stats under billing domain.
+	consumed, requests, err := s.lifetimeWalletStats(ctx)
 	if err != nil {
 		return WalletView{}, err
 	}

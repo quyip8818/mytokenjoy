@@ -29,9 +29,7 @@ const (
 
 	OutboxKindCreateToken       = "create_token"
 	OutboxKindUpdateToken       = "update_token"
-	OutboxKindRevokeToken       = "revoke_token"
 	OutboxKindUpsertChannel     = "upsert_channel"
-	OutboxKindRebuildAbilities  = "rebuild_abilities"
 	OutboxKindUpdateModelLimits = "update_model_limits"
 	OutboxKindRebalanceToken    = "rebalance_token"
 

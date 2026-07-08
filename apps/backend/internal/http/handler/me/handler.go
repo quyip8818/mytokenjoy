@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	domainmember "github.com/tokenjoy/backend/internal/domain/member"
+	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -14,13 +14,13 @@ import (
 
 type Handler struct {
 	shared.ProtectedHandlerBase
-	memberSvc domainmember.Service
+	memberAnalytics domainmemberanalytics.Service
 }
 
-func NewHandler(p httpdeps.Protected, memberSvc domainmember.Service) *Handler {
+func NewHandler(p httpdeps.Protected, memberAnalytics domainmemberanalytics.Service) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
-		memberSvc:            memberSvc,
+		memberAnalytics:      memberAnalytics,
 	}
 }
 
@@ -35,6 +35,6 @@ func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	view, err := h.memberSvc.GetDashboard(r.Context(), sessionCtx.Member.ID)
+	view, err := h.memberAnalytics.GetDashboard(r.Context(), sessionCtx.Member.ID)
 	httputil.WriteJSON(w, http.StatusOK, view, err)
 }

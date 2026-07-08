@@ -5,7 +5,7 @@ export type WorkflowId = keyof WorkflowPayloadMap
 
 export type WorkflowLayer = 1 | 2 | 3
 
-export type { WorkflowPayloadMap, WorkflowPayload, MemberFormData } from './workflow-payloads'
+export type { WorkflowPayloadMap, WorkflowPayload } from './workflow-payloads'
 
 export interface WorkflowStackEntry<T extends WorkflowId = WorkflowId> {
   id: T

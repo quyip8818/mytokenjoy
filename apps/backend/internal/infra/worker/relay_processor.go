@@ -40,14 +40,6 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
 			processErr = r.relaySync.SyncUpdatePlatformKey(entryCtx, payload.PlatformKeyID)
-		case store.OutboxKindRevokeToken:
-			var payload relay.UpdateTokenOutboxPayload
-			if err := json.Unmarshal(entry.Payload, &payload); err != nil {
-				processErr = fmt.Errorf("unmarshal revoke token payload: %w", err)
-				break
-			}
-			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			processErr = r.relaySync.SyncRevokePlatformKey(entryCtx, payload.PlatformKeyID)
 		case store.OutboxKindUpsertChannel:
 			var payload relay.UpsertChannelOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {

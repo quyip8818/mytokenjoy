@@ -14,7 +14,7 @@
     "gate:verify": "apps/newapi/scripts/gate-verify.sh",
     "build": "pnpm -F @tokenjoy/frontend build",
     "lint": "pnpm -r --parallel lint",
-    "format": "prettier --write . && pnpm -F @tokenjoy/backend format",
+    "format": "prettier --write apps && pnpm -F @tokenjoy/backend format",
     "test": "pnpm -r --parallel test",
     "test:all": "pnpm -r --parallel test:nocache",
     "test:e2e": "pnpm -F @tokenjoy/frontend test:e2e",

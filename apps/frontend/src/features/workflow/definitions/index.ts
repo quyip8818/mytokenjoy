@@ -6,7 +6,6 @@ export { getWorkflowMeta, WORKFLOW_META } from './workflow-meta'
 type DomainDefinitions = Partial<Record<WorkflowId, WorkflowDefinition>>
 
 const DOMAIN_LOADERS = {
-  budget: () => import('./budget').then((m) => m.budgetWorkflowDefinitions),
   org: () => import('./org').then((m) => m.orgWorkflowDefinitions),
   keys: () => import('./keys').then((m) => m.keysWorkflowDefinitions),
   models: () => import('./models').then((m) => m.modelsWorkflowDefinitions),

@@ -8,7 +8,7 @@ import (
 
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
-	domainmember "github.com/tokenjoy/backend/internal/domain/member"
+	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -23,7 +23,7 @@ func TestGetMemberDashboardHTTP(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	var view domainmember.DashboardView
+	var view domainmemberanalytics.DashboardView
 	if err := json.NewDecoder(rec.Body).Decode(&view); err != nil {
 		t.Fatal(err)
 	}

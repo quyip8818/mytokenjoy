@@ -2,7 +2,6 @@ import { defineWorkflow } from '../types'
 import { defineAlertWorkflow } from '../define-alert-workflow'
 import { RejectReasonWorkflow } from '../workflows/reject-reason'
 import { ModelPickerWorkflow } from '../workflows/model-picker'
-import { PermissionPickerWorkflow } from '../workflows/permission-picker'
 
 export const sharedWorkflowDefinitions = {
   'model-picker': defineWorkflow(ModelPickerWorkflow, { defaultLayer: 2, title: '选择模型' }),
@@ -20,8 +19,4 @@ export const sharedWorkflowDefinitions = {
     },
   }),
   'reject-reason': defineWorkflow(RejectReasonWorkflow, { defaultLayer: 2, title: '拒绝理由' }),
-  'permission-picker': defineWorkflow(PermissionPickerWorkflow, {
-    defaultLayer: 2,
-    title: '选择权限',
-  }),
 }

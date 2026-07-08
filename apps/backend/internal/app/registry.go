@@ -83,7 +83,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			IngestMetrics:         metrics,
 			CompanySvc:            services.company,
 			BillingSvc:            services.billing,
-			MemberSvc:             services.member,
+			MemberAnalyticsSvc:    services.memberAnalytics,
 			WalletSvc:             i.wallet,
 			CompanyGate:           i.companyGate,
 			RelayGateway:          relayGateway,

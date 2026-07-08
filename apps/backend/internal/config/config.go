@@ -27,7 +27,6 @@ type Config struct {
 	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
 	NewAPIAdminToken    string `env:"NEW_API_ADMIN_TOKEN"`
 	NewAPIWebhookSecret string `env:"NEW_API_WEBHOOK_SECRET"`
-	NewAPIPublicURL     string `env:"NEW_API_PUBLIC_URL"`
 
 	SyncTriggerAPIKey string `env:"SYNC_TRIGGER_API_KEY"`
 

@@ -26,7 +26,6 @@
 
 ### P1 — 误配、SaaS、可观测
 
-- [ ] `NEW_API_PUBLIC_URL` 未使用 — 配置冗余，对外 Relay URL 无法与此对齐
 - [ ] `RELAY_GATEWAY_ENABLED` 无组合校验 — 只开 Gateway 不开 NewAPI → 路由不挂载，仅 log
 - [ ] `wireGatewayService` 失败静默 — `registry.go` 吞错，`relayGateway == nil`
 - [ ] Rebalance / Overrun 在 Relay 关闭时空转 — ingest 仍入队，Worker 调用时 `return nil`
@@ -38,12 +37,11 @@
 
 ### P2–P3 — 清理与可观测
 
-- [ ] `NEW_API_PUBLIC_URL` 落地或删除
 - [ ] Rebalance/Overrun、钱包 noop、通知 webhook 失败可观测性补强
 - [ ] `gate-verify` 增加 Backend `/v1` Gateway 步骤
 - [ ] `ingest_notify_total` 幂等重复也 +1 — 仅首次 ledger 插入时计数，或改名并文档化
 - [ ] `GET /internal/metrics/ingest` 无鉴权 — 生产可加 webhook secret 或仅 bind localhost
-- [ ] `OutboxKindRebuildAbilities` 等死常量 — 清理或接 Worker 分支
+- [x] `OutboxKindRebuildAbilities` / `OutboxKindRevokeToken` 死常量 — 已删（revoke 走同步 `SyncRevokePlatformKey`）
 
 ### 联调检查清单
 
@@ -70,15 +68,15 @@
 
 ## §2 Backend fake API → 真实现
 
-MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `// TODO(real):`）。
+MSW 已移除；以下接口仍有 `// TODO(real):` 或半真实现。
 
 | API                                                        | 现状                                                            | 目标                                    |
 | ---------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
-| `GET/PUT /budget/approvals`                                | 内存 fake（按 company 隔离，seed 5 条）                         | 预算审批工作流持久化                    |
-| `GET/PUT/GET test /org/data-source/field-mappings`         | 内存 fake（按 company + platform）                              | 同步引擎 + DB 持久化                    |
-| `GET /billing/recharge-records`                            | 半真（`company_recharge_orders` + invoice/method overlay fake） | 支付渠道、发票系统                      |
-| `GET /billing/wallet` 的 `totalConsumed` / `totalRequests` | 半真（usage 聚合）                                              | 统一账单域（`billing/service.go`）      |
-| `GET /me/dashboard`                                        | fake BFF（usage 按 memberId 聚合 + keys quota 代理）            | 独立成员分析域（`member/dashboard.go`） |
+| `GET/PUT /budget/approvals`                                | [x] 已持久化（`budget_approvals` 表）                           | —                                       |
+| `GET/PUT/GET test /org/data-source/field-mappings`         | [x] 已持久化（`org_integration.field_mappings` JSONB）            | —                                       |
+| `GET /billing/recharge-records`                            | 半真（`company_recharge_orders`；invoice/method 部分字段待真渠道） | 支付渠道、发票系统                      |
+| `GET /billing/wallet` 的 `totalConsumed` / `totalRequests` | [x] billing 域经 `usage.Reader` 聚合（`billing/wallet_stats.go`） | —                                       |
+| `GET /me/dashboard`                                        | [x] 独立 `memberanalytics` 域（`usage.Reader` + keys quota）       | —                                       |
 
 **刻意保留占位（需 UI 决策或真后端）**
 
@@ -89,7 +87,7 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 
 ## §3 Keys 域兼容清理
 
-架构约束见 [Backend.md](./Backend.md) §2.5。完整规格见 [archive/清理兼容与死代码-下一步.md](./archive/清理兼容与死代码-下一步.md)。
+架构约束见 [Backend.md](./Backend.md) §2.5。
 
 ### P0 — Platform Key Rotate
 
@@ -111,8 +109,7 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 ### P2 — Workflow 错误展示统一
 
 - [ ] `features/workflow/workflows/**` 内固定文案 `catch` 改为 `workflowErrorMessage(err, fallback)`
-- [ ] 待改：`member-form`、`member-search`、`budget-group-form`、`budget-impact-preview`、`whitelist-config`、`overrun-policy`、`import-preview`、`role-form`、`role-add-member`
-- [ ] 已接入勿重复改：`key-form`、`approval-review`、`model-create/edit`、`provider-key-form`、`reject-reason`
+- [ ] 已接入勿重复改：`key-form`、`approval-review`、`model-create/edit`、`provider-key-form`、`reject-reason`、`whitelist-config`
 
 ### P3 — 种子数据契约
 
@@ -130,6 +127,7 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 - [x] 迁移 `components/{budget,org,keys}/` → `features/{domain}/components/`
 - [x] 删除 orphan 页：`routes/budget/overview.tsx`、`allocation.tsx`、`routes/billing/`
 - [x] 删除 `tests/routes/`（canonical 在 `tests/features/`）
+- [x] 删除未接线 budget/org workflow（页面已用内联组件；保留 keys/models 活跃链 + `member-search`）
 
 ### 工程优化（非阻断）
 
@@ -162,7 +160,7 @@ MSW 已移除；以下接口为保留 UI 而补充的临时实现（代码内 `/
 | ---------------------------------------------- | -------- |
 | 产品模型手工验收（6 项）                       | **阻断** |
 | Handler / Feature 单测复跑                     | **阻断** |
-| `models` 四列迁移                              | **阻断** |
+| `models` 四列迁移（**仅早期生产库**；新库 `schema.sql` 已含列） | 建议     |
 | 前后端同发                                     | **阻断** |
 | UI 像素验收                                    | 建议     |
 | E2E（keys / models / audit / wallet / member） | 建议     |
@@ -197,7 +195,9 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 - 视觉基准 commit `716eeec`；对比 `git diff 716eeec HEAD -- apps/frontend/src/features/<domain>/components/`
 - `/keys/mine` 无基准，单独约定
 
-### `models` 四列生产迁移
+### `models` 四列生产迁移（仅早期生产库）
+
+> 新安装 / wipe 重建走 `schema.sql` 全量 DDL，**无需**执行下列脚本。仅对 `schema.sql` 引入四列之前的存量库执行一次。
 
 ```sql
 ALTER TABLE models

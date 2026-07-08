@@ -12,7 +12,7 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
-	domainmember "github.com/tokenjoy/backend/internal/domain/member"
+	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -57,15 +57,15 @@ func wireCompany(cfg config.Config, i infra) domaincompany.Service {
 	return domaincompany.NewService(cfg, i.store, i.adminClient)
 }
 
-func wireBilling(cfg config.Config, i infra) domainbilling.Service {
+func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
 	rebalanceEnqueue := func(ctx context.Context, companyID int64) error {
 		return i.store.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	}
-	return domainbilling.NewService(cfg, i.store, i.adminClient, i.wallet, rebalanceEnqueue)
+	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, rebalanceEnqueue)
 }
 
-func wireMember(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmember.Service {
-	return domainmember.NewService(cfg, keys, reader)
+func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
+	return domainmemberanalytics.NewService(cfg, keys, reader)
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {

@@ -836,7 +836,7 @@ HTTP 非 2xx 时，body 应包含：
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                    | 无 `/platform/login`               |
 | `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
-> **类型对齐：** 前端 `WalletView` 已与后端 `WalletSummary` 对齐（`balance` / `allocatable`）。`totalConsumed` / `totalRequests` 为半真聚合，真实现见 [plan.md](./plan.md) §2。
+> **类型对齐：** 前端 `WalletView` 已与后端 `WalletSummary` 对齐（`balance` / `allocatable` / `totalConsumed` / `totalRequests`）。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

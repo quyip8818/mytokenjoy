@@ -7,6 +7,7 @@ import (
 
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -17,7 +18,8 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	wallet := company.NewWalletService(cfg, client)
-	svc := domainbilling.NewService(cfg, st, client, wallet, func(ctx context.Context, companyID int64) error {
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, client, wallet, func(ctx context.Context, companyID int64) error {
 		return st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	})
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
@@ -60,7 +62,8 @@ func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
-	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, client, company.NewWalletService(cfg, client), nil)
 	ctx := testutil.Ctx()
 	view, err := svc.GetWallet(ctx)
 	if err != nil {
@@ -119,7 +122,8 @@ func TestConfirmPaymentFailsWithoutWallet(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
-	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, client, company.NewWalletService(cfg, client), nil)
 	ctx := testutil.Ctx()
 	order, err := svc.CreateSelfRecharge(ctx, 15, "no-wallet-key", "m-admin")
 	if err != nil {
@@ -145,7 +149,8 @@ func TestTopUpAndFinishFailsWhenNewAPIDisabled(t *testing.T) {
 	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
 		t.Fatal(err)
 	}
-	svc := domainbilling.NewService(cfg, st, client, company.NewWalletService(cfg, client), nil)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, client, company.NewWalletService(cfg, client), nil)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
