@@ -31,11 +31,16 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
   const authzRevisionRef = useRef(0)
   const lastSessionFetchRef = useRef(0)
   const forbiddenRetriedRef = useRef(new Set<string>())
+  const refreshSessionRef = useRef<() => Promise<void>>()
 
-  const refreshSession = useCallback(async () => {
+  refreshSessionRef.current = async () => {
     await query.refresh()
     lastSessionFetchRef.current = Date.now()
-  }, [query])
+  }
+
+  const refreshSession = useCallback(async () => {
+    await refreshSessionRef.current?.()
+  }, [])
 
   useEffect(() => {
     authzRevisionRef.current = query.data?.authzRevision ?? 0
