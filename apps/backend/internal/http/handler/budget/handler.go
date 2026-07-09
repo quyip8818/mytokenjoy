@@ -148,11 +148,18 @@ func (h *Handler) ApprovalResolve(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, item, err)
 }
 
+func (h *Handler) GroupMemberConsumed(w http.ResponseWriter, r *http.Request) {
+	groupID := chi.URLParam(r, "id")
+	result, err := h.service.GetGroupMemberConsumed(r.Context(), groupID)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
+}
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
 	read.Get("/departments/{departmentId}/member-quotas", h.MemberQuotas)
 	read.Get("/groups", h.GroupsList)
+	read.Get("/groups/{id}/member-consumed", h.GroupMemberConsumed)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
 	read.Get("/approvals", h.ApprovalsList)

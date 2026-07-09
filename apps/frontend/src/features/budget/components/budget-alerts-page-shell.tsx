@@ -6,6 +6,7 @@ import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import type { useBudgetAlertRulesPage } from '@/features/budget'
 import { AlertRuleDialog } from './alert-rule-dialog'
 import { BudgetAlertsTable } from './budget-alerts-table'
+import { BudgetOverrunPolicySection } from './budget-overrun-policy-section'
 
 type BudgetAlertsPageShellProps = ReturnType<typeof useBudgetAlertRulesPage>
 
@@ -14,6 +15,8 @@ export function BudgetAlertsPageShell({
   projects,
   tree,
   roles,
+  overrunPolicy,
+  updateOverrunPolicy,
   loading,
   error,
   refresh,
@@ -37,6 +40,7 @@ export function BudgetAlertsPageShell({
         </Button>
       }
     >
+      <BudgetOverrunPolicySection policy={overrunPolicy} onUpdate={updateOverrunPolicy} />
       <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         <BudgetAlertsTable
           rules={rules}

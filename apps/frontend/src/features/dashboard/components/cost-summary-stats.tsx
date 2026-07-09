@@ -8,7 +8,7 @@ interface CostSummaryStatsProps {
 
 export function CostSummaryStats({ stats, loading }: CostSummaryStatsProps) {
   return (
-    <div className="grid grid-cols-5 gap-5">
+    <div className="grid grid-cols-5 gap-4">
       {stats.map((stat) => (
         <StatCard
           key={stat.label}

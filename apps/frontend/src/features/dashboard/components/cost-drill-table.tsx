@@ -67,19 +67,19 @@ export function CostDrillTable({
             {memberCosts.map((m) => (
               <TableRow
                 key={m.memberId}
-                className="border-border-subtle even:bg-muted/40 hover:bg-muted/50"
+                className="border-border-subtle hover:bg-muted/50 transition-colors"
               >
-                <TableCell className="font-medium">
+                <TableCell className="font-medium pl-6">
                   <Users className="mr-2 inline h-4 w-4 text-muted-foreground" />
                   {m.memberName}
                 </TableCell>
-                <TableCell className="text-right font-semibold">
-                  {m.cost.toLocaleString()}
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {m.cost.toFixed(2)}
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground">
+                <TableCell className="text-right text-muted-foreground tabular-nums">
                   {formatTokenCount(m.tokens)}
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground">
+                <TableCell className="text-right text-muted-foreground tabular-nums">
                   {m.requests.toLocaleString()}
                 </TableCell>
               </TableRow>
@@ -105,14 +105,14 @@ export function CostDrillTable({
             {deptCosts.map((dept) => (
               <TableRow
                 key={dept.departmentId}
-                className="border-border-subtle even:bg-muted/40 hover:bg-muted/50"
+                className="border-border-subtle hover:bg-muted/50 transition-colors"
               >
                 <TableCell />
                 <TableCell className="font-medium">{dept.departmentName}</TableCell>
-                <TableCell className="text-right font-semibold">
-                  {dept.cost.toLocaleString()}
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {dept.cost.toFixed(2)}
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground">
+                <TableCell className="text-right text-muted-foreground tabular-nums">
                   {dept.percentage}%
                 </TableCell>
                 <TableCell className="text-right">

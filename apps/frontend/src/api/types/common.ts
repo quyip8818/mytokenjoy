@@ -7,6 +7,10 @@ export interface Paginated<T> {
   pageSize: number
 }
 
+export interface MemberPaginated extends Paginated<Member> {
+  pendingCount: number
+}
+
 export interface SessionContext {
   companyId: number
   authzRevision: number

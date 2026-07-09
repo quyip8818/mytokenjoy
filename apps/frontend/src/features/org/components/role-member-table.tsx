@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Member, Role } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,15 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -19,6 +28,27 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Search, UserPlus, Users } from 'lucide-react'
+
+const DEFAULT_PAGE_SIZE = 10
+
+function generatePageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = [1]
+  let left = Math.max(2, current - 2)
+  let right = Math.min(total - 1, current + 2)
+  if (current <= 4) {
+    left = 2
+    right = 5
+  } else if (current >= total - 3) {
+    left = total - 4
+    right = total - 1
+  }
+  if (left > 2) pages.push('...')
+  for (let i = left; i <= right; i++) pages.push(i)
+  if (right < total - 1) pages.push('...')
+  pages.push(total)
+  return pages
+}
 
 interface RoleMemberTableProps {
   role: Role
@@ -34,8 +64,38 @@ export function RoleMemberTable({
   onAddMember,
 }: RoleMemberTableProps) {
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [pageInputValue, setPageInputValue] = useState('1')
 
-  const filtered = members.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = useMemo(
+    () => members.filter((m) => m.name.toLowerCase().includes(search.toLowerCase())),
+    [members, search],
+  )
+
+  const total = filtered.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+
+  // Reset to page 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+    setPageInputValue('1')
+  }
+
+  const handlePageChange = (newPage: number) => {
+    const clamped = Math.max(1, Math.min(newPage, totalPages))
+    setPage(clamped)
+    setPageInputValue(String(clamped))
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+    setPage(1)
+    setPageInputValue('1')
+  }
 
   return (
     <div className="flex-1 flex flex-col">
@@ -63,7 +123,7 @@ export function RoleMemberTable({
           type="text"
           placeholder="搜索成员..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="pl-8 h-8 text-sm"
         />
       </div>
@@ -85,7 +145,7 @@ export function RoleMemberTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {paged.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={3} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center gap-2">
@@ -95,7 +155,7 @@ export function RoleMemberTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((member) => (
+              paged.map((member) => (
                 <TableRow key={member.id} className="border-border-subtle hover:bg-muted/50">
                   <TableCell className="px-4 py-3 text-sm text-foreground">{member.name}</TableCell>
                   <TableCell className="px-4 py-3">
@@ -123,6 +183,94 @@ export function RoleMemberTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex items-center justify-end gap-4 border-t border-border px-4 py-3 text-sm text-muted-foreground">
+          <span>
+            共 <span className="tabular-nums font-medium text-foreground">{total}</span> 条
+          </span>
+
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(safePage - 1)}
+                  disabled={safePage <= 1}
+                  aria-disabled={safePage <= 1}
+                />
+              </PaginationItem>
+
+              {generatePageNumbers(safePage, totalPages).map((p, i) => (
+                <PaginationItem key={`page-${i}`}>
+                  {p === '...' ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      isActive={p === safePage}
+                      onClick={() => handlePageChange(p as number)}
+                    >
+                      {p}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(safePage + 1)}
+                  disabled={safePage >= totalPages}
+                  aria-disabled={safePage >= totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+
+          <select
+            value={pageSize}
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value={10}>10 条/页</option>
+            <option value={20}>20 条/页</option>
+            <option value={50}>50 条/页</option>
+            <option value={100}>100 条/页</option>
+          </select>
+
+          <div className="flex items-center gap-1">
+            <span>跳至</span>
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={pageInputValue}
+              onChange={(e) => setPageInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const target = parseInt(pageInputValue)
+                  if (!isNaN(target)) {
+                    const clamped = Math.max(1, Math.min(target, totalPages))
+                    handlePageChange(clamped)
+                  }
+                }
+              }}
+              onBlur={() => {
+                const target = parseInt(pageInputValue)
+                if (!isNaN(target)) {
+                  const clamped = Math.max(1, Math.min(target, totalPages))
+                  if (clamped !== safePage) handlePageChange(clamped)
+                  setPageInputValue(String(clamped))
+                } else {
+                  setPageInputValue(String(safePage))
+                }
+              }}
+              className="h-8 w-12 rounded-md border border-input bg-background px-1 text-center text-sm tabular-nums outline-none focus:ring-1 focus:ring-ring [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              aria-label="跳转页码"
+            />
+            <span>页</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

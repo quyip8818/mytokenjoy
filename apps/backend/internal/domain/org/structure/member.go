@@ -2,9 +2,11 @@ package structure
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -29,17 +31,24 @@ func validateRolesNotEscalated(roles []string) error {
 	return nil
 }
 
-func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.PageResult[types.Member], error) {
+func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error) {
 	items, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
-		return types.PageResult[types.Member]{}, err
+		return types.MemberPageResult{}, err
 	}
 	if departmentID != "" {
 		departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 		if err != nil {
-			return types.PageResult[types.Member]{}, err
+			return types.MemberPageResult{}, err
 		}
 		items = pkgorg.FilterMembersByDepartment(items, departments, departmentID, directOnly)
+	}
+	// Count pending before keyword filtering so count is always accurate.
+	pendingCount := 0
+	for _, m := range items {
+		if m.Status == types.MemberStatusPending {
+			pendingCount++
+		}
 	}
 	if keyword != "" {
 		filtered := make([]types.Member, 0)
@@ -51,8 +60,9 @@ func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, d
 		items = filtered
 	}
 	paged, total, safePage, safeSize := common.Paginate(items, page, pageSize)
-	return types.PageResult[types.Member]{
+	return types.MemberPageResult{
 		Items: paged, Total: total, Page: safePage, PageSize: safeSize,
+		PendingCount: pendingCount,
 	}, nil
 }
 
@@ -96,9 +106,23 @@ func (s *Local) CreateMember(ctx context.Context, input types.Member) (types.Mem
 		return core.BumpAuthzRevisionStore(ctx, st)
 	})
 	if err != nil {
-		return types.Member{}, err
+		return types.Member{}, mapMemberUniqueError(err)
 	}
 	return member, nil
+}
+
+func mapMemberUniqueError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if strings.Contains(pgErr.ConstraintName, "email") {
+			return domain.Conflict("邮箱已存在")
+		}
+		if strings.Contains(pgErr.ConstraintName, "phone") {
+			return domain.Conflict("手机号已存在")
+		}
+		return domain.Conflict("成员信息重复")
+	}
+	return err
 }
 
 func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, members []types.Member) error {

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
+import type { OverrunPolicyConfig } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
 import { mapGroupsToProjectViews } from '../lib/mappers'
@@ -39,6 +40,20 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
     queryKey: queryKeys.org.roles(),
     queryFn: (api) => api.roleApi.list(),
   })
+
+  const { data: overrunPolicy, refresh: refreshOverrunPolicy } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.budget.overrunPolicy(),
+    queryFn: (api) => api.budgetApi.getOverrunPolicy(),
+  })
+
+  const updateOverrunPolicy = useCallback(
+    async (data: OverrunPolicyConfig) => {
+      await apis.budgetApi.updateOverrunPolicy(data)
+      await refreshOverrunPolicy()
+    },
+    [apis, refreshOverrunPolicy],
+  )
 
   const ruleViews = useMemo(
     () => rules.map((rule) => alertRuleToView(rule, groups)),
@@ -93,6 +108,8 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
     projects,
     tree,
     roles,
+    overrunPolicy,
+    updateOverrunPolicy,
     loading,
     error,
     refresh,

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { RowSelectionState } from '@tanstack/react-table'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { ApiError } from '@/api/client'
@@ -20,6 +20,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [keyword, setKeyword] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState('')
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [formOpen, setFormOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<Member | null>(null)
@@ -32,10 +33,10 @@ export function useStructurePage(injectedApis?: AppApis) {
     () => ({
       page,
       pageSize,
-      keyword: keyword || undefined,
+      keyword: searchKeyword || undefined,
       departmentId: selectedDept?.id,
     }),
-    [page, pageSize, keyword, selectedDept?.id],
+    [page, pageSize, searchKeyword, selectedDept?.id],
   )
 
   const {
@@ -58,6 +59,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     injectedApis,
     queryKey: queryKeys.org.members(memberQueryParams),
     queryFn: (api) => api.memberApi.list(memberQueryParams),
+    placeholderData: keepPreviousData,
   })
 
   const members = membersResult?.items ?? []
@@ -78,15 +80,19 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const setKeywordAndReset = useCallback((value: string) => {
     setKeyword(value)
+  }, [])
+
+  const handleSearch = useCallback(() => {
+    setSearchKeyword(keyword)
     setPage(1)
     setRowSelection({})
-  }, [])
+  }, [keyword])
 
   const setPageAndRefresh = useCallback((nextPage: number) => {
     setPage(nextPage)
   }, [])
 
-  const pendingCount = members.filter((member) => member.status === 'pending').length
+  const pendingCount = membersResult?.pendingCount ?? 0
   const selectedIds = Object.keys(rowSelection)
   const flatDepts = flattenDepartments(departments)
 
@@ -287,6 +293,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     updateDept,
     deleteDept,
     setKeyword: setKeywordAndReset,
+    handleSearch,
     setPage: setPageAndRefresh,
     setPageSize: (size: number) => {
       setPageSize(size)

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { BudgetProjectView, Member } from '@/api/types'
+import { budgetApi } from '@/api/budget'
 import { formatDisplayCurrency } from '@/lib/points'
 import { BudgetMemberPicker } from './budget-member-picker'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,11 @@ export function BudgetProjectMembersSection({
   const [draftMemberIds, setDraftMemberIds] = useState<string[]>([])
   const [savingMembers, setSavingMembers] = useState(false)
   const [membersError, setMembersError] = useState<string | null>(null)
+  const [consumedMap, setConsumedMap] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    budgetApi.getGroupMemberConsumed(project.id).then(setConsumedMap).catch(() => {})
+  }, [project.id])
 
   function startEditMembers() {
     setDraftMemberIds([...project.memberIds])
@@ -138,7 +144,7 @@ export function BudgetProjectMembersSection({
                 </TableRow>
               ) : (
                 members.map((m) => {
-                  const memberConsumed = 0
+                  const memberConsumed = consumedMap[m.id] ?? 0
                   const memberPct =
                     project.consumed > 0 ? Math.round((memberConsumed / project.consumed) * 100) : 0
                   return (

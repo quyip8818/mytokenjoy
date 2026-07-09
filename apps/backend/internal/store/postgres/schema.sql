@@ -578,3 +578,29 @@ CREATE TABLE IF NOT EXISTS notification_log (
 
 CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
     ON notification_log (company_id, created_at DESC);
+
+-- Budget constraints additions: clean orphan rows before adding FK
+DELETE FROM alert_rule_notify_roles
+WHERE NOT EXISTS (
+    SELECT 1 FROM alert_rules
+    WHERE alert_rules.company_id = alert_rule_notify_roles.company_id
+      AND alert_rules.id = alert_rule_notify_roles.rule_id
+);
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_alert_rule_notify_roles_rule') THEN
+        ALTER TABLE alert_rule_notify_roles ADD CONSTRAINT fk_alert_rule_notify_roles_rule
+            FOREIGN KEY (company_id, rule_id) REFERENCES alert_rules(company_id, id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_groups_unique_name ON budget_groups(company_id, name);
+
+-- Normalize period values before adding CHECK
+UPDATE org_nodes SET period = 'monthly' WHERE period NOT IN ('monthly') OR period IS NULL;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_org_nodes_period') THEN
+        ALTER TABLE org_nodes ADD CONSTRAINT chk_org_nodes_period CHECK (period IN ('monthly'));
+    END IF;
+END $$;
