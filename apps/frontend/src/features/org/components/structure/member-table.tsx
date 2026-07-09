@@ -79,6 +79,7 @@ export function MemberTable({
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
             onCheckedChange={(c) => row.toggleSelected(!!c)}
           />
         ),
