@@ -2,9 +2,11 @@ package structure
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -95,9 +97,23 @@ func (s *Local) CreateMember(ctx context.Context, input types.Member) (types.Mem
 		return core.BumpAuthzRevisionStore(ctx, st)
 	})
 	if err != nil {
-		return types.Member{}, err
+		return types.Member{}, mapMemberUniqueError(err)
 	}
 	return member, nil
+}
+
+func mapMemberUniqueError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if strings.Contains(pgErr.ConstraintName, "email") {
+			return domain.Conflict("邮箱已存在")
+		}
+		if strings.Contains(pgErr.ConstraintName, "phone") {
+			return domain.Conflict("手机号已存在")
+		}
+		return domain.Conflict("成员信息重复")
+	}
+	return err
 }
 
 func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, members []types.Member) error {
