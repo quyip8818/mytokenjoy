@@ -152,6 +152,7 @@ export function useStructurePage(injectedApis?: AppApis) {
           await apis.memberApi.delete(ids)
           setRowSelection({})
           setConfirmState((state) => ({ ...state, open: false }))
+          toast.success(`已删除 ${ids.length} 名成员`)
           await invalidateOrg()
         } catch (err) {
           const message = err instanceof ApiError ? err.message : '删除失败，请重试'
