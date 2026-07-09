@@ -316,13 +316,19 @@ export function MemberTable({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const target = parseInt(pageInputValue)
-                  if (target >= 1 && target <= totalPages) onPageChange(target)
+                  if (!isNaN(target)) {
+                    const clamped = Math.max(1, Math.min(target, totalPages))
+                    onPageChange(clamped)
+                    setPageInputValue(String(clamped))
+                  }
                 }
               }}
               onBlur={() => {
                 const target = parseInt(pageInputValue)
-                if (target >= 1 && target <= totalPages && target !== page) {
-                  onPageChange(target)
+                if (!isNaN(target)) {
+                  const clamped = Math.max(1, Math.min(target, totalPages))
+                  if (clamped !== page) onPageChange(clamped)
+                  setPageInputValue(String(clamped))
                 } else {
                   setPageInputValue(String(page))
                 }
