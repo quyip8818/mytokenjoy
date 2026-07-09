@@ -35,7 +35,7 @@ export function useStructurePage(injectedApis?: AppApis) {
       keyword: keyword || undefined,
       departmentId: selectedDept?.id,
     }),
-    [page, keyword, selectedDept?.id],
+    [page, pageSize, keyword, selectedDept?.id],
   )
 
   const {
