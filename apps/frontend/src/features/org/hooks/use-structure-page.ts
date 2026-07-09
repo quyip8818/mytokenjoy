@@ -196,27 +196,45 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const createDept = useCallback(
     async (name: string, parentId: string) => {
-      await apis.departmentApi.create({ name, parentId })
-      await invalidateOrg()
+      try {
+        await apis.departmentApi.create({ name, parentId })
+        toast.success(`部门「${name}」创建成功`)
+        await invalidateOrg()
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : '创建部门失败'
+        toast.error(message)
+      }
     },
     [apis, invalidateOrg],
   )
 
   const updateDept = useCallback(
     async (id: string, name: string) => {
-      await apis.departmentApi.update(id, { name })
-      await invalidateOrg()
+      try {
+        await apis.departmentApi.update(id, { name })
+        toast.success(`部门已更新为「${name}」`)
+        await invalidateOrg()
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : '更新部门失败'
+        toast.error(message)
+      }
     },
     [apis, invalidateOrg],
   )
 
   const deleteDept = useCallback(
     async (id: string) => {
-      await apis.departmentApi.delete(id)
-      if (selectedDept?.id === id) {
-        setSelectedDept(undefined)
+      try {
+        await apis.departmentApi.delete(id)
+        toast.success('部门已删除')
+        if (selectedDept?.id === id) {
+          setSelectedDept(undefined)
+        }
+        await invalidateOrg()
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : '删除部门失败'
+        toast.error(message)
       }
-      await invalidateOrg()
     },
     [apis, invalidateOrg, selectedDept?.id],
   )
