@@ -22,18 +22,20 @@ export function CostTrendChart({ dailyCosts, loading, granularity }: CostTrendCh
       title="每日花费趋势"
       loading={loading}
       skeletonColumns={1}
-      className="col-span-2 border-border shadow-xs"
+      className="col-span-2"
     >
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={300}>
         <LineChart data={dailyCosts}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
           <XAxis
             dataKey="date"
             tickFormatter={(v) => (granularity === 'month' ? v : v.slice(5))}
             fontSize={11}
             stroke="#94a3b8"
+            axisLine={false}
+            tickLine={false}
           />
-          <YAxis fontSize={11} stroke="#94a3b8" />
+          <YAxis fontSize={11} stroke="#94a3b8" axisLine={false} tickLine={false} />
           <Tooltip
             formatter={(value) => [`¥${Number(value).toFixed(2)}`, '花费']}
             labelFormatter={(l) => `日期: ${l}`}
@@ -41,9 +43,18 @@ export function CostTrendChart({ dailyCosts, loading, granularity }: CostTrendCh
               borderRadius: '8px',
               border: '1px solid #e2e8f0',
               boxShadow: '0 4px 12px rgba(79,70,229,0.08)',
+              fontSize: '12px',
             }}
           />
-          <Line type="monotone" dataKey="cost" stroke="#4f46e5" strokeWidth={2.5} dot={false} />
+          <Line
+            type="monotone"
+            dataKey="cost"
+            stroke="#4f46e5"
+            strokeWidth={2.5}
+            dot={false}
+            animationDuration={800}
+            animationEasing="ease-out"
+          />
         </LineChart>
       </ResponsiveContainer>
     </DataSection>

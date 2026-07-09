@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"context"
+	"math"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -10,6 +11,11 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
+
+// roundCost rounds a monetary value to 2 decimal places.
+func roundCost(v float64) float64 {
+	return math.Round(v*100) / 100
+}
 
 func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) (types.CostSummary, error) {
 	current, err := s.resolveRange(params)
@@ -40,15 +46,15 @@ func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams,
 	avgCostPerMember := safeDiv(currentTotals.Cost, memberCount)
 	prevAvgCostPerMember := safeDiv(prevTotals.Cost, memberCount)
 	return types.CostSummary{
-		TotalCost:            currentTotals.Cost,
-		TotalCostMom:         mom(currentTotals.Cost, prevTotals.Cost),
+		TotalCost:            roundCost(currentTotals.Cost),
+		TotalCostMom:         roundCost(mom(currentTotals.Cost, prevTotals.Cost)),
 		TotalTokens:          0,
 		TotalRequests:        float64(currentTotals.CallCount),
-		TotalRequestsMom:     mom(float64(currentTotals.CallCount), float64(prevTotals.CallCount)),
-		AvgCostPerRequest:    avgCostPerRequest,
-		AvgCostPerRequestMom: mom(avgCostPerRequest, prevAvgCostPerRequest),
-		AvgCostPerMember:     avgCostPerMember,
-		AvgCostPerMemberMom:  mom(avgCostPerMember, prevAvgCostPerMember),
+		TotalRequestsMom:     roundCost(mom(float64(currentTotals.CallCount), float64(prevTotals.CallCount))),
+		AvgCostPerRequest:    roundCost(avgCostPerRequest),
+		AvgCostPerRequestMom: roundCost(mom(avgCostPerRequest, prevAvgCostPerRequest)),
+		AvgCostPerMember:     roundCost(avgCostPerMember),
+		AvgCostPerMemberMom:  roundCost(mom(avgCostPerMember, prevAvgCostPerMember)),
 	}, nil
 }
 
@@ -95,7 +101,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 		}
 		result = append(result, types.DepartmentCost{
 			DepartmentID: row.DepartmentID, DepartmentName: name,
-			Cost: row.Cost, Percentage: pct, HasChildren: hasChildren,
+			Cost: roundCost(row.Cost), Percentage: roundCost(pct), HasChildren: hasChildren,
 		})
 	}
 	return result, nil
@@ -136,7 +142,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 		}
 		result = append(result, types.DepartmentCostMember{
 			MemberID: row.MemberID, MemberName: name,
-			Cost: row.Cost, Requests: float64(row.CallCount), Tokens: 0,
+			Cost: roundCost(row.Cost), Requests: float64(row.CallCount), Tokens: 0,
 		})
 	}
 	return result, nil
@@ -161,7 +167,7 @@ func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, 
 	result := make([]types.DailyCost, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, types.DailyCost{
-			Date: row.Bucket, Cost: row.Cost, Requests: float64(row.CallCount), Tokens: 0,
+			Date: row.Bucket, Cost: roundCost(row.Cost), Requests: float64(row.CallCount), Tokens: 0,
 		})
 	}
 	return result, nil
@@ -206,7 +212,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 		}
 		result = append(result, types.TopConsumer{
 			MemberID: row.MemberID, MemberName: name, Department: deptName,
-			Cost: row.Cost, Requests: float64(row.CallCount), Tokens: 0,
+			Cost: roundCost(row.Cost), Requests: float64(row.CallCount), Tokens: 0,
 		})
 	}
 	return result, nil

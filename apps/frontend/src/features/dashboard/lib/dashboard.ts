@@ -37,7 +37,8 @@ export interface CostStatItem {
 }
 
 function formatMom(mom: number): string {
-  return `${mom > 0 ? '+' : ''}${mom}%`
+  const rounded = Number(mom.toFixed(2))
+  return `${rounded > 0 ? '+' : ''}${rounded}%`
 }
 
 export function formatTokenCount(tokens: number): string {
@@ -115,7 +116,7 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
   return [
     {
       label: '总花费',
-      value: summary ? `¥${summary.totalCost.toLocaleString()}` : '-',
+      value: summary ? `¥${summary.totalCost.toFixed(2)}` : '-',
       mom: summary?.totalCostMom,
       icon: Coins,
       accent: 'bg-primary',
@@ -129,7 +130,7 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
     },
     {
       label: '人均成本',
-      value: summary ? `¥${summary.avgCostPerMember.toLocaleString()}` : '-',
+      value: summary ? `¥${summary.avgCostPerMember.toFixed(2)}` : '-',
       mom: summary?.avgCostPerMemberMom,
       icon: User,
       accent: 'bg-violet-500',

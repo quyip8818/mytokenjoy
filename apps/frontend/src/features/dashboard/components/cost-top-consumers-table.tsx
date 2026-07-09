@@ -44,7 +44,7 @@ export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumer
           {topConsumers.map((c, i) => (
             <TableRow
               key={c.memberId}
-              className="border-border-subtle even:bg-muted/40 hover:bg-muted/50"
+              className="border-border-subtle hover:bg-muted/50 transition-colors"
             >
               <TableCell>
                 <div
@@ -55,11 +55,11 @@ export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumer
               </TableCell>
               <TableCell className="font-medium">{c.memberName}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{c.department}</TableCell>
-              <TableCell className="text-right font-semibold">{c.cost.toLocaleString()}</TableCell>
-              <TableCell className="text-right text-muted-foreground">
+              <TableCell className="text-right font-semibold tabular-nums">{c.cost.toFixed(2)}</TableCell>
+              <TableCell className="text-right text-muted-foreground tabular-nums">
                 {formatTokenCount(c.tokens)}
               </TableCell>
-              <TableCell className="text-right text-muted-foreground">
+              <TableCell className="text-right text-muted-foreground tabular-nums">
                 {c.requests.toLocaleString()}
               </TableCell>
             </TableRow>
