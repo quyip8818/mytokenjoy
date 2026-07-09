@@ -53,6 +53,7 @@ type UpdateMemberQuotaInput struct {
 type BudgetApproval struct {
 	ID             string  `json:"id"`
 	ApplicantID    string  `json:"-"`
+	DepartmentID   string  `json:"-"`
 	ApplicantName  string  `json:"applicantName"`
 	DepartmentName string  `json:"departmentName"`
 	Amount         float64 `json:"amount"`

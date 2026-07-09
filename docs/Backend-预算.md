@@ -89,7 +89,58 @@ flowchart TB
 
 ---
 
-## 3. 分配模型
+## 2. SSOT 与投影
+
+| 层       | 存储                                   | 写入                    | 读方                                  |
+| -------- | -------------------------------------- | ----------------------- | ------------------------------------- |
+| **事实** | `usage_ledger`                         | `usage.IngestService`   | 审计 `/audit/calls`、minute 看板      |
+| **投影** | `budget_snapshots` / `usage_buckets`   | `usage.Apply`（同事务） | 超限/Rebalance、hour/day 看板、预算树 |
+
+> **术语：** `used` 与 `consumed` 同义，统一读法见 [Backend-存储架构.md](./Backend-存储架构.md) §8。组织轴 consumed SSOT 为 `budget_snapshots`（按 `axis_kind` 区分 `org_node`、`budget_group`、`platform_key`、`member`），各业务表上不存在 consumed/used 列。
+
+```mermaid
+flowchart LR
+  WH[Webhook / 补偿轮询] --> ING[IngestService]
+  ING --> UL[(usage_ledger)]
+  ING --> PROJ[projection.Apply]
+  PROJ --> SNAP[budget_snapshots.consumed]
+  PROJ --> UB[(usage_buckets)]
+  ING --> Q[async_jobs rebalance / overrun]
+```
+
+### 2.1 入账路径（方案 B）
+
+1. NewAPI settle → 写共享 `logs` 库 → `EnqueueNotify(log_id)` → `POST /api/internal/webhooks/newapi-log`
+2. Worker 兜底：`ingest_failures` 重试 + `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
+3. `FindMappingByNewAPITokenID` → `company_id`、部门/成员/组归因
+4. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
+5. `store.WithTx`：ledger `INSERT ON CONFLICT` → projection → 副作用入队
+
+### 2.2 `projection.Apply` 顺序
+
+消耗追踪统一集中在 `budget_snapshots` 表，通过 `axis_kind` 区分不同维度（`org_node`、`budget_group`、`platform_key`、`member`）。各业务表（`platform_keys`、`budget_groups`、`org_nodes`）上**没有** `used` / `consumed` 列。
+
+| 步骤 | 写入                                                        | 说明                        |
+| ---- | ----------------------------------------------------------- | --------------------------- |
+| 1    | `budget_snapshots (axis_kind=platform_key)` += cost         | Key 已用                    |
+| 2    | `budget_snapshots (axis_kind=budget_group)` += cost         | 若挂组                      |
+| 3    | `budget_snapshots (axis_kind=org_node)` 祖先 rollup += cost | 以 `department_id` 为叶子   |
+| 4    | `usage_buckets` Upsert                                      | 小时桶 × 部门 × 成员 × 模型 |
+
+父节点 consumed 含整棵子树花费（rollup），均从 `budget_snapshots` 读取。
+
+### 2.3 读路径分离
+
+| 场景                      | 读什么                                              | 为何                                          |
+| ------------------------- | --------------------------------------------------- | --------------------------------------------- |
+| 看板 cost / consumed 趋势 | `usage_buckets` SUM                                 | 与 Ingest 投影一致；不读 budget_snapshots     |
+| 预算树展示 `consumed`     | `budget_snapshots (axis_kind=org_node)`             | 控制台实时投影                                |
+| 审计调用列表              | `usage_ledger`                                      | SSOT；不查 NewAPI logs                        |
+| minute 趋势               | `usage_ledger` 按分钟聚合                           | 窗口 ≤3h                                      |
+
+---
+
+## 3. 分配层级
 
 ```mermaid
 flowchart TB
