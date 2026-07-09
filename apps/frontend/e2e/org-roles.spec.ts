@@ -29,7 +29,7 @@ test.describe('角色管理 - 页面渲染', () => {
   })
 
   test('显示系统预设角色分组及所有预设角色', async ({ page }) => {
-    await expect(page.getByText('系统预设')).toBeVisible()
+    await expect(page.getByText('系统预设', { exact: true })).toBeVisible()
     await expect(page.getByText('超级管理员').first()).toBeVisible()
     await expect(page.getByText('组织管理员').first()).toBeVisible()
     await expect(page.getByText('普通成员').first()).toBeVisible()
@@ -202,14 +202,14 @@ test.describe('角色管理 - 角色 CRUD', () => {
     await firstCheckbox.click()
 
     // 提交
-    await page.getByRole('button', { name: '确定' }).click()
+    await page.getByRole('button', { name: '创建' }).click()
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
 
     // toast 通知
     await expect(page.getByText(`角色「${uniqueName}」已创建`)).toBeVisible()
 
     // 新角色出现在自定义分组中
-    await expect(page.getByText(uniqueName)).toBeVisible()
+    await expect(page.getByText(uniqueName, { exact: true })).toBeVisible()
 
     // 清理
     const roles = await page.evaluate(async () => {
@@ -232,7 +232,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
     const firstCheckbox = page.getByRole('dialog').getByRole('checkbox').first()
     await firstCheckbox.click()
 
-    await page.getByRole('button', { name: '确定' }).click()
+    await page.getByRole('button', { name: '创建' }).click()
     await page.waitForTimeout(500)
     // Dialog 仍然打开（验证未通过）
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -247,7 +247,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
     const firstCheckbox = page.getByRole('dialog').getByRole('checkbox').first()
     await firstCheckbox.click()
 
-    await page.getByRole('button', { name: '确定' }).click()
+    await page.getByRole('button', { name: '创建' }).click()
     await page.waitForTimeout(1000)
     // 应该有错误 toast 或 dialog 仍打开
     const dialogVisible = await page.getByRole('dialog').isVisible()
@@ -284,13 +284,13 @@ test.describe('角色管理 - 角色 CRUD', () => {
     const updatedName = roleName + '改'
     await nameInput.clear()
     await nameInput.fill(updatedName)
-    await page.getByRole('button', { name: '确定' }).click()
+    await page.getByRole('button', { name: '保存' }).click()
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
 
     // toast 通知
     await expect(page.getByText(`角色「${updatedName}」已更新`)).toBeVisible()
     // 列表中显示新名称
-    await expect(page.getByText(updatedName)).toBeVisible()
+    await expect(page.getByText(updatedName, { exact: true })).toBeVisible()
 
     // 清理
     await page.evaluate(async (id) => {
@@ -308,10 +308,13 @@ test.describe('角色管理 - 角色 CRUD', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, permissions: ['p-1'] }),
       })
-      return res.json()
+      return { status: res.status, data: await res.json() }
     }, roleName)
+    expect(createRes.status).toBe(200)
+
     await page.reload()
-    await expect(page.getByText(roleName)).toBeVisible()
+    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByText(roleName, { exact: true })).toBeVisible({ timeout: 10_000 })
 
     // hover 角色项显示删除按钮
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
