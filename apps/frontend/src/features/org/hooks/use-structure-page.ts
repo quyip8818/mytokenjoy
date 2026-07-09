@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { RowSelectionState } from '@tanstack/react-table'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { ApiError } from '@/api/client'
@@ -59,6 +59,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     injectedApis,
     queryKey: queryKeys.org.members(memberQueryParams),
     queryFn: (api) => api.memberApi.list(memberQueryParams),
+    placeholderData: keepPreviousData,
   })
 
   const members = membersResult?.items ?? []
