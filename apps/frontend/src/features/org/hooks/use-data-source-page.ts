@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { Platform } from '@/api/types'
@@ -48,6 +49,13 @@ export function useDataSourcePage(injectedApis?: AppApis) {
   const handleWizardComplete = async () => {
     setCompletedSteps([0, 1, 2])
     setUserPhase('connected')
+    try {
+      const result = await apis.dataSourceApi.import()
+      const msg = `导入完成：${result.successMembers} 名成员，${result.successDepartments} 个部门`
+      toast.success(msg)
+    } catch {
+      toast.info('配置已保存，可前往组织架构页执行导入')
+    }
     await refresh()
   }
 
