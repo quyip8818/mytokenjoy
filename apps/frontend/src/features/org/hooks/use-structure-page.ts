@@ -100,28 +100,35 @@ export function useStructurePage(injectedApis?: AppApis) {
     hireDate: string
     departmentId: string
   }) => {
-    if (editingMember) {
-      await apis.memberApi.update(editingMember.id, {
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        departmentId: data.departmentId,
-        departmentName:
-          flattenDepartments(departments).find((dept) => dept.id === data.departmentId)?.name ?? '',
-      })
-    } else {
-      const dept = flattenDepartments(departments).find((item) => item.id === data.departmentId)
-      await apis.memberApi.create({
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        departmentId: data.departmentId,
-        departmentName: dept?.name ?? '',
-      })
+    try {
+      if (editingMember) {
+        await apis.memberApi.update(editingMember.id, {
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          departmentId: data.departmentId,
+          departmentName:
+            flattenDepartments(departments).find((dept) => dept.id === data.departmentId)?.name ?? '',
+        })
+        toast.success(`成员「${data.name}」已更新`)
+      } else {
+        const dept = flattenDepartments(departments).find((item) => item.id === data.departmentId)
+        await apis.memberApi.create({
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          departmentId: data.departmentId,
+          departmentName: dept?.name ?? '',
+        })
+        toast.success(`成员「${data.name}」添加成功`)
+      }
+      setFormOpen(false)
+      setEditingMember(null)
+      await invalidateOrg()
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : '操作失败，请重试'
+      toast.error(message)
     }
-    setFormOpen(false)
-    setEditingMember(null)
-    await invalidateOrg()
   }
 
   const handleStatusChange = (ids: string[], status: 'active' | 'inactive') => {
