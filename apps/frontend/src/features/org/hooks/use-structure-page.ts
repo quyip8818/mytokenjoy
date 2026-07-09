@@ -91,7 +91,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     setPage(nextPage)
   }, [])
 
-  const pendingCount = members.filter((member) => member.status === 'pending').length
+  const pendingCount = membersResult?.pendingCount ?? 0
   const selectedIds = Object.keys(rowSelection)
   const flatDepts = flattenDepartments(departments)
 

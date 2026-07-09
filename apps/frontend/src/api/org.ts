@@ -8,6 +8,7 @@ import type {
   ImportResult,
   MappingTestResult,
   Member,
+  MemberPaginated,
   Paginated,
   Permission,
   Platform,
@@ -92,7 +93,7 @@ export const memberApi = {
     pageSize: number
     keyword?: string
   }) => {
-    return request<Paginated<Member>>(`/org/members${buildQuery(params)}`)
+    return request<MemberPaginated>(`/org/members${buildQuery(params)}`)
   },
   create: (data: Omit<Member, 'id' | 'status' | 'roles' | 'source' | 'companyId'>) =>
     request<Member>('/org/members', {

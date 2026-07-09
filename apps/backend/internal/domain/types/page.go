@@ -9,6 +9,14 @@ type PageResult[T any] struct {
 	PageSize int `json:"pageSize"`
 }
 
+type MemberPageResult struct {
+	Items        []Member `json:"items"`
+	Total        int      `json:"total"`
+	Page         int      `json:"page"`
+	PageSize     int      `json:"pageSize"`
+	PendingCount int      `json:"pendingCount"`
+}
+
 func NormalizePageParams(page, pageSize int) (int, int) {
 	if page < 1 {
 		page = 1
