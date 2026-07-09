@@ -1,8 +1,6 @@
 package app
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -17,7 +15,6 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func wireOrg(cfg config.Config, i infra, logger *slog.Logger) domainorg.Service {
@@ -49,8 +46,8 @@ func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader) domain
 	return domaindashboard.NewService(cfg, i.store, reader)
 }
 
-func wireAudit(cfg config.Config, i infra) domainaudit.Service {
-	return domainaudit.NewService(cfg, i.store)
+func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudit.Service {
+	return domainaudit.NewService(cfg, i.store, reader)
 }
 
 func wireCompany(cfg config.Config, i infra) domaincompany.Service {
@@ -58,13 +55,7 @@ func wireCompany(cfg config.Config, i infra) domaincompany.Service {
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
-	rebalanceEnqueue := func(ctx context.Context, companyID int64) error {
-		return i.store.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
-	}
-	enqueueWalletSync := func(ctx context.Context, companyID int64) error {
-		return i.store.Relay().EnqueueWalletSync(domaincompany.WithContext(ctx, domaincompany.Context{CompanyID: companyID}), companyID)
-	}
-	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, rebalanceEnqueue, enqueueWalletSync)
+	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, EnqueueRebalanceCompany(i.store), EnqueueWalletSync(i.store))
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
@@ -72,10 +63,7 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {
-	enqueueWalletSync := func(ctx context.Context, companyID int64) error {
-		return i.store.Relay().EnqueueWalletSync(domaincompany.WithContext(ctx, domaincompany.Context{CompanyID: companyID}), companyID)
-	}
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, enqueueWalletSync)
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, EnqueueWalletSync(i.store))
 }
 
 func wireReader(i infra) domainusage.Reader {

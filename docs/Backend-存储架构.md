@@ -85,6 +85,8 @@ flowchart TB
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
 | `Ledger()` / `Usage()` / `BudgetSnapshots()`          | `usage_ledger`, `usage_buckets`, `budget_snapshots`                       |
 | `Relay()`                                             | `relay_mappings`, `async_jobs`                                            |
+
+`RelayRepository` = `RelayMappingRepository`（token 映射读写）+ `RelayJobRepository`（outbox / rebalance / overrun / wallet_sync，共用 `async_jobs`）+ `AsyncJobRepository`。Postgres 实现拆为 `relay_mapping.go` / `relay_jobs.go`。
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                        |
 | `Company()` / `Invite()` / `Billing()` / `Platform()` | 租户与充值                                                                |
 | `Notification()` / `SchedulerLock()` / `Logs()`       | `notification_log`, `scheduler_locks`, 日志库三表                         |
@@ -169,7 +171,7 @@ flowchart LR
 | `budget_snapshots` | 四轴 consumed：`org_node` · `budget_group` · `platform_key` · `member` |
 | `ingest_failures`  | 入账失败重试（日志库）                                                 |
 
-入账算法见 [Backend-预算.md](./Backend-预算.md) §2。
+入账与投影见 [Backend-预算.md](./Backend-预算.md) §7。
 
 ---
 
@@ -303,4 +305,4 @@ flowchart LR
 | `usage_ledger` 的 `input_tokens` / `output_tokens` | 用量计数，不是金额额度           |
 | `reserved_pool`                                    | 预留池配置，不是 consumed        |
 
-算法与入账顺序见 [Backend-预算.md](./Backend-预算.md) §1–§2。point / 展示币 / NewAPI quota 的区别见 [Backend-计费模式.md](./Backend-计费模式.md)。
+双轴与入账见 [Backend-预算.md](./Backend-预算.md) §2–§7。point / 展示币 / NewAPI quota 的区别见 [Backend-计费模式.md](./Backend-计费模式.md)。

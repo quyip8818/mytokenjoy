@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
@@ -170,6 +171,13 @@ func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member)
 }
 
 func (s *Local) DeleteMembers(ctx context.Context, ids []string) error {
+	if sessionCtx, ok := httpx.SessionFromContext(ctx); ok {
+		for _, id := range ids {
+			if id == sessionCtx.Member.ID {
+				return domain.BadRequest("不能删除当前登录的用户")
+			}
+		}
+	}
 	return s.d.Store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {

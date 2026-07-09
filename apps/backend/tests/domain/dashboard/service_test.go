@@ -1,9 +1,11 @@
 package dashboard_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -50,6 +52,19 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 	}
 	if len(rows) != 1 || rows[0].Cost != 10 {
 		t.Fatalf("expected one weekly point with cost 10, got %+v", rows)
+	}
+}
+
+func TestUsageSeriesRequiresParams(t *testing.T) {
+	t.Parallel()
+	svc, _ := newDashboardSvc(t)
+	ctx := testutil.Ctx()
+	_, err := svc.UsageSeries(ctx, types.UsageSeriesQuery{
+		GroupBy: types.UsageGroupByNone,
+	}, testutil.AdminDashboardScope())
+	var de *domain.DomainError
+	if !errors.As(err, &de) || de.Status != domain.StatusBadRequest {
+		t.Fatalf("expected bad request, got %v", err)
 	}
 }
 

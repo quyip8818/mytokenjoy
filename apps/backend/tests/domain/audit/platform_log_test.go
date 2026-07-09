@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -14,7 +15,8 @@ import (
 func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := audit.NewService(cfg, st)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := audit.NewService(cfg, st, reader)
 
 	const targetCompanyID int64 = 3
 	const action = "platform.company.recharge"

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/domain"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -94,10 +93,6 @@ func (h *Handler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 		granularity := query.Get("granularity")
 		startRaw := query.Get("start")
 		endRaw := query.Get("end")
-		if granularity == "" || startRaw == "" || endRaw == "" {
-			httputil.WriteError(w, domain.BadRequest("granularity, start and end are required"))
-			return
-		}
 		timezone := domainusage.ResolveTimezone("")
 		start, end, err := domainusage.ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone)
 		if err != nil {

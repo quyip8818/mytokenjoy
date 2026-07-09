@@ -3,11 +3,15 @@ package dashboard
 import (
 	"context"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 )
 
 func (s *service) UsageSeries(ctx context.Context, q types.UsageSeriesQuery, scope domainusage.SessionScope) (types.UsageSeriesResponse, error) {
+	if q.Granularity == "" || q.Start.IsZero() || q.End.IsZero() {
+		return types.UsageSeriesResponse{}, domain.BadRequest("granularity, start and end are required")
+	}
 	if q.Timezone == "" {
 		q.Timezone = domainusage.ResolveTimezone("")
 	}

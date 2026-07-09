@@ -47,7 +47,7 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domain
 		keys:            keysSvc,
 		models:          wireModels(cfg, i),
 		dashboard:       wireDashboard(cfg, i, reader),
-		audit:           wireAudit(cfg, i),
+		audit:           wireAudit(cfg, i, reader),
 		readModel:       reader,
 		ingest:          wireIngestService(cfg, i, logger),
 		failureRecorder: failureRecorder,

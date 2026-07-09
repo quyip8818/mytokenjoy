@@ -4,10 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
@@ -50,15 +48,6 @@ func (h *Handler) MembersDelete(w http.ResponseWriter, r *http.Request) {
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
-	}
-	// Prevent deleting yourself
-	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
-		for _, id := range body.IDs {
-			if id == sessionCtx.Member.ID {
-				httputil.WriteError(w, domain.NewDomainError(400, "不能删除当前登录的用户"))
-				return
-			}
-		}
 	}
 	err := h.service.DeleteMembers(r.Context(), body.IDs)
 	httputil.WriteVoid(w, err)

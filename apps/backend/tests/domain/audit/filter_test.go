@@ -3,7 +3,6 @@ package audit_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -14,8 +13,7 @@ import (
 
 func TestListOperationsKeywordFilter(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := audit.NewService(cfg, st)
+	svc := newAuditService(t)
 	ctx := testutil.Ctx()
 
 	// Get all operations first
@@ -45,8 +43,7 @@ func TestListOperationsKeywordFilter(t *testing.T) {
 
 func TestListOperationsTimeRangeFilter(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := audit.NewService(cfg, st)
+	svc := newAuditService(t)
 	ctx := testutil.Ctx()
 
 	// Very narrow range that should exclude everything
@@ -63,8 +60,7 @@ func TestListOperationsTimeRangeFilter(t *testing.T) {
 
 func TestListOperationsOperatorFilter(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := audit.NewService(cfg, st)
+	svc := newAuditService(t)
 	ctx := testutil.Ctx()
 
 	// Filter by a non-existent operator
@@ -81,8 +77,7 @@ func TestListOperationsOperatorFilter(t *testing.T) {
 
 func TestListOperationsPagination(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := audit.NewService(cfg, st)
+	svc := newAuditService(t)
 	ctx := testutil.Ctx()
 
 	// Get total count

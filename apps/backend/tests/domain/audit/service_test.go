@@ -12,7 +12,8 @@ import (
 func newAuditService(t *testing.T) audit.Service {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	return audit.NewService(cfg, st)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	return audit.NewService(cfg, st, reader)
 }
 
 func TestListOperationsPaginationAndActionFilter(t *testing.T) {

@@ -17,22 +17,19 @@ import (
 )
 
 type Runner struct {
-	cfg             config.Config
-	relayOutbox     store.RelayOutboxRepository
-	rebalanceQueue  store.RebalanceQueueRepository
-	overrunQueue    store.OverrunQueueRepository
-	walletSyncQueue store.WalletSyncQueueRepository
-	schedulerLock   store.SchedulerLockRepository
-	relaySync       relay.RelayOutboxSync
-	overrun         domainbudget.OverrunProcessor
-	rebalance       domainbudget.Rebalancer
-	walletSync      billingWalletSync
-	syncSvc         domainorg.SyncService
-	ingestWorker    *IngestWorker
-	logger          *slog.Logger
-	interval        time.Duration
-	syncEvery       time.Duration
-	syncTick        time.Duration
+	cfg           config.Config
+	relayJobs     store.RelayJobRepository
+	schedulerLock store.SchedulerLockRepository
+	relaySync     relay.RelayOutboxSync
+	overrun       domainbudget.OverrunProcessor
+	rebalance     domainbudget.Rebalancer
+	walletSync    billingWalletSync
+	syncSvc       domainorg.SyncService
+	ingestWorker  *IngestWorker
+	logger        *slog.Logger
+	interval      time.Duration
+	syncEvery     time.Duration
+	syncTick      time.Duration
 }
 
 func NewRunner(
@@ -61,17 +58,14 @@ func NewRunner(
 	}
 	holderID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
 	return &Runner{
-		cfg:             cfg,
-		relayOutbox:     relayRepo,
-		rebalanceQueue:  relayRepo,
-		overrunQueue:    relayRepo,
-		walletSyncQueue: relayRepo,
-		schedulerLock:   schedulerLock,
-		relaySync:       relaySync,
-		overrun:         overrun,
-		rebalance:       rebalance,
-		walletSync:      billingWalletSync{svc: billingSvc},
-		syncSvc:         syncSvc,
+		cfg:           cfg,
+		relayJobs:     relayRepo,
+		schedulerLock: schedulerLock,
+		relaySync:     relaySync,
+		overrun:       overrun,
+		rebalance:     rebalance,
+		walletSync:    billingWalletSync{svc: billingSvc},
+		syncSvc:       syncSvc,
 		ingestWorker: NewIngestWorker(
 			cfg, logStore, ingest, metrics, schedulerLock, failureRecorder, logger, holderID, cfg.IngestReconcileInterval(),
 		),
@@ -154,19 +148,19 @@ func (r *Runner) RunReconcileOnce(ctx context.Context) error {
 }
 
 func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, next time.Time, reason string) {
-	if err := r.relayOutbox.MarkRelayOutboxRetry(ctx, id, next, reason); err != nil {
+	if err := r.relayJobs.MarkRelayOutboxRetry(ctx, id, next, reason); err != nil {
 		r.logger.Warn("mark relay outbox retry failed", "id", id, "error", err)
 	}
 }
 
 func (r *Runner) markRelayOutboxDone(ctx context.Context, id string) {
-	if err := r.relayOutbox.MarkRelayOutboxDone(ctx, id); err != nil {
+	if err := r.relayJobs.MarkRelayOutboxDone(ctx, id); err != nil {
 		r.logger.Warn("mark relay outbox done failed", "id", id, "error", err)
 	}
 }
 
 func (r *Runner) markRebalanceDone(ctx context.Context, id string) {
-	if err := r.rebalanceQueue.MarkRebalanceDone(ctx, id); err != nil {
+	if err := r.relayJobs.MarkRebalanceDone(ctx, id); err != nil {
 		r.logger.Warn("mark rebalance done failed", "id", id, "error", err)
 	}
 }

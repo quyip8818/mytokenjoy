@@ -17,7 +17,7 @@ func (r *Runner) workerCtx(ctx context.Context, companyID int64) context.Context
 
 func (r *Runner) processRelayOutbox(ctx context.Context) error {
 	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
-	entries, err := r.relayOutbox.ClaimPendingRelayOutbox(workerCtx, 20)
+	entries, err := r.relayJobs.ClaimPendingRelayOutbox(workerCtx, 20)
 	if err != nil {
 		return err
 	}

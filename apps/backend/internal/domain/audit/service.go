@@ -2,10 +2,10 @@ package audit
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -13,15 +13,17 @@ type Service interface {
 	GetSettings(ctx context.Context) (types.AuditSettings, error)
 	UpdateSettings(ctx context.Context, settings types.AuditSettings) (types.AuditSettings, error)
 	ListOperations(ctx context.Context, params types.AuditOperationsQueryParams) (types.PageResult[types.OperationLog], error)
+	ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error)
 }
 
 type service struct {
-	cfg   config.Config
-	store store.Store
+	cfg    config.Config
+	store  store.Store
+	reader domainusage.ReadModel
 }
 
-func NewService(cfg config.Config, st store.Store) Service {
-	return &service{cfg: cfg, store: st}
+func NewService(cfg config.Config, st store.Store, reader domainusage.ReadModel) Service {
+	return &service{cfg: cfg, store: st, reader: reader}
 }
 
 func (s *service) GetSettings(ctx context.Context) (types.AuditSettings, error) {
@@ -35,7 +37,7 @@ func (s *service) UpdateSettings(ctx context.Context, settings types.AuditSettin
 	}
 	current.ContentRetentionEnabled = settings.ContentRetentionEnabled
 	if err := s.store.Audit().SetSettings(ctx, current); err != nil {
-		return types.AuditSettings{}, fmt.Errorf("persist audit settings: %w", err)
+		return types.AuditSettings{}, err
 	}
 	return current, nil
 }
@@ -57,4 +59,8 @@ func (s *service) ListOperations(ctx context.Context, params types.AuditOperatio
 	return types.PageResult[types.OperationLog]{
 		Items: items, Total: total, Page: page, PageSize: pageSize,
 	}, nil
+}
+
+func (s *service) ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error) {
+	return s.reader.ListCalls(ctx, params)
 }

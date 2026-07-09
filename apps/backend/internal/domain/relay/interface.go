@@ -6,21 +6,11 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-type ModelLimitsEnqueuer interface {
-	EnqueueModelLimitsForDepartments(ctx context.Context, departmentIDs []string) error
-}
-
 type RelayGate interface {
 	Enabled() bool
 }
 
-type OverrunRelayControl interface {
-	RelayGate
-	DisablePlatformKey(ctx context.Context, platformKeyID string) error
-}
-
-type KeysRelaySync interface {
-	RelayGate
+type PlatformKeyLifecycle interface {
 	SyncCreatePlatformKey(ctx context.Context, key types.PlatformKey, departmentID string) error
 	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)
 	RollbackFailedCreate(ctx context.Context, platformKeyID string)
@@ -28,33 +18,48 @@ type KeysRelaySync interface {
 	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error
 	SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error
 	SyncRotatePlatformKey(ctx context.Context, platformKeyID string) (string, error)
+	DisablePlatformKey(ctx context.Context, platformKeyID string) error
+}
+
+type ProviderKeyLifecycle interface {
 	EnqueueUpsertProviderKey(ctx context.Context, providerKeyID string) error
 	SyncUpsertProviderKey(ctx context.Context, providerKeyID string) error
 }
 
-type RelayOutboxSync interface {
-	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)
-	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error
-	SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error
-	SyncUpsertProviderKey(ctx context.Context, providerKeyID string) error
+type ModelLimitsLifecycle interface {
+	EnqueueModelLimitsForDepartment(ctx context.Context, departmentID string) error
+	EnqueueModelLimitsForDepartments(ctx context.Context, departmentIDs []string) error
 	SyncModelLimitsForDepartment(ctx context.Context, departmentID string) error
+}
+
+type RebalanceEnqueuer interface {
 	EnqueueRebalanceAxis(ctx context.Context, axisKind, axisID string) error
 }
 
 type Lifecycle interface {
-	Enabled() bool
-	SyncCreatePlatformKey(ctx context.Context, key types.PlatformKey, departmentID string) error
-	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)
-	EnqueueUpdatePlatformKey(ctx context.Context, platformKeyID string) error
-	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error
-	SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error
-	SyncRotatePlatformKey(ctx context.Context, platformKeyID string) (string, error)
+	RelayGate
+	PlatformKeyLifecycle
+	ProviderKeyLifecycle
+	ModelLimitsLifecycle
+	RebalanceEnqueuer
+}
+
+type KeysRelaySync interface {
+	RelayGate
+	PlatformKeyLifecycle
+	ProviderKeyLifecycle
+}
+
+type RelayOutboxSync interface {
+	PlatformKeyLifecycle
+	ProviderKeyLifecycle
+	ModelLimitsLifecycle
+	RebalanceEnqueuer
+}
+
+type ModelLimitsEnqueuer = ModelLimitsLifecycle
+
+type OverrunRelayControl interface {
+	RelayGate
 	DisablePlatformKey(ctx context.Context, platformKeyID string) error
-	EnqueueUpsertProviderKey(ctx context.Context, providerKeyID string) error
-	SyncUpsertProviderKey(ctx context.Context, providerKeyID string) error
-	EnqueueModelLimitsForDepartment(ctx context.Context, departmentID string) error
-	EnqueueModelLimitsForDepartments(ctx context.Context, departmentIDs []string) error
-	SyncModelLimitsForDepartment(ctx context.Context, departmentID string) error
-	EnqueueRebalanceAxis(ctx context.Context, axisKind, axisID string) error
-	RollbackFailedCreate(ctx context.Context, platformKeyID string)
 }

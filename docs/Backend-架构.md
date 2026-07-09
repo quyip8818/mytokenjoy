@@ -48,6 +48,7 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 - 域 DTO 统一定义在 `internal/domain/types/`。
 - 各 domain 包保留 Service 接口与业务逻辑；跨域编排放在调用方或 `app/wiring_*.go`。
 - HTTP 错误收敛到 `httputil`；Service 返回 `domain.DomainError`，Handler 映射 400/401/403/404/422/500。
+- **Handler 零业务规则**：鉴权、编解码、调 `domain.Service`；业务校验与规则在 domain（如成员自删保护、`UsageSeries` 参数校验、`audit.ListCalls` 委托 reader）。
 
 ---
 
@@ -57,7 +58,7 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 apps/backend/
 ├── cmd/server/main.go
 ├── internal/
-│   ├── app/                 # DI 组合根（wire_identity + wire_domain_services + wire_relay + registry）
+│   ├── app/                 # DI 组合根（wire_helpers + wire_domain_services + wire_relay + registry）
 │   ├── config/
 │   ├── identity/            # sessiontoken、credentials、authz、httpx
 │   ├── domain/
@@ -71,7 +72,7 @@ apps/backend/
 │   │   ├── dashboard/       # 看板只读聚合
 │   │   ├── audit/           # 操作审计、调用审计读模型
 │   │   ├── usage/           # Ingest、projection、Reader
-│   │   ├── relay/           # TokenLifecycle、Gateway 预检、quota 合成
+│   │   ├── relay/           # TokenLifecycle（lifecycle_*.go）、Gateway 预检、quota 合成
 │   │   ├── company/         # 企业、开户、邀请
 │   │   └── billing/         # 充值、lot 钱包、wallet_sync
 │   ├── http/
@@ -213,6 +214,16 @@ type Store interface {
 
 **扩展钉钉/企微**：在 `integration/datasource` 实现 `Provider` 并扩展 `factory.ForPlatform`；`org/remote` 保持平台无关，通常无需修改。
 
+### 5.2 `pkg/` 与 `domain/` 放置准则
+
+| 放 `internal/pkg/` | 放 `internal/domain/` |
+| ------------------ | ----------------------- |
+| 纯函数、无 I/O（预算树计算、sync diff） | 业务流程、状态机、编排 |
+| 2+ 域共用的数据结构变换 | 单域 CRUD + 规则 |
+| `ctxcompany` 等 context 原语 | Service 接口与实现 |
+
+`domain/types/` 继续作为 API DTO 单一来源（与前端 contract 对齐）。
+
 ---
 
 ## 6. Relay Gateway 请求链
@@ -238,7 +249,7 @@ sequenceDiagram
   end
 ```
 
-预检依赖 `relay.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §1。
+预检依赖 `relay.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
 
 ### 6.1 Platform Key 写路径（Remote-first）
 
@@ -275,8 +286,8 @@ flowchart TB
   subgraph worker [Worker.Runner]
     OB_R --> LC
     OB_W[outbox webhook] --> ING
-    RBQ[rebalance_queue] --> RBS[RebalanceService]
-    ORQ[overrun_queue] --> OVS[OverrunService]
+    JOBS[RelayJobRepository] --> RBS[RebalanceService]
+    JOBS --> OVS[OverrunService]
   end
 ```
 
@@ -288,16 +299,24 @@ flowchart TB
 | `OverrunService`   | `domain/budget` | 超限封禁 Key                              |
 | `PrecheckService`  | `domain/relay`  | Gateway 预检                              |
 
-**Relay 子接口（DI 收窄）：**
+**Relay 子接口（嵌入组合，DI 收窄）：**
 
-| 消费者              | 接口                  |
-| ------------------- | --------------------- |
-| `keys`              | `KeysRelaySync`       |
-| `models` / `org`    | `ModelLimitsEnqueuer` |
-| `overrun`           | `OverrunRelayControl` |
-| Worker relay outbox | `RelayOutboxSync`     |
+| 子接口 | 职责 |
+| ------ | ---- |
+| `PlatformKeyLifecycle` | Create / Update / Revoke / Rotate / Disable |
+| `ProviderKeyLifecycle` | Upsert channel |
+| `ModelLimitsLifecycle` | 部门模型白名单同步 |
+| `RebalanceEnqueuer` | Rebalance outbox 入队 |
 
-`TokenLifecycle` 实现上述子接口及完整 `Lifecycle`。
+| 消费者 | 接口 |
+| ------ | ---- |
+| `keys` | `KeysRelaySync`（`RelayGate` + Platform + Provider） |
+| `models` / `org` | `ModelLimitsEnqueuer`（= `ModelLimitsLifecycle`） |
+| `overrun` | `OverrunRelayControl`（`RelayGate` + `DisablePlatformKey`） |
+| Worker relay outbox | `RelayOutboxSync`（Platform + Provider + ModelLimits + Rebalance） |
+| `app` 装配 | `Lifecycle`（上述全部 + `RelayGate`） |
+
+实现位于 `domain/relay/lifecycle_*.go`（按操作拆文件）；`TokenLifecycle` 注入 `RelayMappingRepository` + `RelayOutboxRepository`。
 
 ### 7.1 Worker 一轮
 

@@ -522,7 +522,7 @@ HTTP 非 2xx 时，body 应包含：
 
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
-**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-存储架构.md](./Backend-存储架构.md) §5、[Backend-预算.md](./Backend-预算.md) §2。
+**调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-存储架构.md](./Backend-存储架构.md) §5、[Backend-预算.md](./Backend-预算.md) §6。
 
 ---
 
@@ -722,7 +722,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.9 SaaS 多企业
 
-产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-预算.md](./Backend-预算.md) §1、[Backend.md](./Backend.md) §2。
+产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-预算.md](./Backend-预算.md) §2、[Backend.md](./Backend.md) §2。
 
 **共 11 个端点**（路径均相对于 `API_BASE_PATH`）。
 

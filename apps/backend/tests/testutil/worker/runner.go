@@ -3,14 +3,13 @@
 package workerfix
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/app"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	"github.com/tokenjoy/backend/internal/domain/company"
 	relay "github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
@@ -51,9 +50,7 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 	orgSvc := orgfix.NewService(t, cfg, st)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
-	enqueueWalletSync := func(ctx context.Context, companyID int64) error {
-		return st.Relay().EnqueueWalletSync(company.WithContext(ctx, company.Context{CompanyID: companyID}), companyID)
-	}
+	enqueueWalletSync := app.EnqueueWalletSync(st)
 	ingest := domainusage.NewIngestService(cfg, st, st.Logs(), notifier, logger, enqueueWalletSync)
 	failureRecorder := domainusage.NewFailureRecorder(st.Logs(), logger)
 	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, logger)

@@ -44,7 +44,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		keys:           keyshandler.NewHandler(p, deps.KeysSvc),
 		models:         modelshandler.NewHandler(p, deps.ModelsSvc),
 		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
-		audit:          audithandler.NewHandler(p, deps.AuditSvc, deps.ReadModel),
+		audit:          audithandler.NewHandler(p, deps.AuditSvc),
 		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc),
 		internalIngest: NewInternalIngestHandler(deps.Config, deps.IngestSvc, deps.IngestFailureRecorder, deps.IngestMetrics, deps.Logger),
 	}

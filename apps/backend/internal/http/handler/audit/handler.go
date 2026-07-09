@@ -6,7 +6,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -17,15 +16,13 @@ import (
 
 type Handler struct {
 	shared.ProtectedHandlerBase
-	service   domainaudit.Service
-	readModel domainusage.ReadModel
+	service domainaudit.Service
 }
 
-func NewHandler(p httpdeps.Protected, service domainaudit.Service, readModel domainusage.ReadModel) *Handler {
+func NewHandler(p httpdeps.Protected, service domainaudit.Service) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 		service:              service,
-		readModel:            readModel,
 	}
 }
 
@@ -71,7 +68,7 @@ func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 		From:     query.Get("from"),
 		To:       query.Get("to"),
 	}
-	result, err := h.readModel.ListCalls(r.Context(), params)
+	result, err := h.service.ListCalls(r.Context(), params)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 

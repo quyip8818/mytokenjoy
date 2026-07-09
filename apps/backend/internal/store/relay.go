@@ -158,11 +158,15 @@ type RebalanceQueueRepository interface {
 	MarkRebalanceDone(ctx context.Context, id string) error
 }
 
-type RelayRepository interface {
-	RelayMappingRepository
-	AsyncJobRepository
+type RelayJobRepository interface {
 	RelayOutboxRepository
 	RebalanceQueueRepository
 	OverrunQueueRepository
 	WalletSyncQueueRepository
+}
+
+type RelayRepository interface {
+	RelayMappingRepository
+	RelayJobRepository
+	AsyncJobRepository
 }

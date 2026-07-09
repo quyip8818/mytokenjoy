@@ -6,7 +6,7 @@ import (
 
 func (r *Runner) processRebalance(ctx context.Context) error {
 	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
-	entries, err := r.rebalanceQueue.ClaimPendingRebalance(workerCtx, 20)
+	entries, err := r.relayJobs.ClaimPendingRebalance(workerCtx, 20)
 	if err != nil {
 		return err
 	}
