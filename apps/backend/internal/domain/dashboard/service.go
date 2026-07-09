@@ -30,12 +30,12 @@ type service struct {
 	clock  clock.Clock
 }
 
-func NewService(cfg config.Config, st store.Store, reader domainusage.Reader, clk clock.Clock) Service {
+func NewService(cfg config.Config, st store.Store, reader domainusage.Reader) Service {
 	return &service{
 		cfg:    cfg,
 		store:  st,
 		reader: reader,
-		clock:  clock.OrDefault(clk),
+		clock:  cfg.Clock(),
 	}
 }
 

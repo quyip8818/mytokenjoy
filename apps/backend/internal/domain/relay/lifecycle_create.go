@@ -51,7 +51,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if !l.Enabled() {
 		return "", domain.ServiceUnavailable("relay not enabled")
 	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys())
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.NowUTC())
 	if err != nil {
 		return "", err
 	}
@@ -75,11 +75,11 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	if err != nil {
 		return "", err
 	}
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget())
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.cfg.NowUTC())
 	if err != nil {
 		return "", err
 	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org().Nodes(), l.cfg.NowUTC())
 	if err != nil {
 		return "", err
 	}

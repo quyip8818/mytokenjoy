@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/relay"
@@ -36,7 +35,9 @@ func NewOverrunService(
 	notifier notification.Notifier,
 	logger *slog.Logger,
 ) *OverrunService {
-	return &OverrunService{cfg: cfg, store: st, relay: relayControl, notifier: notifier, logger: logger}
+	return &OverrunService{
+		cfg: cfg, store: st, relay: relayControl, notifier: notifier, logger: logger,
+	}
 }
 
 func (s *OverrunService) ProcessOverrunPayload(ctx context.Context, raw json.RawMessage) error {
@@ -54,7 +55,8 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 	st := s.store
 
 	if payload.MemberID != nil && payload.BudgetGroupID == nil {
-		used, err := st.Keys().SumMemberKeyUsed(ctx, *payload.MemberID)
+		at := s.cfg.NowUTC()
+		used, err := st.Keys().SumMemberKeyUsed(ctx, *payload.MemberID, at)
 		if err != nil {
 			return err
 		}
@@ -70,7 +72,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		}
 	}
 
-	snapshotPeriod, err := pkgbudget.DepartmentPeriodKey(ctx, st.Org().Nodes(), payload.DepartmentID, time.Now().UTC())
+	snapshotPeriod, err := pkgbudget.DepartmentPeriodKey(ctx, st.Org().Nodes(), payload.DepartmentID, s.cfg.NowUTC())
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,7 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, periodJune, 99)
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, periodJuly, 42)
 
-	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), st.Keys())
+	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), st.Keys(), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestLoadBudgetGroupsWithConsumedSumsAcrossDepartmentPeriods(t *testing.T) {
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, periodJune, 10)
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, periodJuly, 7)
 
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget())
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}

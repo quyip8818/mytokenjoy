@@ -55,7 +55,7 @@ func NewService(cfg config.Config, st store.Store, delayer common.Delayer) Servi
 }
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
-	return pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
+	return pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.NowUTC())
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
@@ -103,7 +103,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 }
 
 func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.NowUTC())
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.
 	if err != nil {
 		return nil, err
 	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.NowUTC())
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.NowUTC())
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
@@ -139,7 +139,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys())
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.NowUTC())
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
@@ -154,7 +154,7 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 }
 
 func (s *service) ListGroups(ctx context.Context) ([]types.BudgetGroup, error) {
-	return pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget())
+	return pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.NowUTC())
 }
 
 func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error) {
@@ -214,7 +214,7 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 				if err := tx.Budget().SetGroups(ctx, groups); err != nil {
 					return fmt.Errorf("persist budget groups: %w", err)
 				}
-				enriched, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget())
+				enriched, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget(), s.cfg.NowUTC())
 				if err != nil {
 					return fmt.Errorf("load budget group consumption: %w", err)
 				}
@@ -514,11 +514,11 @@ func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (m
 		return nil, err
 	}
 	tree := types.OrgNodesToBudgetTree(nodes)
-	periodKey := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, time.Now().UTC())
+	periodKey := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, s.cfg.NowUTC())
 
 	if len(target.DepartmentIDs) > 0 {
 		if node := pkgbudget.FindBudgetNode(tree, target.DepartmentIDs[0]); node != nil {
-			periodKey = pkgbudget.SnapshotKey(node.Period, time.Now().UTC())
+			periodKey = pkgbudget.SnapshotKey(node.Period, s.cfg.NowUTC())
 		}
 	}
 

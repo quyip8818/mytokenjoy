@@ -43,9 +43,9 @@ func buildImportFailures() []types.ImportFailure {
 	}
 }
 
-func buildSyncLogs(demoToday string) []types.SyncLog {
+func buildSyncLogs(refDate string) []types.SyncLog {
 	return []types.SyncLog{
-		{ID: "sync-1", Time: demoToday + " 02:00", Type: "scheduled", Result: "success", Detail: "新增 3 人，更新 12 人"},
+		{ID: "sync-1", Time: refDate + " 02:00", Type: "scheduled", Result: "success", Detail: "新增 3 人，更新 12 人"},
 		{ID: "sync-2", Time: "2026-06-18 14:00", Type: "manual", Result: "success", Detail: "无变更"},
 		{ID: "sync-3", Time: "2026-06-18 02:00", Type: "scheduled", Result: "partial_failure", Detail: "成功 38 人，失败 3 人"},
 		{ID: "sync-4", Time: "2026-06-17 14:00", Type: "scheduled", Result: "success", Detail: "新增 1 人"},

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -45,7 +44,7 @@ type GatewayScenario struct {
 	FullKey string
 }
 
-func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpts) string {
+func ConfigureGatewayStore(t *testing.T, cfg config.Config, st store.Store, opts GatewayScenarioOpts) string {
 	t.Helper()
 	if opts.CompanyID == 0 {
 		opts.CompanyID = contract.DefaultCompanyID
@@ -95,7 +94,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
-	periodKey := pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, time.Now().UTC())
+	periodKey := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, cfg.NowUTC())
 	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, opts.DepartmentID, periodKey, opts.Consumed); err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +175,7 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenario {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	fullKey := ConfigureGatewayStore(t, st, opts)
+	fullKey := ConfigureGatewayStore(t, cfg, st, opts)
 
 	backendURL := opts.ProxyBackendURL
 	if backendURL == "" {
@@ -190,7 +189,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	cfg.RelayGatewayEnabled = true
 
 	wallet := gatewayWallet(cfg, opts)
-	precheck := NewPrecheckService(st, wallet)
+	precheck := NewPrecheckService(cfg, st, wallet)
 	gw, err := domainrelay.NewGatewayService(cfg, st.Relay(), st.Company(), precheck)
 	if err != nil {
 		t.Fatal(err)
@@ -210,7 +209,7 @@ func gatewayWallet(cfg config.Config, opts GatewayScenarioOpts) company.WalletSe
 	return NewStubWallet(opts.WalletQuota)
 }
 
-func NewPrecheckService(st store.Store, wallet company.WalletService) *domainrelay.PrecheckService {
+func NewPrecheckService(cfg config.Config, st store.Store, wallet company.WalletService) *domainrelay.PrecheckService {
 	return domainrelay.NewPrecheckService(
 		st.BudgetSnapshots(),
 		st.Org().Nodes(),
@@ -220,6 +219,7 @@ func NewPrecheckService(st store.Store, wallet company.WalletService) *domainrel
 		st.Models(),
 		wallet,
 		st.Relay(),
+		cfg.Clock(),
 	)
 }
 

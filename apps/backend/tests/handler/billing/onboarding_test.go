@@ -109,7 +109,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	rootDept := fmt.Sprintf("dept-root-%d", provisioned.Company.ID)
 
 	// No recharge: wallet 0 -> 403
-	fullKey := relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey := relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		WalletQuota:        0,
@@ -126,7 +126,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 	testutil.DrainPendingWalletSync(t, app.Store, provisioned.Company.ID)
 	mock.SetQuota(walletID, newapi.ToNewAPIUnits(100, nil, nil))
-	fullKey = relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey = relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		WalletQuota:        newapi.ToNewAPIUnits(100, nil, nil),
@@ -142,7 +142,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 
 	// Both wallet and budget -> 200
 	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
-	fullKey = relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey = relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		WalletQuota:        newapi.ToNewAPIUnits(100, nil, nil),

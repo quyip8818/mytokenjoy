@@ -43,8 +43,8 @@ func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
 	return totals.CallCount == 0 && totals.Cost == 0, nil
 }
 
-func buildUsageBuckets(demoToday string) []types.UsageBucketRow {
-	anchor, err := time.Parse("2006-01-02", demoToday)
+func buildUsageBuckets(refDate string) []types.UsageBucketRow {
+	anchor, err := time.Parse("2006-01-02", refDate)
 	if err != nil {
 		anchor = time.Date(2026, 7, 9, 0, 0, 0, 0, time.UTC)
 	}

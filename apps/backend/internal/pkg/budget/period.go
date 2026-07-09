@@ -18,7 +18,7 @@ type ResolvedRange struct {
 }
 
 // SnapshotKey resolves the budget_snapshots period_key for an org period spec at a point in time.
-// Realtime gates (precheck, overrun) and snapshot projection use time.Now().UTC().
+// Realtime gates and snapshot projection pass at from an injected clock.Clock (CLOCK_ANCHOR when set).
 // Ledger rows store period_key from entry.OccurredAt via DepartmentPeriodKey.
 func SnapshotKey(orgPeriod string, at time.Time) string {
 	if orgPeriod != "" && orgPeriod != PeriodMonthly {

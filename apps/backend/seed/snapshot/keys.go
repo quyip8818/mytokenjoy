@@ -44,15 +44,15 @@ func loadPlatformKeys() []types.PlatformKey {
 	return keys
 }
 
-func buildProviderKeys(demoToday string) []types.ProviderKey {
+func buildProviderKeys(refDate string) []types.ProviderKey {
 	b4250 := 4250.0
 	b2100 := 2100.0
 	b800 := 800.0
 	b0 := 0.0
 	b1500 := 1500.0
 	b3200 := 3200.0
-	lastUsed1 := demoToday + " 10:32"
-	lastUsed2 := demoToday + " 09:45"
+	lastUsed1 := refDate + " 10:32"
+	lastUsed2 := refDate + " 09:45"
 	lastUsed3 := "2026-06-18 16:20"
 	lastUsed4 := "2026-05-20 12:00"
 	lastUsed5 := "2026-06-17 08:00"

@@ -341,7 +341,7 @@ func (r *pgKeysRepo) PlatformKeyByHash(ctx context.Context, keyHash string) (*ty
 	return &item, nil
 }
 
-func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string) (float64, error) {
+func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string, at time.Time) (float64, error) {
 	companyID := store.CompanyID(ctx)
 	var orgPeriod string
 	err := r.db.QueryRow(ctx, `
@@ -353,7 +353,7 @@ func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string) (flo
 	if err != nil && err != pgx.ErrNoRows {
 		return 0, err
 	}
-	periodKey := pkgbudget.SnapshotKey(orgPeriod, time.Now().UTC())
+	periodKey := pkgbudget.SnapshotKey(orgPeriod, at)
 	var total float64
 	err = r.db.QueryRow(ctx, `
 		SELECT COALESCE(consumed, 0) FROM budget_snapshots

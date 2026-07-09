@@ -41,13 +41,12 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domain
 	reader := wireReader(i)
 	failureRecorder := wireFailureRecorder(i, logger)
 	keysSvc := wireKeys(cfg, i)
-	clk := cfg.Clock()
 	return domainServices{
 		org:             wireOrg(cfg, i, logger),
 		budget:          wireBudget(cfg, i),
 		keys:            keysSvc,
 		models:          wireModels(cfg, i),
-		dashboard:       wireDashboard(cfg, i, reader, clk),
+		dashboard:       wireDashboard(cfg, i, reader),
 		audit:           wireAudit(cfg, i, reader),
 		readModel:       reader,
 		ingest:          wireIngestService(cfg, i, logger),
@@ -56,6 +55,6 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domain
 		rebalance:       wireRebalance(cfg, i),
 		company:         wireCompany(cfg, i),
 		billing:         wireBilling(cfg, i, reader),
-		memberAnalytics: wireMemberAnalytics(cfg, reader, keysSvc, clk),
+		memberAnalytics: wireMemberAnalytics(cfg, reader, keysSvc),
 	}
 }

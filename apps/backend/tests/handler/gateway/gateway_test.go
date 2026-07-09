@@ -174,7 +174,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullKey := relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey := relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		DepartmentID:       rootDept,

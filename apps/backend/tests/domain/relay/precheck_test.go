@@ -7,17 +7,19 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 )
 
 func TestPrecheckRejectsZeroBudget(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 0})
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: 0})
 
 	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
@@ -28,7 +30,7 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -41,9 +43,9 @@ func TestPrecheckRejectsZeroBudget(t *testing.T) {
 
 func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -65,7 +67,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -78,9 +80,9 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 
 func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
 	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
@@ -91,7 +93,7 @@ func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -104,9 +106,9 @@ func TestPrecheckRejectsModelNotInWhitelist(t *testing.T) {
 
 func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
 	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
@@ -118,7 +120,7 @@ func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
 	}
 	company.Status = "suspended"
 
-	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -131,9 +133,9 @@ func TestPrecheckRejectsSuspendedCompany(t *testing.T) {
 
 func TestPrecheckRejectsPendingWalletSyncWithDrift(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
 	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
@@ -151,7 +153,7 @@ func TestPrecheckRejectsPendingWalletSyncWithDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(1, nil, nil)))
+	precheck := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(1, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -169,9 +171,9 @@ func TestPrecheckRejectsPendingWalletSyncWithDrift(t *testing.T) {
 
 func TestPrecheckAllowsPendingWalletSyncWithoutDrift(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
-	fullKey := relayfix.ConfigureGatewayStore(t, st, relayfix.GatewayScenarioOpts{Budget: 1000})
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: 1000})
 
 	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
 	if err != nil || mapping == nil {
@@ -195,7 +197,7 @@ func TestPrecheckAllowsPendingWalletSyncWithoutDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 	naUnits := newapi.ToQuotaUnits(balancePoint, models, nil)
-	precheck := relayfix.NewPrecheckService(st, relayfix.NewStubWallet(naUnits))
+	precheck := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(naUnits))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
@@ -203,5 +205,61 @@ func TestPrecheckAllowsPendingWalletSyncWithoutDrift(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("expected precheck to pass with aligned wallet, got %v", err)
+	}
+}
+
+func TestPrecheckUsesClockAnchorForPeriodKey(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t,
+		testutil.WithNewAPIEnabled(true),
+		testutil.WithClockAnchor("2026-06-19"),
+	)
+	ctx := testutil.Ctx()
+	fullKey := relayfix.ConfigureGatewayStore(t, cfg, st, relayfix.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+
+	mapping, err := st.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
+	if err != nil || mapping == nil {
+		t.Fatal("expected relay mapping")
+	}
+	company, err := st.Company().GetByID(ctx, mapping.CompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	junePeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock().Now().UTC())
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, junePeriod, testutil.DisplayPoints(1000))
+
+	precheckJune := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	err = precheckJune.Run(ctx, domainrelay.PrecheckInput{
+		Mapping: mapping,
+		Company: company,
+		Model:   "gpt-4o",
+	})
+	if err == nil {
+		t.Fatal("expected budget exceeded when clock anchors June period")
+	}
+
+	cfgJuly, stJuly := testutil.NewTestStore(t,
+		testutil.WithNewAPIEnabled(true),
+		testutil.WithClockAnchor("2026-07-15"),
+	)
+	ctxJuly := testutil.Ctx()
+	fullKeyJuly := relayfix.ConfigureGatewayStore(t, cfgJuly, stJuly, relayfix.GatewayScenarioOpts{Budget: testutil.DisplayPoints(100000)})
+	mappingJuly, err := stJuly.Relay().GetMappingByKeyHash(ctxJuly, store.HashPlatformKey(fullKeyJuly))
+	if err != nil || mappingJuly == nil {
+		t.Fatal("expected relay mapping")
+	}
+	companyJuly, err := stJuly.Company().GetByID(ctxJuly, mappingJuly.CompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	precheckJuly := relayfix.NewPrecheckService(cfgJuly, stJuly, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	err = precheckJuly.Run(ctxJuly, domainrelay.PrecheckInput{
+		Mapping: mappingJuly,
+		Company: companyJuly,
+		Model:   "gpt-4o",
+	})
+	if err != nil {
+		t.Fatalf("expected precheck to pass for July period with no consumption, got %v", err)
 	}
 }

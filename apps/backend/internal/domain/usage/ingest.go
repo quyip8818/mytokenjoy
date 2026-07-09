@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
@@ -75,7 +74,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if err != nil {
 		return err
 	}
-	snapshotPeriodKey, err := pkgbudget.DepartmentPeriodKey(ctx, nodes, entry.DepartmentID, time.Now().UTC())
+	snapshotPeriodKey, err := pkgbudget.DepartmentPeriodKey(ctx, nodes, entry.DepartmentID, s.cfg.NowUTC())
 	if err != nil {
 		return err
 	}

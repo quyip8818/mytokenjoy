@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -36,6 +36,7 @@ type PrecheckService struct {
 	models     store.ModelsRepository
 	wallet     domaincompany.WalletService
 	walletSync store.WalletSyncQueueRepository
+	clock      clock.Clock
 }
 
 func NewPrecheckService(
@@ -47,6 +48,7 @@ func NewPrecheckService(
 	models store.ModelsRepository,
 	wallet domaincompany.WalletService,
 	walletSync store.WalletSyncQueueRepository,
+	clk clock.Clock,
 ) *PrecheckService {
 	return &PrecheckService{
 		snapshots:  snapshots,
@@ -57,6 +59,7 @@ func NewPrecheckService(
 		models:     models,
 		wallet:     wallet,
 		walletSync: walletSync,
+		clock:      clock.OrDefault(clk),
 	}
 }
 
@@ -70,7 +73,7 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 	if err := p.checkBalancePoint(in.Company); err != nil {
 		return err
 	}
-	periodKey, err := pkgbudget.DepartmentPeriodKey(ctx, p.orgNodes, in.Mapping.DepartmentID, time.Now().UTC())
+	periodKey, err := pkgbudget.DepartmentPeriodKey(ctx, p.orgNodes, in.Mapping.DepartmentID, clock.NowUTC(p.clock))
 	if err != nil {
 		return err
 	}

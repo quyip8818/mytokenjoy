@@ -24,3 +24,7 @@ func OrDefault(clk Clock) Clock {
 	}
 	return clk
 }
+
+func NowUTC(clk Clock) time.Time {
+	return OrDefault(clk).Now().UTC()
+}

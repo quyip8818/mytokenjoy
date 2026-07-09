@@ -24,7 +24,7 @@ func TestDebugGatewayPrecheckError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	precheck := relayfix.NewPrecheckService(scenario.Store, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	precheck := relayfix.NewPrecheckService(scenario.Cfg, scenario.Store, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
 	err = precheck.Run(ctx, domainrelay.PrecheckInput{
 		Mapping: mapping,
 		Company: company,

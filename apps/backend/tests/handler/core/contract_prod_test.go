@@ -9,14 +9,9 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
-func newProdTestRouter(t *testing.T) http.Handler {
-	t.Helper()
-	return testhttp.NewRouter(t)
-}
-
-func TestProdGetContractRequiresSession(t *testing.T) {
+func TestGetContractRequiresSession(t *testing.T) {
 	t.Parallel()
-	router := newProdTestRouter(t)
+	router := testhttp.NewRouter(t)
 	for _, tc := range getContractCases() {
 		if tc.path == "/healthz" {
 			continue
@@ -32,9 +27,9 @@ func TestProdGetContractRequiresSession(t *testing.T) {
 	}
 }
 
-func TestProdGetContractWithAdminCookie(t *testing.T) {
+func TestGetContractWithAdminCookie(t *testing.T) {
 	t.Parallel()
-	router := newProdTestRouter(t)
+	router := testhttp.NewRouter(t)
 	for _, tc := range getContractCases() {
 		if tc.path == "/healthz" {
 			continue

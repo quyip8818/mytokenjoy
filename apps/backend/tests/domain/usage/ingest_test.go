@@ -165,7 +165,7 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
-	snapshotPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, time.Now().UTC())
+	snapshotPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock().Now().UTC())
 	ledgerPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, occurred)
 	if snapshotPeriod == ledgerPeriod {
 		t.Skip("requires occurred month to differ from current month")

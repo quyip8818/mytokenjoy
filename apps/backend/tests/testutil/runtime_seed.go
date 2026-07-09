@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/seed/runtime"
 )
 
-func NewTestStoreWithRuntimeSeed(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
+func NewTestStoreWithDemoRuntime(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
 	t.Helper()
 	cfg, st := NewTestStore(t, opts...)
 	applyDemoRuntime(t, st, cfg)
