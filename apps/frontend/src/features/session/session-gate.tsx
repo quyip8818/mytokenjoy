@@ -1,5 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { LOGIN_PATH } from '@/config/auth'
 import { ErrorState } from '@/components/ui/error-state'
@@ -7,19 +6,22 @@ import { useSession } from './use-session'
 
 export function SessionGate({ children }: { children: ReactNode }) {
   const { sessionError, loading, refreshSession } = useSession()
-  const navigate = useNavigate()
+  const hasRedirected = useRef(false)
+
+  const isUnauthorized = sessionError instanceof ApiError && sessionError.status === 401
 
   useEffect(() => {
-    if (sessionError instanceof ApiError && sessionError.status === 401) {
-      navigate(LOGIN_PATH, { replace: true })
+    if (isUnauthorized && !hasRedirected.current) {
+      hasRedirected.current = true
+      window.location.replace(LOGIN_PATH)
     }
-  }, [sessionError, navigate])
+  }, [isUnauthorized])
 
   if (loading) {
     return null
   }
 
-  if (sessionError instanceof ApiError && sessionError.status === 401) {
+  if (isUnauthorized) {
     return null
   }
 

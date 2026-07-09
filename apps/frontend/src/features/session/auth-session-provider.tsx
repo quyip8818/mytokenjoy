@@ -8,7 +8,6 @@ import { LOGIN_PATH } from '@/config/auth'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { AUTHZ_BROADCAST_CHANNEL, SESSION_FOCUS_REFRESH_MS } from './authz-sync'
 import { SessionReactContext } from './context'
-import { SessionGate } from './session-gate'
 import type { AppSession } from './types'
 
 interface AuthSessionProviderProps {
@@ -124,7 +123,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
 
   return (
     <SessionReactContext.Provider value={session}>
-      <SessionGate>{children}</SessionGate>
+      {children}
     </SessionReactContext.Provider>
   )
 }
