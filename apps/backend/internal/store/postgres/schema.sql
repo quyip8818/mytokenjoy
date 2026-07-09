@@ -596,6 +596,9 @@ END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_groups_unique_name ON budget_groups(company_id, name);
 
+-- Normalize period values before adding CHECK
+UPDATE org_nodes SET period = 'monthly' WHERE period NOT IN ('monthly') OR period IS NULL;
+
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_org_nodes_period') THEN
         ALTER TABLE org_nodes ADD CONSTRAINT chk_org_nodes_period CHECK (period IN ('monthly'));
