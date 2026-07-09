@@ -244,7 +244,7 @@ export function MemberTable({
         </Table>
       </div>
 
-      {totalPages > 1 && (
+      {total > 0 && (
         <div className="flex items-center justify-end gap-4 border-t border-border px-4 py-3 text-sm text-muted-foreground">
           <span>
             共 <span className="tabular-nums font-medium text-foreground">{total}</span> 条
