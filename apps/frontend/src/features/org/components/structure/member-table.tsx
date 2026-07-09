@@ -7,6 +7,7 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table'
 import type { Member } from '@/api/types'
+import { useSession } from '@/features/session'
 import {
   Table,
   TableBody,
@@ -64,6 +65,7 @@ export function MemberTable({
   rowSelection,
   onRowSelectionChange,
 }: MemberTableProps) {
+  const { memberId: currentMemberId } = useSession()
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -159,6 +161,7 @@ export function MemberTable({
     data,
     columns,
     state: { rowSelection },
+    enableRowSelection: (row) => row.original.id !== currentMemberId,
     onRowSelectionChange: (updater) => {
       onRowSelectionChange(typeof updater === 'function' ? updater(rowSelection) : updater)
     },
