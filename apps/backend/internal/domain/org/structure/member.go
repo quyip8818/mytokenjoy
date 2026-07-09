@@ -73,6 +73,8 @@ func (s *Local) CreateMember(ctx context.Context, input types.Member) (types.Mem
 	member := types.Member{
 		ID:   generateID("m"),
 		Name: input.Name, Phone: input.Phone, Email: input.Email,
+		Username: input.Username, EmployeeID: input.EmployeeID,
+		JobTitle: input.JobTitle, HireDate: input.HireDate,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
 		Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "manual",
 		PersonalQuota: common.DefaultPersonalQuota,
@@ -127,6 +129,18 @@ func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member)
 			}
 			if input.Email != "" {
 				existing.Email = input.Email
+			}
+			if input.Username != "" {
+				existing.Username = input.Username
+			}
+			if input.EmployeeID != "" {
+				existing.EmployeeID = input.EmployeeID
+			}
+			if input.JobTitle != "" {
+				existing.JobTitle = input.JobTitle
+			}
+			if input.HireDate != "" {
+				existing.HireDate = input.HireDate
 			}
 			if input.DepartmentID != "" {
 				existing.DepartmentID = input.DepartmentID

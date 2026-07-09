@@ -6,6 +6,10 @@ type Member struct {
 	Name           string   `json:"name"`
 	Phone          string   `json:"phone"`
 	Email          string   `json:"email"`
+	Username       string   `json:"username,omitempty"`
+	EmployeeID     string   `json:"employeeId,omitempty"`
+	JobTitle       string   `json:"jobTitle,omitempty"`
+	HireDate       string   `json:"hireDate,omitempty"`
 	DepartmentID   string   `json:"departmentId"`
 	DepartmentName string   `json:"departmentName"`
 	Status         string   `json:"status"`

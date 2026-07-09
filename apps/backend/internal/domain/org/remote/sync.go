@@ -120,13 +120,13 @@ func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.
 		return types.ImportResult{}, err
 	}
 	cfg := integration.ToSyncConfig()
-	if len(diff.RemoveMembers) > cfg.DeleteMemberThreshold {
+	if cfg.DeleteMemberThreshold > 0 && len(diff.RemoveMembers) > cfg.DeleteMemberThreshold {
 		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.RemoveMembers), cfg.DeleteMemberThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
-	if len(diff.RemoveDepartments) > cfg.DeleteDepartmentThreshold {
+	if cfg.DeleteDepartmentThreshold > 0 && len(diff.RemoveDepartments) > cfg.DeleteDepartmentThreshold {
 		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.RemoveDepartments), cfg.DeleteDepartmentThreshold)
 		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)

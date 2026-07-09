@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import type { FieldMapping, MappingTestResult, Platform } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
+import { ApiError } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -98,6 +100,8 @@ export function StepFieldMapping({
     try {
       await dataSourceApi.saveFieldMappings({ platform, mappings })
       onComplete()
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : '保存字段映射失败')
     } finally {
       setSaving(false)
     }
@@ -122,6 +126,25 @@ export function StepFieldMapping({
           </Button>
           <Button size="sm" onClick={handleReload}>
             重新加载
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (mappings.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16">
+        <p className="text-sm text-muted-foreground">暂无字段映射配置</p>
+        <p className="text-xs text-muted-foreground">
+          当前数据源未返回可映射的字段，请尝试使用默认映射或返回上一步检查数据源配置
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onBack}>
+            上一步
+          </Button>
+          <Button size="sm" onClick={handleReload}>
+            使用默认映射
           </Button>
         </div>
       </div>

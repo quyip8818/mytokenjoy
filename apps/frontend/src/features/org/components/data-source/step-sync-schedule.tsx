@@ -35,12 +35,13 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
       deleteDepartmentThreshold: 3,
       notifyPhone: true,
       notifyEmail: false,
+      notifyIm: false,
     },
   })
 
-  const [enabled, frequencyHours, notifyPhone, notifyEmail] = useWatch({
+  const [enabled, frequencyHours, notifyPhone, notifyEmail, notifyIm] = useWatch({
     control,
-    name: ['enabled', 'frequencyHours', 'notifyPhone', 'notifyEmail'],
+    name: ['enabled', 'frequencyHours', 'notifyPhone', 'notifyEmail', 'notifyIm'],
   })
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
         'deleteDepartmentThreshold',
         'notifyPhone',
         'notifyEmail',
+        'notifyIm',
       ]
       fields.forEach((key) => {
         setValue(key, config[key] as never)
@@ -174,6 +176,16 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
                   />
                   <Label htmlFor="notifyEmail" className="cursor-pointer text-sm font-normal">
                     邮箱
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="notifyIm"
+                    checked={notifyIm}
+                    onCheckedChange={(checked) => setValue('notifyIm', !!checked)}
+                  />
+                  <Label htmlFor="notifyIm" className="cursor-pointer text-sm font-normal">
+                    IM 通知
                   </Label>
                 </div>
               </div>
