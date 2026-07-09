@@ -131,6 +131,7 @@ type RelayOutboxRepository interface {
 	ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]RelayOutboxEntry, error)
 	MarkRelayOutboxDone(ctx context.Context, id string) error
 	MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
+	MarkRelayOutboxFailed(ctx context.Context, id string, lastError string) error
 }
 
 type OverrunQueueRepository interface {

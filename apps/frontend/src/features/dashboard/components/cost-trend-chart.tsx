@@ -18,12 +18,7 @@ interface CostTrendChartProps {
 
 export function CostTrendChart({ dailyCosts, loading, granularity }: CostTrendChartProps) {
   return (
-    <DataSection
-      title="每日花费趋势"
-      loading={loading}
-      skeletonColumns={1}
-      className="col-span-2"
-    >
+    <DataSection title="每日花费趋势" loading={loading} skeletonColumns={1} className="col-span-2">
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={dailyCosts}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />

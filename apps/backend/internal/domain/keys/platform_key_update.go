@@ -29,6 +29,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		return types.PlatformKey{}, domain.NotFound("Not found")
 	}
 	existing := platformKeys[idx]
+	previous := existing
 	members, err := s.store.Org().Members(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
@@ -91,14 +92,8 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if input.ModelWhitelist != nil {
 		existing.ModelWhitelist = append([]int64{}, input.ModelWhitelist...)
 	}
-	platformKeys[idx] = existing
-	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+	if err := s.requireRelay(); err != nil {
 		return types.PlatformKey{}, err
 	}
-	if s.relaySync != nil && s.relaySync.Enabled() {
-		if err := s.relaySync.EnqueueUpdatePlatformKey(ctx, id); err != nil {
-			return types.PlatformKey{}, err
-		}
-	}
-	return s.enrichPlatformKeyResponse(ctx, existing)
+	return s.persistPlatformKeyWithRelaySync(ctx, platformKeys, idx, existing, previous, id)
 }

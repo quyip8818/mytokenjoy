@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
+
+const gatewayMaxBodyBytes = 4 << 20
 
 type RelayMappingReader interface {
 	GetMappingByKeyHash(ctx context.Context, keyHash string) (*store.RelayMapping, error)
@@ -30,11 +33,10 @@ type GatewayService interface {
 }
 
 type gatewayService struct {
-	cfg         config.Config
-	mappings    RelayMappingReader
-	companies   CompanyReader
-	precheck    Prechecker
-	proxyTarget *url.URL
+	mappings  RelayMappingReader
+	companies CompanyReader
+	precheck  Prechecker
+	proxy     *httputil.ReverseProxy
 }
 
 func NewGatewayService(
@@ -47,12 +49,18 @@ func NewGatewayService(
 	if err != nil {
 		return nil, err
 	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.Transport = &http.Transport{DisableCompression: true}
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = target.Host
+	}
 	return &gatewayService{
-		cfg:         cfg,
-		mappings:    mappings,
-		companies:   companies,
-		precheck:    precheck,
-		proxyTarget: target,
+		mappings:  mappings,
+		companies: companies,
+		precheck:  precheck,
+		proxy:     proxy,
 	}, nil
 }
 
@@ -85,8 +93,16 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Status:             company.Status,
 		})
 	}
+	if r.Body != nil {
+		r.Body = http.MaxBytesReader(w, r.Body, gatewayMaxBodyBytes)
+	}
 	body, err := readAndRestoreBody(r)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "read request body", http.StatusForbidden)
 		return
 	}
@@ -109,7 +125,7 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}
-	g.proxy(w, r)
+	g.proxy.ServeHTTP(w, r)
 }
 
 func readAndRestoreBody(r *http.Request) ([]byte, error) {
@@ -138,35 +154,16 @@ func parseRequestModel(body []byte) string {
 	return payload.Model
 }
 
-var allowedGatewayPrefixes = []string{
-	"/v1/chat/completions",
-	"/v1/completions",
-	"/v1/embeddings",
-	"/v1/models",
+var allowedGatewayPaths = map[string]struct{}{
+	"/v1/chat/completions": {},
+	"/v1/completions":      {},
+	"/v1/embeddings":       {},
+	"/v1/models":           {},
 }
 
 func isAllowedGatewayPath(path string) bool {
-	for _, prefix := range allowedGatewayPrefixes {
-		if strings.HasPrefix(path, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
-func (g *gatewayService) proxy(w http.ResponseWriter, r *http.Request) {
-	targetURL := *g.proxyTarget
-	proxy := httputil.NewSingleHostReverseProxy(&targetURL)
-	proxy.Director = func(req *http.Request) {
-		req.URL.Scheme = g.proxyTarget.Scheme
-		req.URL.Host = g.proxyTarget.Host
-		req.URL.Path = r.URL.Path
-		req.URL.RawQuery = r.URL.RawQuery
-		req.Host = g.proxyTarget.Host
-		req.Header.Set("Authorization", r.Header.Get("Authorization"))
-	}
-	proxy.Transport = &http.Transport{DisableCompression: true}
-	proxy.ServeHTTP(w, r)
+	_, ok := allowedGatewayPaths[path]
+	return ok
 }
 
 var _ GatewayService = (*gatewayService)(nil)

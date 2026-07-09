@@ -36,10 +36,17 @@ export function TeamUsageTable({ teamUsage }: TeamUsageTableProps) {
         {teamUsage.map((t) => {
           const pct = teamUsagePercent(t.consumed, t.quota)
           return (
-            <TableRow key={t.departmentId} className="border-border-subtle hover:bg-muted/50 transition-colors">
+            <TableRow
+              key={t.departmentId}
+              className="border-border-subtle hover:bg-muted/50 transition-colors"
+            >
               <TableCell className="font-medium">{t.departmentName}</TableCell>
-              <TableCell className="text-muted-foreground tabular-nums">{t.quota.toLocaleString()}</TableCell>
-              <TableCell className="font-medium tabular-nums">{t.consumed.toLocaleString()}</TableCell>
+              <TableCell className="text-muted-foreground tabular-nums">
+                {t.quota.toLocaleString()}
+              </TableCell>
+              <TableCell className="font-medium tabular-nums">
+                {t.consumed.toLocaleString()}
+              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2.5">
                   <Progress value={pct} className="flex-1 h-2" />

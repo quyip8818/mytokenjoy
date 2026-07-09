@@ -55,7 +55,9 @@ export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumer
               </TableCell>
               <TableCell className="font-medium">{c.memberName}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{c.department}</TableCell>
-              <TableCell className="text-right font-semibold tabular-nums">{c.cost.toFixed(2)}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
+                {c.cost.toFixed(2)}
+              </TableCell>
               <TableCell className="text-right text-muted-foreground tabular-nums">
                 {formatTokenCount(c.tokens)}
               </TableCell>

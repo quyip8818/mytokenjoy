@@ -16,6 +16,54 @@ func (s *service) requireRelay() error {
 	return nil
 }
 
+func platformKeyIndex(keys []types.PlatformKey, id string) (int, bool) {
+	for i := range keys {
+		if keys[i].ID == id {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func (s *service) relayRevokeKey(ctx context.Context, id string) ([]types.PlatformKey, int, error) {
+	if err := s.requireRelay(); err != nil {
+		return nil, -1, err
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return nil, -1, err
+	}
+	idx, ok := platformKeyIndex(platformKeys, id)
+	if !ok {
+		return nil, -1, domain.NotFound("Not found")
+	}
+	if err := s.relaySync.SyncRevokePlatformKey(ctx, id); err != nil {
+		return nil, -1, err
+	}
+	return platformKeys, idx, nil
+}
+
+func (s *service) persistPlatformKeyWithRelaySync(
+	ctx context.Context,
+	platformKeys []types.PlatformKey,
+	idx int,
+	updated, previous types.PlatformKey,
+	id string,
+) (types.PlatformKey, error) {
+	platformKeys[idx] = updated
+	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+		return types.PlatformKey{}, err
+	}
+	if err := s.relaySync.SyncUpdatePlatformKey(ctx, id, nil); err != nil {
+		platformKeys[idx] = previous
+		if rollbackErr := s.store.Keys().SetPlatformKeys(ctx, platformKeys); rollbackErr != nil {
+			return types.PlatformKey{}, rollbackErr
+		}
+		return types.PlatformKey{}, err
+	}
+	return s.enrichPlatformKeyResponse(ctx, updated)
+}
+
 func platformKeyPrefix(fullKey string) string {
 	prefix := fullKey
 	if len(prefix) > 12 {

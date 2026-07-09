@@ -100,6 +100,38 @@ func TestGatewayProxiesFullV1Path(t *testing.T) {
 	}
 }
 
+func TestGatewayRejectsSubpath(t *testing.T) {
+	t.Parallel()
+	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
+		Budget:      1000,
+	})
+	body, _ := json.Marshal(map[string]string{"model": "gpt-4o"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions/evil", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+scenario.FullKey)
+	rec := httptest.NewRecorder()
+	scenario.Gateway.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for subpath, got %d", rec.Code)
+	}
+}
+
+func TestGatewayRejectsOversizedBody(t *testing.T) {
+	t.Parallel()
+	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
+		Budget:      1000,
+	})
+	oversized := make([]byte, (4<<20)+1)
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(oversized))
+	req.Header.Set("Authorization", "Bearer "+scenario.FullKey)
+	rec := httptest.NewRecorder()
+	scenario.Gateway.ServeHTTP(rec, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413 for oversized body, got %d", rec.Code)
+	}
+}
+
 func TestGatewayRejectsInvalidAPIKey(t *testing.T) {
 	t.Parallel()
 	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{

@@ -82,9 +82,7 @@ func (r *Runner) Start(ctx context.Context) {
 	if r.cfg.IngestEnabled() {
 		go r.ingestLoop(ctx)
 	}
-	if r.cfg.NewAPIEnabled {
-		go r.relayLoop(ctx)
-	}
+	go r.relayLoop(ctx)
 }
 
 func (r *Runner) ingestLoop(ctx context.Context) {
@@ -124,12 +122,15 @@ func (r *Runner) relayLoop(ctx context.Context) {
 }
 
 func (r *Runner) relayTick(ctx context.Context) {
+	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
+	if !r.cfg.NewAPIEnabled {
+		return
+	}
 	currentMonth := time.Now().Format("2006-01")
 	if currentMonth != r.lastRebalanceMonth {
 		r.lastRebalanceMonth = currentMonth
 		r.logStep("monthly_rebalance", r.processMonthlyRebalance(ctx))
 	}
-	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
 	r.logStep("wallet_sync", r.processWalletSync(ctx))
 	r.logStep("wallet_reconcile", r.processWalletReconcile(ctx))
 	r.logStep("rebalance", r.processRebalance(ctx))
@@ -148,9 +149,7 @@ func (r *Runner) processMonthlyRebalance(ctx context.Context) error {
 }
 
 func (r *Runner) RunOnce(ctx context.Context) {
-	if r.cfg.NewAPIEnabled {
-		r.relayTick(ctx)
-	}
+	r.relayTick(ctx)
 	if r.cfg.IngestEnabled() {
 		r.logStep("ingest_failures", r.ingestWorker.ProcessFailures(ctx))
 	}
@@ -169,6 +168,12 @@ func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, next time.
 func (r *Runner) markRelayOutboxDone(ctx context.Context, id string) {
 	if err := r.relayJobs.MarkRelayOutboxDone(ctx, id); err != nil {
 		r.logger.Warn("mark relay outbox done failed", "id", id, "error", err)
+	}
+}
+
+func (r *Runner) markRelayOutboxFailed(ctx context.Context, id string, reason string) {
+	if err := r.relayJobs.MarkRelayOutboxFailed(ctx, id, reason); err != nil {
+		r.logger.Warn("mark relay outbox failed", "id", id, "error", err)
 	}
 }
 

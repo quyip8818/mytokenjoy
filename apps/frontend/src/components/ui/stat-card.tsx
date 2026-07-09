@@ -30,7 +30,12 @@ export function StatCard({
 
   if (isInline && Icon) {
     return (
-      <Card className={cn('border-transparent bg-card shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover', className)}>
+      <Card
+        className={cn(
+          'border-transparent bg-card shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover',
+          className,
+        )}
+      >
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground tracking-wide">
             <Icon className="size-3.5" strokeWidth={1.5} />
@@ -84,7 +89,9 @@ export function StatCard({
         >
           {value}
         </p>
-        {subValue ? <p className="mt-1 text-xs text-muted-foreground tabular-nums">{subValue}</p> : null}
+        {subValue ? (
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">{subValue}</p>
+        ) : null}
       </CardContent>
     </Card>
   )

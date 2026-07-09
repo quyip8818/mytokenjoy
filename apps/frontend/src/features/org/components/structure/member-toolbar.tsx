@@ -10,7 +10,13 @@ interface MemberToolbarProps {
   onAdd: () => void
 }
 
-export function MemberToolbar({ keyword, onKeywordChange, onSearch, onInvite, onAdd }: MemberToolbarProps) {
+export function MemberToolbar({
+  keyword,
+  onKeywordChange,
+  onSearch,
+  onInvite,
+  onAdd,
+}: MemberToolbarProps) {
   return (
     <div className="flex items-center gap-3">
       <div className="relative w-56">
@@ -20,7 +26,9 @@ export function MemberToolbar({ keyword, onKeywordChange, onSearch, onInvite, on
           className="h-8 pr-8 text-sm"
           value={keyword}
           onChange={(e) => onKeywordChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') onSearch() }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onSearch()
+          }}
         />
         <button
           type="button"

@@ -68,11 +68,19 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 			processErr = fmt.Errorf("unknown relay outbox kind: %s", entry.Kind)
 		}
 		if processErr != nil {
-			next := time.Now().Add(backoff(entry.Attempts))
-			r.markRelayOutboxRetry(workerCtx, entry.ID, next, processErr.Error())
+			r.finishRelayOutboxEntry(workerCtx, entry, processErr)
 			continue
 		}
 		r.markRelayOutboxDone(workerCtx, entry.ID)
 	}
 	return nil
+}
+
+func (r *Runner) finishRelayOutboxEntry(ctx context.Context, entry store.RelayOutboxEntry, processErr error) {
+	if relay.IsPermanentRelayOutboxError(processErr) {
+		r.markRelayOutboxFailed(ctx, entry.ID, processErr.Error())
+		return
+	}
+	next := time.Now().Add(backoff(entry.Attempts))
+	r.markRelayOutboxRetry(ctx, entry.ID, next, processErr.Error())
 }

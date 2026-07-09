@@ -64,6 +64,9 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	}
 
 	ctx := testutil.CtxForCompany(opts.CompanyID)
+	if err := st.Company().UpdateWalletPoint(ctx, opts.CompanyID, 100000, nil); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.Company().UpdateNewAPIWalletUserID(ctx, opts.CompanyID, opts.NewAPIWalletUserID); err != nil {
 		t.Fatal(err)
 	}

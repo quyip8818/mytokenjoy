@@ -96,7 +96,10 @@ test.describe('角色管理 - 角色切换', () => {
   })
 
   test('选中角色有高亮样式', async ({ page }) => {
-    const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: '超级管理员' }).first()
+    const roleItem = page
+      .locator('[class*="cursor-pointer"]')
+      .filter({ hasText: '超级管理员' })
+      .first()
     await roleItem.click()
     await expect(roleItem).toHaveClass(/bg-muted/)
   })
@@ -391,7 +394,10 @@ test.describe('角色管理 - 角色 CRUD', () => {
 
   test('预设角色无编辑/删除按钮', async ({ page }) => {
     // hover 预设角色不应该出现编辑/删除按钮
-    const presetRole = page.locator('[class*="cursor-pointer"]').filter({ hasText: '超级管理员' }).first()
+    const presetRole = page
+      .locator('[class*="cursor-pointer"]')
+      .filter({ hasText: '超级管理员' })
+      .first()
     await presetRole.hover()
     await page.waitForTimeout(300)
 
@@ -917,7 +923,10 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
 
   test('角色成员数量与成员列表一致', async ({ page }) => {
     // 左侧超级管理员显示的数字
-    const adminItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: '超级管理员' }).first()
+    const adminItem = page
+      .locator('[class*="cursor-pointer"]')
+      .filter({ hasText: '超级管理员' })
+      .first()
     const countText = await adminItem.locator('.tabular-nums').textContent()
     const expectedCount = parseInt(countText ?? '0')
 

@@ -27,6 +27,12 @@ func NewRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.
 	return newRunner(t, stub, true, true)
 }
 
+func NewRelayDisabledRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *relay.TokenLifecycle) {
+	t.Helper()
+	runner, st, lifecycle, _ := newRunner(t, stub, false, false)
+	return runner, st, lifecycle
+}
+
 func NewIngestOnlyRunner(t *testing.T) (*worker.Runner, store.Store, *domainusage.IngestService) {
 	t.Helper()
 	runner, st, _, ingest := newRunner(t, &mock.StubAdminClient{}, false, true)

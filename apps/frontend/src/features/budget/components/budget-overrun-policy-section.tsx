@@ -21,10 +21,7 @@ const CHANNEL_LABELS = [
   { key: 'notifyIm' as const, label: 'IM' },
 ]
 
-export function BudgetOverrunPolicySection({
-  policy,
-  onUpdate,
-}: BudgetOverrunPolicySectionProps) {
+export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPolicySectionProps) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<OverrunPolicyConfig | null>(null)
@@ -133,11 +130,7 @@ export function BudgetOverrunPolicySection({
               </label>
               <div className="mb-2 flex flex-wrap gap-1">
                 {form!.thresholds.map((t) => (
-                  <Badge
-                    key={t}
-                    variant="secondary"
-                    className="gap-0.5 pr-1 text-xs"
-                  >
+                  <Badge key={t} variant="secondary" className="gap-0.5 pr-1 text-xs">
                     {t}%
                     <button
                       type="button"

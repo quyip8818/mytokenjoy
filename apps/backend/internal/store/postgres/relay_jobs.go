@@ -116,6 +116,18 @@ func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRet
 	return r.MarkJobRetry(ctx, id, nextRetry, lastError)
 }
 
+func (r *relayRepo) MarkRelayOutboxFailed(ctx context.Context, id string, lastError string) error {
+	return r.MarkJobFailed(ctx, id, lastError)
+}
+
+func (r *relayRepo) MarkJobFailed(ctx context.Context, id string, lastError string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE async_jobs SET status = $2, attempts = attempts + 1, last_error = $3, updated_at = NOW()
+		WHERE id = $1
+	`, id, store.JobStatusFailed, lastError)
+	return err
+}
+
 func (r *relayRepo) EnqueueRebalance(ctx context.Context, axisKind, axisID string) error {
 	companyID := store.CompanyID(ctx)
 	dedupe := fmt.Sprintf("%s:%s", axisKind, axisID)

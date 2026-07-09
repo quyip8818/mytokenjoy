@@ -66,11 +66,7 @@ PaginationPrevious.displayName = 'PaginationPrevious'
 
 function PaginationNext({ className, ...props }: React.ComponentProps<typeof PaginationLink>) {
   return (
-    <PaginationLink
-      aria-label="Go to next page"
-      className={cn('h-8 w-8', className)}
-      {...props}
-    >
+    <PaginationLink aria-label="Go to next page" className={cn('h-8 w-8', className)} {...props}>
       <ChevronRight className="h-4 w-4" />
     </PaginationLink>
   )

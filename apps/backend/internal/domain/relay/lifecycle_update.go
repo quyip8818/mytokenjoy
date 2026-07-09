@@ -16,7 +16,7 @@ import (
 
 func (l *TokenLifecycle) EnqueueUpdatePlatformKey(ctx context.Context, platformKeyID string) error {
 	if !l.Enabled() {
-		return nil
+		return domain.ServiceUnavailable("relay not enabled")
 	}
 	payload, _ := json.Marshal(UpdateTokenOutboxPayload{
 		CompanyID:     company.CompanyID(ctx),

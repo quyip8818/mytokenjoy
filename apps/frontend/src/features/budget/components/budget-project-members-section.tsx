@@ -38,7 +38,10 @@ export function BudgetProjectMembersSection({
   const [consumedMap, setConsumedMap] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    budgetApi.getGroupMemberConsumed(project.id).then(setConsumedMap).catch(() => {})
+    budgetApi
+      .getGroupMemberConsumed(project.id)
+      .then(setConsumedMap)
+      .catch(() => {})
   }, [project.id])
 
   function startEditMembers() {

@@ -1,12 +1,15 @@
 package worker_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 
+	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -15,7 +18,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
+func TestProcessUnknownRelayOutboxKindFails(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
@@ -33,14 +36,44 @@ func TestProcessUnknownRelayOutboxKindRetries(t *testing.T) {
 	if !found {
 		t.Fatal("expected unknown outbox entry to remain in store")
 	}
-	if entry.Status == store.OutboxStatusDone {
-		t.Fatal("expected unknown outbox entry not marked done")
-	}
-	if entry.Attempts == 0 {
-		t.Fatal("expected retry attempts incremented for unknown outbox kind")
+	if entry.Status != store.OutboxStatusFailed {
+		t.Fatalf("expected failed status, got %q", entry.Status)
 	}
 	if entry.LastError == nil || !strings.Contains(*entry.LastError, "unknown relay outbox kind") {
 		t.Fatalf("expected unknown kind error recorded, got %v", entry.LastError)
+	}
+}
+
+func TestProcessRelayOutboxRelayDisabledMarksFailed(t *testing.T) {
+	t.Parallel()
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
+	runner, st, _ := workerfix.NewRelayDisabledRunner(t, stub)
+	ctx := testutil.Ctx()
+
+	payload, err := json.Marshal(relay.UpdateTokenOutboxPayload{
+		CompanyID:     contract.DefaultCompanyID,
+		PlatformKeyID: contract.IDPlatformKey1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Relay().EnqueueRelayOutbox(ctx, store.RelayOutboxEntry{
+		ID: "outbox-relay-off", Kind: store.OutboxKindUpdateToken, Payload: payload, Status: store.OutboxStatusPending,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	runner.RunOnce(ctx)
+
+	entry, found := testutil.RelayOutboxEntry(st, "outbox-relay-off")
+	if !found {
+		t.Fatal("expected outbox entry to remain in store")
+	}
+	if entry.Status != store.OutboxStatusFailed {
+		t.Fatalf("expected failed status, got %q", entry.Status)
+	}
+	if pendingRelayOutbox(st, store.OutboxKindUpdateToken) != 0 {
+		t.Fatal("expected no pending update_token outbox after permanent failure")
 	}
 }
 
