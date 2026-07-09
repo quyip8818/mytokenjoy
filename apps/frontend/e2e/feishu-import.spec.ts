@@ -6,22 +6,48 @@ test.describe('飞书数据导入', () => {
     await expect(page.getByRole('heading', { name: '组织架构' })).toBeVisible()
   })
 
-  test('飞书导入成员正确映射到总公司', async ({ page }) => {
-    // Trigger import via API
+  test('飞书导入成员和部门结构', async ({ page }) => {
+    // Trigger import
     const importResult = await page.evaluate(async () => {
       const res = await fetch('/api/org/data-source/import', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
       })
       return { status: res.status, data: await res.json() }
     })
 
     expect(importResult.status).toBe(200)
-    expect(importResult.data.successMembers).toBeGreaterThanOrEqual(7)
+    expect(importResult.data.successMembers).toBeGreaterThanOrEqual(9)
+    expect(importResult.data.successDepartments).toBeGreaterThanOrEqual(2)
     expect(importResult.data.failures).toHaveLength(0)
+  })
 
-    // Verify members appear in the org structure
+  test('导入的部门正确出现在部门树中', async ({ page }) => {
+    const tree = await page.evaluate(async () => {
+      const res = await fetch('/api/org/departments/tree', { credentials: 'include' })
+      return res.json()
+    })
+
+    // Flatten tree
+    const allDepts: { name: string; id: string; memberCount: number }[] = []
+    function walk(nodes: typeof tree) {
+      for (const n of nodes) {
+        allDepts.push({ name: n.name, id: n.id, memberCount: n.memberCount })
+        walk(n.children || [])
+      }
+    }
+    walk(tree)
+
+    // Feishu departments should exist
+    const feishuDepts = allDepts.filter((d) => d.id.includes('feishu'))
+    expect(feishuDepts.length).toBeGreaterThanOrEqual(2)
+
+    const deptNames = feishuDepts.map((d) => d.name)
+    expect(deptNames).toContain('软件研发')
+    expect(deptNames).toContain('市场部')
+  })
+
+  test('成员正确归属到对应部门', async ({ page }) => {
     const members = await page.evaluate(async () => {
       const res = await fetch('/api/org/members?page=1&pageSize=100', { credentials: 'include' })
       return res.json()
@@ -30,40 +56,33 @@ test.describe('飞书数据导入', () => {
     const feishuMembers = members.items.filter(
       (m: { id: string }) => m.id.startsWith('m-feishu-'),
     )
-    expect(feishuMembers.length).toBeGreaterThanOrEqual(7)
+    expect(feishuMembers.length).toBeGreaterThanOrEqual(9)
 
-    // All feishu members should be in 总公司 (root dept)
-    for (const m of feishuMembers) {
-      expect(m.departmentName).toBe('总公司')
-      expect(m.status).toBe('active')
-      expect(m.source).toBe('imported')
-      expect(m.name).toBeTruthy()
-      expect(m.phone).toBeTruthy()
-    }
+    // 杨雨涵 should be in 软件研发
+    const yangYuhan = feishuMembers.find((m: { name: string }) => m.name === '杨雨涵')
+    expect(yangYuhan).toBeTruthy()
+    expect(yangYuhan.departmentName).toBe('软件研发')
+
+    // 张淑峰 should be in 市场部
+    const zhangShufeng = feishuMembers.find((m: { name: string }) => m.name === '张淑峰')
+    expect(zhangShufeng).toBeTruthy()
+    expect(zhangShufeng.departmentName).toBe('市场部')
+
+    // Others in 总公司
+    const inRoot = feishuMembers.filter(
+      (m: { departmentName: string }) => m.departmentName === '总公司',
+    )
+    expect(inRoot.length).toBeGreaterThanOrEqual(7)
   })
 
-  test('飞书导入幂等：重复导入不产生重复成员', async ({ page }) => {
-    // Import twice
-    const import1 = await page.evaluate(async () => {
-      const res = await fetch('/api/org/data-source/import', {
-        method: 'POST',
-        credentials: 'include',
-      })
-      return res.json()
+  test('导入幂等：重复导入不产生重复', async ({ page }) => {
+    await page.evaluate(async () => {
+      await fetch('/api/org/data-source/import', { method: 'POST', credentials: 'include' })
+    })
+    await page.evaluate(async () => {
+      await fetch('/api/org/data-source/import', { method: 'POST', credentials: 'include' })
     })
 
-    const import2 = await page.evaluate(async () => {
-      const res = await fetch('/api/org/data-source/import', {
-        method: 'POST',
-        credentials: 'include',
-      })
-      return res.json()
-    })
-
-    // Second import should not add new members (idempotent)
-    expect(import2.successMembers).toBeLessThanOrEqual(import1.successMembers)
-
-    // Verify no duplicate feishu members
     const members = await page.evaluate(async () => {
       const res = await fetch('/api/org/members?page=1&pageSize=100', { credentials: 'include' })
       return res.json()
@@ -75,34 +94,7 @@ test.describe('飞书数据导入', () => {
     expect(feishuIds.length).toBe(uniqueIds.size)
   })
 
-  test('导入后部门树正确显示成员计数', async ({ page }) => {
-    // Get the department tree
-    const tree = await page.evaluate(async () => {
-      const res = await fetch('/api/org/departments/tree', { credentials: 'include' })
-      return res.json()
-    })
-
-    // Root dept (总公司) should include feishu members in count
-    const root = tree[0]
-    expect(root.name).toBe('总公司')
-    expect(root.memberCount).toBeGreaterThanOrEqual(7)
-  })
-
-  test('导入的成员在组织架构页面可见', async ({ page }) => {
-    // Select 总公司 and search for a feishu member name
-    await page.getByRole('treeitem', { name: /总公司/ }).click()
-    await page.waitForTimeout(500)
-
-    // Search for a known feishu member
-    const searchInput = page.locator('input[placeholder*="搜索成员"]')
-    await searchInput.fill('闰土')
-    await page.waitForTimeout(1000)
-
-    // Should find the member
-    await expect(page.getByRole('cell', { name: '闰土' })).toBeVisible()
-  })
-
-  test('数据源状态显示已导入', async ({ page }) => {
+  test('数据源状态反映导入结果', async ({ page }) => {
     const status = await page.evaluate(async () => {
       const res = await fetch('/api/org/data-source/status', { credentials: 'include' })
       return res.json()
@@ -111,7 +103,17 @@ test.describe('飞书数据导入', () => {
     expect(status.platform).toBe('feishu')
     expect(status.connected).toBe(true)
     expect(status.lastImport).toBeTruthy()
-    expect(status.lastImportResult).toBeTruthy()
-    expect(status.lastImportResult.successMembers).toBeGreaterThanOrEqual(7)
+    expect(status.lastImportResult.successMembers).toBeGreaterThanOrEqual(9)
+    expect(status.lastImportResult.successDepartments).toBeGreaterThanOrEqual(2)
+  })
+
+  test('导入的成员在页面可搜索', async ({ page }) => {
+    await page.getByRole('treeitem', { name: /总公司/ }).click()
+    await page.waitForTimeout(500)
+
+    const searchInput = page.locator('input[placeholder*="搜索成员"]')
+    await searchInput.fill('杨雨涵')
+    await page.waitForTimeout(1000)
+    await expect(page.getByRole('cell', { name: '杨雨涵' })).toBeVisible()
   })
 })

@@ -150,28 +150,23 @@ func (c *Client) ListDepartments(ctx context.Context) ([]Department, error) {
 		pageToken := ""
 		for {
 			query := url.Values{}
-			query.Set("department_id", current)
-			query.Set("fetch_child", "true")
 			query.Set("page_size", fmt.Sprintf("%d", defaultPageSize))
+			query.Set("department_id_type", "department_id")
 			if pageToken != "" {
 				query.Set("page_token", pageToken)
 			}
 
+			path := fmt.Sprintf("/open-apis/contact/v3/departments/%s/children?%s", current, query.Encode())
 			var page departmentsPage
-			if err := c.get(ctx, "/open-apis/contact/v3/departments?"+query.Encode(), &page); err != nil {
+			if err := c.get(ctx, path, &page); err != nil {
 				return nil, err
 			}
 			for _, item := range page.Items {
 				if item.DepartmentID == "" {
 					continue
 				}
-				if item.DepartmentID != current {
-					if _, exists := seen[item.DepartmentID]; !exists {
-						queue = append(queue, item.DepartmentID)
-					}
-				}
-				if item.DepartmentID == RootDepartmentExternalID {
-					continue
+				if _, exists := seen[item.DepartmentID]; !exists {
+					queue = append(queue, item.DepartmentID)
 				}
 				if _, exists := seenResult[item.DepartmentID]; exists {
 					continue
@@ -219,6 +214,7 @@ func (c *Client) ListMembers(ctx context.Context) ([]Member, []types.ImportFailu
 		for {
 			query := url.Values{}
 			query.Set("department_id", dept.ExternalID)
+			query.Set("department_id_type", "department_id")
 			query.Set("page_size", fmt.Sprintf("%d", defaultPageSize))
 			if pageToken != "" {
 				query.Set("page_token", pageToken)
