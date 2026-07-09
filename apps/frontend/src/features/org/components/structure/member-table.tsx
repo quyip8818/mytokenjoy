@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MemberTableProps {
@@ -173,6 +173,12 @@ export function MemberTable({
   })
 
   const totalPages = Math.ceil(total / pageSize)
+  const [pageInputValue, setPageInputValue] = useState(String(page))
+
+  // Sync input when page changes externally
+  if (pageInputValue !== String(page) && document.activeElement?.getAttribute('aria-label') !== '跳转页码') {
+    setPageInputValue(String(page))
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden rounded-md border border-border">
@@ -225,22 +231,71 @@ export function MemberTable({
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              className="h-8 w-8"
               disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
+              onClick={() => onPageChange(1)}
+              title="第一页"
             >
-              上一页
+              <ChevronsLeft className="size-4" />
             </Button>
-            <span className="px-3 tabular-nums">
-              {page} / {totalPages}
-            </span>
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+              title="上一页"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <div className="flex items-center gap-1 px-1">
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={pageInputValue}
+                onChange={(e) => setPageInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const target = parseInt(pageInputValue)
+                    if (target >= 1 && target <= totalPages) {
+                      onPageChange(target)
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const target = parseInt(pageInputValue)
+                  if (target >= 1 && target <= totalPages && target !== page) {
+                    onPageChange(target)
+                  } else {
+                    setPageInputValue(String(page))
+                  }
+                }}
+                className="h-8 w-12 rounded-md border border-input bg-background px-2 text-center text-sm tabular-nums outline-none focus:ring-1 focus:ring-ring"
+                aria-label="跳转页码"
+              />
+              <span className="text-muted-foreground">/ {totalPages}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
+              title="下一页"
             >
-              下一页
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages}
+              onClick={() => onPageChange(totalPages)}
+              title="最后一页"
+            >
+              <ChevronsRight className="size-4" />
             </Button>
           </div>
         </div>
