@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { ApiError } from '@/api/client'
 import type { BudgetApproval } from '@/api/types'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -195,9 +197,10 @@ export function BudgetApprovalDrawer({
     setResolving(true)
     try {
       await onResolve(id, { status: 'approved' })
+      toast.success('审批通过')
       onResolved()
-    } catch {
-      // silent
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : '操作失败，请重试')
     } finally {
       setResolving(false)
     }
@@ -208,10 +211,11 @@ export function BudgetApprovalDrawer({
     setResolving(true)
     try {
       await onResolve(id, { status: 'rejected', rejectReason: reason.trim() })
+      toast.success('已拒绝')
       setRejectState(null)
       onResolved()
-    } catch {
-      // silent
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : '操作失败，请重试')
     } finally {
       setResolving(false)
     }

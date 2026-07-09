@@ -48,6 +48,8 @@ export const budgetApi = {
   createAlert: (data: Omit<AlertRule, 'id'>) =>
     request<AlertRule>('/budget/alerts', { method: 'POST', body: JSON.stringify(data) }),
   deleteAlert: (id: string) => request<void>(`/budget/alerts/${id}`, { method: 'DELETE' }),
+  getGroupMemberConsumed: (groupId: string) =>
+    request<Record<string, number>>(`/budget/groups/${groupId}/member-consumed`),
   getApprovals: () => request<BudgetApproval[]>('/budget/approvals'),
   resolveApproval: (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) =>
     request<BudgetApproval>(`/budget/approvals/${id}`, {

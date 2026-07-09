@@ -33,6 +33,8 @@ type Runner struct {
 	interval        time.Duration
 	syncEvery       time.Duration
 	syncTick        time.Duration
+
+	lastRebalanceMonth string
 }
 
 func NewRunner(
@@ -75,9 +77,10 @@ func NewRunner(
 		ingestWorker: NewIngestWorker(
 			cfg, logStore, ingest, metrics, schedulerLock, failureRecorder, logger, holderID, cfg.IngestReconcileInterval(),
 		),
-		logger:    logger,
-		interval:  cfg.WorkerPollInterval(),
-		syncEvery: cfg.WorkerOrgSyncInterval(),
+		logger:             logger,
+		interval:           cfg.WorkerPollInterval(),
+		syncEvery:          cfg.WorkerOrgSyncInterval(),
+		lastRebalanceMonth: time.Now().Format("2006-01"),
 	}
 }
 
@@ -127,6 +130,11 @@ func (r *Runner) relayLoop(ctx context.Context) {
 }
 
 func (r *Runner) relayTick(ctx context.Context) {
+	currentMonth := time.Now().Format("2006-01")
+	if currentMonth != r.lastRebalanceMonth {
+		r.lastRebalanceMonth = currentMonth
+		r.logStep("monthly_rebalance", r.processMonthlyRebalance(ctx))
+	}
 	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
 	r.logStep("wallet_sync", r.processWalletSync(ctx))
 	r.logStep("wallet_reconcile", r.processWalletReconcile(ctx))
@@ -138,6 +146,11 @@ func (r *Runner) logStep(step string, err error) {
 	if err != nil {
 		r.logger.Warn("worker step failed", "step", step, "error", err)
 	}
+}
+
+func (r *Runner) processMonthlyRebalance(ctx context.Context) error {
+	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	return r.relaySync.EnqueueRebalanceAxis(workerCtx, "company", fmt.Sprintf("%d", r.cfg.DefaultCompanyID))
 }
 
 func (r *Runner) RunOnce(ctx context.Context) {
