@@ -40,8 +40,8 @@ export function ConfirmActionDialog({ state, onOpenChange, onClose }: ConfirmAct
             onClick={state.onConfirm}
             variant={state.variant === 'danger' ? 'destructive' : 'default'}
             className={
-              state.variant === 'danger' && !state.confirmLabel
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/80'
+              state.variant === 'danger'
+                ? 'bg-destructive text-white hover:bg-destructive/80'
                 : undefined
             }
           >

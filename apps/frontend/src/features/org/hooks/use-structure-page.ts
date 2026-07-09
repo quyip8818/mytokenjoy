@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
+import { ApiError } from '@/api/client'
 import type { Department, Member } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
@@ -146,10 +148,15 @@ export function useStructurePage(injectedApis?: AppApis) {
       desc: `确定删除 ${ids.length} 名成员？删除后不可恢复`,
       variant: 'danger',
       onConfirm: async () => {
-        await apis.memberApi.delete(ids)
-        setRowSelection({})
-        setConfirmState((state) => ({ ...state, open: false }))
-        await invalidateOrg()
+        try {
+          await apis.memberApi.delete(ids)
+          setRowSelection({})
+          setConfirmState((state) => ({ ...state, open: false }))
+          await invalidateOrg()
+        } catch (err) {
+          const message = err instanceof ApiError ? err.message : '删除失败，请重试'
+          toast.error(message)
+        }
       },
     })
   }
