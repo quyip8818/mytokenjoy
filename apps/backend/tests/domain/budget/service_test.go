@@ -68,12 +68,13 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	}
 	svc := budget.NewService(cfg, st, common.NewDelayer(false))
 
-	result, err := svc.UpdateMemberQuota(testutil.Ctx(), contract.IDMember1, 15000)
+	wantQuota := testutil.DisplayPoints(15000)
+	result, err := svc.UpdateMemberQuota(testutil.Ctx(), contract.IDMember1, wantQuota)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.PersonalQuota != 15000 {
-		t.Fatalf("expected personal quota 15000, got %v", result.PersonalQuota)
+	if result.PersonalQuota != wantQuota {
+		t.Fatalf("expected personal quota %v, got %v", wantQuota, result.PersonalQuota)
 	}
 	poolMap, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
@@ -86,8 +87,8 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 			break
 		}
 	}
-	if pool != 15000 {
-		t.Fatalf("expected member personal quota 15000, got %v", pool)
+	if pool != wantQuota {
+		t.Fatalf("expected member personal quota %v, got %v", wantQuota, pool)
 	}
 }
 

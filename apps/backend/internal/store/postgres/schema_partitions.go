@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/tokenjoy/backend/internal/config"
 )
 
 var monthlyPartitionedTables = []string{
@@ -20,9 +22,8 @@ const (
 	partitionEndMonth   = 12
 )
 
-func applyMonthlyPartitions(ctx context.Context, pool dbQuerier) error {
-	start := time.Date(partitionStartYear, partitionStartMonth, 1, 0, 0, 0, 0, time.UTC)
-	endBound := time.Date(partitionEndYear, partitionEndMonth, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
+func applyMonthlyPartitions(ctx context.Context, pool dbQuerier, cfg config.Config) error {
+	start, endBound := partitionBounds(cfg)
 
 	for _, table := range monthlyPartitionedTables {
 		var ddl strings.Builder
@@ -43,4 +44,15 @@ func applyMonthlyPartitions(ctx context.Context, pool dbQuerier) error {
 		}
 	}
 	return nil
+}
+
+func partitionBounds(cfg config.Config) (time.Time, time.Time) {
+	if cfg.StoreBootstrap.TestPartitionMonths > 0 {
+		start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+		endBound := start.AddDate(0, cfg.StoreBootstrap.TestPartitionMonths, 0)
+		return start, endBound
+	}
+	start := time.Date(partitionStartYear, partitionStartMonth, 1, 0, 0, 0, 0, time.UTC)
+	endBound := time.Date(partitionEndYear, partitionEndMonth, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
+	return start, endBound
 }

@@ -108,7 +108,8 @@ export function useStructurePage(injectedApis?: AppApis) {
           email: data.email,
           departmentId: data.departmentId,
           departmentName:
-            flattenDepartments(departments).find((dept) => dept.id === data.departmentId)?.name ?? '',
+            flattenDepartments(departments).find((dept) => dept.id === data.departmentId)?.name ??
+            '',
         })
         toast.success(`成员「${data.name}」已更新`)
       } else {
@@ -243,7 +244,7 @@ export function useStructurePage(injectedApis?: AppApis) {
         toast.error(message)
       }
     },
-    [apis, invalidateOrg, selectedDept?.id],
+    [apis, invalidateOrg, selectedDept],
   )
 
   const closeMemberForm = () => {
@@ -287,7 +288,10 @@ export function useStructurePage(injectedApis?: AppApis) {
     deleteDept,
     setKeyword: setKeywordAndReset,
     setPage: setPageAndRefresh,
-    setPageSize: (size: number) => { setPageSize(size); setPage(1) },
+    setPageSize: (size: number) => {
+      setPageSize(size)
+      setPage(1)
+    },
     setRowSelection,
     refresh,
     refreshDepartments,

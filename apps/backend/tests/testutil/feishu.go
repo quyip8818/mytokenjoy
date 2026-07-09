@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -61,6 +62,17 @@ func StartFeishuMockServerWithOpts(t *testing.T, opts FeishuMockOpts) *httptest.
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0, "msg": "ok", "tenant_access_token": "mock-token", "expire": 7200,
+			})
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/open-apis/contact/v3/departments/") && strings.HasSuffix(r.URL.Path, "/children"):
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"data": map[string]any{
+					"items": []map[string]any{{
+						"department_id": contract.IDFeishuExtDept1, "name": resolveDeptName(),
+						"parent_department_id": "0", "leader_user_id": contract.IDFeishuExtUser1,
+					}},
+					"has_more": false,
+				},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/open-apis/contact/v3/departments":
 			_ = json.NewEncoder(w).Encode(map[string]any{

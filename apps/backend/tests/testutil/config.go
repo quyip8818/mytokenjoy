@@ -100,6 +100,10 @@ func TestConfig(opts ...ConfigOption) config.Config {
 		SessionSecret:         TestSessionSecret,
 		PlatformSessionSecret: TestSessionSecret,
 		SessionTTLSec:         86400,
+		StoreBootstrap: config.StoreBootstrap{
+			SkipRuntimeSeed:     true,
+			TestPartitionMonths: 12,
+		},
 	}
 	for _, opt := range opts {
 		opt(&cfg)

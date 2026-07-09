@@ -16,16 +16,8 @@ function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
 }
 Pagination.displayName = 'Pagination'
 
-function PaginationContent({
-  className,
-  ...props
-}: React.ComponentProps<'ul'>) {
-  return (
-    <ul
-      className={cn('flex flex-row items-center gap-1', className)}
-      {...props}
-    />
-  )
+function PaginationContent({ className, ...props }: React.ComponentProps<'ul'>) {
+  return <ul className={cn('flex flex-row items-center gap-1', className)} {...props} />
 }
 PaginationContent.displayName = 'PaginationContent'
 
@@ -39,12 +31,7 @@ type PaginationLinkProps = {
 } & Pick<ButtonProps, 'size'> &
   React.ComponentProps<'button'>
 
-function PaginationLink({
-  className,
-  isActive,
-  size = 'icon',
-  ...props
-}: PaginationLinkProps) {
+function PaginationLink({ className, isActive, size = 'icon', ...props }: PaginationLinkProps) {
   return (
     <button
       aria-current={isActive ? 'page' : undefined}
@@ -53,7 +40,8 @@ function PaginationLink({
           variant: isActive ? 'outline' : 'ghost',
           size,
         }),
-        isActive && 'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
+        isActive &&
+          'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
         'h-8 w-8',
         className,
       )}
@@ -63,10 +51,7 @@ function PaginationLink({
 }
 PaginationLink.displayName = 'PaginationLink'
 
-function PaginationPrevious({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+function PaginationPrevious({ className, ...props }: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
@@ -80,10 +65,7 @@ function PaginationPrevious({
 }
 PaginationPrevious.displayName = 'PaginationPrevious'
 
-function PaginationNext({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+function PaginationNext({ className, ...props }: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to next page"
@@ -97,10 +79,7 @@ function PaginationNext({
 }
 PaginationNext.displayName = 'PaginationNext'
 
-function PaginationEllipsis({
-  className,
-  ...props
-}: React.ComponentProps<'span'>) {
+function PaginationEllipsis({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       aria-hidden

@@ -38,13 +38,15 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		pool.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
-	if err := applySchema(ctx, pool); err != nil {
-		pool.Close()
-		return nil, err
-	}
-	if err := ensureBootstrapCompany(ctx, pool, cfg); err != nil {
-		pool.Close()
-		return nil, err
+	if !cfg.StoreBootstrap.SchemaPrepared {
+		if err := applySchema(ctx, pool, cfg); err != nil {
+			pool.Close()
+			return nil, err
+		}
+		if err := ensureBootstrapCompany(ctx, pool, cfg); err != nil {
+			pool.Close()
+			return nil, err
+		}
 	}
 
 	s := &Store{pool: pool, logs: store.NoopLogStore(), tokenJoyCompanyID: cfg.TokenJoyCompanyID}
@@ -60,23 +62,27 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			pool.Close()
 			return nil, fmt.Errorf("ping logs postgres: %w", err)
 		}
-		if err := applyLogsSchema(ctx, logPool, cfg); err != nil {
-			logPool.Close()
-			pool.Close()
-			return nil, err
+		if !cfg.StoreBootstrap.SchemaPrepared {
+			if err := applyLogsSchema(ctx, logPool, cfg); err != nil {
+				logPool.Close()
+				pool.Close()
+				return nil, err
+			}
 		}
 		s.logPool = logPool
 		s.logTables = tables
 		s.logs = newLogRepo(logPool, tables)
 	}
-	if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
-		pool.Close()
-		if s.logPool != nil {
-			s.logPool.Close()
+	if !cfg.StoreBootstrap.SchemaPrepared {
+		if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
+			pool.Close()
+			if s.logPool != nil {
+				s.logPool.Close()
+			}
+			return nil, err
 		}
-		return nil, err
 	}
-	if cfg.IsDemoProfile() {
+	if cfg.IsDemoProfile() && !cfg.StoreBootstrap.SkipRuntimeSeed {
 		if err := runtime.ApplyUsageBuckets(ctx, s, cfg); err != nil {
 			pool.Close()
 			if s.logPool != nil {

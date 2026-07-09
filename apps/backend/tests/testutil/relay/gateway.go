@@ -164,6 +164,9 @@ func ConfigureGatewayStore(t *testing.T, st store.Store, opts GatewayScenarioOpt
 	}); err != nil {
 		t.Fatal(err)
 	}
+	if opts.UseRealWallet {
+		testutil.DrainPendingWalletSync(t, st, opts.CompanyID)
+	}
 	return fullKey
 }
 

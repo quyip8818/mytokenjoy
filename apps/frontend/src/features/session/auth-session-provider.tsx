@@ -121,9 +121,5 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
     }
   }, [query, refreshSession])
 
-  return (
-    <SessionReactContext.Provider value={session}>
-      {children}
-    </SessionReactContext.Provider>
-  )
+  return <SessionReactContext.Provider value={session}>{children}</SessionReactContext.Provider>
 }

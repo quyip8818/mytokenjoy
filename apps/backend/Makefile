@@ -1,8 +1,9 @@
-.PHONY: install-air start build run test test-unit test-unit-nocache lint format scaffold-domain clean
+.PHONY: install-air start build run test test-unit test-unit-nocache test-fast lint format scaffold-domain clean
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
 export SESSION_SECRET ?= tokenjoy-dev-session-secret
+TEST_PARALLEL ?= 8
 
 AIR_VERSION ?= v1.65.3
 AIR := $(shell go env GOPATH)/bin/air
@@ -26,11 +27,18 @@ test: test-unit
 
 test-unit:
 	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
-	go test -tags=testhook -parallel 4 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+	go test -tags=testhook -parallel $(TEST_PARALLEL) $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
 
 test-unit-nocache:
 	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
-	go test -tags=testhook -parallel 4 -count=1 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+	go test -tags=testhook -parallel $(TEST_PARALLEL) -count=1 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+
+test-fast:
+	go test -tags=testhook ./tests/pkg/...
+
+test-db-clean:
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
+	@go run -tags=testhook ./cmd/testdbclean
 
 clean:
 	rm -rf tmp

@@ -11,7 +11,7 @@ import (
 
 func newAuditService(t *testing.T) audit.Service {
 	t.Helper()
-	cfg, st := testutil.NewTestStore(t)
+	cfg, st := testutil.NewTestStoreWithRuntimeSeed(t)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	return audit.NewService(cfg, st, reader)
 }
@@ -47,7 +47,7 @@ func TestListOperationsPaginationAndActionFilter(t *testing.T) {
 
 func TestListCallsDateFilter(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t)
+	_, st := testutil.NewTestStoreWithRuntimeSeed(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 	const from = "2026-06-10"

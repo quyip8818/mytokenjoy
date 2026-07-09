@@ -1,79 +1,44 @@
+//go:build testhook
+
 package testutil
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
-	"net/url"
-	"sync"
 	"testing"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/tests/testutil/pg"
 )
-
-type testSchema struct {
-	baseURL string
-	schema  string
-	url     string
-}
-
-var testSchemaByName sync.Map
-
-func openTestSchema(t *testing.T) (baseURL, schemaURL string) {
-	t.Helper()
-	if v, ok := testSchemaByName.Load(t.Name()); ok {
-		h := v.(*testSchema)
-		return h.baseURL, h.url
-	}
-	baseURL = defaultTestDatabaseURL()
-	if baseURL == "" {
-		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
-	}
-	schema := newTestSchemaName()
-	adminPool, err := pgxpool.New(context.Background(), baseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	schemaSQL := pgx.Identifier{schema}.Sanitize()
-	if _, err := adminPool.Exec(context.Background(), "CREATE SCHEMA "+schemaSQL); err != nil {
-		adminPool.Close()
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_, _ = adminPool.Exec(context.Background(), "DROP SCHEMA IF EXISTS "+schemaSQL+" CASCADE")
-		adminPool.Close()
-		testSchemaByName.Delete(t.Name())
-	})
-	h := &testSchema{
-		baseURL: baseURL,
-		schema:  schema,
-		url:     withSearchPath(baseURL, schema),
-	}
-	testSchemaByName.Store(t.Name(), h)
-	return h.baseURL, h.url
-}
 
 func TestSchemaURL(t *testing.T) string {
 	t.Helper()
-	_, schemaURL := openTestSchema(t)
-	return schemaURL
+	return openClonedTestSchema(t).URL
 }
 
-func newTestSchemaName() string {
-	var b [8]byte
-	_, _ = rand.Read(b[:])
-	return "test_" + hex.EncodeToString(b[:])
-}
-
-func withSearchPath(dbURL, schema string) string {
-	u, err := url.Parse(dbURL)
-	if err != nil {
-		panic(fmt.Sprintf("parse database url: %v", err))
+func openTestSchema(t *testing.T) pg.Handle {
+	t.Helper()
+	baseURL := defaultTestDatabaseURL()
+	if baseURL == "" {
+		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
 	}
-	q := u.Query()
-	q.Set("options", fmt.Sprintf("-c search_path=%s,public", schema))
-	u.RawQuery = q.Encode()
-	return u.String()
+	return pg.OpenSlow(t, baseURL)
+}
+
+func openClonedTestSchema(t *testing.T) pg.Handle {
+	t.Helper()
+	baseURL := defaultTestDatabaseURL()
+	if baseURL == "" {
+		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
+	}
+	return pg.OpenCloned(t, baseURL, templateStoreConfig(baseURL))
+}
+
+func templateStoreConfig(baseURL string) config.Config {
+	cfg := TestConfig(WithIngestEnabled(true))
+	templateURL := pg.WithSearchPath(baseURL, "test_template")
+	cfg.DatabaseURL = templateURL
+	cfg.LogDatabaseURL = templateURL
+	cfg.LogSchemaIsolated = true
+	cfg.StoreBootstrap.SkipRuntimeSeed = true
+	cfg.StoreBootstrap.TestPartitionMonths = 12
+	return cfg
 }

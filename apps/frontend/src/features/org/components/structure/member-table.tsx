@@ -206,7 +206,10 @@ export function MemberTable({
   const [pageInputValue, setPageInputValue] = useState(String(page))
 
   // Sync input when page changes externally
-  if (pageInputValue !== String(page) && document.activeElement?.getAttribute('aria-label') !== '跳转页码') {
+  if (
+    pageInputValue !== String(page) &&
+    document.activeElement?.getAttribute('aria-label') !== '跳转页码'
+  ) {
     setPageInputValue(String(page))
   }
 
@@ -274,10 +277,7 @@ export function MemberTable({
                   {p === '...' ? (
                     <PaginationEllipsis />
                   ) : (
-                    <PaginationLink
-                      isActive={p === page}
-                      onClick={() => onPageChange(p as number)}
-                    >
+                    <PaginationLink isActive={p === page} onClick={() => onPageChange(p as number)}>
                       {p}
                     </PaginationLink>
                   )}

@@ -53,9 +53,7 @@ test.describe('飞书数据导入', () => {
       return res.json()
     })
 
-    const feishuMembers = members.items.filter(
-      (m: { id: string }) => m.id.startsWith('m-feishu-'),
-    )
+    const feishuMembers = members.items.filter((m: { id: string }) => m.id.startsWith('m-feishu-'))
     expect(feishuMembers.length).toBeGreaterThanOrEqual(9)
 
     // 杨雨涵 should be in 软件研发

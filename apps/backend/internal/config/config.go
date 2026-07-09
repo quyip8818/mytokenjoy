@@ -21,6 +21,8 @@ type Config struct {
 	Profile       string `env:"APP_PROFILE" envDefault:"demo"`
 	MinimalSeed   bool
 
+	StoreBootstrap StoreBootstrap
+
 	DatabaseURL         string `env:"DATABASE_URL"`
 	LogDatabaseURL      string `env:"LOG_DATABASE_URL"`
 	LogSchemaIsolated   bool

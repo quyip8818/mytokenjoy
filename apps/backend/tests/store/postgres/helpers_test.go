@@ -28,8 +28,7 @@ func reopenPostgresStore(t *testing.T, dbURL string) store.Store {
 	if dbURL != "" && dbURL != schemaURL {
 		t.Fatalf("unexpected database url for test schema")
 	}
-	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = schemaURL
+	cfg := testutil.PreparedConfig(schemaURL)
 	st, err := postgres.New(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
