@@ -579,7 +579,14 @@ CREATE TABLE IF NOT EXISTS notification_log (
 CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
     ON notification_log (company_id, created_at DESC);
 
--- Budget constraints additions
+-- Budget constraints additions: clean orphan rows before adding FK
+DELETE FROM alert_rule_notify_roles
+WHERE NOT EXISTS (
+    SELECT 1 FROM alert_rules
+    WHERE alert_rules.company_id = alert_rule_notify_roles.company_id
+      AND alert_rules.id = alert_rule_notify_roles.rule_id
+);
+
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_alert_rule_notify_roles_rule') THEN
         ALTER TABLE alert_rule_notify_roles ADD CONSTRAINT fk_alert_rule_notify_roles_rule
