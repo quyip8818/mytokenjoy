@@ -34,7 +34,7 @@ type DepartmentService interface {
 }
 
 type MemberService interface {
-	ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.PageResult[types.Member], error)
+	ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error)
 	CreateMember(ctx context.Context, input types.Member) (types.Member, error)
 	UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error)
 	DeleteMembers(ctx context.Context, ids []string) error
