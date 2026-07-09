@@ -37,6 +37,10 @@ export const baseViteConfig: UserConfig = {
   },
   server: {
     proxy: apiProxy,
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
   preview: {
     proxy: apiProxy,
