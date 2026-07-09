@@ -12,12 +12,19 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
+	if err := s.requireRelay(); err != nil {
+		return types.PlatformKey{}, err
+	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
+			targetActive := enabled
+			if err := s.relaySync.SyncUpdatePlatformKey(ctx, id, &targetActive); err != nil {
+				return types.PlatformKey{}, err
+			}
 			if enabled {
 				platformKeys[i].Status = "active"
 			} else {
@@ -25,11 +32,6 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 			}
 			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return types.PlatformKey{}, err
-			}
-			if s.relaySync != nil && s.relaySync.Enabled() {
-				if err := s.relaySync.EnqueueUpdatePlatformKey(ctx, id); err != nil {
-					return types.PlatformKey{}, err
-				}
 			}
 			enriched, err := s.enrichPlatformKeyResponse(ctx, platformKeys[i])
 			if err != nil {
@@ -42,12 +44,32 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 }
 
 func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error) {
-	_ = id
-	return types.PlatformKey{}, domain.Unimplemented("Platform key rotation is not available")
+	if err := s.requireRelay(); err != nil {
+		return types.PlatformKey{}, err
+	}
+	fullKey, err := s.relaySync.SyncRotatePlatformKey(ctx, id)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return types.PlatformKey{}, err
+	}
+	for i := range platformKeys {
+		if platformKeys[i].ID == id {
+			key := platformKeys[i]
+			key.FullKey = &fullKey
+			return s.enrichPlatformKeyResponse(ctx, key)
+		}
+	}
+	return types.PlatformKey{}, domain.NotFound("Not found")
 }
 
 func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
+		return err
+	}
+	if err := s.requireRelay(); err != nil {
 		return err
 	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
@@ -56,14 +78,11 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 	}
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
-			platformKeys[i].Status = "revoked"
-			if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+			if err := s.relaySync.SyncRevokePlatformKey(ctx, id); err != nil {
 				return err
 			}
-			if s.relaySync != nil && s.relaySync.Enabled() {
-				return s.relaySync.SyncRevokePlatformKey(ctx, id)
-			}
-			return nil
+			platformKeys[i].Status = "revoked"
+			return s.store.Keys().SetPlatformKeys(ctx, platformKeys)
 		}
 	}
 	return domain.NotFound("Not found")

@@ -12,6 +12,10 @@ func Forbidden(msg string) error {
 	return NewDomainError(StatusForbidden, msg)
 }
 
+func Conflict(msg string) error {
+	return NewDomainError(StatusConflict, msg)
+}
+
 func BadRequest(msg string) error {
 	return NewDomainError(StatusBadRequest, msg)
 }

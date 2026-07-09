@@ -6,6 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -102,7 +103,7 @@ func TestApproveInsufficientReserved(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
-		Type: "quota", Reason: "too much", RequestedQuota: 9999,
+		Type: "quota", Reason: "too much", RequestedQuota: 2_000_000,
 		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
@@ -157,7 +158,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "too-big", MemberID: &memberID, Quota: 99999,
+		Name: "too-big", MemberID: &memberID, Quota: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -190,7 +191,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 	groupID := contract.IDBudgetGroup1
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Quota: 99999,
+		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Quota: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -199,7 +200,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 func TestUpdatePlatformKeyQuota(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	quota := 99999.0
+	quota := 20_000_000.0
 	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Quota: &quota,
 	})
@@ -267,9 +268,17 @@ func TestQuotaSummaryIncludesSnapshotUsed(t *testing.T) {
 
 func TestRevokePlatformKey(t *testing.T) {
 	t.Parallel()
-	svc, st := newKeysService(t)
+	svc, st, _ := newKeysServiceWithRelay(t)
 	ctx := testutil.Ctx()
-	if err := svc.RevokePlatformKey(testutil.Ctx(), contract.IDPlatformKey1); err != nil {
+	tokenID := int64(99)
+	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+		PlatformKeyID: contract.IDPlatformKey1,
+		NewAPITokenID: &tokenID,
+		SyncStatus:    store.RelaySyncStatusSynced,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)

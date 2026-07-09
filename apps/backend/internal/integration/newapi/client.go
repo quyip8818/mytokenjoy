@@ -16,6 +16,7 @@ type AdminClient interface {
 	UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token, error)
 	GetToken(ctx context.Context, tokenID int64) (Token, error)
 	DeleteToken(ctx context.Context, tokenID int64) error
+	RegenerateToken(ctx context.Context, tokenID int64) (Token, error)
 	CreateUser(ctx context.Context, req CreateUserRequest) (User, error)
 	GetUserQuota(ctx context.Context, userID int64) (int64, error)
 	TopUp(ctx context.Context, req TopUpRequest) error

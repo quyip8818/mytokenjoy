@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -56,9 +57,17 @@ func findPlatformKey(keys []types.PlatformKey, id string) (types.PlatformKey, bo
 	return types.PlatformKey{}, false
 }
 
+func relayPlatformKeyPrefix(fullKey string) string {
+	prefix := fullKey
+	if len(prefix) > 12 {
+		prefix = prefix[:12] + "..."
+	}
+	return prefix
+}
+
 func (l *TokenLifecycle) SyncCreatePlatformKey(ctx context.Context, key types.PlatformKey, departmentID string) error {
 	if !l.Enabled() {
-		return nil
+		return domain.ServiceUnavailable("relay not enabled")
 	}
 	mapping := store.RelayMapping{
 		CompanyID:     company.CompanyID(ctx),
@@ -88,7 +97,7 @@ func (l *TokenLifecycle) SyncCreatePlatformKey(ctx context.Context, key types.Pl
 
 func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string) (string, error) {
 	if !l.Enabled() {
-		return "", nil
+		return "", domain.ServiceUnavailable("relay not enabled")
 	}
 	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys())
 	if err != nil {
@@ -174,11 +183,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	for i := range keys {
 		if keys[i].ID == key.ID {
 			keys[i].FullKey = &token.Key
-			prefix := token.Key
-			if len(prefix) > 12 {
-				prefix = prefix[:12] + "..."
-			}
-			keys[i].KeyPrefix = prefix
+			keys[i].KeyPrefix = relayPlatformKeyPrefix(token.Key)
 			if err := l.store.Keys().SetPlatformKeys(ctx, keys); err != nil {
 				return "", err
 			}
@@ -223,9 +228,9 @@ func (l *TokenLifecycle) EnqueueUpdatePlatformKey(ctx context.Context, platformK
 	})
 }
 
-func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyID string) error {
+func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error {
 	if !l.Enabled() {
-		return nil
+		return domain.ServiceUnavailable("relay not enabled")
 	}
 	mapping, err := l.mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
 	if err != nil || mapping == nil || mapping.NewAPITokenID == nil {
@@ -270,7 +275,11 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	remainCNY := ComputeRemainQuota(key, tree, members, platformKeys, groups, mapping.DepartmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 	status := newapi.TokenStatusEnabled
-	if key.Status != "active" {
+	if targetActive != nil {
+		if !*targetActive {
+			status = newapi.TokenStatusDisabled
+		}
+	} else if key.Status != "active" {
 		status = newapi.TokenStatusDisabled
 	}
 	remain := remainUnits
@@ -295,7 +304,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 
 func (l *TokenLifecycle) SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error {
 	if !l.Enabled() {
-		return nil
+		return domain.ServiceUnavailable("relay not enabled")
 	}
 	mapping, err := l.mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
 	if err != nil || mapping == nil || mapping.NewAPITokenID == nil {
@@ -306,6 +315,42 @@ func (l *TokenLifecycle) SyncRevokePlatformKey(ctx context.Context, platformKeyI
 	}
 	mapping.SyncStatus = store.RelaySyncStatusSynced
 	return l.mappings.UpsertMapping(ctx, *mapping)
+}
+
+func (l *TokenLifecycle) SyncRotatePlatformKey(ctx context.Context, platformKeyID string) (string, error) {
+	if !l.Enabled() {
+		return "", domain.ServiceUnavailable("relay not enabled")
+	}
+	platformKeys, err := l.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return "", err
+	}
+	key, ok := findPlatformKey(platformKeys, platformKeyID)
+	if !ok {
+		return "", fmt.Errorf("platform key not found")
+	}
+	if key.Status != "active" {
+		return "", domain.Conflict("platform key is not active")
+	}
+	mapping, err := l.mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
+	if err != nil || mapping == nil || mapping.NewAPITokenID == nil || mapping.SyncStatus != store.RelaySyncStatusSynced {
+		return "", fmt.Errorf("relay mapping missing for %s", platformKeyID)
+	}
+	token, err := l.client.RegenerateToken(ctx, *mapping.NewAPITokenID)
+	if err != nil {
+		return "", err
+	}
+	for i := range platformKeys {
+		if platformKeys[i].ID == platformKeyID {
+			platformKeys[i].FullKey = &token.Key
+			platformKeys[i].KeyPrefix = relayPlatformKeyPrefix(token.Key)
+			if err := l.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+				return "", err
+			}
+			break
+		}
+	}
+	return token.Key, nil
 }
 
 func (l *TokenLifecycle) DisablePlatformKey(ctx context.Context, platformKeyID string) error {
@@ -387,7 +432,7 @@ func (l *TokenLifecycle) SyncModelLimitsForDepartment(ctx context.Context, depar
 		if mapping.SyncStatus != store.RelaySyncStatusSynced || mapping.NewAPITokenID == nil {
 			continue
 		}
-		if err := l.SyncUpdatePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+		if err := l.SyncUpdatePlatformKey(ctx, mapping.PlatformKeyID, nil); err != nil {
 			return err
 		}
 	}

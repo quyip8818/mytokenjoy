@@ -1,0 +1,86 @@
+diff --git a/controller/token.go b/controller/token.go
+index 836e9b2..53e1463 100644
+--- a/controller/token.go
++++ b/controller/token.go
+@@ -247,6 +247,32 @@ func DeleteToken(c *gin.Context) {
+ 	})
+ }
+ 
++func RegenerateToken(c *gin.Context) {
++	id, err := strconv.Atoi(c.Param("id"))
++	if err != nil {
++		common.ApiError(c, err)
++		return
++	}
++	role := c.GetInt("role")
++	var token *model.Token
++	if role >= common.RoleAdminUser {
++		token, err = model.RegenerateTokenKey(id)
++	} else {
++		userId := c.GetInt("id")
++		existing, getErr := model.GetTokenByIds(id, userId)
++		if getErr != nil {
++			common.ApiError(c, getErr)
++			return
++		}
++		token, err = model.RegenerateTokenKey(existing.Id)
++	}
++	if err != nil {
++		common.ApiError(c, err)
++		return
++	}
++	common.ApiSuccess(c, token)
++}
++
+ func UpdateToken(c *gin.Context) {
+ 	userId := c.GetInt("id")
+ 	statusOnly := c.Query("status_only")
+diff --git a/model/token.go b/model/token.go
+index cb34b3c..55527c2 100644
+--- a/model/token.go
++++ b/model/token.go
+@@ -488,6 +488,32 @@ func GetTokenKeysByIds(ids []int, userId int) ([]Token, error) {
+ 	return tokens, err
+ }
+ 
++func RegenerateTokenKey(id int) (*Token, error) {
++	if id <= 0 {
++		return nil, errors.New("id is empty")
++	}
++	token, err := GetTokenById(id)
++	if err != nil {
++		return nil, err
++	}
++	key, err := common.GenerateKey()
++	if err != nil {
++		return nil, err
++	}
++	token.Key = key
++	if err := DB.Model(token).Select("key").Updates(token).Error; err != nil {
++		return nil, err
++	}
++	if shouldUpdateRedis(true, nil) {
++		gopool.Go(func() {
++			if err := cacheSetToken(*token); err != nil {
++				common.SysLog("failed to update token cache: " + err.Error())
++			}
++		})
++	}
++	return token, nil
++}
++
+ // InvalidateUserTokensCache 清理指定用户所有令牌在 Redis 中的缓存，
+ // 配合 InvalidateUserCache 使用，可在用户被禁用/删除时立即阻断其令牌的请求。
+ // 下一次请求将从数据库重新加载令牌及用户状态，从而立即识别出被禁用的用户。
+diff --git a/router/api-router.go b/router/api-router.go
+index 86726ee..8e27542 100644
+--- a/router/api-router.go
++++ b/router/api-router.go
+@@ -235,6 +235,7 @@ func SetApiRouter(router *gin.Engine) {
+ 			tokenRoute.GET("/:id", controller.GetToken)
+ 			tokenRoute.POST("/:id/key", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.GetTokenKey)
+ 			tokenRoute.POST("/", controller.AddToken)
++			tokenRoute.POST("/:id/regenerate", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.RegenerateToken)
+ 			tokenRoute.PUT("/", controller.UpdateToken)
+ 			tokenRoute.DELETE("/:id", controller.DeleteToken)
+ 			tokenRoute.POST("/batch", controller.DeleteTokenBatch)

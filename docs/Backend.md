@@ -16,6 +16,7 @@
 | [Backend-模型目录实现.md](./Backend-模型目录实现.md) | 同表双角色：平台模型源 + 租户自有模型；全局内置对租户永远存在、不可禁用 |
 | [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 终态架构：管理面 `modelId`、Relay/审计 `callType`；`ModelRef` enrich |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-重构建议.md](./Backend-重构建议.md) | 终态收口形态、实施顺序与明确不做项                         |
 
 Seed 与测试见本文 [§5](#5-测试与-seed)。
 
@@ -124,10 +125,10 @@ sequenceDiagram
 | 无增量 migration    | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
 | 推导字段不入库      | `memberName` / `projectName` 等仅 JSON enrich            |
 | Platform Key secret | 必须经 Relay 下发；禁止本地 placeholder                  |
-| Rotate 过渡期       | `RotatePlatformKey` → HTTP **501**（非最终态）           |
-| 错误语义            | 不存在 `404`；Relay 不可用 `503`；未实现 `501`           |
+| Rotate              | `POST .../rotate` → 200 + 一次性 `fullKey`；非 active `409` |
+| 错误语义            | 不存在 `404`；Relay 不可用 `503`；状态冲突 `409`           |
 
-**本地开发：** 创建 Platform Key / 审批发 Key 须启用 Relay（`NEW_API_ENABLED` 等）；否则 `503`。
+**本地开发：** 创建 / 审批发 Key / Toggle / Revoke / Rotate 须启用 Relay；否则 `503`。
 
 **实现索引：** `domain/keys/platform_key_enrich.go` · `platform_key_relay.go` · `platform_key_actions.go` · `domain/keys/approval.go` · `domain/relay/interface.go`
 

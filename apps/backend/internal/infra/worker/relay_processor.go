@@ -39,7 +39,7 @@ func (r *Runner) processRelayOutbox(ctx context.Context) error {
 				break
 			}
 			entryCtx := r.workerCtx(ctx, payload.CompanyID)
-			processErr = r.relaySync.SyncUpdatePlatformKey(entryCtx, payload.PlatformKeyID)
+			processErr = r.relaySync.SyncUpdatePlatformKey(entryCtx, payload.PlatformKeyID, nil)
 		case store.OutboxKindUpsertChannel:
 			var payload relay.UpsertChannelOutboxPayload
 			if err := json.Unmarshal(entry.Payload, &payload); err != nil {

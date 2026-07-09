@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -55,9 +56,10 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 	var relayGateway domainrelay.GatewayService
 	if cfg.RelayGatewayEnabled && cfg.NewAPIEnabled {
 		gw, err := wireGatewayService(cfg, i)
-		if err == nil {
-			relayGateway = gw
+		if err != nil {
+			panic(fmt.Errorf("wire gateway service: %w", err))
 		}
+		relayGateway = gw
 	}
 	authzSvc, credSvc, memberToken, platformToken, err := wireIdentity(cfg, i.store)
 	if err != nil {

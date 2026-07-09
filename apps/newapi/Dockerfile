@@ -42,6 +42,9 @@ COPY patches/new-api/0001-management-webhook.patch /tmp/0001-management-webhook.
 RUN git apply /tmp/0001-management-webhook.patch \
     && go test -count=1 ./management/...
 
+COPY patches/new-api/0002-token-regenerate.patch /tmp/0002-token-regenerate.patch
+RUN git apply /tmp/0002-token-regenerate.patch
+
 COPY --from=web-default /upstream/web/default/dist ./web/default/dist
 COPY --from=web-classic /upstream/web/classic/dist ./web/classic/dist
 

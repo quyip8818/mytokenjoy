@@ -217,7 +217,7 @@ type Store interface {
 
 ## 6. Relay Gateway 请求链
 
-`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。
+`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。代理时 **逐字节保留** 客户端 path（如 `/v1/chat/completions`），`NEW_API_BASE_URL` 仅含 scheme + host + port。
 
 ```mermaid
 sequenceDiagram
@@ -227,18 +227,29 @@ sequenceDiagram
   participant NA as NewAPI
 
   C->>GW: OpenAI 兼容请求
-  GW->>TJ: relay_mappings 解析 company
+  GW->>TJ: key_hash 查 relay_mappings
   alt 预检失败
     GW-->>C: 403
   else 通过
-    GW->>NA: 原样透传
+    GW->>NA: 原 path 透传
     NA-->>GW: 响应
     GW-->>C: 原样返回
     NA-->>TJ: webhook settle
   end
 ```
 
-预检依赖 `relay.PrecheckService`（`OrgNodeRepository` + `KeysRepository`）；放行条件见 [Backend-预算.md](./Backend-预算.md) §1 与 [Backend.md](./Backend.md) SaaS 章节。
+预检依赖 `relay.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §1。
+
+### 6.1 Platform Key 写路径（Remote-first）
+
+用户触发的 **同步** 操作（Create、Approve→Create、Toggle、Revoke、Rotate）：**先** NewAPI Admin API 成功，**再** 写 Postgres。Relay 未启用 → `503`，DB 不变。
+
+| 操作 | 模式 |
+| --- | --- |
+| Create / Approve / Toggle / Revoke / Rotate | 同步 Remote-first |
+| Update 配额/白名单、Rebalance、ModelLimits | 仍 async outbox → Worker |
+
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_token_id` 不变以利 ingest 入账。
 
 ---
 

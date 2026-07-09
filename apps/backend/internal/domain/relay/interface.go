@@ -25,14 +25,16 @@ type KeysRelaySync interface {
 	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)
 	RollbackFailedCreate(ctx context.Context, platformKeyID string)
 	EnqueueUpdatePlatformKey(ctx context.Context, platformKeyID string) error
+	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error
 	SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error
+	SyncRotatePlatformKey(ctx context.Context, platformKeyID string) (string, error)
 	EnqueueUpsertProviderKey(ctx context.Context, providerKeyID string) error
 	SyncUpsertProviderKey(ctx context.Context, providerKeyID string) error
 }
 
 type RelayOutboxSync interface {
 	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)
-	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string) error
+	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error
 	SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error
 	SyncUpsertProviderKey(ctx context.Context, providerKeyID string) error
 	SyncModelLimitsForDepartment(ctx context.Context, departmentID string) error
@@ -44,8 +46,9 @@ type Lifecycle interface {
 	SyncCreatePlatformKey(ctx context.Context, key types.PlatformKey, departmentID string) error
 	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)
 	EnqueueUpdatePlatformKey(ctx context.Context, platformKeyID string) error
-	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string) error
+	SyncUpdatePlatformKey(ctx context.Context, platformKeyID string, targetActive *bool) error
 	SyncRevokePlatformKey(ctx context.Context, platformKeyID string) error
+	SyncRotatePlatformKey(ctx context.Context, platformKeyID string) (string, error)
 	DisablePlatformKey(ctx context.Context, platformKeyID string) error
 	EnqueueUpsertProviderKey(ctx context.Context, providerKeyID string) error
 	SyncUpsertProviderKey(ctx context.Context, providerKeyID string) error

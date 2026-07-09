@@ -19,6 +19,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调        | NewAPI 入账方案 B 架构现状                       |
 | [权限管理.md](./权限管理.md)                           | 后端 / 前端 / 架构 | Identity JWT + PDP 实现与验收 Gate               |
 | [Roadmap.md](./Roadmap.md)                             | 全员               | 产品差距（未实现能力）                           |
+| [下一步.md](./下一步.md)                               | 研发 / 架构        | **P0 终态设计**（Relay 写路径 + Gateway + Rotate） |
 
 ### 归档与历史
 

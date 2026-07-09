@@ -13,6 +13,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/tests/testutil"
 	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
 	"github.com/tokenjoy/backend/tests/testutil/saas"
 )
@@ -136,6 +137,10 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	mock.SetQuota(walletID, units)
 	rootDept := fmt.Sprintf("dept-root-%d", provisioned.Company.ID)
 	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
+	ctx := testutil.CtxForCompany(provisioned.Company.ID)
+	if err := app.Store.Company().UpdateWalletPoint(ctx, provisioned.Company.ID, 100000, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	fullKey := relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,

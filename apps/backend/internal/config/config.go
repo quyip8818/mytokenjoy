@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -117,14 +118,42 @@ func (c Config) validate() error {
 	if c.IngestEnabled() && strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
 		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when LOG_DATABASE_URL is set")
 	}
+	if c.IsProdProfile() {
+		if !c.NewAPIEnabled {
+			return fmt.Errorf("NEW_API_ENABLED must be true in prod profile")
+		}
+		if !c.RelayGatewayEnabled {
+			return fmt.Errorf("RELAY_GATEWAY_ENABLED must be true in prod profile")
+		}
+		if strings.TrimSpace(c.LogDatabaseURL) == "" {
+			return fmt.Errorf("LOG_DATABASE_URL is required in prod profile")
+		}
+		if strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
+			return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required in prod profile")
+		}
+	}
 	if !c.NewAPIEnabled {
 		return nil
 	}
 	if strings.TrimSpace(c.NewAPIBaseURL) == "" {
 		return fmt.Errorf("NEW_API_BASE_URL is required when NEW_API_ENABLED=true")
 	}
+	if err := validateNewAPIBaseURL(c.NewAPIBaseURL); err != nil {
+		return err
+	}
 	if strings.TrimSpace(c.NewAPIAdminToken) == "" {
 		return fmt.Errorf("NEW_API_ADMIN_TOKEN is required when NEW_API_ENABLED=true")
+	}
+	return nil
+}
+
+func validateNewAPIBaseURL(raw string) error {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return fmt.Errorf("NEW_API_BASE_URL is invalid: %w", err)
+	}
+	if parsed.Path != "" && parsed.Path != "/" {
+		return fmt.Errorf("NEW_API_BASE_URL must not include a path")
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ const (
 	StatusBadRequest         = 400
 	StatusNotFound           = 404
 	StatusForbidden          = 403
+	StatusConflict           = 409
 	StatusUnprocessable      = 422
 	StatusTooManyRequests    = 429
 	StatusNotImplemented     = 501

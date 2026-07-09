@@ -20,13 +20,16 @@
 
 ### P0 — 生产功能或资金风险
 
-- [ ] **Gateway `/v1` path 剥离** — `domain/relay/gateway_service.go`；客户端 `/v1/chat/completions` 可能被转成 `/chat/completions` → NewAPI 404
-- [ ] **Relay 关闭时 Key 同步静默跳过** — `domain/relay/lifecycle_ops.go`；DB 有 Key、NewAPI 无 token，无告警
+- [x] **Gateway `/v1` path 透传** — `gateway_service.go` Director 显式保留 `r.URL.Path`（已修；singleton proxy / 精确路径白名单仍待做）
+- [x] **Keys 写路径 Remote-first** — Toggle / Revoke / Rotate 先 Remote 再写 DB；`requireRelay()` 覆盖上述操作
+- [x] **Lifecycle 同步方法 Relay 关闭返回 503** — `SyncCreate` / `TrySyncCreate` / `SyncUpdate` / `SyncRevoke` / `SyncRotate` 不再静默 `nil`
+- [ ] **Enqueue* 与 Worker** — `UpdatePlatformKey` 仍走 async outbox；Relay 关闭时 outbox 未永久 failed（见 [下一步.md](./下一步.md) 暂缓项）
 
 ### P1 — 误配、SaaS、可观测
 
-- [ ] `RELAY_GATEWAY_ENABLED` 无组合校验 — 只开 Gateway 不开 NewAPI → 路由不挂载，仅 log
-- [ ] `wireGatewayService` 失败静默 — `registry.go` 吞错，`relayGateway == nil`
+- [x] `RELAY_GATEWAY_ENABLED` prod 组合校验 — `APP_PROFILE=prod` 时强制 Relay + Gateway + 入账三联开
+- [x] `wireGatewayService` 失败即启动失败 — `registry.go` 装配错误 `panic`
+- [ ] `RELAY_GATEWAY_ENABLED` demo 组合校验 — demo 仍允许只开 Gateway 不开 NewAPI（路由不挂载，仅 log）
 - [ ] Rebalance / Overrun 在 Relay 关闭时空转 — ingest 仍入队，Worker 调用时 `return nil`
 - [ ] `noopWalletService`：`AvailableQuota` 恒 0 — Gateway 预检 / `wallet_sync` 在 Relay 关闭时失效（`GetWallet` 读 Postgres lot，不受 noop 影响）
 - [ ] 通知 `NOTIFY_WEBHOOK_URL` 失败静默 — HTTP 失败仍 `return nil`，调用方无感知
@@ -55,7 +58,7 @@
 **Relay / 管理面（与入账独立）**
 
 - [ ] `NEW_API_ENABLED=true` + `NEW_API_BASE_URL` + `NEW_API_ADMIN_TOKEN`（Key 同步、充值 TopUp）
-- [ ] 若开 Gateway：`RELAY_GATEWAY_ENABLED=true` 且 **P0 path 问题已修**
+- [ ] 若开 Gateway：`RELAY_GATEWAY_ENABLED=true` 且 `NEW_API_ENABLED=true`（prod 启动校验已强制）
 - [ ] 不以 `settle_webhook.sh` 或 compose 里仅配置 URL 作为「notify 已接通」依据 — 以真实 POST `{log_id}` 与 ledger 为准
 
 **本地**
@@ -90,11 +93,11 @@ MSW 已移除；以下接口仍有 `// TODO(real):` 或半真实现。
 
 ### P0 — Platform Key Rotate
 
-- [ ] NewAPI Admin 提供 token rotate 或等价端点
-- [ ] `relay/interface.go` 新增 `SyncRotatePlatformKey(ctx, platformKeyID) (fullKey string, err error)`
-- [ ] `platform_key_actions.go` 替换 HTTP 501；复用 `updatePlatformKeyFullKey`
-- [ ] 前端 `key-rotate-confirm` 成功路径恢复 `key-reveal`
-- [ ] HTTP：`POST /api/keys/platform/{id}/rotate` → 200 + PlatformKey（含新 `fullKey`）；Relay 关闭 → 503
+- [x] NewAPI Admin `POST /api/token/{id}/regenerate`（`0002-token-regenerate.patch`）
+- [x] `relay/interface.go` 新增 `SyncRotatePlatformKey`
+- [x] `platform_key_actions.go` 实现 Rotate（Remote-first；`key_hash` 由 repo 写入）
+- [x] 前端 `key-rotate-confirm` 去掉 501 专用分支
+- [x] HTTP：`POST /api/keys/platform/{id}/rotate` → 200 + `fullKey`；Relay 关闭 → 503；非 active → 409
 
 **验收：** rotate 成功更新 DB `full_key` / `key_prefix`；旧 secret 网关侧失效；不存在 key → 404
 

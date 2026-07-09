@@ -96,6 +96,58 @@ func TestPrivateRequiresCompanyName(t *testing.T) {
 	}
 }
 
+func setProdRelayEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("APP_PROFILE", config.ProfileProd)
+	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("COMPANY_NAME", "Acme Corp")
+	t.Setenv("NEW_API_ENABLED", "true")
+	t.Setenv("RELAY_GATEWAY_ENABLED", "true")
+	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000")
+	t.Setenv("NEW_API_ADMIN_TOKEN", "admin-token")
+	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5432/logs?sslmode=disable")
+	t.Setenv("NEW_API_WEBHOOK_SECRET", "webhook-secret")
+	t.Setenv("SESSION_SECRET", "test-session-secret")
+}
+
+func TestProdRequiresRelayGatewayEnabled(t *testing.T) {
+	setProdRelayEnv(t)
+	t.Setenv("RELAY_GATEWAY_ENABLED", "false")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when prod profile disables relay gateway")
+	}
+	if !strings.Contains(err.Error(), "RELAY_GATEWAY_ENABLED") {
+		t.Fatalf("expected RELAY_GATEWAY_ENABLED error, got %v", err)
+	}
+}
+
+func TestProdRejectsNewAPIBaseURLWithPath(t *testing.T) {
+	setProdRelayEnv(t)
+	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000/v1")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when NEW_API_BASE_URL includes a path")
+	}
+	if !strings.Contains(err.Error(), "path") {
+		t.Fatalf("expected path error, got %v", err)
+	}
+}
+
+func TestProdLoadsWithRelayEnabled(t *testing.T) {
+	setProdRelayEnv(t)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("expected prod relay config to load, got %v", err)
+	}
+	if !cfg.NewAPIEnabled || !cfg.RelayGatewayEnabled {
+		t.Fatalf("expected relay and gateway enabled, got relay=%v gateway=%v", cfg.NewAPIEnabled, cfg.RelayGatewayEnabled)
+	}
+}
+
 func TestSaaSResolvesTestCompanyName(t *testing.T) {
 	t.Setenv("APP_PROFILE", config.ProfileDemo)
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)

@@ -156,11 +156,13 @@ func isAllowedGatewayPath(path string) bool {
 
 func (g *gatewayService) proxy(w http.ResponseWriter, r *http.Request) {
 	targetURL := *g.proxyTarget
-	targetURL.RawQuery = r.URL.RawQuery
 	proxy := httputil.NewSingleHostReverseProxy(&targetURL)
-	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
+		req.URL.Scheme = g.proxyTarget.Scheme
+		req.URL.Host = g.proxyTarget.Host
+		req.URL.Path = r.URL.Path
+		req.URL.RawQuery = r.URL.RawQuery
+		req.Host = g.proxyTarget.Host
 		req.Header.Set("Authorization", r.Header.Get("Authorization"))
 	}
 	proxy.Transport = &http.Transport{DisableCompression: true}

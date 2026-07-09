@@ -34,3 +34,12 @@ func (c *Client) DeleteToken(ctx context.Context, tokenID int64) error {
 	path := "/api/token/" + strconv.FormatInt(tokenID, 10)
 	return c.do(ctx, "DELETE", path, nil, nil)
 }
+
+func (c *Client) RegenerateToken(ctx context.Context, tokenID int64) (Token, error) {
+	var token Token
+	path := "/api/token/" + strconv.FormatInt(tokenID, 10) + "/regenerate"
+	if err := c.do(ctx, "POST", path, nil, &token); err != nil {
+		return Token{}, err
+	}
+	return token, nil
+}
