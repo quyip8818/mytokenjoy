@@ -1,5 +1,7 @@
 package contract
 
+import "github.com/tokenjoy/backend/internal/pkg/common"
+
 // Demo consumption numbers shared by budget tree, platform keys, budget groups, and usage bucket scaling.
 
 var DemoLeafDeptConsumed = map[string]float64{
@@ -23,6 +25,18 @@ var DemoPlatformKeyUsed = map[string]float64{
 var DemoBudgetGroupConsumed = map[string]float64{
 	IDBudgetGroup1: 18500,
 	IDBudgetGroup4: 4200,
+}
+
+func init() {
+	ppu := float64(common.DefaultPointsPerUnit)
+	scaleMap := func(m map[string]float64) {
+		for k, v := range m {
+			m[k] = v * ppu
+		}
+	}
+	scaleMap(DemoLeafDeptConsumed)
+	scaleMap(DemoPlatformKeyUsed)
+	scaleMap(DemoBudgetGroupConsumed)
 }
 
 func DemoRootConsumed() float64 {

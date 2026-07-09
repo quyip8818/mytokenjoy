@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { BudgetProjectView, Member } from '@/api/types'
+import { formatDisplayCurrency } from '@/lib/points'
 import { BudgetMemberPicker } from './budget-member-picker'
 import { Button } from '@/components/ui/button'
 import {
@@ -144,7 +145,7 @@ export function BudgetProjectMembersSection({
                     <TableRow key={m.id} className="even:bg-muted/40 hover:bg-muted/50">
                       <TableCell className="font-medium">{m.name}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        ¥{memberConsumed.toLocaleString()}
+                        {formatDisplayCurrency(memberConsumed)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
                         {memberPct}%

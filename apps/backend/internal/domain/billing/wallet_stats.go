@@ -16,5 +16,5 @@ func (s *service) lifetimeWalletStats(ctx context.Context) (float64, int64, erro
 	if err != nil {
 		return 0, 0, fmt.Errorf("query lifetime wallet stats: %w", err)
 	}
-	return totals.CostCNY, int64(totals.CallCount), nil
+	return totals.Cost, int64(totals.CallCount), nil
 }

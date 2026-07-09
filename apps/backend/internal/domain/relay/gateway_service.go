@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -93,6 +95,17 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Company: company,
 		Model:   parseRequestModel(body),
 	}); err != nil {
+		if domainErr, ok := err.(*domain.DomainError); ok {
+			if domainErr.RetryAfter != nil {
+				w.Header().Set("Retry-After", fmt.Sprintf("%d", *domainErr.RetryAfter))
+			}
+			status := domainErr.Status
+			if status == 0 {
+				status = http.StatusForbidden
+			}
+			http.Error(w, domainErr.Message, status)
+			return
+		}
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}

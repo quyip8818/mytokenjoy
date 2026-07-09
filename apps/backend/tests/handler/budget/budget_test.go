@@ -15,7 +15,7 @@ import (
 func TestUpdateNodeHTTPSuccess(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"budget":21000,"reservedPool":1500}`)
+	body := []byte(`{"budget":21000000,"reservedPool":1500000}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -28,7 +28,7 @@ func TestUpdateNodeHTTPSuccess(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&node); err != nil {
 		t.Fatal(err)
 	}
-	if node.Budget != 21000 {
-		t.Fatalf("expected budget 21000, got %v", node.Budget)
+	if node.Budget != 21000000 {
+		t.Fatalf("expected budget 21000000, got %v", node.Budget)
 	}
 }

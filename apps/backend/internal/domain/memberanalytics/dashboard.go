@@ -108,14 +108,14 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	return DashboardView{
 		Account: AccountStats{
 			Balance:    quota.Remaining,
-			TotalSpent: summary.CostCNY,
+			TotalSpent: summary.Cost,
 		},
 		UsageStats: UsageStats{
 			RequestCount: summary.CallCount,
 			TotalCount:   summary.CallCount,
 		},
 		ResourceConsumption: ResourceConsumption{
-			TotalCost:   summary.CostCNY,
+			TotalCost:   summary.Cost,
 			TotalTokens: summary.InputTokens + summary.OutputTokens,
 		},
 		Performance: PerformanceStats{
@@ -149,7 +149,7 @@ func seriesCostByBucket(points []types.UsageSeriesPoint, loc *time.Location) []T
 	byBucket := make(map[string]float64)
 	for _, point := range points {
 		label := formatChartTime(point.Bucket, loc)
-		byBucket[label] += point.CostCNY
+		byBucket[label] += point.Cost
 	}
 	labels := make([]string, 0, len(byBucket))
 	for label := range byBucket {

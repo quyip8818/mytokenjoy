@@ -41,18 +41,8 @@ func (s *service) ListRechargeRecords(ctx context.Context) ([]RechargeRecord, er
 
 func mapRechargeOrder(order store.RechargeOrder) RechargeRecord {
 	paidAmount := 0.0
-	apiStatus := "pending"
-	switch order.Status {
-	case store.RechargeStatusToppedUp:
+	if order.Status == store.RechargeStatusConfirmed {
 		paidAmount = order.Amount
-		apiStatus = "success"
-	case store.RechargeStatusPaid:
-		paidAmount = order.Amount
-		apiStatus = "success"
-	case store.RechargeStatusPending:
-		apiStatus = "pending"
-	case store.RechargeStatusFailed:
-		apiStatus = "failed"
 	}
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
@@ -65,7 +55,7 @@ func mapRechargeOrder(order store.RechargeOrder) RechargeRecord {
 		Amount:        order.Amount,
 		PaidAmount:    paidAmount,
 		InvoiceStatus: order.InvoiceStatus,
-		Status:        apiStatus,
+		Status:        order.Status,
 		CreatedAt:     order.CreatedAt.In(loc).Format("2006-01-02 15:04:05"),
 	}
 }

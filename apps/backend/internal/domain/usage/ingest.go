@@ -15,11 +15,12 @@ import (
 )
 
 type IngestService struct {
-	cfg      config.Config
-	store    store.Store
-	logStore store.LogStore
-	notifier notification.Notifier
-	logger   *slog.Logger
+	cfg               config.Config
+	store             store.Store
+	logStore          store.LogStore
+	notifier          notification.Notifier
+	logger            *slog.Logger
+	enqueueWalletSync func(ctx context.Context, companyID int64) error
 }
 
 func NewIngestService(
@@ -28,11 +29,15 @@ func NewIngestService(
 	logStore store.LogStore,
 	notifier notification.Notifier,
 	logger *slog.Logger,
+	enqueueWalletSync func(ctx context.Context, companyID int64) error,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
 	}
-	return &IngestService{cfg: cfg, store: st, logStore: logStore, notifier: notifier, logger: logger}
+	return &IngestService{
+		cfg: cfg, store: st, logStore: logStore, notifier: notifier, logger: logger,
+		enqueueWalletSync: enqueueWalletSync,
+	}
 }
 
 func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source string) error {
@@ -77,14 +82,30 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	entry.PeriodKey = ledgerPeriodKey
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
-		inserted, err := st.Ledger().InsertOnConflict(ctx, entry)
-		if err != nil || !inserted {
+		if exists, err := st.Ledger().ExistsIdempotency(ctx, entry.IdempotencyKey); err != nil {
+			return err
+		} else if exists {
+			return nil
+		}
+		segs, err := AllocateConsumptionLots(ctx, st, company.CompanyID(ctx), entry.Amount)
+		if err != nil {
+			return err
+		}
+		ledgerEntries := LedgerSegmentsFromEntry(entry, segs)
+		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
+		if err != nil || inserted == 0 {
 			return err
 		}
 		if err := Apply(ctx, st, entry, snapshotPeriodKey); err != nil {
 			return err
 		}
-		return enqueueSideEffects(ctx, st, entry)
+		if err := enqueueSideEffects(ctx, st, entry); err != nil {
+			return err
+		}
+		if s.enqueueWalletSync != nil {
+			_ = s.enqueueWalletSync(ctx, company.CompanyID(ctx))
+		}
+		return nil
 	})
 }
 

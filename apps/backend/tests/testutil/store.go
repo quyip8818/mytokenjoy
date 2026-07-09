@@ -36,9 +36,25 @@ func clearDemoRuntimeSeed(t *testing.T, st store.Store) {
 	t.Helper()
 	pool := postgres.MainPool(st)
 	_, err := pool.Exec(context.Background(), `
-		TRUNCATE usage_buckets, company_recharge_orders RESTART IDENTITY
+		TRUNCATE company_recharge_lots, company_recharge_orders, usage_buckets RESTART IDENTITY CASCADE
 	`)
 	if err != nil {
 		t.Fatalf("clear demo runtime seed: %v", err)
+	}
+}
+
+func DrainPendingWalletSync(t *testing.T, st store.Store, companyID int64) {
+	t.Helper()
+	entries, err := st.Relay().ClaimPendingWalletSync(context.Background(), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.CompanyID != companyID {
+			continue
+		}
+		if err := st.Relay().MarkWalletSyncDone(context.Background(), entry.ID); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

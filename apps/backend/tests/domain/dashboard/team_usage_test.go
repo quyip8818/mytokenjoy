@@ -17,19 +17,19 @@ func TestTeamUsageTopModelBatch(t *testing.T) {
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		DepartmentID: contract.IDDept3,
 		Model:        "gpt-4o",
-		CostCNY:      30,
+		Cost:         30,
 		BucketStart:  base,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		DepartmentID: contract.IDDept3,
 		Model:        "gpt-4o-mini",
-		CostCNY:      5,
+		Cost:         5,
 		BucketStart:  base,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
 		DepartmentID: contract.IDDept4,
 		Model:        "claude-3",
-		CostCNY:      20,
+		Cost:         20,
 		BucketStart:  base,
 	})
 

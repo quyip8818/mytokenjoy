@@ -40,7 +40,7 @@ func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return totals.CallCount == 0 && totals.CostCNY == 0, nil
+	return totals.CallCount == 0 && totals.Cost == 0, nil
 }
 
 func buildUsageBuckets(demoToday string) []types.UsageBucketRow {
@@ -59,32 +59,32 @@ func buildUsageBuckets(demoToday string) []types.UsageBucketRow {
 		{
 			BucketStart:  time.Date(lastMonth.Year(), lastMonth.Month(), 15, 8, 0, 0, 0, time.UTC),
 			DepartmentID: contract.IDDept3, MemberID: contract.IDMember1, Model: "gpt-4o",
-			CostCNY: 5 * scale, CallCount: 85,
+			Cost: 5 * scale, CallCount: 85,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 10, 8, 0, 0, 0, time.UTC),
 			DepartmentID: contract.IDDept3, MemberID: contract.IDMember1, Model: "gpt-4o",
-			CostCNY: 12.5 * scale, CallCount: 128,
+			Cost: 12.5 * scale, CallCount: 128,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 10, 9, 0, 0, 0, time.UTC),
 			DepartmentID: contract.IDDept3, MemberID: contract.IDMember1, Model: "gpt-4o-mini",
-			CostCNY: 4 * scale, CallCount: 214,
+			Cost: 4 * scale, CallCount: 214,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 12, 10, 0, 0, 0, time.UTC),
 			DepartmentID: contract.IDDept4, MemberID: "m-4", Model: "claude-3-5-sonnet",
-			CostCNY: 8.5 * scale, CallCount: 86,
+			Cost: 8.5 * scale, CallCount: 86,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 14, 11, 0, 0, 0, time.UTC),
 			DepartmentID: contract.IDDept3, MemberID: contract.IDMemberPure, Model: "gpt-4o",
-			CostCNY: 6 * scale, CallCount: 171,
+			Cost: 6 * scale, CallCount: 171,
 		},
 		{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), 16, 14, 0, 0, 0, time.UTC),
 			DepartmentID: contract.IDDept4, MemberID: "m-4", Model: "gpt-4o",
-			CostCNY: 3.5 * scale, CallCount: 43,
+			Cost: 3.5 * scale, CallCount: 43,
 		},
 	}
 }

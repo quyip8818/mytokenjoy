@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import type { BudgetNode, Member } from '@/api/types'
 import { nodeReservedPool } from '@/features/budget'
+import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
 import { BudgetMemberPicker } from './budget-member-picker'
 import {
   Dialog,
@@ -72,8 +73,8 @@ export function BudgetProjectDialog({
       setError('请输入有效的项目额度')
       return
     }
-    if (budgetNum > available) {
-      setError(`团队可用额度为 ¥${available.toLocaleString()}，请调低项目额度`)
+    if (displayToPoints(budgetNum) > available) {
+      setError(`团队可用额度为 ${formatDisplayCurrency(available)}，请调低项目额度`)
       return
     }
 
@@ -81,7 +82,7 @@ export function BudgetProjectDialog({
     try {
       await onCreateGroup({
         name: trimmedName,
-        budget: budgetNum,
+        budget: displayToPoints(budgetNum),
         memberIds,
         departmentIds: [department.id],
       })
@@ -128,7 +129,9 @@ export function BudgetProjectDialog({
               placeholder="输入额度"
               className="h-8 text-sm tabular-nums"
             />
-            <p className="text-xs text-muted-foreground">可用额度：¥{available.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">
+              可用额度：{formatDisplayCurrency(available)}
+            </p>
           </div>
 
           <div className="grid gap-1.5">

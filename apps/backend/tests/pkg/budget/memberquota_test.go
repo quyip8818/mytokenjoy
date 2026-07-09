@@ -36,7 +36,7 @@ func TestBuildQuotaSummary(t *testing.T) {
 	if summary.Remaining != 3000 {
 		t.Fatalf("expected remaining 3000, got %v", summary.Remaining)
 	}
-	if summary.ReservedPool != 1500 {
-		t.Fatalf("expected reserved pool 1500, got %v", summary.ReservedPool)
+	if summary.ReservedPool != testutil.DisplayPoints(1500) {
+		t.Fatalf("expected reserved pool %v, got %v", testutil.DisplayPoints(1500), summary.ReservedPool)
 	}
 }

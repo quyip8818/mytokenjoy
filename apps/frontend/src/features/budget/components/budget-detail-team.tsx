@@ -6,6 +6,7 @@ import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberQuota } from './budget-edit-member-quota'
 import { BudgetProjectDialog } from './budget-project-dialog'
 import { nodeReservedPool } from '@/features/budget'
+import { formatDisplayCurrency } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
 
@@ -52,7 +53,7 @@ function SummaryCard({
               : 'mt-1 text-lg font-semibold tabular-nums text-foreground'
         }
       >
-        ¥{value.toLocaleString()}
+        {formatDisplayCurrency(value)}
       </p>
     </div>
   )
@@ -96,12 +97,12 @@ export function BudgetDetailTeam({
         <div className="mb-2 flex items-center justify-between text-xs">
           <span className="text-muted-foreground">本月消耗</span>
           <span className="font-medium tabular-nums">
-            ¥{node.consumed.toLocaleString()} / ¥{node.budget.toLocaleString()}
+            {formatDisplayCurrency(node.consumed)} / {formatDisplayCurrency(node.budget)}
           </span>
         </div>
         <Progress value={pct} className="h-2" />
         <p className="mt-1.5 text-xs text-muted-foreground">
-          已使用 {pct}%，剩余 ¥{(node.budget - node.consumed).toLocaleString()}
+          已使用 {pct}%，剩余 {formatDisplayCurrency(node.budget - node.consumed)}
         </p>
       </div>
 
@@ -159,7 +160,8 @@ export function BudgetDetailTeam({
                 >
                   <span className="flex-1 text-sm font-medium text-foreground">{project.name}</span>
                   <span className="text-xs tabular-nums text-muted-foreground">
-                    ¥{project.budget.toLocaleString()} / ¥{project.consumed.toLocaleString()}
+                    {formatDisplayCurrency(project.budget)} /{' '}
+                    {formatDisplayCurrency(project.consumed)}
                   </span>
                   <div className="w-24">
                     <Progress value={projectPct} className="h-1.5" />

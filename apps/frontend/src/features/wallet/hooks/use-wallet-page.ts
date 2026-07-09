@@ -72,9 +72,5 @@ export function useWalletPage(injectedApis?: AppApis) {
     topUpRecords,
     rechargePending,
     handleRecharge,
-    balance: wallet?.balance ?? 0,
-    currency: wallet?.currency ?? 'CNY',
-    totalConsumed: wallet?.totalConsumed ?? 0,
-    totalRequests: wallet?.totalRequests ?? 0,
   }
 }

@@ -17,9 +17,10 @@ const (
 	JobStatusDone    = "done"
 	JobStatusFailed  = "failed"
 
-	JobChannelRelay     = "relay"
-	JobChannelRebalance = "rebalance"
-	JobChannelOverrun   = "overrun"
+	JobChannelRelay      = "relay"
+	JobChannelRebalance  = "rebalance"
+	JobChannelOverrun    = "overrun"
+	JobChannelWalletSync = "wallet_sync"
 
 	OutboxStatusPending = JobStatusPending
 	OutboxStatusDone    = JobStatusDone
@@ -138,6 +139,19 @@ type OverrunQueueRepository interface {
 	MarkOverrunDone(ctx context.Context, id string) error
 }
 
+type WalletSyncQueueEntry struct {
+	ID        string
+	CompanyID int64
+	Status    string
+}
+
+type WalletSyncQueueRepository interface {
+	EnqueueWalletSync(ctx context.Context, companyID int64) error
+	ClaimPendingWalletSync(ctx context.Context, limit int) ([]WalletSyncQueueEntry, error)
+	MarkWalletSyncDone(ctx context.Context, id string) error
+	HasPendingWalletSync(ctx context.Context, companyID int64) (bool, error)
+}
+
 type RebalanceQueueRepository interface {
 	EnqueueRebalance(ctx context.Context, axisKind, axisID string) error
 	ClaimPendingRebalance(ctx context.Context, limit int) ([]RebalanceQueueEntry, error)
@@ -150,4 +164,5 @@ type RelayRepository interface {
 	RelayOutboxRepository
 	RebalanceQueueRepository
 	OverrunQueueRepository
+	WalletSyncQueueRepository
 }

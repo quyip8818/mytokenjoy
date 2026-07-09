@@ -25,16 +25,16 @@ func (r *usageRepo) UpsertBucket(ctx context.Context, row types.UsageBucketRow) 
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO usage_buckets (
 			company_id, bucket_start, department_id, member_id, model,
-			cost_cny, call_count, input_tokens, output_tokens, updated_at
+			cost, call_count, input_tokens, output_tokens, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
 		ON CONFLICT (company_id, bucket_start, department_id, member_scope, model) DO UPDATE SET
-			cost_cny = usage_buckets.cost_cny + EXCLUDED.cost_cny,
+			cost = usage_buckets.cost + EXCLUDED.cost,
 			call_count = usage_buckets.call_count + EXCLUDED.call_count,
 			input_tokens = usage_buckets.input_tokens + EXCLUDED.input_tokens,
 			output_tokens = usage_buckets.output_tokens + EXCLUDED.output_tokens,
 			updated_at = NOW()
 	`, companyID, row.BucketStart.UTC(), row.DepartmentID, memberID, row.Model,
-		row.CostCNY, row.CallCount, row.InputTokens, row.OutputTokens)
+		row.Cost, row.CallCount, row.InputTokens, row.OutputTokens)
 	return err
 }
 
@@ -108,7 +108,7 @@ func (r *usageRepo) fetchFilteredRows(
 	where, args := buildUsageWhere(companyID, start, end, departmentID, memberID, departmentIDs, scopeDeptIDs)
 	query := fmt.Sprintf(`
 		SELECT bucket_start, department_id, member_id, model,
-			cost_cny, call_count, input_tokens, output_tokens
+			cost, call_count, input_tokens, output_tokens
 		FROM usage_buckets
 		WHERE %s
 	`, where)
@@ -125,7 +125,7 @@ func (r *usageRepo) fetchFilteredRows(
 		var memberID *string
 		if err := rows.Scan(
 			&row.BucketStart, &row.DepartmentID, &memberID, &row.Model,
-			&row.CostCNY, &row.CallCount, &row.InputTokens, &row.OutputTokens,
+			&row.Cost, &row.CallCount, &row.InputTokens, &row.OutputTokens,
 		); err != nil {
 			return nil, err
 		}

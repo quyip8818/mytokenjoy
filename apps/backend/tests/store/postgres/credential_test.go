@@ -42,7 +42,7 @@ func TestUsageBucketQuerySeriesHour(t *testing.T) {
 	bucket := time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: "dept-hour", MemberID: "m-hour",
-		Model: "gpt-4o", CostCNY: 9, CallCount: 2,
+		Model: "gpt-4o", Cost: 9, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestUsageBucketQuerySeriesHour(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(points) != 1 || points[0].CostCNY != 9 {
+	if len(points) != 1 || points[0].Cost != 9 {
 		t.Fatalf("expected one hour point with cost 9, got %+v", points)
 	}
 }

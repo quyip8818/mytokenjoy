@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-func TestComputeRemainQuotaCNY(t *testing.T) {
+func TestComputeRemainQuota(t *testing.T) {
 	t.Parallel()
 	memberID := "m1"
 	groupID := "g1"
@@ -111,11 +111,11 @@ func TestComputeRemainQuotaCNY(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := domainrelay.ComputeRemainQuotaCNY(
+			got := domainrelay.ComputeRemainQuota(
 				tt.key, tt.tree, tt.members, tt.platformKeys, tt.groups, tt.departmentID,
 			)
 			if got != tt.want {
-				t.Errorf("ComputeRemainQuotaCNY() = %v, want %v", got, tt.want)
+				t.Errorf("ComputeRemainQuota() = %v, want %v", got, tt.want)
 			}
 		})
 	}

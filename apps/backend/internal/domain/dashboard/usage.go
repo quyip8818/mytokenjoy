@@ -27,7 +27,7 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	}
 	total := 0.0
 	for _, row := range rows {
-		total += row.CostCNY
+		total += row.Cost
 	}
 	catalog, err := s.store.Models().Models(ctx)
 	if err != nil {
@@ -57,11 +57,11 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 		}
 		pct := 0.0
 		if total > 0 {
-			pct = row.CostCNY / total * 100
+			pct = row.Cost / total * 100
 		}
 		result = append(result, types.ModelUsage{
 			CallType: row.Model, ModelName: displayName, Provider: provider,
-			Requests: float64(row.CallCount), Tokens: 0, Cost: row.CostCNY, Percentage: pct,
+			Requests: float64(row.CallCount), Tokens: 0, Cost: row.Cost, Percentage: pct,
 		})
 	}
 	return result, nil
@@ -98,7 +98,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	}
 	consumedByDept := make(map[string]float64, len(rows))
 	for _, row := range rows {
-		consumedByDept[row.DepartmentID] = row.CostCNY
+		consumedByDept[row.DepartmentID] = row.Cost
 	}
 	deptIDs := make([]string, 0, len(departments))
 	for _, dept := range departments {

@@ -1,11 +1,19 @@
 import { request } from './client'
 
-export interface WalletView {
-  companyId: number
+export interface WalletCurrencyView {
   currency: string
   balance: number
-  allocatable?: number
+  totalTopup: number
   totalConsumed: number
+}
+
+export interface WalletView {
+  companyId: number
+  billingCurrency: string
+  balances: WalletCurrencyView[]
+  balancePoint: number
+  giftPoints: number
+  overdraftPoints: number
   totalRequests: number
 }
 
@@ -16,7 +24,7 @@ export interface TopUpRecord {
   amount: number
   paidAmount: number
   invoiceStatus: 'none' | 'applied' | 'issued'
-  status: 'success' | 'pending' | 'failed'
+  status: 'pending' | 'confirmed' | 'failed'
   createdAt: string
 }
 

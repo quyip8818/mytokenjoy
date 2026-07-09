@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { formatDisplayCurrency } from '@/lib/points'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
 
 interface BudgetApprovalDrawerProps {
@@ -82,7 +83,7 @@ function PendingItem({
           <p className="mt-1 text-xs text-muted-foreground">{item.createdAt}</p>
         </div>
         <span className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-          ¥{item.amount.toLocaleString()}
+          {formatDisplayCurrency(item.amount)}
         </span>
       </div>
 
@@ -173,7 +174,7 @@ function ResolvedItem({ item }: { item: BudgetApproval }) {
           </p>
         </div>
         <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
-          ¥{item.amount.toLocaleString()}
+          {formatDisplayCurrency(item.amount)}
         </span>
       </div>
     </div>

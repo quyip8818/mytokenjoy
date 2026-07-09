@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/runtime"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -45,12 +46,12 @@ func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if totals.CostCNY <= 0 || totals.CallCount <= 0 {
+	if totals.Cost <= 0 || totals.CallCount <= 0 {
 		t.Fatalf("expected non-zero summary, got %+v", totals)
 	}
-	const expectedRootConsumed = 67500.0
+	expectedRootConsumed := contract.DemoRootConsumed()
 	const tolerance = 1.0
-	if totals.CostCNY < expectedRootConsumed-tolerance || totals.CostCNY > expectedRootConsumed+tolerance {
-		t.Fatalf("expected cost near %.0f, got %.2f", expectedRootConsumed, totals.CostCNY)
+	if totals.Cost < expectedRootConsumed-tolerance || totals.Cost > expectedRootConsumed+tolerance {
+		t.Fatalf("expected cost near %.0f, got %.2f", expectedRootConsumed, totals.Cost)
 	}
 }

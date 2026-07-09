@@ -39,8 +39,8 @@ func TestBillingWalletAfterPlatformRecharge(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&wallet); err != nil {
 		t.Fatal(err)
 	}
-	if wallet.Balance <= 0 {
-		t.Fatalf("expected positive wallet balance after recharge, got %v", wallet.Balance)
+	if domainbilling.PrimaryWalletBalance(wallet) <= 0 {
+		t.Fatalf("expected positive wallet balance after recharge, got %v", domainbilling.PrimaryWalletBalance(wallet))
 	}
 	if wallet.CompanyID != provisioned.Company.ID {
 		t.Fatalf("expected companyId %d, got %d", provisioned.Company.ID, wallet.CompanyID)
@@ -90,11 +90,11 @@ func TestBillingSelfRechargeConfirmFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stored.Status != store.RechargeStatusToppedUp {
-		t.Fatalf("expected topped_up, got %s", stored.Status)
+	if stored.Status != store.RechargeStatusConfirmed {
+		t.Fatalf("expected confirmed, got %s", stored.Status)
 	}
 	if testutil.PendingRebalanceCount(app.Store, provisioned.Company.ID) == 0 {
-		t.Fatal("expected rebalance after topped_up")
+		t.Fatal("expected rebalance after confirmed recharge")
 	}
 }
 
@@ -145,7 +145,8 @@ func TestBillingWalletUsesNewAPIQuota(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&wallet); err != nil {
 		t.Fatal(err)
 	}
-	if wallet.Balance < 199 || wallet.Balance > 201 {
-		t.Fatalf("expected balance ~200 after recharge, got %v", wallet.Balance)
+	balance := domainbilling.PrimaryWalletBalance(wallet)
+	if balance < 199 || balance > 201 {
+		t.Fatalf("expected balance ~200 after recharge, got %v", balance)
 	}
 }

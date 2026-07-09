@@ -15,20 +15,20 @@ func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLed
 	}
 	periodKey := snapshotPeriodKey
 
-	if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisPlatformKey, entry.PlatformKeyID, periodKey, entry.AmountCNY); err != nil {
+	if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisPlatformKey, entry.PlatformKeyID, periodKey, entry.Amount); err != nil {
 		return err
 	}
 	if entry.BudgetGroupID != nil {
-		if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisBudgetGroup, *entry.BudgetGroupID, periodKey, entry.AmountCNY); err != nil {
+		if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisBudgetGroup, *entry.BudgetGroupID, periodKey, entry.Amount); err != nil {
 			return err
 		}
 	}
 	if entry.MemberID != nil {
-		if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisMember, *entry.MemberID, periodKey, entry.AmountCNY); err != nil {
+		if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisMember, *entry.MemberID, periodKey, entry.Amount); err != nil {
 			return err
 		}
 	}
-	if err := st.BudgetSnapshots().RollupOrgNodeAncestors(ctx, entry.DepartmentID, periodKey, entry.AmountCNY); err != nil {
+	if err := st.BudgetSnapshots().RollupOrgNodeAncestors(ctx, entry.DepartmentID, periodKey, entry.Amount); err != nil {
 		return err
 	}
 
@@ -41,7 +41,7 @@ func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLed
 		DepartmentID: entry.DepartmentID,
 		MemberID:     memberID,
 		Model:        entry.Model,
-		CostCNY:      entry.AmountCNY,
+		Cost:         entry.Amount,
 		CallCount:    1,
 		InputTokens:  entry.InputTokens,
 		OutputTokens: entry.OutputTokens,

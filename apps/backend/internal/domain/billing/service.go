@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -17,17 +16,12 @@ type Service interface {
 	GetWallet(ctx context.Context) (WalletView, error)
 	ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error)
 	PlatformRecharge(ctx context.Context, companyID int64, amount float64, operatorID string) error
+	PlatformGift(ctx context.Context, companyID int64, points float64, operatorID string) error
+	PlatformAdjust(ctx context.Context, companyID int64, points float64, amountDisplay float64, operatorID string) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID string) error
-}
-
-type WalletView struct {
-	Balance       float64 `json:"balance"`
-	Allocatable   float64 `json:"allocatable"`
-	Currency      string  `json:"currency"`
-	CompanyID     int64   `json:"companyId"`
-	TotalConsumed float64 `json:"totalConsumed"`
-	TotalRequests int64   `json:"totalRequests"`
+	SyncCompanyWallet(ctx context.Context, companyID int64) error
+	ReconcileWalletDrift(ctx context.Context) error
 }
 
 type service struct {
@@ -37,6 +31,7 @@ type service struct {
 	client        newapi.AdminClient
 	wallet        company.WalletService
 	rebalanceAxis func(ctx context.Context, companyID int64) error
+	enqueueSync   func(ctx context.Context, companyID int64) error
 }
 
 func NewService(
@@ -46,36 +41,17 @@ func NewService(
 	client newapi.AdminClient,
 	wallet company.WalletService,
 	rebalanceAxis func(ctx context.Context, companyID int64) error,
+	enqueueSync func(ctx context.Context, companyID int64) error,
 ) Service {
-	return &service{cfg: cfg, store: st, reader: reader, client: client, wallet: wallet, rebalanceAxis: rebalanceAxis}
-}
-
-func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
-	companyCtx, ok := company.FromContext(ctx)
-	if !ok {
-		return WalletView{}, fmt.Errorf("company context required")
+	return &service{
+		cfg: cfg, store: st, reader: reader, client: client, wallet: wallet,
+		rebalanceAxis: rebalanceAxis, enqueueSync: enqueueSync,
 	}
-	view := WalletView{Currency: "CNY", CompanyID: companyCtx.CompanyID}
-	if companyCtx.NewAPIWalletUserID > 0 {
-		quota, err := s.wallet.AvailableQuota(ctx, companyCtx.NewAPIWalletUserID)
-		if err != nil {
-			return WalletView{}, err
-		}
-		balance := newapi.FromNewAPIUnits(quota, nil, nil)
-		view.Balance = balance
-		view.Allocatable = balance
-	}
-	consumed, requests, err := s.lifetimeWalletStats(ctx)
-	if err != nil {
-		return WalletView{}, err
-	}
-	view.TotalConsumed = consumed
-	view.TotalRequests = requests
-	return view, nil
 }
 
 func (s *service) PlatformRecharge(ctx context.Context, companyID int64, amount float64, operatorID string) error {
-	if err := s.executeRecharge(ctx, companyID, amount, store.RechargeSourcePlatform,
+	ctx = company.WithContext(ctx, company.Context{CompanyID: companyID})
+	if err := s.confirmPaidRecharge(ctx, amount, store.RechargeSourcePlatform,
 		fmt.Sprintf("platform:%s", operatorID), nil); err != nil {
 		return err
 	}
@@ -83,13 +59,43 @@ func (s *service) PlatformRecharge(ctx context.Context, companyID int64, amount 
 		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("amount=%.2f", amount))
 }
 
+func (s *service) PlatformGift(ctx context.Context, companyID int64, points float64, operatorID string) error {
+	if points <= 0 {
+		return fmt.Errorf("gift points must be positive")
+	}
+	ctx = company.WithContext(ctx, company.Context{CompanyID: companyID})
+	if err := s.confirmGiftLot(ctx, points, fmt.Sprintf("platform-gift:%s", operatorID)); err != nil {
+		return err
+	}
+	return company.AppendPlatformOperationLog(ctx, s.store, companyID, "platform.company.gift", operatorID,
+		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("points=%.0f", points))
+}
+
+func (s *service) PlatformAdjust(ctx context.Context, companyID int64, points float64, amountDisplay float64, operatorID string) error {
+	if points <= 0 {
+		return fmt.Errorf("adjust points must be positive")
+	}
+	if amountDisplay < 0 {
+		return fmt.Errorf("adjust amount display must be non-negative")
+	}
+	ctx = company.WithContext(ctx, company.Context{CompanyID: companyID})
+	if err := s.confirmAdjustLot(ctx, points, amountDisplay, fmt.Sprintf("platform-adjust:%s", operatorID)); err != nil {
+		return err
+	}
+	return company.AppendPlatformOperationLog(ctx, s.store, companyID, "platform.company.adjust", operatorID,
+		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("points=%.0f amount=%.2f", points, amountDisplay))
+}
+
 func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error) {
 	companyID := company.CompanyID(ctx)
 	now := time.Now().UTC()
 	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
 	key := idempotencyKey
+	ppu := DefaultPointsPerUnit()
 	order := store.RechargeOrder{
-		ID: orderID, CompanyID: companyID, Amount: amount, Source: store.RechargeSourceSelf,
+		ID: orderID, CompanyID: companyID, Amount: amount, Currency: "CNY",
+		PointsPerUnit: ppu, PointsGranted: PointsGrantedFromAmount(amount, ppu),
+		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending, CreatedBy: memberID,
 		DisplayOrderID: formatDisplayOrderID(now),
 		PaymentMethod:  store.PaymentMethodAlipay,
@@ -100,75 +106,4 @@ func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempo
 		return store.RechargeOrder{}, err
 	}
 	return order, nil
-}
-
-func (s *service) ConfirmPayment(ctx context.Context, orderID string) error {
-	order, err := s.store.Billing().GetRechargeOrder(ctx, orderID)
-	if err != nil {
-		return err
-	}
-	if order == nil {
-		return domain.NotFound("order not found")
-	}
-	if order.CompanyID != company.CompanyID(ctx) {
-		return domain.Forbidden("order does not belong to current company")
-	}
-	if order.Status == store.RechargeStatusToppedUp {
-		return nil
-	}
-	if err := s.store.Billing().UpdateRechargeStatus(ctx, orderID, store.RechargeStatusPaid, nil); err != nil {
-		return err
-	}
-	return s.topUpAndFinish(ctx, *order)
-}
-
-func (s *service) executeRecharge(ctx context.Context, companyID int64, amount float64, source, createdBy string, idempotencyKey *string) error {
-	now := time.Now().UTC()
-	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
-	order := store.RechargeOrder{
-		ID: orderID, CompanyID: companyID, Amount: amount, Source: source,
-		IdempotencyKey: idempotencyKey, Status: store.RechargeStatusPaid,
-		DisplayOrderID: formatDisplayOrderID(now),
-		PaymentMethod:  "",
-		InvoiceStatus:  store.InvoiceStatusNone,
-		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
-	}
-	if err := s.store.Billing().CreateRechargeOrder(ctx, order); err != nil {
-		return err
-	}
-	return s.topUpAndFinish(ctx, order)
-}
-
-func (s *service) topUpAndFinish(ctx context.Context, order store.RechargeOrder) error {
-	co, err := s.store.Company().GetByID(ctx, order.CompanyID)
-	if err != nil || co == nil || co.NewAPIWalletUserID == nil {
-		_ = s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusFailed, nil)
-		return fmt.Errorf("company wallet not configured")
-	}
-	units := newapi.ToNewAPIUnits(order.Amount, nil, nil)
-	if !s.cfg.NewAPIEnabled || s.client == nil {
-		_ = s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusFailed, nil)
-		return fmt.Errorf("newapi top-up required but relay is disabled")
-	}
-	if err := s.client.TopUp(ctx, newapi.TopUpRequest{
-		UserID: *co.NewAPIWalletUserID,
-		Quota:  units,
-		Remark: fmt.Sprintf("recharge %s", order.ID),
-	}); err != nil {
-		_ = s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusFailed, nil)
-		return err
-	}
-	ref := order.ID
-	if err := s.store.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusToppedUp, &ref); err != nil {
-		return err
-	}
-	if s.rebalanceAxis != nil {
-		companyCtx := company.WithContext(ctx, company.Context{
-			CompanyID:          co.ID,
-			NewAPIWalletUserID: *co.NewAPIWalletUserID,
-			Status:             co.Status,
-		})
-		_ = s.rebalanceAxis(companyCtx, co.ID)
-	}
-	return nil
 }

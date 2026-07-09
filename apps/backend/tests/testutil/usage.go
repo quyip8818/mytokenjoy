@@ -18,7 +18,7 @@ type UsageBucketOpts struct {
 	DepartmentID string
 	MemberID     string
 	Model        string
-	CostCNY      float64
+	Cost         float64
 	CallCount    int
 }
 
@@ -28,7 +28,7 @@ func DefaultUsageBucketOpts() UsageBucketOpts {
 		DepartmentID: contract.IDDept3,
 		MemberID:     contract.IDMember1,
 		Model:        "gpt-4o",
-		CostCNY:      1,
+		Cost:         1,
 		CallCount:    1,
 	}
 }
@@ -53,7 +53,7 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 	}
 	if err := st.Usage().UpsertBucket(Ctx(), types.UsageBucketRow{
 		BucketStart: opts.BucketStart, DepartmentID: opts.DepartmentID, MemberID: opts.MemberID,
-		Model: opts.Model, CostCNY: opts.CostCNY, CallCount: opts.CallCount,
+		Model: opts.Model, Cost: opts.Cost, CallCount: opts.CallCount,
 	}); err != nil {
 		t.Fatal(err)
 	}

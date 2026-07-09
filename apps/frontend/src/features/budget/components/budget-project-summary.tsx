@@ -2,6 +2,7 @@ import type { BudgetProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { POLICY_LABELS } from '@/features/budget'
+import { formatDisplayCurrency } from '@/lib/points'
 
 type BudgetProjectHeaderProps = {
   project: BudgetProjectView
@@ -47,7 +48,7 @@ function SummaryCard({
           highlight ? 'text-red-600' : muted ? 'text-muted-foreground' : 'text-foreground',
         )}
       >
-        ¥{value.toLocaleString()}
+        {formatDisplayCurrency(value)}
       </p>
     </div>
   )

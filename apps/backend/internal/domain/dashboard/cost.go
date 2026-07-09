@@ -35,13 +35,13 @@ func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams,
 		return types.CostSummary{}, err
 	}
 	memberCount := float64(len(members))
-	avgCostPerRequest := safeDiv(currentTotals.CostCNY, float64(currentTotals.CallCount))
-	prevAvgCostPerRequest := safeDiv(prevTotals.CostCNY, float64(prevTotals.CallCount))
-	avgCostPerMember := safeDiv(currentTotals.CostCNY, memberCount)
-	prevAvgCostPerMember := safeDiv(prevTotals.CostCNY, memberCount)
+	avgCostPerRequest := safeDiv(currentTotals.Cost, float64(currentTotals.CallCount))
+	prevAvgCostPerRequest := safeDiv(prevTotals.Cost, float64(prevTotals.CallCount))
+	avgCostPerMember := safeDiv(currentTotals.Cost, memberCount)
+	prevAvgCostPerMember := safeDiv(prevTotals.Cost, memberCount)
 	return types.CostSummary{
-		TotalCost:            currentTotals.CostCNY,
-		TotalCostMom:         mom(currentTotals.CostCNY, prevTotals.CostCNY),
+		TotalCost:            currentTotals.Cost,
+		TotalCostMom:         mom(currentTotals.Cost, prevTotals.Cost),
 		TotalTokens:          0,
 		TotalRequests:        float64(currentTotals.CallCount),
 		TotalRequestsMom:     mom(float64(currentTotals.CallCount), float64(prevTotals.CallCount)),
@@ -78,7 +78,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	}
 	total := 0.0
 	for _, row := range rows {
-		total += row.CostCNY
+		total += row.Cost
 	}
 	result := make([]types.DepartmentCost, 0, len(rows))
 	for _, row := range rows {
@@ -91,11 +91,11 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 		}
 		pct := 0.0
 		if total > 0 {
-			pct = row.CostCNY / total * 100
+			pct = row.Cost / total * 100
 		}
 		result = append(result, types.DepartmentCost{
 			DepartmentID: row.DepartmentID, DepartmentName: name,
-			Cost: row.CostCNY, Percentage: pct, HasChildren: hasChildren,
+			Cost: row.Cost, Percentage: pct, HasChildren: hasChildren,
 		})
 	}
 	return result, nil
@@ -136,7 +136,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 		}
 		result = append(result, types.DepartmentCostMember{
 			MemberID: row.MemberID, MemberName: name,
-			Cost: row.CostCNY, Requests: float64(row.CallCount), Tokens: 0,
+			Cost: row.Cost, Requests: float64(row.CallCount), Tokens: 0,
 		})
 	}
 	return result, nil
@@ -161,7 +161,7 @@ func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, 
 	result := make([]types.DailyCost, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, types.DailyCost{
-			Date: row.Bucket, Cost: row.CostCNY, Requests: float64(row.CallCount), Tokens: 0,
+			Date: row.Bucket, Cost: row.Cost, Requests: float64(row.CallCount), Tokens: 0,
 		})
 	}
 	return result, nil
@@ -206,7 +206,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 		}
 		result = append(result, types.TopConsumer{
 			MemberID: row.MemberID, MemberName: name, Department: deptName,
-			Cost: row.CostCNY, Requests: float64(row.CallCount), Tokens: 0,
+			Cost: row.Cost, Requests: float64(row.CallCount), Tokens: 0,
 		})
 	}
 	return result, nil

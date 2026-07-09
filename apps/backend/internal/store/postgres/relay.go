@@ -403,3 +403,62 @@ func (r *relayRepo) ClaimPendingOverrun(ctx context.Context, limit int) ([]store
 func (r *relayRepo) MarkOverrunDone(ctx context.Context, id string) error {
 	return r.MarkJobDone(ctx, id)
 }
+
+func walletSyncDedupeKey(companyID int64) string {
+	return fmt.Sprintf("wallet_sync:%d", companyID)
+}
+
+func (r *relayRepo) EnqueueWalletSync(ctx context.Context, companyID int64) error {
+	dedupe := walletSyncDedupeKey(companyID)
+	id := fmt.Sprintf("ws-%d-%d", companyID, time.Now().UnixNano())
+	payload, err := json.Marshal(map[string]int64{"company_id": companyID})
+	if err != nil {
+		return err
+	}
+	return r.EnqueueJob(ctx, store.AsyncJob{
+		ID:        id,
+		CompanyID: &companyID,
+		Channel:   store.JobChannelWalletSync,
+		Kind:      "wallet_sync",
+		DedupeKey: &dedupe,
+		Payload:   payload,
+		Status:    store.JobStatusPending,
+		CreatedAt: time.Now().UTC(),
+		NextRetry: time.Now().UTC(),
+	})
+}
+
+func (r *relayRepo) ClaimPendingWalletSync(ctx context.Context, limit int) ([]store.WalletSyncQueueEntry, error) {
+	jobs, err := r.ClaimPendingJobs(ctx, store.JobChannelWalletSync, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]store.WalletSyncQueueEntry, 0, len(jobs))
+	for _, j := range jobs {
+		if j.CompanyID == nil {
+			continue
+		}
+		out = append(out, store.WalletSyncQueueEntry{
+			ID:        j.ID,
+			CompanyID: *j.CompanyID,
+			Status:    j.Status,
+		})
+	}
+	return out, nil
+}
+
+func (r *relayRepo) MarkWalletSyncDone(ctx context.Context, id string) error {
+	return r.MarkJobDone(ctx, id)
+}
+
+func (r *relayRepo) HasPendingWalletSync(ctx context.Context, companyID int64) (bool, error) {
+	dedupe := walletSyncDedupeKey(companyID)
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM async_jobs
+			WHERE channel = $1 AND dedupe_key = $2 AND status = $3
+		)
+	`, store.JobChannelWalletSync, dedupe, store.JobStatusPending).Scan(&exists)
+	return exists, err
+}

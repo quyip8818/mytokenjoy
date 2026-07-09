@@ -61,7 +61,7 @@ flowchart TB
 | 部门 + 节点预算 + 路由      | `org_nodes`（HTTP 投影 `Department` / `BudgetNode` / `RoutingRule`） |
 | 平台 Key 归因               | `platform_keys`；`relay_mappings` 仅同步状态                         |
 | 消耗 SSOT / 看板 / 预检缓存 | `usage_ledger` / `usage_buckets` / `budget_snapshots`                |
-| 企业钱包余额                | NewAPI `users.quota`；Postgres 存 `newapi_wallet_user_id`            |
+| 企业钱包余额                | SSOT：`company_recharge_lots` / `balance_point`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_user_id`） |
 | SaaS 上游 Key               | 全局 `provider_keys`（无 `company_id`）                              |
 
 ---
@@ -175,11 +175,11 @@ flowchart LR
 
 ## 6. 表清单
 
-### 主库（35 张）
+### 主库（37 张）
 
 | 域     | 表                                                                                                                                                                      |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 租户   | `companies`, `company_invites`, `company_recharge_orders`, `platform_operators`                                                                                         |
+| 租户   | `companies`, `company_invites`, `company_recharge_orders`, `company_recharge_lots`, `currencies`, `platform_operators`                                                   |
 | 组织   | `org_nodes`, `members`, `roles`, `permissions`, `role_permission_grants`, `member_roles`, `org_integration`, `org_sync_logs`, `org_import_failures`                     |
 | 预算   | `budget_groups`, `budget_snapshots`, `budget_group_members`, `budget_group_departments`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `budget_approvals` |
 | 密钥   | `provider_keys`, `platform_keys`, `key_approvals`, `relay_mappings`                                                                                                     |
@@ -204,7 +204,7 @@ flowchart LR
 | `departmentId`          | = `org_nodes.id` = `members.department_id`                    |
 | `RoutingRule.id`        | = `nodeId`                                                    |
 | `sk-xxx`                | → `platform_keys.key_hash` → `relay_mappings.newapi_token_id` |
-| `newapi_wallet_user_id` | → NewAPI `users.quota`                                        |
+| `newapi_wallet_user_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `balance_point`） |
 | `TOKENJOY_COMPANY_ID`   | 平台模型源公司 ID（默认 `1`）                                 |
 | `LOCAL_COMPANY_ID`      | 本地化部署业务公司 ID（默认 `2`）                             |
 | SaaS 公司 ID            | 从 `1000000` 起分配                                            |
@@ -223,7 +223,7 @@ flowchart LR
 | 统一词                 | 含义                       | 典型计算                                    |
 | ---------------------- | -------------------------- | ------------------------------------------- |
 | **limit**（上限）      | 管理员配置的本周期可花额度 | 控制台写入                                  |
-| **consumed**（已消耗） | 本周期已累计花费（CNY）    | Ingest 累加                                 |
+| **consumed**（已消耗） | 本周期已累计花费（point）  | Ingest 累加                                 |
 | **remaining**（剩余）  | 还能花多少                 | `limit - consumed`（多为 API 计算，少落库） |
 
 ```mermaid
@@ -233,34 +233,37 @@ flowchart LR
     PQ[members.personal_quota]
     BG[budget_groups.budget]
     PKQ[platform_keys.quota]
-    WAL[NewAPI users.quota]
+    WAL[companies.balance_point / lots]
   end
 
   subgraph spend [累计 consumed]
-    BS[(budget_snapshots.consumed)]
-    UL[(usage_ledger.amount_cny)]
+    BS[(budget_snapshots.consumed point)]
+    UL[(usage_ledger.amount point)]
+    LOT[(company_recharge_lots)]
   end
 
   subgraph api [JSON 展示]
     C[consumed]
     U[used]
     R[remaining / remain]
+    W[wallet display currency]
   end
 
-  ING[Ingest] --> BS & UL
+  ING[Ingest] --> BS & UL & LOT
   BS --> C & U
   assign --> R
   BS --> R
+  LOT --> W
 ```
 
 ### 8.2 两条轴（limit 归属不同）
 
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
-| **企业钱包** | NewAPI `users.quota`                                                                   | NewAPI 侧扣减（非 Postgres 主账）       | rebalance 给 Token 分 `remain_quota` |
-| **组织预算** | `org_nodes.budget` · `personal_quota` · `budget_groups.budget` · `platform_keys.quota` | **`budget_snapshots.consumed`**（四轴） | Gateway 预检、预算树、Overrun        |
+| **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 Token     |
+| **组织预算** | `org_nodes.budget` · `personal_quota` · `budget_groups.budget` · `platform_keys.quota`（均为 point） | **`budget_snapshots.consumed`**（四轴，point） | Gateway 预检、预算树、Overrun        |
 
-组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount_cny`。
+组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费单位见 [Backend-计费单位.md](./Backend-计费单位.md)。
 
 ### 8.3 字段对照（代码名 → 统一词）
 
@@ -270,11 +273,11 @@ flowchart LR
 | **limit**     | `members.personal_quota`                                           | 成员                                | 个人可分配上限                                |
 | **limit**     | `budget_groups.budget`                                             | 预算组                              | 池额度                                        |
 | **limit**     | `platform_keys.quota`                                              | 平台 Key                            | Key 分配额                                    |
-| **limit**     | NewAPI `users.quota`                                               | 企业钱包                            | 预付资金硬顶                                  |
+| **limit**     | `companies.balance_point` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
 | **limit**     | NewAPI `remain_quota` / `relay_mappings.newapi_token_remain_quota` | Token                               | Relay 侧剩余额度（分配视图，非组织 consumed） |
-| **consumed**  | `budget_snapshots.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**                      |
-| **consumed**  | `usage_ledger.amount_cny`                                          | 单笔调用                            | 事实账本                                      |
-| **consumed**  | `usage_buckets.cost_cny`                                           | 看板聚合                            | 展示投影                                      |
+| **consumed**  | `budget_snapshots.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |
+| **consumed**  | `usage_ledger.amount`                                              | 单笔调用                            | 事实账本（point）                             |
+| **consumed**  | `usage_buckets.cost`                                               | 看板聚合                            | 展示投影（point）                             |
 | **consumed**  | JSON `consumed`                                                    | `BudgetNode` · `Department` · 看板  | 读自 snapshot                                 |
 | **consumed**  | JSON `used`                                                        | `PlatformKey` · `MemberBudgetQuota` | **与 consumed 同义**，仅 JSON 名不同          |
 | **remaining** | JSON `remaining` / `remain`                                        | `MemberQuotaSummary` 等             | 计算字段                                      |
@@ -286,11 +289,11 @@ flowchart LR
 | -------------------------- | ------------------------- | ----------------------------------------------- |
 | `used`                     | **consumed**              | 仅 Platform Key / 成员额度 API 用 `used` 字段名 |
 | `quota`（`platform_keys`） | **limit**                 | Key 分配上限                                    |
-| `quota`（NewAPI user）     | **limit**（钱包轴）       | 与企业组织 budget 独立                          |
+| `quota`（NewAPI user）     | **limit 派生缓存**（钱包轴） | 不以对外 SSOT；校准以 Postgres 为准          |
 | `remain_quota`             | **remaining**（Token）    | 不是 Postgres consumed                          |
-| `budget`                   | **limit**                 | 部门/预算组语境                                 |
-| `personalQuota`            | **limit**（成员）         | 不在 `Member` JSON，走专用 API                  |
-| `amount_cny` / `cost_cny`  | **consumed**（增量/聚合） | 账本与看板                                      |
+| `budget`                   | **limit**（point）        | 部门/预算组语境                                 |
+| `personalQuota`            | **limit**（成员，point）  | 不在 `Member` JSON，走专用 API                  |
+| `amount` / `cost` / `display_amount` | **consumed**     | point 事实 / 看板；展示币仅 `display_amount`    |
 
 ### 8.5 不在此表内的词
 
@@ -300,4 +303,4 @@ flowchart LR
 | `usage_ledger` 的 `input_tokens` / `output_tokens` | 用量计数，不是金额额度           |
 | `reserved_pool`                                    | 预留池配置，不是 consumed        |
 
-算法与入账顺序见 [Backend-预算.md](./Backend-预算.md) §1–§2。CNY 与 NewAPI quota、token 数的区别见 [Backend-计费单位.md](./Backend-计费单位.md)。
+算法与入账顺序见 [Backend-预算.md](./Backend-预算.md) §1–§2。point / 展示币 / NewAPI quota 的区别见 [Backend-计费单位.md](./Backend-计费单位.md)。

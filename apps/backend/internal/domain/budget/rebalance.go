@@ -106,13 +106,13 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	allocated := newapi.ToNewAPIUnits(
-		relay.ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, mapping.DepartmentID),
+		relay.ComputeRemainQuota(key, tree, members, platformKeys, groups, mapping.DepartmentID),
 		models,
 		effectiveIDs,
 	)
 	newRemain := allocated
 	if walletID := s.newAPIWalletUserID(ctx, mapping.CompanyID); walletID > 0 {
-		walletUnits, walletErr := s.walletAvailable(ctx, walletID, mapping, allocated)
+		walletUnits, walletErr := s.walletAvailable(ctx, mapping, allocated)
 		if walletErr == nil && walletUnits < newRemain {
 			newRemain = walletUnits
 		}
@@ -143,11 +143,16 @@ func (s *RebalanceService) newAPIWalletUserID(ctx context.Context, companyID int
 	return *company.NewAPIWalletUserID
 }
 
-func (s *RebalanceService) walletAvailable(ctx context.Context, walletID int64, mapping store.RelayMapping, allocated int64) (int64, error) {
-	quota, err := s.client.GetUserQuota(ctx, walletID)
+func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.RelayMapping, allocated int64) (int64, error) {
+	co, err := s.store.Company().GetByID(ctx, mapping.CompanyID)
+	if err != nil || co == nil {
+		return allocated, err
+	}
+	models, err := s.store.Models().Models(ctx)
 	if err != nil {
 		return allocated, err
 	}
+	walletUnits := newapi.ToQuotaUnits(co.BalancePoint, models, nil)
 	mappings, err := s.store.Relay().ListActiveMappingsByCompany(ctx, mapping.CompanyID)
 	if err != nil {
 		return allocated, err
@@ -159,7 +164,7 @@ func (s *RebalanceService) walletAvailable(ctx context.Context, walletID int64, 
 		}
 		used += *m.NewAPITokenRemainQuota
 	}
-	available := quota - used
+	available := walletUnits - used
 	if available < 0 {
 		return 0, nil
 	}

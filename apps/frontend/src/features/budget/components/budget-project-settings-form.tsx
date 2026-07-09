@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { Check, Pencil, X } from 'lucide-react'
 import { POLICY_LABELS } from '@/features/budget'
+import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 
 type BudgetProjectSettingsFormProps = {
   project: BudgetProjectView
@@ -28,7 +29,7 @@ export function BudgetProjectSettingsForm({
   const [savingSettings, setSavingSettings] = useState(false)
 
   function startEditSettings() {
-    setDraftBudget(String(project.budget))
+    setDraftBudget(String(pointsToDisplay(project.budget)))
     setSettingsError(null)
     setEditingSettings(true)
   }
@@ -45,13 +46,13 @@ export function BudgetProjectSettingsForm({
       setSettingsError('请输入有效的额度')
       return
     }
-    if (budgetNum < project.consumed) {
-      setSettingsError(`额度不能低于已消耗 ¥${project.consumed.toLocaleString()}`)
+    if (budgetNum < pointsToDisplay(project.consumed)) {
+      setSettingsError(`额度不能低于已消耗 ${formatDisplayCurrency(project.consumed)}`)
       return
     }
     setSavingSettings(true)
     try {
-      await onUpdateGroup(project.id, { budget: budgetNum })
+      await onUpdateGroup(project.id, { budget: displayToPoints(budgetNum) })
       setEditingSettings(false)
       onUpdated()
     } catch {
@@ -119,7 +120,9 @@ export function BudgetProjectSettingsForm({
                 className="h-8 text-sm tabular-nums"
               />
             ) : (
-              <p className="text-sm font-medium tabular-nums">¥{project.budget.toLocaleString()}</p>
+              <p className="text-sm font-medium tabular-nums">
+                {formatDisplayCurrency(project.budget)}
+              </p>
             )}
           </div>
 
@@ -142,7 +145,8 @@ export function BudgetProjectSettingsForm({
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>本月消耗进度</span>
               <span className="tabular-nums">
-                ¥{project.consumed.toLocaleString()} / ¥{project.budget.toLocaleString()} ({pct}%)
+                {formatDisplayCurrency(project.consumed)} / {formatDisplayCurrency(project.budget)}{' '}
+                ({pct}%)
               </span>
             </div>
           </div>

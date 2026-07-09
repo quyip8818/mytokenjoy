@@ -19,7 +19,7 @@ func TestProjectionUpsertBucketIdempotent(t *testing.T) {
 	occurred := time.Date(2026, 6, 10, 9, 30, 0, 0, time.UTC)
 	entry := types.UsageLedgerEntry{
 		ID: "ledger-1", PlatformKeyID: "plk-1", DepartmentID: "dept-3",
-		Model: "gpt-4o", AmountCNY: 1.5, OccurredAt: occurred,
+		Model: "gpt-4o", Amount: 1.5, OccurredAt: occurred,
 		PeriodKey:   pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred),
 		InputTokens: 100, OutputTokens: 50,
 	}
@@ -28,7 +28,7 @@ func TestProjectionUpsertBucketIdempotent(t *testing.T) {
 	}
 	entry2 := entry
 	entry2.ID = "ledger-2"
-	entry2.AmountCNY = 2.0
+	entry2.Amount = 2.0
 	if err := usage.Apply(ctx, st, entry2, pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred)); err != nil {
 		t.Fatal(err)
 	}
@@ -46,8 +46,8 @@ func TestProjectionUpsertBucketIdempotent(t *testing.T) {
 		t.Fatalf("expected one bucket, got %+v", points)
 	}
 	want := 3.5
-	if points[0].CostCNY != want {
-		t.Fatalf("expected aggregated cost %f, got %f", want, points[0].CostCNY)
+	if points[0].Cost != want {
+		t.Fatalf("expected aggregated cost %f, got %f", want, points[0].Cost)
 	}
 }
 
@@ -67,7 +67,7 @@ func TestProjectionUsesOrgPeriodKey(t *testing.T) {
 
 	entry := types.UsageLedgerEntry{
 		ID: "ledger-period", PlatformKeyID: contract.IDPlatformKey1, DepartmentID: contract.IDDept3,
-		Model: "gpt-4o", AmountCNY: 1.0, OccurredAt: occurred,
+		Model: "gpt-4o", Amount: 1.0, OccurredAt: occurred,
 		PeriodKey: wantPeriod,
 	}
 	if err := usage.Apply(ctx, st, entry, wantPeriod); err != nil {

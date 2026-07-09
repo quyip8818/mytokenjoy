@@ -61,7 +61,10 @@ func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbi
 	rebalanceEnqueue := func(ctx context.Context, companyID int64) error {
 		return i.store.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	}
-	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, rebalanceEnqueue)
+	enqueueWalletSync := func(ctx context.Context, companyID int64) error {
+		return i.store.Relay().EnqueueWalletSync(domaincompany.WithContext(ctx, domaincompany.Context{CompanyID: companyID}), companyID)
+	}
+	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, rebalanceEnqueue, enqueueWalletSync)
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
@@ -69,7 +72,10 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger)
+	enqueueWalletSync := func(ctx context.Context, companyID int64) error {
+		return i.store.Relay().EnqueueWalletSync(domaincompany.WithContext(ctx, domaincompany.Context{CompanyID: companyID}), companyID)
+	}
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, enqueueWalletSync)
 }
 
 func wireReader(i infra) domainusage.Reader {

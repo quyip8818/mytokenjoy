@@ -5,7 +5,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 )
 
-func ComputeRemainQuotaCNY(
+func ComputeRemainQuota(
 	key types.PlatformKey,
 	tree []types.BudgetNode,
 	members []types.Member,

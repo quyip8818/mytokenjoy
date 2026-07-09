@@ -44,8 +44,9 @@ func TestWalletIncludesUsageStats(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&wallet); err != nil {
 		t.Fatal(err)
 	}
-	if wallet.TotalConsumed <= 0 {
-		t.Fatalf("expected positive totalConsumed, got %v", wallet.TotalConsumed)
+	primary := domainbilling.PrimaryWalletBalance(wallet)
+	if primary <= 0 {
+		t.Fatalf("expected positive wallet balance, got %v", primary)
 	}
 	if wallet.TotalRequests <= 0 {
 		t.Fatalf("expected positive totalRequests, got %d", wallet.TotalRequests)

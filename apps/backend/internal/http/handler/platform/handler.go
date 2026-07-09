@@ -30,6 +30,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/companies", h.CreateCompany)
 		r.Patch("/companies/{id}", h.UpdateCompany)
 		r.Post("/companies/{id}/recharge", h.RechargeCompany)
+		r.Post("/companies/{id}/gift", h.GiftCompany)
+		r.Post("/companies/{id}/adjust", h.AdjustCompany)
 		r.Get("/channels", h.ListChannels)
 		r.Post("/channels", h.CreateChannel)
 	})
@@ -126,6 +128,47 @@ func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
 	}
 	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
 	err = h.p.BillingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
+	httputil.WriteVoid(w, err)
+}
+
+type giftBody struct {
+	Points float64 `json:"points"`
+}
+
+func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	var body giftBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	err = h.p.BillingSvc.PlatformGift(r.Context(), id, body.Points, operatorID)
+	httputil.WriteVoid(w, err)
+}
+
+type adjustBody struct {
+	Points        float64 `json:"points"`
+	AmountDisplay float64 `json:"amountDisplay"`
+}
+
+func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	var body adjustBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Points, body.AmountDisplay, operatorID)
 	httputil.WriteVoid(w, err)
 }
 

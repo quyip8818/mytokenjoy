@@ -3,16 +3,19 @@ package relay
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-const minEstimateCNY = 0.01
+const minEstimatePoint = 0.01 * float64(common.DefaultPointsPerUnit)
 
 type PrecheckInput struct {
 	Mapping *store.RelayMapping
@@ -25,13 +28,14 @@ type Prechecker interface {
 }
 
 type PrecheckService struct {
-	snapshots store.BudgetSnapshotRepository
-	orgNodes  store.OrgNodeRepository
-	budget    store.BudgetRepository
-	org       store.OrgRepository
-	keys      store.KeysRepository
-	models    store.ModelsRepository
-	wallet    domaincompany.WalletService
+	snapshots  store.BudgetSnapshotRepository
+	orgNodes   store.OrgNodeRepository
+	budget     store.BudgetRepository
+	org        store.OrgRepository
+	keys       store.KeysRepository
+	models     store.ModelsRepository
+	wallet     domaincompany.WalletService
+	walletSync store.WalletSyncQueueRepository
 }
 
 func NewPrecheckService(
@@ -42,15 +46,17 @@ func NewPrecheckService(
 	keys store.KeysRepository,
 	models store.ModelsRepository,
 	wallet domaincompany.WalletService,
+	walletSync store.WalletSyncQueueRepository,
 ) *PrecheckService {
 	return &PrecheckService{
-		snapshots: snapshots,
-		orgNodes:  orgNodes,
-		budget:    budget,
-		org:       org,
-		keys:      keys,
-		models:    models,
-		wallet:    wallet,
+		snapshots:  snapshots,
+		orgNodes:   orgNodes,
+		budget:     budget,
+		org:        org,
+		keys:       keys,
+		models:     models,
+		wallet:     wallet,
+		walletSync: walletSync,
 	}
 }
 
@@ -61,7 +67,7 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 	if domaincompany.IsRelayBlocked(in.Company.Status) {
 		return fmt.Errorf("company not active")
 	}
-	if err := p.checkWallet(ctx, in.Company); err != nil {
+	if err := p.checkBalancePoint(in.Company); err != nil {
 		return err
 	}
 	periodKey, err := pkgbudget.DepartmentPeriodKey(ctx, p.orgNodes, in.Mapping.DepartmentID, time.Now().UTC())
@@ -87,10 +93,23 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 	if err := p.checkTokenRemainQuota(in.Mapping); err != nil {
 		return err
 	}
+	if err := p.checkNewAPIWalletCap(ctx, in.Company); err != nil {
+		return err
+	}
+	if err := p.checkWalletSyncLag(ctx, in.Company); err != nil {
+		return err
+	}
 	return p.checkPlatformKey(ctx, in.Mapping, in.Model)
 }
 
-func (p *PrecheckService) checkWallet(ctx context.Context, company *store.Company) error {
+func (p *PrecheckService) checkBalancePoint(company *store.Company) error {
+	if company.BalancePoint < minEstimatePoint {
+		return fmt.Errorf("insufficient wallet balance")
+	}
+	return nil
+}
+
+func (p *PrecheckService) checkNewAPIWalletCap(ctx context.Context, company *store.Company) error {
 	if company.NewAPIWalletUserID == nil || p.wallet == nil {
 		return nil
 	}
@@ -98,9 +117,45 @@ func (p *PrecheckService) checkWallet(ctx context.Context, company *store.Compan
 	if err != nil {
 		return fmt.Errorf("wallet unavailable")
 	}
-	balanceCNY := newapi.FromNewAPIUnits(quota, nil, nil)
-	if balanceCNY < minEstimateCNY {
+	models, err := p.models.Models(ctx)
+	if err != nil {
+		return err
+	}
+	balancePoint := newapi.FromNewAPIUnits(quota, models, nil)
+	if balancePoint < minEstimatePoint {
 		return fmt.Errorf("insufficient wallet balance")
+	}
+	return nil
+}
+
+func (p *PrecheckService) checkWalletSyncLag(ctx context.Context, company *store.Company) error {
+	if p.walletSync == nil || company.NewAPIWalletUserID == nil || p.wallet == nil {
+		return nil
+	}
+	pending, err := p.walletSync.HasPendingWalletSync(ctx, company.ID)
+	if err != nil || !pending {
+		return nil
+	}
+	quota, err := p.wallet.AvailableQuota(ctx, *company.NewAPIWalletUserID)
+	if err != nil {
+		return domain.NewDomainErrorWithRetryAfter(
+			domain.StatusServiceUnavailable,
+			"wallet sync in progress",
+			common.WalletSyncRetryAfterSecs,
+		)
+	}
+	models, err := p.models.Models(ctx)
+	if err != nil {
+		return err
+	}
+	naPoint := newapi.FromNewAPIUnits(quota, models, nil)
+	drift := math.Abs(company.BalancePoint - naPoint)
+	if drift > common.WalletSyncDriftEpsilon {
+		return domain.NewDomainErrorWithRetryAfter(
+			domain.StatusServiceUnavailable,
+			"wallet sync in progress",
+			common.WalletSyncRetryAfterSecs,
+		)
 	}
 	return nil
 }
@@ -109,25 +164,25 @@ func (p *PrecheckService) checkDepartmentBudget(ctx context.Context, mapping *st
 	if mapping.DepartmentID == "" {
 		return fmt.Errorf("department not found")
 	}
-	budget, found, err := p.orgNodes.GetNodeBudget(ctx, mapping.DepartmentID)
+	limit, found, err := p.orgNodes.GetNodeBudget(ctx, mapping.DepartmentID)
 	if err != nil {
 		return err
 	}
-	if !found || budget <= 0 {
+	if !found || limit <= 0 {
 		return fmt.Errorf("budget exceeded")
 	}
 	consumed, _, err := p.snapshots.GetConsumed(ctx, store.SnapshotAxisOrgNode, mapping.DepartmentID, periodKey)
 	if err != nil {
 		return err
 	}
-	if consumed+minEstimateCNY > budget {
+	if consumed+minEstimatePoint > limit {
 		return fmt.Errorf("budget exceeded")
 	}
 	return nil
 }
 
 func (p *PrecheckService) checkBudgetGroup(ctx context.Context, groupID, periodKey string) error {
-	budget, _, found, err := p.budget.GetGroupBudget(ctx, groupID)
+	limit, _, found, err := p.budget.GetGroupBudget(ctx, groupID)
 	if err != nil {
 		return err
 	}
@@ -138,7 +193,7 @@ func (p *PrecheckService) checkBudgetGroup(ctx context.Context, groupID, periodK
 	if err != nil {
 		return err
 	}
-	if consumed+minEstimateCNY > budget {
+	if consumed+minEstimatePoint > limit {
 		return fmt.Errorf("budget exceeded")
 	}
 	return nil
@@ -156,7 +211,7 @@ func (p *PrecheckService) checkMemberQuota(ctx context.Context, memberID, period
 	if err != nil {
 		return err
 	}
-	if consumed+minEstimateCNY > quota {
+	if consumed+minEstimatePoint > quota {
 		return fmt.Errorf("budget exceeded")
 	}
 	return nil
@@ -174,7 +229,7 @@ func (p *PrecheckService) checkPlatformKeyQuota(ctx context.Context, keyID, peri
 	if err != nil {
 		return err
 	}
-	if consumed+minEstimateCNY > key.Quota {
+	if consumed+minEstimatePoint > key.Quota {
 		return fmt.Errorf("budget exceeded")
 	}
 	return nil

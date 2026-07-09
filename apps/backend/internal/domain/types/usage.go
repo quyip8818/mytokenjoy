@@ -55,7 +55,7 @@ type UsageBucketRow struct {
 	DepartmentID string
 	MemberID     string
 	Model        string
-	CostCNY      float64
+	Cost         float64
 	CallCount    int
 	InputTokens  int64
 	OutputTokens int64
@@ -77,7 +77,7 @@ type UsageSeriesPoint struct {
 	DepartmentID string  `json:"departmentId,omitempty"`
 	MemberID     string  `json:"memberId,omitempty"`
 	Model        string  `json:"model,omitempty"`
-	CostCNY      float64 `json:"costCny"`
+	Cost         float64 `json:"cost"`
 	CallCount    int     `json:"callCount"`
 	InputTokens  int64   `json:"inputTokens"`
 	OutputTokens int64   `json:"outputTokens"`
@@ -113,14 +113,14 @@ type UsageAggregateRow struct {
 	DepartmentID string
 	MemberID     string
 	Model        string
-	CostCNY      float64
+	Cost         float64
 	CallCount    int
 	InputTokens  int64
 	OutputTokens int64
 }
 
 type UsageSummaryTotals struct {
-	CostCNY      float64
+	Cost         float64
 	CallCount    int
 	InputTokens  int64
 	OutputTokens int64

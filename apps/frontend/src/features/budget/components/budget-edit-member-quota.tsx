@@ -3,6 +3,7 @@ import type { BudgetNode, BudgetProjectView } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { nodeReservedPool } from '@/features/budget'
+import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Pencil, Users, Wallet, X, Check } from 'lucide-react'
 
@@ -28,7 +29,7 @@ export function BudgetEditMemberQuota({
   const [error, setError] = useState<string | null>(null)
 
   function startEdit() {
-    setReservedDraft(String(nodeReservedPool(node)))
+    setReservedDraft(String(pointsToDisplay(nodeReservedPool(node))))
     setError(null)
     setEditing(true)
   }
@@ -47,7 +48,7 @@ export function BudgetEditMemberQuota({
   }
 
   async function handleSave() {
-    const reserved = parseFloat(reservedDraft)
+    const reserved = displayToPoints(parseFloat(reservedDraft))
     if (Number.isNaN(reserved) || reserved < 0) {
       setError('预留池余额无效')
       return
@@ -55,7 +56,7 @@ export function BudgetEditMemberQuota({
     const allocated = computeAllocated(reserved)
     if (allocated > node.budget) {
       setError(
-        `分配总额 ¥${allocated.toLocaleString()} 超出节点额度 ¥${node.budget.toLocaleString()}`,
+        `分配总额 ${formatDisplayCurrency(allocated)} 超出节点额度 ${formatDisplayCurrency(node.budget)}`,
       )
       return
     }
@@ -147,7 +148,7 @@ export function BudgetEditMemberQuota({
               />
             ) : (
               <p className="text-sm font-medium tabular-nums">
-                ¥{nodeReservedPool(node).toLocaleString()}
+                {formatDisplayCurrency(nodeReservedPool(node))}
               </p>
             )}
           </div>

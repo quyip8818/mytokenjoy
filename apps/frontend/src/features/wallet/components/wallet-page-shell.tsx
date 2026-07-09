@@ -1,6 +1,7 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import type { useWalletPage } from '@/features/wallet'
+import { walletBillingCurrency } from '../lib/selectors'
 import { RechargePanel } from './recharge-panel'
 import { RechargeRecordsTable } from './recharge-records-table'
 import { WalletStats } from './wallet-stats'
@@ -8,16 +9,13 @@ import { WalletStats } from './wallet-stats'
 type WalletPageShellProps = ReturnType<typeof useWalletPage>
 
 export function WalletPageShell({
-  balance,
-  currency,
+  wallet,
   loading,
   error,
   refresh,
   topUpRecords,
   rechargePending,
   handleRecharge,
-  totalConsumed,
-  totalRequests,
 }: WalletPageShellProps) {
   return (
     <PageShell
@@ -27,14 +25,7 @@ export function WalletPageShell({
           <p className="mt-1 text-sm text-muted-foreground">账户余额与充值管理</p>
         </div>
       }
-      stats={
-        <WalletStats
-          loading={loading}
-          balance={balance}
-          totalConsumed={totalConsumed}
-          totalRequests={totalRequests}
-        />
-      }
+      stats={<WalletStats wallet={wallet} loading={loading} />}
     >
       <DataSection
         loading={loading}
@@ -44,7 +35,7 @@ export function WalletPageShell({
         className="border-0 shadow-none"
       >
         <RechargePanel
-          currency={currency}
+          currency={walletBillingCurrency(wallet)}
           rechargePending={rechargePending}
           onRecharge={handleRecharge}
         />

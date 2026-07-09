@@ -44,6 +44,9 @@ func TestListRechargeRecordsMapsPendingStatus(t *testing.T) {
 			}
 			return
 		}
+		if record.ID == "tu-1" && record.Status != "confirmed" {
+			t.Fatalf("expected confirmed status, got %+v", record)
+		}
 	}
 	t.Fatal("expected tu-4 in records")
 }

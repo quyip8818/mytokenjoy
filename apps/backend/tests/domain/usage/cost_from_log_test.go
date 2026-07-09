@@ -8,10 +8,10 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func TestCostCNYFromLog(t *testing.T) {
+func TestCostFromLog(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{{Type: "gpt-4o", InputPrice: 1, OutputPrice: 1}}
-	cost := domainusage.CostCNYFromLog(500000, "gpt-4o", models, nil)
+	cost := domainusage.CostFromLog(500000, "gpt-4o", models, nil)
 	if cost != 2 {
 		t.Fatalf("expected cost 2, got %v", cost)
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-const validDept3Budget = 20000
+const validDept3Budget = 20000000
 
 type authzCase struct {
 	name       string

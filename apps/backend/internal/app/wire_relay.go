@@ -14,6 +14,7 @@ func wirePrecheckService(cfg config.Config, i infra) domainrelay.Prechecker {
 		i.store.Keys(),
 		i.store.Models(),
 		i.wallet,
+		i.store.Relay(),
 	)
 }
 

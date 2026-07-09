@@ -19,11 +19,11 @@ func TestToNewAPIUnitsUsesHighestWhitelistPrice(t *testing.T) {
 	}
 }
 
-func TestCostCNYFromQuota(t *testing.T) {
+func TestCostFromQuota(t *testing.T) {
 	t.Parallel()
-	cny := newapi.CostCNYFromQuota(500000, 2)
-	if cny != 2 {
-		t.Fatalf("expected 2 CNY, got %v", cny)
+	cost := newapi.CostFromQuota(500000, 2)
+	if cost != 2 {
+		t.Fatalf("expected 2, got %v", cost)
 	}
 }
 
@@ -117,7 +117,7 @@ func TestFormatModelLimits(t *testing.T) {
 	})
 }
 
-func TestModelPriceCNY(t *testing.T) {
+func TestModelPricePoint(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
@@ -125,21 +125,21 @@ func TestModelPriceCNY(t *testing.T) {
 	}
 
 	t.Run("found model", func(t *testing.T) {
-		price := newapi.ModelPriceCNY(models, []int64{1}, "gpt-4")
+		price := newapi.ModelPricePoint(models, []int64{1}, "gpt-4")
 		if price != 20 {
 			t.Errorf("expected 20, got %v", price)
 		}
 	})
 
 	t.Run("zero price returns default", func(t *testing.T) {
-		price := newapi.ModelPriceCNY(models, []int64{2}, "free")
+		price := newapi.ModelPricePoint(models, []int64{2}, "free")
 		if price <= 0 {
 			t.Errorf("expected positive default, got %v", price)
 		}
 	})
 
 	t.Run("not found returns default", func(t *testing.T) {
-		price := newapi.ModelPriceCNY(models, nil, "unknown")
+		price := newapi.ModelPricePoint(models, nil, "unknown")
 		if price <= 0 {
 			t.Errorf("expected positive default, got %v", price)
 		}

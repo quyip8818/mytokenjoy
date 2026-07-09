@@ -16,7 +16,7 @@ func makeRow(bucket time.Time, dept, member, model string, cost float64, calls i
 		DepartmentID: dept,
 		MemberID:     member,
 		Model:        model,
-		CostCNY:      cost,
+		Cost:         cost,
 		CallCount:    calls,
 		InputTokens:  int64(calls * 100),
 		OutputTokens: int64(calls * 50),
@@ -121,8 +121,8 @@ func TestSummaryTotals(t *testing.T) {
 	}
 
 	totals := usagequery.SummaryTotals(rows, start, end)
-	if totals.CostCNY != 30 {
-		t.Errorf("CostCNY = %v, want 30", totals.CostCNY)
+	if totals.Cost != 30 {
+		t.Errorf("Cost = %v, want 30", totals.Cost)
 	}
 	if totals.CallCount != 3 {
 		t.Errorf("CallCount = %v, want 3", totals.CallCount)
@@ -132,10 +132,10 @@ func TestSummaryTotals(t *testing.T) {
 func TestLimitByCost(t *testing.T) {
 	t.Parallel()
 	rows := []types.UsageAggregateRow{
-		{CostCNY: 10},
-		{CostCNY: 50},
-		{CostCNY: 30},
-		{CostCNY: 20},
+		{Cost: 10},
+		{Cost: 50},
+		{Cost: 30},
+		{Cost: 20},
 	}
 
 	t.Run("limits to top N", func(t *testing.T) {
@@ -143,8 +143,8 @@ func TestLimitByCost(t *testing.T) {
 		if len(result) != 2 {
 			t.Fatalf("expected 2, got %d", len(result))
 		}
-		if result[0].CostCNY != 50 {
-			t.Errorf("first should be highest cost 50, got %v", result[0].CostCNY)
+		if result[0].Cost != 50 {
+			t.Errorf("first should be highest cost 50, got %v", result[0].Cost)
 		}
 	})
 

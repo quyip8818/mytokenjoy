@@ -213,6 +213,7 @@ func NewPrecheckService(st store.Store, wallet company.WalletService) *domainrel
 		st.Keys(),
 		st.Models(),
 		wallet,
+		st.Relay(),
 	)
 }
 

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -71,9 +72,12 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
 	key := "idem-rt-key"
+	ppu := domainbilling.DefaultPointsPerUnit()
 
 	order := store.RechargeOrder{
-		ID: "rch-rt-1", CompanyID: 1, Amount: 99, Source: store.RechargeSourceSelf,
+		ID: "rch-rt-1", CompanyID: 1, Amount: 99, Currency: "CNY",
+		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(99, ppu),
+		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending,
 		DisplayOrderID: "ORD20260101120000",
 		PaymentMethod:  store.PaymentMethodAlipay,
@@ -87,13 +91,14 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err != nil || got == nil || got.Amount != 99 {
 		t.Fatalf("unexpected order: %+v err=%v", got, err)
 	}
-	ref := "topup-ref"
-	if err := st.Billing().UpdateRechargeStatus(ctx, order.ID, store.RechargeStatusToppedUp, &ref); err != nil {
+	order.Status = store.RechargeStatusConfirmed
+	lot := domainbilling.BuildPaidLot(order, "CNY", ppu)
+	if err := st.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
 	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)
-	if err != nil || got.Status != store.RechargeStatusToppedUp {
-		t.Fatalf("expected topped_up, got %+v", got)
+	if err != nil || got.Status != store.RechargeStatusConfirmed {
+		t.Fatalf("expected confirmed, got %+v", got)
 	}
 	orders, err := st.Billing().ListRechargeOrders(ctx, 1)
 	if err != nil {

@@ -1,6 +1,6 @@
 # TokenJoy Backend
 
-`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `apps/backend/seed/`（见 [Backend-seed.md](./Backend-seed.md)）；Postgres 主库 **35** 表 + 日志库 **3** 表；消耗 SSOT 为 `usage_ledger`。
+`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `apps/backend/seed/`（见 [Backend-seed.md](./Backend-seed.md)）；Postgres 主库 **37** 表（含 `currencies`、`company_recharge_lots`）+ 日志库 **3** 表；消耗 SSOT 为 `usage_ledger`。
 
 差距与计划见 [Roadmap.md](./Roadmap.md)；工程待办见 [plan.md](./plan.md)。
 
@@ -11,8 +11,8 @@
 | 文档                                         | 内容                                                       |
 | -------------------------------------------- | ---------------------------------------------------------- |
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
-| [Backend-存储架构.md](./Backend-存储架构.md) | 双库 35+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
-| [Backend-计费单位.md](./Backend-计费单位.md) | 计费单位、币种目录、Money 与 relay 点数换算                |
+| [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
+| [Backend-计费单位.md](./Backend-计费单位.md) | point + lot 新账本；钱包 SSOT、展示币闭合、破坏性更新      |
 | [Backend-模型目录实现.md](./Backend-模型目录实现.md) | 同表双角色：平台模型源 + 租户自有模型；全局内置对租户永远存在、不可禁用 |
 | [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 终态架构：管理面 `modelId`、Relay/审计 `callType`；`ModelRef` enrich |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
@@ -43,11 +43,11 @@
 | 决策                 | 结论                                       |
 | -------------------- | ------------------------------------------ |
 | NewAPI 企业隔离      | 单集群；每企业一个 `newapi_wallet_user_id` |
-| 计费主账             | 企业钱包 `users.quota`；充值只进钱包       |
+| 计费主账             | Postgres `company_recharge_lots` + ledger；NewAPI `users.quota` 为派生缓存 |
 | 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Relay 运行时仍用 `callType` |
-| Token `remain_quota` | 分配视图；`rebalance` 保证 Σ ≤ 钱包        |
-| 双轴                 | 钱包=预付资金；部门 budget=组织内花费配额  |
-| Gateway              | 预检后透传 NewAPI                          |
+| Token `remain_quota` | 分配视图；`rebalance` 按 Postgres `balance_point` 封顶 |
+| 双轴                 | 钱包=预付 point（lot）；部门 budget=组织内 point 配额 |
+| Gateway              | 预检（Postgres 优先）后透传 NewAPI         |
 
 计费双轴与 Ingest 详见 [Backend-预算.md](./Backend-预算.md)。
 
@@ -114,7 +114,7 @@ sequenceDiagram
     end
 ```
 
-充值 `company_recharge_orders`：`pending` → `paid` → `topped_up` → 企业级 rebalance。平台 API 见 [Frontend.md](./Frontend.md) §5.5。
+充值 `company_recharge_orders`：`pending` → `confirmed`（写 lot）→ 异步派生同步 NewAPI → 企业级 rebalance。详情见 [Backend-计费单位.md](./Backend-计费单位.md)。平台 API 见 [Frontend.md](./Frontend.md) §5.5。
 
 ### 2.5 Keys 域约束（Platform Key / Relay）
 

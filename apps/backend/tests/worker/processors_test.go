@@ -48,7 +48,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 25000)
+	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	payload, err := json.Marshal(map[string]string{

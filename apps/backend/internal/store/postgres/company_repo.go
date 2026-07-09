@@ -17,26 +17,38 @@ func newCompanyRepo(db dbQuerier) *companyRepo {
 
 func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
+			billing_currency, fifo_head_lot_id, balance_point,
+			created_at, updated_at
 		FROM companies WHERE id = $1
 	`, id)
-	return scanCompany(row)
+	return scanCompanyExtended(row)
 }
 
 func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
+			billing_currency, fifo_head_lot_id, balance_point,
+			created_at, updated_at
 		FROM companies WHERE slug = $1
 	`, slug)
-	return scanCompany(row)
+	return scanCompanyExtended(row)
 }
 
 func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
+	if company.BillingCurrency == "" {
+		company.BillingCurrency = "CNY"
+	}
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO companies (id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO companies (
+			id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
+			billing_currency, fifo_head_lot_id, balance_point,
+			created_at, updated_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`, company.ID, company.Slug, company.Name, company.Status, company.RootDeptID,
-		company.NewAPIWalletUserID, company.PackageID, company.AuthzRevision, company.CreatedAt, company.UpdatedAt)
+		company.NewAPIWalletUserID, company.PackageID, company.AuthzRevision,
+		company.BillingCurrency, company.FIFOHeadLotID, company.BalancePoint,
+		company.CreatedAt, company.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create company: %w", err)
 	}
@@ -69,7 +81,9 @@ func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id int64, rootDeptID
 
 func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision, created_at, updated_at
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
+			billing_currency, fifo_head_lot_id, balance_point,
+			created_at, updated_at
 		FROM companies ORDER BY id
 	`)
 	if err != nil {
@@ -78,7 +92,7 @@ func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	defer rows.Close()
 	var companies []store.Company
 	for rows.Next() {
-		t, err := scanCompanyRow(rows)
+		t, err := scanCompanyExtended(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -89,16 +103,6 @@ func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 
 type scannable interface {
 	Scan(dest ...any) error
-}
-
-func scanCompany(row scannable) (*store.Company, error) {
-	var c store.Company
-	err := row.Scan(&c.ID, &c.Slug, &c.Name, &c.Status, &c.RootDeptID,
-		&c.NewAPIWalletUserID, &c.PackageID, &c.AuthzRevision, &c.CreatedAt, &c.UpdatedAt)
-	if err != nil {
-		return nil, err
-	}
-	return &c, nil
 }
 
 func (r *companyRepo) GetAuthzRevision(ctx context.Context, id int64) (int64, error) {
@@ -117,10 +121,37 @@ func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id int64) (int64, e
 	return revision, err
 }
 
-func scanCompanyRow(rows interface {
-	Scan(dest ...any) error
-}) (*store.Company, error) {
-	return scanCompany(rows)
+func (r *companyRepo) LockForUpdate(ctx context.Context, id int64) (*store.Company, error) {
+	row := r.db.QueryRow(ctx, `
+		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
+			billing_currency, fifo_head_lot_id, balance_point,
+			created_at, updated_at
+		FROM companies WHERE id = $1 FOR UPDATE
+	`, id)
+	return scanCompanyExtended(row)
+}
+
+func (r *companyRepo) UpdateWalletPoint(ctx context.Context, id int64, balancePoint float64, fifoHeadLotID *string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE companies SET
+			balance_point = $2,
+			fifo_head_lot_id = COALESCE($3, fifo_head_lot_id),
+			updated_at = NOW()
+		WHERE id = $1
+	`, id, balancePoint, fifoHeadLotID)
+	return err
+}
+
+func scanCompanyExtended(row scannable) (*store.Company, error) {
+	var c store.Company
+	err := row.Scan(&c.ID, &c.Slug, &c.Name, &c.Status, &c.RootDeptID,
+		&c.NewAPIWalletUserID, &c.PackageID, &c.AuthzRevision,
+		&c.BillingCurrency, &c.FIFOHeadLotID, &c.BalancePoint,
+		&c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 var _ store.CompanyRepository = (*companyRepo)(nil)

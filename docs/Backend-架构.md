@@ -273,7 +273,7 @@ flowchart TB
 | ------------------ | --------------- | ----------------------------------------- |
 | `TokenLifecycle`   | `domain/relay`  | Create/Update/Disable Token；同步 Channel |
 | `IngestService`    | `domain/usage`  | Webhook 入账（不依赖 Lifecycle）          |
-| `RebalanceService` | `domain/budget` | CNY → `remain_quota`                      |
+| `RebalanceService` | `domain/budget` | point → `remain_quota`（封顶 Postgres 钱包） |
 | `OverrunService`   | `domain/budget` | 超限封禁 Key                              |
 | `PrecheckService`  | `domain/relay`  | Gateway 预检                              |
 

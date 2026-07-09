@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -21,7 +22,20 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	if len(orders) > 0 {
 		return nil
 	}
+	ppu := domainbilling.DefaultPointsPerUnit()
+	currency := "CNY"
 	for _, order := range buildSeedRechargeOrders() {
+		order.Currency = currency
+		order.PointsPerUnit = ppu
+		order.PointsGranted = domainbilling.PointsGrantedFromAmount(order.Amount, ppu)
+		order.LotKind = store.LotKindPaid
+		if order.Status == store.RechargeStatusConfirmed {
+			lot := domainbilling.BuildPaidLot(order, currency, ppu)
+			if err := st.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+				return fmt.Errorf("seed recharge lot %s: %w", order.ID, err)
+			}
+			continue
+		}
 		if err := st.Billing().CreateRechargeOrder(ctx, order); err != nil {
 			return fmt.Errorf("seed recharge order %s: %w", order.ID, err)
 		}
@@ -43,11 +57,11 @@ func buildSeedRechargeOrders() []store.RechargeOrder {
 		paymentMethod  string
 		invoiceStatus  string
 	}{
-		{"tu-1", 100, store.RechargeStatusToppedUp, "2026-06-19 14:30:00", "ORD202606190001", store.PaymentMethodAlipay, store.InvoiceStatusNone},
-		{"tu-2", 50, store.RechargeStatusToppedUp, "2026-06-18 10:15:00", "ORD202606180002", store.PaymentMethodWechat, store.InvoiceStatusApplied},
-		{"tu-3", 200, store.RechargeStatusToppedUp, "2026-06-15 09:00:00", "ORD202606150003", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
+		{"tu-1", 100, store.RechargeStatusConfirmed, "2026-06-19 14:30:00", "ORD202606190001", store.PaymentMethodAlipay, store.InvoiceStatusNone},
+		{"tu-2", 50, store.RechargeStatusConfirmed, "2026-06-18 10:15:00", "ORD202606180002", store.PaymentMethodWechat, store.InvoiceStatusApplied},
+		{"tu-3", 200, store.RechargeStatusConfirmed, "2026-06-15 09:00:00", "ORD202606150003", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
 		{"tu-4", 20, store.RechargeStatusPending, "2026-06-12 16:45:00", "ORD202606120004", store.PaymentMethodWechat, store.InvoiceStatusNone},
-		{"tu-5", 500, store.RechargeStatusToppedUp, "2026-06-10 08:20:00", "ORD202606100005", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
+		{"tu-5", 500, store.RechargeStatusConfirmed, "2026-06-10 08:20:00", "ORD202606100005", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
 	}
 	orders := make([]store.RechargeOrder, 0, len(specs))
 	for _, spec := range specs {
@@ -67,10 +81,6 @@ func buildSeedRechargeOrders() []store.RechargeOrder {
 			CreatedBy:      contract.IDMemberAdmin,
 			CreatedAt:      createdAt.UTC(),
 			UpdatedAt:      createdAt.UTC(),
-		}
-		if spec.status == store.RechargeStatusToppedUp {
-			ref := spec.id
-			order.NewAPITopupRef = &ref
 		}
 		orders = append(orders, order)
 	}

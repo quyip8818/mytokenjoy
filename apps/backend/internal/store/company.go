@@ -19,6 +19,9 @@ type Company struct {
 	NewAPIWalletUserID *int64
 	PackageID          *string
 	AuthzRevision      int64
+	BillingCurrency    string
+	FIFOHeadLotID      *string
+	BalancePoint       float64
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }
@@ -34,4 +37,6 @@ type CompanyRepository interface {
 	GetAuthzRevision(ctx context.Context, id int64) (int64, error)
 	BumpAuthzRevision(ctx context.Context, id int64) (int64, error)
 	List(ctx context.Context) ([]Company, error)
+	LockForUpdate(ctx context.Context, id int64) (*Company, error)
+	UpdateWalletPoint(ctx context.Context, id int64, balancePoint float64, fifoHeadLotID *string) error
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/domain/relay"
@@ -16,20 +17,22 @@ import (
 )
 
 type Runner struct {
-	cfg            config.Config
-	relayOutbox    store.RelayOutboxRepository
-	rebalanceQueue store.RebalanceQueueRepository
-	overrunQueue   store.OverrunQueueRepository
-	schedulerLock  store.SchedulerLockRepository
-	relaySync      relay.RelayOutboxSync
-	overrun        domainbudget.OverrunProcessor
-	rebalance      domainbudget.Rebalancer
-	syncSvc        domainorg.SyncService
-	ingestWorker   *IngestWorker
-	logger         *slog.Logger
-	interval       time.Duration
-	syncEvery      time.Duration
-	syncTick       time.Duration
+	cfg             config.Config
+	relayOutbox     store.RelayOutboxRepository
+	rebalanceQueue  store.RebalanceQueueRepository
+	overrunQueue    store.OverrunQueueRepository
+	walletSyncQueue store.WalletSyncQueueRepository
+	schedulerLock   store.SchedulerLockRepository
+	relaySync       relay.RelayOutboxSync
+	overrun         domainbudget.OverrunProcessor
+	rebalance       domainbudget.Rebalancer
+	walletSync      billingWalletSync
+	syncSvc         domainorg.SyncService
+	ingestWorker    *IngestWorker
+	logger          *slog.Logger
+	interval        time.Duration
+	syncEvery       time.Duration
+	syncTick        time.Duration
 }
 
 func NewRunner(
@@ -43,6 +46,7 @@ func NewRunner(
 	failureRecorder domainusage.FailureRecorder,
 	overrun domainbudget.OverrunProcessor,
 	rebalance domainbudget.Rebalancer,
+	billingSvc domainbilling.Service,
 	syncSvc domainorg.SyncService,
 	logger *slog.Logger,
 ) *Runner {
@@ -57,15 +61,17 @@ func NewRunner(
 	}
 	holderID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
 	return &Runner{
-		cfg:            cfg,
-		relayOutbox:    relayRepo,
-		rebalanceQueue: relayRepo,
-		overrunQueue:   relayRepo,
-		schedulerLock:  schedulerLock,
-		relaySync:      relaySync,
-		overrun:        overrun,
-		rebalance:      rebalance,
-		syncSvc:        syncSvc,
+		cfg:             cfg,
+		relayOutbox:     relayRepo,
+		rebalanceQueue:  relayRepo,
+		overrunQueue:    relayRepo,
+		walletSyncQueue: relayRepo,
+		schedulerLock:   schedulerLock,
+		relaySync:       relaySync,
+		overrun:         overrun,
+		rebalance:       rebalance,
+		walletSync:      billingWalletSync{svc: billingSvc},
+		syncSvc:         syncSvc,
 		ingestWorker: NewIngestWorker(
 			cfg, logStore, ingest, metrics, schedulerLock, failureRecorder, logger, holderID, cfg.IngestReconcileInterval(),
 		),
@@ -122,6 +128,8 @@ func (r *Runner) relayLoop(ctx context.Context) {
 
 func (r *Runner) relayTick(ctx context.Context) {
 	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
+	r.logStep("wallet_sync", r.processWalletSync(ctx))
+	r.logStep("wallet_reconcile", r.processWalletReconcile(ctx))
 	r.logStep("rebalance", r.processRebalance(ctx))
 	r.logStep("overrun", r.processOverrun(ctx))
 }

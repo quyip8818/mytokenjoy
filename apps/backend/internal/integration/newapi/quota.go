@@ -34,21 +34,21 @@ func HighestModelPriceCNY(models []types.ModelInfo, allowedIDs []int64) float64 
 		}
 	}
 	if highest <= 0 {
-		return common.DefaultModelPriceCNY
+		return common.DefaultModelPricePoint
 	}
 	return highest
 }
 
-func CostCNYFromQuota(quota int64, modelPriceCNY float64) float64 {
-	return float64(quota) / float64(common.QuotaPerUnit) * modelPriceCNY
+func CostFromQuota(quota int64, modelPricePoint float64) float64 {
+	return float64(quota) / float64(common.QuotaPerUnit) * modelPricePoint
 }
 
-func ToNewAPIUnits(cnyRemaining float64, models []types.ModelInfo, allowedIDs []int64) int64 {
-	if cnyRemaining <= 0 {
+func ToNewAPIUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs []int64) int64 {
+	if pointRemaining <= 0 {
 		return 0
 	}
 	price := HighestModelPriceCNY(models, allowedIDs)
-	units := cnyRemaining / price * float64(common.QuotaPerUnit)
+	units := pointRemaining / price * float64(common.QuotaPerUnit)
 	if units < 0 {
 		return 0
 	}
@@ -63,6 +63,14 @@ func FromNewAPIUnits(units int64, models []types.ModelInfo, allowedIDs []int64) 
 	return float64(units) / float64(common.QuotaPerUnit) * price
 }
 
+func ToQuotaUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs []int64) int64 {
+	return ToNewAPIUnits(pointRemaining, models, allowedIDs)
+}
+
+func FromQuotaUnits(units int64, models []types.ModelInfo, allowedIDs []int64) float64 {
+	return FromNewAPIUnits(units, models, allowedIDs)
+}
+
 func FormatModelLimits(callTypes []string) string {
 	if len(callTypes) == 0 {
 		return ""
@@ -70,13 +78,13 @@ func FormatModelLimits(callTypes []string) string {
 	return strings.Join(callTypes, ",")
 }
 
-func ModelPriceCNY(models []types.ModelInfo, allowedIDs []int64, callType string) float64 {
+func ModelPricePoint(models []types.ModelInfo, allowedIDs []int64, callType string) float64 {
 	if resolved, ok := modelcatalog.ResolveIDForCallType(models, allowedIDs, callType); ok {
 		byID := modelcatalog.IndexByID(models)
 		if model, found := byID[*resolved]; found {
 			price := model.InputPrice + model.OutputPrice
 			if price <= 0 {
-				return common.DefaultModelPriceCNY
+				return common.DefaultModelPricePoint
 			}
 			return price
 		}
@@ -85,12 +93,12 @@ func ModelPriceCNY(models []types.ModelInfo, allowedIDs []int64, callType string
 		if model.Type == callType {
 			price := model.InputPrice + model.OutputPrice
 			if price <= 0 {
-				return common.DefaultModelPriceCNY
+				return common.DefaultModelPricePoint
 			}
 			return price
 		}
 	}
-	return common.DefaultModelPriceCNY
+	return common.DefaultModelPricePoint
 }
 
 func EffectiveWhitelistIDs(keyWhitelist, deptAllowed []int64) []int64 {

@@ -91,6 +91,13 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			}
 			return nil, err
 		}
+		if err := runtime.ApplyUsageLedger(ctx, s, cfg); err != nil {
+			pool.Close()
+			if s.logPool != nil {
+				s.logPool.Close()
+			}
+			return nil, err
+		}
 	}
 	s.relay = newRelayRepo(pool)
 	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID)

@@ -15,29 +15,30 @@ import (
 func TestUpdateNodeSuccess(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	reserved := 1500.0
-	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, 21000, &reserved)
+	reserved := testutil.DisplayPoints(1500)
+	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, testutil.DisplayPoints(21000), &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Budget != 21000 {
-		t.Fatalf("expected budget 21000, got %v", updated.Budget)
+	wantBudget := testutil.DisplayPoints(21000)
+	if updated.Budget != wantBudget {
+		t.Fatalf("expected budget %v, got %v", wantBudget, updated.Budget)
 	}
 	nodeTree, err := common.LoadBudgetTree(testutil.Ctx(), st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
 	node := pkgbudget.FindBudgetNode(nodeTree, contract.IDDept3)
-	if node == nil || node.Budget != 21000 {
-		t.Fatalf("expected persisted budget 21000, got %+v", node)
+	if node == nil || node.Budget != wantBudget {
+		t.Fatalf("expected persisted budget %v, got %+v", wantBudget, node)
 	}
 }
 
 func TestUpdateNodeOversell(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	reserved := 1500.0
-	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, 90000, &reserved)
+	reserved := testutil.DisplayPoints(1500)
+	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, testutil.DisplayPoints(90000), &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 

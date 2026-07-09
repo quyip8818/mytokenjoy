@@ -1,3 +1,11 @@
+CREATE TABLE IF NOT EXISTS currencies (
+    currency         CHAR(3) PRIMARY KEY,
+    points_per_unit  BIGINT NOT NULL CHECK (points_per_unit > 0),
+    enabled          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Global: companies
 CREATE TABLE IF NOT EXISTS companies (
     id                        BIGINT PRIMARY KEY,
@@ -8,6 +16,9 @@ CREATE TABLE IF NOT EXISTS companies (
     newapi_wallet_user_id     BIGINT,
     package_id                TEXT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
+    billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),
+    fifo_head_lot_id          TEXT,
+    balance_point             NUMERIC(28, 10) NOT NULL DEFAULT 0,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -38,18 +49,57 @@ CREATE TABLE IF NOT EXISTS platform_operators (
 CREATE TABLE IF NOT EXISTS company_recharge_orders (
     id               TEXT PRIMARY KEY,
     company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    amount           NUMERIC(18, 6) NOT NULL,
+    amount           NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    currency         CHAR(3) NOT NULL,
+    points_per_unit  BIGINT NOT NULL,
+    points_granted   NUMERIC(28, 10) NOT NULL,
     source           TEXT NOT NULL,
+    lot_kind         TEXT NOT NULL,
     idempotency_key  TEXT,
-    newapi_topup_ref TEXT,
+    newapi_sync_ref  TEXT,
     status           TEXT NOT NULL DEFAULT 'pending',
-    display_order_id TEXT NOT NULL,
+    display_order_id TEXT NOT NULL DEFAULT '',
     payment_method   TEXT NOT NULL DEFAULT '',
     invoice_status   TEXT NOT NULL DEFAULT 'none',
     created_by       TEXT NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (lot_kind IN ('paid', 'gift', 'adjust', 'overdraft')),
+    CHECK (points_granted > 0),
+    CHECK (
+        (lot_kind = 'paid' AND amount > 0)
+        OR (lot_kind IN ('gift', 'overdraft') AND amount = 0)
+        OR (lot_kind = 'adjust')
+    )
 );
+
+CREATE TABLE IF NOT EXISTS company_recharge_lots (
+    id                 TEXT PRIMARY KEY,
+    company_id         BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    recharge_order_id  TEXT NOT NULL UNIQUE REFERENCES company_recharge_orders (id),
+    billing_currency   CHAR(3) NOT NULL,
+    lot_kind           TEXT NOT NULL,
+    amount_display     NUMERIC(18, 6) NOT NULL,
+    points_granted     NUMERIC(28, 10) NOT NULL,
+    points_remaining   NUMERIC(28, 10) NOT NULL,
+    unit_price_display NUMERIC(28, 18) NOT NULL,
+    status             TEXT NOT NULL DEFAULT 'active',
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (lot_kind IN ('paid', 'gift', 'adjust', 'overdraft')),
+    CHECK (points_granted > 0),
+    CHECK (points_remaining >= 0 AND points_remaining <= points_granted),
+    CHECK (unit_price_display >= 0),
+    CHECK (
+        (lot_kind IN ('gift', 'overdraft') AND amount_display = 0 AND unit_price_display = 0)
+        OR (lot_kind = 'paid' AND amount_display > 0 AND unit_price_display > 0)
+        OR (lot_kind = 'adjust' AND amount_display >= 0 AND unit_price_display >= 0)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_recharge_lots_fifo
+    ON company_recharge_lots (company_id, created_at)
+    WHERE status = 'active' AND points_remaining > 0;
 
 CREATE INDEX IF NOT EXISTS idx_company_recharge_orders_company ON company_recharge_orders (company_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_company_recharge_orders_idempotency
@@ -391,7 +441,11 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     event_type       TEXT NOT NULL,
     idempotency_key  TEXT NOT NULL,
-    amount_cny       NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    segment_index    INT NOT NULL DEFAULT 0,
+    lot_id           TEXT NOT NULL REFERENCES company_recharge_lots (id),
+    amount           NUMERIC(28, 10) NOT NULL DEFAULT 0,
+    display_amount   NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    billing_currency CHAR(3) NOT NULL,
     department_id    TEXT NOT NULL,
     member_id        TEXT,
     budget_group_id  TEXT,
@@ -409,7 +463,7 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     call_detail      JSONB NOT NULL DEFAULT '{}',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id, occurred_at),
-    UNIQUE (company_id, idempotency_key, occurred_at)
+    UNIQUE (company_id, idempotency_key, lot_id, occurred_at)
 ) PARTITION BY RANGE (occurred_at);
 
 CREATE INDEX IF NOT EXISTS idx_usage_ledger_call_settled_occurred
@@ -433,7 +487,7 @@ CREATE TABLE IF NOT EXISTS usage_buckets (
     member_id     TEXT,
     member_scope  TEXT GENERATED ALWAYS AS (COALESCE(member_id, '')) STORED,
     model         TEXT NOT NULL,
-    cost_cny      NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    cost          NUMERIC(28, 10) NOT NULL DEFAULT 0,
     call_count    INT NOT NULL DEFAULT 0,
     input_tokens  BIGINT NOT NULL DEFAULT 0,
     output_tokens BIGINT NOT NULL DEFAULT 0,

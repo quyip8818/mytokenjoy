@@ -38,6 +38,7 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 		r.IngestFailureRecorder,
 		r.Overrun,
 		r.Rebalance,
+		r.BillingSvc,
 		r.OrgSync,
 		logger,
 	)

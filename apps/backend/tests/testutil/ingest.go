@@ -15,5 +15,5 @@ func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *usage.In
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
-	return usage.NewIngestService(cfg, st, st.Logs(), notifier, logger)
+	return usage.NewIngestService(cfg, st, st.Logs(), notifier, logger, nil)
 }

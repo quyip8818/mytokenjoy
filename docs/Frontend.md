@@ -744,29 +744,36 @@ HTTP 非 2xx 时，body 应包含：
 
 | 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                              |
 | ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | --------------------------------- |
-| GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 NewAPI 企业钱包                |
+| GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 Postgres lot 钱包（展示币闭合） |
 | POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202** |
-| POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并入账（demo / 回调模拟） |
+| POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并写 lot（demo / 回调模拟） |
 
-**`WalletSummary`**
+**`WalletSummary`**（破坏性；详见 [Backend-计费单位.md](./Backend-计费单位.md)）
 
-| 字段          | 类型     | 说明                                 |
-| ------------- | -------- | ------------------------------------ |
-| `balance`     | `number` | 企业钱包余额（CNY）                  |
-| `allocatable` | `number` | 可分配到 Token 的上限（≤ `balance`） |
-| `currency`    | `'CNY'`  | 固定                                 |
-| `companyId`   | `number` | 企业 ID                              |
+| 字段              | 类型                 | 说明 |
+| ----------------- | -------------------- | ---- |
+| `companyId`       | `number`             | 企业 ID |
+| `billingCurrency` | `string`             | 当前租户默认展示币 |
+| `balances`        | `WalletCurrency[]`   | 按币种余额列表 |
+| `balancePoint`    | `number`             | 全 lot 剩余 point |
+| `giftPoints`      | `number`             | gift lot 剩余 point |
+| `overdraftPoints` | `number`             | overdraft lot 累计 point |
+
+**`WalletCurrency`**：`currency` / `balance` / `totalTopup` / `totalConsumed`；同币种满足 `totalTopup - totalConsumed = balance`。前端以 `balances[]` 为唯一展示数据源。
+
+**预算 API（首版）：** JSON 字段 `budget` / `consumed` / `quota` 均为 **point**；前端展示时 `÷ PPU(1000)` 换算为 ¥，提交时 `× PPU` 写回。详见 [Backend-计费单位.md](./Backend-计费单位.md) §6.2。
 
 **`RechargeOrder`**
 
-| 字段        | 类型                                             | 说明               |
-| ----------- | ------------------------------------------------ | ------------------ |
-| `id`        | `string`                                         | 订单 ID            |
-| `companyId` | `number`                                         | 企业               |
-| `amount`    | `number`                                         | CNY                |
-| `status`    | `'pending' \| 'paid' \| 'topped_up' \| 'failed'` | 见后端 §3.4 状态机 |
-| `source`    | `string`                                         | `self` / 支付渠道  |
-| `createdAt` | `string`                                         | ISO 8601           |
+| 字段        | 类型                                    | 说明               |
+| ----------- | --------------------------------------- | ------------------ |
+| `id`        | `string`                                | 订单 ID            |
+| `companyId` | `number`                                | 企业               |
+| `amount`    | `number`                                | 支付金额           |
+| `currency`  | `string`                                | 支付币种           |
+| `status`    | `'pending' \| 'confirmed' \| 'failed'`  | 写 lot 后为 confirmed |
+| `source`    | `string`                                | `self` / 支付渠道  |
+| `createdAt` | `string`                                | ISO 8601           |
 
 充值**不**自动涨部门 `budget`；入账后前端应引导超管进入预算页分配（见后端 §4.1.1）。
 
@@ -838,7 +845,7 @@ HTTP 非 2xx 时，body 应包含：
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                    | 无 `/platform/login`               |
 | `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
-> **类型对齐：** 前端 `WalletView` 已与后端 `WalletSummary` 对齐（`balance` / `allocatable` / `totalConsumed` / `totalRequests`）。
+> **类型对齐：** 前端 `WalletView` 使用 `balances[]` / `balancePoint` / `giftPoints` / `overdraftPoints`；已移除 `allocatable` 与扁平 `balance` 兼容字段。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

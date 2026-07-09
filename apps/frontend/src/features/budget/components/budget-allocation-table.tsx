@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 
 type BudgetAllocationTableProps = {
   node: BudgetNode
@@ -65,9 +66,10 @@ export function BudgetAllocationTable({
           {children.map((child) => {
             const childPct =
               child.budget > 0 ? Math.round((child.consumed / child.budget) * 100) : 0
-            const draftBudget = drafts[child.id]?.budget ?? String(child.budget)
+            const draftBudget = drafts[child.id]?.budget ?? String(pointsToDisplay(child.budget))
             const draftValue = parseFloat(draftBudget)
-            const budgetOver = editing && !Number.isNaN(draftValue) && draftValue > node.budget
+            const budgetOver =
+              editing && !Number.isNaN(draftValue) && displayToPoints(draftValue) > node.budget
 
             return (
               <TableRow key={child.id} className="even:bg-muted/40 hover:bg-muted/50">
@@ -85,11 +87,11 @@ export function BudgetAllocationTable({
                       )}
                     />
                   ) : (
-                    <span className="tabular-nums">¥{child.budget.toLocaleString()}</span>
+                    <span className="tabular-nums">{formatDisplayCurrency(child.budget)}</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  ¥{child.consumed.toLocaleString()}
+                  {formatDisplayCurrency(child.consumed)}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -117,10 +119,10 @@ export function BudgetAllocationTable({
                   <span className="ml-1.5 text-xs text-muted-foreground/60">(项目)</span>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  ¥{project.budget.toLocaleString()}
+                  {formatDisplayCurrency(project.budget)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  ¥{project.consumed.toLocaleString()}
+                  {formatDisplayCurrency(project.consumed)}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -162,7 +164,7 @@ export function BudgetAllocationTable({
             remaining < 0 ? 'text-red-600' : 'text-muted-foreground',
           )}
         >
-          剩余可分配：¥{remaining.toLocaleString()}
+          剩余可分配：{formatDisplayCurrency(remaining)}
         </p>
       </div>
     </div>

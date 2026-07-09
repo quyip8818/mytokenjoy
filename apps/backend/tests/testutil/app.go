@@ -32,6 +32,9 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 		if err := runtime.ApplyRechargeOrders(ctx, st); err != nil {
 			t.Fatalf("apply recharge orders: %v", err)
 		}
+		if err := runtime.ApplyUsageLedger(ctx, st, storeCfg); err != nil {
+			t.Fatalf("apply usage ledger: %v", err)
+		}
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	application, err := app.NewWithStore(cfg, logger, st, app.WithoutWorker())

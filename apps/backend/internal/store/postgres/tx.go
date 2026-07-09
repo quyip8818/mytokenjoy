@@ -16,6 +16,7 @@ type txStore struct {
 	notification    store.NotificationRepository
 	company         store.CompanyRepository
 	invite          store.InviteRepository
+	billing         store.BillingRepository
 	parent          *Store
 }
 
@@ -59,7 +60,7 @@ func (s *txStore) Platform() store.PlatformRepository {
 }
 
 func (s *txStore) Billing() store.BillingRepository {
-	return s.parent.Billing()
+	return s.billing
 }
 
 func (s *txStore) Logs() store.LogStore {
@@ -90,6 +91,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 		notification:    &notificationRepo{db: tx},
 		company:         newCompanyRepo(tx),
 		invite:          newInviteRepo(tx),
+		billing:         newBillingRepo(tx),
 		parent:          s,
 	}
 	if err := fn(txView); err != nil {

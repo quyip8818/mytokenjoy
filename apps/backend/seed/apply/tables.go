@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
@@ -20,6 +21,9 @@ type TableWriter interface {
 }
 
 func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) error {
+	if err := insertSeedCurrencies(ctx, exec); err != nil {
+		return err
+	}
 	if err := insertSeedCompany(ctx, exec, snap); err != nil {
 		return err
 	}
@@ -57,6 +61,17 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 	}
 	if err := insertSeedAudit(ctx, exec, tid, snap); err != nil {
 		return err
+	}
+	return nil
+}
+
+func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
+	if _, err := exec.Exec(ctx, `
+		INSERT INTO currencies (currency, points_per_unit, enabled)
+		VALUES ('CNY', $1, TRUE)
+		ON CONFLICT (currency) DO NOTHING
+	`, common.DefaultPointsPerUnit); err != nil {
+		return fmt.Errorf("seed currencies: %w", err)
 	}
 	return nil
 }
@@ -513,26 +528,6 @@ func insertSeedAudit(ctx context.Context, exec TableWriter, tid int64, snap stor
 			INSERT INTO operation_logs (id, company_id, action, operator, operator_id, actor_type, target, detail, ip, created_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (company_id, id, created_at) DO NOTHING
 		`, log.ID, tid, log.Action, log.Operator, log.OperatorID, actorType, log.Target, log.Detail, log.IP, createdAt); err != nil {
-			return err
-		}
-	}
-	for _, entry := range snap.UsageLedger {
-		detailJSON, err := json.Marshal(entry.CallDetail)
-		if err != nil {
-			return err
-		}
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO usage_ledger (
-				id, company_id, event_type, idempotency_key, amount_cny,
-				department_id, member_id, budget_group_id, platform_key_id,
-				source, occurred_at, period_key, model, input_tokens, output_tokens,
-				call_detail, created_at
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-			ON CONFLICT (company_id, id, occurred_at) DO NOTHING
-		`, entry.ID, tid, entry.EventType, entry.IdempotencyKey, entry.AmountCNY,
-			entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
-			entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,
-			detailJSON, entry.CreatedAt.UTC()); err != nil {
 			return err
 		}
 	}

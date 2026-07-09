@@ -6,6 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/seed/contract"
+	"github.com/tokenjoy/backend/seed/points"
 )
 
 type DeptQuota struct {
@@ -152,10 +153,10 @@ var anchorPersonalQuotas = map[string]float64{
 func applyMemberPersonalQuotas(members []types.Member) {
 	for i := range members {
 		if quota, ok := anchorPersonalQuotas[members[i].ID]; ok {
-			members[i].PersonalQuota = quota
+			members[i].PersonalQuota = points.FromDisplay(quota)
 			continue
 		}
-		members[i].PersonalQuota = common.DefaultPersonalQuota
+		members[i].PersonalQuota = points.FromDisplay(common.DefaultPersonalQuota)
 	}
 }
 

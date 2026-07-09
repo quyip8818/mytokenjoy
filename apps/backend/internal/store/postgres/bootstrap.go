@@ -6,10 +6,14 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
+	if err := ensureBootstrapCurrencies(ctx, pool); err != nil {
+		return err
+	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO companies (id, slug, name, status)
 		VALUES ($1, $2, $3, $4)
@@ -28,6 +32,18 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 		return fmt.Errorf("bootstrap company: %w", err)
 	}
 	return validateCompanyIDsForMode(ctx, pool, cfg)
+}
+
+func ensureBootstrapCurrencies(ctx context.Context, pool *pgxpool.Pool) error {
+	_, err := pool.Exec(ctx, `
+		INSERT INTO currencies (currency, points_per_unit, enabled)
+		VALUES ('CNY', $1, TRUE)
+		ON CONFLICT (currency) DO NOTHING
+	`, common.DefaultPointsPerUnit)
+	if err != nil {
+		return fmt.Errorf("bootstrap currencies: %w", err)
+	}
+	return nil
 }
 
 func validateCompanyIDsForMode(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {

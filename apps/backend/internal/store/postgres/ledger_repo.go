@@ -19,20 +19,40 @@ type pgLedgerRepo struct {
 }
 
 func (r *pgLedgerRepo) InsertOnConflict(ctx context.Context, entry types.UsageLedgerEntry) (bool, error) {
+	return r.insertLedgerEntry(ctx, store.CompanyID(ctx), entry)
+}
+
+func (r *pgLedgerRepo) InsertSegments(ctx context.Context, entries []types.UsageLedgerEntry) (int, error) {
 	companyID := store.CompanyID(ctx)
+	inserted := 0
+	for _, entry := range entries {
+		ok, err := r.insertLedgerEntry(ctx, companyID, entry)
+		if err != nil {
+			return inserted, err
+		}
+		if ok {
+			inserted++
+		}
+	}
+	return inserted, nil
+}
+
+func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID int64, entry types.UsageLedgerEntry) (bool, error) {
 	detailJSON, err := json.Marshal(entry.CallDetail)
 	if err != nil {
 		return false, err
 	}
 	tag, err := r.db.Exec(ctx, `
 		INSERT INTO usage_ledger (
-			id, company_id, event_type, idempotency_key, amount_cny,
+			id, company_id, event_type, idempotency_key, segment_index, lot_id,
+			amount, display_amount, billing_currency,
 			department_id, member_id, budget_group_id, platform_key_id,
 			source, occurred_at, period_key, model, input_tokens, output_tokens,
 			call_detail, created_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-		ON CONFLICT (company_id, idempotency_key, occurred_at) DO NOTHING
-	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.AmountCNY,
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+		ON CONFLICT (company_id, idempotency_key, lot_id, occurred_at) DO NOTHING
+	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.SegmentIndex, entry.LotID,
+		entry.Amount, entry.DisplayAmount, entry.BillingCurrency,
 		entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
 		entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,
 		detailJSON, entry.CreatedAt.UTC())
@@ -40,6 +60,18 @@ func (r *pgLedgerRepo) InsertOnConflict(ctx context.Context, entry types.UsageLe
 		return false, err
 	}
 	return tag.RowsAffected() > 0, nil
+}
+
+func (r *pgLedgerRepo) ExistsIdempotency(ctx context.Context, idempotencyKey string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM usage_ledger
+			WHERE company_id = $1 AND idempotency_key = $2
+			LIMIT 1
+		)
+	`, store.CompanyID(ctx), idempotencyKey).Scan(&exists)
+	return exists, err
 }
 
 func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.LedgerCallFilter) ([]types.UsageLedgerEntry, int, error) {
@@ -57,9 +89,11 @@ func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.Led
 	offset := (page - 1) * pageSize
 	listArgs := append(append([]any{}, args...), pageSize, offset)
 	listQuery := fmt.Sprintf(`
-		SELECT id, event_type, idempotency_key, amount_cny, department_id, member_id,
-			budget_group_id, platform_key_id, source, occurred_at, period_key, model,
-			input_tokens, output_tokens, call_detail, created_at
+		SELECT id, event_type, idempotency_key, segment_index, lot_id,
+			amount, display_amount, billing_currency,
+			department_id, member_id, budget_group_id, platform_key_id,
+			source, occurred_at, period_key, model, input_tokens, output_tokens,
+			call_detail, created_at
 		FROM usage_ledger
 		WHERE %s
 		ORDER BY occurred_at DESC
@@ -83,7 +117,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	where, args := buildLedgerSeriesWhere(companyID, q)
 	query := fmt.Sprintf(`
 		SELECT occurred_at, department_id, COALESCE(member_id, ''), model,
-			amount_cny, input_tokens, output_tokens
+			amount, input_tokens, output_tokens
 		FROM usage_ledger
 		WHERE %s
 	`, where)
@@ -102,16 +136,16 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	for rows.Next() {
 		var occurredAt time.Time
 		var row types.UsageBucketRow
-		var amountCNY float64
+		var amount float64
 		var inputTokens, outputTokens int64
 		if err := rows.Scan(
 			&occurredAt, &row.DepartmentID, &row.MemberID, &row.Model,
-			&amountCNY, &inputTokens, &outputTokens,
+			&amount, &inputTokens, &outputTokens,
 		); err != nil {
 			return nil, err
 		}
 		row.BucketStart = usagequery.TruncateBucket(occurredAt, types.UsageGranularityMinute, loc)
-		row.CostCNY = amountCNY
+		row.Cost = amount
 		row.CallCount = 1
 		row.InputTokens = inputTokens
 		row.OutputTokens = outputTokens
@@ -212,7 +246,8 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 		var detailJSON []byte
 		var occurredAt, createdAt time.Time
 		if err := rows.Scan(
-			&item.ID, &item.EventType, &item.IdempotencyKey, &item.AmountCNY,
+			&item.ID, &item.EventType, &item.IdempotencyKey, &item.SegmentIndex, &item.LotID,
+			&item.Amount, &item.DisplayAmount, &item.BillingCurrency,
 			&item.DepartmentID, &memberID, &budgetGroupID, &item.PlatformKeyID,
 			&item.Source, &occurredAt, &item.PeriodKey, &item.Model, &item.InputTokens, &item.OutputTokens,
 			&detailJSON, &createdAt,

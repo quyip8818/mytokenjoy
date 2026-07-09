@@ -144,7 +144,7 @@ func (l *TokenLifecycle) TrySyncCreate(ctx context.Context, platformKeyID string
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, departmentID)
+	remainCNY := ComputeRemainQuota(key, tree, members, platformKeys, groups, departmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)
@@ -267,7 +267,7 @@ func (l *TokenLifecycle) SyncUpdatePlatformKey(ctx context.Context, platformKeyI
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := ComputeRemainQuotaCNY(key, tree, members, platformKeys, groups, mapping.DepartmentID)
+	remainCNY := ComputeRemainQuota(key, tree, members, platformKeys, groups, mapping.DepartmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 	status := newapi.TokenStatusEnabled
 	if key.Status != "active" {

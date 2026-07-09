@@ -19,13 +19,13 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 		DepartmentID: "dept-usage-test",
 		MemberID:     "m-usage-test",
 		Model:        "gpt-4o",
-		CostCNY:      1.5,
+		Cost:         1.5,
 		CallCount:    1,
 	}
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
 	}
-	row.CostCNY = 2.5
+	row.Cost = 2.5
 	row.CallCount = 1
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	var cost float64
 	var callCount int
 	err = conn.QueryRow(ctx, `
-		SELECT cost_cny, call_count FROM usage_buckets
+		SELECT cost, call_count FROM usage_buckets
 		WHERE bucket_start = $1 AND department_id = $2 AND member_id = $3 AND model = $4
 	`, bucket, row.DepartmentID, row.MemberID, row.Model).Scan(&cost, &callCount)
 	if err != nil {
@@ -59,7 +59,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: "dept-series", MemberID: "m-1",
-		Model: "gpt-4o", CostCNY: 5, CallCount: 2,
+		Model: "gpt-4o", Cost: 5, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(points) != 1 || points[0].CostCNY != 5 {
+	if len(points) != 1 || points[0].Cost != 5 {
 		t.Fatalf("expected one day point with cost 5, got %+v", points)
 	}
 }

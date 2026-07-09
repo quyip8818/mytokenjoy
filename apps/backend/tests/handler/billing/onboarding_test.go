@@ -16,6 +16,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestOnboardingPlatformCreateAcceptInviteSession(t *testing.T) {
@@ -123,6 +124,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 
 	// Recharge wallet but budget still 0 -> 403
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
+	testutil.DrainPendingWalletSync(t, app.Store, provisioned.Company.ID)
 	mock.SetQuota(walletID, newapi.ToNewAPIUnits(100, nil, nil))
 	fullKey = relayfix.ConfigureGatewayStore(t, app.Store, relayfix.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,

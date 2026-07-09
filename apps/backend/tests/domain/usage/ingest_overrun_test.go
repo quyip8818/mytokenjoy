@@ -21,7 +21,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	runner, st, _, ingest := workerfix.NewRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 24999.5)
+	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(24999.5))
 
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
