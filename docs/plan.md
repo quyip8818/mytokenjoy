@@ -27,7 +27,7 @@
 
 ### P1 — 误配、SaaS、可观测
 
-- [x] `RELAY_GATEWAY_ENABLED` prod 组合校验 — `APP_PROFILE=prod` 时强制 Relay + Gateway + 入账三联开
+- [x] `RELAY_GATEWAY_ENABLED` 生产组合校验 — `DEPLOY_ENV=production` 时强制 Relay + Gateway + 入账三联开
 - [x] `wireGatewayService` 失败即启动失败 — `registry.go` 装配错误 `panic`
 - [ ] `RELAY_GATEWAY_ENABLED` demo 组合校验 — demo 仍允许只开 Gateway 不开 NewAPI（路由不挂载，仅 log）
 - [ ] Rebalance / Overrun 在 Relay 关闭时空转 — ingest 仍入队，Worker 调用时 `return nil`

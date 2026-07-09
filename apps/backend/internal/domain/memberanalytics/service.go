@@ -2,11 +2,11 @@ package memberanalytics
 
 import (
 	"context"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 type Service interface {
@@ -17,18 +17,19 @@ type service struct {
 	cfg    config.Config
 	keys   domainkeys.Service
 	reader domainusage.Reader
-	now    func() time.Time
+	clock  clock.Clock
 }
 
 func NewService(
 	cfg config.Config,
 	keys domainkeys.Service,
 	reader domainusage.Reader,
+	clk clock.Clock,
 ) Service {
 	return &service{
 		cfg:    cfg,
 		keys:   keys,
 		reader: reader,
-		now:    time.Now,
+		clock:  clock.OrDefault(clk),
 	}
 }

@@ -11,7 +11,7 @@ import (
 
 func newProdTestRouter(t *testing.T) http.Handler {
 	t.Helper()
-	return testhttp.NewProdRouter(t)
+	return testhttp.NewRouter(t)
 }
 
 func TestProdGetContractRequiresSession(t *testing.T) {

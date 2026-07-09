@@ -2,12 +2,12 @@ package dashboard
 
 import (
 	"context"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -27,15 +27,15 @@ type service struct {
 	cfg    config.Config
 	store  store.Store
 	reader domainusage.Reader
-	now    func() time.Time
+	clock  clock.Clock
 }
 
-func NewService(cfg config.Config, st store.Store, reader domainusage.Reader) Service {
+func NewService(cfg config.Config, st store.Store, reader domainusage.Reader, clk clock.Clock) Service {
 	return &service{
 		cfg:    cfg,
 		store:  st,
 		reader: reader,
-		now:    time.Now,
+		clock:  clock.OrDefault(clk),
 	}
 }
 
@@ -45,18 +45,7 @@ func (s *service) resolveRange(params types.CostQueryParams) (budget.ResolvedRan
 	}
 	normalized := params
 	normalized.Granularity = domainusage.NormalizeCostGranularity(params.Granularity)
-	return budget.Resolve(normalized, s.dashboardNow(), domainusage.ResolveTimezone(""))
-}
-
-func (s *service) dashboardNow() time.Time {
-	if !s.cfg.IsDemoProfile() {
-		return s.now()
-	}
-	t, err := time.Parse("2006-01-02", s.cfg.DemoToday)
-	if err != nil {
-		return s.now()
-	}
-	return t
+	return budget.Resolve(normalized, s.clock.Now(), domainusage.ResolveTimezone(""))
 }
 
 func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID string) ([]string, error) {

@@ -30,6 +30,7 @@ func TestLoadSnapshot(t *testing.T) {
 	t.Setenv("COMPANY_NAME", "Demo Company")
 	t.Setenv("NEW_API_ENABLED", "false")
 	t.Setenv("SESSION_SECRET", "test-session-secret")
+	t.Setenv("DATA_SOURCE_CREDENTIAL_KEY", "dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=")
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatal(err)

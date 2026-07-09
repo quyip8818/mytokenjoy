@@ -129,19 +129,8 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	}, nil
 }
 
-func (s *service) dashboardNow() time.Time {
-	if !s.cfg.IsDemoProfile() {
-		return s.now()
-	}
-	t, err := time.Parse("2006-01-02", s.cfg.DemoToday)
-	if err != nil {
-		return s.now()
-	}
-	return t
-}
-
 func (s *service) dashboardWindowEnd() time.Time {
-	anchor := s.dashboardNow().UTC()
+	anchor := s.clock.Now().UTC()
 	return time.Date(anchor.Year(), anchor.Month(), anchor.Day(), 0, 0, 0, 0, time.UTC).Add(24 * time.Hour)
 }
 

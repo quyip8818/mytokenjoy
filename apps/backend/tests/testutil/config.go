@@ -1,3 +1,5 @@
+//go:build testhook
+
 package testutil
 
 import (
@@ -8,8 +10,7 @@ import (
 )
 
 const (
-	defaultDemoToday         = "2026-06-19"
-	DefaultTestWebhookSecret = "test-webhook-secret"
+	defaultClockAnchor = "2026-06-19"
 )
 
 type ConfigOption func(*config.Config)
@@ -44,15 +45,49 @@ func WithNewAPIAdminToken(token string) ConfigOption {
 	}
 }
 
-func WithMinimalSeed() ConfigOption {
+func WithBootstrapMode(mode string) ConfigOption {
 	return func(cfg *config.Config) {
-		cfg.MinimalSeed = true
+		cfg.BootstrapMode = mode
 	}
 }
 
-func WithProfile(profile string) ConfigOption {
+func WithClockAnchor(date string) ConfigOption {
 	return func(cfg *config.Config) {
-		cfg.Profile = profile
+		cfg.ClockAnchor = date
+	}
+}
+
+func WithDeployEnv(env string) ConfigOption {
+	return func(cfg *config.Config) {
+		cfg.DeployEnv = env
+	}
+}
+
+func WithSecureCookie(enabled bool) ConfigOption {
+	return func(cfg *config.Config) {
+		cfg.SecureCookie = enabled
+	}
+}
+
+func WithProductionContract() ConfigOption {
+	return func(cfg *config.Config) {
+		WithDeployEnv(config.DeployEnvProduction)(cfg)
+		WithBootstrapMode(config.BootstrapNone)(cfg)
+		WithSecureCookie(true)(cfg)
+		WithNewAPIEnabled(true)(cfg)
+		cfg.RelayGatewayEnabled = true
+		WithNewAPIBaseURL("http://127.0.0.1:3000")(cfg)
+		WithNewAPIAdminToken("admin-token")(cfg)
+		if cfg.DatabaseURL == "" {
+			cfg.DatabaseURL = config.DefaultDatabaseURL
+		}
+		cfg.LogDatabaseURL = cfg.DatabaseURL
+		WithNewAPIWebhookSecret(DefaultTestWebhookSecret)(cfg)
+		cfg.SimulateDelay = false
+		cfg.ClockAnchor = ""
+		if cfg.DataSourceCredentialKey == "" {
+			cfg.DataSourceCredentialKey = DefaultTestCredentialKey
+		}
 	}
 }
 
@@ -90,18 +125,20 @@ func defaultTestDatabaseURL() string {
 
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
-		DatabaseURL:           defaultTestDatabaseURL(),
-		DemoToday:             defaultDemoToday,
-		SimulateDelay:         false,
-		CompanyName:           "Demo Company",
-		TokenJoyCompanyID:     contract.TokenJoyCompanyID,
-		LocalCompanyID:        contract.LocalCompanyID,
-		DefaultCompanyID:      contract.DefaultCompanyID,
-		SessionSecret:         TestSessionSecret,
-		PlatformSessionSecret: TestSessionSecret,
-		SessionTTLSec:         86400,
+		DeployEnv:               config.DeployEnvLocal,
+		BootstrapMode:           config.BootstrapNone,
+		DatabaseURL:             defaultTestDatabaseURL(),
+		ClockAnchor:             defaultClockAnchor,
+		SimulateDelay:           false,
+		CompanyName:             "Demo Company",
+		TokenJoyCompanyID:       contract.TokenJoyCompanyID,
+		LocalCompanyID:          contract.LocalCompanyID,
+		DefaultCompanyID:        contract.DefaultCompanyID,
+		SessionSecret:           TestSessionSecret,
+		PlatformSessionSecret:   TestSessionSecret,
+		SessionTTLSec:           86400,
+		DataSourceCredentialKey: DefaultTestCredentialKey,
 		StoreBootstrap: config.StoreBootstrap{
-			SkipRuntimeSeed:     true,
 			TestPartitionMonths: 12,
 		},
 	}

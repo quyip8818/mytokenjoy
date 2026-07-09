@@ -15,6 +15,7 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 func wireOrg(cfg config.Config, i infra, logger *slog.Logger) domainorg.Service {
@@ -42,8 +43,8 @@ func wireModels(cfg config.Config, i infra) domainmodels.Service {
 	return domainmodels.NewService(cfg, i.store, i.adminClient, i.lifecycle, i.delayer)
 }
 
-func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader) domaindashboard.Service {
-	return domaindashboard.NewService(cfg, i.store, reader)
+func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader, clk clock.Clock) domaindashboard.Service {
+	return domaindashboard.NewService(cfg, i.store, reader, clk)
 }
 
 func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudit.Service {
@@ -58,8 +59,8 @@ func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbi
 	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, EnqueueRebalanceCompany(i.store), EnqueueWalletSync(i.store))
 }
 
-func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
-	return domainmemberanalytics.NewService(cfg, keys, reader)
+func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service, clk clock.Clock) domainmemberanalytics.Service {
+	return domainmemberanalytics.NewService(cfg, keys, reader, clk)
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {

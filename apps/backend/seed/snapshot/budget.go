@@ -2,6 +2,7 @@ package snapshot
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/filler"
 )
@@ -23,20 +24,20 @@ func buildBudgetTree() []types.BudgetNode {
 	return []types.BudgetNode{
 		{
 			ID: "dept-1", Name: "总公司", ParentID: nil,
-			Budget: seedPoints(100000), Consumed: contract.DemoRootConsumed(), ReservedPool: &reserved5000, Period: contract.DemoBudgetPeriod,
+			Budget: seedPoints(100000), Consumed: contract.DemoRootConsumed(), ReservedPool: &reserved5000, Period: pkgbudget.PeriodMonthly,
 			Children: []types.BudgetNode{
 				{
 					ID: "dept-2", Name: "技术部", ParentID: &dept2,
-					Budget: seedPoints(50000), Consumed: techConsumed, ReservedPool: &reserved2000, Period: contract.DemoBudgetPeriod,
+					Budget: seedPoints(50000), Consumed: techConsumed, ReservedPool: &reserved2000, Period: pkgbudget.PeriodMonthly,
 					Children: []types.BudgetNode{
-						{ID: contract.IDDept3, Name: "后端组", ParentID: &dept3, Budget: seedPoints(25000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept3], ReservedPool: &reserved1500, Period: contract.DemoBudgetPeriod},
-						{ID: contract.IDDept4, Name: "前端组", ParentID: &dept4, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept4], Period: contract.DemoBudgetPeriod},
-						{ID: "dept-5", Name: "测试组", ParentID: &dept5, Budget: seedPoints(10000), Consumed: contract.DemoLeafDeptConsumed["dept-5"], Period: contract.DemoBudgetPeriod},
+						{ID: contract.IDDept3, Name: "后端组", ParentID: &dept3, Budget: seedPoints(25000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept3], ReservedPool: &reserved1500, Period: pkgbudget.PeriodMonthly},
+						{ID: contract.IDDept4, Name: "前端组", ParentID: &dept4, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept4], Period: pkgbudget.PeriodMonthly},
+						{ID: "dept-5", Name: "测试组", ParentID: &dept5, Budget: seedPoints(10000), Consumed: contract.DemoLeafDeptConsumed["dept-5"], Period: pkgbudget.PeriodMonthly},
 					},
 				},
-				{ID: "dept-6", Name: "产品部", ParentID: &dept6, Budget: seedPoints(20000), Consumed: contract.DemoLeafDeptConsumed["dept-6"], Period: contract.DemoBudgetPeriod},
-				{ID: "dept-7", Name: "市场部", ParentID: &dept7, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed["dept-7"], Period: contract.DemoBudgetPeriod},
-				{ID: "dept-8", Name: "行政部", ParentID: &dept8, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed["dept-8"], Period: contract.DemoBudgetPeriod},
+				{ID: "dept-6", Name: "产品部", ParentID: &dept6, Budget: seedPoints(20000), Consumed: contract.DemoLeafDeptConsumed["dept-6"], Period: pkgbudget.PeriodMonthly},
+				{ID: "dept-7", Name: "市场部", ParentID: &dept7, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed["dept-7"], Period: pkgbudget.PeriodMonthly},
+				{ID: "dept-8", Name: "行政部", ParentID: &dept8, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed["dept-8"], Period: pkgbudget.PeriodMonthly},
 			},
 		},
 	}

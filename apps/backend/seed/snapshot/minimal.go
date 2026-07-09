@@ -21,11 +21,12 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 	)
 	orgIntegration.FieldMappings = buildDefaultFieldMappings()
 	platformKeys := minimalPlatformKeys()
+	ref := cfg.SeedReferenceDate()
 	return store.Snapshot{
 		Company:        defaultCompany(cfg),
 		OrgIntegration: orgIntegration,
 		SyncLogs: []types.SyncLog{
-			{ID: "sync-1", Time: cfg.DemoToday + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
+			{ID: "sync-1", Time: ref + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
 		},
 		ImportFailures:  nil,
 		OrgNodes:        buildMinimalOrgNodes(),
@@ -37,7 +38,7 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		BudgetApprovals: minimalBudgetApprovals(),
 		OverrunPolicy:   buildOverrunPolicy(),
 		AlertRules:      minimalAlertRules(),
-		ProviderKeys:    buildProviderKeys(cfg.DemoToday)[:3],
+		ProviderKeys:    buildProviderKeys(ref)[:3],
 		PlatformKeys:    platformKeys,
 		Approvals:       buildApprovals()[:1],
 		Models:          buildModels(),

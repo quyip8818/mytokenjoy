@@ -34,10 +34,10 @@ func SaaSRouter(t *testing.T, mock *saas.NewAPIMock) http.Handler {
 	return saas.NewRouter(t, mock)
 }
 
-func NewProdRouter(t *testing.T) http.Handler {
+func NewSecureCookieRouter(t *testing.T) http.Handler {
 	t.Helper()
 	return testutil.NewTestApp(t, func(cfg *config.Config) {
-		testutil.WithProfile(config.ProfileProd)(cfg)
+		testutil.WithSecureCookie(true)(cfg)
 	}).Router
 }
 

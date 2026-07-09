@@ -34,7 +34,7 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 		Name:          input.Name,
 		KeyPrefix:     prefix,
 		Status:        "active",
-		CreatedAt:     s.cfg.DemoToday,
+		CreatedAt:     s.cfg.SeedReferenceDate(),
 		RotateEnabled: false,
 		SecretKey:     input.Key,
 	}

@@ -121,11 +121,9 @@ func TestDashboardDefaultApp(t *testing.T) {
 	})
 }
 
-func TestUsageSeriesMinuteFromLedgerProdProfile(t *testing.T) {
+func TestUsageSeriesMinuteFromLedger(t *testing.T) {
 	t.Parallel()
-	app := testhttp.NewApp(t, func(cfg *config.Config) {
-		cfg.Profile = config.ProfileProd
-	})
+	app := testhttp.NewApp(t, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T08:00:00Z&end=2026-06-10T10:00:00Z", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

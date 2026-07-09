@@ -36,7 +36,10 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("server starting", "port", cfg.Port)
+		logger.Info("server starting", "port", cfg.Port, "deploy_env", cfg.DeployEnv, "bootstrap_mode", cfg.BootstrapMode)
+		if cfg.DemoWithoutClockAnchor() {
+			logger.Warn("CLOCK_ANCHOR unset in demo bootstrap mode; seed dates are non-reproducible")
+		}
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server failed", "error", err)
 			os.Exit(1)

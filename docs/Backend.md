@@ -140,9 +140,12 @@ sequenceDiagram
 | ----------------------------- | ------------------ | ----------------------------------------------------------------------------- |
 | `PORT`                        | `8080`             | HTTP                                                                          |
 | `DATABASE_URL`                | 必填（测试与生产） | Postgres；测试见 [§5](#5-测试与-seed)                                         |
-| `SESSION_SECRET`              | **必填（目标态）** | 企业面 Session JWT 签名；见 [权限管理.md](./权限管理.md) §10                  |
-| `APP_PROFILE`                 | `demo`             | 仅非鉴权用途（如延迟模拟）；**鉴权不再分叉**，见 [权限管理.md](./权限管理.md) |
-| `DEMO_TODAY`                  | `2026-06-19`       | Demo 看板锚定                                                                 |
+| `SESSION_SECRET`              | **必填**           | 企业面 Session JWT 签名；见 [权限管理.md](./权限管理.md) §10                  |
+| `DATA_SOURCE_CREDENTIAL_KEY`  | **必填**           | 数据源凭证加密密钥（32 字节 hex 或 base64）                                   |
+| `DEPLOY_ENV`                  | `local`            | `local` / `staging` / `production`；`production` 触发生产契约校验             |
+| `BOOTSTRAP_MODE`              | `none`             | `none` / `minimal` / `demo`；空库引导策略                                     |
+| `SECURE_COOKIE`               | `false`            | Set-Cookie Secure 标志；`production` 下必须为 `true`                          |
+| `CLOCK_ANCHOR`                | 空                 | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期                             |
 | `NEW_API_ENABLED`             | `false`            | Relay + worker                                                                |
 | `RELAY_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
 | `SUPPORT_SAAS`                | `false`            | SaaS 多企业                                                                   |

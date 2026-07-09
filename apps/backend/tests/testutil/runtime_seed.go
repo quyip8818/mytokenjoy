@@ -14,16 +14,11 @@ import (
 	"github.com/tokenjoy/backend/seed/runtime"
 )
 
-func WithRuntimeSeed() ConfigOption {
-	return func(cfg *config.Config) {
-		cfg.StoreBootstrap.RuntimeSeed = true
-	}
-}
-
 func NewTestStoreWithRuntimeSeed(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
 	t.Helper()
-	opts = append([]ConfigOption{WithRuntimeSeed()}, opts...)
-	return NewTestStore(t, opts...)
+	cfg, st := NewTestStore(t, opts...)
+	applyDemoRuntime(t, st, cfg)
+	return cfg, st
 }
 
 func resetRuntimeTables(t *testing.T, st store.Store) {
@@ -40,13 +35,7 @@ func resetRuntimeTables(t *testing.T, st store.Store) {
 func applyDemoRuntime(t *testing.T, st store.Store, cfg config.Config) {
 	t.Helper()
 	ctx := company.WithContext(context.Background(), company.Context{CompanyID: contract.DefaultCompanyID})
-	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
-		t.Fatalf("apply usage buckets: %v", err)
-	}
-	if err := runtime.ApplyRechargeOrders(ctx, st); err != nil {
-		t.Fatalf("apply recharge orders: %v", err)
-	}
-	if err := runtime.ApplyUsageLedger(ctx, st, cfg); err != nil {
-		t.Fatalf("apply usage ledger: %v", err)
+	if err := runtime.ApplyDemo(ctx, st, cfg); err != nil {
+		t.Fatalf("apply demo runtime: %v", err)
 	}
 }

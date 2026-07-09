@@ -12,7 +12,7 @@ import (
 
 func TestLoadMinimalSnapshot(t *testing.T) {
 	t.Parallel()
-	cfg := testutil.TestConfig(testutil.WithMinimalSeed())
+	cfg := testutil.TestConfig(testutil.WithBootstrapMode(config.BootstrapMinimal))
 	snapshot := seed.LoadMinimal(cfg)
 	if len(snapshot.Members) != len(filler.BuildAnchorMembers()) {
 		t.Fatalf("expected %d anchor members, got %d", len(filler.BuildAnchorMembers()), len(snapshot.Members))
@@ -30,7 +30,7 @@ func TestLoadMinimalSnapshot(t *testing.T) {
 
 func TestMinimalSeedStore(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithMinimalSeed())
+	_, st := testutil.NewTestStore(t, testutil.WithBootstrapMode(config.BootstrapMinimal))
 	members, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
@@ -48,11 +48,12 @@ func TestLoadMinimalFromConfig(t *testing.T) {
 	t.Setenv("COMPANY_NAME", "Demo Company")
 	t.Setenv("NEW_API_ENABLED", "false")
 	t.Setenv("SESSION_SECRET", "test-session-secret")
+	t.Setenv("DATA_SOURCE_CREDENTIAL_KEY", testutil.DefaultTestCredentialKey)
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.MinimalSeed = true
+	cfg.BootstrapMode = config.BootstrapMinimal
 	snapshot := seed.LoadMinimal(cfg)
 	if snapshot.Company.ID != contract.DefaultCompanyID {
 		t.Fatalf("expected default company, got %+v", snapshot.Company)

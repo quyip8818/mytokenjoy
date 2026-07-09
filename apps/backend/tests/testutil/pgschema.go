@@ -33,12 +33,11 @@ func openClonedTestSchema(t *testing.T) pg.Handle {
 }
 
 func templateStoreConfig(baseURL string) config.Config {
-	cfg := TestConfig(WithIngestEnabled(true))
+	cfg := TestConfig(WithIngestEnabled(true), WithBootstrapMode(config.BootstrapDemo))
 	templateURL := pg.WithSearchPath(baseURL, "test_template")
 	cfg.DatabaseURL = templateURL
 	cfg.LogDatabaseURL = templateURL
 	cfg.LogSchemaIsolated = true
-	cfg.StoreBootstrap.SkipRuntimeSeed = true
 	cfg.StoreBootstrap.TestPartitionMonths = 12
 	return cfg
 }

@@ -30,7 +30,7 @@ func (d Deps) Public() Public {
 		Credentials:          d.Credentials,
 		SessionToken:         d.SessionToken,
 		PlatformSessionToken: d.PlatformSessionToken,
-		SecureCookie:         d.Config.IsProdProfile(),
+		SecureCookie:         d.Config.SecureCookie,
 	}
 }
 

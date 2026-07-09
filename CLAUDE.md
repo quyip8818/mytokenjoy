@@ -129,6 +129,11 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 
 - `VITE_API_PROXY_TARGET=http://localhost:8080` — Frontend proxy target
 - `DATABASE_URL` — PostgreSQL connection (required for tests and production)
+- `DATA_SOURCE_CREDENTIAL_KEY` — Required credential encryption key (32-byte hex or base64)
+- `DEPLOY_ENV` — `local` / `staging` / `production` (`production` triggers fail-fast production contract)
+- `BOOTSTRAP_MODE` — `none` / `minimal` / `demo` (empty DB bootstrap policy)
+- `SECURE_COOKIE` — Set-Cookie Secure flag (required `true` when `DEPLOY_ENV=production`)
+- `CLOCK_ANCHOR` — Optional `YYYY-MM-DD` for fixed dashboard clock and seed reference date
 - `NEW_API_ENABLED=true` — Enable relay integration
 - `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — Relay service credentials
 - `SESSION_SECRET` — JWT session signing key

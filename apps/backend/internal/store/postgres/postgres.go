@@ -82,29 +82,6 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			return nil, err
 		}
 	}
-	if cfg.IsDemoProfile() && !cfg.StoreBootstrap.SkipRuntimeSeed {
-		if err := runtime.ApplyUsageBuckets(ctx, s, cfg); err != nil {
-			pool.Close()
-			if s.logPool != nil {
-				s.logPool.Close()
-			}
-			return nil, err
-		}
-		if err := runtime.ApplyRechargeOrders(ctx, s); err != nil {
-			pool.Close()
-			if s.logPool != nil {
-				s.logPool.Close()
-			}
-			return nil, err
-		}
-		if err := runtime.ApplyUsageLedger(ctx, s, cfg); err != nil {
-			pool.Close()
-			if s.logPool != nil {
-				s.logPool.Close()
-			}
-			return nil, err
-		}
-	}
 	s.relay = newRelayRepo(pool)
 	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID)
 	return s, nil
@@ -168,8 +145,8 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	if !empty {
 		return nil
 	}
-	if cfg.IsProdProfile() {
-		return fmt.Errorf("postgres domain data empty in prod profile")
+	if !cfg.BootstrapIsMinimal() && !cfg.BootstrapIsDemo() {
+		return fmt.Errorf("database empty: set BOOTSTRAP_MODE=minimal|demo or run seed")
 	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -177,7 +154,7 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	}
 	defer tx.Rollback(ctx)
 	var snap store.Snapshot
-	if cfg.MinimalSeed {
+	if cfg.BootstrapIsMinimal() {
 		snap = seed.LoadMinimal(cfg)
 	} else {
 		snap = seed.Load(cfg)
@@ -187,6 +164,9 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit seed tx: %w", err)
+	}
+	if cfg.BootstrapIsDemo() {
+		return runtime.ApplyDemo(ctx, s, cfg)
 	}
 	return nil
 }

@@ -24,7 +24,7 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
 	keysSvc := domainkeys.NewService(cfg, st, lifecycle, common.NewDelayer(false))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	return domainmemberanalytics.NewService(cfg, keysSvc, reader), ctx
+	return domainmemberanalytics.NewService(cfg, keysSvc, reader, cfg.Clock()), ctx
 }
 
 func TestGetDashboardReturnsUsageForMember(t *testing.T) {

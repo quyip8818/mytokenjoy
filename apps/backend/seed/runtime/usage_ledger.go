@@ -12,9 +12,6 @@ import (
 )
 
 func ApplyUsageLedger(ctx context.Context, st store.Store, cfg config.Config) error {
-	if !cfg.IsDemoProfile() {
-		return nil
-	}
 	ctx = company.WithContext(ctx, company.Context{CompanyID: contract.DefaultCompanyID})
 	entries, _, err := st.Ledger().ListCallSettledPage(ctx, store.LedgerCallFilter{Page: 1, PageSize: 1})
 	if err != nil {
@@ -24,7 +21,7 @@ func ApplyUsageLedger(ctx context.Context, st store.Store, cfg config.Config) er
 		return nil
 	}
 	var snap store.Snapshot
-	if cfg.MinimalSeed {
+	if cfg.BootstrapIsMinimal() {
 		snap = seed.LoadMinimal(cfg)
 	} else {
 		snap = seed.Load(cfg)

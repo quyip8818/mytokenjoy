@@ -11,13 +11,10 @@ func (d *Deps) CredentialKey() ([]byte, error) {
 	if len(d.cryptoKey) == credentialKeySize {
 		return d.cryptoKey, nil
 	}
-	if key, err := common.ParseKey(d.Cfg.DataSourceCredentialKey); err == nil {
-		d.cryptoKey = key
-		return key, nil
+	key, err := common.ParseKey(d.Cfg.DataSourceCredentialKey)
+	if err != nil {
+		return nil, domain.NewDomainError(domain.StatusUnprocessable, "DATA_SOURCE_CREDENTIAL_KEY is required")
 	}
-	if d.Cfg.IsDemoProfile() {
-		d.cryptoKey = common.DevDefaultKey()
-		return d.cryptoKey, nil
-	}
-	return nil, domain.NewDomainError(domain.StatusUnprocessable, "DATA_SOURCE_CREDENTIAL_KEY is required")
+	d.cryptoKey = key
+	return key, nil
 }

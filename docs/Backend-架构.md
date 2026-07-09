@@ -18,6 +18,21 @@
 | 测试 | `testing` + `httptest`，用例在 `tests/` |
 | DI   | 构造函数注入，组合根 `internal/app/`    |
 
+### 1.1 配置与环境（`internal/config`）
+
+配置由 `caarlos0/env` 从环境变量加载，`Load()` 归一化后 `validate()` fail-fast。详见 [Backend-配置架构-目标态.md](./Backend-配置架构-目标态.md)。
+
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `DEPLOY_ENV` | `local` | `local` / `staging` / `production`；`production` 触发生产契约校验 |
+| `BOOTSTRAP_MODE` | `none` | `none` / `minimal` / `demo`；空库引导策略 |
+| `SECURE_COOKIE` | `false` | Set-Cookie Secure；`production` 下必须为 `true` |
+| `CLOCK_ANCHOR` | 空 | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期 |
+| `DATA_SOURCE_CREDENTIAL_KEY` | 必填 | 数据源凭证加密密钥（32 字节 hex 或 base64） |
+| `SIMULATE_DELAY` | `false` | 模拟外部 API 延迟（测试/演示） |
+
+完整 env 表见 [Backend.md](./Backend.md) §3 与 `apps/backend/.env.example`。
+
 ---
 
 ## 2. 分层
@@ -191,7 +206,7 @@ type Store interface {
 | 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend.md](./Backend.md) §5                               |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
-- Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.Load` + `seed.ApplyTables`；demo 下 `seed/runtime.ApplyUsageBuckets`（见 [Backend.md](./Backend.md) §5.3）。
+- Bootstrap：`postgres.New` → applySchema → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖（见 [Backend.md](./Backend.md) §5.3、[Backend-配置架构-目标态.md](./Backend-配置架构-目标态.md) §5）。
 - 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
 - `OrgRepository` 实现按职责拆为多文件（`org_repo.go` + `org_repo_members.go` / `org_repo_roles.go` / `org_repo_integration.go`），接口不变。
 

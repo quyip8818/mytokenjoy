@@ -15,7 +15,7 @@ func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Stor
 	t.Helper()
 	cfg := TestConfig(opts...)
 	var schemaURL string
-	if cfg.MinimalSeed {
+	if cfg.BootstrapIsMinimal() {
 		schemaURL = openTestSchema(t).URL
 	} else {
 		schemaURL = openClonedTestSchema(t).URL
@@ -29,11 +29,8 @@ func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Stor
 	if err != nil {
 		t.Fatalf("create postgres store: %v", err)
 	}
-	if !cfg.MinimalSeed {
+	if !cfg.BootstrapIsMinimal() {
 		resetRuntimeTables(t, st)
-	}
-	if cfg.StoreBootstrap.RuntimeSeed {
-		applyDemoRuntime(t, st, cfg)
 	}
 	t.Cleanup(func() {
 		if pg, ok := st.(*postgres.Store); ok {

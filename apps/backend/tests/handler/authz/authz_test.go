@@ -45,7 +45,7 @@ func TestAuthzWriteEndpoints(t *testing.T) {
 
 func TestProdGetReadForbiddenForMember(t *testing.T) {
 	t.Parallel()
-	router := testhttp.NewProdRouter(t)
+	router := testhttp.NewRouter(t)
 	for _, tc := range prodGetForbiddenCases(t) {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(tc.method, tc.path, nil)

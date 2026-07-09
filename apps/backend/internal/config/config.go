@@ -2,24 +2,20 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
 )
 
-const (
-	ProfileDemo = "demo"
-	ProfileProd = "prod"
-)
-
 type Config struct {
 	Port          string `env:"PORT" envDefault:"8080"`
 	CORSOrigins   string `env:"CORS_ORIGINS" envDefault:"http://localhost:5173"`
-	SimulateDelay bool   `env:"SIMULATE_DELAY" envDefault:"true"`
-	DemoToday     string `env:"DEMO_TODAY" envDefault:"2026-06-19"`
-	Profile       string `env:"APP_PROFILE" envDefault:"demo"`
-	MinimalSeed   bool
+	SimulateDelay bool   `env:"SIMULATE_DELAY" envDefault:"false"`
+
+	BootstrapMode string `env:"BOOTSTRAP_MODE" envDefault:"none"`
+	SecureCookie  bool   `env:"SECURE_COOKIE" envDefault:"false"`
+	ClockAnchor   string `env:"CLOCK_ANCHOR"`
+	DeployEnv     string `env:"DEPLOY_ENV" envDefault:"local"`
 
 	StoreBootstrap StoreBootstrap
 
@@ -69,9 +65,8 @@ func Load() (Config, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
 	}
-	if cfg.IsProdProfile() {
-		cfg.SimulateDelay = false
-	}
+	cfg.BootstrapMode = strings.ToLower(strings.TrimSpace(cfg.BootstrapMode))
+	cfg.DeployEnv = strings.ToLower(strings.TrimSpace(cfg.DeployEnv))
 	if !cfg.SupportSaas {
 		cfg.DefaultCompanyID = cfg.LocalCompanyID
 	}
@@ -79,85 +74,6 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
-}
-
-func (c Config) IsDemoProfile() bool {
-	return c.Profile != ProfileProd
-}
-
-func (c Config) IsProdProfile() bool {
-	return c.Profile == ProfileProd
-}
-
-func (c Config) validate() error {
-	if strings.TrimSpace(c.DatabaseURL) == "" {
-		return fmt.Errorf("DATABASE_URL is required")
-	}
-	if c.TokenJoyCompanyID <= 0 || c.LocalCompanyID <= 0 {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be positive")
-	}
-	if c.TokenJoyCompanyID == c.LocalCompanyID {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must differ")
-	}
-	if c.TokenJoyCompanyID >= 1000000 || c.LocalCompanyID >= 1000000 {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be < 1000000")
-	}
-	if !c.SupportSaas && strings.TrimSpace(c.CompanyName) == "" {
-		return fmt.Errorf("COMPANY_NAME is required when SUPPORT_SAAS=false")
-	}
-	if strings.TrimSpace(c.SessionSecret) == "" {
-		return fmt.Errorf("SESSION_SECRET is required")
-	}
-	if c.SupportSaas && strings.TrimSpace(c.PlatformSessionSecret) == "" {
-		return fmt.Errorf("PLATFORM_SESSION_SECRET is required when SUPPORT_SAAS=true")
-	}
-	if c.LogSchemaIsolated && !c.IngestEnabled() {
-		return fmt.Errorf("log schema isolation requires LOG_DATABASE_URL")
-	}
-	if c.LogSchemaIsolated && c.IsProdProfile() {
-		return fmt.Errorf("log schema isolation is not allowed in prod profile")
-	}
-	if c.IngestEnabled() && strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
-		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when LOG_DATABASE_URL is set")
-	}
-	if c.IsProdProfile() {
-		if !c.NewAPIEnabled {
-			return fmt.Errorf("NEW_API_ENABLED must be true in prod profile")
-		}
-		if !c.RelayGatewayEnabled {
-			return fmt.Errorf("RELAY_GATEWAY_ENABLED must be true in prod profile")
-		}
-		if strings.TrimSpace(c.LogDatabaseURL) == "" {
-			return fmt.Errorf("LOG_DATABASE_URL is required in prod profile")
-		}
-		if strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
-			return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required in prod profile")
-		}
-	}
-	if !c.NewAPIEnabled {
-		return nil
-	}
-	if strings.TrimSpace(c.NewAPIBaseURL) == "" {
-		return fmt.Errorf("NEW_API_BASE_URL is required when NEW_API_ENABLED=true")
-	}
-	if err := validateNewAPIBaseURL(c.NewAPIBaseURL); err != nil {
-		return err
-	}
-	if strings.TrimSpace(c.NewAPIAdminToken) == "" {
-		return fmt.Errorf("NEW_API_ADMIN_TOKEN is required when NEW_API_ENABLED=true")
-	}
-	return nil
-}
-
-func validateNewAPIBaseURL(raw string) error {
-	parsed, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return fmt.Errorf("NEW_API_BASE_URL is invalid: %w", err)
-	}
-	if parsed.Path != "" && parsed.Path != "/" {
-		return fmt.Errorf("NEW_API_BASE_URL must not include a path")
-	}
-	return nil
 }
 
 func (c Config) IngestEnabled() bool {
@@ -168,8 +84,7 @@ func (c Config) CORSOriginList() []string {
 	parts := strings.Split(c.CORSOrigins, ",")
 	origins := make([]string, 0, len(parts))
 	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
 			origins = append(origins, trimmed)
 		}
 	}

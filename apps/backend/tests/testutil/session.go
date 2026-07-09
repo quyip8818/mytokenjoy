@@ -10,8 +10,6 @@ import (
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-const TestSessionSecret = "test-session-secret"
-
 func SessionIssuer(t *testing.T) sessiontoken.Issuer {
 	t.Helper()
 	issuer, err := sessiontoken.NewIssuer(TestSessionSecret, 86400)

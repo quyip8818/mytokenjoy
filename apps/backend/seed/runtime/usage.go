@@ -23,7 +23,7 @@ func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) e
 	if !empty {
 		return nil
 	}
-	for _, row := range buildUsageBuckets(cfg.DemoToday) {
+	for _, row := range buildUsageBuckets(cfg.SeedReferenceDate()) {
 		if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 			return fmt.Errorf("seed usage bucket: %w", err)
 		}

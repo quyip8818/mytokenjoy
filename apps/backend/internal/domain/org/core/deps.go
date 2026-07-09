@@ -47,8 +47,5 @@ func NewDeps(
 }
 
 func (d *Deps) BudgetPeriod() string {
-	if len(d.Cfg.DemoToday) >= 7 {
-		return d.Cfg.DemoToday[:7]
-	}
 	return pkgbudget.PeriodMonthly
 }

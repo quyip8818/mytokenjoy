@@ -19,10 +19,11 @@ func Build(cfg config.Config) store.Snapshot {
 		},
 	)
 	orgIntegration.FieldMappings = buildDefaultFieldMappings()
+	ref := cfg.SeedReferenceDate()
 	return store.Snapshot{
 		Company:         defaultCompany(cfg),
 		OrgIntegration:  orgIntegration,
-		SyncLogs:        buildSyncLogs(cfg.DemoToday),
+		SyncLogs:        buildSyncLogs(ref),
 		ImportFailures:  buildImportFailures(),
 		OrgNodes:        buildOrgNodes(),
 		ModelAllowlist:  buildModelAllowlist(),
@@ -33,7 +34,7 @@ func Build(cfg config.Config) store.Snapshot {
 		BudgetApprovals: buildBudgetApprovals(),
 		OverrunPolicy:   buildOverrunPolicy(),
 		AlertRules:      buildAlertRules(),
-		ProviderKeys:    buildProviderKeys(cfg.DemoToday),
+		ProviderKeys:    buildProviderKeys(ref),
 		PlatformKeys:    loadPlatformKeys(),
 		Approvals:       buildApprovals(),
 		Models:          buildModels(),

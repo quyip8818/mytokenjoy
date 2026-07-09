@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const testTemplateVersion = 4
+const testTemplateVersion = 5
 
 var (
 	templateOnce sync.Once
@@ -77,7 +77,7 @@ func buildTestTemplate(ctx context.Context, baseURL string, templateCfg config.C
 	cfg.LogDatabaseURL = templateURL
 	cfg.LogSchemaIsolated = true
 	cfg.StoreBootstrap.SchemaPrepared = false
-	cfg.StoreBootstrap.SkipRuntimeSeed = true
+	cfg.BootstrapMode = config.BootstrapDemo
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {

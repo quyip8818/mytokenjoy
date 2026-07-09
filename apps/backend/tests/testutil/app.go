@@ -18,15 +18,8 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	if mutate != nil {
 		mutate(&cfg)
 	}
-	storeCfg := cfg
-	if cfg.IsProdProfile() {
-		storeCfg.Profile = config.ProfileDemo
-	}
-	storeOpts := []ConfigOption{WithConfig(storeCfg)}
-	if storeCfg.IsDemoProfile() {
-		storeOpts = append(storeOpts, WithRuntimeSeed())
-	}
-	_, st := NewTestStore(t, storeOpts...)
+	_, st := NewTestStore(t, WithConfig(cfg))
+	applyDemoRuntime(t, st, cfg)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	application, err := app.NewWithStore(cfg, logger, st, app.WithoutWorker())
 	if err != nil {
