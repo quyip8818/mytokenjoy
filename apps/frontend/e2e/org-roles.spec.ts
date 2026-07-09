@@ -787,3 +787,219 @@ test.describe('角色管理 - API 数据校验', () => {
     }, createRes.id)
   })
 })
+
+// ─── 权限表单与交互细节 ─────────────────────────────────────────────────
+
+test.describe('角色管理 - 权限表单与交互细节', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/org/roles')
+    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+  })
+
+  test('创建角色表单显示权限分组', async ({ page }) => {
+    await page.getByRole('button', { name: '新建' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    // 验证权限分组标题
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText('组织', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('运营', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('API', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('资源管控', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('成员', { exact: true })).toBeVisible()
+
+    await page.keyboard.press('Escape')
+  })
+
+  test('创建角色表单包含具体权限项', async ({ page }) => {
+    await page.getByRole('button', { name: '新建' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    const dialog = page.getByRole('dialog')
+    // 组织分组下的权限
+    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '成员管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '角色管理' })).toBeVisible()
+    // 资源管控分组
+    await expect(dialog.getByRole('checkbox', { name: '模型管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '预算分配' })).toBeVisible()
+
+    await page.keyboard.press('Escape')
+  })
+
+  test('可选择多个权限组的权限', async ({ page }) => {
+    await page.getByRole('button', { name: '新建' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    const dialog = page.getByRole('dialog')
+    // 选择不同分组的权限
+    await dialog.getByRole('checkbox', { name: '组织架构管理' }).click()
+    await dialog.getByRole('checkbox', { name: '审计日志查看' }).click()
+    await dialog.getByRole('checkbox', { name: 'API 调用' }).click()
+
+    // 验证已选中
+    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: '审计日志查看' })).toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: 'API 调用' })).toBeChecked()
+    // 未选中的
+    await expect(dialog.getByRole('checkbox', { name: '预算分配' })).not.toBeChecked()
+
+    await page.keyboard.press('Escape')
+  })
+
+  test('取消按钮关闭对话框不创建角色', async ({ page }) => {
+    await page.getByRole('button', { name: '新建' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input[name="name"]').fill('不应该被创建的角色')
+    await dialog.getByRole('checkbox', { name: '组织架构管理' }).click()
+
+    // 点击取消
+    await dialog.getByRole('button', { name: '取消' }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+
+    // 角色不应出现在列表中
+    await expect(page.getByText('不应该被创建的角色')).toBeHidden()
+  })
+
+  test('Escape 键关闭创建对话框', async ({ page }) => {
+    await page.getByRole('button', { name: '新建' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toBeHidden()
+  })
+
+  test('创建角色选择跨组权限后正确保存', async ({ page }) => {
+    const roleName = `多权限角色${Date.now().toString().slice(-4)}`
+
+    await page.getByRole('button', { name: '新建' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input[name="name"]').fill(roleName)
+
+    // 选择跨组权限
+    await dialog.getByRole('checkbox', { name: '组织架构管理' }).click()
+    await dialog.getByRole('checkbox', { name: '审计日志查看' }).click()
+    await dialog.getByRole('checkbox', { name: 'API 调用' }).click()
+    await dialog.getByRole('checkbox', { name: '预算分配' }).click()
+
+    await dialog.getByRole('button', { name: '创建' }).click()
+    await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
+    await expect(page.getByText(roleName, { exact: true })).toBeVisible()
+
+    // 通过 API 验证保存的权限数
+    const roles = await page.evaluate(async () => {
+      const res = await fetch('/api/org/roles', { credentials: 'include' })
+      return res.json()
+    })
+    const created = roles.find((r: { name: string }) => r.name === roleName)
+    expect(created).toBeTruthy()
+    expect(created.permissions.length).toBe(4)
+
+    // 清理
+    await page.evaluate(async (id) => {
+      await fetch(`/api/org/roles/${id}`, { method: 'DELETE', credentials: 'include' })
+    }, created.id)
+  })
+
+  test('成员行显示多角色 badge', async ({ page }) => {
+    // 选择普通成员角色（包含有多角色的成员）
+    await page.getByText('普通成员').first().click()
+    await page.waitForTimeout(500)
+
+    // 李四 拥有多个角色
+    const liSiRow = page.getByRole('row').filter({ hasText: '李四' })
+    await expect(liSiRow).toBeVisible()
+    // 应该有多个角色 badge
+    await expect(liSiRow.locator('[class*="badge"]')).toHaveCount(4) // API 调用者 + 普通成员 + 组织管理员 + 预算审批员
+  })
+
+  test('角色成员数量与成员列表一致', async ({ page }) => {
+    // 左侧超级管理员显示的数字
+    const adminItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: '超级管理员' }).first()
+    const countText = await adminItem.locator('.tabular-nums').textContent()
+    const expectedCount = parseInt(countText ?? '0')
+
+    // 点击查看右侧成员
+    await adminItem.click()
+    await page.waitForTimeout(500)
+
+    // 右侧面板显示的成员数
+    await expect(page.getByText(`${expectedCount} 名成员`)).toBeVisible()
+
+    // 表格行数（减去 header）
+    const rows = page.getByRole('row')
+    expect(await rows.count()).toBe(expectedCount + 1) // +1 for header
+  })
+
+  test('角色成员面板的搜索过滤成员列表', async ({ page }) => {
+    // 选择普通成员（有 49 人）
+    await page.getByText('普通成员').first().click()
+    await page.waitForTimeout(500)
+
+    const beforeCount = await page.getByRole('row').count()
+    expect(beforeCount).toBeGreaterThan(5) // 确认有多行
+
+    // 在成员面板搜索
+    const memberSearch = page.locator('input[placeholder*="搜索成员"]')
+    await memberSearch.fill('张')
+    await page.waitForTimeout(300)
+
+    // 过滤后行数应该减少
+    const afterCount = await page.getByRole('row').count()
+    expect(afterCount).toBeLessThan(beforeCount)
+    // 且包含"张"字的行仍然可见
+    const dataRows = page.getByRole('row').filter({ hasText: '张' })
+    expect(await dataRows.count()).toBeGreaterThan(0)
+  })
+
+  test('清空成员搜索恢复全部列表', async ({ page }) => {
+    await page.getByText('普通成员').first().click()
+    await page.waitForTimeout(500)
+
+    const memberSearch = page.locator('input[placeholder*="搜索成员"]')
+    const initialCount = await page.getByRole('row').count()
+
+    await memberSearch.fill('张')
+    await page.waitForTimeout(300)
+    const filteredCount = await page.getByRole('row').count()
+    expect(filteredCount).toBeLessThan(initialCount)
+
+    // 清空搜索
+    await memberSearch.clear()
+    await page.waitForTimeout(300)
+    const restoredCount = await page.getByRole('row').count()
+    expect(restoredCount).toBe(initialCount)
+  })
+
+  test('自定义角色 hover 显示编辑和删除操作', async ({ page }) => {
+    // 通过 API 创建角色确保有自定义角色
+    const roleName = `hover测试${Date.now().toString().slice(-4)}`
+    const createRes = await page.evaluate(async (name) => {
+      const res = await fetch('/api/org/roles', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, permissions: ['p-1'] }),
+      })
+      return res.json()
+    }, roleName)
+    await page.reload()
+    await expect(page.getByText(roleName, { exact: true })).toBeVisible()
+
+    // hover 自定义角色
+    const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
+    await roleItem.hover()
+    await page.waitForTimeout(300)
+
+    // 应该有 2 个操作按钮（编辑 + 删除）
+    const buttons = roleItem.locator('button')
+    expect(await buttons.count()).toBe(2)
+
+    // 清理
+    await page.evaluate(async (id) => {
+      await fetch(`/api/org/roles/${id}`, { method: 'DELETE', credentials: 'include' })
+    }, createRes.id)
+  })
+})
