@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import { MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MemberTableProps {
@@ -52,6 +52,25 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 }
 
 const columnHelper = createColumnHelper<Member>()
+
+function generatePageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = [1]
+  let left = Math.max(2, current - 2)
+  let right = Math.min(total - 1, current + 2)
+  if (current <= 4) {
+    left = 2
+    right = 5
+  } else if (current >= total - 3) {
+    left = total - 4
+    right = total - 1
+  }
+  if (left > 2) pages.push('...')
+  for (let i = left; i <= right; i++) pages.push(i)
+  if (right < total - 1) pages.push('...')
+  pages.push(total)
+  return pages
+}
 
 export function MemberTable({
   data,
@@ -224,79 +243,77 @@ export function MemberTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm text-muted-foreground">
+        <div className="flex items-center justify-end gap-4 border-t border-border px-4 py-3 text-sm text-muted-foreground">
           <span>
             共 <span className="tabular-nums font-medium text-foreground">{total}</span> 条
           </span>
+
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={page <= 1}
-              onClick={() => onPageChange(1)}
-              title="第一页"
-            >
-              <ChevronsLeft className="size-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
-              title="上一页"
             >
               <ChevronLeft className="size-4" />
-            </Button>
-            <div className="flex items-center gap-1 px-1">
-              <input
-                type="number"
-                min={1}
-                max={totalPages}
-                value={pageInputValue}
-                onChange={(e) => setPageInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const target = parseInt(pageInputValue)
-                    if (target >= 1 && target <= totalPages) {
-                      onPageChange(target)
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  const target = parseInt(pageInputValue)
-                  if (target >= 1 && target <= totalPages && target !== page) {
-                    onPageChange(target)
-                  } else {
-                    setPageInputValue(String(page))
-                  }
-                }}
-                className="h-8 w-12 rounded-md border border-input bg-background px-2 text-center text-sm tabular-nums outline-none focus:ring-1 focus:ring-ring"
-                aria-label="跳转页码"
-              />
-              <span className="text-muted-foreground">/ {totalPages}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
+            </button>
+
+            {generatePageNumbers(page, totalPages).map((p, i) =>
+              p === '...' ? (
+                <span key={`ellipsis-${i}`} className="flex h-8 w-8 items-center justify-center text-muted-foreground">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  className={`flex h-8 w-8 items-center justify-center rounded-md border text-sm tabular-nums transition-colors ${
+                    p === page
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border hover:bg-accent'
+                  }`}
+                  onClick={() => onPageChange(p as number)}
+                >
+                  {p}
+                </button>
+              ),
+            )}
+
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
-              title="下一页"
             >
               <ChevronRight className="size-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(totalPages)}
-              title="最后一页"
-            >
-              <ChevronsRight className="size-4" />
-            </Button>
+            </button>
+          </div>
+
+          <span>{pageSize} 条/页</span>
+
+          <div className="flex items-center gap-1">
+            <span>跳至</span>
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={pageInputValue}
+              onChange={(e) => setPageInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const target = parseInt(pageInputValue)
+                  if (target >= 1 && target <= totalPages) onPageChange(target)
+                }
+              }}
+              onBlur={() => {
+                const target = parseInt(pageInputValue)
+                if (target >= 1 && target <= totalPages && target !== page) {
+                  onPageChange(target)
+                } else {
+                  setPageInputValue(String(page))
+                }
+              }}
+              className="h-8 w-12 rounded-md border border-input bg-background px-1 text-center text-sm tabular-nums outline-none focus:ring-1 focus:ring-ring [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              aria-label="跳转页码"
+            />
+            <span>页</span>
           </div>
         </div>
       )}
