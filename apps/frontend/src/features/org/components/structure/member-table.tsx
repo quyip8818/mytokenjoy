@@ -9,6 +9,15 @@ import {
 import type { Member } from '@/api/types'
 import { useSession } from '@/features/session'
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,7 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MemberTableProps {
@@ -250,43 +259,40 @@ export function MemberTable({
             共 <span className="tabular-nums font-medium text-foreground">{total}</span> 条
           </span>
 
-          <div className="flex items-center gap-1">
-            <button
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
-              <ChevronLeft className="size-4" />
-            </button>
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => onPageChange(page - 1)}
+                  disabled={page <= 1}
+                  aria-disabled={page <= 1}
+                />
+              </PaginationItem>
 
-            {generatePageNumbers(page, totalPages).map((p, i) =>
-              p === '...' ? (
-                <span key={`ellipsis-${i}`} className="flex h-8 w-8 items-center justify-center text-muted-foreground">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  className={`flex h-8 w-8 items-center justify-center rounded-md border text-sm tabular-nums transition-colors ${
-                    p === page
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border hover:bg-accent'
-                  }`}
-                  onClick={() => onPageChange(p as number)}
-                >
-                  {p}
-                </button>
-              ),
-            )}
+              {generatePageNumbers(page, totalPages).map((p, i) => (
+                <PaginationItem key={`page-${i}`}>
+                  {p === '...' ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      isActive={p === page}
+                      onClick={() => onPageChange(p as number)}
+                    >
+                      {p}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
 
-            <button
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => onPageChange(page + 1)}
+                  disabled={page >= totalPages}
+                  aria-disabled={page >= totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
 
           <select
             value={pageSize}
