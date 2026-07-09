@@ -1,6 +1,6 @@
 # TokenJoy Backend
 
-`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子 `apps/backend/seed/`（见 [Backend-seed.md](./Backend-seed.md)）；Postgres 主库 **37** 表（含 `currencies`、`company_recharge_lots`）+ 日志库 **3** 表；消耗 SSOT 为 `usage_ledger`。
+`apps/backend/` Go 服务现状：实现 [Frontend.md](./Frontend.md) 企业面 **82** 端点 + SaaS **11** 端点；种子见 `apps/backend/seed/`（[§5.3](#53-seed)）；Postgres 主库 **37** 表（含 `currencies`、`company_recharge_lots`）+ 日志库 **3** 表；消耗 SSOT 为 `usage_ledger`。
 
 差距与计划见 [Roadmap.md](./Roadmap.md)；工程待办见 [plan.md](./plan.md)。
 
@@ -12,13 +12,12 @@
 | -------------------------------------------- | ---------------------------------------------------------- |
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
-| [Backend-计费单位.md](./Backend-计费单位.md) | point + lot 新账本；钱包 SSOT、展示币闭合、破坏性更新      |
+| [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
 | [Backend-模型目录实现.md](./Backend-模型目录实现.md) | 同表双角色：平台模型源 + 租户自有模型；全局内置对租户永远存在、不可禁用 |
 | [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 终态架构：管理面 `modelId`、Relay/审计 `callType`；`ModelRef` enrich |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
-| [Backend-测试优化.md](./Backend-测试优化.md) | PostgreSQL 测试隔离、per-schema、seed 选用、ingest 约束    |
 
----
+Seed 与测试见本文 [§5](#5-测试与-seed)。
 
 ## 1. 概览
 
@@ -114,7 +113,7 @@ sequenceDiagram
     end
 ```
 
-充值 `company_recharge_orders`：`pending` → `confirmed`（写 lot）→ 异步派生同步 NewAPI → 企业级 rebalance。详情见 [Backend-计费单位.md](./Backend-计费单位.md)。平台 API 见 [Frontend.md](./Frontend.md) §5.5。
+充值 `company_recharge_orders`：`pending` → `confirmed`（写 lot）→ 异步派生同步 NewAPI → 企业级 rebalance。详情见 [Backend-计费模式.md](./Backend-计费模式.md)。平台 API 见 [Frontend.md](./Frontend.md) §5.5。
 
 ### 2.5 Keys 域约束（Platform Key / Relay）
 
@@ -139,7 +138,7 @@ sequenceDiagram
 | 变量                          | 默认               | 说明                                                                          |
 | ----------------------------- | ------------------ | ----------------------------------------------------------------------------- |
 | `PORT`                        | `8080`             | HTTP                                                                          |
-| `DATABASE_URL`                | 必填（测试与生产） | Postgres；测试见 [Backend-测试优化.md](./Backend-测试优化.md)                 |
+| `DATABASE_URL`                | 必填（测试与生产） | Postgres；测试见 [§5](#5-测试与-seed)                                         |
 | `SESSION_SECRET`              | **必填（目标态）** | 企业面 Session JWT 签名；见 [权限管理.md](./权限管理.md) §10                  |
 | `APP_PROFILE`                 | `demo`             | 仅非鉴权用途（如延迟模拟）；**鉴权不再分叉**，见 [权限管理.md](./权限管理.md) |
 | `DEMO_TODAY`                  | `2026-06-19`       | Demo 看板锚定                                                                 |
@@ -202,11 +201,11 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 
 ---
 
-## 5. 测试
+## 5. 测试与 Seed
 
 **所有测试在 `apps/backend/tests/`，`internal/` 禁止 `*_test.go`。**
 
-测试方案（PostgreSQL + 每测独立 schema）见 [Backend-测试优化.md](./Backend-测试优化.md)。
+测试使用 PostgreSQL + 每测独立 schema（`-tags=testhook` 激活 `testutil.NewTestStore` / `NewTestApp`）。
 
 ```bash
 cd apps/backend
@@ -241,12 +240,26 @@ make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
 
 新 GET 端点追加 `tests/handler/core/contract_test.go`。SaaS 配置：`testutil/saas.ApplyConfig`。
 
+### 5.3 Seed
+
+目录：`apps/backend/seed/`。
+
+| 子目录 / 文件 | 职责 |
+| --- | --- |
+| `contract/` | 跨测试与 demo 的固定 ID（公司、部门、Key 等） |
+| `snapshot/` | 静态 JSON / Go 快照（预算树、模型、充值 lot、usage ledger 等） |
+| `points/` | point ↔ 展示币换算辅助 |
+| `apply/tables.go` | 将快照写入 Postgres（`ApplyTables`） |
+| `runtime/` | 启动时按需写入（`ApplyUsageBuckets`、`ApplyUsageLedger`、充值 lot 等） |
+
+启动流程：`postgres.New` → apply `schema.sql` → 空库非 prod 时 `seed.Load` + `seed.ApplyTables`；demo profile 下额外执行 `seed/runtime` 运行时步骤。计费相关 lot / `balance_point` 见 [Backend-计费模式.md](./Backend-计费模式.md)。
+
 ---
 
 ## 6. 变更检查清单
 
 - [ ] `apps/frontend/src/api/` + [Frontend.md](./Frontend.md) API 契约
 - [ ] `internal/domain/` + `internal/http/handler/`
-- [x] `apps/backend/seed/`（demo 数据，[Backend-seed.md](./Backend-seed.md)）
+- [x] `apps/backend/seed/`（demo 数据，见 [§5.3](#53-seed)）
 - [ ] `tests/handler/core/contract_test.go`（新 GET）
 - [ ] 已实现项从 [Roadmap.md](./Roadmap.md) 移除

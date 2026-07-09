@@ -73,7 +73,7 @@ apps/backend/
 │   │   ├── usage/           # Ingest、projection、Reader
 │   │   ├── relay/           # TokenLifecycle、Gateway 预检、quota 合成
 │   │   ├── company/         # 企业、开户、邀请
-│   │   └── billing/         # 充值、钱包
+│   │   └── billing/         # 充值、lot 钱包、wallet_sync
 │   ├── http/
 │   │   ├── router.go
 │   │   ├── deps/            # Deps、Public、Protected、Platform
@@ -89,7 +89,7 @@ apps/backend/
 │   │   └── datasource/feishu/
 │   ├── pkg/                 # budget/、org/（含 sync_diff、remote_ids）、common/、ctxcompany/
 │   └── store/               # postgres/
-├── seed/                    # demo 引导与契约（见 Backend-seed.md）
+├── seed/                    # demo 引导与契约（见 [Backend.md](./Backend.md) §5.3）
 ├── tests/
 │   ├── testutil/            # 根 + org/saas/http/relay/worker 子包
 │   ├── pkg/
@@ -186,11 +186,11 @@ type Store interface {
 
 | 模式     | 条件                               | 说明                                                                          |
 | -------- | ---------------------------------- | ----------------------------------------------------------------------------- |
-| Postgres | `DATABASE_URL` 必填                | 主库 35 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md) |
-| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-测试优化.md](./Backend-测试优化.md)                               |
+| Postgres | `DATABASE_URL` 必填                | 主库 37 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md) |
+| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend.md](./Backend.md) §5                               |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
-- Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.Load` + `seed.ApplyTables`；demo 下 `seed/runtime.ApplyUsageBuckets`（见 [Backend-seed.md](./Backend-seed.md)）。
+- Bootstrap：`postgres.New` → applySchema → 空库非 prod → `seed.Load` + `seed.ApplyTables`；demo 下 `seed/runtime.ApplyUsageBuckets`（见 [Backend.md](./Backend.md) §5.3）。
 - 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
 - `OrgRepository` 实现按职责拆为多文件（`org_repo.go` + `org_repo_members.go` / `org_repo_roles.go` / `org_repo_integration.go`），接口不变。
 

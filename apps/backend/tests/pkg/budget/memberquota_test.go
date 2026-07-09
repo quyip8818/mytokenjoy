@@ -17,8 +17,8 @@ func TestGetQuotaRemaining(t *testing.T) {
 	keys := snapshot.PlatformKeys
 
 	remaining := budget.GetQuotaRemaining(members, keys, contract.IDMember1)
-	if remaining != 3000 {
-		t.Fatalf("expected remaining 3000 (10000 personal - 7000 allocated), got %v", remaining)
+	if remaining != testutil.DisplayPoints(3000) {
+		t.Fatalf("expected remaining %v (10000 personal - 7000 allocated), got %v", testutil.DisplayPoints(3000), remaining)
 	}
 }
 
@@ -30,11 +30,11 @@ func TestBuildQuotaSummary(t *testing.T) {
 	reserved := budget.GetReservedPoolForMember(types.OrgNodesToBudgetTree(snapshot.OrgNodes), members, contract.IDMember1)
 
 	summary := budget.BuildQuotaSummary(members, keys, contract.IDMember1, reserved)
-	if summary.TotalQuota != 10000 {
-		t.Fatalf("expected total quota 10000, got %v", summary.TotalQuota)
+	if summary.TotalQuota != testutil.DisplayPoints(10000) {
+		t.Fatalf("expected total quota %v, got %v", testutil.DisplayPoints(10000), summary.TotalQuota)
 	}
-	if summary.Remaining != 3000 {
-		t.Fatalf("expected remaining 3000, got %v", summary.Remaining)
+	if summary.Remaining != testutil.DisplayPoints(3000) {
+		t.Fatalf("expected remaining %v, got %v", testutil.DisplayPoints(3000), summary.Remaining)
 	}
 	if summary.ReservedPool != testutil.DisplayPoints(1500) {
 		t.Fatalf("expected reserved pool %v, got %v", testutil.DisplayPoints(1500), summary.ReservedPool)

@@ -21,7 +21,6 @@
 ### P0 — 生产功能或资金风险
 
 - [ ] **Gateway `/v1` path 剥离** — `domain/relay/gateway_service.go`；客户端 `/v1/chat/completions` 可能被转成 `/chat/completions` → NewAPI 404
-- [ ] **充值跳过 TopUp 仍标 `topped_up`** — `domain/billing/service.go` `topUpAndFinish`；`NEW_API_ENABLED=false` 时 DB 已充值、NewAPI 钱包未增加
 - [ ] **Relay 关闭时 Key 同步静默跳过** — `domain/relay/lifecycle_ops.go`；DB 有 Key、NewAPI 无 token，无告警
 
 ### P1 — 误配、SaaS、可观测
@@ -29,7 +28,7 @@
 - [ ] `RELAY_GATEWAY_ENABLED` 无组合校验 — 只开 Gateway 不开 NewAPI → 路由不挂载，仅 log
 - [ ] `wireGatewayService` 失败静默 — `registry.go` 吞错，`relayGateway == nil`
 - [ ] Rebalance / Overrun 在 Relay 关闭时空转 — ingest 仍入队，Worker 调用时 `return nil`
-- [ ] `noopWalletService` 余额恒 0 — Gateway 预检 403，`GetWallet` 不区分「未配置」
+- [ ] `noopWalletService`：`AvailableQuota` 恒 0 — Gateway 预检 / `wallet_sync` 在 Relay 关闭时失效（`GetWallet` 读 Postgres lot，不受 noop 影响）
 - [ ] 通知 `NOTIFY_WEBHOOK_URL` 失败静默 — HTTP 失败仍 `return nil`，调用方无感知
 - [ ] `processOrgSync` 固定 `DefaultCompanyID` — SaaS 多企业 org 同步范围受限
 - [ ] `host.docker.internal` 跨平台 — Linux 非 Docker Desktop 时常不可用

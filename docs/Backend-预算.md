@@ -2,13 +2,13 @@
 
 企业钱包 + 组织预算双轴、Ingest SSOT、projection、Rebalance、Overrun 与控制台分配规则。
 
-**相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Roadmap.md](./Roadmap.md)
+**相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Roadmap.md](./Roadmap.md)
 
 ---
 
 ## 1. 两条轴
 
-预算系统不是单一「余额」，而是 **两条独立但会交汇的轴**。单位与钱包权威见 [Backend-计费单位.md](./Backend-计费单位.md)（Postgres lot/ledger 为资金 SSOT；组织 limit/consumed 全为 point；NewAPI quota 为派生通道配额）。
+预算系统不是单一「余额」，而是 **两条独立但会交汇的轴**。单位与钱包权威见 [Backend-计费模式.md](./Backend-计费模式.md)（Postgres lot/ledger 为资金 SSOT；组织 limit/consumed 全为 point；NewAPI quota 为派生通道配额）。
 
 | 轴           | 权威数据源                                                         | 管什么                      | 谁改                                      |
 | ------------ | ------------------------------------------------------------------ | --------------------------- | ----------------------------------------- |
@@ -40,7 +40,7 @@ flowchart TB
 
 ### 1.1 Gateway 放行（与双轴交汇）
 
-生产环境 **`RELAY_GATEWAY_ENABLED=true` 为硬依赖**（禁止旁路直连 NewAPI 消费）。`PrecheckService` 须全部满足（比较单位均为 **point**）；完整六项见 [Backend-计费单位.md](./Backend-计费单位.md) §5.2。
+生产环境 **`RELAY_GATEWAY_ENABLED=true` 为硬依赖**（禁止旁路直连 NewAPI 消费）。`PrecheckService` 须全部满足（比较单位均为 **point**）；完整项见 [Backend-计费模式.md](./Backend-计费模式.md) §4.4。
 
 | 检查                                | 数据源                                      |
 | ----------------------------------- | ------------------------------------------- |
@@ -256,7 +256,7 @@ sequenceDiagram
 
 - 订单状态：`pending` → `confirmed`（失败 → `failed`）。
 - 充值**不**改 `org_nodes.budget`；只涨 `company_recharge_lots`；NewAPI 为派生同步。
-- 钱包展示与闭合只查 lot（展示币成本价）；详见 [Backend-计费单位.md](./Backend-计费单位.md)。
+- 钱包展示与闭合只查 lot（展示币成本价）；详见 [Backend-计费模式.md](./Backend-计费模式.md)。
 - 完成后入队 `company` 轴 rebalance，按 **Postgres `balance_point`** 刷新 Token `remain_quota` 上限。
 
 SaaS 开户与平台代充见 [Backend.md](./Backend.md) §2。

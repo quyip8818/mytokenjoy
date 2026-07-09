@@ -17,7 +17,7 @@ func TestValidateGroupKeyQuota(t *testing.T) {
 
 	for _, group := range groups {
 		if group.ID == contract.IDBudgetGroup1 {
-			if msg := budget.ValidateGroupKeyQuota(group, keys, 99999, ""); msg == nil {
+			if msg := budget.ValidateGroupKeyQuota(group, keys, testutil.DisplayPoints(99999), ""); msg == nil {
 				t.Fatal("expected validation error when quota exceeds group remaining")
 			}
 			return
@@ -35,8 +35,8 @@ func TestGetGroupQuotaRemaining(t *testing.T) {
 	for _, group := range groups {
 		if group.ID == contract.IDBudgetGroup1 {
 			remaining := budget.GetGroupQuotaRemaining(group, keys)
-			if remaining != 3500 {
-				t.Fatalf("expected bg-1 remaining 3500 (30000-18500-8000), got %v", remaining)
+			if remaining != testutil.DisplayPoints(3500) {
+				t.Fatalf("expected bg-1 remaining %v (30000-18500-8000), got %v", testutil.DisplayPoints(3500), remaining)
 			}
 			return
 		}

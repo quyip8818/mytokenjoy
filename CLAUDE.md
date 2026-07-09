@@ -118,7 +118,7 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 ## Key Documentation
 
 - `docs/plan.md` — Engineering backlog (single source for pending work)
-- `docs/TokenJoy-PRD.md` — Product requirements (authoritative PRD)
+- `docs/PRD.md` — Product requirements (authoritative PRD)
 - `docs/Frontend.md` — Frontend development guide and API contract
 - `docs/Backend.md` — Backend design document (index)
 - `docs/Backend-预算.md` — Budget subsystem design

@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -415,17 +416,15 @@ func (r *relayRepo) EnqueueWalletSync(ctx context.Context, companyID int64) erro
 	if err != nil {
 		return err
 	}
-	return r.EnqueueJob(ctx, store.AsyncJob{
-		ID:        id,
-		CompanyID: &companyID,
-		Channel:   store.JobChannelWalletSync,
-		Kind:      "wallet_sync",
-		DedupeKey: &dedupe,
-		Payload:   payload,
-		Status:    store.JobStatusPending,
-		CreatedAt: time.Now().UTC(),
-		NextRetry: time.Now().UTC(),
-	})
+	debounceUntil := time.Now().UTC().Add(common.WalletSyncDebounceSecs * time.Second)
+	_, err = r.db.Exec(ctx, `
+		INSERT INTO async_jobs (id, company_id, channel, kind, dedupe_key, payload, status, attempts, next_retry, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, NOW(), NOW())
+		ON CONFLICT (company_id, channel, dedupe_key)
+		WHERE dedupe_key IS NOT NULL AND status = 'pending'
+		DO UPDATE SET next_retry = GREATEST(async_jobs.next_retry, EXCLUDED.next_retry), updated_at = NOW()
+	`, id, companyID, store.JobChannelWalletSync, "wallet_sync", dedupe, payload, store.JobStatusPending, debounceUntil)
+	return err
 }
 
 func (r *relayRepo) ClaimPendingWalletSync(ctx context.Context, limit int) ([]store.WalletSyncQueueEntry, error) {

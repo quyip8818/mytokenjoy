@@ -10,7 +10,7 @@
 | 问题                                  | 位置                                                | 后果                                                                                                                         |
 | ------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Relay 关闭时 lifecycle **静默 no-op** | `domain/relay/lifecycle_ops.go`（`Enabled()` 早退） | Toggle / Revoke / Update、Worker outbox 可能 **DB 与 NewAPI 不一致**；创建/审批已有 `requireRelay()` → 503，其余写路径无护栏 |
-| `noopWalletService` 余额恒 0          | `domain/company/wallet.go`                          | 误开 Gateway 时预检 **403**；`GetWallet` 无法区分「Relay 未配置」与「余额真为零」                                            |
+| `noopWalletService` `AvailableQuota` 恒 0 | `domain/company/wallet.go`                          | Relay 关闭时 Gateway 预检 / `wallet_sync` 失效；`GetWallet` 读 Postgres lot，不受 noop 影响 |
 
 ---
 
@@ -45,7 +45,7 @@
 ```
 P0
 ├── Relay 关闭时：所有 mutating 管理面操作报错或禁止（不仅 create/approval）
-└── noop 钱包：Gateway 启用时 fast-fail，或 GetWallet 区分未配置
+└── noop 钱包：Gateway 启用时 fast-fail，或区分 Relay 未配置与余额为零
 
 P1
 ├── config：Gateway 组合校验 + wireGatewayService 失败即启动失败

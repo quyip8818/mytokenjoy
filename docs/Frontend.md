@@ -748,7 +748,7 @@ HTTP 非 2xx 时，body 应包含：
 | POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202** |
 | POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并写 lot（demo / 回调模拟） |
 
-**`WalletSummary`**（破坏性；详见 [Backend-计费单位.md](./Backend-计费单位.md)）
+**`WalletSummary`**（详见 [Backend-计费模式.md](./Backend-计费模式.md)）
 
 | 字段              | 类型                 | 说明 |
 | ----------------- | -------------------- | ---- |
@@ -761,7 +761,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **`WalletCurrency`**：`currency` / `balance` / `totalTopup` / `totalConsumed`；同币种满足 `totalTopup - totalConsumed = balance`。前端以 `balances[]` 为唯一展示数据源。
 
-**预算 API（首版）：** JSON 字段 `budget` / `consumed` / `quota` 均为 **point**；前端展示时 `÷ PPU(1000)` 换算为 ¥，提交时 `× PPU` 写回。详见 [Backend-计费单位.md](./Backend-计费单位.md) §6.2。
+**预算 API：** JSON 字段 `budget` / `consumed` / `quota` 均为 **point**；前端展示时 `÷ PPU(1000)` 换算为 ¥，提交时 `× PPU` 写回。详见 [Backend-计费模式.md](./Backend-计费模式.md) §8.2。
 
 **`RechargeOrder`**
 
@@ -800,7 +800,9 @@ HTTP 非 2xx 时，body 应包含：
 | GET   | `/platform/companies`              | `page?`, `pageSize?`, `status?` | `Paginated<Company>` | 企业列表                        |
 | POST  | `/platform/companies`              | `CreateCompanyRequest`          | `Company`            | 开户 + 发超管邀请               |
 | PATCH | `/platform/companies/:id`          | `PatchCompanyRequest`           | `Company`            | 状态、套餐                      |
-| POST  | `/platform/companies/:id/recharge` | `{ amount }`                    | `RechargeOrder`      | 平台代充；`source=platform`     |
+| POST  | `/platform/companies/:id/recharge` | `{ amount }`                    | `void`               | 平台代充；`source=platform`     |
+| POST  | `/platform/companies/:id/gift`     | `{ points }`                    | `void`               | 平台赠送 point                  |
+| POST  | `/platform/companies/:id/adjust`   | `{ points, amountDisplay }`     | `void`               | 平台调账（point + 展示币）      |
 | GET   | `/platform/channels`               | —                               | `ProviderKey[]`      | 全局上游 Channel 列表           |
 | POST  | `/platform/channels`               | 同企业面 `provider-keys` 创建体 | `ProviderKey`        | 同步到 NewAPI `platform_shared` |
 
@@ -842,10 +844,10 @@ HTTP 非 2xx 时，body 应包含：
 | `auth/accept-invite` | 已实现                        | 未接入                                    | 无 `/invite/accept`                |
 | `billing/wallet`     | 已实现                        | `billingApi.getWallet`                    | `/wallet`                          |
 | `billing/recharge`   | 已实现                        | `billingApi.recharge` + `confirmRecharge` | `/wallet`（充值 create → confirm） |
-| `platform/*`         | 已实现（`SUPPORT_SAAS=true`） | 未接入                                    | 无 `/platform/login`               |
+| `platform/*`         | 已实现（`SUPPORT_SAAS=true`）；含 recharge / gift / adjust | 未接入                                    | 无 `/platform/login`               |
 | `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
-> **类型对齐：** 前端 `WalletView` 使用 `balances[]` / `balancePoint` / `giftPoints` / `overdraftPoints`；已移除 `allocatable` 与扁平 `balance` 兼容字段。
+> **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`balancePoint`、`giftPoints`、`overdraftPoints`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

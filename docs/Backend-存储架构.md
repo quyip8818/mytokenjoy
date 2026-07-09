@@ -1,8 +1,8 @@
 # Backend 存储架构
 
-Postgres 双库：**35** 张主库表 + **3** 张日志库表。`company_id` 租户隔离，管理面配置 + 运行面入账投影。
+Postgres 双库：**37** 张主库表 + **3** 张日志库表。`company_id` 租户隔离，管理面配置 + 运行面入账投影。
 
-**本文定位：** 表结构、域关系、Store 映射与 ID 约定。请求链路见 [Backend-架构.md](./Backend-架构.md)；Ingest / Rebalance / Overrun 算法见 [Backend-预算.md](./Backend-预算.md)；计费单位见 [Backend-计费单位.md](./Backend-计费单位.md)。
+**本文定位：** 表结构、域关系、Store 映射与 ID 约定。请求链路见 [Backend-架构.md](./Backend-架构.md)；Ingest / Rebalance / Overrun 算法见 [Backend-预算.md](./Backend-预算.md)；计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 | 库     | DDL                                               | 连接                       |
 | ------ | ------------------------------------------------- | -------------------------- |
@@ -17,7 +17,7 @@ Postgres 双库：**35** 张主库表 + **3** 张日志库表。`company_id` 租
 
 ```mermaid
 flowchart LR
-  subgraph main [主库 · 35 表]
+  subgraph main [主库 · 37 表]
     MGMT[管理面]
     RUN[运行面]
   end
@@ -263,7 +263,7 @@ flowchart LR
 | **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 Token     |
 | **组织预算** | `org_nodes.budget` · `personal_quota` · `budget_groups.budget` · `platform_keys.quota`（均为 point） | **`budget_snapshots.consumed`**（四轴，point） | Gateway 预检、预算树、Overrun        |
 
-组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费单位见 [Backend-计费单位.md](./Backend-计费单位.md)。
+组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ### 8.3 字段对照（代码名 → 统一词）
 
@@ -303,4 +303,4 @@ flowchart LR
 | `usage_ledger` 的 `input_tokens` / `output_tokens` | 用量计数，不是金额额度           |
 | `reserved_pool`                                    | 预留池配置，不是 consumed        |
 
-算法与入账顺序见 [Backend-预算.md](./Backend-预算.md) §1–§2。point / 展示币 / NewAPI quota 的区别见 [Backend-计费单位.md](./Backend-计费单位.md)。
+算法与入账顺序见 [Backend-预算.md](./Backend-预算.md) §1–§2。point / 展示币 / NewAPI quota 的区别见 [Backend-计费模式.md](./Backend-计费模式.md)。
