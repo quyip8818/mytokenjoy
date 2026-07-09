@@ -154,6 +154,12 @@ export function useStructurePage(injectedApis?: AppApis) {
           setRowSelection({})
           setConfirmState((state) => ({ ...state, open: false }))
           toast.success(`已删除 ${ids.length} 名成员`)
+          // If current page would be empty after deletion, go back one page
+          const remainingTotal = total - ids.length
+          const maxPage = Math.max(1, Math.ceil(remainingTotal / pageSize))
+          if (page > maxPage) {
+            setPage(maxPage)
+          }
           await invalidateOrg()
         } catch (err) {
           const message = err instanceof ApiError ? err.message : '删除失败，请重试'
