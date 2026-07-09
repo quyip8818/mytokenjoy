@@ -19,6 +19,7 @@ interface StructureMembersPanelProps {
   onInvite: () => void
   onAdd: () => void
   onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
   onEdit: (member: Member) => void
   onStatusChange: (ids: string[], status: 'active' | 'inactive') => void
   onDelete: (ids: string[]) => void
@@ -41,6 +42,7 @@ export function StructureMembersPanel({
   onInvite,
   onAdd,
   onPageChange,
+  onPageSizeChange,
   onEdit,
   onStatusChange,
   onDelete,
@@ -81,6 +83,7 @@ export function StructureMembersPanel({
         page={page}
         pageSize={pageSize}
         onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
         onEdit={onEdit}
         onStatusChange={onStatusChange}
         onDelete={onDelete}

@@ -33,6 +33,7 @@ interface MemberTableProps {
   page: number
   pageSize: number
   onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
   onEdit: (member: Member) => void
   onStatusChange: (ids: string[], status: 'active' | 'inactive') => void
   onDelete: (ids: string[]) => void
@@ -78,6 +79,7 @@ export function MemberTable({
   page,
   pageSize,
   onPageChange,
+  onPageSizeChange,
   onEdit,
   onStatusChange,
   onDelete,
@@ -286,7 +288,16 @@ export function MemberTable({
             </button>
           </div>
 
-          <span>{pageSize} 条/页</span>
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value={10}>10 条/页</option>
+            <option value={20}>20 条/页</option>
+            <option value={50}>50 条/页</option>
+            <option value={100}>100 条/页</option>
+          </select>
 
           <div className="flex items-center gap-1">
             <span>跳至</span>

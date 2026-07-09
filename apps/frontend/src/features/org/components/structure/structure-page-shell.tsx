@@ -38,6 +38,7 @@ export function StructurePageShell({
   deleteDept,
   setKeyword,
   setPage,
+  setPageSize,
   setRowSelection,
   refreshDepartments,
   refreshMembers,
@@ -96,6 +97,7 @@ export function StructurePageShell({
             onInvite={() => setInviteOpen(true)}
             onAdd={openCreateMember}
             onPageChange={setPage}
+            onPageSizeChange={setPageSize}
             onEdit={openEditMember}
             onStatusChange={handleStatusChange}
             onDelete={handleDelete}

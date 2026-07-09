@@ -10,7 +10,7 @@ import { queryKeys, useInjectedQuery } from '@/features/query'
 import { flattenDepartments } from '../lib/departments'
 import { useStructureConfirmState } from './use-structure-confirm'
 
-const PAGE_SIZE = 10
+const DEFAULT_PAGE_SIZE = 10
 
 export function useStructurePage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
@@ -18,6 +18,7 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const [selectedDept, setSelectedDept] = useState<Department | undefined>()
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [keyword, setKeyword] = useState('')
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [formOpen, setFormOpen] = useState(false)
@@ -30,7 +31,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const memberQueryParams = useMemo(
     () => ({
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
       keyword: keyword || undefined,
       departmentId: selectedDept?.id,
     }),
@@ -231,7 +232,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     members,
     total,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
     keyword,
     rowSelection,
     loading,
@@ -255,6 +256,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     deleteDept,
     setKeyword: setKeywordAndReset,
     setPage: setPageAndRefresh,
+    setPageSize: (size: number) => { setPageSize(size); setPage(1) },
     setRowSelection,
     refresh,
     refreshDepartments,
