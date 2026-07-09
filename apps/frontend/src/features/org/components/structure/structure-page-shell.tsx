@@ -47,6 +47,7 @@ export function StructurePageShell({
   setTransferDeptId,
   setConfirmState,
   handleMemberSubmit,
+  handleSearch,
   handleStatusChange,
   handleDelete,
   handleBatchTransfer,
@@ -94,6 +95,7 @@ export function StructurePageShell({
             pendingCount={pendingCount}
             selectedIds={selectedIds}
             onKeywordChange={setKeyword}
+            onSearch={handleSearch}
             onInvite={() => setInviteOpen(true)}
             onAdd={openCreateMember}
             onPageChange={setPage}

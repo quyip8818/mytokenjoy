@@ -16,6 +16,7 @@ interface StructureMembersPanelProps {
   pendingCount: number
   selectedIds: string[]
   onKeywordChange: (keyword: string) => void
+  onSearch: () => void
   onInvite: () => void
   onAdd: () => void
   onPageChange: (page: number) => void
@@ -39,6 +40,7 @@ export function StructureMembersPanel({
   pendingCount,
   selectedIds,
   onKeywordChange,
+  onSearch,
   onInvite,
   onAdd,
   onPageChange,
@@ -73,6 +75,7 @@ export function StructureMembersPanel({
       <MemberToolbar
         keyword={keyword}
         onKeywordChange={onKeywordChange}
+        onSearch={onSearch}
         onInvite={onInvite}
         onAdd={onAdd}
       />

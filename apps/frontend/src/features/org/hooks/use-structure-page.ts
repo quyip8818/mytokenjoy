@@ -20,6 +20,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [keyword, setKeyword] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState('')
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [formOpen, setFormOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<Member | null>(null)
@@ -32,10 +33,10 @@ export function useStructurePage(injectedApis?: AppApis) {
     () => ({
       page,
       pageSize,
-      keyword: keyword || undefined,
+      keyword: searchKeyword || undefined,
       departmentId: selectedDept?.id,
     }),
-    [page, pageSize, keyword, selectedDept?.id],
+    [page, pageSize, searchKeyword, selectedDept?.id],
   )
 
   const {
@@ -78,9 +79,13 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const setKeywordAndReset = useCallback((value: string) => {
     setKeyword(value)
+  }, [])
+
+  const handleSearch = useCallback(() => {
+    setSearchKeyword(keyword)
     setPage(1)
     setRowSelection({})
-  }, [])
+  }, [keyword])
 
   const setPageAndRefresh = useCallback((nextPage: number) => {
     setPage(nextPage)
@@ -286,6 +291,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     updateDept,
     deleteDept,
     setKeyword: setKeywordAndReset,
+    handleSearch,
     setPage: setPageAndRefresh,
     setPageSize: (size: number) => { setPageSize(size); setPage(1) },
     setRowSelection,
