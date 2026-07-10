@@ -160,8 +160,8 @@ func (r *Runner) RunReconcileOnce(ctx context.Context) error {
 	return r.ingestWorker.ProcessReconcile(ctx)
 }
 
-func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, next time.Time, reason string) {
-	if err := r.relayJobs.MarkRelayOutboxRetry(ctx, id, next, reason); err != nil {
+func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, delay time.Duration, reason string) {
+	if err := r.relayJobs.MarkRelayOutboxRetry(ctx, id, delay, reason); err != nil {
 		r.logger.Warn("mark relay outbox retry failed", "id", id, "error", err)
 	}
 }

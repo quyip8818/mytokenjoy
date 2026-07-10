@@ -11,7 +11,7 @@ import (
 
 func newAuditService(t *testing.T) audit.Service {
 	t.Helper()
-	cfg, st := testutil.NewTestStoreWithDemoRuntime(t)
+	cfg, st := testutil.NewTestStore(t)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	return audit.NewService(cfg, st, reader)
 }

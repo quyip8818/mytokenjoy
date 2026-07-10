@@ -120,8 +120,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	t.Parallel()
 	schemaURL := testutil.TestSchemaURL(t)
 	ctx := testutil.Ctx()
-	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = schemaURL
+	cfg := testutil.PreparedConfig(schemaURL)
 
 	st1, err := postgres.New(context.Background(), cfg)
 	if err != nil {

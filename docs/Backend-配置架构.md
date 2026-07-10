@@ -133,7 +133,7 @@ func NowUTC(clk Clock) time.Time
 | `demo` | `seed.Load` → `ApplyTables` → `runtime.ApplyDemo`（buckets / recharge / ledger） |
 
 非空库：**永不**写入 seed / runtime。  
-非空库补演示 runtime：测试用 `NewTestStoreWithDemoRuntime` / `applyDemoRuntime`；运维用迁移脚本。
+非空库补演示 runtime：测试用 `NewTestStoreWithDemoRuntime` / `ApplyDemoRuntime`；运维用迁移脚本。
 
 `StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`。无 `RuntimeSeed` / `SkipRuntimeSeed`。
 
@@ -183,7 +183,7 @@ func NowUTC(clk Clock) time.Time
 | Helper | 用途 |
 | --- | --- |
 | `NewSecureCookieRouter` | 仅 `SECURE_COOKIE=true` |
-| `NewTestStoreWithDemoRuntime` / `applyDemoRuntime` | 显式写入 usage/充值演示数据 |
+| `NewTestStoreWithDemoRuntime` / `ApplyDemoRuntime` | 显式写入 usage/充值演示数据 |
 | `WithProductionContract` | 填满 §7 以测生产契约加载 |
 
 已删除：`WithProfile`、`WithMinimalSeed`、`WithRuntimeSeed`、`NewProdRouter`。

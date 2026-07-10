@@ -23,10 +23,12 @@ type Handle struct {
 	URL     string
 }
 
+// schemaByTest keys on *testing.T (not t.Name()) so -count with t.Parallel()
+// does not reuse one schema across concurrent invocations of the same test name.
 var schemaByTest sync.Map
 
-func CachedHandle(testName string) (Handle, bool) {
-	v, ok := schemaByTest.Load(testName)
+func CachedHandle(t *testing.T) (Handle, bool) {
+	v, ok := schemaByTest.Load(t)
 	if !ok {
 		return Handle{}, false
 	}
@@ -57,18 +59,18 @@ func registerTestSchema(t *testing.T, pool *pgxpool.Pool, baseURL, schema string
 		Schema:  schema,
 		URL:     WithSearchPath(baseURL, schema),
 	}
-	schemaByTest.Store(t.Name(), &h)
+	schemaByTest.Store(t, &h)
 	schemaSQL := pgx.Identifier{schema}.Sanitize()
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), "DROP SCHEMA IF EXISTS "+schemaSQL+" CASCADE")
-		schemaByTest.Delete(t.Name())
+		schemaByTest.Delete(t)
 	})
 	return h
 }
 
 func OpenSlow(t *testing.T, baseURL string) Handle {
 	t.Helper()
-	if h, ok := CachedHandle(t.Name()); ok {
+	if h, ok := CachedHandle(t); ok {
 		return h
 	}
 	pool, err := EnsureAdminPool(context.Background(), baseURL)

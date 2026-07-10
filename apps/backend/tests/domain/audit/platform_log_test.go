@@ -14,7 +14,7 @@ import (
 
 func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStoreWithDemoRuntime(t)
+	cfg, st := testutil.NewTestStore(t)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := audit.NewService(cfg, st, reader)
 

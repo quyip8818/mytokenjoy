@@ -17,7 +17,7 @@ import (
 func NewTestStoreWithDemoRuntime(t *testing.T, opts ...ConfigOption) (config.Config, store.Store) {
 	t.Helper()
 	cfg, st := NewTestStore(t, opts...)
-	applyDemoRuntime(t, st, cfg)
+	ApplyDemoRuntime(t, st, cfg)
 	return cfg, st
 }
 
@@ -32,7 +32,7 @@ func resetRuntimeTables(t *testing.T, st store.Store) {
 	}
 }
 
-func applyDemoRuntime(t *testing.T, st store.Store, cfg config.Config) {
+func ApplyDemoRuntime(t *testing.T, st store.Store, cfg config.Config) {
 	t.Helper()
 	ctx := company.WithContext(context.Background(), company.Context{CompanyID: contract.DefaultCompanyID})
 	if err := runtime.ApplyDemo(ctx, st, cfg); err != nil {

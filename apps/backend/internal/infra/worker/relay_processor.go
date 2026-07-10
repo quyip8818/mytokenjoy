@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/relay"
@@ -81,6 +80,5 @@ func (r *Runner) finishRelayOutboxEntry(ctx context.Context, entry store.RelayOu
 		r.markRelayOutboxFailed(ctx, entry.ID, processErr.Error())
 		return
 	}
-	next := time.Now().Add(backoff(entry.Attempts))
-	r.markRelayOutboxRetry(ctx, entry.ID, next, processErr.Error())
+	r.markRelayOutboxRetry(ctx, entry.ID, backoff(entry.Attempts), processErr.Error())
 }

@@ -1,7 +1,8 @@
 # Backend · 业务时钟与账期
 
 > 现行说明。配置细节见 [Backend-配置架构.md](./Backend-配置架构.md)；预算业务见 [Backend-预算.md](./Backend-预算.md)。  
-> 本篇不谈：outbox / lease / session TTL（墙钟）、NewAPI `remain_quota` 算法。
+> outbox / lease / session TTL 属**墙钟**轨（与账期无关）；`async_jobs` 调度统一用 Postgres `NOW()`（enqueue / claim / lease / debounce），不用 `cfg.Clock()`。  
+> 本篇不谈：NewAPI `remain_quota` 算法。
 
 ---
 
@@ -74,15 +75,16 @@ sequenceDiagram
 
 | 名称 | 来源 | 干什么 | 不干什么 |
 | --- | --- | --- | --- |
-| **墙钟** | `time.Now()` | lease、outbox retry、TTL、生成 ID | 不算开账 period、不写账本发生月 |
+| **墙钟** | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `async_jobs` lease / retry / debounce、session TTL、生成 ID | 不算开账 period、不写账本发生月；**不**读 `CLOCK_ANCHOR` |
 | **业务时钟** | `cfg.Clock()` | 开账键、预检、超支、预算树 / Key used、看板「今天」、worker 月切触发、seed 开账快照 | 不驱动 lease |
 | **事件时间** | `OccurredAt`（来自上游 `CreatedAt`） | ledger `period_key`、`usage_buckets`、审计归因 | 不写开账快照 |
 
 ```mermaid
 flowchart TB
   subgraph wall [墙钟]
-    W[time.Now]
-    W --> L[lease / retry / TTL / ID]
+    W[PG NOW]
+    W --> L[async_jobs lease / retry / debounce]
+    ID[time.Now for IDs only]
   end
   subgraph biz [业务时钟]
     C[cfg.Clock]

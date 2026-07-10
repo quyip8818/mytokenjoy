@@ -14,16 +14,16 @@ import (
 func (r *relayRepo) EnqueueJob(ctx context.Context, job store.AsyncJob) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO async_jobs (id, company_id, channel, kind, dedupe_key, payload, status, attempts, next_retry, last_error, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, NOW(), NOW())
 		ON CONFLICT (company_id, channel, dedupe_key)
 		WHERE dedupe_key IS NOT NULL AND status = 'pending'
 		DO NOTHING
-	`, job.ID, job.CompanyID, job.Channel, job.Kind, job.DedupeKey, job.Payload, job.Status, job.Attempts, job.NextRetry, job.LastError, job.CreatedAt)
+	`, job.ID, job.CompanyID, job.Channel, job.Kind, job.DedupeKey, job.Payload, job.Status, job.Attempts, job.LastError)
 	return err
 }
 
 func (r *relayRepo) ClaimPendingJobs(ctx context.Context, channel string, limit int) ([]store.AsyncJob, error) {
-	leaseUntil := time.Now().Add(store.JobClaimLease())
+	leaseSecs := int64(store.JobClaimLease() / time.Second)
 	rows, err := r.db.Query(ctx, `
 		WITH claimed AS (
 			SELECT id
@@ -34,11 +34,11 @@ func (r *relayRepo) ClaimPendingJobs(ctx context.Context, channel string, limit 
 			FOR UPDATE SKIP LOCKED
 		)
 		UPDATE async_jobs AS j
-		SET next_retry = $4, updated_at = NOW()
+		SET next_retry = NOW() + ($4 * INTERVAL '1 second'), updated_at = NOW()
 		FROM claimed
 		WHERE j.id = claimed.id
 		RETURNING j.id, j.company_id, j.channel, j.kind, j.dedupe_key, j.payload, j.status, j.attempts, j.next_retry, j.last_error, j.created_at
-	`, channel, store.JobStatusPending, limit, leaseUntil)
+	`, channel, store.JobStatusPending, limit, leaseSecs)
 	if err != nil {
 		return nil, err
 	}
@@ -65,11 +65,15 @@ func (r *relayRepo) MarkJobDone(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *relayRepo) MarkJobRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
+func (r *relayRepo) MarkJobRetry(ctx context.Context, id string, delay time.Duration, lastError string) error {
+	secs := int64(delay / time.Second)
+	if secs < 0 {
+		secs = 0
+	}
 	_, err := r.db.Exec(ctx, `
-		UPDATE async_jobs SET attempts = attempts + 1, next_retry = $2, last_error = $3, updated_at = NOW()
+		UPDATE async_jobs SET attempts = attempts + 1, next_retry = NOW() + ($2 * INTERVAL '1 second'), last_error = $3, updated_at = NOW()
 		WHERE id = $1
-	`, id, nextRetry, lastError)
+	`, id, secs, lastError)
 	return err
 }
 
@@ -81,9 +85,7 @@ func (r *relayRepo) EnqueueRelayOutbox(ctx context.Context, entry store.RelayOut
 		Payload:   entry.Payload,
 		Status:    entry.Status,
 		Attempts:  entry.Attempts,
-		NextRetry: entry.NextRetry,
 		LastError: entry.LastError,
-		CreatedAt: entry.CreatedAt,
 	})
 }
 
@@ -112,8 +114,8 @@ func (r *relayRepo) MarkRelayOutboxDone(ctx context.Context, id string) error {
 	return r.MarkJobDone(ctx, id)
 }
 
-func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error {
-	return r.MarkJobRetry(ctx, id, nextRetry, lastError)
+func (r *relayRepo) MarkRelayOutboxRetry(ctx context.Context, id string, delay time.Duration, lastError string) error {
+	return r.MarkJobRetry(ctx, id, delay, lastError)
 }
 
 func (r *relayRepo) MarkRelayOutboxFailed(ctx context.Context, id string, lastError string) error {
@@ -140,8 +142,6 @@ func (r *relayRepo) EnqueueRebalance(ctx context.Context, axisKind, axisID strin
 		DedupeKey: &dedupe,
 		Payload:   json.RawMessage(fmt.Sprintf(`{"axis_kind":%q,"axis_id":%q}`, axisKind, axisID)),
 		Status:    store.JobStatusPending,
-		CreatedAt: time.Now().UTC(),
-		NextRetry: time.Now().UTC(),
 	})
 }
 
@@ -190,8 +190,6 @@ func (r *relayRepo) EnqueueOverrun(ctx context.Context, payload json.RawMessage)
 		Kind:      "overrun",
 		Payload:   payload,
 		Status:    store.JobStatusPending,
-		CreatedAt: time.Now().UTC(),
-		NextRetry: time.Now().UTC(),
 	})
 }
 
@@ -230,14 +228,13 @@ func (r *relayRepo) EnqueueWalletSync(ctx context.Context, companyID int64) erro
 	if err != nil {
 		return err
 	}
-	debounceUntil := time.Now().UTC().Add(common.WalletSyncDebounceSecs * time.Second)
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO async_jobs (id, company_id, channel, kind, dedupe_key, payload, status, attempts, next_retry, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, NOW(), NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NOW() + ($8 * INTERVAL '1 second'), NOW(), NOW())
 		ON CONFLICT (company_id, channel, dedupe_key)
 		WHERE dedupe_key IS NOT NULL AND status = 'pending'
 		DO UPDATE SET next_retry = GREATEST(async_jobs.next_retry, EXCLUDED.next_retry), updated_at = NOW()
-	`, id, companyID, store.JobChannelWalletSync, "wallet_sync", dedupe, payload, store.JobStatusPending, debounceUntil)
+	`, id, companyID, store.JobChannelWalletSync, "wallet_sync", dedupe, payload, store.JobStatusPending, common.WalletSyncDebounceSecs)
 	return err
 }
 

@@ -123,14 +123,14 @@ type AsyncJobRepository interface {
 	EnqueueJob(ctx context.Context, job AsyncJob) error
 	ClaimPendingJobs(ctx context.Context, channel string, limit int) ([]AsyncJob, error)
 	MarkJobDone(ctx context.Context, id string) error
-	MarkJobRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
+	MarkJobRetry(ctx context.Context, id string, delay time.Duration, lastError string) error
 }
 
 type RelayOutboxRepository interface {
 	EnqueueRelayOutbox(ctx context.Context, entry RelayOutboxEntry) error
 	ClaimPendingRelayOutbox(ctx context.Context, limit int) ([]RelayOutboxEntry, error)
 	MarkRelayOutboxDone(ctx context.Context, id string) error
-	MarkRelayOutboxRetry(ctx context.Context, id string, nextRetry time.Time, lastError string) error
+	MarkRelayOutboxRetry(ctx context.Context, id string, delay time.Duration, lastError string) error
 	MarkRelayOutboxFailed(ctx context.Context, id string, lastError string) error
 }
 

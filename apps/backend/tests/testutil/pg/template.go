@@ -114,7 +114,7 @@ func markTemplateVersion(ctx context.Context, pool *pgxpool.Pool) error {
 
 func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle {
 	t.Helper()
-	if h, ok := CachedHandle(t.Name()); ok {
+	if h, ok := CachedHandle(t); ok {
 		return h
 	}
 	ctx := context.Background()

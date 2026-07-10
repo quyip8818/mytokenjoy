@@ -16,6 +16,7 @@ import (
 func TestGetMemberDashboardHTTP(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)
+	testutil.ApplyDemoRuntime(t, app.Store, app.Config)
 	req := httptest.NewRequest(http.MethodGet, "/api/me/dashboard", nil)
 	req.Header.Set("Cookie", testutil.SessionCookie(t, contract.IDMember1))
 	rec := httptest.NewRecorder()

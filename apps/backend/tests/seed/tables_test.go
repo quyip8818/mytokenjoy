@@ -42,8 +42,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	schemaURL := testutil.TestSchemaURL(t)
-	cfg := testutil.TestConfig()
-	cfg.DatabaseURL = schemaURL
+	cfg := testutil.PreparedConfig(schemaURL)
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {

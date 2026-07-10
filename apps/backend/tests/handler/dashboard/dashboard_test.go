@@ -22,6 +22,7 @@ import (
 func TestDashboardDefaultApp(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)
+	testutil.ApplyDemoRuntime(t, app.Store, app.Config)
 	adminCookie := testhttp.AdminCookie(t)
 
 	t.Run("usage series minute from ledger demo", func(t *testing.T) {
@@ -124,6 +125,7 @@ func TestDashboardDefaultApp(t *testing.T) {
 func TestUsageSeriesMinuteFromLedger(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)
+	testutil.ApplyDemoRuntime(t, app.Store, app.Config)
 	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=minute&start=2026-06-10T08:00:00Z&end=2026-06-10T10:00:00Z", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

@@ -9,11 +9,13 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestListRechargeRecordsHTTP(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)
+	testutil.ApplyDemoRuntime(t, app.Store, app.Config)
 	req := httptest.NewRequest(http.MethodGet, "/api/billing/recharge-records", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()
@@ -33,6 +35,7 @@ func TestListRechargeRecordsHTTP(t *testing.T) {
 func TestWalletIncludesUsageStats(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)
+	testutil.ApplyDemoRuntime(t, app.Store, app.Config)
 	req := httptest.NewRequest(http.MethodGet, "/api/billing/wallet", nil)
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

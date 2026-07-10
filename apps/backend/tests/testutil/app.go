@@ -19,7 +19,6 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 		mutate(&cfg)
 	}
 	_, st := NewTestStore(t, WithConfig(cfg))
-	applyDemoRuntime(t, st, cfg)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	application, err := app.NewWithStore(cfg, logger, st, app.WithoutWorker())
 	if err != nil {
