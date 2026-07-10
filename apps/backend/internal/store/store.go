@@ -5,6 +5,7 @@ package store
 // entity backed by org_nodes. company_id is the tenant boundary.
 import (
 	"context"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
@@ -30,6 +31,8 @@ type Snapshot struct {
 	AuditSettings   types.AuditSettings
 	OperationLogs   []types.OperationLog
 	UsageLedger     []types.UsageLedgerEntry
+	// SeedAt is the business-clock instant used for open-budget snapshot period keys.
+	SeedAt time.Time
 }
 
 type Store interface {

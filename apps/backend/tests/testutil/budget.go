@@ -2,9 +2,7 @@ package testutil
 
 import (
 	"testing"
-	"time"
 
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/points"
@@ -14,31 +12,17 @@ func DisplayPoints(display float64) float64 {
 	return points.FromDisplay(display)
 }
 
-func demoBudgetPeriodKey() string {
-	return pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, time.Now().UTC())
-}
-
 func SetDeptSnapshotConsumed(t *testing.T, st store.Store, deptID string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	periodKey := demoBudgetPeriodKey()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, deptID, periodKey, consumed); err != nil {
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, deptID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func SnapshotConsumed(t *testing.T, st store.Store, axisKind, axisID string) float64 {
 	t.Helper()
-	ctx := Ctx()
-	periodKey := demoBudgetPeriodKey()
-	consumed, found, err := st.BudgetSnapshots().GetConsumed(ctx, axisKind, axisID, periodKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !found {
-		return 0
-	}
-	return consumed
+	return SnapshotConsumedAtPeriod(t, st, axisKind, axisID, contract.DemoBudgetPeriod)
 }
 
 func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string) float64 {
@@ -66,7 +50,7 @@ func PlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string) float64
 
 func SetPlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string, used float64) {
 	t.Helper()
-	SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, keyID, demoBudgetPeriodKey(), used)
+	SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, keyID, contract.DemoBudgetPeriod, used)
 }
 
 func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string, consumed float64) {
@@ -80,8 +64,7 @@ func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID,
 func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	periodKey := demoBudgetPeriodKey()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisBudgetGroup, groupID, periodKey, consumed); err != nil {
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisBudgetGroup, groupID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -89,8 +72,7 @@ func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, cons
 func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	periodKey := demoBudgetPeriodKey()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisMember, memberID, periodKey, consumed); err != nil {
+	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisMember, memberID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }

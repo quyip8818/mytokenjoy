@@ -13,7 +13,7 @@
 | Keys Remote-first | Toggle / Revoke / Rotate 先调 NewAPI，成功后再写 Postgres |
 | Lifecycle 同步 503 | `SyncCreate` / `TrySyncCreate` / `SyncUpdate` / `SyncRevoke` / `SyncRotate` 在 Relay 关闭时返回 503 |
 | Platform Key Rotate | `regenerate` 补丁 + `SyncRotatePlatformKey` + HTTP 200 |
-| prod 启动校验 | `APP_PROFILE=prod` 强制 Relay + Gateway + 入账配置；`NEW_API_BASE_URL` 禁止带 path |
+| prod 启动校验 | `DEPLOY_ENV=production` 强制 Relay + Gateway + 入账配置；`NEW_API_BASE_URL` 禁止带 path（详见 [Backend-配置架构.md](./Backend-配置架构.md) §7） |
 | `wireGatewayService` 失败 | 装配错误时进程启动失败（`panic`） |
 
 ---
@@ -77,4 +77,4 @@ P2
 - `host.docker.internal`：Linux 需改 `MANAGEMENT_WEBHOOK_URL` 或加 `extra_hosts`
 - `pnpm gate:verify` 不覆盖 Backend Gateway，Gateway 须单独验
 - 只开 `RELAY_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
-- `APP_PROFILE=prod` 时上述三联开为 **启动硬依赖**
+- `DEPLOY_ENV=production` 时上述三联开为 **启动硬依赖**

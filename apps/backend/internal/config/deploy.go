@@ -28,10 +28,6 @@ func (c Config) Clock() clock.Clock {
 	return clock.Fixed(time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC))
 }
 
-func (c Config) NowUTC() time.Time {
-	return c.Clock().Now().UTC()
-}
-
 func (c Config) validateProductionContract() error {
 	if !c.BootstrapIsNone() {
 		return fmt.Errorf("BOOTSTRAP_MODE must be none in production")

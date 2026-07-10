@@ -226,7 +226,7 @@ func TestPrecheckUsesClockAnchorForPeriodKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	junePeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock().Now().UTC())
+	junePeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, junePeriod, testutil.DisplayPoints(1000))
 
 	precheckJune := relayfix.NewPrecheckService(cfg, st, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))

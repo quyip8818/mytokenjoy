@@ -2,7 +2,7 @@
 
 `apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Relay 集成与看板读路径。
 
-**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Frontend.md](./Frontend.md)
 
 ---
 
@@ -20,14 +20,14 @@
 
 ### 1.1 配置与环境（`internal/config`）
 
-配置由 `caarlos0/env` 从环境变量加载，`Load()` 归一化后 `validate()` fail-fast。详见 [Backend-配置架构-目标态.md](./Backend-配置架构-目标态.md)。
+配置由 `caarlos0/env` 从环境变量加载，`Load()` 归一化后 `validate()` fail-fast。详见 [Backend-配置架构.md](./Backend-配置架构.md)。
 
 | 变量 | 默认 | 说明 |
 | --- | --- | --- |
 | `DEPLOY_ENV` | `local` | `local` / `staging` / `production`；`production` 触发生产契约校验 |
 | `BOOTSTRAP_MODE` | `none` | `none` / `minimal` / `demo`；空库引导策略 |
 | `SECURE_COOKIE` | `false` | Set-Cookie Secure；`production` 下必须为 `true` |
-| `CLOCK_ANCHOR` | 空 | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期 |
+| `CLOCK_ANCHOR` | 空 | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期；账期语义见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) |
 | `DATA_SOURCE_CREDENTIAL_KEY` | 必填 | 数据源凭证加密密钥（32 字节 hex 或 base64） |
 | `SIMULATE_DELAY` | `false` | 模拟外部 API 延迟（测试/演示） |
 
@@ -151,7 +151,7 @@ sequenceDiagram
 | `PlatformAuth`   | `/api/platform/*`       | 平台签名 JWT；`SUPPORT_SAAS=false` 时路由 404                          |
 | `Authz`          | 需权限的路由            | **PEP**：`RequireAnyPermission` 对照 PDP 展开的 capability             |
 
-**目标架构**（破坏性替换、无 demo 鉴权分叉）：[权限管理.md](./权限管理.md)。
+**目标架构**（已落地；无 demo 鉴权分叉）：[权限管理.md](./权限管理.md)。
 
 **CompanyResolve 规则：**
 
@@ -168,14 +168,14 @@ sequenceDiagram
 - `SUPPORT_SAAS=true`：SaaS 多租户，业务租户 ID 从 `1000000` 起分配
 - 单租户与 SaaS 模式不可切换
 
-### 4.2 鉴权（目标态）
+### 4.2 鉴权
 
 | 范围                               | 要求                                                                                                 |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | 全部业务 GET / POST / PUT / DELETE | Session JWT + 读/写 capability                                                                       |
 | 公开                               | `POST /auth/login`、`POST /auth/logout`、`POST /auth/accept-invite`、`GET /healthz`、Webhook（密钥） |
 
-**删除**：`APP_PROFILE` 鉴权分叉（demo GET 免 Session）。
+历史 `APP_PROFILE` 鉴权分叉（demo GET 免 Session）已删除。
 
 `GET /api/session`：返回 `member`、`permissions[]`、`authzRevision`、`companyId`。详见 [权限管理.md](./权限管理.md) §4.5。
 
@@ -206,7 +206,7 @@ type Store interface {
 | 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend.md](./Backend.md) §5                               |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
-- Bootstrap：`postgres.New` → applySchema → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖（见 [Backend.md](./Backend.md) §5.3、[Backend-配置架构-目标态.md](./Backend-配置架构-目标态.md) §5）。
+- Bootstrap：`postgres.New` → applySchema → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖（见 [Backend.md](./Backend.md) §5.3、[Backend-配置架构.md](./Backend-配置架构.md) §5）。
 - 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
 - `OrgRepository` 实现按职责拆为多文件（`org_repo.go` + `org_repo_members.go` / `org_repo_roles.go` / `org_repo_integration.go`），接口不变。
 

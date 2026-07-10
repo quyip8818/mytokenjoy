@@ -1,4 +1,4 @@
-.PHONY: install-air start build run test test-unit test-unit-nocache test-fast lint format scaffold-domain clean
+.PHONY: install-air start build run test test-unit test-unit-nocache test-fast lint lint-clock format scaffold-domain clean
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
@@ -43,9 +43,13 @@ test-db-clean:
 clean:
 	rm -rf tmp
 
-lint:
+lint: lint-clock
 	go vet -tags=testhook ./...
 	@test -z "$$(gofmt -l .)" || (echo "gofmt required on:"; gofmt -l .; exit 1)
+
+lint-clock:
+	@chmod +x ./scripts/lint-clock.sh
+	./scripts/lint-clock.sh
 
 format:
 	gofmt -w .

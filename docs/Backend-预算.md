@@ -50,7 +50,7 @@ flowchart LR
 | 普通成员 | 个人额度、Key 配额、能否继续调用 |
 | 审计 / 财务 | 调用花费、归因部门 / 成员 |
 
-**账期：** 分配配置（`budget`、`personal_quota`、Key `quota`）跨月保留；已消耗按 `period_key`（通常 `YYYY-MM`）写入 `budget_snapshots`，新月自动从新账期累计，无需手工清零。
+**账期：** 分配配置（`budget`、`personal_quota`、Key `quota`）跨月保留；已消耗按开账 `period_key`（通常 `YYYY-MM`，来自业务时钟）写入 `budget_snapshots`，新月自动从新账期累计。账本发生月见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
@@ -285,15 +285,17 @@ flowchart LR
 2. 单事务：账本幂等插入 → 投影 → 扣 lot → 入队 rebalance / overrun
 3. 失败走 `ingest_failures` 重试（与 relay outbox 分离）
 
-**投影顺序（同一 `period_key`）：**
+**投影顺序：**
+
+快照轴用**开账** `OpenBudgetPeriod`（业务时钟）；`usage_buckets` 与 ledger 归因用 **OccurredAt**。详见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 | 顺序 | 轴 | 说明 |
 | --- | --- | --- |
-| 1 | platform_key | Key 消耗 |
+| 1 | platform_key | Key 消耗（开账 period） |
 | 2 | budget_group | 若挂组 |
 | 3 | member | 若可归因成员 |
 | 4 | org_node | 叶子部门向上 rollup |
-| 5 | — | usage_buckets 小时桶 |
+| 5 | — | usage_buckets 小时桶（OccurredAt） |
 
 ---
 

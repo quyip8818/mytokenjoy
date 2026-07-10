@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -74,7 +75,7 @@ func NewRunner(
 		logger:             logger,
 		interval:           cfg.WorkerPollInterval(),
 		syncEvery:          cfg.WorkerOrgSyncInterval(),
-		lastRebalanceMonth: time.Now().Format("2006-01"),
+		lastRebalanceMonth: pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String(),
 	}
 }
 
@@ -126,7 +127,7 @@ func (r *Runner) relayTick(ctx context.Context) {
 	if !r.cfg.NewAPIEnabled {
 		return
 	}
-	currentMonth := time.Now().Format("2006-01")
+	currentMonth := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, r.cfg.Clock()).String()
 	if currentMonth != r.lastRebalanceMonth {
 		r.lastRebalanceMonth = currentMonth
 		r.logStep("monthly_rebalance", r.processMonthlyRebalance(ctx))

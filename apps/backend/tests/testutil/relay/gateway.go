@@ -94,7 +94,7 @@ func ConfigureGatewayStore(t *testing.T, cfg config.Config, st store.Store, opts
 	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
-	periodKey := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, cfg.NowUTC())
+	periodKey := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
 	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, opts.DepartmentID, periodKey, opts.Consumed); err != nil {
 		t.Fatal(err)
 	}

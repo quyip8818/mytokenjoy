@@ -3,7 +3,8 @@ package config
 import (
 	"fmt"
 	"strings"
-	"time"
+
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 const (
@@ -17,10 +18,7 @@ func (c Config) BootstrapIsMinimal() bool { return c.BootstrapMode == BootstrapM
 func (c Config) BootstrapIsDemo() bool    { return c.BootstrapMode == BootstrapDemo }
 
 func (c Config) SeedReferenceDate() string {
-	if anchor := strings.TrimSpace(c.ClockAnchor); anchor != "" {
-		return anchor
-	}
-	return time.Now().UTC().Format("2006-01-02")
+	return clock.NowUTC(c.Clock()).Format("2006-01-02")
 }
 
 func (c Config) DemoWithoutClockAnchor() bool {

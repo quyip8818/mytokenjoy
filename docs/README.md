@@ -10,10 +10,12 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [PRD.md](./PRD.md)                                     | 产品 / 全员        | 需求与验收标准（权威 PRD）                       |
 | [Frontend.md](./Frontend.md)                           | 前端 / 前后端      | 前端架构、**API 契约**（82+11 端点；17 业务页）  |
 | [Backend.md](./Backend.md)                             | 后端               | 索引：SaaS、运行、Relay、Keys 约束、Seed、测试   |
+| [Backend-配置架构.md](./Backend-配置架构.md)           | 后端 / 运维        | 配置、生产契约、空库引导、Clock（已实现）        |
 | [Backend-架构.md](./Backend-架构.md)                   | 后端 / 架构        | 分层、请求链、Relay、看板读路径                  |
 | [Backend-存储架构.md](./Backend-存储架构.md)           | 后端 / DBA         | 双库 37+3 表、域关系、核心实体、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md)           | 后端 / 计费        | point + lot 计费 SSOT、钱包闭合、wallet_sync     |
 | [Backend-预算.md](./Backend-预算.md)                   | 后端 / 计费        | 双轴、Ingest、Rebalance、Overrun                 |
+| [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏（已实现） |
 | [Backend-模型目录实现.md](./Backend-模型目录实现.md)   | 后端 / 架构        | `models` 同表双角色、并集读取                    |
 | [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 后端 / 架构 | 模型目录改造计划                                 |
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调        | NewAPI 入账方案 B 架构现状                       |

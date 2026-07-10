@@ -121,6 +121,8 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 - `docs/PRD.md` — Product requirements (authoritative PRD)
 - `docs/Frontend.md` — Frontend development guide and API contract
 - `docs/Backend.md` — Backend design document (index)
+- `docs/Backend-配置架构.md` — Config load, production contract, bootstrap, Clock
+- `docs/Backend-业务时钟与账期.md` — Business clock, dual period keys, guards
 - `docs/Backend-预算.md` — Budget subsystem design
 - `docs/Backend-存储架构.md` — Storage layer design
 - `DESIGN.md` — Design system tokens and visual conventions

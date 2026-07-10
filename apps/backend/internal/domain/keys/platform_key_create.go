@@ -31,11 +31,11 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.NowUTC())
+	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	groups, err := budget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.NowUTC())
+	groups, err := budget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}

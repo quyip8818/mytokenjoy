@@ -35,11 +35,11 @@ func TruncatePreview(input string) string {
 	return string(runes[:types.PreviewSnippetMaxLen])
 }
 
-func OccurredAtFromPayload(createdAt int64) time.Time {
+func OccurredAtFromPayload(createdAt int64) (time.Time, error) {
 	if createdAt <= 0 {
-		return time.Now().UTC()
+		return time.Time{}, fmt.Errorf("usage occurred_at missing or invalid")
 	}
-	return time.Unix(createdAt, 0).UTC()
+	return time.Unix(createdAt, 0).UTC(), nil
 }
 
 type EntryBuildInput struct {
@@ -57,7 +57,10 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 	modelName := ResolveConsumeModel(input.Raw)
 	cost := CostFromLog(input.Raw.Quota, modelName, input.Catalog, input.AllowedIDs)
 
-	occurredAt := OccurredAtFromPayload(input.Raw.CreatedAt)
+	occurredAt, err := OccurredAtFromPayload(input.Raw.CreatedAt)
+	if err != nil {
+		return types.UsageLedgerEntry{}, err
+	}
 
 	var memberID *string
 	if input.Mapping.MemberID != nil {

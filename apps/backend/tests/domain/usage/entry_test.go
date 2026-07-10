@@ -36,6 +36,40 @@ func TestTruncatePreview(t *testing.T) {
 	}
 }
 
+func TestOccurredAtFromPayloadRejectsMissing(t *testing.T) {
+	t.Parallel()
+	if _, err := domainusage.OccurredAtFromPayload(0); err == nil {
+		t.Fatal("expected error for createdAt=0")
+	}
+	if _, err := domainusage.OccurredAtFromPayload(-1); err == nil {
+		t.Fatal("expected error for createdAt<0")
+	}
+	got, err := domainusage.OccurredAtFromPayload(1717200000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Unix() != 1717200000 {
+		t.Fatalf("OccurredAt = %v", got)
+	}
+}
+
+func TestBuildCallSettledEntryRejectsMissingOccurredAt(t *testing.T) {
+	t.Parallel()
+	_, err := domainusage.BuildCallSettledEntry(domainusage.EntryBuildInput{
+		Raw: store.RawConsumeLog{
+			ID: 9000, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 0,
+		},
+		Mapping: &store.RelayMapping{
+			PlatformKeyID: contract.IDPlatformKey1,
+			DepartmentID:  contract.IDDept3,
+		},
+		Source: types.SourceWebhook,
+	})
+	if err == nil {
+		t.Fatal("expected error when CreatedAt is missing")
+	}
+}
+
 func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t)

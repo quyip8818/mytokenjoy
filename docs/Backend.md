@@ -16,7 +16,9 @@
 | [Backend-模型目录实现.md](./Backend-模型目录实现.md) | 同表双角色：平台模型源 + 租户自有模型；全局内置对租户永远存在、不可禁用 |
 | [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 终态架构：管理面 `modelId`、Relay/审计 `callType`；`ModelRef` enrich |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏（已实现） |
 | [Backend-重构建议.md](./Backend-重构建议.md) | 终态收口形态、实施顺序与明确不做项                         |
+| [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定（已实现） |
 
 Seed 与测试见本文 [§5](#5-测试与-seed)。
 
@@ -256,7 +258,7 @@ make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
 | `apply/tables.go` | 将快照写入 Postgres（`ApplyTables`） |
 | `runtime/` | 启动时按需写入（`ApplyUsageBuckets`、`ApplyUsageLedger`、充值 lot 等） |
 
-启动流程：`postgres.New` → apply `schema.sql` → 空库非 prod 时 `seed.Load` + `seed.ApplyTables`；demo profile 下额外执行 `seed/runtime` 运行时步骤。计费相关 lot / `balance_point` 见 [Backend-计费模式.md](./Backend-计费模式.md)。
+启动流程：`postgres.New` → apply `schema.sql` → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖。详见 [Backend-配置架构.md](./Backend-配置架构.md) §5。计费相关 lot / `balance_point` 见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ---
 

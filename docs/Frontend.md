@@ -865,7 +865,7 @@ pnpm install && pnpm start
 | 后端 | http://localhost:8080 |
 
 1. `/login` 用种子账号登录（见 `权限管理.md` WP-2.6）→ JWT Cookie
-2. 空库需设 `BOOTSTRAP_MODE=demo` 才会 `seed.ApplyTables`；看板时间锚定可选 `CLOCK_ANCHOR=2026-06-19`
+2. 空库需设 `BOOTSTRAP_MODE=demo` 才会写入种子与演示 runtime；看板时间锚定可选 `CLOCK_ANCHOR=2026-06-19`（见 [Backend-配置架构.md](./Backend-配置架构.md)、[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)）
 3. 重置：`pnpm docker:reset && pnpm start`
 
 | 变量                    | 说明                                   |

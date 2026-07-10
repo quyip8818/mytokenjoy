@@ -305,18 +305,11 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 	return insertSeedBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
 }
 
-func seedPeriodKey(nodes []types.OrgNode) string {
-	flat := pkgorg.FlattenOrgNodeTree(nodes)
-	for _, node := range flat {
-		if node.ParentID == nil || *node.ParentID == "" {
-			return pkgbudget.SnapshotKey(node.Period, time.Now().UTC())
-		}
-	}
-	return pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, time.Now().UTC())
-}
-
 func insertSeedBudgetSnapshots(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
-	periodKey := seedPeriodKey(snap.OrgNodes)
+	if snap.SeedAt.IsZero() {
+		return fmt.Errorf("seed budget snapshots require Snapshot.SeedAt")
+	}
+	periodKey := pkgbudget.RootPeriodKey(snap.OrgNodes, snap.SeedAt.UTC())
 	for _, node := range pkgorg.FlattenOrgNodeTree(snap.OrgNodes) {
 		if node.Consumed <= 0 {
 			continue

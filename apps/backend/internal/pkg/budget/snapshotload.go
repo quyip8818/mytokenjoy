@@ -2,48 +2,14 @@ package budget
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
-
-func BuildDeptPeriodMap(ctx context.Context, nodes store.OrgNodeRepository, at time.Time) (map[string]string, string, error) {
-	orgNodes, err := nodes.Tree(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-	flat := pkgorg.FlattenOrgNodeTree(orgNodes)
-	deptPeriod := make(map[string]string, len(flat))
-	var rootPeriodKey string
-	for _, node := range flat {
-		deptPeriod[node.ID] = node.Period
-		if node.ParentID == nil || *node.ParentID == "" {
-			rootPeriodKey = SnapshotKey(node.Period, at)
-		}
-	}
-	if rootPeriodKey == "" {
-		return nil, "", fmt.Errorf("org tree has no root node")
-	}
-	return deptPeriod, rootPeriodKey, nil
-}
-
-func DepartmentPeriodKey(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, at time.Time) (string, error) {
-	if departmentID == "" {
-		return SnapshotKey(PeriodMonthly, at), nil
-	}
-	orgPeriod, found, err := nodes.GetNodePeriod(ctx, departmentID)
-	if err != nil {
-		return "", err
-	}
-	if !found {
-		return SnapshotKey(PeriodMonthly, at), nil
-	}
-	return SnapshotKey(orgPeriod, at), nil
-}
 
 func ResolveKeyPeriodKey(
 	key types.PlatformKey,
@@ -98,9 +64,10 @@ func PlatformKeyConsumed(
 	key types.PlatformKey,
 	members []types.Member,
 	groups []types.BudgetGroup,
-	at time.Time,
+	clk clock.Clock,
 ) (float64, bool, error) {
-	deptPeriod, rootPeriodKey, err := BuildDeptPeriodMap(ctx, orgNodes, at)
+	at := clock.NowUTC(clk)
+	deptPeriod, rootPeriodKey, err := buildDeptPeriodMap(ctx, orgNodes, at)
 	if err != nil {
 		return 0, false, err
 	}
@@ -140,12 +107,13 @@ func uniqueStrings(values []string) []string {
 	return out
 }
 
-func MergeBudgetTreeConsumed(
+func mergeBudgetTreeConsumed(
 	ctx context.Context,
 	snapshots store.BudgetSnapshotRepository,
 	tree []types.BudgetNode,
-	at time.Time,
+	clk clock.Clock,
 ) ([]types.BudgetNode, error) {
+	at := clock.NowUTC(clk)
 	var walk func(nodes []types.BudgetNode) error
 	walk = func(nodes []types.BudgetNode) error {
 		for i := range nodes {
@@ -177,8 +145,9 @@ func LoadPlatformKeysWithUsed(
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
 	keys store.KeysRepository,
-	at time.Time,
+	clk clock.Clock,
 ) ([]types.PlatformKey, error) {
+	at := clock.NowUTC(clk)
 	items, err := keys.PlatformKeys(ctx)
 	if err != nil {
 		return nil, err
@@ -194,7 +163,7 @@ func LoadPlatformKeysWithUsed(
 	if err != nil {
 		return nil, err
 	}
-	deptPeriod, rootPeriodKey, err := BuildDeptPeriodMap(ctx, org.Nodes(), at)
+	deptPeriod, rootPeriodKey, err := buildDeptPeriodMap(ctx, org.Nodes(), at)
 	if err != nil {
 		return nil, err
 	}
@@ -231,8 +200,9 @@ func LoadBudgetGroupsWithConsumed(
 	snapshots store.BudgetSnapshotRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
-	at time.Time,
+	clk clock.Clock,
 ) ([]types.BudgetGroup, error) {
+	at := clock.NowUTC(clk)
 	groups, err := budgetRepo.Groups(ctx)
 	if err != nil {
 		return nil, err
@@ -240,7 +210,7 @@ func LoadBudgetGroupsWithConsumed(
 	if len(groups) == 0 {
 		return groups, nil
 	}
-	deptPeriod, rootPeriodKey, err := BuildDeptPeriodMap(ctx, org.Nodes(), at)
+	deptPeriod, rootPeriodKey, err := buildDeptPeriodMap(ctx, org.Nodes(), at)
 	if err != nil {
 		return nil, err
 	}
@@ -271,11 +241,11 @@ func LoadBudgetTreeWithConsumed(
 	ctx context.Context,
 	snapshots store.BudgetSnapshotRepository,
 	orgNodes store.OrgNodeRepository,
-	at time.Time,
+	clk clock.Clock,
 ) ([]types.BudgetNode, error) {
 	tree, err := common.LoadBudgetTree(ctx, orgNodes)
 	if err != nil {
 		return nil, err
 	}
-	return MergeBudgetTreeConsumed(ctx, snapshots, tree, at)
+	return mergeBudgetTreeConsumed(ctx, snapshots, tree, clk)
 }

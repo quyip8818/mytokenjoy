@@ -13,7 +13,7 @@ func (s *service) ListPlatformKeys(
 	ctx context.Context,
 	filter types.PlatformKeyListFilter,
 ) (types.PageResult[types.PlatformKey], error) {
-	items, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.NowUTC())
+	items, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.PageResult[types.PlatformKey]{}, err
 	}

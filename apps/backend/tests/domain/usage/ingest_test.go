@@ -125,8 +125,7 @@ func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 	if err := ingest.IngestByLogID(testutil.Ctx(), 8801, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	occurred := usage.OccurredAtFromPayload(raw.CreatedAt)
-	want := pkgbudget.SnapshotKey(contract.DemoBudgetPeriod, occurred)
+	want := contract.DemoBudgetPeriod
 	entries, _, err := st.Ledger().ListCallSettledPage(testutil.Ctx(), store.LedgerCallFilter{Page: 1, PageSize: 100})
 	if err != nil {
 		t.Fatal(err)
@@ -165,8 +164,8 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
 
 	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
-	snapshotPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock().Now().UTC())
-	ledgerPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, occurred)
+	snapshotPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	ledgerPeriod := pkgbudget.OccurrenceSnapshotKey(pkgbudget.PeriodMonthly, occurred).String()
 	if snapshotPeriod == ledgerPeriod {
 		t.Skip("requires occurred month to differ from current month")
 	}

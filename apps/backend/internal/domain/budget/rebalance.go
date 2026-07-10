@@ -65,7 +65,7 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 }
 
 func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.RelayMapping) error {
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.NowUTC())
+	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return err
 	}
@@ -94,11 +94,11 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Relay
 	if err != nil {
 		return err
 	}
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.NowUTC())
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
 	if err != nil {
 		return err
 	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.NowUTC())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
 	if err != nil {
 		return err
 	}

@@ -55,8 +55,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 	st := s.store
 
 	if payload.MemberID != nil && payload.BudgetGroupID == nil {
-		at := s.cfg.NowUTC()
-		used, err := st.Keys().SumMemberKeyUsed(ctx, *payload.MemberID, at)
+		used, err := st.Keys().SumMemberKeyUsed(ctx, *payload.MemberID, s.cfg.Clock())
 		if err != nil {
 			return err
 		}
@@ -72,10 +71,11 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		}
 	}
 
-	snapshotPeriod, err := pkgbudget.DepartmentPeriodKey(ctx, st.Org().Nodes(), payload.DepartmentID, s.cfg.NowUTC())
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), payload.DepartmentID, s.cfg.Clock())
 	if err != nil {
 		return err
 	}
+	snapshotPeriod := open.String()
 
 	budgetAmount, found, err := st.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
 	if err != nil {

@@ -70,15 +70,15 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		return err
 	}
 	nodes := s.store.Org().Nodes()
-	ledgerPeriodKey, err := pkgbudget.DepartmentPeriodKey(ctx, nodes, entry.DepartmentID, entry.OccurredAt)
+	occurrence, err := pkgbudget.OccurrenceDepartmentPeriod(ctx, nodes, entry.DepartmentID, entry.OccurredAt)
 	if err != nil {
 		return err
 	}
-	snapshotPeriodKey, err := pkgbudget.DepartmentPeriodKey(ctx, nodes, entry.DepartmentID, s.cfg.NowUTC())
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, nodes, entry.DepartmentID, s.cfg.Clock())
 	if err != nil {
 		return err
 	}
-	entry.PeriodKey = ledgerPeriodKey
+	entry.PeriodKey = occurrence.String()
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
 		if exists, err := st.Ledger().ExistsIdempotency(ctx, entry.IdempotencyKey); err != nil {
@@ -95,7 +95,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if err != nil || inserted == 0 {
 			return err
 		}
-		if err := Apply(ctx, st, entry, snapshotPeriodKey); err != nil {
+		if err := Apply(ctx, st, entry, open); err != nil {
 			return err
 		}
 		if err := enqueueSideEffects(ctx, st, entry); err != nil {

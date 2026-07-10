@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry, snapshotPeriodKey string) error {
-	if snapshotPeriodKey == "" {
-		return fmt.Errorf("usage projection requires snapshot period key")
+func Apply(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) error {
+	if open.IsZero() {
+		return fmt.Errorf("usage projection requires open budget period")
 	}
-	periodKey := snapshotPeriodKey
+	periodKey := open.String()
 
 	if err := st.BudgetSnapshots().IncrementConsumed(ctx, store.SnapshotAxisPlatformKey, entry.PlatformKeyID, periodKey, entry.Amount); err != nil {
 		return err

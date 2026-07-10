@@ -3,6 +3,7 @@ package snapshot
 import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/filler"
 )
@@ -41,5 +42,6 @@ func Build(cfg config.Config) store.Snapshot {
 		AuditSettings:   buildAuditSettings(),
 		OperationLogs:   loadOperationLogs(),
 		UsageLedger:     loadUsageLedger(),
+		SeedAt:          clock.NowUTC(cfg.Clock()),
 	}
 }

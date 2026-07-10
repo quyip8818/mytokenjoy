@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -341,7 +342,7 @@ func (r *pgKeysRepo) PlatformKeyByHash(ctx context.Context, keyHash string) (*ty
 	return &item, nil
 }
 
-func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string, at time.Time) (float64, error) {
+func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string, clk clock.Clock) (float64, error) {
 	companyID := store.CompanyID(ctx)
 	var orgPeriod string
 	err := r.db.QueryRow(ctx, `
@@ -353,7 +354,7 @@ func (r *pgKeysRepo) SumMemberKeyUsed(ctx context.Context, memberID string, at t
 	if err != nil && err != pgx.ErrNoRows {
 		return 0, err
 	}
-	periodKey := pkgbudget.SnapshotKey(orgPeriod, at)
+	periodKey := pkgbudget.OpenSnapshotKey(orgPeriod, clk).String()
 	var total float64
 	err = r.db.QueryRow(ctx, `
 		SELECT COALESCE(consumed, 0) FROM budget_snapshots

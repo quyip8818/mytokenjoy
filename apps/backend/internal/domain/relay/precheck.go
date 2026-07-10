@@ -73,10 +73,11 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 	if err := p.checkBalancePoint(in.Company); err != nil {
 		return err
 	}
-	periodKey, err := pkgbudget.DepartmentPeriodKey(ctx, p.orgNodes, in.Mapping.DepartmentID, clock.NowUTC(p.clock))
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, p.orgNodes, in.Mapping.DepartmentID, p.clock)
 	if err != nil {
 		return err
 	}
+	periodKey := open.String()
 	if err := p.checkDepartmentBudget(ctx, in.Mapping, periodKey); err != nil {
 		return err
 	}

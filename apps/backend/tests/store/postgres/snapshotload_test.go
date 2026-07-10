@@ -2,10 +2,10 @@ package postgres_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -27,12 +27,11 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	periodJune := pkgbudget.SnapshotKey("2026-06", time.Now().UTC())
-	periodJuly := pkgbudget.SnapshotKey("2026-07", time.Now().UTC())
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, periodJune, 99)
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, periodJuly, 42)
+	clk := clock.System()
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, "2026-06", 99)
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, "2026-07", 42)
 
-	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), st.Keys(), time.Now().UTC())
+	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), st.Keys(), clk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,12 +66,11 @@ func TestLoadBudgetGroupsWithConsumedSumsAcrossDepartmentPeriods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	periodJune := pkgbudget.SnapshotKey("2026-06", time.Now().UTC())
-	periodJuly := pkgbudget.SnapshotKey("2026-07", time.Now().UTC())
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, periodJune, 10)
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, periodJuly, 7)
+	clk := clock.System()
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
 
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), time.Now().UTC())
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), clk)
 	if err != nil {
 		t.Fatal(err)
 	}
