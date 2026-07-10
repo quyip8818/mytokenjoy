@@ -17,8 +17,8 @@ func TestSeedBudgetSnapshotsAlignWithClockAnchor(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	schemaURL := testutil.TestSchemaURL(t)
-	cfg := testutil.TestConfig(testutil.WithClockAnchor("2026-06-19"))
-	cfg.DatabaseURL = schemaURL
+	cfg := testutil.PreparedConfig(schemaURL)
+	cfg.ClockAnchor = "2026-06-19"
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {

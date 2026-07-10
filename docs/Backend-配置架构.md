@@ -135,7 +135,9 @@ func NowUTC(clk Clock) time.Time
 非空库：**永不**写入 seed / runtime。  
 非空库补演示 runtime：测试用 `NewTestStoreWithDemoRuntime` / `ApplyDemoRuntime`；运维用迁移脚本。
 
-`StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`。无 `RuntimeSeed` / `SkipRuntimeSeed`。
+`StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`（默认 12，缩小测试模板分区范围；生产仍 2024–2032）。无 `RuntimeSeed` / `SkipRuntimeSeed`。
+
+克隆 schema 上 reopen store 须 `PreparedConfig(schemaURL)`（`SchemaPrepared=true`），否则会再跑 `apply partitions` 并在非分区父表上报错。见 [Backend.md](./Backend.md) §5.0。
 
 ---
 
@@ -201,6 +203,7 @@ func NowUTC(clk Clock) time.Time
 | `internal/http/deps/public.go` | SecureCookie |
 | `internal/domain/org/core/credentials.go` | CredentialKey |
 | `tests/testutil/config.go` | TestConfig + options |
+| `tests/testutil/pg/` | 测试 schema 模板与 clone |
 | `tests/config/config_test.go` | 生产 / local / staging 分层校验 |
 | `apps/backend/.env.example` | 本地与生产样例 |
 

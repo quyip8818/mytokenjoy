@@ -216,8 +216,30 @@ Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 ```bash
 cd apps/backend
 pnpm start:postgres   # 必须
-make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
+make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 ```
+
+| 变量 | 默认 | 含义 |
+| --- | --- | --- |
+| `TEST_PKG_PARALLEL` | `2` | 包级并行 `-p`；过高会与 PostgreSQL 争用，全量变慢 |
+| `TEST_PARALLEL` | `8` | 包内 `t.Parallel()` 上限 |
+
+### 5.0 PostgreSQL 隔离与 clone
+
+| 路径 | 何时用 | 行为 |
+| --- | --- | --- |
+| `OpenCloned` / `NewTestStore`（demo） | 绝大多数 domain/handler 测试 | 进程内一次建 `test_template`（`BootstrapDemo` + `TestPartitionMonths=12`），每测 `CloneSchema` 出新 schema |
+| `OpenSlow` / `BootstrapMinimal` | 少数 minimal 路径 | 空 schema + `apply schema.sql` |
+| `TestSchemaURL` + `PreparedConfig` | seed / store 直写表 | clone 后 `SchemaPrepared=true`，**不再** `apply partitions` |
+
+**Clone 与生产的差异（有意为之，非 prod bug）：**
+
+- 生产：`schema.sql` + `applyMonthlyPartitions` → `usage_ledger` / `usage_buckets` / `operation_logs` 为真分区表（2024–2032）。
+- 测试 clone：只对**父表** `CREATE TABLE … (LIKE … INCLUDING ALL)`，**不**复制 36 个月分区子表；`LIKE` 后父表为**普通表**，任意 `occurred_at` 可写。与优化前行为一致，只是去掉无用子表 DDL（单次 clone ~0.85s → ~0.34s）。
+- 全量墙钟：限制 `-p` 后约 **115s**（原 ~290s+）；瓶颈是 schema clone 次数，不是业务断言。
+
+改 `schema.sql` 或分区策略后：升 `tests/testutil/pg/template.go` 的 `testTemplateVersion`，或 `DROP SCHEMA test_template CASCADE` 触发模板重建。`make test-db-clean` 可清理孤儿 `test_*` schema。
+
 
 | 层       | 目录                   | CI                           |
 | -------- | ---------------------- | ---------------------------- |
@@ -238,6 +260,7 @@ make test-unit        # go test -tags=testhook -parallel 4 ./tests/...
 | `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL           |
 | `testutil/relay`  | Gateway 场景、StubWallet、Mapping                                 |
 | `testutil/worker` | Runner 栈、Outbox 断言                                            |
+| `testutil/pg`     | `test_template`、按测 `CloneSchema`、`OpenCloned` / `OpenSlow`    |
 
 ### 5.2 目录约定
 

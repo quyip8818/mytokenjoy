@@ -4,6 +4,7 @@ export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslm
 export COMPANY_NAME ?= Demo Company
 export SESSION_SECRET ?= tokenjoy-dev-session-secret
 TEST_PARALLEL ?= 8
+TEST_PKG_PARALLEL ?= 2
 
 AIR_VERSION ?= v1.65.3
 AIR := $(shell go env GOPATH)/bin/air
@@ -27,11 +28,11 @@ test: test-unit
 
 test-unit:
 	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
-	go test -tags=testhook -parallel $(TEST_PARALLEL) $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+	go test -tags=testhook -p $(TEST_PKG_PARALLEL) -parallel $(TEST_PARALLEL) $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
 
 test-unit-nocache:
 	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
-	go test -tags=testhook -parallel $(TEST_PARALLEL) -count=1 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+	go test -tags=testhook -p $(TEST_PKG_PARALLEL) -parallel $(TEST_PARALLEL) -count=1 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
 
 test-fast:
 	go test -tags=testhook ./tests/pkg/...

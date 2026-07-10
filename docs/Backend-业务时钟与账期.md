@@ -118,22 +118,29 @@ DB 列仍是 `string`；域边界用 `.String()` 进出。
 
 ### 4.1 键怎么算
 
-组织节点上有 period 规格：
+**两层概念不要混：**
+
+| 层 | 存什么 | 谁写 |
+| --- | --- | --- |
+| `org_nodes.period` | 账期**规格**，现行只允许 `monthly` | 建公司、部门 provision、seed、导入 |
+| `budget_snapshots.period_key` / `usage_ledger.period_key` | 具体 **`YYYY-MM` 账本键** | 开账 / 发生工厂 + ingest |
+
+`schema.sql` 有 `chk_org_nodes_period CHECK (period IN ('monthly'))`；业务路径（`BudgetPeriod()`、seed、开户）一律写 `monthly`。**不能把** `"2026-06"` 这类固定月串落库到 `org_nodes.period`。
+
+开账时如何把 `monthly` 变成 `YYYY-MM`：
 
 - `"monthly"`（或空）→ 用「那个瞬间」的 UTC 月，得到 `YYYY-MM`
-- 固定串（如 `"2026-06"`）→ 原样作为 `period_key`
+- 经 `OpenDepartmentPeriod` / `OpenSnapshotKey` 等工厂，结合 `cfg.Clock()` 或 `OccurredAt`
 
 ```mermaid
 flowchart TD
-  Spec[org 节点 Period 规格]
-  Spec -->|monthly / 空| At[取瞬时 at 的 UTC 月]
-  Spec -->|固定 YYYY-MM| Fix[原样返回]
-  At --> Key[period_key]
-  Fix --> Key
+  DB["org_nodes.period = monthly"]
+  DB --> Factory[Open* / Occurrence* 工厂]
+  CLK[Clock 或 OccurredAt] --> Factory
+  Factory --> Key["period_key = YYYY-MM"]
 ```
 
-字符串原语：`SnapshotKey(orgPeriod, at)`（`period_key.go`）。  
-域内开账 / 发生路径 **不直调** 它，走工厂（见下）。
+字符串原语 `SnapshotKey(orgPeriod, at)`（`period_key.go`）在 `orgPeriod` 为固定串（如 `"2026-06"`）时**原样返回**该串——仅供 store/seed 内部或单元测试构造 `period_key` 字符串；**生产域路径不依赖**在 DB 里存固定月。域内开账 / 发生路径 **不直调** `SnapshotKey`，走工厂（见下）。
 
 ### 4.2 工厂（唯一入口）
 
@@ -293,6 +300,7 @@ flowchart TB
 | 锚点预检 | `TestPrecheckUsesClockAnchorForPeriodKey` |
 | 树与工厂同月 | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory` |
 | seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetSnapshotsAlignWithClockAnchor` |
+| Load* 开账月跟 Clock | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadBudgetGroupsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
 | 生产禁锚点 | `TestProductionRejectsClockAnchor` |
 
 ---

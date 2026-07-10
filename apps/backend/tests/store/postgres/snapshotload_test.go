@@ -2,8 +2,8 @@ package postgres_test
 
 import (
 	"testing"
+	"time"
 
-	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
@@ -16,18 +16,7 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
-	nodes, err := st.Org().Nodes().Tree(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !setOrgNodePeriod(nodes, contract.IDDept3, "2026-07") {
-		t.Fatal("dept-3 not found")
-	}
-	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
-		t.Fatal(err)
-	}
-
-	clk := clock.System()
+	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, "2026-06", 99)
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, "2026-07", 42)
 
@@ -43,30 +32,16 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 		}
 	}
 	if used != 42 {
-		t.Fatalf("expected plk-1 used=42 from dept-3 period 2026-07, got %v", used)
+		t.Fatalf("expected plk-1 used=42 from open period 2026-07, got %v", used)
 	}
 }
 
-func TestLoadBudgetGroupsWithConsumedSumsAcrossDepartmentPeriods(t *testing.T) {
+func TestLoadBudgetGroupsWithConsumedUsesOpenPeriod(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
-	nodes, err := st.Org().Nodes().Tree(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !setOrgNodePeriod(nodes, contract.IDDept3, "2026-06") {
-		t.Fatal("dept-3 not found")
-	}
-	if !setOrgNodePeriod(nodes, contract.IDDept4, "2026-07") {
-		t.Fatal("dept-4 not found")
-	}
-	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
-		t.Fatal(err)
-	}
-
-	clk := clock.System()
+	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
 	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
 
@@ -81,20 +56,7 @@ func TestLoadBudgetGroupsWithConsumedSumsAcrossDepartmentPeriods(t *testing.T) {
 			break
 		}
 	}
-	if consumed != 17 {
-		t.Fatalf("expected bg-1 consumed=17, got %v", consumed)
+	if consumed != 7 {
+		t.Fatalf("expected bg-1 consumed=7 from open period 2026-07, got %v", consumed)
 	}
-}
-
-func setOrgNodePeriod(nodes []types.OrgNode, id, period string) bool {
-	for i := range nodes {
-		if nodes[i].ID == id {
-			nodes[i].Period = period
-			return true
-		}
-		if len(nodes[i].Children) > 0 && setOrgNodePeriod(nodes[i].Children, id, period) {
-			return true
-		}
-	}
-	return false
 }

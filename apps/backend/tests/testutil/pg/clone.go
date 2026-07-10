@@ -74,7 +74,11 @@ func LoadClonePlan(ctx context.Context, pool *pgxpool.Pool, schema string) (Clon
 	serialRows, err := tx.Query(ctx, `
 		SELECT c.table_name, c.column_name
 		FROM information_schema.columns c
+		JOIN pg_namespace n ON n.nspname = c.table_schema
+		JOIN pg_class cls ON cls.relnamespace = n.oid AND cls.relname = c.table_name
 		WHERE c.table_schema = $1
+		  AND cls.relkind IN ('r', 'p')
+		  AND NOT EXISTS (SELECT 1 FROM pg_inherits i WHERE i.inhrelid = cls.oid)
 		  AND pg_get_serial_sequence(format('%I.%I', c.table_schema, c.table_name), c.column_name) IS NOT NULL
 	`, schema)
 	if err != nil {
@@ -112,6 +116,9 @@ func CloneSchema(ctx context.Context, pool *pgxpool.Pool, src, dst string, plan 
 		return fmt.Errorf("disable fk checks: %w", err)
 	}
 
+	// Clone parent/plain tables only. Partition children are skipped: LIKE on a
+	// partitioned parent yields a plain table that still accepts any occurred_at,
+	// which matches prior test semantics and avoids 36 extra DDL round-trips.
 	var ddl strings.Builder
 	for _, table := range plan.TablesInOrder {
 		tableSQL := pgx.Identifier{table}.Sanitize()
@@ -223,6 +230,7 @@ func listSchemaTablesInCloneOrder(ctx context.Context, tx pgx.Tx, schema string)
 		JOIN pg_namespace n ON n.oid = c.relnamespace
 		WHERE n.nspname = $1
 		  AND c.relkind IN ('r', 'p')
+		  AND NOT EXISTS (SELECT 1 FROM pg_inherits i WHERE i.inhrelid = c.oid)
 		ORDER BY c.relname
 	`, schema)
 	if err != nil {
@@ -254,6 +262,8 @@ func listSchemaTablesInCloneOrder(ctx context.Context, tx pgx.Tx, schema string)
 		WHERE con.contype = 'f'
 		  AND child_ns.nspname = $1
 		  AND parent_ns.nspname = $1
+		  AND NOT EXISTS (SELECT 1 FROM pg_inherits i WHERE i.inhrelid = child.oid)
+		  AND NOT EXISTS (SELECT 1 FROM pg_inherits i WHERE i.inhrelid = parent.oid)
 	`, schema)
 	if err != nil {
 		return nil, err
@@ -271,6 +281,12 @@ func listSchemaTablesInCloneOrder(ctx context.Context, tx pgx.Tx, schema string)
 			return nil, err
 		}
 		if child == parent {
+			continue
+		}
+		if _, ok := tableSet[child]; !ok {
+			continue
+		}
+		if _, ok := tableSet[parent]; !ok {
 			continue
 		}
 		dependents[parent] = append(dependents[parent], child)
