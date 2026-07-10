@@ -109,8 +109,8 @@ func NowUTC(clk Clock) time.Time
 | --- | --- |
 | `config.Config` | `Clock()` 解析 `CLOCK_ANCHOR` |
 | `domain/dashboard`、`memberanalytics` | 构造器内 `clock: cfg.Clock()` |
-| `domain/budget`、`keys`、`newapi/lifecycle` | `Load*(..., cfg.Clock())` |
-| `domain/newapisync/precheck` | wire 传 `cfg.Clock()`；`OpenDepartmentPeriod(..., clk)` |
+| `domain/budget`、`keys`、`newapisync` | `Load*(..., cfg.Clock())` |
+| `domain/gateway/precheck` | wire 传 `cfg.Clock()`；`OpenDepartmentPeriod(..., clk)` |
 | `domain/usage/ingest` | `OccurrenceDepartmentPeriod(..., OccurredAt)` + `OpenDepartmentPeriod(..., cfg.Clock())` → `Apply` |
 | `pkg/budget` | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock` |
 | `org/core` `BudgetPeriod()` | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析 |
@@ -170,7 +170,7 @@ func NowUTC(clk Clock) time.Time
 | --- | --- |
 | `wire_domain_services` / `wiring_domain` | 构造器只收 `cfg`；账期路径内部 `cfg.Clock()` |
 | `wire_gateway` | **仅** precheck 传 `cfg.Clock()` |
-| `wiring_infra` | `NewNewAPISync(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
+| `wiring_infra` | `newapisync.New(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
 
 ---
 

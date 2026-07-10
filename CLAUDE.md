@@ -87,12 +87,12 @@ internal/
   pkg/                   — shared utilities (budget calc, org helpers, tree)
   store/                 — repository interfaces + implementations:
     postgres/            — PostgreSQL (production + tests)
-seed/                    — demo bootstrap + contract IDs (see docs/Backend-seed.md)
+seed/                    — demo bootstrap + contract IDs (see docs/Backend.md §5.3)
 tests/                   — ALL unit tests (mirrors internal/ structure)
   testutil/              — test helpers, fixtures, stubs
 ```
 
-**Store pattern:** Production and tests both use `postgres.New`. Tests use per-schema isolation via `testutil.NewTestStore` / `NewTestApp` (see `docs/Backend-测试优化.md`).
+**Store pattern:** Production and tests both use `postgres.New`. Tests use per-schema isolation via `testutil.NewTestStore` / `NewTestApp` (see `docs/Backend.md` §5).
 
 **Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer.
 
@@ -121,6 +121,7 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend i
 - `docs/PRD.md` — Product requirements (authoritative PRD)
 - `docs/Frontend.md` — Frontend development guide and API contract
 - `docs/Backend.md` — Backend design document (index)
+- `docs/Backend-架构.md` — Layering, naming (Gateway / NewAPISync / PlatformKey), Store, Worker
 - `docs/Backend-配置架构.md` — Config load, production contract, bootstrap, Clock
 - `docs/Backend-业务时钟与账期.md` — Business clock, dual period keys, guards
 - `docs/Backend-预算.md` — Budget subsystem design
@@ -137,6 +138,8 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend i
 - `SECURE_COOKIE` — Set-Cookie Secure flag (required `true` when `DEPLOY_ENV=production`)
 - `CLOCK_ANCHOR` — Optional `YYYY-MM-DD` for fixed dashboard clock and seed reference date
 - `NEW_API_ENABLED=true` — Enable NewAPI integration
+- `NEWAPI_GATEWAY_ENABLED=true` — Enable `/v1` Gateway
 - `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — NewAPI service credentials
+- `PLATFORM_SHARED_NEWAPI_GROUP` — SaaS shared NewAPI group (default `platform_shared`)
 - `SESSION_SECRET` — JWT session signing key
 - `SUPPORT_SAAS=true` — Multi-tenant SaaS mode

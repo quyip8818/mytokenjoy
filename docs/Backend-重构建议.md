@@ -2,19 +2,18 @@
 
 > 基于 `apps/backend/` 全量代码审查。架构现状见 [Backend-架构.md](./Backend-架构.md)。  
 > 本文给出**终态最优形态**与**最小必要改动**——能收口则收口，不为架构而架构。  
-> **命名例外：** 去 NewAPI（已执行）/ 领域禁用 Token（指 Key）；**保留 PlatformKey**。见 [Backend-命名统一.md](./Backend-命名统一.md)；该文要求一次性改名，覆盖本文「不重命名顶层包 / 保留旧 NewAPI*（已废止）」相关表述。本文 §2.2 / 阶段 1 中的 `NewAPI*` / `NewAPISync` 终态词在命名 PR 后以命名统一文为准。
+> **命名：** 去 Relay / 去领域 Token（指 Key）、保留 PlatformKey 已完成；词汇与包边界见 [Backend-架构.md](./Backend-架构.md) §0。Gateway=`domain/gateway`，管理面同步=`domain/newapisync`；Store=`PlatformKeyMappings()` + `AsyncJobs()`。
 
 ---
 
 ## 1. 结论
 
-Backend 已是合格的分层单体，**不需要换范式**（不拆微服务、不上 DI 框架、不重命名顶层包）。
+Backend 已是合格的分层单体，**不需要换范式**（不拆微服务、不上 DI 框架）。命名统一与 NewAPISync/Gateway 拆包、lifecycle 按操作拆文件、Store 子接口拆分 **已完成**。
 
-真正值得做的是三件事：
+仍值得做的是：
 
-1. **NewAPISync/Gateway 按职责拆文件、拆 store 接口** — 当前唯一的高耦合子系统  
-2. **Transport 层零业务规则** — Handler 只做鉴权、编解码、调 Service  
-3. **装配层去重复** — wiring 闭包提取辅助函数，新域注册保持现有手工流程即可  
+1. **Transport 层零业务规则** — Handler 只做鉴权、编解码、调 Service  
+2. **装配层去重复** — wiring 闭包提取辅助函数，新域注册保持现有手工流程即可  
 
 其余（`domain/types` 保留、`store.Store` 按需收窄、`httpdeps.Deps` 保持扁平）**维持现状或随域改动顺手优化**，不单独立项。
 
@@ -59,28 +58,33 @@ flowchart TB
 
 ### 2.2 终态要收口的部分
 
-#### NewAPISync / Gateway（domain + store）
+#### NewAPISync / Gateway（domain + store）— **已落地**
 
-**Domain** — `lifecycle_ops.go` 按操作拆成同包多文件，不建子包：
+**Domain** — lifecycle 按操作拆文件；Gateway 独立包：
 
 ```
 internal/domain/newapisync/
-├── interface.go          # 收敛后的 3 个接口（见下）
+├── interface.go          # Lifecycle / KeysNewAPISync / OutboxHandler / …
 ├── lifecycle.go          # NewAPISync 构造与 Enabled
 ├── lifecycle_create.go
 ├── lifecycle_update.go
 ├── lifecycle_revoke.go
 ├── lifecycle_rotate.go
+├── lifecycle_provider.go
 ├── lifecycle_model_limits.go
 ├── lifecycle_rebalance.go
+├── channel_policy.go
+├── quota.go
+└── outbox_*.go
+
+internal/domain/gateway/
 ├── precheck.go
 └── gateway_service.go
 ```
 
-**接口终态** — 只保留 3 个，用嵌入消除重复声明：
+**接口** — 子接口 + 嵌入（已落地）：
 
 ```go
-// 完整能力，app 装配与 models 使用
 type Lifecycle interface {
     NewAPIGate
     PlatformKeyLifecycle
@@ -89,15 +93,13 @@ type Lifecycle interface {
     RebalanceEnqueuer
 }
 
-// keys 域注入 — 嵌入子接口，不重复列方法
 type KeysNewAPISync interface {
     NewAPIGate
     PlatformKeyLifecycle
     ProviderKeyLifecycle
 }
 
-// worker 注入 — 仅 outbox 消费所需
-type NewAPISyncOutbox interface {
+type OutboxHandler interface {
     PlatformKeyLifecycle
     ProviderKeyLifecycle
     ModelLimitsLifecycle
@@ -105,26 +107,15 @@ type NewAPISyncOutbox interface {
 }
 ```
 
-各 `*Lifecycle` 子接口按职责 2–4 个方法，**不追求每个 outbox kind 一个 interface**。
-
-**Store** — `（已拆为 PlatformKeyMappings + AsyncJobs）` 拆成两个子接口，实现可仍在 `postgres/platform_key_mapping.go` 或拆为 `platform_key_mapping.go` + `async_jobs.go`：
+**Store** — 已拆为两个访问器（无 `Relay()` / `NewAPI()`）：
 
 ```go
-type PlatformKeyMappingRepository interface {
-    GetMapping(...)
-    UpsertMapping(...)
-    // mapping 读写
-}
-
-type AsyncJobsRepository interface {
-    Enqueue(...)
-    Claim(...)
-    Complete(...)
-    // outbox + rebalance + overrun + wallet_sync 共用 job 表语义
-}
+// store.Store
+PlatformKeyMappings() PlatformKeyMappingRepository
+AsyncJobs() AsyncJobsRepository
 ```
 
-`store.Store` **仍保留** `NewAPI() （已拆为 PlatformKeyMappings + AsyncJobs）`，`（已拆为 PlatformKeyMappings + AsyncJobs）` 嵌入上述两个接口。Worker 字段改为注入 `AsyncJobsRepository`，keys 如需 mapping 再注入 `PlatformKeyMappingRepository`。**不拆成 5 个 queue repo**——底层本就是一张 `async_jobs` 表。
+Postgres：`platform_key_mapping.go` + `async_jobs.go`。Worker 注入 `AsyncJobsRepository`；NewAPISync 注入 mapping + outbox（`st.AsyncJobs()`）。**不拆成 5 个 queue repo**——底层本就是一张 `async_jobs` 表。
 
 #### Domain → Store 依赖
 
@@ -184,13 +175,14 @@ func enqueueRebalance(st store.Store) func(context.Context, int64) error { ... }
 
 ## 3. 现状痛点（与终态的差距）
 
-### 3.1 NewAPI — 唯一高优先级差距
+### 3.1 NewAPI / Gateway — 命名与拆包已完成
 
-| 文件 | 行数 | 差距 |
-|------|------|------|
-| `domain/newapisync/lifecycle_ops.go` | 520 | 多操作混单文件 |
-| `store/postgres/platform_key_mapping.go` | 463 | mapping 与 job 队列未分接口 |
-| `domain/newapisync/interface.go` | — | 3 个大接口方法重复声明 |
+| 项 | 状态 |
+|----|------|
+| `lifecycle_*.go` 按操作拆分 | 已完成 |
+| `PlatformKeyMappings()` + `AsyncJobs()` | 已完成 |
+| `domain/gateway` vs `domain/newapisync` | 已完成 |
+| `interface.go` 子接口 + 嵌入 | 已完成 |
 
 ### 3.2 其余 — 中低优先级，随触达改动
 
@@ -208,14 +200,12 @@ func enqueueRebalance(st store.Store) func(context.Context, int64) error { ... }
 
 只做 **两个阶段**，无阶段 C「类型大迁移」。
 
-### 阶段 1 — NewAPI 收口
+### 阶段 1 — NewAPI / Gateway 收口 — **已完成**
 
-1. 拆 `lifecycle_ops.go` → 同包 6 个文件  
-2. 重构 `interface.go` → 子接口 + 嵌入  
-3. `（已拆为 PlatformKeyMappings + AsyncJobs）` → `PlatformKeyMappingRepository` + `AsyncJobsRepository`  
-4. 跑通 `tests/domain/newapisync/`、`tests/handler/gateway/`  
-
-**验收：** 改 token 生命周期只动对应 `lifecycle_*.go`；worker 依赖 `AsyncJobsRepository` 类型。
+1. ~~拆 `lifecycle_ops.go` → 同包多文件~~  
+2. ~~重构 `interface.go` → 子接口 + 嵌入~~  
+3. ~~`PlatformKeyMappings()` + `AsyncJobs()`~~  
+4. ~~`domain/gateway` + `domain/newapisync`；测试 `tests/domain/gateway|newapisync`~~  
 
 ### 阶段 2 — 边界清理（可与业务需求穿插）
 
@@ -230,25 +220,27 @@ func enqueueRebalance(st store.Store) func(context.Context, int64) error { ... }
 
 ## 5. 终态目录一览
 
-与今天相比，**仅 newapi 文件变多、store newapi 接口变清晰**，其余目录不变：
+与今天相比，**命名统一与 NewAPI/Gateway 拆包已落地**，其余目录不变：
 
 ```
 internal/
 ├── app/
-│   ├── wire_helpers.go       # 新增
+│   ├── wire_helpers.go
 │   ├── wire_domain_services.go
+│   ├── wire_gateway.go
+│   ├── wiring_infra.go       # newapisync.New 内联装配
 │   └── registry.go
 ├── domain/
 │   ├── types/                # 保留，不迁出
-│   ├── newapi/
-│   │   ├── lifecycle_*.go    # 由 lifecycle_ops 拆出
-│   │   └── interface.go      # 收敛
+│   ├── newapisync/           # lifecycle_*.go + interface.go
+│   ├── gateway/              # precheck + gateway_service
 │   └── org/                  # 保持 structure + remote
 ├── http/handler/             # 更薄，无业务规则
 ├── store/
-│   ├── newapi.go              # Mapping + Job 子接口
+│   ├── platform_key_mapping.go
+│   ├── async_jobs.go
 │   └── postgres/
-│       ├── platform_key_mapping.go  # 可选：由 newapi.go 拆出
+│       ├── platform_key_mapping.go
 │       └── async_jobs.go
 └── pkg/                      # 边界文档化，结构不变
 ```
@@ -279,7 +271,7 @@ internal/
 
 | 子域 | 约行数 | 终态动作 |
 |------|--------|----------|
-| newapi | ~1200 | **阶段 1 重点** |
+| newapisync / gateway | ~1200 | **阶段 1 已完成**；后续仅随业务改 |
 | org | ~2200 | 保持；Handler 自删规则下沉 |
 | usage | ~1120 | 保持；`EntryBuildReader` 作窄接口范例 |
 | keys | ~1065 | 保持现有 `platform_key_*.go` 拆法 |
@@ -291,15 +283,15 @@ internal/
 
 ## 8. 与现有文档
 
-| 文档 | 终态后需更新 |
-|------|--------------|
-| [Backend-架构.md](./Backend-架构.md) | NewAPI 接口、pkg 边界、Handler 原则 |
-| [Backend-存储架构.md](./Backend-存储架构.md) | PlatformKeyMapping / AsyncJobs 子接口 |
-| [plan.md](./plan.md) | 阶段 1、2 可录入工程待办 |
+| 文档 | 说明 |
+|------|------|
+| [Backend-架构.md](./Backend-架构.md) | §0 命名约定；NewAPI/Gateway 接口与 Worker |
+| [Backend-存储架构.md](./Backend-存储架构.md) | PlatformKeyMapping / AsyncJobs / 列名终态 |
+| [plan.md](./plan.md) | 阶段 2 边界清理可录入工程待办 |
 
 ---
 
 ## 9. 一句话总结
 
-**终态 = 今天的分层单体 + NewAPI 拆清 + Handler 更薄 + wiring 去重。**  
-不新增强抽象层、不迁移 types、不全量改 repo 注入。若只做一件事：**拆 `lifecycle_ops.go` 并收敛 newapi 接口**。
+**终态 = 今天的分层单体 + NewAPI/Gateway 已拆清 + Handler 更薄 + wiring 去重。**  
+不新增强抽象层、不迁移 types、不全量改 repo 注入。若只做一件事：**Handler 业务下沉 + wiring 去重**。

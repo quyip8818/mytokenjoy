@@ -10,14 +10,13 @@
 
 | 文档                                         | 内容                                                       |
 | -------------------------------------------- | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、NewAPISync/Worker、看板读路径 |
+| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、命名约定、Store、NewAPISync/Gateway/Worker、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [Backend-重构建议.md](./Backend-重构建议.md) | 终态收口形态、实施顺序与明确不做项                         |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 去 NewAPI（已执行）/ 去领域 Token（指 Key）；保留 PlatformKey；一次性重命名 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 现状与可优化点 |
 
@@ -50,7 +49,7 @@ Seed 与测试见本文 [§5](#5-测试与-seed)。
 | NewAPI 企业隔离      | 单集群；每企业一个 `newapi_wallet_user_id` |
 | 计费主账             | Postgres `company_recharge_lots` + ledger；NewAPI `users.quota` 为派生缓存 |
 | 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Gateway 运行时仍用 `callType` |
-| Token `remain_quota` | 分配视图；`rebalance` 按 Postgres `balance_point` 封顶 |
+| NewAPIKey `remain_quota` | 分配视图；`rebalance` 按 Postgres `balance_point` 封顶 |
 | 双轴                 | 钱包=预付 point（lot）；部门 budget=组织内 point 配额 |
 | Gateway              | 预检（Postgres 优先）后透传 NewAPI         |
 
@@ -91,7 +90,7 @@ flowchart TB
 
 ### 2.3 部署形态
 
-| 形态   | Channel                  | Token group           |
+| 形态   | Channel                  | NewAPI group          |
 | ------ | ------------------------ | --------------------- |
 | 私有化 | 企业 `provider_keys`     | `dept-{departmentId}` |
 | SaaS   | 平台全局 `provider_keys` | `platform_shared`     |
@@ -156,7 +155,7 @@ sequenceDiagram
 | `SUPPORT_SAAS`                | `false`            | SaaS 多企业                                                                   |
 | `TOKENJOY_COMPANY_ID`         | `1`                | 平台模型源公司 ID（默认模型与默认价格提供方）                                |
 | `LOCAL_COMPANY_ID`            | `2`                | 本地化部署业务公司 ID（单租户固定）                                          |
-| `PLATFORM_SHARED_NEWAPI_GROUP` | `platform_shared`  | SaaS Token 分组                                                               |
+| `PLATFORM_SHARED_NEWAPI_GROUP` | `platform_shared`  | SaaS NewAPI group                                                             |
 
 完整列表见 `apps/backend/.env.example`。
 
@@ -202,7 +201,7 @@ flowchart LR
 
 **Bootstrap：** `docker compose -f apps/newapi/docker-compose.yml up -d` → NewAPI 根管理员 → `NEW_API_ADMIN_TOKEN` → Webhook secret 对齐 → Channel `group=platform_shared`。
 
-**Token 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。
+**NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。
 
 **安全：** NewAPI 不对公网；Admin Token 仅存 Backend 环境变量。
 

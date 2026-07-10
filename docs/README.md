@@ -22,14 +22,13 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Frontend.md](./Frontend.md) | 前端 / 前后端 | 前端架构、API 契约 |
 | [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
-| [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、Gateway、看板读路径 |
+| [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
 | [Backend-重构建议.md](./Backend-重构建议.md) | 后端 / 架构 | 可优化收口建议 |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 后端 / 架构 | 去 NewAPI（已执行，见命名统一）；保留 PlatformKey；一次性重命名终态与验收 |
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Gateway 现状与可优化点 |
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 

@@ -18,7 +18,7 @@
 
 | 严重度     | 问题                                                                                                        | 位置                                                            |
 | ---------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Medium** | `domain/newapisync/gateway_service.go` 是完整的 HTTP handler（含 `httputil.ReverseProxy`），违反分层             | `internal/domain/newapisync/gateway_service.go`                      |
+| **Medium** | `domain/gateway/gateway_service.go` 是完整的 HTTP handler（含 `httputil.ReverseProxy`），违反分层             | `internal/domain/gateway/gateway_service.go`                      |
 | **Low**    | `domain/usage/ingest_outcome.go` 在 domain 层引用 `net/http` 状态码常量                                     | `internal/domain/usage/ingest_outcome.go:5`                     |
 | **Low**    | Domain 层直接依赖 `infra/notification`、`infra/permission`、`integration/newapi` 等具体包，而非自身定义接口 | `domain/org/core/deps.go`, `domain/budget/`, `domain/newapisync/` 等 |
 | **Low**    | `OrgRepository` 有 19 个方法，覆盖 member/role/integration/sync/field mapping 多个子域                      | `internal/store/store.go`                                       |
@@ -75,7 +75,7 @@
 | **Medium** | `budget/service.go` 的 `UpdateNode`/`UpdateMemberQuota` 执行 read-validate-write 无事务保护，PG 下存在 lost update | `internal/domain/budget/service.go:53-86,114` |
 | **Medium** | Memory store `WithTx` 在 snapshot 后释放锁再执行 fn，并发 WithTx 回滚可能覆盖已提交数据                            | `internal/store/memory/tx.go:44-53`           |
 | **Low**    | `ComputeRemainQuotaCNY` 读取 budget 后再 UpdateToken，存在 TOCTOU 间隙（rebalance worker 最终修正）                | `internal/domain/newapisync/quota.go`              |
-| **Low**    | NewAPI lifecycle 状态转换无前置状态校验，pending 状态的 mapping 可被并发 update                                     | `internal/domain/newapisync/lifecycle_ops.go`      |
+| **Low**    | NewAPI lifecycle 状态转换无前置状态校验，pending 状态的 mapping 可被并发 update                                     | `internal/domain/newapisync/lifecycle_*.go`      |
 
 ### 建议
 

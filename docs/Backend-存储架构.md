@@ -52,8 +52,8 @@ flowchart TB
   CO --> MOD[模型<br/>models · allowlist]
   ORG --> BUD & KEY
   MOD --> KEY
-  KEY --> RLY[platform_key_mappings · async_jobs]
-  RLY --> USG[ledger · buckets · snapshots]
+  KEY --> PKM[platform_key_mappings · async_jobs]
+  PKM --> USG[ledger · buckets · snapshots]
 ```
 
 | 概念                        | 落点                                                                 |
@@ -72,7 +72,7 @@ flowchart TB
 flowchart TB
   SVC[domain.Service] --> ST[store.Store]
   ING[Ingest] --> CW[ConsumptionWriter]
-  CW --> LED & USG & SNAP & ORG & KEY & RLY
+  CW --> LED & USG & SNAP & ORG & KEY & PKM
   ST --> MAIN[(主库)]
   ST --> LOG[(日志库)]
 ```
@@ -84,12 +84,12 @@ flowchart TB
 | `Keys()`                                              | `provider_keys`, `platform_keys`, `key_approvals`                         |
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
 | `Ledger()` / `Usage()` / `BudgetSnapshots()`          | `usage_ledger`, `usage_buckets`, `budget_snapshots`                       |
-| `PlatformKeyMappings()` / `AsyncJobs()`                                             | `platform_key_mappings`, `async_jobs`                                            |
-
-`（已拆为 PlatformKeyMappings + AsyncJobs）` = `PlatformKeyMappingRepository`（token 映射读写）+ `AsyncJobsRepository`（outbox / rebalance / overrun / wallet_sync，共用 `async_jobs`）+ `AsyncJobRepository`。Postgres 实现拆为 `platform_key_mapping.go` / `async_jobs.go`。
+| `PlatformKeyMappings()` / `AsyncJobs()`               | `platform_key_mappings`, `async_jobs`                                     |
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                        |
 | `Company()` / `Invite()` / `Billing()` / `Platform()` | 租户与充值                                                                |
 | `Notification()` / `SchedulerLock()` / `Logs()`       | `notification_log`, `scheduler_locks`, 日志库三表                         |
+
+`PlatformKeyMappings()` → `PlatformKeyMappingRepository`（NewAPIKey 映射读写）。`AsyncJobs()` → `AsyncJobsRepository`（newapi_sync / rebalance / overrun / wallet_sync，共用 `async_jobs`）。Postgres 实现：`platform_key_mapping.go` / `async_jobs.go`。
 
 **租户：** 复合 PK `(company_id, …)`；全局表 `permissions` · `provider_keys` · `platform_operators` · `scheduler_locks`。
 
@@ -141,13 +141,16 @@ flowchart LR
 
 `key_hash` 用于 Gateway 鉴权；明文 Key 不落库。`model_allowlist.owner_type`：`platform_key` · `org_node` · `key_approval`。
 
+映射表列名终态：`newapi_key_id` / `newapi_key_remain_quota` / `newapi_group`；`provider_keys.newapi_channel_id`。outbox kind：`create_key` / `update_key` / `rebalance_key`（通道 `newapi_sync`）。无 `relay_*` / `newapi_token_*` 旧名。
+
 ### `async_jobs`
 
-| channel     | 消费方                                                      |
-| ----------- | ----------------------------------------------------------- |
-| `newapi_sync` | `newapi_sync_outbox_processor`                                           |
-| `rebalance` | `rebalance_processor`（`dedupe_key` = `axis_kind:axis_id`） |
-| `overrun`   | `overrun_processor`                                         |
+| channel       | 消费方                                                      |
+| ------------- | ----------------------------------------------------------- |
+| `newapi_sync` | `newapi_sync_outbox_processor`                              |
+| `rebalance`   | `rebalance_processor`（`dedupe_key` = `axis_kind:axis_id`） |
+| `overrun`     | `overrun_processor`                                         |
+| `wallet_sync` | `wallet_sync_processor`                                     |
 
 ---
 
@@ -263,7 +266,7 @@ flowchart LR
 
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
-| **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 Token     |
+| **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 NewAPIKey remain |
 | **组织预算** | `org_nodes.budget` · `personal_quota` · `budget_groups.budget` · `platform_keys.quota`（均为 point） | **`budget_snapshots.consumed`**（四轴，point） | Gateway 预检、预算树、Overrun        |
 
 组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
@@ -277,14 +280,14 @@ flowchart LR
 | **limit**     | `budget_groups.budget`                                             | 预算组                              | 池额度                                        |
 | **limit**     | `platform_keys.quota`                                              | 平台 Key                            | Key 分配额                                    |
 | **limit**     | `companies.balance_point` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
-| **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | Token                               | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
+| **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | NewAPIKey                           | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
 | **consumed**  | `budget_snapshots.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |
 | **consumed**  | `usage_ledger.amount`                                              | 单笔调用                            | 事实账本（point）                             |
 | **consumed**  | `usage_buckets.cost`                                               | 看板聚合                            | 展示投影（point）                             |
 | **consumed**  | JSON `consumed`                                                    | `BudgetNode` · `Department` · 看板  | 读自 snapshot                                 |
 | **consumed**  | JSON `used`                                                        | `PlatformKey` · `MemberBudgetQuota` | **与 consumed 同义**，仅 JSON 名不同          |
 | **remaining** | JSON `remaining` / `remain`                                        | `MemberQuotaSummary` 等             | 计算字段                                      |
-| **remaining** | NewAPI `remain_quota`                                              | Token                               | NewAPIKey remain 配额，受钱包 rebalance 封顶             |
+| **remaining** | NewAPI `remain_quota`                                              | NewAPIKey                           | NewAPIKey remain 配额，受钱包 rebalance 封顶             |
 
 ### 8.4 读代码速查
 

@@ -6,6 +6,37 @@
 
 ---
 
+## 0. 命名约定（终态）
+
+禁止再引入 **Relay**；领域语言**不用 Token 指 Key**（JWT/session 写全称；LLM 计量 `inputTokens` 与厂商 Admin API 字面量除外）。`PlatformKey` 全链路保留，不改成 TokenJoyKey。
+
+| 词 | 职责 |
+| -- | ---- |
+| **NewAPI** | 上游服务（转发 LLM、扣额度、写 logs） |
+| **Gateway** | `/v1` 数据面：Precheck + 反代 NewAPI（包 `domain/gateway`） |
+| **NewAPISync** | 管理面：把 PlatformKey/ProviderKey/model limits 同步到 NewAPI Admin（包 `domain/newapisync`） |
+| **PlatformKey** | 租户调用钥匙 `sk-xxx`（表 `platform_keys`；API `/api/keys/platform`） |
+| **NewAPIKey** | PlatformKey 在 NewAPI 上的对应（列 `newapi_key_id`） |
+| **ProviderKey** / **NewAPIChannel** | 上游凭证 ↔ NewAPI Channel（列 `newapi_channel_id`） |
+| **PlatformKeyMapping** | PlatformKey ↔ NewAPIKey 同步状态与 remain 缓存（表 `platform_key_mappings`） |
+| **AsyncJobs** | `async_jobs` 四通道：`newapi_sync` / `rebalance` / `overrun` / `wallet_sync` |
+
+```text
+调用：sk-xxx → Gateway → key_hash → PlatformKeyMapping → Precheck → 反代 NewAPI
+入账：NewAPI logs → newapi_key_id → PlatformKeyMapping → 归因 PlatformKey
+变更：管理面 → NewAPISync（同步或 newapi_sync outbox）→ NewAPI Admin
+```
+
+| 配置 / 脚本 | 取值 |
+| ----------- | ---- |
+| Gateway 开关 | `NEWAPI_GATEWAY_ENABLED` |
+| SaaS 共享 group | `PLATFORM_SHARED_NEWAPI_GROUP` |
+| 本地 NewAPI 栈 | `pnpm start:newapi` |
+
+厂商客户端在 `integration/newapi`（可保留 `CreateToken` 等厂商符号），不得泄漏到 domain / store / HTTP JSON。
+
+---
+
 ## 1. 技术选型
 
 | 类别 | 选型                                    |
@@ -87,7 +118,8 @@ apps/backend/
 │   │   ├── dashboard/       # 看板只读聚合
 │   │   ├── audit/           # 操作审计、调用审计读模型
 │   │   ├── usage/           # Ingest、projection、Reader
-│   │   ├── newapisync/ + gateway/  # NewAPISync（lifecycle_*.go）、Gateway 预检、quota 合成
+│   │   ├── newapisync/      # NewAPISync（lifecycle_*.go、quota、channel policy）
+│   │   ├── gateway/         # GatewayService + Precheck（/v1 数据面）
 │   │   ├── company/         # 企业、开户、邀请
 │   │   └── billing/         # 充值、lot 钱包、wallet_sync
 │   ├── http/
@@ -98,7 +130,7 @@ apps/backend/
 │   │   └── httputil/、response/
 │   ├── infra/
 │   │   ├── permission/
-│   │   ├── worker/          # outbox、rebalance、overrun、org sync
+│   │   ├── worker/          # newapi_sync outbox、wallet_sync、rebalance、overrun、org sync
 │   │   └── notification/
 │   ├── integration/
 │   │   ├── newapi/
@@ -194,7 +226,8 @@ type Store interface {
     Models() ModelsRepository
     Audit() AuditRepository
     Ledger() LedgerRepository
-    NewAPI() （已拆为 PlatformKeyMappings + AsyncJobs）
+    PlatformKeyMappings() PlatformKeyMappingRepository
+    AsyncJobs() AsyncJobsRepository
     Usage() UsageRepository
     WithTx(ctx context.Context, fn func(Store) error) error
 }
@@ -310,11 +343,12 @@ flowchart TB
 
 | 组件               | 包              | 职责                                      |
 | ------------------ | --------------- | ----------------------------------------- |
-| `NewAPISync`   | `domain/newapisync`  | Create/Update/Disable Token；同步 Channel |
-| `IngestService`    | `domain/usage`  | Webhook 入账（不依赖 Lifecycle）          |
-| `RebalanceService` | `domain/budget` | point → `remain_quota`（封顶 Postgres 钱包） |
-| `OverrunService`   | `domain/budget` | 超限封禁 Key                              |
-| `PrecheckService`  | `domain/newapisync`  | Gateway 预检                              |
+| `NewAPISync`       | `domain/newapisync` | Create/Update/Disable NewAPIKey；同步 Channel |
+| `IngestService`    | `domain/usage`      | Webhook 入账（不依赖 NewAPISync）             |
+| `RebalanceService` | `domain/budget`     | point → `remain_quota`（封顶 Postgres 钱包）  |
+| `OverrunService`   | `domain/budget`     | 超限封禁 Key                                  |
+| `PrecheckService`  | `domain/gateway`    | Gateway 预检                                  |
+| `GatewayService`   | `domain/gateway`    | `/v1` 鉴权 + Precheck + 反代 NewAPI           |
 
 **NewAPISync 子接口（嵌入组合，DI 收窄）：**
 
@@ -328,12 +362,12 @@ flowchart TB
 | 消费者 | 接口 |
 | ------ | ---- |
 | `keys` | `KeysNewAPISync`（`NewAPIGate` + Platform + Provider） |
-| `models` / `org` | `ModelLimitsEnqueuer`（= `ModelLimitsLifecycle`） |
+| `models` / `org` | `ModelLimitsLifecycle` |
 | `overrun` | `OverrunKeyControl`（`NewAPIGate` + `DisablePlatformKey`） |
-| Worker newapi_sync outbox | `NewAPISyncOutbox`（Platform + Provider + ModelLimits + Rebalance） |
+| Worker newapi_sync outbox | `OutboxHandler`（Platform + Provider + ModelLimits + Rebalance） |
 | `app` 装配 | `Lifecycle`（上述全部 + `NewAPIGate`） |
 
-实现位于 `domain/newapisync/lifecycle_*.go`（按操作拆文件）；`NewAPISync` 注入 `PlatformKeyMappingRepository` + `NewAPISyncOutboxRepository`。
+实现位于 `domain/newapisync/lifecycle_*.go`；`NewAPISync` 注入 `PlatformKeyMappingRepository` + `NewAPISyncOutboxRepository`（来自 `st.AsyncJobs()`；条目为 `AsyncJob`，完成态用 `MarkJob*`）。
 
 ### 7.1 Worker 一轮
 

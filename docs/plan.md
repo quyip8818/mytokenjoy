@@ -43,6 +43,7 @@
 ```bash
 cd apps/backend && go test -tags=testhook \
   ./tests/handler/gateway/... \
+  ./tests/domain/gateway/... \
   ./tests/domain/newapisync/... \
   ./tests/domain/keys/... -count=1
 

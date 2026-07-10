@@ -1,7 +1,8 @@
 # NewAPI 集成现状与优化点
 
 > **定位**：对照 `apps/newapi` 与 `apps/backend`，描述 **当前接通能力** 与 **可优化点**。  
-> 上线前可勾选 backlog 见 [plan.md](./plan.md) §1。
+> 上线前可勾选 backlog 见 [plan.md](./plan.md) §1。  
+> 命名与包边界（Gateway / NewAPISync / PlatformKey）见 [Backend-架构.md](./Backend-架构.md) §0。
 
 ---
 

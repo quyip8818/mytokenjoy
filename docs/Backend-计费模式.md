@@ -247,7 +247,7 @@ flowchart TD
 | 1 | 企业 active | `companies` |
 | 2 | `balance_point ≥ estimate` | Postgres |
 | 3 | 组织 `consumed + estimate ≤ limit` | snapshots + limit |
-| 4 | Token `remain_quota > 0` | mapping 缓存 |
+| 4 | NewAPIKey `remain_quota > 0` | mapping 缓存 |
 | 5 | NewAPI `users.quota` 折算 point `≥ estimate` | NewAPI（通道硬顶） |
 | 6 | 白名单 / Key 状态 | allowlist + keys |
 | 7 | pending `wallet_sync` 且漂移 `> ε` | async_jobs + 双读 |
@@ -424,12 +424,12 @@ domain/usage/
   lot_allocate.go     FIFO AllocateConsumptionLots + overdraft
   ingest.go           事务：分配 lot → InsertSegments → 投影 → enqueue sync
 
-domain/newapisync/
+domain/gateway/
   precheck.go         balance_point + 预算 + NewAPI 双检 + sync 滞后
   gateway_service.go  Retry-After 透传
 
 domain/budget/
-  rebalance.go        按 balance_point 封顶 token quota
+  rebalance.go        按 balance_point 封顶 NewAPIKey remain_quota
 
 store/postgres/
   billing_repo.go     lot CRUD、AggregateWallet、ExpandOverdraftLot
@@ -438,7 +438,7 @@ store/postgres/
 
 infra/worker/
   wallet_sync_processor.go   processWalletSync / processWalletReconcile
-  runner.go                    newAPISyncTick 调度
+  runner.go                    asyncTick / asyncLoop 调度
 
 integration/newapi/quota.go   point ↔ quota units
 ```
@@ -496,7 +496,7 @@ pnpm -F @tokenjoy/frontend test
 
 # 重点
 go test -tags=testhook ./tests/domain/billing/... -run WalletClosure
-go test -tags=testhook ./tests/domain/newapisync/... -run WalletSync
+go test -tags=testhook ./tests/domain/gateway/... -run Wallet
 go test -tags=testhook ./tests/store/postgres/... -run WalletSync
 ```
 

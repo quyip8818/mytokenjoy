@@ -234,7 +234,7 @@ sequenceDiagram
 | 成员未超 | `budget_snapshots`（member）+ `personal_quota` |
 | Key 未超 | `budget_snapshots`（platform_key）+ Key `quota` |
 | 预算组未超 | `budget_snapshots`（budget_group）+ 组 `budget` |
-| Token / 企业通道配额 | NewAPI；`wallet_sync` 滞后超阈时拒代理 |
+| NewAPIKey / 企业通道配额 | NewAPI；`wallet_sync` 滞后超阈时拒代理 |
 | 模型与 Key 状态 | 白名单、`platform_keys` |
 
 ---
@@ -387,8 +387,8 @@ sequenceDiagram
 | 成员可分给 Key | personal_quota − Σ已分配 Key quota |
 | 成员本账期已用 | snapshots member 轴 |
 | 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key quota |
-| Token 可用上限 | 上列候选取 min → 换 NewAPI 单位 |
-| 企业硬顶 | Σ Token ≤ balance_point 对应通道配额 |
+| NewAPIKey 可用上限 | 上列候选取 min → 换 NewAPI 单位 |
+| 企业硬顶 | Σ NewAPIKey remain ≤ balance_point 对应通道配额 |
 
 ---
 
@@ -401,9 +401,9 @@ sequenceDiagram
 | Rebalance | `domain/budget/rebalance` |
 | Key 额度校验 | `domain/keys` + `pkg/budget` |
 | 快照加载 | `pkg/budget` |
-| Gateway 预检 | `domain/newapisync` |
+| Gateway 预检 | `domain/gateway` |
 | 充值 | `domain/billing` |
-| 异步任务 | `async_jobs`（rebalance / overrun） |
+| 异步任务 | `async_jobs`（newapi_sync / rebalance / overrun / wallet_sync） |
 
 ---
 

@@ -356,7 +356,7 @@ flowchart TB
 
   subgraph newapi [NewAPI]
     ADM[Admin API]
-    GW[Gateway /v1]
+    NA[/v1 上游]
     SETTLE[Settle 写 logs]
     NOTIFY[Notify Worker]
   end
