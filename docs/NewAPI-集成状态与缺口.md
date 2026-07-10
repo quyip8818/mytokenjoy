@@ -1,80 +1,85 @@
-# NewAPI 集成缺口
+# NewAPI 集成现状与优化点
 
-> **最后对齐**：2026-07-09  
-> **定位**：仅记录 **尚未解决** 的问题。可勾选 backlog 见 [plan.md](./plan.md) §1。
+> **定位**：对照 `apps/newapi` 与 `apps/backend`，描述 **当前接通能力** 与 **可优化点**。  
+> 上线前可勾选 backlog 见 [plan.md](./plan.md) §1。
 
 ---
 
-## 已关闭（2026-07-09 P0 必须项）
+## 1. 现状摘要
 
-| 项 | 说明 |
+| 维度 | 状态 |
 | --- | --- |
-| Gateway `/v1` path 透传 | `gateway_service.go` Director 显式保留客户端 path |
-| Keys Remote-first | Toggle / Revoke / Rotate 先调 NewAPI，成功后再写 Postgres |
-| Lifecycle 同步 503 | `SyncCreate` / `TrySyncCreate` / `SyncUpdate` / `SyncRevoke` / `SyncRotate` 在 Relay 关闭时返回 503 |
-| Platform Key Rotate | `regenerate` 补丁 + `SyncRotatePlatformKey` + HTTP 200 |
-| prod 启动校验 | `DEPLOY_ENV=production` 强制 Relay + Gateway + 入账配置；`NEW_API_BASE_URL` 禁止带 path（详见 [Backend-配置架构.md](./Backend-配置架构.md) §7） |
-| `wireGatewayService` 失败 | 装配错误时进程启动失败（`panic`） |
+| Token 生命周期（Create / Update / Toggle / Revoke / Rotate / Delete） | 已接通 |
+| Gateway Precheck + `/v1` 反代 | 已接通 |
+| 用量回写（webhook + reconcile） | 已接通 |
+| 额度同步（wallet_sync / TopUp / GetUserQuota） | 已接通 |
+| Provider → Channel Upsert | 已接通 |
+| 从 NewAPI 拉模型目录 / GetGroups | 未做（TokenJoy 自管目录；推 `model_limits`） |
+| 管理端 API 封装 | Token + User/Quota + Channel；无 GetAllModels / GetGroups / GetLogByKey |
 
 ---
 
-## P0 — 生产功能或数据一致性
+## 2. 写路径与 Gateway 约定
 
-| 问题 | 位置 | 后果 |
+### 2.1 Platform Key
+
+| 操作 | 模式 |
+| --- | --- |
+| Create / Approve→Create / Toggle / Revoke / Rotate / Delete | 同步 **Remote-first**（先 NewAPI，再写 Postgres）；Relay 关 → `503`，DB 不变 |
+| Update 配额 / 白名单 | `requireRelay` + **先写 DB 再 `SyncUpdatePlatformKey`，失败回滚**（非 async outbox） |
+| Rebalance / ModelLimits / Provider Channel | 仍可走 relay outbox → Worker |
+
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`（patch），保持 `newapi_token_id` 不变以利 ingest。
+
+### 2.2 Gateway
+
+- 单例 `ReverseProxy`（`NewGatewayService` 创建一次）
+- 精确路径白名单：`/v1/chat/completions`、`/v1/completions`、`/v1/embeddings`、`/v1/models`
+- Body 上限：`MaxBytesReader` 4MB
+- Precheck：key / 公司 / 部门账期与预算 / 配额快照 / NewAPI remain / wallet cap / wallet_sync 漂移 / 模型白名单
+
+### 2.3 Worker outbox
+
+`IsPermanentRelayOutboxError` 将 `503`（含 `relay not enabled`）及不可恢复错误标为永久 `failed`，不再无限重试。
+
+### 2.4 入账（方案 B）
+
+NewAPI notify → `POST /api/internal/webhooks/newapi-log` → `IngestByLogID`；Worker 负责 `ingest_failures` 重试与 `reconcile_cursors` 水位补洞（直读 `LOG_DATABASE_URL` → `newapi.logs`）。
+
+### 2.5 设计约束（明确不做）
+
+| 项 | 原因 |
+| --- | --- |
+| delete+create 式 Rotate | 破坏 ingest `token_id` 连续性 |
+| Toggle 改回 async outbox | 用户操作应同步可见 |
+| 兼容「无 Relay 的 Platform Key」 | Demo / 生产统一要求 Relay；关则 `503` |
+| Gateway 用 `HasPrefix` 放行 | 精确匹配为安全目标 |
+
+---
+
+## 3. 可优化点
+
+| 问题 | 位置 | 说明 |
 | --- | --- | --- |
-| `UpdatePlatformKey` 仍 DB-first + async outbox | `platform_key_update.go` | Relay 开但 sync 失败时，配额/白名单可能与 NewAPI 短暂不一致 |
-| `DeletePlatformKey` 仅删 Postgres | `platform_key_actions.go` | 未 revoke Remote token（产品若保留 Delete 需补 Remote-first） |
-| Worker outbox Relay 关闭 | `relay_processor.go` | 配置错误时条目仍重试，未永久 failed |
+| Update 非严格 Remote-first | `platform_key_update.go` | 先写 DB 再 sync；失败可回滚，崩溃窗口仍可能短暂不一致 |
 | `noopWalletService` `AvailableQuota` 恒 0 | `domain/company/wallet.go` | Relay 关闭时 Gateway 预检 / `wallet_sync` 失效 |
-
----
-
-## P1 — 误配、SaaS、可观测
-
-| 问题 | 位置 | 后果 |
-| --- | --- | --- |
-| `NEW_API_PUBLIC_URL` 未使用 | `config.go` | 配置冗余 |
 | demo 下 Gateway 组合无校验 | `config.go` | 只开 Gateway、不开 `NEW_API_ENABLED` → 路由不挂载，进程仍启动 |
-| Rebalance / Overrun Relay 关闭时空转 | `overrun.go`、`lifecycle_ops.go` | Worker 侧 `Enqueue*` 仍 `return nil` |
-| `NOTIFY_WEBHOOK_URL` 失败对调用方静默 | `infra/notification/service.go` | HTTP 失败写 log，但 `Send()` 仍 `return nil` |
-| `processOrgSync` 固定 `DefaultCompanyID` | `infra/worker/org_sync_processor.go` | SaaS 多企业 org 同步范围受限 |
+| Rebalance / Overrun Relay 关闭时空转 | `overrun.go`、lifecycle enqueue | Worker 侧可能 `return nil`，掩盖误配 |
+| `NOTIFY_WEBHOOK_URL` 失败静默 | `infra/notification/service.go` | HTTP 失败写 log，`Send()` 仍 `return nil` |
+| `processOrgSync` 固定 `DefaultCompanyID` | `org_sync_processor.go` | SaaS 多企业 org 同步范围受限 |
+| `NEW_API_PUBLIC_URL` 未使用 | Backend `config.go` | 配置冗余（仅 newapi 侧示例） |
 | `host.docker.internal` 跨平台 | `apps/newapi/docker-compose.yml` | Linux 非 Docker Desktop webhook 常连不上 Backend |
-| `gate-verify` 不测 Backend Gateway | `apps/newapi/scripts/gate-verify.sh` | 脚本通过 ≠ `/v1/*` Gateway 可用 |
+| `gate-verify` 不测 Backend Gateway | `gate-verify.sh` | 脚本通过 ≠ `/v1/*` Gateway 可用 |
+| `ingest_notify_total` 幂等重复也 +1 | `ingestmetrics/collector.go` | 宜仅首次 ledger 插入计数 |
+| `GET /internal/metrics/ingest` 无鉴权 | ingest metrics | 生产可加 secret 或仅 bind localhost |
+
+上线前修复项与联调签字见 [plan.md](./plan.md) §1。
 
 ---
 
-## P2–P3 — 清理与文档
-
-| 问题 | 位置 | 建议 |
-| --- | --- | --- |
-| Gateway singleton proxy / 精确路径白名单 | `gateway_service.go` | 性能与安全加固，非阻塞 |
-| Gateway body 上限 | `gateway_service.go` | `MaxBytesReader` 可配置常量 |
-| `ingest_notify_total` 幂等重复也 +1 | `infra/ingestmetrics/collector.go` | 仅首次 ledger 插入计数 |
-| `Backend-架构.md` 等子文档 | `docs/` | 与实现扫尾对齐 |
-
----
-
-## 建议修复顺序
-
-```
-P0 剩余
-├── UpdatePlatformKey Remote-first（或失败可观测）
-└── Worker：Relay 关闭时 outbox 永久 failed
-
-P1
-├── gate-verify 增加 Backend /v1 Gateway 步骤
-└── demo Gateway 组合校验（可选）
-
-P2
-├── Gateway 硬化（singleton、精确路径、body limit）
-└── Delete 语义（必须先 revoke）
-```
-
----
-
-## 联调时仍须注意的坑
+## 4. 联调注意坑
 
 - `host.docker.internal`：Linux 需改 `MANAGEMENT_WEBHOOK_URL` 或加 `extra_hosts`
 - `pnpm gate:verify` 不覆盖 Backend Gateway，Gateway 须单独验
 - 只开 `RELAY_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
-- `DEPLOY_ENV=production` 时上述三联开为 **启动硬依赖**
+- `DEPLOY_ENV=production` 时 Relay + Gateway + 入账为 **启动硬依赖**（见 [Backend-配置架构.md](./Backend-配置架构.md)）

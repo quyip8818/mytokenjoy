@@ -13,12 +13,13 @@
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
-| [Backend-模型目录实现.md](./Backend-模型目录实现.md) | 同表双角色：平台模型源 + 租户自有模型；全局内置对租户永远存在、不可禁用 |
-| [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 终态架构：管理面 `modelId`、Relay/审计 `callType`；`ModelRef` enrich |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
-| [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏（已实现） |
+| [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [Backend-重构建议.md](./Backend-重构建议.md) | 终态收口形态、实施顺序与明确不做项                         |
-| [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定（已实现） |
+| [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Relay 现状与可优化点 |
+
+**模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Relay/审计用 `callType`；见 §2.1 ADR。
 
 Seed 与测试见本文 [§5](#5-测试与-seed)。
 
@@ -289,6 +290,6 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 
 - [ ] `apps/frontend/src/api/` + [Frontend.md](./Frontend.md) API 契约
 - [ ] `internal/domain/` + `internal/http/handler/`
-- [x] `apps/backend/seed/`（demo 数据，见 [§5.3](#53-seed)）
+- [ ] `apps/backend/seed/`（demo 数据，见 [§5.3](#53-seed)）
 - [ ] `tests/handler/core/contract_test.go`（新 GET）
 - [ ] 已实现项从 [Roadmap.md](./Roadmap.md) 移除

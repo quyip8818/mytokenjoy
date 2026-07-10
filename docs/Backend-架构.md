@@ -175,7 +175,7 @@ sequenceDiagram
 | 全部业务 GET / POST / PUT / DELETE | Session JWT + 读/写 capability                                                                       |
 | 公开                               | `POST /auth/login`、`POST /auth/logout`、`POST /auth/accept-invite`、`GET /healthz`、Webhook（密钥） |
 
-历史 `APP_PROFILE` 鉴权分叉（demo GET 免 Session）已删除。
+鉴权不依赖 profile：无 demo GET 免 Session 分叉；统一 Session JWT + capability。
 
 `GET /api/session`：返回 `member`、`permissions[]`、`authzRevision`、`companyId`。详见 [权限管理.md](./权限管理.md) §4.5。
 
@@ -266,16 +266,17 @@ sequenceDiagram
 
 预检依赖 `relay.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
 
-### 6.1 Platform Key 写路径（Remote-first）
+### 6.1 Platform Key 写路径
 
-用户触发的 **同步** 操作（Create、Approve→Create、Toggle、Revoke、Rotate）：**先** NewAPI Admin API 成功，**再** 写 Postgres。Relay 未启用 → `503`，DB 不变。
+用户触发的 Create、Approve→Create、Toggle、Revoke、Rotate、Delete：**先** NewAPI Admin API 成功，**再** 写 Postgres（Remote-first）。Relay 未启用 → `503`，DB 不变。
 
 | 操作 | 模式 |
 | --- | --- |
-| Create / Approve / Toggle / Revoke / Rotate | 同步 Remote-first |
-| Update 配额/白名单、Rebalance、ModelLimits | 仍 async outbox → Worker |
+| Create / Approve / Toggle / Revoke / Rotate / Delete | 同步 Remote-first |
+| Update 配额/白名单 | 同步：先写 DB → `SyncUpdatePlatformKey`，失败回滚 |
+| Rebalance、ModelLimits、Provider Channel | async outbox → Worker |
 
-Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_token_id` 不变以利 ingest 入账。
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_token_id` 不变以利 ingest 入账。细节与可优化点见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
 
 ---
 
@@ -344,7 +345,7 @@ flowchart LR
   E --> F[org 定时同步]
 ```
 
-入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → `IngestByLogID`；Worker 负责 `ingest_failures` 重试与 `reconcile_cursors` 全局水位补洞（方案 B，见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)）。**已删除** `compensateLogs`、`relay_sync_cursors`。
+入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → `IngestByLogID`；Worker 负责 `ingest_failures` 重试与 `reconcile_cursors` 全局水位补洞（方案 B，见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)）。
 
 `WORKER_POLL_INTERVAL_SEC` 控制轮询；`WORKER_ORG_SYNC_INTERVAL_SEC` 控制组织同步。
 

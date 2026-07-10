@@ -1,7 +1,7 @@
 # PRD 与现有项目差距分析
 
 > **对照基准**：[PRD.md](./PRD.md)（产品需求）  
-> **现状来源**：[Roadmap.md](./Roadmap.md)、[plan.md](./plan.md)、[Frontend.md](./Frontend.md)、代码库（截至 2026-07-09）  
+> **现状来源**：[Roadmap.md](./Roadmap.md)、[plan.md](./plan.md)、[Frontend.md](./Frontend.md)、代码库  
 > **定位**：产品视角的差距清单；工程 backlog 仍以 [plan.md](./plan.md) 为准。
 
 ---
@@ -76,7 +76,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | US-10 | Key/额度审批 | ⚠️ | 审批四 Tab、通过自动建 Key/扣预留池、拒绝理由均已实现；**IM 通知审批人/申请人**未做 |
 | US-11 | 自主管理 Platform Key | ✅ | 多 Key、模型绑定、额度分配、toggle/revoke/rotate/delete；Rotate 已 Remote-first + NewAPI regenerate |
-| US-12 | API 调用 | ⚠️ | Gateway `/v1/chat/completions` 等路径 + precheck + Relay 入账；**依赖** `NEW_API_ENABLED` + Relay 栈；路径白名单仍为 **HasPrefix**（精确集合待做）；PRD 要求 **Anthropic `/v1/messages` 原生格式**未单独暴露（经 OpenAI 兼容路径可能可用，但未作为一等契约验收） |
+| US-12 | API 调用 | ⚠️ | Gateway 精确路径白名单（`/v1/chat/completions` 等）+ precheck + Relay 入账；**依赖** `NEW_API_ENABLED` + Relay 栈；PRD 要求 **Anthropic `/v1/messages` 原生格式**未单独暴露（经 OpenAI 兼容路径可能可用，但未作为一等契约验收） |
 
 **P3 小结**：管理面 Key 生命周期已对齐 PRD；调用链路与通知、双格式 API 仍有差距。
 
@@ -149,13 +149,13 @@ flowchart LR
 
 ### 4.5 API 与 Gateway 工程项
 
-| 项 | PRD | 现状（[plan.md](./plan.md) / [下一步.md](./下一步.md)） |
+| 项 | PRD | 现状（[plan.md](./plan.md) / [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)） |
 | --- | --- | --- |
-| OpenAI + Anthropic 双格式 | US-12 明确 | Gateway 白名单为 `/v1/*` OpenAI 风格路径 |
+| OpenAI + Anthropic 双格式 | US-12 明确 | Gateway 白名单为 OpenAI 风格 `/v1/*` 精确路径 |
 | 调用必须指定 model | 是 | precheck 校验 |
-| Gateway 精确路径白名单 | 安全最佳实践（P0 设计） | 仍为 HasPrefix；singleton proxy、body limit 待做 |
-| `gate-verify` 含 Backend Gateway | 联调验收 | 未覆盖 |
-| Key Delete 语义 | 释放额度 | Remote-first Delete 终态未完全收口 |
+| Gateway 精确路径白名单 | 安全最佳实践 | 已落地（4 条精确 path + body limit） |
+| `gate-verify` 含 Backend Gateway | 联调验收 | 未覆盖（见 plan §1） |
+| Key Delete 语义 | 释放额度 | Remote-first Delete（先 revoke Remote 再删 DB） |
 
 ---
 
@@ -195,7 +195,7 @@ flowchart LR
 
 | 优先级 | 项 | 理由 |
 | --- | --- | --- |
-| P0 | Relay/Gateway 联调收口（精确路径、gate-verify、Delete 语义） | US-12 生产可用前提；见 [下一步.md](./下一步.md) |
+| P0 | Relay/Gateway 联调签字 + `gate-verify` 覆盖 Backend `/v1` | US-12 生产可用前提；见 [plan.md](./plan.md) §1 |
 | P0 | US-08 预警 Worker + 运行时阈值 | PRD P2 核心承诺，当前仅 UI 配置 |
 | P1 | 审批/预警/同步 **通知**（至少 Webhook 可观测 + 一种可达渠道） | US-08、US-10 验收依赖 |
 | P1 | 成员邀请真实激活链路 | US-04 验收缺口 |
@@ -215,7 +215,7 @@ flowchart LR
 | [PRD.md](./PRD.md) | 产品需求与用户故事 |
 | [Roadmap.md](./Roadmap.md) | 差距状态简表（维护实现后更新） |
 | [plan.md](./plan.md) | 工程 backlog（Relay、测试、发布门禁） |
-| [下一步.md](./下一步.md) | P0 Relay 终态设计与实施状态 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Relay 现状与可优化点 |
 | [Frontend.md](./Frontend.md) | API 与页面契约 |
 | [Backend.md](./Backend.md) | 后端索引、Relay、钱包 |
 | [权限管理.md](./权限管理.md) | 鉴权与角色（强于 PRD 简述） |

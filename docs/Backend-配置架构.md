@@ -1,6 +1,5 @@
 # Backend 配置架构
 
-> **状态**：**已实现**（破坏性替换已落地）。  
 > **范围**：`apps/backend` 配置加载、生产契约、空库引导、Secure Cookie、时钟、凭证密钥、测试构造。  
 > **索引**：env 快表见 [Backend.md](./Backend.md) §3 / [Backend-架构.md](./Backend-架构.md) §1.1；完整示例见 `apps/backend/.env.example`。
 
@@ -10,9 +9,8 @@
 
 1. 一个开关只管一件事。  
 2. 开了就要配齐，缺了就不启动。  
-3. 密钥和 Cookie 显式配置，代码里无 dev fallback。
-
-历史上 `APP_PROFILE` / `IsProdProfile` / `IsDemoProfile` / `DEMO_TODAY` / `MinimalSeed` 已删除，无兼容层、不读旧 env。
+3. 密钥和 Cookie 显式配置，代码里无 dev fallback。  
+4. 不使用 `APP_PROFILE` / `DEMO_TODAY` / `MinimalSeed` 等旧开关；以 `DEPLOY_ENV` + `BOOTSTRAP_MODE` 为准。
 
 ---
 
@@ -188,7 +186,7 @@ func NowUTC(clk Clock) time.Time
 | `NewTestStoreWithDemoRuntime` / `ApplyDemoRuntime` | 显式写入 usage/充值演示数据 |
 | `WithProductionContract` | 填满 §7 以测生产契约加载 |
 
-已删除：`WithProfile`、`WithMinimalSeed`、`WithRuntimeSeed`、`NewProdRouter`。
+测试构造以 `WithProductionContract`、`NewSecureCookieRouter`、`ApplyDemoRuntime` 等为准；无 `WithProfile` / `WithMinimalSeed` 类 helper。
 
 ---
 

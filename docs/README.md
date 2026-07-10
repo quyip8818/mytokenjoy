@@ -2,38 +2,43 @@
 
 Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（Relay）；共享契约 `packages/contracts`。本地联调：`pnpm start`。
 
+## 权威来源
+
+| 用途 | 文档 |
+| --- | --- |
+| 工程待办（上线前 fix / 功能 / 门禁） | **[plan.md](./plan.md)** |
+| 架构现状 | [Backend.md](./Backend.md) 及子文档、[NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)、[Frontend.md](./Frontend.md) |
+| 产品差距 | [Roadmap.md](./Roadmap.md)、[PRD-差距分析.md](./PRD-差距分析.md) |
+| 产品需求（只读权威） | [PRD.md](./PRD.md) |
+
 ## 文档地图
 
-| 文档                                                   | 读者               | 内容                                             |
-| ------------------------------------------------------ | ------------------ | ------------------------------------------------ |
-| **[plan.md](./plan.md)**                               | 研发 / 架构        | **工程 backlog 唯一入口**                        |
-| [PRD.md](./PRD.md)                                     | 产品 / 全员        | 需求与验收标准（权威 PRD）                       |
-| [Frontend.md](./Frontend.md)                           | 前端 / 前后端      | 前端架构、**API 契约**（82+11 端点；17 业务页）  |
-| [Backend.md](./Backend.md)                             | 后端               | 索引：SaaS、运行、Relay、Keys 约束、Seed、测试   |
-| [Backend-配置架构.md](./Backend-配置架构.md)           | 后端 / 运维        | 配置、生产契约、空库引导、Clock（已实现）        |
-| [Backend-架构.md](./Backend-架构.md)                   | 后端 / 架构        | 分层、请求链、Relay、看板读路径                  |
-| [Backend-存储架构.md](./Backend-存储架构.md)           | 后端 / DBA         | 双库 37+3 表、域关系、核心实体、Store 与 ID 约定 |
-| [Backend-计费模式.md](./Backend-计费模式.md)           | 后端 / 计费        | point + lot 计费 SSOT、钱包闭合、wallet_sync     |
-| [Backend-预算.md](./Backend-预算.md)                   | 后端 / 计费        | 双轴、Ingest、Rebalance、Overrun                 |
-| [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏（已实现） |
-| [Backend-模型目录实现.md](./Backend-模型目录实现.md)   | 后端 / 架构        | `models` 同表双角色、并集读取                    |
-| [Backend-模型目录最优改造计划.md](./Backend-模型目录最优改造计划.md) | 后端 / 架构 | 模型目录改造计划                                 |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调        | NewAPI 入账方案 B 架构现状                       |
-| [权限管理.md](./权限管理.md)                           | 后端 / 前端 / 架构 | Identity JWT + PDP 实现与验收 Gate               |
-| [Roadmap.md](./Roadmap.md)                             | 全员               | 产品差距（未实现能力）                           |
-| [下一步.md](./下一步.md)                               | 研发 / 架构        | **P0 终态设计**（Relay 写路径 + Gateway + Rotate） |
+| 文档 | 读者 | 内容 |
+| --- | --- | --- |
+| **[plan.md](./plan.md)** | 研发 / 架构 | **上线前 backlog 唯一入口** |
+| [PRD.md](./PRD.md) | 产品 / 全员 | 需求与验收标准 |
+| [PRD-差距分析.md](./PRD-差距分析.md) | 产品 / 研发 | PRD vs 实现差距 |
+| [Roadmap.md](./Roadmap.md) | 全员 | 产品差距简表 |
+| [Frontend.md](./Frontend.md) | 前端 / 前后端 | 前端架构、API 契约 |
+| [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Relay、Keys、Seed、测试 |
+| [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
+| [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、Relay、看板读路径 |
+| [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
+| [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
+| [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
+| [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
+| [Backend-重构建议.md](./Backend-重构建议.md) | 后端 / 架构 | 可优化收口建议 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Relay 现状与可优化点 |
+| [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 
-### 归档与历史
+### 归档笔记（非权威 backlog）
 
-| 文档                                                         | 说明                                                           |
-| ------------------------------------------------------------ | -------------------------------------------------------------- |
-| [archive/](./archive/)                                       | 已合并计划的全文（前端架构、发布清单、Keys 规格、MSW 等）      |
-| [MSW去除与后端对齐计划.md](./MSW去除与后端对齐计划.md)       | 已完成，指向 archive + plan                                    |
-| [前端架构优化与模块化建议.md](./前端架构优化与模块化建议.md) | 已合并，指向 Frontend + plan                                   |
-| [下一步工作清单.md](./下一步工作清单.md)                     | 已合并，指向 Frontend + plan                                   |
-| [清理兼容与死代码-下一步.md](./清理兼容与死代码-下一步.md)   | 已合并，指向 Backend + plan                                    |
+| 路径 | 说明 |
+| --- | --- |
+| [superpowers/](./superpowers/) | 历史审查 / 实施笔记 |
+| [reviews/](./reviews/) | 安全评估等一次性笔记 |
 
-## 权威来源优先级
+## 契约优先级
 
 1. API 路径与 JSON → [Frontend.md](./Frontend.md) §5 + `apps/frontend/src/api/types/`
 2. 后端类型 → `apps/backend/internal/domain/types/`
