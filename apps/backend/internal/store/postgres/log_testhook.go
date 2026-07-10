@@ -60,24 +60,24 @@ func InsertConsumeLog(ctx context.Context, st store.Store, raw store.RawConsumeL
 	return err
 }
 
-func GetIngestFailureByLogID(ctx context.Context, st store.Store, logID int64) (store.IngestFailure, bool, error) {
+func GetIngestJobByLogID(ctx context.Context, st store.Store, logID int64) (store.IngestJob, bool, error) {
 	tables := logTablesFromStore(st)
 	pool := LogPool(st)
 	query := fmt.Sprintf(`
 		SELECT id, log_id, source, error, status, attempts, next_retry, created_at, updated_at
 		FROM %s
 		WHERE log_id = $1
-	`, tables.ingestFailures)
+	`, tables.ingestJobs)
 	row := pool.QueryRow(ctx, query, logID)
-	var f store.IngestFailure
-	err := row.Scan(&f.ID, &f.LogID, &f.Source, &f.Error, &f.Status, &f.Attempts, &f.NextRetry, &f.CreatedAt, &f.UpdatedAt)
+	var job store.IngestJob
+	err := row.Scan(&job.ID, &job.LogID, &job.Source, &job.Error, &job.Status, &job.Attempts, &job.NextRetry, &job.CreatedAt, &job.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return store.IngestFailure{}, false, nil
+		return store.IngestJob{}, false, nil
 	}
 	if err != nil {
-		return store.IngestFailure{}, false, err
+		return store.IngestJob{}, false, err
 	}
-	return f, true, nil
+	return job, true, nil
 }
 
 func GetRelayOutboxByID(ctx context.Context, pool *pgxpool.Pool, id string) (store.RelayOutboxEntry, bool, error) {

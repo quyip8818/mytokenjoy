@@ -22,7 +22,7 @@ INSERT INTO reconcile_cursors (stream, last_log_id)
 VALUES ('newapi_consume', 0)
 ON CONFLICT (stream) DO NOTHING;
 
-CREATE TABLE IF NOT EXISTS ingest_failures (
+CREATE TABLE IF NOT EXISTS ingest_jobs (
     id           TEXT PRIMARY KEY,
     log_id       BIGINT NOT NULL UNIQUE,
     source       TEXT NOT NULL,
@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS ingest_failures (
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_ingest_failures_pending
-    ON ingest_failures (next_retry)
+CREATE INDEX IF NOT EXISTS idx_ingest_jobs_pending
+    ON ingest_jobs (next_retry)
     WHERE status = 'pending' AND attempts < 20;
 
 CREATE INDEX IF NOT EXISTS idx_logs_consume_cursor

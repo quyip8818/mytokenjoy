@@ -97,29 +97,50 @@ func (r *logRepo) SetReconcileCursor(ctx context.Context, stream string, logID i
 	return err
 }
 
-func (r *logRepo) UpsertFailure(ctx context.Context, f store.IngestFailure) error {
-	status := f.Status
+func (r *logRepo) EnqueuePending(ctx context.Context, logID int64, source string) error {
+	id := store.IngestJobID(logID)
+	query := fmt.Sprintf(`
+		INSERT INTO %s (id, log_id, source, error, status, attempts, next_retry, created_at, updated_at)
+		VALUES ($1, $2, $3, '', $4, 0, NOW(), NOW(), NOW())
+		ON CONFLICT (log_id) DO UPDATE SET
+			source = EXCLUDED.source,
+			status = $4,
+			attempts = CASE WHEN %s.status = $5 THEN 0 ELSE %s.attempts END,
+			error = CASE WHEN %s.status = $5 THEN '' ELSE %s.error END,
+			next_retry = NOW(),
+			updated_at = NOW()
+	`, r.tables.ingestJobs, r.tables.ingestJobs, r.tables.ingestJobs, r.tables.ingestJobs, r.tables.ingestJobs)
+	_, err := r.db.Exec(ctx, query, id, logID, source, store.IngestJobStatusPending, store.IngestJobStatusDead)
+	return err
+}
+
+func (r *logRepo) UpsertJob(ctx context.Context, job store.IngestJob) error {
+	status := job.Status
 	if status == "" {
-		status = store.IngestFailureStatusPending
+		status = store.IngestJobStatusPending
 	}
-	nextRetry := f.NextRetry
-	if nextRetry.IsZero() {
-		nextRetry = time.Now()
+	var nextRetry any
+	if !job.NextRetry.IsZero() {
+		nextRetry = job.NextRetry
+	}
+	var createdAt any
+	if !job.CreatedAt.IsZero() {
+		createdAt = job.CreatedAt
 	}
 	query := fmt.Sprintf(`
 		INSERT INTO %s (id, log_id, source, error, status, attempts, next_retry, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()), NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::timestamptz, NOW()), COALESCE($8::timestamptz, NOW()), NOW())
 		ON CONFLICT (log_id) DO UPDATE SET
 			source = EXCLUDED.source,
 			error = EXCLUDED.error,
 			updated_at = NOW()
-	`, r.tables.ingestFailures)
-	_, err := r.db.Exec(ctx, query, f.ID, f.LogID, f.Source, f.Error, status, f.Attempts, nextRetry, f.CreatedAt)
+	`, r.tables.ingestJobs)
+	_, err := r.db.Exec(ctx, query, job.ID, job.LogID, job.Source, job.Error, status, job.Attempts, nextRetry, createdAt)
 	return err
 }
 
-func (r *logRepo) ClaimPendingFailures(ctx context.Context, limit int) ([]store.IngestFailure, error) {
-	leaseUntil := time.Now().Add(store.FailureClaimLease())
+func (r *logRepo) ClaimPendingJobs(ctx context.Context, limit int) ([]store.IngestJob, error) {
+	leaseSecs := store.IngestJobClaimLease().Seconds()
 	query := fmt.Sprintf(`
 		WITH claimed AS (
 			SELECT id
@@ -129,58 +150,61 @@ func (r *logRepo) ClaimPendingFailures(ctx context.Context, limit int) ([]store.
 			LIMIT $3
 			FOR UPDATE SKIP LOCKED
 		)
-		UPDATE %s AS f
-		SET next_retry = $4, updated_at = NOW()
+		UPDATE %s AS j
+		SET next_retry = NOW() + ($4::double precision * INTERVAL '1 second'), updated_at = NOW()
 		FROM claimed
-		WHERE f.id = claimed.id
-		RETURNING f.id, f.log_id, f.source, f.error, f.status, f.attempts, f.next_retry, f.created_at, f.updated_at
-	`, r.tables.ingestFailures, r.tables.ingestFailures)
-	rows, err := r.db.Query(ctx, query, store.IngestFailureStatusPending, store.IngestFailureMaxAttempts, limit, leaseUntil)
+		WHERE j.id = claimed.id
+		RETURNING j.id, j.log_id, j.source, j.error, j.status, j.attempts, j.next_retry, j.created_at, j.updated_at
+	`, r.tables.ingestJobs, r.tables.ingestJobs)
+	rows, err := r.db.Query(ctx, query, store.IngestJobStatusPending, store.IngestJobMaxAttempts, limit, leaseSecs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanIngestFailures(rows)
+	return scanIngestJobs(rows)
 }
 
-func scanIngestFailures(rows pgx.Rows) ([]store.IngestFailure, error) {
-	out := make([]store.IngestFailure, 0)
+func scanIngestJobs(rows pgx.Rows) ([]store.IngestJob, error) {
+	out := make([]store.IngestJob, 0)
 	for rows.Next() {
-		var f store.IngestFailure
+		var job store.IngestJob
 		if err := rows.Scan(
-			&f.ID, &f.LogID, &f.Source, &f.Error, &f.Status,
-			&f.Attempts, &f.NextRetry, &f.CreatedAt, &f.UpdatedAt,
+			&job.ID, &job.LogID, &job.Source, &job.Error, &job.Status,
+			&job.Attempts, &job.NextRetry, &job.CreatedAt, &job.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
-		out = append(out, f)
+		out = append(out, job)
 	}
 	return out, rows.Err()
 }
 
-func (r *logRepo) MarkFailureDone(ctx context.Context, id string) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, r.tables.ingestFailures)
+func (r *logRepo) MarkJobDone(ctx context.Context, id string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, r.tables.ingestJobs)
 	_, err := r.db.Exec(ctx, query, id)
 	return err
 }
 
-func (r *logRepo) MarkFailureRetry(ctx context.Context, id string, next time.Time, errMsg string) error {
+func (r *logRepo) MarkJobRetry(ctx context.Context, id string, delay time.Duration, errMsg string) error {
 	query := fmt.Sprintf(`
 		UPDATE %s
-		SET attempts = attempts + 1, next_retry = $2, error = $3, updated_at = NOW()
+		SET attempts = attempts + 1,
+		    next_retry = NOW() + ($2::double precision * INTERVAL '1 second'),
+		    error = $3,
+		    updated_at = NOW()
 		WHERE id = $1
-	`, r.tables.ingestFailures)
-	_, err := r.db.Exec(ctx, query, id, next, errMsg)
+	`, r.tables.ingestJobs)
+	_, err := r.db.Exec(ctx, query, id, delay.Seconds(), errMsg)
 	return err
 }
 
-func (r *logRepo) MarkFailureDead(ctx context.Context, id string, errMsg string) error {
+func (r *logRepo) MarkJobDead(ctx context.Context, id string, errMsg string) error {
 	query := fmt.Sprintf(`
 		UPDATE %s
 		SET status = $2, error = $3, updated_at = NOW()
 		WHERE id = $1
-	`, r.tables.ingestFailures)
-	_, err := r.db.Exec(ctx, query, id, store.IngestFailureStatusDead, errMsg)
+	`, r.tables.ingestJobs)
+	_, err := r.db.Exec(ctx, query, id, store.IngestJobStatusDead, errMsg)
 	return err
 }
 
@@ -195,14 +219,14 @@ func (r *logRepo) CountConsumeLogsAfter(ctx context.Context, afterID int64) (int
 	return count, err
 }
 
-func (r *logRepo) CountPendingIngestFailures(ctx context.Context) (int, error) {
+func (r *logRepo) CountPendingIngestJobs(ctx context.Context) (int, error) {
 	query := fmt.Sprintf(`
 		SELECT COUNT(*)
 		FROM %s
 		WHERE status = $1 AND attempts < $2
-	`, r.tables.ingestFailures)
+	`, r.tables.ingestJobs)
 	var count int
-	err := r.db.QueryRow(ctx, query, store.IngestFailureStatusPending, store.IngestFailureMaxAttempts).Scan(&count)
+	err := r.db.QueryRow(ctx, query, store.IngestJobStatusPending, store.IngestJobMaxAttempts).Scan(&count)
 	return count, err
 }
 

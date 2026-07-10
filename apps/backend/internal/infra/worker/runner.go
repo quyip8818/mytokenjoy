@@ -43,7 +43,7 @@ func NewRunner(
 	metrics ingestmetrics.Recorder,
 	relaySync relay.RelayOutboxSync,
 	ingest domainusage.Ingestor,
-	failureRecorder domainusage.FailureRecorder,
+	ingestQueue domainusage.Queue,
 	overrun domainbudget.OverrunProcessor,
 	rebalance domainbudget.Rebalancer,
 	billingSvc domainbilling.Service,
@@ -56,8 +56,8 @@ func NewRunner(
 	if metrics == nil {
 		metrics = ingestmetrics.NoopCollector()
 	}
-	if failureRecorder == nil {
-		failureRecorder = domainusage.NewFailureRecorder(logStore, logger)
+	if ingestQueue == nil {
+		ingestQueue = domainusage.NewQueue(logStore)
 	}
 	holderID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
 	return &Runner{
@@ -70,7 +70,7 @@ func NewRunner(
 		walletSync:    billingWalletSync{svc: billingSvc},
 		syncSvc:       syncSvc,
 		ingestWorker: NewIngestWorker(
-			cfg, logStore, ingest, metrics, schedulerLock, failureRecorder, logger, holderID, cfg.IngestReconcileInterval(),
+			cfg, logStore, ingest, ingestQueue, metrics, schedulerLock, logger, holderID, cfg.IngestReconcileInterval(),
 		),
 		logger:             logger,
 		interval:           cfg.WorkerPollInterval(),
@@ -97,7 +97,7 @@ func (r *Runner) ingestLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			r.logStep("ingest_failures", r.ingestWorker.ProcessFailures(ctx))
+			r.logStep("ingest_pending", r.ingestWorker.ProcessPending(ctx))
 		case <-reconcileTicker.C:
 			r.logStep("ingest_reconcile", r.ingestWorker.ProcessReconcile(ctx))
 		}
@@ -152,7 +152,7 @@ func (r *Runner) processMonthlyRebalance(ctx context.Context) error {
 func (r *Runner) RunOnce(ctx context.Context) {
 	r.relayTick(ctx)
 	if r.cfg.IngestEnabled() {
-		r.logStep("ingest_failures", r.ingestWorker.ProcessFailures(ctx))
+		r.logStep("ingest_pending", r.ingestWorker.ProcessPending(ctx))
 	}
 }
 

@@ -12,12 +12,12 @@ const (
 	NewAPILogTypeConsume         = 2
 	ReconcileStreamNewAPIConsume = "newapi_consume"
 
-	IngestFailureStatusPending = "pending"
-	IngestFailureStatusDead    = "dead"
+	IngestJobStatusPending = "pending"
+	IngestJobStatusDead    = "dead"
 
-	IngestFailureMaxAttempts = 20
+	IngestJobMaxAttempts = 20
 
-	ingestFailureClaimLease = 5 * time.Minute
+	ingestJobClaimLease = 5 * time.Minute
 )
 
 var ErrConsumeLogNotFound = errors.New("consume log not found")
@@ -34,7 +34,7 @@ type RawConsumeLog struct {
 	Content          string
 }
 
-type IngestFailure struct {
+type IngestJob struct {
 	ID        string
 	LogID     int64
 	Source    string
@@ -51,31 +51,32 @@ type LogStore interface {
 	ListConsumeLogIDsAfter(ctx context.Context, afterID int64, limit int) ([]int64, error)
 	GetReconcileCursor(ctx context.Context, stream string) (int64, error)
 	SetReconcileCursor(ctx context.Context, stream string, logID int64) error
-	UpsertFailure(ctx context.Context, f IngestFailure) error
-	ClaimPendingFailures(ctx context.Context, limit int) ([]IngestFailure, error)
-	MarkFailureDone(ctx context.Context, id string) error
-	MarkFailureRetry(ctx context.Context, id string, next time.Time, errMsg string) error
-	MarkFailureDead(ctx context.Context, id string, errMsg string) error
+	EnqueuePending(ctx context.Context, logID int64, source string) error
+	UpsertJob(ctx context.Context, job IngestJob) error
+	ClaimPendingJobs(ctx context.Context, limit int) ([]IngestJob, error)
+	MarkJobDone(ctx context.Context, id string) error
+	MarkJobRetry(ctx context.Context, id string, delay time.Duration, errMsg string) error
+	MarkJobDead(ctx context.Context, id string, errMsg string) error
 	CountConsumeLogsAfter(ctx context.Context, afterID int64) (int64, error)
-	CountPendingIngestFailures(ctx context.Context) (int, error)
+	CountPendingIngestJobs(ctx context.Context) (int, error)
 	IngestLagSeconds(ctx context.Context, afterID int64) (int64, error)
 }
 
-func IngestFailureID(logID int64) string {
-	return fmt.Sprintf("if-%d", logID)
+func IngestJobID(logID int64) string {
+	return fmt.Sprintf("ij-%d", logID)
 }
 
-func IngestFailureFromError(logID int64, source string, err error) IngestFailure {
-	return IngestFailure{
-		ID:     IngestFailureID(logID),
+func IngestJobFromError(logID int64, source string, err error) IngestJob {
+	return IngestJob{
+		ID:     IngestJobID(logID),
 		LogID:  logID,
 		Source: source,
 		Error:  err.Error(),
 	}
 }
 
-func FailureClaimLease() time.Duration {
-	return ingestFailureClaimLease
+func IngestJobClaimLease() time.Duration {
+	return ingestJobClaimLease
 }
 
 type noopLogStore struct{}
@@ -96,23 +97,27 @@ func (noopLogStore) SetReconcileCursor(context.Context, string, int64) error {
 	return errors.New("log store not configured")
 }
 
-func (noopLogStore) UpsertFailure(context.Context, IngestFailure) error {
+func (noopLogStore) EnqueuePending(context.Context, int64, string) error {
 	return errors.New("log store not configured")
 }
 
-func (noopLogStore) ClaimPendingFailures(context.Context, int) ([]IngestFailure, error) {
+func (noopLogStore) UpsertJob(context.Context, IngestJob) error {
+	return errors.New("log store not configured")
+}
+
+func (noopLogStore) ClaimPendingJobs(context.Context, int) ([]IngestJob, error) {
 	return nil, errors.New("log store not configured")
 }
 
-func (noopLogStore) MarkFailureDone(context.Context, string) error {
+func (noopLogStore) MarkJobDone(context.Context, string) error {
 	return errors.New("log store not configured")
 }
 
-func (noopLogStore) MarkFailureRetry(context.Context, string, time.Time, string) error {
+func (noopLogStore) MarkJobRetry(context.Context, string, time.Duration, string) error {
 	return errors.New("log store not configured")
 }
 
-func (noopLogStore) MarkFailureDead(context.Context, string, string) error {
+func (noopLogStore) MarkJobDead(context.Context, string, string) error {
 	return errors.New("log store not configured")
 }
 
@@ -120,7 +125,7 @@ func (noopLogStore) CountConsumeLogsAfter(context.Context, int64) (int64, error)
 	return 0, errors.New("log store not configured")
 }
 
-func (noopLogStore) CountPendingIngestFailures(context.Context) (int, error) {
+func (noopLogStore) CountPendingIngestJobs(context.Context) (int, error) {
 	return 0, errors.New("log store not configured")
 }
 

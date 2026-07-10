@@ -1,12 +1,57 @@
 package usage
 
 import (
+	"errors"
 	"math"
-	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/store"
 )
+
+type IngestErrorKind int
+
+const (
+	IngestOK IngestErrorKind = iota
+	IngestBusiness
+	IngestLogNotFound
+	IngestLogDBTemp
+	IngestTokenjoyTemp
+)
+
+func ClassifyIngestError(err error) IngestErrorKind {
+	if err == nil {
+		return IngestOK
+	}
+	if errors.Is(err, store.ErrConsumeLogNotFound) {
+		return IngestLogNotFound
+	}
+	var domainErr *domain.DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Status {
+		case domain.StatusNotFound, domain.StatusUnprocessable, domain.StatusBadRequest:
+			return IngestBusiness
+		case domain.StatusServiceUnavailable:
+			return IngestTokenjoyTemp
+		default:
+			return IngestBusiness
+		}
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return IngestLogDBTemp
+	}
+	return IngestTokenjoyTemp
+}
+
+func IsRecoverableIngestError(err error) bool {
+	var domainErr *domain.DomainError
+	if !errors.As(err, &domainErr) {
+		return false
+	}
+	return domainErr.Status == domain.StatusNotFound
+}
 
 type IngestOutcome struct {
 	kind IngestErrorKind
@@ -24,33 +69,6 @@ const (
 	RetryDead
 	RetryScheduleBackoff
 )
-
-func (o IngestOutcome) Webhook() WebhookIngestResult {
-	switch o.kind {
-	case IngestOK:
-		return WebhookIngestResult{
-			Status:       http.StatusOK,
-			RecordNotify: true,
-			Message:      "ok",
-		}
-	case IngestLogNotFound:
-		return WebhookIngestResult{
-			Status:  http.StatusServiceUnavailable,
-			Message: "consume log not visible",
-		}
-	case IngestBusiness:
-		return WebhookIngestResult{
-			Status:        http.StatusOK,
-			RecordFailure: true,
-			Message:       "accepted",
-		}
-	default:
-		return WebhookIngestResult{
-			Status:  http.StatusInternalServerError,
-			Message: "ingest failed",
-		}
-	}
-}
 
 func (o IngestOutcome) ReconcileAdvancesCursor() bool {
 	switch o.kind {
@@ -80,7 +98,7 @@ func (o IngestOutcome) Retry(attempts int) RetryDisposition {
 }
 
 func retryBackoffOrDead(attempts int) RetryDisposition {
-	if attempts+1 >= store.IngestFailureMaxAttempts {
+	if attempts+1 >= store.IngestJobMaxAttempts {
 		return RetryDead
 	}
 	return RetryScheduleBackoff

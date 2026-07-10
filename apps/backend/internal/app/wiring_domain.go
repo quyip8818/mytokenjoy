@@ -25,7 +25,7 @@ type domainServices struct {
 	audit           domainaudit.Service
 	readModel       domainusage.ReadModel
 	ingest          domainusage.Ingestor
-	failureRecorder domainusage.FailureRecorder
+	ingestQueue     domainusage.Queue
 	overrun         domainbudget.OverrunProcessor
 	rebalance       domainbudget.Rebalancer
 	company         domaincompany.Service
@@ -33,13 +33,13 @@ type domainServices struct {
 	memberAnalytics domainmemberanalytics.Service
 }
 
-func wireFailureRecorder(i infra, logger *slog.Logger) domainusage.FailureRecorder {
-	return domainusage.NewFailureRecorder(i.store.Logs(), logger)
+func wireIngestQueue(i infra) domainusage.Queue {
+	return domainusage.NewQueue(i.store.Logs())
 }
 
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {
 	reader := wireReader(i)
-	failureRecorder := wireFailureRecorder(i, logger)
+	ingestQueue := wireIngestQueue(i)
 	keysSvc := wireKeys(cfg, i)
 	return domainServices{
 		org:             wireOrg(cfg, i, logger),
@@ -50,7 +50,7 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domain
 		audit:           wireAudit(cfg, i, reader),
 		readModel:       reader,
 		ingest:          wireIngestService(cfg, i, logger),
-		failureRecorder: failureRecorder,
+		ingestQueue:     ingestQueue,
 		overrun:         wireOverrunService(cfg, i, logger),
 		rebalance:       wireRebalance(cfg, i),
 		company:         wireCompany(cfg, i),

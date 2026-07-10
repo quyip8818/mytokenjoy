@@ -6,7 +6,6 @@ const (
 	EventTypeCallSettled    = "call_settled"
 	SourceWebhook           = "webhook"
 	SourceReconcile         = "reconcile"
-	SourceRetry             = "retry"
 	IdempotencyPrefixNewAPI = "newapi:"
 	PreviewSnippetMaxLen    = 200
 	CallerTypeMember        = "member"

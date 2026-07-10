@@ -18,35 +18,32 @@ type newAPILogWebhookRequest struct {
 }
 
 type InternalIngestHandler struct {
-	cfg      config.Config
-	ingest   domainusage.Ingestor
-	recorder domainusage.FailureRecorder
-	metrics  ingestmetrics.Recorder
-	logger   *slog.Logger
+	cfg     config.Config
+	enqueue domainusage.Enqueuer
+	metrics ingestmetrics.Recorder
+	logger  *slog.Logger
 }
 
 func NewInternalIngestHandler(
 	cfg config.Config,
-	ingest domainusage.Ingestor,
-	recorder domainusage.FailureRecorder,
+	enqueue domainusage.Enqueuer,
 	metrics ingestmetrics.Recorder,
 	logger *slog.Logger,
 ) *InternalIngestHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	if recorder == nil {
-		recorder = domainusage.NewFailureRecorder(nil, logger)
+	if enqueue == nil {
+		enqueue = domainusage.NewQueue(nil)
 	}
 	if metrics == nil {
 		metrics = ingestmetrics.NoopCollector()
 	}
 	return &InternalIngestHandler{
-		cfg:      cfg,
-		ingest:   ingest,
-		recorder: recorder,
-		metrics:  metrics,
-		logger:   logger,
+		cfg:     cfg,
+		enqueue: enqueue,
+		metrics: metrics,
+		logger:  logger,
 	}
 }
 
@@ -78,22 +75,13 @@ func (h *InternalIngestHandler) HandleNewAPILog(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	ingestErr := h.ingest.IngestByLogID(r.Context(), payload.LogID, types.SourceWebhook)
-	outcome := domainusage.OutcomeFor(ingestErr)
-	webhook := outcome.Webhook()
-	if webhook.RecordNotify {
-		h.metrics.RecordNotifySuccess()
-	}
-	if outcome.ShouldRecordFailure() {
-		if err := h.recorder.RecordFailure(r.Context(), payload.LogID, types.SourceWebhook, ingestErr); err != nil {
-			h.logger.Error("upsert ingest failure", "log_id", payload.LogID, "error", err)
-		}
-	}
-	if webhook.Status == http.StatusOK {
-		httputil.WriteOK(w, map[string]string{"status": webhook.Message})
+	if err := h.enqueue.Enqueue(r.Context(), payload.LogID, types.SourceWebhook); err != nil {
+		h.logger.Error("enqueue ingest job", "log_id", payload.LogID, "error", err)
+		httputil.WriteStatus(w, http.StatusInternalServerError, "enqueue failed")
 		return
 	}
-	httputil.WriteStatus(w, webhook.Status, webhook.Message)
+	h.metrics.RecordNotifySuccess()
+	httputil.WriteOK(w, map[string]string{"status": "accepted"})
 }
 
 func (h *InternalIngestHandler) HandleIngestMetrics(w http.ResponseWriter, r *http.Request) {

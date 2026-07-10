@@ -148,7 +148,7 @@ type errTest string
 
 func (e errTest) Error() string { return string(e) }
 
-func TestIngestFailureMappingLateRecovery(t *testing.T) {
+func TestIngestJobMappingLateRecovery(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{}
 	runner, st, _ := newWorkerRunner(t, stub)
@@ -158,12 +158,12 @@ func TestIngestFailureMappingLateRecovery(t *testing.T) {
 	const tokenID = int64(77)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(logID, tokenID))
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailureFromError(logID, types.SourceWebhook, errTest("mapping not found"))); err != nil {
+	if err := st.Logs().UpsertJob(ctx, store.IngestJobFromError(logID, types.SourceWebhook, errTest("mapping not found"))); err != nil {
 		t.Fatal(err)
 	}
 
 	runner.RunOnce(ctx)
-	if err := st.Logs().MarkFailureRetry(ctx, store.IngestFailureID(logID), time.Now().Add(-time.Second), "mapping not found"); err != nil {
+	if err := st.Logs().MarkJobRetry(ctx, store.IngestJobID(logID), -time.Second, "mapping not found"); err != nil {
 		t.Fatal(err)
 	}
 

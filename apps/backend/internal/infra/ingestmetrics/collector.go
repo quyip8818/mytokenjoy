@@ -11,10 +11,10 @@ import (
 const StreamNewAPIConsume = store.ReconcileStreamNewAPIConsume
 
 type Snapshot struct {
-	NotifyTotal     int64 `json:"ingest_notify_total"`
-	ReconcileGaps   int64 `json:"ingest_reconcile_gaps"`
-	FailuresPending int   `json:"ingest_failures_pending"`
-	LagSeconds      int64 `json:"ingest_lag_seconds"`
+	NotifyTotal   int64 `json:"ingest_notify_total"`
+	ReconcileGaps int64 `json:"ingest_reconcile_gaps"`
+	JobsPending   int   `json:"ingest_jobs_pending"`
+	LagSeconds    int64 `json:"ingest_lag_seconds"`
 }
 
 type Recorder interface {
@@ -24,11 +24,11 @@ type Recorder interface {
 }
 
 type collector struct {
-	mu              sync.RWMutex
-	notifyTotal     atomic.Int64
-	reconcileGaps   int64
-	failuresPending int
-	lagSeconds      int64
+	mu            sync.RWMutex
+	notifyTotal   atomic.Int64
+	reconcileGaps int64
+	jobsPending   int
+	lagSeconds    int64
 }
 
 func NewCollector() Recorder {
@@ -48,7 +48,7 @@ func (c *collector) Refresh(ctx context.Context, logStore store.LogStore) error 
 	if err != nil {
 		return err
 	}
-	pending, err := logStore.CountPendingIngestFailures(ctx)
+	pending, err := logStore.CountPendingIngestJobs(ctx)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (c *collector) Refresh(ctx context.Context, logStore store.LogStore) error 
 	}
 	c.mu.Lock()
 	c.reconcileGaps = gaps
-	c.failuresPending = pending
+	c.jobsPending = pending
 	c.lagSeconds = lag
 	c.mu.Unlock()
 	return nil
@@ -68,10 +68,10 @@ func (c *collector) Snapshot() Snapshot {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return Snapshot{
-		NotifyTotal:     c.notifyTotal.Load(),
-		ReconcileGaps:   c.reconcileGaps,
-		FailuresPending: c.failuresPending,
-		LagSeconds:      c.lagSeconds,
+		NotifyTotal:   c.notifyTotal.Load(),
+		ReconcileGaps: c.reconcileGaps,
+		JobsPending:   c.jobsPending,
+		LagSeconds:    c.lagSeconds,
 	}
 }
 

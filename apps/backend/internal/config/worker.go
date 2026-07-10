@@ -37,9 +37,9 @@ func (c Config) ReconcileMaxRounds() int {
 	return c.IngestReconcileMaxRounds
 }
 
-func (c Config) FailureRetryBatchSize() int {
-	if c.IngestFailureBatchSize <= 0 {
+func (c Config) JobBatchSize() int {
+	if c.IngestJobBatchSize <= 0 {
 		return 20
 	}
-	return c.IngestFailureBatchSize
+	return c.IngestJobBatchSize
 }

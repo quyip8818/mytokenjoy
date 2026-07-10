@@ -10,39 +10,87 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestIngestFailureHelpers(t *testing.T) {
+func TestEnqueuePendingCreatesClaimableJob(t *testing.T) {
 	t.Parallel()
-	if store.IngestFailureID(42) != "if-42" {
-		t.Fatalf("unexpected failure id %q", store.IngestFailureID(42))
+	st := newIngestStore(t)
+	ctx := testutil.Ctx()
+	logID := int64(9005)
+
+	if err := st.Logs().EnqueuePending(ctx, logID, types.SourceWebhook); err != nil {
+		t.Fatal(err)
 	}
-	f := store.IngestFailureFromError(7, types.SourceReconcile, errTest("boom"))
-	if f.LogID != 7 || f.Source != types.SourceReconcile || f.Error != "boom" {
-		t.Fatalf("unexpected failure %+v", f)
+	claimed, err := st.Logs().ClaimPendingJobs(ctx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 || claimed[0].LogID != logID {
+		t.Fatalf("claimed = %+v", claimed)
+	}
+	if claimed[0].Error != "" {
+		t.Fatalf("expected empty error, got %q", claimed[0].Error)
 	}
 }
 
-func TestUpsertFailurePreservesAttemptsOnConflict(t *testing.T) {
+func TestEnqueuePendingRevivesDead(t *testing.T) {
+	t.Parallel()
+	st := newIngestStore(t)
+	ctx := testutil.Ctx()
+	logID := int64(9006)
+
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
+		ID: store.IngestJobID(logID), LogID: logID, Source: types.SourceWebhook,
+		Error: "dead", Status: store.IngestJobStatusDead, Attempts: 9,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Logs().EnqueuePending(ctx, logID, types.SourceWebhook); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := st.Logs().ClaimPendingJobs(ctx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 {
+		t.Fatalf("expected revived job, got %d", len(claimed))
+	}
+	if claimed[0].Attempts != 0 {
+		t.Fatalf("attempts = %d, want 0", claimed[0].Attempts)
+	}
+}
+
+func TestIngestJobHelpers(t *testing.T) {
+	t.Parallel()
+	if store.IngestJobID(42) != "ij-42" {
+		t.Fatalf("unexpected job id %q", store.IngestJobID(42))
+	}
+	f := store.IngestJobFromError(7, types.SourceReconcile, errTest("boom"))
+	if f.LogID != 7 || f.Source != types.SourceReconcile || f.Error != "boom" {
+		t.Fatalf("unexpected job %+v", f)
+	}
+}
+
+func TestUpsertJobPreservesAttemptsOnConflict(t *testing.T) {
 	t.Parallel()
 	st := newIngestStore(t)
 	ctx := testutil.Ctx()
 	logID := int64(881001)
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
-		ID:       store.IngestFailureID(logID),
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
+		ID:       store.IngestJobID(logID),
 		LogID:    logID,
 		Source:   types.SourceWebhook,
 		Error:    "first",
 		Attempts: 3,
-		Status:   store.IngestFailureStatusPending,
+		Status:   store.IngestJobStatusPending,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailureFromError(logID, types.SourceReconcile, errTest("second"))); err != nil {
+	if err := st.Logs().UpsertJob(ctx, store.IngestJobFromError(logID, types.SourceReconcile, errTest("second"))); err != nil {
 		t.Fatal(err)
 	}
 
-	claimed, err := st.Logs().ClaimPendingFailures(ctx, 1)
+	claimed, err := st.Logs().ClaimPendingJobs(ctx, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,28 +108,28 @@ func TestUpsertFailurePreservesAttemptsOnConflict(t *testing.T) {
 	}
 }
 
-func TestUpsertFailureDoesNotReviveDead(t *testing.T) {
+func TestUpsertJobDoesNotReviveDead(t *testing.T) {
 	t.Parallel()
 	st := newIngestStore(t)
 	ctx := testutil.Ctx()
 	logID := int64(9002)
-	id := store.IngestFailureID(logID)
+	id := store.IngestJobID(logID)
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
 		ID:     id,
 		LogID:  logID,
 		Source: types.SourceWebhook,
 		Error:  "dead",
-		Status: store.IngestFailureStatusDead,
+		Status: store.IngestJobStatusDead,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailureFromError(logID, types.SourceWebhook, errTest("retry"))); err != nil {
+	if err := st.Logs().UpsertJob(ctx, store.IngestJobFromError(logID, types.SourceWebhook, errTest("retry"))); err != nil {
 		t.Fatal(err)
 	}
 
-	claimed, err := st.Logs().ClaimPendingFailures(ctx, 10)
+	claimed, err := st.Logs().ClaimPendingJobs(ctx, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,28 +138,28 @@ func TestUpsertFailureDoesNotReviveDead(t *testing.T) {
 	}
 }
 
-func TestClaimPendingFailuresLeasesRows(t *testing.T) {
+func TestClaimPendingJobsLeasesRows(t *testing.T) {
 	t.Parallel()
 	st := newIngestStore(t)
 	ctx := testutil.Ctx()
 	logID := int64(9003)
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
-		ID:        store.IngestFailureID(logID),
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
+		ID:        store.IngestJobID(logID),
 		LogID:     logID,
 		Source:    types.SourceWebhook,
 		Error:     "pending",
-		Status:    store.IngestFailureStatusPending,
+		Status:    store.IngestJobStatusPending,
 		NextRetry: time.Now().Add(-time.Second),
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	first, err := st.Logs().ClaimPendingFailures(ctx, 1)
+	first, err := st.Logs().ClaimPendingJobs(ctx, 1)
 	if err != nil || len(first) != 1 {
 		t.Fatalf("first claim: len=%d err=%v", len(first), err)
 	}
-	second, err := st.Logs().ClaimPendingFailures(ctx, 1)
+	second, err := st.Logs().ClaimPendingJobs(ctx, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,37 +211,36 @@ func TestReconcileCursorRoundTrip(t *testing.T) {
 	}
 }
 
-func TestMarkFailureRetryAndDone(t *testing.T) {
+func TestMarkJobRetryAndDone(t *testing.T) {
 	t.Parallel()
 	st := newIngestStore(t)
 	ctx := testutil.Ctx()
 	logID := int64(9004)
-	id := store.IngestFailureID(logID)
+	id := store.IngestJobID(logID)
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
 		ID: id, LogID: logID, Source: types.SourceWebhook, Error: "pending",
-		Status: store.IngestFailureStatusPending, NextRetry: time.Now().Add(-time.Second),
+		Status: store.IngestJobStatusPending, NextRetry: time.Now().Add(-time.Second),
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	claimed, err := st.Logs().ClaimPendingFailures(ctx, 1)
+	claimed, err := st.Logs().ClaimPendingJobs(ctx, 1)
 	if err != nil || len(claimed) != 1 {
 		t.Fatalf("claim: len=%d err=%v", len(claimed), err)
 	}
-	next := time.Now().Add(time.Minute)
-	if err := st.Logs().MarkFailureRetry(ctx, id, next, "retrying"); err != nil {
+	if err := st.Logs().MarkJobRetry(ctx, id, time.Minute, "retrying"); err != nil {
 		t.Fatal(err)
 	}
-	f := testutil.AssertIngestFailure(t, st, logID, types.SourceWebhook)
+	f := testutil.AssertIngestJob(t, st, logID, types.SourceWebhook)
 	if f.Attempts != 1 || f.Error != "retrying" {
-		t.Fatalf("unexpected failure after retry: %+v", f)
+		t.Fatalf("unexpected job after retry: %+v", f)
 	}
-	if err := st.Logs().MarkFailureDone(ctx, id); err != nil {
+	if err := st.Logs().MarkJobDone(ctx, id); err != nil {
 		t.Fatal(err)
 	}
-	if n := testutil.PendingIngestFailureCount(t, st); n != 0 {
-		t.Fatalf("expected no pending failures, got %d", n)
+	if n := testutil.PendingIngestJobCount(t, st); n != 0 {
+		t.Fatalf("expected no pending jobs, got %d", n)
 	}
 }
 
@@ -207,9 +254,9 @@ func TestIngestMetricsCounts(t *testing.T) {
 	if err := st.Logs().SetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume, 50); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
-		ID: store.IngestFailureID(70), LogID: 70, Source: types.SourceWebhook,
-		Error: "x", Status: store.IngestFailureStatusPending,
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
+		ID: store.IngestJobID(70), LogID: 70, Source: types.SourceWebhook,
+		Error: "x", Status: store.IngestJobStatusPending,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +265,7 @@ func TestIngestMetricsCounts(t *testing.T) {
 	if err != nil || gaps != 1 {
 		t.Fatalf("gaps = %d err=%v", gaps, err)
 	}
-	pending, err := st.Logs().CountPendingIngestFailures(ctx)
+	pending, err := st.Logs().CountPendingIngestJobs(ctx)
 	if err != nil || pending != 1 {
 		t.Fatalf("pending = %d err=%v", pending, err)
 	}

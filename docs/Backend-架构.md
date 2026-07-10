@@ -293,7 +293,8 @@ flowchart TB
   end
 
   subgraph ingest [消耗入账]
-    WH[webhook] --> ING[usage.IngestService]
+    WH[webhook enqueue] --> Q[(ingest_jobs)]
+    Q --> ING[usage.IngestService]
     COMP[补偿轮询] --> ING
     ING --> LEDGER[(usage_ledger)]
     ING --> PROJ[projection]
@@ -338,14 +339,14 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  A[outbox relay] --> B[ingest_failures retry]
+  A[outbox relay] --> B[ingest_jobs retry]
   B --> C[reconcile_cursors 补洞]
   C --> D[rebalance_queue]
   D --> E[overrun_queue]
   E --> F[org 定时同步]
 ```
 
-入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → `IngestByLogID`；Worker 负责 `ingest_failures` 重试与 `reconcile_cursors` 全局水位补洞（方案 B，见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)）。
+入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → 入队 pending → 立即 `200 accepted`；Worker `ProcessPending` 异步 `IngestByLogID`，并靠 `reconcile_cursors` 全局水位补洞（方案 B，见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)）。
 
 `WORKER_POLL_INTERVAL_SEC` 控制轮询；`WORKER_ORG_SYNC_INTERVAL_SEC` 控制组织同步。
 

@@ -56,8 +56,8 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys-self-service
 - [ ] `LOG_DATABASE_URL` 指向 `logs` 库；init 已建 `newapi` / `backend` schema
 - [ ] `NEW_API_WEBHOOK_SECRET` 与 NewAPI `MANAGEMENT_WEBHOOK_SECRET` 一致
 - [ ] NewAPI `LOG_SQL_DSN` → `logs`；patch 镜像已 build（非纯上游镜像）
-- [ ] Backend Worker 已启动（reconcile / failure retry 依赖 Worker）
-- [ ] `GET /api/internal/metrics/ingest` 可查看 `ingest_reconcile_gaps`、`ingest_failures_pending`
+- [ ] Backend Worker 已启动（webhook 入队后的异步入账 / reconcile / failure retry 依赖 Worker）
+- [ ] webhook 返回 `accepted` 后，Worker 一轮内 ledger 可见；`GET /api/internal/metrics/ingest` 可查看 `ingest_reconcile_gaps`、`ingest_jobs_pending`
 
 **Relay / 管理面**
 

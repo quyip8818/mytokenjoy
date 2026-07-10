@@ -58,12 +58,12 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 	notifier := notification.NewService(cfg, st, logger)
 	enqueueWalletSync := app.EnqueueWalletSync(st)
 	ingest := domainusage.NewIngestService(cfg, st, st.Logs(), notifier, logger, enqueueWalletSync)
-	failureRecorder := domainusage.NewFailureRecorder(st.Logs(), logger)
+	ingestQueue := domainusage.NewQueue(st.Logs())
 	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, stub)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	billingSvc := domainbilling.NewService(cfg, st, reader, stub, nil, nil, enqueueWalletSync)
-	runner := worker.NewRunner(cfg, st.Relay(), st.SchedulerLock(), st.Logs(), ingestmetrics.NewCollector(), lifecycle, ingest, failureRecorder, overrun, rebalance, billingSvc, orgSvc, logger)
+	runner := worker.NewRunner(cfg, st.Relay(), st.SchedulerLock(), st.Logs(), ingestmetrics.NewCollector(), lifecycle, ingest, ingestQueue, overrun, rebalance, billingSvc, orgSvc, logger)
 	return runner, st, lifecycle, ingest
 }
 

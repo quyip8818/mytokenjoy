@@ -23,27 +23,27 @@ import (
 )
 
 type Deps struct {
-	Config                config.Config
-	Logger                *slog.Logger
-	Store                 store.Store
-	AuthzSvc              authz.Service
-	Credentials           credentials.Service
-	SessionToken          sessiontoken.Issuer
-	PlatformSessionToken  sessiontoken.Issuer
-	OrgSvc                domainorg.Service
-	BudgetSvc             domainbudget.Service
-	KeysSvc               domainkeys.Service
-	ModelsSvc             domainmodels.Service
-	DashboardSvc          domaindashboard.Service
-	AuditSvc              domainaudit.Service
-	ReadModel             domainusage.ReadModel
-	IngestSvc             domainusage.Ingestor
-	IngestFailureRecorder domainusage.FailureRecorder
-	IngestMetrics         ingestmetrics.Recorder
-	CompanySvc            domaincompany.Service
-	BillingSvc            domainbilling.Service
-	MemberAnalyticsSvc    domainmemberanalytics.Service
-	WalletSvc             domaincompany.WalletService
-	CompanyGate           *domaincompany.Gate
-	RelayGateway          domainrelay.GatewayService
+	Config               config.Config
+	Logger               *slog.Logger
+	Store                store.Store
+	AuthzSvc             authz.Service
+	Credentials          credentials.Service
+	SessionToken         sessiontoken.Issuer
+	PlatformSessionToken sessiontoken.Issuer
+	OrgSvc               domainorg.Service
+	BudgetSvc            domainbudget.Service
+	KeysSvc              domainkeys.Service
+	ModelsSvc            domainmodels.Service
+	DashboardSvc         domaindashboard.Service
+	AuditSvc             domainaudit.Service
+	ReadModel            domainusage.ReadModel
+	IngestSvc            domainusage.Ingestor
+	IngestQueue          domainusage.Queue
+	IngestMetrics        ingestmetrics.Recorder
+	CompanySvc           domaincompany.Service
+	BillingSvc           domainbilling.Service
+	MemberAnalyticsSvc   domainmemberanalytics.Service
+	WalletSvc            domaincompany.WalletService
+	CompanyGate          *domaincompany.Gate
+	RelayGateway         domainrelay.GatewayService
 }

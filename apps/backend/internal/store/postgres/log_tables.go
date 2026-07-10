@@ -4,7 +4,7 @@ import "github.com/tokenjoy/backend/internal/config"
 
 type logTables struct {
 	logs             string
-	ingestFailures   string
+	ingestJobs       string
 	reconcileCursors string
 }
 
@@ -12,13 +12,13 @@ func logTablesFor(cfg config.Config) logTables {
 	if cfg.LogSchemaIsolated {
 		return logTables{
 			logs:             "logs",
-			ingestFailures:   "ingest_failures",
+			ingestJobs:       "ingest_jobs",
 			reconcileCursors: "reconcile_cursors",
 		}
 	}
 	return logTables{
 		logs:             "newapi.logs",
-		ingestFailures:   "backend.ingest_failures",
+		ingestJobs:       "backend.ingest_jobs",
 		reconcileCursors: "backend.reconcile_cursors",
 	}
 }

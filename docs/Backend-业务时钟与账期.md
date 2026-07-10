@@ -125,7 +125,7 @@ DB 列仍是 `string`；域边界用 `.String()` 进出。
 | `org_nodes.period` | 账期**规格**，现行只允许 `monthly` | 建公司、部门 provision、seed、导入 |
 | `budget_snapshots.period_key` / `usage_ledger.period_key` | 具体 **`YYYY-MM` 账本键** | 开账 / 发生工厂 + ingest |
 
-`schema.sql` 有 `chk_org_nodes_period CHECK (period IN ('monthly'))`；业务路径（`BudgetPeriod()`、seed、开户）一律写 `monthly`。**不能把** `"2026-06"` 这类固定月串落库到 `org_nodes.period`。
+`org_nodes.period` 有 `CHECK (period IN ('monthly'))`；业务路径（`BudgetPeriod()`、seed、开户）一律写 `monthly`。**不能把** `"2026-06"` 这类固定月串落库到 `org_nodes.period`。
 
 开账时如何把 `monthly` 变成 `YYYY-MM`：
 

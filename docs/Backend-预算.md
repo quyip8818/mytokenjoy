@@ -100,18 +100,20 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  WH[Webhook / 补偿轮询] --> ING[IngestService]
+  WH[Webhook] -->|EnqueuePending| Q[(ingest_jobs)]
+  Q --> ING[IngestService]
+  COMP[补偿轮询] --> ING
   ING --> UL[(usage_ledger)]
   ING --> PROJ[projection.Apply]
   PROJ --> SNAP[budget_snapshots.consumed]
   PROJ --> UB[(usage_buckets)]
-  ING --> Q[async_jobs rebalance / overrun]
+  ING --> JOB[async_jobs rebalance / overrun]
 ```
 
 ### 2.1 入账路径（方案 B）
 
-1. NewAPI settle → 写共享 `logs` 库 → `EnqueueNotify(log_id)` → `POST /api/internal/webhooks/newapi-log`
-2. Worker 兜底：`ingest_failures` 重试 + `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
+1. NewAPI settle → 写共享 `logs` 库 → `EnqueueNotify(log_id)` → `POST /api/internal/webhooks/newapi-log` → **入队 pending 并立即 ACK**
+2. Worker：`ingest_jobs` 消费入账（含 webhook 快路径与失败重试）+ `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
 3. `FindMappingByNewAPITokenID` → `company_id`、部门/成员/组归因
 4. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
 5. `store.WithTx`：ledger `INSERT ON CONFLICT` → projection → 副作用入队
@@ -201,8 +203,9 @@ sequenceDiagram
   participant C as 调用方
   participant GW as Gateway
   participant NA as NewAPI
-  participant ING as 入账
+  participant Q as ingest_jobs
   participant W as Worker
+  participant ING as 入账
 
   C->>GW: sk- + 请求
   GW->>GW: 双轴 + 四轴预检
@@ -211,7 +214,10 @@ sequenceDiagram
   end
   GW->>NA: 透传 /v1/*
   NA-->>C: 响应
-  NA->>ING: 结算 Webhook
+  NA->>Q: Webhook 入队 pending
+  NA-->>NA: 200 accepted
+  W->>Q: ClaimPending
+  W->>ING: IngestByLogID
   ING->>ING: 账本 + 快照 + 扣 lot
   ING->>W: rebalance / overrun 入队
   W->>NA: UpdateToken
@@ -283,7 +289,7 @@ flowchart LR
 
 1. 结算日志 → Webhook 或 Worker 补洞 → 按 `newapi_token_id` 归因
 2. 单事务：账本幂等插入 → 投影 → 扣 lot → 入队 rebalance / overrun
-3. 失败走 `ingest_failures` 重试（与 relay outbox 分离）
+3. 失败走 `ingest_jobs` 重试（与 relay outbox 分离）
 
 **投影顺序：**
 

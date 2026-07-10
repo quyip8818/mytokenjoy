@@ -2,7 +2,6 @@ package usage_test
 
 import (
 	"errors"
-	"net/http"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -10,27 +9,43 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func TestOutcomeForWebhook(t *testing.T) {
+func TestClassifyIngestError(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name           string
-		err            error
-		wantStatus     int
-		wantNotify     bool
-		wantRecordFail bool
+		name string
+		err  error
+		want domainusage.IngestErrorKind
 	}{
-		{"ok", nil, http.StatusOK, true, false},
-		{"log not found", store.ErrConsumeLogNotFound, http.StatusServiceUnavailable, false, false},
-		{"business", domain.NotFound("mapping"), http.StatusOK, false, true},
-		{"temp", domain.ServiceUnavailable("db"), http.StatusInternalServerError, false, false},
+		{"nil", nil, domainusage.IngestOK},
+		{"log not found", store.ErrConsumeLogNotFound, domainusage.IngestLogNotFound},
+		{"mapping missing", domain.NotFound("mapping"), domainusage.IngestBusiness},
+		{"bad request", domain.BadRequest("invalid"), domainusage.IngestBusiness},
+		{"unprocessable", domain.Validation("pricing"), domainusage.IngestBusiness},
+		{"tokenjoy temp", domain.ServiceUnavailable("tx"), domainusage.IngestTokenjoyTemp},
+		{"generic", errors.New("network"), domainusage.IngestTokenjoyTemp},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			webhook := domainusage.OutcomeFor(tc.err).Webhook()
-			if webhook.Status != tc.wantStatus || webhook.RecordNotify != tc.wantNotify || webhook.RecordFailure != tc.wantRecordFail {
-				t.Fatalf("webhook = %+v", webhook)
+			if got := domainusage.ClassifyIngestError(tc.err); got != tc.want {
+				t.Fatalf("ClassifyIngestError() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestIsRecoverableIngestError(t *testing.T) {
+	t.Parallel()
+	if !domainusage.IsRecoverableIngestError(domain.NotFound("mapping not found for token 1")) {
+		t.Fatal("expected mapping not found to be recoverable")
+	}
+	if domainusage.IsRecoverableIngestError(domain.BadRequest("invalid")) {
+		t.Fatal("expected bad request to be permanent")
+	}
+	if domainusage.IsRecoverableIngestError(store.ErrConsumeLogNotFound) {
+		t.Fatal("expected log not found to use retry path via classify, not recoverable business")
+	}
+	if domainusage.IsRecoverableIngestError(errors.New("db down")) {
+		t.Fatal("expected generic error to be non-recoverable business")
 	}
 }
 
@@ -81,7 +96,7 @@ func TestOutcomeRetryDisposition(t *testing.T) {
 		{"log not found", store.ErrConsumeLogNotFound, 0, domainusage.RetryScheduleBackoff},
 		{"recoverable business", domain.NotFound("mapping"), 0, domainusage.RetryScheduleBackoff},
 		{"permanent business", domain.BadRequest("invalid"), 0, domainusage.RetryDead},
-		{"max attempts", store.ErrConsumeLogNotFound, store.IngestFailureMaxAttempts - 1, domainusage.RetryDead},
+		{"max attempts", store.ErrConsumeLogNotFound, store.IngestJobMaxAttempts - 1, domainusage.RetryDead},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -89,15 +104,5 @@ func TestOutcomeRetryDisposition(t *testing.T) {
 				t.Fatalf("retry = %v, want %v", got, tc.want)
 			}
 		})
-	}
-}
-
-func TestWebhookIngestResultForMatchesOutcome(t *testing.T) {
-	t.Parallel()
-	errs := []error{nil, store.ErrConsumeLogNotFound, domain.NotFound("m"), domain.ServiceUnavailable("x")}
-	for _, err := range errs {
-		if domainusage.WebhookIngestResultFor(err) != domainusage.OutcomeFor(err).Webhook() {
-			t.Fatalf("mismatch for err %v", err)
-		}
 	}
 }

@@ -24,7 +24,7 @@ flowchart LR
 
   subgraph logs [日志库 · 3 表]
     NL[newapi.logs]
-    IF[ingest_failures]
+    IF[ingest_jobs]
     RC[reconcile_cursors]
   end
 
@@ -155,7 +155,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  WH[Webhook] --> ING[Ingest]
+  WH[Webhook] -->|EnqueuePending| Q[(ingest_jobs)]
+  Q --> ING[Ingest]
   RC[reconcile] --> NLG[(newapi.logs)] --> ING
   ING --> UL[(usage_ledger)]
   ING --> PROJ[projection] --> UB[(buckets)] & BS[(snapshots)]
@@ -169,7 +170,7 @@ flowchart LR
 | `usage_ledger`     | 消耗 SSOT                                                              |
 | `usage_buckets`    | 看板 hour/day 聚合                                                     |
 | `budget_snapshots` | 四轴 consumed：`org_node` · `budget_group` · `platform_key` · `member` |
-| `ingest_failures`  | 入账失败重试（日志库）                                                 |
+| `ingest_jobs`  | 入账失败重试（日志库）                                                 |
 
 入账与投影见 [Backend-预算.md](./Backend-预算.md) §7。
 
@@ -194,7 +195,7 @@ flowchart LR
 | 表                          | 职责                       |
 | --------------------------- | -------------------------- |
 | `newapi.logs`               | consume 原始行（`type=2`） |
-| `backend.ingest_failures`   | 入账失败重试               |
+| `backend.ingest_jobs`   | 入账失败重试               |
 | `backend.reconcile_cursors` | reconcile 水位             |
 
 ---

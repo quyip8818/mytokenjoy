@@ -44,7 +44,7 @@ Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`（patch），保持 `newa
 
 ### 2.4 入账（方案 B）
 
-NewAPI notify → `POST /api/internal/webhooks/newapi-log` → `IngestByLogID`；Worker 负责 `ingest_failures` 重试与 `reconcile_cursors` 水位补洞（直读 `LOG_DATABASE_URL` → `newapi.logs`）。
+NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `ingest_jobs`（pending）并立即 `200 accepted`；Worker `ProcessPending` 异步 `IngestByLogID`；另有 `reconcile_cursors` 水位补洞（直读 `LOG_DATABASE_URL` → `newapi.logs`）。
 
 ### 2.5 设计约束（明确不做）
 

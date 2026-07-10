@@ -18,6 +18,16 @@ type Ingestor interface {
 	IngestByLogID(ctx context.Context, logID int64, source string) error
 }
 
+type Enqueuer interface {
+	Enqueue(ctx context.Context, logID int64, source string) error
+}
+
+type Queue interface {
+	Enqueuer
+	RecordFailure(ctx context.Context, logID int64, source string, err error) error
+	ApplyRetry(ctx context.Context, job store.IngestJob, ingestErr error) error
+}
+
 type CallLogQuerier interface {
 	ListCalls(ctx context.Context, params types.AuditCallsQueryParams) (types.PageResult[types.CallLog], error)
 }

@@ -55,7 +55,7 @@ func TestReconcileBusinessFailAdvancesCursor(t *testing.T) {
 	if err != nil || cursor != logID {
 		t.Fatalf("cursor = %d err=%v", cursor, err)
 	}
-	testutil.AssertIngestFailure(t, st, logID, types.SourceReconcile)
+	testutil.AssertIngestJob(t, st, logID, types.SourceReconcile)
 	ingested, _ := testutil.HasLedgerLogID(st, logID)
 	if ingested {
 		t.Fatal("expected no ledger entry for business failure")
@@ -104,20 +104,20 @@ func TestReconcileRunsWithoutNewAPIEnabled(t *testing.T) {
 	}
 }
 
-func TestIngestFailureMaxAttemptsMarksDead(t *testing.T) {
+func TestIngestJobMaxAttemptsMarksDead(t *testing.T) {
 	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	const logID = int64(602)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(logID, 88))
 
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
-		ID:        store.IngestFailureID(logID),
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
+		ID:        store.IngestJobID(logID),
 		LogID:     logID,
 		Source:    types.SourceWebhook,
 		Error:     "mapping missing",
-		Status:    store.IngestFailureStatusPending,
-		Attempts:  store.IngestFailureMaxAttempts - 1,
+		Status:    store.IngestJobStatusPending,
+		Attempts:  store.IngestJobMaxAttempts - 1,
 		NextRetry: time.Now().Add(-time.Second),
 	}); err != nil {
 		t.Fatal(err)
@@ -125,11 +125,11 @@ func TestIngestFailureMaxAttemptsMarksDead(t *testing.T) {
 
 	runner.RunOnce(ctx)
 
-	f := testutil.AssertIngestFailure(t, st, logID, "")
-	if f.Status != store.IngestFailureStatusDead {
+	f := testutil.AssertIngestJob(t, st, logID, "")
+	if f.Status != store.IngestJobStatusDead {
 		t.Fatalf("expected dead status, got %q", f.Status)
 	}
-	if testutil.PendingIngestFailureCount(t, st) != 0 {
+	if testutil.PendingIngestJobCount(t, st) != 0 {
 		t.Fatal("expected no pending failures after dead")
 	}
 }

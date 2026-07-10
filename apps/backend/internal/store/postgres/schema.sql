@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS org_nodes (
     sort_order        INT NOT NULL DEFAULT 0,
     budget            NUMERIC(18, 6) NOT NULL DEFAULT 0,
     reserved_pool     NUMERIC(18, 6),
-    period            TEXT NOT NULL,
+    period            TEXT NOT NULL CHECK (period IN ('monthly')),
     default_model_id  BIGINT,
     fallback_model_id BIGINT,
     routing_inherited BOOLEAN NOT NULL DEFAULT FALSE,
@@ -308,6 +308,7 @@ CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
     rule_id    TEXT NOT NULL,
     role_id    TEXT NOT NULL,
     PRIMARY KEY (company_id, rule_id, role_id),
+    FOREIGN KEY (company_id, rule_id) REFERENCES alert_rules (company_id, id) ON DELETE CASCADE,
     FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
 );
 
@@ -579,28 +580,4 @@ CREATE TABLE IF NOT EXISTS notification_log (
 CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
     ON notification_log (company_id, created_at DESC);
 
--- Budget constraints additions: clean orphan rows before adding FK
-DELETE FROM alert_rule_notify_roles
-WHERE NOT EXISTS (
-    SELECT 1 FROM alert_rules
-    WHERE alert_rules.company_id = alert_rule_notify_roles.company_id
-      AND alert_rules.id = alert_rule_notify_roles.rule_id
-);
-
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_alert_rule_notify_roles_rule') THEN
-        ALTER TABLE alert_rule_notify_roles ADD CONSTRAINT fk_alert_rule_notify_roles_rule
-            FOREIGN KEY (company_id, rule_id) REFERENCES alert_rules(company_id, id) ON DELETE CASCADE;
-    END IF;
-END $$;
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_groups_unique_name ON budget_groups(company_id, name);
-
--- Normalize period values before adding CHECK
-UPDATE org_nodes SET period = 'monthly' WHERE period NOT IN ('monthly') OR period IS NULL;
-
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_org_nodes_period') THEN
-        ALTER TABLE org_nodes ADD CONSTRAINT chk_org_nodes_period CHECK (period IN ('monthly'));
-    END IF;
-END $$;

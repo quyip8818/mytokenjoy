@@ -18,9 +18,9 @@ type IngestWorker struct {
 	cfg            config.Config
 	logStore       store.LogStore
 	ingest         domainusage.Ingestor
+	queue          domainusage.Queue
 	metrics        ingestmetrics.Recorder
 	schedulerLock  store.SchedulerLockRepository
-	recorder       domainusage.FailureRecorder
 	logger         *slog.Logger
 	holderID       string
 	reconcileEvery time.Duration
@@ -30,9 +30,9 @@ func NewIngestWorker(
 	cfg config.Config,
 	logStore store.LogStore,
 	ingest domainusage.Ingestor,
+	queue domainusage.Queue,
 	metrics ingestmetrics.Recorder,
 	schedulerLock store.SchedulerLockRepository,
-	recorder domainusage.FailureRecorder,
 	logger *slog.Logger,
 	holderID string,
 	reconcileEvery time.Duration,
@@ -43,8 +43,8 @@ func NewIngestWorker(
 	if metrics == nil {
 		metrics = ingestmetrics.NoopCollector()
 	}
-	if recorder == nil {
-		recorder = domainusage.NewFailureRecorder(logStore, logger)
+	if queue == nil {
+		queue = domainusage.NewQueue(logStore)
 	}
 	if logger == nil {
 		logger = slog.Default()
@@ -53,26 +53,30 @@ func NewIngestWorker(
 		cfg:            cfg,
 		logStore:       logStore,
 		ingest:         ingest,
+		queue:          queue,
 		metrics:        metrics,
 		schedulerLock:  schedulerLock,
-		recorder:       recorder,
 		logger:         logger,
 		holderID:       holderID,
 		reconcileEvery: reconcileEvery,
 	}
 }
 
-func (w *IngestWorker) ProcessFailures(ctx context.Context) error {
+func (w *IngestWorker) ProcessPending(ctx context.Context) error {
 	if !w.cfg.IngestEnabled() {
 		return nil
 	}
-	failures, err := w.logStore.ClaimPendingFailures(ctx, w.cfg.FailureRetryBatchSize())
+	jobs, err := w.logStore.ClaimPendingJobs(ctx, w.cfg.JobBatchSize())
 	if err != nil {
 		return err
 	}
-	for _, failure := range failures {
-		ingestErr := w.ingest.IngestByLogID(ctx, failure.LogID, types.SourceRetry)
-		if handleErr := w.recorder.ApplyRetry(ctx, failure, ingestErr); handleErr != nil {
+	for _, job := range jobs {
+		source := job.Source
+		if source == "" {
+			source = types.SourceWebhook
+		}
+		ingestErr := w.ingest.IngestByLogID(ctx, job.LogID, source)
+		if handleErr := w.queue.ApplyRetry(ctx, job, ingestErr); handleErr != nil {
 			return handleErr
 		}
 	}
@@ -121,7 +125,7 @@ func (w *IngestWorker) ProcessReconcile(ctx context.Context) error {
 				return ingestErr
 			}
 			if outcome.ShouldRecordFailure() {
-				if recordErr := w.recorder.RecordFailure(ctx, id, types.SourceReconcile, ingestErr); recordErr != nil {
+				if recordErr := w.queue.RecordFailure(ctx, id, types.SourceReconcile, ingestErr); recordErr != nil {
 					w.logger.Warn("upsert ingest failure", "log_id", id, "error", recordErr)
 				}
 			}

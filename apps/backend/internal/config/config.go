@@ -40,7 +40,7 @@ type Config struct {
 	IngestReconcileIntervalSec int `env:"INGEST_RECONCILE_INTERVAL_SEC" envDefault:"300"`
 	IngestReconcileBatchSize   int `env:"INGEST_RECONCILE_BATCH_SIZE" envDefault:"500"`
 	IngestReconcileMaxRounds   int `env:"INGEST_RECONCILE_MAX_ROUNDS" envDefault:"10"`
-	IngestFailureBatchSize     int `env:"INGEST_FAILURE_BATCH_SIZE" envDefault:"20"`
+	IngestJobBatchSize         int `env:"INGEST_JOB_BATCH_SIZE" envDefault:"20"`
 
 	SupportSaas              bool   `env:"SUPPORT_SAAS" envDefault:"false"`
 	CompanyName              string `env:"COMPANY_NAME"`

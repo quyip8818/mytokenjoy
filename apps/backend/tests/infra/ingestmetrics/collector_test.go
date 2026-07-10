@@ -26,9 +26,9 @@ func TestCollectorRefreshAndSnapshot(t *testing.T) {
 	if err := st.Logs().SetReconcileCursor(ctx, ingestmetrics.StreamNewAPIConsume, 100); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Logs().UpsertFailure(ctx, store.IngestFailure{
-		ID: store.IngestFailureID(300), LogID: 300, Source: "webhook",
-		Error: "pending", Status: store.IngestFailureStatusPending,
+	if err := st.Logs().UpsertJob(ctx, store.IngestJob{
+		ID: store.IngestJobID(300), LogID: 300, Source: "webhook",
+		Error: "pending", Status: store.IngestJobStatusPending,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -43,8 +43,8 @@ func TestCollectorRefreshAndSnapshot(t *testing.T) {
 	if snap.ReconcileGaps != 1 {
 		t.Fatalf("reconcile gaps = %d, want 1", snap.ReconcileGaps)
 	}
-	if snap.FailuresPending != 1 {
-		t.Fatalf("failures pending = %d, want 1", snap.FailuresPending)
+	if snap.JobsPending != 1 {
+		t.Fatalf("failures pending = %d, want 1", snap.JobsPending)
 	}
 	if snap.LagSeconds < 60 {
 		t.Fatalf("lag seconds = %d, want >= 60", snap.LagSeconds)
