@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -21,15 +21,15 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 
 	tokenID := int64(42)
 	remainQuota := int64(1000)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		CompanyID: contract.DefaultCompanyID, PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID, MemberID: testutil.StrPtr(contract.IDMember1),
-		DepartmentID: contract.IDDept3, SyncStatus: store.RelaySyncStatusSynced,
-		RelayGroup: "dept-dept-3", NewAPITokenRemainQuota: &remainQuota,
+		NewAPIKeyID: &tokenID, MemberID: testutil.StrPtr(contract.IDMember1),
+		DepartmentID: contract.IDDept3, SyncStatus: store.MappingSyncStatusSynced,
+		NewAPIGroup: "dept-dept-3", NewAPIKeyRemainQuota: &remainQuota,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
+	if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -49,7 +49,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 
 	payload, err := json.Marshal(map[string]string{
 		"departmentId": contract.IDDept3, "platformKeyId": contract.IDPlatformKey1,
@@ -57,7 +57,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Relay().EnqueueOverrun(ctx, payload); err != nil {
+	if err := st.AsyncJobs().EnqueueOverrun(ctx, payload); err != nil {
 		t.Fatal(err)
 	}
 

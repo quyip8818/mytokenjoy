@@ -32,7 +32,7 @@ func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
 	}
 }
 
-func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
+func TestTransferMembersUpdatesPlatformKeyMapping(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
@@ -40,12 +40,12 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 
 	memberID := contract.IDMember1
 	targetDept := "dept-4"
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
 		MemberID:      &memberID,
 		DepartmentID:  contract.IDDept3,
-		RelayGroup:    "default",
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIGroup:   "default",
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -67,12 +67,12 @@ func TestTransferMembersUpdatesRelayMapping(t *testing.T) {
 		}
 	}
 
-	mappings, err := st.Relay().ListMappingsByMemberID(ctx, memberID)
+	mappings, err := st.PlatformKeyMappings().ListMappingsByMemberID(ctx, memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(mappings) == 0 {
-		t.Fatal("expected relay mapping")
+		t.Fatal("expected platform key mapping")
 	}
 	if mappings[0].DepartmentID != targetDept {
 		t.Fatalf("expected mapping department %s, got %s", targetDept, mappings[0].DepartmentID)

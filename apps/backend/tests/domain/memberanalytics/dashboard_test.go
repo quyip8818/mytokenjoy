@@ -6,7 +6,7 @@ import (
 
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -21,8 +21,8 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)
 	}
-	lifecycle := relay.NewTokenLifecycle(cfg, st, nil, nil, relay.NewChannelPolicy(cfg))
-	keysSvc := domainkeys.NewService(cfg, st, lifecycle, common.NewDelayer(false))
+	newAPISync := newapisync.New(cfg, st, nil, nil, newapisync.NewChannelPolicy(cfg))
+	keysSvc := domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	return domainmemberanalytics.NewService(cfg, keysSvc, reader), ctx
 }

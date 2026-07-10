@@ -1,6 +1,6 @@
 # Backend 架构
 
-`apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Relay 集成与看板读路径。
+`apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Gateway 集成与看板读路径。
 
 **相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Frontend.md](./Frontend.md)
 
@@ -73,7 +73,7 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 apps/backend/
 ├── cmd/server/main.go
 ├── internal/
-│   ├── app/                 # DI 组合根（wire_helpers + wire_domain_services + wire_relay + registry）
+│   ├── app/                 # DI 组合根（wire_helpers + wire_domain_services + wire_gateway + registry）
 │   ├── config/
 │   ├── identity/            # sessiontoken、credentials、authz、httpx
 │   ├── domain/
@@ -87,7 +87,7 @@ apps/backend/
 │   │   ├── dashboard/       # 看板只读聚合
 │   │   ├── audit/           # 操作审计、调用审计读模型
 │   │   ├── usage/           # Ingest、projection、Reader
-│   │   ├── relay/           # TokenLifecycle（lifecycle_*.go）、Gateway 预检、quota 合成
+│   │   ├── newapisync/ + gateway/  # NewAPISync（lifecycle_*.go）、Gateway 预检、quota 合成
 │   │   ├── company/         # 企业、开户、邀请
 │   │   └── billing/         # 充值、lot 钱包、wallet_sync
 │   ├── http/
@@ -107,7 +107,7 @@ apps/backend/
 │   └── store/               # postgres/
 ├── seed/                    # demo 引导与契约（见 [Backend.md](./Backend.md) §5.3）
 ├── tests/
-│   ├── testutil/            # 根 + org/saas/http/relay/worker 子包
+│   ├── testutil/            # 根 + org/saas/http/gateway/newapisync/worker 子包
 │   ├── pkg/
 │   ├── domain/<域>/         # helpers_test.go + 主题测试文件
 │   ├── handler/<域>/        # 按 API 域分子包（core/authz/org/...）
@@ -194,7 +194,7 @@ type Store interface {
     Models() ModelsRepository
     Audit() AuditRepository
     Ledger() LedgerRepository
-    Relay() RelayRepository
+    NewAPI() （已拆为 PlatformKeyMappings + AsyncJobs）
     Usage() UsageRepository
     WithTx(ctx context.Context, fn func(Store) error) error
 }
@@ -241,19 +241,19 @@ type Store interface {
 
 ---
 
-## 6. Relay Gateway 请求链
+## 6. Gateway 请求链
 
-`RELAY_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。代理时 **逐字节保留** 客户端 path（如 `/v1/chat/completions`），`NEW_API_BASE_URL` 仅含 scheme + host + port。
+`NEWAPI_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。代理时 **逐字节保留** 客户端 path（如 `/v1/chat/completions`），`NEW_API_BASE_URL` 仅含 scheme + host + port。
 
 ```mermaid
 sequenceDiagram
   participant C as 客户端 sk-xxx
-  participant GW as Relay Gateway
+  participant GW as Gateway
   participant TJ as TokenJoy 预检
   participant NA as NewAPI
 
   C->>GW: OpenAI 兼容请求
-  GW->>TJ: key_hash 查 relay_mappings
+  GW->>TJ: key_hash 查 platform_key_mappings
   alt 预检失败
     GW-->>C: 403
   else 通过
@@ -264,11 +264,11 @@ sequenceDiagram
   end
 ```
 
-预检依赖 `relay.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
+预检依赖 `gateway.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
 
 ### 6.1 Platform Key 写路径
 
-用户触发的 Create、Approve→Create、Toggle、Revoke、Rotate、Delete：**先** NewAPI Admin API 成功，**再** 写 Postgres（Remote-first）。Relay 未启用 → `503`，DB 不变。
+用户触发的 Create、Approve→Create、Toggle、Revoke、Rotate、Delete：**先** NewAPI Admin API 成功，**再** 写 Postgres（Remote-first）。NewAPI 未启用 → `503`，DB 不变。
 
 | 操作 | 模式 |
 | --- | --- |
@@ -276,20 +276,20 @@ sequenceDiagram
 | Update 配额/白名单 | 同步：先写 DB → `SyncUpdatePlatformKey`，失败回滚 |
 | Rebalance、ModelLimits、Provider Channel | async outbox → Worker |
 
-Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_token_id` 不变以利 ingest 入账。细节与可优化点见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 不变以利 ingest 入账。细节与可优化点见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
 
 ---
 
 ## 7. NewAPI 集成（可选）
 
-`NEW_API_ENABLED=true` 时启用 Relay 同步、Worker、Ingest。
+`NEW_API_ENABLED=true` 时启用 NewAPI 同步、Worker、Ingest。
 
 ```mermaid
 flowchart TB
-  subgraph lifecycle [Token 生命周期]
-    KEYS[keys.Service] --> LC[TokenLifecycle]
+  subgraph lifecycle [PlatformKey 生命周期]
+    KEYS[keys.Service] --> LC[NewAPISync]
     LC --> NA_API[NewAPI Admin API]
-    LC --> OB_R[outbox channel=relay]
+    LC --> OB_R[outbox channel=newapi_sync]
   end
 
   subgraph ingest [消耗入账]
@@ -303,20 +303,20 @@ flowchart TB
   subgraph worker [Worker.Runner]
     OB_R --> LC
     OB_W[outbox webhook] --> ING
-    JOBS[RelayJobRepository] --> RBS[RebalanceService]
+    JOBS[AsyncJobsRepository] --> RBS[RebalanceService]
     JOBS --> OVS[OverrunService]
   end
 ```
 
 | 组件               | 包              | 职责                                      |
 | ------------------ | --------------- | ----------------------------------------- |
-| `TokenLifecycle`   | `domain/relay`  | Create/Update/Disable Token；同步 Channel |
+| `NewAPISync`   | `domain/newapisync`  | Create/Update/Disable Token；同步 Channel |
 | `IngestService`    | `domain/usage`  | Webhook 入账（不依赖 Lifecycle）          |
 | `RebalanceService` | `domain/budget` | point → `remain_quota`（封顶 Postgres 钱包） |
 | `OverrunService`   | `domain/budget` | 超限封禁 Key                              |
-| `PrecheckService`  | `domain/relay`  | Gateway 预检                              |
+| `PrecheckService`  | `domain/newapisync`  | Gateway 预检                              |
 
-**Relay 子接口（嵌入组合，DI 收窄）：**
+**NewAPISync 子接口（嵌入组合，DI 收窄）：**
 
 | 子接口 | 职责 |
 | ------ | ---- |
@@ -327,19 +327,19 @@ flowchart TB
 
 | 消费者 | 接口 |
 | ------ | ---- |
-| `keys` | `KeysRelaySync`（`RelayGate` + Platform + Provider） |
+| `keys` | `KeysNewAPISync`（`NewAPIGate` + Platform + Provider） |
 | `models` / `org` | `ModelLimitsEnqueuer`（= `ModelLimitsLifecycle`） |
-| `overrun` | `OverrunRelayControl`（`RelayGate` + `DisablePlatformKey`） |
-| Worker relay outbox | `RelayOutboxSync`（Platform + Provider + ModelLimits + Rebalance） |
-| `app` 装配 | `Lifecycle`（上述全部 + `RelayGate`） |
+| `overrun` | `OverrunKeyControl`（`NewAPIGate` + `DisablePlatformKey`） |
+| Worker newapi_sync outbox | `NewAPISyncOutbox`（Platform + Provider + ModelLimits + Rebalance） |
+| `app` 装配 | `Lifecycle`（上述全部 + `NewAPIGate`） |
 
-实现位于 `domain/relay/lifecycle_*.go`（按操作拆文件）；`TokenLifecycle` 注入 `RelayMappingRepository` + `RelayOutboxRepository`。
+实现位于 `domain/newapisync/lifecycle_*.go`（按操作拆文件）；`NewAPISync` 注入 `PlatformKeyMappingRepository` + `NewAPISyncOutboxRepository`。
 
 ### 7.1 Worker 一轮
 
 ```mermaid
 flowchart LR
-  A[outbox relay] --> B[ingest_jobs retry]
+  A[outbox newapi_sync] --> B[ingest_jobs retry]
   B --> C[reconcile_cursors 补洞]
   C --> D[rebalance_queue]
   D --> E[overrun_queue]

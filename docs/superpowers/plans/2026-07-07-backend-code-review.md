@@ -18,15 +18,15 @@
 
 | 严重度     | 问题                                                                                                        | 位置                                                            |
 | ---------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Medium** | `domain/relay/gateway_service.go` 是完整的 HTTP handler（含 `httputil.ReverseProxy`），违反分层             | `internal/domain/relay/gateway_service.go`                      |
+| **Medium** | `domain/newapisync/gateway_service.go` 是完整的 HTTP handler（含 `httputil.ReverseProxy`），违反分层             | `internal/domain/newapisync/gateway_service.go`                      |
 | **Low**    | `domain/usage/ingest_outcome.go` 在 domain 层引用 `net/http` 状态码常量                                     | `internal/domain/usage/ingest_outcome.go:5`                     |
-| **Low**    | Domain 层直接依赖 `infra/notification`、`infra/permission`、`integration/newapi` 等具体包，而非自身定义接口 | `domain/org/core/deps.go`, `domain/budget/`, `domain/relay/` 等 |
+| **Low**    | Domain 层直接依赖 `infra/notification`、`infra/permission`、`integration/newapi` 等具体包，而非自身定义接口 | `domain/org/core/deps.go`, `domain/budget/`, `domain/newapisync/` 等 |
 | **Low**    | `OrgRepository` 有 19 个方法，覆盖 member/role/integration/sync/field mapping 多个子域                      | `internal/store/store.go`                                       |
 
 ### 建议
 
-1. 将 `gateway_service.go` 的反向代理逻辑移到 `http/handler/relay/` 或独立 gateway 包
-2. Domain 对外部依赖定义本地接口（如 `domain/relay/TokenManager` interface），由 app 层注入实现
+1. 将 `gateway_service.go` 的反向代理逻辑移到 `http/handler/newapi/` 或独立 gateway 包
+2. Domain 对外部依赖定义本地接口（如 `domain/newapisync/TokenManager` interface），由 app 层注入实现
 3. 拆分 `OrgRepository` 为 `MemberRepository` + `IntegrationRepository`
 
 ---
@@ -46,7 +46,7 @@
 | **Medium** | `billing/service.go` 中 `UpdateRechargeStatus` 失败被静默吞掉，订单可能卡在错误状态        | `billing/service.go:142,147,155`      |
 | **Medium** | `rebalanceAxis` 错误被丢弃，budget 分配可能静默失败                                        | `billing/service.go:168`              |
 | **Medium** | `types/credential.go` 12 处校验错误用 bare `fmt.Errorf`，到达 handler 会变成 500 而非 400  | `internal/domain/types/credential.go` |
-| **Low**    | 79 处 `fmt.Errorf` 未使用 `%w`，断裂了 error chain（尤其 `relay/precheck.go` 全部 10+ 处） | 分散各处                              |
+| **Low**    | 79 处 `fmt.Errorf` 未使用 `%w`，断裂了 error chain（尤其 `newapi/precheck.go` 全部 10+ 处） | 分散各处                              |
 | **Low**    | `WriteError` 对非 DomainError 的 500 不做任何日志记录，问题难以排查                        | `httputil/write.go:38`                |
 | **Low**    | `WriteJSON(w, status, nil, err)` 中显式传入的 status code 在 err 非 nil 时被忽略           | `handler/auth/handler.go:51,84`       |
 | **Info**   | Domain/handler 层不处理 `context.Canceled`，客户端断连后逻辑仍运行到底                     | 系统性                                |
@@ -74,14 +74,14 @@
 | ---------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
 | **Medium** | `budget/service.go` 的 `UpdateNode`/`UpdateMemberQuota` 执行 read-validate-write 无事务保护，PG 下存在 lost update | `internal/domain/budget/service.go:53-86,114` |
 | **Medium** | Memory store `WithTx` 在 snapshot 后释放锁再执行 fn，并发 WithTx 回滚可能覆盖已提交数据                            | `internal/store/memory/tx.go:44-53`           |
-| **Low**    | `ComputeRemainQuotaCNY` 读取 budget 后再 UpdateToken，存在 TOCTOU 间隙（rebalance worker 最终修正）                | `internal/domain/relay/quota.go`              |
-| **Low**    | Relay lifecycle 状态转换无前置状态校验，pending 状态的 mapping 可被并发 update                                     | `internal/domain/relay/lifecycle_ops.go`      |
+| **Low**    | `ComputeRemainQuotaCNY` 读取 budget 后再 UpdateToken，存在 TOCTOU 间隙（rebalance worker 最终修正）                | `internal/domain/newapisync/quota.go`              |
+| **Low**    | NewAPI lifecycle 状态转换无前置状态校验，pending 状态的 mapping 可被并发 update                                     | `internal/domain/newapisync/lifecycle_ops.go`      |
 
 ### 建议
 
 1. `budget/service.go` 的多步写操作包裹在 `WithTx` 中
 2. Memory store `WithTx` 应持锁到 fn 执行完毕（或改用 COW 语义）
-3. Relay lifecycle 增加状态守卫：`if mapping.Status != synced { return ErrInvalidState }`
+3. NewAPI lifecycle 增加状态守卫：`if mapping.Status != synced { return ErrInvalidState }`
 
 ---
 
@@ -148,9 +148,9 @@
 
 | 严重度     | 问题                                                                                    | 位置                               |
 | ---------- | --------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Medium** | Request ID 从未被下游使用——无 getter 函数、不出现在日志中、不转发给 relay，本质是死代码 | `middleware/requestid.go`          |
+| **Medium** | Request ID 从未被下游使用——无 getter 函数、不出现在日志中、不转发给 newapi，本质是死代码 | `middleware/requestid.go`          |
 | **Medium** | 无请求级 access log（method/path/status/duration），问题排查困难                        | 系统性                             |
-| **Medium** | 健康检查 `/healthz` 永远返回 200，不验证 DB/relay 连通性，k8s readiness probe 失效      | `handler/health.go`                |
+| **Medium** | 健康检查 `/healthz` 永远返回 200，不验证 DB/newapi 连通性，k8s readiness probe 失效      | `handler/health.go`                |
 | **Low**    | 无 Prometheus metrics 端点，无法对接标准监控栈                                          | 系统性                             |
 | **Low**    | Audit trail 仅覆盖 platform 操作，租户内用户操作（key 创建、成员变更）无审计            | `domain/company/platform_audit.go` |
 | **Info**   | 无 OpenTelemetry / 分布式 tracing                                                       | 系统性                             |
@@ -159,7 +159,7 @@
 
 1. 导出 `RequestIDFromContext()` 并在 slog 中间件中注入
 2. 增加 access log 中间件（method, path, status, duration, request_id）
-3. `/healthz` 验证 DB `Ping()` + relay 健康（可选 `/readyz` 分离）
+3. `/healthz` 验证 DB `Ping()` + newapi 健康（可选 `/readyz` 分离）
 4. 后续引入 Prometheus client 暴露关键指标（request count/latency, error rate, budget usage）
 
 ---
@@ -194,4 +194,4 @@
 | 7   | 架构       | `gateway_service.go` 移出 domain 层              | 恢复分层清晰       |
 | 8   | 错误处理   | `WriteError` 对 500 记录 slog.Error              | 未知错误可追踪     |
 | 9   | 并发       | WalletService 加 singleflight                    | 防缓存击穿         |
-| 10  | 数据完整性 | Relay lifecycle 增加状态守卫                     | 防状态机混乱       |
+| 10  | 数据完整性 | NewAPI lifecycle 增加状态守卫                     | 防状态机混乱       |

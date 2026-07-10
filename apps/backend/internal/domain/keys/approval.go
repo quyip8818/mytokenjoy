@@ -78,7 +78,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 	approval := approvals[idx]
 	if approval.Type == "key" {
-		if err := s.requireRelay(); err != nil {
+		if err := s.requireNewAPI(); err != nil {
 			return err
 		}
 	}
@@ -148,7 +148,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 	applicant, ok := org.FindMemberByID(members, approval.ApplicantID)
 	if !ok || applicant.DepartmentID == "" {
-		return domain.Validation("department required for relay sync")
+		return domain.Validation("department required for newapi sync")
 	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {

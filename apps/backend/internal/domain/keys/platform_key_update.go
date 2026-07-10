@@ -92,8 +92,8 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if input.ModelWhitelist != nil {
 		existing.ModelWhitelist = append([]int64{}, input.ModelWhitelist...)
 	}
-	if err := s.requireRelay(); err != nil {
+	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
-	return s.persistPlatformKeyWithRelaySync(ctx, platformKeys, idx, existing, previous, id)
+	return s.persistPlatformKeyWithNewAPISync(ctx, platformKeys, idx, existing, previous, id)
 }

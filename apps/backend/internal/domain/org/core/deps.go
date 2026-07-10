@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -16,7 +16,7 @@ type Deps struct {
 	Cfg         config.Config
 	Store       store.Store
 	Factory     datasource.Factory
-	ModelLimits relay.ModelLimitsEnqueuer
+	ModelLimits newapisync.ModelLimitsLifecycle
 	Notifier    notification.Notifier
 	Delayer     common.Delayer
 	Logger      *slog.Logger
@@ -27,7 +27,7 @@ func NewDeps(
 	cfg config.Config,
 	st store.Store,
 	factory datasource.Factory,
-	modelLimits relay.ModelLimitsEnqueuer,
+	modelLimits newapisync.ModelLimitsLifecycle,
 	notifier notification.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,

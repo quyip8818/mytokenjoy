@@ -1,6 +1,6 @@
 # TokenJoy 文档索引
 
-Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（Relay）；共享契约 `packages/contracts`。本地联调：`pnpm start`。
+Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（NewAPI）；共享契约 `packages/contracts`。本地联调：`pnpm start`。
 
 ## 权威来源
 
@@ -20,17 +20,17 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（R
 | [PRD-差距分析.md](./PRD-差距分析.md) | 产品 / 研发 | PRD vs 实现差距 |
 | [Roadmap.md](./Roadmap.md) | 全员 | 产品差距简表 |
 | [Frontend.md](./Frontend.md) | 前端 / 前后端 | 前端架构、API 契约 |
-| [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Relay、Keys、Seed、测试 |
+| [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
-| [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、Relay、看板读路径 |
+| [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、Gateway、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
 | [Backend-重构建议.md](./Backend-重构建议.md) | 后端 / 架构 | 可优化收口建议 |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 后端 / 架构 | 去 Relay / 去领域 Token；一次性重命名终态与验收 |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Relay 现状与可优化点 |
+| [Backend-命名统一.md](./Backend-命名统一.md) | 后端 / 架构 | 去 NewAPI（已执行，见命名统一）；保留 PlatformKey；一次性重命名终态与验收 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Gateway 现状与可优化点 |
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 
 ### 归档笔记（非权威 backlog）
@@ -57,7 +57,7 @@ pnpm start:postgres   # 仅起 PostgreSQL（跑后端测试前必须）
 pnpm verify           # lint + test + build + backend build:check（PR 前）
 pnpm test             # 前端 Vitest + 后端 go test（需 PostgreSQL）
 pnpm test:e2e         # 前端 Playwright E2E
-pnpm start:relay      # 完整 NewAPI 栈（Postgres + Redis + new-api）
+pnpm start:newapi      # 完整 NewAPI 栈（Postgres + Redis + new-api）
 ```
 
 ## CI

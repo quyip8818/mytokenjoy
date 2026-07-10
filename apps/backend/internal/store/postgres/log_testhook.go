@@ -80,38 +80,38 @@ func GetIngestJobByLogID(ctx context.Context, st store.Store, logID int64) (stor
 	return job, true, nil
 }
 
-func GetRelayOutboxByID(ctx context.Context, pool *pgxpool.Pool, id string) (store.RelayOutboxEntry, bool, error) {
+func GetNewAPISyncOutboxByID(ctx context.Context, pool *pgxpool.Pool, id string) (store.AsyncJob, bool, error) {
 	row := pool.QueryRow(ctx, `
 		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
 		FROM async_jobs
 		WHERE id = $1 AND channel = $2
-	`, id, store.OutboxChannelRelay)
-	var e store.RelayOutboxEntry
+	`, id, store.JobChannelNewAPISync)
+	var e store.AsyncJob
 	err := row.Scan(&e.ID, &e.Kind, &e.Payload, &e.Status, &e.Attempts, &e.NextRetry, &e.LastError, &e.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return store.RelayOutboxEntry{}, false, nil
+		return store.AsyncJob{}, false, nil
 	}
 	if err != nil {
-		return store.RelayOutboxEntry{}, false, err
+		return store.AsyncJob{}, false, err
 	}
 	return e, true, nil
 }
 
-func ListPendingRelayOutbox(ctx context.Context, pool *pgxpool.Pool, kind string, limit int) ([]store.RelayOutboxEntry, error) {
+func ListPendingNewAPISyncOutbox(ctx context.Context, pool *pgxpool.Pool, kind string, limit int) ([]store.AsyncJob, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT id, kind, payload, status, attempts, next_retry, last_error, created_at
 		FROM async_jobs
 		WHERE channel = $1 AND status = $2 AND ($3 = '' OR kind = $3)
 		ORDER BY created_at
 		LIMIT $4
-	`, store.OutboxChannelRelay, store.OutboxStatusPending, kind, limit)
+	`, store.JobChannelNewAPISync, store.JobStatusPending, kind, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := make([]store.RelayOutboxEntry, 0)
+	out := make([]store.AsyncJob, 0)
 	for rows.Next() {
-		var e store.RelayOutboxEntry
+		var e store.AsyncJob
 		if err := rows.Scan(&e.ID, &e.Kind, &e.Payload, &e.Status, &e.Attempts, &e.NextRetry, &e.LastError, &e.CreatedAt); err != nil {
 			return nil, err
 		}

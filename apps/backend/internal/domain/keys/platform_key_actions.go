@@ -12,7 +12,7 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	if err := s.requireRelay(); err != nil {
+	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
@@ -24,7 +24,7 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 		return types.PlatformKey{}, domain.NotFound("Not found")
 	}
 	targetActive := enabled
-	if err := s.relaySync.SyncUpdatePlatformKey(ctx, id, &targetActive); err != nil {
+	if err := s.newAPISync.SyncUpdatePlatformKey(ctx, id, &targetActive); err != nil {
 		return types.PlatformKey{}, err
 	}
 	if enabled {
@@ -39,10 +39,10 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 }
 
 func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error) {
-	if err := s.requireRelay(); err != nil {
+	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
-	fullKey, err := s.relaySync.SyncRotatePlatformKey(ctx, id)
+	fullKey, err := s.newAPISync.SyncRotatePlatformKey(ctx, id)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -64,7 +64,7 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	platformKeys, idx, err := s.relayRevokeKey(ctx, id)
+	platformKeys, idx, err := s.newAPIRevokeKey(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 }
 
 func (s *service) DeletePlatformKey(ctx context.Context, id string) error {
-	platformKeys, idx, err := s.relayRevokeKey(ctx, id)
+	platformKeys, idx, err := s.newAPIRevokeKey(ctx, id)
 	if err != nil {
 		return err
 	}

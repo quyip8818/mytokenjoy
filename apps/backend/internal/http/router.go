@@ -20,10 +20,10 @@ func NewRouter(deps httpdeps.Deps) http.Handler {
 	r.Use(httpmiddleware.Recover(deps.Logger))
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
-	if deps.Config.RelayGatewayEnabled && deps.Config.NewAPIEnabled && deps.RelayGateway != nil {
-		r.Handle("/v1/*", deps.RelayGateway)
-	} else if deps.Config.RelayGatewayEnabled && deps.Config.NewAPIEnabled && deps.Logger != nil {
-		deps.Logger.Error("relay gateway disabled", "error", "gateway service unavailable")
+	if deps.Config.NewAPIGatewayEnabled && deps.Config.NewAPIEnabled && deps.NewAPIGateway != nil {
+		r.Handle("/v1/*", deps.NewAPIGateway)
+	} else if deps.Config.NewAPIGatewayEnabled && deps.Config.NewAPIEnabled && deps.Logger != nil {
+		deps.Logger.Error("newapi gateway disabled", "error", "gateway service unavailable")
 	}
 
 	reg := httphandler.NewRegistry(deps)

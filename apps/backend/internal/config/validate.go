@@ -15,7 +15,7 @@ func (c Config) validate() error {
 	if err := c.validateDeploy(); err != nil {
 		return err
 	}
-	if err := c.validateRelay(); err != nil {
+	if err := c.validateNewAPI(); err != nil {
 		return err
 	}
 	return nil
@@ -68,9 +68,9 @@ func (c Config) validateDeploy() error {
 	return nil
 }
 
-func (c Config) validateRelay() error {
-	if c.RelayGatewayEnabled && !c.NewAPIEnabled {
-		return fmt.Errorf("NEW_API_ENABLED must be true when RELAY_GATEWAY_ENABLED=true")
+func (c Config) validateNewAPI() error {
+	if c.NewAPIGatewayEnabled && !c.NewAPIEnabled {
+		return fmt.Errorf("NEW_API_ENABLED must be true when NEWAPI_GATEWAY_ENABLED=true")
 	}
 	if c.IngestEnabled() && strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
 		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when LOG_DATABASE_URL is set")

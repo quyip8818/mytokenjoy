@@ -9,11 +9,11 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/credentials"
@@ -45,5 +45,5 @@ type Deps struct {
 	MemberAnalyticsSvc   domainmemberanalytics.Service
 	WalletSvc            domaincompany.WalletService
 	CompanyGate          *domaincompany.Gate
-	RelayGateway         domainrelay.GatewayService
+	NewAPIGateway        domaingateway.GatewayService
 }

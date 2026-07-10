@@ -7,7 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -32,10 +32,10 @@ type service struct {
 	store       store.Store
 	delayer     common.Delayer
 	client      newapi.AdminClient
-	modelLimits relay.ModelLimitsEnqueuer
+	modelLimits newapisync.ModelLimitsLifecycle
 }
 
-func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, modelLimits relay.ModelLimitsEnqueuer, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, client newapi.AdminClient, modelLimits newapisync.ModelLimitsLifecycle, delayer common.Delayer) Service {
 	return &service{
 		cfg:         cfg,
 		store:       st,

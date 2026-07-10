@@ -44,7 +44,7 @@ func OccurredAtFromPayload(createdAt int64) (time.Time, error) {
 
 type EntryBuildInput struct {
 	Raw         store.RawConsumeLog
-	Mapping     *store.RelayMapping
+	Mapping     *store.PlatformKeyMapping
 	Source      string
 	Catalog     []types.ModelInfo
 	AllowedIDs  []int64
@@ -124,7 +124,7 @@ func resolveProvider(modelName string, models []types.ModelInfo) string {
 	return ""
 }
 
-func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, raw store.RawConsumeLog, source string) (EntryBuildInput, error) {
+func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, raw store.RawConsumeLog, source string) (EntryBuildInput, error) {
 	modelName := ResolveConsumeModel(raw)
 	catalog, err := deps.Models().Models(ctx)
 	if err != nil {
@@ -155,7 +155,7 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 	return input, nil
 }
 
-func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.RelayMapping, platformKey *types.PlatformKey) []int64 {
+func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, platformKey *types.PlatformKey) []int64 {
 	if platformKey == nil {
 		return nil
 	}

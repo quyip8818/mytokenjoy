@@ -114,7 +114,7 @@ flowchart LR
 
 1. NewAPI settle → 写共享 `logs` 库 → `EnqueueNotify(log_id)` → `POST /api/internal/webhooks/newapi-log` → **入队 pending 并立即 ACK**
 2. Worker：`ingest_jobs` 消费入账（含 webhook 快路径与失败重试）+ `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
-3. `FindMappingByNewAPITokenID` → `company_id`、部门/成员/组归因
+3. `FindMappingByNewAPIKeyID` → `company_id`、部门/成员/组归因
 4. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
 5. `store.WithTx`：ledger `INSERT ON CONFLICT` → projection → 副作用入队
 
@@ -196,7 +196,7 @@ flowchart TB
 
 ## 5. 一次调用全链路
 
-生产须开 **Relay Gateway**（`RELAY_GATEWAY_ENABLED=true`）。
+生产须开 **Gateway**（`NEWAPI_GATEWAY_ENABLED=true`）。
 
 ```mermaid
 sequenceDiagram
@@ -287,9 +287,9 @@ flowchart LR
   TX --> Q[async_jobs]
 ```
 
-1. 结算日志 → Webhook 或 Worker 补洞 → 按 `newapi_token_id` 归因
+1. 结算日志 → Webhook 或 Worker 补洞 → 按 `newapi_key_id` 归因
 2. 单事务：账本幂等插入 → 投影 → 扣 lot → 入队 rebalance / overrun
-3. 失败走 `ingest_jobs` 重试（与 relay outbox 分离）
+3. 失败走 `ingest_jobs` 重试（与 newapi_sync outbox 分离）
 
 **投影顺序：**
 
@@ -401,7 +401,7 @@ sequenceDiagram
 | Rebalance | `domain/budget/rebalance` |
 | Key 额度校验 | `domain/keys` + `pkg/budget` |
 | 快照加载 | `pkg/budget` |
-| Gateway 预检 | `domain/relay` |
+| Gateway 预检 | `domain/newapisync` |
 | 充值 | `domain/billing` |
 | 异步任务 | `async_jobs`（rebalance / overrun） |
 
@@ -424,7 +424,7 @@ sequenceDiagram
 
 | 项 | 现状 | 建议 |
 | --- | --- | --- |
-| Relay 关闭时 Worker | Rebalance / Overrun 可能空转或静默跳过 | Relay 未启用时 job 标记失败或明确 503，避免「以为已同步」 |
+| NewAPI 关闭时 Worker | Rebalance / Overrun 可能空转或静默跳过 | NewAPI 未启用时 job 标记失败或明确 503，避免「以为已同步」 |
 | 通知失败 | Webhook 失败常无感知 | 写 `notification_log` 失败态；关键事件告警 |
 | 双层封禁窗口 | Precheck 通过后、入账前仍可能短暂超卖 | 评估是否收紧预估或缩短入账延迟；文档化可接受窗口 |
 | 入账联调 | 依赖 logs 库、webhook secret、Worker 同时就绪 | 用 `gate-verify` 增加 Gateway + ledger 断言（plan §1） |

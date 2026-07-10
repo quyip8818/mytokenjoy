@@ -802,6 +802,6 @@ erDiagram
 | [Frontend.md](./Frontend.md) | 端点与类型权威来源   |
 | [Roadmap.md](./Roadmap.md)   | PRD 与实现的剩余差距 |
 
-**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、Relay、企业钱包与 SaaS API 见 [Backend.md](./Backend.md) §2、[Backend-架构.md](./Backend-架构.md)。
+**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、NewAPI、企业钱包与 SaaS API 见 [Backend.md](./Backend.md) §2、[Backend-架构.md](./Backend-架构.md)。
 
 PRD 或契约变更时，先更新 [Frontend.md](./Frontend.md) 与 `api/types/`，再同步 [Roadmap.md](./Roadmap.md)。

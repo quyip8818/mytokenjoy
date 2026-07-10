@@ -245,7 +245,7 @@ internal/pkg/budget/
 
 domain/usage/ingest.go       双轨写入
 domain/usage/projection.go   Apply(..., OpenBudgetPeriod)
-domain/relay/precheck.go     开账门禁
+domain/newapisync/precheck.go     开账门禁
 domain/budget/overrun.go     开账超支
 infra/worker/runner.go       月切：OpenSnapshotKey(PeriodMonthly, Clock)
 
@@ -265,7 +265,7 @@ flowchart TB
   end
   subgraph domain [domain]
     Ingest[usage ingest]
-    Pre[relay precheck]
+    Pre[gateway precheck]
     Bud[budget overrun / tree]
     Dash[dashboard]
   end
@@ -288,7 +288,7 @@ flowchart TB
 | `OpenBudgetPeriod` / `OccurrencePeriod` | 类型上区分开账 vs 发生 |
 | Ingest 单写入口 | 快照只经 `Apply(..., OpenBudgetPeriod)` |
 | `OccurredAtFromPayload` | 缺事件时间 fail |
-| `make lint-clock` | 禁 `SnapshotKey(...time.Now)`；`domain/{budget,relay,usage}` 禁直调 `SnapshotKey` |
+| `make lint-clock` | 禁 `SnapshotKey(...time.Now)`；`domain/{budget,gateway,newapisync,usage}` 禁直调 `SnapshotKey` |
 
 钉行为的测试（改时钟语义时先跑这些）：
 

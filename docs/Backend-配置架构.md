@@ -27,7 +27,7 @@
 
 | `DEPLOY_ENV` | 行为 |
 | --- | --- |
-| `local` / `staging` | 启动日志标识；不强制生产契约（`staging` 可故意缺 Relay 做预发） |
+| `local` / `staging` | 启动日志标识；不强制生产契约（`staging` 可故意缺 NewAPI 做预发） |
 | `production` | `validate()` 强制 §7 生产契约；缺任一项即启动失败 |
 
 典型本地：`DEPLOY_ENV=local` + `BOOTSTRAP_MODE=demo` + 可选 `CLOCK_ANCHOR`。  
@@ -69,7 +69,7 @@ env.Parse
 
 | 条件 | 要求 |
 | --- | --- |
-| `RELAY_GATEWAY_ENABLED=true` | `NEW_API_ENABLED=true` |
+| `NEWAPI_GATEWAY_ENABLED=true` | `NEW_API_ENABLED=true` |
 | `NEW_API_ENABLED=true` | `NEW_API_BASE_URL`、`NEW_API_ADMIN_TOKEN`；URL 无 path |
 | `LOG_DATABASE_URL` 非空 | `NEW_API_WEBHOOK_SECRET` 必填 |
 
@@ -109,8 +109,8 @@ func NowUTC(clk Clock) time.Time
 | --- | --- |
 | `config.Config` | `Clock()` 解析 `CLOCK_ANCHOR` |
 | `domain/dashboard`、`memberanalytics` | 构造器内 `clock: cfg.Clock()` |
-| `domain/budget`、`keys`、`relay/lifecycle` | `Load*(..., cfg.Clock())` |
-| `domain/relay/precheck` | wire 传 `cfg.Clock()`；`OpenDepartmentPeriod(..., clk)` |
+| `domain/budget`、`keys`、`newapi/lifecycle` | `Load*(..., cfg.Clock())` |
+| `domain/newapisync/precheck` | wire 传 `cfg.Clock()`；`OpenDepartmentPeriod(..., clk)` |
 | `domain/usage/ingest` | `OccurrenceDepartmentPeriod(..., OccurredAt)` + `OpenDepartmentPeriod(..., cfg.Clock())` → `Apply` |
 | `pkg/budget` | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock` |
 | `org/core` `BudgetPeriod()` | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析 |
@@ -155,7 +155,7 @@ func NowUTC(clk Clock) time.Time
 | `BOOTSTRAP_MODE` | `none` |
 | `SECURE_COOKIE` | `true` |
 | `NEW_API_ENABLED` | `true` |
-| `RELAY_GATEWAY_ENABLED` | `true` |
+| `NEWAPI_GATEWAY_ENABLED` | `true` |
 | `LOG_DATABASE_URL` | 已设置 |
 | `NEW_API_WEBHOOK_SECRET` | 已设置 |
 | `DATA_SOURCE_CREDENTIAL_KEY` | 已设置且合法 |
@@ -169,8 +169,8 @@ func NowUTC(clk Clock) time.Time
 | 位置 | 约定 |
 | --- | --- |
 | `wire_domain_services` / `wiring_domain` | 构造器只收 `cfg`；账期路径内部 `cfg.Clock()` |
-| `wire_relay` | **仅** precheck 传 `cfg.Clock()` |
-| `wiring_infra` | `NewTokenLifecycle(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
+| `wire_gateway` | **仅** precheck 传 `cfg.Clock()` |
+| `wiring_infra` | `NewNewAPISync(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
 
 ---
 

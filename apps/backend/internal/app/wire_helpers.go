@@ -10,7 +10,7 @@ import (
 
 func EnqueueWalletSync(st store.Store) func(context.Context, int64) error {
 	return func(ctx context.Context, companyID int64) error {
-		return st.Relay().EnqueueWalletSync(
+		return st.AsyncJobs().EnqueueWalletSync(
 			domaincompany.WithContext(ctx, domaincompany.Context{CompanyID: companyID}),
 			companyID,
 		)
@@ -19,6 +19,6 @@ func EnqueueWalletSync(st store.Store) func(context.Context, int64) error {
 
 func EnqueueRebalanceCompany(st store.Store) func(context.Context, int64) error {
 	return func(ctx context.Context, companyID int64) error {
-		return st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+		return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	}
 }

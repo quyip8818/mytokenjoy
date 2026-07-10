@@ -30,11 +30,11 @@ make format             # gofmt -w .
 # Prerequisites: pnpm start:postgres (or DATABASE_URL)
 
 # Single backend test:
-cd apps/backend && go test ./tests/domain/relay/... -run TestPrecheckRejectsZeroBudget -v
+cd apps/backend && go test ./tests/domain/gateway/... -run TestPrecheckRejectsZeroBudget -v
 
-# Relay (apps/newapi)
-pnpm start:relay        # docker compose up
-pnpm gate:verify        # End-to-end relay verification
+# NewAPI (apps/newapi)
+pnpm start:newapi       # docker compose up
+pnpm gate:verify        # End-to-end NewAPI verification
 ```
 
 ## Architecture
@@ -77,13 +77,13 @@ internal/
   config/                — env-based configuration
   domain/                — business logic by subdomain:
     audit/, billing/, budget/, company/, dashboard/,
-    keys/, member/, models/, org/, relay/, usage/
+    keys/, member/, models/, org/, gateway/, newapisync/, usage/
   http/handler/          — HTTP handlers (one package per domain)
   http/middleware/       — auth, RBAC, company resolve, CORS
   http/httputil/         — response/decode helpers
   identity/              — authz, credentials, session tokens
   infra/                 — worker, notification, permission manifest
-  integration/           — external: newapi relay, datasource (feishu)
+  integration/           — external: newapi, datasource (feishu)
   pkg/                   — shared utilities (budget calc, org helpers, tree)
   store/                 — repository interfaces + implementations:
     postgres/            — PostgreSQL (production + tests)
@@ -96,22 +96,22 @@ tests/                   — ALL unit tests (mirrors internal/ structure)
 
 **Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer.
 
-**Relay integration:** The backend proxies LLM API calls via a local NewAPI relay service. `domain/relay/` manages token lifecycle (create/update/revoke platform keys as relay tokens). The gateway precheck validates: key validity → key status → model whitelist → budget → forward.
+**NewAPI integration:** The backend proxies LLM API calls via a local NewAPI service. `domain/newapisync/` syncs PlatformKey/ProviderKey to NewAPI Admin; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward.
 
-### Relay (`apps/newapi/`)
+### NewAPI (`apps/newapi/`)
 
-Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates through `internal/integration/newapi/`.
+Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend integrates through `internal/integration/newapi/`.
 
 ## Testing Patterns (Backend)
 
-- Tests live in `tests/` (external test packages, e.g., `package relay_test`)
+- Tests live in `tests/` (external test packages, e.g., `package gateway_test`)
 - Use `testutil.NewTestStore(t, opts...)` or `testutil.NewTestApp(t, mutate)` for store/app
 - Requires PostgreSQL: `pnpm start:postgres` before `make test-unit`
 - Use `testutil.Ctx()` for a default company context
 - Use `testutil.CtxForCompany(id)` for specific company
 - Config options: `testutil.WithNewAPIEnabled(true)`, `testutil.WithSupportSaas(true)`, etc.
 - Org service: `orgfix.NewService(t, cfg, st)` from `tests/testutil/org`
-- Relay scenarios: `relayfix.BuildGatewayScenario(t, opts)` from `tests/testutil/relay`
+- Gateway scenarios: `gatewaytf.BuildGatewayScenario(t, opts)` from `tests/testutil/gateway`
 - HTTP handler tests use `testutil/http` with real chi router + seeded store
 - The `-tags=testhook` build tag activates test hooks in `internal/app/testhook.go`
 
@@ -136,7 +136,7 @@ Docker-based LLM API relay (NewAPI). Configured via `.env`. Backend integrates t
 - `BOOTSTRAP_MODE` — `none` / `minimal` / `demo` (empty DB bootstrap policy)
 - `SECURE_COOKIE` — Set-Cookie Secure flag (required `true` when `DEPLOY_ENV=production`)
 - `CLOCK_ANCHOR` — Optional `YYYY-MM-DD` for fixed dashboard clock and seed reference date
-- `NEW_API_ENABLED=true` — Enable relay integration
-- `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — Relay service credentials
+- `NEW_API_ENABLED=true` — Enable NewAPI integration
+- `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — NewAPI service credentials
 - `SESSION_SECRET` — JWT session signing key
 - `SUPPORT_SAAS=true` — Multi-tenant SaaS mode

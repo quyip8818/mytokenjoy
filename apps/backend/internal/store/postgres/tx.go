@@ -10,7 +10,8 @@ import (
 type txStore struct {
 	domain          domainRepos
 	ledger          store.LedgerRepository
-	relay           store.RelayRepository
+	mappings        store.PlatformKeyMappingRepository
+	asyncJobs       store.AsyncJobsRepository
 	budgetSnapshots store.BudgetSnapshotRepository
 	usage           store.UsageRepository
 	notification    store.NotificationRepository
@@ -31,8 +32,12 @@ func (s *txStore) BudgetSnapshots() store.BudgetSnapshotRepository {
 	return s.budgetSnapshots
 }
 
-func (s *txStore) Relay() store.RelayRepository {
-	return s.relay
+func (s *txStore) PlatformKeyMappings() store.PlatformKeyMappingRepository {
+	return s.mappings
+}
+
+func (s *txStore) AsyncJobs() store.AsyncJobsRepository {
+	return s.asyncJobs
 }
 
 func (s *txStore) SchedulerLock() store.SchedulerLockRepository {
@@ -85,7 +90,8 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	txView := &txStore{
 		domain:          newDomainRepoSet(tx, s.tokenJoyCompanyID),
 		ledger:          &pgLedgerRepo{db: tx},
-		relay:           newRelayRepo(tx),
+		mappings:        newPlatformKeyMappingRepo(tx),
+		asyncJobs:       newAsyncJobsRepo(tx),
 		budgetSnapshots: newBudgetSnapshotRepo(tx),
 		usage:           &usageRepo{db: tx},
 		notification:    &notificationRepo{db: tx},

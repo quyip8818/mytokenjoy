@@ -33,17 +33,17 @@ func NotificationLogs(st store.Store) []types.NotificationLogEntry {
 	return logs
 }
 
-func RelayOutboxEntry(st store.Store, id string) (store.RelayOutboxEntry, bool) {
-	entry, found, err := postgres.GetRelayOutboxByID(context.Background(), postgres.MainPool(st), id)
+func NewAPISyncOutboxEntry(st store.Store, id string) (store.AsyncJob, bool) {
+	entry, found, err := postgres.GetNewAPISyncOutboxByID(context.Background(), postgres.MainPool(st), id)
 	if err != nil || !found {
-		return store.RelayOutboxEntry{}, false
+		return store.AsyncJob{}, false
 	}
 	return entry, true
 }
 
 func PendingRebalanceCount(st store.Store, companyID int64) int {
 	ctx := CtxForCompany(companyID)
-	entries, err := st.Relay().ClaimPendingRebalance(ctx, 100)
+	entries, err := st.AsyncJobs().ClaimPendingRebalance(ctx, 100)
 	if err != nil {
 		return 0
 	}

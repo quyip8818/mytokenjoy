@@ -15,7 +15,7 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 		return fmt.Errorf("company wallet not configured")
 	}
 	if !s.cfg.NewAPIEnabled || s.client == nil {
-		return fmt.Errorf("newapi sync required but relay is disabled")
+		return fmt.Errorf("newapi sync required but newapi is disabled")
 	}
 	models, err := s.store.Models().Models(ctx)
 	if err != nil {

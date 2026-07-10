@@ -16,18 +16,18 @@ import (
 
 func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(55)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   &tokenID,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	stub.UpdateTokenFn = func(_ context.Context, _ newapi.UpdateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{}, errors.New("relay down")
+		return newapi.Token{}, errors.New("newapi down")
 	}
 	before, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -42,7 +42,7 @@ func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	}
 	_, err = svc.TogglePlatformKey(ctx, contract.IDPlatformKey1, false)
 	if err == nil {
-		t.Fatal("expected error when relay update fails")
+		t.Fatal("expected error when newapi update fails")
 	}
 	after, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -57,22 +57,22 @@ func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 
 func TestRevokePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	stub.DeleteTokenFn = func(_ context.Context, _ int64) error {
-		return errors.New("relay down")
+		return errors.New("newapi down")
 	}
-	mapping := store.RelayMapping{
+	mapping := store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: ptrInt64(99),
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   ptrInt64(99),
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}
-	if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
 	err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1)
 	if err == nil {
-		t.Fatal("expected error when relay delete fails")
+		t.Fatal("expected error when newapi delete fails")
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -87,15 +87,15 @@ func TestRevokePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 
 func TestRotatePlatformKeySuccess(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(77)
-	mapping := store.RelayMapping{
+	mapping := store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   &tokenID,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}
-	if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
 	stub.RegenerateTokenFn = func(_ context.Context, id int64) (newapi.Token, error) {
@@ -118,13 +118,13 @@ func TestRotatePlatformKeySuccess(t *testing.T) {
 
 func TestRotatePlatformKeyRequiresActiveStatus(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(88)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   &tokenID,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestRotatePlatformKeyRequiresActiveStatus(t *testing.T) {
 	}
 }
 
-func TestNilRelayClientReturns503(t *testing.T) {
+func TestNilNewAPIClientReturns503(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
@@ -156,7 +156,7 @@ func ptrInt64(v int64) *int64 {
 	return &v
 }
 
-func TestDeletePlatformKeyRequiresRelay(t *testing.T) {
+func TestDeletePlatformKeyRequiresNewAPI(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	err := svc.DeletePlatformKey(testutil.Ctx(), contract.IDPlatformKey1)
@@ -165,21 +165,21 @@ func TestDeletePlatformKeyRequiresRelay(t *testing.T) {
 
 func TestDeletePlatformKeyRemoteFailureKeepsKey(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	stub.DeleteTokenFn = func(_ context.Context, _ int64) error {
-		return errors.New("relay down")
+		return errors.New("newapi down")
 	}
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: ptrInt64(99),
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   ptrInt64(99),
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1)
 	if err == nil {
-		t.Fatal("expected error when relay delete fails")
+		t.Fatal("expected error when newapi delete fails")
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -195,13 +195,13 @@ func TestDeletePlatformKeyRemoteFailureKeepsKey(t *testing.T) {
 
 func TestDeletePlatformKeyRevokesRemoteToken(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(66)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   &tokenID,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestDeletePlatformKeyRevokesRemoteToken(t *testing.T) {
 	}
 }
 
-func TestUpdatePlatformKeyRequiresRelay(t *testing.T) {
+func TestUpdatePlatformKeyRequiresNewAPI(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
@@ -237,26 +237,26 @@ func TestUpdatePlatformKeyRequiresRelay(t *testing.T) {
 	}
 	for _, key := range keys {
 		if key.ID == contract.IDPlatformKey1 && key.Name == name {
-			t.Fatal("expected name unchanged when relay disabled")
+			t.Fatal("expected name unchanged when newapi disabled")
 		}
 	}
 }
 
 func TestUpdatePlatformKeyRemoteFailureRollsBack(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(55)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
+		NewAPIKeyID:   &tokenID,
 		DepartmentID:  contract.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	stub.UpdateTokenFn = func(_ context.Context, _ newapi.UpdateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{}, errors.New("relay down")
+		return newapi.Token{}, errors.New("newapi down")
 	}
 	before, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -274,7 +274,7 @@ func TestUpdatePlatformKeyRemoteFailureRollsBack(t *testing.T) {
 		Name: &newName,
 	})
 	if err == nil {
-		t.Fatal("expected error when relay update fails")
+		t.Fatal("expected error when newapi update fails")
 	}
 	after, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -287,16 +287,16 @@ func TestUpdatePlatformKeyRemoteFailureRollsBack(t *testing.T) {
 	}
 }
 
-func TestUpdatePlatformKeySyncsImmediately(t *testing.T) {
+func TestUpdatePlatformKeyAppliesSyncImmediately(t *testing.T) {
 	t.Parallel()
-	svc, st, stub := newKeysServiceWithRelay(t)
+	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(55)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
+		NewAPIKeyID:   &tokenID,
 		DepartmentID:  contract.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -310,7 +310,7 @@ func TestUpdatePlatformKeySyncsImmediately(t *testing.T) {
 	if stub.UpdateTokenCalls < 1 {
 		t.Fatalf("expected sync update call, got %d", stub.UpdateTokenCalls)
 	}
-	if pending := workerfix.PendingRelayOutbox(st, store.OutboxKindUpdateToken); pending != 0 {
-		t.Fatalf("expected no pending update_token outbox, got %d", pending)
+	if pending := workerfix.PendingNewAPISyncOutbox(st, store.OutboxKindUpdateKey); pending != 0 {
+		t.Fatalf("expected no pending update_key outbox, got %d", pending)
 	}
 }

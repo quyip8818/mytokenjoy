@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-RELAY_URL="${RELAY_URL:-http://localhost:3000}"
+NEWAPI_URL="${NEWAPI_URL:-http://localhost:3000}"
 API_URL="${API_URL:-http://localhost:8080}"
 WEBHOOK_SECRET="${NEW_API_WEBHOOK_SECRET:-tokenjoy-webhook-secret}"
 
@@ -13,19 +13,19 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "[1/6] Starting relay stack..."
+echo "[1/6] Starting newapi stack..."
 docker compose -f "${ROOT}/apps/newapi/docker-compose.yml" up -d --build
 
-echo "[2/6] Waiting for relay..."
+echo "[2/6] Waiting for newapi..."
 for i in $(seq 1 60); do
-  if curl -fsS "${RELAY_URL}/api/status" >/dev/null 2>&1; then
+  if curl -fsS "${NEWAPI_URL}/api/status" >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
 
 echo "[3/6] Checking /v1 route..."
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${RELAY_URL}/v1/models" || true)
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${NEWAPI_URL}/v1/models" || true)
 echo "GET /v1/models => ${HTTP_CODE}"
 
 echo "[4/6] Checking management health..."

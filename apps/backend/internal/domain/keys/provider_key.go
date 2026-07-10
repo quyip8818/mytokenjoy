@@ -46,12 +46,12 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 	if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 		return types.ProviderKey{}, err
 	}
-	if s.relaySync != nil && s.relaySync.Enabled() {
-		if err := s.relaySync.EnqueueUpsertProviderKey(ctx, created.ID); err != nil {
+	if s.newAPISync != nil && s.newAPISync.Enabled() {
+		if err := s.newAPISync.EnqueueUpsertProviderKey(ctx, created.ID); err != nil {
 			return types.ProviderKey{}, err
 		}
-		if err := s.relaySync.SyncUpsertProviderKey(ctx, created.ID); err != nil {
-			return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel sync failed")
+		if err := s.newAPISync.SyncUpsertProviderKey(ctx, created.ID); err != nil {
+			return types.ProviderKey{}, domain.ServiceUnavailable("NewAPI Channel sync failed")
 		}
 	}
 	return created, nil
@@ -78,8 +78,8 @@ func (s *service) ToggleProviderKey(ctx context.Context, id string, enabled bool
 			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return err
 			}
-			if s.relaySync != nil && s.relaySync.Enabled() {
-				if err := s.relaySync.EnqueueUpsertProviderKey(ctx, id); err != nil {
+			if s.newAPISync != nil && s.newAPISync.Enabled() {
+				if err := s.newAPISync.EnqueueUpsertProviderKey(ctx, id); err != nil {
 					return err
 				}
 			}
@@ -116,12 +116,12 @@ func (s *service) RotateProviderKey(ctx context.Context, id string, newKey strin
 			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return types.ProviderKey{}, err
 			}
-			if s.relaySync != nil && s.relaySync.Enabled() {
-				if err := s.relaySync.EnqueueUpsertProviderKey(ctx, id); err != nil {
+			if s.newAPISync != nil && s.newAPISync.Enabled() {
+				if err := s.newAPISync.EnqueueUpsertProviderKey(ctx, id); err != nil {
 					return types.ProviderKey{}, err
 				}
-				if err := s.relaySync.SyncUpsertProviderKey(ctx, id); err != nil {
-					return types.ProviderKey{}, domain.ServiceUnavailable("Relay Channel sync failed")
+				if err := s.newAPISync.SyncUpsertProviderKey(ctx, id); err != nil {
+					return types.ProviderKey{}, domain.ServiceUnavailable("NewAPI Channel sync failed")
 				}
 			}
 			return keys[i], nil

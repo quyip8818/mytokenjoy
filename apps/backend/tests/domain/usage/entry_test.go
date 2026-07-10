@@ -59,7 +59,7 @@ func TestBuildCallSettledEntryRejectsMissingOccurredAt(t *testing.T) {
 		Raw: store.RawConsumeLog{
 			ID: 9000, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 0,
 		},
-		Mapping: &store.RelayMapping{
+		Mapping: &store.PlatformKeyMapping{
 			PlatformKeyID: contract.IDPlatformKey1,
 			DepartmentID:  contract.IDDept3,
 		},
@@ -98,7 +98,7 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 			ID: 9001, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 1,
 			Content: "should not be stored",
 		},
-		Mapping: &store.RelayMapping{
+		Mapping: &store.PlatformKeyMapping{
 			PlatformKeyID: contract.IDPlatformKey1,
 			MemberID:      &memberID,
 			DepartmentID:  contract.IDDept3,
@@ -121,7 +121,7 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 			ID: 9002, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 1,
 			Content: "preview text", PromptTokens: 10, CompletionTokens: 5, UseTime: 120,
 		},
-		Mapping: &store.RelayMapping{
+		Mapping: &store.PlatformKeyMapping{
 			PlatformKeyID: contract.IDPlatformKey1,
 			MemberID:      &memberID,
 			DepartmentID:  contract.IDDept3,

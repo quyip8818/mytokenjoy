@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/app"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
+	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -22,15 +22,15 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 )
 
-func NewRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *relay.TokenLifecycle, *domainusage.IngestService) {
+func NewRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
 	t.Helper()
 	return newRunner(t, stub, true, true)
 }
 
-func NewRelayDisabledRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *relay.TokenLifecycle) {
+func NewDisabledNewAPIRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync) {
 	t.Helper()
-	runner, st, lifecycle, _ := newRunner(t, stub, false, false)
-	return runner, st, lifecycle
+	runner, st, newAPISync, _ := newRunner(t, stub, false, false)
+	return runner, st, newAPISync
 }
 
 func NewIngestOnlyRunner(t *testing.T) (*worker.Runner, store.Store, *domainusage.IngestService) {
@@ -39,10 +39,10 @@ func NewIngestOnlyRunner(t *testing.T) (*worker.Runner, store.Store, *domainusag
 	return runner, st, ingest
 }
 
-func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEnabled bool) (*worker.Runner, store.Store, *relay.TokenLifecycle, *domainusage.IngestService) {
+func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEnabled bool) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
 	t.Helper()
 	opts := []testutil.ConfigOption{
-		testutil.WithNewAPIBaseURL("http://relay.test"),
+		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	}
 	if newAPIEnabled {
@@ -52,24 +52,24 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 		opts = append(opts, testutil.WithIngestEnabled(true), testutil.WithNewAPIWebhookSecret("secret"))
 	}
 	cfg, st := testutil.NewTestStore(t, opts...)
-	lifecycle := relay.NewTokenLifecycle(cfg, st, stub, nil, relay.NewChannelPolicy(cfg))
+	newAPISync := newapisync.New(cfg, st, stub, nil, newapisync.NewChannelPolicy(cfg))
 	orgSvc := orgfix.NewService(t, cfg, st)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	enqueueWalletSync := app.EnqueueWalletSync(st)
 	ingest := domainusage.NewIngestService(cfg, st, st.Logs(), notifier, logger, enqueueWalletSync)
 	ingestQueue := domainusage.NewQueue(st.Logs())
-	overrun := domainbudget.NewOverrunService(cfg, st, lifecycle, notifier, logger)
+	overrun := domainbudget.NewOverrunService(cfg, st, newAPISync, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, stub)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	billingSvc := domainbilling.NewService(cfg, st, reader, stub, nil, nil, enqueueWalletSync)
-	runner := worker.NewRunner(cfg, st.Relay(), st.SchedulerLock(), st.Logs(), ingestmetrics.NewCollector(), lifecycle, ingest, ingestQueue, overrun, rebalance, billingSvc, orgSvc, logger)
-	return runner, st, lifecycle, ingest
+	runner := worker.NewRunner(cfg, st.AsyncJobs(), st.SchedulerLock(), st.Logs(), ingestmetrics.NewCollector(), newAPISync, ingest, ingestQueue, overrun, rebalance, billingSvc, orgSvc, logger)
+	return runner, st, newAPISync, ingest
 }
 
-func PendingRelayOutbox(st store.Store, kind string) int {
+func PendingNewAPISyncOutbox(st store.Store, kind string) int {
 	ctx := testutil.Ctx()
-	entries, err := postgres.ListPendingRelayOutbox(ctx, postgres.MainPool(st), kind, 100)
+	entries, err := postgres.ListPendingNewAPISyncOutbox(ctx, postgres.MainPool(st), kind, 100)
 	if err != nil {
 		return 0
 	}

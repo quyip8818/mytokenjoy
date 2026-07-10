@@ -15,7 +15,8 @@ type Store struct {
 	pool              *pgxpool.Pool
 	logPool           *pgxpool.Pool
 	logTables         logTables
-	relay             *relayRepo
+	mappings          *platformKeyMappingRepo
+	asyncJobs         *asyncJobsRepo
 	logs              store.LogStore
 	domain            domainRepos
 	tokenJoyCompanyID int64
@@ -82,7 +83,8 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			return nil, err
 		}
 	}
-	s.relay = newRelayRepo(pool)
+	s.mappings = newPlatformKeyMappingRepo(pool)
+	s.asyncJobs = newAsyncJobsRepo(pool)
 	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID)
 	return s, nil
 }
@@ -134,8 +136,9 @@ func (s *Store) BudgetSnapshots() store.BudgetSnapshotRepository {
 	return newBudgetSnapshotRepo(s.pool)
 }
 
-func (s *Store) Relay() store.RelayRepository { return s.relay }
-func (s *Store) Logs() store.LogStore         { return s.logs }
+func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }
+func (s *Store) AsyncJobs() store.AsyncJobsRepository                    { return s.asyncJobs }
+func (s *Store) Logs() store.LogStore                                    { return s.logs }
 
 func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	empty, err := isDatabaseEmpty(ctx, s.pool)

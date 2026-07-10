@@ -141,7 +141,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
 | 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
-**`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `relay_mappings.department_id` 独立分层。
+**`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `platform_key_mappings.department_id` 独立分层。
 
 **`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。生产迁移 SQL 见 [plan.md](./plan.md) §5。
 
@@ -813,7 +813,7 @@ HTTP 非 2xx 时，body 应包含：
 | `id`            | `number`                  | `companyId`            |
 | `slug`          | `string`                  | 子域名标识             |
 | `name`          | `string`                  | 公司名                 |
-| `status`        | `'active' \| 'suspended'` | 停用后该企业 Relay 403 |
+| `status`        | `'active' \| 'suspended'` | 停用后该企业 NewAPI 403 |
 | `packageId`     | `string \| null`          | MVP 仅展示             |
 | `walletBalance` | `number \| null`          | 列表可选展示           |
 | `createdAt`     | `string`                  | ISO 8601               |
@@ -873,7 +873,7 @@ pnpm install && pnpm start
 | `VITE_API_PROXY_TARGET` | 反代目标，默认 `http://127.0.0.1:8080` |
 | `DATABASE_URL`          | 后端 Postgres                          |
 
-可选 Relay：`pnpm start:relay` + `NEW_API_ENABLED=true`。验收：`pnpm verify`、`pnpm test:e2e`。
+可选 NewAPI：`pnpm start:newapi` + `NEW_API_ENABLED=true`。验收：`pnpm verify`、`pnpm test:e2e`。
 
 生产同域：静态托管 `dist`，`/api/`、`/healthz` 反代 Go；`/api/` 须在 SPA fallback 之前。
 

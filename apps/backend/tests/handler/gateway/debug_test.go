@@ -3,20 +3,20 @@ package gateway_test
 import (
 	"testing"
 
-	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
+	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
 func TestDebugGatewayPrecheckError(t *testing.T) {
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
 		Budget:      1000,
 	})
 	ctx := testutil.Ctx()
-	mapping, err := scenario.Store.Relay().GetMappingByKeyHash(ctx, store.HashPlatformKey(scenario.FullKey))
+	mapping, err := scenario.Store.PlatformKeyMappings().GetMappingByKeyHash(ctx, store.HashPlatformKey(scenario.FullKey))
 	if err != nil || mapping == nil {
 		t.Fatalf("mapping: %v", err)
 	}
@@ -24,8 +24,8 @@ func TestDebugGatewayPrecheckError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	precheck := relayfix.NewPrecheckService(scenario.Cfg, scenario.Store, relayfix.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
-	err = precheck.Run(ctx, domainrelay.PrecheckInput{
+	precheck := gatewaytf.NewPrecheckService(scenario.Cfg, scenario.Store, gatewaytf.NewStubWallet(newapi.ToNewAPIUnits(100, nil, nil)))
+	err = precheck.Run(ctx, domaingateway.PrecheckInput{
 		Mapping: mapping,
 		Company: company,
 		Model:   "gpt-4o",

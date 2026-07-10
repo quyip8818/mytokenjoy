@@ -4,10 +4,10 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/org/structure"
-	"github.com/tokenjoy/backend/internal/domain/relay"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -23,7 +23,7 @@ func NewService(
 	cfg config.Config,
 	st store.Store,
 	factory datasource.Factory,
-	modelLimits relay.ModelLimitsEnqueuer,
+	modelLimits newapisync.ModelLimitsLifecycle,
 	notifier notification.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,

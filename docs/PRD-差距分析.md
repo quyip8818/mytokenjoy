@@ -8,7 +8,7 @@
 
 ## 1. 总览
 
-PRD 将产品划分为 **P1 平台初始化 → P2 资源管控 → P3 成员接入与调用 → P4 运营与合规** 四阶段。当前实现已覆盖 **管理面主链路**：企业内 16 个控制台页面均已对接后端（PRD 附录称 82 个 REST 端点），核心闭环（组织 → 预算 → 白名单 → Key 审批/自主创建 → Gateway 调用 → 入账 → 看板/审计）在 **飞书 + Relay 栈** 下可跑通。
+PRD 将产品划分为 **P1 平台初始化 → P2 资源管控 → P3 成员接入与调用 → P4 运营与合规** 四阶段。当前实现已覆盖 **管理面主链路**：企业内 16 个控制台页面均已对接后端（PRD 附录称 82 个 REST 端点），核心闭环（组织 → 预算 → 白名单 → Key 审批/自主创建 → Gateway 调用 → 入账 → 看板/审计）在 **飞书 + NewAPI 栈** 下可跑通。
 
 与 PRD 的主要差距集中在三类：
 
@@ -76,7 +76,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | US-10 | Key/额度审批 | ⚠️ | 审批四 Tab、通过自动建 Key/扣预留池、拒绝理由均已实现；**IM 通知审批人/申请人**未做 |
 | US-11 | 自主管理 Platform Key | ✅ | 多 Key、模型绑定、额度分配、toggle/revoke/rotate/delete；Rotate 已 Remote-first + NewAPI regenerate |
-| US-12 | API 调用 | ⚠️ | Gateway 精确路径白名单（`/v1/chat/completions` 等）+ precheck + Relay 入账；**依赖** `NEW_API_ENABLED` + Relay 栈；PRD 要求 **Anthropic `/v1/messages` 原生格式**未单独暴露（经 OpenAI 兼容路径可能可用，但未作为一等契约验收） |
+| US-12 | API 调用 | ⚠️ | Gateway 精确路径白名单（`/v1/chat/completions` 等）+ precheck + NewAPI 入账；**依赖** `NEW_API_ENABLED` + NewAPI 栈；PRD 要求 **Anthropic `/v1/messages` 原生格式**未单独暴露（经 OpenAI 兼容路径可能可用，但未作为一等契约验收） |
 
 **P3 小结**：管理面 Key 生命周期已对齐 PRD；调用链路与通知、双格式 API 仍有差距。
 
@@ -100,7 +100,7 @@ flowchart LR
 
 | 能力 | 现状 | 与 PRD 关系 |
 | --- | --- | --- |
-| **NewAPI Relay 集成** | Platform Key 必须经 Relay 同步；Gateway 为唯一 LLM 入口；入账 webhook + `usage_ledger` | PRD US-12 只描述行为，未写 Relay 拓扑；属 [Backend-架构.md](./Backend-架构.md) 范畴 |
+| **NewAPI 集成** | Platform Key 必须经 NewAPISync 同步；Gateway 为唯一 LLM 入口；入账 webhook + `usage_ledger` | PRD US-12 只描述行为，未写 NewAPI 拓扑；属 [Backend-架构.md](./Backend-架构.md) 范畴 |
 | **供应商 Key（Provider Key）** | `/keys/provider` 管理页 + 上游 Channel | PRD 聚焦成员 Platform Key；供应商侧为运营/技术配置 |
 | **企业钱包 / 充值** | `/wallet`、NewAPI 钱包用户、`company_recharge_orders` | SaaS/计费见 Backend 文档；PRD 仅在角色表提及「充值」 |
 | **成员工作台** | `/me`、`/me/keys`、`/me/call-logs` | 对应「普通成员」控制台，PRD 隐含未单列页面 |
@@ -195,7 +195,7 @@ flowchart LR
 
 | 优先级 | 项 | 理由 |
 | --- | --- | --- |
-| P0 | Relay/Gateway 联调签字 + `gate-verify` 覆盖 Backend `/v1` | US-12 生产可用前提；见 [plan.md](./plan.md) §1 |
+| P0 | NewAPI/Gateway 联调签字 + `gate-verify` 覆盖 Backend `/v1` | US-12 生产可用前提；见 [plan.md](./plan.md) §1 |
 | P0 | US-08 预警 Worker + 运行时阈值 | PRD P2 核心承诺，当前仅 UI 配置 |
 | P1 | 审批/预警/同步 **通知**（至少 Webhook 可观测 + 一种可达渠道） | US-08、US-10 验收依赖 |
 | P1 | 成员邀请真实激活链路 | US-04 验收缺口 |
@@ -214,14 +214,14 @@ flowchart LR
 | --- | --- |
 | [PRD.md](./PRD.md) | 产品需求与用户故事 |
 | [Roadmap.md](./Roadmap.md) | 差距状态简表（维护实现后更新） |
-| [plan.md](./plan.md) | 工程 backlog（Relay、测试、发布门禁） |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Relay 现状与可优化点 |
+| [plan.md](./plan.md) | 工程 backlog（NewAPI、测试、发布门禁） |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 现状与可优化点 |
 | [Frontend.md](./Frontend.md) | API 与页面契约 |
-| [Backend.md](./Backend.md) | 后端索引、Relay、钱包 |
+| [Backend.md](./Backend.md) | 后端索引、NewAPI、钱包 |
 | [权限管理.md](./权限管理.md) | 鉴权与角色（强于 PRD 简述） |
 
 ---
 
 ## 9. 一句话结论
 
-> **控制台主流程（飞书组织 + 预算白名单 + Key 全生命周期 + 看板/审计列表）已对齐 PRD 主体；差距集中在「通知与多渠道触达」「预算百分比预警运行时」「非飞书数据源」「SaaS 平台 UI」「审计深度与合规扩展」以及「Relay/Gateway 生产硬化」——后一类见工程 plan，前一类见 Roadmap 产品 backlog。**
+> **控制台主流程（飞书组织 + 预算白名单 + Key 全生命周期 + 看板/审计列表）已对齐 PRD 主体；差距集中在「通知与多渠道触达」「预算百分比预警运行时」「非飞书数据源」「SaaS 平台 UI」「审计深度与合规扩展」以及「NewAPI/Gateway 生产硬化」——后一类见工程 plan，前一类见 Roadmap 产品 backlog。**

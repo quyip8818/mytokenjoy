@@ -12,14 +12,14 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
 	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 
 	beforeUsed := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
 	beforeConsumed := testutil.Dept3SnapshotConsumed(t, st)
@@ -62,7 +62,7 @@ func TestIngestByLogID(t *testing.T) {
 	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(2002, 99))
 	if err := ingest.IngestByLogID(testutil.Ctx(), 2002, types.SourceWebhook); err != nil {
@@ -78,7 +78,7 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	beforeBuckets := testutil.UsageBucketCount(st)
 
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{
@@ -103,7 +103,7 @@ func TestIngestRaw(t *testing.T) {
 	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 
 	raw := testutil.DefaultConsumeLog(3003, 99)
 	if err := ingest.IngestRaw(testutil.Ctx(), raw, types.SourceReconcile); err != nil {
@@ -119,7 +119,7 @@ func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	raw := testutil.DefaultConsumeLog(8801, 99)
 	testutil.SeedConsumeLog(t, st, raw)
 	if err := ingest.IngestByLogID(testutil.Ctx(), 8801, types.SourceWebhook); err != nil {
@@ -161,7 +161,7 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	}
 
 	ingest := testutil.NewIngestService(t, cfg, st)
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 
 	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 	snapshotPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()

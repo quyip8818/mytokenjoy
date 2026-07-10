@@ -10,7 +10,7 @@ import (
 
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -95,7 +95,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)
 		mock.ApplyToConfig(cfg)
-		cfg.RelayGatewayEnabled = true
+		cfg.NewAPIGatewayEnabled = true
 	})
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
@@ -109,7 +109,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	rootDept := fmt.Sprintf("dept-root-%d", provisioned.Company.ID)
 
 	// No recharge: wallet 0 -> 403
-	fullKey := relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey := gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		WalletQuota:        0,
@@ -117,7 +117,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		Budget:             1000,
 	})
 	rec := httptest.NewRecorder()
-	app.Router.ServeHTTP(rec, relayfix.GatewayRequest(fullKey))
+	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 with empty wallet, got %d", rec.Code)
 	}
@@ -126,7 +126,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 	testutil.DrainPendingWalletSync(t, app.Store, provisioned.Company.ID)
 	mock.SetQuota(walletID, newapi.ToNewAPIUnits(100, nil, nil))
-	fullKey = relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		WalletQuota:        newapi.ToNewAPIUnits(100, nil, nil),
@@ -135,14 +135,14 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		UseRealWallet:      false,
 	})
 	rec = httptest.NewRecorder()
-	app.Router.ServeHTTP(rec, relayfix.GatewayRequest(fullKey))
+	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 with zero budget, got %d", rec.Code)
 	}
 
 	// Both wallet and budget -> 200
 	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
-	fullKey = relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		WalletQuota:        newapi.ToNewAPIUnits(100, nil, nil),
@@ -152,7 +152,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		NewAPIMock:         mock,
 	})
 	rec = httptest.NewRecorder()
-	app.Router.ServeHTTP(rec, relayfix.GatewayRequest(fullKey))
+	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 when wallet and budget ready, got %d body=%s", rec.Code, rec.Body.String())
 	}

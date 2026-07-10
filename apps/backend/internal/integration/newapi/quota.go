@@ -122,6 +122,6 @@ func EffectiveCallTypes(models []types.ModelInfo, allowedIDs []int64) []string {
 	return modelcatalog.CallTypesForIDs(models, allowedIDs)
 }
 
-func RelayGroupForDepartment(departmentID string) string {
-	return fmt.Sprintf("%s%s", common.RelayGroupPrefix, departmentID)
+func NewAPIGroupForDepartment(departmentID string) string {
+	return fmt.Sprintf("%s%s", common.NewAPIGroupPrefix, departmentID)
 }

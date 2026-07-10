@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -18,8 +18,8 @@ func TestReconcileMultipleLogs(t *testing.T) {
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(88)
-	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: tokenID,
+	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
 	})
 	for _, id := range []int64{801, 802, 803} {
 		testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(id, tokenID))
@@ -68,8 +68,8 @@ func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
 	ctx := testutil.Ctx()
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 901, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(902, 44))
-	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: 44,
+	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: 44,
 	})
 
 	if err := runner.RunReconcileOnce(ctx); err != nil {
@@ -90,8 +90,8 @@ func TestReconcileRunsWithoutNewAPIEnabled(t *testing.T) {
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(66)
-	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: tokenID,
+	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
 	})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(750, tokenID))
 
@@ -100,7 +100,7 @@ func TestReconcileRunsWithoutNewAPIEnabled(t *testing.T) {
 	}
 	ingested, err := testutil.HasLedgerLogID(st, 750)
 	if err != nil || !ingested {
-		t.Fatalf("expected reconcile ingest without relay enabled, err=%v", err)
+		t.Fatalf("expected reconcile ingest without newapi enabled, err=%v", err)
 	}
 }
 

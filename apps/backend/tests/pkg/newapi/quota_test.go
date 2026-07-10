@@ -170,9 +170,9 @@ func TestEffectiveWhitelistIDs(t *testing.T) {
 	})
 }
 
-func TestRelayGroupForDepartment(t *testing.T) {
+func TestNewAPIGroupForDepartment(t *testing.T) {
 	t.Parallel()
-	group := newapi.RelayGroupForDepartment("dept-123")
+	group := newapi.NewAPIGroupForDepartment("dept-123")
 	if group == "" {
 		t.Error("expected non-empty group")
 	}

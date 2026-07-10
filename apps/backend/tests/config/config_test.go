@@ -77,16 +77,16 @@ func TestPrivateRequiresCompanyName(t *testing.T) {
 	}
 }
 
-func TestProductionRequiresRelayGatewayEnabled(t *testing.T) {
+func TestProductionRequiresNewAPIGatewayEnabled(t *testing.T) {
 	testutil.ApplyProductionEnv(t)
-	t.Setenv("RELAY_GATEWAY_ENABLED", "false")
+	t.Setenv("NEWAPI_GATEWAY_ENABLED", "false")
 
 	_, err := config.Load()
 	if err == nil {
-		t.Fatal("expected error when production disables relay gateway")
+		t.Fatal("expected error when production disables newapi gateway")
 	}
-	if !strings.Contains(err.Error(), "RELAY_GATEWAY_ENABLED") {
-		t.Fatalf("expected RELAY_GATEWAY_ENABLED error, got %v", err)
+	if !strings.Contains(err.Error(), "NEWAPI_GATEWAY_ENABLED") {
+		t.Fatalf("expected NEWAPI_GATEWAY_ENABLED error, got %v", err)
 	}
 }
 
@@ -116,40 +116,40 @@ func TestProductionRejectsNewAPIBaseURLWithPath(t *testing.T) {
 	}
 }
 
-func TestProductionLoadsWithRelayEnabled(t *testing.T) {
+func TestProductionLoadsWithNewAPIEnabled(t *testing.T) {
 	testutil.ApplyProductionEnv(t)
 
 	cfg, err := config.Load()
 	if err != nil {
-		t.Fatalf("expected production relay config to load, got %v", err)
+		t.Fatalf("expected production newapi config to load, got %v", err)
 	}
-	if !cfg.NewAPIEnabled || !cfg.RelayGatewayEnabled {
-		t.Fatalf("expected relay and gateway enabled, got relay=%v gateway=%v", cfg.NewAPIEnabled, cfg.RelayGatewayEnabled)
+	if !cfg.NewAPIEnabled || !cfg.NewAPIGatewayEnabled {
+		t.Fatalf("expected newapi and gateway enabled, got newapi=%v gateway=%v", cfg.NewAPIEnabled, cfg.NewAPIGatewayEnabled)
 	}
 }
 
-func TestLocalAllowsMissingRelayStack(t *testing.T) {
+func TestLocalAllowsMissingNewAPIStack(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 
 	_, err := config.Load()
 	if err != nil {
-		t.Fatalf("expected local config without relay to load, got %v", err)
+		t.Fatalf("expected local config without newapi to load, got %v", err)
 	}
 }
 
-func TestStagingAllowsMissingRelayStack(t *testing.T) {
+func TestStagingAllowsMissingNewAPIStack(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 	t.Setenv("DEPLOY_ENV", config.DeployEnvStaging)
 
 	_, err := config.Load()
 	if err != nil {
-		t.Fatalf("expected staging config without relay to load, got %v", err)
+		t.Fatalf("expected staging config without newapi to load, got %v", err)
 	}
 }
 
-func TestRelayGatewayRequiresNewAPIEnabled(t *testing.T) {
+func TestNewAPIGatewayRequiresNewAPIEnabled(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
-	t.Setenv("RELAY_GATEWAY_ENABLED", "true")
+	t.Setenv("NEWAPI_GATEWAY_ENABLED", "true")
 	t.Setenv("NEW_API_ENABLED", "false")
 
 	_, err := config.Load()

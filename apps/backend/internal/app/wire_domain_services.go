@@ -19,7 +19,7 @@ import (
 
 func wireOrg(cfg config.Config, i infra, logger *slog.Logger) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.lifecycle, i.notifier, i.delayer, logger)
+	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger)
 }
 
 func wireBudget(cfg config.Config, i infra) domainbudget.Service {
@@ -27,7 +27,7 @@ func wireBudget(cfg config.Config, i infra) domainbudget.Service {
 }
 
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
-	return domainbudget.NewOverrunService(cfg, i.store, i.lifecycle, i.notifier, logger)
+	return domainbudget.NewOverrunService(cfg, i.store, i.newAPISync, i.notifier, logger)
 }
 
 func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
@@ -35,11 +35,11 @@ func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
 }
 
 func wireKeys(cfg config.Config, i infra) domainkeys.Service {
-	return domainkeys.NewService(cfg, i.store, i.lifecycle, i.delayer)
+	return domainkeys.NewService(cfg, i.store, i.newAPISync, i.delayer)
 }
 
 func wireModels(cfg config.Config, i infra) domainmodels.Service {
-	return domainmodels.NewService(cfg, i.store, i.adminClient, i.lifecycle, i.delayer)
+	return domainmodels.NewService(cfg, i.store, i.adminClient, i.newAPISync, i.delayer)
 }
 
 func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader) domaindashboard.Service {

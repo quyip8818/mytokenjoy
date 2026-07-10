@@ -3,7 +3,7 @@ package usage_test
 import (
 	"testing"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -28,9 +28,9 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
+	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
 		PlatformKeyID: "plk-3",
-		NewAPITokenID: 77,
+		NewAPIKeyID:   77,
 		NoMember:      true,
 		DepartmentID:  contract.IDDept3,
 	})

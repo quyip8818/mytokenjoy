@@ -14,18 +14,18 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/tests/testutil"
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 	"github.com/tokenjoy/backend/tests/testutil/saas"
 )
 
 func TestGatewayRejectsInsufficientWallet(t *testing.T) {
 	t.Parallel()
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: 0,
 		Budget:      1000,
 	})
 	rec := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
+	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for empty wallet, got %d", rec.Code)
 	}
@@ -34,12 +34,12 @@ func TestGatewayRejectsInsufficientWallet(t *testing.T) {
 func TestGatewayRejectsZeroBudget(t *testing.T) {
 	t.Parallel()
 	units := newapi.ToNewAPIUnits(100, nil, nil)
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: units,
 		Budget:      0,
 	})
 	rec := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
+	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for zero budget, got %d", rec.Code)
 	}
@@ -48,12 +48,12 @@ func TestGatewayRejectsZeroBudget(t *testing.T) {
 func TestGatewayAllowsWhenPrecheckPasses(t *testing.T) {
 	t.Parallel()
 	units := newapi.ToNewAPIUnits(100, nil, nil)
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: units,
 		Budget:      1000,
 	})
 	rec := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
+	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 when precheck passes, got %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -62,13 +62,13 @@ func TestGatewayAllowsWhenPrecheckPasses(t *testing.T) {
 func TestGatewayRejectsExhaustedDepartmentBudget(t *testing.T) {
 	t.Parallel()
 	units := newapi.ToNewAPIUnits(100, nil, nil)
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: units,
 		Budget:      100,
 		Consumed:    100,
 	})
 	rec := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
+	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for exhausted budget, got %d", rec.Code)
 	}
@@ -84,13 +84,13 @@ func TestGatewayProxiesFullV1Path(t *testing.T) {
 	t.Cleanup(backend.Close)
 
 	units := newapi.ToNewAPIUnits(100, nil, nil)
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota:     units,
 		Budget:          1000,
 		ProxyBackendURL: backend.URL,
 	})
 	rec := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(rec, relayfix.GatewayRequest(scenario.FullKey))
+	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -102,7 +102,7 @@ func TestGatewayProxiesFullV1Path(t *testing.T) {
 
 func TestGatewayRejectsSubpath(t *testing.T) {
 	t.Parallel()
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
 		Budget:      1000,
 	})
@@ -118,7 +118,7 @@ func TestGatewayRejectsSubpath(t *testing.T) {
 
 func TestGatewayRejectsOversizedBody(t *testing.T) {
 	t.Parallel()
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
 		Budget:      1000,
 	})
@@ -134,7 +134,7 @@ func TestGatewayRejectsOversizedBody(t *testing.T) {
 
 func TestGatewayRejectsInvalidAPIKey(t *testing.T) {
 	t.Parallel()
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota: newapi.ToNewAPIUnits(100, nil, nil),
 		Budget:      1000,
 	})
@@ -154,7 +154,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)
 		mock.ApplyToConfig(cfg)
-		cfg.RelayGatewayEnabled = true
+		cfg.NewAPIGatewayEnabled = true
 	})
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
@@ -174,7 +174,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullKey := relayfix.ConfigureGatewayStore(t, app.Config, app.Store, relayfix.GatewayScenarioOpts{
+	fullKey := gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		DepartmentID:       rootDept,
@@ -182,7 +182,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	})
 
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, relayfix.GatewayRequest(fullKey))
+	router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 via router gateway, got %d body=%s", rec.Code, rec.Body.String())
 	}

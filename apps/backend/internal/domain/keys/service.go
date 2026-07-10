@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -35,18 +35,18 @@ type Service interface {
 }
 
 type service struct {
-	cfg       config.Config
-	store     store.Store
-	delayer   common.Delayer
-	relaySync relay.KeysRelaySync
+	cfg        config.Config
+	store      store.Store
+	delayer    common.Delayer
+	newAPISync newapisync.KeysNewAPISync
 }
 
-func NewService(cfg config.Config, st store.Store, relaySync relay.KeysRelaySync, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st store.Store, newAPISync newapisync.KeysNewAPISync, delayer common.Delayer) Service {
 	return &service{
-		cfg:       cfg,
-		store:     st,
-		delayer:   delayer,
-		relaySync: relaySync,
+		cfg:        cfg,
+		store:      st,
+		delayer:    delayer,
+		newAPISync: newAPISync,
 	}
 }
 

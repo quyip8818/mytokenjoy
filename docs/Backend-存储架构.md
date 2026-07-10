@@ -52,14 +52,14 @@ flowchart TB
   CO --> MOD[模型<br/>models · allowlist]
   ORG --> BUD & KEY
   MOD --> KEY
-  KEY --> RLY[relay · async_jobs]
+  KEY --> RLY[platform_key_mappings · async_jobs]
   RLY --> USG[ledger · buckets · snapshots]
 ```
 
 | 概念                        | 落点                                                                 |
 | --------------------------- | -------------------------------------------------------------------- |
 | 部门 + 节点预算 + 路由      | `org_nodes`（HTTP 投影 `Department` / `BudgetNode` / `RoutingRule`） |
-| 平台 Key 归因               | `platform_keys`；`relay_mappings` 仅同步状态                         |
+| 平台 Key 归因               | `platform_keys`；`platform_key_mappings` 仅同步状态                         |
 | 消耗 SSOT / 看板 / 预检缓存 | `usage_ledger` / `usage_buckets` / `budget_snapshots`                |
 | 企业钱包余额                | SSOT：`company_recharge_lots` / `balance_point`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_user_id`） |
 | SaaS 上游 Key               | 全局 `provider_keys`（无 `company_id`）                              |
@@ -84,9 +84,9 @@ flowchart TB
 | `Keys()`                                              | `provider_keys`, `platform_keys`, `key_approvals`                         |
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
 | `Ledger()` / `Usage()` / `BudgetSnapshots()`          | `usage_ledger`, `usage_buckets`, `budget_snapshots`                       |
-| `Relay()`                                             | `relay_mappings`, `async_jobs`                                            |
+| `PlatformKeyMappings()` / `AsyncJobs()`                                             | `platform_key_mappings`, `async_jobs`                                            |
 
-`RelayRepository` = `RelayMappingRepository`（token 映射读写）+ `RelayJobRepository`（outbox / rebalance / overrun / wallet_sync，共用 `async_jobs`）+ `AsyncJobRepository`。Postgres 实现拆为 `relay_mapping.go` / `relay_jobs.go`。
+`（已拆为 PlatformKeyMappings + AsyncJobs）` = `PlatformKeyMappingRepository`（token 映射读写）+ `AsyncJobsRepository`（outbox / rebalance / overrun / wallet_sync，共用 `async_jobs`）+ `AsyncJobRepository`。Postgres 实现拆为 `platform_key_mapping.go` / `async_jobs.go`。
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                        |
 | `Company()` / `Invite()` / `Billing()` / `Platform()` | 租户与充值                                                                |
 | `Notification()` / `SchedulerLock()` / `Logs()`       | `notification_log`, `scheduler_locks`, 日志库三表                         |
@@ -129,14 +129,14 @@ erDiagram
 | 预算 | `budget`, `reserved_pool`, `period`                          | `budget.Service`；consumed → `budget_snapshots` |
 | 路由 | `default_model_id`, `fallback_model_id`, `routing_inherited` | `models.Service`；白名单 → `model_allowlist`（`model_id`）；管理 API 读写 `modelId[]`，读路径 enrich `ModelRef` |
 
-### 密钥与 Relay
+### 密钥与 NewAPI 映射
 
 ```mermaid
 flowchart LR
   PPK[provider_keys] -.-> PLK[platform_keys]
   M[members] --> PLK
   BG[budget_groups] --> PLK
-  PLK --> RM[relay_mappings] --> NA[NewAPI]
+  PLK --> RM[platform_key_mappings] --> NA[NewAPI]
 ```
 
 `key_hash` 用于 Gateway 鉴权；明文 Key 不落库。`model_allowlist.owner_type`：`platform_key` · `org_node` · `key_approval`。
@@ -145,7 +145,7 @@ flowchart LR
 
 | channel     | 消费方                                                      |
 | ----------- | ----------------------------------------------------------- |
-| `relay`     | `relay_processor`                                           |
+| `newapi_sync` | `newapi_sync_outbox_processor`                                           |
 | `rebalance` | `rebalance_processor`（`dedupe_key` = `axis_kind:axis_id`） |
 | `overrun`   | `overrun_processor`                                         |
 
@@ -185,7 +185,7 @@ flowchart LR
 | 租户   | `companies`, `company_invites`, `company_recharge_orders`, `company_recharge_lots`, `currencies`, `platform_operators`                                                   |
 | 组织   | `org_nodes`, `members`, `roles`, `permissions`, `role_permission_grants`, `member_roles`, `org_integration`, `org_sync_logs`, `org_import_failures`                     |
 | 预算   | `budget_groups`, `budget_snapshots`, `budget_group_members`, `budget_group_departments`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `budget_approvals` |
-| 密钥   | `provider_keys`, `platform_keys`, `key_approvals`, `relay_mappings`                                                                                                     |
+| 密钥   | `provider_keys`, `platform_keys`, `key_approvals`, `platform_key_mappings`                                                                                                     |
 | 模型   | `models`, `model_capabilities`, `model_allowlist`（`models` 同表承载平台源与租户自有模型，读取并集）                                                                 |
 | 审计   | `audit_settings`, `operation_logs`, `usage_ledger`                                                                                                                      |
 | 运行面 | `usage_buckets`, `async_jobs`, `scheduler_locks`, `notification_log`                                                                                                    |
@@ -206,7 +206,7 @@ flowchart LR
 | ----------------------- | ------------------------------------------------------------- |
 | `departmentId`          | = `org_nodes.id` = `members.department_id`                    |
 | `RoutingRule.id`        | = `nodeId`                                                    |
-| `sk-xxx`                | → `platform_keys.key_hash` → `relay_mappings.newapi_token_id` |
+| `sk-xxx`                | → `platform_keys.key_hash` → `platform_key_mappings.newapi_key_id` |
 | `newapi_wallet_user_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `balance_point`） |
 | `TOKENJOY_COMPANY_ID`   | 平台模型源公司 ID（默认 `1`）                                 |
 | `LOCAL_COMPANY_ID`      | 本地化部署业务公司 ID（默认 `2`）                             |
@@ -277,14 +277,14 @@ flowchart LR
 | **limit**     | `budget_groups.budget`                                             | 预算组                              | 池额度                                        |
 | **limit**     | `platform_keys.quota`                                              | 平台 Key                            | Key 分配额                                    |
 | **limit**     | `companies.balance_point` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
-| **limit**     | NewAPI `remain_quota` / `relay_mappings.newapi_token_remain_quota` | Token                               | Relay 侧剩余额度（分配视图，非组织 consumed） |
+| **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | Token                               | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
 | **consumed**  | `budget_snapshots.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |
 | **consumed**  | `usage_ledger.amount`                                              | 单笔调用                            | 事实账本（point）                             |
 | **consumed**  | `usage_buckets.cost`                                               | 看板聚合                            | 展示投影（point）                             |
 | **consumed**  | JSON `consumed`                                                    | `BudgetNode` · `Department` · 看板  | 读自 snapshot                                 |
 | **consumed**  | JSON `used`                                                        | `PlatformKey` · `MemberBudgetQuota` | **与 consumed 同义**，仅 JSON 名不同          |
 | **remaining** | JSON `remaining` / `remain`                                        | `MemberQuotaSummary` 等             | 计算字段                                      |
-| **remaining** | NewAPI `remain_quota`                                              | Token                               | Relay 配额，受钱包 rebalance 封顶             |
+| **remaining** | NewAPI `remain_quota`                                              | Token                               | NewAPIKey remain 配额，受钱包 rebalance 封顶             |
 
 ### 8.4 读代码速查
 

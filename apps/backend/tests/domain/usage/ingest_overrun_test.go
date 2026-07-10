@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
@@ -23,7 +23,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 
 	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(24999.5))
 
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(3001, 99))
 	if err := ingest.IngestByLogID(testutil.Ctx(), 3001, types.SourceWebhook); err != nil {
@@ -60,6 +60,6 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 		t.Fatalf("expected plk-1 disabled after department overrun, status=%q", plk1.Status)
 	}
 	if stub.UpdateTokenCalls == 0 {
-		t.Fatal("expected UpdateToken call when disabling relay token")
+		t.Fatal("expected UpdateToken call when disabling platform key via newapi")
 	}
 }

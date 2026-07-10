@@ -22,10 +22,10 @@ func newBillingServiceWithSync(t *testing.T, client *mock.StubAdminClient) (doma
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, client, wallet,
 		func(ctx context.Context, companyID int64) error {
-			return st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+			return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 		},
 		func(ctx context.Context, companyID int64) error {
-			return st.Relay().EnqueueWalletSync(company.WithContext(ctx, company.Context{CompanyID: companyID}), companyID)
+			return st.AsyncJobs().EnqueueWalletSync(company.WithContext(ctx, company.Context{CompanyID: companyID}), companyID)
 		},
 	)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)

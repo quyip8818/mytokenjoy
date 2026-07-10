@@ -19,4 +19,4 @@ const WalletSyncDebounceSecs = 5
 // WalletSyncRetryAfterSecs is returned when gateway rejects due to pending wallet_sync lag.
 const WalletSyncRetryAfterSecs = WalletSyncDebounceSecs
 
-const RelayGroupPrefix = "dept-"
+const NewAPIGroupPrefix = "dept-"

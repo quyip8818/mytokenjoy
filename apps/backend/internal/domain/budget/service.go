@@ -476,7 +476,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		}
 
 		// Enqueue rebalance for the member axis
-		_ = s.store.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, approval.ApplicantID)
+		_ = s.store.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisMember, approval.ApplicantID)
 	} else {
 		// Rejected - just update status
 		if err := s.store.Budget().UpdateBudgetApproval(ctx, id, input.Status, input.RejectReason, now); err != nil {

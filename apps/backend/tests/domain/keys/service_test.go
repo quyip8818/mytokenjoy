@@ -48,7 +48,7 @@ func TestApprovalQuotaCheckSufficient(t *testing.T) {
 
 func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 	t.Parallel()
-	svc, st, _ := newKeysServiceWithRelay(t)
+	svc, st, _ := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	keysBefore, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -126,7 +126,7 @@ func TestRejectApproval(t *testing.T) {
 	}
 }
 
-func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
+func TestCreatePlatformKeyRequiresNewAPI(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
@@ -139,7 +139,7 @@ func TestCreatePlatformKeyRequiresRelay(t *testing.T) {
 
 func TestCreatePlatformKeySuccess(t *testing.T) {
 	t.Parallel()
-	svc, _, _ := newKeysServiceWithRelay(t)
+	svc, _, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", MemberID: &memberID, Quota: 1000,
@@ -149,7 +149,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	if created.FullKey == nil || *created.FullKey != "sk-test-key" {
-		t.Fatalf("expected relay full key, got %+v", created.FullKey)
+		t.Fatalf("expected platform key full key, got %+v", created.FullKey)
 	}
 }
 
@@ -209,7 +209,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	t.Parallel()
-	svc, st, _ := newKeysServiceWithRelay(t)
+	svc, st, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", MemberID: &memberID, Quota: 500,
@@ -268,13 +268,13 @@ func TestQuotaSummaryIncludesSnapshotUsed(t *testing.T) {
 
 func TestRevokePlatformKey(t *testing.T) {
 	t.Parallel()
-	svc, st, _ := newKeysServiceWithRelay(t)
+	svc, st, _ := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(99)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
-		SyncStatus:    store.RelaySyncStatusSynced,
+		NewAPIKeyID:   &tokenID,
+		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
 		t.Fatal(err)
 	}

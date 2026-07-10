@@ -9,7 +9,7 @@ import (
 
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
@@ -157,8 +157,8 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	relayfix.UpsertMapping(t, app.Store, relayfix.MappingOpts{
-		PlatformKeyID: "plk-minute-test", NewAPITokenID: 42,
+	newapisynctf.UpsertMapping(t, app.Store, newapisynctf.MappingOpts{
+		PlatformKeyID: "plk-minute-test", NewAPIKeyID: 42,
 	})
 	ingest := testutil.NewIngestService(t, testutil.TestConfig(testutil.WithIngestEnabled(true)), app.Store)
 	occurredAt := time.Date(2026, 6, 10, 9, 3, 0, 0, time.UTC)

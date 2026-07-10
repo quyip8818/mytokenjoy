@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const testTemplateVersion = 9
+const testTemplateVersion = 10
 
 var (
 	templateOnce sync.Once

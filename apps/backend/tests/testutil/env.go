@@ -23,7 +23,7 @@ func ApplyProductionEnv(t *testing.T) {
 	t.Setenv("BOOTSTRAP_MODE", config.BootstrapNone)
 	t.Setenv("SECURE_COOKIE", "true")
 	t.Setenv("NEW_API_ENABLED", "true")
-	t.Setenv("RELAY_GATEWAY_ENABLED", "true")
+	t.Setenv("NEWAPI_GATEWAY_ENABLED", "true")
 	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000")
 	t.Setenv("NEW_API_ADMIN_TOKEN", "admin-token")
 	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5432/logs?sslmode=disable")

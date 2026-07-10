@@ -9,8 +9,8 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	"github.com/tokenjoy/backend/internal/domain/relay"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -19,9 +19,9 @@ import (
 
 type Runner struct {
 	cfg           config.Config
-	relayJobs     store.RelayJobRepository
+	asyncJobs     store.AsyncJobsRepository
 	schedulerLock store.SchedulerLockRepository
-	relaySync     relay.RelayOutboxSync
+	newAPISync    newapisync.OutboxHandler
 	overrun       domainbudget.OverrunProcessor
 	rebalance     domainbudget.Rebalancer
 	walletSync    billingWalletSync
@@ -37,11 +37,11 @@ type Runner struct {
 
 func NewRunner(
 	cfg config.Config,
-	relayRepo store.RelayRepository,
+	asyncJobsRepo store.AsyncJobsRepository,
 	schedulerLock store.SchedulerLockRepository,
 	logStore store.LogStore,
 	metrics ingestmetrics.Recorder,
-	relaySync relay.RelayOutboxSync,
+	newAPISync newapisync.OutboxHandler,
 	ingest domainusage.Ingestor,
 	ingestQueue domainusage.Queue,
 	overrun domainbudget.OverrunProcessor,
@@ -62,9 +62,9 @@ func NewRunner(
 	holderID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
 	return &Runner{
 		cfg:           cfg,
-		relayJobs:     relayRepo,
+		asyncJobs:     asyncJobsRepo,
 		schedulerLock: schedulerLock,
-		relaySync:     relaySync,
+		newAPISync:    newAPISync,
 		overrun:       overrun,
 		rebalance:     rebalance,
 		walletSync:    billingWalletSync{svc: billingSvc},
@@ -83,7 +83,7 @@ func (r *Runner) Start(ctx context.Context) {
 	if r.cfg.IngestEnabled() {
 		go r.ingestLoop(ctx)
 	}
-	go r.relayLoop(ctx)
+	go r.asyncLoop(ctx)
 }
 
 func (r *Runner) ingestLoop(ctx context.Context) {
@@ -104,7 +104,7 @@ func (r *Runner) ingestLoop(ctx context.Context) {
 	}
 }
 
-func (r *Runner) relayLoop(ctx context.Context) {
+func (r *Runner) asyncLoop(ctx context.Context) {
 	ticker := time.NewTicker(r.interval)
 	defer ticker.Stop()
 	for {
@@ -113,7 +113,7 @@ func (r *Runner) relayLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			r.syncTick += r.interval
-			r.relayTick(ctx)
+			r.asyncTick(ctx)
 			if r.syncTick >= r.syncEvery {
 				r.syncTick = 0
 				r.logStep("org_sync", r.processOrgSync(ctx))
@@ -122,8 +122,8 @@ func (r *Runner) relayLoop(ctx context.Context) {
 	}
 }
 
-func (r *Runner) relayTick(ctx context.Context) {
-	r.logStep("outbox_relay", r.processRelayOutbox(ctx))
+func (r *Runner) asyncTick(ctx context.Context) {
+	r.logStep("outbox_newapi_sync", r.processNewAPISyncOutbox(ctx))
 	if !r.cfg.NewAPIEnabled {
 		return
 	}
@@ -146,11 +146,11 @@ func (r *Runner) logStep(step string, err error) {
 
 func (r *Runner) processMonthlyRebalance(ctx context.Context) error {
 	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
-	return r.relaySync.EnqueueRebalanceAxis(workerCtx, "company", fmt.Sprintf("%d", r.cfg.DefaultCompanyID))
+	return r.newAPISync.EnqueueRebalanceAxis(workerCtx, "company", fmt.Sprintf("%d", r.cfg.DefaultCompanyID))
 }
 
 func (r *Runner) RunOnce(ctx context.Context) {
-	r.relayTick(ctx)
+	r.asyncTick(ctx)
 	if r.cfg.IngestEnabled() {
 		r.logStep("ingest_pending", r.ingestWorker.ProcessPending(ctx))
 	}
@@ -160,26 +160,26 @@ func (r *Runner) RunReconcileOnce(ctx context.Context) error {
 	return r.ingestWorker.ProcessReconcile(ctx)
 }
 
-func (r *Runner) markRelayOutboxRetry(ctx context.Context, id string, delay time.Duration, reason string) {
-	if err := r.relayJobs.MarkRelayOutboxRetry(ctx, id, delay, reason); err != nil {
-		r.logger.Warn("mark relay outbox retry failed", "id", id, "error", err)
+func (r *Runner) markJobRetry(ctx context.Context, id string, delay time.Duration, reason string) {
+	if err := r.asyncJobs.MarkJobRetry(ctx, id, delay, reason); err != nil {
+		r.logger.Warn("mark job retry failed", "id", id, "error", err)
 	}
 }
 
-func (r *Runner) markRelayOutboxDone(ctx context.Context, id string) {
-	if err := r.relayJobs.MarkRelayOutboxDone(ctx, id); err != nil {
-		r.logger.Warn("mark relay outbox done failed", "id", id, "error", err)
+func (r *Runner) markJobDone(ctx context.Context, id string) {
+	if err := r.asyncJobs.MarkJobDone(ctx, id); err != nil {
+		r.logger.Warn("mark job done failed", "id", id, "error", err)
 	}
 }
 
-func (r *Runner) markRelayOutboxFailed(ctx context.Context, id string, reason string) {
-	if err := r.relayJobs.MarkRelayOutboxFailed(ctx, id, reason); err != nil {
-		r.logger.Warn("mark relay outbox failed", "id", id, "error", err)
+func (r *Runner) markJobFailed(ctx context.Context, id string, reason string) {
+	if err := r.asyncJobs.MarkJobFailed(ctx, id, reason); err != nil {
+		r.logger.Warn("mark job failed", "id", id, "error", err)
 	}
 }
 
 func (r *Runner) markRebalanceDone(ctx context.Context, id string) {
-	if err := r.relayJobs.MarkRebalanceDone(ctx, id); err != nil {
+	if err := r.asyncJobs.MarkRebalanceDone(ctx, id); err != nil {
 		r.logger.Warn("mark rebalance done failed", "id", id, "error", err)
 	}
 }

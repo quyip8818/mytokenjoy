@@ -6,8 +6,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainrelay "github.com/tokenjoy/backend/internal/domain/relay"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/worker"
@@ -30,11 +30,11 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 	return worker.NewRunner(
 		r.Config,
-		r.Store.Relay(),
+		r.Store.AsyncJobs(),
 		r.Store.SchedulerLock(),
 		r.Store.Logs(),
 		r.IngestMetrics,
-		r.Infra.lifecycle,
+		r.Infra.newAPISync,
 		r.IngestSvc,
 		r.IngestQueue,
 		r.Overrun,
@@ -53,13 +53,13 @@ func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 }
 
 func buildServiceRegistry(cfg config.Config, i infra, services domainServices) ServiceRegistry {
-	var relayGateway domainrelay.GatewayService
-	if cfg.RelayGatewayEnabled && cfg.NewAPIEnabled {
+	var newAPIGateway domaingateway.GatewayService
+	if cfg.NewAPIGatewayEnabled && cfg.NewAPIEnabled {
 		gw, err := wireGatewayService(cfg, i)
 		if err != nil {
 			panic(fmt.Errorf("wire gateway service: %w", err))
 		}
-		relayGateway = gw
+		newAPIGateway = gw
 	}
 	authzSvc, credSvc, memberToken, platformToken, err := wireIdentity(cfg, i.store)
 	if err != nil {
@@ -89,7 +89,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			MemberAnalyticsSvc:   services.memberAnalytics,
 			WalletSvc:            i.wallet,
 			CompanyGate:          i.companyGate,
-			RelayGateway:         relayGateway,
+			NewAPIGateway:        newAPIGateway,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

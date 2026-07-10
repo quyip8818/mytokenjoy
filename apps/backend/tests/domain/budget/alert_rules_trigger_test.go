@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -58,7 +58,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	relayfix.UpsertMapping(t, st, relayfix.DefaultMappingOpts())
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	if err := st.Org().UpdateMemberPersonalQuota(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
@@ -147,12 +147,12 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 		t.Fatal(err)
 	}
 	tokenID := int64(99)
-	if err := st.Relay().UpsertMapping(ctx, store.RelayMapping{
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
+		NewAPIKeyID:   &tokenID,
 		DepartmentID:  contract.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "group-" + groupID,
+		SyncStatus:    store.MappingSyncStatusSynced,
+		NewAPIGroup:   "group-" + groupID,
 	}); err != nil {
 		t.Fatal(err)
 	}

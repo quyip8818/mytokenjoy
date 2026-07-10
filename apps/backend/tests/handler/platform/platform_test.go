@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -177,7 +177,7 @@ func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 func TestSuspendedCompanyGatewayRejected(t *testing.T) {
 	t.Parallel()
 	units := int64(1_000_000)
-	scenario := relayfix.BuildGatewayScenario(t, relayfix.GatewayScenarioOpts{
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		WalletQuota:   units,
 		Budget:        1000,
 		CompanyStatus: store.CompanyStatusSuspended,

@@ -116,15 +116,15 @@ func TestWalletServiceCacheExpires(t *testing.T) {
 	}
 }
 
-func TestIsRelayBlockedStatus(t *testing.T) {
+func TestIsGatewayBlockedStatus(t *testing.T) {
 	t.Parallel()
-	if company.IsRelayBlocked("active") {
+	if company.IsGatewayBlocked("active") {
 		t.Error("active should not be blocked")
 	}
-	if !company.IsRelayBlocked("suspended") {
+	if !company.IsGatewayBlocked("suspended") {
 		t.Error("suspended should be blocked")
 	}
-	if !company.IsRelayBlocked("") {
+	if !company.IsGatewayBlocked("") {
 		t.Error("empty status should be blocked")
 	}
 }

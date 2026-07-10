@@ -8,7 +8,7 @@ import (
 )
 
 func (r *Runner) processWalletSync(ctx context.Context) error {
-	entries, err := r.relayJobs.ClaimPendingWalletSync(ctx, 20)
+	entries, err := r.asyncJobs.ClaimPendingWalletSync(ctx, 20)
 	if err != nil {
 		return err
 	}
@@ -24,7 +24,7 @@ func (r *Runner) processWalletSync(ctx context.Context) error {
 }
 
 func (r *Runner) markWalletSyncDone(ctx context.Context, id string) {
-	if err := r.relayJobs.MarkWalletSyncDone(ctx, id); err != nil {
+	if err := r.asyncJobs.MarkWalletSyncDone(ctx, id); err != nil {
 		r.logger.Warn("mark wallet_sync done failed", "id", id, "error", err)
 	}
 }

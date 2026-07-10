@@ -3,19 +3,19 @@ package worker_test
 import (
 	"testing"
 
-	relay "github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
+	workerTF "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
-func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *relay.TokenLifecycle) {
+func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync) {
 	t.Helper()
-	runner, st, lifecycle, _ := workerfix.NewRunner(t, stub)
-	return runner, st, lifecycle
+	runner, st, newAPISync, _ := workerTF.NewRunner(t, stub)
+	return runner, st, newAPISync
 }
 
-func pendingRelayOutbox(st store.Store, kind string) int {
-	return workerfix.PendingRelayOutbox(st, kind)
+func pendingNewAPISyncOutbox(st store.Store, kind string) int {
+	return workerTF.PendingNewAPISyncOutbox(st, kind)
 }

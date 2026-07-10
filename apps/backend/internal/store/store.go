@@ -46,7 +46,8 @@ type Store interface {
 	Models() ModelsRepository
 	Audit() AuditRepository
 	Ledger() LedgerRepository
-	Relay() RelayRepository
+	PlatformKeyMappings() PlatformKeyMappingRepository
+	AsyncJobs() AsyncJobsRepository
 	BudgetSnapshots() BudgetSnapshotRepository
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
@@ -63,5 +64,6 @@ type ConsumptionWriter interface {
 	BudgetSnapshots() BudgetSnapshotRepository
 	Org() OrgRepository
 	Keys() KeysRepository
-	Relay() RelayRepository
+	PlatformKeyMappings() PlatformKeyMappingRepository
+	AsyncJobs() AsyncJobsRepository
 }

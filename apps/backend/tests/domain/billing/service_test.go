@@ -21,7 +21,7 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, client, wallet,
 		func(ctx context.Context, companyID int64) error {
-			return st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+			return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 		},
 		nil,
 	)

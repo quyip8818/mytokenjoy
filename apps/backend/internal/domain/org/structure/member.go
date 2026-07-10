@@ -318,13 +318,13 @@ func (s *Local) TransferMembers(ctx context.Context, ids []string, departmentID 
 			members[i].DepartmentID = departmentID
 			members[i].DepartmentName = deptName
 
-			mappings, err := st.Relay().ListMappingsByMemberID(ctx, members[i].ID)
+			mappings, err := st.PlatformKeyMappings().ListMappingsByMemberID(ctx, members[i].ID)
 			if err != nil {
 				return err
 			}
 			for _, mapping := range mappings {
 				mapping.DepartmentID = departmentID
-				if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
+				if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 					return err
 				}
 			}

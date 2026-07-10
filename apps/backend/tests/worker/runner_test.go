@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	relayfix "github.com/tokenjoy/backend/tests/testutil/relay"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -18,69 +18,69 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-func TestProcessUnknownRelayOutboxKindFails(t *testing.T) {
+func TestProcessUnknownNewAPISyncOutboxKindFails(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	if err := st.Relay().EnqueueRelayOutbox(ctx, store.RelayOutboxEntry{
-		ID: "outbox-unknown", Kind: "unknown_kind", Payload: []byte(`{}`), Status: store.OutboxStatusPending,
+	if err := st.AsyncJobs().EnqueueNewAPISyncOutbox(ctx, store.AsyncJob{
+		ID: "outbox-unknown", Kind: "unknown_kind", Payload: []byte(`{}`), Status: store.JobStatusPending,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	runner.RunOnce(ctx)
 
-	entry, found := testutil.RelayOutboxEntry(st, "outbox-unknown")
+	entry, found := testutil.NewAPISyncOutboxEntry(st, "outbox-unknown")
 	if !found {
 		t.Fatal("expected unknown outbox entry to remain in store")
 	}
-	if entry.Status != store.OutboxStatusFailed {
+	if entry.Status != store.JobStatusFailed {
 		t.Fatalf("expected failed status, got %q", entry.Status)
 	}
-	if entry.LastError == nil || !strings.Contains(*entry.LastError, "unknown relay outbox kind") {
+	if entry.LastError == nil || !strings.Contains(*entry.LastError, "unknown newapi sync outbox kind") {
 		t.Fatalf("expected unknown kind error recorded, got %v", entry.LastError)
 	}
 }
 
-func TestProcessRelayOutboxRelayDisabledMarksFailed(t *testing.T) {
+func TestProcessNewAPISyncOutboxDisabledMarksFailed(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
-	runner, st, _ := workerfix.NewRelayDisabledRunner(t, stub)
+	runner, st, _ := workerfix.NewDisabledNewAPIRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	payload, err := json.Marshal(relay.UpdateTokenOutboxPayload{
+	payload, err := json.Marshal(newapisync.UpdateKeyOutboxPayload{
 		CompanyID:     contract.DefaultCompanyID,
 		PlatformKeyID: contract.IDPlatformKey1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Relay().EnqueueRelayOutbox(ctx, store.RelayOutboxEntry{
-		ID: "outbox-relay-off", Kind: store.OutboxKindUpdateToken, Payload: payload, Status: store.OutboxStatusPending,
+	if err := st.AsyncJobs().EnqueueNewAPISyncOutbox(ctx, store.AsyncJob{
+		ID: "outbox-newapi-off", Kind: store.OutboxKindUpdateKey, Payload: payload, Status: store.JobStatusPending,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	runner.RunOnce(ctx)
 
-	entry, found := testutil.RelayOutboxEntry(st, "outbox-relay-off")
+	entry, found := testutil.NewAPISyncOutboxEntry(st, "outbox-newapi-off")
 	if !found {
 		t.Fatal("expected outbox entry to remain in store")
 	}
-	if entry.Status != store.OutboxStatusFailed {
+	if entry.Status != store.JobStatusFailed {
 		t.Fatalf("expected failed status, got %q", entry.Status)
 	}
-	if pendingRelayOutbox(st, store.OutboxKindUpdateToken) != 0 {
-		t.Fatal("expected no pending update_token outbox after permanent failure")
+	if pendingNewAPISyncOutbox(st, store.OutboxKindUpdateKey) != 0 {
+		t.Fatal("expected no pending update_key outbox after permanent failure")
 	}
 }
 
-func TestProcessRelayOutbox(t *testing.T) {
+func TestProcessNewAPISyncOutbox(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
-	runner, st, lifecycle := newWorkerRunner(t, stub)
+	runner, st, newAPISync := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
 	memberID := contract.IDMember1
@@ -98,11 +98,11 @@ func TestProcessRelayOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := lifecycle.SyncCreatePlatformKey(ctx, key, contract.IDDept3); err != nil {
+	if err := newAPISync.SyncCreatePlatformKey(ctx, key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
-	if pendingRelayOutbox(st, store.OutboxKindCreateToken) == 0 {
-		t.Fatal("expected pending create_token outbox before RunOnce")
+	if pendingNewAPISyncOutbox(st, store.OutboxKindCreateKey) == 0 {
+		t.Fatal("expected pending create_key outbox before RunOnce")
 	}
 
 	runner.RunOnce(ctx)
@@ -110,8 +110,8 @@ func TestProcessRelayOutbox(t *testing.T) {
 	if stub.CreateTokenCalls < 1 {
 		t.Fatalf("expected CreateToken to be called, got %d", stub.CreateTokenCalls)
 	}
-	if pendingRelayOutbox(st, store.OutboxKindCreateToken) != 0 {
-		t.Fatal("expected relay outbox done after RunOnce")
+	if pendingNewAPISyncOutbox(st, store.OutboxKindCreateKey) != 0 {
+		t.Fatal("expected newapi sync outbox done after RunOnce")
 	}
 }
 
@@ -122,8 +122,8 @@ func TestReconcileLogs(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(88)
-	relayfix.UpsertMapping(t, st, relayfix.MappingOpts{
-		PlatformKeyID: contract.IDPlatformKey1, NewAPITokenID: tokenID,
+	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
 	})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(500, tokenID))
 
@@ -167,9 +167,9 @@ func TestIngestJobMappingLateRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	opts := relayfix.DefaultMappingOpts()
-	opts.NewAPITokenID = tokenID
-	relayfix.UpsertMapping(t, st, opts)
+	opts := newapisynctf.DefaultMappingOpts()
+	opts.NewAPIKeyID = tokenID
+	newapisynctf.UpsertMapping(t, st, opts)
 
 	runner.RunOnce(ctx)
 

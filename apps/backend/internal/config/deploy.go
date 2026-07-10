@@ -38,8 +38,8 @@ func (c Config) validateProductionContract() error {
 	if !c.NewAPIEnabled {
 		return fmt.Errorf("NEW_API_ENABLED must be true in production")
 	}
-	if !c.RelayGatewayEnabled {
-		return fmt.Errorf("RELAY_GATEWAY_ENABLED must be true in production")
+	if !c.NewAPIGatewayEnabled {
+		return fmt.Errorf("NEWAPI_GATEWAY_ENABLED must be true in production")
 	}
 	if strings.TrimSpace(c.LogDatabaseURL) == "" {
 		return fmt.Errorf("LOG_DATABASE_URL is required in production")

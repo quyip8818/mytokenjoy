@@ -6,7 +6,7 @@ import (
 
 func (r *Runner) processRebalance(ctx context.Context) error {
 	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
-	entries, err := r.relayJobs.ClaimPendingRebalance(workerCtx, 20)
+	entries, err := r.asyncJobs.ClaimPendingRebalance(workerCtx, 20)
 	if err != nil {
 		return err
 	}
@@ -14,7 +14,7 @@ func (r *Runner) processRebalance(ctx context.Context) error {
 		entryCtx := r.workerCtx(ctx, entry.CompanyID)
 		if err := r.rebalance.ProcessAxis(entryCtx, entry.AxisKind, entry.AxisID); err != nil {
 			r.logger.Warn("rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "company_id", entry.CompanyID, "error", err)
-			if enqueueErr := r.relaySync.EnqueueRebalanceAxis(entryCtx, entry.AxisKind, entry.AxisID); enqueueErr != nil {
+			if enqueueErr := r.newAPISync.EnqueueRebalanceAxis(entryCtx, entry.AxisKind, entry.AxisID); enqueueErr != nil {
 				r.logger.Warn("re-enqueue rebalance failed", "axis", entry.AxisKind, "id", entry.AxisID, "error", enqueueErr)
 			}
 			continue

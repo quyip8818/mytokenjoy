@@ -81,24 +81,24 @@ func TestLoadOrSeedDomain(t *testing.T) {
 	}
 }
 
-func TestRelayMappingRoundTrip(t *testing.T) {
+func TestPlatformKeyMappingRoundTrip(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(99001)
 	memberID := contract.IDMember1
-	mapping := store.RelayMapping{
+	mapping := store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
-		NewAPITokenID: &tokenID,
+		NewAPIKeyID:   &tokenID,
 		MemberID:      &memberID,
 		DepartmentID:  contract.IDDept3,
-		SyncStatus:    store.RelaySyncStatusSynced,
-		RelayGroup:    "dept-dept-3",
+		SyncStatus:    store.MappingSyncStatusSynced,
+		NewAPIGroup:   "dept-dept-3",
 	}
-	if err := st.Relay().UpsertMapping(ctx, mapping); err != nil {
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Relay().GetMappingByPlatformKeyID(ctx, contract.IDPlatformKey1)
+	got, err := st.PlatformKeyMappings().GetMappingByPlatformKeyID(ctx, contract.IDPlatformKey1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,8 +111,8 @@ func TestRelayMappingRoundTrip(t *testing.T) {
 	if got.DepartmentID != contract.IDDept3 {
 		t.Fatalf("expected department from member join, got %q", got.DepartmentID)
 	}
-	if got.NewAPITokenID == nil || *got.NewAPITokenID != tokenID {
-		t.Fatalf("expected token id %d, got %v", tokenID, got.NewAPITokenID)
+	if got.NewAPIKeyID == nil || *got.NewAPIKeyID != tokenID {
+		t.Fatalf("expected token id %d, got %v", tokenID, got.NewAPIKeyID)
 	}
 }
 

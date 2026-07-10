@@ -71,7 +71,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		}
 	}
 
-	if err := s.requireRelay(); err != nil {
+	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
 

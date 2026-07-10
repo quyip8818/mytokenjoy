@@ -358,7 +358,7 @@ CREATE TABLE IF NOT EXISTS provider_keys (
     name             TEXT NOT NULL,
     key_prefix       TEXT NOT NULL,
     secret_key       TEXT NOT NULL,
-    relay_channel_id INT NOT NULL DEFAULT 0,
+    newapi_channel_id INT NOT NULL DEFAULT 0,
     status           TEXT NOT NULL,
     balance          NUMERIC(18, 6),
     last_used        TIMESTAMPTZ,
@@ -502,25 +502,25 @@ CREATE INDEX IF NOT EXISTS idx_usage_buckets_member_time ON usage_buckets (compa
 
 
 -- Runtime
-CREATE TABLE IF NOT EXISTS relay_mappings (
-    company_id                BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    platform_key_id           TEXT NOT NULL,
-    newapi_token_id           BIGINT,
-    relay_group               TEXT NOT NULL,
-    sync_status               TEXT NOT NULL DEFAULT 'pending',
-    synced_at                 TIMESTAMPTZ,
-    newapi_token_remain_quota BIGINT,
-    created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+CREATE TABLE IF NOT EXISTS platform_key_mappings (
+    company_id              BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    platform_key_id         TEXT NOT NULL,
+    newapi_key_id           BIGINT,
+    newapi_group            TEXT NOT NULL,
+    sync_status             TEXT NOT NULL DEFAULT 'pending',
+    synced_at               TIMESTAMPTZ,
+    newapi_key_remain_quota BIGINT,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, platform_key_id),
     FOREIGN KEY (company_id, platform_key_id) REFERENCES platform_keys (company_id, id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_relay_mappings_token
-    ON relay_mappings (company_id, newapi_token_id) WHERE newapi_token_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_key_mappings_key
+    ON platform_key_mappings (company_id, newapi_key_id) WHERE newapi_key_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_relay_mappings_sync_pending
-    ON relay_mappings (company_id, sync_status) WHERE sync_status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_platform_key_mappings_sync_pending
+    ON platform_key_mappings (company_id, sync_status) WHERE sync_status = 'pending';
 
 CREATE TABLE IF NOT EXISTS budget_snapshots (
     company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,

@@ -42,14 +42,14 @@ type Config struct {
 	IngestReconcileMaxRounds   int `env:"INGEST_RECONCILE_MAX_ROUNDS" envDefault:"10"`
 	IngestJobBatchSize         int `env:"INGEST_JOB_BATCH_SIZE" envDefault:"20"`
 
-	SupportSaas              bool   `env:"SUPPORT_SAAS" envDefault:"false"`
-	CompanyName              string `env:"COMPANY_NAME"`
-	TokenJoyCompanyID        int64  `env:"TOKENJOY_COMPANY_ID" envDefault:"1"`
-	LocalCompanyID           int64  `env:"LOCAL_COMPANY_ID" envDefault:"2"`
-	DefaultCompanyID         int64  `env:"DEFAULT_COMPANY_ID" envDefault:"2"`
-	PlatformSharedRelayGroup string `env:"PLATFORM_SHARED_RELAY_GROUP" envDefault:"platform_shared"`
-	RelayGatewayEnabled      bool   `env:"RELAY_GATEWAY_ENABLED" envDefault:"false"`
-	CompanyWalletCacheTTLSec int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
+	SupportSaas               bool   `env:"SUPPORT_SAAS" envDefault:"false"`
+	CompanyName               string `env:"COMPANY_NAME"`
+	TokenJoyCompanyID         int64  `env:"TOKENJOY_COMPANY_ID" envDefault:"1"`
+	LocalCompanyID            int64  `env:"LOCAL_COMPANY_ID" envDefault:"2"`
+	DefaultCompanyID          int64  `env:"DEFAULT_COMPANY_ID" envDefault:"2"`
+	PlatformSharedNewAPIGroup string `env:"PLATFORM_SHARED_NEWAPI_GROUP" envDefault:"platform_shared"`
+	NewAPIGatewayEnabled      bool   `env:"NEWAPI_GATEWAY_ENABLED" envDefault:"false"`
+	CompanyWalletCacheTTLSec  int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
 
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`

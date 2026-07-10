@@ -48,7 +48,7 @@ func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source s
 }
 
 func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, source string) error {
-	mapping, err := s.store.Relay().FindMappingByNewAPITokenID(ctx, raw.TokenID)
+	mapping, err := s.store.PlatformKeyMappings().FindMappingByNewAPIKeyID(ctx, raw.TokenID)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	})
 }
 
-func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *store.RelayMapping) (context.Context, error) {
+func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *store.PlatformKeyMapping) (context.Context, error) {
 	companyCtx := company.Context{CompanyID: mapping.CompanyID}
 	co, err := s.store.Company().GetByID(ctx, mapping.CompanyID)
 	if err != nil {

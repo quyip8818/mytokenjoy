@@ -6,7 +6,7 @@ import (
 
 func (r *Runner) processOverrun(ctx context.Context) error {
 	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
-	entries, err := r.relayJobs.ClaimPendingOverrun(workerCtx, 20)
+	entries, err := r.asyncJobs.ClaimPendingOverrun(workerCtx, 20)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func (r *Runner) processOverrun(ctx context.Context) error {
 }
 
 func (r *Runner) markOverrunDone(ctx context.Context, id string) {
-	if err := r.relayJobs.MarkOverrunDone(ctx, id); err != nil {
+	if err := r.asyncJobs.MarkOverrunDone(ctx, id); err != nil {
 		r.logger.Warn("mark overrun done failed", "id", id, "error", err)
 	}
 }

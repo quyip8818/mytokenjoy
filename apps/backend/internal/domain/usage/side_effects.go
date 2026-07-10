@@ -17,15 +17,15 @@ type overrunPayload struct {
 
 func enqueueSideEffects(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry) error {
 	if entry.MemberID != nil {
-		if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {
+		if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {
 			return err
 		}
 	}
-	if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisDepartment, entry.DepartmentID); err != nil {
+	if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisDepartment, entry.DepartmentID); err != nil {
 		return err
 	}
 	if entry.BudgetGroupID != nil {
-		if err := st.Relay().EnqueueRebalance(ctx, store.RebalanceAxisBudgetGroup, *entry.BudgetGroupID); err != nil {
+		if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisBudgetGroup, *entry.BudgetGroupID); err != nil {
 			return err
 		}
 	}
@@ -39,5 +39,5 @@ func enqueueSideEffects(ctx context.Context, st store.ConsumptionWriter, entry t
 	if err != nil {
 		return err
 	}
-	return st.Relay().EnqueueOverrun(ctx, overrunRaw)
+	return st.AsyncJobs().EnqueueOverrun(ctx, overrunRaw)
 }

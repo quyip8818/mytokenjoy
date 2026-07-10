@@ -10,18 +10,18 @@
 
 | 文档                                         | 内容                                                       |
 | -------------------------------------------- | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、Relay/Worker、看板读路径 |
+| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、中间件、Store 抽象、NewAPISync/Worker、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [Backend-重构建议.md](./Backend-重构建议.md) | 终态收口形态、实施顺序与明确不做项                         |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 去 Relay / 去领域 Token；文件/类型/库表/契约一次性重命名 |
+| [Backend-命名统一.md](./Backend-命名统一.md) | 去 NewAPI（已执行）/ 去领域 Token（指 Key）；保留 PlatformKey；一次性重命名 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Relay 现状与可优化点 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 现状与可优化点 |
 
-**模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Relay/审计用 `callType`；见 §2.1 ADR。
+**模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 
 Seed 与测试见本文 [§5](#5-测试与-seed)。
 
@@ -49,7 +49,7 @@ Seed 与测试见本文 [§5](#5-测试与-seed)。
 | -------------------- | ------------------------------------------ |
 | NewAPI 企业隔离      | 单集群；每企业一个 `newapi_wallet_user_id` |
 | 计费主账             | Postgres `company_recharge_lots` + ledger；NewAPI `users.quota` 为派生缓存 |
-| 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Relay 运行时仍用 `callType` |
+| 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Gateway 运行时仍用 `callType` |
 | Token `remain_quota` | 分配视图；`rebalance` 按 Postgres `balance_point` 封顶 |
 | 双轴                 | 钱包=预付 point（lot）；部门 budget=组织内 point 配额 |
 | Gateway              | 预检（Postgres 优先）后透传 NewAPI         |
@@ -69,7 +69,7 @@ flowchart TB
     subgraph gateway [TokenJoy apps/backend]
         MW[CompanyResolve]
         API[/api 管理面]
-        RELAY[/v1 Relay Gateway]
+        GW[/v1 Gateway]
         STORE[(Postgres)]
     end
 
@@ -81,10 +81,10 @@ flowchart TB
 
     C1 --> MW --> API
     C2 --> API
-    C3 --> RELAY
+    C3 --> GW
     API --> STORE
-    RELAY --> STORE
-    RELAY --> newapi
+    GW --> STORE
+    GW --> newapi
     WA --> CH
     WB --> CH
 ```
@@ -121,7 +121,7 @@ sequenceDiagram
 
 充值 `company_recharge_orders`：`pending` → `confirmed`（写 lot）→ 异步派生同步 NewAPI → 企业级 rebalance。详情见 [Backend-计费模式.md](./Backend-计费模式.md)。平台 API 见 [Frontend.md](./Frontend.md) §5.5。
 
-### 2.5 Keys 域约束（Platform Key / Relay）
+### 2.5 Keys 域约束（Platform Key / NewAPI）
 
 实现待办见 [plan.md](./plan.md) §3。
 
@@ -129,13 +129,13 @@ sequenceDiagram
 | ------------------- | -------------------------------------------------------- |
 | 无增量 migration    | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
 | 推导字段不入库      | `memberName` / `projectName` 等仅 JSON enrich            |
-| Platform Key secret | 必须经 Relay 下发；禁止本地 placeholder                  |
+| Platform Key secret | 必须经 NewAPISync 下发；禁止本地 placeholder                  |
 | Rotate              | `POST .../rotate` → 200 + 一次性 `fullKey`；非 active `409` |
-| 错误语义            | 不存在 `404`；Relay 不可用 `503`；状态冲突 `409`           |
+| 错误语义            | 不存在 `404`；NewAPI 不可用 `503`；状态冲突 `409`           |
 
-**本地开发：** 创建 / 审批发 Key / Toggle / Revoke / Rotate 须启用 Relay；否则 `503`。
+**本地开发：** 创建 / 审批发 Key / Toggle / Revoke / Rotate 须启用 NewAPI；否则 `503`。
 
-**实现索引：** `domain/keys/platform_key_enrich.go` · `platform_key_relay.go` · `platform_key_actions.go` · `domain/keys/approval.go` · `domain/relay/interface.go`
+**实现索引：** `domain/keys/platform_key_enrich.go` · `platform_key_newapi.go` · `platform_key_actions.go` · `domain/keys/approval.go` · `domain/newapisync/interface.go`
 
 ---
 
@@ -151,12 +151,12 @@ sequenceDiagram
 | `BOOTSTRAP_MODE`              | `none`             | `none` / `minimal` / `demo`；空库引导策略                                     |
 | `SECURE_COOKIE`               | `false`            | Set-Cookie Secure 标志；`production` 下必须为 `true`                          |
 | `CLOCK_ANCHOR`                | 空                 | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期                             |
-| `NEW_API_ENABLED`             | `false`            | Relay + worker                                                                |
-| `RELAY_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
+| `NEW_API_ENABLED`             | `false`            | NewAPI + worker                                                                |
+| `NEWAPI_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
 | `SUPPORT_SAAS`                | `false`            | SaaS 多企业                                                                   |
 | `TOKENJOY_COMPANY_ID`         | `1`                | 平台模型源公司 ID（默认模型与默认价格提供方）                                |
 | `LOCAL_COMPANY_ID`            | `2`                | 本地化部署业务公司 ID（单租户固定）                                          |
-| `PLATFORM_SHARED_RELAY_GROUP` | `platform_shared`  | SaaS Token 分组                                                               |
+| `PLATFORM_SHARED_NEWAPI_GROUP` | `platform_shared`  | SaaS Token 分组                                                               |
 
 完整列表见 `apps/backend/.env.example`。
 
@@ -168,15 +168,15 @@ sequenceDiagram
 
 ```bash
 pnpm start          # Postgres + backend :8080 + frontend :5173
-pnpm start:relay    # 完整 NewAPI 栈
-pnpm gate:verify    # Relay 验证
+pnpm start:newapi    # 完整 NewAPI 栈
+pnpm gate:verify    # NewAPI 验证
 ```
 
 生产：nginx 将 `/api/`、`/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），`/api/` 须在 SPA fallback 之前。错误体：`{ "message": "..." }`。
 
 ---
 
-## 4. Relay 与 NewAPI 部署
+## 4. Gateway 与 NewAPI 部署
 
 ```mermaid
 flowchart LR
@@ -206,7 +206,7 @@ flowchart LR
 
 **安全：** NewAPI 不对公网；Admin Token 仅存 Backend 环境变量。
 
-Relay 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
+Gateway / NewAPISync 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 
 ---
 
@@ -261,7 +261,7 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 | `testutil/org`    | Org Service、Feishu fixture、预算树持久化                         |
 | `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                            |
 | `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL           |
-| `testutil/relay`  | Gateway 场景、StubWallet、Mapping                                 |
+| `testutil/gateway`  | Gateway 场景、StubWallet、Mapping                                 |
 | `testutil/worker` | Runner 栈、Outbox 断言                                            |
 | `testutil/pg`     | `test_template`、按测 `CloneSchema`、`OpenCloned` / `OpenSlow`    |
 

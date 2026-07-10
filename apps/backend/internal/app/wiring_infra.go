@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -15,8 +15,8 @@ import (
 type infra struct {
 	store         store.Store
 	adminClient   newapi.AdminClient
-	lifecycle     relay.Lifecycle
-	channelPolicy relay.ChannelPolicy
+	newAPISync    newapisync.Lifecycle
+	channelPolicy newapisync.ChannelPolicy
 	wallet        domaincompany.WalletService
 	companyGate   *domaincompany.Gate
 	notifier      notification.Notifier
@@ -28,7 +28,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store)
 	if cfg.NewAPIEnabled {
 		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
 	}
-	channelPolicy := relay.NewChannelPolicy(cfg)
+	channelPolicy := newapisync.NewChannelPolicy(cfg)
 	wallet := domaincompany.NewWalletService(cfg, adminClient)
 
 	return infra{
@@ -37,7 +37,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store)
 		channelPolicy: channelPolicy,
 		wallet:        wallet,
 		companyGate:   domaincompany.NewGate(cfg),
-		lifecycle:     relay.NewTokenLifecycle(cfg, st, adminClient, wallet, channelPolicy),
+		newAPISync:    newapisync.New(cfg, st, adminClient, wallet, channelPolicy),
 		notifier:      notification.NewService(cfg, st, logger),
 		delayer:       common.NewDelayer(cfg.SimulateDelay),
 	}, nil

@@ -9,13 +9,13 @@
 
 | 维度 | 状态 |
 | --- | --- |
-| Token 生命周期（Create / Update / Toggle / Revoke / Rotate / Delete） | 已接通 |
+| PlatformKey / NewAPIKey 生命周期（Create / Update / Toggle / Revoke / Rotate / Delete） | 已接通 |
 | Gateway Precheck + `/v1` 反代 | 已接通 |
 | 用量回写（webhook + reconcile） | 已接通 |
 | 额度同步（wallet_sync / TopUp / GetUserQuota） | 已接通 |
 | Provider → Channel Upsert | 已接通 |
 | 从 NewAPI 拉模型目录 / GetGroups | 未做（TokenJoy 自管目录；推 `model_limits`） |
-| 管理端 API 封装 | Token + User/Quota + Channel；无 GetAllModels / GetGroups / GetLogByKey |
+| 管理端 API 封装 | NewAPIKey + User/Quota + Channel；无 GetAllModels / GetGroups / GetLogByKey |
 
 ---
 
@@ -25,11 +25,11 @@
 
 | 操作 | 模式 |
 | --- | --- |
-| Create / Approve→Create / Toggle / Revoke / Rotate / Delete | 同步 **Remote-first**（先 NewAPI，再写 Postgres）；Relay 关 → `503`，DB 不变 |
-| Update 配额 / 白名单 | `requireRelay` + **先写 DB 再 `SyncUpdatePlatformKey`，失败回滚**（非 async outbox） |
-| Rebalance / ModelLimits / Provider Channel | 仍可走 relay outbox → Worker |
+| Create / Approve→Create / Toggle / Revoke / Rotate / Delete | 同步 **Remote-first**（先 NewAPI，再写 Postgres）；NewAPI 关 → `503`，DB 不变 |
+| Update 配额 / 白名单 | `requireNewAPI` + **先写 DB 再 `SyncUpdatePlatformKey`，失败回滚**（非 async outbox） |
+| Rebalance / ModelLimits / Provider Channel | 仍可走 newapi_sync outbox → Worker |
 
-Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`（patch），保持 `newapi_token_id` 不变以利 ingest。
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`（patch），保持 `newapi_key_id` 不变以利 ingest。
 
 ### 2.2 Gateway
 
@@ -40,7 +40,7 @@ Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`（patch），保持 `newa
 
 ### 2.3 Worker outbox
 
-`IsPermanentRelayOutboxError` 将 `503`（含 `relay not enabled`）及不可恢复错误标为永久 `failed`，不再无限重试。
+`IsPermanentNewAPISyncOutboxError` 将 `503`（含 `newapi not enabled`）及不可恢复错误标为永久 `failed`，不再无限重试。
 
 ### 2.4 入账（方案 B）
 
@@ -50,9 +50,9 @@ NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `inges
 
 | 项 | 原因 |
 | --- | --- |
-| delete+create 式 Rotate | 破坏 ingest `token_id` 连续性 |
+| delete+create 式 Rotate | 破坏 ingest `newapi_key_id` 连续性 |
 | Toggle 改回 async outbox | 用户操作应同步可见 |
-| 兼容「无 Relay 的 Platform Key」 | Demo / 生产统一要求 Relay；关则 `503` |
+| 兼容「无 NewAPI 的 Platform Key」 | Demo / 生产统一要求 NewAPI；关则 `503` |
 | Gateway 用 `HasPrefix` 放行 | 精确匹配为安全目标 |
 
 ---
@@ -62,9 +62,9 @@ NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `inges
 | 问题 | 位置 | 说明 |
 | --- | --- | --- |
 | Update 非严格 Remote-first | `platform_key_update.go` | 先写 DB 再 sync；失败可回滚，崩溃窗口仍可能短暂不一致 |
-| `noopWalletService` `AvailableQuota` 恒 0 | `domain/company/wallet.go` | Relay 关闭时 Gateway 预检 / `wallet_sync` 失效 |
+| `noopWalletService` `AvailableQuota` 恒 0 | `domain/company/wallet.go` | NewAPI 关闭时 Gateway 预检 / `wallet_sync` 失效 |
 | demo 下 Gateway 组合无校验 | `config.go` | 只开 Gateway、不开 `NEW_API_ENABLED` → 路由不挂载，进程仍启动 |
-| Rebalance / Overrun Relay 关闭时空转 | `overrun.go`、lifecycle enqueue | Worker 侧可能 `return nil`，掩盖误配 |
+| Rebalance / Overrun NewAPI 关闭时空转 | `overrun.go`、lifecycle enqueue | Worker 侧可能 `return nil`，掩盖误配 |
 | `NOTIFY_WEBHOOK_URL` 失败静默 | `infra/notification/service.go` | HTTP 失败写 log，`Send()` 仍 `return nil` |
 | `processOrgSync` 固定 `DefaultCompanyID` | `org_sync_processor.go` | SaaS 多企业 org 同步范围受限 |
 | `NEW_API_PUBLIC_URL` 未使用 | Backend `config.go` | 配置冗余（仅 newapi 侧示例） |
@@ -81,5 +81,5 @@ NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `inges
 
 - `host.docker.internal`：Linux 需改 `MANAGEMENT_WEBHOOK_URL` 或加 `extra_hosts`
 - `pnpm gate:verify` 不覆盖 Backend Gateway，Gateway 须单独验
-- 只开 `RELAY_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
-- `DEPLOY_ENV=production` 时 Relay + Gateway + 入账为 **启动硬依赖**（见 [Backend-配置架构.md](./Backend-配置架构.md)）
+- 只开 `NEWAPI_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
+- `DEPLOY_ENV=production` 时 NewAPI + Gateway + 入账为 **启动硬依赖**（见 [Backend-配置架构.md](./Backend-配置架构.md)）

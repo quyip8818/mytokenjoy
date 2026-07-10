@@ -19,7 +19,7 @@ func TestEnqueueWalletSyncDebouncesAndSlides(t *testing.T) {
 	companyID := contract.DefaultCompanyID
 
 	before := time.Now().UTC()
-	if err := st.Relay().EnqueueWalletSync(ctx, companyID); err != nil {
+	if err := st.AsyncJobs().EnqueueWalletSync(ctx, companyID); err != nil {
 		t.Fatal(err)
 	}
 	first := walletSyncNextRetry(t, st, companyID)
@@ -28,7 +28,7 @@ func TestEnqueueWalletSyncDebouncesAndSlides(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Millisecond)
-	if err := st.Relay().EnqueueWalletSync(ctx, companyID); err != nil {
+	if err := st.AsyncJobs().EnqueueWalletSync(ctx, companyID); err != nil {
 		t.Fatal(err)
 	}
 	second := walletSyncNextRetry(t, st, companyID)
@@ -36,7 +36,7 @@ func TestEnqueueWalletSyncDebouncesAndSlides(t *testing.T) {
 		t.Fatalf("expected sliding debounce, second=%v first=%v", second, first)
 	}
 
-	pending, err := st.Relay().HasPendingWalletSync(ctx, companyID)
+	pending, err := st.AsyncJobs().HasPendingWalletSync(ctx, companyID)
 	if err != nil {
 		t.Fatal(err)
 	}

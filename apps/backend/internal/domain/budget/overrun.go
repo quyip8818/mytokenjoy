@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/relay"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -21,22 +21,22 @@ type overrunPayload struct {
 }
 
 type OverrunService struct {
-	cfg      config.Config
-	store    store.Store
-	relay    relay.OverrunRelayControl
-	notifier notification.Notifier
-	logger   *slog.Logger
+	cfg        config.Config
+	store      store.Store
+	keyControl newapisync.OverrunKeyControl
+	notifier   notification.Notifier
+	logger     *slog.Logger
 }
 
 func NewOverrunService(
 	cfg config.Config,
 	st store.Store,
-	relayControl relay.OverrunRelayControl,
+	keyControl newapisync.OverrunKeyControl,
 	notifier notification.Notifier,
 	logger *slog.Logger,
 ) *OverrunService {
 	return &OverrunService{
-		cfg: cfg, store: st, relay: relayControl, notifier: notifier, logger: logger,
+		cfg: cfg, store: st, keyControl: keyControl, notifier: notifier, logger: logger,
 	}
 }
 
@@ -49,7 +49,7 @@ func (s *OverrunService) ProcessOverrunPayload(ctx context.Context, raw json.Raw
 }
 
 func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPayload) error {
-	if s.relay == nil || !s.relay.Enabled() {
+	if s.keyControl == nil || !s.keyControl.Enabled() {
 		return nil
 	}
 	st := s.store
@@ -126,7 +126,7 @@ func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string)
 		return err
 	}
 	for _, key := range keys {
-		if err := s.relay.DisablePlatformKey(ctx, key.ID); err != nil {
+		if err := s.keyControl.DisablePlatformKey(ctx, key.ID); err != nil {
 			return err
 		}
 	}
@@ -134,12 +134,12 @@ func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string)
 }
 
 func (s *OverrunService) disableDepartmentKeys(ctx context.Context, departmentID string) error {
-	mappings, err := s.store.Relay().ListMappingsByDepartmentID(ctx, departmentID)
+	mappings, err := s.store.PlatformKeyMappings().ListMappingsByDepartmentID(ctx, departmentID)
 	if err != nil {
 		return err
 	}
 	for _, mapping := range mappings {
-		if err := s.relay.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+		if err := s.keyControl.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
 			return err
 		}
 	}
@@ -147,12 +147,12 @@ func (s *OverrunService) disableDepartmentKeys(ctx context.Context, departmentID
 }
 
 func (s *OverrunService) disableBudgetGroupKeys(ctx context.Context, budgetGroupID string) error {
-	mappings, err := s.store.Relay().ListMappingsByBudgetGroupID(ctx, budgetGroupID)
+	mappings, err := s.store.PlatformKeyMappings().ListMappingsByBudgetGroupID(ctx, budgetGroupID)
 	if err != nil {
 		return err
 	}
 	for _, mapping := range mappings {
-		if err := s.relay.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+		if err := s.keyControl.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
 			return err
 		}
 	}

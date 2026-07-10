@@ -142,7 +142,7 @@ flowchart TB
 1. **Schema 即真相**：表结构以 `schema.sql` 为准；部署 wipe + seed，不做增量 `ALTER`/回填。
 2. **企业钱包权威**：Postgres `company_recharge_lots` + `balance_point`；NewAPI `users.quota` 仅为派生通道配额。
 3. **字段量纲**：`usage_ledger.amount`、`usage_buckets.cost`、`budget_snapshots.consumed`、组织 `budget` 均为 **point**；钱包 API 展示币由 lot 成本价闭合。
-4. **生产路径**：`RELAY_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
+4. **生产路径**：`NEWAPI_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
 
 术语：**lot** = 充值批次；每笔 lot 必有 1:1 的 `company_recharge_orders` 行。
 
@@ -424,7 +424,7 @@ domain/usage/
   lot_allocate.go     FIFO AllocateConsumptionLots + overdraft
   ingest.go           事务：分配 lot → InsertSegments → 投影 → enqueue sync
 
-domain/relay/
+domain/newapisync/
   precheck.go         balance_point + 预算 + NewAPI 双检 + sync 滞后
   gateway_service.go  Retry-After 透传
 
@@ -433,12 +433,12 @@ domain/budget/
 
 store/postgres/
   billing_repo.go     lot CRUD、AggregateWallet、ExpandOverdraftLot
-  relay.go            EnqueueWalletSync（滑动 debounce）
+  async_jobs.go       EnqueueWalletSync（滑动 debounce）
   ledger_repo.go      InsertSegments
 
 infra/worker/
   wallet_sync_processor.go   processWalletSync / processWalletReconcile
-  runner.go                    relayTick 调度
+  runner.go                    newAPISyncTick 调度
 
 integration/newapi/quota.go   point ↔ quota units
 ```
@@ -496,7 +496,7 @@ pnpm -F @tokenjoy/frontend test
 
 # 重点
 go test -tags=testhook ./tests/domain/billing/... -run WalletClosure
-go test -tags=testhook ./tests/domain/relay/... -run WalletSync
+go test -tags=testhook ./tests/domain/newapisync/... -run WalletSync
 go test -tags=testhook ./tests/store/postgres/... -run WalletSync
 ```
 
