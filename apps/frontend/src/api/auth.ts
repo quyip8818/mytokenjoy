@@ -3,6 +3,7 @@ import { request } from './client'
 export interface LoginInput {
   email: string
   password: string
+  companySlug?: string
 }
 
 export const authApi = {

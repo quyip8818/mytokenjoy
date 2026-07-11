@@ -45,6 +45,25 @@ func (s *service) ResolveCompanyContext(ctx context.Context, companyID int64) (C
 	}, nil
 }
 
+func (s *service) ResolveCompanyContextBySlug(ctx context.Context, slug string) (Context, error) {
+	if slug == "" {
+		return Context{}, domain.BadRequest("company slug required")
+	}
+	company, err := s.store.Company().GetBySlug(ctx, slug)
+	if err != nil {
+		return Context{}, err
+	}
+	if company == nil {
+		return Context{}, domain.NotFound("company not found")
+	}
+	return Context{
+		CompanyID:          company.ID,
+		Slug:               company.Slug,
+		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
+		Status:             company.Status,
+	}, nil
+}
+
 func newAPIWalletUserIDValue(t *store.Company) int64 {
 	if t.NewAPIWalletUserID != nil {
 		return *t.NewAPIWalletUserID

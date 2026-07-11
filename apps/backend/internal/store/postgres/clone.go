@@ -51,6 +51,7 @@ func cloneProviderKeys(items []types.ProviderKey) []types.ProviderKey {
 	for i, key := range items {
 		cloned := types.ProviderKey{
 			ID: key.ID, Provider: key.Provider, Name: key.Name, KeyPrefix: key.KeyPrefix,
+			SecretKey: key.SecretKey, NewAPIChannelID: key.NewAPIChannelID,
 			Status: key.Status, CreatedAt: key.CreatedAt, RotateEnabled: key.RotateEnabled,
 		}
 		if key.Balance != nil {

@@ -72,9 +72,24 @@ func TestSyncTriggerWithAPIKey(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/org/sync/trigger", nil)
 	req.Header.Set(httpmiddleware.SyncTriggerAPIKeyHeader, "test-sync-key")
+	req.Header.Set(httpmiddleware.CompanySlugHeader, config.DefaultCompanySlug)
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSyncTriggerAPIKeyRequiresCompanySlug(t *testing.T) {
+	t.Parallel()
+	app := testhttp.NewApp(t, func(cfg *config.Config) {
+		cfg.SyncTriggerAPIKey = "test-sync-key"
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/org/sync/trigger", nil)
+	req.Header.Set(httpmiddleware.SyncTriggerAPIKeyHeader, "test-sync-key")
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }

@@ -15,6 +15,7 @@ type Service interface {
 	ListCompanies(ctx context.Context) ([]store.Company, error)
 	UpdateCompany(ctx context.Context, id int64, patch UpdateCompanyPatch) error
 	ResolveCompanyContext(ctx context.Context, companyID int64) (Context, error)
+	ResolveCompanyContextBySlug(ctx context.Context, slug string) (Context, error)
 	ResolveFromMember(ctx context.Context, memberID string) (Context, error)
 }
 

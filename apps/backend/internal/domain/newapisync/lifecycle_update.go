@@ -20,11 +20,11 @@ func (l *NewAPISync) SyncUpdatePlatformKey(ctx context.Context, platformKeyID st
 	if err != nil || mapping == nil || mapping.NewAPIKeyID == nil {
 		return fmt.Errorf("platform key mapping missing for %s", platformKeyID)
 	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
 	if err != nil {
 		return err
 	}
-	key, ok := findPlatformKey(platformKeys, platformKeyID)
+	key, ok := budgetCtx.FindPlatformKey(platformKeyID)
 	if !ok {
 		return fmt.Errorf("platform key not found")
 	}
@@ -40,23 +40,10 @@ func (l *NewAPISync) SyncUpdatePlatformKey(ctx context.Context, platformKeyID st
 	if err != nil {
 		return err
 	}
-	members, err := l.store.Org().Members(ctx)
-	if err != nil {
-		return err
-	}
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.cfg.Clock())
-	if err != nil {
-		return err
-	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org().Nodes(), l.cfg.Clock())
-	if err != nil {
-		return err
-	}
-
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := ComputeRemainBudget(key, tree, members, platformKeys, groups, mapping.DepartmentID)
+	remainCNY := budgetCtx.ComputeRemain(key, mapping.DepartmentID, nil, nil)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 	status := newapi.TokenStatusEnabled
 	if targetActive != nil {

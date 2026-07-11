@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
@@ -192,60 +191,6 @@ func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.
 		}
 	}
 	return types.Member{}, domain.NewDomainError(404, "types.Member not found")
-}
-
-func (s *LocalService) DeleteMembers(ctx context.Context, ids []string) error {
-	if sessionCtx, ok := httpx.SessionFromContext(ctx); ok {
-		for _, id := range ids {
-			if id == sessionCtx.Member.ID {
-				return domain.BadRequest("不能删除当前登录的用户")
-			}
-		}
-	}
-	return s.d.Store.WithTx(ctx, func(st store.Store) error {
-		members, err := st.Org().Members(ctx)
-		if err != nil {
-			return err
-		}
-		keys, err := st.Keys().PlatformKeys(ctx)
-		if err != nil {
-			return err
-		}
-
-		idSet := make(map[string]struct{}, len(ids))
-		for _, id := range ids {
-			idSet[id] = struct{}{}
-		}
-
-		// Disable keys belonging to deleted members and detach member reference
-		for i := range keys {
-			if keys[i].MemberID != nil {
-				if _, ok := idSet[*keys[i].MemberID]; ok {
-					keys[i].Status = "disabled"
-					keys[i].MemberID = nil
-				}
-			}
-		}
-
-		// Remove members from the list
-		filtered := make([]types.Member, 0, len(members)-len(ids))
-		for _, m := range members {
-			if _, ok := idSet[m.ID]; !ok {
-				filtered = append(filtered, m)
-			}
-		}
-
-		if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
-			return err
-		}
-		if err := st.Org().SetMembers(ctx, filtered); err != nil {
-			return err
-		}
-		if err := persistRecalculatedMemberCounts(ctx, st, filtered); err != nil {
-			return err
-		}
-		return core.BumpAuthzRevisionStore(ctx, st)
-	})
 }
 
 func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {

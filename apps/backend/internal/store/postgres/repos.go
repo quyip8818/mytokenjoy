@@ -4,14 +4,14 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func newDomainRepoSet(db dbQuerier, tokenJoyCompanyID int64) domainRepos {
+func newDomainRepoSet(db dbQuerier, tokenJoyCompanyID int64, credentialKey []byte) domainRepos {
 	catalog := newModelCatalog(db, tokenJoyCompanyID)
 	allowlist := &pgModelAllowlistRepo{db: db}
 	orgNodes := &pgOrgNodeRepo{db: db}
 	return domainRepos{
 		org:    &pgOrgRepo{db: db, nodes: orgNodes},
 		budget: &pgBudgetRepo{db: db},
-		keys:   &pgKeysRepo{db: db, allowlist: allowlist},
+		keys:   &pgKeysRepo{db: db, allowlist: allowlist, credentialKey: credentialKey},
 		models: &pgModelsRepo{db: db, allowlist: allowlist, catalog: catalog},
 		audit:  &pgAuditRepo{db: db},
 	}

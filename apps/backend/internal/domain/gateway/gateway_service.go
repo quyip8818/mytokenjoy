@@ -107,9 +107,10 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := g.precheck.Run(ctx, PrecheckInput{
-		Mapping: mapping,
-		Company: company,
-		Model:   parseRequestModel(body),
+		Mapping:        mapping,
+		Company:        company,
+		Model:          parseRequestModel(body),
+		SkipModelCheck: r.URL.Path == "/v1/models",
 	}); err != nil {
 		if domainErr, ok := err.(*domain.DomainError); ok {
 			if domainErr.RetryAfter != nil {

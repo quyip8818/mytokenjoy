@@ -18,7 +18,7 @@
 | §11–12 | 查表 | 公式、负责域 |
 | §13 | 排期 | 待优化与待修复 |
 
-计量单位：内部统一 **point**；钱包展示币由 lot 成本价闭合；NewAPI quota 为派生通道配额。详见 [Backend-计费模式.md](./Backend-计费模式.md)。
+计量单位：内部统一 **point**；钱包展示币由 lot 成本价闭合；NewAPI `remain_quota` 为派生通道配额。详见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ---
 
@@ -50,7 +50,7 @@ flowchart LR
 | 普通成员 | 个人额度、Key 配额、能否继续调用 |
 | 审计 / 财务 | 调用花费、归因部门 / 成员 |
 
-**账期：** 分配配置（`budget`、`personal_budget`、Key `quota`）跨月保留；已消耗按开账 `period_key`（通常 `YYYY-MM`，来自业务时钟）写入 `budget_snapshots`，新月自动从新账期累计。账本发生月见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
+**账期：** 分配配置（`budget`、`personal_budget`、Key `budget`）跨月保留；已消耗按开账 `period_key`（通常 `YYYY-MM`，来自业务时钟）写入 `budget_snapshots`，新月自动从新账期累计。账本发生月见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
@@ -72,7 +72,7 @@ flowchart TB
     TREE[组织树 budget / reserved_pool]
     TREE --> MEM[personal_budget]
     TREE --> BG[预算组 budget]
-    MEM & BG --> PK[Key quota]
+    MEM & BG --> PK[Key budget]
     SNAP[(budget_snapshots)]
     ING[入账] --> SNAP
   end
@@ -150,7 +150,7 @@ flowchart TB
   ROOT --> DEPT[子部门]
   DEPT --> CAP[成员可分配 capacity]
   CAP --> M[成员 personal_budget]
-  M --> K[Key quota]
+  M --> K[Key budget]
   DEPT --> POOL[预留池]
   DEPT --> BG[预算组 + 组内 Key]
 ```
@@ -159,7 +159,7 @@ flowchart TB
 | --- | --- | --- |
 | 部门 | `budget`、`reserved_pool` | 子节点之和 + 预留池 ≤ 父节点 |
 | 成员 | `personal_budget` | 部门内成员额度之和 ≤ capacity |
-| Key | `quota`、模型白名单 | 从成员或预算组剩余额度切分 |
+| Key | `budget`、模型白名单 | 从成员或预算组剩余额度切分 |
 | 预算组 | `budget` | 挂组 Key 走组额度；Overrun 不走成员个人分支 |
 
 **写入校验：**
@@ -168,8 +168,8 @@ flowchart TB
 | --- | --- |
 | 改部门预算 | 子级：新 budget ≥ Σ子节点 + 预留池；对父级：新 budget + 兄弟 + 预留池 ≤ 父可用 |
 | 改成员额度 | ≥ 已分配给 Key 的配额之和；部门内总和 ≤ capacity |
-| 建 Key（成员） | quota ≤ 成员剩余可分配 |
-| 建 Key（预算组） | quota ≤ 组 budget − 组 consumed − 组内已分配 Key 配额 |
+| 建 Key（成员） | budget ≤ 成员剩余可分配 |
+| 建 Key（预算组） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget |
 | 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_budget` |
 
 组织树结构变更与模型白名单同事务提交；预算数字仅经预算域服务修改。
@@ -232,7 +232,7 @@ sequenceDiagram
 | 钱包 ≥ 预估 | `balance_point` |
 | 部门未超 | `budget_snapshots`（org_node）+ `org_nodes.budget` |
 | 成员未超 | `budget_snapshots`（member）+ `personal_budget` |
-| Key 未超 | `budget_snapshots`（platform_key）+ Key `quota` |
+| Key 未超 | `budget_snapshots`（platform_key）+ Key `budget` |
 | 预算组未超 | `budget_snapshots`（budget_group）+ 组 `budget` |
 | NewAPIKey / 企业通道配额 | NewAPI；`wallet_sync` 滞后超阈时拒代理 |
 | 模型与 Key 状态 | 白名单、`platform_keys` |
@@ -384,9 +384,9 @@ sequenceDiagram
 | 名称 | 计算 |
 | --- | --- |
 | 部门可分给成员 | budget − reserved_pool − Σ子部门 budget |
-| 成员可分给 Key | personal_budget − Σ已分配 Key quota |
+| 成员可分给 Key | personal_budget − Σ已分配 Key budget |
 | 成员本账期已用 | snapshots member 轴 |
-| 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key quota |
+| 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key budget |
 | NewAPIKey 可用上限 | 上列候选取 min → 换 NewAPI 单位 |
 | 企业硬顶 | Σ NewAPIKey remain ≤ balance_point 对应通道配额 |
 

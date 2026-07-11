@@ -14,6 +14,7 @@ import (
 
 type Service interface {
 	UsageSeries(ctx context.Context, q types.UsageSeriesQuery, scope domainusage.SessionScope) (types.UsageSeriesResponse, error)
+	UsageSeriesFromQuery(ctx context.Context, rawGranularity, rawStart, rawEnd, groupBy, deptID, memberID string, scope domainusage.SessionScope) (types.UsageSeriesResponse, error)
 	CostSummary(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) (types.CostSummary, error)
 	DepartmentCosts(ctx context.Context, parentID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCost, error)
 	DepartmentMemberCosts(ctx context.Context, deptID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error)

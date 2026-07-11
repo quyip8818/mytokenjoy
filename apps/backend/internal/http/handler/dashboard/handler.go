@@ -90,28 +90,16 @@ func (h *Handler) TeamUsage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UsageSeries(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		query := r.URL.Query()
-		granularity := query.Get("granularity")
-		startRaw := query.Get("start")
-		endRaw := query.Get("end")
-		timezone := domainusage.ResolveTimezone("")
-		start, end, err := domainusage.ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone)
-		if err != nil {
-			httputil.WriteError(w, err)
-			return
-		}
-		groupBy := query.Get("groupBy")
-		if groupBy == "" {
-			groupBy = types.UsageGroupByNone
-		}
-		result, err := h.service.UsageSeries(ctx, types.UsageSeriesQuery{
-			Granularity:  granularity,
-			Start:        start,
-			End:          end,
-			GroupBy:      groupBy,
-			DepartmentID: query.Get("departmentId"),
-			MemberID:     query.Get("memberId"),
-			Timezone:     timezone,
-		}, scope)
+		result, err := h.service.UsageSeriesFromQuery(
+			ctx,
+			query.Get("granularity"),
+			query.Get("start"),
+			query.Get("end"),
+			query.Get("groupBy"),
+			query.Get("departmentId"),
+			query.Get("memberId"),
+			scope,
+		)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }

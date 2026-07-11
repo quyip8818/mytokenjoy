@@ -8,11 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type authzRevisionStore interface {
-	Company() store.CompanyRepository
-}
-
-func AuthzRevisionHeader(st authzRevisionStore) func(http.Handler) http.Handler {
+func AuthzRevisionHeader(companyRepo store.CompanyRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var revision int64
@@ -21,7 +17,7 @@ func AuthzRevisionHeader(st authzRevisionStore) func(http.Handler) http.Handler 
 				revision = sessionCtx.AuthzRevision
 				hasRevision = true
 			} else if companyID := ctxcompany.ID(r.Context()); companyID > 0 {
-				if rev, err := st.Company().GetAuthzRevision(r.Context(), companyID); err == nil {
+				if rev, err := companyRepo.GetAuthzRevision(r.Context(), companyID); err == nil {
 					revision = rev
 					hasRevision = true
 				}

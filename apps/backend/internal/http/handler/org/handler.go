@@ -2,6 +2,7 @@ package org
 
 import (
 	"github.com/go-chi/chi/v5"
+	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
@@ -11,13 +12,15 @@ import (
 
 type Handler struct {
 	shared.ProtectedHandlerBase
-	service domainorg.Service
+	service    domainorg.Service
+	companySvc domaincompany.Service
 }
 
-func NewHandler(p httpdeps.Protected, service domainorg.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domainorg.Service, companySvc domaincompany.Service) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 		service:              service,
+		companySvc:           companySvc,
 	}
 }
 
@@ -45,7 +48,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	datasourceWrite.Get("/data-source/field-mappings/test", h.FieldMappingsTest)
 	datasourceWrite.Put("/sync/config", h.SyncConfigUpdate)
 
-	r.With(httpmiddleware.AllowSyncTrigger(h.Protected)).Post("/sync/trigger", h.SyncTrigger)
+	r.With(httpmiddleware.AllowSyncTrigger(h.Protected, h.companySvc)).Post("/sync/trigger", h.SyncTrigger)
 
 	structureWrite := write.With(httpmiddleware.RequireAnyPermission(permission.OrgStructure))
 	structureWrite.Post("/departments", h.DepartmentCreate)
