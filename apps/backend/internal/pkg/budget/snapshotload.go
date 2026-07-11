@@ -114,28 +114,44 @@ func mergeBudgetTreeConsumed(
 	clk clock.Clock,
 ) ([]types.BudgetNode, error) {
 	at := clock.NowUTC(clk)
-	var walk func(nodes []types.BudgetNode) error
-	walk = func(nodes []types.BudgetNode) error {
+
+	// Collect unique period keys from all nodes
+	periodKeySet := make(map[string]struct{})
+	var collectPeriods func(nodes []types.BudgetNode)
+	collectPeriods = func(nodes []types.BudgetNode) {
+		for i := range nodes {
+			periodKeySet[SnapshotKey(nodes[i].Period, at)] = struct{}{}
+			if len(nodes[i].Children) > 0 {
+				collectPeriods(nodes[i].Children)
+			}
+		}
+	}
+	collectPeriods(tree)
+
+	// Batch-fetch consumed values for all org nodes per period
+	consumedByPeriod := make(map[string]map[string]float64) // periodKey -> nodeID -> consumed
+	for periodKey := range periodKeySet {
+		consumed, err := snapshots.ListConsumed(ctx, store.SnapshotAxisOrgNode, periodKey)
+		if err != nil {
+			return nil, err
+		}
+		consumedByPeriod[periodKey] = consumed
+	}
+
+	// Walk tree and assign consumed from pre-fetched map
+	var walk func(nodes []types.BudgetNode)
+	walk = func(nodes []types.BudgetNode) {
 		for i := range nodes {
 			periodKey := SnapshotKey(nodes[i].Period, at)
-			consumed, found, err := snapshots.GetConsumed(ctx, store.SnapshotAxisOrgNode, nodes[i].ID, periodKey)
-			if err != nil {
-				return err
-			}
-			if found {
+			if consumed, ok := consumedByPeriod[periodKey][nodes[i].ID]; ok {
 				nodes[i].Consumed = consumed
 			}
 			if len(nodes[i].Children) > 0 {
-				if err := walk(nodes[i].Children); err != nil {
-					return err
-				}
+				walk(nodes[i].Children)
 			}
 		}
-		return nil
 	}
-	if err := walk(tree); err != nil {
-		return nil, err
-	}
+	walk(tree)
 	return tree, nil
 }
 

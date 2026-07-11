@@ -1,6 +1,8 @@
 import type { BudgetGroup, BudgetNode, OverrunPolicy } from '@/api/types'
 import type { BudgetProjectView } from '@/api/types'
 
+export const DEFAULT_OVERRUN_POLICY: OverrunPolicy = 'hard_reject'
+
 const OVERRUN_POLICY_LABELS: Record<OverrunPolicy, string> = {
   hard_reject: '硬拒绝',
   approval: '审批',
@@ -93,6 +95,7 @@ export function groupToProjectView(
   group: BudgetGroup,
   departmentName: string,
   period: string,
+  overrunPolicy: OverrunPolicy = DEFAULT_OVERRUN_POLICY,
 ): BudgetProjectView {
   return {
     id: group.id,
@@ -102,17 +105,22 @@ export function groupToProjectView(
     memberIds: group.memberIds,
     departmentId: group.departmentIds[0] ?? '',
     departmentName,
-    overrunPolicy: 'hard_reject',
+    overrunPolicy,
     period,
   }
 }
 
 export function mapGroupsToProjectViews(
   groups: BudgetGroup[],
-  departmentName: string,
+  nodeMap: Map<string, string>,
   period: string,
+  overrunPolicy: OverrunPolicy = DEFAULT_OVERRUN_POLICY,
 ): BudgetProjectView[] {
-  return groups.map((group) => groupToProjectView(group, departmentName, period))
+  return groups.map((group) => {
+    const deptId = group.departmentIds[0] ?? ''
+    const deptName = nodeMap.get(deptId) ?? ''
+    return groupToProjectView(group, deptName, period, overrunPolicy)
+  })
 }
 
 export function groupsForDepartment(groups: BudgetGroup[], departmentId: string): BudgetGroup[] {

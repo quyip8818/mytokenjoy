@@ -21,6 +21,7 @@ type BudgetProjectMembersSectionProps = {
   membersLoading?: boolean
   onUpdateGroup: (groupId: string, data: { memberIds: string[] }) => Promise<void>
   onUpdated: () => void
+  getGroupMemberConsumed?: (groupId: string) => Promise<Record<string, number>>
 }
 
 export function BudgetProjectMembersSection({
@@ -30,6 +31,7 @@ export function BudgetProjectMembersSection({
   membersLoading = false,
   onUpdateGroup,
   onUpdated,
+  getGroupMemberConsumed,
 }: BudgetProjectMembersSectionProps) {
   const [editingMembers, setEditingMembers] = useState(false)
   const [draftMemberIds, setDraftMemberIds] = useState<string[]>([])
@@ -38,11 +40,17 @@ export function BudgetProjectMembersSection({
   const [consumedMap, setConsumedMap] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    budgetApi
-      .getGroupMemberConsumed(project.id)
-      .then(setConsumedMap)
+    let cancelled = false
+    const fetchFn = getGroupMemberConsumed ?? budgetApi.getGroupMemberConsumed
+    fetchFn(project.id)
+      .then((data) => {
+        if (!cancelled) setConsumedMap(data)
+      })
       .catch(() => {})
-  }, [project.id])
+    return () => {
+      cancelled = true
+    }
+  }, [project.id, getGroupMemberConsumed])
 
   function startEditMembers() {
     setDraftMemberIds([...project.memberIds])

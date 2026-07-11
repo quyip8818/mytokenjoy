@@ -1,18 +1,12 @@
 import { useState } from 'react'
-import type {
-  BudgetNode,
-  BudgetProjectView,
-  Department,
-  Member,
-  MemberBudgetQuota,
-  UpdateMemberBudgetInput,
-} from '@/api/types'
+import type { BudgetNode, BudgetProjectView, Department, Member, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { BudgetProjectDialog } from './budget-project-dialog'
 import { formatDisplayCurrency } from '@/lib/points'
+import { nodeReservedPool } from '../lib/mappers'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
 
@@ -20,6 +14,8 @@ interface BudgetDetailTeamProps {
   node: BudgetNode
   projects: BudgetProjectView[]
   overrunPolicyLabel: string
+  departmentMembers: Member[]
+  membersLoading?: boolean
   onUpdated: () => void
   onNavigateToProject: (projectId: string) => void
   onUpdateDepartment: (
@@ -33,10 +29,7 @@ interface BudgetDetailTeamProps {
     departmentIds: string[]
   }) => Promise<void>
   getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (
-    memberId: string,
-    data: UpdateMemberBudgetInput,
-  ) => Promise<MemberBudgetQuota>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
   getDepartmentTree: () => Promise<Department[]>
   getMembers: (departmentId: string) => Promise<Member[]>
   getAllDeptMembers: (departmentId: string) => Promise<Member[]>
@@ -76,6 +69,8 @@ export function BudgetDetailTeam({
   node,
   projects,
   overrunPolicyLabel,
+  departmentMembers: _departmentMembers,
+  membersLoading: _membersLoading = false,
   onUpdated,
   onNavigateToProject,
   onUpdateDepartment,
@@ -93,7 +88,7 @@ export function BudgetDetailTeam({
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
   const projectBudgetSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
   const allocated = childrenBudgetSum + projectBudgetSum
-  const reservedPool = node.budget - allocated
+  const reservedPool = nodeReservedPool(node)
   const pct = node.budget > 0 ? Math.round((node.consumed / node.budget) * 100) : 0
 
   return (
@@ -205,6 +200,7 @@ export function BudgetDetailTeam({
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         department={node}
+        existingProjectsBudget={projectBudgetSum}
         onCreateGroup={onCreateGroup}
         getDepartmentTree={getDepartmentTree}
         getMembers={getMembers}

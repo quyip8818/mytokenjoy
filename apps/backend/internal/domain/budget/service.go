@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -42,6 +43,7 @@ type service struct {
 	cfg                  config.Config
 	store                store.Store
 	delayer              common.Delayer
+	logger               *slog.Logger
 	enqueueRebalanceAxis func(context.Context, string, string) error
 }
 
@@ -50,6 +52,7 @@ func NewService(cfg config.Config, st store.Store, delayer common.Delayer, enque
 		cfg:                  cfg,
 		store:                st,
 		delayer:              delayer,
+		logger:               slog.Default(),
 		enqueueRebalanceAxis: enqueueRebalanceAxis,
 	}
 }

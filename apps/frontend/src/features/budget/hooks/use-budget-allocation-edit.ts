@@ -103,20 +103,20 @@ export function useBudgetAllocationEdit({
     setSaving(true)
     try {
       const reservedPool = displayToPoints(parseFloat(reservedDraft))
-      const updates: Promise<void>[] = []
+      // Update reserved pool first if changed
       if (reservedPool !== nodeReservedPool(node)) {
-        updates.push(onUpdateDepartment(node.id, { budget: node.budget, reservedPool }))
+        await onUpdateDepartment(node.id, { budget: node.budget, reservedPool })
       }
+      // Update children sequentially to avoid partial failures from parallel writes
       for (const child of children) {
         const nextDisplay = parseFloat(
           drafts[child.id]?.budget ?? String(pointsToDisplay(child.budget)),
         )
         const nextBudget = displayToPoints(nextDisplay)
         if (nextBudget !== child.budget) {
-          updates.push(onUpdateDepartment(child.id, { budget: nextBudget }))
+          await onUpdateDepartment(child.id, { budget: nextBudget })
         }
       }
-      await Promise.all(updates)
       setEditing(false)
       setDrafts({})
       onUpdated()

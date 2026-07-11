@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *service) GetOverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error) {
@@ -16,8 +17,18 @@ func (s *service) UpdateOverrunPolicy(ctx context.Context, policy types.OverrunP
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.OverrunPolicyConfig{}, err
 	}
-	if err := s.store.Budget().SetOverrunPolicy(ctx, policy); err != nil {
-		return types.OverrunPolicyConfig{}, fmt.Errorf("persist overrun policy: %w", err)
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
+		if err := tx.Budget().SetOverrunPolicy(ctx, policy); err != nil {
+			return fmt.Errorf("persist overrun policy: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return types.OverrunPolicyConfig{}, err
 	}
+	s.logger.Info("budget.overrun_policy.updated", "policy", fmt.Sprintf("%+v", policy))
 	return policy, nil
 }

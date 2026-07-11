@@ -40,7 +40,7 @@ func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (typ
 		}
 		created := types.BudgetGroup{
 			ID:   generateBudgetID("bg"),
-			Name: group.Name, Budget: group.Budget, Consumed: 0,
+			Name: strings.TrimSpace(group.Name), Budget: group.Budget, Consumed: 0,
 			MemberIDs:     append([]string{}, group.MemberIDs...),
 			DepartmentIDs: append([]string{}, group.DepartmentIDs...),
 		}
@@ -51,6 +51,9 @@ func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (typ
 		result = created
 		return nil
 	})
+	if err == nil {
+		s.logger.Info("budget.group.created", "group_id", result.ID, "name", result.Name, "budget", result.Budget)
+	}
 	return result, err
 }
 
@@ -104,11 +107,15 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 		}
 		return domain.NotFound("Not found")
 	})
+	if err == nil {
+		s.logger.Info("budget.group.updated", "group_id", id, "name", result.Name, "budget", result.Budget)
+	}
 	return result, err
 }
 
 func (s *service) DeleteGroup(ctx context.Context, id string) error {
-	return s.store.WithTx(ctx, func(tx store.Store) error {
+	var deletedMemberIDs []string
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -118,6 +125,7 @@ func (s *service) DeleteGroup(ctx context.Context, id string) error {
 		}
 		for i := range groups {
 			if groups[i].ID == id {
+				deletedMemberIDs = append([]string{}, groups[i].MemberIDs...)
 				groups = append(groups[:i], groups[i+1:]...)
 				if err := tx.Budget().SetGroups(ctx, groups); err != nil {
 					return fmt.Errorf("persist budget groups: %w", err)
@@ -127,4 +135,17 @@ func (s *service) DeleteGroup(ctx context.Context, id string) error {
 		}
 		return domain.NotFound("Not found")
 	})
+	if err == nil {
+		s.logger.Info("budget.group.deleted", "group_id", id)
+		// Enqueue rebalance for affected members so their keys get updated quotas
+		if s.enqueueRebalanceAxis != nil {
+			for _, memberID := range deletedMemberIDs {
+				if rebalErr := s.enqueueRebalanceAxis(ctx, store.RebalanceAxisMember, memberID); rebalErr != nil {
+					s.logger.Error("enqueue rebalance failed after group delete",
+						"group_id", id, "member_id", memberID, "error", rebalErr)
+				}
+			}
+		}
+	}
+	return err
 }

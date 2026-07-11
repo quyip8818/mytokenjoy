@@ -35,15 +35,39 @@ export function BudgetOrgMemberPicker({
   const [tree, setTree] = useState<Department[]>([])
   const [treeLoading, setTreeLoading] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  // Direct members per department (shown in expanded list)
   const [directMembers, setDirectMembers] = useState<Record<string, Member[]>>({})
+  // All recursive members per department (used for dept checkbox toggle)
   const [allMembers, setAllMembers] = useState<Record<string, Member[]>>({})
   const [loadingDepts, setLoadingDepts] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Member[] | null>(null)
-  const [loadedSearchKey, setLoadedSearchKey] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
   const [selectedNames, setSelectedNames] = useState<Map<string, string>>(new Map())
 
+  // Fetch tree when popover opens
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setTreeLoading(true)
+    getDepartmentTree()
+      .then((data) => {
+        if (cancelled) return
+        setTree(data ?? [])
+        if (defaultExpandDepartmentId) {
+          const pathIds = findAncestorPath(data, defaultExpandDepartmentId)
+          setExpandedIds(new Set(pathIds))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setTreeLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, getDepartmentTree, defaultExpandDepartmentId])
+
+  // Load direct members when expanding a department
   const loadDirectMembers = useCallback(
     async (deptId: string) => {
       if (directMembers[deptId]) return
@@ -62,6 +86,7 @@ export function BudgetOrgMemberPicker({
     [directMembers, getMembers],
   )
 
+  // Load all recursive members for department checkbox
   const loadAllMembers = useCallback(
     async (deptId: string): Promise<Member[]> => {
       if (allMembers[deptId]) return allMembers[deptId]
@@ -73,34 +98,6 @@ export function BudgetOrgMemberPicker({
     [allMembers, getAllDeptMembers],
   )
 
-  const fetchTree = useCallback(() => {
-    setTreeLoading(true)
-    void getDepartmentTree()
-      .then((data) => {
-        setTree(data ?? [])
-        if (defaultExpandDepartmentId) {
-          const pathIds = findAncestorPath(data ?? [], defaultExpandDepartmentId)
-          setExpandedIds(new Set(pathIds))
-        }
-      })
-      .finally(() => setTreeLoading(false))
-  }, [defaultExpandDepartmentId, getDepartmentTree])
-
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      setOpen(next)
-      if (next) {
-        fetchTree()
-        return
-      }
-      setSearch('')
-      setDebouncedSearch('')
-      setSearchResults(null)
-      setLoadedSearchKey('')
-    },
-    [fetchTree],
-  )
-
   const toggleExpand = useCallback(
     (deptId: string) => {
       setExpandedIds((prev) => {
@@ -109,7 +106,7 @@ export function BudgetOrgMemberPicker({
           next.delete(deptId)
         } else {
           next.add(deptId)
-          void loadDirectMembers(deptId)
+          loadDirectMembers(deptId)
         }
         return next
       })
@@ -164,43 +161,33 @@ export function BudgetOrgMemberPicker({
     [selectedIds, onChange, selectedNames],
   )
 
-  const trimmedSearch = search.trim()
-  const activeSearch = trimmedSearch.length > 0 ? debouncedSearch : ''
-  const searchPending = trimmedSearch.length > 0 && trimmedSearch !== debouncedSearch
-  const searchLoading =
-    searchPending || (activeSearch.length > 0 && loadedSearchKey !== activeSearch)
-
+  // Search debounce
   useEffect(() => {
-    if (!trimmedSearch) return
-    const timer = setTimeout(() => setDebouncedSearch(trimmedSearch), 300)
-    return () => clearTimeout(timer)
-  }, [trimmedSearch])
-
-  useEffect(() => {
-    if (!activeSearch) return
+    if (!search.trim()) {
+      setSearchResults(null)
+      return
+    }
     let cancelled = false
-    void searchMembers(activeSearch)
-      .then((members) => {
-        if (!cancelled) {
-          setSearchResults(members ?? [])
-          setLoadedSearchKey(activeSearch)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSearchResults([])
-          setLoadedSearchKey(activeSearch)
-        }
-      })
+    setSearchLoading(true)
+    const timer = setTimeout(async () => {
+      try {
+        const members = await searchMembers(search.trim())
+        if (!cancelled) setSearchResults(members ?? [])
+      } finally {
+        if (!cancelled) setSearchLoading(false)
+      }
+    }, 300)
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
-  }, [activeSearch, searchMembers])
+  }, [search, searchMembers])
 
   const selectedLabels = useMemo(() => {
     return selectedIds.map((id) => selectedNames.get(id) ?? id).slice(0, 3)
   }, [selectedIds, selectedNames])
 
+  // Compute dept checkbox state from allMembers cache
   const getDeptCheckState = useCallback(
     (deptId: string): boolean | 'indeterminate' => {
       const members = allMembers[deptId]
@@ -215,7 +202,7 @@ export function BudgetOrgMemberPicker({
   )
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -246,11 +233,7 @@ export function BudgetOrgMemberPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-72 p-0"
-        align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
+      <PopoverContent className="w-72 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="border-b border-border p-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -264,15 +247,12 @@ export function BudgetOrgMemberPicker({
           </div>
         </div>
 
-        <div
-          className="max-h-64 overflow-y-auto overscroll-contain p-1"
-          onWheel={(e) => e.stopPropagation()}
-        >
+        <div className="max-h-64 overflow-y-auto overscroll-contain p-1" onWheel={(e) => e.stopPropagation()}>
           {treeLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
             </div>
-          ) : trimmedSearch ? (
+          ) : search.trim() ? (
             <SearchResultList
               results={searchResults}
               loading={searchLoading}
@@ -307,6 +287,8 @@ export function BudgetOrgMemberPicker({
     </Popover>
   )
 }
+
+// --- Helper components ---
 
 function SearchResultList({
   results,
@@ -360,12 +342,7 @@ function MemberRow({
       className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted"
       style={{ paddingLeft: `${indent * 14 + 24}px` }}
     >
-      <Checkbox
-        checked={checked}
-        onCheckedChange={onToggle}
-        className="size-3.5"
-        aria-label={member.name}
-      />
+      <Checkbox checked={checked} onCheckedChange={onToggle} className="size-3.5" aria-label={member.name} />
       <span className="flex-1 truncate">{member.name}</span>
       <span className="text-[11px] text-muted-foreground">{member.departmentName}</span>
     </label>
@@ -407,6 +384,7 @@ function DeptTreeNode({
         className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs hover:bg-muted"
         style={{ paddingLeft: `${level * 14 + 6}px` }}
       >
+        {/* Expand/collapse arrow */}
         <span
           role="button"
           tabIndex={-1}
@@ -422,6 +400,7 @@ function DeptTreeNode({
           />
         </span>
 
+        {/* Checkbox */}
         <Checkbox
           checked={checkState}
           onCheckedChange={() => onToggleDepartment(dept.id)}
@@ -429,6 +408,7 @@ function DeptTreeNode({
           aria-label={`选择${dept.name}`}
         />
 
+        {/* Department name (click also toggles) */}
         <span
           className="flex-1 cursor-pointer truncate font-medium text-foreground"
           onClick={() => onToggleDepartment(dept.id)}
@@ -439,6 +419,7 @@ function DeptTreeNode({
         {isLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
       </div>
 
+      {/* Expanded content: sub-departments + direct members */}
       {isExpanded && (
         <div>
           {hasChildren &&
@@ -458,6 +439,7 @@ function DeptTreeNode({
               />
             ))}
 
+          {/* Direct members of this department */}
           {members &&
             members.map((member) => (
               <MemberRow
@@ -474,6 +456,7 @@ function DeptTreeNode({
   )
 }
 
+// Find the path of ancestor IDs from root to the target department
 function findAncestorPath(tree: Department[], targetId: string): string[] {
   function dfs(nodes: Department[], path: string[]): string[] | null {
     for (const node of nodes) {

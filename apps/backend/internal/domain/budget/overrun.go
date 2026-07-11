@@ -78,7 +78,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			if err != nil {
 				return err
 			}
-			if found && used >= capacity {
+			if found && pkgbudget.BudgetExhausted(used, capacity) {
 				memberID := *payload.MemberID
 				actions = append(actions, disableAction{
 					scope:  "member",
@@ -106,7 +106,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		if err != nil {
 			return err
 		}
-		if found && consumed >= budgetAmount {
+		if found && pkgbudget.BudgetExhausted(consumed, budgetAmount) {
 			deptID := payload.DepartmentID
 			actions = append(actions, disableAction{
 				scope:  "department",
@@ -129,7 +129,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			if err != nil {
 				return err
 			}
-			if groupFound && groupConsumed >= groupBudget {
+			if groupFound && pkgbudget.BudgetExhausted(groupConsumed, groupBudget) {
 				groupID := *payload.BudgetGroupID
 				actions = append(actions, disableAction{
 					scope:  "budgetGroup",

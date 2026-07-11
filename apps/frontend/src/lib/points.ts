@@ -5,7 +5,9 @@ export function pointsToDisplay(points: number): number {
 }
 
 export function displayToPoints(display: number): number {
-  return display * DEFAULT_POINTS_PER_UNIT
+  // Round to 2 decimal places before converting to avoid floating-point drift
+  const rounded = Math.round(display * 100) / 100
+  return Math.round(rounded * DEFAULT_POINTS_PER_UNIT)
 }
 
 export function formatDisplayCurrency(points: number): string {
