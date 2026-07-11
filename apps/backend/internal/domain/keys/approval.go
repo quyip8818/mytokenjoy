@@ -168,7 +168,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 	_, err = s.syncPlatformKeyCreate(ctx, created, applicant.DepartmentID)
 	if err != nil {
-		if compErr := s.compensateFailedKeyApproval(ctx, id, approval.ApplicantID, personalBudgetAdded); compErr != nil {
+		if compErr := s.compensateFailedKeyApproval(ctx, id, approval.ApplicantID, createdKeyID, personalBudgetAdded); compErr != nil {
 			return compErr
 		}
 	}
@@ -192,9 +192,14 @@ func (s *service) revertKeyApproval(ctx context.Context, approvalID string) erro
 	return domain.NotFound("Not found")
 }
 
-func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID, applicantID string, personalBudgetAdded float64) error {
+func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID, applicantID, createdKeyID string, personalBudgetAdded float64) error {
 	if err := s.revertKeyApproval(ctx, approvalID); err != nil {
 		return err
+	}
+	if createdKeyID != "" {
+		if err := s.removePlatformKeyByID(ctx, createdKeyID); err != nil {
+			return err
+		}
 	}
 	if personalBudgetAdded <= 0 {
 		return nil
@@ -205,6 +210,29 @@ func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID, a
 	}
 	members = budget.AddMemberPersonalBudget(members, applicantID, -personalBudgetAdded)
 	return s.store.Org().SetMembers(ctx, members)
+}
+
+// removePlatformKeyByID drops a platform key from the store if it is still
+// present. It is idempotent: NewAPISync.RollbackFailedCreate may already have
+// removed the key, in which case this is a no-op.
+func (s *service) removePlatformKeyByID(ctx context.Context, keyID string) error {
+	keys, err := s.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
+	filtered := make([]types.PlatformKey, 0, len(keys))
+	removed := false
+	for _, key := range keys {
+		if key.ID == keyID {
+			removed = true
+			continue
+		}
+		filtered = append(filtered, key)
+	}
+	if !removed {
+		return nil
+	}
+	return s.store.Keys().SetPlatformKeys(ctx, filtered)
 }
 
 func (s *service) RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error {

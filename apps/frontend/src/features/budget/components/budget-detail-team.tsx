@@ -3,6 +3,7 @@ import type {
   BudgetNode,
   BudgetProjectView,
   Department,
+  Member,
   MemberBudgetQuota,
   UpdateMemberBudgetInput,
 } from '@/api/types'
