@@ -46,6 +46,7 @@ function TreeItem({
     <>
       <div
         role="option"
+        tabIndex={0}
         aria-selected={isSelected}
         className={cn(
           'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm',
@@ -53,6 +54,21 @@ function TreeItem({
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => onSelect(node)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onSelect(node)
+          } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            const items = (e.currentTarget.closest('[role="listbox"]') as HTMLElement)?.querySelectorAll<HTMLElement>('[role="option"]')
+            if (!items) return
+            const idx = Array.from(items).indexOf(e.currentTarget as HTMLElement)
+            const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1
+            if (next >= 0 && next < items.length) {
+              items[next].focus()
+            }
+          }
+        }}
       >
         {hasChildren ? (
           <span

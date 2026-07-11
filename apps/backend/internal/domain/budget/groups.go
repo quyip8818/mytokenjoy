@@ -38,9 +38,15 @@ func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (typ
 		if err != nil {
 			return err
 		}
+		trimmedName := strings.TrimSpace(group.Name)
+		for _, existing := range groups {
+			if existing.Name == trimmedName {
+				return domain.Conflict("group name already exists")
+			}
+		}
 		created := types.BudgetGroup{
 			ID:   generateBudgetID("bg"),
-			Name: strings.TrimSpace(group.Name), Budget: group.Budget, Consumed: 0,
+			Name: trimmedName, Budget: group.Budget, Consumed: 0,
 			MemberIDs:     append([]string{}, group.MemberIDs...),
 			DepartmentIDs: append([]string{}, group.DepartmentIDs...),
 		}

@@ -116,7 +116,7 @@ export function BudgetDetailTeam({
             {formatDisplayCurrency(node.consumed)} / {formatDisplayCurrency(node.budget)}
           </span>
         </div>
-        <Progress value={pct} className="h-2" />
+        <Progress value={pct} className="h-2" aria-label="预算使用进度" />
         <p className="mt-1.5 text-xs text-muted-foreground">
           已使用 {pct}%，剩余 {formatDisplayCurrency(node.budget - node.consumed)}
         </p>

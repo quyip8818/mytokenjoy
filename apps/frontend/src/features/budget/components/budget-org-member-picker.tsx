@@ -184,7 +184,7 @@ export function BudgetOrgMemberPicker({
   }, [isSearching, trimmedSearch, searchMembers])
 
   const selectedLabels = useMemo(() => {
-    return selectedIds.map((id) => selectedNames.get(id) ?? id).slice(0, 3)
+    return selectedIds.slice(0, 3).map((id) => ({ id, name: selectedNames.get(id) ?? id }))
   }, [selectedIds, selectedNames])
 
   // Compute dept checkbox state from allMembers cache
@@ -219,9 +219,9 @@ export function BudgetOrgMemberPicker({
             <span>选择成员…</span>
           ) : (
             <span className="flex flex-wrap gap-1">
-              {selectedLabels.map((name) => (
-                <Badge key={name} variant="outline" className="h-5 px-1.5 text-xs font-normal">
-                  {name}
+              {selectedLabels.map((item) => (
+                <Badge key={item.id} variant="outline" className="h-5 px-1.5 text-xs font-normal">
+                  {item.name}
                 </Badge>
               ))}
               {selectedIds.length > 3 && (

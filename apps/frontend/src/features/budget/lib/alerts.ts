@@ -4,7 +4,7 @@ export interface AlertRuleView extends AlertRule {
   targetType: 'team' | 'project'
   targetId: string
   targetName: string
-  departmentName?: string
+  departmentId?: string
 }
 
 export function isProjectNodeId(nodeId: string): boolean {
@@ -19,7 +19,7 @@ export function alertRuleToView(rule: AlertRule, groups: BudgetGroup[]): AlertRu
     targetType: isProject ? 'project' : 'team',
     targetId: rule.nodeId,
     targetName: rule.nodeName,
-    departmentName: group?.departmentIds[0],
+    departmentId: group?.departmentIds[0],
   }
 }
 

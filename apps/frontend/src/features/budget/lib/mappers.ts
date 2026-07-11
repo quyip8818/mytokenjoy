@@ -41,6 +41,9 @@ export function formatBudgetPeriodLabel(period: string | undefined): string {
 }
 
 export function shiftBudgetPeriod(period: string, delta: number): string {
+  if (!/^\d{4}-\d{2}$/.test(period)) {
+    return period
+  }
   const [y, m] = period.split('-').map(Number)
   const d = new Date(y, m - 1 + delta, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -50,15 +53,6 @@ export function computeUnallocated(node: BudgetNode): number {
   const reserved = node.reservedPool ?? 0
   const childrenSum = sumChildrenBudget(node)
   return Math.max(0, node.budget - node.consumed - reserved - childrenSum)
-}
-
-export function flattenBudgetNodes(nodes: BudgetNode[]): BudgetNode[] {
-  const result: BudgetNode[] = []
-  for (const node of nodes) {
-    result.push(node)
-    if (node.children) result.push(...flattenBudgetNodes(node.children))
-  }
-  return result
 }
 
 export function findBudgetNode(nodes: BudgetNode[], id: string): BudgetNode | null {

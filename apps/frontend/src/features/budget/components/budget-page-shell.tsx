@@ -99,7 +99,7 @@ export function BudgetPageShell({
             <BudgetTreePanel tree={tree} selectedId={selectedTeamId} onSelect={handleSelectTeam} />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {activeProject && selectedNode && (
-                <div className="flex items-center gap-1.5 border-b border-border px-5 py-2.5">
+                <nav aria-label="breadcrumb" className="flex items-center gap-1.5 border-b border-border px-5 py-2.5">
                   <button
                     type="button"
                     className="text-xs text-muted-foreground hover:text-foreground"
@@ -107,9 +107,9 @@ export function BudgetPageShell({
                   >
                     {selectedNode.name}
                   </button>
-                  <ChevronRight className="size-3 text-muted-foreground" />
-                  <span className="text-xs font-medium text-foreground">{activeProject.name}</span>
-                </div>
+                  <ChevronRight className="size-3 text-muted-foreground" aria-hidden="true" />
+                  <span className="text-xs font-medium text-foreground" aria-current="page">{activeProject.name}</span>
+                </nav>
               )}
 
               <div className="min-h-0 flex-1 overflow-y-auto">

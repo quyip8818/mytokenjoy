@@ -64,6 +64,25 @@ function TreeNode({
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             onSelect(node.id)
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            if (hasChildren && !isExpanded) {
+              onToggle(node.id)
+            }
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            if (hasChildren && isExpanded) {
+              onToggle(node.id)
+            }
+          } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            const items = (e.currentTarget.closest('[role="tree"]') as HTMLElement)?.querySelectorAll<HTMLElement>('[role="treeitem"]')
+            if (!items) return
+            const idx = Array.from(items).indexOf(e.currentTarget as HTMLElement)
+            const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1
+            if (next >= 0 && next < items.length) {
+              items[next].focus()
+            }
           }
         }}
       >

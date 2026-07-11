@@ -71,6 +71,9 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 }
 
 func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertRule) (types.AlertRule, error) {
+	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
+		return types.AlertRule{}, err
+	}
 	if patch.Thresholds != nil {
 		if err := validateAlertThresholds(patch.Thresholds); err != nil {
 			return types.AlertRule{}, err
