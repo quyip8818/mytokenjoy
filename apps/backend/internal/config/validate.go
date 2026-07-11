@@ -70,6 +70,9 @@ func (c Config) validateDeploy() error {
 
 func (c Config) validateNewAPI() error {
 	if !c.NewAPIEnabled {
+		if c.DeployEnv == "local" {
+			return nil
+		}
 		return fmt.Errorf("NEW_API_ENABLED must be true")
 	}
 	if c.GatewayEnabled && !c.NewAPIEnabled {
