@@ -63,25 +63,17 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 }
 
 func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return nil, err
 	}
-	if pkgbudget.FindBudgetNode(tree, deptID) == nil {
+	if pkgbudget.FindBudgetNode(budgetCtx.Tree, deptID) == nil {
 		return nil, domain.NotFound("Department not found")
 	}
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return nil, err
-	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
-	if err != nil {
-		return nil, err
-	}
 	quotas := make([]types.MemberBudgetQuota, 0)
-	for _, member := range members {
+	for _, member := range budgetCtx.Members {
 		if member.DepartmentID == deptID {
-			quotas = append(quotas, pkgbudget.BuildMemberBudgetQuota(member, platformKeys))
+			quotas = append(quotas, pkgbudget.BuildMemberBudgetQuota(member, budgetCtx.PlatformKeys))
 		}
 	}
 	return quotas, nil
@@ -96,22 +88,14 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
-		tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, tx.BudgetSnapshots(), tx.Org().Nodes(), s.cfg.Clock())
+		budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
 		if err != nil {
 			return err
 		}
-		members, err := tx.Org().Members(ctx)
-		if err != nil {
-			return err
-		}
-		platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
-		if err != nil {
-			return err
-		}
-		if msg := pkgbudget.ValidateMemberBudgetUpdate(tree, members, platformKeys, memberID, personalBudget); msg != nil {
+		if msg := pkgbudget.ValidateMemberBudgetUpdate(budgetCtx.Tree, budgetCtx.Members, budgetCtx.PlatformKeys, memberID, personalBudget); msg != nil {
 			return domain.Validation(*msg)
 		}
-		r, updatedMembers := pkgbudget.ApplyMemberBudgetUpdate(members, platformKeys, memberID, personalBudget)
+		r, updatedMembers := pkgbudget.ApplyMemberBudgetUpdate(budgetCtx.Members, budgetCtx.PlatformKeys, memberID, personalBudget)
 		if err := tx.Org().SetMembers(ctx, updatedMembers); err != nil {
 			return fmt.Errorf("persist member personal budget: %w", err)
 		}

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
 type ChannelPolicy interface {
@@ -18,7 +18,7 @@ func NewLocalChannelPolicy() ChannelPolicy {
 }
 
 func (LocalChannelPolicy) ResolveNewAPIGroup(_ context.Context, departmentID string) string {
-	return newapi.NewAPIGroupForDepartment(departmentID)
+	return newapiunits.NewAPIGroupForDepartment(departmentID)
 }
 
 type SaaSSharedChannelPolicy struct {

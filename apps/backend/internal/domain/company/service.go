@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -45,11 +46,12 @@ type AcceptInviteRequest struct {
 type service struct {
 	cfg    config.Config
 	store  store.Store
-	client newapi.AdminClient
+	client adminport.Port
+	grants grants.Normalizer
 }
 
-func NewService(cfg config.Config, st store.Store, client newapi.AdminClient) Service {
-	return &service{cfg: cfg, store: st, client: client}
+func NewService(cfg config.Config, st store.Store, client adminport.Port, grants grants.Normalizer) Service {
+	return &service{cfg: cfg, store: st, client: client, grants: grants}
 }
 
 func (s *service) ListCompanies(ctx context.Context) ([]store.Company, error) {

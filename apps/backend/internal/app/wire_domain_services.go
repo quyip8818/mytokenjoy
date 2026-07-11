@@ -9,17 +9,25 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	domaingrants "github.com/tokenjoy/backend/internal/domain/grants"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 )
 
-func wireOrg(cfg config.Config, i infra, logger *slog.Logger) domainorg.Service {
+func dashboardScopeConfig() domainusage.DashboardScopeConfig {
+	return domainusage.DashboardScopeConfig{
+		OrgWidePermissions: []string{permission.DashboardCost, permission.DashboardUsage},
+	}
+}
+
+func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger)
+	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger, grants)
 }
 
 func wireBudget(cfg config.Config, i infra) domainbudget.Service {
@@ -31,7 +39,7 @@ func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainb
 }
 
 func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
-	return domainbudget.NewRebalanceService(cfg, i.store, i.adminClient)
+	return domainbudget.NewRebalanceService(cfg, i.store, i.adminPort)
 }
 
 func wireKeys(cfg config.Config, i infra) domainkeys.Service {
@@ -39,23 +47,23 @@ func wireKeys(cfg config.Config, i infra) domainkeys.Service {
 }
 
 func wireModels(cfg config.Config, i infra) domainmodels.Service {
-	return domainmodels.NewService(cfg, i.store, i.adminClient, i.newAPISync, i.delayer)
+	return domainmodels.NewService(cfg, i.store, i.adminPort, i.newAPISync, i.delayer)
 }
 
 func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader) domaindashboard.Service {
-	return domaindashboard.NewService(cfg, i.store, reader)
+	return domaindashboard.NewService(cfg, i.store, reader, dashboardScopeConfig())
 }
 
 func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudit.Service {
 	return domainaudit.NewService(cfg, i.store, reader)
 }
 
-func wireCompany(cfg config.Config, i infra) domaincompany.Service {
-	return domaincompany.NewService(cfg, i.store, i.adminClient)
+func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) domaincompany.Service {
+	return domaincompany.NewService(cfg, i.store, i.adminPort, grants)
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, EnqueueRebalanceCompany(i.store), EnqueueWalletSync(i.store))
+	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, EnqueueRebalanceCompany(i.store), EnqueueWalletSync(i.store))
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
 func (l *NewAPISync) newAPIWalletUserID(ctx context.Context) int64 {
@@ -21,7 +21,7 @@ func (l *NewAPISync) newAPIWalletUserID(ctx context.Context) int64 {
 }
 
 func (l *NewAPISync) capRemainUnits(ctx context.Context, remainCNY float64, models []types.ModelInfo, effectiveIDs []int64) int64 {
-	allocated := newapi.ToNewAPIUnits(remainCNY, models, effectiveIDs)
+	allocated := newapiunits.ToNewAPIUnits(remainCNY, models, effectiveIDs)
 	if l.wallet == nil {
 		return allocated
 	}

@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -41,27 +42,27 @@ func (l *NewAPISync) SyncUpdatePlatformKey(ctx context.Context, platformKeyID st
 		return err
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
-	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
-	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
+	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
+	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
 	remainCNY := budgetCtx.ComputeRemain(key, mapping.DepartmentID, nil, nil)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
-	status := newapi.TokenStatusEnabled
+	status := adminport.TokenStatusEnabled
 	if targetActive != nil {
 		if !*targetActive {
-			status = newapi.TokenStatusDisabled
+			status = adminport.TokenStatusDisabled
 		}
 	} else if key.Status != "active" {
-		status = newapi.TokenStatusDisabled
+		status = adminport.TokenStatusDisabled
 	}
 	remain := remainUnits
 	enabled := len(effectiveCallTypes) > 0
-	req := newapi.UpdateTokenRequest{
+	req := adminport.UpdateTokenInput{
 		ID:                 *mapping.NewAPIKeyID,
 		Name:               key.Name,
 		Status:             &status,
 		RemainQuota:        &remain,
 		ModelLimitsEnabled: &enabled,
-		ModelLimits:        newapi.FormatModelLimits(effectiveCallTypes),
+		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
 		Group:              mapping.NewAPIGroup,
 	}
 	token, err := l.client.UpdateToken(ctx, req)
@@ -94,9 +95,9 @@ func (l *NewAPISync) DisablePlatformKey(ctx context.Context, platformKeyID strin
 	if err != nil || mapping == nil || mapping.NewAPIKeyID == nil {
 		return nil
 	}
-	status := newapi.TokenStatusDisabled
+	status := adminport.TokenStatusDisabled
 	zero := int64(0)
-	req := newapi.UpdateTokenRequest{
+	req := adminport.UpdateTokenInput{
 		ID:          *mapping.NewAPIKeyID,
 		Status:      &status,
 		RemainQuota: &zero,

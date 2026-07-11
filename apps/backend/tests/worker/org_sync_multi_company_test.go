@@ -7,12 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
-	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -65,24 +62,12 @@ func TestOrgSyncRunsForEveryActiveCompany(t *testing.T) {
 
 	recording := &recordingSyncService{}
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	newAPISync := newapisync.New(cfg, st, stub, nil, newapisync.NewChannelPolicy(cfg))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	runner := worker.NewRunner(
-		cfg,
-		st.AsyncJobs(),
-		st.SchedulerLock(),
-		st.Company(),
-		st.Logs(),
-		ingestmetrics.NewCollector(),
-		newAPISync,
-		domainusage.NewIngestService(cfg, st, st.Logs(), nil, logger, nil, nil),
-		domainusage.NewQueue(st.Logs()),
-		nil,
-		nil,
-		nil,
-		recording,
-		logger,
-	)
+	reg, err := app.BuildRegistry(cfg, logger, st, app.WithAdminClient(stub), app.WithOrgSync(recording))
+	if err != nil {
+		t.Fatal(err)
+	}
+	runner := reg.WorkerRunner(logger)
 
 	if err := runner.RunOrgSyncOnce(ctx); err != nil {
 		t.Fatal(err)

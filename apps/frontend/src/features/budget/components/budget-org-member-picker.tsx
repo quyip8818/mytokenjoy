@@ -42,30 +42,31 @@ export function BudgetOrgMemberPicker({
   const [loadingDepts, setLoadingDepts] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Member[] | null>(null)
-  const [searchLoading, setSearchLoading] = useState(false)
+  const [lastFetchedSearch, setLastFetchedSearch] = useState('')
   const [selectedNames, setSelectedNames] = useState<Map<string, string>>(new Map())
 
-  // Fetch tree when popover opens
-  useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    setTreeLoading(true)
-    getDepartmentTree()
-      .then((data) => {
-        if (cancelled) return
-        setTree(data ?? [])
-        if (defaultExpandDepartmentId) {
-          const pathIds = findAncestorPath(data, defaultExpandDepartmentId)
-          setExpandedIds(new Set(pathIds))
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setTreeLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [open, getDepartmentTree, defaultExpandDepartmentId])
+  const trimmedSearch = search.trim()
+  const isSearching = trimmedSearch.length > 0
+  const searchLoading = isSearching && lastFetchedSearch !== trimmedSearch
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen)
+      if (!nextOpen) return
+
+      setTreeLoading(true)
+      getDepartmentTree()
+        .then((data) => {
+          setTree(data ?? [])
+          if (defaultExpandDepartmentId) {
+            const pathIds = findAncestorPath(data, defaultExpandDepartmentId)
+            setExpandedIds(new Set(pathIds))
+          }
+        })
+        .finally(() => setTreeLoading(false))
+    },
+    [getDepartmentTree, defaultExpandDepartmentId],
+  )
 
   // Load direct members when expanding a department
   const loadDirectMembers = useCallback(
@@ -163,25 +164,24 @@ export function BudgetOrgMemberPicker({
 
   // Search debounce
   useEffect(() => {
-    if (!search.trim()) {
-      setSearchResults(null)
-      return
-    }
+    if (!isSearching) return
     let cancelled = false
-    setSearchLoading(true)
     const timer = setTimeout(async () => {
       try {
-        const members = await searchMembers(search.trim())
-        if (!cancelled) setSearchResults(members ?? [])
-      } finally {
-        if (!cancelled) setSearchLoading(false)
+        const members = await searchMembers(trimmedSearch)
+        if (!cancelled) {
+          setSearchResults(members ?? [])
+          setLastFetchedSearch(trimmedSearch)
+        }
+      } catch {
+        if (!cancelled) setLastFetchedSearch(trimmedSearch)
       }
     }, 300)
     return () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [search, searchMembers])
+  }, [isSearching, trimmedSearch, searchMembers])
 
   const selectedLabels = useMemo(() => {
     return selectedIds.map((id) => selectedNames.get(id) ?? id).slice(0, 3)
@@ -202,7 +202,7 @@ export function BudgetOrgMemberPicker({
   )
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -233,7 +233,11 @@ export function BudgetOrgMemberPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent
+        className="w-72 p-0"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="border-b border-border p-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -247,12 +251,15 @@ export function BudgetOrgMemberPicker({
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto overscroll-contain p-1" onWheel={(e) => e.stopPropagation()}>
+        <div
+          className="max-h-64 overflow-y-auto overscroll-contain p-1"
+          onWheel={(e) => e.stopPropagation()}
+        >
           {treeLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
             </div>
-          ) : search.trim() ? (
+          ) : isSearching ? (
             <SearchResultList
               results={searchResults}
               loading={searchLoading}
@@ -342,7 +349,12 @@ function MemberRow({
       className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted"
       style={{ paddingLeft: `${indent * 14 + 24}px` }}
     >
-      <Checkbox checked={checked} onCheckedChange={onToggle} className="size-3.5" aria-label={member.name} />
+      <Checkbox
+        checked={checked}
+        onCheckedChange={onToggle}
+        className="size-3.5"
+        aria-label={member.name}
+      />
       <span className="flex-1 truncate">{member.name}</span>
       <span className="text-[11px] text-muted-foreground">{member.departmentName}</span>
     </label>

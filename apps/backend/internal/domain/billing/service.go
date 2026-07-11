@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -28,7 +28,7 @@ type service struct {
 	cfg           config.Config
 	store         store.Store
 	reader        domainusage.Reader
-	client        newapi.AdminClient
+	client        adminport.Port
 	wallet        company.WalletService
 	rebalanceAxis func(ctx context.Context, companyID int64) error
 	enqueueSync   func(ctx context.Context, companyID int64) error
@@ -38,7 +38,7 @@ func NewService(
 	cfg config.Config,
 	st store.Store,
 	reader domainusage.Reader,
-	client newapi.AdminClient,
+	client adminport.Port,
 	wallet company.WalletService,
 	rebalanceAxis func(ctx context.Context, companyID int64) error,
 	enqueueSync func(ctx context.Context, companyID int64) error,

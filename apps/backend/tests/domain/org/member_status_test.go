@@ -88,7 +88,7 @@ func TestMemberDeleteSetsInactive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// DeleteMembers is implemented as UpdateMemberStatus to "inactive"
-	if err := svc.DeleteMembers(ctx, []string{contract.IDMember1}); err != nil {
+	if err := svc.DeleteMembers(ctx, []string{contract.IDMember1}, ""); err != nil {
 		t.Fatal(err)
 	}
 

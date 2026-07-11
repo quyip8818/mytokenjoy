@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -45,7 +45,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if s.client == nil {
 			return fmt.Errorf("newapi admin client required")
 		}
-		user, err := s.client.CreateUser(ctx, newapi.CreateUserRequest{
+		user, err := s.client.CreateUser(ctx, adminport.CreateUserInput{
 			Username:    fmt.Sprintf("company-%d", company.ID),
 			DisplayName: req.Name,
 			Password:    randomPassword(),
@@ -71,7 +71,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if err := tx.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 			return err
 		}
-		if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(company.ID)); err != nil {
+		if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(company.ID, s.grants)); err != nil {
 			return err
 		}
 		if err := tx.Company().UpdateRootDeptID(ctx, company.ID, rootDeptID); err != nil {
@@ -105,17 +105,17 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	return result, nil
 }
 
-func defaultCompanyRoles(companyID int64) []types.Role {
+func defaultCompanyRoles(companyID int64, normalizer grants.Normalizer) []types.Role {
 	prefix := fmt.Sprintf("%d", companyID)
 	roles := []types.Role{
-		{ID: "role-1-" + prefix, Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
-		{ID: "role-2-" + prefix, Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
-		{ID: "role-3-" + prefix, Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
-		{ID: "role-4-" + prefix, Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
-		{ID: "role-5-" + prefix, Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
+		{ID: "role-1-" + prefix, Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
+		{ID: "role-2-" + prefix, Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
+		{ID: "role-3-" + prefix, Name: grants.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
+		{ID: "role-4-" + prefix, Name: grants.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
+		{ID: "role-5-" + prefix, Name: grants.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
 	}
 	for i := range roles {
-		ids, err := permission.RoleGrantIDs(roles[i].Type, roles[i].Name, roles[i].Permissions)
+		ids, err := normalizer.RoleGrantIDs(roles[i].Type, roles[i].Name, roles[i].Permissions)
 		if err != nil {
 			panic(err)
 		}

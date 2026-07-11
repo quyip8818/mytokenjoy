@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
@@ -49,7 +50,12 @@ func (h *Handler) MembersDelete(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	err := h.service.DeleteMembers(r.Context(), body.IDs)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	err := h.service.DeleteMembers(r.Context(), body.IDs, sessionCtx.Member.ID)
 	httputil.WriteVoid(w, err)
 }
 

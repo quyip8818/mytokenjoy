@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -35,7 +35,7 @@ func (s *LocalService) CreateRole(ctx context.Context, name string, permissions 
 		}
 	}
 
-	grantIDs, err := permission.NormalizeGrantIDs(permissions)
+	grantIDs, err := s.d.Grants.NormalizeGrantIDs(permissions)
 	if err != nil {
 		return types.Role{}, domain.NewDomainError(400, err.Error())
 	}
@@ -63,7 +63,7 @@ func (s *LocalService) UpdateRole(ctx context.Context, id, name string, permissi
 			if roles[i].Type == "preset" {
 				return types.Role{}, domain.NewDomainError(400, "Cannot modify preset role")
 			}
-			grantIDs, err := permission.NormalizeGrantIDs(permissions)
+			grantIDs, err := s.d.Grants.NormalizeGrantIDs(permissions)
 			if err != nil {
 				return types.Role{}, domain.NewDomainError(400, err.Error())
 			}
@@ -235,15 +235,15 @@ func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID st
 	if role == nil || member == nil {
 		return domain.NewDomainError(404, "Not found")
 	}
-	if role.Name == permission.RoleMember {
+	if role.Name == grants.RoleMember {
 		return domain.NewDomainError(400, "Cannot remove base member role")
 	}
 
 	// Prevent removing the last super admin
-	if role.Name == permission.RoleSuperAdmin {
+	if role.Name == grants.RoleSuperAdmin {
 		adminCount := 0
 		for _, m := range members {
-			if pkgorg.ContainsRole(m.Roles, permission.RoleSuperAdmin) {
+			if pkgorg.ContainsRole(m.Roles, grants.RoleSuperAdmin) {
 				adminCount++
 			}
 		}

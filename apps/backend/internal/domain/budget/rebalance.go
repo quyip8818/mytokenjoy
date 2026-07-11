@@ -6,10 +6,11 @@ import (
 	"strconv"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -20,10 +21,10 @@ type Rebalancer interface {
 type RebalanceService struct {
 	cfg    config.Config
 	store  store.Store
-	client newapi.AdminClient
+	client adminport.Port
 }
 
-func NewRebalanceService(cfg config.Config, st store.Store, client newapi.AdminClient) *RebalanceService {
+func NewRebalanceService(cfg config.Config, st store.Store, client adminport.Port) *RebalanceService {
 	return &RebalanceService{cfg: cfg, store: st, client: client}
 }
 
@@ -90,8 +91,8 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 		return err
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
-	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
-	allocated := newapi.ToNewAPIUnits(
+	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
+	allocated := newapiunits.ToNewAPIUnits(
 		budgetCtx.ComputeRemain(key, mapping.DepartmentID, nil, nil),
 		models,
 		effectiveIDs,
@@ -107,7 +108,7 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 		return nil
 	}
 	remain := newRemain
-	req := newapi.UpdateTokenRequest{
+	req := adminport.UpdateTokenInput{
 		ID:          token.ID,
 		RemainQuota: &remain,
 	}
@@ -138,7 +139,7 @@ func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.Pl
 	if err != nil {
 		return allocated, err
 	}
-	walletUnits := newapi.ToQuotaUnits(co.BalancePoint, models, nil)
+	walletUnits := newapiunits.ToQuotaUnits(co.BalancePoint, models, nil)
 	mappings, err := s.store.PlatformKeyMappings().ListActiveMappingsByCompany(ctx, mapping.CompanyID)
 	if err != nil {
 		return allocated, err

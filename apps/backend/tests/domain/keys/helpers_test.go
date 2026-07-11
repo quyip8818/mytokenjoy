@@ -28,7 +28,7 @@ func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *m
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
-	newAPISync := newapisync.New(cfg, st, stub, nil, newapisync.NewChannelPolicy(cfg))
+	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg))
 	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false)), st, stub
 }
 
@@ -39,7 +39,7 @@ func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPI
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
-	return newapisync.New(cfg, st, stub, nil, newapisync.NewChannelPolicy(cfg)), st
+	return newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg)), st
 }
 
 func findApproval(st store.Store, id string) *types.KeyApproval {

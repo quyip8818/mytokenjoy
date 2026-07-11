@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
 func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error {
@@ -21,7 +22,7 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if err != nil {
 		return err
 	}
-	target := newapi.ToQuotaUnits(co.BalancePoint, models, nil)
+	target := newapiunits.ToQuotaUnits(co.BalancePoint, models, nil)
 	current, err := s.wallet.AvailableQuota(ctx, *co.NewAPIWalletUserID)
 	if err != nil {
 		return err
@@ -31,13 +32,13 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 		return nil
 	}
 	if delta > 0 {
-		return s.client.TopUp(ctx, newapi.TopUpRequest{
+		return s.client.TopUp(ctx, adminport.TopUpInput{
 			UserID: *co.NewAPIWalletUserID,
 			Quota:  delta,
 			Remark: "wallet_sync",
 		})
 	}
-	return s.client.TopUp(ctx, newapi.TopUpRequest{
+	return s.client.TopUp(ctx, adminport.TopUpInput{
 		UserID: *co.NewAPIWalletUserID,
 		Quota:  delta,
 		Remark: "wallet_sync_decrease",
@@ -64,7 +65,7 @@ func (s *service) ReconcileWalletDrift(ctx context.Context) error {
 		if err != nil {
 			continue
 		}
-		naPoint := newapi.FromNewAPIUnits(quota, models, nil)
+		naPoint := newapiunits.FromNewAPIUnits(quota, models, nil)
 		drift := co.BalancePoint - naPoint
 		if drift < 0 {
 			drift = -drift

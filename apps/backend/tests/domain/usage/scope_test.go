@@ -49,8 +49,27 @@ func TestResolveScopeDepartmentsForbidden(t *testing.T) {
 	}
 	_, err := domainusage.ResolveScopeDepartments(departments, domainusage.SessionScope{
 		MemberID: "m-scoped", DepartmentID: "dept-8", Permissions: []string{permission.BudgetRead},
-	}, "dept-3")
+	}, "dept-3", domainusage.DashboardScopeConfig{})
 	if err == nil {
 		t.Fatal("expected forbidden for out-of-scope department")
+	}
+}
+
+func TestResolveScopeDepartmentsEmptyConfigScopesToSubtree(t *testing.T) {
+	t.Parallel()
+	departments := []types.Department{
+		{ID: "dept-1", Name: "Root", Children: []types.Department{
+			{ID: "dept-8", Name: "Admin"},
+			{ID: "dept-3", Name: "Backend"},
+		}},
+	}
+	got, err := domainusage.ResolveScopeDepartments(departments, domainusage.SessionScope{
+		MemberID: "m-scoped", DepartmentID: "dept-8", Permissions: []string{permission.DashboardCost},
+	}, "", domainusage.DashboardScopeConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != "dept-8" {
+		t.Fatalf("expected subtree scope [dept-8], got %v", got)
 	}
 }

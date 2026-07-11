@@ -37,7 +37,7 @@ type MemberService interface {
 	ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error)
 	CreateMember(ctx context.Context, input types.Member) (types.Member, error)
 	UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error)
-	DeleteMembers(ctx context.Context, ids []string) error
+	DeleteMembers(ctx context.Context, ids []string, currentMemberID string) error
 	UpdateMemberStatus(ctx context.Context, ids []string, status string) error
 	TransferMembers(ctx context.Context, ids []string, departmentID string) error
 	InviteMember() error

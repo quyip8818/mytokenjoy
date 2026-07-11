@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
@@ -20,6 +21,7 @@ type Deps struct {
 	Notifier    notification.Notifier
 	Delayer     common.Delayer
 	Logger      *slog.Logger
+	Grants      grants.Normalizer
 	cryptoKey   []byte
 }
 
@@ -31,6 +33,7 @@ func NewDeps(
 	notifier notification.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,
+	grants grants.Normalizer,
 ) *Deps {
 	if logger == nil {
 		logger = slog.Default()
@@ -43,6 +46,7 @@ func NewDeps(
 		Notifier:    notifier,
 		Delayer:     delayer,
 		Logger:      logger,
+		Grants:      grants,
 	}
 }
 

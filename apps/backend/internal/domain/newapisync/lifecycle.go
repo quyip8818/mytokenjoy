@@ -2,22 +2,22 @@ package newapisync
 
 import (
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type NewAPISync struct {
 	cfg           config.Config
 	store         store.Store
-	client        newapi.AdminClient
+	client        adminport.Port
 	mappings      store.PlatformKeyMappingRepository
 	outbox        store.NewAPISyncOutboxRepository
 	wallet        company.WalletService
 	channelPolicy ChannelPolicy
 }
 
-func New(cfg config.Config, st store.Store, client newapi.AdminClient, wallet company.WalletService, channelPolicy ChannelPolicy) *NewAPISync {
+func New(cfg config.Config, st store.Store, client adminport.Port, wallet company.WalletService, channelPolicy ChannelPolicy) *NewAPISync {
 	return &NewAPISync{
 		cfg:           cfg,
 		store:         st,

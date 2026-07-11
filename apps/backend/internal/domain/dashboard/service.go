@@ -25,18 +25,20 @@ type Service interface {
 }
 
 type service struct {
-	cfg    config.Config
-	store  store.Store
-	reader domainusage.Reader
-	clock  clock.Clock
+	cfg         config.Config
+	store       store.Store
+	reader      domainusage.Reader
+	clock       clock.Clock
+	scopeConfig domainusage.DashboardScopeConfig
 }
 
-func NewService(cfg config.Config, st store.Store, reader domainusage.Reader) Service {
+func NewService(cfg config.Config, st store.Store, reader domainusage.Reader, scopeConfig domainusage.DashboardScopeConfig) Service {
 	return &service{
-		cfg:    cfg,
-		store:  st,
-		reader: reader,
-		clock:  cfg.Clock(),
+		cfg:         cfg,
+		store:       st,
+		reader:      reader,
+		clock:       cfg.Clock(),
+		scopeConfig: scopeConfig,
 	}
 }
 
@@ -54,7 +56,7 @@ func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionSco
 	if err != nil {
 		return nil, err
 	}
-	return domainusage.ResolveScopeDepartments(departments, scope, requestedDeptID)
+	return domainusage.ResolveScopeDepartments(departments, scope, requestedDeptID, s.scopeConfig)
 }
 
 func withRange(base types.UsageAggregateQuery, rng budget.ResolvedRange) types.UsageAggregateQuery {

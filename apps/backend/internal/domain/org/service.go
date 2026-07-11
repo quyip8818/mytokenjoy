@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
@@ -27,8 +28,9 @@ func NewService(
 	notifier notification.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,
+	grants grants.Normalizer,
 ) Service {
-	deps := core.NewDeps(cfg, st, factory, modelLimits, notifier, delayer, logger)
+	deps := core.NewDeps(cfg, st, factory, modelLimits, notifier, delayer, logger, grants)
 	return &service{
 		LocalService: structure.New(deps),
 		Service:      remote.New(deps),

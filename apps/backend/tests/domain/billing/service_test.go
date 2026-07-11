@@ -8,6 +8,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -19,7 +20,7 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, client, wallet,
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
 		func(ctx context.Context, companyID int64) error {
 			return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 		},
@@ -69,7 +70,7 @@ func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, client, company.NewWalletService(cfg, client), nil, nil)
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), nil, nil)
 	ctx := testutil.Ctx()
 	view, err := svc.GetWallet(ctx)
 	if err != nil {

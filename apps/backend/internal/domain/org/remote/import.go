@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -198,7 +198,7 @@ func (s *Service) importFromProvider(
 				DepartmentID:   localDept,
 				DepartmentName: deptNameByID[localDept],
 				Status:         "active",
-				Roles:          []string{permission.RoleMember},
+				Roles:          []string{grants.RoleMember},
 				Source:         types.MemberSourceImported,
 				ExternalID:     stringPtr(remote.ExternalID),
 			})

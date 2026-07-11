@@ -8,17 +8,17 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 var protectedRoles = map[string]struct{}{
-	permission.RoleSuperAdmin: {},
-	permission.RoleOrgAdmin:   {},
+	grants.RoleSuperAdmin: {},
+	grants.RoleOrgAdmin:   {},
 }
 
 func validateRolesNotEscalated(roles []string) error {
@@ -86,7 +86,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		Username: input.Username, EmployeeID: input.EmployeeID,
 		JobTitle: input.JobTitle, HireDate: input.HireDate,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
-		Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "manual",
+		Status: types.MemberStatusActive, Roles: []string{grants.RoleMember}, Source: "manual",
 		PersonalBudget: common.DefaultPersonalBudget,
 	}
 
@@ -343,7 +343,7 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 			ID:   generateID("m-import"),
 			Name: row.Name, Phone: row.Phone, Email: row.Email,
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
-			Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "imported",
+			Status: types.MemberStatusActive, Roles: []string{grants.RoleMember}, Source: "imported",
 		})
 		imported++
 	}

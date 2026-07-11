@@ -10,6 +10,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -57,7 +58,7 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil)
+	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -80,7 +81,7 @@ func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil)
+	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -103,7 +104,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil)
+	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -131,7 +132,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 func TestAcceptInviteRejectsInvalidToken(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil)
+	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
 
 	_, err := svc.AcceptInvite(context.Background(), company.AcceptInviteRequest{
 		InviteCode: "does-not-exist", Name: "Admin", Password: "securepass123",

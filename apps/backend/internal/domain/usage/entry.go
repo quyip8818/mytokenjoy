@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -173,5 +173,5 @@ func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mappin
 		return keyIDs
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, catalog)
-	return newapi.EffectiveWhitelistIDs(keyIDs, deptAllowed)
+	return newapiunits.EffectiveWhitelistIDs(keyIDs, deptAllowed)
 }

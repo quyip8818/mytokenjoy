@@ -8,10 +8,10 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -147,7 +147,7 @@ func (p *PrecheckService) walletBalancePoint(ctx context.Context, walletUserID i
 	if err != nil {
 		return 0, err
 	}
-	return newapi.FromNewAPIUnits(quota, models, nil), nil
+	return newapiunits.FromNewAPIUnits(quota, models, nil), nil
 }
 
 func walletUnavailableErr(err error) error {

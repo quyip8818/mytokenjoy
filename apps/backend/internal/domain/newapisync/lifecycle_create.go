@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -89,19 +90,19 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	}
 
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
-	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
-	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
+	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
+	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
 	remainCNY := budgetCtx.ComputeRemain(key, departmentID, nil, nil)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)
-	req := newapi.CreateTokenRequest{
+	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
 		Name:               key.Name,
 		RemainQuota:        remainUnits,
 		UnlimitedQuota:     false,
 		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
-		ModelLimits:        newapi.FormatModelLimits(effectiveCallTypes),
+		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
 		Group:              l.channelPolicy.ResolveNewAPIGroup(ctx, departmentID),
 		ExpiredTime:        -1,
 	}

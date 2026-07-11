@@ -112,7 +112,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	if err != nil {
 		return nil, err
 	}
-	if !domainusage.IsDepartmentAccessible(departments, scope, deptID) {
+	if !domainusage.IsDepartmentAccessible(departments, scope, deptID, s.scopeConfig) {
 		return nil, domain.Forbidden("Department not accessible")
 	}
 	rng, err := s.resolveRange(params)

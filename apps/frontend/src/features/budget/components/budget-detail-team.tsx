@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, Department, Member, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
+import type {
+  BudgetNode,
+  BudgetProjectView,
+  Department,
+  Member,
+  MemberBudgetQuota,
+  UpdateMemberBudgetInput,
+} from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
@@ -14,8 +21,6 @@ interface BudgetDetailTeamProps {
   node: BudgetNode
   projects: BudgetProjectView[]
   overrunPolicyLabel: string
-  departmentMembers: Member[]
-  membersLoading?: boolean
   onUpdated: () => void
   onNavigateToProject: (projectId: string) => void
   onUpdateDepartment: (
@@ -29,7 +34,10 @@ interface BudgetDetailTeamProps {
     departmentIds: string[]
   }) => Promise<void>
   getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
+  updateMemberBudget: (
+    memberId: string,
+    data: UpdateMemberBudgetInput,
+  ) => Promise<MemberBudgetQuota>
   getDepartmentTree: () => Promise<Department[]>
   getMembers: (departmentId: string) => Promise<Member[]>
   getAllDeptMembers: (departmentId: string) => Promise<Member[]>
@@ -69,8 +77,6 @@ export function BudgetDetailTeam({
   node,
   projects,
   overrunPolicyLabel,
-  departmentMembers: _departmentMembers,
-  membersLoading: _membersLoading = false,
   onUpdated,
   onNavigateToProject,
   onUpdateDepartment,

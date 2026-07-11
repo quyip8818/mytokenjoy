@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/worker"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -28,6 +29,7 @@ type App struct {
 type options struct {
 	skipWorker  bool
 	adminClient newapi.AdminClient
+	orgSync     domainorg.SyncService
 }
 
 type Option func(*options)
@@ -41,6 +43,12 @@ func WithoutWorker() Option {
 func WithAdminClient(client newapi.AdminClient) Option {
 	return func(o *options) {
 		o.adminClient = client
+	}
+}
+
+func WithOrgSync(svc domainorg.SyncService) Option {
+	return func(o *options) {
+		o.orgSync = svc
 	}
 }
 
@@ -60,12 +68,10 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		opt(&o)
 	}
 
-	infraDeps, err := buildInfraWithStore(cfg, logger, st, o.adminClient)
+	registry, err := assembleRegistry(cfg, logger, st, o)
 	if err != nil {
 		return nil, err
 	}
-
-	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger))
 	if err := registry.Credentials.BootstrapPlatformIfNeeded(ctx); err != nil {
 		return nil, err
 	}
@@ -92,6 +98,18 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 			},
 		},
 	}, nil
+}
+
+func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o options) (ServiceRegistry, error) {
+	infraDeps, err := buildInfraWithStore(cfg, logger, st, o.adminClient)
+	if err != nil {
+		return ServiceRegistry{}, err
+	}
+	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger))
+	if o.orgSync != nil {
+		registry.OrgSync = o.orgSync
+	}
+	return registry, nil
 }
 
 func (a *App) Close() {

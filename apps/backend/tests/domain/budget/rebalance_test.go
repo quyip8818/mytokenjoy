@@ -15,7 +15,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
-	rebalance := budget.NewRebalanceService(cfg, st, stub)
+	rebalance := budget.NewRebalanceService(cfg, st, newapi.NewAdminPortAdapter(stub))
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)

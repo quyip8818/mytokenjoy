@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -20,7 +21,7 @@ func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
 			return newapi.User{}, errors.New("newapi unavailable")
 		},
 	}
-	svc := company.NewService(cfg, st, client)
+	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	before, err := st.Company().List(ctx)
@@ -53,7 +54,7 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 	client := &mock.StubAdminClient{
 		User: newapi.User{ID: 501, Quota: 0},
 	}
-	svc := company.NewService(cfg, st, client)
+	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -105,7 +106,7 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 func TestCreateCompanyAllocatesSaaSMinCompanyID(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t, testutil.WithSupportSaas(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 502, Quota: 0}}
-	svc := company.NewService(cfg, st, client)
+	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -126,7 +127,7 @@ func TestCreateCompanyAllocatesNonSaasCompanyID(t *testing.T) {
 
 	cfg, st := testutil.NewTestStore(t)
 	client := &mock.StubAdminClient{User: newapi.User{ID: 503, Quota: 0}}
-	svc := company.NewService(cfg, st, client)
+	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{

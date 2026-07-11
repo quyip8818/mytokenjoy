@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -21,9 +21,9 @@ const minInvitePasswordLen = 8
 func memberRolesFromInvite(role string) []string {
 	switch role {
 	case store.InviteRoleSuperAdmin:
-		return []string{permission.RoleSuperAdmin}
+		return []string{grants.RoleSuperAdmin}
 	default:
-		return []string{permission.RoleMember}
+		return []string{grants.RoleMember}
 	}
 }
 

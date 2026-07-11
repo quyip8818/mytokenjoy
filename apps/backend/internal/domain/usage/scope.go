@@ -7,7 +7,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/identity/authz"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
@@ -25,25 +24,30 @@ func ResolveTimezone(timezone string) string {
 	return types.UsageDefaultTimezone
 }
 
+type DashboardScopeConfig struct {
+	OrgWidePermissions []string
+}
+
 func ResolveScopeDepartments(
 	departments []types.Department,
 	scope SessionScope,
 	requestedDeptID string,
+	cfg DashboardScopeConfig,
 ) ([]string, error) {
 	if requestedDeptID != "" {
-		if !IsDepartmentAccessible(departments, scope, requestedDeptID) {
+		if !IsDepartmentAccessible(departments, scope, requestedDeptID, cfg) {
 			return nil, domain.Forbidden("Department not accessible")
 		}
 		return nil, nil
 	}
-	if hasOrgWideDashboardAccess(scope.Permissions) {
+	if hasOrgWideDashboardAccess(scope.Permissions, cfg) {
 		return nil, nil
 	}
 	return collectSubtreeIDs(departments, scope.DepartmentID), nil
 }
 
-func IsDepartmentAccessible(departments []types.Department, scope SessionScope, targetDeptID string) bool {
-	if hasOrgWideDashboardAccess(scope.Permissions) {
+func IsDepartmentAccessible(departments []types.Department, scope SessionScope, targetDeptID string, cfg DashboardScopeConfig) bool {
+	if hasOrgWideDashboardAccess(scope.Permissions, cfg) {
 		return org.FindDepartment(departments, targetDeptID) != nil
 	}
 	allowed := collectSubtreeIDs(departments, scope.DepartmentID)
@@ -55,11 +59,14 @@ func IsDepartmentAccessible(departments []types.Department, scope SessionScope, 
 	return false
 }
 
-func hasOrgWideDashboardAccess(permissions []string) bool {
+func hasOrgWideDashboardAccess(permissions []string, cfg DashboardScopeConfig) bool {
 	if authz.HasAny(permissions, "*") {
 		return true
 	}
-	return authz.HasAny(permissions, permission.DashboardCost, permission.DashboardUsage)
+	if len(cfg.OrgWidePermissions) == 0 {
+		return false
+	}
+	return authz.HasAny(permissions, cfg.OrgWidePermissions...)
 }
 
 func collectSubtreeIDs(departments []types.Department, rootID string) []string {

@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 const (
 	StatusBadRequest         = 400
 	StatusNotFound           = 404
@@ -27,4 +29,12 @@ func NewDomainError(status int, message string) *DomainError {
 
 func NewDomainErrorWithRetryAfter(status int, message string, retryAfter int) *DomainError {
 	return &DomainError{Status: status, Message: message, RetryAfter: &retryAfter}
+}
+
+func IsServiceUnavailable(err error) bool {
+	var domainErr *DomainError
+	if !errors.As(err, &domainErr) {
+		return false
+	}
+	return domainErr.Status == StatusServiceUnavailable
 }

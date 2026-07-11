@@ -58,20 +58,12 @@ func (s *service) BudgetSummary(ctx context.Context, memberID string) (types.Mem
 	if memberID == "" {
 		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
 	}
-	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.MemberBudgetSummary{}, err
 	}
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return types.MemberBudgetSummary{}, err
-	}
-	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
-	if err != nil {
-		return types.MemberBudgetSummary{}, err
-	}
-	reservedPool := budget.GetReservedPoolForMember(tree, members, memberID)
-	return budget.BuildBudgetSummary(members, platformKeys, memberID, reservedPool), nil
+	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, memberID)
+	return budget.BuildBudgetSummary(budgetCtx.Members, budgetCtx.PlatformKeys, memberID, reservedPool), nil
 }
 
 func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error) {
@@ -117,15 +109,11 @@ func (s *service) ApprovalBudgetCheck(ctx context.Context, id string) (types.App
 		return types.ApprovalBudgetCheck{}, domain.NotFound("Not found")
 	}
 	requested := approval.RequestedBudget
-	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.ApprovalBudgetCheck{}, err
 	}
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return types.ApprovalBudgetCheck{}, err
-	}
-	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
+	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, approval.ApplicantID)
 	return types.ApprovalBudgetCheck{
 		Sufficient: requested <= reservedPool, ReservedPool: reservedPool, Requested: requested,
 	}, nil

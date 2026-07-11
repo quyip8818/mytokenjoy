@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -58,13 +57,7 @@ func TestDeleteMembersRejectsSelf(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
-	sessionCtx := types.SessionContext{
-		CompanyID: contract.DefaultCompanyID,
-		Member:    types.Member{ID: contract.IDMember1},
-	}
-	ctx = httpx.WithSessionContext(ctx, sessionCtx)
-
-	err := svc.DeleteMembers(ctx, []string{contract.IDMember1})
+	err := svc.DeleteMembers(ctx, []string{contract.IDMember1}, contract.IDMember1)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", de.Status)
@@ -77,7 +70,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.DeleteMembers(testutil.Ctx(), []string{contract.IDMember1}); err != nil {
+	if err := svc.DeleteMembers(testutil.Ctx(), []string{contract.IDMember1}, ""); err != nil {
 		t.Fatal(err)
 	}
 

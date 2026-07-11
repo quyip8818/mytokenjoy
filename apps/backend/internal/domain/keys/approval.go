@@ -82,23 +82,21 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 	}
-	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return err
 	}
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return err
-	}
-	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
+	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, approval.ApplicantID)
 	if approval.Type == "budget" && approval.RequestedBudget > reservedPool {
 		return domain.Validation("Reserved pool insufficient")
 	}
 
 	var createdKeyID string
 	var personalBudgetAdded float64
+	var members []types.Member
 	if err := s.store.WithTx(ctx, func(st store.Store) error {
-		members, err := st.Org().Members(ctx)
+		var err error
+		members, err = st.Org().Members(ctx)
 		if err != nil {
 			return err
 		}

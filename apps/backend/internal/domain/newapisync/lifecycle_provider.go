@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -49,12 +49,12 @@ func (l *NewAPISync) SyncUpsertProviderKey(ctx context.Context, providerKeyID st
 	if pk.SecretKey == "" {
 		return fmt.Errorf("provider key secret missing: %s", providerKeyID)
 	}
-	status := newapi.ChannelStatusEnabled
+	status := adminport.ChannelStatusEnabled
 	if pk.Status != "active" {
-		status = newapi.ChannelStatusDisabled
+		status = adminport.ChannelStatusDisabled
 	}
-	req := newapi.UpsertChannelRequest{
-		Type:   newapi.ProviderChannelType(pk.Provider),
+	req := adminport.UpsertChannelInput{
+		Type:   adminport.ProviderChannelType(pk.Provider),
 		Name:   pk.Name,
 		Key:    pk.SecretKey,
 		Status: status,
