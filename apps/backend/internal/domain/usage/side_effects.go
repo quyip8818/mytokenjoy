@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -18,14 +17,10 @@ type overrunPayload struct {
 
 func enqueueSideEffects(
 	ctx context.Context,
-	cfg config.Config,
 	st store.ConsumptionWriter,
 	entry types.UsageLedgerEntry,
 	enqueueRebalance func(context.Context, string, string) error,
 ) error {
-	if !cfg.NewAPIEnabled {
-		return nil
-	}
 	if enqueueRebalance != nil {
 		if entry.MemberID != nil {
 			if err := enqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {

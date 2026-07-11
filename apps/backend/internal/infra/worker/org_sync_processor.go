@@ -17,8 +17,8 @@ func (r *Runner) processOrgSync(ctx context.Context) error {
 }
 
 // forEachActiveCompany runs fn for every active company with a company-scoped
-// context. In single-tenant mode this iterates exactly one company, matching
-// legacy behavior; in SaaS mode it fans out across all active tenants.
+// context. Single-tenant mode (SUPPORT_SAAS=false) iterates exactly one company;
+// SaaS mode fans out across all active tenants. Both are supported product modes.
 func (r *Runner) forEachActiveCompany(ctx context.Context, fn func(context.Context, store.Company) error) error {
 	if r.companies == nil {
 		return nil

@@ -22,7 +22,7 @@ type Config struct {
 	DatabaseURL         string `env:"DATABASE_URL"`
 	LogDatabaseURL      string `env:"LOG_DATABASE_URL"`
 	LogSchemaIsolated   bool
-	NewAPIEnabled       bool   `env:"NEW_API_ENABLED" envDefault:"false"`
+	NewAPIEnabled       bool   `env:"NEW_API_ENABLED" envDefault:"true"`
 	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
 	NewAPIAdminToken    string `env:"NEW_API_ADMIN_TOKEN"`
 	NewAPIWebhookSecret string `env:"NEW_API_WEBHOOK_SECRET"`
@@ -46,7 +46,6 @@ type Config struct {
 	CompanyName               string `env:"COMPANY_NAME"`
 	TokenJoyCompanyID         int64  `env:"TOKENJOY_COMPANY_ID" envDefault:"1"`
 	LocalCompanyID            int64  `env:"LOCAL_COMPANY_ID" envDefault:"2"`
-	DefaultCompanyID          int64  `env:"DEFAULT_COMPANY_ID" envDefault:"2"`
 	PlatformSharedNewAPIGroup string `env:"PLATFORM_SHARED_NEW_API_GROUP" envDefault:"platform_shared"`
 	GatewayEnabled            bool   `env:"NEW_API_GATEWAY_ENABLED" envDefault:"false"`
 	CompanyWalletCacheTTLSec  int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
@@ -67,9 +66,6 @@ func Load() (Config, error) {
 	}
 	cfg.BootstrapMode = strings.ToLower(strings.TrimSpace(cfg.BootstrapMode))
 	cfg.DeployEnv = strings.ToLower(strings.TrimSpace(cfg.DeployEnv))
-	if !cfg.SupportSaas {
-		cfg.DefaultCompanyID = cfg.LocalCompanyID
-	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}

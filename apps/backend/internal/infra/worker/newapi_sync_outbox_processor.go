@@ -15,7 +15,7 @@ func (r *Runner) workerCtx(ctx context.Context, companyID int64) context.Context
 }
 
 func (r *Runner) processNewAPISyncOutbox(ctx context.Context) error {
-	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	workerCtx := r.workerCtx(ctx, r.cfg.LocalCompanyID)
 	jobs, err := r.asyncJobs.ClaimPendingNewAPISyncOutbox(workerCtx, 20)
 	if err != nil {
 		return err

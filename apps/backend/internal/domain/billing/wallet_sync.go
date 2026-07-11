@@ -14,8 +14,8 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if err != nil || co == nil || co.NewAPIWalletUserID == nil {
 		return fmt.Errorf("company wallet not configured")
 	}
-	if !s.cfg.NewAPIEnabled || s.client == nil {
-		return fmt.Errorf("newapi sync required but newapi is disabled")
+	if s.client == nil {
+		return fmt.Errorf("newapi admin client required")
 	}
 	models, err := s.store.Models().Models(ctx)
 	if err != nil {
@@ -45,8 +45,8 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 }
 
 func (s *service) ReconcileWalletDrift(ctx context.Context) error {
-	if !s.cfg.NewAPIEnabled || s.client == nil || s.wallet == nil {
-		return nil
+	if s.client == nil || s.wallet == nil {
+		return fmt.Errorf("newapi wallet client required")
 	}
 	companies, err := s.store.Company().List(ctx)
 	if err != nil {

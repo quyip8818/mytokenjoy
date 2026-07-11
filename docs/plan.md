@@ -99,18 +99,17 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ## §5 发布与验收
 
-**发布顺序：** 产品模型手工验收 → 生产 DDL（若需）→ 前后端同发 → UI 像素验收 → E2E。
+**发布顺序：** 产品模型手工验收 → 前后端同发 → UI 像素验收 → E2E。
 
 | 门禁 | 级别 |
 | --- | --- |
 | 产品模型手工验收（6 项） | **阻断** |
 | Handler / Feature 单测复跑 | **阻断** |
-| `models` 四列迁移（**仅早期生产库**；新库 `schema.sql` 已含） | 建议 |
 | 前后端同发 | **阻断** |
 | UI 像素验收 | 建议 |
 | E2E（keys / models / audit / wallet / member） | 建议 |
 
-**回滚：** DDL 仅 additive、不回滚；应用须前后端成对回滚。
+**回滚：** 应用须前后端成对回滚。
 
 ### 产品模型手工验收（阻断）
 
@@ -139,24 +138,6 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 - 视觉基准 commit `716eeec`；对比 `git diff 716eeec HEAD -- apps/frontend/src/features/<domain>/components/`
 - `/keys/mine` 无基准，单独约定
-
-### `models` 四列生产迁移（仅早期生产库）
-
-> 新安装 / wipe 重建走 `schema.sql` 全量 DDL，**无需**执行下列脚本。
-
-```sql
-ALTER TABLE models
-  ADD COLUMN IF NOT EXISTS model_type   TEXT NOT NULL DEFAULT 'builtin',
-  ADD COLUMN IF NOT EXISTS description  TEXT NOT NULL DEFAULT '',
-  ADD COLUMN IF NOT EXISTS visibility   TEXT NOT NULL DEFAULT 'all',
-  ADD COLUMN IF NOT EXISTS endpoint     TEXT;
-
-UPDATE models SET model_type = 'custom' WHERE provider = 'custom' AND model_type = 'builtin';
-UPDATE models SET model_type = 'builtin' WHERE provider <> 'custom' AND model_type = 'builtin';
-UPDATE models SET visibility = 'all' WHERE visibility = '' OR visibility IS NULL;
-```
-
-本地：`docker compose down -v` 重建（见 [Backend-存储架构.md](./Backend-存储架构.md)）。
 
 ### 权限手工 QA
 

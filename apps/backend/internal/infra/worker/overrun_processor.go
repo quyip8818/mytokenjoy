@@ -5,7 +5,7 @@ import (
 )
 
 func (r *Runner) processOverrun(ctx context.Context) error {
-	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
+	workerCtx := r.workerCtx(ctx, r.cfg.LocalCompanyID)
 	entries, err := r.asyncJobs.ClaimPendingOverrun(workerCtx, 20)
 	if err != nil {
 		return err

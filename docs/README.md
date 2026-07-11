@@ -41,7 +41,6 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 
 | 路径 | 说明 |
 | --- | --- |
-| [superpowers/](./superpowers/) | 历史审查 / 实施笔记 |
 | [reviews/](./reviews/) | 安全评估等一次性笔记 |
 
 ## 契约优先级

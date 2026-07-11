@@ -246,7 +246,11 @@ export function BudgetOrgMemberPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent
+        className="w-72 p-0"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="border-b border-border p-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -260,7 +264,10 @@ export function BudgetOrgMemberPicker({
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto overscroll-contain p-1" onWheel={(e) => e.stopPropagation()}>
+        <div
+          className="max-h-64 overflow-y-auto overscroll-contain p-1"
+          onWheel={(e) => e.stopPropagation()}
+        >
           {treeLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -353,7 +360,12 @@ function MemberRow({
       className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted"
       style={{ paddingLeft: `${indent * 14 + 24}px` }}
     >
-      <Checkbox checked={checked} onCheckedChange={onToggle} className="size-3.5" aria-label={member.name} />
+      <Checkbox
+        checked={checked}
+        onCheckedChange={onToggle}
+        className="size-3.5"
+        aria-label={member.name}
+      />
       <span className="flex-1 truncate">{member.name}</span>
       <span className="text-[11px] text-muted-foreground">{member.departmentName}</span>
     </label>

@@ -37,7 +37,7 @@ export function useKeyFormQuota({
     memberId: string
     summary: MemberBudgetSummary
   } | null>(null)
-  const [groupQuotaRemaining, setGroupQuotaRemaining] = useState<number | null>(null)
+  const [groupBudgetRemaining, setGroupBudgetRemaining] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isCreate || isGroupKey || !effectiveMemberId) return
@@ -60,13 +60,13 @@ export function useKeyFormQuota({
       if (cancelled) return
       const group = groups.find((g) => g.id === budgetGroupId)
       if (!group) {
-        setGroupQuotaRemaining(null)
+        setGroupBudgetRemaining(null)
         return
       }
       const allocated = keysRes.items
         .filter((k) => k.status === 'active')
         .reduce((sum, k) => sum + k.budget, 0)
-      setGroupQuotaRemaining(Math.max(0, group.budget - group.consumed - allocated))
+      setGroupBudgetRemaining(Math.max(0, group.budget - group.consumed - allocated))
     })
     return () => {
       cancelled = true
@@ -78,15 +78,15 @@ export function useKeyFormQuota({
     isCreate && !isGroupKey && !adminCreate && quotaSummary !== null && quotaSummary.remaining <= 0
   const quotaExceedsRemaining =
     isCreate && !isGroupKey && quotaSummary !== null && Number(quota) > quotaSummary.remaining
-  const groupQuotaExceeds =
-    isCreate && isGroupKey && groupQuotaRemaining !== null && Number(quota) > groupQuotaRemaining
+  const groupBudgetExceeds =
+    isCreate && isGroupKey && groupBudgetRemaining !== null && Number(quota) > groupBudgetRemaining
 
   return {
     quotaSummary,
-    groupQuotaRemaining,
+    groupBudgetRemaining,
     quotaInsufficient,
     quotaExceedsRemaining,
-    groupQuotaExceeds,
+    groupBudgetExceeds,
   }
 }
 

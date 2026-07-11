@@ -1,26 +1,17 @@
 export { dashboardKeys } from './query-keys'
-export {
-  COST_GRANULARITY,
-  COST_PERIOD,
-  USAGE_GRANULARITY,
-  MODEL_NOT_IN_DEPT_MESSAGE,
-} from './lib/constants'
+export { COST_GRANULARITY, COST_PERIOD, MODEL_NOT_IN_DEPT_MESSAGE } from './lib/constants'
 export {
   COST_CHART_COLORS,
   buildCostStats,
   buildDeptCostsWithColors,
-  buildUsageSeriesChartData,
-  buildUsageSeriesWindow,
   formatMom,
   formatTokenCount,
   type CostStatItem,
-  type UsageSeriesChartPoint,
 } from './lib/dashboard'
 export { useCostDashboardPage } from './hooks/use-cost-dashboard-page'
 export { useCostDashboardRoutePage } from './hooks/use-cost-dashboard-route-page'
 export { useUsageDashboardPage } from './hooks/use-usage-dashboard-page'
 export { useUsageDashboardRoutePage } from './hooks/use-usage-dashboard-route-page'
-export { useUsageSeriesPage } from './hooks/use-usage-series-page'
 export { useDeptSelection } from './hooks/use-dept-selection'
 export { useOrgTree } from './hooks/use-org-tree'
 export { OrgTreeSidebar } from './components/org-tree-sidebar'
@@ -35,6 +26,5 @@ export { CostDashboardLayoutPageShell } from './components/cost-dashboard-layout
 export { UsageDashboardPageShell } from './components/usage-dashboard-page-shell'
 export { UsageDashboardLayoutPageShell } from './components/usage-dashboard-layout-page-shell'
 export { UsageModelChart } from './components/usage-model-chart'
-export { UsageSeriesChart } from './components/usage-series-chart'
 export { TeamUsageTable } from './components/team-usage-table'
 export { teamUsagePercent } from './lib/team-usage'

@@ -9,12 +9,13 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
 func newModelsService(t *testing.T) models.Service {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	return models.NewService(cfg, st, nil, nil, common.NewDelayer(false))
+	return models.NewService(cfg, st, &mock.StubAdminClient{}, nil, common.NewDelayer(false))
 }
 
 func TestResolveRoutingWithoutRule(t *testing.T) {

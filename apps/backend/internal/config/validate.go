@@ -69,14 +69,14 @@ func (c Config) validateDeploy() error {
 }
 
 func (c Config) validateNewAPI() error {
+	if !c.NewAPIEnabled {
+		return fmt.Errorf("NEW_API_ENABLED must be true")
+	}
 	if c.GatewayEnabled && !c.NewAPIEnabled {
 		return fmt.Errorf("NEW_API_ENABLED must be true when NEW_API_GATEWAY_ENABLED=true")
 	}
 	if c.IngestEnabled() && strings.TrimSpace(c.NewAPIWebhookSecret) == "" {
 		return fmt.Errorf("NEW_API_WEBHOOK_SECRET is required when LOG_DATABASE_URL is set")
-	}
-	if !c.NewAPIEnabled {
-		return nil
 	}
 	if strings.TrimSpace(c.NewAPIBaseURL) == "" {
 		return fmt.Errorf("NEW_API_BASE_URL is required when NEW_API_ENABLED=true")

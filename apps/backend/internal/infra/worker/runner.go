@@ -127,9 +127,6 @@ func (r *Runner) asyncLoop(ctx context.Context) {
 
 func (r *Runner) asyncTick(ctx context.Context) {
 	r.logStep("outbox_newapi_sync", r.processNewAPISyncOutbox(ctx))
-	if !r.cfg.NewAPIEnabled {
-		return
-	}
 	currentMonth := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, r.cfg.Clock()).String()
 	if currentMonth != r.lastRebalanceMonth {
 		r.lastRebalanceMonth = currentMonth

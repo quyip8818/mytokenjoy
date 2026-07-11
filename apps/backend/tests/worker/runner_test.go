@@ -1,15 +1,12 @@
 package worker_test
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -41,39 +38,6 @@ func TestProcessUnknownNewAPISyncOutboxKindFails(t *testing.T) {
 	}
 	if entry.LastError == nil || !strings.Contains(*entry.LastError, "unknown newapi sync outbox kind") {
 		t.Fatalf("expected unknown kind error recorded, got %v", entry.LastError)
-	}
-}
-
-func TestProcessNewAPISyncOutboxDisabledMarksFailed(t *testing.T) {
-	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
-	runner, st, _ := workerfix.NewDisabledNewAPIRunner(t, stub)
-	ctx := testutil.Ctx()
-
-	payload, err := json.Marshal(newapisync.UpdateKeyOutboxPayload{
-		CompanyID:     contract.DefaultCompanyID,
-		PlatformKeyID: contract.IDPlatformKey1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := st.AsyncJobs().EnqueueNewAPISyncOutbox(ctx, store.AsyncJob{
-		ID: "outbox-newapi-off", Kind: store.OutboxKindUpdateKey, Payload: payload, Status: store.JobStatusPending,
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	runner.RunOnce(ctx)
-
-	entry, found := testutil.NewAPISyncOutboxEntry(st, "outbox-newapi-off")
-	if !found {
-		t.Fatal("expected outbox entry to remain in store")
-	}
-	if entry.Status != store.JobStatusFailed {
-		t.Fatalf("expected failed status, got %q", entry.Status)
-	}
-	if pendingNewAPISyncOutbox(st, store.OutboxKindUpdateKey) != 0 {
-		t.Fatal("expected no pending update_key outbox after permanent failure")
 	}
 }
 

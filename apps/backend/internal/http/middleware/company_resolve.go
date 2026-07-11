@@ -28,7 +28,7 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer se
 				return
 			}
 
-			companyID := cfg.DefaultCompanyID
+			companyID := cfg.LocalCompanyID
 			if claims, ok := httpx.ResolveMemberClaims(r, tokenIssuer); ok && claims.CompanyID > 0 {
 				companyID = claims.CompanyID
 			}

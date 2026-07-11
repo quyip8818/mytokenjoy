@@ -16,50 +16,11 @@ export type CostPeriod = 'current_month' | 'last_month' | 'last_7_days' | 'custo
 
 export type CostGranularity = 'day' | 'hour' | 'week' | 'month'
 
-export type UsageGranularity = 'day' | 'hour' | 'minute'
-
-export type UsageSeriesGroupBy = 'none' | 'department' | 'member' | 'model'
-
-export type UsageSeriesSource = 'buckets' | 'ledger'
-
-export type UsageMappingAsOf = 'ingest_time' | 'query_time'
-
 export interface CostQueryParams {
   period?: CostPeriod
   startDate?: string
   endDate?: string
   granularity?: CostGranularity
-}
-
-export interface UsageSeriesQuery {
-  granularity: UsageGranularity
-  start: string
-  end: string
-  groupBy?: UsageSeriesGroupBy
-  departmentId?: string
-  memberId?: string
-}
-
-export interface UsageSeriesPoint {
-  bucket: string
-  departmentId?: string
-  memberId?: string
-  model?: string
-  costCny: number
-  callCount: number
-  inputTokens: number
-  outputTokens: number
-}
-
-export interface UsageSeriesResponse {
-  granularity: UsageGranularity
-  source: UsageSeriesSource
-  timezone: string
-  approximate: boolean
-  mappingAsOf: UsageMappingAsOf
-  unmappedCount?: number
-  truncated?: boolean
-  points: UsageSeriesPoint[]
 }
 
 export interface DepartmentCost {

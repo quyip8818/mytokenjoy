@@ -278,19 +278,20 @@ func (s *service) UpdateRoutingRule(
 	if err := common.PersistRoutingRules(ctx, s.store, nodes, rules); err != nil {
 		return types.RoutingRule{}, fmt.Errorf("persist routing rules: %w", err)
 	}
-	if s.client != nil && s.cfg.NewAPIEnabled {
-		if err := s.client.RebuildAbilities(ctx); err != nil {
-			return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
+	if s.client == nil {
+		return types.RoutingRule{}, fmt.Errorf("newapi admin client required")
+	}
+	if err := s.client.RebuildAbilities(ctx); err != nil {
+		return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
+	}
+	if s.modelLimits != nil {
+		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+		if err != nil {
+			return types.RoutingRule{}, err
 		}
-		if s.modelLimits != nil {
-			departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
-			if err != nil {
-				return types.RoutingRule{}, err
-			}
-			deptIDs := org.CollectDescendantDeptIDs(departments, updated.NodeID)
-			if err := s.modelLimits.EnqueueModelLimitsForDepartments(ctx, deptIDs); err != nil {
-				return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
-			}
+		deptIDs := org.CollectDescendantDeptIDs(departments, updated.NodeID)
+		if err := s.modelLimits.EnqueueModelLimitsForDepartments(ctx, deptIDs); err != nil {
+			return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
 		}
 	}
 	catalog, err := s.store.Models().Models(ctx)

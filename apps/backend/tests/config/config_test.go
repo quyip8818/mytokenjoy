@@ -128,22 +128,44 @@ func TestProductionLoadsWithNewAPIEnabled(t *testing.T) {
 	}
 }
 
-func TestLocalAllowsMissingNewAPIStack(t *testing.T) {
+func TestLocalRequiresNewAPIStack(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 
-	_, err := config.Load()
+	cfg, err := config.Load()
 	if err != nil {
-		t.Fatalf("expected local config without newapi to load, got %v", err)
+		t.Fatalf("expected local config with newapi to load, got %v", err)
+	}
+	if !cfg.NewAPIEnabled {
+		t.Fatalf("expected newapi enabled, got %v", cfg.NewAPIEnabled)
+	}
+	if strings.TrimSpace(cfg.NewAPIBaseURL) == "" || strings.TrimSpace(cfg.NewAPIAdminToken) == "" {
+		t.Fatal("expected newapi credentials in local config")
 	}
 }
 
-func TestStagingAllowsMissingNewAPIStack(t *testing.T) {
+func TestLocalRejectsNewAPIDisabled(t *testing.T) {
+	testutil.ApplyLocalEnv(t)
+	t.Setenv("NEW_API_ENABLED", "false")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error when NEW_API_ENABLED is false")
+	}
+	if !strings.Contains(err.Error(), "NEW_API_ENABLED") {
+		t.Fatalf("expected NEW_API_ENABLED error, got %v", err)
+	}
+}
+
+func TestStagingRequiresNewAPIStack(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 	t.Setenv("DEPLOY_ENV", config.DeployEnvStaging)
 
-	_, err := config.Load()
+	cfg, err := config.Load()
 	if err != nil {
-		t.Fatalf("expected staging config without newapi to load, got %v", err)
+		t.Fatalf("expected staging config with newapi to load, got %v", err)
+	}
+	if !cfg.NewAPIEnabled {
+		t.Fatalf("expected newapi enabled, got %v", cfg.NewAPIEnabled)
 	}
 }
 

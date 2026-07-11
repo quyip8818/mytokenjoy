@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -111,13 +112,17 @@ type CreateCompanyHTTPResult struct {
 
 func NewRouter(t *testing.T, mock *NewAPIMock) http.Handler {
 	t.Helper()
-	app := testutil.NewTestApp(t, func(cfg *config.Config) {
+	appOpts := []app.Option{app.WithoutWorker()}
+	if mock == nil {
+		appOpts = append(appOpts, app.WithAdminClient(testutil.DefaultStubAdminClient()))
+	}
+	application := testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {
 		ApplyConfig(cfg)
 		if mock != nil {
 			mock.ApplyToConfig(cfg)
 		}
-	})
-	return app.Router
+	}, appOpts...)
+	return application.Router
 }
 
 func LoginPlatform(t *testing.T, router http.Handler) string {

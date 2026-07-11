@@ -8,8 +8,6 @@ import type {
   ModelUsage,
   TeamUsage,
   TopConsumer,
-  UsageSeriesQuery,
-  UsageSeriesResponse,
 } from './types'
 
 export const dashboardApi = {
@@ -29,6 +27,4 @@ export const dashboardApi = {
     request<ModelUsage[]>(`/dashboard/usage/models${buildQuery(params ?? {})}`),
   getTeamUsage: (params?: CostQueryParams) =>
     request<TeamUsage[]>(`/dashboard/usage/teams${buildQuery(params ?? {})}`),
-  getUsageSeries: (params: UsageSeriesQuery) =>
-    request<UsageSeriesResponse>(`/dashboard/usage/series${buildQuery(params)}`),
 }

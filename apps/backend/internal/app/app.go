@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/worker"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
@@ -25,7 +26,8 @@ type App struct {
 }
 
 type options struct {
-	skipWorker bool
+	skipWorker  bool
+	adminClient newapi.AdminClient
 }
 
 type Option func(*options)
@@ -33,6 +35,12 @@ type Option func(*options)
 func WithoutWorker() Option {
 	return func(o *options) {
 		o.skipWorker = true
+	}
+}
+
+func WithAdminClient(client newapi.AdminClient) Option {
+	return func(o *options) {
+		o.adminClient = client
 	}
 }
 
@@ -52,7 +60,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		opt(&o)
 	}
 
-	infraDeps, err := buildInfraWithStore(cfg, logger, st)
+	infraDeps, err := buildInfraWithStore(cfg, logger, st, o.adminClient)
 	if err != nil {
 		return nil, err
 	}

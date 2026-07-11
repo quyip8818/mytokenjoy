@@ -2,6 +2,7 @@ package budget
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -27,8 +28,8 @@ func NewRebalanceService(cfg config.Config, st store.Store, client newapi.AdminC
 }
 
 func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID string) error {
-	if s.client == nil || !s.cfg.NewAPIEnabled {
-		return nil
+	if s.client == nil {
+		return fmt.Errorf("newapi admin client required")
 	}
 	var mappings []store.PlatformKeyMapping
 	var err error

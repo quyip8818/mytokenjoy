@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -22,7 +23,7 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 		return fmt.Errorf("bootstrap tokenjoy company: %w", err)
 	}
 
-	companyID := cfg.DefaultCompanyID
+	companyID := cfg.LocalCompanyID
 	name := cfg.ResolvedCompanyName()
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO companies (id, slug, name, status)
@@ -52,7 +53,7 @@ func validateCompanyIDsForMode(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	}
 	rows, err := pool.Query(ctx, `
 		SELECT id FROM companies WHERE id <> $1 AND id >= $2
-	`, cfg.TokenJoyCompanyID, saasMinCompanyID)
+	`, cfg.TokenJoyCompanyID, domaincompany.SaaSMinCompanyID)
 	if err != nil {
 		return fmt.Errorf("validate company ids: %w", err)
 	}
@@ -73,5 +74,3 @@ func validateCompanyIDsForMode(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	}
 	return nil
 }
-
-const saasMinCompanyID int64 = 1_000_000

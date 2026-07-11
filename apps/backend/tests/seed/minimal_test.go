@@ -46,7 +46,9 @@ func TestMinimalSeedStore(t *testing.T) {
 func TestLoadMinimalFromConfig(t *testing.T) {
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
 	t.Setenv("COMPANY_NAME", "Demo Company")
-	t.Setenv("NEW_API_ENABLED", "false")
+	t.Setenv("NEW_API_ENABLED", "true")
+	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000")
+	t.Setenv("NEW_API_ADMIN_TOKEN", "admin-token")
 	t.Setenv("SESSION_SECRET", "test-session-secret")
 	t.Setenv("DATA_SOURCE_CREDENTIAL_KEY", testutil.DefaultTestCredentialKey)
 	cfg, err := config.Load()

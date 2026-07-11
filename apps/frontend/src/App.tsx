@@ -1,10 +1,9 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route } from 'react-router'
 import { LOGIN_PATH } from '@/config/auth'
 import {
   APP_ROUTES,
   MEMBER_ROUTE_DEFINITIONS,
-  ROUTE_REDIRECTS,
   toMemberRouterPath,
   toRouterPath,
 } from '@/config/routes'
@@ -36,9 +35,6 @@ function AuthenticatedRoutes() {
           <Route index element={<HomeRedirect />} />
           {lazyPages.map(({ path, Page }) => (
             <Route key={path} path={path} element={<Page />} />
-          ))}
-          {Object.entries(ROUTE_REDIRECTS).map(([from, to]) => (
-            <Route key={from} path={from.slice(1)} element={<Navigate to={to} replace />} />
           ))}
         </Route>
         <Route element={<MemberLayout />}>

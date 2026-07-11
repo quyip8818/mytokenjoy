@@ -21,8 +21,8 @@ func TestClassifyIngestError(t *testing.T) {
 		{"mapping missing", domain.NotFound("mapping"), domainusage.IngestBusiness},
 		{"bad request", domain.BadRequest("invalid"), domainusage.IngestBusiness},
 		{"unprocessable", domain.Validation("pricing"), domainusage.IngestBusiness},
-		{"tokenjoy temp", domain.ServiceUnavailable("tx"), domainusage.IngestTokenjoyTemp},
-		{"generic", errors.New("network"), domainusage.IngestTokenjoyTemp},
+		{"retryable service", domain.ServiceUnavailable("tx"), domainusage.IngestRetryable},
+		{"generic", errors.New("network"), domainusage.IngestRetryable},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestOutcomeForReconcileAdvancesCursor(t *testing.T) {
 		{"log not found", store.ErrConsumeLogNotFound, true},
 		{"business", domain.NotFound("mapping"), true},
 		{"log db temp", errors.New("pg"), false},
-		{"tokenjoy temp", domain.ServiceUnavailable("tx"), false},
+		{"retryable", domain.ServiceUnavailable("tx"), false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

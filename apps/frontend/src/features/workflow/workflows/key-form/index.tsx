@@ -75,10 +75,10 @@ export function KeyFormWorkflow({
 
   const {
     quotaSummary,
-    groupQuotaRemaining,
+    groupBudgetRemaining,
     quotaInsufficient,
     quotaExceedsRemaining,
-    groupQuotaExceeds,
+    groupBudgetExceeds,
   } = useKeyFormQuota({
     isCreate,
     isGroupKey,
@@ -120,8 +120,8 @@ export function KeyFormWorkflow({
       toast.error(`额度不能超过剩余 ¥${quotaSummary.remaining.toLocaleString()}`)
       return
     }
-    if (groupQuotaExceeds) {
-      toast.error(`额度不能超过预算组剩余 ¥${groupQuotaRemaining!.toLocaleString()}`)
+    if (groupBudgetExceeds) {
+      toast.error(`额度不能超过预算组剩余 ¥${groupBudgetRemaining!.toLocaleString()}`)
       return
     }
     setSubmitting(true)
@@ -194,7 +194,7 @@ export function KeyFormWorkflow({
       contextBar={
         isCreate
           ? isGroupKey
-            ? `预算组：${budgetGroupName ?? ''} · 剩余可分配 ¥${(groupQuotaRemaining ?? 0).toLocaleString()}`
+            ? `预算组：${budgetGroupName ?? ''} · 剩余可分配 ¥${(groupBudgetRemaining ?? 0).toLocaleString()}`
             : formatQuotaContext(
                 quotaSummary,
                 adminCreate ? targetMemberName || undefined : undefined,
@@ -208,9 +208,9 @@ export function KeyFormWorkflow({
           <p className="text-sm text-amber-800">
             申请额度超过剩余 ¥{quotaSummary!.remaining.toLocaleString()}
           </p>
-        ) : groupQuotaExceeds ? (
+        ) : groupBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过预算组剩余 ¥{groupQuotaRemaining!.toLocaleString()}
+            申请额度超过预算组剩余 ¥{groupBudgetRemaining!.toLocaleString()}
           </p>
         ) : undefined
       }
@@ -226,7 +226,7 @@ export function KeyFormWorkflow({
                 !name.trim() ||
                 (adminCreate && !isGroupKey && !targetMemberId) ||
                 quotaExceedsRemaining ||
-                groupQuotaExceeds
+                groupBudgetExceeds
               }
             />
           ) : (
@@ -241,7 +241,7 @@ export function KeyFormWorkflow({
                 submitting ||
                 quotaInsufficient ||
                 quotaExceedsRemaining ||
-                groupQuotaExceeds
+                groupBudgetExceeds
               }
             />
           )

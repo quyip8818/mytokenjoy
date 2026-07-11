@@ -126,7 +126,7 @@ flowchart LR
 | --- | --- |
 | 钉钉 CorpID + AppKey + AppSecret | 前端可选，后端不支持 |
 | 企微 CorpID + Secret + AgentID | 同上 |
-| 切换平台确认弹窗 | 前端有；切换后旧映射清理见 [org-modules-review](./superpowers/plans/2026-07-07-org-modules-review.md) 风险 |
+| 切换平台确认弹窗 | 前端有；切换后旧映射清理需在实现时验证 |
 
 ### 4.3 SaaS 与平台运营
 

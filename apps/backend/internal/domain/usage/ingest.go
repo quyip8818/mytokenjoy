@@ -106,7 +106,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if err := Apply(ctx, st, entry, open); err != nil {
 			return err
 		}
-		if err := enqueueSideEffects(ctx, s.cfg, st, entry, s.enqueueRebalanceAxis); err != nil {
+		if err := enqueueSideEffects(ctx, st, entry, s.enqueueRebalanceAxis); err != nil {
 			return err
 		}
 		if s.enqueueWalletSync != nil {

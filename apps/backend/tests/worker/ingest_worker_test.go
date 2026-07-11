@@ -85,7 +85,7 @@ func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
 	}
 }
 
-func TestReconcileRunsWithoutNewAPIEnabled(t *testing.T) {
+func TestReconcileIngestWithoutAdminSync(t *testing.T) {
 	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
@@ -100,7 +100,7 @@ func TestReconcileRunsWithoutNewAPIEnabled(t *testing.T) {
 	}
 	ingested, err := testutil.HasLedgerLogID(st, 750)
 	if err != nil || !ingested {
-		t.Fatalf("expected reconcile ingest without newapi enabled, err=%v", err)
+		t.Fatalf("expected reconcile ingest without admin sync, err=%v", err)
 	}
 }
 

@@ -38,5 +38,5 @@ var (
 )
 
 func (l *NewAPISync) Enabled() bool {
-	return l.cfg.NewAPIEnabled && l.client != nil
+	return l.client != nil
 }

@@ -103,10 +103,9 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 }
 
 func TestCreateCompanyAllocatesSaaSMinCompanyID(t *testing.T) {
-	const saasMinCompanyID int64 = 1_000_000
-
 	cfg, st := testutil.NewTestStore(t, testutil.WithSupportSaas(true))
-	svc := company.NewService(cfg, st, nil)
+	client := &mock.StubAdminClient{User: newapi.User{ID: 502, Quota: 0}}
+	svc := company.NewService(cfg, st, client)
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -117,8 +116,8 @@ func TestCreateCompanyAllocatesSaaSMinCompanyID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Company.ID != saasMinCompanyID {
-		t.Fatalf("expected company id=%d, got %d", saasMinCompanyID, result.Company.ID)
+	if result.Company.ID != company.SaaSMinCompanyID {
+		t.Fatalf("expected company id=%d, got %d", company.SaaSMinCompanyID, result.Company.ID)
 	}
 }
 
@@ -126,7 +125,8 @@ func TestCreateCompanyAllocatesNonSaasCompanyID(t *testing.T) {
 	const nonSaasNextCompanyID int64 = 3
 
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil)
+	client := &mock.StubAdminClient{User: newapi.User{ID: 503, Quota: 0}}
+	svc := company.NewService(cfg, st, client)
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{

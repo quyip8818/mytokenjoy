@@ -1,10 +1,5 @@
-import { describe, expect, it, vi, afterEach } from 'vitest'
-import {
-  buildCostStats,
-  buildUsageSeriesChartData,
-  buildUsageSeriesWindow,
-  formatTokenCount,
-} from '@/features/dashboard/lib/dashboard'
+import { describe, expect, it } from 'vitest'
+import { buildCostStats, formatTokenCount } from '@/features/dashboard/lib/dashboard'
 import type { CostSummary } from '@/api/types'
 
 describe('buildCostStats', () => {
@@ -43,53 +38,5 @@ describe('buildCostStats', () => {
     const stats = buildCostStats(summary)
     expect(stats.find((s) => s.label === '总 Token')?.value).toBe('-')
     expect(formatTokenCount(0)).toBe('-')
-  })
-})
-
-describe('buildUsageSeriesWindow', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('anchors dev ranges to the current local day window', () => {
-    vi.setSystemTime(new Date(2026, 5, 19, 12, 0, 0))
-    const hourWindow = buildUsageSeriesWindow('hour')
-    expect(hourWindow.end).toContain('2026-06-19')
-    expect(hourWindow.start).toContain('2026-06-01')
-
-    const minuteWindow = buildUsageSeriesWindow('minute')
-    expect(minuteWindow.end).toContain('2026-06-19')
-    expect(new Date(minuteWindow.end).getTime() - new Date(minuteWindow.start).getTime()).toBe(
-      3 * 60 * 60 * 1000,
-    )
-  })
-})
-
-describe('buildUsageSeriesChartData', () => {
-  it('aggregates points by bucket and formats hour labels', () => {
-    const chartData = buildUsageSeriesChartData(
-      [
-        {
-          bucket: '2026-06-10T09:00:00+08:00',
-          costCny: 4,
-          callCount: 2,
-          inputTokens: 0,
-          outputTokens: 0,
-        },
-        {
-          bucket: '2026-06-10T09:00:00+08:00',
-          costCny: 6,
-          callCount: 3,
-          inputTokens: 0,
-          outputTokens: 0,
-        },
-      ],
-      'hour',
-    )
-
-    expect(chartData).toHaveLength(1)
-    expect(chartData[0]?.costCny).toBe(10)
-    expect(chartData[0]?.callCount).toBe(5)
-    expect(chartData[0]?.label).toMatch(/06-10/)
   })
 })

@@ -23,13 +23,13 @@ func EncryptField(key []byte, plaintext string) (string, error) {
 	return encryptedFieldPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-// DecryptField returns plaintext for enc:v1: values and passes through legacy plaintext.
+// DecryptField returns plaintext for enc:v1: values.
 func DecryptField(key []byte, stored string) (string, error) {
 	if stored == "" {
 		return "", nil
 	}
 	if !IsEncryptedField(stored) {
-		return stored, nil
+		return "", fmt.Errorf("credential not encrypted")
 	}
 	payload, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(stored, encryptedFieldPrefix))
 	if err != nil {

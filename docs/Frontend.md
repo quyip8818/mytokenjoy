@@ -143,7 +143,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 **`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `platform_key_mappings.department_id` 独立分层。
 
-**`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。生产迁移 SQL 见 [plan.md](./plan.md) §5。
+**`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。新库 `schema.sql` 已含全量 DDL。
 
 ---
 

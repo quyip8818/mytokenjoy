@@ -24,29 +24,21 @@ import (
 
 func NewRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
 	t.Helper()
-	return newRunner(t, stub, true, true)
-}
-
-func NewDisabledNewAPIRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync) {
-	t.Helper()
-	runner, st, newAPISync, _ := newRunner(t, stub, false, false)
-	return runner, st, newAPISync
+	return newRunner(t, stub, true)
 }
 
 func NewIngestOnlyRunner(t *testing.T) (*worker.Runner, store.Store, *domainusage.IngestService) {
 	t.Helper()
-	runner, st, _, ingest := newRunner(t, &mock.StubAdminClient{}, false, true)
+	runner, st, _, ingest := newRunner(t, &mock.StubAdminClient{}, true)
 	return runner, st, ingest
 }
 
-func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEnabled bool) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
+func newRunner(t *testing.T, stub *mock.StubAdminClient, ingestEnabled bool) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
 	t.Helper()
 	opts := []testutil.ConfigOption{
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
-	}
-	if newAPIEnabled {
-		opts = append(opts, testutil.WithNewAPIEnabled(true))
+		testutil.WithNewAPIEnabled(true),
 	}
 	if ingestEnabled {
 		opts = append(opts, testutil.WithIngestEnabled(true), testutil.WithNewAPIWebhookSecret("secret"))
@@ -57,7 +49,7 @@ func newRunner(t *testing.T, stub *mock.StubAdminClient, newAPIEnabled, ingestEn
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	notifier := notification.NewService(cfg, st, logger)
 	enqueueWalletSync := app.EnqueueWalletSync(st)
-	ingest := domainusage.NewIngestService(cfg, st, st.Logs(), notifier, logger, enqueueWalletSync, app.EnqueueRebalanceAxis(cfg, st))
+	ingest := domainusage.NewIngestService(cfg, st, st.Logs(), notifier, logger, enqueueWalletSync, app.EnqueueRebalanceAxis(st))
 	ingestQueue := domainusage.NewQueue(st.Logs())
 	overrun := domainbudget.NewOverrunService(cfg, st, newAPISync, notifier, logger)
 	rebalance := domainbudget.NewRebalanceService(cfg, st, stub)

@@ -23,9 +23,11 @@ type infra struct {
 	delayer       common.Delayer
 }
 
-func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store) (infra, error) {
+func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, adminClientOverride newapi.AdminClient) (infra, error) {
 	var adminClient newapi.AdminClient
-	if cfg.NewAPIEnabled {
+	if adminClientOverride != nil {
+		adminClient = adminClientOverride
+	} else {
 		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
 	}
 	channelPolicy := newapisync.NewChannelPolicy(cfg)

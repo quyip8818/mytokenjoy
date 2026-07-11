@@ -242,10 +242,6 @@ export const MEMBER_ROUTE_DEFINITIONS: readonly RouteDefinition[] =
 
 export type MemberRoutePath = (typeof MEMBER_ROUTE_DEFINITIONS)[number]['path']
 
-export const ROUTE_REDIRECTS: Record<string, string> = {
-  '/billing': '/wallet',
-}
-
 export type RouteKey = (typeof ROUTE_DEFINITIONS)[number]['key']
 
 const routeEntries = ROUTE_DEFINITIONS.map(

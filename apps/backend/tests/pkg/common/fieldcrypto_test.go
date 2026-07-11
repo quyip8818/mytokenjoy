@@ -24,15 +24,3 @@ func TestEncryptDecryptFieldRoundTrip(t *testing.T) {
 		t.Fatalf("expected round-trip plaintext, got %q", plain)
 	}
 }
-
-func TestDecryptFieldLegacyPlaintext(t *testing.T) {
-	t.Parallel()
-	key := common.DevDefaultKey()
-	plain, err := common.DecryptField(key, "legacy-plaintext-key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if plain != "legacy-plaintext-key" {
-		t.Fatalf("expected legacy passthrough, got %q", plain)
-	}
-}

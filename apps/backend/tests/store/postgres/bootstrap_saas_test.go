@@ -18,7 +18,6 @@ func TestEnsureBootstrapCompanyRejectsSaaSRangeWhenSupportSaasDisabled(t *testin
 	cfg.CompanyName = "Demo Company"
 	cfg.TokenJoyCompanyID = 1
 	cfg.LocalCompanyID = 2
-	cfg.DefaultCompanyID = 2
 
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO companies (id, slug, name, status)

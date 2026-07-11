@@ -17,7 +17,7 @@ const (
 	IngestBusiness
 	IngestLogNotFound
 	IngestLogDBTemp
-	IngestTokenjoyTemp
+	IngestRetryable
 )
 
 func ClassifyIngestError(err error) IngestErrorKind {
@@ -33,7 +33,7 @@ func ClassifyIngestError(err error) IngestErrorKind {
 		case domain.StatusNotFound, domain.StatusUnprocessable, domain.StatusBadRequest:
 			return IngestBusiness
 		case domain.StatusServiceUnavailable:
-			return IngestTokenjoyTemp
+			return IngestRetryable
 		default:
 			return IngestBusiness
 		}
@@ -42,7 +42,7 @@ func ClassifyIngestError(err error) IngestErrorKind {
 	if errors.As(err, &pgErr) {
 		return IngestLogDBTemp
 	}
-	return IngestTokenjoyTemp
+	return IngestRetryable
 }
 
 func IsRecoverableIngestError(err error) bool {

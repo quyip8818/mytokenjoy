@@ -3,6 +3,7 @@
 package testutil
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,9 +11,15 @@ import (
 
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
 func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
+	return NewTestAppWithOptions(t, mutate, app.WithoutWorker(), app.WithAdminClient(defaultStubAdminClient()))
+}
+
+func NewTestAppWithOptions(t *testing.T, mutate func(*config.Config), opts ...app.Option) *app.App {
 	t.Helper()
 	cfg := TestConfig()
 	if mutate != nil {
@@ -20,11 +27,26 @@ func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	}
 	_, st := NewTestStore(t, WithConfig(cfg))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	application, err := app.NewWithStore(cfg, logger, st, app.WithoutWorker())
+	application, err := app.NewWithStore(cfg, logger, st, opts...)
 	if err != nil {
 		t.Fatalf("create app: %v", err)
 	}
 	return application
+}
+
+func DefaultStubAdminClient() *mock.StubAdminClient {
+	return defaultStubAdminClient()
+}
+
+func defaultStubAdminClient() *mock.StubAdminClient {
+	var nextUserID int64 = 200
+	return &mock.StubAdminClient{
+		User: newapi.User{ID: nextUserID, Quota: 0},
+		CreateUserFn: func(_ context.Context, _ newapi.CreateUserRequest) (newapi.User, error) {
+			nextUserID++
+			return newapi.User{ID: nextUserID, Quota: 0}, nil
+		},
+	}
 }
 
 func NewTestRouter(t *testing.T) http.Handler {

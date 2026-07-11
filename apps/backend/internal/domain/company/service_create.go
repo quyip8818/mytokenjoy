@@ -12,8 +12,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-const saasMinCompanyID int64 = 1_000_000
-
 func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error) {
 	companies, err := s.store.Company().List(ctx)
 	if err != nil {
@@ -25,8 +23,8 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			nextID = t.ID + 1
 		}
 	}
-	if s.cfg.SupportSaas && nextID < saasMinCompanyID {
-		nextID = saasMinCompanyID
+	if s.cfg.SupportSaas && nextID < SaaSMinCompanyID {
+		nextID = SaaSMinCompanyID
 	}
 	now := time.Now().UTC()
 	var result CreateCompanyResult
@@ -44,22 +42,23 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			return err
 		}
 		companyCtx := WithContext(ctx, Context{CompanyID: company.ID, Slug: company.Slug, Status: company.Status})
-		if s.cfg.NewAPIEnabled && s.client != nil {
-			user, err := s.client.CreateUser(ctx, newapi.CreateUserRequest{
-				Username:    fmt.Sprintf("company-%d", company.ID),
-				DisplayName: req.Name,
-				Password:    randomPassword(),
-				Quota:       0,
-			})
-			if err != nil {
-				return fmt.Errorf("create newapi wallet account: %w", err)
-			}
-			if err := tx.Company().UpdateNewAPIWalletUserID(ctx, company.ID, user.ID); err != nil {
-				return err
-			}
-			walletID := user.ID
-			company.NewAPIWalletUserID = &walletID
+		if s.client == nil {
+			return fmt.Errorf("newapi admin client required")
 		}
+		user, err := s.client.CreateUser(ctx, newapi.CreateUserRequest{
+			Username:    fmt.Sprintf("company-%d", company.ID),
+			DisplayName: req.Name,
+			Password:    randomPassword(),
+			Quota:       0,
+		})
+		if err != nil {
+			return fmt.Errorf("create newapi wallet account: %w", err)
+		}
+		if err := tx.Company().UpdateNewAPIWalletUserID(ctx, company.ID, user.ID); err != nil {
+			return err
+		}
+		walletID := user.ID
+		company.NewAPIWalletUserID = &walletID
 		rootDeptID := fmt.Sprintf("dept-root-%d", company.ID)
 		nodes, err := tx.Org().Nodes().Tree(companyCtx)
 		if err != nil {
