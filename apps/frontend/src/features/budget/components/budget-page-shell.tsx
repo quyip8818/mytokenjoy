@@ -38,6 +38,8 @@ export function BudgetPageShell({
   createBudgetGroup,
   updateBudgetGroup,
   deleteBudgetGroup,
+  getMemberQuotas,
+  updateMemberQuota,
 }: BudgetPageShellProps) {
   return (
     <PageShell layout="fill" className="min-h-0 flex-1">
@@ -133,6 +135,8 @@ export function BudgetPageShell({
                     onNavigateToProject={setActiveProjectId}
                     onUpdateDepartment={updateDepartment}
                     onCreateGroup={createBudgetGroup}
+                    getMemberQuotas={getMemberQuotas}
+                    updateMemberQuota={updateMemberQuota}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

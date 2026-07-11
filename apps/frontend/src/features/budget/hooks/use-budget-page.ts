@@ -156,6 +156,19 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis, refresh],
   )
 
+  const getMemberQuotas = useCallback(
+    (departmentId: string) => apis.budgetApi.getMemberQuotas(departmentId),
+    [apis],
+  )
+
+  const updateMemberQuota = useCallback(
+    async (memberId: string, data: { personalQuota: number }) => {
+      const result = await apis.budgetApi.updateMemberQuota(memberId, data)
+      return result
+    },
+    [apis],
+  )
+
   const overrunPolicyLabel = formatOverrunPolicyLabel(
     activeProject?.overrunPolicy ?? projects[0]?.overrunPolicy ?? 'hard_reject',
   )
@@ -191,5 +204,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     createBudgetGroup,
     updateBudgetGroup,
     deleteBudgetGroup,
+    getMemberQuotas,
+    updateMemberQuota,
   }
 }

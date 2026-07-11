@@ -12,30 +12,51 @@ interface BudgetTreePanelProps {
 
 function TreeNode({
   node,
-  depth,
+  level,
   selectedId,
   onSelect,
-  expanded,
+  expandedIds,
   onToggle,
+  searchKeyword,
 }: {
   node: BudgetNode
-  depth: number
+  level: number
   selectedId: string | undefined
   onSelect: (nodeId: string) => void
-  expanded: Set<string>
+  expandedIds: Set<string>
   onToggle: (id: string) => void
+  searchKeyword: string
 }) {
   const hasChildren = node.children && node.children.length > 0
-  const isExpanded = expanded.has(node.id)
+  const isExpanded = expandedIds.has(node.id)
   const isSelected = selectedId === node.id
 
+  const highlightText = (text: string) => {
+    if (!searchKeyword) return text
+    const lower = text.toLowerCase()
+    const idx = lower.indexOf(searchKeyword.toLowerCase())
+    if (idx === -1) return text
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="rounded-sm bg-amber-100 px-0.5 text-inherit">{text.slice(idx, idx + searchKeyword.length)}</mark>
+        {text.slice(idx + searchKeyword.length)}
+      </>
+    )
+  }
+
   return (
-    <>
+    <div>
       <div
         role="treeitem"
         tabIndex={0}
         aria-selected={isSelected}
         aria-expanded={hasChildren ? isExpanded : undefined}
+        className={cn(
+          'group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+          isSelected ? 'bg-primary/8 text-primary' : 'text-foreground hover:bg-muted',
+        )}
+        style={{ paddingLeft: `${level * 16 + 8}px` }}
         onClick={() => onSelect(node.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -43,12 +64,8 @@ function TreeNode({
             onSelect(node.id)
           }
         }}
-        className={cn(
-          'group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm',
-          isSelected ? 'bg-primary/8 text-primary' : 'text-foreground hover:bg-muted',
-        )}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
+        {/* Expand toggle */}
         {hasChildren ? (
           <span
             role="button"
@@ -77,6 +94,7 @@ function TreeNode({
           <span className="size-4" />
         )}
 
+        {/* Icon */}
         {hasChildren ? (
           isExpanded ? (
             <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
@@ -86,45 +104,63 @@ function TreeNode({
         ) : (
           <Users className="size-4 shrink-0 text-muted-foreground" />
         )}
-        <span className="flex-1 truncate font-medium">{node.name}</span>
+
+        {/* Name */}
+        <span className="flex-1 truncate font-medium">{highlightText(node.name)}</span>
       </div>
 
-      {isExpanded &&
-        hasChildren &&
-        node.children!.map((child) => (
-          <TreeNode
-            key={child.id}
-            node={child}
-            depth={depth + 1}
-            selectedId={selectedId}
-            onSelect={onSelect}
-            expanded={expanded}
-            onToggle={onToggle}
-          />
-        ))}
-    </>
+      {/* Children */}
+      {hasChildren && isExpanded && (
+        <div>
+          {node.children!.map((child) => (
+            <TreeNode
+              key={child.id}
+              node={child}
+              level={level + 1}
+              selectedId={selectedId}
+              expandedIds={expandedIds}
+              onSelect={onSelect}
+              onToggle={onToggle}
+              searchKeyword={searchKeyword}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
 export function BudgetTreePanel({ tree, selectedId, onSelect }: BudgetTreePanelProps) {
-  const [expanded, setExpanded] = useState<Set<string>>(() => {
-    const ids = new Set<string>()
-    function collect(nodes: BudgetNode[]) {
-      for (const n of nodes) {
-        if (n.children?.length) {
-          ids.add(n.id)
-          collect(n.children)
-        }
-      }
-    }
-    collect(tree)
-    return ids
-  })
   const [search, setSearch] = useState('')
+  const [userExpanded, setUserExpanded] = useState<Set<string> | null>(null)
+
+  // Default: only expand root-level nodes (consistent with org tree)
+  const defaultExpanded = useMemo(
+    () => (tree.length > 0 ? new Set(tree.map((node) => node.id)) : new Set<string>()),
+    [tree],
+  )
+  const expanded = userExpanded ?? defaultExpanded
 
   const toggleExpand = (id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
+    setUserExpanded((prev) => {
+      let current: Set<string>
+      if (prev !== null) {
+        current = prev
+      } else if (search) {
+        // During search, seed from all-expanded so collapsing one doesn't collapse everything
+        const allIds = new Set<string>()
+        function collectAll(nodes: BudgetNode[]) {
+          for (const n of nodes) {
+            allIds.add(n.id)
+            if (n.children) collectAll(n.children)
+          }
+        }
+        collectAll(filteredTree)
+        current = allIds
+      } else {
+        current = defaultExpanded
+      }
+      const next = new Set(current)
       if (next.has(id)) {
         next.delete(id)
       } else {
@@ -136,7 +172,6 @@ export function BudgetTreePanel({ tree, selectedId, onSelect }: BudgetTreePanelP
 
   const filteredTree = useMemo(() => {
     if (!search) return tree
-
     const lower = search.toLowerCase()
 
     function filterNodes(nodes: BudgetNode[]): BudgetNode[] {
@@ -152,28 +187,37 @@ export function BudgetTreePanel({ tree, selectedId, onSelect }: BudgetTreePanelP
     return filterNodes(tree)
   }, [tree, search])
 
-  // When searching, auto-expand all nodes so matches are visible
+  // When searching, auto-expand all filtered nodes so matches are visible
+  // but respect user's manual toggles if they've interacted
   const effectiveExpanded = useMemo(() => {
     if (!search) return expanded
-    const ids = new Set<string>()
+    // Collect all IDs in the filtered tree
+    const allIds = new Set<string>()
     function collectAll(nodes: BudgetNode[]) {
       for (const n of nodes) {
-        ids.add(n.id)
+        allIds.add(n.id)
         if (n.children) collectAll(n.children)
       }
     }
     collectAll(filteredTree)
-    return ids
-  }, [search, filteredTree, expanded])
+    // If user has manually toggled, respect their state
+    if (userExpanded !== null) return userExpanded
+    return allIds
+  }, [search, filteredTree, expanded, userExpanded])
 
   return (
     <div className="flex w-64 shrink-0 flex-col border-r border-border">
-      <div className="border-b border-border p-3">
-        <div className="relative">
+      <div className="flex items-center gap-2 border-b border-border p-3">
+        <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
+            type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              // Reset manual toggles when search keyword changes so auto-expand takes over
+              setUserExpanded(null)
+            }}
             placeholder="搜索部门..."
             className="h-8 pl-8 text-sm"
           />
@@ -184,11 +228,12 @@ export function BudgetTreePanel({ tree, selectedId, onSelect }: BudgetTreePanelP
           <TreeNode
             key={node.id}
             node={node}
-            depth={0}
+            level={0}
             selectedId={selectedId}
+            expandedIds={effectiveExpanded}
             onSelect={onSelect}
-            expanded={effectiveExpanded}
             onToggle={toggleExpand}
+            searchKeyword={search}
           />
         ))}
       </div>

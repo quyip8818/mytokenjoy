@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView } from '@/api/types'
+import type { BudgetNode, BudgetProjectView, MemberBudgetQuota } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { nodeReservedPool } from '@/features/budget'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 import { cn } from '@/lib/utils'
-import { Pencil, Users, Wallet, X, Check } from 'lucide-react'
+import { Pencil, Users, Wallet, X, Check, Settings2 } from 'lucide-react'
+import { BudgetMemberQuotaDialog } from './budget-member-quota-dialog'
 
 interface BudgetEditMemberQuotaProps {
   node: BudgetNode
@@ -15,6 +16,8 @@ interface BudgetEditMemberQuotaProps {
     departmentId: string,
     data: { budget: number; reservedPool?: number },
   ) => Promise<void>
+  getMemberQuotas: (departmentId: string) => Promise<MemberBudgetQuota[]>
+  updateMemberQuota: (memberId: string, data: { personalQuota: number }) => Promise<MemberBudgetQuota>
 }
 
 export function BudgetEditMemberQuota({
@@ -22,11 +25,14 @@ export function BudgetEditMemberQuota({
   projects,
   onUpdated,
   onUpdateDepartment,
+  getMemberQuotas,
+  updateMemberQuota,
 }: BudgetEditMemberQuotaProps) {
   const [editing, setEditing] = useState(false)
   const [reservedDraft, setReservedDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
 
   function startEdit() {
     setReservedDraft(String(pointsToDisplay(nodeReservedPool(node))))
@@ -157,9 +163,28 @@ export function BudgetEditMemberQuota({
 
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
-      <p className="mt-2 text-xs text-muted-foreground">
-        成员个人额度请在成员配额配置中管理；预留池余额可在上方编辑。
-      </p>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          成员个人额度请在成员配额配置中管理；预留池余额可在上方编辑。
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={() => setQuotaDialogOpen(true)}
+        >
+          <Settings2 className="size-3.5" />
+          配置成员额度
+        </Button>
+      </div>
+
+      <BudgetMemberQuotaDialog
+        open={quotaDialogOpen}
+        onOpenChange={setQuotaDialogOpen}
+        departmentId={node.id}
+        getMemberQuotas={getMemberQuotas}
+        updateMemberQuota={updateMemberQuota}
+      />
     </div>
   )
 }
