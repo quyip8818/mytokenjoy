@@ -14,6 +14,7 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
@@ -38,25 +39,25 @@ func wireIngestQueue(i infra) domainusage.Queue {
 	return domainusage.NewQueue(i.store.Logs())
 }
 
-func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger) domainServices {
+func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) domainServices {
 	reader := wireReader(i)
 	ingestQueue := wireIngestQueue(i)
 	keysSvc := wireKeys(cfg, i)
 	grants := permission.NewGrantNormalizer()
 	return domainServices{
 		org:             wireOrg(cfg, i, logger, grants),
-		budget:          wireBudget(cfg, i),
+		budget:          wireBudget(cfg, i, enqueuer),
 		keys:            keysSvc,
 		models:          wireModels(cfg, i),
 		dashboard:       wireDashboard(cfg, i, reader),
 		audit:           wireAudit(cfg, i, reader),
 		readModel:       reader,
-		ingest:          wireIngestService(cfg, i, logger),
+		ingest:          wireIngestService(cfg, i, logger, enqueuer),
 		ingestQueue:     ingestQueue,
 		overrun:         wireOverrunService(cfg, i, logger),
 		rebalance:       wireRebalance(cfg, i),
 		company:         wireCompany(cfg, i, grants),
-		billing:         wireBilling(cfg, i, reader),
+		billing:         wireBilling(cfg, i, reader, enqueuer),
 		memberAnalytics: wireMemberAnalytics(cfg, reader, keysSvc),
 	}
 }

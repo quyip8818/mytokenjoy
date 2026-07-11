@@ -267,17 +267,14 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    ING[ingest 扣 balance_point] --> Q[enqueue wallet_sync]
-    Q --> D{同 company pending?}
-    D -->|新建| T[next_retry = now + 5s]
-    D -->|冲突| S[GREATEST 滑动推迟 5s]
-    T --> W[worker TopUp delta]
-    S --> W
+    ING[ingest 扣 balance_point] --> TX[InsertTx wallet_sync]
+    TX --> U[Unique 5s 同 company 合并]
+    U --> W[WalletSyncWorker TopUp delta]
     W --> NA[NewAPI users.quota]
-    RC[定时 ReconcileWalletDrift] --> Q
+    RC[ReconcileWalletDrift] --> TX
 ```
 
-1. ingest / 充值后 debounce 入队（`WalletSyncDebounceSecs = 5`）。
+1. ingest / 充值后 `InsertTx(wallet_sync)`；`Unique ByPeriod: 5s`（等同现网 debounce 语义）。
 2. `target = ToQuotaUnits(balance_point, modelPriceUpper)` → `TopUp(delta)`。
 3. 定时对账：`|FromQuotaUnits(na) − balance_point| > ε` → 入队 sync。
 
@@ -431,12 +428,11 @@ domain/budget/
 
 store/postgres/
   billing_repo.go     lot CRUD、AggregateWallet、ExpandOverdraftLot
-  async_jobs_repo.go  EnqueueWalletSync（滑动 debounce）
   ledger_repo.go      InsertSegments
 
-infra/worker/
-  wallet_sync_processor.go   processWalletSync / processWalletReconcile
-  runner.go                    asyncTick / asyncLoop 调度
+infra/jobs/enqueuer.go        InsertTx(wallet_sync) + Unique 5s
+infra/river/                  Client + Workers + Periodic
+infra/ingest/worker.go        日志库 pending / reconcile
 
 pkg/newapiunits/quota.go        point ↔ quota units（domain 直接引用）
 integration/newapi/quota.go     薄委托至 newapiunits

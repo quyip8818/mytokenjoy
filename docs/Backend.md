@@ -18,6 +18,9 @@
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
+| [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务现状：两条异步线、6 kind、入队点、Worker、Periodic |
+| [实现-离线任务管理.md](./实现-离线任务管理.md) | 离线任务剩余项（`budget_project`、Periodic fanout） |
+| [Backend-River实现.md](./Backend-River实现.md) | River 表、Unique、队列配置、`InsertInTx` 约定 |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 

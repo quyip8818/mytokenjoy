@@ -9,8 +9,8 @@ import (
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
+	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
-	"github.com/tokenjoy/backend/internal/infra/worker"
 )
 
 type ServiceRegistry struct {
@@ -27,21 +27,15 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 	return d
 }
 
-func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
-	return worker.NewRunner(
-		r.Config,
-		r.Store.AsyncJobs(),
-		r.Store.SchedulerLock(),
-		r.Store.Company(),
+func (r ServiceRegistry) IngestWorker(cfg config.Config, logger *slog.Logger) *ingest.Worker {
+	return ingest.NewWorker(
+		cfg,
 		r.Store.Logs(),
-		r.IngestMetrics,
-		r.Infra.newAPISync,
 		r.IngestSvc,
 		r.IngestQueue,
-		r.Overrun,
-		r.Rebalance,
+		r.IngestMetrics,
+		r.Store.SchedulerLock(),
 		r.BillingSvc,
-		r.OrgSync,
 		logger,
 	)
 }

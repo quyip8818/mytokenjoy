@@ -3,60 +3,52 @@ package postgres_test
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestEnqueueWalletSyncDebouncesAndSlides(t *testing.T) {
 	t.Parallel()
-	st := testPostgresStore(t)
+	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	companyID := contract.DefaultCompanyID
+	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
 
-	before := time.Now().UTC()
-	if err := st.AsyncJobs().EnqueueWalletSync(ctx, companyID); err != nil {
+	if err := jobs.InsertWalletSync(ctx, enqueuer, nil, companyID); err != nil {
 		t.Fatal(err)
 	}
-	first := walletSyncNextRetry(t, st, companyID)
-	if !first.After(before.Add(time.Duration(common.WalletSyncDebounceSecs-1) * time.Second)) {
-		t.Fatalf("expected debounced next_retry, got %v (before=%v)", first, before)
+	firstCount := walletSyncPendingCount(t, st, companyID)
+	if firstCount != 1 {
+		t.Fatalf("expected 1 pending wallet_sync job, got %d", firstCount)
 	}
 
-	time.Sleep(10 * time.Millisecond)
-	if err := st.AsyncJobs().EnqueueWalletSync(ctx, companyID); err != nil {
+	if err := jobs.InsertWalletSync(ctx, enqueuer, nil, companyID); err != nil {
 		t.Fatal(err)
 	}
-	second := walletSyncNextRetry(t, st, companyID)
-	if second.Before(first) {
-		t.Fatalf("expected sliding debounce, second=%v first=%v", second, first)
-	}
-
-	pending, err := st.AsyncJobs().HasPendingWalletSync(ctx, companyID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !pending {
-		t.Fatal("expected pending wallet_sync job")
+	secondCount := walletSyncPendingCount(t, st, companyID)
+	if secondCount != 1 {
+		t.Fatalf("expected unique wallet_sync debounce to keep one job, got %d", secondCount)
 	}
 }
 
-func walletSyncNextRetry(t *testing.T, st store.Store, companyID int64) time.Time {
+func walletSyncPendingCount(t *testing.T, st store.Store, companyID int64) int {
 	t.Helper()
 	pool := postgres.MainPool(st)
-	var nextRetry time.Time
+	var count int
 	err := pool.QueryRow(context.Background(), `
-		SELECT next_retry FROM async_jobs
-		WHERE company_id = $1 AND channel = 'wallet_sync' AND status = 'pending'
-		ORDER BY created_at DESC
-		LIMIT 1
-	`, companyID).Scan(&nextRetry)
+		SELECT COUNT(*)
+		FROM river_job
+		WHERE kind = $1
+		  AND state IN ('available', 'retryable', 'scheduled', 'running')
+		  AND (args->>'company_id')::bigint = $2
+	`, jobs.KindWalletSync, companyID).Scan(&count)
 	if err != nil {
-		t.Fatalf("query wallet_sync next_retry: %v", err)
+		t.Fatalf("query wallet_sync jobs: %v", err)
 	}
-	return nextRetry
+	return count
 }

@@ -107,7 +107,7 @@ flowchart LR
   ING --> PROJ[projection.Apply]
   PROJ --> SNAP[budget_snapshots.consumed]
   PROJ --> UB[(usage_buckets)]
-  ING --> JOB[async_jobs rebalance / overrun]
+  ING --> JOB[river_job budget_project / wallet_sync]
 ```
 
 ### 2.1 入账路径（方案 B）
@@ -282,7 +282,7 @@ flowchart LR
   TX --> L[usage_ledger]
   TX --> F[FIFO 扣 lot]
   TX --> P[投影 snapshots + buckets]
-  TX --> Q[async_jobs]
+  TX --> Q[river_job InsertTx]
 ```
 
 1. 结算日志 → Webhook 或 Worker 补洞 → 按 `newapi_key_id` 归因
@@ -309,7 +309,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  EVT[触发事件] --> AJ[async_jobs rebalance]
+  EVT[触发事件] --> RJ[river_job rebalance]
   AJ --> RB[RebalanceService]
   RB --> MIN[多候选取 min]
   MIN --> NA[UpdateToken]
@@ -403,7 +403,7 @@ sequenceDiagram
 | 快照加载 | `pkg/budget` |
 | Gateway 预检 | `domain/gateway` |
 | 充值 | `domain/billing` |
-| 异步任务 | `async_jobs`（newapi_sync / rebalance / overrun / wallet_sync） |
+| 异步任务 | `river_job`（River；见 [实现-离线任务管理.md](./实现-离线任务管理.md)） |
 
 ---
 

@@ -148,7 +148,7 @@ flowchart TB
     UL[usage_ledger]
     UB[usage_buckets]
     BS[budget_snapshots]
-    AJ[async_jobs]
+    RJ[river_job]
   end
 
   subgraph logDB [日志库 LOG_DATABASE_URL]
@@ -286,37 +286,41 @@ flowchart TB
 
 ### 6.3 入账后副作用
 
-| 副作用 | 条件 | 入队目标 |
-| --- | --- | --- |
-| rebalance（member / dept / budget_group） | `NEW_API_ENABLED=true` | 主库 `async_jobs` |
-| overrun | `NEW_API_ENABLED=true` | 主库 `async_jobs` |
-| wallet_sync | **始终入队**（debounce 5s） | 主库 `async_jobs` |
+> 目标态见 [实现-异步预算投影.md](./实现-异步预算投影.md) §6、[实现-离线任务管理.md](./实现-离线任务管理.md)。入队统一为 River `Insert` / `InsertTx` → `river_job`。
 
-`NEW_API_ENABLED=false` 时：ledger / snapshots / buckets **照常更新**；rebalance / overrun **不入队**；wallet_sync 入队但 Async Worker **不消费**（`runner.asyncTick` 早退）。
+| 副作用 | 条件 | River kind |
+| --- | --- | --- |
+| `budget_project` | 入账成功 | `critical`（`InsertTx` 与 ledger 同事务） |
+| `wallet_sync` | **始终** | `default`（`InsertTx`；Unique 5s throttle） |
+| rebalance / overrun | **不在 Ingest** | Projector 批末 `Insert` |
+
+`NEW_API_ENABLED=false` 时：ledger **照常**；rebalance / overrun **不入队**；`wallet_sync` 可入队但无 NewAPI 消费意义。
 
 ---
 
-## 7. Worker 拓扑与可靠性（深层）
+## 7. 后台运行时（目标态）
 
-Backend Worker 由 **两个独立 goroutine** 组成（`internal/infra/worker/runner.go`），不是单条顺序流水线：
+**两条线、两个包**（详见 [实现-离线任务管理.md](./实现-离线任务管理.md) §1）：
 
 ```mermaid
 flowchart TB
-  subgraph ingestLoop [ingestLoop · 仅 IngestEnabled]
-    RC0[启动时 ProcessReconcile]
-    T1[每 WORKER_POLL_INTERVAL_SEC<br/>ProcessPending]
-    T2[每 INGEST_RECONCILE_INTERVAL_SEC<br/>ProcessReconcile]
+  subgraph ingest [infra/ingest.Worker — 日志库]
+    RC0[启动 reconcile]
+    T1[INGEST_POLL：ProcessPending]
+    T2[INGEST_RECONCILE：ProcessReconcile + scheduler_locks]
   end
 
-  subgraph asyncLoop [asyncLoop · 始终运行]
-    OB[newapi_sync outbox]
-    NA{NEW_API_ENABLED?}
-    MR[monthly rebalance]
-    WS[wallet_sync / reconcile]
-    RB[rebalance / overrun]
-    OS[org sync]
+  subgraph river [infra/river.Client]
+    RJ[(river_job)]
+    PER[PeriodicJob → fanout]
+    W[Workers 并行 claim]
   end
+
+  WH[webhook] --> T1 --> ING[Ingest] -->|InsertTx| RJ
+  PER --> RJ --> W
 ```
+
+**删除现网：** `runner.asyncLoop`、`asyncTick`、`*_processor.go` 顺序轮询。
 
 ### 7.1 HTTP 入口
 
@@ -512,7 +516,8 @@ flowchart TB
 | Side effects | `internal/domain/usage/side_effects.go` | rebalance / overrun 入队 |
 | HTTP Handler | `internal/http/handler/ingest/handler.go` | webhook + metrics |
 | IngestWorker | `internal/infra/worker/ingest_worker.go` | pending + reconcile |
-| Runner | `internal/infra/worker/runner.go` | 双 goroutine 调度 |
+| Ingest Worker | `internal/infra/ingest/worker.go` | 日志库 pending / reconcile |
+| River | `internal/infra/river/client.go` | 全部离线 job |
 | Metrics | `internal/infra/ingestmetrics/collector.go` | 计数与 lag |
 | LogStore | `internal/store/log_repo.go`, `postgres/log_repo.go` | 日志库 CRUD |
 | Config | `internal/config/config.go`, `validate.go`, `worker.go` | 启用条件与间隔 |

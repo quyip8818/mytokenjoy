@@ -3,10 +3,10 @@
 package testutil
 
 import (
-	"context"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -26,35 +26,40 @@ func UsageBucketRows(st store.Store) []types.UsageBucketRow {
 }
 
 func NotificationLogs(st store.Store) []types.NotificationLogEntry {
-	logs, err := postgres.ListNotificationLogs(context.Background(), postgres.MainPool(st), contract.DefaultCompanyID)
+	logs, err := postgres.ListNotificationLogs(Ctx(), postgres.MainPool(st), contract.DefaultCompanyID)
 	if err != nil {
 		return nil
 	}
 	return logs
 }
 
-func NewAPISyncOutboxEntry(st store.Store, id string) (store.AsyncJob, bool) {
-	entry, found, err := postgres.GetNewAPISyncOutboxByID(context.Background(), postgres.MainPool(st), id)
-	if err != nil || !found {
-		return store.AsyncJob{}, false
-	}
-	return entry, true
-}
-
 func PendingRebalanceCount(st store.Store, companyID int64) int {
-	ctx := CtxForCompany(companyID)
-	entries, err := st.AsyncJobs().ClaimPendingRebalance(ctx, 100)
-	if err != nil {
-		return 0
-	}
-	return len(entries)
+	return pendingJobCount(st, jobs.KindRebalance, companyID)
 }
 
 func PendingOverrunCount(st store.Store, companyID int64) int {
+	return pendingJobCount(st, jobs.KindOverrun, companyID)
+}
+
+func PendingWalletSyncCount(st store.Store, companyID int64) int {
+	return pendingJobCount(st, jobs.KindWalletSync, companyID)
+}
+
+func pendingJobCount(st store.Store, kind string, companyID int64) int {
 	ctx := CtxForCompany(companyID)
-	entries, err := st.AsyncJobs().ClaimPendingOverrun(ctx, 100)
-	if err != nil {
+	pool := postgres.MainPool(st)
+	if pool == nil {
 		return 0
 	}
-	return len(entries)
+	var count int
+	if err := pool.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM river_job
+		WHERE kind = $1
+		  AND state IN ('available', 'retryable', 'scheduled', 'running')
+		  AND (args->>'company_id')::bigint = $2
+	`, kind, companyID).Scan(&count); err != nil {
+		return 0
+	}
+	return count
 }

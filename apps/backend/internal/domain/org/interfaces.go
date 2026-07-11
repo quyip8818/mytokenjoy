@@ -23,6 +23,7 @@ type SyncService interface {
 	UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) error
 	TriggerSync(ctx context.Context) (types.ImportResult, error)
 	RunScheduledSync(ctx context.Context) error
+	RunScheduledSyncAll(ctx context.Context) error
 	ListSyncLogs(ctx context.Context, page, pageSize int) (types.PageResult[types.SyncLog], error)
 }
 

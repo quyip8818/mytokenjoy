@@ -4,15 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type txStore struct {
+	tx              pgx.Tx
 	domain          domainRepos
 	ledger          store.LedgerRepository
 	mappings        store.PlatformKeyMappingRepository
 	gatewayPrecheck store.GatewayPrecheckRepository
-	asyncJobs       store.AsyncJobsRepository
 	budgetSnapshots store.BudgetSnapshotRepository
 	usage           store.UsageRepository
 	notification    store.NotificationRepository
@@ -21,6 +22,8 @@ type txStore struct {
 	billing         store.BillingRepository
 	parent          *Store
 }
+
+func (s *txStore) PgxTx() pgx.Tx { return s.tx }
 
 func (s *txStore) Org() store.OrgRepository       { return s.domain.org }
 func (s *txStore) Budget() store.BudgetRepository { return s.domain.budget }
@@ -39,10 +42,6 @@ func (s *txStore) PlatformKeyMappings() store.PlatformKeyMappingRepository {
 
 func (s *txStore) GatewayPrecheck() store.GatewayPrecheckRepository {
 	return s.gatewayPrecheck
-}
-
-func (s *txStore) AsyncJobs() store.AsyncJobsRepository {
-	return s.asyncJobs
 }
 
 func (s *txStore) SchedulerLock() store.SchedulerLockRepository {
@@ -93,11 +92,11 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	defer tx.Rollback(ctx)
 
 	txView := &txStore{
+		tx:              tx,
 		domain:          newDomainRepoSet(tx, s.tokenJoyCompanyID, s.credentialKey),
 		ledger:          &pgLedgerRepo{db: tx},
 		mappings:        newPlatformKeyMappingRepo(tx),
 		gatewayPrecheck: newGatewayPrecheckRepo(tx),
-		asyncJobs:       newAsyncJobsRepo(tx),
 		budgetSnapshots: newBudgetSnapshotRepo(tx),
 		usage:           &usageRepo{db: tx},
 		notification:    &notificationRepo{db: tx},
@@ -117,3 +116,4 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 
 var _ store.Store = (*Store)(nil)
 var _ store.Store = (*txStore)(nil)
+var _ store.Tx = (*txStore)(nil)

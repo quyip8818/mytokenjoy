@@ -9,22 +9,24 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func BuildRegistry(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Option) (ServiceRegistry, error) {
+func BuildRegistry(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Option) (ServiceRegistry, *jobs.Holder, error) {
 	var o options
 	for _, opt := range opts {
 		opt(&o)
 	}
-	registry, err := assembleRegistry(cfg, logger, st, o)
+	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
+	registry, err := assembleRegistry(cfg, logger, st, o, holder)
 	if err != nil {
-		return ServiceRegistry{}, err
+		return ServiceRegistry{}, nil, err
 	}
 	if err := registry.Credentials.BootstrapPlatformIfNeeded(context.Background()); err != nil {
-		return ServiceRegistry{}, err
+		return ServiceRegistry{}, nil, err
 	}
-	return registry, nil
+	return registry, holder, nil
 }
 
 func (r ServiceRegistry) MustNewAPISync() *newapisync.NewAPISync {

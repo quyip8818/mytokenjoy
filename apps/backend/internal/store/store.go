@@ -47,7 +47,6 @@ type Store interface {
 	Audit() AuditRepository
 	Ledger() LedgerRepository
 	PlatformKeyMappings() PlatformKeyMappingRepository
-	AsyncJobs() AsyncJobsRepository
 	BudgetSnapshots() BudgetSnapshotRepository
 	GatewayPrecheck() GatewayPrecheckRepository
 	SchedulerLock() SchedulerLockRepository
@@ -67,5 +66,4 @@ type ConsumptionWriter interface {
 	Org() OrgRepository
 	Keys() KeysRepository
 	PlatformKeyMappings() PlatformKeyMappingRepository
-	AsyncJobs() AsyncJobsRepository
 }

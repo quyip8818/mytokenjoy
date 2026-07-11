@@ -3,20 +3,28 @@ package keys_test
 import (
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
+
+func testEnqueuer(t *testing.T, cfg config.Config, st store.Store) jobs.Enqueuer {
+	t.Helper()
+	return riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
+}
 
 func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	newAPISync := newapisync.New(cfg, st, nil, nil, newapisync.NewChannelPolicy(cfg))
+	newAPISync := newapisync.New(cfg, st, nil, nil, newapisync.NewChannelPolicy(cfg), testEnqueuer(t, cfg, st))
 	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false)), st
 }
 
@@ -28,7 +36,7 @@ func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *m
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
-	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg))
+	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg), testEnqueuer(t, cfg, st))
 	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false)), st, stub
 }
 
@@ -39,7 +47,7 @@ func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPI
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
-	return newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg)), st
+	return newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg), testEnqueuer(t, cfg, st)), st
 }
 
 func findApproval(st store.Store, id string) *types.KeyApproval {

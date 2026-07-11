@@ -178,3 +178,17 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 - [ ] `visibility` 须真正限制模型访问（#6）
 
 **约束：** 不引入平行 enrich API；SQL 筛选与 enrich 同路径；RBAC 在后端强制。
+
+---
+
+## §8 异步预算投影与离线任务管理
+
+设计文档（**同轮 wipe 落地**）：
+
+| 文档 | 状态 | 内容 |
+| --- | --- | --- |
+| [实现-离线任务管理.md](./实现-离线任务管理.md) | **部分完成** | River 基线已落地；剩余 `budget_project` + Periodic fanout |
+| [Backend-River实现.md](./Backend-River实现.md) | **已落地** | River 基础设施：Schema、Unique、队列、可观测 |
+| [实现-异步预算投影.md](./实现-异步预算投影.md) | **下一步** | ledger 单写、`budget_consumed` 异步、Gateway 瘦 SQL、看板 buckets |
+
+实施顺序：River step 0–3 ✅ → [实现-异步预算投影.md](./实现-异步预算投影.md) §14 step 2–5 → 离线任务 fanout（[实现-离线任务管理.md](./实现-离线任务管理.md) §2–§4）。

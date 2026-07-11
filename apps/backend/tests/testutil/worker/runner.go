@@ -3,55 +3,47 @@
 package workerfix
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/app"
-	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/worker"
+	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
-func NewRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
-	t.Helper()
-	return newRunner(t, stub, true)
+type TestRuntime struct {
+	*riverfix.TestRuntime
+	t *testing.T
 }
 
-func NewIngestOnlyRunner(t *testing.T) (*worker.Runner, store.Store, *domainusage.IngestService) {
-	t.Helper()
-	runner, st, _, ingest := newRunner(t, &mock.StubAdminClient{}, true)
-	return runner, st, ingest
+func (r *TestRuntime) RunOnce(ctx context.Context) {
+	r.WorkOnce(r.t, ctx)
 }
 
-func newRunner(t *testing.T, stub *mock.StubAdminClient, ingestEnabled bool) (*worker.Runner, store.Store, *newapisync.NewAPISync, *domainusage.IngestService) {
+func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.Store, *domainusage.IngestService) {
 	t.Helper()
-	opts := []testutil.ConfigOption{
-		testutil.WithNewAPIBaseURL("http://newapi.test"),
-		testutil.WithNewAPIAdminToken("token"),
-		testutil.WithNewAPIEnabled(true),
-	}
-	if ingestEnabled {
-		opts = append(opts, testutil.WithIngestEnabled(true), testutil.WithNewAPIWebhookSecret("secret"))
-	}
-	cfg, st := testutil.NewTestStore(t, opts...)
+	rt, st := riverfix.NewRuntime(t, stub)
+	wrapped := &TestRuntime{TestRuntime: rt, t: t}
+	ctx := context.Background()
+	rt.Start(t, ctx)
+	t.Cleanup(func() { rt.Stop(t, ctx) })
+	return wrapped, st, rt.Registry.MustIngestService()
+}
+
+func NewIngestOnlyRunner(t *testing.T) (*ingest.Worker, store.Store, *ingest.Worker) {
+	t.Helper()
+	cfg, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	reg, err := app.BuildRegistry(cfg, logger, st, app.WithAdminClient(stub))
+	reg, _, err := app.BuildRegistry(cfg, logger, st)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return reg.WorkerRunner(logger), st, reg.MustNewAPISync(), reg.MustIngestService()
-}
-
-func PendingNewAPISyncOutbox(st store.Store, kind string) int {
-	ctx := testutil.Ctx()
-	entries, err := postgres.ListPendingNewAPISyncOutbox(ctx, postgres.MainPool(st), kind, 100)
-	if err != nil {
-		return 0
-	}
-	return len(entries)
+	w := reg.IngestWorker(cfg, logger)
+	return w, st, w
 }

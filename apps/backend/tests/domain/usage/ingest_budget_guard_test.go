@@ -19,7 +19,7 @@ import (
 func TestIngestRejectsWhenDepartmentBudgetExceeded(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	_, st, _, ingest := workerfix.NewRunner(t, stub)
+	_, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()
 
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())

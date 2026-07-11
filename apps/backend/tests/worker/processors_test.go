@@ -6,6 +6,7 @@ import (
 
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -16,12 +17,12 @@ import (
 func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
-	runner, st, _ := newWorkerRunner(t, stub)
+	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)
 	remainQuota := int64(1000)
-	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
+	if err := fix.st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		CompanyID: contract.DefaultCompanyID, PlatformKeyID: contract.IDPlatformKey1,
 		NewAPIKeyID: &tokenID, MemberID: testutil.StrPtr(contract.IDMember1),
 		DepartmentID: contract.IDDept3, SyncStatus: store.MappingSyncStatusSynced,
@@ -29,15 +30,15 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
+	if err := jobs.InsertRebalance(ctx, fix.rt.Enqueuer, nil, contract.DefaultCompanyID, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 
-	runner.RunOnce(ctx)
+	fix.runRiver(t)
 	if stub.UpdateTokenCalls == 0 {
 		t.Fatal("expected rebalance processor to update token")
 	}
-	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
+	if testutil.PendingRebalanceCount(fix.st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected rebalance queue drained")
 	}
 }
@@ -45,11 +46,11 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, _ := newWorkerRunner(t, stub)
+	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
 
-	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
-	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
+	newapisynctf.UpsertMapping(t, fix.st, newapisynctf.DefaultMappingOpts())
+	testutil.SetDeptSnapshotConsumed(t, fix.st, contract.IDDept3, testutil.DisplayPoints(25000))
 
 	payload, err := json.Marshal(map[string]string{
 		"departmentId": contract.IDDept3, "platformKeyId": contract.IDPlatformKey1,
@@ -57,13 +58,13 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.AsyncJobs().EnqueueOverrun(ctx, payload); err != nil {
+	if err := jobs.InsertOverrun(ctx, fix.rt.Enqueuer, nil, contract.DefaultCompanyID, payload); err != nil {
 		t.Fatal(err)
 	}
 
-	runner.RunOnce(ctx)
+	fix.runRiver(t)
 
-	keys, err := st.Keys().PlatformKeys(ctx)
+	keys, err := fix.st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

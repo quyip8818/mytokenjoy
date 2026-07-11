@@ -18,7 +18,7 @@ import (
 func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, _, ingest := workerfix.NewRunner(t, stub)
+	runner, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()
 
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())

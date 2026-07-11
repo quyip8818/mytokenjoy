@@ -3,8 +3,11 @@ package usage
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -17,23 +20,29 @@ type overrunPayload struct {
 
 func enqueueSideEffects(
 	ctx context.Context,
-	st store.ConsumptionWriter,
+	tx store.Tx,
 	entry types.UsageLedgerEntry,
-	enqueueRebalance func(context.Context, string, string) error,
+	enqueuer jobs.Enqueuer,
 ) error {
-	if enqueueRebalance != nil {
-		if entry.MemberID != nil {
-			if err := enqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {
-				return err
-			}
-		}
-		if err := enqueueRebalance(ctx, store.RebalanceAxisDepartment, entry.DepartmentID); err != nil {
+	if enqueuer == nil {
+		return nil
+	}
+	if tx == nil {
+		return fmt.Errorf("enqueue side effects: transaction required")
+	}
+	companyID := company.CompanyID(ctx)
+
+	if entry.MemberID != nil {
+		if err := jobs.InsertRebalance(ctx, enqueuer, tx, companyID, store.RebalanceAxisMember, *entry.MemberID); err != nil {
 			return err
 		}
-		if entry.BudgetGroupID != nil {
-			if err := enqueueRebalance(ctx, store.RebalanceAxisBudgetGroup, *entry.BudgetGroupID); err != nil {
-				return err
-			}
+	}
+	if err := jobs.InsertRebalance(ctx, enqueuer, tx, companyID, store.RebalanceAxisDepartment, entry.DepartmentID); err != nil {
+		return err
+	}
+	if entry.BudgetGroupID != nil {
+		if err := jobs.InsertRebalance(ctx, enqueuer, tx, companyID, store.RebalanceAxisBudgetGroup, *entry.BudgetGroupID); err != nil {
+			return err
 		}
 	}
 
@@ -46,5 +55,5 @@ func enqueueSideEffects(
 	if err != nil {
 		return err
 	}
-	return st.AsyncJobs().EnqueueOverrun(ctx, overrunRaw)
+	return jobs.InsertOverrun(ctx, enqueuer, tx, companyID, overrunRaw)
 }

@@ -2,28 +2,21 @@ package newapisync
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
 func (l *NewAPISync) EnqueueUpsertProviderKey(ctx context.Context, providerKeyID string) error {
 	if !l.Enabled() {
 		return nil
 	}
-	payload, _ := json.Marshal(UpsertChannelOutboxPayload{
+	return jobs.InsertNewAPISync(ctx, l.enqueuer, nil, jobs.NewAPISyncArgs{
 		CompanyID:     company.CompanyID(ctx),
+		SubKind:       OutboxKindUpsertChannel,
 		ProviderKeyID: providerKeyID,
-	})
-	return l.outbox.EnqueueNewAPISyncOutbox(ctx, store.AsyncJob{
-		ID:      fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
-		Kind:    store.OutboxKindUpsertChannel,
-		Payload: payload,
-		Status:  store.JobStatusPending,
 	})
 }
 

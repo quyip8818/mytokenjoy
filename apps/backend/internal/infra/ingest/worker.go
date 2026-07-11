@@ -1,11 +1,13 @@
-package worker
+package ingest
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
@@ -14,29 +16,30 @@ import (
 
 const ingestReconcileLockName = "ingest_reconcile"
 
-type IngestWorker struct {
+type Worker struct {
 	cfg            config.Config
 	logStore       store.LogStore
 	ingest         domainusage.Ingestor
 	queue          domainusage.Queue
 	metrics        ingestmetrics.Recorder
 	schedulerLock  store.SchedulerLockRepository
+	billing        domainbilling.Service
 	logger         *slog.Logger
 	holderID       string
+	pollInterval   time.Duration
 	reconcileEvery time.Duration
 }
 
-func NewIngestWorker(
+func NewWorker(
 	cfg config.Config,
 	logStore store.LogStore,
 	ingest domainusage.Ingestor,
 	queue domainusage.Queue,
 	metrics ingestmetrics.Recorder,
 	schedulerLock store.SchedulerLockRepository,
+	billing domainbilling.Service,
 	logger *slog.Logger,
-	holderID string,
-	reconcileEvery time.Duration,
-) *IngestWorker {
+) *Worker {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
 	}
@@ -49,20 +52,48 @@ func NewIngestWorker(
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &IngestWorker{
+	return &Worker{
 		cfg:            cfg,
 		logStore:       logStore,
 		ingest:         ingest,
 		queue:          queue,
 		metrics:        metrics,
 		schedulerLock:  schedulerLock,
+		billing:        billing,
 		logger:         logger,
-		holderID:       holderID,
-		reconcileEvery: reconcileEvery,
+		holderID:       fmt.Sprintf("ingest-%d", time.Now().UnixNano()),
+		pollInterval:   cfg.WorkerPollInterval(),
+		reconcileEvery: cfg.IngestReconcileInterval(),
 	}
 }
 
-func (w *IngestWorker) ProcessPending(ctx context.Context) error {
+func (w *Worker) Start(ctx context.Context) {
+	if !w.cfg.IngestEnabled() {
+		return
+	}
+	go w.loop(ctx)
+}
+
+func (w *Worker) loop(ctx context.Context) {
+	w.logStep("ingest_reconcile_startup", w.ProcessReconcile(ctx))
+	ticker := time.NewTicker(w.pollInterval)
+	reconcileTicker := time.NewTicker(w.reconcileEvery)
+	defer ticker.Stop()
+	defer reconcileTicker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			w.logStep("ingest_pending", w.ProcessPending(ctx))
+			w.logStep("wallet_reconcile", w.processWalletReconcile(ctx))
+		case <-reconcileTicker.C:
+			w.logStep("ingest_reconcile", w.ProcessReconcile(ctx))
+		}
+	}
+}
+
+func (w *Worker) ProcessPending(ctx context.Context) error {
 	if !w.cfg.IngestEnabled() {
 		return nil
 	}
@@ -84,7 +115,7 @@ func (w *IngestWorker) ProcessPending(ctx context.Context) error {
 	return nil
 }
 
-func (w *IngestWorker) ProcessReconcile(ctx context.Context) error {
+func (w *Worker) ProcessReconcile(ctx context.Context) error {
 	if !w.cfg.IngestEnabled() {
 		return nil
 	}
@@ -142,11 +173,34 @@ func (w *IngestWorker) ProcessReconcile(ctx context.Context) error {
 	return nil
 }
 
-func (w *IngestWorker) refreshMetrics(ctx context.Context) {
+func (w *Worker) processWalletReconcile(ctx context.Context) error {
+	if w.billing == nil {
+		return nil
+	}
+	return w.billing.ReconcileWalletDrift(ctx)
+}
+
+func (w *Worker) refreshMetrics(ctx context.Context) {
 	if !w.cfg.IngestEnabled() {
 		return
 	}
 	if err := w.metrics.Refresh(ctx, w.logStore); err != nil {
 		w.logger.Warn("refresh ingest metrics failed", "error", err)
 	}
+}
+
+func (w *Worker) logStep(step string, err error) {
+	if err != nil {
+		w.logger.Warn("ingest worker step failed", "step", step, "error", err)
+	}
+}
+
+// RunReconcileOnce runs a single reconcile pass (tests).
+func (w *Worker) RunReconcileOnce(ctx context.Context) error {
+	return w.ProcessReconcile(ctx)
+}
+
+// RunPendingOnce processes one pending batch (tests).
+func (w *Worker) RunPendingOnce(ctx context.Context) error {
+	return w.ProcessPending(ctx)
 }

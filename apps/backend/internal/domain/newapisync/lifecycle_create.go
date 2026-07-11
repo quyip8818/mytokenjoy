@@ -2,7 +2,6 @@ package newapisync
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
@@ -34,15 +34,10 @@ func (l *NewAPISync) SyncCreatePlatformKey(ctx context.Context, key types.Platfo
 	if err := l.mappings.UpsertMapping(ctx, mapping); err != nil {
 		return err
 	}
-	payload, _ := json.Marshal(CreateKeyOutboxPayload{
+	return jobs.InsertNewAPISync(ctx, l.enqueuer, nil, jobs.NewAPISyncArgs{
 		CompanyID:     company.CompanyID(ctx),
+		SubKind:       OutboxKindCreateKey,
 		PlatformKeyID: key.ID,
-	})
-	return l.outbox.EnqueueNewAPISyncOutbox(ctx, store.AsyncJob{
-		ID:      fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
-		Kind:    store.OutboxKindCreateKey,
-		Payload: payload,
-		Status:  store.JobStatusPending,
 	})
 }
 

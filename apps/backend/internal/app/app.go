@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
-	"github.com/tokenjoy/backend/internal/infra/worker"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -22,7 +22,7 @@ type App struct {
 	Config  config.Config
 	Store   store.Store
 	Router  http.Handler
-	Worker  *worker.Runner
+	Workers *backgroundWorkers
 	closers []func()
 }
 
@@ -68,29 +68,35 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		opt(&o)
 	}
 
-	registry, err := assembleRegistry(cfg, logger, st, o)
+	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
+	registry, err := assembleRegistry(cfg, logger, st, o, holder)
 	if err != nil {
 		return nil, err
 	}
 	if err := registry.Credentials.BootstrapPlatformIfNeeded(ctx); err != nil {
 		return nil, err
 	}
-	runner := registry.WorkerRunner(logger)
+
+	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder)
+	if err != nil {
+		return nil, err
+	}
 
 	router := httpapi.NewRouter(registry.HTTPDeps(logger))
 
 	workerCtx, cancel := context.WithCancel(context.Background())
 	if !o.skipWorker {
-		runner.Start(workerCtx)
+		bgWorkers.start(workerCtx, cfg)
 	}
 
 	return &App{
-		Config: cfg,
-		Store:  st,
-		Router: router,
-		Worker: runner,
+		Config:  cfg,
+		Store:   st,
+		Router:  router,
+		Workers: bgWorkers,
 		closers: []func(){
 			cancel,
+			func() { bgWorkers.stop(context.Background()) },
 			func() {
 				if closer, ok := st.(interface{ Close() }); ok {
 					closer.Close()
@@ -100,12 +106,15 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}, nil
 }
 
-func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o options) (ServiceRegistry, error) {
-	infraDeps, err := buildInfraWithStore(cfg, logger, st, o.adminClient)
+func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o options, holder *jobs.Holder) (ServiceRegistry, error) {
+	if holder == nil {
+		holder = jobs.NewHolder(jobs.NoopEnqueuer{})
+	}
+	infraDeps, err := buildInfraWithStore(cfg, logger, st, holder, o.adminClient)
 	if err != nil {
 		return ServiceRegistry{}, err
 	}
-	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger))
+	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger, holder))
 	if o.orgSync != nil {
 		registry.OrgSync = o.orgSync
 	}

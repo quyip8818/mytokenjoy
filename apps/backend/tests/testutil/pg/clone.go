@@ -178,18 +178,25 @@ func CloneSchema(ctx context.Context, pool *pgxpool.Pool, src, dst string, plan 
 }
 
 func syncSchemaSequences(ctx context.Context, tx pgx.Tx, dstSchema string, targets []SerialTarget) error {
+	// Cloned test schemas may lack serial sequences (e.g. river_job_id_seq); create and sync them here.
 	if len(targets) == 0 {
 		return nil
 	}
-	dstSQL := pgx.Identifier{dstSchema}.Sanitize()
 	var stmts strings.Builder
 	for _, target := range targets {
-		tableSQL := pgx.Identifier{target.Table}.Sanitize()
 		columnSQL := pgx.Identifier{target.Column}.Sanitize()
+		seqName := target.Table + "_" + target.Column + "_seq"
 		fmt.Fprintf(
 			&stmts,
-			"SELECT setval(pg_get_serial_sequence('%s.%s', '%s'), COALESCE((SELECT MAX(%s) FROM %s.%s), 1), true);\n",
-			dstSchema, target.Table, target.Column, columnSQL, dstSQL, tableSQL,
+			`DO $clone$ BEGIN
+IF pg_get_serial_sequence('%[1]s.%[2]s', '%[3]s') IS NULL THEN
+  CREATE SEQUENCE %[1]s.%[4]s OWNED BY %[1]s.%[2]s.%[3]s;
+  ALTER TABLE %[1]s.%[2]s ALTER COLUMN %[3]s SET DEFAULT nextval('%[1]s.%[4]s'::regclass);
+END IF;
+PERFORM setval(pg_get_serial_sequence('%[1]s.%[2]s', '%[3]s'), COALESCE((SELECT MAX(%[5]s) FROM %[1]s.%[2]s), 1), true);
+END $clone$;
+`,
+			dstSchema, target.Table, target.Column, seqName, columnSQL,
 		)
 	}
 	if _, err := tx.Exec(ctx, stmts.String()); err != nil {

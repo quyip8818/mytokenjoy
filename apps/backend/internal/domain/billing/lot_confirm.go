@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -121,7 +122,9 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 
 func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
 	if s.enqueueSync != nil {
-		_ = s.enqueueSync(ctx, companyID)
+		if err := s.enqueueSync(ctx, companyID); err != nil {
+			slog.Warn("after recharge: enqueue wallet sync failed", "company_id", companyID, "err", err)
+		}
 	}
 	if s.rebalanceAxis != nil {
 		co, err := s.store.Company().GetByID(ctx, companyID)
@@ -129,7 +132,9 @@ func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
 			companyCtx := company.WithContext(ctx, company.Context{
 				CompanyID: companyID, NewAPIWalletUserID: *co.NewAPIWalletUserID, Status: co.Status,
 			})
-			_ = s.rebalanceAxis(companyCtx, companyID)
+			if err := s.rebalanceAxis(companyCtx, companyID); err != nil {
+				slog.Warn("after recharge: enqueue rebalance failed", "company_id", companyID, "err", err)
+			}
 		}
 	}
 	return nil

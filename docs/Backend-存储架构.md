@@ -52,7 +52,7 @@ flowchart TB
   CO --> MOD[模型<br/>models · allowlist]
   ORG --> BUD & KEY
   MOD --> KEY
-  KEY --> PKM[platform_key_mappings · async_jobs]
+  KEY --> PKM[platform_key_mappings · river_job]
   PKM --> USG[ledger · buckets · snapshots]
 ```
 
@@ -84,12 +84,13 @@ flowchart TB
 | `Keys()`                                              | `provider_keys`, `platform_keys`, `key_approvals`                         |
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
 | `Ledger()` / `Usage()` / `BudgetSnapshots()`          | `usage_ledger`, `usage_buckets`, `budget_snapshots`                       |
-| `PlatformKeyMappings()` / `AsyncJobs()`               | `platform_key_mappings`, `async_jobs`                                     |
+| `PlatformKeyMappings()`               | `platform_key_mappings`                                                     |
+| River `Insert` / `InsertTx`（经 `river.Client`） | `river_job` 等 River 表；见 [实现-离线任务管理.md](./实现-离线任务管理.md) |
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                        |
 | `Company()` / `Invite()` / `Billing()` / `Platform()` | 租户与充值                                                                |
 | `Notification()` / `SchedulerLock()` / `Logs()`       | `notification_log`, `scheduler_locks`, 日志库三表                         |
 
-`PlatformKeyMappings()` → `PlatformKeyMappingRepository`（NewAPIKey 映射读写）。`AsyncJobs()` → `AsyncJobsRepository`（newapi_sync / rebalance / overrun / wallet_sync，共用 `async_jobs`）。Postgres 实现：`platform_key_mapping_repo.go` / `async_jobs_repo.go`。
+`PlatformKeyMappings()` → `PlatformKeyMappingRepository`（NewAPIKey 映射读写）。离线任务入队 / 消费统一经 `river.Client`（`internal/infra/river/`），不再使用 `AsyncJobsRepository`。
 
 **租户：** 复合 PK `(company_id, …)`；全局表 `permissions` · `provider_keys` · `platform_operators` · `scheduler_locks`。
 
@@ -141,39 +142,51 @@ flowchart LR
 
 `key_hash` 用于 Gateway 鉴权；明文 Key 不落库。`model_allowlist.owner_type`：`platform_key` · `org_node` · `key_approval`。
 
-映射表列：`newapi_key_id` / `newapi_key_remain_quota` / `newapi_group`；`provider_keys.newapi_channel_id`。outbox kind：`create_key` / `update_key` / `rebalance_key`（通道 `newapi_sync`）。
+映射表列：`newapi_key_id` / `newapi_key_remain_quota` / `newapi_group`；`provider_keys.newapi_channel_id`。outbox kind：`create_key` / `update_key` / `rebalance_key`（River kind `newapi_sync`）。
 
-### `async_jobs`
+### `river_job`（离线任务）
 
-| channel       | 消费方                                                      |
-| ------------- | ----------------------------------------------------------- |
-| `newapi_sync` | `newapi_sync_outbox_processor`                              |
-| `rebalance`   | `rebalance_processor`（`dedupe_key` = `axis_kind:axis_id`） |
-| `overrun`     | `overrun_processor`                                         |
-| `wallet_sync` | `wallet_sync_processor`                                     |
+> 目标态；替代现网 `async_jobs`。业务见 [实现-离线任务管理.md](./实现-离线任务管理.md)；Schema / Unique 见 [Backend-River实现.md](./Backend-River实现.md)。
+
+| kind（`JobArgs.Kind()`） | Worker | 队列 |
+| --- | --- | --- |
+| `newapi_sync` | `NewAPISyncWorker` | `critical` |
+| `rebalance` | `RebalanceWorker` | `default`（`UniqueOpts ByArgs` per axis） |
+| `overrun` | `OverrunWorker` | `default`（`ByArgs` per company） |
+| `wallet_sync` | `WalletSyncWorker` | `default`（`InsertTx`；Unique **5s**） |
+| `budget_project` | `BudgetProjectWorker` | `critical`（`InsertTx`；Unique 1s，**ByState 无 completed**） |
+| `org_sync` | `OrgSyncWorker` | `default`（Periodic 单 job → `SyncService.RunScheduledSyncAll`） |
+| `budget_reconcile` | `BudgetReconcileWorker` | `low`（Periodic fanout 一次扫全 tenant） |
+| `dashboard_project` / `dashboard_reconcile` | Dashboard Workers | `low`（Periodic fanout 一次扫全 tenant） |
+
+配套表：`river_leader`（Periodic leader）、`river_queue`；**保留** `scheduler_locks`（仅 Ingest reconcile）。
 
 ---
 
 ## 5. 用量与入账
 
+> 目标态：Ingest 只写 ledger + River `InsertTx`；看板 / consumed 由异步投影写入。见 [实现-异步预算投影.md](./实现-异步预算投影.md)。
+
 ```mermaid
 flowchart LR
-  WH[Webhook] -->|EnqueuePending| Q[(ingest_jobs)]
+  WH[Webhook] -->|EnqueuePending| Q[(ingest_jobs 日志库)]
   Q --> ING[Ingest]
   RC[reconcile] --> NLG[(newapi.logs)] --> ING
   ING --> UL[(usage_ledger)]
-  ING --> PROJ[projection] --> UB[(buckets)] & BS[(snapshots)]
-  UL --> AUD[审计]
-  UB --> DASH[看板]
-  BS --> GW[预检]
+  ING -->|InsertTx| RJ[river_job budget_project]
+  RJ --> BC[(budget_consumed)]
+  PER[Periodic] --> UB[(usage_buckets)]
+  BC --> DASH[控制台预算]
+  UB --> DASH2[看板趋势]
 ```
 
-| 表                 | 角色                                                                   |
-| ------------------ | ---------------------------------------------------------------------- |
-| `usage_ledger`     | 消耗 SSOT                                                              |
-| `usage_buckets`    | 看板 hour/day 聚合                                                     |
-| `budget_snapshots` | 四轴 consumed：`org_node` · `budget_group` · `platform_key` · `member` |
-| `ingest_jobs`  | 入账失败重试（日志库）                                                 |
+| 表 | 角色 |
+| --- | --- |
+| `usage_ledger` | 消耗 SSOT |
+| `usage_buckets` | 看板 hour/day（Dashboard 投影写） |
+| `budget_consumed` | 四轴 consumed（BudgetProjector 写） |
+| `river_job` | 离线执行意图 |
+| `ingest_jobs` | 入账失败重试（**日志库**） |
 
 入账与投影见 [Backend-预算.md](./Backend-预算.md) §7。
 
@@ -181,17 +194,19 @@ flowchart LR
 
 ## 6. 表清单
 
-### 主库（37 张）
+### 主库
+
+> 现网约 37 张；目标态 wipe 后：`budget_snapshots` → `budget_consumed` + progress 表；`async_jobs` → River 表（见 [Backend-River实现.md](./Backend-River实现.md) §2）。
 
 | 域     | 表                                                                                                                                                                      |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 租户   | `companies`, `company_invites`, `company_recharge_orders`, `company_recharge_lots`, `currencies`, `platform_operators`                                                   |
 | 组织   | `org_nodes`, `members`, `roles`, `permissions`, `role_permission_grants`, `member_roles`, `org_integration`, `org_sync_logs`, `org_import_failures`                     |
-| 预算   | `budget_groups`, `budget_snapshots`, `budget_group_members`, `budget_group_departments`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `budget_approvals` |
+| 预算   | `budget_groups`, `budget_consumed`, `budget_projection_progress`, `dashboard_projection_progress`, `budget_group_members`, `budget_group_departments`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `budget_approvals` |
 | 密钥   | `provider_keys`, `platform_keys`, `key_approvals`, `platform_key_mappings`                                                                                                     |
 | 模型   | `models`, `model_capabilities`, `model_allowlist`（`models` 同表承载平台源与租户自有模型，读取并集）                                                                 |
 | 审计   | `audit_settings`, `operation_logs`, `usage_ledger`                                                                                                                      |
-| 运行面 | `usage_buckets`, `async_jobs`, `scheduler_locks`, `notification_log`                                                                                                    |
+| 运行面 | `usage_buckets`, `river_job`, `river_leader`, `river_queue`, `scheduler_locks`, `notification_log` |
 
 ### 日志库（3 张）
 

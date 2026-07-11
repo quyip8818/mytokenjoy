@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -23,14 +24,18 @@ type infra struct {
 	companyGate   *domaincompany.Gate
 	notifier      notification.Notifier
 	delayer       common.Delayer
+	enqueuer      jobs.Enqueuer
 }
 
-func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, adminClientOverride newapi.AdminClient) (infra, error) {
+func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminClientOverride newapi.AdminClient) (infra, error) {
 	var adminClient newapi.AdminClient
 	if adminClientOverride != nil {
 		adminClient = adminClientOverride
 	} else {
 		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
+	}
+	if enqueuer == nil {
+		enqueuer = jobs.NoopEnqueuer{}
 	}
 	channelPolicy := newapisync.NewChannelPolicy(cfg)
 	wallet := domaincompany.NewWalletService(cfg, adminClient)
@@ -43,8 +48,9 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		channelPolicy: channelPolicy,
 		wallet:        wallet,
 		companyGate:   domaincompany.NewGate(cfg),
-		newAPISync:    newapisync.New(cfg, st, adminPort, wallet, channelPolicy),
+		newAPISync:    newapisync.New(cfg, st, adminPort, wallet, channelPolicy, enqueuer),
 		notifier:      notification.NewService(cfg, st, logger),
 		delayer:       common.NewDelayer(cfg.SimulateDelay),
+		enqueuer:      enqueuer,
 	}, nil
 }

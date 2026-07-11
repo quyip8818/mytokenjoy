@@ -8,19 +8,19 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type IngestService struct {
-	cfg                  config.Config
-	store                store.Store
-	logStore             store.LogStore
-	notifier             notification.Notifier
-	logger               *slog.Logger
-	enqueueWalletSync    func(ctx context.Context, companyID int64) error
-	enqueueRebalanceAxis func(ctx context.Context, axisKind, axisID string) error
+	cfg      config.Config
+	store    store.Store
+	logStore store.LogStore
+	notifier notification.Notifier
+	logger   *slog.Logger
+	enqueuer jobs.Enqueuer
 }
 
 func NewIngestService(
@@ -29,15 +29,17 @@ func NewIngestService(
 	logStore store.LogStore,
 	notifier notification.Notifier,
 	logger *slog.Logger,
-	enqueueWalletSync func(ctx context.Context, companyID int64) error,
-	enqueueRebalanceAxis func(ctx context.Context, axisKind, axisID string) error,
+	enqueuer jobs.Enqueuer,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
 	}
+	if enqueuer == nil {
+		enqueuer = jobs.NoopEnqueuer{}
+	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, notifier: notifier, logger: logger,
-		enqueueWalletSync: enqueueWalletSync, enqueueRebalanceAxis: enqueueRebalanceAxis,
+		enqueuer: enqueuer,
 	}
 }
 
@@ -106,11 +108,15 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if err := Apply(ctx, st, entry, open); err != nil {
 			return err
 		}
-		if err := enqueueSideEffects(ctx, st, entry, s.enqueueRebalanceAxis); err != nil {
+		tx, ok := st.(store.Tx)
+		if !ok {
+			return fmt.Errorf("ingest: transaction store required")
+		}
+		if err := enqueueSideEffects(ctx, tx, entry, s.enqueuer); err != nil {
 			return err
 		}
-		if s.enqueueWalletSync != nil {
-			_ = s.enqueueWalletSync(ctx, company.CompanyID(ctx))
+		if err := jobs.InsertWalletSync(ctx, s.enqueuer, tx, company.CompanyID(ctx)); err != nil {
+			return err
 		}
 		return nil
 	})

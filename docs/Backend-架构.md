@@ -19,7 +19,7 @@
 | **NewAPIKey** | PlatformKey 在 NewAPI 上的对应（列 `newapi_key_id`） |
 | **ProviderKey** / **NewAPIChannel** | 上游凭证 ↔ NewAPI Channel（列 `newapi_channel_id`） |
 | **PlatformKeyMapping** | PlatformKey ↔ NewAPIKey 同步状态与 remain 缓存（表 `platform_key_mappings`） |
-| **AsyncJobs** | `async_jobs` 四通道：`newapi_sync` / `rebalance` / `overrun` / `wallet_sync` |
+| **River Jobs** | `river_job`：离线任务统一队列（替代 `async_jobs`）；见 [实现-离线任务管理.md](./实现-离线任务管理.md) |
 
 ```text
 调用：sk-xxx → Gateway → key_hash → PlatformKeyMapping → Precheck → 反代 NewAPI
@@ -245,11 +245,12 @@ type Store interface {
     Audit() AuditRepository
     Ledger() LedgerRepository
     PlatformKeyMappings() PlatformKeyMappingRepository
-    AsyncJobs() AsyncJobsRepository
     Usage() UsageRepository
     WithTx(ctx context.Context, fn func(Store) error) error
 }
 ```
+
+离线任务 **不在 Store**：由 `internal/infra/river.Client` 负责 `Insert` / `InsertTx`（见 [实现-离线任务管理.md](./实现-离线任务管理.md)）。
 
 | 模式     | 条件                               | 说明                                                                          |
 | -------- | ---------------------------------- | ----------------------------------------------------------------------------- |
@@ -347,18 +348,19 @@ flowchart TB
   end
 
   subgraph ingest [消耗入账]
-    WH[webhook enqueue] --> Q[(ingest_jobs)]
-    Q --> ING[usage.IngestService]
-    COMP[补偿轮询] --> ING
+    WH[webhook enqueue] --> Q[(ingest_jobs 日志库)]
+    Q --> INGW[infra/ingest.Worker]
+    INGW --> ING[usage.IngestService]
+    COMP[reconcile 水位] --> INGW
     ING --> LEDGER[(usage_ledger)]
-    ING --> PROJ[projection]
+    ING -->|InsertTx| RJ
   end
 
-  subgraph worker [Worker.Runner]
-    OB_R --> LC
-    OB_W[outbox webhook] --> ING
-    JOBS[AsyncJobsRepository] --> RBS[RebalanceService]
-    JOBS --> OVS[OverrunService]
+  subgraph river [River Client]
+    RJ[(river_job)]
+    RJ --> W[infra/river/workers]
+    W --> DOM[domain handlers]
+    PER[PeriodicJob] --> RJ
   end
 ```
 
@@ -391,22 +393,41 @@ flowchart TB
 | Worker newapi_sync outbox | `OutboxHandler`（Platform + Provider + ModelLimits + Rebalance） |
 | `app` 装配 | `Lifecycle`（上述全部 + `NewAPIGate`） |
 
-实现位于 `domain/newapisync/lifecycle_*.go`；`NewAPISync` 注入 `PlatformKeyMappingRepository` + `NewAPISyncOutboxRepository`（来自 `st.AsyncJobs()`；条目为 `AsyncJob`，完成态用 `MarkJob*`）。
+实现位于 `domain/newapisync/lifecycle_*.go`；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [实现-离线任务管理.md](./实现-离线任务管理.md)。
 
-### 7.1 Worker 一轮
+### 7.1 后台运行时（简化后）
+
+**仅两个组件**（详见 [Backend-离线任务.md](./Backend-离线任务.md)；River 表与 Unique 见 [Backend-River实现.md](./Backend-River实现.md)）：
+
+| 组件 | 职责 |
+| --- | --- |
+| `infra/ingest.Worker` | 日志库 pending + reconcile 水位（`scheduler_locks`） |
+| `infra/river.Client` | 全部 `river_job`：claim、retry、Periodic 扇出 |
 
 ```mermaid
 flowchart LR
-  A[outbox newapi_sync] --> B[ingest_jobs retry]
-  B --> C[reconcile_cursors 补洞]
-  C --> D[rebalance_queue]
-  D --> E[overrun_queue]
-  E --> F[org 定时同步]
+  subgraph ingest [ingest.Worker]
+    P[ProcessPending]
+    R[ProcessReconcile]
+  end
+
+  subgraph river [river.Client]
+    NS[newapi_sync]
+    WS[wallet_sync]
+    BP[budget_project]
+    RB[rebalance]
+    OV[overrun]
+    FAN[Periodic org_sync / reconcile fanout]
+  end
+
+  WH[webhook] --> P
+  P --> ING[Ingest]
+  ING -->|InsertTx| BP
 ```
 
-入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → 入队 pending → 立即 `200 accepted`；Worker `ProcessPending` 异步 `IngestByLogID`，并靠 `reconcile_cursors` 全局水位补洞（方案 B，见 [工程收口.md](./工程收口.md)）。
+入账主路径不变：webhook → pending → `IngestByLogID`；reconcile 补洞见 [工程收口.md](./工程收口.md)。
 
-`WORKER_POLL_INTERVAL_SEC` 控制轮询；`WORKER_ORG_SYNC_INTERVAL_SEC` 控制组织同步。
+**删除：** `worker.Runner`、`asyncLoop`、`WORKER_ORG_SYNC_INTERVAL` inline tick（改 Periodic `org_sync` → `SyncService.RunScheduledSyncAll`）。
 
 ---
 
@@ -416,10 +437,12 @@ Dashboard 域**全部 GET、无副作用**；端点见 [Frontend.md](./Frontend.
 
 ```mermaid
 flowchart TB
-  subgraph write [写入路径]
+  subgraph write [写入路径 — 目标态]
     NA[NewAPI settle] --> WH[webhook] --> ING[ingest]
     ING --> UL[(usage_ledger)]
-    ING --> UB[(usage_buckets)]
+    ING -->|InsertTx| BP[budget_project]
+    BP --> BC[(budget_consumed)]
+    PER[Periodic] --> DP[dashboard_project] --> UB[(usage_buckets)]
   end
   subgraph read [只读路径]
     API["GET /dashboard/*"]

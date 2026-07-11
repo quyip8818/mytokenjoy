@@ -1,21 +1,44 @@
 package worker_test
 
 import (
+	"context"
+	"log/slog"
+	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/infra/worker"
+	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	workerTF "github.com/tokenjoy/backend/tests/testutil/worker"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
-func newWorkerRunner(t *testing.T, stub *mock.StubAdminClient) (*worker.Runner, store.Store, *newapisync.NewAPISync) {
-	t.Helper()
-	runner, st, newAPISync, _ := workerTF.NewRunner(t, stub)
-	return runner, st, newAPISync
+type workerFixture struct {
+	rt           *riverfix.TestRuntime
+	st           store.Store
+	newAPISync   *newapisync.NewAPISync
+	ingestWorker *ingest.Worker
+	ctx          context.Context
 }
 
-func pendingNewAPISyncOutbox(st store.Store, kind string) int {
-	return workerTF.PendingNewAPISyncOutbox(st, kind)
+func newWorkerFixture(t *testing.T, stub *mock.StubAdminClient) workerFixture {
+	t.Helper()
+	rt, st := riverfix.NewRuntime(t, stub)
+	nas := rt.Registry.MustNewAPISync()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	ctx := context.Background()
+	rt.Start(t, ctx)
+	t.Cleanup(func() { rt.Stop(t, ctx) })
+	return workerFixture{
+		rt:           rt,
+		st:           st,
+		newAPISync:   nas,
+		ingestWorker: rt.Registry.IngestWorker(rt.Registry.Config, logger),
+		ctx:          ctx,
+	}
+}
+
+func (f workerFixture) runRiver(t *testing.T) {
+	t.Helper()
+	f.rt.WorkOnce(t, f.ctx)
 }

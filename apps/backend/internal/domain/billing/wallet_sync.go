@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -12,8 +13,11 @@ import (
 
 func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error {
 	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil || co == nil || co.NewAPIWalletUserID == nil {
-		return fmt.Errorf("company wallet not configured")
+	if err != nil {
+		return err
+	}
+	if co == nil || co.NewAPIWalletUserID == nil {
+		return ErrWalletNotConfigured
 	}
 	if s.client == nil {
 		return fmt.Errorf("newapi admin client required")
@@ -74,7 +78,9 @@ func (s *service) ReconcileWalletDrift(ctx context.Context) error {
 			continue
 		}
 		if s.enqueueSync != nil {
-			_ = s.enqueueSync(company.WithContext(ctx, company.Context{CompanyID: co.ID}), co.ID)
+			if err := s.enqueueSync(company.WithContext(ctx, company.Context{CompanyID: co.ID}), co.ID); err != nil {
+				slog.Warn("wallet drift reconcile: enqueue wallet sync failed", "company_id", co.ID, "err", err)
+			}
 		}
 	}
 	return nil

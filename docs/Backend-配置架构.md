@@ -169,7 +169,7 @@ func NowUTC(clk Clock) time.Time
 | 位置 | 约定 |
 | --- | --- |
 | `wire_domain_services` / `wiring_domain` | 构造器只收 `cfg`；账期路径内部 `cfg.Clock()` |
-| `wire_gateway` | `GatewayPrecheck()` + `cfg.Clock()` → `PrecheckService`（无 `WalletService` / `AsyncJobs`） |
+| `wire_gateway` | `GatewayPrecheck()` + `cfg.Clock()` → `PrecheckService`（无 `WalletService` / `river.Client`） |
 | `wiring_infra` | `newapisync.New(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
 
 ---

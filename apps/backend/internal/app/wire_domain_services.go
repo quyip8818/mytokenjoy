@@ -15,6 +15,7 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 )
@@ -30,8 +31,8 @@ func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrant
 	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger, grants)
 }
 
-func wireBudget(cfg config.Config, i infra) domainbudget.Service {
-	return domainbudget.NewService(cfg, i.store, i.delayer, EnqueueRebalanceAxis(i.store))
+func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {
+	return domainbudget.NewService(cfg, i.store, i.delayer, EnqueueRebalanceAxis(enqueuer))
 }
 
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
@@ -62,16 +63,16 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 	return domaincompany.NewService(cfg, i.store, i.adminPort, grants)
 }
 
-func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, EnqueueRebalanceCompany(i.store), EnqueueWalletSync(i.store))
+func wireBilling(cfg config.Config, i infra, reader domainusage.Reader, enqueuer jobs.Enqueuer) domainbilling.Service {
+	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, EnqueueRebalanceCompany(enqueuer), EnqueueWalletSync(enqueuer))
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
 	return domainmemberanalytics.NewService(cfg, keys, reader)
 }
 
-func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, EnqueueWalletSync(i.store), EnqueueRebalanceAxis(i.store))
+func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, enqueuer)
 }
 
 func wireReader(i infra) domainusage.Reader {

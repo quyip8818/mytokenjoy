@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
@@ -54,10 +55,12 @@ func DrainPendingWalletSync(t *testing.T, st store.Store, companyID int64) {
 	t.Helper()
 	pool := postgres.MainPool(st)
 	_, err := pool.Exec(context.Background(), `
-		UPDATE async_jobs
-		SET status = $1, updated_at = NOW()
-		WHERE channel = $2 AND company_id = $3 AND status = $4
-	`, store.JobStatusDone, store.JobChannelWalletSync, companyID, store.JobStatusPending)
+		UPDATE river_job
+		SET state = 'completed', finalized_at = NOW()
+		WHERE kind = $1
+		  AND (args->>'company_id')::bigint = $2
+		  AND state IN ('available', 'retryable', 'scheduled', 'running')
+	`, jobs.KindWalletSync, companyID)
 	if err != nil {
 		t.Fatalf("drain pending wallet sync: %v", err)
 	}

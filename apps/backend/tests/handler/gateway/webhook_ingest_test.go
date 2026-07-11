@@ -43,7 +43,9 @@ func postWebhook(t *testing.T, application *app.App, logID int64) *httptest.Resp
 
 func drainIngestQueue(t *testing.T, application *app.App) {
 	t.Helper()
-	application.Worker.RunOnce(testutil.Ctx())
+	if err := application.RunIngestOnce(testutil.Ctx()); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestWebhookIngestSuccess(t *testing.T) {

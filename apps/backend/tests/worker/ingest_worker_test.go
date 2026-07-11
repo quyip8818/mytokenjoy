@@ -123,7 +123,9 @@ func TestIngestJobMaxAttemptsMarksDead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runner.RunOnce(ctx)
+	if err := runner.RunPendingOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	f := testutil.AssertIngestJob(t, st, logID, "")
 	if f.Status != store.IngestJobStatusDead {

@@ -2,11 +2,9 @@ package newapisync
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -14,15 +12,10 @@ func (l *NewAPISync) EnqueueModelLimitsForDepartment(ctx context.Context, depart
 	if !l.Enabled() {
 		return nil
 	}
-	payload, _ := json.Marshal(UpdateModelLimitsOutboxPayload{
+	return jobs.InsertNewAPISync(ctx, l.enqueuer, nil, jobs.NewAPISyncArgs{
 		CompanyID:    company.CompanyID(ctx),
+		SubKind:      OutboxKindUpdateModelLimits,
 		DepartmentID: departmentID,
-	})
-	return l.outbox.EnqueueNewAPISyncOutbox(ctx, store.AsyncJob{
-		ID:      fmt.Sprintf("outbox-%d", time.Now().UnixNano()),
-		Kind:    store.OutboxKindUpdateModelLimits,
-		Payload: payload,
-		Status:  store.JobStatusPending,
 	})
 }
 

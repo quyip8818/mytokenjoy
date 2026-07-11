@@ -1,7 +1,8 @@
 # Backend · 业务时钟与账期
 
 > 现行说明。配置细节见 [Backend-配置架构.md](./Backend-配置架构.md)；预算业务见 [Backend-预算.md](./Backend-预算.md)。  
-> outbox / lease / session TTL 属**墙钟**轨（与账期无关）；`async_jobs` 调度统一用 Postgres `NOW()`（enqueue / claim / lease / debounce），不用 `cfg.Clock()`。  
+> outbox / lease / session TTL 属**墙钟**轨（与账期无关）；River job 调度（`scheduled_at`、retry、Unique `ByPeriod`）统一用 Postgres `NOW()`，不用 `cfg.Clock()`。  
+> 详见 [实现-离线任务管理.md](./实现-离线任务管理.md)、[Backend-River实现.md](./Backend-River实现.md) §4（Unique `ByPeriod`）。
 > 本篇不谈：NewAPI `remain_quota` 算法。
 
 ---
@@ -75,7 +76,7 @@ sequenceDiagram
 
 | 名称 | 来源 | 干什么 | 不干什么 |
 | --- | --- | --- | --- |
-| **墙钟** | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `async_jobs` lease / retry / debounce、session TTL、生成 ID | 不算开账 period、不写账本发生月；**不**读 `CLOCK_ANCHOR` |
+| **墙钟** | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `river_job` 调度 / retry / Unique 窗口、session TTL、生成 ID | 不算开账 period、不写账本发生月；**不**读 `CLOCK_ANCHOR` |
 | **业务时钟** | `cfg.Clock()` | 开账键、预检、超支、预算树 / Key used、看板「今天」、worker 月切触发、seed 开账快照 | 不驱动 lease |
 | **事件时间** | `OccurredAt`（来自上游 `CreatedAt`） | ledger `period_key`、`usage_buckets`、审计归因 | 不写开账快照 |
 
@@ -83,7 +84,7 @@ sequenceDiagram
 flowchart TB
   subgraph wall [墙钟]
     W[PG NOW]
-    W --> L[async_jobs lease / retry / debounce]
+    W --> L[river_job 调度 / retry]
     ID[time.Now for IDs only]
   end
   subgraph biz [业务时钟]
@@ -247,7 +248,7 @@ domain/usage/ingest.go       双轨写入
 domain/usage/projection.go   Apply(..., OpenBudgetPeriod)
 domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（开账 period 在 SQL 内）
 domain/budget/overrun.go     开账超支
-infra/worker/runner.go       月切：OpenSnapshotKey(PeriodMonthly, Clock)
+infra/worker/runner.go       → 删除；月切改 Periodic monthly_rebalance_fanout
 
 seed/snapshot/*.go           SeedAt、ledger OccurrenceSnapshotKey
 seed/apply/tables.go         RootPeriodKey → snapshots

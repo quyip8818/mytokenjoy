@@ -9,24 +9,27 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func newBillingServiceWithSync(t *testing.T, client *mock.StubAdminClient) (domainbilling.Service, store.Store, context.Context) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
 	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
 		func(ctx context.Context, companyID int64) error {
-			return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+			return jobs.InsertRebalance(ctx, enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 		},
 		func(ctx context.Context, companyID int64) error {
-			return st.AsyncJobs().EnqueueWalletSync(company.WithContext(ctx, company.Context{CompanyID: companyID}), companyID)
+			return jobs.InsertWalletSync(ctx, enqueuer, nil, companyID)
 		},
 	)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)

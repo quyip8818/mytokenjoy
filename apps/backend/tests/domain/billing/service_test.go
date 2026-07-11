@@ -8,21 +8,24 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbilling.Service, store.Store, context.Context) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
 	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
 		func(ctx context.Context, companyID int64) error {
-			return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+			return jobs.InsertRebalance(ctx, enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 		},
 		nil,
 	)
@@ -92,6 +95,42 @@ func TestPlatformRechargeEnqueuesRebalance(t *testing.T) {
 	}
 	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected rebalance outbox entry after platform recharge")
+	}
+}
+
+func TestPlatformRechargeEnqueuesWalletSyncWhenConfigured(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
+	client := &mock.StubAdminClient{
+		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
+	}
+	wallet := company.NewWalletService(cfg, client)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
+		func(ctx context.Context, companyID int64) error {
+			return jobs.InsertRebalance(ctx, enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+		},
+		func(ctx context.Context, companyID int64) error {
+			return jobs.InsertWalletSync(ctx, enqueuer, nil, companyID)
+		},
+	)
+	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	walletID := int64(501)
+	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
+		t.Fatal(err)
+	}
+	ctx := company.WithContext(context.Background(), company.Context{
+		CompanyID: contract.DefaultCompanyID, NewAPIWalletUserID: walletID, Status: co.Status,
+	})
+	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 50, "platform-op-wallet-sync"); err != nil {
+		t.Fatal(err)
+	}
+	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
+		t.Fatal("expected wallet_sync job after platform recharge")
 	}
 }
 

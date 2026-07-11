@@ -53,7 +53,6 @@ type OutboxHandler interface {
 	PlatformKeyLifecycle
 	ProviderKeyLifecycle
 	ModelLimitsLifecycle
-	RebalanceEnqueuer
 }
 
 type OverrunKeyControl interface {

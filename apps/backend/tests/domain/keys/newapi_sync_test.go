@@ -3,12 +3,14 @@ package keys_test
 import (
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestSyncCreateEnqueuesOutbox(t *testing.T) {
@@ -35,18 +37,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := st.AsyncJobs().ClaimPendingNewAPISyncOutbox(ctx, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := false
-	for _, entry := range entries {
-		if entry.Kind == store.OutboxKindCreateKey {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if riverfix.ListPendingNewAPISync(st, newapisync.OutboxKindCreateKey, 10) == 0 {
 		t.Fatal("expected create_key outbox entry")
 	}
 }

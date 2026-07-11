@@ -42,12 +42,13 @@ func NewTestSchemaName() string {
 }
 
 func WithSearchPath(dbURL, schema string) string {
+	// test_template holds shared River enums/functions; per-test schema holds tenant tables.
 	u, err := url.Parse(dbURL)
 	if err != nil {
 		panic(fmt.Sprintf("parse database url: %v", err))
 	}
 	q := u.Query()
-	q.Set("options", fmt.Sprintf("-c search_path=%s,public", schema))
+	q.Set("options", fmt.Sprintf("-c search_path=%s,%s,public", schema, testTemplateSchema))
 	u.RawQuery = q.Encode()
 	return u.String()
 }
