@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { DepartmentCost, DepartmentCostMember } from '@/api/types'
-import { formatTokenCount, type DrillState } from '@/features/dashboard'
+import { formatTokenCount, type DrillState } from '../lib/dashboard'
 
 interface CostDrillTableProps {
   drill: DrillState
