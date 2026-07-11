@@ -34,7 +34,7 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 			&row.ID, &row.Name, &row.ParentID,
 			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
 			&row.Budget, &row.ReservedPool, &row.Period,
-			&row.DefaultModelId, &row.FallbackModelId, &row.RoutingInherited,
+			&row.DefaultModelID, &row.FallbackModelID, &row.RoutingInherited,
 		); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 		`, row.ID, companyID, row.Name, row.ParentID, path,
 			row.ExternalID, row.Source, row.ManagerID, row.sortOrder,
 			row.Budget, row.ReservedPool, row.Period,
-			row.DefaultModelId, row.FallbackModelId, row.RoutingInherited); err != nil {
+			row.DefaultModelID, row.FallbackModelID, row.RoutingInherited); err != nil {
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}

@@ -190,17 +190,17 @@ func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.Reso
 		allowedIDs := modelcatalog.EnabledModelIDs(models)
 		return types.ResolvedWhitelist{
 			Inherited:       false,
-			AllowedModelIds: allowedIDs,
+			AllowedModelIDs: allowedIDs,
 			AllowedModels:   modelcatalog.EnrichRefs(models, allowedIDs),
 			ParentCount:     len(models),
 		}, nil
 	}
 	parentID := common.GetParentDeptID(rule.NodeID, departments)
-	parentCount := len(rule.AllowedModelIds)
+	parentCount := len(rule.AllowedModelIDs)
 	if parentID != nil {
 		for i := range rules {
 			if rules[i].NodeID == *parentID {
-				parentCount = len(rules[i].AllowedModelIds)
+				parentCount = len(rules[i].AllowedModelIDs)
 				break
 			}
 		}
@@ -208,7 +208,7 @@ func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.Reso
 	allowedModelIDs := common.ResolveDeptAllowedModelIDs(deptID, departments, rules, models)
 	return types.ResolvedWhitelist{
 		Inherited:       rule.Inherited,
-		AllowedModelIds: allowedModelIDs,
+		AllowedModelIDs: allowedModelIDs,
 		AllowedModels:   modelcatalog.EnrichRefs(models, allowedModelIDs),
 		ParentCount:     parentCount,
 	}, nil
@@ -237,36 +237,36 @@ func (s *service) UpdateRoutingRule(
 		return types.RoutingRule{}, domain.NotFound("Not found")
 	}
 	updated := rules[idx]
-	if input.AllowedModelIds != nil {
-		if err := s.validateWritableModelIDs(ctx, input.AllowedModelIds); err != nil {
+	if input.AllowedModelIDs != nil {
+		if err := s.validateWritableModelIDs(ctx, input.AllowedModelIDs); err != nil {
 			return types.RoutingRule{}, err
 		}
-		updated.AllowedModelIds = append([]int64{}, input.AllowedModelIds...)
+		updated.AllowedModelIDs = append([]int64{}, input.AllowedModelIDs...)
 	}
 	if input.Inherited != nil {
 		updated.Inherited = *input.Inherited
 	}
-	if input.DefaultModelId != nil {
-		if err := s.validateWritableModelIDs(ctx, []int64{*input.DefaultModelId}); err != nil {
+	if input.DefaultModelID != nil {
+		if err := s.validateWritableModelIDs(ctx, []int64{*input.DefaultModelID}); err != nil {
 			return types.RoutingRule{}, err
 		}
-		updated.DefaultModelId = input.DefaultModelId
+		updated.DefaultModelID = input.DefaultModelID
 	}
-	if input.FallbackModelId != nil {
-		if err := s.validateWritableModelIDs(ctx, []int64{*input.FallbackModelId}); err != nil {
+	if input.FallbackModelID != nil {
+		if err := s.validateWritableModelIDs(ctx, []int64{*input.FallbackModelID}); err != nil {
 			return types.RoutingRule{}, err
 		}
-		updated.FallbackModelId = input.FallbackModelId
+		updated.FallbackModelID = input.FallbackModelID
 	}
 	rules[idx] = updated
-	if input.AllowedModelIds != nil {
+	if input.AllowedModelIDs != nil {
 		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.RoutingRule{}, err
 		}
 		rules = common.ShrinkChildRoutingRules(
 			updated.NodeID,
-			updated.AllowedModelIds,
+			updated.AllowedModelIDs,
 			rules,
 			departments,
 		)

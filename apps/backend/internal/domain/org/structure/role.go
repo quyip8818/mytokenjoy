@@ -14,11 +14,11 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *Local) ListRoles(ctx context.Context) ([]types.Role, error) {
+func (s *LocalService) ListRoles(ctx context.Context) ([]types.Role, error) {
 	return s.d.Store.Org().Roles(ctx)
 }
 
-func (s *Local) CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error) {
+func (s *LocalService) CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error) {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return types.Role{}, err
@@ -53,7 +53,7 @@ func (s *Local) CreateRole(ctx context.Context, name string, permissions []strin
 	return role, nil
 }
 
-func (s *Local) UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error) {
+func (s *LocalService) UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error) {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return types.Role{}, err
@@ -81,7 +81,7 @@ func (s *Local) UpdateRole(ctx context.Context, id, name string, permissions []s
 	return types.Role{}, domain.NewDomainError(404, "Not found")
 }
 
-func (s *Local) DeleteRole(ctx context.Context, id string) error {
+func (s *LocalService) DeleteRole(ctx context.Context, id string) error {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func (s *Local) DeleteRole(ctx context.Context, id string) error {
 	})
 }
 
-func (s *Local) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
+func (s *LocalService) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (s *Local) ListRoleMembers(ctx context.Context, roleID string) ([]types.Mem
 	return result, nil
 }
 
-func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) error {
+func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID string) error {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
@@ -208,7 +208,7 @@ func (s *Local) AddRoleMember(ctx context.Context, roleID, memberID string) erro
 	return nil
 }
 
-func (s *Local) RemoveRoleMember(ctx context.Context, roleID, memberID string) error {
+func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID string) error {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
@@ -270,6 +270,6 @@ func (s *Local) RemoveRoleMember(ctx context.Context, roleID, memberID string) e
 	return core.BumpAuthzRevision(ctx, s.d)
 }
 
-func (s *Local) ListPermissions(ctx context.Context) ([]types.Permission, error) {
+func (s *LocalService) ListPermissions(ctx context.Context) ([]types.Permission, error) {
 	return s.d.Store.Org().Permissions(ctx)
 }

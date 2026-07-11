@@ -11,7 +11,7 @@ func TestValidateModelIDsForMember_AllowedModel(t *testing.T) {
 	t.Parallel()
 	members := []types.Member{{ID: "m1", DepartmentID: "d1"}}
 	departments := []types.Department{{ID: "d1", Name: "Dept"}}
-	rules := []types.RoutingRule{{NodeID: "d1", AllowedModelIds: []int64{1, 2}}}
+	rules := []types.RoutingRule{{NodeID: "d1", AllowedModelIDs: []int64{1, 2}}}
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "gpt-4", Enabled: true},
 		{ModelID: 2, Type: "claude", Enabled: true},
@@ -26,7 +26,7 @@ func TestValidateModelIDsForMember_BlockedModel(t *testing.T) {
 	t.Parallel()
 	members := []types.Member{{ID: "m1", DepartmentID: "d1"}}
 	departments := []types.Department{{ID: "d1", Name: "Dept"}}
-	rules := []types.RoutingRule{{NodeID: "d1", AllowedModelIds: []int64{1}}}
+	rules := []types.RoutingRule{{NodeID: "d1", AllowedModelIDs: []int64{1}}}
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "gpt-4", Enabled: true},
 		{ModelID: 2, Type: "claude", Enabled: true},
@@ -72,8 +72,8 @@ func TestWhitelistInheritance_ChildNarrowsFromParent(t *testing.T) {
 		{ID: "d-child", Name: "Child", ParentID: &parentID},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "d-parent", AllowedModelIds: []int64{1, 2, 3}},
-		{NodeID: "d-child", AllowedModelIds: []int64{1, 2}, Inherited: true},
+		{NodeID: "d-parent", AllowedModelIDs: []int64{1, 2, 3}},
+		{NodeID: "d-child", AllowedModelIDs: []int64{1, 2}, Inherited: true},
 	}
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "gpt-4", Enabled: true},
@@ -97,14 +97,14 @@ func TestWhitelistInheritance_ParentShrinkSyncsChild(t *testing.T) {
 		{ID: "d-child", Name: "Child", ParentID: &parentID},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "d-child", AllowedModelIds: []int64{1, 2, 3}, Inherited: true},
+		{NodeID: "d-child", AllowedModelIDs: []int64{1, 2, 3}, Inherited: true},
 	}
 	updated := common.ShrinkChildRoutingRules("d-parent", []int64{1}, rules, departments)
-	if len(updated[0].AllowedModelIds) != 1 {
-		t.Fatalf("expected child shrunk to 1 model, got %d: %v", len(updated[0].AllowedModelIds), updated[0].AllowedModelIds)
+	if len(updated[0].AllowedModelIDs) != 1 {
+		t.Fatalf("expected child shrunk to 1 model, got %d: %v", len(updated[0].AllowedModelIDs), updated[0].AllowedModelIDs)
 	}
-	if updated[0].AllowedModelIds[0] != 1 {
-		t.Errorf("expected model 1, got %d", updated[0].AllowedModelIds[0])
+	if updated[0].AllowedModelIDs[0] != 1 {
+		t.Errorf("expected model 1, got %d", updated[0].AllowedModelIDs[0])
 	}
 }
 
@@ -116,7 +116,7 @@ func TestResolveDeptAllowedModelIDs_InheritedFromParent(t *testing.T) {
 		{ID: "d-child", Name: "Child", ParentID: &parentID},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "d-parent", AllowedModelIds: []int64{1, 2}},
+		{NodeID: "d-parent", AllowedModelIDs: []int64{1, 2}},
 	}
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "gpt-4", Enabled: true},

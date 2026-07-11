@@ -75,7 +75,7 @@ func WithProductionContract() ConfigOption {
 		WithBootstrapMode(config.BootstrapNone)(cfg)
 		WithSecureCookie(true)(cfg)
 		WithNewAPIEnabled(true)(cfg)
-		cfg.NewAPIGatewayEnabled = true
+		cfg.GatewayEnabled = true
 		WithNewAPIBaseURL("http://127.0.0.1:3000")(cfg)
 		WithNewAPIAdminToken("admin-token")(cfg)
 		if cfg.DatabaseURL == "" {

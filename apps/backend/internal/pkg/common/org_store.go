@@ -44,7 +44,7 @@ func LoadRoutingRules(ctx context.Context, orgNodes store.OrgNodeRepository, all
 }
 
 func HasOrgNodeRoutingConfig(node types.OrgNode, allowed []int64) bool {
-	return len(allowed) > 0 || node.DefaultModelId != nil || node.FallbackModelId != nil || node.RoutingInherited
+	return len(allowed) > 0 || node.DefaultModelID != nil || node.FallbackModelID != nil || node.RoutingInherited
 }
 
 func RoutingRulesFromNodes(nodes []types.OrgNode, allowlists map[string][]int64) []types.RoutingRule {
@@ -67,11 +67,11 @@ func PersistRoutingRules(ctx context.Context, st store.Store, nodes []types.OrgN
 	for nodeID, rule := range ruleByNode {
 		node := pkgorg.FindOrgNode(nodes, nodeID)
 		if node != nil {
-			node.DefaultModelId = rule.DefaultModelId
-			node.FallbackModelId = rule.FallbackModelId
+			node.DefaultModelID = rule.DefaultModelID
+			node.FallbackModelID = rule.FallbackModelID
 			node.RoutingInherited = rule.Inherited
 		}
-		if err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, nodeID, rule.AllowedModelIds); err != nil {
+		if err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, nodeID, rule.AllowedModelIDs); err != nil {
 			return err
 		}
 	}

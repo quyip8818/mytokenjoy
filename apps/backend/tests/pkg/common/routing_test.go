@@ -17,15 +17,15 @@ func TestShrinkChildRoutingRules(t *testing.T) {
 		{ID: "dept-3", Name: "Grandchild", ParentID: &childParentID},
 	}
 	rules := []types.RoutingRule{
-		{ID: "r-1", NodeID: "dept-2", AllowedModelIds: []int64{1, 2, 3}},
-		{ID: "r-2", NodeID: "dept-3", AllowedModelIds: []int64{1, 2, 3}},
+		{ID: "r-1", NodeID: "dept-2", AllowedModelIDs: []int64{1, 2, 3}},
+		{ID: "r-2", NodeID: "dept-3", AllowedModelIDs: []int64{1, 2, 3}},
 	}
 	updated := common.ShrinkChildRoutingRules("dept-1", []int64{1}, rules, departments)
-	if len(updated[0].AllowedModelIds) != 1 || updated[0].AllowedModelIds[0] != 1 {
-		t.Fatalf("expected child rule to shrink to model 1, got %v", updated[0].AllowedModelIds)
+	if len(updated[0].AllowedModelIDs) != 1 || updated[0].AllowedModelIDs[0] != 1 {
+		t.Fatalf("expected child rule to shrink to model 1, got %v", updated[0].AllowedModelIDs)
 	}
-	if len(updated[1].AllowedModelIds) != 1 || updated[1].AllowedModelIds[0] != 1 {
-		t.Fatalf("expected grandchild rule to shrink to model 1, got %v", updated[1].AllowedModelIds)
+	if len(updated[1].AllowedModelIDs) != 1 || updated[1].AllowedModelIDs[0] != 1 {
+		t.Fatalf("expected grandchild rule to shrink to model 1, got %v", updated[1].AllowedModelIDs)
 	}
 }
 
@@ -48,7 +48,7 @@ func TestResolveDeptAllowedModelIDs_WithRule(t *testing.T) {
 		{ID: "dept-1", Name: "Root"},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "dept-1", AllowedModelIds: []int64{1, 3}},
+		{NodeID: "dept-1", AllowedModelIDs: []int64{1, 3}},
 	}
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "gpt-4", Enabled: true},
@@ -102,7 +102,7 @@ func TestGetRoutingRuleForDept_Inherited(t *testing.T) {
 		{ID: "dept-2", Name: "Child", ParentID: &parentID},
 	}
 	rules := []types.RoutingRule{
-		{NodeID: "dept-1", AllowedModelIds: []int64{1}},
+		{NodeID: "dept-1", AllowedModelIDs: []int64{1}},
 	}
 	rule := common.GetRoutingRuleForDept("dept-2", rules, departments)
 	if rule == nil {

@@ -45,5 +45,5 @@ type Deps struct {
 	MemberAnalyticsSvc   domainmemberanalytics.Service
 	WalletSvc            domaincompany.WalletService
 	CompanyGate          *domaincompany.Gate
-	NewAPIGateway        domaingateway.GatewayService
+	Gateway              domaingateway.GatewayService
 }

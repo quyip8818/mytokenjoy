@@ -15,7 +15,7 @@ import (
 type Service interface {
 	ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error)
 	CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
-	CreatePlatformProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
+	CreateProviderKeyForPlatform(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
 	ToggleProviderKey(ctx context.Context, id string, enabled bool) error
 	RotateProviderKey(ctx context.Context, id string, newKey string) (types.ProviderKey, error)
 	DeleteProviderKey(ctx context.Context, id string) error

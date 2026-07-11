@@ -40,9 +40,9 @@ type RoutingRule struct {
 	ID              string     `json:"id"`
 	NodeID          string     `json:"nodeId"`
 	NodeName        string     `json:"nodeName"`
-	AllowedModelIds []int64    `json:"allowedModelIds"`
-	DefaultModelId  *int64     `json:"defaultModelId"`
-	FallbackModelId *int64     `json:"fallbackModelId"`
+	AllowedModelIDs []int64    `json:"allowedModelIds"`
+	DefaultModelID  *int64     `json:"defaultModelId"`
+	FallbackModelID *int64     `json:"fallbackModelId"`
 	Inherited       bool       `json:"inherited"`
 	AllowedModels   []ModelRef `json:"allowedModels,omitempty"`
 	DefaultModel    *ModelRef  `json:"defaultModel,omitempty"`
@@ -73,15 +73,15 @@ type UpdateModelInput struct {
 }
 
 type UpdateRoutingRuleInput struct {
-	AllowedModelIds []int64 `json:"allowedModelIds"`
+	AllowedModelIDs []int64 `json:"allowedModelIds"`
 	Inherited       *bool   `json:"inherited"`
-	DefaultModelId  *int64  `json:"defaultModelId"`
-	FallbackModelId *int64  `json:"fallbackModelId"`
+	DefaultModelID  *int64  `json:"defaultModelId"`
+	FallbackModelID *int64  `json:"fallbackModelId"`
 }
 
 type ResolvedWhitelist struct {
 	Inherited       bool       `json:"inherited"`
-	AllowedModelIds []int64    `json:"allowedModelIds"`
+	AllowedModelIDs []int64    `json:"allowedModelIds"`
 	ParentCount     int        `json:"parentCount"`
 	AllowedModels   []ModelRef `json:"allowedModels,omitempty"`
 }

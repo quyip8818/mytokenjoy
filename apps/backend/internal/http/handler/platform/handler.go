@@ -183,6 +183,6 @@ func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	key, err := h.p.KeysSvc.CreatePlatformProviderKey(r.Context(), body)
+	key, err := h.p.KeysSvc.CreateProviderKeyForPlatform(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusCreated, key, err)
 }

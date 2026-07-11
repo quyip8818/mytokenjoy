@@ -1,4 +1,4 @@
-package handler
+package session
 
 import (
 	"net/http"
@@ -10,21 +10,21 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 )
 
-type SessionHandler struct {
+type Handler struct {
 	shared.ProtectedHandlerBase
 }
 
-func NewSessionHandler(p httpdeps.Protected) *SessionHandler {
-	return &SessionHandler{
+func NewHandler(p httpdeps.Protected) *Handler {
+	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 	}
 }
 
-func (h *SessionHandler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/session", h.Get)
 }
 
-func (h *SessionHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	claims, err := httpx.ParseMemberToken(r, h.SessionToken)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)

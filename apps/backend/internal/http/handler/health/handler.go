@@ -1,4 +1,4 @@
-package handler
+package health
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/response"
 )
 
-func RegisterHealthRoutes(r chi.Router) {
+func RegisterRoutes(r chi.Router) {
 	r.Get("/healthz", healthz)
 	r.Head("/healthz", healthzHead)
 	r.Post("/healthz", healthz)

@@ -15,7 +15,7 @@ import (
 )
 
 type service struct {
-	*structure.Local
+	*structure.LocalService
 	*remote.Service
 }
 
@@ -30,7 +30,7 @@ func NewService(
 ) Service {
 	deps := core.NewDeps(cfg, st, factory, modelLimits, notifier, delayer, logger)
 	return &service{
-		Local:   structure.New(deps),
-		Service: remote.New(deps),
+		LocalService: structure.New(deps),
+		Service:      remote.New(deps),
 	}
 }

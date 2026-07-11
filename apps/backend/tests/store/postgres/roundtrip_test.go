@@ -109,9 +109,9 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 			ID:              contract.IDDept3,
 			NodeID:          contract.IDDept3,
 			NodeName:        "后端组",
-			DefaultModelId:  &defaultModelID,
-			FallbackModelId: &fallbackModelID,
-			AllowedModelIds: []int64{inserted.ModelID, contract.IDModel1},
+			DefaultModelID:  &defaultModelID,
+			FallbackModelID: &fallbackModelID,
+			AllowedModelIDs: []int64{inserted.ModelID, contract.IDModel1},
 			Inherited:       false,
 		},
 	}
@@ -146,7 +146,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	for _, rule := range gotRules {
 		if rule.ID == contract.IDDept3 {
 			foundRule = true
-			if len(rule.AllowedModelIds) != 2 || rule.DefaultModelId == nil || *rule.DefaultModelId != defaultModelID {
+			if len(rule.AllowedModelIDs) != 2 || rule.DefaultModelID == nil || *rule.DefaultModelID != defaultModelID {
 				t.Fatalf("routing rule mismatch: %+v", rule)
 			}
 		}

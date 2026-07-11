@@ -53,13 +53,13 @@ func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 }
 
 func buildServiceRegistry(cfg config.Config, i infra, services domainServices) ServiceRegistry {
-	var newAPIGateway domaingateway.GatewayService
-	if cfg.NewAPIGatewayEnabled && cfg.NewAPIEnabled {
+	var gateway domaingateway.GatewayService
+	if cfg.GatewayEnabled && cfg.NewAPIEnabled {
 		gw, err := wireGatewayService(cfg, i)
 		if err != nil {
 			panic(fmt.Errorf("wire gateway service: %w", err))
 		}
-		newAPIGateway = gw
+		gateway = gw
 	}
 	authzSvc, credSvc, memberToken, platformToken, err := wireIdentity(cfg, i.store)
 	if err != nil {
@@ -89,7 +89,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			MemberAnalyticsSvc:   services.memberAnalytics,
 			WalletSvc:            i.wallet,
 			CompanyGate:          i.companyGate,
-			NewAPIGateway:        newAPIGateway,
+			Gateway:              gateway,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

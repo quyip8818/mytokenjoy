@@ -74,8 +74,8 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	tokenKey := strings.TrimPrefix(auth, "Bearer ")
-	mapping, err := g.mappings.GetMappingByKeyHash(r.Context(), store.HashPlatformKey(tokenKey))
+	platformKeySecret := strings.TrimPrefix(auth, "Bearer ")
+	mapping, err := g.mappings.GetMappingByKeyHash(r.Context(), store.HashPlatformKey(platformKeySecret))
 	if err != nil || mapping == nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return

@@ -8,16 +8,18 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/billing"
 	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
 	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
+	ingesthandler "github.com/tokenjoy/backend/internal/http/handler/ingest"
 	keyshandler "github.com/tokenjoy/backend/internal/http/handler/keys"
 	mehandler "github.com/tokenjoy/backend/internal/http/handler/me"
 	modelshandler "github.com/tokenjoy/backend/internal/http/handler/models"
 	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
 	"github.com/tokenjoy/backend/internal/http/handler/platform"
+	sessionhandler "github.com/tokenjoy/backend/internal/http/handler/session"
 )
 
 type Registry struct {
 	cfg            httpdeps.Deps
-	session        *SessionHandler
+	session        *sessionhandler.Handler
 	auth           *auth.Handler
 	platform       *platform.Handler
 	billing        *billing.Handler
@@ -28,14 +30,14 @@ type Registry struct {
 	dashboard      *dashboardhandler.Handler
 	audit          *audithandler.Handler
 	me             *mehandler.Handler
-	internalIngest *InternalIngestHandler
+	internalIngest *ingesthandler.Handler
 }
 
 func NewRegistry(deps httpdeps.Deps) Registry {
 	p := deps.Protected()
 	return Registry{
 		cfg:            deps,
-		session:        NewSessionHandler(p),
+		session:        sessionhandler.NewHandler(p),
 		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc),
 		platform:       platform.NewHandler(deps.Platform()),
 		billing:        billing.NewHandler(p, deps.BillingSvc),
@@ -46,7 +48,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:          audithandler.NewHandler(p, deps.AuditSvc),
 		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc),
-		internalIngest: NewInternalIngestHandler(deps.Config, deps.IngestQueue, deps.IngestMetrics, deps.Logger),
+		internalIngest: ingesthandler.NewHandler(deps.Config, deps.IngestQueue, deps.IngestMetrics, deps.Logger),
 	}
 }
 

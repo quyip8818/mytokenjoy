@@ -30,8 +30,8 @@ func TestRoutingUpdateHTTP(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&rule); err != nil {
 		t.Fatal(err)
 	}
-	if len(rule.AllowedModelIds) != 1 || rule.AllowedModelIds[0] != contract.IDModel1 {
-		t.Fatalf("expected allowedModelIds [%d], got %v", contract.IDModel1, rule.AllowedModelIds)
+	if len(rule.AllowedModelIDs) != 1 || rule.AllowedModelIDs[0] != contract.IDModel1 {
+		t.Fatalf("expected allowedModelIds [%d], got %v", contract.IDModel1, rule.AllowedModelIDs)
 	}
 	if len(rule.AllowedModels) != 1 || rule.AllowedModels[0].Type != "gpt-4o" {
 		t.Fatalf("expected enriched gpt-4o, got %v", rule.AllowedModels)

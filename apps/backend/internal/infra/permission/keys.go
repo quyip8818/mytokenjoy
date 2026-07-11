@@ -23,7 +23,7 @@ const (
 	DashboardCost   = "dashboard:cost"
 	DashboardUsage  = "dashboard:usage"
 	AuditRead       = "audit:read"
-	ApiCall         = "api:call"
+	APICall         = "api:call"
 	BillingRead     = "billing:read"
 	BillingRecharge = "billing:recharge"
 )
@@ -49,7 +49,7 @@ var AllPermissions = []string{
 	DashboardCost,
 	DashboardUsage,
 	AuditRead,
-	ApiCall,
+	APICall,
 	BillingRead,
 	BillingRecharge,
 }
@@ -57,7 +57,7 @@ var AllPermissions = []string{
 var PermissionIDMap = map[string]string{
 	"p-1":  OrgStructure,
 	"p-10": AuditRead,
-	"p-11": ApiCall,
+	"p-11": APICall,
 	"p-12": BudgetRead,
 	"p-13": BudgetPolicy,
 	"p-14": ModelManage,

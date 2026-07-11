@@ -13,11 +13,11 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *Local) GetDepartmentTree(ctx context.Context) ([]types.Department, error) {
+func (s *LocalService) GetDepartmentTree(ctx context.Context) ([]types.Department, error) {
 	return common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 }
 
-func (s *Local) CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error) {
+func (s *LocalService) CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error) {
 	if strings.TrimSpace(name) == "" {
 		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "types.Department name is required")
 	}
@@ -71,7 +71,7 @@ func (s *Local) CreateDepartment(ctx context.Context, name, parentID string) (ty
 	return created, nil
 }
 
-func (s *Local) UpdateDepartment(ctx context.Context, id, name string) (types.Department, error) {
+func (s *LocalService) UpdateDepartment(ctx context.Context, id, name string) (types.Department, error) {
 	if strings.TrimSpace(name) == "" {
 		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "types.Department name is required")
 	}
@@ -115,7 +115,7 @@ func (s *Local) UpdateDepartment(ctx context.Context, id, name string) (types.De
 	return updated, nil
 }
 
-func (s *Local) DeleteDepartment(ctx context.Context, id string) error {
+func (s *LocalService) DeleteDepartment(ctx context.Context, id string) error {
 	if id == core.RootDepartmentID {
 		return domain.NewDomainError(domain.StatusUnprocessable, core.DeptDeleteBlockedMsg)
 	}

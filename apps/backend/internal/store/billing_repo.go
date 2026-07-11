@@ -6,8 +6,6 @@ import (
 )
 
 const (
-	InviteRoleSuperAdmin = "super_admin"
-
 	RechargeStatusPending   = "pending"
 	RechargeStatusConfirmed = "confirmed"
 	RechargeStatusFailed    = "failed"
@@ -28,40 +26,14 @@ const (
 
 	ActorTypeMember   = "member"
 	ActorTypePlatform = "platform"
+
+	InvoiceStatusNone    = "none"
+	InvoiceStatusApplied = "applied"
+	InvoiceStatusIssued  = "issued"
+
+	PaymentMethodAlipay = "alipay"
+	PaymentMethodWechat = "wechat"
 )
-
-type CompanyInvite struct {
-	ID         string
-	CompanyID  int64
-	Email      string
-	Role       string
-	Token      string
-	ExpiresAt  time.Time
-	AcceptedAt *time.Time
-	CreatedAt  time.Time
-}
-
-type InviteRepository interface {
-	CreateInvite(ctx context.Context, invite CompanyInvite) error
-	GetInviteByToken(ctx context.Context, token string) (*CompanyInvite, error)
-	MarkInviteAccepted(ctx context.Context, id string, acceptedAt time.Time) error
-}
-
-type PlatformOperator struct {
-	ID           string
-	Email        string
-	PasswordHash string
-	Status       string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-}
-
-type PlatformRepository interface {
-	GetOperatorByEmail(ctx context.Context, email string) (*PlatformOperator, error)
-	GetOperatorByID(ctx context.Context, id string) (*PlatformOperator, error)
-	CreateOperator(ctx context.Context, op PlatformOperator) error
-	CountOperators(ctx context.Context) (int, error)
-}
 
 type RechargeOrder struct {
 	ID             string
@@ -112,15 +84,6 @@ type WalletAggregate struct {
 	GiftPoints      float64
 	OverdraftPoints float64
 }
-
-const (
-	InvoiceStatusNone    = "none"
-	InvoiceStatusApplied = "applied"
-	InvoiceStatusIssued  = "issued"
-
-	PaymentMethodAlipay = "alipay"
-	PaymentMethodWechat = "wechat"
-)
 
 type BillingRepository interface {
 	CreateRechargeOrder(ctx context.Context, order RechargeOrder) error

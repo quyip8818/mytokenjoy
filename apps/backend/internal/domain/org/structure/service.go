@@ -2,10 +2,10 @@ package structure
 
 import "github.com/tokenjoy/backend/internal/domain/org/core"
 
-type Local struct {
+type LocalService struct {
 	d *core.Deps
 }
 
-func New(d *core.Deps) *Local {
-	return &Local{d: d}
+func New(d *core.Deps) *LocalService {
+	return &LocalService{d: d}
 }

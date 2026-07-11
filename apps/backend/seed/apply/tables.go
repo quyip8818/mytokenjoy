@@ -150,7 +150,7 @@ func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes 
 		`, node.ID, tid, node.Name, node.ParentID, path,
 			node.ExternalID, node.Source, node.ManagerID, i,
 			node.Budget, node.ReservedPool, node.Period,
-			node.DefaultModelId, node.FallbackModelId,
+			node.DefaultModelID, node.FallbackModelID,
 			node.RoutingInherited); err != nil {
 			return fmt.Errorf("seed org node %s: %w", node.ID, err)
 		}

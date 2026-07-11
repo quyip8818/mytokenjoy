@@ -95,7 +95,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		saas.ApplyConfig(cfg)
 		mock.ApplyToConfig(cfg)
-		cfg.NewAPIGatewayEnabled = true
+		cfg.GatewayEnabled = true
 	})
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)

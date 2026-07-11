@@ -1,4 +1,4 @@
-package handler
+package ingest
 
 import (
 	"crypto/subtle"
@@ -17,19 +17,19 @@ type newAPILogWebhookRequest struct {
 	LogID int64 `json:"log_id"`
 }
 
-type InternalIngestHandler struct {
+type Handler struct {
 	cfg     config.Config
 	enqueue domainusage.Enqueuer
 	metrics ingestmetrics.Recorder
 	logger  *slog.Logger
 }
 
-func NewInternalIngestHandler(
+func NewHandler(
 	cfg config.Config,
 	enqueue domainusage.Enqueuer,
 	metrics ingestmetrics.Recorder,
 	logger *slog.Logger,
-) *InternalIngestHandler {
+) *Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -39,7 +39,7 @@ func NewInternalIngestHandler(
 	if metrics == nil {
 		metrics = ingestmetrics.NoopCollector()
 	}
-	return &InternalIngestHandler{
+	return &Handler{
 		cfg:     cfg,
 		enqueue: enqueue,
 		metrics: metrics,
@@ -47,12 +47,12 @@ func NewInternalIngestHandler(
 	}
 }
 
-func (h *InternalIngestHandler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/webhooks/newapi-log", h.HandleNewAPILog)
 	r.Get("/metrics/ingest", h.HandleIngestMetrics)
 }
 
-func (h *InternalIngestHandler) authenticateWebhookSecret(r *http.Request) bool {
+func (h *Handler) authenticateWebhookSecret(r *http.Request) bool {
 	secret := r.Header.Get("X-Webhook-Secret")
 	if h.cfg.NewAPIWebhookSecret == "" || secret == "" {
 		return false
@@ -60,7 +60,7 @@ func (h *InternalIngestHandler) authenticateWebhookSecret(r *http.Request) bool 
 	return subtle.ConstantTimeCompare([]byte(secret), []byte(h.cfg.NewAPIWebhookSecret)) == 1
 }
 
-func (h *InternalIngestHandler) HandleNewAPILog(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleNewAPILog(w http.ResponseWriter, r *http.Request) {
 	if !h.authenticateWebhookSecret(r) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
@@ -84,7 +84,7 @@ func (h *InternalIngestHandler) HandleNewAPILog(w http.ResponseWriter, r *http.R
 	httputil.WriteOK(w, map[string]string{"status": "accepted"})
 }
 
-func (h *InternalIngestHandler) HandleIngestMetrics(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleIngestMetrics(w http.ResponseWriter, r *http.Request) {
 	if !h.cfg.IngestEnabled() {
 		httputil.WriteStatus(w, http.StatusNotFound, "ingest not enabled")
 		return

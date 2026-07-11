@@ -74,9 +74,9 @@ func buildOrgNodes() []types.OrgNode {
 		ruleByNode[nodeID] = types.RoutingRule{
 			ID:              nodeID,
 			NodeID:          nodeID,
-			AllowedModelIds: append([]int64{}, cfg.allowedModelIDs...),
-			DefaultModelId:  cfg.defaultModelID,
-			FallbackModelId: cfg.fallbackModelID,
+			AllowedModelIDs: append([]int64{}, cfg.allowedModelIDs...),
+			DefaultModelID:  cfg.defaultModelID,
+			FallbackModelID: cfg.fallbackModelID,
 			Inherited:       cfg.inherited,
 		}
 	}
@@ -107,7 +107,7 @@ func mergeOrgNodeChildren(
 			ID: dept.ID, Name: dept.Name, ParentID: dept.ParentID,
 			ExternalID: dept.ExternalID, Source: dept.Source, ManagerID: dept.ManagerID,
 			Budget: budget.Budget, ReservedPool: budget.ReservedPool, Period: budget.Period,
-			DefaultModelId: rule.DefaultModelId, FallbackModelId: rule.FallbackModelId,
+			DefaultModelID: rule.DefaultModelID, FallbackModelID: rule.FallbackModelID,
 			RoutingInherited: rule.Inherited,
 		}
 		if len(dept.Children) > 0 {

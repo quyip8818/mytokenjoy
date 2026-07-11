@@ -16,7 +16,7 @@ func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProvi
 	return s.createProviderKey(ctx, input)
 }
 
-func (s *service) CreatePlatformProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
+func (s *service) CreateProviderKeyForPlatform(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
 	return s.createProviderKey(ctx, input)
 }
 

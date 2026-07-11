@@ -208,13 +208,13 @@ func cloneOrgNode(node types.OrgNode) types.OrgNode {
 		reserved := *node.ReservedPool
 		cloned.ReservedPool = &reserved
 	}
-	if node.DefaultModelId != nil {
-		defaultModelID := *node.DefaultModelId
-		cloned.DefaultModelId = &defaultModelID
+	if node.DefaultModelID != nil {
+		defaultModelID := *node.DefaultModelID
+		cloned.DefaultModelID = &defaultModelID
 	}
-	if node.FallbackModelId != nil {
-		fallbackModelID := *node.FallbackModelId
-		cloned.FallbackModelId = &fallbackModelID
+	if node.FallbackModelID != nil {
+		fallbackModelID := *node.FallbackModelID
+		cloned.FallbackModelID = &fallbackModelID
 	}
 	if len(node.Children) > 0 {
 		cloned.Children = make([]types.OrgNode, len(node.Children))

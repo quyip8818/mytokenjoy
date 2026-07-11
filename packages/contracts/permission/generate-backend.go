@@ -82,8 +82,26 @@ func goConstName(cap string) string {
 			if seg == "" {
 				continue
 			}
-			words = append(words, strings.ToUpper(seg[:1])+seg[1:])
+			words = append(words, initialismWord(seg))
 		}
 	}
 	return strings.Join(words, "")
+}
+
+var goInitialisms = map[string]string{
+	"api":   "API",
+	"id":    "ID",
+	"url":   "URL",
+	"http":  "HTTP",
+	"https": "HTTPS",
+	"json":  "JSON",
+	"uuid":  "UUID",
+}
+
+func initialismWord(seg string) string {
+	lower := strings.ToLower(seg)
+	if v, ok := goInitialisms[lower]; ok {
+		return v
+	}
+	return strings.ToUpper(seg[:1]) + seg[1:]
 }

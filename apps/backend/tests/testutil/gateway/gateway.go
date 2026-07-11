@@ -186,7 +186,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 		backendURL = backend.URL
 	}
 	cfg.NewAPIBaseURL = backendURL
-	cfg.NewAPIGatewayEnabled = true
+	cfg.GatewayEnabled = true
 
 	wallet := gatewayWallet(cfg, opts)
 	precheck := NewPrecheckService(cfg, st, wallet)

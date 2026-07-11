@@ -2,7 +2,7 @@
 
 > 基于 `apps/backend/` 全量代码审查。架构现状见 [Backend-架构.md](./Backend-架构.md)。  
 > 本文给出**终态最优形态**与**最小必要改动**——能收口则收口，不为架构而架构。  
-> **命名：** 去 Relay / 去领域 Token（指 Key）、保留 PlatformKey 已完成；词汇与包边界见 [Backend-架构.md](./Backend-架构.md) §0。Gateway=`domain/gateway`，管理面同步=`domain/newapisync`；Store=`PlatformKeyMappings()` + `AsyncJobs()`。
+> **命名：** 去 Relay / 去领域 Token（指 Key）、保留 PlatformKey 已完成；词汇与包边界见 [Backend-架构.md](./Backend-架构.md) §0。Gateway=`domain/gateway`，管理面同步=`domain/newapisync`；Store=`PlatformKeyMappings()` + `AsyncJobs()`。剩余不一致与 rename 见 [Backend-命名统一.md](./Backend-命名统一.md)。
 
 ---
 

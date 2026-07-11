@@ -36,7 +36,7 @@ func TestUpdateRoutingRuleNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
 	_, err := svc.UpdateRoutingRule(testutil.Ctx(), "missing", types.UpdateRoutingRuleInput{
-		AllowedModelIds: []int64{contract.IDModel1},
+		AllowedModelIDs: []int64{contract.IDModel1},
 	})
 	if err == nil {
 		t.Fatal("expected not found error")
@@ -48,7 +48,7 @@ func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
 	svc := newModelsService(t)
 	ctx := testutil.Ctx()
 	if _, err := svc.UpdateRoutingRule(ctx, "dept-1", types.UpdateRoutingRuleInput{
-		AllowedModelIds: []int64{contract.IDModel1},
+		AllowedModelIDs: []int64{contract.IDModel1},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -60,8 +60,8 @@ func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
 		if rr.ID != "dept-2" && rr.ID != "dept-3" {
 			continue
 		}
-		if len(rr.AllowedModelIds) != 1 || rr.AllowedModelIds[0] != contract.IDModel1 {
-			t.Fatalf("expected %s shrunk to [gpt-4o], got %v", rr.ID, rr.AllowedModelIds)
+		if len(rr.AllowedModelIDs) != 1 || rr.AllowedModelIDs[0] != contract.IDModel1 {
+			t.Fatalf("expected %s shrunk to [gpt-4o], got %v", rr.ID, rr.AllowedModelIDs)
 		}
 	}
 }

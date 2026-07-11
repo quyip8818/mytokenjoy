@@ -83,9 +83,9 @@ func buildMinimalOrgNodes() []types.OrgNode {
 		ruleByNode[nodeID] = types.RoutingRule{
 			ID:              nodeID,
 			NodeID:          nodeID,
-			AllowedModelIds: append([]int64{}, cfg.allowedModelIDs...),
-			DefaultModelId:  cfg.defaultModelID,
-			FallbackModelId: cfg.fallbackModelID,
+			AllowedModelIDs: append([]int64{}, cfg.allowedModelIDs...),
+			DefaultModelID:  cfg.defaultModelID,
+			FallbackModelID: cfg.fallbackModelID,
 			Inherited:       cfg.inherited,
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	httphandler "github.com/tokenjoy/backend/internal/http/handler"
+	healthhandler "github.com/tokenjoy/backend/internal/http/handler/health"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
 )
@@ -20,15 +21,15 @@ func NewRouter(deps httpdeps.Deps) http.Handler {
 	r.Use(httpmiddleware.Recover(deps.Logger))
 	r.Use(httpmiddleware.CORS(deps.Config.CORSOriginList()))
 
-	if deps.Config.NewAPIGatewayEnabled && deps.Config.NewAPIEnabled && deps.NewAPIGateway != nil {
-		r.Handle("/v1/*", deps.NewAPIGateway)
-	} else if deps.Config.NewAPIGatewayEnabled && deps.Config.NewAPIEnabled && deps.Logger != nil {
+	if deps.Config.GatewayEnabled && deps.Config.NewAPIEnabled && deps.Gateway != nil {
+		r.Handle("/v1/*", deps.Gateway)
+	} else if deps.Config.GatewayEnabled && deps.Config.NewAPIEnabled && deps.Logger != nil {
 		deps.Logger.Error("newapi gateway disabled", "error", "gateway service unavailable")
 	}
 
 	reg := httphandler.NewRegistry(deps)
 
-	httphandler.RegisterHealthRoutes(r)
+	healthhandler.RegisterRoutes(r)
 
 	r.Route("/api", func(api chi.Router) {
 		api.Use(httpmiddleware.CompanyResolve(deps.Config, deps.CompanySvc, deps.SessionToken))

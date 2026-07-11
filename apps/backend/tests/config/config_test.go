@@ -77,16 +77,16 @@ func TestPrivateRequiresCompanyName(t *testing.T) {
 	}
 }
 
-func TestProductionRequiresNewAPIGatewayEnabled(t *testing.T) {
+func TestProductionRequiresGatewayEnabled(t *testing.T) {
 	testutil.ApplyProductionEnv(t)
-	t.Setenv("NEWAPI_GATEWAY_ENABLED", "false")
+	t.Setenv("NEW_API_GATEWAY_ENABLED", "false")
 
 	_, err := config.Load()
 	if err == nil {
 		t.Fatal("expected error when production disables newapi gateway")
 	}
-	if !strings.Contains(err.Error(), "NEWAPI_GATEWAY_ENABLED") {
-		t.Fatalf("expected NEWAPI_GATEWAY_ENABLED error, got %v", err)
+	if !strings.Contains(err.Error(), "NEW_API_GATEWAY_ENABLED") {
+		t.Fatalf("expected NEW_API_GATEWAY_ENABLED error, got %v", err)
 	}
 }
 
@@ -123,8 +123,8 @@ func TestProductionLoadsWithNewAPIEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected production newapi config to load, got %v", err)
 	}
-	if !cfg.NewAPIEnabled || !cfg.NewAPIGatewayEnabled {
-		t.Fatalf("expected newapi and gateway enabled, got newapi=%v gateway=%v", cfg.NewAPIEnabled, cfg.NewAPIGatewayEnabled)
+	if !cfg.NewAPIEnabled || !cfg.GatewayEnabled {
+		t.Fatalf("expected newapi and gateway enabled, got newapi=%v gateway=%v", cfg.NewAPIEnabled, cfg.GatewayEnabled)
 	}
 }
 
@@ -149,7 +149,7 @@ func TestStagingAllowsMissingNewAPIStack(t *testing.T) {
 
 func TestNewAPIGatewayRequiresNewAPIEnabled(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
-	t.Setenv("NEWAPI_GATEWAY_ENABLED", "true")
+	t.Setenv("NEW_API_GATEWAY_ENABLED", "true")
 	t.Setenv("NEW_API_ENABLED", "false")
 
 	_, err := config.Load()

@@ -31,7 +31,7 @@ func validateRolesNotEscalated(roles []string) error {
 	return nil
 }
 
-func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error) {
+func (s *LocalService) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error) {
 	items, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.MemberPageResult{}, err
@@ -66,7 +66,7 @@ func (s *Local) ListMembers(ctx context.Context, departmentID, keyword string, d
 	}, nil
 }
 
-func (s *Local) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
+func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
 	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.Member{}, err
@@ -134,7 +134,7 @@ func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, member
 	return st.Org().Nodes().SetTree(ctx, nodes)
 }
 
-func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
+func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
 	if err := validateRolesNotEscalated(input.Roles); err != nil {
 		return types.Member{}, err
 	}
@@ -194,7 +194,7 @@ func (s *Local) UpdateMember(ctx context.Context, id string, input types.Member)
 	return types.Member{}, domain.NewDomainError(404, "types.Member not found")
 }
 
-func (s *Local) DeleteMembers(ctx context.Context, ids []string) error {
+func (s *LocalService) DeleteMembers(ctx context.Context, ids []string) error {
 	if sessionCtx, ok := httpx.SessionFromContext(ctx); ok {
 		for _, id := range ids {
 			if id == sessionCtx.Member.ID {
@@ -248,7 +248,7 @@ func (s *Local) DeleteMembers(ctx context.Context, ids []string) error {
 	})
 }
 
-func (s *Local) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
+func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
 	return s.d.Store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {
@@ -282,7 +282,7 @@ func (s *Local) UpdateMemberStatus(ctx context.Context, ids []string, status str
 	})
 }
 
-func (s *Local) TransferMembers(ctx context.Context, ids []string, departmentID string) error {
+func (s *LocalService) TransferMembers(ctx context.Context, ids []string, departmentID string) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -337,11 +337,11 @@ func (s *Local) TransferMembers(ctx context.Context, ids []string, departmentID 
 	})
 }
 
-func (s *Local) InviteMember() error {
+func (s *LocalService) InviteMember() error {
 	return domain.NewDomainError(domain.StatusNotImplemented, "Invite member is not implemented")
 }
 
-func (s *Local) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
+func (s *LocalService) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.BatchInviteResult{}, err
@@ -367,7 +367,7 @@ func (s *Local) BatchInvite(ctx context.Context, ids []string) (types.BatchInvit
 	return types.BatchInviteResult{Sent: len(targets)}, nil
 }
 
-func (s *Local) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
+func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.MemberBatchImportResult{}, err

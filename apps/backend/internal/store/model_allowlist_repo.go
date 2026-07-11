@@ -2,6 +2,12 @@ package store
 
 import "context"
 
+type ModelAllowlistRow struct {
+	OwnerType string
+	OwnerID   string
+	ModelID   int64
+}
+
 type ModelAllowlistRepository interface {
 	List(ctx context.Context, ownerType, ownerID string) ([]int64, error)
 	Replace(ctx context.Context, ownerType, ownerID string, modelIDs []int64) error
