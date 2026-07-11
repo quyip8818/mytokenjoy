@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, Member } from '@/api/types'
+import type { BudgetNode, BudgetProjectView, Member, MemberBudgetQuota } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
@@ -28,6 +28,8 @@ interface BudgetDetailTeamProps {
     memberIds: string[]
     departmentIds: string[]
   }) => Promise<void>
+  getMemberQuotas: (departmentId: string) => Promise<MemberBudgetQuota[]>
+  updateMemberQuota: (memberId: string, data: { personalQuota: number }) => Promise<MemberBudgetQuota>
 }
 
 function SummaryCard({
@@ -69,6 +71,8 @@ export function BudgetDetailTeam({
   onNavigateToProject,
   onUpdateDepartment,
   onCreateGroup,
+  getMemberQuotas,
+  updateMemberQuota,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
@@ -182,6 +186,8 @@ export function BudgetDetailTeam({
         projects={projects}
         onUpdated={onUpdated}
         onUpdateDepartment={onUpdateDepartment}
+        getMemberQuotas={getMemberQuotas}
+        updateMemberQuota={updateMemberQuota}
       />
 
       <BudgetProjectDialog
