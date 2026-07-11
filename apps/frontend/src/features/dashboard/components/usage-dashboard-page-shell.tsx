@@ -1,39 +1,42 @@
+import { ErrorState } from '@/components/ui/error-state'
 import { DataSection } from '@/components/layout/data-section'
-import { PageShell } from '@/components/layout/page-shell'
-import type { useUsageDashboardPage } from '@/features/dashboard'
+import type { useUsageDashboardPage } from '../hooks/use-usage-dashboard-page'
 import { TeamUsageTable } from './team-usage-table'
 import { UsageModelChart } from './usage-model-chart'
 
-type UsageDashboardPageShellProps = ReturnType<typeof useUsageDashboardPage>
+interface UsageDashboardPageShellProps {
+  pageData: ReturnType<typeof useUsageDashboardPage>
+  onSelectDept?: (deptId: string) => void
+}
 
-export function UsageDashboardPageShell({
-  teamUsage,
-  modelUsage,
-  loading,
-  error,
-  refresh,
-}: UsageDashboardPageShellProps) {
+export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboardPageShellProps) {
+  const { teamUsage, modelUsage, loading, error, refresh } = pageData
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => void refresh()} />
+  }
+
   return (
-    <PageShell className="space-y-8">
-      <DataSection
-        title="团队用量"
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        skeletonColumns={6}
-        className="border-border shadow-xs"
-      >
-        <TeamUsageTable teamUsage={teamUsage} />
-      </DataSection>
+    <div className="space-y-6">
+      <div className="grid grid-cols-[5fr_3fr] gap-6">
+        <DataSection
+          title="团队用量与配额"
+          loading={loading}
+          skeletonColumns={6}
+          className="border-border shadow-xs"
+        >
+          <TeamUsageTable teamUsage={teamUsage} onSelectDept={onSelectDept} />
+        </DataSection>
 
-      <DataSection
-        title="模型使用分布"
-        loading={loading}
-        skeletonColumns={1}
-        className="border-border shadow-xs"
-      >
-        <UsageModelChart modelUsage={modelUsage} />
-      </DataSection>
-    </PageShell>
+        <DataSection
+          title="模型费用分布"
+          loading={loading}
+          skeletonColumns={1}
+          className="border-border shadow-xs"
+        >
+          <UsageModelChart modelUsage={modelUsage} />
+        </DataSection>
+      </div>
+    </div>
   )
 }

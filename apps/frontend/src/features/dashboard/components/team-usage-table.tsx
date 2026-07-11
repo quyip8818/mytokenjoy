@@ -13,9 +13,10 @@ import { Badge } from '@/components/ui/badge'
 
 interface TeamUsageTableProps {
   teamUsage: TeamUsage[]
+  onSelectDept?: (deptId: string) => void
 }
 
-export function TeamUsageTable({ teamUsage }: TeamUsageTableProps) {
+export function TeamUsageTable({ teamUsage, onSelectDept }: TeamUsageTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -38,7 +39,8 @@ export function TeamUsageTable({ teamUsage }: TeamUsageTableProps) {
           return (
             <TableRow
               key={t.departmentId}
-              className="border-border-subtle hover:bg-muted/50 transition-colors"
+              className="border-border-subtle hover:bg-muted/50 transition-colors cursor-pointer"
+              onClick={() => onSelectDept?.(t.departmentId)}
             >
               <TableCell className="font-medium">{t.departmentName}</TableCell>
               <TableCell className="text-muted-foreground tabular-nums">
