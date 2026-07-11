@@ -20,6 +20,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [PRD-差距分析.md](./PRD-差距分析.md) | 产品 / 研发 | PRD vs 实现差距 |
 | [Roadmap.md](./Roadmap.md) | 全员 | 产品差距简表 |
 | [Frontend.md](./Frontend.md) | 前端 / 前后端 | 前端架构、API 契约 |
+| [Frontend-Dashboard与Budget修复.md](./Frontend-Dashboard与Budget修复.md) | 前端 | `test:all` / `build` 失败根因与修复指南 |
 | [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
