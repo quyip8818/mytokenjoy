@@ -194,9 +194,7 @@ export function BudgetDetailTeam({
 
       <BudgetEditMemberBudget
         node={node}
-        projects={projects}
         onUpdated={onUpdated}
-        onUpdateDepartment={onUpdateDepartment}
         getMemberBudgets={getMemberBudgets}
         updateMemberBudget={updateMemberBudget}
       />

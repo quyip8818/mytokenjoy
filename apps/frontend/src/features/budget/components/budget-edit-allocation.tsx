@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import type { BudgetNode, BudgetProjectView } from '@/api/types'
 import { Button } from '@/components/ui/button'
-import { Pencil, X, Check } from 'lucide-react'
-import { useBudgetAllocationEdit } from '../hooks/use-budget-allocation-edit'
+import { Pencil } from 'lucide-react'
 import { BudgetAllocationTable } from './budget-allocation-table'
+import { BudgetAllocationDialog } from './budget-allocation-dialog'
 
 interface BudgetEditAllocationProps {
   node: BudgetNode
@@ -22,66 +23,45 @@ export function BudgetEditAllocation({
   onUpdated,
   onUpdateDepartment,
 }: BudgetEditAllocationProps) {
-  const allocation = useBudgetAllocationEdit({
-    node,
-    projects,
-    onUpdated,
-    onUpdateDepartment,
-  })
+  const [dialogOpen, setDialogOpen] = useState(false)
 
-  if (allocation.children.length === 0 && allocation.nodeProjects.length === 0) return null
+  const children = node.children ?? []
+  const nodeProjects = projects.filter((p) => p.departmentId === node.id)
+
+  if (children.length === 0 && nodeProjects.length === 0) return null
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground">子节点分配</h4>
-        {!allocation.editing ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 text-xs text-muted-foreground"
-            onClick={allocation.startEdit}
-          >
-            <Pencil className="size-3.5" />
-            编辑
-          </Button>
-        ) : (
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 text-xs text-muted-foreground"
-              onClick={allocation.cancelEdit}
-              disabled={allocation.saving}
-              aria-label="取消编辑"
-            >
-              <X className="size-3.5" />
-              取消
-            </Button>
-            <Button
-              size="sm"
-              className="h-7 gap-1.5 text-xs"
-              onClick={allocation.handleSave}
-              disabled={allocation.saving}
-              aria-label="保存分配"
-            >
-              <Check className="size-3.5" />
-              保存
-            </Button>
-          </div>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs text-muted-foreground"
+          onClick={() => setDialogOpen(true)}
+        >
+          <Pencil className="size-3.5" />
+          编辑
+        </Button>
       </div>
-
-      {allocation.error ? <p className="mb-2 text-xs text-red-600">{allocation.error}</p> : null}
 
       <BudgetAllocationTable
         node={node}
-        children={allocation.children}
-        nodeProjects={allocation.nodeProjects}
+        children={children}
+        nodeProjects={nodeProjects}
         overrunPolicyLabel={overrunPolicyLabel}
-        editing={allocation.editing}
-        drafts={allocation.drafts}
-        onUpdateDraft={allocation.updateDraft}
+        editing={false}
+        drafts={{}}
+        onUpdateDraft={() => {}}
+      />
+
+      <BudgetAllocationDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        node={node}
+        projects={projects}
+        onUpdated={onUpdated}
+        onUpdateDepartment={onUpdateDepartment}
       />
     </div>
   )
