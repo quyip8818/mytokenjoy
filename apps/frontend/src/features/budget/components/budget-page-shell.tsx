@@ -42,6 +42,7 @@ export function BudgetPageShell({
   updateMemberBudget,
   getDepartmentTree,
   getMembers,
+  getAllDeptMembers,
   searchMembers,
 }: BudgetPageShellProps) {
   return (
@@ -140,6 +141,7 @@ export function BudgetPageShell({
                     updateMemberBudget={updateMemberBudget}
                     getDepartmentTree={getDepartmentTree}
                     getMembers={getMembers}
+                    getAllDeptMembers={getAllDeptMembers}
                     searchMembers={searchMembers}
                   />
                 ) : (

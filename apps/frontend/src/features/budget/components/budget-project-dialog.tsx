@@ -26,6 +26,7 @@ interface BudgetProjectDialogProps {
   }) => Promise<void>
   getDepartmentTree: () => Promise<Department[]>
   getMembers: (departmentId: string) => Promise<Member[]>
+  getAllDeptMembers: (departmentId: string) => Promise<Member[]>
   searchMembers: (keyword: string) => Promise<Member[]>
 }
 
@@ -36,6 +37,7 @@ export function BudgetProjectDialog({
   onCreateGroup,
   getDepartmentTree,
   getMembers,
+  getAllDeptMembers,
   searchMembers,
 }: BudgetProjectDialogProps) {
   const [name, setName] = useState('')
@@ -144,6 +146,7 @@ export function BudgetProjectDialog({
               defaultExpandDepartmentId={department.id}
               getDepartmentTree={getDepartmentTree}
               getMembers={getMembers}
+              getAllDeptMembers={getAllDeptMembers}
               searchMembers={searchMembers}
             />
           </div>

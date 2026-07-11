@@ -39,6 +39,7 @@ interface BudgetDetailTeamProps {
   ) => Promise<MemberBudgetQuota>
   getDepartmentTree: () => Promise<Department[]>
   getMembers: (departmentId: string) => Promise<Member[]>
+  getAllDeptMembers: (departmentId: string) => Promise<Member[]>
   searchMembers: (keyword: string) => Promise<Member[]>
 }
 
@@ -83,6 +84,7 @@ export function BudgetDetailTeam({
   updateMemberBudget,
   getDepartmentTree,
   getMembers,
+  getAllDeptMembers,
   searchMembers,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -206,6 +208,7 @@ export function BudgetDetailTeam({
         onCreateGroup={onCreateGroup}
         getDepartmentTree={getDepartmentTree}
         getMembers={getMembers}
+        getAllDeptMembers={getAllDeptMembers}
         searchMembers={searchMembers}
       />
     </div>

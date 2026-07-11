@@ -179,6 +179,14 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis],
   )
 
+  const getAllDeptMembers = useCallback(
+    async (departmentId: string) => {
+      const result = await apis.memberApi.list({ departmentId, page: 1, pageSize: 200 })
+      return result?.items ?? []
+    },
+    [apis],
+  )
+
   const searchMembers = useCallback(
     async (keyword: string) => {
       const result = await apis.memberApi.list({ keyword, page: 1, pageSize: 50 })
@@ -226,6 +234,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     updateMemberBudget,
     getDepartmentTree,
     getMembers,
+    getAllDeptMembers,
     searchMembers,
   }
 }

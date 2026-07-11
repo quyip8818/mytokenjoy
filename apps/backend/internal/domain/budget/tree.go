@@ -88,26 +88,34 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
-	if err != nil {
-		return types.MemberBudgetQuota{}, err
-	}
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return types.MemberBudgetQuota{}, err
-	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
-	if err != nil {
-		return types.MemberBudgetQuota{}, err
-	}
-	if msg := pkgbudget.ValidateMemberBudgetUpdate(tree, members, platformKeys, memberID, personalBudget); msg != nil {
-		return types.MemberBudgetQuota{}, domain.Validation(*msg)
-	}
-	result, updatedMembers := pkgbudget.ApplyMemberBudgetUpdate(members, platformKeys, memberID, personalBudget)
-	if err := s.store.Org().SetMembers(ctx, updatedMembers); err != nil {
-		return types.MemberBudgetQuota{}, fmt.Errorf("persist member personal budget: %w", err)
-	}
-	return result, nil
+	var result types.MemberBudgetQuota
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
+		tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, tx.BudgetSnapshots(), tx.Org().Nodes(), s.cfg.Clock())
+		if err != nil {
+			return err
+		}
+		members, err := tx.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
+		if err != nil {
+			return err
+		}
+		if msg := pkgbudget.ValidateMemberBudgetUpdate(tree, members, platformKeys, memberID, personalBudget); msg != nil {
+			return domain.Validation(*msg)
+		}
+		r, updatedMembers := pkgbudget.ApplyMemberBudgetUpdate(members, platformKeys, memberID, personalBudget)
+		if err := tx.Org().SetMembers(ctx, updatedMembers); err != nil {
+			return fmt.Errorf("persist member personal budget: %w", err)
+		}
+		result = r
+		return nil
+	})
+	return result, err
 }
 
 func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error) {
