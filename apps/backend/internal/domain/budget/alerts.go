@@ -3,12 +3,36 @@ package budget
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
+
+func validateAlertThresholds(thresholds []int) error {
+	if len(thresholds) == 0 {
+		return domain.Validation("at least one threshold is required")
+	}
+	seen := make(map[int]struct{})
+	for _, t := range thresholds {
+		if t < 1 || t > 100 {
+			return domain.Validation(fmt.Sprintf("threshold %d must be between 1 and 100", t))
+		}
+		if _, dup := seen[t]; dup {
+			return domain.Validation(fmt.Sprintf("duplicate threshold: %d", t))
+		}
+		seen[t] = struct{}{}
+	}
+	return nil
+}
+
+func normalizeThresholds(thresholds []int) []int {
+	out := append([]int{}, thresholds...)
+	slices.Sort(out)
+	return out
+}
 
 func (s *service) ListAlerts(ctx context.Context) ([]types.AlertRule, error) {
 	return s.store.Budget().AlertRules(ctx)
@@ -18,6 +42,10 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.AlertRule{}, err
 	}
+	if err := validateAlertThresholds(rule.Thresholds); err != nil {
+		return types.AlertRule{}, err
+	}
+	rule.Thresholds = normalizeThresholds(rule.Thresholds)
 	var result types.AlertRule
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
@@ -43,6 +71,12 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 }
 
 func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertRule) (types.AlertRule, error) {
+	if patch.Thresholds != nil {
+		if err := validateAlertThresholds(patch.Thresholds); err != nil {
+			return types.AlertRule{}, err
+		}
+		patch.Thresholds = normalizeThresholds(patch.Thresholds)
+	}
 	var result types.AlertRule
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {

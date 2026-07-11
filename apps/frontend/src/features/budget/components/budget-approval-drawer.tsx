@@ -191,10 +191,10 @@ export function BudgetApprovalDrawer({
   onResolved,
 }: BudgetApprovalDrawerProps) {
   const [rejectState, setRejectState] = useState<RejectState | null>(null)
-  const [resolving, setResolving] = useState(false)
+  const [resolvingId, setResolvingId] = useState<string | null>(null)
 
   async function handleApprove(id: string) {
-    setResolving(true)
+    setResolvingId(id)
     try {
       await onResolve(id, { status: 'approved' })
       toast.success('审批通过')
@@ -202,13 +202,13 @@ export function BudgetApprovalDrawer({
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '操作失败，请重试')
     } finally {
-      setResolving(false)
+      setResolvingId(null)
     }
   }
 
   async function handleRejectConfirm(id: string, reason: string) {
     if (!reason.trim()) return
-    setResolving(true)
+    setResolvingId(id)
     try {
       await onResolve(id, { status: 'rejected', rejectReason: reason.trim() })
       toast.success('已拒绝')
@@ -217,7 +217,7 @@ export function BudgetApprovalDrawer({
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '操作失败，请重试')
     } finally {
-      setResolving(false)
+      setResolvingId(null)
     }
   }
 
@@ -253,7 +253,7 @@ export function BudgetApprovalDrawer({
                       key={item.id}
                       item={item}
                       rejectState={rejectState?.id === item.id ? rejectState : null}
-                      resolving={resolving}
+                      resolving={resolvingId === item.id}
                       onApprove={() => void handleApprove(item.id)}
                       onRejectStart={() => setRejectState({ id: item.id, reason: '' })}
                       onRejectCancel={() => setRejectState(null)}
