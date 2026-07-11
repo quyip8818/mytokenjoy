@@ -37,7 +37,7 @@ func buildBudgetTree() []types.BudgetNode {
 				},
 				{ID: "dept-6", Name: "产品部", ParentID: &dept6, Budget: seedPoints(20000), Consumed: contract.DemoLeafDeptConsumed["dept-6"], Period: pkgbudget.PeriodMonthly},
 				{ID: "dept-7", Name: "市场部", ParentID: &dept7, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed["dept-7"], Period: pkgbudget.PeriodMonthly},
-				{ID: "dept-8", Name: "行政部", ParentID: &dept8, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed["dept-8"], Period: pkgbudget.PeriodMonthly},
+				{ID: "dept-8", Name: "行政部", ParentID: &dept8, Budget: seedPoints(16000), Consumed: contract.DemoLeafDeptConsumed["dept-8"], Period: pkgbudget.PeriodMonthly},
 			},
 		},
 	}

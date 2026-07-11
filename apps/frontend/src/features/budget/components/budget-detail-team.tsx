@@ -13,7 +13,6 @@ import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { BudgetProjectDialog } from './budget-project-dialog'
 import { formatDisplayCurrency } from '@/lib/points'
-import { nodeReservedPool } from '../lib/mappers'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
 
@@ -94,7 +93,7 @@ export function BudgetDetailTeam({
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
   const projectBudgetSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
   const allocated = childrenBudgetSum + projectBudgetSum
-  const reservedPool = nodeReservedPool(node)
+  const reservedPool = node.budget - allocated
   const pct = node.budget > 0 ? Math.round((node.consumed / node.budget) * 100) : 0
 
   return (
