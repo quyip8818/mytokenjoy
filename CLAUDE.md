@@ -34,7 +34,8 @@ cd apps/backend && go test ./tests/domain/gateway/... -run TestPrecheckRejectsZe
 
 # NewAPI (apps/newapi)
 pnpm start:newapi       # docker compose up
-pnpm gate:verify        # End-to-end NewAPI verification
+pnpm verify:gate        # 通路冒烟（自建 Key + Gateway + webhook）
+pnpm verify:integration # 入账 + Toggle/Rotate/Revoke + metrics（需 NEW_API_ADMIN_TOKEN）
 ```
 
 ## Architecture

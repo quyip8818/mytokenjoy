@@ -43,9 +43,15 @@ describe('useCostDashboardPage', () => {
     const apis = createMockApis({
       dashboardApi: {
         getCostSummary: vi.fn().mockResolvedValue({
-          totalCost: 0, totalCostMom: 0, totalTokens: 0, totalRequests: 0,
-          avgCostPerRequest: 0, avgCostPerRequestMom: 0, avgCostPerMember: 0,
-          avgCostPerMemberMom: 0, totalRequestsMom: 0,
+          totalCost: 0,
+          totalCostMom: 0,
+          totalTokens: 0,
+          totalRequests: 0,
+          avgCostPerRequest: 0,
+          avgCostPerRequestMom: 0,
+          avgCostPerMember: 0,
+          avgCostPerMemberMom: 0,
+          totalRequestsMom: 0,
         }),
         getDailyCosts: vi.fn().mockResolvedValue([]),
         getDepartmentCosts: vi.fn().mockResolvedValue([]),

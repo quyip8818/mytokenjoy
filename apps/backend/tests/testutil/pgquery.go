@@ -49,3 +49,12 @@ func PendingRebalanceCount(st store.Store, companyID int64) int {
 	}
 	return len(entries)
 }
+
+func PendingOverrunCount(st store.Store, companyID int64) int {
+	ctx := CtxForCompany(companyID)
+	entries, err := st.AsyncJobs().ClaimPendingOverrun(ctx, 100)
+	if err != nil {
+		return 0
+	}
+	return len(entries)
+}

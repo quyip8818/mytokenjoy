@@ -8,11 +8,26 @@ describe('useUsageDashboardPage', () => {
   it('loads team and model usage on mount', async () => {
     const apis = createMockApis({
       dashboardApi: {
-        getTeamUsage: vi
-          .fn()
-          .mockResolvedValue([{ departmentId: 'd1', departmentName: 'HQ', quota: 1000, consumed: 500, memberCount: 5, topModel: 'gpt-4' }]),
+        getTeamUsage: vi.fn().mockResolvedValue([
+          {
+            departmentId: 'd1',
+            departmentName: 'HQ',
+            quota: 1000,
+            consumed: 500,
+            memberCount: 5,
+            topModel: 'gpt-4',
+          },
+        ]),
         getModelUsage: vi.fn().mockResolvedValue([
-          { callType: 'gpt-4', modelName: 'GPT-4', tokens: 50, cost: 1, requests: 1, percentage: 100, provider: 'openai' },
+          {
+            callType: 'gpt-4',
+            modelName: 'GPT-4',
+            tokens: 50,
+            cost: 1,
+            requests: 1,
+            percentage: 100,
+            provider: 'openai',
+          },
         ]),
       },
     })

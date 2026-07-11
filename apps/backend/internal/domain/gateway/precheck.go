@@ -125,19 +125,36 @@ func (p *PrecheckService) checkNewAPIWalletCap(ctx context.Context, company *sto
 	if company.NewAPIWalletUserID == nil || p.wallet == nil {
 		return nil
 	}
-	quota, err := p.wallet.AvailableQuota(ctx, *company.NewAPIWalletUserID)
-	if err != nil {
-		return fmt.Errorf("wallet unavailable")
-	}
-	models, err := p.models.Models(ctx)
+	balancePoint, err := p.walletBalancePoint(ctx, *company.NewAPIWalletUserID)
 	if err != nil {
 		return err
 	}
-	balancePoint := newapi.FromNewAPIUnits(quota, models, nil)
 	if balancePoint < minEstimatePoint {
 		return fmt.Errorf("insufficient wallet balance")
 	}
 	return nil
+}
+
+// walletBalancePoint reads the NewAPI wallet quota and converts it to points.
+// Wallet read failures map to a 503 (service unavailable), distinct from a 403
+// caused by an actually-insufficient balance.
+func (p *PrecheckService) walletBalancePoint(ctx context.Context, walletUserID int64) (float64, error) {
+	quota, err := p.wallet.AvailableQuota(ctx, walletUserID)
+	if err != nil {
+		return 0, walletUnavailableErr(err)
+	}
+	models, err := p.models.Models(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return newapi.FromNewAPIUnits(quota, models, nil), nil
+}
+
+func walletUnavailableErr(err error) error {
+	if domainErr, ok := err.(*domain.DomainError); ok {
+		return domainErr
+	}
+	return domain.ServiceUnavailable("wallet service unavailable")
 }
 
 func (p *PrecheckService) checkWalletSyncLag(ctx context.Context, company *store.Company) error {
@@ -155,19 +172,10 @@ func (p *PrecheckService) checkWalletSyncLag(ctx context.Context, company *store
 	if !pending {
 		return nil
 	}
-	quota, err := p.wallet.AvailableQuota(ctx, *company.NewAPIWalletUserID)
-	if err != nil {
-		return domain.NewDomainErrorWithRetryAfter(
-			domain.StatusServiceUnavailable,
-			"wallet sync in progress",
-			common.WalletSyncRetryAfterSecs,
-		)
-	}
-	models, err := p.models.Models(ctx)
+	naPoint, err := p.walletBalancePoint(ctx, *company.NewAPIWalletUserID)
 	if err != nil {
 		return err
 	}
-	naPoint := newapi.FromNewAPIUnits(quota, models, nil)
 	drift := math.Abs(company.BalancePoint - naPoint)
 	if drift > common.WalletSyncDriftEpsilon {
 		return domain.NewDomainErrorWithRetryAfter(

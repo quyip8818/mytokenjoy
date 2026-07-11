@@ -37,8 +37,8 @@ func TestCollectorRefreshAndSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	snap := collector.Snapshot()
-	if snap.NotifyTotal != 2 {
-		t.Fatalf("notify total = %d, want 2", snap.NotifyTotal)
+	if snap.WebhookAcceptedTotal != 2 {
+		t.Fatalf("webhook accepted total = %d, want 2", snap.WebhookAcceptedTotal)
 	}
 	if snap.ReconcileGaps != 1 {
 		t.Fatalf("reconcile gaps = %d, want 1", snap.ReconcileGaps)
@@ -56,7 +56,7 @@ func TestNoopCollector(t *testing.T) {
 	collector := ingestmetrics.NoopCollector()
 	collector.RecordNotifySuccess()
 	snap := collector.Snapshot()
-	if snap.NotifyTotal != 0 || snap.ReconcileGaps != 0 {
+	if snap.WebhookAcceptedTotal != 0 || snap.ReconcileGaps != 0 {
 		t.Fatalf("unexpected noop snapshot %+v", snap)
 	}
 }

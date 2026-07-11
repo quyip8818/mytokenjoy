@@ -169,10 +169,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis],
   )
 
-  const getDepartmentTree = useCallback(
-    () => apis.departmentApi.getTree(),
-    [apis],
-  )
+  const getDepartmentTree = useCallback(() => apis.departmentApi.getTree(), [apis])
 
   const getMembers = useCallback(
     async (departmentId: string) => {

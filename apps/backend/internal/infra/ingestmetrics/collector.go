@@ -11,10 +11,10 @@ import (
 const StreamNewAPIConsume = store.ReconcileStreamNewAPIConsume
 
 type Snapshot struct {
-	NotifyTotal   int64 `json:"ingest_notify_total"`
-	ReconcileGaps int64 `json:"ingest_reconcile_gaps"`
-	JobsPending   int   `json:"ingest_jobs_pending"`
-	LagSeconds    int64 `json:"ingest_lag_seconds"`
+	WebhookAcceptedTotal int64 `json:"ingest_webhook_accepted_total"`
+	ReconcileGaps        int64 `json:"ingest_reconcile_gaps"`
+	JobsPending          int   `json:"ingest_jobs_pending"`
+	LagSeconds           int64 `json:"ingest_lag_seconds"`
 }
 
 type Recorder interface {
@@ -24,11 +24,11 @@ type Recorder interface {
 }
 
 type collector struct {
-	mu            sync.RWMutex
-	notifyTotal   atomic.Int64
-	reconcileGaps int64
-	jobsPending   int
-	lagSeconds    int64
+	mu                   sync.RWMutex
+	webhookAcceptedTotal atomic.Int64
+	reconcileGaps        int64
+	jobsPending          int
+	lagSeconds           int64
 }
 
 func NewCollector() Recorder {
@@ -36,7 +36,7 @@ func NewCollector() Recorder {
 }
 
 func (c *collector) RecordNotifySuccess() {
-	c.notifyTotal.Add(1)
+	c.webhookAcceptedTotal.Add(1)
 }
 
 func (c *collector) Refresh(ctx context.Context, logStore store.LogStore) error {
@@ -68,10 +68,10 @@ func (c *collector) Snapshot() Snapshot {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return Snapshot{
-		NotifyTotal:   c.notifyTotal.Load(),
-		ReconcileGaps: c.reconcileGaps,
-		JobsPending:   c.jobsPending,
-		LagSeconds:    c.lagSeconds,
+		WebhookAcceptedTotal: c.webhookAcceptedTotal.Load(),
+		ReconcileGaps:        c.reconcileGaps,
+		JobsPending:          c.jobsPending,
+		LagSeconds:           c.lagSeconds,
 	}
 }
 

@@ -58,7 +58,7 @@ export function useCostDashboardPage({ deptId, injectedApis }: UseCostDashboardP
   const summary = data?.summary ?? null
   const dailyCosts = data?.dailyCosts ?? []
   const topConsumers = data?.topConsumers ?? []
-  const deptCosts = data?.deptCosts ?? []
+  const deptCosts = useMemo(() => data?.deptCosts ?? [], [data?.deptCosts])
 
   const deptCostsWithColors = useMemo(
     () => buildDeptCostsWithColors('departments', deptCosts, []),

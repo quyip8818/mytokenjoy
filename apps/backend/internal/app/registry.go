@@ -32,6 +32,7 @@ func (r ServiceRegistry) WorkerRunner(logger *slog.Logger) *worker.Runner {
 		r.Config,
 		r.Store.AsyncJobs(),
 		r.Store.SchedulerLock(),
+		r.Store.Company(),
 		r.Store.Logs(),
 		r.IngestMetrics,
 		r.Infra.newAPISync,

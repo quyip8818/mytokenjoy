@@ -427,7 +427,7 @@ sequenceDiagram
 | NewAPI 关闭时 Worker | Rebalance / Overrun 可能空转或静默跳过 | NewAPI 未启用时 job 标记失败或明确 503，避免「以为已同步」 |
 | 通知失败 | Webhook 失败常无感知 | 写 `notification_log` 失败态；关键事件告警 |
 | 双层封禁窗口 | Precheck 通过后、入账前仍可能短暂超卖 | 评估是否收紧预估或缩短入账延迟；文档化可接受窗口 |
-| 入账联调 | 依赖 logs 库、webhook secret、Worker 同时就绪 | 用 `gate-verify` 增加 Gateway + ledger 断言（plan §1） |
+| 入账联调 | 依赖 logs 库、webhook secret、Worker 同时就绪 | 用 `pnpm verify:integration` 断言 Gateway + ledger（plan §1） |
 
 ### 可优化（体验 / 结构，非阻断）
 

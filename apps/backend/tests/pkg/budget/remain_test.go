@@ -3,8 +3,8 @@ package budget_test
 import (
 	"testing"
 
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 )
 
 func TestComputeRemainBudget(t *testing.T) {

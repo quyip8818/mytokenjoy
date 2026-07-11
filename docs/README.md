@@ -34,7 +34,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-命名统一.md](./Backend-命名统一.md) | 后端 / 架构 | 命名约定 |
 
 
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Gateway 现状与可优化点 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Gateway 未完成项 |
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 
 ### 归档笔记（非权威 backlog）

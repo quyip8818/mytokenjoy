@@ -115,10 +115,7 @@ export function OrgTreeSidebar({
   onSelect,
   loading,
 }: OrgTreeSidebarProps) {
-  const defaultExpanded = useMemo(
-    () => new Set(departments.map((d) => d.id)),
-    [departments],
-  )
+  const defaultExpanded = useMemo(() => new Set(departments.map((d) => d.id)), [departments])
   const [userExpanded, setUserExpanded] = useState<Set<string> | null>(null)
   const expanded = userExpanded ?? defaultExpanded
 
@@ -146,7 +143,9 @@ export function OrgTreeSidebar({
         aria-selected={!selectedDeptId}
         className={cn(
           'flex cursor-pointer items-center gap-2 border-b border-border px-4 py-2.5 text-sm',
-          !selectedDeptId ? 'bg-primary/8 text-primary font-medium' : 'text-foreground hover:bg-muted',
+          !selectedDeptId
+            ? 'bg-primary/8 text-primary font-medium'
+            : 'text-foreground hover:bg-muted',
         )}
         onClick={() => onSelect(null)}
         onKeyDown={(e) => {

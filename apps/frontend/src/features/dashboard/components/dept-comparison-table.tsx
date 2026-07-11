@@ -31,9 +31,7 @@ export function DeptComparisonTable({
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">
-            <TableHead className="w-12 text-xs font-semibold text-muted-foreground">
-              排名
-            </TableHead>
+            <TableHead className="w-12 text-xs font-semibold text-muted-foreground">排名</TableHead>
             <TableHead className="text-xs font-semibold text-muted-foreground">部门</TableHead>
             <TableHead className="text-right text-xs font-semibold text-muted-foreground">
               费用 (¥)

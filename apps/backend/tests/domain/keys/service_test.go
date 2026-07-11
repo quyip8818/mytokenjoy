@@ -1,10 +1,13 @@
 package keys_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -44,6 +47,37 @@ func TestApprovalBudgetCheckSufficient(t *testing.T) {
 		t.Fatalf("expected sufficient, reserved=%v requested=%v", check.ReservedPool, check.Requested)
 	}
 	_ = st
+}
+
+func TestApproveKeySyncFailureRevertsApproval(t *testing.T) {
+	t.Parallel()
+	svc, st, stub := newKeysServiceWithNewAPI(t)
+	ctx := testutil.Ctx()
+	stub.CreateTokenFn = func(context.Context, newapi.CreateTokenRequest) (newapi.Token, error) {
+		return newapi.Token{}, errors.New("newapi create failed")
+	}
+	keysBefore, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(keysBefore)
+
+	err = svc.ApproveApproval(ctx, contract.IDApproval1, contract.IDMemberAdmin)
+	if err == nil {
+		t.Fatal("expected approve to fail when newapi create fails")
+	}
+
+	approval := findApproval(st, contract.IDApproval1)
+	if approval == nil || approval.Status != "pending" {
+		t.Fatalf("expected apv-1 reverted to pending, got %+v", approval)
+	}
+	after, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(after) != before {
+		t.Fatalf("expected no persisted platform key after sync failure, before=%d after=%d", before, len(after))
+	}
 }
 
 func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {

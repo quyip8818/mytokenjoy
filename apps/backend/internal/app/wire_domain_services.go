@@ -23,7 +23,7 @@ func wireOrg(cfg config.Config, i infra, logger *slog.Logger) domainorg.Service 
 }
 
 func wireBudget(cfg config.Config, i infra) domainbudget.Service {
-	return domainbudget.NewService(cfg, i.store, i.delayer, EnqueueRebalanceAxis(i.store))
+	return domainbudget.NewService(cfg, i.store, i.delayer, EnqueueRebalanceAxis(cfg, i.store))
 }
 
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
@@ -55,7 +55,7 @@ func wireCompany(cfg config.Config, i infra) domaincompany.Service {
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, EnqueueRebalanceCompany(i.store), EnqueueWalletSync(i.store))
+	return domainbilling.NewService(cfg, i.store, reader, i.adminClient, i.wallet, EnqueueRebalanceCompany(cfg, i.store), EnqueueWalletSync(i.store))
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
@@ -63,7 +63,7 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger) *domainusage.IngestService {
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, EnqueueWalletSync(i.store), EnqueueRebalanceAxis(i.store))
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, EnqueueWalletSync(i.store), EnqueueRebalanceAxis(cfg, i.store))
 }
 
 func wireReader(i infra) domainusage.Reader {

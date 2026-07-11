@@ -32,9 +32,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email        string `json:"email"`
-	Password     string `json:"password"`
-	CompanySlug  string `json:"companySlug"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	CompanySlug string `json:"companySlug"`
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {

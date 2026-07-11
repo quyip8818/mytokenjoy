@@ -2,12 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
@@ -19,7 +14,10 @@ interface BudgetMemberBudgetDialogProps {
   onOpenChange: (open: boolean) => void
   departmentId: string
   getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
+  updateMemberBudget: (
+    memberId: string,
+    data: UpdateMemberBudgetInput,
+  ) => Promise<MemberBudgetQuota>
 }
 
 export function BudgetMemberBudgetDialog({
@@ -29,70 +27,7 @@ export function BudgetMemberBudgetDialog({
   getMemberBudgets,
   updateMemberBudget,
 }: BudgetMemberBudgetDialogProps) {
-  const [memberBudgets, setMemberBudgets] = useState<MemberBudgetQuota[]>([])
-  const [loading, setLoading] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [draft, setDraft] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  const fetchMemberBudgets = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await getMemberBudgets(departmentId)
-      setMemberBudgets(data ?? [])
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '加载成员额度失败')
-    } finally {
-      setLoading(false)
-    }
-  }, [departmentId, getMemberBudgets])
-
-  useEffect(() => {
-    if (open && departmentId) {
-      fetchMemberBudgets()
-    }
-  }, [open, departmentId, fetchMemberBudgets])
-
-  function startEdit(member: MemberBudgetQuota) {
-    setEditingId(member.memberId)
-    setDraft(String(pointsToDisplay(member.personalBudget)))
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setDraft('')
-  }
-
-  async function handleSave(memberId: string) {
-    const value = parseFloat(draft)
-    if (Number.isNaN(value) || value < 0) {
-      toast.error('请输入有效的额度数值')
-      return
-    }
-
-    setSaving(true)
-    try {
-      const updated = await updateMemberBudget(memberId, {
-        personalBudget: displayToPoints(value),
-      })
-      setMemberBudgets((prev) =>
-        prev.map((item) => (item.memberId === memberId ? updated : item)),
-      )
-      setEditingId(null)
-      setDraft('')
-      toast.success('成员额度已更新')
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '修改失败，请重试')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   function handleOpenChange(value: boolean) {
-    if (!value) {
-      setEditingId(null)
-      setDraft('')
-    }
     onOpenChange(value)
   }
 
@@ -103,43 +38,140 @@ export function BudgetMemberBudgetDialog({
           <DialogTitle>成员额度配置</DialogTitle>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : memberBudgets.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">暂无成员</p>
-        ) : (
-          <div className="max-h-80 overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-background">
-                <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="pb-2 font-medium">成员</th>
-                  <th className="pb-2 font-medium">个人额度</th>
-                  <th className="pb-2 font-medium">已用</th>
-                  <th className="pb-2 text-right font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {memberBudgets.map((member) => (
-                  <MemberRow
-                    key={member.memberId}
-                    member={member}
-                    editing={editingId === member.memberId}
-                    draft={draft}
-                    saving={saving}
-                    onDraftChange={setDraft}
-                    onStartEdit={() => startEdit(member)}
-                    onCancel={cancelEdit}
-                    onSave={() => handleSave(member.memberId)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {open && departmentId ? (
+          <BudgetMemberBudgetDialogBody
+            key={departmentId}
+            departmentId={departmentId}
+            getMemberBudgets={getMemberBudgets}
+            updateMemberBudget={updateMemberBudget}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
+  )
+}
+
+interface BudgetMemberBudgetDialogBodyProps {
+  departmentId: string
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
+  updateMemberBudget: (
+    memberId: string,
+    data: UpdateMemberBudgetInput,
+  ) => Promise<MemberBudgetQuota>
+}
+
+function BudgetMemberBudgetDialogBody({
+  departmentId,
+  getMemberBudgets,
+  updateMemberBudget,
+}: BudgetMemberBudgetDialogBodyProps) {
+  const [memberBudgets, setMemberBudgets] = useState<MemberBudgetQuota[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void getMemberBudgets(departmentId)
+      .then((data) => {
+        if (!cancelled) {
+          setMemberBudgets(data ?? [])
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err instanceof ApiError ? err.message : '加载成员额度失败')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [departmentId, getMemberBudgets])
+
+  const startEdit = useCallback((member: MemberBudgetQuota) => {
+    setEditingId(member.memberId)
+    setDraft(String(pointsToDisplay(member.personalBudget)))
+  }, [])
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null)
+    setDraft('')
+  }, [])
+
+  const handleSave = useCallback(
+    async (memberId: string) => {
+      const value = parseFloat(draft)
+      if (Number.isNaN(value) || value < 0) {
+        toast.error('请输入有效的额度数值')
+        return
+      }
+
+      setSaving(true)
+      try {
+        const updated = await updateMemberBudget(memberId, {
+          personalBudget: displayToPoints(value),
+        })
+        setMemberBudgets((prev) =>
+          prev.map((item) => (item.memberId === memberId ? updated : item)),
+        )
+        setEditingId(null)
+        setDraft('')
+        toast.success('成员额度已更新')
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : '修改失败，请重试')
+      } finally {
+        setSaving(false)
+      }
+    },
+    [draft, updateMemberBudget],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (memberBudgets.length === 0) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">暂无成员</p>
+  }
+
+  return (
+    <div className="max-h-80 overflow-y-auto">
+      <table className="w-full text-sm">
+        <thead className="sticky top-0 bg-background">
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <th className="pb-2 font-medium">成员</th>
+            <th className="pb-2 font-medium">个人额度</th>
+            <th className="pb-2 font-medium">已用</th>
+            <th className="pb-2 text-right font-medium">操作</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {memberBudgets.map((member) => (
+            <MemberRow
+              key={member.memberId}
+              member={member}
+              editing={editingId === member.memberId}
+              draft={draft}
+              saving={saving}
+              onDraftChange={setDraft}
+              onStartEdit={() => startEdit(member)}
+              onCancel={cancelEdit}
+              onSave={() => void handleSave(member.memberId)}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

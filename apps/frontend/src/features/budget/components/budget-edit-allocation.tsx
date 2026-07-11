@@ -72,6 +72,8 @@ export function BudgetEditAllocation({
         )}
       </div>
 
+      {allocation.error ? <p className="mb-2 text-xs text-red-600">{allocation.error}</p> : null}
+
       <BudgetAllocationTable
         node={node}
         children={allocation.children}
@@ -79,10 +81,7 @@ export function BudgetEditAllocation({
         overrunPolicyLabel={overrunPolicyLabel}
         editing={allocation.editing}
         drafts={allocation.drafts}
-        reservedDraft={allocation.reservedDraft}
-        error={allocation.error}
         onUpdateDraft={allocation.updateDraft}
-        onUpdateReservedDraft={allocation.updateReservedDraft}
       />
     </div>
   )

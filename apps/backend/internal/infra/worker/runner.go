@@ -21,6 +21,7 @@ type Runner struct {
 	cfg           config.Config
 	asyncJobs     store.AsyncJobsRepository
 	schedulerLock store.SchedulerLockRepository
+	companies     store.CompanyRepository
 	newAPISync    newapisync.OutboxHandler
 	overrun       domainbudget.OverrunProcessor
 	rebalance     domainbudget.Rebalancer
@@ -39,6 +40,7 @@ func NewRunner(
 	cfg config.Config,
 	asyncJobsRepo store.AsyncJobsRepository,
 	schedulerLock store.SchedulerLockRepository,
+	companies store.CompanyRepository,
 	logStore store.LogStore,
 	metrics ingestmetrics.Recorder,
 	newAPISync newapisync.OutboxHandler,
@@ -64,6 +66,7 @@ func NewRunner(
 		cfg:           cfg,
 		asyncJobs:     asyncJobsRepo,
 		schedulerLock: schedulerLock,
+		companies:     companies,
 		newAPISync:    newAPISync,
 		overrun:       overrun,
 		rebalance:     rebalance,
@@ -145,8 +148,14 @@ func (r *Runner) logStep(step string, err error) {
 }
 
 func (r *Runner) processMonthlyRebalance(ctx context.Context) error {
-	workerCtx := r.workerCtx(ctx, r.cfg.DefaultCompanyID)
-	return r.newAPISync.EnqueueRebalanceAxis(workerCtx, "company", fmt.Sprintf("%d", r.cfg.DefaultCompanyID))
+	return r.forEachActiveCompany(ctx, func(entryCtx context.Context, co store.Company) error {
+		return r.newAPISync.EnqueueRebalanceAxis(entryCtx, store.RebalanceAxisCompany, fmt.Sprintf("%d", co.ID))
+	})
+}
+
+// RunOrgSyncOnce runs scheduled org sync for every active company (for tests).
+func (r *Runner) RunOrgSyncOnce(ctx context.Context) error {
+	return r.processOrgSync(ctx)
 }
 
 func (r *Runner) RunOnce(ctx context.Context) {

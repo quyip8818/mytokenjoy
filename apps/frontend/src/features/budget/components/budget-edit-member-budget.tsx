@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
+import type {
+  BudgetNode,
+  BudgetProjectView,
+  MemberBudgetQuota,
+  UpdateMemberBudgetInput,
+} from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { nodeReservedPool } from '@/features/budget'
@@ -17,7 +22,10 @@ interface BudgetEditMemberBudgetProps {
     data: { budget: number; reservedPool?: number },
   ) => Promise<void>
   getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
+  updateMemberBudget: (
+    memberId: string,
+    data: UpdateMemberBudgetInput,
+  ) => Promise<MemberBudgetQuota>
 }
 
 export function BudgetEditMemberBudget({

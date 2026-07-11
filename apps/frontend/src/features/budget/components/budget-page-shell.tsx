@@ -132,8 +132,6 @@ export function BudgetPageShell({
                       groupsForNode(selectedNode.id).some((group) => group.id === project.id),
                     )}
                     overrunPolicyLabel={overrunPolicyLabel}
-                    departmentMembers={departmentMembers}
-                    membersLoading={departmentMembersLoading}
                     onUpdated={() => void refresh()}
                     onNavigateToProject={setActiveProjectId}
                     onUpdateDepartment={updateDepartment}

@@ -22,7 +22,7 @@
 
 
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 现状与可优化点 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 未完成项 |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 
@@ -172,7 +172,8 @@ sequenceDiagram
 ```bash
 pnpm start          # Postgres + backend :8080 + frontend :5173
 pnpm start:newapi    # 完整 NewAPI 栈
-pnpm gate:verify    # NewAPI 验证
+pnpm verify:gate          # 通路冒烟（自建 Key + Gateway + webhook）
+pnpm verify:integration   # 入账 + lifecycle + metrics
 ```
 
 生产：nginx 将 `/api/`、`/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），`/api/` 须在 SPA fallback 之前。错误体：`{ "message": "..." }`。

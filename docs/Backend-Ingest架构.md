@@ -1,7 +1,7 @@
 # Backend Ingest 架构：用量如何从 NewAPI 回到 TokenJoy
 
 > **读者**：想搞清「一次 LLM 调用的钱，怎么记到企业账上」的研发 / 运维 / 联调同学。  
-> **风格**：由浅入深、只讲机制与数据流，不贴实现代码。  
+> **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/worker/`。  
 > **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)
 
 ---
@@ -10,8 +10,6 @@
 
 TokenJoy **不自己跑模型**。真正转发请求、结算配额的是 **NewAPI**。  
 TokenJoy Backend 要做的是：在 NewAPI 记下一笔「消耗日志」之后，把这笔账 **可靠地、幂等地、可归因地** 写进自己的主库——这就是 **Ingest（入账）**。
-
-可以把它想成：
 
 | 角色 | 类比 |
 | --- | --- |
@@ -45,7 +43,7 @@ flowchart TB
 要点：
 
 1. **调用路径**与 **入账路径**是两条线：调用走 Gateway → NewAPI；入账走日志库 + webhook / Worker。
-2. Webhook **不传完整账单**，只传 `log_id`。真相在共享日志库里，Backend 自己去读。
+2. Webhook **不传完整账单**，只传 `{ "log_id": N }`。真相在共享日志库里，Backend 自己去读。
 3. 审计与看板最终读的是 **主库**（`usage_ledger` / `usage_buckets`），不是直接查 NewAPI。
 
 ---
@@ -62,8 +60,8 @@ sequenceDiagram
   participant L as 日志库 logs
   participant WH as Webhook
   participant Q as ingest_jobs
-  participant WK as Worker
-  participant ING as Ingest
+  participant WK as IngestWorker
+  participant ING as IngestService
   participant M as 主库
 
   C->>GW: 请求 + sk-xxx
@@ -74,18 +72,19 @@ sequenceDiagram
   NA->>WH: EnqueueNotify(log_id)
   WH->>Q: EnqueuePending(log_id)
   WH-->>NA: 200 accepted
-  WK->>Q: ClaimPending
+  WK->>Q: ClaimPendingJobs
   WK->>ING: IngestByLogID
-  ING->>L: 按 log_id 读原始行
+  ING->>L: GetConsumeLogByID
   ING->>M: 幂等写入 ledger + 投影 + 副作用入队
+  WK->>Q: MarkJobDone（DELETE 行）
 ```
 
 若 webhook 丢了、队列满了、或 Backend 短暂不可用：
 
 - NewAPI 侧最多重试几次 notify，失败就放弃喊话；
-- Backend Worker 会用 **水位游标** 扫日志库补洞，保证最终入账。
+- Backend **IngestWorker** 会用 **水位游标** 扫日志库补洞，保证最终入账。
 
-这就是文档里说的 **方案 B**：以共享日志为 SSOT 源，webhook 只负责 **快速入队**，Worker 异步写账，reconcile 是慢路径兜底。
+设计原则：**以共享日志为 SSOT 源**，webhook 只负责 **快速入队**，Worker 异步写账，reconcile 是慢路径兜底。
 
 ---
 
@@ -106,7 +105,7 @@ flowchart LR
   subgraph settle [结算面 · 入账]
     NA3[NewAPI settle] -->|写库| LOG[(logs)]
     NA3 -->|HTTP webhook| WH[Backend internal webhook]
-    WK[Backend Worker] -->|直读| LOG
+    WK[IngestWorker] -->|直读| LOG
   end
 ```
 
@@ -131,7 +130,7 @@ Ingest 靠 `logs.token_id` 反查 mapping。若 Rotate 换了 token 主键，旧
 | 通道 | 谁发起 | 载荷 | 作用 |
 | --- | --- | --- | --- |
 | Notify | NewAPI → Backend | `{ "log_id": N }` + `X-Webhook-Secret` | 入队 pending，立即 ACK（不写 ledger） |
-| 直读 | Backend → 日志库 | SQL 按 id / 游标扫 | Worker 读真相、入账、补洞、重试 |
+| 直读 | Backend → 日志库 | SQL 按 id / 游标扫 | IngestWorker 读真相、入账、补洞、重试 |
 
 两边共享同一套 secret（NewAPI 的 `MANAGEMENT_WEBHOOK_SECRET` ≈ Backend 的 `NEW_API_WEBHOOK_SECRET`）。
 
@@ -159,29 +158,32 @@ flowchart TB
   end
 
   NA[NewAPI] -->|只写| NL
-  BE[Backend Ingest / Worker] -->|读 NL · 读写 IF/RC| logDB
+  BE[Ingest / IngestWorker] -->|读 NL · 读写 IF/RC| logDB
   BE -->|写投影与事实| mainDB
 ```
 
 | 表 | 谁写 | 谁读 | 职责 |
 | --- | --- | --- | --- |
 | `newapi.logs` | NewAPI | Backend | 消耗原始小票（`type=2` 且 `token_id > 0` 才入账） |
-| `backend.ingest_jobs` | Backend | Backend Worker | **待入账队列**（webhook 入队）+ 入账失败重试 |
-| `backend.reconcile_cursors` | Backend | Backend Worker | `stream=newapi_consume` 的 `last_log_id` 水位 |
+| `backend.ingest_jobs` | Backend | IngestWorker | **待入账队列**（webhook 入队）+ 入账失败重试 / dead 留存 |
+| `backend.reconcile_cursors` | Backend | IngestWorker | `stream=newapi_consume` 的 `last_log_id` 水位 |
 
 **为何不把 logs 放进主库？**
 
 - NewAPI 是独立服务，有自己的写入节奏与 schema 习惯；
 - 入账失败/游标是 Backend 运维状态，与 NewAPI 表同库但分 schema（`newapi.*` / `backend.*`），边界清晰；
-- 主库故障与日志库故障可部分解耦（当然生产仍要一起监控）。
+- 主库故障与日志库故障可部分解耦（生产仍要一起监控）。
 
-启用条件：配置了 `LOG_DATABASE_URL` **且** `NEW_API_WEBHOOK_SECRET` → `IngestEnabled`。生产环境二者为硬依赖。
+**Schema 模式**（`LogSchemaIsolated`，非 env，测试/程序内设置）：
+
+| 模式 | 表名 | 场景 |
+| --- | --- | --- |
+| 生产 | `newapi.logs` / `backend.ingest_jobs` / `backend.reconcile_cursors` | 独立 `LOG_DATABASE_URL` |
+| 隔离 | `logs` / `ingest_jobs` / `reconcile_cursors` | 单库测试（`WithIngestEnabled(true)`） |
 
 ---
 
 ## 5. 如何对齐：从 token_id 到企业账本
-
-「对齐」有多层含义，从身份对齐到金额对齐。
 
 ### 5.1 身份对齐：`token_id` → 租户归因
 
@@ -195,18 +197,21 @@ flowchart LR
   Key --> Attr[归因字段进入 ledger]
 ```
 
-流程：
+流程（`IngestService.IngestRaw`）：
 
 1. 读到一条 consume 日志，取出 `token_id`；
 2. `FindMappingByNewAPIKeyID` 找到映射；
-3. 映射缺失 → 拒绝入账（记失败 / 告警），因为无法知道属于哪家企业、哪个部门；
-4. 映射存在 → 注入 company context，继续建账本条目。
+3. 映射缺失 → 返回 `404 NotFound`（记 warn 日志）；pending 路径最终 **dead**，reconcile 路径 **推进游标** 并 UpsertJob 留痕；
+4. 映射存在 → 注入 `company.Context`，继续建账本条目。
 
 ### 5.2 幂等对齐：同一张小票只入一次
 
-- 幂等键：`newapi:{log_id}`
-- 事务内先查是否已存在；已存在则 **静默成功**（webhook 可重复、reconcile 可重复）
-- ledger 插入也是冲突忽略语义，防止并发双写
+| 层 | 机制 |
+| --- | --- |
+| 幂等键 | `newapi:{log_id}` |
+| 事务前 | `ExistsIdempotency` → 已存在则 **静默成功** |
+| 插入 | `InsertSegments` ON CONFLICT DO NOTHING |
+| 队列 | `ingest_jobs.log_id` UNIQUE — 重复 webhook upsert 同一行 |
 
 因此：**快路径 webhook 与慢路径 reconcile 可以同时跑**，不会把一笔钱记两次。
 
@@ -219,7 +224,7 @@ flowchart LR
 | NewAPI | 通道 `quota` | NewAPI quota units |
 | Backend Ingest | 企业钱包 / 组织预算 | TokenJoy **point** |
 
-二者有取整差，靠 **wallet_sync**（debounce 入队 → Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `balance_point` 一致。Gateway 在漂移过大且 sync 未完成时会拒单，避免「主库以为还有钱、通道已经没了」。
+二者有取整差，靠 **wallet_sync**（debounce 入队 → Async Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `balance_point` 一致。Gateway 在漂移过大且 sync 未完成时会拒单（503），避免「主库以为还有钱、通道已经没了」。
 
 ### 5.4 账期对齐：发生月 vs 开账月（双轨）
 
@@ -231,38 +236,40 @@ flowchart LR
 | `budget_snapshots`（Apply） | **当前开账月** `Clock` | 门禁与预算树「扣在哪本打开的账上」 |
 | `usage_buckets` | 发生时间 | 看板趋势跟真实发生时刻 |
 
-这是 Ingest 作为 **唯一双写点** 的设计：只有入账路径同时碰发生轨与开账轨。细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
+Ingest 是 **唯一双写点**：只有入账路径同时碰发生轨与开账轨。细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
 ## 6. Ingest 内部在干什么（中层）
 
-把「会计入账」拆成固定步骤：
+核心入口：`IngestService.IngestByLogID` → `IngestRaw`（`internal/domain/usage/ingest.go`）。
 
 ```mermaid
 flowchart TB
-  A[IngestByLogID] --> B[从日志库读 RawConsumeLog]
-  B --> C[token_id → platform key mapping]
+  A[IngestByLogID] --> B[GetConsumeLogByID<br/>type=2 token_id>0]
+  B --> C[FindMappingByNewAPIKeyID]
   C --> D[BuildCallSettledEntry<br/>金额 / 模型 / 部门 / 幂等键]
   D --> E[算双轨 period_key]
-  E --> F{事务 WithTx}
-  F --> G[幂等检查]
-  G -->|已存在| Z[直接成功返回]
-  G -->|新账| H[按 lot FIFO 分摊消耗]
-  H --> I[Insert usage_ledger 段]
-  I --> J[projection.Apply<br/>snapshots + buckets]
-  J --> K[入队 rebalance / overrun 等副作用]
-  K --> L[debounce enqueue wallet_sync]
+  E --> F{WithTx}
+  F --> G[ExistsIdempotency]
+  G -->|已存在| Z[静默成功]
+  G -->|新账| H[enforceBudgetCap]
+  H --> I[AllocateConsumptionLots FIFO]
+  I --> J[InsertSegments]
+  J --> K[Apply 投影]
+  K --> L[enqueueSideEffects]
+  L --> M[enqueueWalletSync debounce]
 ```
 
-### 6.1 投影写什么
+### 6.1 投影写什么（`projection.Apply`）
 
 | 步骤 | 目标 | 作用 |
 | --- | --- | --- |
 | 1 | `budget_snapshots` · platform_key | Key 已用 |
 | 2 | `budget_snapshots` · budget_group | 若挂组 |
-| 3 | `budget_snapshots` · org_node 祖先 rollup | 部门树向上累加 |
-| 4 | `usage_buckets` | 小时桶 × 部门 × 成员 × 模型 |
+| 3 | `budget_snapshots` · member | 若挂成员 |
+| 4 | `budget_snapshots` · org_node 祖先 rollup | 部门树向上累加 |
+| 5 | `usage_buckets` | 小时桶 × 部门 × 成员 × 模型 |
 
 **事实 SSOT** 是 `usage_ledger`；snapshots / buckets 是同事务投影，供预检、预算树、看板快速读取。
 
@@ -277,24 +284,109 @@ flowchart TB
 
 控制台 **不会** 为了展示再去扫 NewAPI logs。
 
+### 6.3 入账后副作用
+
+| 副作用 | 条件 | 入队目标 |
+| --- | --- | --- |
+| rebalance（member / dept / budget_group） | `NEW_API_ENABLED=true` | 主库 `async_jobs` |
+| overrun | `NEW_API_ENABLED=true` | 主库 `async_jobs` |
+| wallet_sync | **始终入队**（debounce 5s） | 主库 `async_jobs` |
+
+`NEW_API_ENABLED=false` 时：ledger / snapshots / buckets **照常更新**；rebalance / overrun **不入队**；wallet_sync 入队但 Async Worker **不消费**（`runner.asyncTick` 早退）。
+
 ---
 
-## 7. 可靠性：三条入账路径如何配合（深层）
+## 7. Worker 拓扑与可靠性（深层）
+
+Backend Worker 由 **两个独立 goroutine** 组成（`internal/infra/worker/runner.go`），不是单条顺序流水线：
+
+```mermaid
+flowchart TB
+  subgraph ingestLoop [ingestLoop · 仅 IngestEnabled]
+    RC0[启动时 ProcessReconcile]
+    T1[每 WORKER_POLL_INTERVAL_SEC<br/>ProcessPending]
+    T2[每 INGEST_RECONCILE_INTERVAL_SEC<br/>ProcessReconcile]
+  end
+
+  subgraph asyncLoop [asyncLoop · 始终运行]
+    OB[newapi_sync outbox]
+    NA{NEW_API_ENABLED?}
+    MR[monthly rebalance]
+    WS[wallet_sync / reconcile]
+    RB[rebalance / overrun]
+    OS[org sync]
+  end
+```
+
+### 7.1 HTTP 入口
+
+| 路由 | 方法 | 鉴权 | 行为 |
+| --- | --- | --- | --- |
+| `/api/internal/webhooks/newapi-log` | POST | `X-Webhook-Secret` | 入队 → 200 `accepted` |
+| `/api/internal/metrics/ingest` | GET | 同上 | 返回 metrics JSON；`!IngestEnabled()` 时 404 |
+
+Handler **不检查** `IngestEnabled()`；若 log store 为 noop，入队失败返回 500。
+
+Webhook 结果语义：
+
+| 情况 | HTTP | 含义 |
+| --- | --- | --- |
+| 鉴权失败 | 401 | secret 不对 |
+| `log_id` 非法 | 400 | 请求体错误 |
+| 入队成功（含重复 notify） | 200 `accepted` | **不代表已写 ledger** |
+| 入队失败（日志库不可用等） | 500 | 让 NewAPI notify 重试 |
+
+### 7.2 快路径：pending 队列
+
+`IngestWorker.ProcessPending`（`ingest_worker.go`）：
+
+1. `ClaimPendingJobs(limit=INGEST_JOB_BATCH_SIZE)` — `FOR UPDATE SKIP LOCKED`，租约 5 分钟
+2. 逐条 `IngestByLogID(source=webhook)`
+3. `ApplyRetry` 按 outcome 处置：
+   - 成功 → `MarkJobDone`（**DELETE 行**，非 status 更新）
+   - 可恢复 → 指数退避重试（`min(300, 2^attempts)` 秒），最多 20 次 → dead
+   - 永久业务错误 → dead
+4. `refreshMetrics`
+
+`EnqueuePending`：`ON CONFLICT (log_id)` 重置为 pending；**dead 行可被 webhook 复活**（attempts 清零）。
+
+### 7.3 慢路径：reconcile 补洞
+
+`IngestWorker.ProcessReconcile`：
+
+1. 抢 `scheduler_locks`（`ingest_reconcile`，租约 = reconcile 间隔 + 1min，最小 2min）
+2. 读游标 `newapi_consume`，按 `id` 递增扫 `type=2 AND token_id>0`
+3. 每批最多 `INGEST_RECONCILE_BATCH_SIZE`（默认 500），最多 `INGEST_RECONCILE_MAX_ROUNDS`（默认 10）轮
+4. 逐条 `IngestByLogID(source=reconcile)`，**每条成功后立即推进游标**
+
+错误分类（`ingest_outcome.go`）：
+
+| 分类 | 典型原因 | pending 路径 | reconcile 游标 |
+| --- | --- | --- | --- |
+| OK | 成功 / 幂等命中 | Done（删行） | 推进 |
+| Business | mapping 缺失、预算超限 403、校验失败 | 永久 → dead；`NotFound` 可恢复 → 退避 | 推进 + UpsertJob 留痕 |
+| LogNotFound | 日志尚未可见 | 退避 → dead | 推进 |
+| LogDBTemp | Postgres 瞬时错误 | 退避 | **不推进** |
+| TokenjoyTemp | 503 / 其它临时错误 | 退避 | **不推进** |
+
+Reconcile 遇业务失败 **仍推进游标**（防卡死在坏数据上），并通过 `RecordFailure` 写入 `ingest_jobs` 供运维可见。
+
+### 7.4 可靠性总图
 
 ```mermaid
 flowchart TB
   subgraph fast [快路径 · 只入队]
-    N[NewAPI notify] -->|POST webhook| W[Webhook Handler]
+    N[NewAPI notify] -->|POST webhook| W[Handler]
     W -->|EnqueuePending| Q[(ingest_jobs pending)]
     W -->|立即| ACK[200 accepted]
   end
 
-  subgraph worker [Worker 异步入账]
+  subgraph worker [IngestWorker 异步入账]
     Q --> RW[ProcessPending Claim]
     RW --> I[IngestByLogID]
-    I -->|成功| Done[MarkDone 删行]
-    I -->|可恢复失败| Backoff[backoff 重试]
-    I -->|永久失败| Dead[MarkDead]
+    I -->|成功| Done[MarkJobDone DELETE]
+    I -->|可恢复| Backoff[backoff 重试]
+    I -->|永久失败| Dead[MarkJobDead]
   end
 
   subgraph slow [慢路径补洞]
@@ -302,43 +394,63 @@ flowchart TB
     RC -->|List id > cursor| L[(newapi.logs)]
     L --> I3[IngestByLogID source=reconcile]
     I3 -->|可前进| C
-    I3 -->|业务失败| Q
+    I3 -->|业务失败| Q2[UpsertJob 留痕]
   end
 ```
 
-### 7.1 Webhook 结果语义
+---
 
-| 情况 | HTTP | 含义 |
-| --- | --- | --- |
-| 鉴权失败 | 401 | secret 不对 |
-| `log_id` 非法 | 400 | 请求体错误 |
-| 入队成功（含重复 notify） | 200 `accepted` | **不代表已写 ledger**；Worker 稍后入账 |
-| 入队失败（日志库不可用等） | 500 | 让 NewAPI notify 重试 |
+## 8. 可观测性
 
-Webhook **不再**区分「日志尚未可见 / mapping 缺失」——这些由 Worker 消费时分类重试或 dead。
+`GET /api/internal/metrics/ingest` 返回（`ingestmetrics/collector.go`）：
 
-### 7.2 Reconcile 水位规则
+| 字段 | 含义 |
+| --- | --- |
+| `ingest_webhook_accepted_total` | webhook 200 计数（**入队成功**，非 ledger 条数） |
+| `ingest_reconcile_gaps` | 游标之后尚未 reconcile 的 consume 行数 |
+| `ingest_jobs_pending` | status=pending 且 attempts<20 的 job 数 |
+| `ingest_lag_seconds` | 游标后最老未处理 log 的 `created_at` 距今秒数 |
 
-- 按 `id` 递增扫描 `type=consume` 且 `token_id > 0` 的行；
-- 成功、业务失败、甚至「日志不存在」类结果，在设计上允许 **推进游标**（避免卡死在一条坏数据上）；
-- 真正的瞬时系统错误则 **不推进**，下一轮重试同一批；
-- 多实例用 `scheduler_locks`（`ingest_reconcile`）保证同时只有一个 reconcile 持有者。
-
-### 7.3 与 Worker 其它任务的关系
-
-Worker 一轮大致顺序：
-
-```text
-newapi_sync outbox → ingest_jobs 消费（webhook 队列 + 重试）→ reconcile 补洞 → rebalance → overrun → org sync …
-```
-
-Ingest 成功后可能入队 **rebalance**（把组织/Key 剩余同步成 NewAPI `remain_quota`）和 **overrun**（超限封禁）。它们消费的是主库 `async_jobs`，与日志库 pending 表分离。
+`Refresh` 在每次 `ProcessPending` / `ProcessReconcile` 结束后调用。
 
 ---
 
-## 8. 端到端架构总图
+## 9. 配置与启用条件
 
-把「管理 / 调用 / 入账 / 校准」放在一张图里：
+### 9.1 启用逻辑
+
+| 概念 | 条件 | 说明 |
+| --- | --- | --- |
+| `IngestEnabled()` | `LOG_DATABASE_URL != ""` | 创建 log pool、启动 ingestLoop、挂载真实 metrics |
+| Webhook secret 校验 | `IngestEnabled()` 时 startup **必须** 配 `NEW_API_WEBHOOK_SECRET` | 不是 enable flag，是启动校验 |
+| 生产契约 | `DEPLOY_ENV=production` | 还要求 `LOG_DATABASE_URL`、`NEW_API_WEBHOOK_SECRET`、`NEW_API_ENABLED`、Gateway |
+
+### 9.2 环境变量
+
+| 配置 | 默认 | 作用 |
+| --- | --- | --- |
+| `LOG_DATABASE_URL` | — | 共享日志库；**Ingest 总开关** |
+| `NEW_API_WEBHOOK_SECRET` | — | Webhook + metrics 鉴权 |
+| `NEW_API_ENABLED` | `false` | 副作用入队 + Async Worker 消费 rebalance/overrun/wallet |
+| `NEW_API_GATEWAY_ENABLED` | `false` | 挂载 `/v1` Gateway |
+| `WORKER_POLL_INTERVAL_SEC` | `5` | pending 消费间隔 |
+| `INGEST_RECONCILE_INTERVAL_SEC` | `300` | reconcile 间隔 |
+| `INGEST_RECONCILE_BATCH_SIZE` | `500` | 每批扫描 log 数 |
+| `INGEST_RECONCILE_MAX_ROUNDS` | `10` | 单次 reconcile 最多批次数 |
+| `INGEST_JOB_BATCH_SIZE` | `20` | 单次 claim pending 数 |
+| `MANAGEMENT_WEBHOOK_URL` | — | NewAPI 侧喊话地址 |
+| `MANAGEMENT_WEBHOOK_SECRET` | — | NewAPI 发出时带的 secret |
+
+### 9.3 联调常见坑
+
+- Docker 里 NewAPI 打宿主机 Backend：Linux 需 `extra_hosts: host.docker.internal:host-gateway`（见 `apps/newapi/docker-compose.yml`）。
+- webhook `200 accepted` **不等于**已入账；看 `ingest_jobs_pending` / `ingest_lag_seconds` / ledger。
+- `NEW_API_ENABLED=false` 时 ingest **仍工作**（写账），只是不同步 NewAPI remain / overrun。
+- webhook 全关时系统仍可工作：只靠 reconcile，延迟变大。
+
+---
+
+## 10. 端到端架构总图
 
 ```mermaid
 flowchart TB
@@ -347,10 +459,11 @@ flowchart TB
   end
 
   subgraph tokenjoy [TokenJoy Backend]
-    API[管理 API<br/>Keys / Budget / Dashboard]
+    API[管理 API]
     GW[Gateway Precheck]
     ING[IngestService]
-    WK[Worker]
+    IW[IngestWorker]
+    AW[Async Worker]
     MAIN[(主库)]
   end
 
@@ -365,15 +478,15 @@ flowchart TB
     LOGS[(日志库)]
   end
 
-  API <-->|Remote-first PlatformKey 生命周期| ADM
+  API <-->|Remote-first PlatformKey| ADM
   SDK --> GW --> NA --> SETTLE --> LOGS
-  SETTLE --> NOTIFY -->|log_id 入队| WH[Webhook Enqueue]
+  SETTLE --> NOTIFY -->|log_id| WH[Webhook]
   WH --> Q[(ingest_jobs)]
-  WK --> Q
-  WK --> ING
+  IW --> Q
+  IW --> ING
   ING --> LOGS
   ING --> MAIN
-  WK -->|wallet_sync / rebalance| ADM
+  AW -->|wallet_sync / rebalance| ADM
   API --> MAIN
 ```
 
@@ -389,70 +502,43 @@ flowchart TB
 
 ---
 
-## 9. 配置与联调心智模型
+## 11. 代码模块索引
 
-| 配置 | 作用 |
-| --- | --- |
-| `NEW_API_ENABLED` | 打开 NewAPI 集成总开关 |
-| `LOG_DATABASE_URL` | 指向共享日志库；Ingest 直读 |
-| `NEW_API_WEBHOOK_SECRET` | Backend 校验 webhook / metrics |
-| `MANAGEMENT_WEBHOOK_URL` | NewAPI 喊话地址（常指向 Backend internal webhook） |
-| `MANAGEMENT_WEBHOOK_SECRET` | NewAPI 发出时带的 secret |
-| `NEW_API_GATEWAY_ENABLED` | 挂载 `/v1`；须与 `NEW_API_ENABLED` 同开才有意义 |
-| Worker 轮询间隔 | 控制 pending 消费 / reconcile 延迟上限 |
-
-常见坑：
-
-- Docker 里 NewAPI 用 `host.docker.internal` 打宿主机 Backend，Linux 常不通，需改 URL 或 `extra_hosts`；
-- 只开 Gateway 不开 NewAPI → 路由可能不挂，进程仍能起来；
-- webhook 全关时系统仍可工作：只靠 reconcile，延迟变大；
-- webhook `200 accepted` **不等于**已入账，看 `ingest_jobs_pending` / ledger。
+| 模块 | 路径 | 职责 |
+| --- | --- | --- |
+| IngestService | `internal/domain/usage/ingest.go` | 入账编排 |
+| Entry / Projection | `internal/domain/usage/entry.go`, `projection.go` | 原始 log → ledger 条目 → 投影 |
+| Outcome / Queue | `internal/domain/usage/ingest_outcome.go`, `ingest_queue.go` | 错误分类、重试、入队 |
+| Side effects | `internal/domain/usage/side_effects.go` | rebalance / overrun 入队 |
+| HTTP Handler | `internal/http/handler/ingest/handler.go` | webhook + metrics |
+| IngestWorker | `internal/infra/worker/ingest_worker.go` | pending + reconcile |
+| Runner | `internal/infra/worker/runner.go` | 双 goroutine 调度 |
+| Metrics | `internal/infra/ingestmetrics/collector.go` | 计数与 lag |
+| LogStore | `internal/store/log_repo.go`, `postgres/log_repo.go` | 日志库 CRUD |
+| Config | `internal/config/config.go`, `validate.go`, `worker.go` | 启用条件与间隔 |
+| Wiring | `internal/app/wire_domain_services.go`, `registry.go` | DI 与 Worker 启动 |
 
 ---
 
-## 10. 可优化与改进点
+## 12. 测试覆盖
 
-下列按「收益 / 风险」整理，部分已在 [plan.md](./plan.md) 与 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) 登记。
-
-### 10.1 可靠性与正确性
-
-| 项 | 现状 | 建议 |
+| 区域 | 测试文件 | 覆盖点 |
 | --- | --- | --- |
-| Notify 队列满直接丢 | NewAPI 内存队列有界，满则 drop | 可接受因有 reconcile；若要更低延迟，可落盘或加大队列并监控 drop 指标 |
-| Webhook 只 ACK | 入账延迟取决于 Worker 轮询 | 监控 pending 积压与 lag；必要时缩短 `WORKER_POLL_INTERVAL_SEC` |
-| Reconcile 遇业务失败仍推进水位 | 防卡死 | 正确；需配套 dead-letter 人工处理（缺 mapping、脏数据） |
-| Update Key 非严格 Remote-first | 先写 DB 再 sync | 与 Create 路径统一 Remote-first，缩小崩溃窗口不一致 |
-| 预检 estimate 固定 | 非按模型动态估价 | 按模型单价估，减少「预检过、结算爆」 |
+| 入账核心 | `tests/domain/usage/ingest_test.go` | 幂等、rollup、period、mapping 缺失 |
+| 队列 / 重试 | `tests/domain/usage/ingest_queue_test.go` | Enqueue、dead 复活、ApplyRetry |
+| 错误分类 | `tests/domain/usage/ingest_outcome_test.go` | 游标推进、retry 规则 |
+| NewAPI guard | `tests/domain/usage/ingest_enqueue_guard_test.go` | `NEW_API_ENABLED=false` 不入队 |
+| 预算门禁 | `tests/domain/usage/ingest_budget_guard_test.go` | 403 budget exceeded |
+| Worker | `tests/worker/ingest_worker_test.go` | reconcile 多 log、游标、zero-token 跳过 |
+| HTTP E2E | `tests/handler/gateway/webhook_ingest_test.go` | webhook→worker 闭环、metrics |
+| Store | `tests/store/postgres/log_repo_test.go` | 队列 dedup、claim、cursor |
+| Metrics | `tests/infra/ingestmetrics/collector_test.go` | snapshot 字段 |
 
-### 10.2 可观测性
+---
 
-| 项 | 现状 | 建议 |
-| --- | --- | --- |
-| `ingest_notify_total` | webhook **入队成功**即 +1 | 与「ledger 首次插入」分开计数，避免混淆 |
-| `GET /internal/metrics/ingest` | secret 鉴权 | 生产限制网段；暴露 gaps、pending failures |
-| NewAPI notify 失败 | 打日志 | 导出 Prometheus 计数：成功 / 重试耗尽 / queue drop |
-| 入账可见延迟 | webhook→worker 一轮 | 增加「enqueue→ledger」延迟直方图 |
+## 13. 已知边界与演进方向
 
-### 10.3 运维与部署
-
-| 项 | 现状 | 建议 |
-| --- | --- | --- |
-| `host.docker.internal` | macOS 友好，Linux 易挂 | compose 按 OS 文档化；或同网络 DNS 服务名 |
-| `gate:verify` | 不覆盖 Backend Gateway | 增加一条真实 `/v1` + ingest 闭环冒烟 |
-| 双库备份 | 两套连接 | 备份/恢复 runbook 写明：恢复主库后如何重置或追平 reconcile 水位 |
-| 多实例 reconcile | 有分布式锁 | 压测锁租约与 `ReconcileMaxRounds`，避免长尾堆积 |
-
-### 10.4 产品与架构演进（中长期）
-
-| 方向 | 说明 |
-| --- | --- |
-| 推送完整事件 vs 只推 id | 当前「只推 id + 共享库」简单且一致；若未来 NewAPI 与 Backend 跨云，可评估带签名的事件载荷，减少跨库依赖 |
-| 按企业分片游标 | 全球单一 `last_log_id` 简单；超大规模可按 wallet user / token 范围分片并行 |
-| mapping 缺失自动修复 | 今日拒绝入账；可对「Token 仍存在于 NewAPI」做自愈重建 mapping（需严格审计） |
-| overdraft 运营闭环 | lot 不足扩展 overdraft 已存在；缺统一告警与人工核销流 |
-| 审计内容保留策略 | ledger 可存 snippet；与合规 retention 策略对齐，避免日志库 content 与主库双存失控 |
-
-### 10.5 明确不必改的设计（避免「优化」成回退）
+### 13.1 明确不必改的设计
 
 | 项 | 原因 |
 | --- | --- |
@@ -462,25 +548,40 @@ flowchart TB
 | 控制台不直读 NewAPI logs | 归因、计价、权限都在 TokenJoy 域模型里 |
 | webhook 不写 ledger | ACK 与入账解耦；入账统一走 Worker + 幂等 |
 | failure 队列与 newapi_sync outbox 分离 | 入账失败与 Token 同步失败的重试语义不同 |
+| 成功 job DELETE 而非 mark done | 队列只保留 pending / dead，减少表膨胀 |
+
+### 13.2 仍可改进（见 [plan.md](./plan.md)）
+
+| 方向 | 现状 | 建议 |
+| --- | --- | --- |
+| Notify 队列满 | NewAPI 内存队列有界，满则 drop | 可接受因有 reconcile；监控 drop |
+| 入账延迟 | 取决于 `WORKER_POLL_INTERVAL_SEC` | 监控 `ingest_lag_seconds` / pending |
+| Update Key 非严格 Remote-first | 先写 DB 再 sync | 与 Create 路径统一 |
+| 预检 estimate | 固定最小值 | 按模型单价动态估价 |
+| enqueue→ledger 延迟 | 无直方图 | 可增加延迟 metric |
+| mapping 缺失自愈 | 拒绝入账 | 严格审计前提下评估自动重建 |
 
 ---
 
-## 11. 阅读路径建议
+## 14. 阅读路径建议
 
 1. 本文 §0–§2：建立故事线  
 2. §3–§5：通信、共享库、对齐键  
-3. §6–§7：入账步骤与可靠性  
-4. 深入算法：[Backend-预算.md](./Backend-预算.md) · [Backend-计费模式.md](./Backend-计费模式.md)  
-5. 账期细节：[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)  
-6. 表结构：[Backend-存储架构.md](./Backend-存储架构.md)  
-7. 上线缺口：[NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) · [plan.md](./plan.md)
+3. §6–§7：入账步骤与 Worker 可靠性  
+4. §8–§9：可观测性与配置  
+5. §10：端到端总图  
+6. 深入算法：[Backend-预算.md](./Backend-预算.md) · [Backend-计费模式.md](./Backend-计费模式.md)  
+7. 账期细节：[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)  
+8. 表结构：[Backend-存储架构.md](./Backend-存储架构.md)  
+9. 上线缺口：[NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)
 
 ---
 
-## 12. 小结
+## 15. 小结
 
 - **Ingest** = 把 NewAPI 的消耗小票，变成 TokenJoy 主库里可审计、可预算、可预检的账。  
 - **通信** = 管理面 Admin API + 运行面 Gateway 反代 + 结算面 webhook/直读，三条线各司其职。  
 - **日志共享** = 独立日志库；NewAPI 写 `newapi.logs`，Backend 写 pending/cursor，并读 logs 入账。  
 - **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota 的 wallet_sync、发生月↔开账月双轨。  
-- **可靠** = webhook 求快 ACK，Worker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。
+- **Worker** = **两个 goroutine**：IngestWorker（pending + reconcile）与 Async Worker（outbox / wallet / rebalance / overrun / org sync）并行。  
+- **可靠** = webhook 求快 ACK，IngestWorker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。

@@ -1,7 +1,7 @@
 # TokenJoy 工程待办（Plan）
 
 > **定位**：上线前 fix / 功能点 / 联调与发布门禁的 **唯一 backlog**。完成即删除条目，不留 `[x]`。  
-> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend.md](./Backend.md) · [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)（现状与可优化点）
+> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend.md](./Backend.md) · [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)（NewAPI/Gateway 未完成项）
 
 ---
 
@@ -9,67 +9,32 @@
 
 1. 新待办只写入本文；禁止再开 `*-计划.md` / `*-下一步.md`
 2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](./Roadmap.md)
-3. 架构现状见 Backend* / NewAPI 文档；本文不写「已关闭」历史
+3. 架构现状见 Backend* / NewAPI 文档；NewAPI **未完成项**见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
 
 ---
 
 ## §1 NewAPI / Gateway（上线前）
 
-架构现状与可优化点见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
+未完成项见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
 
 ### Fix
 
-- [ ] **`gate-verify` 覆盖 Backend Gateway** — `gate-verify.sh` 增加：seed Key → `POST ${API_URL}/v1/chat/completions`（Bearer sk-）→ 期望 200 或业务 4xx（非 502）
-- [ ] **demo Gateway 组合校验** — 只开 `NEW_API_GATEWAY_ENABLED`、不开 `NEW_API_ENABLED` 时启动失败或明确拒绝挂载
-- [ ] **Rebalance / Overrun NewAPI 关闭禁 noop** — `!Enabled()` 时勿静默 `return nil`；入队或处理失败可观测
-- [ ] **`noopWalletService`** — NewAPI 关闭时 `AvailableQuota` 恒 0 导致预检误拒；明确行为或禁止该组合下开 Gateway
 - [ ] **通知 `NOTIFY_WEBHOOK_URL` 失败可观测** — HTTP 失败勿对调用方一律 `return nil`
 - [ ] **Update 严格 Remote-first（可选）** — `UpdatePlatformKey` 现为 DB-first + Sync + 回滚；若上线要求铁律一致则改为先 Remote
-- [ ] **`processOrgSync` 多企业** — 勿固定 `DefaultCompanyID`（SaaS）
-- [ ] **`host.docker.internal` 文档/compose** — Linux 联调可复现（`extra_hosts` 或改 webhook URL）
-- [ ] **`ingest_notify_total` 幂等** — 仅首次 ledger 插入计数（或改名并文档化）
-- [ ] **`GET /internal/metrics/ingest` 鉴权** — 生产加 secret 或仅 bind localhost
 
-### 联调签字（真实栈）
+### 联调签字（自动化）
 
-前提：`pnpm start:newapi` + 生产契约 env（`DEPLOY_ENV=production` 或等价三联开）。
-
-- [ ] Gateway `/v1/chat/completions` → 200 + ledger 入账
-- [ ] Toggle off → 立刻 403；on → 恢复
-- [ ] Revoke → 403；DB revoked + NewAPI token gone
-- [ ] Rotate → 旧 sk- 403，新 sk- 200，`newapi_key_id` 不变
-- [ ] E2E `keys-self-service.spec.ts` · `rotates an existing Key` 稳定通过
+前提：Backend 以 full-stack `.env` 运行（见 [apps/backend/.env.example](../apps/backend/.env.example) Full-stack integration 块）。
 
 ```bash
-cd apps/backend && go test -tags=testhook \
-  ./tests/handler/gateway/... \
-  ./tests/domain/gateway/... \
-  ./tests/domain/newapisync/... \
-  ./tests/domain/keys/... -count=1
-
-pnpm -F @tokenjoy/frontend test:e2e -- keys-self-service
+pnpm start:postgres
+# 配置 apps/backend/.env 后启动 Backend（make run / pnpm start）
+pnpm verify:gate           # 通路冒烟（自建 Platform Key + Gateway + webhook）
+pnpm verify:integration    # 完整栈（ledger + Toggle/Revoke/Rotate + metrics；需 NEW_API_ADMIN_TOKEN）
+pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:e2e）
 ```
 
-### 联调检查清单
-
-**入账（方案 B）**
-
-- [ ] `LOG_DATABASE_URL` 指向 `logs` 库；init 已建 `newapi` / `backend` schema
-- [ ] `NEW_API_WEBHOOK_SECRET` 与 NewAPI `MANAGEMENT_WEBHOOK_SECRET` 一致
-- [ ] NewAPI `LOG_SQL_DSN` → `logs`；patch 镜像已 build（非纯上游镜像）
-- [ ] Backend Worker 已启动（webhook 入队后的异步入账 / reconcile / failure retry 依赖 Worker）
-- [ ] webhook 返回 `accepted` 后，Worker 一轮内 ledger 可见；`GET /api/internal/metrics/ingest` 可查看 `ingest_reconcile_gaps`、`ingest_jobs_pending`
-
-**NewAPI / 管理面**
-
-- [ ] `NEW_API_ENABLED=true` + `NEW_API_BASE_URL` + `NEW_API_ADMIN_TOKEN`
-- [ ] 若开 Gateway：`NEW_API_GATEWAY_ENABLED=true` 且 `NEW_API_ENABLED=true`
-- [ ] 以真实 POST `{log_id}` 与 ledger 为准，不以 compose 仅配 URL 当作已接通
-
-**本地**
-
-- [ ] `pnpm start`：默认无 NewAPI；入账靠测试 mock / `testutil.SeedConsumeLog`
-- [ ] `pnpm start:newapi`：完整栈；Backend 配置 `LOG_DATABASE_URL` 与 webhook secret
+脚本：[apps/newapi/scripts/_verify-lib.sh](../apps/newapi/scripts/_verify-lib.sh) · [gate-verify.sh](../apps/newapi/scripts/gate-verify.sh) · [integration-verify.sh](../apps/newapi/scripts/integration-verify.sh)
 
 ---
 
@@ -92,10 +57,9 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys-self-service
 
 ### 审批通过 + NewAPISync 同步跨事务一致性
 
-- [ ] 采用 outbox / `provisioning` 状态（与 `OutboxKindCreateKey` 一致）
-- [ ] `ApproveApproval` 与 `syncPlatformKeyCreate` 失败态可解释、可重试；不得静默成功
+- [ ] **（可选 / 延后）** 完整 outbox / `provisioning` 状态（与 `OutboxKindCreateKey` 一致）；sync 失败补偿已实现（`revertKeyApproval`）
 
-**验收：** NewAPI 失败时审批与 key 状态可解释；重试成功无需重新审批
+**验收：** 完整 outbox 统一为后续迭代；当前 NewAPI 失败时审批回 pending、可重试
 
 ### Workflow 错误展示
 

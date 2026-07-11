@@ -96,6 +96,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 
 	var createdKeyID string
+	var personalBudgetAdded float64
 	if err := s.store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {
@@ -109,7 +110,8 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			keyQuota := approval.RequestedBudget
 			remaining := budget.GetBudgetRemaining(members, platformKeys, approval.ApplicantID)
 			if keyQuota > remaining {
-				members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, keyQuota-remaining)
+				personalBudgetAdded = keyQuota - remaining
+				members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, personalBudgetAdded)
 			}
 			memberID := approval.ApplicantID
 			createdKeyID = fmt.Sprintf("plk-apv-%d", time.Now().UnixMilli())
@@ -165,7 +167,44 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return domain.NotFound("Not found")
 	}
 	_, err = s.syncPlatformKeyCreate(ctx, created, applicant.DepartmentID)
+	if err != nil {
+		if compErr := s.compensateFailedKeyApproval(ctx, id, approval.ApplicantID, personalBudgetAdded); compErr != nil {
+			return compErr
+		}
+	}
 	return err
+}
+
+func (s *service) revertKeyApproval(ctx context.Context, approvalID string) error {
+	approvals, err := s.store.Keys().Approvals(ctx)
+	if err != nil {
+		return err
+	}
+	for i := range approvals {
+		if approvals[i].ID != approvalID {
+			continue
+		}
+		approvals[i].Status = "pending"
+		approvals[i].Approver = nil
+		approvals[i].ResolvedAt = nil
+		return s.store.Keys().SetApprovals(ctx, approvals)
+	}
+	return domain.NotFound("Not found")
+}
+
+func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID, applicantID string, personalBudgetAdded float64) error {
+	if err := s.revertKeyApproval(ctx, approvalID); err != nil {
+		return err
+	}
+	if personalBudgetAdded <= 0 {
+		return nil
+	}
+	members, err := s.store.Org().Members(ctx)
+	if err != nil {
+		return err
+	}
+	members = budget.AddMemberPersonalBudget(members, applicantID, -personalBudgetAdded)
+	return s.store.Org().SetMembers(ctx, members)
 }
 
 func (s *service) RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error {

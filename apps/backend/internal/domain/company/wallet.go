@@ -45,7 +45,7 @@ func NewWalletService(cfg config.Config, client interface {
 type noopWalletService struct{}
 
 func (n *noopWalletService) AvailableQuota(ctx context.Context, walletUserID int64) (int64, error) {
-	return 0, nil
+	return 0, domain.ServiceUnavailable("wallet service unavailable")
 }
 
 func (s *walletService) AvailableQuota(ctx context.Context, walletUserID int64) (int64, error) {

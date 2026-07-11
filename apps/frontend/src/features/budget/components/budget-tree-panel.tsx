@@ -39,7 +39,9 @@ function TreeNode({
     return (
       <>
         {text.slice(0, idx)}
-        <mark className="rounded-sm bg-amber-100 px-0.5 text-inherit">{text.slice(idx, idx + searchKeyword.length)}</mark>
+        <mark className="rounded-sm bg-amber-100 px-0.5 text-inherit">
+          {text.slice(idx, idx + searchKeyword.length)}
+        </mark>
         {text.slice(idx + searchKeyword.length)}
       </>
     )

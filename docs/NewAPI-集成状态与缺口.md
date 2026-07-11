@@ -1,86 +1,73 @@
-# NewAPI 集成现状与优化点
+# NewAPI / Gateway 未完成项
 
-> **定位**：对照 `apps/newapi` 与 `apps/backend`，描述 **当前接通能力** 与 **可优化点**。  
-> 上线前可勾选 backlog 见 [plan.md](./plan.md) §1。  
-> 命名与包边界（Gateway / NewAPISync / PlatformKey）见 [Backend-架构.md](./Backend-架构.md) §0。
-
----
-
-## 1. 现状摘要
-
-| 维度 | 状态 |
-| --- | --- |
-| PlatformKey / NewAPIKey 生命周期（Create / Update / Toggle / Revoke / Rotate / Delete） | 已接通 |
-| Gateway Precheck + `/v1` 反代 | 已接通 |
-| 用量回写（webhook + reconcile） | 已接通 |
-| 额度同步（wallet_sync / TopUp / GetUserQuota） | 已接通 |
-| Provider → Channel Upsert | 已接通 |
-| 从 NewAPI 拉模型目录 / GetGroups | 未做（TokenJoy 自管目录；推 `model_limits`） |
-| 管理端 API 封装 | NewAPIKey + User/Quota + Channel；无 GetAllModels / GetGroups / GetLogByKey |
+> **定位**：仅记录 **仍待做** 的 NewAPI / Gateway 缺口；完成即从本文删除。  
+> **Backlog 主入口**：[plan.md](./plan.md) §1。  
+> **已接通架构**（生命周期、Gateway precheck、入账、Worker、Remote-first Create 等）见 [Backend-架构.md](./Backend-架构.md) · [Backend-Ingest架构.md](./Backend-Ingest架构.md) · [Backend.md](./Backend.md)。
 
 ---
 
-## 2. 写路径与 Gateway 约定
+## 1. 上线前 Fix
 
-### 2.1 Platform Key
-
-| 操作 | 模式 |
-| --- | --- |
-| Create / Approve→Create / Toggle / Revoke / Rotate / Delete | 同步 **Remote-first**（先 NewAPI，再写 Postgres）；NewAPI 关 → `503`，DB 不变 |
-| Update 配额 / 白名单 | `requireNewAPI` + **先写 DB 再 `SyncUpdatePlatformKey`，失败回滚**（非 async outbox） |
-| Rebalance / ModelLimits / Provider Channel | 仍可走 newapi_sync outbox → Worker |
-
-Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`（patch），保持 `newapi_key_id` 不变以利 ingest。
-
-### 2.2 Gateway
-
-- 单例 `ReverseProxy`（`NewGatewayService` 创建一次）
-- 精确路径白名单：`/v1/chat/completions`、`/v1/completions`、`/v1/embeddings`、`/v1/models`
-- Body 上限：`MaxBytesReader` 4MB
-- Precheck：key / 公司 / 部门账期与预算 / 配额快照 / NewAPI remain / wallet cap / wallet_sync 漂移 / 模型白名单
-
-### 2.3 Worker outbox
-
-`IsPermanentNewAPISyncOutboxError` 将 `503`（含 `newapi not enabled`）及不可恢复错误标为永久 `failed`，不再无限重试。
-
-### 2.4 入账（方案 B）
-
-NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `ingest_jobs`（pending）并立即 `200 accepted`；Worker `ProcessPending` 异步 `IngestByLogID`；另有 `reconcile_cursors` 水位补洞（直读 `LOG_DATABASE_URL` → `newapi.logs`）。
-
-### 2.5 设计约束（明确不做）
-
-| 项 | 原因 |
-| --- | --- |
-| delete+create 式 Rotate | 破坏 ingest `newapi_key_id` 连续性 |
-| Toggle 改回 async outbox | 用户操作应同步可见 |
-| 「无 NewAPI 的 Platform Key」 | 统一要求 NewAPI；关则 `503` |
-| Gateway 用 `HasPrefix` 放行 | 精确匹配为安全目标 |
-
----
-
-## 3. 可优化点
-
-| 问题 | 位置 | 说明 |
+| 项 | 位置 | 说明 |
 | --- | --- | --- |
-| Update 非严格 Remote-first | `platform_key_update.go` | 先写 DB 再 sync；失败可回滚，崩溃窗口仍可能短暂不一致 |
-| `noopWalletService` `AvailableQuota` 恒 0 | `domain/company/wallet.go` | NewAPI 关闭时 Gateway 预检 / `wallet_sync` 失效 |
-| demo 下 Gateway 组合无校验 | `config.go` | 只开 Gateway、不开 `NEW_API_ENABLED` → 路由不挂载，进程仍启动 |
-| Rebalance / Overrun NewAPI 关闭时空转 | `overrun.go`、lifecycle enqueue | Worker 侧可能 `return nil`，掩盖误配 |
-| `NOTIFY_WEBHOOK_URL` 失败静默 | `infra/notification/service.go` | HTTP 失败写 log，`Send()` 仍 `return nil` |
-| `processOrgSync` 固定 `DefaultCompanyID` | `org_sync_processor.go` | SaaS 多企业 org 同步范围受限 |
-| `NEW_API_PUBLIC_URL` 未使用 | Backend `config.go` | 配置冗余（仅 newapi 侧示例） |
-| `host.docker.internal` 跨平台 | `apps/newapi/docker-compose.yml` | Linux 非 Docker Desktop webhook 常连不上 Backend |
-| `gate-verify` 不测 Backend Gateway | `gate-verify.sh` | 脚本通过 ≠ `/v1/*` Gateway 可用 |
-| `ingest_notify_total` 幂等重复也 +1 | `ingestmetrics/collector.go` | 宜仅首次 ledger 插入计数 |
-| `GET /internal/metrics/ingest` 无鉴权 | ingest metrics | 生产可加 secret 或仅 bind localhost |
-
-上线前修复项与联调签字见 [plan.md](./plan.md) §1。
+| `NOTIFY_WEBHOOK_URL` 失败不可观测 | `infra/notification/service.go` | HTTP 失败仅写 log，`Send()` 仍 `return nil`；调用方无法感知、无法重试 |
+| Update 非严格 Remote-first | `platform_key_update.go` | 配额 / 白名单更新为 **先写 DB 再 `SyncUpdatePlatformKey`，失败回滚**；崩溃窗口仍可能短暂不一致。若上线要求与 Create 路径铁律一致，改为先 Remote |
 
 ---
 
-## 4. 联调注意坑
+## 2. 可选 / 延后
 
-- `host.docker.internal`：Linux 需改 `MANAGEMENT_WEBHOOK_URL` 或加 `extra_hosts`
-- `pnpm gate:verify` 不覆盖 Backend Gateway，Gateway 须单独验
-- 只开 `NEW_API_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
-- `DEPLOY_ENV=production` 时 NewAPI + Gateway + 入账为 **启动硬依赖**（见 [Backend-配置架构.md](./Backend-配置架构.md)）
+| 项 | 位置 | 说明 |
+| --- | --- | --- |
+| 审批完整 outbox / `provisioning` | `keys/approval.go` | sync 失败补偿（`revertKeyApproval`）已实现；与 `OutboxKindCreateKey` 统一的完整 outbox 仍可选，见 [plan.md](./plan.md) §3 |
+| `NEW_API_PUBLIC_URL` 未使用 | Backend `config.go` | 配置冗余，可删或接入文档 / 对外 URL 展示 |
+| NewAPI notify 队列 drop 不可观测 | NewAPI 侧 | 内存队列有界，满则 drop；reconcile 可兜底，缺 drop 计数 / 告警 |
+| 入账 enqueue→ledger 延迟 | Backend metrics | 有 `ingest_lag_seconds` / pending；无 enqueue→ledger 直方图（见 [Backend-Ingest架构.md](./Backend-Ingest架构.md) §13.2） |
+| Gateway 预检 estimate | `gateway/precheck.go` | 固定最小值；未按模型单价动态估价 |
+| mapping 缺失自愈 | ingest | mapping 缺失时拒绝入账；严格审计前提下是否自动重建待评估 |
+
+---
+
+## 3. 管理端 API 未封装（按产品需要）
+
+TokenJoy 自管模型目录并向 NewAPI 推 `model_limits`；下列 Admin API **未** 封装，仅在需要「从 NewAPI 拉目录 / 按 Key 查 log」时再补：
+
+| API | 用途 |
+| --- | --- |
+| GetAllModels | 从 NewAPI 拉模型目录（当前 TokenJoy 侧维护） |
+| GetGroups | NewAPI 分组列表 |
+| GetLogByKey | 按 Platform Key 查 NewAPI 消费 log |
+
+---
+
+## 4. PRD 相关（非 plan §1 P0）
+
+| 项 | 说明 |
+| --- | --- |
+| Anthropic `/v1/messages` | Gateway 白名单为 OpenAI 风格 `/v1/*` 精确路径；PRD 原生 Anthropic 格式未作为一等契约验收 |
+| `overrun_policy.blockMessage` | 配置可持久化，Gateway 403 文案未完全消费该字段 |
+
+---
+
+## 5. 联调签字（发布门禁）
+
+自动化脚本已就绪；**须在真实 full-stack 环境跑通** 方可视为上线签字完成：
+
+```bash
+# 前提：Backend full-stack .env（见 apps/backend/.env.example）、Backend 已启动
+pnpm verify:gate           # 通路冒烟（自建 Key + Gateway + webhook）
+pnpm verify:integration    # ledger + Toggle/Rotate/Revoke + metrics（需 NEW_API_ADMIN_TOKEN、psql）
+pnpm verify                # lint + test + build（CI；不含上面两条）
+```
+
+脚本：[apps/newapi/scripts/_verify-lib.sh](../apps/newapi/scripts/_verify-lib.sh) · [gate-verify.sh](../apps/newapi/scripts/gate-verify.sh) · [integration-verify.sh](../apps/newapi/scripts/integration-verify.sh)
+
+| 环境注意 | |
+| --- | --- |
+| Backend 须先启动 | `verify:gate` 起 newapi compose；Gateway 依赖 Backend `:8080` |
+| `NEW_API_ADMIN_TOKEN` | 仅 `verify:integration` 需要（Rotate/Revoke 的 NewAPI Admin 断言） |
+| Webhook secret | Backend `NEW_API_WEBHOOK_SECRET` = NewAPI `MANAGEMENT_WEBHOOK_SECRET` |
+| webhook `200 accepted` | 仅代表入队；ledger 写入看 IngestWorker / metrics |
+| 生产契约 | `DEPLOY_ENV=production` 时 NewAPI + Gateway + 入账为启动硬依赖（[Backend-配置架构.md](./Backend-配置架构.md) §7） |
+
+**仍建议人工补验：** SaaS 多企业隔离（Worker 已遍历 active companies；跨租户 Gateway / ingest 需在真实多企业栈 smoke）。

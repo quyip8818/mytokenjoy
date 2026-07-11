@@ -79,12 +79,9 @@ func TestWalletServiceNilClient(t *testing.T) {
 	cfg := config.Config{}
 	svc := company.NewWalletService(cfg, nil)
 
-	quota, err := svc.AvailableQuota(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("noop wallet should not error: %v", err)
-	}
-	if quota != 0 {
-		t.Errorf("noop wallet should return 0, got %d", quota)
+	_, err := svc.AvailableQuota(context.Background(), 1)
+	if err == nil {
+		t.Fatal("noop wallet should return service unavailable error")
 	}
 }
 

@@ -309,7 +309,7 @@ sequenceDiagram
 | Update 配额/白名单 | 同步：先写 DB → `SyncUpdatePlatformKey`，失败回滚 |
 | Rebalance、ModelLimits、Provider Channel | async outbox → Worker |
 
-Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 不变以利 ingest 入账。细节与可优化点见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 不变以利 ingest 入账。细节与未完成项见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
 
 ---
 

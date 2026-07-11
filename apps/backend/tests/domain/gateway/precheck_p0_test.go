@@ -7,7 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -29,6 +31,40 @@ func (failingWalletSyncQueue) MarkWalletSyncDone(context.Context, string) error 
 }
 func (failingWalletSyncQueue) HasPendingWalletSync(context.Context, int64) (bool, error) {
 	return false, errors.New("wallet sync lookup failed")
+}
+
+func TestPrecheckRejectsNoopWalletAsUnavailable(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	ctx := testutil.Ctx()
+	fullKey := gatewaytf.ConfigureGatewayStore(t, cfg, st, gatewaytf.GatewayScenarioOpts{Budget: 1000})
+
+	mapping, err := st.PlatformKeyMappings().GetMappingByKeyHash(ctx, store.HashPlatformKey(fullKey))
+	if err != nil || mapping == nil {
+		t.Fatal("expected platform key mapping")
+	}
+	company, err := st.Company().GetByID(ctx, mapping.CompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	precheck := domaingateway.NewPrecheckService(
+		st.BudgetSnapshots(),
+		st.Org().Nodes(),
+		st.Budget(),
+		st.Org(),
+		st.Keys(),
+		st.Models(),
+		domaincompany.NewWalletService(config.Config{}, nil),
+		st.AsyncJobs(),
+		cfg.Clock(),
+	)
+	err = precheck.Run(ctx, domaingateway.PrecheckInput{
+		Mapping: mapping,
+		Company: company,
+		Model:   "gpt-4o",
+	})
+	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
 }
 
 func TestPrecheckRejectsWalletSyncLookupError(t *testing.T) {

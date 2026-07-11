@@ -9,9 +9,7 @@ const tree: Department[] = [
     name: '工程部',
     parentId: null,
     memberCount: 10,
-    children: [
-      { id: 'd1-1', name: '后端组', parentId: 'd1', memberCount: 5, children: [] },
-    ],
+    children: [{ id: 'd1-1', name: '后端组', parentId: 'd1', memberCount: 5, children: [] }],
   },
   { id: 'd2', name: '产品部', parentId: null, memberCount: 8, children: [] },
 ]
@@ -33,12 +31,7 @@ describe('OrgTreeSidebar', () => {
 
   it('highlights the selected node', () => {
     render(
-      <OrgTreeSidebar
-        departments={tree}
-        selectedDeptId="d1"
-        onSelect={() => {}}
-        loading={false}
-      />,
+      <OrgTreeSidebar departments={tree} selectedDeptId="d1" onSelect={() => {}} loading={false} />,
     )
     const node = screen.getByText('工程部').closest('[role="treeitem"]')
     expect(node).toHaveAttribute('aria-selected', 'true')
@@ -61,12 +54,7 @@ describe('OrgTreeSidebar', () => {
   it('calls onSelect with null when root is clicked', () => {
     const onSelect = vi.fn()
     render(
-      <OrgTreeSidebar
-        departments={tree}
-        selectedDeptId="d1"
-        onSelect={onSelect}
-        loading={false}
-      />,
+      <OrgTreeSidebar departments={tree} selectedDeptId="d1" onSelect={onSelect} loading={false} />,
     )
     fireEvent.click(screen.getByText('全公司'))
     expect(onSelect).toHaveBeenCalledWith(null)

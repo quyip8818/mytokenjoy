@@ -211,11 +211,11 @@ func TestIngestMetricsEndpoint(t *testing.T) {
 	if err := json.NewDecoder(metricsRec.Body).Decode(&snap); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := snap["ingest_notify_total"]; !ok {
-		t.Fatalf("missing ingest_notify_total in %v", snap)
+	if _, ok := snap["ingest_webhook_accepted_total"]; !ok {
+		t.Fatalf("missing ingest_webhook_accepted_total in %v", snap)
 	}
-	if notify, _ := snap["ingest_notify_total"].(float64); notify < 1 {
-		t.Fatalf("expected notify counter >= 1, got %v", snap["ingest_notify_total"])
+	if notify, _ := snap["ingest_webhook_accepted_total"].(float64); notify < 1 {
+		t.Fatalf("expected webhook accepted counter >= 1, got %v", snap["ingest_webhook_accepted_total"])
 	}
 }
 

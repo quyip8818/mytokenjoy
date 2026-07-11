@@ -154,7 +154,8 @@ flowchart LR
 | OpenAI + Anthropic 双格式 | US-12 明确 | Gateway 白名单为 OpenAI 风格 `/v1/*` 精确路径 |
 | 调用必须指定 model | 是 | precheck 校验 |
 | Gateway 精确路径白名单 | 安全最佳实践 | 已落地（4 条精确 path + body limit） |
-| `gate-verify` 含 Backend Gateway | 联调验收 | 未覆盖（见 plan §1） |
+| `verify:gate` 含 Backend Gateway | 联调验收 | 已覆盖 |
+| `verify:integration` 完整栈 | 联调验收 | 见 plan §1 |
 | Key Delete 语义 | 释放额度 | Remote-first Delete（先 revoke Remote 再删 DB） |
 
 ---
@@ -195,7 +196,7 @@ flowchart LR
 
 | 优先级 | 项 | 理由 |
 | --- | --- | --- |
-| P0 | NewAPI/Gateway 联调签字 + `gate-verify` 覆盖 Backend `/v1` | US-12 生产可用前提；见 [plan.md](./plan.md) §1 |
+| P0 | NewAPI/Gateway 联调 + `pnpm verify:gate` / `verify:integration` | US-12 生产可用前提；见 [plan.md](./plan.md) §1 |
 | P0 | US-08 预警 Worker + 运行时阈值 | PRD P2 核心承诺，当前仅 UI 配置 |
 | P1 | 审批/预警/同步 **通知**（至少 Webhook 可观测 + 一种可达渠道） | US-08、US-10 验收依赖 |
 | P1 | 成员邀请真实激活链路 | US-04 验收缺口 |
@@ -215,7 +216,7 @@ flowchart LR
 | [PRD.md](./PRD.md) | 产品需求与用户故事 |
 | [Roadmap.md](./Roadmap.md) | 差距状态简表（维护实现后更新） |
 | [plan.md](./plan.md) | 工程 backlog（NewAPI、测试、发布门禁） |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 现状与可优化点 |
+| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 未完成项 |
 | [Frontend.md](./Frontend.md) | API 与页面契约 |
 | [Backend.md](./Backend.md) | 后端索引、NewAPI、钱包 |
 | [权限管理.md](./权限管理.md) | 鉴权与角色（强于 PRD 简述） |
