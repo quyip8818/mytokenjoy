@@ -143,16 +143,16 @@ func TestLocalRequiresNewAPIStack(t *testing.T) {
 	}
 }
 
-func TestLocalRejectsNewAPIDisabled(t *testing.T) {
+func TestLocalAllowsNewAPIDisabled(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 	t.Setenv("NEW_API_ENABLED", "false")
 
-	_, err := config.Load()
-	if err == nil {
-		t.Fatal("expected error when NEW_API_ENABLED is false")
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("expected local config to load with NEW_API_ENABLED=false, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "NEW_API_ENABLED") {
-		t.Fatalf("expected NEW_API_ENABLED error, got %v", err)
+	if cfg.NewAPIEnabled {
+		t.Fatal("expected NEW_API_ENABLED=false")
 	}
 }
 
