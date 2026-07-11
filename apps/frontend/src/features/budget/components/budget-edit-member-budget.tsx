@@ -162,6 +162,7 @@ function MemberBudgetEditDialog({
       }
       onUpdated()
       toast.success(`已将所有成员额度设置为 ${formatDisplayCurrency(points)}/人`)
+      handleClose()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '设置失败，请重试')
     } finally {
