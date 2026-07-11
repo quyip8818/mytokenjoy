@@ -24,7 +24,11 @@ export function CostTrendChart({ dailyCosts, loading, granularity }: CostTrendCh
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
           <XAxis
             dataKey="date"
-            tickFormatter={(v) => (granularity === 'month' ? v : v.slice(5))}
+            tickFormatter={(v) => {
+              if (granularity === 'month') return v
+              const d = new Date(v)
+              return `${d.getMonth() + 1}/${d.getDate()}`
+            }}
             fontSize={11}
             stroke="#94a3b8"
             axisLine={false}

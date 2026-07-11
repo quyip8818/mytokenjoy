@@ -100,6 +100,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 	for _, row := range rows {
 		consumedByDept[row.DepartmentID] = row.Cost
 	}
+	aggregateConsumed(deptTree, consumedByDept)
 	deptIDs := make([]string, 0, len(departments))
 	for _, dept := range departments {
 		deptIDs = append(deptIDs, dept.ID)
@@ -143,4 +144,17 @@ func findBudgetNode(tree []types.BudgetNode, id string) *types.BudgetNode {
 		}
 	}
 	return nil
+}
+
+// aggregateConsumed walks the department tree bottom-up and accumulates each
+// subtree's consumed total into parent nodes so that a parent department's
+// consumed value includes all descendants.
+func aggregateConsumed(departments []types.Department, consumed map[string]float64) float64 {
+	total := 0.0
+	for _, dept := range departments {
+		childSum := aggregateConsumed(dept.Children, consumed)
+		consumed[dept.ID] += childSum
+		total += consumed[dept.ID]
+	}
+	return total
 }

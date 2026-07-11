@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_PERIOD } from '../lib/constants'
-import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
+import { formatLocalDate, getMonthStartLocal, getTodayLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 interface UseUsageDashboardPageOptions {
@@ -11,6 +11,12 @@ interface UseUsageDashboardPageOptions {
 }
 
 function buildCostQuery(period: CostPeriod, startDate: string, endDate: string): CostQueryParams {
+  if (period === COST_PERIOD.LAST_30_DAYS) {
+    const to = new Date()
+    const from = new Date()
+    from.setDate(from.getDate() - 29)
+    return { period: 'custom', startDate: formatLocalDate(from), endDate: formatLocalDate(to) }
+  }
   if (period === COST_PERIOD.CUSTOM) {
     return { period, startDate, endDate }
   }

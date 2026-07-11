@@ -16,9 +16,11 @@ interface CostTopConsumersTableProps {
 }
 
 export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumersTableProps) {
+  const title = topConsumers.length > 0 ? `消费排行 Top ${topConsumers.length}` : '消费排行'
+
   return (
     <DataSection
-      title="消费排行 Top 5"
+      title={title}
       loading={loading}
       skeletonColumns={6}
       className="border-border shadow-xs"

@@ -2,6 +2,7 @@ export const COST_PERIOD = {
   CURRENT_MONTH: 'current_month',
   LAST_MONTH: 'last_month',
   LAST_7_DAYS: 'last_7_days',
+  LAST_30_DAYS: 'last_30_days',
   CUSTOM: 'custom',
 } as const
 
@@ -9,8 +10,17 @@ export const COST_PERIOD_LABELS: Record<string, string> = {
   [COST_PERIOD.CURRENT_MONTH]: '本月',
   [COST_PERIOD.LAST_MONTH]: '上月',
   [COST_PERIOD.LAST_7_DAYS]: '近 7 天',
+  [COST_PERIOD.LAST_30_DAYS]: '近 30 天',
   [COST_PERIOD.CUSTOM]: '自定义',
 }
+
+/** Preset periods shown in the date range picker (excludes custom). */
+export const DATE_RANGE_PRESETS = [
+  COST_PERIOD.CURRENT_MONTH,
+  COST_PERIOD.LAST_MONTH,
+  COST_PERIOD.LAST_7_DAYS,
+  COST_PERIOD.LAST_30_DAYS,
+] as const
 
 export const COST_GRANULARITY = {
   DAY: 'day',

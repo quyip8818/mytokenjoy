@@ -23,7 +23,7 @@ describe('buildCostStats', () => {
     expect(stats.find((s) => s.label === '总 Token')?.mom).toBeUndefined()
   })
 
-  it('shows dash for zero total tokens', () => {
+  it('shows zero for zero total tokens', () => {
     const summary: CostSummary = {
       totalCost: 1000,
       totalCostMom: 0,
@@ -36,7 +36,7 @@ describe('buildCostStats', () => {
       avgCostPerMemberMom: 0,
     }
     const stats = buildCostStats(summary)
-    expect(stats.find((s) => s.label === '总 Token')?.value).toBe('-')
-    expect(formatTokenCount(0)).toBe('-')
+    expect(stats.find((s) => s.label === '总 Token')?.value).toBe('0')
+    expect(formatTokenCount(0)).toBe('0')
   })
 })

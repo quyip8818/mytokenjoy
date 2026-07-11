@@ -42,29 +42,37 @@ export function DeptComparisonTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {deptCosts.map((dept, i) => (
-            <TableRow
-              key={dept.departmentId}
-              className="border-border-subtle hover:bg-muted/50 transition-colors cursor-pointer"
-              onClick={() => onSelectDept?.(dept.departmentId)}
-            >
-              <TableCell>
-                <div
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                  style={{ backgroundColor: COST_CHART_COLORS[i % COST_CHART_COLORS.length] }}
-                >
-                  {i + 1}
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{dept.departmentName}</TableCell>
-              <TableCell className="text-right font-semibold tabular-nums">
-                {dept.cost.toFixed(2)}
-              </TableCell>
-              <TableCell className="text-right text-muted-foreground tabular-nums">
-                {dept.percentage.toFixed(1)}%
+          {deptCosts.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="h-24 text-center text-sm text-muted-foreground">
+                暂无子部门数据
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            deptCosts.map((dept, i) => (
+              <TableRow
+                key={dept.departmentId}
+                className="border-border-subtle hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => onSelectDept?.(dept.departmentId)}
+              >
+                <TableCell>
+                  <div
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ backgroundColor: COST_CHART_COLORS[i % COST_CHART_COLORS.length] }}
+                  >
+                    {i + 1}
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{dept.departmentName}</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {dept.cost.toFixed(2)}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground tabular-nums">
+                  {dept.percentage.toFixed(1)}%
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </DataSection>

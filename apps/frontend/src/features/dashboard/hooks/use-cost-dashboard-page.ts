@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { CostGranularity, CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_GRANULARITY, COST_PERIOD } from '../lib/constants'
-import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
+import { formatLocalDate, getMonthStartLocal, getTodayLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { buildCostStats, buildDeptCostsWithColors, COST_CHART_COLORS } from '../lib/dashboard'
 import type { CostStatItem } from '../lib/dashboard'
@@ -16,6 +16,12 @@ interface UseCostDashboardPageOptions {
 }
 
 function buildCostQuery(period: CostPeriod, startDate: string, endDate: string): CostQueryParams {
+  if (period === COST_PERIOD.LAST_30_DAYS) {
+    const to = new Date()
+    const from = new Date()
+    from.setDate(from.getDate() - 29)
+    return { period: 'custom', startDate: formatLocalDate(from), endDate: formatLocalDate(to) }
+  }
   if (period === COST_PERIOD.CUSTOM) {
     return { period, startDate, endDate }
   }

@@ -12,7 +12,7 @@ export interface CostSummary {
   avgCostPerMemberMom: number
 }
 
-export type CostPeriod = 'current_month' | 'last_month' | 'last_7_days' | 'custom'
+export type CostPeriod = 'current_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'custom'
 
 export type CostGranularity = 'day' | 'hour' | 'week' | 'month'
 

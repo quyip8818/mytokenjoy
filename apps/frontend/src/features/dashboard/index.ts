@@ -1,5 +1,11 @@
 export { dashboardKeys } from './query-keys'
-export { COST_GRANULARITY, COST_PERIOD, MODEL_NOT_IN_DEPT_MESSAGE } from './lib/constants'
+export {
+  COST_GRANULARITY,
+  COST_PERIOD,
+  COST_PERIOD_LABELS,
+  DATE_RANGE_PRESETS,
+  MODEL_NOT_IN_DEPT_MESSAGE,
+} from './lib/constants'
 export {
   COST_CHART_COLORS,
   buildCostStats,
@@ -25,6 +31,7 @@ export { CostDashboardPageShell } from './components/cost-dashboard-page-shell'
 export { CostDashboardLayoutPageShell } from './components/cost-dashboard-layout-page-shell'
 export { UsageDashboardPageShell } from './components/usage-dashboard-page-shell'
 export { UsageDashboardLayoutPageShell } from './components/usage-dashboard-layout-page-shell'
+export { DashboardDateRangePicker } from './components/dashboard-date-range-picker'
 export { UsageModelChart } from './components/usage-model-chart'
 export { TeamUsageTable } from './components/team-usage-table'
 export { teamUsagePercent } from './lib/team-usage'

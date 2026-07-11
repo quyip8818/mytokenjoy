@@ -44,15 +44,16 @@ export function TeamUsageTable({ teamUsage, onSelectDept }: TeamUsageTableProps)
             >
               <TableCell className="font-medium">{t.departmentName}</TableCell>
               <TableCell className="text-muted-foreground tabular-nums">
-                {t.budget.toLocaleString()}
+                {t.budget.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell className="font-medium tabular-nums">
-                {t.consumed.toLocaleString()}
+                {t.consumed.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2.5">
                   <Progress value={pct} className="flex-1 h-2" />
                   <span
+                    aria-hidden="true"
                     className={`text-xs font-semibold ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : 'text-primary'}`}
                   >
                     {pct}%

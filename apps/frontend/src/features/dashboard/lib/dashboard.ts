@@ -17,7 +17,7 @@ function formatMom(mom: number): string {
 }
 
 export function formatTokenCount(tokens: number): string {
-  if (tokens <= 0) return '-'
+  if (tokens <= 0) return '0'
   return `${(tokens / 1000000).toFixed(1)}M`
 }
 

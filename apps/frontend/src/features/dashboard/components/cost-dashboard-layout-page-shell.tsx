@@ -1,4 +1,5 @@
 import { CostDashboardPageShell } from './cost-dashboard-page-shell'
+import { DashboardDateRangePicker } from './dashboard-date-range-picker'
 import { DashboardPageLayout } from './dashboard-page-layout'
 import { OrgTreeSidebar } from './org-tree-sidebar'
 import type { useCostDashboardRoutePage } from '../hooks/use-cost-dashboard-route-page'
@@ -24,9 +25,15 @@ export function CostDashboardLayoutPageShell({
         />
       }
     >
-      <div className="mb-4">
-        <p className="text-xs text-muted-foreground">{getBreadcrumb(selectedDeptId).join(' > ')}</p>
-        <h1 className="text-lg font-semibold">成本看板</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">{getBreadcrumb(selectedDeptId).join(' > ')}</p>
+          <h1 className="text-lg font-semibold">成本看板</h1>
+        </div>
+        <DashboardDateRangePicker
+          value={pageData.period}
+          onChange={pageData.handlePeriodChange}
+        />
       </div>
       <CostDashboardPageShell pageData={pageData} onSelectDept={setSelectedDeptId} />
     </DashboardPageLayout>

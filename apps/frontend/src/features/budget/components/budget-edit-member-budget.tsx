@@ -17,7 +17,7 @@ interface BudgetEditMemberBudgetProps {
 
 export function BudgetEditMemberBudget({
   node,
-  onUpdated,
+  onUpdated: _onUpdated,
   getMemberBudgets,
   updateMemberBudget,
 }: BudgetEditMemberBudgetProps) {
