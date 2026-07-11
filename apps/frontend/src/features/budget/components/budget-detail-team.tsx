@@ -37,6 +37,7 @@ interface BudgetDetailTeamProps {
     memberId: string,
     data: UpdateMemberBudgetInput,
   ) => Promise<MemberBudgetQuota>
+  applyAverageBudget: (departmentId: string, data: { personalBudget: number; recursive: boolean }) => Promise<void>
   getDepartmentTree: () => Promise<Department[]>
   getMembers: (departmentId: string) => Promise<Member[]>
   getAllDeptMembers: (departmentId: string) => Promise<Member[]>
@@ -82,6 +83,7 @@ export function BudgetDetailTeam({
   onCreateGroup,
   getMemberBudgets,
   updateMemberBudget,
+  applyAverageBudget,
   getDepartmentTree,
   getMembers,
   getAllDeptMembers,
@@ -197,6 +199,7 @@ export function BudgetDetailTeam({
         onUpdated={onUpdated}
         getMemberBudgets={getMemberBudgets}
         updateMemberBudget={updateMemberBudget}
+        applyAverageBudget={applyAverageBudget}
       />
 
       <BudgetProjectDialog

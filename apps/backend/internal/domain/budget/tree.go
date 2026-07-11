@@ -108,6 +108,101 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 	return result, err
 }
 
+func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, personalBudget float64, recursive bool) error {
+	if personalBudget < 0 {
+		return domain.Validation("额度不能为负数")
+	}
+	return s.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
+		nodes, err := tx.Org().Nodes().Tree(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := tx.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Find the target node and collect department IDs to update
+		deptIDs := collectDeptIDs(nodes, deptID, recursive)
+		if len(deptIDs) == 0 {
+			return domain.NotFound("Department not found")
+		}
+
+		// Update members in qualifying departments
+		updated := false
+		for i := range members {
+			if !deptIDs[members[i].DepartmentID] {
+				continue
+			}
+			if members[i].PersonalBudget != personalBudget {
+				members[i].PersonalBudget = personalBudget
+				updated = true
+			}
+		}
+		if updated {
+			if err := tx.Org().SetMembers(ctx, members); err != nil {
+				return fmt.Errorf("persist member budgets: %w", err)
+			}
+		}
+
+		// Mark the target department's member_avg_budget
+		markNodeAvgBudget(nodes, deptID, personalBudget)
+		if err := tx.Org().Nodes().SetTree(ctx, nodes); err != nil {
+			return fmt.Errorf("persist org tree: %w", err)
+		}
+		return nil
+	})
+}
+
+// collectDeptIDs returns a set of department IDs to apply the budget to.
+// If recursive, it includes all descendant departments that haven't set their own avg budget.
+func collectDeptIDs(nodes []types.OrgNode, rootID string, recursive bool) map[string]bool {
+	result := make(map[string]bool)
+	var walk func([]types.OrgNode, bool)
+	walk = func(list []types.OrgNode, collecting bool) {
+		for _, node := range list {
+			if node.ID == rootID {
+				result[node.ID] = true
+				if recursive && len(node.Children) > 0 {
+					walk(node.Children, true)
+				}
+			} else if collecting {
+				// Skip departments that have their own avg budget set
+				if node.MemberAvgBudget > 0 {
+					continue
+				}
+				result[node.ID] = true
+				if len(node.Children) > 0 {
+					walk(node.Children, true)
+				}
+			} else if len(node.Children) > 0 {
+				walk(node.Children, false)
+			}
+		}
+	}
+	walk(nodes, false)
+	return result
+}
+
+func markNodeAvgBudget(nodes []types.OrgNode, nodeID string, budget float64) {
+	var walk func([]types.OrgNode)
+	walk = func(list []types.OrgNode) {
+		for i := range list {
+			if list[i].ID == nodeID {
+				list[i].MemberAvgBudget = budget
+				return
+			}
+			if len(list[i].Children) > 0 {
+				walk(list[i].Children)
+			}
+		}
+	}
+	walk(nodes)
+}
+
 func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error) {
 	groups, err := s.store.Budget().Groups(ctx)
 	if err != nil {

@@ -30,6 +30,11 @@ export const budgetApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  applyAverageBudget: (departmentId: string, data: { personalBudget: number; recursive: boolean }) =>
+    request<void>(`/budget/departments/${departmentId}/apply-average-budget`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   getGroups: () => request<BudgetGroup[]>('/budget/groups'),
   createGroup: (data: Omit<BudgetGroup, 'id' | 'consumed'>) =>
     request<BudgetGroup>('/budget/groups', { method: 'POST', body: JSON.stringify(data) }),

@@ -71,6 +71,24 @@ func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
+func (h *Handler) ApplyAverageBudget(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		PersonalBudget float64 `json:"personalBudget"`
+		Recursive      bool    `json:"recursive"`
+	}
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	deptID := chi.URLParam(r, "departmentId")
+	err := h.service.ApplyAverageBudget(r.Context(), deptID, body.PersonalBudget, body.Recursive)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"}, nil)
+}
+
 func (h *Handler) GroupsList(w http.ResponseWriter, r *http.Request) {
 	groups, err := h.service.ListGroups(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, groups, err)
@@ -182,6 +200,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
 	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)
 	allocateWrite.Put("/members/{memberId}", h.UpdateMemberBudget)
+	allocateWrite.Post("/departments/{departmentId}/apply-average-budget", h.ApplyAverageBudget)
 	allocateWrite.Post("/groups", h.GroupCreate)
 	allocateWrite.Put("/groups/{id}", h.GroupUpdate)
 	allocateWrite.Delete("/groups/{id}", h.GroupDelete)

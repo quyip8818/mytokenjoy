@@ -24,6 +24,7 @@ interface BudgetEditMemberBudgetProps {
     memberId: string,
     data: UpdateMemberBudgetInput,
   ) => Promise<MemberBudgetQuota>
+  applyAverageBudget: (departmentId: string, data: { personalBudget: number; recursive: boolean }) => Promise<void>
 }
 
 export function BudgetEditMemberBudget({
@@ -31,6 +32,7 @@ export function BudgetEditMemberBudget({
   onUpdated,
   getMemberBudgets,
   updateMemberBudget,
+  applyAverageBudget,
 }: BudgetEditMemberBudgetProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [members, setMembers] = useState<MemberBudgetQuota[]>([])
@@ -83,6 +85,7 @@ export function BudgetEditMemberBudget({
         departmentId={node.id}
         getMemberBudgets={getMemberBudgets}
         updateMemberBudget={updateMemberBudget}
+        applyAverageBudget={applyAverageBudget}
         onUpdated={() => {
           onUpdated()
           // Refresh display data
@@ -104,6 +107,7 @@ interface MemberBudgetEditDialogProps {
     memberId: string,
     data: UpdateMemberBudgetInput,
   ) => Promise<MemberBudgetQuota>
+  applyAverageBudget: (departmentId: string, data: { personalBudget: number; recursive: boolean }) => Promise<void>
   onUpdated: () => void
 }
 
@@ -113,6 +117,7 @@ function MemberBudgetEditDialog({
   departmentId,
   getMemberBudgets,
   updateMemberBudget,
+  applyAverageBudget,
   onUpdated,
 }: MemberBudgetEditDialogProps) {
   const [averageDraft, setAverageDraft] = useState('')
@@ -153,13 +158,8 @@ function MemberBudgetEditDialog({
     }
     setSavingAverage(true)
     try {
-      const budgets = await getMemberBudgets(departmentId)
       const points = displayToPoints(value)
-      for (const member of budgets) {
-        if (member.personalBudget !== points) {
-          await updateMemberBudget(member.memberId, { personalBudget: points })
-        }
-      }
+      await applyAverageBudget(departmentId, { personalBudget: points, recursive: true })
       onUpdated()
       toast.success(`已将所有成员额度设置为 ${formatDisplayCurrency(points)}/人`)
       handleClose()

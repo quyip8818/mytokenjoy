@@ -40,6 +40,7 @@ export function BudgetPageShell({
   deleteBudgetGroup,
   getMemberBudgets,
   updateMemberBudget,
+  applyAverageBudget,
   getDepartmentTree,
   getMembers,
   getAllDeptMembers,
@@ -139,6 +140,7 @@ export function BudgetPageShell({
                     onCreateGroup={createBudgetGroup}
                     getMemberBudgets={getMemberBudgets}
                     updateMemberBudget={updateMemberBudget}
+                    applyAverageBudget={applyAverageBudget}
                     getDepartmentTree={getDepartmentTree}
                     getMembers={getMembers}
                     getAllDeptMembers={getAllDeptMembers}

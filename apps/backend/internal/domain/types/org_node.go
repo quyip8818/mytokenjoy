@@ -25,6 +25,7 @@ type OrgNode struct {
 	DefaultModelID   *int64    `json:"defaultModelId,omitempty"`
 	FallbackModelID  *int64    `json:"fallbackModelId,omitempty"`
 	RoutingInherited bool      `json:"routingInherited"`
+	MemberAvgBudget  float64   `json:"memberAvgBudget"`
 }
 
 func OrgNodeToDepartment(node OrgNode) Department {

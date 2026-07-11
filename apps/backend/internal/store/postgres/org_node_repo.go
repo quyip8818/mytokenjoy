@@ -18,7 +18,8 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
 		SELECT n.id, n.name, n.parent_id, n.external_id, n.source, n.manager_id, n.sort_order,
-			n.budget, n.reserved_pool, n.period, n.default_model_id, n.fallback_model_id, n.routing_inherited
+			n.budget, n.reserved_pool, n.period, n.default_model_id, n.fallback_model_id, n.routing_inherited,
+			n.member_avg_budget
 		FROM org_nodes n
 		WHERE n.company_id = $1
 		ORDER BY n.sort_order
@@ -35,6 +36,7 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 			&row.ExternalID, &row.Source, &row.ManagerID, &row.sortOrder,
 			&row.Budget, &row.ReservedPool, &row.Period,
 			&row.DefaultModelID, &row.FallbackModelID, &row.RoutingInherited,
+			&row.MemberAvgBudget,
 		); err != nil {
 			return nil, err
 		}
@@ -82,8 +84,9 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO org_nodes (
 				id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
-				budget, reserved_pool, period, default_model_id, fallback_model_id, routing_inherited, updated_at
-			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+				budget, reserved_pool, period, default_model_id, fallback_model_id, routing_inherited,
+				member_avg_budget, updated_at
+			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				parent_id = EXCLUDED.parent_id,
@@ -98,11 +101,13 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 				default_model_id = EXCLUDED.default_model_id,
 				fallback_model_id = EXCLUDED.fallback_model_id,
 				routing_inherited = EXCLUDED.routing_inherited,
+				member_avg_budget = EXCLUDED.member_avg_budget,
 				updated_at = NOW()
 		`, row.ID, companyID, row.Name, row.ParentID, path,
 			row.ExternalID, row.Source, row.ManagerID, row.sortOrder,
 			row.Budget, row.ReservedPool, row.Period,
-			row.DefaultModelID, row.FallbackModelID, row.RoutingInherited); err != nil {
+			row.DefaultModelID, row.FallbackModelID, row.RoutingInherited,
+			row.MemberAvgBudget); err != nil {
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}

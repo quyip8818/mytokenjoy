@@ -208,6 +208,14 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis],
   )
 
+  const applyAverageBudget = useCallback(
+    async (departmentId: string, data: { personalBudget: number; recursive: boolean }) => {
+      await apis.budgetApi.applyAverageBudget(departmentId, data)
+      await refresh()
+    },
+    [apis, refresh],
+  )
+
   const getDepartmentTree = useCallback(() => apis.departmentApi.getTree(), [apis])
 
   const getMembers = useCallback(
@@ -276,6 +284,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     deleteBudgetGroup,
     getMemberBudgets,
     updateMemberBudget,
+    applyAverageBudget,
     getDepartmentTree,
     getMembers,
     getAllDeptMembers,

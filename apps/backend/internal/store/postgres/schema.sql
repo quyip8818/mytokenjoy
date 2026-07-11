@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS org_nodes (
     default_model_id  BIGINT,
     fallback_model_id BIGINT,
     routing_inherited BOOLEAN NOT NULL DEFAULT FALSE,
+    member_avg_budget NUMERIC(18, 6) NOT NULL DEFAULT 0,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),

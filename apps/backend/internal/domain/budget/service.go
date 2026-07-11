@@ -24,6 +24,7 @@ type Service interface {
 	UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error)
 	ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error)
 	UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudgetQuota, error)
+	ApplyAverageBudget(ctx context.Context, deptID string, personalBudget float64, recursive bool) error
 	ListGroups(ctx context.Context) ([]types.BudgetGroup, error)
 	CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error)
 	UpdateGroup(ctx context.Context, id string, patch types.BudgetGroup) (types.BudgetGroup, error)
