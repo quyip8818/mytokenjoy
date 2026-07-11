@@ -1,11 +1,31 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { CostQueryParams } from '@/api/types'
+import type { CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_PERIOD } from '../lib/constants'
+import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
-export function useUsageDashboardPage(injectedApis?: AppApis) {
-  const costQuery = useMemo<CostQueryParams>(() => ({ period: COST_PERIOD.CURRENT_MONTH }), [])
+interface UseUsageDashboardPageOptions {
+  deptId: string | null
+  injectedApis?: AppApis
+}
+
+function buildCostQuery(period: CostPeriod, startDate: string, endDate: string): CostQueryParams {
+  if (period === COST_PERIOD.CUSTOM) {
+    return { period, startDate, endDate }
+  }
+  return { period }
+}
+
+export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboardPageOptions) {
+  const [period, setPeriod] = useState<CostPeriod>(COST_PERIOD.CURRENT_MONTH)
+  const [startDate, setStartDate] = useState(getMonthStartLocal)
+  const [endDate, setEndDate] = useState(getTodayLocal)
+
+  const costQuery = useMemo(
+    () => buildCostQuery(period, startDate, endDate),
+    [period, startDate, endDate],
+  )
 
   const {
     data: teamUsage = [],
@@ -14,9 +34,10 @@ export function useUsageDashboardPage(injectedApis?: AppApis) {
     refresh: refreshTeam,
   } = useInjectedQuery({
     injectedApis,
-    queryKey: [...queryKeys.dashboard.usage(), 'team', costQuery],
+    queryKey: [...queryKeys.dashboard.usage(), 'team', costQuery, deptId],
     queryFn: (a) => a.dashboardApi.getTeamUsage(costQuery),
   })
+
   const {
     data: modelUsage = [],
     loading: modelLoading,
@@ -24,7 +45,7 @@ export function useUsageDashboardPage(injectedApis?: AppApis) {
     refresh: refreshModel,
   } = useInjectedQuery({
     injectedApis,
-    queryKey: [...queryKeys.dashboard.usage(), 'model', costQuery],
+    queryKey: [...queryKeys.dashboard.usage(), 'model', costQuery, deptId],
     queryFn: (a) => a.dashboardApi.getModelUsage(costQuery),
   })
 
@@ -34,11 +55,27 @@ export function useUsageDashboardPage(injectedApis?: AppApis) {
     await Promise.all([refreshTeam(), refreshModel()])
   }
 
+  const handlePeriodChange = useCallback((value: string | null) => {
+    if (!value) return
+    setPeriod(value as CostPeriod)
+  }, [])
+
+  const customDateInvalid =
+    period === COST_PERIOD.CUSTOM && Boolean(startDate && endDate && startDate > endDate)
+
   return {
+    period,
+    startDate,
+    endDate,
+    customDateInvalid,
+    deptId,
     teamUsage,
     modelUsage,
     loading,
     error,
     refresh,
+    handlePeriodChange,
+    setStartDate,
+    setEndDate,
   }
 }
