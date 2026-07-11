@@ -1,7 +1,7 @@
 # TokenJoy 工程待办（Plan）
 
 > **定位**：上线前 fix / 功能点 / 联调与发布门禁的 **唯一 backlog**。完成即删除条目，不留 `[x]`。  
-> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend.md](./Backend.md) · [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)（NewAPI/Gateway 未完成项）
+> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend.md](./Backend.md) · [工程收口.md](./工程收口.md)（收口待办）
 
 ---
 
@@ -9,13 +9,13 @@
 
 1. 新待办只写入本文；禁止再开 `*-计划.md` / `*-下一步.md`
 2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](./Roadmap.md)
-3. 架构现状见 Backend* / NewAPI 文档；NewAPI **未完成项**见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
+3. 架构现状见 Backend* 文档；收口待办见 [工程收口.md](./工程收口.md)。
 
 ---
 
 ## §1 NewAPI / Gateway（上线前）
 
-未完成项见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
+未完成项见 [工程收口.md](./工程收口.md) §1。
 
 ### Fix
 

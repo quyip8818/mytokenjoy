@@ -7,7 +7,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | 用途 | 文档 |
 | --- | --- |
 | 工程待办（上线前 fix / 功能 / 门禁） | **[plan.md](./plan.md)** |
-| 架构现状 | [Backend.md](./Backend.md) 及子文档、[NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)、[Frontend.md](./Frontend.md) |
+| 架构现状 | [Backend.md](./Backend.md) 及子文档、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
 | 产品差距 | [Roadmap.md](./Roadmap.md)、[PRD-差距分析.md](./PRD-差距分析.md) |
 | 产品需求（只读权威） | [PRD.md](./PRD.md) |
 
@@ -20,7 +20,6 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [PRD-差距分析.md](./PRD-差距分析.md) | 产品 / 研发 | PRD vs 实现差距 |
 | [Roadmap.md](./Roadmap.md) | 全员 | 产品差距简表 |
 | [Frontend.md](./Frontend.md) | 前端 / 前后端 | 前端架构、API 契约 |
-| [Frontend-Dashboard与Budget修复.md](./Frontend-Dashboard与Budget修复.md) | 前端 | `test:all` / `build` 失败根因与修复指南 |
 | [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
@@ -29,12 +28,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
-| [Backend-优化与收口.md](./Backend-优化与收口.md) | 后端 / 架构 | 优化、模块化、收口路线图 |
-| [Backend-重构建议.md](./Backend-重构建议.md) | 后端 / 架构 | 历史收口清单 |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 后端 / 架构 | 命名约定 |
-
-
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | 后端 / 联调 | NewAPI/Gateway 未完成项 |
+| [工程收口.md](./工程收口.md) | 研发 / 架构 | 后端、前端、NewAPI 待收口项（按优先级） |
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 
 ### 归档笔记（非权威 backlog）

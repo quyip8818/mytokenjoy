@@ -149,7 +149,7 @@ flowchart LR
 
 ### 4.5 API 与 Gateway 工程项
 
-| 项 | PRD | 现状（[plan.md](./plan.md) / [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)） |
+| 项 | PRD | 现状（[plan.md](./plan.md) / [工程收口.md](./工程收口.md)） |
 | --- | --- | --- |
 | OpenAI + Anthropic 双格式 | US-12 明确 | Gateway 白名单为 OpenAI 风格 `/v1/*` 精确路径 |
 | 调用必须指定 model | 是 | precheck 校验 |
@@ -216,7 +216,7 @@ flowchart LR
 | [PRD.md](./PRD.md) | 产品需求与用户故事 |
 | [Roadmap.md](./Roadmap.md) | 差距状态简表（维护实现后更新） |
 | [plan.md](./plan.md) | 工程 backlog（NewAPI、测试、发布门禁） |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 未完成项 |
+| [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项 |
 | [Frontend.md](./Frontend.md) | API 与页面契约 |
 | [Backend.md](./Backend.md) | 后端索引、NewAPI、钱包 |
 | [权限管理.md](./权限管理.md) | 鉴权与角色（强于 PRD 简述） |

@@ -2,7 +2,7 @@
 
 `apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Gateway 集成与看板读路径。
 
-**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-命名统一.md](./Backend-命名统一.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
 
 ---
 
@@ -309,7 +309,7 @@ sequenceDiagram
 | Update 配额/白名单 | 同步：先写 DB → `SyncUpdatePlatformKey`，失败回滚 |
 | Rebalance、ModelLimits、Provider Channel | async outbox → Worker |
 
-Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 不变以利 ingest 入账。细节与未完成项见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)。
+Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 不变以利 ingest 入账。细节与未完成项见 [工程收口.md](./工程收口.md)。
 
 ---
 
@@ -380,7 +380,7 @@ flowchart LR
   E --> F[org 定时同步]
 ```
 
-入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → 入队 pending → 立即 `200 accepted`；Worker `ProcessPending` 异步 `IngestByLogID`，并靠 `reconcile_cursors` 全局水位补洞（方案 B，见 [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)）。
+入账主路径：NewAPI notify → `POST /api/internal/webhooks/newapi-log` → 入队 pending → 立即 `200 accepted`；Worker `ProcessPending` 异步 `IngestByLogID`，并靠 `reconcile_cursors` 全局水位补洞（方案 B，见 [工程收口.md](./工程收口.md)）。
 
 `WORKER_POLL_INTERVAL_SEC` 控制轮询；`WORKER_ORG_SYNC_INTERVAL_SEC` 控制组织同步。
 

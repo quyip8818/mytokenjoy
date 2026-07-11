@@ -16,13 +16,8 @@
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
-| [Backend-优化与收口.md](./Backend-优化与收口.md) | 优化、简化、模块化路线图（全量审阅） |
-| [Backend-重构建议.md](./Backend-重构建议.md) | 历史收口清单、明确不做项 |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 命名约定 |
-
-
+| [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
-| [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 未完成项 |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 

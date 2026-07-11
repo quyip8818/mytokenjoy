@@ -2,7 +2,7 @@
 
 > **读者**：想搞清「一次 LLM 调用的钱，怎么记到企业账上」的研发 / 运维 / 联调同学。  
 > **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/worker/`。  
-> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)
+> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md)
 
 ---
 
@@ -573,7 +573,7 @@ flowchart TB
 6. 深入算法：[Backend-预算.md](./Backend-预算.md) · [Backend-计费模式.md](./Backend-计费模式.md)  
 7. 账期细节：[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)  
 8. 表结构：[Backend-存储架构.md](./Backend-存储架构.md)  
-9. 上线缺口：[NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md)
+9. 上线缺口：[工程收口.md](./工程收口.md)
 
 ---
 
