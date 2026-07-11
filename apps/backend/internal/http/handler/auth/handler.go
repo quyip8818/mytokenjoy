@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -31,8 +32,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email        string `json:"email"`
+	Password     string `json:"password"`
+	CompanySlug  string `json:"companySlug"`
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -41,12 +43,27 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	companyCtx, ok := ctxcompany.From(r.Context())
-	if !ok {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
-		return
+	companyID := int64(0)
+	if h.pub.Cfg.SupportSaas {
+		if body.CompanySlug == "" {
+			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company slug required"))
+			return
+		}
+		companyCtx, err := h.companySvc.ResolveCompanyContextBySlug(r.Context(), body.CompanySlug)
+		if err != nil {
+			httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
+			return
+		}
+		companyID = companyCtx.CompanyID
+	} else {
+		companyCtx, ok := ctxcompany.From(r.Context())
+		if !ok {
+			httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
+			return
+		}
+		companyID = companyCtx.CompanyID
 	}
-	member, err := h.pub.Credentials.AuthenticateMember(r.Context(), companyCtx.CompanyID, body.Email, body.Password)
+	member, err := h.pub.Credentials.AuthenticateMember(r.Context(), companyID, body.Email, body.Password)
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return

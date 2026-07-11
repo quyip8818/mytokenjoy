@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/runtime"
@@ -20,6 +21,7 @@ type Store struct {
 	logs              store.LogStore
 	domain            domainRepos
 	tokenJoyCompanyID int64
+	credentialKey     []byte
 }
 
 type domainRepos struct {
@@ -50,7 +52,17 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		}
 	}
 
-	s := &Store{pool: pool, logs: store.NoopLogStore(), tokenJoyCompanyID: cfg.TokenJoyCompanyID}
+	credentialKey, err := common.ParseKey(cfg.DataSourceCredentialKey)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("parse DATA_SOURCE_CREDENTIAL_KEY: %w", err)
+	}
+	s := &Store{
+		pool:              pool,
+		logs:              store.NoopLogStore(),
+		tokenJoyCompanyID: cfg.TokenJoyCompanyID,
+		credentialKey:     credentialKey,
+	}
 	if cfg.IngestEnabled() {
 		tables := logTablesFor(cfg)
 		logPool, err := pgxpool.New(ctx, cfg.LogDatabaseURL)
@@ -85,7 +97,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 	}
 	s.mappings = newPlatformKeyMappingRepo(pool)
 	s.asyncJobs = newAsyncJobsRepo(pool)
-	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID)
+	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID, s.credentialKey)
 	return s, nil
 }
 

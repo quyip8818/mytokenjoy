@@ -8,6 +8,30 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 )
 
+func (s *service) UsageSeriesFromQuery(
+	ctx context.Context,
+	rawGranularity, rawStart, rawEnd, groupBy, deptID, memberID string,
+	scope domainusage.SessionScope,
+) (types.UsageSeriesResponse, error) {
+	timezone := domainusage.ResolveTimezone("")
+	start, end, err := domainusage.ParseSeriesTimeRange(rawStart, rawEnd, rawGranularity, timezone)
+	if err != nil {
+		return types.UsageSeriesResponse{}, err
+	}
+	if groupBy == "" {
+		groupBy = types.UsageGroupByNone
+	}
+	return s.UsageSeries(ctx, types.UsageSeriesQuery{
+		Granularity:  rawGranularity,
+		Start:        start,
+		End:          end,
+		GroupBy:      groupBy,
+		DepartmentID: deptID,
+		MemberID:     memberID,
+		Timezone:     timezone,
+	}, scope)
+}
+
 func (s *service) UsageSeries(ctx context.Context, q types.UsageSeriesQuery, scope domainusage.SessionScope) (types.UsageSeriesResponse, error) {
 	if q.Granularity == "" || q.Start.IsZero() || q.End.IsZero() {
 		return types.UsageSeriesResponse{}, domain.BadRequest("granularity, start and end are required")

@@ -9,12 +9,23 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const minInvitePasswordLen = 8
+
+func memberRolesFromInvite(role string) []string {
+	switch role {
+	case store.InviteRoleSuperAdmin:
+		return []string{permission.RoleSuperAdmin}
+	default:
+		return []string{permission.RoleMember}
+	}
+}
 
 func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (types.Member, error) {
 	invite, err := s.store.Invite().GetInviteByCode(ctx, req.InviteCode)
@@ -63,7 +74,7 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		Email:          invite.Email,
 		DepartmentID:   deptID,
 		Status:         "active",
-		Roles:          []string{"超级管理员"},
+		Roles:          memberRolesFromInvite(invite.Role),
 		PersonalBudget: common.DefaultPersonalBudget,
 	}
 	members, err := s.store.Org().Members(companyCtx)

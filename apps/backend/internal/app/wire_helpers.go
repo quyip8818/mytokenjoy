@@ -22,3 +22,9 @@ func EnqueueRebalanceCompany(st store.Store) func(context.Context, int64) error 
 		return st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 	}
 }
+
+func EnqueueRebalanceAxis(st store.Store) func(context.Context, string, string) error {
+	return func(ctx context.Context, axisKind, axisID string) error {
+		return st.AsyncJobs().EnqueueRebalance(ctx, axisKind, axisID)
+	}
+}

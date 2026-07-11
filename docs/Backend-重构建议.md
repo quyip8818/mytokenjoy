@@ -161,19 +161,19 @@ func enqueueRebalance(st store.Store) func(context.Context, int64) error { ... }
 
 | 痛点 | 严重度 | 处理 |
 |------|--------|------|
-| Handler 业务泄漏（上表 3 处） | 中 | 下沉到 domain |
-| `enqueueWalletSync` 重复 | 低 | `wire_helpers.go` |
+| Handler 业务泄漏 | 低 | `UsageSeries` 已下沉；其余随域改动 |
+| `wire_helpers.go` | — | **已完成**（`EnqueueWalletSync` / `EnqueueRebalanceCompany` / `EnqueueRebalanceAxis`） |
+| Phase 1 预算算法收口 | — | **已完成**（`pkg/budget/remain.go` + `context.go`） |
 | 错误构造风格不一 | 低 | 新代码用 `domain.BadRequest` |
-| `postgres/keys_repo.go` 偏大 | 低 | 下次大改 keys 时拆文件 |
+| `postgres/keys_repo.go` 偏大 | 低 | Phase 2 拆文件 |
+| `budget/service.go` 偏大 | 低 | Phase 2 拆文件 |
 
 ---
 
 ## 4. 实施顺序
 
-1. Handler 三处业务下沉  
-2. `wire_helpers.go` 提取闭包  
-
-验收：handler 无业务判断；wiring 无重复 `enqueueWalletSync` 字面量。
+1. ~~Handler 业务下沉 + wiring 去重~~（Phase 1 已完成）
+2. Phase 2：`budget/service.go` 拆文件、store 大 repo 拆分（见 [Backend-优化与收口.md](./Backend-优化与收口.md)）
 
 ---
 
@@ -182,7 +182,7 @@ func enqueueRebalance(st store.Store) func(context.Context, int64) error { ... }
 ```
 internal/
 ├── app/
-│   ├── wire_helpers.go          # 待补
+│   ├── wire_helpers.go          # EnqueueWalletSync / EnqueueRebalance*
 │   ├── wire_domain_services.go
 │   ├── wire_gateway.go
 │   ├── wiring_infra.go
@@ -200,6 +200,9 @@ internal/
 │       ├── platform_key_mapping_repo.go
 │       └── async_jobs_repo.go
 └── pkg/
+    └── budget/
+        ├── remain.go            # ComputeRemainBudget（NewAPI + Gateway）
+        └── context.go           # LoadBudgetContext
 ```
 
 ---

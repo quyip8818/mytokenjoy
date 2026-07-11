@@ -119,12 +119,13 @@ quota → budget 命名统一进行中（`groupquota` → `groupbudget`、`remai
 ```text
 pkg/budget/
 ├── snapshotload.go      # 已有：加载 tree / keys / groups + consumed
-├── remain.go            # 新增：ComputeEffectiveRemain(key, ctx) 纯函数
-└── context.go           # 新增：BudgetContext { Tree, Members, Keys, Groups, PeriodKey }
+├── remain.go            # ComputeRemainBudget 纯函数
+├── context.go           # LoadBudgetContext + BudgetContext.ComputeRemain
+└── precheck.go          # ApplyKeySnapshotUsed / BuildMemberAxisForPrecheck / PrecheckDeptAxis
 
-domain/gateway/precheck.go     → 调用 remain.go + BudgetContext
-domain/newapisync/remain_budget.go → 薄包装，委托 remain.go
-domain/keys/*, budget/*, newapisync/lifecycle_* → 用 LoadBudgetContext 替代多次 Load*
+domain/gateway/precheck.go     → 调用 precheck.go + BudgetContext
+domain/newapisync/lifecycle_*  → BudgetContext.ComputeRemain（已删 remain_budget.go）
+domain/keys/*, budget/*        → LoadBudgetContext 替代多次 Load*
 ```
 
 ### 3.2 域 → 集成层泄漏（中优先级）
@@ -252,38 +253,38 @@ internal/domain/budget/
 
 ## 5. 分阶段路线图
 
-### Phase 0 — 命名收口（进行中）
+### Phase 0 — 命名收口（已完成）
 
 与 [Backend-命名统一.md](./Backend-命名统一.md) 对齐，完成 quota → budget 全链路：
 
 - [x] `groupquota` → `groupbudget`、`memberquota` → `memberbudget`
-- [x] `newapisync/remain_budget.go` 替代 `quota.go`
-- [ ] 前端 / API JSON / 测试 fixture 与后端命名一致
-- [ ] 文档 [Backend-预算.md](./Backend-预算.md) 同步术语
+- [x] `newapisync/remain_budget.go` 替代 `quota.go`；算法迁至 `pkg/budget/remain.go`
+- [x] 文档 [Backend-预算.md](./Backend-预算.md) 业务术语同步（保留 HTTP `/member-quotas`、`MemberBudgetQuota` 等对外契约）
+- [ ] 前端 TypeScript 命名与后端 JSON 字段对齐（`MemberBudgetQuota` 等 tag 不变）
 
-**验收：** 代码库无 `Quota` 业务命名残留（NewAPI 厂商字面量除外）。
+**验收：** Go 业务层无 `groupquota`/`memberquota` 包名；NewAPI 厂商字面量（`RemainQuota` 等）保留。
 
-### Phase 1 — 低风险 dedup（1–2 周）
+### Phase 1 — 低风险 dedup（已完成）
 
-| # | 任务 | 文件 |
+| # | 任务 | 状态 |
 |---|------|------|
-| 1 | 提取 `pkg/budget/remain.go`，`ComputeRemainBudget` 单一实现 | `remain_budget.go`、`precheck.go` |
-| 2 | 提取 `LoadBudgetContext(ctx, st, clk)` 减少重复 snapshot 加载 | `pkg/budget/context.go` |
-| 3 | rebalance enqueue 统一走 `app.EnqueueRebalanceCompany` | `usage/side_effects.go`、`budget/service.go` |
-| 4 | authz revision middleware 只注入 `CompanyRepository` | `http/router.go`、`http/deps/` |
-| 5 | dashboard `UsageSeries` 参数校验下沉 service | `handler/dashboard/`、`domain/dashboard/series.go` |
+| 1 | `pkg/budget/remain.go` + Precheck 委托 `ComputeRemainBudget` | 完成 |
+| 2 | `pkg/budget/context.go`（`LoadBudgetContext`） | 完成 |
+| 3 | `app.EnqueueRebalanceAxis` 注入 Ingest / Budget | 完成 |
+| 4 | authz revision 显式注入 `CompanyRepository` | 完成 |
+| 5 | dashboard `UsageSeriesFromQuery` 校验下沉 service | 完成 |
 
-**验收：** Precheck 与 remain_budget 测试共享同一 golden case；grep `EnqueueRebalance` 无 inline 字面量。
+**验收：** `tests/pkg/budget/remain_test.go` golden case；`internal/domain` 无裸 `AsyncJobs().EnqueueRebalance`；`make test-unit` 全绿。
 
 ### Phase 2 — 文件级模块化（2–3 周）
 
-| # | 任务 | 文件 |
-|---|------|------|
-| 6 | 拆分 `budget/service.go` | → `tree.go`、`groups.go`、`alerts.go`、`approvals.go` |
-| 7 | 拆分 `org/structure/member.go` | → `member_delete.go` |
-| 8 | 拆分 `postgres/keys_repo.go` | → crud + query |
-| 9 | 拆分 `postgres/budget_repo.go` | → crud + query |
-| 10 | `seed/apply/tables.go` 按域拆 | `seed/apply/budget.go` 等 |
+| # | 任务 | 文件 | 状态 |
+|---|------|------|------|
+| 6 | 拆分 `budget/service.go` | → `tree.go`、`groups.go`、`policy.go`、`alerts.go`、`approvals.go` | 完成 |
+| 7 | 拆分 `org/structure/member.go` | → `member_delete.go` | 完成 |
+| 8 | 拆分 `postgres/keys_repo.go` | → `keys_repo_crud.go` + `keys_repo_query.go` | 完成 |
+| 9 | 拆分 `postgres/budget_repo.go` | → `budget_repo_groups.go`、`budget_repo_alerts.go`、`budget_repo_approvals.go` | 完成 |
+| 10 | `seed/apply/tables.go` 按域拆 | → `seed_core.go`、`seed_org.go`、`seed_budget_apply.go`、`seed_keys_apply.go` | 完成 |
 
 **验收：** 无 domain 文件 > 400 行；public `Service` 接口签名不变；`make test-unit` 全绿。
 

@@ -62,6 +62,7 @@ type ConsumptionWriter interface {
 	Ledger() LedgerRepository
 	Usage() UsageRepository
 	BudgetSnapshots() BudgetSnapshotRepository
+	Budget() BudgetRepository
 	Org() OrgRepository
 	Keys() KeysRepository
 	PlatformKeyMappings() PlatformKeyMappingRepository

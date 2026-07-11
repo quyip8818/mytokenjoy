@@ -18,9 +18,10 @@ import (
 const minEstimatePoint = 0.01 * float64(common.DefaultPointsPerUnit)
 
 type PrecheckInput struct {
-	Mapping *store.PlatformKeyMapping
-	Company *store.Company
-	Model   string
+	Mapping        *store.PlatformKeyMapping
+	Company        *store.Company
+	Model          string
+	SkipModelCheck bool
 }
 
 type Prechecker interface {
@@ -30,8 +31,8 @@ type Prechecker interface {
 type PrecheckService struct {
 	snapshots  store.BudgetSnapshotRepository
 	orgNodes   store.OrgNodeRepository
-	budget     store.BudgetRepository
 	org        store.OrgRepository
+	budget     store.BudgetRepository
 	keys       store.KeysRepository
 	models     store.ModelsRepository
 	wallet     domaincompany.WalletService
@@ -64,7 +65,7 @@ func NewPrecheckService(
 }
 
 func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
-	if in.Model == "" {
+	if !in.SkipModelCheck && in.Model == "" {
 		return fmt.Errorf("model field is required")
 	}
 	if domaincompany.IsGatewayBlocked(in.Company.Status) {
@@ -73,25 +74,7 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 	if err := p.checkBalancePoint(in.Company); err != nil {
 		return err
 	}
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, p.orgNodes, in.Mapping.DepartmentID, p.clock)
-	if err != nil {
-		return err
-	}
-	periodKey := open.String()
-	if err := p.checkDepartmentBudget(ctx, in.Mapping, periodKey); err != nil {
-		return err
-	}
-	if in.Mapping.BudgetGroupID != nil {
-		if err := p.checkBudgetGroup(ctx, *in.Mapping.BudgetGroupID, periodKey); err != nil {
-			return err
-		}
-	}
-	if in.Mapping.MemberID != nil {
-		if err := p.checkMemberBudget(ctx, *in.Mapping.MemberID, periodKey); err != nil {
-			return err
-		}
-	}
-	if err := p.checkPlatformKeyBudget(ctx, in.Mapping.PlatformKeyID, periodKey); err != nil {
+	if err := p.checkBudgetRemain(ctx, in.Mapping); err != nil {
 		return err
 	}
 	if err := p.checkNewAPIKeyRemainQuota(in.Mapping); err != nil {
@@ -103,12 +86,37 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 	if err := p.checkWalletSyncLag(ctx, in.Company); err != nil {
 		return err
 	}
+	if in.SkipModelCheck {
+		return nil
+	}
 	return p.checkPlatformKey(ctx, in.Mapping, in.Model)
 }
 
 func (p *PrecheckService) checkBalancePoint(company *store.Company) error {
 	if company.BalancePoint < minEstimatePoint {
 		return fmt.Errorf("insufficient wallet balance")
+	}
+	return nil
+}
+
+func (p *PrecheckService) checkBudgetRemain(ctx context.Context, mapping *store.PlatformKeyMapping) error {
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, p.orgNodes, mapping.DepartmentID, p.clock)
+	if err != nil {
+		return err
+	}
+	remain, err := pkgbudget.RemainForMapping(ctx, pkgbudget.MappingStores{
+		Snapshots: p.snapshots,
+		OrgNodes:  p.orgNodes,
+		Org:       p.org,
+		Budget:    p.budget,
+		Keys:      p.keys,
+		Clock:     p.clock,
+	}, mapping, open.String())
+	if err != nil {
+		return err
+	}
+	if remain < minEstimatePoint {
+		return fmt.Errorf("budget exceeded")
 	}
 	return nil
 }
@@ -137,7 +145,14 @@ func (p *PrecheckService) checkWalletSyncLag(ctx context.Context, company *store
 		return nil
 	}
 	pending, err := p.walletSync.HasPendingWalletSync(ctx, company.ID)
-	if err != nil || !pending {
+	if err != nil {
+		return domain.NewDomainErrorWithRetryAfter(
+			domain.StatusServiceUnavailable,
+			"wallet sync in progress",
+			common.WalletSyncRetryAfterSecs,
+		)
+	}
+	if !pending {
 		return nil
 	}
 	quota, err := p.wallet.AvailableQuota(ctx, *company.NewAPIWalletUserID)
@@ -160,81 +175,6 @@ func (p *PrecheckService) checkWalletSyncLag(ctx context.Context, company *store
 			"wallet sync in progress",
 			common.WalletSyncRetryAfterSecs,
 		)
-	}
-	return nil
-}
-
-func (p *PrecheckService) checkDepartmentBudget(ctx context.Context, mapping *store.PlatformKeyMapping, periodKey string) error {
-	if mapping.DepartmentID == "" {
-		return fmt.Errorf("department not found")
-	}
-	limit, found, err := p.orgNodes.GetNodeBudget(ctx, mapping.DepartmentID)
-	if err != nil {
-		return err
-	}
-	if !found || limit <= 0 {
-		return fmt.Errorf("budget exceeded")
-	}
-	consumed, _, err := p.snapshots.GetConsumed(ctx, store.SnapshotAxisOrgNode, mapping.DepartmentID, periodKey)
-	if err != nil {
-		return err
-	}
-	if consumed+minEstimatePoint > limit {
-		return fmt.Errorf("budget exceeded")
-	}
-	return nil
-}
-
-func (p *PrecheckService) checkBudgetGroup(ctx context.Context, groupID, periodKey string) error {
-	limit, _, found, err := p.budget.GetGroupBudget(ctx, groupID)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return nil
-	}
-	consumed, _, err := p.snapshots.GetConsumed(ctx, store.SnapshotAxisBudgetGroup, groupID, periodKey)
-	if err != nil {
-		return err
-	}
-	if consumed+minEstimatePoint > limit {
-		return fmt.Errorf("budget exceeded")
-	}
-	return nil
-}
-
-func (p *PrecheckService) checkMemberBudget(ctx context.Context, memberID, periodKey string) error {
-	quota, found, err := p.org.MemberPersonalBudget(ctx, memberID)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return nil
-	}
-	consumed, _, err := p.snapshots.GetConsumed(ctx, store.SnapshotAxisMember, memberID, periodKey)
-	if err != nil {
-		return err
-	}
-	if consumed+minEstimatePoint > quota {
-		return fmt.Errorf("budget exceeded")
-	}
-	return nil
-}
-
-func (p *PrecheckService) checkPlatformKeyBudget(ctx context.Context, keyID, periodKey string) error {
-	key, err := p.keys.PlatformKeyByID(ctx, keyID)
-	if err != nil {
-		return err
-	}
-	if key == nil || key.Budget <= 0 {
-		return nil
-	}
-	consumed, _, err := p.snapshots.GetConsumed(ctx, store.SnapshotAxisPlatformKey, keyID, periodKey)
-	if err != nil {
-		return err
-	}
-	if consumed+minEstimatePoint > key.Budget {
-		return fmt.Errorf("budget exceeded")
 	}
 	return nil
 }

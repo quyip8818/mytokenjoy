@@ -14,12 +14,13 @@ import (
 )
 
 type IngestService struct {
-	cfg               config.Config
-	store             store.Store
-	logStore          store.LogStore
-	notifier          notification.Notifier
-	logger            *slog.Logger
-	enqueueWalletSync func(ctx context.Context, companyID int64) error
+	cfg                  config.Config
+	store                store.Store
+	logStore             store.LogStore
+	notifier             notification.Notifier
+	logger               *slog.Logger
+	enqueueWalletSync    func(ctx context.Context, companyID int64) error
+	enqueueRebalanceAxis func(ctx context.Context, axisKind, axisID string) error
 }
 
 func NewIngestService(
@@ -29,13 +30,14 @@ func NewIngestService(
 	notifier notification.Notifier,
 	logger *slog.Logger,
 	enqueueWalletSync func(ctx context.Context, companyID int64) error,
+	enqueueRebalanceAxis func(ctx context.Context, axisKind, axisID string) error,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
 	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, notifier: notifier, logger: logger,
-		enqueueWalletSync: enqueueWalletSync,
+		enqueueWalletSync: enqueueWalletSync, enqueueRebalanceAxis: enqueueRebalanceAxis,
 	}
 }
 
@@ -81,10 +83,16 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	entry.PeriodKey = occurrence.String()
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
+		if err := st.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
 		if exists, err := st.Ledger().ExistsIdempotency(ctx, entry.IdempotencyKey); err != nil {
 			return err
 		} else if exists {
 			return nil
+		}
+		if err := enforceBudgetCap(ctx, s.cfg, st, mapping, entry.Amount, open.String()); err != nil {
+			return err
 		}
 		segs, err := AllocateConsumptionLots(ctx, st, company.CompanyID(ctx), entry.Amount)
 		if err != nil {
@@ -98,7 +106,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if err := Apply(ctx, st, entry, open); err != nil {
 			return err
 		}
-		if err := enqueueSideEffects(ctx, st, entry); err != nil {
+		if err := enqueueSideEffects(ctx, st, entry, s.enqueueRebalanceAxis); err != nil {
 			return err
 		}
 		if s.enqueueWalletSync != nil {

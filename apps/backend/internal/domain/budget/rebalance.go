@@ -6,8 +6,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -65,11 +63,11 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 }
 
 func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.PlatformKeyMapping) error {
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return err
 	}
-	key, ok := findPlatformKeyByID(platformKeys, mapping.PlatformKeyID)
+	key, ok := budgetCtx.FindPlatformKey(mapping.PlatformKeyID)
 	if !ok || key.Status != "active" {
 		return nil
 	}
@@ -90,23 +88,10 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 	if err != nil {
 		return err
 	}
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return err
-	}
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
-	if err != nil {
-		return err
-	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
-	if err != nil {
-		return err
-	}
-
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	allocated := newapi.ToNewAPIUnits(
-		newapisync.ComputeRemainBudget(key, tree, members, platformKeys, groups, mapping.DepartmentID),
+		budgetCtx.ComputeRemain(key, mapping.DepartmentID, nil, nil),
 		models,
 		effectiveIDs,
 	)
@@ -172,15 +157,6 @@ func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.Pl
 		return allocated, nil
 	}
 	return available, nil
-}
-
-func findPlatformKeyByID(platformKeys []types.PlatformKey, id string) (types.PlatformKey, bool) {
-	for _, key := range platformKeys {
-		if key.ID == id {
-			return key, true
-		}
-	}
-	return types.PlatformKey{}, false
 }
 
 var _ Rebalancer = (*RebalanceService)(nil)

@@ -49,18 +49,15 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	if !l.Enabled() {
 		return "", domain.ServiceUnavailable("newapi not enabled")
 	}
-	platformKeys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
 	if err != nil {
 		return "", err
 	}
-	key, ok := findPlatformKey(platformKeys, platformKeyID)
+	key, ok := budgetCtx.FindPlatformKey(platformKeyID)
 	if !ok {
 		return "", fmt.Errorf("platform key not found")
 	}
-	members, err := l.store.Org().Members(ctx)
-	if err != nil {
-		return "", err
-	}
+	members := budgetCtx.Members
 	departments, err := common.LoadDepartments(ctx, l.store.Org().Nodes())
 	if err != nil {
 		return "", err
@@ -73,15 +70,6 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	if err != nil {
 		return "", err
 	}
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.cfg.Clock())
-	if err != nil {
-		return "", err
-	}
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, l.store.BudgetSnapshots(), l.store.Org().Nodes(), l.cfg.Clock())
-	if err != nil {
-		return "", err
-	}
-
 	departmentID := ""
 	if key.MemberID != nil {
 		if member, found := org.FindMemberByID(members, *key.MemberID); found {
@@ -89,7 +77,7 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 		}
 	}
 	if departmentID == "" && key.BudgetGroupID != nil {
-		for _, group := range groups {
+		for _, group := range budgetCtx.Groups {
 			if group.ID == *key.BudgetGroupID && len(group.DepartmentIDs) > 0 {
 				departmentID = group.DepartmentIDs[0]
 				break
@@ -103,7 +91,7 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := ComputeRemainBudget(key, tree, members, platformKeys, groups, departmentID)
+	remainCNY := budgetCtx.ComputeRemain(key, departmentID, nil, nil)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)

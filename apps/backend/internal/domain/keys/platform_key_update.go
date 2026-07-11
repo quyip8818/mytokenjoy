@@ -14,10 +14,12 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
-	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
+	platformKeys := budgetCtx.PlatformKeys
+	groups := budgetCtx.Groups
 	idx := -1
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
@@ -30,10 +32,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	}
 	existing := platformKeys[idx]
 	previous := existing
-	members, err := s.store.Org().Members(ctx)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
+	members := budgetCtx.Members
 	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.PlatformKey{}, err
@@ -43,10 +42,6 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		return types.PlatformKey{}, err
 	}
 	models, err := s.store.Models().Models(ctx)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
-	groups, err := budget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}

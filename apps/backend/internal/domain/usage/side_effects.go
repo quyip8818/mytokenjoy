@@ -15,18 +15,25 @@ type overrunPayload struct {
 	PlatformKeyID string  `json:"platformKeyId"`
 }
 
-func enqueueSideEffects(ctx context.Context, st store.ConsumptionWriter, entry types.UsageLedgerEntry) error {
-	if entry.MemberID != nil {
-		if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {
+func enqueueSideEffects(
+	ctx context.Context,
+	st store.ConsumptionWriter,
+	entry types.UsageLedgerEntry,
+	enqueueRebalance func(context.Context, string, string) error,
+) error {
+	if enqueueRebalance != nil {
+		if entry.MemberID != nil {
+			if err := enqueueRebalance(ctx, store.RebalanceAxisMember, *entry.MemberID); err != nil {
+				return err
+			}
+		}
+		if err := enqueueRebalance(ctx, store.RebalanceAxisDepartment, entry.DepartmentID); err != nil {
 			return err
 		}
-	}
-	if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisDepartment, entry.DepartmentID); err != nil {
-		return err
-	}
-	if entry.BudgetGroupID != nil {
-		if err := st.AsyncJobs().EnqueueRebalance(ctx, store.RebalanceAxisBudgetGroup, *entry.BudgetGroupID); err != nil {
-			return err
+		if entry.BudgetGroupID != nil {
+			if err := enqueueRebalance(ctx, store.RebalanceAxisBudgetGroup, *entry.BudgetGroupID); err != nil {
+				return err
+			}
 		}
 	}
 

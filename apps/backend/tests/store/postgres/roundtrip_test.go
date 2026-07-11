@@ -75,7 +75,7 @@ func TestKeysRoundTrip(t *testing.T) {
 	for _, key := range got {
 		if key.ID == "pk-roundtrip" {
 			found = true
-			if key.Name != "RoundTrip Key" || key.Provider != "openai" {
+			if key.Name != "RoundTrip Key" || key.Provider != "openai" || key.SecretKey != "secret" {
 				t.Fatalf("unexpected key: %+v", key)
 			}
 		}
