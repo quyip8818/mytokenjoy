@@ -11,6 +11,7 @@ type txStore struct {
 	domain          domainRepos
 	ledger          store.LedgerRepository
 	mappings        store.PlatformKeyMappingRepository
+	gatewayPrecheck store.GatewayPrecheckRepository
 	asyncJobs       store.AsyncJobsRepository
 	budgetSnapshots store.BudgetSnapshotRepository
 	usage           store.UsageRepository
@@ -34,6 +35,10 @@ func (s *txStore) BudgetSnapshots() store.BudgetSnapshotRepository {
 
 func (s *txStore) PlatformKeyMappings() store.PlatformKeyMappingRepository {
 	return s.mappings
+}
+
+func (s *txStore) GatewayPrecheck() store.GatewayPrecheckRepository {
+	return s.gatewayPrecheck
 }
 
 func (s *txStore) AsyncJobs() store.AsyncJobsRepository {
@@ -91,6 +96,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 		domain:          newDomainRepoSet(tx, s.tokenJoyCompanyID, s.credentialKey),
 		ledger:          &pgLedgerRepo{db: tx},
 		mappings:        newPlatformKeyMappingRepo(tx),
+		gatewayPrecheck: newGatewayPrecheckRepo(tx),
 		asyncJobs:       newAsyncJobsRepo(tx),
 		budgetSnapshots: newBudgetSnapshotRepo(tx),
 		usage:           &usageRepo{db: tx},

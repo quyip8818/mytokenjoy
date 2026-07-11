@@ -16,8 +16,7 @@ import (
 func TestGatewayCheckOrder_InvalidKey(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		Budget:      1000,
-		WalletQuota: 999999,
+		Budget: 1000,
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
@@ -33,8 +32,7 @@ func TestGatewayCheckOrder_InvalidKey(t *testing.T) {
 func TestGatewayCheckOrder_DisabledKey(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		Budget:      1000,
-		WalletQuota: 999999,
+		Budget: 1000,
 	})
 	ctx := testutil.Ctx()
 
@@ -73,26 +71,22 @@ func TestGatewayCheckOrder_DisabledKey(t *testing.T) {
 func TestGatewayCheckOrder_ModelNotInWhitelist(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		Budget:      1000,
-		WalletQuota: 999999,
+		Budget: 1000,
 	})
 
-	// Request with unknown model
-	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
-	req.Header.Set("Authorization", "Bearer "+scenario.FullKey)
-	req.Header.Set("Content-Type", "application/json")
-	// Use a model not in any whitelist
-	body := []byte(`{"model":"unknown-model-xyz"}`)
-	req = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", httptest.NewRequest(http.MethodPost, "/", nil).Body)
-	_ = body // We'll use the GatewayRequest helper but with wrong model
-	// The precheck test already covers this - see TestPrecheckRejectsModelNotInWhitelist
-	// Here we verify via the gateway HTTP handler
+	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "unknown-model-xyz")
+	w := httptest.NewRecorder()
+	scenario.Gateway.ServeHTTP(w, req)
+
+	if w.Code == http.StatusOK {
+		t.Errorf("model not in whitelist should not pass gateway, got %d", w.Code)
+	}
 }
 
 func TestGatewayCheckOrder_BudgetExhausted(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		Budget:   0, // Zero budget
+		Budget:   0,
 		Consumed: 0,
 	})
 
@@ -108,7 +102,6 @@ func TestGatewayCheckOrder_BudgetExhausted(t *testing.T) {
 func TestGatewayCheckOrder_SuccessfulProxy(t *testing.T) {
 	t.Parallel()
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify the authorization header is forwarded
 		if r.Header.Get("Authorization") == "" {
 			t.Error("expected Authorization header to be forwarded")
 		}
@@ -119,7 +112,6 @@ func TestGatewayCheckOrder_SuccessfulProxy(t *testing.T) {
 
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		Budget:          1000,
-		WalletQuota:     999999,
 		ProxyBackendURL: backend.URL,
 	})
 

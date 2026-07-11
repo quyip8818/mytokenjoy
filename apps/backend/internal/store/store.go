@@ -49,6 +49,7 @@ type Store interface {
 	PlatformKeyMappings() PlatformKeyMappingRepository
 	AsyncJobs() AsyncJobsRepository
 	BudgetSnapshots() BudgetSnapshotRepository
+	GatewayPrecheck() GatewayPrecheckRepository
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository

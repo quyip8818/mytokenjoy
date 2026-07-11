@@ -208,7 +208,7 @@ sequenceDiagram
   participant ING as 入账
 
   C->>GW: sk- + 请求
-  GW->>GW: 双轴 + 四轴预检
+  GW->>GW: LoadPrecheckContext + Evaluate
   alt 失败
     GW-->>C: 4xx
   end
@@ -224,18 +224,16 @@ sequenceDiagram
   W->>W: 超限则 Disable Key
 ```
 
-**Gateway 预检（同步）** — 全部通过才代理（单位 point）：
+**Gateway 预检（同步）** — 全部通过才代理（单位 point）；1× `LoadPrecheckContext` + 纯内存 `Evaluate`：
 
 | 检查 | 数据 |
 | --- | --- |
-| 企业 active | `companies` |
+| 企业 active | `companies.status` |
 | 钱包 ≥ 预估 | `balance_point` |
-| 部门未超 | `budget_snapshots`（org_node）+ `org_nodes.budget` |
-| 成员未超 | `budget_snapshots`（member）+ `personal_budget` |
-| Key 未超 | `budget_snapshots`（platform_key）+ Key `budget` |
-| 预算组未超 | `budget_snapshots`（budget_group）+ 组 `budget` |
-| NewAPIKey / 企业通道配额 | NewAPI；`wallet_sync` 滞后超阈时拒代理 |
-| 模型与 Key 状态 | 白名单、`platform_keys` |
+| 部门 / Key / 成员 / 组未超 | 四轴 snapshots + limit（SQL 一次带出） |
+| 模型与 Key 状态 | allowlist、`platform_keys.status` |
+
+NewAPI quota 与 `wallet_sync` **不参与**热路径预检（Phase 1）；执行面一致性见 [架构简化方案.md](./架构简化方案.md) Phase 3。
 
 ---
 

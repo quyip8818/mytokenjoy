@@ -53,7 +53,6 @@ func TestGatewayProxiesValidRequest(t *testing.T) {
 
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		Budget:          1000,
-		WalletQuota:     999999,
 		ProxyBackendURL: backend.URL,
 	})
 
@@ -77,5 +76,33 @@ func TestGatewayRejectsSuspendedCompany(t *testing.T) {
 	scenario.Gateway.ServeHTTP(w, req)
 	if w.Code == http.StatusOK {
 		t.Error("expected non-200 for suspended company")
+	}
+}
+
+func TestGatewayAllowsModelsListing(t *testing.T) {
+	t.Parallel()
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
+	req := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	req.Header.Set("Authorization", "Bearer "+scenario.FullKey)
+
+	rec := httptest.NewRecorder()
+	scenario.Gateway.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /v1/models, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestGatewaySingleStoreCall(t *testing.T) {
+	t.Parallel()
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
+	gw, counter := gatewaytf.BuildGatewayWithCountingPrecheck(t, scenario)
+
+	rec := httptest.NewRecorder()
+	gw.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if counter.Calls() != 1 {
+		t.Fatalf("expected exactly 1 LoadPrecheckContext call, got %d", counter.Calls())
 	}
 }

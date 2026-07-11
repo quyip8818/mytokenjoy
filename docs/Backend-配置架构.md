@@ -110,7 +110,7 @@ func NowUTC(clk Clock) time.Time
 | `config.Config` | `Clock()` 解析 `CLOCK_ANCHOR` |
 | `domain/dashboard`、`memberanalytics` | 构造器内 `clock: cfg.Clock()` |
 | `domain/budget`、`keys`、`newapisync` | `Load*(..., cfg.Clock())` |
-| `domain/gateway/precheck` | wire 传 `cfg.Clock()`；`OpenDepartmentPeriod(..., clk)` |
+| `domain/gateway/precheck` | `GatewayPrecheck.LoadPrecheckContext`；SQL 内按 `org_nodes.period` + `Clock` 算 `period_key` |
 | `domain/usage/ingest` | `OccurrenceDepartmentPeriod(..., OccurredAt)` + `OpenDepartmentPeriod(..., cfg.Clock())` → `Apply` |
 | `pkg/budget` | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock` |
 | `org/core` `BudgetPeriod()` | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析 |
@@ -169,7 +169,7 @@ func NowUTC(clk Clock) time.Time
 | 位置 | 约定 |
 | --- | --- |
 | `wire_domain_services` / `wiring_domain` | 构造器只收 `cfg`；账期路径内部 `cfg.Clock()` |
-| `wire_gateway` | **仅** precheck 传 `cfg.Clock()` |
+| `wire_gateway` | `GatewayPrecheck()` + `cfg.Clock()` → `PrecheckService`（无 `WalletService` / `AsyncJobs`） |
 | `wiring_infra` | `newapisync.New(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
 
 ---

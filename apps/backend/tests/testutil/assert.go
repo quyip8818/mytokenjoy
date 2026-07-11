@@ -21,3 +21,7 @@ func AssertDomainStatus(t *testing.T, err error, status int) {
 func StrPtr(v string) *string {
 	return &v
 }
+
+func Float64Ptr(v float64) *float64 {
+	return &v
+}

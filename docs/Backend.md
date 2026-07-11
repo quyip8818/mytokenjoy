@@ -63,7 +63,7 @@ NewAPI 边界与 DI 详见 [Backend-架构.md](./Backend-架构.md) §0、§7。
 | 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Gateway 运行时仍用 `callType` |
 | NewAPIKey `remain_quota` | 分配视图；`rebalance` 按 Postgres `balance_point` 封顶 |
 | 双轴                 | 钱包=预付 point（lot）；部门 budget=组织内 point 配额 |
-| Gateway              | 预检（Postgres 优先）后透传 NewAPI         |
+| Gateway              | 1× `LoadPrecheckContext` + `Evaluate` 后透传 NewAPI |
 
 计费双轴与 Ingest 详见 [Backend-预算.md](./Backend-预算.md)。
 
@@ -273,7 +273,7 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 | `testutil/org`    | Org Service、Feishu fixture、预算树持久化                         |
 | `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                            |
 | `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL           |
-| `testutil/gateway`  | Gateway 场景、StubWallet、Mapping                                 |
+| `testutil/gateway`  | Gateway 场景、`ConfigureGatewayStore`、`BuildGatewayScenario` |
 | `testutil/worker` | Runner 栈、Outbox 断言                                            |
 | `testutil/pg`     | `test_template`、按测 `CloneSchema`、`OpenCloned` / `OpenSlow`    |
 

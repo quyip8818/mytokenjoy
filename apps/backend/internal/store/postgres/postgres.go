@@ -17,6 +17,7 @@ type Store struct {
 	logPool           *pgxpool.Pool
 	logTables         logTables
 	mappings          *platformKeyMappingRepo
+	gatewayPrecheck   *gatewayPrecheckRepo
 	asyncJobs         *asyncJobsRepo
 	logs              store.LogStore
 	domain            domainRepos
@@ -96,6 +97,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		}
 	}
 	s.mappings = newPlatformKeyMappingRepo(pool)
+	s.gatewayPrecheck = newGatewayPrecheckRepo(pool)
 	s.asyncJobs = newAsyncJobsRepo(pool)
 	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID, s.credentialKey)
 	return s, nil
@@ -149,6 +151,7 @@ func (s *Store) BudgetSnapshots() store.BudgetSnapshotRepository {
 }
 
 func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }
+func (s *Store) GatewayPrecheck() store.GatewayPrecheckRepository       { return s.gatewayPrecheck }
 func (s *Store) AsyncJobs() store.AsyncJobsRepository                    { return s.asyncJobs }
 func (s *Store) Logs() store.LogStore                                    { return s.logs }
 

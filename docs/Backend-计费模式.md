@@ -129,7 +129,7 @@ flowchart TB
 | 组织 consumed | `budget_snapshots.consumed`（point） | — |
 | 看板 cost | `usage_buckets.cost`（point） | 展示币按需聚合 ledger |
 | Token 分配 | — | NewAPI `remain_quota`；rebalance 按 `balance_point` 封顶 |
-| Gateway 挡单 | Postgres `balance_point` + 组织预算 | NewAPI wallet / token 双检 |
+| Gateway 挡单 | Postgres `balance_point` + 组织预算（`LoadPrecheckContext` + `Evaluate`） | NewAPI 同步（冷路径，不挡预检） |
 | NewAPI 企业 wallet | — | `wallet_sync` 从 Postgres 派生 |
 
 **不变量：**
@@ -238,23 +238,21 @@ flowchart TD
 - **禁止**因 lot 不足让 Webhook 永久失败；不足走 overdraft 并应告警。
 - `gift` / `overdraft` 消耗时 `display_amount = 0`，不参与钱包展示闭合。
 
-### 4.4 Gateway 预检
+### 4.4 Gateway 预检（Phase 1：纯 Postgres + 纯内存 Evaluate）
 
-全部比较单位为 **point**（展示币不参与挡单）：
+全部比较单位为 **point**（展示币不参与挡单）。**不读 NewAPI**；`wallet_sync` 滞后不再挡单（漂移由异步 PlatformSync 消化，见 [架构简化方案.md](./架构简化方案.md) Phase 3）。
 
 | # | 检查 | 数据源 |
 | --- | --- | --- |
-| 1 | 企业 active | `companies` |
-| 2 | `balance_point ≥ estimate` | Postgres |
-| 3 | 组织 `consumed + estimate ≤ limit` | snapshots + limit |
-| 4 | NewAPIKey `remain_quota > 0` | mapping 缓存 |
-| 5 | NewAPI `users.quota` 折算 point `≥ estimate` | NewAPI（通道硬顶） |
-| 6 | 白名单 / Key 状态 | allowlist + keys |
-| 7 | pending `wallet_sync` 且漂移 `> ε` | async_jobs + 双读 |
-
-第 5、7 项防止 **Postgres 已放行但 NewAPI 拒单或漂移未收敛**。第 7 项返回 `503` + `Retry-After`（`WalletSyncRetryAfterSecs`）。
+| 1 | 企业 active | `LoadPrecheckContext` → `companies.status` |
+| 2 | `balance_point ≥ estimate` | 同左（投影列 O(1)） |
+| 3 | 组织预算 min 轴（dept / key / member / group） | snapshots + limit，一次 SQL 带出 |
+| 4 | Key `status = active` | `platform_keys` |
+| 5 | 模型白名单（有配置时） | `model_allowlist` + `models.type` |
 
 当前 `estimate` = 固定 `0.01 × PPU`（10 point），非按请求模型动态估价。
+
+实现：`store.GatewayPrecheck.LoadPrecheckContext` → `gateway.Evaluate`。
 
 ### 4.5 wallet_sync：双扣与校准
 
@@ -277,13 +275,13 @@ flowchart LR
     S --> W
     W --> NA[NewAPI users.quota]
     RC[定时 ReconcileWalletDrift] --> Q
-    GW[Gateway 漂移拒单] -.->|兜底| Q
 ```
 
 1. ingest / 充值后 debounce 入队（`WalletSyncDebounceSecs = 5`）。
 2. `target = ToQuotaUnits(balance_point, modelPriceUpper)` → `TopUp(delta)`。
 3. 定时对账：`|FromQuotaUnits(na) − balance_point| > ε` → 入队 sync。
-4. pending + 漂移 > ε 时 Gateway 拒单。
+
+> Gateway 预检**不再**因 pending sync 或漂移拒单（Phase 1）；仅读 `balance_point` 投影。
 
 ---
 
@@ -425,7 +423,7 @@ domain/usage/
   ingest.go           事务：分配 lot → InsertSegments → 投影 → enqueue sync
 
 domain/gateway/
-  precheck.go         balance_point + 预算 + NewAPI 双检 + sync 滞后
+  precheck.go         LoadPrecheckContext + Evaluate（balance_point + 预算 + allowlist）
   gateway_service.go  Retry-After 透传
 
 domain/budget/
@@ -521,7 +519,7 @@ go test -tags=testhook ./tests/store/postgres/... -run WalletSync
 | 风险 | 缓解 | 严重度 |
 | --- | --- | --- |
 | 预检与 ingest 竞态 | company 行锁；短窗 overdraft | 低 |
-| sync 取整差 | Gateway 双检 + ε 对账 + debounce | 低 |
+| sync 取整差 | ε 对账 + debounce + PlatformSync（Phase 3） | 低 |
 | 预算展示 ≠ 钱包财务 | 产品文案区分；财务走 ledger | 中（预期） |
 | 固定 minEstimate | 挡住极端零余额；大请求可能预检漏估 | 低 |
 | float64 运算 | Postgres `NUMERIC` 落库；大额可换 decimal | 低 |

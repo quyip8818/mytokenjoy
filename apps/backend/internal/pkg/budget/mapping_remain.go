@@ -18,7 +18,7 @@ type MappingStores struct {
 	Clock     clock.Clock
 }
 
-// RemainForMapping returns effective remaining budget for gateway precheck and ingest cap checks.
+// RemainForMapping returns effective remaining budget for ingest cap checks.
 // periodKey is the open budget period for the mapping's department.
 func RemainForMapping(
 	ctx context.Context,

@@ -16,7 +16,4 @@ const WalletSyncDriftEpsilon = 0.01 * float64(DefaultPointsPerUnit)
 // WalletSyncDebounceSecs delays wallet_sync execution after ingest/recharge bursts.
 const WalletSyncDebounceSecs = 5
 
-// WalletSyncRetryAfterSecs is returned when gateway rejects due to pending wallet_sync lag.
-const WalletSyncRetryAfterSecs = WalletSyncDebounceSecs
-
 const NewAPIGroupPrefix = "dept-"

@@ -6,19 +6,9 @@ import (
 )
 
 func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {
-	return domaingateway.NewPrecheckService(
-		i.store.BudgetSnapshots(),
-		i.store.Org().Nodes(),
-		i.store.Budget(),
-		i.store.Org(),
-		i.store.Keys(),
-		i.store.Models(),
-		i.wallet,
-		i.store.AsyncJobs(),
-		cfg.Clock(),
-	)
+	return domaingateway.NewPrecheckService(i.store.GatewayPrecheck(), cfg.Clock())
 }
 
 func wireGatewayService(cfg config.Config, i infra) (domaingateway.GatewayService, error) {
-	return domaingateway.NewGatewayService(cfg, i.store.PlatformKeyMappings(), i.store.Company(), wirePrecheckService(cfg, i))
+	return domaingateway.NewGatewayService(cfg, wirePrecheckService(cfg, i))
 }

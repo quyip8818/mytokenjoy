@@ -2,10 +2,8 @@ package gateway
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -13,38 +11,21 @@ import (
 	"strings"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain"
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 const gatewayMaxBodyBytes = 4 << 20
-
-type PlatformKeyMappingReader interface {
-	GetMappingByKeyHash(ctx context.Context, keyHash string) (*store.PlatformKeyMapping, error)
-}
-
-type CompanyReader interface {
-	GetByID(ctx context.Context, companyID int64) (*store.Company, error)
-}
 
 type GatewayService interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 type gatewayService struct {
-	mappings  PlatformKeyMappingReader
-	companies CompanyReader
-	precheck  Prechecker
-	proxy     *httputil.ReverseProxy
+	precheck Prechecker
+	proxy    *httputil.ReverseProxy
 }
 
-func NewGatewayService(
-	cfg config.Config,
-	mappings PlatformKeyMappingReader,
-	companies CompanyReader,
-	precheck Prechecker,
-) (GatewayService, error) {
+func NewGatewayService(cfg config.Config, precheck Prechecker) (GatewayService, error) {
 	target, err := url.Parse(strings.TrimRight(cfg.NewAPIBaseURL, "/"))
 	if err != nil {
 		return nil, err
@@ -57,10 +38,8 @@ func NewGatewayService(
 		req.Host = target.Host
 	}
 	return &gatewayService{
-		mappings:  mappings,
-		companies: companies,
-		precheck:  precheck,
-		proxy:     proxy,
+		precheck: precheck,
+		proxy:    proxy,
 	}, nil
 }
 
@@ -75,24 +54,6 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	platformKeySecret := strings.TrimPrefix(auth, "Bearer ")
-	mapping, err := g.mappings.GetMappingByKeyHash(r.Context(), store.HashPlatformKey(platformKeySecret))
-	if err != nil || mapping == nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-	ctx := domaincompany.WithContext(r.Context(), domaincompany.Context{CompanyID: mapping.CompanyID})
-	company, err := g.companies.GetByID(ctx, mapping.CompanyID)
-	if err != nil || company == nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-	if company.NewAPIWalletUserID != nil {
-		ctx = domaincompany.WithContext(ctx, domaincompany.Context{
-			CompanyID:          mapping.CompanyID,
-			NewAPIWalletUserID: *company.NewAPIWalletUserID,
-			Status:             company.Status,
-		})
-	}
 	if r.Body != nil {
 		r.Body = http.MaxBytesReader(w, r.Body, gatewayMaxBodyBytes)
 	}
@@ -106,23 +67,12 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "read request body", http.StatusForbidden)
 		return
 	}
-	if err := g.precheck.Run(ctx, PrecheckInput{
-		Mapping:        mapping,
-		Company:        company,
-		Model:          parseRequestModel(body),
-		SkipModelCheck: r.URL.Path == "/v1/models",
-	}); err != nil {
-		if domainErr, ok := err.(*domain.DomainError); ok {
-			if domainErr.RetryAfter != nil {
-				w.Header().Set("Retry-After", fmt.Sprintf("%d", *domainErr.RetryAfter))
-			}
-			status := domainErr.Status
-			if status == 0 {
-				status = http.StatusForbidden
-			}
-			http.Error(w, domainErr.Message, status)
-			return
-		}
+	if err := g.precheck.Run(
+		r.Context(),
+		store.HashPlatformKey(platformKeySecret),
+		parseRequestModel(body),
+		r.URL.Path == "/v1/models",
+	); err != nil {
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}

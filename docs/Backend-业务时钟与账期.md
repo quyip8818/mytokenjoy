@@ -245,7 +245,7 @@ internal/pkg/budget/
 
 domain/usage/ingest.go       双轨写入
 domain/usage/projection.go   Apply(..., OpenBudgetPeriod)
-domain/gateway/precheck.go     开账门禁
+domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（开账 period 在 SQL 内）
 domain/budget/overrun.go     开账超支
 infra/worker/runner.go       月切：OpenSnapshotKey(PeriodMonthly, Clock)
 

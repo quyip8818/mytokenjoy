@@ -300,22 +300,23 @@ type Store interface {
 sequenceDiagram
   participant C as 客户端 sk-xxx
   participant GW as Gateway
-  participant TJ as TokenJoy 预检
+  participant ST as Store
   participant NA as NewAPI
 
   C->>GW: OpenAI 兼容请求
-  GW->>TJ: key_hash 查 platform_key_mappings
+  GW->>ST: LoadPrecheckContext(key_hash)
+  ST-->>GW: PrecheckContext
+  GW->>GW: Evaluate（纯内存）
   alt 预检失败
     GW-->>C: 403
   else 通过
     GW->>NA: 原 path 透传
     NA-->>GW: 响应
     GW-->>C: 原样返回
-    NA-->>TJ: webhook settle
   end
 ```
 
-预检依赖 `gateway.PrecheckService`；放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
+预检：`PrecheckService` = `GatewayPrecheck.LoadPrecheckContext` + `Evaluate()`（**1× Postgres round-trip**，0 NewAPI HTTP）。放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
 
 ### 6.1 Platform Key 写路径
 
@@ -368,7 +369,7 @@ flowchart TB
 | `IngestService`    | `domain/usage`      | Webhook 入账（不依赖 NewAPISync）             |
 | `RebalanceService` | `domain/budget`     | point → `remain_quota`（封顶 Postgres 钱包）；`adminport.Port` 更新 token |
 | `OverrunService`   | `domain/budget`     | 超限封禁 Key                                  |
-| `PrecheckService`  | `domain/gateway`    | Gateway 预检                                  |
+| `PrecheckService`  | `domain/gateway`    | `LoadPrecheckContext` + `Evaluate()`（纯内存预检） |
 | `GatewayService`   | `domain/gateway`    | `/v1` 鉴权 + Precheck + 反代 NewAPI           |
 
 **`adminport.Port` 消费者：** `newapisync`、`billing.Service`（TopUp）、`budget.RebalanceService`（UpdateToken）、`models.Service`（RebuildAbilities）、`company.Service`（CreateUser）。

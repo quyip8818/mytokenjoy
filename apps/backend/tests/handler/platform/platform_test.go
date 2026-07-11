@@ -176,9 +176,7 @@ func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 
 func TestSuspendedCompanyGatewayRejected(t *testing.T) {
 	t.Parallel()
-	units := int64(1_000_000)
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		WalletQuota:   units,
 		Budget:        1000,
 		CompanyStatus: store.CompanyStatusSuspended,
 	})
