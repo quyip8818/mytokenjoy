@@ -2,7 +2,7 @@
 
 `apps/frontend` 现状：架构、API 契约、本地联调。后端见 [Backend.md](./Backend.md)（索引）；工程待办见 [plan.md](./plan.md)；产品差距见 [Roadmap.md](./Roadmap.md)。
 
-**权威来源：** API 路径与 JSON → 本文 §5 + `apps/frontend/src/api/types/`。
+**权威来源：** API 路径与 JSON → 本文 §5 + `apps/frontend/src/api/types/`（部分计费类型内联于 `api/billing.ts`）。
 
 ---
 
@@ -35,7 +35,7 @@ apps/frontend/
     ├── config/             routes.ts、nav.ts、app.ts
     ├── features/{domain}/  hooks/、components/、lib/（canonical 页面逻辑）
     ├── routes/{domain}/    薄页面入口（从 @/features/* 导入）
-    ├── components/         ui/、layout/、auth/、{domain}/（遗留，待迁入 features）
+    ├── components/         ui/、layout/、auth/（无 domain 子目录；域 UI 在 features/）
     ├── api/                client + 域 API + types/
     ├── hooks/
     └── lib/
@@ -56,7 +56,7 @@ apps/frontend/
 
 `scripts/check-conventions.ts` 在 CI/lint 中强制执行：
 
-- 页面逻辑在 `features/{domain}/hooks/use-*-page.ts`；**禁止**在 `components/{domain}/` 里直接 `useApis()`
+- 页面逻辑在 `features/{domain}/hooks/use-*-page.ts`；**禁止**在 `features/{domain}/components/` 里直接 `useApis()`
 - `components/ui` 不得出现领域名（budget、org 等）
 - `components/` 不得反向依赖 `@/routes/`
 - 禁止 `../../` 及更深的相对路径，统一 `@/` 别名
@@ -66,7 +66,7 @@ apps/frontend/
 
 | 场景           | 放置位置                                                                   |
 | -------------- | -------------------------------------------------------------------------- |
-| 多路由复用     | `features/{domain}/components/`（目标）；遗留可能在 `components/{domain}/` |
+| 多路由复用     | `features/{domain}/components/` |
 | 无业务语义 UI  | `components/ui`                                                            |
 | 工作流步骤表单 | `features/workflow/workflows/*`                                            |
 
@@ -84,7 +84,9 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 [`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一源，派生 `ROUTES`、`APP_ROUTES` 等。
 
-当前 **17** 业务页：dashboard（cost、usage）、org（3）、budget（2：index、alerts）、keys（4）、models（2）、wallet（1）、audit（2）。`/billing` 重定向至 `/wallet`。
+当前 **16** 个管理台业务页：dashboard（cost、usage）、org（3）、budget（2：index、alerts）、keys（4）、models（2）、wallet（1）、audit（2）。钱包路由为 `/wallet`（无 `/billing` 重定向）。
+
+**成员工作台**（`MEMBER_ROUTE_DEFINITIONS`，与上表分开计数）：`/me`、`/me/keys`、`/me/call-logs`；API 命名空间 `meApi`（`api/member.ts`）。
 
 新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `features/{domain}/hooks/use-{page}-page.ts` + shell → `routes/{domain}/{page}.tsx` 薄入口。
 
@@ -93,7 +95,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 ## 4. API 层与页面架构
 
 - `api/client.ts`：`request()`、`ApiError`、`buildQuery()`；`credentials: 'include'`
-- `app-apis.ts`：`AppApis` + `defaultApis`（**16** 命名空间；仍缺 `platformApi`）
+- `app-apis.ts`：`AppApis` + `defaultApis`（**17** 命名空间；仍缺 `platformApi`）
 - 生产 `AppProviders`（`components/layout/app-providers.tsx`）注入 `defaultApis`；测试 `createMockApis()`
 
 **薄页面 → 页面 Hook → 展示组件**：Hook 用 `useApis()`、`useInjectedQuery` + `queryKeys`；组件 props 受控。
@@ -119,7 +121,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | 模块                    | 路径                                   | 职责                                                                |
 | ----------------------- | -------------------------------------- | ------------------------------------------------------------------- |
 | `client.ts`             | `api/client.ts`                        | `request()`、`ApiError`、`buildQuery()`、`setUnauthorizedHandler()` |
-| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（16 个命名空间）                |
+| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（17 个命名空间）                |
 | `api-context.ts`        | `api/api-context.ts`                   | `ApiContext` React Context                                          |
 | `context.tsx`           | `api/context.tsx`                      | `ApiProvider` 注入                                                  |
 | `use-apis.ts`           | `api/use-apis.ts`                      | `useApis()`、`useInjectedApis()`                                    |
@@ -294,7 +296,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.4 端点清单
 
-路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个企业面业务端点（session → audit，不含 §5.9 的 auth/billing/platform 扩展）。类型详情见 §5.5。
+路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个企业面业务端点（§5.4.1–§5.4.8：session → audit + `/me/dashboard`；不含 §5.9 的 auth/billing/platform 扩展）。类型详情见 §5.5。
 
 #### 5.4.1 Session
 
@@ -388,6 +390,9 @@ HTTP 非 2xx 时，body 应包含：
 | POST   | `/budget/alerts`                                  | `Omit<AlertRule, 'id'>`                          | `AlertRule`           |                                   |
 | PUT    | `/budget/alerts/:id`                              | `Partial<AlertRule>`                             | `AlertRule`           |                                   |
 | DELETE | `/budget/alerts/:id`                              | —                                                | `void`                |                                   |
+| GET    | `/budget/approvals`                               | —                                                | `BudgetApproval[]`    | 预算额度审批队列                  |
+| PUT    | `/budget/approvals/:id`                           | `{ status, rejectReason? }`                      | `void`                | `approved` \| `rejected`          |
+| GET    | `/budget/groups/:id/member-consumed`              | —                                                | `MemberConsumed[]`    | 组内成员已消耗                    |
 
 ---
 
@@ -523,6 +528,18 @@ HTTP 非 2xx 时，body 应包含：
 `action` 过滤值见 `AuditAction`；`status` 过滤值：`success` \| `error` \| `filtered`。
 
 **调用审计：** `GET /audit/calls` 只读 `usage_ledger`；`keyword` 匹配 `previewSnippet` 等字段。账本仅存 **input** 截断 snippet，不存 output 原文；`outputTokens` 仅为用量计数。不查 NewAPI `logs`；不提供全文 content 接口（首版）。详见 [Backend-存储架构.md](./Backend-存储架构.md) §5、[Backend-预算.md](./Backend-预算.md) §6。
+
+---
+
+#### 5.4.8 Member（成员工作台）
+
+客户端：[`member.ts`](../apps/frontend/src/api/member.ts)（`meApi`）
+
+| 方法 | 路径            | 查询 / Body | 响应                  |
+| ---- | --------------- | ----------- | --------------------- |
+| GET  | `/me/dashboard` | —           | `MemberDashboardView` |
+
+路由见 §3 `MEMBER_ROUTE_DEFINITIONS`；布局 `MemberLayout`。
 
 ---
 
@@ -665,13 +682,21 @@ HTTP 非 2xx 时，body 应包含：
 
 **AuditSettings：** `contentRetentionEnabled` — `false` 时不写 `previewSnippet`
 
+#### 5.5.7 Billing — [`billing.ts`](../apps/frontend/src/api/billing.ts)
+
+部分钱包 DTO 内联于 `api/billing.ts`（非 `api/types/`）：`WalletSummary`、`WalletCurrency`、`TopUpRecord`、`RechargeOrder` 等。展示换算见 `src/lib/points.ts`。
+
+#### 5.5.8 Member — [`types/member.ts`](../apps/frontend/src/api/types/member.ts)
+
+**MemberDashboardView：** 成员工作台 `GET /me/dashboard` 聚合视图。
+
 ---
 
 ### 5.6 AppApis 聚合
 
-[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **16** 个命名空间（仍缺 `platformApi`，见 §5.9）：
+[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **17** 个命名空间（仍缺 `platformApi`，见 §5.9）：
 
-`sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`
+`sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`, `meApi`
 
 所有 HTTP 调用均经 `client.request()`，无其他 `fetch('/api/...')` 直连。
 
@@ -745,6 +770,7 @@ HTTP 非 2xx 时，body 应包含：
 | 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                              |
 | ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | --------------------------------- |
 | GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 Postgres lot 钱包（展示币闭合） |
+| GET  | `/billing/recharge-records`      | —                            | `TopUpRecord[]` | `billing:read`     | 充值记录（半真；见 plan.md §2）    |
 | POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202** |
 | POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并写 lot（demo / 回调模拟） |
 
@@ -838,7 +864,7 @@ HTTP 非 2xx 时，body 应包含：
 
 | 项                   | 后端                          | 前端 `AppApis`                            | 控制台页面                         |
 | -------------------- | ----------------------------- | ----------------------------------------- | ---------------------------------- |
-| 企业面 §5.4 域 API   | 已实现                        | 已接入（16 命名空间，缺 `platformApi`）   | 17 业务页                          |
+| 企业面 §5.4 域 API   | 已实现                        | 已接入（17 命名空间，缺 `platformApi`）   | 16 管理台业务页 + 3 成员工作台路由 |
 | `auth/login`         | 已实现                        | `authApi.login`                           | `/login`                           |
 | `auth/logout`        | 已实现                        | `authApi.logout`                          | —                                  |
 | `auth/accept-invite` | 已实现                        | 未接入                                    | 无 `/invite/accept`                |

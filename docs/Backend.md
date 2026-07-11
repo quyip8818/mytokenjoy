@@ -35,6 +35,19 @@ Seed 与测试见本文 [§5](#5-测试与-seed)。
 | 测试 | `testing` + `httptest` + PostgreSQL（`tests/` 外挂；每测独立 schema） |
 | DI   | 构造函数注入，组合根 `internal/app/`                                  |
 
+### 1.1 领域包索引
+
+除 [Backend-架构.md](./Backend-架构.md) §3 树状结构外，近期新增/易漏：
+
+| 包 | 职责 |
+| -- | ---- |
+| `domain/adminport` | NewAPI Admin 领域端口（`Port` 接口）；实现见 `integration/newapi/admin_port_adapter.go` |
+| `domain/grants` | 预设角色常量 + `Normalizer` 接口；实现见 `infra/permission/normalizer.go` |
+| `domain/memberanalytics` | 成员工作台只读聚合（`GET /me/*`） |
+| `pkg/newapiunits` | point ↔ NewAPI quota 换算；`integration/newapi/quota.go` 为薄委托 |
+
+NewAPI 边界与 DI 详见 [Backend-架构.md](./Backend-架构.md) §0、§7。
+
 ---
 
 ## 2. SaaS 多租户

@@ -33,7 +33,16 @@
 | SaaS 共享 group | `PLATFORM_SHARED_NEW_API_GROUP` |
 | 本地 NewAPI 栈 | `pnpm start:newapi` |
 
-厂商客户端在 `integration/newapi`（可保留 `CreateToken` 等厂商符号），不得泄漏到 domain / store / HTTP JSON。
+**NewAPI Admin 边界**（domain 零 `integration/newapi` import）：
+
+| 层 | 路径 | 职责 |
+| -- | ---- | ---- |
+| **Domain port** | `domain/adminport/` | `Port` 接口：`CreateToken` / `UpdateToken` / `TopUp` / `RebuildAbilities` 等 |
+| **Adapter** | `integration/newapi/admin_port_adapter.go` | 唯一 HTTP 实现，映射厂商 Admin API |
+| **纯换算** | `pkg/newapiunits/` | point ↔ quota；domain 可直接引用 |
+| **例外** | `company.WalletService` | 只读 `GetUserQuota` 仍用 raw `AdminClient` |
+
+装配：`wiring_infra.go` → `newapi.NewAdminPortAdapter(client)` → `buildDomainServices` 注入 `NewAPISync`、`billing`、`budget.Rebalance`、`models`、`company`。
 
 ---
 
@@ -96,6 +105,12 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 - HTTP 错误收敛到 `httputil`；Service 返回 `domain.DomainError`，Handler 映射 400/401/403/404/422/500。
 - **Handler 零业务规则**：鉴权、编解码、调 `domain.Service`；业务校验与规则在 domain（如成员自删保护、`UsageSeries` 参数校验、`audit.ListCalls` 委托 reader）。
 
+### 2.1 领域错误
+
+- 结构化错误：`domain.DomainError`（`errors.go`）+ 哨兵辅助（`errsentinel.go`：`BadRequest`、`Forbidden`、`ServiceUnavailable` 等）。
+- NewAPI 不可用：统一 `domain.ServiceUnavailable()` + `domain.IsServiceUnavailable()`（原 `usage/newapi_unavailable.go` 已移除）；`newapisync/outbox_errors.go` 用于 outbox 永久错误分类。
+- Handler 经 `httputil` 映射 HTTP 状态码。
+
 ---
 
 ## 3. 项目结构
@@ -118,10 +133,13 @@ apps/backend/
 │   │   ├── dashboard/       # 看板只读聚合
 │   │   ├── audit/           # 操作审计、调用审计读模型
 │   │   ├── usage/           # Ingest、projection、Reader
-│   │   ├── newapisync/      # NewAPISync（lifecycle_*.go、quota、channel policy）
+│   │   ├── newapisync/      # NewAPISync（lifecycle_*.go、channel policy）
+│   │   ├── adminport/       # NewAPI Admin 领域端口（Port 接口 + 输入类型）
+│   │   ├── grants/          # 预设角色常量 + Normalizer 接口
 │   │   ├── gateway/         # GatewayService + Precheck（/v1 数据面）
 │   │   ├── company/         # 企业、开户、邀请
-│   │   └── billing/         # 充值、lot 钱包、wallet_sync
+│   │   ├── billing/         # 充值、lot 钱包、wallet_sync
+│   │   └── memberanalytics/ # 成员工作台只读聚合（GET /me/*）
 │   ├── http/
 │   │   ├── router.go
 │   │   ├── deps/            # Deps、Public、Protected、Platform
@@ -135,7 +153,7 @@ apps/backend/
 │   ├── integration/
 │   │   ├── newapi/
 │   │   └── datasource/feishu/
-│   ├── pkg/                 # budget/、org/（含 sync_diff、remote_ids）、common/、ctxcompany/
+│   ├── pkg/                 # budget/、org/、newapiunits/、common/、ctxcompany/
 │   └── store/               # postgres/
 ├── seed/                    # demo 引导与契约（见 [Backend.md](./Backend.md) §5.3）
 ├── tests/
@@ -236,7 +254,7 @@ type Store interface {
 | 模式     | 条件                               | 说明                                                                          |
 | -------- | ---------------------------------- | ----------------------------------------------------------------------------- |
 | Postgres | `DATABASE_URL` 必填                | 主库 37 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md) |
-| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend.md](./Backend.md) §5                               |
+| 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend.md](./Backend.md) §5；`testhook_registry.go` 提供 `BuildRegistry()` / `MustNewAPISync()` 等无 HTTP 装配 |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
 - Bootstrap：`postgres.New` → applySchema → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖（见 [Backend.md](./Backend.md) §5.3、[Backend-配置架构.md](./Backend-配置架构.md) §5）。
@@ -248,7 +266,7 @@ type Store interface {
 | 子包            | 职责                                                                               |
 | --------------- | ---------------------------------------------------------------------------------- |
 | `org`（根）     | `Service` 接口、`NewService`；嵌入 `structure.LocalService` + `remote.Service`            |
-| `org/core`      | 共享 `Deps`、部门树 provision、authz revision bump                                 |
+| `org/core`      | 共享 `Deps`（含 `grants.Normalizer`）、部门树 provision、authz revision bump        |
 | `org/structure` | 成员/角色/部门 CRUD、CSV 批量导入                                                  |
 | `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步（消费 `pkg/org` 的 diff/ID 工具） |
 
@@ -321,7 +339,9 @@ Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 
 flowchart TB
   subgraph lifecycle [PlatformKey 生命周期]
     KEYS[keys.Service] --> LC[NewAPISync]
-    LC --> NA_API[NewAPI Admin API]
+    LC --> AP[adminport.Port]
+    AP --> ADP[admin_port_adapter]
+    ADP --> NA_API[NewAPI Admin API]
     LC --> OB_R[outbox channel=newapi_sync]
   end
 
@@ -343,12 +363,15 @@ flowchart TB
 
 | 组件               | 包              | 职责                                      |
 | ------------------ | --------------- | ----------------------------------------- |
-| `NewAPISync`       | `domain/newapisync` | Create/Update/Disable NewAPIKey；同步 Channel |
+| `adminport.Port`   | `domain/adminport` + `integration/newapi` adapter | NewAPI Admin 写操作边界 |
+| `NewAPISync`       | `domain/newapisync` | Create/Update/Disable NewAPIKey；同步 Channel；注入 `adminport.Port` |
 | `IngestService`    | `domain/usage`      | Webhook 入账（不依赖 NewAPISync）             |
-| `RebalanceService` | `domain/budget`     | point → `remain_quota`（封顶 Postgres 钱包）  |
+| `RebalanceService` | `domain/budget`     | point → `remain_quota`（封顶 Postgres 钱包）；`adminport.Port` 更新 token |
 | `OverrunService`   | `domain/budget`     | 超限封禁 Key                                  |
 | `PrecheckService`  | `domain/gateway`    | Gateway 预检                                  |
 | `GatewayService`   | `domain/gateway`    | `/v1` 鉴权 + Precheck + 反代 NewAPI           |
+
+**`adminport.Port` 消费者：** `newapisync`、`billing.Service`（TopUp）、`budget.RebalanceService`（UpdateToken）、`models.Service`（RebuildAbilities）、`company.Service`（CreateUser）。
 
 **NewAPISync 子接口（嵌入组合，DI 收窄）：**
 

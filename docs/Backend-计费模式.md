@@ -2,7 +2,7 @@
 
 **一句话：** 内部统一 **point** 计量；钱包展示币以 **lot 成本价** 为 SSOT；NewAPI `users.quota` 仅为 **派生通道配额**（可重建、非资金真相）。
 
-**相关：** [Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend.md](./Backend.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-架构.md](./Backend-架构.md) §0 · [Backend.md](./Backend.md) · [Frontend.md](./Frontend.md)
 
 **阅读路径：**
 
@@ -440,7 +440,8 @@ infra/worker/
   wallet_sync_processor.go   processWalletSync / processWalletReconcile
   runner.go                    asyncTick / asyncLoop 调度
 
-integration/newapi/quota.go   point ↔ quota units
+pkg/newapiunits/quota.go        point ↔ quota units（domain 直接引用）
+integration/newapi/quota.go     薄委托至 newapiunits
 ```
 
 **HTTP：**

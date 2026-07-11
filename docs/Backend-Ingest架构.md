@@ -2,7 +2,7 @@
 
 > **读者**：想搞清「一次 LLM 调用的钱，怎么记到企业账上」的研发 / 运维 / 联调同学。  
 > **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/worker/`。  
-> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md)
+> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7 · [工程收口.md](./工程收口.md)
 
 ---
 
@@ -582,6 +582,6 @@ flowchart TB
 - **Ingest** = 把 NewAPI 的消耗小票，变成 TokenJoy 主库里可审计、可预算、可预检的账。  
 - **通信** = 管理面 Admin API + 运行面 Gateway 反代 + 结算面 webhook/直读，三条线各司其职。  
 - **日志共享** = 独立日志库；NewAPI 写 `newapi.logs`，Backend 写 pending/cursor，并读 logs 入账。  
-- **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota 的 wallet_sync、发生月↔开账月双轨。  
+- **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota（`pkg/newapiunits`）的 wallet_sync、发生月↔开账月双轨。  
 - **Worker** = **两个 goroutine**：IngestWorker（pending + reconcile）与 Async Worker（outbox / wallet / rebalance / overrun / org sync）并行。  
 - **可靠** = webhook 求快 ACK，IngestWorker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。

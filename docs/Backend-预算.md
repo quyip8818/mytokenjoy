@@ -398,7 +398,9 @@ sequenceDiagram
 | --- | --- |
 | 预算树、组、成员额度、预警策略 | `domain/budget` |
 | 入账与投影 | `domain/usage` |
-| Rebalance | `domain/budget/rebalance` |
+| Rebalance | `domain/budget/rebalance`（`adminport.Port` 更新 token） |
+| NewAPI Admin 边界 | `domain/adminport` + `integration/newapi/admin_port_adapter.go` |
+| Quota 换算 | `pkg/newapiunits` |
 | Key 额度校验 | `domain/keys` + `pkg/budget` |
 | 快照加载 | `pkg/budget` |
 | Gateway 预检 | `domain/gateway` |

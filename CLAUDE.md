@@ -77,15 +77,16 @@ internal/
   app/                   — application wiring (DI)
   config/                — env-based configuration
   domain/                — business logic by subdomain:
-    audit/, billing/, budget/, company/, dashboard/,
-    keys/, member/, models/, org/, gateway/, newapisync/, usage/
+    adminport/, audit/, billing/, budget/, company/, dashboard/,
+    grants/, keys/, memberanalytics/, models/, org/, gateway/,
+    newapisync/, usage/
   http/handler/          — HTTP handlers (one package per domain)
   http/middleware/       — auth, RBAC, company resolve, CORS
   http/httputil/         — response/decode helpers
   identity/              — authz, credentials, session tokens
   infra/                 — worker, notification, permission manifest
-  integration/           — external: newapi, datasource (feishu)
-  pkg/                   — shared utilities (budget calc, org helpers, tree)
+  integration/           — external: newapi (admin_port_adapter), datasource (feishu)
+  pkg/                   — shared utilities (budget calc, org helpers, newapiunits, tree)
   store/                 — repository interfaces + implementations:
     postgres/            — PostgreSQL (production + tests)
 seed/                    — demo bootstrap + contract IDs (see docs/Backend.md §5.3)
@@ -97,11 +98,11 @@ tests/                   — ALL unit tests (mirrors internal/ structure)
 
 **Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer.
 
-**NewAPI integration:** The backend proxies LLM API calls via a local NewAPI service. `domain/newapisync/` syncs PlatformKey/ProviderKey to NewAPI Admin; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward.
+**NewAPI integration:** Domain talks to NewAPI Admin via `domain/adminport.Port` (adapter in `integration/newapi/admin_port_adapter.go`); quota conversion in `pkg/newapiunits/`. `domain/newapisync/` syncs PlatformKey/ProviderKey; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward.
 
 ### NewAPI (`apps/newapi/`)
 
-Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend integrates through `internal/integration/newapi/`.
+Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend HTTP client and `admin_port_adapter` live in `internal/integration/newapi/`.
 
 ## Testing Patterns (Backend)
 
@@ -114,7 +115,7 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend i
 - Org service: `orgfix.NewService(t, cfg, st)` from `tests/testutil/org`
 - Gateway scenarios: `gatewaytf.BuildGatewayScenario(t, opts)` from `tests/testutil/gateway`
 - HTTP handler tests use `testutil/http` with real chi router + seeded store
-- The `-tags=testhook` build tag activates test hooks in `internal/app/testhook.go`
+- The `-tags=testhook` build tag activates test hooks in `internal/app/testhook.go` and `testhook_registry.go` (`BuildRegistry`, `MustNewAPISync`)
 
 ## Key Documentation
 

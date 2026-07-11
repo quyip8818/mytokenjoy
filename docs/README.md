@@ -39,11 +39,22 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 
 ## 契约优先级
 
-1. API 路径与 JSON → [Frontend.md](./Frontend.md) §5 + `apps/frontend/src/api/types/`
+1. API 路径与 JSON → [Frontend.md](./Frontend.md) §5 + `apps/frontend/src/api/types/`（部分计费类型内联于 `api/billing.ts` 等域客户端）
 2. 后端类型 → `apps/backend/internal/domain/types/`
 3. 业务规则 → 各 domain `Service` 实现
 4. 工程待办 → [plan.md](./plan.md)
 5. 产品差距 → [Roadmap.md](./Roadmap.md)
+
+## Backlog 分工（避免重复维护）
+
+| 文档 | 写什么 | 不写什么 |
+| --- | --- | --- |
+| [plan.md](./plan.md) | 上线前 fix、联调门禁、发布验收 | 产品级长期 ❌（见 Roadmap） |
+| [工程收口.md](./工程收口.md) | 架构/联调/边界类未完成项 | 日常功能 backlog |
+| [Roadmap.md](./Roadmap.md) | PRD vs 实现差距状态 | 具体工程步骤 |
+| [reviews/](./reviews/) | 一次性审计笔记（如安全评估） | 活跃 backlog |
+
+已完成的一次性计划（如 `budget-audit-fix-plan.md`、agent `superpowers/` 草案）按约定删除，未竟项并入 `plan.md` 或 `工程收口.md`。
 
 ## 常用命令
 
