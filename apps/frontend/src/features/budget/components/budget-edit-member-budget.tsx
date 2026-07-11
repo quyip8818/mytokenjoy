@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, MemberBudgetQuota } from '@/api/types'
+import type { BudgetNode, BudgetProjectView, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { nodeReservedPool } from '@/features/budget'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Pencil, Users, Wallet, X, Check, Settings2 } from 'lucide-react'
-import { BudgetMemberQuotaDialog } from './budget-member-quota-dialog'
+import { BudgetMemberBudgetDialog } from './budget-member-budget-dialog'
 
-interface BudgetEditMemberQuotaProps {
+interface BudgetEditMemberBudgetProps {
   node: BudgetNode
   projects: BudgetProjectView[]
   onUpdated: () => void
@@ -16,23 +16,23 @@ interface BudgetEditMemberQuotaProps {
     departmentId: string,
     data: { budget: number; reservedPool?: number },
   ) => Promise<void>
-  getMemberQuotas: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberQuota: (memberId: string, data: { personalQuota: number }) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
 }
 
-export function BudgetEditMemberQuota({
+export function BudgetEditMemberBudget({
   node,
   projects,
   onUpdated,
   onUpdateDepartment,
-  getMemberQuotas,
-  updateMemberQuota,
-}: BudgetEditMemberQuotaProps) {
+  getMemberBudgets,
+  updateMemberBudget,
+}: BudgetEditMemberBudgetProps) {
   const [editing, setEditing] = useState(false)
   const [reservedDraft, setReservedDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
+  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false)
 
   function startEdit() {
     setReservedDraft(String(pointsToDisplay(nodeReservedPool(node))))
@@ -171,19 +171,19 @@ export function BudgetEditMemberQuota({
           variant="outline"
           size="sm"
           className="h-7 gap-1.5 text-xs"
-          onClick={() => setQuotaDialogOpen(true)}
+          onClick={() => setBudgetDialogOpen(true)}
         >
           <Settings2 className="size-3.5" />
           配置成员额度
         </Button>
       </div>
 
-      <BudgetMemberQuotaDialog
-        open={quotaDialogOpen}
-        onOpenChange={setQuotaDialogOpen}
+      <BudgetMemberBudgetDialog
+        open={budgetDialogOpen}
+        onOpenChange={setBudgetDialogOpen}
         departmentId={node.id}
-        getMemberQuotas={getMemberQuotas}
-        updateMemberQuota={updateMemberQuota}
+        getMemberBudgets={getMemberBudgets}
+        updateMemberBudget={updateMemberBudget}
       />
     </div>
   )

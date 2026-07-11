@@ -9,13 +9,13 @@ import (
 	"github.com/tokenjoy/backend/seed/points"
 )
 
-type DeptQuota struct {
+type DeptBudget struct {
 	DepartmentID   string
 	DepartmentName string
 	Count          int
 }
 
-var leafDeptQuotas = []DeptQuota{
+var leafDeptBudgets = []DeptBudget{
 	{DepartmentID: contract.IDDept3, DepartmentName: "后端组", Count: 8},
 	{DepartmentID: contract.IDDept4, DepartmentName: "前端组", Count: 7},
 	{DepartmentID: "dept-5", DepartmentName: "测试组", Count: 6},
@@ -125,7 +125,7 @@ func BuildMembers() []types.Member {
 	members := BuildAnchorMembers()
 	seq := 6
 
-	for _, budget := range leafDeptQuotas {
+	for _, budget := range leafDeptBudgets {
 		anchors := anchorsInDept(members, budget.DepartmentID)
 		generatedCount := budget.Count - len(anchors)
 		for i := 0; i < generatedCount; i++ {
@@ -152,8 +152,8 @@ var anchorPersonalBudgets = map[string]float64{
 
 func applyMemberPersonalBudgets(members []types.Member) {
 	for i := range members {
-		if quota, ok := anchorPersonalBudgets[members[i].ID]; ok {
-			members[i].PersonalBudget = points.FromDisplay(quota)
+		if amount, ok := anchorPersonalBudgets[members[i].ID]; ok {
+			members[i].PersonalBudget = points.FromDisplay(amount)
 			continue
 		}
 		members[i].PersonalBudget = points.FromDisplay(common.DefaultPersonalBudget)

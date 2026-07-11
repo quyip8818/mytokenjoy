@@ -16,7 +16,8 @@
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
-| [Backend-重构建议.md](./Backend-重构建议.md) | 收口建议、明确不做项 |
+| [Backend-优化与收口.md](./Backend-优化与收口.md) | 优化、简化、模块化路线图（全量审阅） |
+| [Backend-重构建议.md](./Backend-重构建议.md) | 历史收口清单、明确不做项 |
 | [Backend-命名统一.md](./Backend-命名统一.md) | 命名约定 |
 
 

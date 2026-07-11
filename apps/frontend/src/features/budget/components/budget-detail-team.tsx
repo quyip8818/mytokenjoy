@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, Member, MemberBudgetQuota } from '@/api/types'
+import type { BudgetNode, BudgetProjectView, Member, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
-import { BudgetEditMemberQuota } from './budget-edit-member-quota'
+import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { BudgetProjectDialog } from './budget-project-dialog'
 import { nodeReservedPool } from '@/features/budget'
 import { formatDisplayCurrency } from '@/lib/points'
@@ -28,8 +28,8 @@ interface BudgetDetailTeamProps {
     memberIds: string[]
     departmentIds: string[]
   }) => Promise<void>
-  getMemberQuotas: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberQuota: (memberId: string, data: { personalQuota: number }) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
 }
 
 function SummaryCard({
@@ -71,8 +71,8 @@ export function BudgetDetailTeam({
   onNavigateToProject,
   onUpdateDepartment,
   onCreateGroup,
-  getMemberQuotas,
-  updateMemberQuota,
+  getMemberBudgets,
+  updateMemberBudget,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
@@ -181,13 +181,13 @@ export function BudgetDetailTeam({
         </div>
       </div>
 
-      <BudgetEditMemberQuota
+      <BudgetEditMemberBudget
         node={node}
         projects={projects}
         onUpdated={onUpdated}
         onUpdateDepartment={onUpdateDepartment}
-        getMemberQuotas={getMemberQuotas}
-        updateMemberQuota={updateMemberQuota}
+        getMemberBudgets={getMemberBudgets}
+        updateMemberBudget={updateMemberBudget}
       />
 
       <BudgetProjectDialog

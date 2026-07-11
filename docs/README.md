@@ -28,7 +28,8 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
-| [Backend-重构建议.md](./Backend-重构建议.md) | 后端 / 架构 | 可优化收口建议 |
+| [Backend-优化与收口.md](./Backend-优化与收口.md) | 后端 / 架构 | 优化、模块化、收口路线图 |
+| [Backend-重构建议.md](./Backend-重构建议.md) | 后端 / 架构 | 历史收口清单 |
 | [Backend-命名统一.md](./Backend-命名统一.md) | 后端 / 架构 | 命名约定 |
 
 

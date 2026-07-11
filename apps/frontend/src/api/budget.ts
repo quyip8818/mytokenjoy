@@ -23,9 +23,9 @@ export const budgetApi = {
   getTree: (period?: string) =>
     request<BudgetNode[]>(`/budget/tree${period ? `?period=${period}` : ''}`),
   updateDepartment: updateDepartmentRequest,
-  getMemberQuotas: (departmentId: string) =>
+  getMemberBudgets: (departmentId: string) =>
     request<MemberBudgetQuota[]>(`/budget/departments/${departmentId}/member-quotas`),
-  updateMemberQuota: (memberId: string, data: UpdateMemberBudgetInput) =>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) =>
     request<MemberBudgetQuota>(`/budget/members/${memberId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

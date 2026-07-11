@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { MemberBudgetQuota } from '@/api/types'
+import type { MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
 import {
@@ -14,48 +14,48 @@ import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/p
 import { cn } from '@/lib/utils'
 import { Pencil, Check, X, Loader2 } from 'lucide-react'
 
-interface BudgetMemberQuotaDialogProps {
+interface BudgetMemberBudgetDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   departmentId: string
-  getMemberQuotas: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberQuota: (memberId: string, data: { personalQuota: number }) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
 }
 
-export function BudgetMemberQuotaDialog({
+export function BudgetMemberBudgetDialog({
   open,
   onOpenChange,
   departmentId,
-  getMemberQuotas,
-  updateMemberQuota,
-}: BudgetMemberQuotaDialogProps) {
-  const [quotas, setQuotas] = useState<MemberBudgetQuota[]>([])
+  getMemberBudgets,
+  updateMemberBudget,
+}: BudgetMemberBudgetDialogProps) {
+  const [memberBudgets, setMemberBudgets] = useState<MemberBudgetQuota[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const fetchQuotas = useCallback(async () => {
+  const fetchMemberBudgets = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getMemberQuotas(departmentId)
-      setQuotas(data ?? [])
+      const data = await getMemberBudgets(departmentId)
+      setMemberBudgets(data ?? [])
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '加载成员额度失败')
     } finally {
       setLoading(false)
     }
-  }, [departmentId, getMemberQuotas])
+  }, [departmentId, getMemberBudgets])
 
   useEffect(() => {
     if (open && departmentId) {
-      fetchQuotas()
+      fetchMemberBudgets()
     }
-  }, [open, departmentId, fetchQuotas])
+  }, [open, departmentId, fetchMemberBudgets])
 
   function startEdit(member: MemberBudgetQuota) {
     setEditingId(member.memberId)
-    setDraft(String(pointsToDisplay(member.personalQuota)))
+    setDraft(String(pointsToDisplay(member.personalBudget)))
   }
 
   function cancelEdit() {
@@ -72,11 +72,11 @@ export function BudgetMemberQuotaDialog({
 
     setSaving(true)
     try {
-      const updated = await updateMemberQuota(memberId, {
-        personalQuota: displayToPoints(value),
+      const updated = await updateMemberBudget(memberId, {
+        personalBudget: displayToPoints(value),
       })
-      setQuotas((prev) =>
-        prev.map((q) => (q.memberId === memberId ? updated : q)),
+      setMemberBudgets((prev) =>
+        prev.map((item) => (item.memberId === memberId ? updated : item)),
       )
       setEditingId(null)
       setDraft('')
@@ -107,7 +107,7 @@ export function BudgetMemberQuotaDialog({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           </div>
-        ) : quotas.length === 0 ? (
+        ) : memberBudgets.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">暂无成员</p>
         ) : (
           <div className="max-h-80 overflow-y-auto">
@@ -121,7 +121,7 @@ export function BudgetMemberQuotaDialog({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {quotas.map((member) => (
+                {memberBudgets.map((member) => (
                   <MemberRow
                     key={member.memberId}
                     member={member}
@@ -184,7 +184,7 @@ function MemberRow({
           />
         ) : (
           <span className="text-muted-foreground">
-            {formatDisplayCurrency(member.personalQuota)}
+            {formatDisplayCurrency(member.personalBudget)}
           </span>
         )}
       </td>

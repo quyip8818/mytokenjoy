@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { BudgetProjectView } from '@/api/types'
+import type { BudgetProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
 import { getCurrentBudgetPeriod } from '@/lib/date'
@@ -156,14 +156,14 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis, refresh],
   )
 
-  const getMemberQuotas = useCallback(
-    (departmentId: string) => apis.budgetApi.getMemberQuotas(departmentId),
+  const getMemberBudgets = useCallback(
+    (departmentId: string) => apis.budgetApi.getMemberBudgets(departmentId),
     [apis],
   )
 
-  const updateMemberQuota = useCallback(
-    async (memberId: string, data: { personalQuota: number }) => {
-      const result = await apis.budgetApi.updateMemberQuota(memberId, data)
+  const updateMemberBudget = useCallback(
+    async (memberId: string, data: UpdateMemberBudgetInput) => {
+      const result = await apis.budgetApi.updateMemberBudget(memberId, data)
       return result
     },
     [apis],
@@ -204,7 +204,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     createBudgetGroup,
     updateBudgetGroup,
     deleteBudgetGroup,
-    getMemberQuotas,
-    updateMemberQuota,
+    getMemberBudgets,
+    updateMemberBudget,
   }
 }
