@@ -1,54 +1,46 @@
 import { ErrorState } from '@/components/ui/error-state'
-import { PageShell } from '@/components/layout/page-shell'
-import type { useCostDashboardPage } from '@/features/dashboard'
+import type { useCostDashboardPage } from '../hooks/use-cost-dashboard-page'
 import { CostSummaryStats } from './cost-summary-stats'
 import { CostTrendChart } from './cost-trend-chart'
 import { CostDistributionChart } from './cost-distribution-chart'
-import { CostDrillTable } from './cost-drill-table'
+import { DeptComparisonTable } from './dept-comparison-table'
 import { CostTopConsumersTable } from './cost-top-consumers-table'
 
-type CostDashboardPageShellProps = ReturnType<typeof useCostDashboardPage>
+interface CostDashboardPageShellProps {
+  pageData: ReturnType<typeof useCostDashboardPage>
+  onSelectDept?: (deptId: string) => void
+}
 
-export function CostDashboardPageShell({
-  loading,
-  error,
-  refresh,
-  stats,
-  dailyCosts,
-  topConsumers,
-  deptCosts,
-  memberCosts,
-  deptCostsWithColors,
-  drill,
-  drillTitle,
-  granularity,
-  canDrillBack,
-  handleDrillDept,
-  handleDrillBack,
-}: CostDashboardPageShellProps) {
+export function CostDashboardPageShell({ pageData, onSelectDept }: CostDashboardPageShellProps) {
+  const {
+    loading,
+    error,
+    refresh,
+    stats,
+    dailyCosts,
+    topConsumers,
+    deptCosts,
+    deptCostsWithColors,
+    granularity,
+  } = pageData
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => void refresh()} />
+  }
+
   return (
-    <PageShell className="space-y-8" stats={<CostSummaryStats stats={stats} loading={loading} />}>
-      {error ? (
-        <ErrorState message={error.message} onRetry={() => void refresh()} />
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-6">
-            <CostTrendChart dailyCosts={dailyCosts} loading={loading} granularity={granularity} />
-            <CostDistributionChart data={deptCostsWithColors} loading={loading} />
-          </div>
-          <CostDrillTable
-            drill={drill}
-            drillTitle={drillTitle}
-            deptCosts={deptCosts}
-            memberCosts={memberCosts}
-            loading={loading}
-            canDrillBack={canDrillBack}
-            onDrillBack={handleDrillBack}
-            onDrillDept={handleDrillDept}
-          />
-          <CostTopConsumersTable topConsumers={topConsumers} loading={loading} />
-        </>
-      )}
-    </PageShell>
+    <div className="space-y-6">
+      <CostSummaryStats stats={stats} loading={loading} />
+      <div className="grid grid-cols-[5fr_3fr] gap-6">
+        <CostTrendChart dailyCosts={dailyCosts} loading={loading} granularity={granularity} />
+        <CostDistributionChart data={deptCostsWithColors} loading={loading} />
+      </div>
+      <DeptComparisonTable
+        deptCosts={deptCosts}
+        loading={loading}
+        onSelectDept={onSelectDept}
+      />
+      <CostTopConsumersTable topConsumers={topConsumers} loading={loading} />
+    </div>
   )
 }
