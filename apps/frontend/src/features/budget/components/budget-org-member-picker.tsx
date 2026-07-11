@@ -49,8 +49,6 @@ export function BudgetOrgMemberPicker({
         if (defaultExpandDepartmentId) {
           const pathIds = findAncestorPath(data, defaultExpandDepartmentId)
           setExpandedIds(new Set(pathIds))
-          // Auto-load members for the default department
-          loadDeptMembers(defaultExpandDepartmentId)
         }
       })
       .finally(() => setTreeLoading(false))
@@ -104,6 +102,29 @@ export function BudgetOrgMemberPicker({
       setSelectedNames(newNames)
     },
     [selectedIds, onChange, selectedNames],
+  )
+
+  const toggleDepartment = useCallback(
+    (deptId: string) => {
+      const members = loadedMembers[deptId]
+      if (!members || members.length === 0) return
+      const memberIds = members.map((m) => m.id)
+      const allSelected = memberIds.every((id) => selectedIds.includes(id))
+      const newNames = new Map(selectedNames)
+      if (allSelected) {
+        // Deselect all members of this department
+        const remaining = selectedIds.filter((id) => !memberIds.includes(id))
+        for (const id of memberIds) newNames.delete(id)
+        onChange(remaining)
+      } else {
+        // Select all members of this department
+        const toAdd = memberIds.filter((id) => !selectedIds.includes(id))
+        for (const m of members) newNames.set(m.id, m.name)
+        onChange([...selectedIds, ...toAdd])
+      }
+      setSelectedNames(newNames)
+    },
+    [loadedMembers, selectedIds, onChange, selectedNames],
   )
 
   // Search debounce
@@ -162,7 +183,7 @@ export function BudgetOrgMemberPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="start">
+      <PopoverContent className="w-72 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="border-b border-border p-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -176,7 +197,7 @@ export function BudgetOrgMemberPicker({
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto p-1">
+        <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
           {treeLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -196,6 +217,7 @@ export function BudgetOrgMemberPicker({
                 level={0}
                 expandedIds={expandedIds}
                 onToggle={toggleExpand}
+                onToggleDepartment={toggleDepartment}
                 loadedMembers={loadedMembers}
                 loadingDepts={loadingDepts}
                 selectedIds={selectedIds}
@@ -276,6 +298,7 @@ function DeptTreeNode({
   level,
   expandedIds,
   onToggle,
+  onToggleDepartment,
   loadedMembers,
   loadingDepts,
   selectedIds,
@@ -285,6 +308,7 @@ function DeptTreeNode({
   level: number
   expandedIds: Set<string>
   onToggle: (id: string) => void
+  onToggleDepartment: (id: string) => void
   loadedMembers: Record<string, Member[]>
   loadingDepts: Set<string>
   selectedIds: string[]
@@ -294,6 +318,10 @@ function DeptTreeNode({
   const isExpanded = expandedIds.has(dept.id)
   const members = loadedMembers[dept.id]
   const isLoadingMembers = loadingDepts.has(dept.id)
+
+  // Compute department checkbox state
+  const deptChecked = members && members.length > 0 && members.every((m) => selectedIds.includes(m.id))
+  const deptIndeterminate = !deptChecked && members && members.some((m) => selectedIds.includes(m.id))
 
   return (
     <div>
@@ -325,6 +353,15 @@ function DeptTreeNode({
           <Folder className="size-3.5 shrink-0 text-muted-foreground" />
         )}
         <span className="flex-1 truncate font-medium text-foreground">{dept.name}</span>
+        {members && members.length > 0 && (
+          <Checkbox
+            checked={deptChecked ? true : deptIndeterminate ? 'indeterminate' : false}
+            onCheckedChange={() => onToggleDepartment(dept.id)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`选择${dept.name}全部成员`}
+            className="size-3.5"
+          />
+        )}
       </div>
 
       {isExpanded && (
@@ -338,6 +375,7 @@ function DeptTreeNode({
                 level={level + 1}
                 expandedIds={expandedIds}
                 onToggle={onToggle}
+                onToggleDepartment={onToggleDepartment}
                 loadedMembers={loadedMembers}
                 loadingDepts={loadingDepts}
                 selectedIds={selectedIds}

@@ -176,7 +176,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
 
   const getMembers = useCallback(
     async (departmentId: string) => {
-      const result = await apis.memberApi.list({ departmentId, page: 1, pageSize: 200 })
+      const result = await apis.memberApi.list({ departmentId, directOnly: true, page: 1, pageSize: 200 })
       return result?.items ?? []
     },
     [apis],
