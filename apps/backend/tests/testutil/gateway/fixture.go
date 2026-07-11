@@ -31,7 +31,7 @@ func NewPrecheckFixture(t *testing.T, opts GatewayScenarioOpts, cfgOpts ...testu
 		Store:    st,
 		Ctx:      testutil.Ctx(),
 		FullKey:  fullKey,
-		Precheck: NewPrecheckService(cfg, st),
+		Precheck: NewPrecheckService(cfg, st, nil),
 	}
 }
 
@@ -45,7 +45,7 @@ func (f PrecheckFixture) Run(model string, skipModelCheck bool) error {
 
 func (f PrecheckFixture) LoadPrecheckRow(t *testing.T) *store.PrecheckContextRow {
 	t.Helper()
-	row, err := f.Store.GatewayPrecheck().LoadPrecheckContext(f.Ctx, f.KeyHash(), f.Cfg.Clock().Now())
+	row, err := f.Store.GatewayPrecheck().LoadPrecheckContext(f.Ctx, f.KeyHash())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,13 +3,13 @@ package store
 import "context"
 
 const (
-	SnapshotAxisOrgNode     = "org_node"
-	SnapshotAxisBudgetGroup = "budget_group"
-	SnapshotAxisPlatformKey = "platform_key"
-	SnapshotAxisMember      = "member"
+	AxisKindOrgNode     = "org_node"
+	AxisKindBudgetGroup = "budget_group"
+	AxisKindPlatformKey = "platform_key"
+	AxisKindMember      = "member"
 )
 
-type BudgetSnapshotRepository interface {
+type BudgetConsumedRepository interface {
 	GetConsumed(ctx context.Context, axisKind, axisID, periodKey string) (float64, bool, error)
 	ListConsumed(ctx context.Context, axisKind, periodKey string) (map[string]float64, error)
 	ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[string]float64, error)

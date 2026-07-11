@@ -21,14 +21,24 @@ func NewTestStoreWithDemoRuntime(t *testing.T, opts ...ConfigOption) (config.Con
 	return cfg, st
 }
 
-func resetRuntimeTables(t *testing.T, st store.Store) {
+func resetRuntimeTables(t *testing.T, cfg config.Config, st store.Store) {
 	t.Helper()
+	ctx := context.Background()
 	pool := postgres.MainPool(st)
-	_, err := pool.Exec(context.Background(), `
+	_, err := pool.Exec(ctx, `
 		TRUNCATE company_recharge_lots, company_recharge_orders, usage_buckets, usage_ledger RESTART IDENTITY CASCADE
 	`)
 	if err != nil {
 		t.Fatalf("reset runtime tables: %v", err)
+	}
+	if cfg.IngestEnabled() {
+		logPool := postgres.LogPool(st)
+		if _, err := logPool.Exec(ctx, `
+			TRUNCATE logs, ingest_jobs RESTART IDENTITY;
+			UPDATE reconcile_cursors SET last_log_id = 0, updated_at = NOW();
+		`); err != nil {
+			t.Fatalf("reset ingest runtime tables: %v", err)
+		}
 	}
 }
 

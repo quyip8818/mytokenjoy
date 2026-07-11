@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestSeedBudgetSnapshotsAlignWithClockAnchor(t *testing.T) {
+func TestSeedBudgetConsumedAlignWithClockAnchor(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	schemaURL := testutil.TestSchemaURL(t)
@@ -61,7 +61,7 @@ func TestSeedBudgetSnapshotsAlignWithClockAnchor(t *testing.T) {
 	}
 
 	rows, err := pool.Query(ctx, `
-		SELECT DISTINCT period_key FROM budget_snapshots WHERE company_id = $1
+		SELECT DISTINCT period_key FROM budget_consumed WHERE company_id = $1
 	`, contract.LocalCompanyID)
 	if err != nil {
 		t.Fatal(err)
@@ -79,11 +79,11 @@ func TestSeedBudgetSnapshotsAlignWithClockAnchor(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(keys) == 0 {
-		t.Fatal("expected seeded budget_snapshots")
+		t.Fatal("expected seeded budget_consumed")
 	}
 	for _, key := range keys {
 		if key != wantPeriod {
-			t.Fatalf("budget_snapshots period_key=%q want %q", key, wantPeriod)
+			t.Fatalf("budget_consumed period_key=%q want %q", key, wantPeriod)
 		}
 	}
 

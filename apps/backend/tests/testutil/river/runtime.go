@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
+	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/store"
@@ -23,6 +26,7 @@ type TestRuntime struct {
 	Client   *riverinfra.Client
 	Enqueuer jobs.Enqueuer
 	Registry app.ServiceRegistry
+	Cfg      config.Config
 	st       store.Store
 }
 
@@ -41,19 +45,24 @@ func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.S
 		t.Fatal(err)
 	}
 	pool := postgres.MainPool(st)
+	budgetAsync := budget.NewAsync(cfg, st, holder, budgetcheck.Noop{}, logger)
 	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
-		Billing:          reg.BillingSvc,
-		Overrun:          reg.Overrun,
-		Rebalance:        reg.Rebalance,
-		NewAPISync:       reg.MustNewAPISync(),
-		OrgSync:          reg.OrgSync,
-		MonthlyRebalance: budget.NewMonthlyRebalanceScheduler(cfg, st, holder),
+		Billing:            reg.BillingSvc,
+		Overrun:            reg.Overrun,
+		Rebalance:          reg.Rebalance,
+		NewAPISync:         reg.MustNewAPISync(),
+		OrgSync:            reg.OrgSync,
+		MonthlyRebalance:   budget.NewMonthlyRebalanceScheduler(cfg, st, holder),
+		BudgetProjector:    budgetAsync.Projector,
+		BudgetReconcile:    budgetAsync.Reconcile,
+		DashboardProjector: domaindashboard.NewProjector(cfg, st, holder, logger),
+		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, holder, logger),
 	}, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
 	holder.Set(client.Enqueuer)
-	return &TestRuntime{Client: client, Enqueuer: holder, Registry: reg, st: st}, st
+	return &TestRuntime{Client: client, Enqueuer: holder, Registry: reg, Cfg: cfg, st: st}, st
 }
 
 func (r *TestRuntime) Start(t *testing.T, ctx context.Context) {

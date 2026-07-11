@@ -144,6 +144,35 @@ func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID string) (strin
 	return period, true, nil
 }
 
+func (r *pgOrgNodeRepo) ListSelfAndAncestorIDs(ctx context.Context, leafNodeID string) ([]string, error) {
+	if leafNodeID == "" {
+		return nil, nil
+	}
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT ancestor.id
+		FROM org_nodes leaf
+		JOIN org_nodes ancestor
+		  ON ancestor.company_id = leaf.company_id
+		 AND ancestor.path @> leaf.path
+		WHERE leaf.company_id = $1 AND leaf.id = $2
+		ORDER BY nlevel(ancestor.path) ASC
+	`, companyID, leafNodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := make([]string, 0)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 type flatOrgNode struct {
 	types.OrgNode
 	sortOrder int

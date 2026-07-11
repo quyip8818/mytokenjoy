@@ -15,7 +15,7 @@ func DisplayPoints(display float64) float64 {
 func SetDeptSnapshotConsumed(t *testing.T, st store.Store, deptID string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, deptID, contract.DemoBudgetPeriod, consumed); err != nil {
+	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindOrgNode, deptID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -28,7 +28,7 @@ func SnapshotConsumed(t *testing.T, st store.Store, axisKind, axisID string) flo
 func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string) float64 {
 	t.Helper()
 	ctx := Ctx()
-	consumed, found, err := st.BudgetSnapshots().GetConsumed(ctx, axisKind, axisID, periodKey)
+	consumed, found, err := st.BudgetConsumed().GetConsumed(ctx, axisKind, axisID, periodKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,23 +40,23 @@ func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, pe
 
 func Dept3SnapshotConsumed(t *testing.T, st store.Store) float64 {
 	t.Helper()
-	return SnapshotConsumed(t, st, store.SnapshotAxisOrgNode, contract.IDDept3)
+	return SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
 }
 
 func PlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string) float64 {
 	t.Helper()
-	return SnapshotConsumed(t, st, store.SnapshotAxisPlatformKey, keyID)
+	return SnapshotConsumed(t, st, store.AxisKindPlatformKey, keyID)
 }
 
 func SetPlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string, used float64) {
 	t.Helper()
-	SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, keyID, contract.DemoBudgetPeriod, used)
+	SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, keyID, contract.DemoBudgetPeriod, used)
 }
 
 func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, axisKind, axisID, periodKey, consumed); err != nil {
+	if err := st.BudgetConsumed().SetConsumed(ctx, axisKind, axisID, periodKey, consumed); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -64,7 +64,7 @@ func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID,
 func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisBudgetGroup, groupID, contract.DemoBudgetPeriod, consumed); err != nil {
+	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindBudgetGroup, groupID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -72,7 +72,7 @@ func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, cons
 func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, consumed float64) {
 	t.Helper()
 	ctx := Ctx()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisMember, memberID, contract.DemoBudgetPeriod, consumed); err != nil {
+	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindMember, memberID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }

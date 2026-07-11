@@ -7,20 +7,20 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type budgetSnapshotRepo struct {
+type budgetConsumedRepo struct {
 	db dbQuerier
 }
 
-func newBudgetSnapshotRepo(db dbQuerier) *budgetSnapshotRepo {
-	return &budgetSnapshotRepo{db: db}
+func newBudgetConsumedRepo(db dbQuerier) *budgetConsumedRepo {
+	return &budgetConsumedRepo{db: db}
 }
 
-var _ store.BudgetSnapshotRepository = (*budgetSnapshotRepo)(nil)
+var _ store.BudgetConsumedRepository = (*budgetConsumedRepo)(nil)
 
-func (r *budgetSnapshotRepo) ListConsumed(ctx context.Context, axisKind, periodKey string) (map[string]float64, error) {
+func (r *budgetConsumedRepo) ListConsumed(ctx context.Context, axisKind, periodKey string) (map[string]float64, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT axis_id, consumed FROM budget_snapshots
+		SELECT axis_id, consumed FROM budget_consumed
 		WHERE company_id = $1 AND axis_kind = $2 AND period_key = $3
 	`, companyID, axisKind, periodKey)
 	if err != nil {
@@ -39,13 +39,13 @@ func (r *budgetSnapshotRepo) ListConsumed(ctx context.Context, axisKind, periodK
 	return out, rows.Err()
 }
 
-func (r *budgetSnapshotRepo) ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[string]float64, error) {
+func (r *budgetConsumedRepo) ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[string]float64, error) {
 	if len(periodKeys) == 0 {
 		return map[string]map[string]float64{}, nil
 	}
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT period_key, axis_id, consumed FROM budget_snapshots
+		SELECT period_key, axis_id, consumed FROM budget_consumed
 		WHERE company_id = $1 AND axis_kind = $2 AND period_key = ANY($3)
 	`, companyID, axisKind, periodKeys)
 	if err != nil {
@@ -67,11 +67,11 @@ func (r *budgetSnapshotRepo) ListConsumedByPeriods(ctx context.Context, axisKind
 	return out, rows.Err()
 }
 
-func (r *budgetSnapshotRepo) GetConsumed(ctx context.Context, axisKind, axisID, periodKey string) (float64, bool, error) {
+func (r *budgetConsumedRepo) GetConsumed(ctx context.Context, axisKind, axisID, periodKey string) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var consumed float64
 	err := r.db.QueryRow(ctx, `
-		SELECT consumed FROM budget_snapshots
+		SELECT consumed FROM budget_consumed
 		WHERE company_id = $1 AND axis_kind = $2 AND axis_id = $3 AND period_key = $4
 	`, companyID, axisKind, axisID, periodKey).Scan(&consumed)
 	if err == pgx.ErrNoRows {
@@ -83,22 +83,22 @@ func (r *budgetSnapshotRepo) GetConsumed(ctx context.Context, axisKind, axisID, 
 	return consumed, true, nil
 }
 
-func (r *budgetSnapshotRepo) IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amountCNY float64) error {
+func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amountCNY float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO budget_snapshots (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
-			consumed = budget_snapshots.consumed + EXCLUDED.consumed,
+			consumed = budget_consumed.consumed + EXCLUDED.consumed,
 			updated_at = NOW()
 	`, companyID, axisKind, axisID, periodKey, amountCNY)
 	return err
 }
 
-func (r *budgetSnapshotRepo) SetConsumed(ctx context.Context, axisKind, axisID, periodKey string, consumed float64) error {
+func (r *budgetConsumedRepo) SetConsumed(ctx context.Context, axisKind, axisID, periodKey string, consumed float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO budget_snapshots (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
 			consumed = EXCLUDED.consumed,
@@ -107,10 +107,10 @@ func (r *budgetSnapshotRepo) SetConsumed(ctx context.Context, axisKind, axisID, 
 	return err
 }
 
-func (r *budgetSnapshotRepo) RollupOrgNodeAncestors(ctx context.Context, leafNodeID, periodKey string, amountCNY float64) error {
+func (r *budgetConsumedRepo) RollupOrgNodeAncestors(ctx context.Context, leafNodeID, periodKey string, amountCNY float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO budget_snapshots (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		SELECT $1, $5, ancestor.id, $4, $3, NOW()
 		FROM org_nodes leaf
 		JOIN org_nodes ancestor
@@ -118,8 +118,8 @@ func (r *budgetSnapshotRepo) RollupOrgNodeAncestors(ctx context.Context, leafNod
 		 AND ancestor.path @> leaf.path
 		WHERE leaf.company_id = $1 AND leaf.id = $2
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
-			consumed = budget_snapshots.consumed + EXCLUDED.consumed,
+			consumed = budget_consumed.consumed + EXCLUDED.consumed,
 			updated_at = NOW()
-	`, companyID, leafNodeID, amountCNY, periodKey, store.SnapshotAxisOrgNode)
+	`, companyID, leafNodeID, amountCNY, periodKey, store.AxisKindOrgNode)
 	return err
 }

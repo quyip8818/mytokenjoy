@@ -38,6 +38,58 @@ func (r *usageRepo) UpsertBucket(ctx context.Context, row types.UsageBucketRow) 
 	return err
 }
 
+func (r *usageRepo) SetBucket(ctx context.Context, row types.UsageBucketRow) error {
+	companyID := store.CompanyID(ctx)
+	var memberID *string
+	if row.MemberID != "" {
+		memberID = &row.MemberID
+	}
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO usage_buckets (
+			company_id, bucket_start, department_id, member_id, model,
+			cost, call_count, input_tokens, output_tokens, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+		ON CONFLICT (company_id, bucket_start, department_id, member_scope, model) DO UPDATE SET
+			cost = EXCLUDED.cost,
+			call_count = EXCLUDED.call_count,
+			input_tokens = EXCLUDED.input_tokens,
+			output_tokens = EXCLUDED.output_tokens,
+			updated_at = NOW()
+	`, companyID, row.BucketStart.UTC(), row.DepartmentID, memberID, row.Model,
+		row.Cost, row.CallCount, row.InputTokens, row.OutputTokens)
+	return err
+}
+
+func (r *usageRepo) ListBucketsSince(ctx context.Context, since time.Time) ([]types.UsageBucketRow, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT bucket_start, department_id, member_id, model,
+			cost, call_count, input_tokens, output_tokens
+		FROM usage_buckets
+		WHERE company_id = $1 AND bucket_start >= $2
+	`, companyID, since.UTC())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]types.UsageBucketRow, 0)
+	for rows.Next() {
+		var row types.UsageBucketRow
+		var memberID *string
+		if err := rows.Scan(
+			&row.BucketStart, &row.DepartmentID, &memberID, &row.Model,
+			&row.Cost, &row.CallCount, &row.InputTokens, &row.OutputTokens,
+		); err != nil {
+			return nil, err
+		}
+		if memberID != nil {
+			row.MemberID = *memberID
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
 func (r *usageRepo) QuerySeries(ctx context.Context, q types.UsageSeriesQuery) ([]types.UsageSeriesPoint, error) {
 	rows, err := r.queryAggregated(ctx, types.UsageAggregateQuery{
 		Start:        q.Start,

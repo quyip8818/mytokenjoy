@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -51,7 +52,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	cfg.NewAPIBaseURL = backendURL
 	cfg.GatewayEnabled = true
 
-	precheck := NewPrecheckService(cfg, st)
+	precheck := NewPrecheckService(cfg, st, nil)
 	gw, err := domaingateway.NewGatewayService(cfg, precheck)
 	if err != nil {
 		t.Fatal(err)
@@ -59,8 +60,8 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	return GatewayScenario{Gateway: gw, Store: st, Cfg: cfg, FullKey: fullKey}
 }
 
-func NewPrecheckService(cfg config.Config, st store.Store) *domaingateway.PrecheckService {
-	return domaingateway.NewPrecheckService(st.GatewayPrecheck(), cfg.Clock())
+func NewPrecheckService(cfg config.Config, st store.Store, cache budgetcheck.Store) *domaingateway.PrecheckService {
+	return domaingateway.NewPrecheckService(st.GatewayPrecheck(), cfg.Clock(), cache)
 }
 
 func setBudgetOnTree(nodes []types.BudgetNode, deptID string, budget, consumed float64) bool {

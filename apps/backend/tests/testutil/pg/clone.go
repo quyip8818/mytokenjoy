@@ -11,6 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// cloneDataExcludedTables are runtime ingest tables seeded empty like production;
+// clone structure only so per-test writes never inherit template pollution.
+var cloneDataExcludedTables = map[string]struct{}{
+	"logs":               {},
+	"ingest_jobs":        {},
+	"reconcile_cursors":  {},
+}
+
+func cloneIncludesData(table string, hasRows bool) bool {
+	if !hasRows {
+		return false
+	}
+	_, excluded := cloneDataExcludedTables[table]
+	return !excluded
+}
+
 func LoadClonePlan(ctx context.Context, pool *pgxpool.Pool, schema string) (ClonePlan, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -42,7 +58,7 @@ func LoadClonePlan(ctx context.Context, pool *pgxpool.Pool, schema string) (Clon
 		if err := tx.QueryRow(ctx, fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM %s.%s LIMIT 1)", srcSQL, tableSQL)).Scan(&hasRows); err != nil {
 			return ClonePlan{}, fmt.Errorf("count %s: %w", table, err)
 		}
-		if hasRows {
+		if cloneIncludesData(table, hasRows) {
 			plan.TablesWithData[table] = struct{}{}
 		}
 	}

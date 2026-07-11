@@ -3,17 +3,19 @@ package usage_test
 import (
 	"testing"
 
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	"github.com/tokenjoy/backend/tests/testutil/mock"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
+	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
 func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
-	ingest := testutil.NewIngestService(t, cfg, st)
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
+	runner, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()
 
 	fullKey := "sk-app-key-test"
@@ -41,6 +43,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 98002, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
+	runner.RunOnce(ctx)
 
 	after := testutil.Dept3SnapshotConsumed(t, st)
 	if after <= before {

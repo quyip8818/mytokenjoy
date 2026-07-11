@@ -8,6 +8,7 @@
     "start": "pnpm start:postgres && concurrently --kill-others-on-fail -n backend,frontend -c blue,green \"pnpm -F @tokenjoy/backend start\" \"pnpm start:frontend\"",
     "docker:reset": "docker compose -f apps/newapi/docker-compose.yml down -v && docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
     "start:postgres": "docker compose -f apps/newapi/docker-compose.yml up postgres -d --wait",
+    "start:redis": "docker compose -f apps/newapi/docker-compose.yml up redis -d --wait",
     "start:frontend": "wait-on -t 30000 http://127.0.0.1:8080/healthz && pnpm -F @tokenjoy/frontend start",
     "start:newapi": "docker compose -f apps/newapi/docker-compose.yml up",
     "generate:permissions": "pnpm -F @tokenjoy/contracts generate",

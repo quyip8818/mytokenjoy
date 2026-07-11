@@ -21,7 +21,7 @@ func (l *NewAPISync) SyncUpdatePlatformKey(ctx context.Context, platformKeyID st
 	if err != nil || mapping == nil || mapping.NewAPIKeyID == nil {
 		return fmt.Errorf("platform key mapping missing for %s", platformKeyID)
 	}
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, l.store.BudgetConsumed(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
 	if err != nil {
 		return err
 	}

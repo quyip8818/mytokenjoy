@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 )
@@ -59,6 +60,22 @@ type Config struct {
 	SessionTTLSec         int    `env:"SESSION_TTL_SEC" envDefault:"86400"`
 	PlatformSessionSecret string `env:"PLATFORM_SESSION_SECRET"`
 	AuthzCacheSize        int    `env:"AUTHZ_CACHE_SIZE" envDefault:"4096"`
+
+	// GatewayBudgetCheck (optional soft-block). Empty RedisURL => no-op (default).
+	RedisURL                 string `env:"REDIS_URL"`
+	GatewayBudgetCheckTTLSec int    `env:"GATEWAY_BUDGET_CHECK_TTL_SEC" envDefault:"600"`
+}
+
+func (c Config) GatewayBudgetCheckEnabled() bool {
+	return strings.TrimSpace(c.RedisURL) != ""
+}
+
+func (c Config) GatewayBudgetCheckTTL() time.Duration {
+	sec := c.GatewayBudgetCheckTTLSec
+	if sec <= 0 {
+		sec = 600
+	}
+	return time.Duration(sec) * time.Second
 }
 
 func Load() (Config, error) {

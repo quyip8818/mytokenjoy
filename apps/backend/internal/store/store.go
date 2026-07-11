@@ -47,7 +47,9 @@ type Store interface {
 	Audit() AuditRepository
 	Ledger() LedgerRepository
 	PlatformKeyMappings() PlatformKeyMappingRepository
-	BudgetSnapshots() BudgetSnapshotRepository
+	BudgetConsumed() BudgetConsumedRepository
+	BudgetProjectionProgress() ProjectionProgressRepository
+	DashboardProjectionProgress() ProjectionProgressRepository
 	GatewayPrecheck() GatewayPrecheckRepository
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
@@ -57,11 +59,10 @@ type Store interface {
 }
 
 // ConsumptionWriter is the minimal store surface for ingest transactions:
-// ledger insert, projection apply, and side-effect enqueue.
+// ledger insert and side-effect enqueue.
 type ConsumptionWriter interface {
 	Ledger() LedgerRepository
 	Usage() UsageRepository
-	BudgetSnapshots() BudgetSnapshotRepository
 	Budget() BudgetRepository
 	Org() OrgRepository
 	Keys() KeysRepository

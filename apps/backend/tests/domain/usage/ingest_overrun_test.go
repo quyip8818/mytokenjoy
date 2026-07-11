@@ -36,7 +36,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	node := pkgbudget.FindBudgetNode(tree, contract.IDDept3)
-	consumed := testutil.SnapshotConsumed(t, st, store.SnapshotAxisOrgNode, contract.IDDept3)
+	consumed := testutil.SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
 	if node == nil || consumed < node.Budget {
 		t.Fatalf("expected dept-3 consumed >= budget, consumed=%v budget=%v", consumed, node.Budget)
 	}

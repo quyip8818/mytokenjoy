@@ -75,12 +75,10 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 			pool.Close()
 			return nil, fmt.Errorf("ping logs postgres: %w", err)
 		}
-		if !cfg.StoreBootstrap.SchemaPrepared {
-			if err := applyLogsSchema(ctx, logPool, cfg); err != nil {
-				logPool.Close()
-				pool.Close()
-				return nil, err
-			}
+		if err := applyLogsSchema(ctx, logPool, cfg); err != nil {
+			logPool.Close()
+			pool.Close()
+			return nil, err
 		}
 		s.logPool = logPool
 		s.logTables = tables
@@ -144,8 +142,16 @@ func (s *Store) Keys() store.KeysRepository     { return s.domain.keys }
 func (s *Store) Models() store.ModelsRepository { return s.domain.models }
 func (s *Store) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *Store) Ledger() store.LedgerRepository { return &pgLedgerRepo{db: s.pool} }
-func (s *Store) BudgetSnapshots() store.BudgetSnapshotRepository {
-	return newBudgetSnapshotRepo(s.pool)
+func (s *Store) BudgetConsumed() store.BudgetConsumedRepository {
+	return newBudgetConsumedRepo(s.pool)
+}
+
+func (s *Store) BudgetProjectionProgress() store.ProjectionProgressRepository {
+	return newBudgetProjectionProgressRepo(s.pool)
+}
+
+func (s *Store) DashboardProjectionProgress() store.ProjectionProgressRepository {
+	return newDashboardProjectionProgressRepo(s.pool)
 }
 
 func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }

@@ -12,7 +12,7 @@ import (
 )
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
-	return pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
+	return pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetConsumed(), s.store.Org().Nodes(), s.cfg.Clock())
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
@@ -63,7 +63,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 }
 
 func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
-		budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
+		budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
 		if err != nil {
 			return err
 		}
@@ -233,7 +233,7 @@ func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (m
 	periodKey := open.String()
 
 	// Batch fetch all member consumed values for this period
-	allConsumed, err := s.store.BudgetSnapshots().ListConsumed(ctx, store.SnapshotAxisMember, periodKey)
+	allConsumed, err := s.store.BudgetConsumed().ListConsumed(ctx, store.AxisKindMember, periodKey)
 	if err != nil {
 		return nil, err
 	}

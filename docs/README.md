@@ -27,7 +27,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [架构简化方案.md](./架构简化方案.md) | 架构 / 后端 | 未上线演进蓝图：/v1 约束 + Phase 1–5 |
 | [架构简化-分阶段详解.md](./架构简化-分阶段详解.md) | 架构 / 后端 | 各 Phase 图解 + 例子：干什么、为什么 |
 | [架构简化-Phase2详解.md](./架构简化-Phase2详解.md) | 架构 / 后端 / DBA | Phase 2 专篇：表结构变更、Ingest 写路径、例子 |
-| [实现-异步预算投影.md](./实现-异步预算投影.md) | 架构 / 后端 | 未上线：ledger 单写、`budget_consumed` 异步、Gateway 瘦 SQL、看板 buckets |
+| [实现-异步预算投影.md](./实现-异步预算投影.md) | 架构 / 后端 | **下一步**：投影域 + Gateway 瘦化；River Periodic **已落地**（fanout 待接） |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | **现状**：Ingest + River 两条线、6 kind、入队与 Worker |
 | [实现-离线任务管理.md](./实现-离线任务管理.md) | 架构 / 后端 | **部分完成**：剩余 `budget_project` + Periodic fanout |
 | [Backend-River实现.md](./Backend-River实现.md) | 后端 | River 基础设施（Schema、Unique、队列、可观测 SQL）— **已落地** |

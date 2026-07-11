@@ -472,6 +472,10 @@ CREATE INDEX IF NOT EXISTS idx_usage_ledger_call_settled_occurred
     ON usage_ledger (company_id, occurred_at DESC)
     WHERE event_type = 'call_settled';
 
+CREATE INDEX IF NOT EXISTS idx_usage_ledger_projector_cursor
+    ON usage_ledger (company_id, occurred_at ASC, id ASC)
+    WHERE event_type = 'call_settled';
+
 CREATE INDEX IF NOT EXISTS idx_usage_ledger_dept_occurred
     ON usage_ledger (company_id, department_id, occurred_at DESC);
 
@@ -523,7 +527,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_key_mappings_key
 CREATE INDEX IF NOT EXISTS idx_platform_key_mappings_sync_pending
     ON platform_key_mappings (company_id, sync_status) WHERE sync_status = 'pending';
 
-CREATE TABLE IF NOT EXISTS budget_snapshots (
+CREATE TABLE IF NOT EXISTS budget_consumed (
     company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('org_node', 'budget_group', 'platform_key', 'member')),
     axis_id    TEXT NOT NULL,
@@ -533,8 +537,26 @@ CREATE TABLE IF NOT EXISTS budget_snapshots (
     PRIMARY KEY (company_id, axis_kind, axis_id, period_key)
 );
 
-CREATE INDEX IF NOT EXISTS idx_budget_snapshots_overrun
-    ON budget_snapshots (company_id, axis_kind, period_key);
+CREATE INDEX IF NOT EXISTS idx_budget_consumed_overrun
+    ON budget_consumed (company_id, axis_kind, period_key);
+
+CREATE TABLE IF NOT EXISTS budget_projection_progress (
+    company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    stream           TEXT NOT NULL DEFAULT 'ledger_consumed',
+    last_occurred_at TIMESTAMPTZ,
+    last_ledger_id   TEXT,
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, stream)
+);
+
+CREATE TABLE IF NOT EXISTS dashboard_projection_progress (
+    company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    stream           TEXT NOT NULL DEFAULT 'dashboard_buckets',
+    last_occurred_at TIMESTAMPTZ,
+    last_ledger_id   TEXT,
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, stream)
+);
 
 -- River job queue (github.com/riverqueue/river v0.40.0, line main migrations 001-007)
 CREATE TABLE river_migration(

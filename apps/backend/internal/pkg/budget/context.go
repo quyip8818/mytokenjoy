@@ -17,7 +17,7 @@ type BudgetContext struct {
 
 func LoadBudgetContext(
 	ctx context.Context,
-	snapshots store.BudgetSnapshotRepository,
+	snapshots store.BudgetConsumedRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
 	keys store.KeysRepository,

@@ -41,7 +41,7 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 	if err := insertSeedBudget(ctx, exec, tid, snap); err != nil {
 		return err
 	}
-	if err := insertSeedBudgetSnapshots(ctx, exec, tid, snap); err != nil {
+	if err := insertSeedBudgetConsumed(ctx, exec, tid, snap); err != nil {
 		return err
 	}
 	if err := insertSeedModelAllowlist(ctx, exec, tid, snap.ModelAllowlist); err != nil {

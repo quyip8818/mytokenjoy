@@ -3,14 +3,13 @@ package postgres_test
 import (
 	"testing"
 
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
-func TestLoadPrecheckContextReturnsMappingAndWallet(t *testing.T) {
+func TestLoadPrecheckContextReturnsWalletAndRouting(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{
 		Budget:             1000,
@@ -27,12 +26,6 @@ func TestLoadPrecheckContextReturnsMappingAndWallet(t *testing.T) {
 	if row.BalancePoint != 50000 {
 		t.Fatalf("expected balance 50000, got %v", row.BalancePoint)
 	}
-	if row.DepartmentID != contract.IDDept3 {
-		t.Fatalf("expected department %s, got %s", contract.IDDept3, row.DepartmentID)
-	}
-	if !row.DeptFound {
-		t.Fatal("expected department found")
-	}
 	if row.KeyStatus != "active" {
 		t.Fatalf("expected active key, got %s", row.KeyStatus)
 	}
@@ -40,35 +33,15 @@ func TestLoadPrecheckContextReturnsMappingAndWallet(t *testing.T) {
 
 func TestLoadPrecheckContextReturnsNilForUnknownKey(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	row, err := st.GatewayPrecheck().LoadPrecheckContext(ctx, store.HashPlatformKey("sk-unknown"), cfg.Clock().Now())
+	row, err := st.GatewayPrecheck().LoadPrecheckContext(ctx, store.HashPlatformKey("sk-unknown"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if row != nil {
 		t.Fatal("expected nil row for unknown key hash")
-	}
-}
-
-func TestLoadPrecheckContextPeriodKeyAlignment(t *testing.T) {
-	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t,
-		gatewaytf.GatewayScenarioOpts{
-			Budget:   testutil.DisplayPoints(1000),
-			Consumed: testutil.DisplayPoints(250),
-		},
-		testutil.WithClockAnchor("2026-06-19"),
-	)
-
-	periodKey := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, fx.Cfg.Clock()).String()
-	row := fx.LoadPrecheckRow(t)
-	if row.PeriodKey != periodKey {
-		t.Fatalf("expected period %q, got %q", periodKey, row.PeriodKey)
-	}
-	if row.DeptConsumed != testutil.DisplayPoints(250) {
-		t.Fatalf("expected dept consumed %v, got %v", testutil.DisplayPoints(250), row.DeptConsumed)
 	}
 }
 

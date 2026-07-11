@@ -3,9 +3,6 @@ package gateway_test
 import (
 	"testing"
 
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
@@ -19,15 +16,6 @@ func TestPrecheckRejects(t *testing.T) {
 		cfg  []testutil.ConfigOption
 		run  func(t *testing.T, fx gatewaytf.PrecheckFixture)
 	}{
-		{
-			name: "zero budget",
-			opts: gatewaytf.GatewayScenarioOpts{Budget: 0},
-			run: func(t *testing.T, fx gatewaytf.PrecheckFixture) {
-				if err := fx.Run("gpt-4o", false); err == nil {
-					t.Fatal("expected budget exceeded error")
-				}
-			},
-		},
 		{
 			name: "model not in whitelist",
 			opts: gatewaytf.GatewayScenarioOpts{Budget: 1000},
@@ -116,24 +104,10 @@ func TestPrecheckAllowsModelsListingWithoutModelField(t *testing.T) {
 	}
 }
 
-func TestPrecheckUsesClockAnchorForPeriodKey(t *testing.T) {
+func TestPrecheckPassesRegardlessOfDeptConsumed(t *testing.T) {
 	t.Parallel()
-	fxJune := gatewaytf.NewPrecheckFixture(t,
-		gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)},
-		testutil.WithClockAnchor("2026-06-19"),
-	)
-
-	junePeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, fxJune.Cfg.Clock()).String()
-	testutil.SetSnapshotConsumedAtPeriod(t, fxJune.Store, store.SnapshotAxisOrgNode, contract.IDDept3, junePeriod, testutil.DisplayPoints(1000))
-	if err := fxJune.Run("gpt-4o", false); err == nil {
-		t.Fatal("expected budget exceeded when clock anchors June period")
-	}
-
-	fxJuly := gatewaytf.NewPrecheckFixture(t,
-		gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(100000)},
-		testutil.WithClockAnchor("2026-07-15"),
-	)
-	if err := fxJuly.Run("gpt-4o", false); err != nil {
-		t.Fatalf("expected precheck to pass for July period with no consumption, got %v", err)
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+	if err := fx.Run("gpt-4o", false); err != nil {
+		t.Fatalf("expected precheck to pass without budget consumed join, got %v", err)
 	}
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const testTemplateVersion = 11 // bump when schema.sql (incl. River DDL) changes
+const testTemplateVersion = 13 // bump when schema.sql (incl. River DDL) or clone policy changes
 
 var (
 	templateOnce sync.Once
@@ -84,9 +84,22 @@ func buildTestTemplate(ctx context.Context, baseURL string, templateCfg config.C
 		return fmt.Errorf("build test template: %w", err)
 	}
 	if pg, ok := st.(*postgres.Store); ok {
+		if err := clearIngestRuntimeTables(ctx, pg); err != nil {
+			pg.Close()
+			return fmt.Errorf("clear template ingest tables: %w", err)
+		}
 		pg.Close()
 	}
 	return nil
+}
+
+func clearIngestRuntimeTables(ctx context.Context, st *postgres.Store) error {
+	logPool := postgres.LogPool(st)
+	_, err := logPool.Exec(ctx, `
+		TRUNCATE logs, ingest_jobs RESTART IDENTITY;
+		UPDATE reconcile_cursors SET last_log_id = 0, updated_at = NOW();
+	`)
+	return err
 }
 
 func readTemplateVersion(ctx context.Context, pool *pgxpool.Pool) (int, bool) {

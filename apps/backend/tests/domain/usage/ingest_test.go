@@ -8,30 +8,34 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
+	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
+	runner, st, ingest := workerfix.NewRuntime(t, stub)
+	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	beforeUsed := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
 	beforeConsumed := testutil.Dept3SnapshotConsumed(t, st)
-	beforeBuckets := testutil.UsageBucketCount(st)
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(1001, 99))
-	if err := ingest.IngestByLogID(testutil.Ctx(), 1001, types.SourceWebhook); err != nil {
+	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	if err := ingest.IngestByLogID(testutil.Ctx(), 1001, types.SourceWebhook); err != nil {
+	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
+	runner.RunOnce(ctx)
 
 	exists, err := testutil.HasLedgerLogID(st, 1001)
 	if err != nil || !exists {
@@ -47,15 +51,6 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	if afterConsumed <= beforeConsumed {
 		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
 	}
-
-	afterBuckets := testutil.UsageBucketCount(st)
-	if afterBuckets < beforeBuckets+1 {
-		t.Fatalf("expected at least one new usage bucket, before=%d after=%d", beforeBuckets, afterBuckets)
-	}
-	if err := ingest.IngestByLogID(testutil.Ctx(), 1001, types.SourceWebhook); err != nil {
-		t.Fatal(err)
-	}
-	testutil.AssertUsageBucketCount(t, st, afterBuckets)
 }
 
 func TestIngestByLogID(t *testing.T) {
@@ -74,7 +69,7 @@ func TestIngestByLogID(t *testing.T) {
 	}
 }
 
-func TestIngestWritesUsageBucket(t *testing.T) {
+func TestIngestDoesNotWriteUsageBucketDirectly(t *testing.T) {
 	t.Parallel()
 	cfg, st := newIngestStore(t)
 	ingest := testutil.NewIngestService(t, cfg, st)
@@ -88,15 +83,9 @@ func TestIngestWritesUsageBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	afterBuckets := testutil.UsageBucketCount(st)
-	if afterBuckets < beforeBuckets+1 {
-		t.Fatalf("expected at least one new usage bucket, before=%d after=%d", beforeBuckets, afterBuckets)
+	if testutil.UsageBucketCount(st) != beforeBuckets {
+		t.Fatalf("expected ingest to skip usage_buckets, before=%d after=%d", beforeBuckets, testutil.UsageBucketCount(st))
 	}
-
-	if err := ingest.IngestByLogID(testutil.Ctx(), 4001, types.SourceWebhook); err != nil {
-		t.Fatal(err)
-	}
-	testutil.AssertUsageBucketCount(t, st, afterBuckets)
 }
 
 func TestIngestRaw(t *testing.T) {
@@ -147,8 +136,10 @@ func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 
 func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
+	runner, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()
+	cfg := runner.Cfg
 	nodes, err := st.Org().Nodes().Tree(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +151,6 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ingest := testutil.NewIngestService(t, cfg, st)
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
@@ -174,18 +164,19 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	raw.CreatedAt = occurred.Unix()
 	testutil.SeedConsumeLog(t, st, raw)
 
-	beforeSnapshot := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, snapshotPeriod)
-	beforeLedgerPeriod := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, ledgerPeriod)
+	beforeSnapshot := testutil.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, snapshotPeriod)
+	beforeLedgerPeriod := testutil.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, ledgerPeriod)
 
 	if err := ingest.IngestByLogID(ctx, 9901, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
+	runner.RunOnce(ctx)
 
-	afterSnapshot := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, snapshotPeriod)
+	afterSnapshot := testutil.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, snapshotPeriod)
 	if afterSnapshot <= beforeSnapshot {
 		t.Fatalf("expected snapshot period %q consumption increase, before=%v after=%v", snapshotPeriod, beforeSnapshot, afterSnapshot)
 	}
-	afterLedgerPeriod := testutil.SnapshotConsumedAtPeriod(t, st, store.SnapshotAxisOrgNode, contract.IDDept3, ledgerPeriod)
+	afterLedgerPeriod := testutil.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, ledgerPeriod)
 	if afterLedgerPeriod != beforeLedgerPeriod {
 		t.Fatalf("expected no consumption at ledger period %q, before=%v after=%v", ledgerPeriod, beforeLedgerPeriod, afterLedgerPeriod)
 	}

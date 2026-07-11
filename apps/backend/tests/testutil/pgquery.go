@@ -45,6 +45,10 @@ func PendingWalletSyncCount(st store.Store, companyID int64) int {
 	return pendingJobCount(st, jobs.KindWalletSync, companyID)
 }
 
+func PendingBudgetProjectCount(st store.Store, companyID int64) int {
+	return pendingJobCount(st, jobs.KindBudgetProject, companyID)
+}
+
 func pendingJobCount(st store.Store, kind string, companyID int64) int {
 	ctx := CtxForCompany(companyID)
 	pool := postgres.MainPool(st)

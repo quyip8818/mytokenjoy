@@ -83,7 +83,7 @@ func TestGatewayCheckOrder_ModelNotInWhitelist(t *testing.T) {
 	}
 }
 
-func TestGatewayCheckOrder_BudgetExhausted(t *testing.T) {
+func TestGatewayCheckOrder_AllowsWhenDeptBudgetZero(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		Budget:   0,
@@ -94,8 +94,8 @@ func TestGatewayCheckOrder_BudgetExhausted(t *testing.T) {
 	w := httptest.NewRecorder()
 	scenario.Gateway.ServeHTTP(w, req)
 
-	if w.Code == http.StatusOK {
-		t.Error("exhausted budget should block API call")
+	if w.Code != http.StatusOK {
+		t.Errorf("gateway should not block on dept budget, got %d", w.Code)
 	}
 }
 

@@ -20,7 +20,7 @@ import (
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
-func TestIngestEnqueuesRebalanceOverrunAndWalletSync(t *testing.T) {
+func TestIngestEnqueuesBudgetProjectAndWalletSync(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	_, st, ingest := workerfix.NewRuntime(t, stub)
@@ -32,11 +32,14 @@ func TestIngestEnqueuesRebalanceOverrunAndWalletSync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected rebalance jobs after ingest")
+	if testutil.PendingBudgetProjectCount(st, contract.DefaultCompanyID) == 0 {
+		t.Fatal("expected budget_project job after ingest")
 	}
-	if testutil.PendingOverrunCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected overrun job after ingest")
+	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
+		t.Fatal("expected no rebalance jobs directly from ingest")
+	}
+	if testutil.PendingOverrunCount(st, contract.DefaultCompanyID) != 0 {
+		t.Fatal("expected no overrun jobs directly from ingest")
 	}
 	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected wallet_sync job after ingest")
@@ -75,6 +78,9 @@ func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 	}
 	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no wallet_sync job after rollback")
+	}
+	if testutil.PendingBudgetProjectCount(st, contract.DefaultCompanyID) != 0 {
+		t.Fatal("expected no budget_project job after rollback")
 	}
 }
 

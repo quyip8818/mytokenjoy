@@ -10,12 +10,12 @@ import (
 
 // MappingStores groups repositories needed to compute remain budget for a platform key mapping.
 type MappingStores struct {
-	Snapshots store.BudgetSnapshotRepository
-	OrgNodes  store.OrgNodeRepository
-	Org       store.OrgRepository
-	Budget    store.BudgetRepository
-	Keys      store.KeysRepository
-	Clock     clock.Clock
+	Consumed store.BudgetConsumedRepository
+	OrgNodes store.OrgNodeRepository
+	Org      store.OrgRepository
+	Budget   store.BudgetRepository
+	Keys     store.KeysRepository
+	Clock    clock.Clock
 }
 
 // RemainForMapping returns effective remaining budget for ingest cap checks.
@@ -37,7 +37,7 @@ func RemainForMapping(
 		return 0, fmt.Errorf("budget exceeded")
 	}
 
-	budgetCtx, err := LoadBudgetContext(ctx, stores.Snapshots, stores.Org, stores.Budget, stores.Keys, stores.Clock)
+	budgetCtx, err := LoadBudgetContext(ctx, stores.Consumed, stores.Org, stores.Budget, stores.Keys, stores.Clock)
 	if err != nil {
 		return 0, err
 	}
@@ -46,18 +46,18 @@ func RemainForMapping(
 		return 0, fmt.Errorf("platform key not found")
 	}
 	if key.Budget > 0 {
-		consumed, snapFound, err := stores.Snapshots.GetConsumed(ctx, store.SnapshotAxisPlatformKey, key.ID, periodKey)
+		consumed, found, err := stores.Consumed.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
 		if err != nil {
 			return 0, err
 		}
-		if snapFound {
+		if found {
 			key.Used = consumed
 		} else {
 			key.Used = 0
 		}
 	}
 
-	deptConsumed, _, err := stores.Snapshots.GetConsumed(ctx, store.SnapshotAxisOrgNode, mapping.DepartmentID, periodKey)
+	deptConsumed, _, err := stores.Consumed.GetConsumed(ctx, store.AxisKindOrgNode, mapping.DepartmentID, periodKey)
 	if err != nil {
 		return 0, err
 	}
@@ -72,7 +72,7 @@ func RemainForMapping(
 		if !memberFound {
 			memberAxis = &MemberAxisInput{Skip: true}
 		} else {
-			memberConsumed, _, err := stores.Snapshots.GetConsumed(ctx, store.SnapshotAxisMember, *mapping.MemberID, periodKey)
+			memberConsumed, _, err := stores.Consumed.GetConsumed(ctx, store.AxisKindMember, *mapping.MemberID, periodKey)
 			if err != nil {
 				return 0, err
 			}

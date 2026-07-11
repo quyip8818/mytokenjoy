@@ -1,12 +1,14 @@
 package app
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -25,6 +27,7 @@ type infra struct {
 	notifier      notification.Notifier
 	delayer       common.Delayer
 	enqueuer      jobs.Enqueuer
+	budgetCheck   budgetcheck.Store
 }
 
 func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminClientOverride newapi.AdminClient) (infra, error) {
@@ -52,5 +55,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		notifier:      notification.NewService(cfg, st, logger),
 		delayer:       common.NewDelayer(cfg.SimulateDelay),
 		enqueuer:      enqueuer,
+		budgetCheck:   budgetcheck.Open(context.Background(), cfg, logger),
 	}, nil
 }

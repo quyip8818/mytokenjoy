@@ -5,16 +5,24 @@ import (
 	"time"
 
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
 const (
-	KindWalletSync       = "wallet_sync"
-	KindRebalance        = "rebalance"
-	KindOverrun          = "overrun"
-	KindNewAPISync       = "newapi_sync"
-	KindOrgSync          = "org_sync"
-	KindMonthlyRebalance = "monthly_rebalance"
+	KindWalletSync               = "wallet_sync"
+	KindRebalance                = "rebalance"
+	KindOverrun                  = "overrun"
+	KindNewAPISync               = "newapi_sync"
+	KindOrgSync                  = "org_sync"
+	KindMonthlyRebalance         = "monthly_rebalance"
+	KindBudgetProject            = "budget_project"
+	KindBudgetReconcile          = "budget_reconcile"
+	KindBudgetReconcileFanout    = "budget_reconcile_fanout"
+	KindDashboardProject         = "dashboard_project"
+	KindDashboardProjectFanout   = "dashboard_project_fanout"
+	KindDashboardReconcile       = "dashboard_reconcile"
+	KindDashboardReconcileFanout = "dashboard_reconcile_fanout"
 )
 
 type WalletSyncArgs struct {
@@ -96,4 +104,117 @@ func (MonthlyRebalanceArgs) Kind() string { return KindMonthlyRebalance }
 
 func (MonthlyRebalanceArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: config.RiverQueueDefault}
+}
+
+type BudgetProjectArgs struct {
+	CompanyID int64 `json:"company_id" river:"unique"`
+}
+
+func (BudgetProjectArgs) Kind() string { return KindBudgetProject }
+
+func (BudgetProjectArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueDefault,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: time.Second,
+			ByState: []rivertype.JobState{
+				rivertype.JobStateAvailable,
+				rivertype.JobStatePending,
+				rivertype.JobStateRunning,
+				rivertype.JobStateRetryable,
+				rivertype.JobStateScheduled,
+			},
+		},
+	}
+}
+
+type BudgetReconcileArgs struct {
+	CompanyID int64 `json:"company_id" river:"unique"`
+}
+
+func (BudgetReconcileArgs) Kind() string { return KindBudgetReconcile }
+
+func (BudgetReconcileArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueLow,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: 30 * time.Minute,
+		},
+	}
+}
+
+type BudgetReconcileFanoutArgs struct{}
+
+func (BudgetReconcileFanoutArgs) Kind() string { return KindBudgetReconcileFanout }
+
+func (BudgetReconcileFanoutArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueLow,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: 30 * time.Minute,
+		},
+	}
+}
+
+type DashboardProjectArgs struct {
+	CompanyID int64 `json:"company_id" river:"unique"`
+}
+
+func (DashboardProjectArgs) Kind() string { return KindDashboardProject }
+
+func (DashboardProjectArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueLow,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: time.Hour,
+		},
+	}
+}
+
+type DashboardProjectFanoutArgs struct{}
+
+func (DashboardProjectFanoutArgs) Kind() string { return KindDashboardProjectFanout }
+
+func (DashboardProjectFanoutArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueLow,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: time.Hour,
+		},
+	}
+}
+
+type DashboardReconcileArgs struct {
+	CompanyID int64 `json:"company_id" river:"unique"`
+}
+
+func (DashboardReconcileArgs) Kind() string { return KindDashboardReconcile }
+
+func (DashboardReconcileArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueLow,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: 24 * time.Hour,
+		},
+	}
+}
+
+type DashboardReconcileFanoutArgs struct{}
+
+func (DashboardReconcileFanoutArgs) Kind() string { return KindDashboardReconcileFanout }
+
+func (DashboardReconcileFanoutArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		Queue: config.RiverQueueLow,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: 24 * time.Hour,
+		},
+	}
 }

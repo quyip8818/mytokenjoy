@@ -292,6 +292,22 @@ func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.
 	return &item, nil
 }
 
+func (r *pgKeysRepo) PlatformKeyHashByID(ctx context.Context, keyID string) (string, bool, error) {
+	companyID := store.CompanyID(ctx)
+	var keyHash string
+	err := r.db.QueryRow(ctx,
+		`SELECT key_hash FROM platform_keys WHERE company_id = $1 AND id = $2`,
+		companyID, keyID,
+	).Scan(&keyHash)
+	if err == pgx.ErrNoRows {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return keyHash, true, nil
+}
+
 func (r *pgKeysRepo) PlatformKeyByHash(ctx context.Context, keyHash string) (*types.PlatformKey, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, platformKeySelect+` WHERE company_id = $1 AND key_hash = $2`, companyID, keyHash)

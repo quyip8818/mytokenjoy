@@ -121,7 +121,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		t.Fatalf("expected 403 with empty wallet, got %d", rec.Code)
 	}
 
-	// Recharge wallet but budget still 0 -> 403
+	// Recharge wallet: gateway no longer blocks on zero dept budget when wallet is ready
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
@@ -131,11 +131,11 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 with zero budget, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 with wallet ready (budget not checked at gateway), got %d", rec.Code)
 	}
 
-	// Both wallet and budget -> 200
+	// Both wallet and budget configured -> 200
 	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
 	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,

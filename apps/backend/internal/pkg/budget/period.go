@@ -16,7 +16,7 @@ import (
 type OpenBudgetPeriod struct{ key string }
 
 // OccurrencePeriod is the ledger occurrence period_key derived from OccurredAt.
-// It must not be used as a budget_snapshots open key.
+// It must not be used as a budget_consumed open key.
 type OccurrencePeriod struct{ key string }
 
 func (p OpenBudgetPeriod) String() string { return p.key }

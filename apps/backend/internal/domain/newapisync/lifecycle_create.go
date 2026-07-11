@@ -45,7 +45,7 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	if !l.Enabled() {
 		return "", domain.ServiceUnavailable("newapi not enabled")
 	}
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, l.store.BudgetSnapshots(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, l.store.BudgetConsumed(), l.store.Org(), l.store.Budget(), l.store.Keys(), l.cfg.Clock())
 	if err != nil {
 		return "", err
 	}

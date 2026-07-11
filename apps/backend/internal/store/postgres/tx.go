@@ -9,18 +9,20 @@ import (
 )
 
 type txStore struct {
-	tx              pgx.Tx
-	domain          domainRepos
-	ledger          store.LedgerRepository
-	mappings        store.PlatformKeyMappingRepository
-	gatewayPrecheck store.GatewayPrecheckRepository
-	budgetSnapshots store.BudgetSnapshotRepository
-	usage           store.UsageRepository
-	notification    store.NotificationRepository
-	company         store.CompanyRepository
-	invite          store.InviteRepository
-	billing         store.BillingRepository
-	parent          *Store
+	tx                          pgx.Tx
+	domain                      domainRepos
+	ledger                      store.LedgerRepository
+	mappings                    store.PlatformKeyMappingRepository
+	gatewayPrecheck             store.GatewayPrecheckRepository
+	budgetConsumed              store.BudgetConsumedRepository
+	budgetProjectionProgress    store.ProjectionProgressRepository
+	dashboardProjectionProgress store.ProjectionProgressRepository
+	usage                       store.UsageRepository
+	notification                store.NotificationRepository
+	company                     store.CompanyRepository
+	invite                      store.InviteRepository
+	billing                     store.BillingRepository
+	parent                      *Store
 }
 
 func (s *txStore) PgxTx() pgx.Tx { return s.tx }
@@ -32,8 +34,16 @@ func (s *txStore) Models() store.ModelsRepository { return s.domain.models }
 func (s *txStore) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *txStore) Ledger() store.LedgerRepository { return s.ledger }
 
-func (s *txStore) BudgetSnapshots() store.BudgetSnapshotRepository {
-	return s.budgetSnapshots
+func (s *txStore) BudgetConsumed() store.BudgetConsumedRepository {
+	return s.budgetConsumed
+}
+
+func (s *txStore) BudgetProjectionProgress() store.ProjectionProgressRepository {
+	return s.budgetProjectionProgress
+}
+
+func (s *txStore) DashboardProjectionProgress() store.ProjectionProgressRepository {
+	return s.dashboardProjectionProgress
 }
 
 func (s *txStore) PlatformKeyMappings() store.PlatformKeyMappingRepository {
@@ -92,18 +102,20 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	defer tx.Rollback(ctx)
 
 	txView := &txStore{
-		tx:              tx,
-		domain:          newDomainRepoSet(tx, s.tokenJoyCompanyID, s.credentialKey),
-		ledger:          &pgLedgerRepo{db: tx},
-		mappings:        newPlatformKeyMappingRepo(tx),
-		gatewayPrecheck: newGatewayPrecheckRepo(tx),
-		budgetSnapshots: newBudgetSnapshotRepo(tx),
-		usage:           &usageRepo{db: tx},
-		notification:    &notificationRepo{db: tx},
-		company:         newCompanyRepo(tx),
-		invite:          newInviteRepo(tx),
-		billing:         newBillingRepo(tx),
-		parent:          s,
+		tx:                          tx,
+		domain:                      newDomainRepoSet(tx, s.tokenJoyCompanyID, s.credentialKey),
+		ledger:                      &pgLedgerRepo{db: tx},
+		mappings:                    newPlatformKeyMappingRepo(tx),
+		gatewayPrecheck:             newGatewayPrecheckRepo(tx),
+		budgetConsumed:              newBudgetConsumedRepo(tx),
+		budgetProjectionProgress:    newBudgetProjectionProgressRepo(tx),
+		dashboardProjectionProgress: newDashboardProjectionProgressRepo(tx),
+		usage:                       &usageRepo{db: tx},
+		notification:                &notificationRepo{db: tx},
+		company:                     newCompanyRepo(tx),
+		invite:                      newInviteRepo(tx),
+		billing:                     newBillingRepo(tx),
+		parent:                      s,
 	}
 	if err := fn(txView); err != nil {
 		return err

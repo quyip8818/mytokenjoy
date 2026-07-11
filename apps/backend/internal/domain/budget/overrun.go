@@ -60,17 +60,48 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		payload map[string]any
 	}
 
-	var actions []disableAction
+	var action *disableAction
 
-	// Read all budget/consumed values inside a transaction with advisory lock
-	// to get a consistent snapshot. Key disabling happens after the transaction.
 	if err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
 
+		open, err := pkgbudget.OpenDepartmentPeriod(ctx, tx.Org().Nodes(), payload.DepartmentID, s.cfg.Clock())
+		if err != nil {
+			return err
+		}
+		periodKey := open.String()
+		consumedRepo := tx.BudgetConsumed()
+
+		if payload.PlatformKeyID != "" {
+			key, err := tx.Keys().PlatformKeyByID(ctx, payload.PlatformKeyID)
+			if err != nil {
+				return err
+			}
+			if key != nil && key.Budget > 0 {
+				keyConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindPlatformKey, payload.PlatformKeyID, periodKey)
+				if err != nil {
+					return err
+				}
+				if pkgbudget.BudgetExhausted(keyConsumed, key.Budget) {
+					keyID := payload.PlatformKeyID
+					action = &disableAction{
+						scope:  "platformKey",
+						target: keyID,
+						keys:   func(ctx context.Context) error { return s.keyControl.DisablePlatformKey(ctx, keyID) },
+						payload: map[string]any{
+							"scope": "platformKey", "platformKeyId": keyID,
+							"consumed": keyConsumed, "budget": key.Budget,
+						},
+					}
+					return nil
+				}
+			}
+		}
+
 		if payload.MemberID != nil && payload.BudgetGroupID == nil {
-			used, err := tx.Keys().SumMemberKeyUsed(ctx, *payload.MemberID, s.cfg.Clock())
+			memberConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindMember, *payload.MemberID, periodKey)
 			if err != nil {
 				return err
 			}
@@ -78,45 +109,39 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			if err != nil {
 				return err
 			}
-			if found && pkgbudget.BudgetExhausted(used, capacity) {
+			if found && pkgbudget.BudgetExhausted(memberConsumed, capacity) {
 				memberID := *payload.MemberID
-				actions = append(actions, disableAction{
+				action = &disableAction{
 					scope:  "member",
 					target: memberID,
 					keys:   func(ctx context.Context) error { return s.disableMemberKeys(ctx, memberID) },
 					payload: map[string]any{
-						"scope": "member", "memberId": memberID, "used": used, "capacity": capacity,
+						"scope": "member", "memberId": memberID, "used": memberConsumed, "capacity": capacity,
 					},
-				})
+				}
 				return nil
 			}
 		}
 
-		open, err := pkgbudget.OpenDepartmentPeriod(ctx, tx.Org().Nodes(), payload.DepartmentID, s.cfg.Clock())
+		deptBudget, deptFound, err := tx.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
 		if err != nil {
 			return err
 		}
-		snapshotPeriod := open.String()
-
-		budgetAmount, found, err := tx.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
+		deptConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindOrgNode, payload.DepartmentID, periodKey)
 		if err != nil {
 			return err
 		}
-		consumed, _, err := tx.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisOrgNode, payload.DepartmentID, snapshotPeriod)
-		if err != nil {
-			return err
-		}
-		if found && pkgbudget.BudgetExhausted(consumed, budgetAmount) {
+		if deptFound && pkgbudget.BudgetExhausted(deptConsumed, deptBudget) {
 			deptID := payload.DepartmentID
-			actions = append(actions, disableAction{
+			action = &disableAction{
 				scope:  "department",
 				target: deptID,
 				keys:   func(ctx context.Context) error { return s.disableDepartmentKeys(ctx, deptID) },
 				payload: map[string]any{
 					"scope": "department", "departmentId": deptID,
-					"consumed": consumed, "budget": budgetAmount,
+					"consumed": deptConsumed, "budget": deptBudget,
 				},
-			})
+			}
 			return nil
 		}
 
@@ -125,13 +150,13 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			if err != nil {
 				return err
 			}
-			groupConsumed, _, err := tx.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisBudgetGroup, *payload.BudgetGroupID, snapshotPeriod)
+			groupConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindBudgetGroup, *payload.BudgetGroupID, periodKey)
 			if err != nil {
 				return err
 			}
 			if groupFound && pkgbudget.BudgetExhausted(groupConsumed, groupBudget) {
 				groupID := *payload.BudgetGroupID
-				actions = append(actions, disableAction{
+				action = &disableAction{
 					scope:  "budgetGroup",
 					target: groupID,
 					keys:   func(ctx context.Context) error { return s.disableBudgetGroupKeys(ctx, groupID) },
@@ -139,7 +164,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 						"scope": "budgetGroup", "budgetGroupId": groupID,
 						"consumed": groupConsumed, "budget": groupBudget,
 					},
-				})
+				}
 			}
 		}
 		return nil
@@ -147,19 +172,19 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		return err
 	}
 
-	// Execute disable actions and send notifications outside the transaction
-	for _, action := range actions {
-		s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, action.target, action.payload)
-		if err := action.keys(ctx); err != nil {
-			if s.logger != nil {
-				s.logger.Error("disable keys failed",
-					"scope", action.scope,
-					"target", action.target,
-					"error", err,
-				)
-			}
-			return err
+	if action == nil {
+		return nil
+	}
+	s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, action.target, action.payload)
+	if err := action.keys(ctx); err != nil {
+		if s.logger != nil {
+			s.logger.Error("disable keys failed",
+				"scope", action.scope,
+				"target", action.target,
+				"error", err,
+			)
 		}
+		return err
 	}
 	return nil
 }

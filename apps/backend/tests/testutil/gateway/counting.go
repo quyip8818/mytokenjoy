@@ -6,7 +6,6 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/store"
@@ -22,9 +21,9 @@ func NewCountingGatewayPrecheck(inner store.GatewayPrecheckRepository) *Counting
 	return &CountingGatewayPrecheck{inner: inner}
 }
 
-func (c *CountingGatewayPrecheck) LoadPrecheckContext(ctx context.Context, keyHash string, at time.Time) (*store.PrecheckContextRow, error) {
+func (c *CountingGatewayPrecheck) LoadPrecheckContext(ctx context.Context, keyHash string) (*store.PrecheckContextRow, error) {
 	c.calls.Add(1)
-	return c.inner.LoadPrecheckContext(ctx, keyHash, at)
+	return c.inner.LoadPrecheckContext(ctx, keyHash)
 }
 
 func (c *CountingGatewayPrecheck) Calls() int32 {
@@ -33,7 +32,7 @@ func (c *CountingGatewayPrecheck) Calls() int32 {
 
 func BuildGatewayWithPrecheckLoader(t *testing.T, scenario GatewayScenario, loader store.GatewayPrecheckRepository) domaingateway.GatewayService {
 	t.Helper()
-	precheck := domaingateway.NewPrecheckService(loader, scenario.Cfg.Clock())
+	precheck := domaingateway.NewPrecheckService(loader, scenario.Cfg.Clock(), nil)
 	gw, err := domaingateway.NewGatewayService(scenario.Cfg, precheck)
 	if err != nil {
 		t.Fatal(err)

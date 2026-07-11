@@ -17,10 +17,10 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, "2026-06", 99)
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisPlatformKey, contract.IDPlatformKey1, "2026-07", 42)
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, "2026-06", 99)
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, "2026-07", 42)
 
-	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), st.Keys(), clk)
+	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), st.Keys(), clk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,10 +42,10 @@ func TestLoadBudgetGroupsWithConsumedUsesOpenPeriod(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.SnapshotAxisBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
+	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
 
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), clk)
+	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), clk)
 	if err != nil {
 		t.Fatal(err)
 	}

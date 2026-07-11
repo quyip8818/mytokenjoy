@@ -43,7 +43,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	if updated == nil || updated.Budget != 500 {
 		t.Fatalf("child budget mismatch: %+v", updated)
 	}
-	consumed := testutil.SnapshotConsumed(t, st, store.SnapshotAxisOrgNode, contract.IDDept3)
+	consumed := testutil.SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
 	if consumed != 100 {
 		t.Fatalf("child consumed mismatch: got %v want 100", consumed)
 	}

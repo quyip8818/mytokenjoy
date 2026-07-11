@@ -63,7 +63,7 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 	return insertSeedBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
 }
 
-func insertSeedBudgetSnapshots(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	if snap.SeedAt.IsZero() {
 		return fmt.Errorf("seed budget snapshots require Snapshot.SeedAt")
 	}
@@ -72,7 +72,7 @@ func insertSeedBudgetSnapshots(ctx context.Context, exec TableWriter, tid int64,
 		if node.Consumed <= 0 {
 			continue
 		}
-		if err := insertBudgetSnapshotRow(ctx, exec, tid, store.SnapshotAxisOrgNode, node.ID, periodKey, node.Consumed); err != nil {
+		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindOrgNode, node.ID, periodKey, node.Consumed); err != nil {
 			return fmt.Errorf("seed budget snapshot org node %s: %w", node.ID, err)
 		}
 	}
@@ -80,7 +80,7 @@ func insertSeedBudgetSnapshots(ctx context.Context, exec TableWriter, tid int64,
 		if group.Consumed <= 0 {
 			continue
 		}
-		if err := insertBudgetSnapshotRow(ctx, exec, tid, store.SnapshotAxisBudgetGroup, group.ID, periodKey, group.Consumed); err != nil {
+		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindBudgetGroup, group.ID, periodKey, group.Consumed); err != nil {
 			return fmt.Errorf("seed budget snapshot group %s: %w", group.ID, err)
 		}
 	}
@@ -88,16 +88,16 @@ func insertSeedBudgetSnapshots(ctx context.Context, exec TableWriter, tid int64,
 		if key.Used <= 0 {
 			continue
 		}
-		if err := insertBudgetSnapshotRow(ctx, exec, tid, store.SnapshotAxisPlatformKey, key.ID, periodKey, key.Used); err != nil {
+		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindPlatformKey, key.ID, periodKey, key.Used); err != nil {
 			return fmt.Errorf("seed budget snapshot platform key %s: %w", key.ID, err)
 		}
 	}
 	return nil
 }
 
-func insertBudgetSnapshotRow(ctx context.Context, exec TableWriter, tid int64, axisKind, axisID, periodKey string, consumed float64) error {
+func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid int64, axisKind, axisID, periodKey string, consumed float64) error {
 	_, err := exec.Exec(ctx, `
-		INSERT INTO budget_snapshots (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO NOTHING
 	`, tid, axisKind, axisID, periodKey, consumed)

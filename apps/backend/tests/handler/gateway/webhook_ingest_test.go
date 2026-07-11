@@ -51,11 +51,7 @@ func drainIngestQueue(t *testing.T, application *app.App) {
 func TestWebhookIngestSuccess(t *testing.T) {
 	t.Parallel()
 	application := newWebhookApp(t, nil)
-	beforeBuckets := testutil.UsageBucketCount(application.Store)
 	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
-
-	beforeConsumed := testutil.Dept3SnapshotConsumed(t, application.Store)
-	beforeUsed := testutil.PlatformKeySnapshotUsed(t, application.Store, contract.IDPlatformKey1)
 
 	testutil.SeedConsumeLog(t, application.Store, testutil.DefaultConsumeLog(92001, 99))
 	rec := postWebhook(t, application, 92001)
@@ -77,15 +73,13 @@ func TestWebhookIngestSuccess(t *testing.T) {
 
 	drainIngestQueue(t, application)
 
-	afterConsumed := testutil.Dept3SnapshotConsumed(t, application.Store)
-	if afterConsumed <= beforeConsumed {
-		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
+	ingested, err = testutil.HasLedgerLogID(application.Store, 92001)
+	if err != nil || !ingested {
+		t.Fatalf("expected ledger after worker, ingested=%v err=%v", ingested, err)
 	}
-	afterUsed := testutil.PlatformKeySnapshotUsed(t, application.Store, contract.IDPlatformKey1)
-	if afterUsed <= beforeUsed {
-		t.Fatalf("expected platform key used increase, before=%v after=%v", beforeUsed, afterUsed)
+	if testutil.PendingBudgetProjectCount(application.Store, contract.DefaultCompanyID) == 0 {
+		t.Fatal("expected budget_project job after ingest")
 	}
-	testutil.AssertUsageBucketCount(t, application.Store, beforeBuckets+1)
 	if n := testutil.PendingIngestJobCount(t, application.Store); n != 0 {
 		t.Fatalf("expected queue drained, pending=%d", n)
 	}
@@ -94,7 +88,6 @@ func TestWebhookIngestSuccess(t *testing.T) {
 func TestWebhookIngestIdempotent(t *testing.T) {
 	t.Parallel()
 	application := newWebhookApp(t, nil)
-	beforeBuckets := testutil.UsageBucketCount(application.Store)
 	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, application.Store, testutil.DefaultConsumeLog(93001, 99))
 	for i := 0; i < 2; i++ {
@@ -104,7 +97,10 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 		}
 	}
 	drainIngestQueue(t, application)
-	testutil.AssertUsageBucketCount(t, application.Store, beforeBuckets+1)
+	ingested, err := testutil.HasLedgerLogID(application.Store, 93001)
+	if err != nil || !ingested {
+		t.Fatalf("expected single ledger row, ingested=%v err=%v", ingested, err)
+	}
 }
 
 func TestWebhookIngestWritesLedgerFields(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 )
 
 func (s *service) ListGroups(ctx context.Context) ([]types.BudgetGroup, error) {
-	return pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
+	return pkgbudget.LoadBudgetGroupsWithConsumed(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
 }
 
 func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error) {
@@ -97,7 +97,7 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 				if err := tx.Budget().SetGroups(ctx, groups); err != nil {
 					return fmt.Errorf("persist budget groups: %w", err)
 				}
-				budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetSnapshots(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
+				budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
 				if err != nil {
 					return fmt.Errorf("load budget context: %w", err)
 				}

@@ -78,10 +78,6 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if err != nil {
 		return err
 	}
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, nodes, entry.DepartmentID, s.cfg.Clock())
-	if err != nil {
-		return err
-	}
 	entry.PeriodKey = occurrence.String()
 
 	return s.store.WithTx(ctx, func(st store.Store) error {
@@ -93,9 +89,6 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		} else if exists {
 			return nil
 		}
-		if err := enforceBudgetCap(ctx, s.cfg, st, mapping, entry.Amount, open.String()); err != nil {
-			return err
-		}
 		segs, err := AllocateConsumptionLots(ctx, st, company.CompanyID(ctx), entry.Amount)
 		if err != nil {
 			return err
@@ -105,14 +98,11 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if err != nil || inserted == 0 {
 			return err
 		}
-		if err := Apply(ctx, st, entry, open); err != nil {
-			return err
-		}
 		tx, ok := st.(store.Tx)
 		if !ok {
 			return fmt.Errorf("ingest: transaction store required")
 		}
-		if err := enqueueSideEffects(ctx, tx, entry, s.enqueuer); err != nil {
+		if err := jobs.InsertBudgetProject(ctx, s.enqueuer, tx, company.CompanyID(ctx)); err != nil {
 			return err
 		}
 		if err := jobs.InsertWalletSync(ctx, s.enqueuer, tx, company.CompanyID(ctx)); err != nil {

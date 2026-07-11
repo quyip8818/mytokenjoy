@@ -59,3 +59,59 @@ func InsertMonthlyRebalance(ctx context.Context, e Enqueuer, tx store.Tx) error 
 	}
 	return e.Insert(ctx, args, nil)
 }
+
+func InsertBudgetProject(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+	args := BudgetProjectArgs{CompanyID: companyID}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}
+
+func InsertBudgetReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+	args := BudgetReconcileArgs{CompanyID: companyID}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}
+
+func InsertBudgetReconcileFanout(ctx context.Context, e Enqueuer, tx store.Tx) error {
+	args := BudgetReconcileFanoutArgs{}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}
+
+func InsertDashboardProject(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+	args := DashboardProjectArgs{CompanyID: companyID}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}
+
+func InsertDashboardProjectFanout(ctx context.Context, e Enqueuer, tx store.Tx) error {
+	args := DashboardProjectFanoutArgs{}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}
+
+func InsertDashboardReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+	args := DashboardReconcileArgs{CompanyID: companyID}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}
+
+func InsertDashboardReconcileFanout(ctx context.Context, e Enqueuer, tx store.Tx) error {
+	args := DashboardReconcileFanoutArgs{}
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, nil)
+	}
+	return e.Insert(ctx, args, nil)
+}

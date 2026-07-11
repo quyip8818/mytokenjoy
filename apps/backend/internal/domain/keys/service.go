@@ -58,7 +58,7 @@ func (s *service) BudgetSummary(ctx context.Context, memberID string) (types.Mem
 	if memberID == "" {
 		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
 	}
-	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.MemberBudgetSummary{}, err
 	}
@@ -109,7 +109,7 @@ func (s *service) ApprovalBudgetCheck(ctx context.Context, id string) (types.App
 		return types.ApprovalBudgetCheck{}, domain.NotFound("Not found")
 	}
 	requested := approval.RequestedBudget
-	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.ApprovalBudgetCheck{}, err
 	}

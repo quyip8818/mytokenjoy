@@ -29,19 +29,19 @@ func TestGatewayRejectsInsufficientWallet(t *testing.T) {
 	}
 }
 
-func TestGatewayRejectsZeroBudget(t *testing.T) {
+func TestGatewayProxiesDespiteZeroDeptBudget(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		Budget: 0,
 	})
 	rec := httptest.NewRecorder()
 	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for zero budget, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected gateway to pass without dept budget check, got %d", rec.Code)
 	}
 }
 
-func TestGatewayRejectsExhaustedDepartmentBudget(t *testing.T) {
+func TestGatewayProxiesDespiteExhaustedDepartmentBudget(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		Budget:   100,
@@ -49,8 +49,8 @@ func TestGatewayRejectsExhaustedDepartmentBudget(t *testing.T) {
 	})
 	rec := httptest.NewRecorder()
 	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for exhausted budget, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected gateway to pass without consumed join, got %d", rec.Code)
 	}
 }
 

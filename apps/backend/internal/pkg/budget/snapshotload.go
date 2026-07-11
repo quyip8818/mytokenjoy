@@ -59,7 +59,7 @@ func sumAxisConsumed(axisID string, periodKeys []string, byPeriod map[string]map
 
 func PlatformKeyConsumed(
 	ctx context.Context,
-	snapshots store.BudgetSnapshotRepository,
+	snapshots store.BudgetConsumedRepository,
 	orgNodes store.OrgNodeRepository,
 	key types.PlatformKey,
 	members []types.Member,
@@ -72,7 +72,7 @@ func PlatformKeyConsumed(
 		return 0, false, err
 	}
 	periodKey := ResolveKeyPeriodKey(key, members, groups, deptPeriod, rootPeriodKey, at)
-	return snapshots.GetConsumed(ctx, store.SnapshotAxisPlatformKey, key.ID, periodKey)
+	return snapshots.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
 }
 
 func keyDepartmentID(key types.PlatformKey, members []types.Member, groups []types.BudgetGroup) string {
@@ -109,7 +109,7 @@ func uniqueStrings(values []string) []string {
 
 func mergeBudgetTreeConsumed(
 	ctx context.Context,
-	snapshots store.BudgetSnapshotRepository,
+	snapshots store.BudgetConsumedRepository,
 	tree []types.BudgetNode,
 	clk clock.Clock,
 ) ([]types.BudgetNode, error) {
@@ -131,7 +131,7 @@ func mergeBudgetTreeConsumed(
 	// Batch-fetch consumed values for all org nodes per period
 	consumedByPeriod := make(map[string]map[string]float64) // periodKey -> nodeID -> consumed
 	for periodKey := range periodKeySet {
-		consumed, err := snapshots.ListConsumed(ctx, store.SnapshotAxisOrgNode, periodKey)
+		consumed, err := snapshots.ListConsumed(ctx, store.AxisKindOrgNode, periodKey)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func mergeBudgetTreeConsumed(
 
 func LoadPlatformKeysWithUsed(
 	ctx context.Context,
-	snapshots store.BudgetSnapshotRepository,
+	snapshots store.BudgetConsumedRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
 	keys store.KeysRepository,
@@ -190,7 +190,7 @@ func LoadPlatformKeysWithUsed(
 		keyPeriodKeys[key.ID] = periodKey
 		periodKeys = append(periodKeys, periodKey)
 	}
-	byPeriod, err := snapshots.ListConsumedByPeriods(ctx, store.SnapshotAxisPlatformKey, uniqueStrings(periodKeys))
+	byPeriod, err := snapshots.ListConsumedByPeriods(ctx, store.AxisKindPlatformKey, uniqueStrings(periodKeys))
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func LoadPlatformKeysWithUsed(
 
 func LoadBudgetGroupsWithConsumed(
 	ctx context.Context,
-	snapshots store.BudgetSnapshotRepository,
+	snapshots store.BudgetConsumedRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
 	clk clock.Clock,
@@ -237,7 +237,7 @@ func LoadBudgetGroupsWithConsumed(
 		groupPeriodKeys[group.ID] = keys
 		periodKeys = append(periodKeys, keys...)
 	}
-	byPeriod, err := snapshots.ListConsumedByPeriods(ctx, store.SnapshotAxisBudgetGroup, uniqueStrings(periodKeys))
+	byPeriod, err := snapshots.ListConsumedByPeriods(ctx, store.AxisKindBudgetGroup, uniqueStrings(periodKeys))
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func LoadBudgetGroupsWithConsumed(
 
 func LoadBudgetTreeWithConsumed(
 	ctx context.Context,
-	snapshots store.BudgetSnapshotRepository,
+	snapshots store.BudgetConsumedRepository,
 	orgNodes store.OrgNodeRepository,
 	clk clock.Clock,
 ) ([]types.BudgetNode, error) {

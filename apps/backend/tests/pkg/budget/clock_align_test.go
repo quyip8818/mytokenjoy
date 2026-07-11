@@ -21,7 +21,7 @@ func TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory(t *testing.T) {
 		t.Fatalf("OpenDepartmentPeriod = %q, want 2026-06", open.String())
 	}
 
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, st.BudgetSnapshots(), st.Org().Nodes(), cfg.Clock())
+	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, st.BudgetConsumed(), st.Org().Nodes(), cfg.Clock())
 	if err != nil {
 		t.Fatal(err)
 	}

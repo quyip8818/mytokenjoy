@@ -74,7 +74,7 @@ func applyGatewayBudgetState(t *testing.T, cfg config.Config, st store.Store, op
 	}
 
 	periodKey := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
-	if err := st.BudgetSnapshots().SetConsumed(ctx, store.SnapshotAxisOrgNode, opts.DepartmentID, periodKey, opts.Consumed); err != nil {
+	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindOrgNode, opts.DepartmentID, periodKey, opts.Consumed); err != nil {
 		t.Fatal(err)
 	}
 }

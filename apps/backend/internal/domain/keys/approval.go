@@ -82,7 +82,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 	}
-	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		if err != nil {
 			return err
 		}
-		platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, st.BudgetSnapshots(), st.Org(), st.Budget(), st.Keys(), s.cfg.Clock())
+		platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), st.Keys(), s.cfg.Clock())
 		if err != nil {
 			return err
 		}

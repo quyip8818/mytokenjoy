@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -24,12 +25,16 @@ type Client struct {
 }
 
 type Deps struct {
-	Billing          domainbilling.Service
-	Overrun          domainbudget.OverrunProcessor
-	Rebalance        domainbudget.Rebalancer
-	NewAPISync       newapisync.OutboxHandler
-	OrgSync          domainorg.SyncService
-	MonthlyRebalance *domainbudget.MonthlyRebalanceScheduler
+	Billing            domainbilling.Service
+	Overrun            domainbudget.OverrunProcessor
+	Rebalance          domainbudget.Rebalancer
+	NewAPISync         newapisync.OutboxHandler
+	OrgSync            domainorg.SyncService
+	MonthlyRebalance   *domainbudget.MonthlyRebalanceScheduler
+	BudgetProjector    *domainbudget.Projector
+	BudgetReconcile    *domainbudget.ReconcileService
+	DashboardProjector *domaindashboard.Projector
+	DashboardReconcile *domaindashboard.ReconcileService
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
@@ -59,6 +64,13 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))
 	river.AddWorker(workersBundle, workers.NewOrgSyncWorker(deps.OrgSync))
 	river.AddWorker(workersBundle, workers.NewMonthlyRebalanceWorker(deps.MonthlyRebalance))
+	river.AddWorker(workersBundle, workers.NewBudgetProjectWorker(deps.BudgetProjector))
+	river.AddWorker(workersBundle, workers.NewBudgetReconcileWorker(deps.BudgetReconcile))
+	river.AddWorker(workersBundle, workers.NewBudgetReconcileFanoutWorker(deps.BudgetReconcile))
+	river.AddWorker(workersBundle, workers.NewDashboardProjectWorker(deps.DashboardProjector))
+	river.AddWorker(workersBundle, workers.NewDashboardProjectFanoutWorker(deps.DashboardProjector))
+	river.AddWorker(workersBundle, workers.NewDashboardReconcileWorker(deps.DashboardReconcile))
+	river.AddWorker(workersBundle, workers.NewDashboardReconcileFanoutWorker(deps.DashboardReconcile))
 	return workersBundle
 }
 

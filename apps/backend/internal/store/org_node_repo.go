@@ -15,6 +15,7 @@ type OrgNodeRepository interface {
 	SetTree(ctx context.Context, tree []types.OrgNode) error
 	GetNodeBudget(ctx context.Context, nodeID string) (budget float64, found bool, err error)
 	GetNodePeriod(ctx context.Context, nodeID string) (period string, found bool, err error)
+	ListSelfAndAncestorIDs(ctx context.Context, leafNodeID string) ([]string, error)
 }
 
 // OrgNodePathLabel returns an ltree-safe label for a node ID (hyphens become underscores).

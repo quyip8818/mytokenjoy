@@ -27,10 +27,6 @@ func TestEvaluateRejects(t *testing.T) {
 			mut:  func(pc *domaingateway.PrecheckContext) { pc.Wallet.BalancePoint = 0 },
 		},
 		{
-			name: "zero budget",
-			mut:  func(pc *domaingateway.PrecheckContext) { pc.Budget.DeptBudget = 0 },
-		},
-		{
 			name: "inactive key",
 			mut:  func(pc *domaingateway.PrecheckContext) { pc.Routing.KeyStatus = "disabled" },
 		},
@@ -39,46 +35,6 @@ func TestEvaluateRejects(t *testing.T) {
 			mut: func(pc *domaingateway.PrecheckContext) {
 				pc.Routing.HasAllowlist = true
 				pc.Routing.AllowlistTypes = []string{"gpt-4o"}
-			},
-		},
-		{
-			name: "key axis exhausted",
-			mut: func(pc *domaingateway.PrecheckContext) {
-				pc.Budget.DeptBudget = 1000
-				pc.Budget.DeptConsumed = 100
-				pc.Budget.KeyBudget = 200
-				pc.Budget.KeyConsumed = 195
-			},
-		},
-		{
-			name: "member axis exhausted",
-			mut: func(pc *domaingateway.PrecheckContext) {
-				memberID := "m-1"
-				pc.Budget.MemberID = &memberID
-				pc.Budget.MemberFound = true
-				pc.Budget.MemberCap = 1000
-				pc.Budget.MemberConsumed = 999
-				pc.Budget.DeptBudget = 100000
-				pc.Budget.KeyBudget = 100000
-			},
-		},
-		{
-			name: "group axis exhausted",
-			mut: func(pc *domaingateway.PrecheckContext) {
-				groupID := "bg-1"
-				pc.Budget.BudgetGroupID = &groupID
-				pc.Budget.GroupBudget = 500
-				pc.Budget.GroupConsumed = 495
-				pc.Budget.DeptBudget = 100000
-				pc.Budget.KeyBudget = 100000
-			},
-		},
-		{
-			name: "department consumed exhausted",
-			mut: func(pc *domaingateway.PrecheckContext) {
-				pc.Budget.DeptBudget = 100
-				pc.Budget.DeptConsumed = 100
-				pc.Budget.KeyBudget = 100000
 			},
 		},
 	}
@@ -119,7 +75,7 @@ func TestEvaluateAllowsModelInAllowlist(t *testing.T) {
 	}
 }
 
-func TestEvaluatePassesWithSufficientBudget(t *testing.T) {
+func TestEvaluatePassesWithSufficientWallet(t *testing.T) {
 	t.Parallel()
 	if err := domaingateway.Evaluate(gatewaytf.SufficientBudgetContext(), "gpt-4o", false); err != nil {
 		t.Fatalf("expected pass, got %v", err)

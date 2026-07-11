@@ -6,7 +6,7 @@ import (
 )
 
 func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {
-	return domaingateway.NewPrecheckService(i.store.GatewayPrecheck(), cfg.Clock())
+	return domaingateway.NewPrecheckService(i.store.GatewayPrecheck(), cfg.Clock(), i.budgetCheck)
 }
 
 func wireGatewayService(cfg config.Config, i infra) (domaingateway.GatewayService, error) {

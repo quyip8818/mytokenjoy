@@ -25,5 +25,26 @@ func BuildPeriodicJobs(cfg config.Config) []*river.PeriodicJob {
 			},
 			nil,
 		),
+		river.NewPeriodicJob(
+			river.PeriodicInterval(cfg.WorkerBudgetReconcileInterval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.BudgetReconcileFanoutArgs{}, nil
+			},
+			nil,
+		),
+		river.NewPeriodicJob(
+			river.PeriodicInterval(cfg.WorkerDashboardProjectInterval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.DashboardProjectFanoutArgs{}, nil
+			},
+			nil,
+		),
+		river.NewPeriodicJob(
+			river.PeriodicInterval(cfg.WorkerDashboardReconcileInterval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.DashboardReconcileFanoutArgs{}, nil
+			},
+			nil,
+		),
 	}
 }
