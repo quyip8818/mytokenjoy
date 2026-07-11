@@ -30,7 +30,7 @@ func buildBudgetTree() []types.BudgetNode {
 					ID: "dept-2", Name: "技术部", ParentID: &dept2,
 					Budget: seedPoints(50000), Consumed: techConsumed, ReservedPool: &reserved2000, Period: pkgbudget.PeriodMonthly,
 					Children: []types.BudgetNode{
-						{ID: contract.IDDept3, Name: "后端组", ParentID: &dept3, Budget: seedPoints(25000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept3], ReservedPool: &reserved1500, Period: pkgbudget.PeriodMonthly},
+						{ID: contract.IDDept3, Name: "后端组", ParentID: &dept3, Budget: seedPoints(20000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept3], ReservedPool: &reserved1500, Period: pkgbudget.PeriodMonthly},
 						{ID: contract.IDDept4, Name: "前端组", ParentID: &dept4, Budget: seedPoints(15000), Consumed: contract.DemoLeafDeptConsumed[contract.IDDept4], Period: pkgbudget.PeriodMonthly},
 						{ID: "dept-5", Name: "测试组", ParentID: &dept5, Budget: seedPoints(10000), Consumed: contract.DemoLeafDeptConsumed["dept-5"], Period: pkgbudget.PeriodMonthly},
 					},
@@ -45,7 +45,7 @@ func buildBudgetTree() []types.BudgetNode {
 
 func buildBudgetGroups() []types.BudgetGroup {
 	return []types.BudgetGroup{
-		{ID: contract.IDBudgetGroup1, Name: "AI 创新项目组", Budget: seedPoints(30000), Consumed: contract.DemoBudgetGroupConsumed[contract.IDBudgetGroup1], MemberIDs: []string{contract.IDMember1, "m-4", "m-6"}, DepartmentIDs: []string{contract.IDDept3, contract.IDDept4}},
+		{ID: contract.IDBudgetGroup1, Name: "AI 创新项目组", Budget: seedPoints(15000), Consumed: contract.DemoBudgetGroupConsumed[contract.IDBudgetGroup1], MemberIDs: []string{contract.IDMember1, "m-4", "m-6"}, DepartmentIDs: []string{contract.IDDept3, contract.IDDept4}},
 		{ID: contract.IDBudgetGroup4, Name: "内部效率工具", Budget: seedPoints(8000), Consumed: contract.DemoBudgetGroupConsumed[contract.IDBudgetGroup4], MemberIDs: []string{"m-15", "m-16"}, DepartmentIDs: []string{"dept-5"}},
 	}
 }
