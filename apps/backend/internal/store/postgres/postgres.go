@@ -151,7 +151,7 @@ func (s *Store) BudgetSnapshots() store.BudgetSnapshotRepository {
 }
 
 func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }
-func (s *Store) GatewayPrecheck() store.GatewayPrecheckRepository       { return s.gatewayPrecheck }
+func (s *Store) GatewayPrecheck() store.GatewayPrecheckRepository        { return s.gatewayPrecheck }
 func (s *Store) AsyncJobs() store.AsyncJobsRepository                    { return s.asyncJobs }
 func (s *Store) Logs() store.LogStore                                    { return s.logs }
 

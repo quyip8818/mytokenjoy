@@ -20,10 +20,7 @@ type BudgetAllocationTableProps = {
   overrunPolicyLabel: string
   editing: boolean
   drafts: Record<string, { budget: string }>
-  reservedDraft?: string
-  error?: string | null
   onUpdateDraft: (id: string, value: string) => void
-  onUpdateReservedDraft?: (value: string) => void
 }
 
 export function BudgetAllocationTable({
@@ -33,10 +30,7 @@ export function BudgetAllocationTable({
   overrunPolicyLabel,
   editing,
   drafts,
-  reservedDraft: _reservedDraft,
-  error: _error,
   onUpdateDraft,
-  onUpdateReservedDraft: _onUpdateReservedDraft,
 }: BudgetAllocationTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">

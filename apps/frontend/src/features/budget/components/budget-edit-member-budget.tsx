@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { BudgetNode, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
@@ -36,15 +36,18 @@ export function BudgetEditMemberBudget({
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // Load members when individual mode is turned on
-  useEffect(() => {
-    if (!individualMode) return
-    setLoading(true)
-    getMemberBudgets(node.id)
-      .then((data) => setMembers(data ?? []))
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : '加载成员额度失败'))
-      .finally(() => setLoading(false))
-  }, [individualMode, node.id, getMemberBudgets])
+  const handleIndividualModeChange = useCallback(
+    (checked: boolean) => {
+      setIndividualMode(checked)
+      if (!checked) return
+      setLoading(true)
+      getMemberBudgets(node.id)
+        .then((data) => setMembers(data ?? []))
+        .catch((err) => toast.error(err instanceof ApiError ? err.message : '加载成员额度失败'))
+        .finally(() => setLoading(false))
+    },
+    [getMemberBudgets, node.id],
+  )
 
   async function handleSaveAverage() {
     const value = parseFloat(averageDraft)
@@ -147,7 +150,7 @@ export function BudgetEditMemberBudget({
         <Switch
           id="individual-mode"
           checked={individualMode}
-          onCheckedChange={setIndividualMode}
+          onCheckedChange={handleIndividualModeChange}
         />
         <Label htmlFor="individual-mode" className="cursor-pointer text-xs text-muted-foreground">
           单独配置成员额度

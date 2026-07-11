@@ -28,7 +28,7 @@ func TestCostSummaryFromBuckets(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 12.5, CallCount: 3})
-	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 	})
 	rows, err := svc.DailyCosts(ctx, types.CostQueryParams{
 		Period: string(types.CostPeriodCurrentMonth), Granularity: types.UsageGranularityWeek,
-	}, testutil.AdminDashboardScope())
+	}, "", testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 18.5, CallCount: 2})
-	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, domainusage.SessionScope{
+	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", domainusage.SessionScope{
 		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
 	})
 	if err != nil {
@@ -126,7 +126,7 @@ func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 		Cost:        5,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 12.5, CallCount: 2})
-	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}

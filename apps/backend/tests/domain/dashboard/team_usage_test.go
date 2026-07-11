@@ -33,7 +33,7 @@ func TestTeamUsageTopModelBatch(t *testing.T) {
 		BucketStart:  base,
 	})
 
-	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
