@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import type { BudgetNode, Department, Member } from '@/api/types'
-import { nodeReservedPool } from '@/features/budget'
 import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
 import { BudgetOrgMemberPicker } from './budget-org-member-picker'
 import {
@@ -51,7 +50,7 @@ export function BudgetProjectDialog({
   const available = useMemo(() => {
     const childrenSum =
       department.children?.reduce((sum: number, child: BudgetNode) => sum + child.budget, 0) ?? 0
-    return department.budget - childrenSum - nodeReservedPool(department) - existingProjectsBudget
+    return department.budget - childrenSum - existingProjectsBudget
   }, [department, existingProjectsBudget])
 
   function resetForm() {
