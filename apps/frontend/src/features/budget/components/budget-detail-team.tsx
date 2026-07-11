@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, Member, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
+import type { BudgetNode, BudgetProjectView, Department, Member, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { BudgetProjectDialog } from './budget-project-dialog'
-import { nodeReservedPool } from '@/features/budget'
 import { formatDisplayCurrency } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
@@ -30,6 +29,9 @@ interface BudgetDetailTeamProps {
   }) => Promise<void>
   getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
   updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudgetQuota>
+  getDepartmentTree: () => Promise<Department[]>
+  getMembers: (departmentId: string) => Promise<Member[]>
+  searchMembers: (keyword: string) => Promise<Member[]>
 }
 
 function SummaryCard({
@@ -73,15 +75,17 @@ export function BudgetDetailTeam({
   onCreateGroup,
   getMemberBudgets,
   updateMemberBudget,
+  getDepartmentTree,
+  getMembers,
+  searchMembers,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const nodeProjects = projects.filter((project) => project.departmentId === node.id)
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
   const projectBudgetSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
-  const reservedPool = nodeReservedPool(node)
-  const allocated = childrenBudgetSum + projectBudgetSum + reservedPool
-  const unallocated = node.budget - allocated
+  const allocated = childrenBudgetSum + projectBudgetSum
+  const reservedPool = node.budget - allocated
   const pct = node.budget > 0 ? Math.round((node.consumed / node.budget) * 100) : 0
 
   return (
@@ -90,11 +94,10 @@ export function BudgetDetailTeam({
         <h3 className="text-sm font-semibold text-foreground">{node.name}</h3>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <SummaryCard label="总额度" value={node.budget} />
         <SummaryCard label="已分配" value={allocated} muted />
         <SummaryCard label="预留池" value={reservedPool} />
-        <SummaryCard label="未分配" value={unallocated} highlight={unallocated < 0} />
       </div>
 
       <div className="rounded-lg border border-border p-4">
@@ -194,9 +197,10 @@ export function BudgetDetailTeam({
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         department={node}
-        departmentMembers={departmentMembers}
-        membersLoading={membersLoading}
         onCreateGroup={onCreateGroup}
+        getDepartmentTree={getDepartmentTree}
+        getMembers={getMembers}
+        searchMembers={searchMembers}
       />
     </div>
   )

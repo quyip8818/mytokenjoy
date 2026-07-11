@@ -81,7 +81,6 @@ export function BudgetEditAllocation({
         drafts={allocation.drafts}
         reservedDraft={allocation.reservedDraft}
         error={allocation.error}
-        remaining={allocation.remaining}
         onUpdateDraft={allocation.updateDraft}
         onUpdateReservedDraft={allocation.updateReservedDraft}
       />

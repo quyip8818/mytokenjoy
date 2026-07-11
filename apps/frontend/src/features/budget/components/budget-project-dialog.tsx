@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
-import type { BudgetNode, Member } from '@/api/types'
+import type { BudgetNode, Department, Member } from '@/api/types'
 import { nodeReservedPool } from '@/features/budget'
 import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
-import { BudgetMemberPicker } from './budget-member-picker'
+import { BudgetOrgMemberPicker } from './budget-org-member-picker'
 import {
   Dialog,
   DialogContent,
@@ -18,23 +18,25 @@ interface BudgetProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   department: BudgetNode
-  departmentMembers: Member[]
-  membersLoading?: boolean
   onCreateGroup: (data: {
     name: string
     budget: number
     memberIds: string[]
     departmentIds: string[]
   }) => Promise<void>
+  getDepartmentTree: () => Promise<Department[]>
+  getMembers: (departmentId: string) => Promise<Member[]>
+  searchMembers: (keyword: string) => Promise<Member[]>
 }
 
 export function BudgetProjectDialog({
   open,
   onOpenChange,
   department,
-  departmentMembers,
-  membersLoading = false,
   onCreateGroup,
+  getDepartmentTree,
+  getMembers,
+  searchMembers,
 }: BudgetProjectDialogProps) {
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
@@ -136,11 +138,13 @@ export function BudgetProjectDialog({
 
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium">关联成员</Label>
-            <BudgetMemberPicker
-              members={departmentMembers}
-              loading={membersLoading}
+            <BudgetOrgMemberPicker
               selectedIds={memberIds}
               onChange={setMemberIds}
+              defaultExpandDepartmentId={department.id}
+              getDepartmentTree={getDepartmentTree}
+              getMembers={getMembers}
+              searchMembers={searchMembers}
             />
           </div>
         </div>

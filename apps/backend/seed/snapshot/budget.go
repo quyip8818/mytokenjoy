@@ -15,7 +15,7 @@ func buildBudgetTree() []types.BudgetNode {
 	dept6 := "dept-1"
 	dept7 := "dept-1"
 	dept8 := "dept-1"
-	reserved5000 := seedPoints(5000)
+	reserved15000 := seedPoints(15000)
 	reserved2000 := seedPoints(2000)
 	reserved1500 := seedPoints(1500)
 	techConsumed := contract.DemoLeafDeptConsumed[contract.IDDept3] +
@@ -24,7 +24,7 @@ func buildBudgetTree() []types.BudgetNode {
 	return []types.BudgetNode{
 		{
 			ID: "dept-1", Name: "总公司", ParentID: nil,
-			Budget: seedPoints(100000), Consumed: contract.DemoRootConsumed(), ReservedPool: &reserved5000, Period: pkgbudget.PeriodMonthly,
+			Budget: seedPoints(120000), Consumed: contract.DemoRootConsumed(), ReservedPool: &reserved15000, Period: pkgbudget.PeriodMonthly,
 			Children: []types.BudgetNode{
 				{
 					ID: "dept-2", Name: "技术部", ParentID: &dept2,

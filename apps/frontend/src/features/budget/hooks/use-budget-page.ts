@@ -169,6 +169,27 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis],
   )
 
+  const getDepartmentTree = useCallback(
+    () => apis.departmentApi.getTree(),
+    [apis],
+  )
+
+  const getMembers = useCallback(
+    async (departmentId: string) => {
+      const result = await apis.memberApi.list({ departmentId, page: 1, pageSize: 200 })
+      return result?.items ?? []
+    },
+    [apis],
+  )
+
+  const searchMembers = useCallback(
+    async (keyword: string) => {
+      const result = await apis.memberApi.list({ keyword, page: 1, pageSize: 50 })
+      return result?.items ?? []
+    },
+    [apis],
+  )
+
   const overrunPolicyLabel = formatOverrunPolicyLabel(
     activeProject?.overrunPolicy ?? projects[0]?.overrunPolicy ?? 'hard_reject',
   )
@@ -206,5 +227,8 @@ export function useBudgetPage(injectedApis?: AppApis) {
     deleteBudgetGroup,
     getMemberBudgets,
     updateMemberBudget,
+    getDepartmentTree,
+    getMembers,
+    searchMembers,
   }
 }

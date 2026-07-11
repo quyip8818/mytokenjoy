@@ -1,30 +1,19 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type {
-  CostGranularity,
-  CostPeriod,
-  CostQueryParams,
-  DepartmentCost,
-  DepartmentCostMember,
-} from '@/api/types'
+import type { CostGranularity, CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_GRANULARITY, COST_PERIOD } from '../lib/constants'
 import { getMonthStartLocal, getTodayLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
-import {
-  ROOT_DRILL,
-  type CostStatItem,
-  type DrillState,
-  buildCostStats,
-  buildDeptCostsWithColors,
-  canDrillBack,
-  drillBack,
-  drillIntoDepartment,
-  getDrillTitle,
-  COST_CHART_COLORS,
-} from '../lib/dashboard'
+import { buildCostStats, buildDeptCostsWithColors, COST_CHART_COLORS } from '../lib/dashboard'
+import type { CostStatItem } from '../lib/dashboard'
 
-export type { CostStatItem, DrillState }
-export { ROOT_DRILL, COST_CHART_COLORS }
+export type { CostStatItem }
+export { COST_CHART_COLORS }
+
+interface UseCostDashboardPageOptions {
+  deptId: string | null
+  injectedApis?: AppApis
+}
 
 function buildCostQuery(period: CostPeriod, startDate: string, endDate: string): CostQueryParams {
   if (period === COST_PERIOD.CUSTOM) {
@@ -33,12 +22,11 @@ function buildCostQuery(period: CostPeriod, startDate: string, endDate: string):
   return { period }
 }
 
-export function useCostDashboardPage(injectedApis?: AppApis) {
+export function useCostDashboardPage({ deptId, injectedApis }: UseCostDashboardPageOptions) {
   const [period, setPeriod] = useState<CostPeriod>(COST_PERIOD.CURRENT_MONTH)
   const [startDate, setStartDate] = useState(getMonthStartLocal)
   const [endDate, setEndDate] = useState(getTodayLocal)
   const [granularity, setGranularity] = useState<CostGranularity>(COST_GRANULARITY.DAY)
-  const [drill, setDrill] = useState<DrillState>(ROOT_DRILL)
 
   const costQuery = useMemo(
     () => buildCostQuery(period, startDate, endDate),
@@ -47,17 +35,15 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
 
   const { data, loading, error, refresh } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.dashboard.cost(costQuery, drill, granularity),
+    queryKey: queryKeys.dashboard.cost(costQuery, deptId, granularity),
     queryFn: async (apis) => {
       const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
         apis.dashboardApi.getCostSummary(costQuery),
         apis.dashboardApi.getDailyCosts({ ...costQuery, granularity }),
-        drill.level === 'members' && drill.deptId
-          ? apis.dashboardApi.getDepartmentMemberCosts(drill.deptId, costQuery)
-          : apis.dashboardApi.getDepartmentCosts({
-              ...costQuery,
-              parentId: drill.parentId ?? undefined,
-            }),
+        apis.dashboardApi.getDepartmentCosts({
+          ...costQuery,
+          parentId: deptId ?? undefined,
+        }),
         apis.dashboardApi.getTopConsumers({ ...costQuery, limit: 5 }),
       ])
       return { summary, dailyCosts, deptCosts, topConsumers }
@@ -67,31 +53,18 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
   const handlePeriodChange = useCallback((value: string | null) => {
     if (!value) return
     setPeriod(value as CostPeriod)
-    setDrill(ROOT_DRILL)
-  }, [])
-
-  const handleDrillDept = useCallback((dept: DepartmentCost) => {
-    setDrill((current) => drillIntoDepartment(current, dept))
-  }, [])
-
-  const handleDrillBack = useCallback(() => {
-    setDrill((current) => drillBack(current))
   }, [])
 
   const summary = data?.summary ?? null
   const dailyCosts = data?.dailyCosts ?? []
   const topConsumers = data?.topConsumers ?? []
-  const rawDeptCosts = data?.deptCosts
-
-  const deptCosts = useMemo(() => (rawDeptCosts ?? []) as DepartmentCost[], [rawDeptCosts])
-  const memberCosts = useMemo(() => (rawDeptCosts ?? []) as DepartmentCostMember[], [rawDeptCosts])
+  const deptCosts = data?.deptCosts ?? []
 
   const deptCostsWithColors = useMemo(
-    () => buildDeptCostsWithColors(drill.level, deptCosts, memberCosts),
-    [deptCosts, memberCosts, drill.level],
+    () => buildDeptCostsWithColors('departments', deptCosts, []),
+    [deptCosts],
   )
 
-  const drillTitle = useMemo(() => getDrillTitle(drill), [drill])
   const stats = useMemo(() => buildCostStats(summary), [summary])
   const customDateInvalid =
     period === COST_PERIOD.CUSTOM && Boolean(startDate && endDate && startDate > endDate)
@@ -102,7 +75,7 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
     endDate,
     granularity,
     customDateInvalid,
-    drill,
+    deptId,
     loading,
     error,
     refresh,
@@ -110,16 +83,11 @@ export function useCostDashboardPage(injectedApis?: AppApis) {
     dailyCosts,
     topConsumers,
     deptCosts,
-    memberCosts,
     deptCostsWithColors,
-    drillTitle,
     stats,
-    canDrillBack: canDrillBack(drill),
     handlePeriodChange,
     setStartDate,
     setEndDate,
     setGranularity,
-    handleDrillDept,
-    handleDrillBack,
   }
 }

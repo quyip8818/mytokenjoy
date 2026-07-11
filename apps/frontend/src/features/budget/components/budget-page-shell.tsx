@@ -40,6 +40,9 @@ export function BudgetPageShell({
   deleteBudgetGroup,
   getMemberBudgets,
   updateMemberBudget,
+  getDepartmentTree,
+  getMembers,
+  searchMembers,
 }: BudgetPageShellProps) {
   return (
     <PageShell layout="fill" className="min-h-0 flex-1">
@@ -137,6 +140,9 @@ export function BudgetPageShell({
                     onCreateGroup={createBudgetGroup}
                     getMemberBudgets={getMemberBudgets}
                     updateMemberBudget={updateMemberBudget}
+                    getDepartmentTree={getDepartmentTree}
+                    getMembers={getMembers}
+                    searchMembers={searchMembers}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
