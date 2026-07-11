@@ -197,7 +197,7 @@ export function BudgetOrgMemberPicker({
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
+        <div className="max-h-64 overflow-y-auto overscroll-contain p-1" onWheel={(e) => e.stopPropagation()}>
           {treeLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
