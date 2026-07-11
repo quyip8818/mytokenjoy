@@ -18,6 +18,7 @@ interface BudgetProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   department: BudgetNode
+  existingProjectsBudget?: number
   onCreateGroup: (data: {
     name: string
     budget: number
@@ -34,6 +35,7 @@ export function BudgetProjectDialog({
   open,
   onOpenChange,
   department,
+  existingProjectsBudget = 0,
   onCreateGroup,
   getDepartmentTree,
   getMembers,
@@ -49,8 +51,8 @@ export function BudgetProjectDialog({
   const available = useMemo(() => {
     const childrenSum =
       department.children?.reduce((sum: number, child: BudgetNode) => sum + child.budget, 0) ?? 0
-    return department.budget - childrenSum - nodeReservedPool(department)
-  }, [department])
+    return department.budget - childrenSum - nodeReservedPool(department) - existingProjectsBudget
+  }, [department, existingProjectsBudget])
 
   function resetForm() {
     setName('')

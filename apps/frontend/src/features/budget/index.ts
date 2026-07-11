@@ -23,6 +23,7 @@ export {
   getBudgetProgressClass,
   getBudgetProgressTone,
   shiftBudgetPeriod,
+  DEFAULT_OVERRUN_POLICY,
   BUDGET_WARNING_THRESHOLD,
   BUDGET_DANGER_THRESHOLD,
 } from './lib/mappers'

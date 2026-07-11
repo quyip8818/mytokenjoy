@@ -19,5 +19,6 @@ func (s *service) UpdateOverrunPolicy(ctx context.Context, policy types.OverrunP
 	if err := s.store.Budget().SetOverrunPolicy(ctx, policy); err != nil {
 		return types.OverrunPolicyConfig{}, fmt.Errorf("persist overrun policy: %w", err)
 	}
+	s.logger.Info("budget.overrun_policy.updated", "policy", fmt.Sprintf("%+v", policy))
 	return policy, nil
 }

@@ -125,8 +125,15 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		}
 
 		if s.enqueueRebalanceAxis != nil {
-			_ = s.enqueueRebalanceAxis(ctx, store.RebalanceAxisMember, result.ApplicantID)
+			if err := s.enqueueRebalanceAxis(ctx, store.RebalanceAxisMember, result.ApplicantID); err != nil {
+				s.logger.Error("enqueue rebalance failed after approval",
+					"approval_id", id,
+					"member_id", result.ApplicantID,
+					"error", err,
+				)
+			}
 		}
+		s.logger.Info("budget.approval.approved", "approval_id", id, "applicant_id", result.ApplicantID, "amount", result.Amount)
 	} else {
 		// Rejection path: read approvals to validate, then update status
 		items, err := s.store.Budget().BudgetApprovals(ctx)
@@ -154,6 +161,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		items[idx].ResolvedAt = &resolved
 		items[idx].RejectReason = input.RejectReason
 		result = items[idx]
+		s.logger.Info("budget.approval.rejected", "approval_id", id, "applicant_id", result.ApplicantID)
 	}
 
 	return result, nil

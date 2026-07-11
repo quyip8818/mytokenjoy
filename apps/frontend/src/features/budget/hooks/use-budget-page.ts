@@ -3,6 +3,8 @@ import type { AppApis } from '@/api/app-apis'
 import type { BudgetProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
+import { ApiError } from '@/api/client'
+import { toast } from 'sonner'
 import { getCurrentBudgetPeriod } from '@/lib/date'
 import {
   findBudgetNode,
@@ -11,6 +13,7 @@ import {
   groupsForDepartment,
   formatOverrunPolicyLabel,
   shiftBudgetPeriod,
+  DEFAULT_OVERRUN_POLICY,
 } from '../lib/mappers'
 import { filterProjectMembers, useBudgetDepartmentMembers } from './use-budget-department-members'
 
@@ -82,10 +85,21 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [tree, resolvedSelectedTeamId],
   )
 
+  const nodeNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    function walk(nodes: typeof tree) {
+      for (const node of nodes) {
+        map.set(node.id, node.name)
+        if (node.children) walk(node.children)
+      }
+    }
+    walk(tree)
+    return map
+  }, [tree])
+
   const projects = useMemo((): BudgetProjectView[] => {
-    const deptName = selectedNode?.name ?? ''
-    return mapGroupsToProjectViews(groups, deptName, period)
-  }, [groups, selectedNode?.name, period])
+    return mapGroupsToProjectViews(groups, nodeNameMap, period)
+  }, [groups, nodeNameMap, period])
 
   const activeProject = useMemo(
     () =>
@@ -113,16 +127,26 @@ export function useBudgetPage(injectedApis?: AppApis) {
 
   const updateDepartment = useCallback(
     async (departmentId: string, data: { budget: number; reservedPool?: number }) => {
-      await apis.budgetApi.updateDepartment(departmentId, data)
-      await refresh()
+      try {
+        await apis.budgetApi.updateDepartment(departmentId, data)
+        await refresh()
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : '更新部门预算失败')
+        throw err
+      }
     },
     [apis, refresh],
   )
 
   const resolveApproval = useCallback(
     async (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) => {
-      await apis.budgetApi.resolveApproval(id, data)
-      await refreshApprovals()
+      try {
+        await apis.budgetApi.resolveApproval(id, data)
+        await refreshApprovals()
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : '审批操作失败')
+        throw err
+      }
     },
     [apis, refreshApprovals],
   )
@@ -134,24 +158,39 @@ export function useBudgetPage(injectedApis?: AppApis) {
       memberIds: string[]
       departmentIds: string[]
     }) => {
-      await apis.budgetApi.createGroup(data)
-      await refresh()
+      try {
+        await apis.budgetApi.createGroup(data)
+        await refresh()
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : '创建项目失败')
+        throw err
+      }
     },
     [apis, refresh],
   )
 
   const updateBudgetGroup = useCallback(
     async (groupId: string, data: { budget?: number; memberIds?: string[] }) => {
-      await apis.budgetApi.updateGroup(groupId, data)
-      await refresh()
+      try {
+        await apis.budgetApi.updateGroup(groupId, data)
+        await refresh()
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : '更新项目失败')
+        throw err
+      }
     },
     [apis, refresh],
   )
 
   const deleteBudgetGroup = useCallback(
     async (groupId: string) => {
-      await apis.budgetApi.deleteGroup(groupId)
-      await refresh()
+      try {
+        await apis.budgetApi.deleteGroup(groupId)
+        await refresh()
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : '删除项目失败')
+        throw err
+      }
     },
     [apis, refresh],
   )
@@ -201,7 +240,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
   )
 
   const overrunPolicyLabel = formatOverrunPolicyLabel(
-    activeProject?.overrunPolicy ?? projects[0]?.overrunPolicy ?? 'hard_reject',
+    activeProject?.overrunPolicy ?? DEFAULT_OVERRUN_POLICY,
   )
 
   return {

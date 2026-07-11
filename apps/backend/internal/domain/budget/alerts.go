@@ -36,6 +36,9 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 		result = created
 		return nil
 	})
+	if err == nil {
+		s.logger.Info("budget.alert.created", "alert_id", result.ID, "node_id", result.NodeID)
+	}
 	return result, err
 }
 
@@ -73,11 +76,14 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 		}
 		return domain.NotFound("Not found")
 	})
+	if err == nil {
+		s.logger.Info("budget.alert.updated", "alert_id", id, "enabled", result.Enabled)
+	}
 	return result, err
 }
 
 func (s *service) DeleteAlert(ctx context.Context, id string) error {
-	return s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -102,4 +108,8 @@ func (s *service) DeleteAlert(ctx context.Context, id string) error {
 		}
 		return nil
 	})
+	if err == nil {
+		s.logger.Info("budget.alert.deleted", "alert_id", id)
+	}
+	return err
 }

@@ -56,6 +56,9 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		result = *updated
 		return nil
 	})
+	if err == nil {
+		s.logger.Info("budget.node.updated", "node_id", id, "budget", budget)
+	}
 	return result, err
 }
 
@@ -115,6 +118,9 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 		result = r
 		return nil
 	})
+	if err == nil {
+		s.logger.Info("budget.member.updated", "member_id", memberID, "personal_budget", personalBudget)
+	}
 	return result, err
 }
 
@@ -133,6 +139,9 @@ func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (m
 	if target == nil {
 		return nil, domain.NotFound("Group not found")
 	}
+	if len(target.MemberIDs) == 0 {
+		return make(map[string]float64), nil
+	}
 
 	deptID := ""
 	if len(target.DepartmentIDs) > 0 {
@@ -144,13 +153,16 @@ func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (m
 	}
 	periodKey := open.String()
 
-	result := make(map[string]float64)
+	// Batch fetch all member consumed values for this period
+	allConsumed, err := s.store.BudgetSnapshots().ListConsumed(ctx, store.SnapshotAxisMember, periodKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter to only members in this group
+	result := make(map[string]float64, len(target.MemberIDs))
 	for _, memberID := range target.MemberIDs {
-		consumed, _, err := s.store.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisMember, memberID, periodKey)
-		if err != nil {
-			return nil, err
-		}
-		result[memberID] = consumed
+		result[memberID] = allConsumed[memberID] // defaults to 0 if not found
 	}
 	return result, nil
 }

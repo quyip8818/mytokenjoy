@@ -60,9 +60,21 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
     [rules, groups],
   )
 
+  const nodeNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    function walk(nodes: typeof tree) {
+      for (const node of nodes) {
+        map.set(node.id, node.name)
+        if (node.children) walk(node.children)
+      }
+    }
+    walk(tree)
+    return map
+  }, [tree])
+
   const projects = useMemo(
-    () => mapGroupsToProjectViews(groups, '', tree[0]?.period ?? ''),
-    [groups, tree],
+    () => mapGroupsToProjectViews(groups, nodeNameMap, tree[0]?.period ?? ''),
+    [groups, nodeNameMap, tree],
   )
 
   const handleToggle = useCallback(

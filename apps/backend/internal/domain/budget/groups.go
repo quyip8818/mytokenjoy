@@ -51,6 +51,9 @@ func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (typ
 		result = created
 		return nil
 	})
+	if err == nil {
+		s.logger.Info("budget.group.created", "group_id", result.ID, "name", result.Name, "budget", result.Budget)
+	}
 	return result, err
 }
 
@@ -104,11 +107,14 @@ func (s *service) UpdateGroup(ctx context.Context, id string, patch types.Budget
 		}
 		return domain.NotFound("Not found")
 	})
+	if err == nil {
+		s.logger.Info("budget.group.updated", "group_id", id, "name", result.Name, "budget", result.Budget)
+	}
 	return result, err
 }
 
 func (s *service) DeleteGroup(ctx context.Context, id string) error {
-	return s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -127,4 +133,8 @@ func (s *service) DeleteGroup(ctx context.Context, id string) error {
 		}
 		return domain.NotFound("Not found")
 	})
+	if err == nil {
+		s.logger.Info("budget.group.deleted", "group_id", id)
+	}
+	return err
 }
