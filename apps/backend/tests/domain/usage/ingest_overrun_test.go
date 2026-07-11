@@ -21,9 +21,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 	runner, st, _, ingest := workerfix.NewRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 0)
-
-	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(3001, 99))
 	if err := ingest.IngestByLogID(testutil.Ctx(), 3001, types.SourceWebhook); err != nil {

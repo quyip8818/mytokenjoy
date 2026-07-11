@@ -28,7 +28,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
 		PlatformKeyID: "plk-3",
 		NewAPIKeyID:   77,
 		NoMember:      true,

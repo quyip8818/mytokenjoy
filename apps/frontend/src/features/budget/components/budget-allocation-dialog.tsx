@@ -131,7 +131,12 @@ export function BudgetAllocationDialog({
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => handleOpenChange(false)} disabled={saving}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleOpenChange(false)}
+            disabled={saving}
+          >
             取消
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>

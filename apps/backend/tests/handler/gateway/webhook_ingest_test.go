@@ -50,7 +50,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	t.Parallel()
 	application := newWebhookApp(t, nil)
 	beforeBuckets := testutil.UsageBucketCount(application.Store)
-	newapisynctf.UpsertMapping(t, application.Store, newapisynctf.DefaultMappingOpts())
+	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 
 	beforeConsumed := testutil.Dept3SnapshotConsumed(t, application.Store)
 	beforeUsed := testutil.PlatformKeySnapshotUsed(t, application.Store, contract.IDPlatformKey1)
@@ -93,7 +93,7 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 	t.Parallel()
 	application := newWebhookApp(t, nil)
 	beforeBuckets := testutil.UsageBucketCount(application.Store)
-	newapisynctf.UpsertMapping(t, application.Store, newapisynctf.DefaultMappingOpts())
+	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, application.Store, testutil.DefaultConsumeLog(93001, 99))
 	for i := 0; i < 2; i++ {
 		rec := postWebhook(t, application, 93001)
@@ -108,7 +108,7 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 func TestWebhookIngestWritesLedgerFields(t *testing.T) {
 	t.Parallel()
 	application := newWebhookApp(t, nil)
-	newapisynctf.UpsertMapping(t, application.Store, newapisynctf.DefaultMappingOpts())
+	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 
 	const input = "webhook preview"
 	testutil.SeedConsumeLog(t, application.Store, store.RawConsumeLog{
@@ -192,7 +192,7 @@ func TestWebhookMappingMissingAcceptedThenWorkerRecords(t *testing.T) {
 func TestIngestMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	application := newWebhookApp(t, nil)
-	newapisynctf.UpsertMapping(t, application.Store, newapisynctf.DefaultMappingOpts())
+	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, application.Store, testutil.DefaultConsumeLog(98100, 99))
 
 	rec := postWebhook(t, application, 98100)

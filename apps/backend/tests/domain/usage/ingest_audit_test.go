@@ -18,7 +18,7 @@ func TestIngestVisibleInAuditCalls(t *testing.T) {
 	callLogQuerier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 
-	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	const logID int64 = 9100
 	const input = "audit e2e snippet"

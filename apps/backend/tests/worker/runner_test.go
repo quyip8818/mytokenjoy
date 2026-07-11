@@ -86,7 +86,7 @@ func TestReconcileLogs(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(88)
-	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
 		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
 	})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(500, tokenID))
@@ -133,7 +133,7 @@ func TestIngestJobMappingLateRecovery(t *testing.T) {
 
 	opts := newapisynctf.DefaultMappingOpts()
 	opts.NewAPIKeyID = tokenID
-	newapisynctf.UpsertMapping(t, st, opts)
+	newapisynctf.PrepareIngestFixture(t, st, opts)
 
 	runner.RunOnce(ctx)
 

@@ -60,7 +60,9 @@ function TreeItem({
             onSelect(node)
           } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault()
-            const items = (e.currentTarget.closest('[role="listbox"]') as HTMLElement)?.querySelectorAll<HTMLElement>('[role="option"]')
+            const items = (
+              e.currentTarget.closest('[role="listbox"]') as HTMLElement
+            )?.querySelectorAll<HTMLElement>('[role="option"]')
             if (!items) return
             const idx = Array.from(items).indexOf(e.currentTarget as HTMLElement)
             const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { BudgetNode, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
@@ -6,15 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
+import { useAsyncFetch, useMemberBudgetQuotas } from '@/features/budget'
+
+const emptyMemberBudgets: MemberBudgetQuota[] = []
 
 interface BudgetEditMemberBudgetProps {
   node: BudgetNode
@@ -24,7 +22,10 @@ interface BudgetEditMemberBudgetProps {
     memberId: string,
     data: UpdateMemberBudgetInput,
   ) => Promise<MemberBudgetQuota>
-  applyAverageBudget: (departmentId: string, data: { personalBudget: number; recursive: boolean }) => Promise<void>
+  applyAverageBudget: (
+    departmentId: string,
+    data: { personalBudget: number; recursive: boolean },
+  ) => Promise<void>
 }
 
 export function BudgetEditMemberBudget({
@@ -35,21 +36,14 @@ export function BudgetEditMemberBudget({
   applyAverageBudget,
 }: BudgetEditMemberBudgetProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [members, setMembers] = useState<MemberBudgetQuota[]>([])
-  const [loadingDisplay, setLoadingDisplay] = useState(true)
-
-  // Load members to compute average for display
-  useEffect(() => {
-    setLoadingDisplay(true)
-    getMemberBudgets(node.id)
-      .then((data) => setMembers(data ?? []))
-      .finally(() => setLoadingDisplay(false))
-  }, [node.id, getMemberBudgets])
+  const {
+    loading: loadingDisplay,
+    data: members,
+    refresh,
+  } = useMemberBudgetQuotas(node.id, getMemberBudgets)
 
   const averageBudget =
-    members.length > 0
-      ? members.reduce((sum, m) => sum + m.personalBudget, 0) / members.length
-      : 0
+    members.length > 0 ? members.reduce((sum, m) => sum + m.personalBudget, 0) / members.length : 0
 
   return (
     <div className="rounded-lg border border-border p-4">
@@ -88,8 +82,7 @@ export function BudgetEditMemberBudget({
         applyAverageBudget={applyAverageBudget}
         onUpdated={() => {
           onUpdated()
-          // Refresh display data
-          getMemberBudgets(node.id).then((data) => setMembers(data ?? []))
+          void refresh()
         }}
       />
     </div>
@@ -107,7 +100,10 @@ interface MemberBudgetEditDialogProps {
     memberId: string,
     data: UpdateMemberBudgetInput,
   ) => Promise<MemberBudgetQuota>
-  applyAverageBudget: (departmentId: string, data: { personalBudget: number; recursive: boolean }) => Promise<void>
+  applyAverageBudget: (
+    departmentId: string,
+    data: { personalBudget: number; recursive: boolean },
+  ) => Promise<void>
   onUpdated: () => void
 }
 
@@ -123,23 +119,28 @@ function MemberBudgetEditDialog({
   const [averageDraft, setAverageDraft] = useState('')
   const [savingAverage, setSavingAverage] = useState(false)
   const [individualMode, setIndividualMode] = useState(false)
-  const [members, setMembers] = useState<MemberBudgetQuota[]>([])
-  const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // Load members when dialog opens or individual mode activates
-  useEffect(() => {
-    if (!open) return
-    if (!individualMode) return
-    setLoading(true)
-    getMemberBudgets(departmentId)
-      .then((data) => setMembers(data ?? []))
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : '加载成员额度失败'))
-      .finally(() => setLoading(false))
-  }, [open, individualMode, departmentId, getMemberBudgets])
+  const fetchMembers = useCallback(
+    () =>
+      getMemberBudgets(departmentId)
+        .then((data) => data ?? [])
+        .catch((err) => {
+          toast.error(err instanceof ApiError ? err.message : '加载成员额度失败')
+          return []
+        }),
+    [departmentId, getMemberBudgets],
+  )
+
+  const fetchKey = open && individualMode ? `${departmentId}:${individualMode}` : ''
+  const {
+    loading,
+    data: members,
+    replace: replaceMembers,
+  } = useAsyncFetch(fetchKey, fetchMembers, open && individualMode, emptyMemberBudgets)
 
   function handleClose() {
     setAverageDraft('')
@@ -192,7 +193,7 @@ function MemberBudgetEditDialog({
         const updated = await updateMemberBudget(memberId, {
           personalBudget: displayToPoints(value),
         })
-        setMembers((prev) => prev.map((m) => (m.memberId === memberId ? updated : m)))
+        replaceMembers(members.map((m) => (m.memberId === memberId ? updated : m)))
         setEditingId(null)
         setDraft('')
         toast.success('成员额度已更新')
@@ -203,7 +204,7 @@ function MemberBudgetEditDialog({
         setSaving(false)
       }
     },
-    [draft, updateMemberBudget, onUpdated],
+    [draft, members, onUpdated, replaceMembers, updateMemberBudget],
   )
 
   const filteredMembers = search.trim()
@@ -211,7 +212,13 @@ function MemberBudgetEditDialog({
     : members
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v) }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose()
+        else onOpenChange(v)
+      }}
+    >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>成员额度设置</DialogTitle>
@@ -219,14 +226,18 @@ function MemberBudgetEditDialog({
 
         {/* Average quota setting */}
         <div className="mb-4">
-          <Label className="mb-1.5 block text-xs text-muted-foreground">统一设置人均额度（元）</Label>
+          <Label className="mb-1.5 block text-xs text-muted-foreground">
+            统一设置人均额度（元）
+          </Label>
           <div className="flex items-center gap-2">
             <Input
               type="number"
               min={0}
               value={averageDraft}
               onChange={(e) => setAverageDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void handleSaveAverage() }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveAverage()
+              }}
               className="h-8 w-40 tabular-nums"
               placeholder="输入统一额度"
             />
@@ -288,7 +299,10 @@ function MemberBudgetEditDialog({
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredMembers.map((member) => (
-                      <tr key={member.memberId} className={cn('h-10', editingId === member.memberId && 'bg-muted/30')}>
+                      <tr
+                        key={member.memberId}
+                        className={cn('h-10', editingId === member.memberId && 'bg-muted/30')}
+                      >
                         <td className="py-2 font-medium text-foreground">{member.memberName}</td>
                         <td className="py-2 tabular-nums">
                           {editingId === member.memberId ? (
@@ -317,15 +331,39 @@ function MemberBudgetEditDialog({
                         <td className="py-2 text-right">
                           {editingId === member.memberId ? (
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="size-7" onClick={cancelEdit} disabled={saving} aria-label="取消">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7"
+                                onClick={cancelEdit}
+                                disabled={saving}
+                                aria-label="取消"
+                              >
                                 <X className="size-3.5" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="size-7" onClick={() => void handleSaveMember(member.memberId)} disabled={saving} aria-label="保存">
-                                {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7"
+                                onClick={() => void handleSaveMember(member.memberId)}
+                                disabled={saving}
+                                aria-label="保存"
+                              >
+                                {saving ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="size-3.5" />
+                                )}
                               </Button>
                             </div>
                           ) : (
-                            <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={() => startEdit(member)} aria-label={`编辑${member.memberName}的额度`}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 text-muted-foreground"
+                              onClick={() => startEdit(member)}
+                              aria-label={`编辑${member.memberName}的额度`}
+                            >
                               <Pencil className="size-3.5" />
                             </Button>
                           )}

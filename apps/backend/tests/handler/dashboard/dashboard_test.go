@@ -157,7 +157,7 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	newapisynctf.UpsertMapping(t, app.Store, newapisynctf.MappingOpts{
+	newapisynctf.PrepareIngestFixture(t, app.Store, newapisynctf.MappingOpts{
 		PlatformKeyID: "plk-minute-test", NewAPIKeyID: 42,
 	})
 	ingest := testutil.NewIngestService(t, testutil.TestConfig(testutil.WithIngestEnabled(true)), app.Store)

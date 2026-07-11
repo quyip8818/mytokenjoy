@@ -27,13 +27,12 @@ export function CostDashboardLayoutPageShell({
     >
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">{getBreadcrumb(selectedDeptId).join(' > ')}</p>
+          <p className="text-xs text-muted-foreground">
+            {getBreadcrumb(selectedDeptId).join(' > ')}
+          </p>
           <h1 className="text-lg font-semibold">成本看板</h1>
         </div>
-        <DashboardDateRangePicker
-          value={pageData.period}
-          onChange={pageData.handlePeriodChange}
-        />
+        <DashboardDateRangePicker value={pageData.period} onChange={pageData.handlePeriodChange} />
       </div>
       <CostDashboardPageShell pageData={pageData} onSelectDept={setSelectedDeptId} />
     </DashboardPageLayout>

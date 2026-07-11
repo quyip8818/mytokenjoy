@@ -18,7 +18,7 @@ func TestReconcileMultipleLogs(t *testing.T) {
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(88)
-	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
 		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
 	})
 	for _, id := range []int64{801, 802, 803} {
@@ -68,7 +68,7 @@ func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
 	ctx := testutil.Ctx()
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 901, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(902, 44))
-	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
 		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: 44,
 	})
 
@@ -90,7 +90,7 @@ func TestReconcileIngestWithoutAdminSync(t *testing.T) {
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(66)
-	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
 		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
 	})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(750, tokenID))

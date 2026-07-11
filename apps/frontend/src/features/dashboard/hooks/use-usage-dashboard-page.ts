@@ -41,7 +41,8 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
   } = useInjectedQuery({
     injectedApis,
     queryKey: [...queryKeys.dashboard.usage(), 'team', costQuery, deptId],
-    queryFn: (a) => a.dashboardApi.getTeamUsage({ ...costQuery, departmentId: deptId ?? undefined }),
+    queryFn: (a) =>
+      a.dashboardApi.getTeamUsage({ ...costQuery, departmentId: deptId ?? undefined }),
   })
 
   const {
@@ -52,7 +53,8 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
   } = useInjectedQuery({
     injectedApis,
     queryKey: [...queryKeys.dashboard.usage(), 'model', costQuery, deptId],
-    queryFn: (a) => a.dashboardApi.getModelUsage({ ...costQuery, departmentId: deptId ?? undefined }),
+    queryFn: (a) =>
+      a.dashboardApi.getModelUsage({ ...costQuery, departmentId: deptId ?? undefined }),
   })
 
   const loading = teamLoading || modelLoading

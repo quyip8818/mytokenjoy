@@ -35,6 +35,9 @@ func UpsertMapping(t *testing.T, st store.Store, opts MappingOpts) {
 	if opts.PlatformKeyID == "" {
 		opts = DefaultMappingOpts()
 	}
+	if opts.DepartmentID == "" {
+		opts.DepartmentID = contract.IDDept3
+	}
 	if opts.NewAPIGroup == "" {
 		opts.NewAPIGroup = newapi.NewAPIGroupForDepartment(opts.DepartmentID)
 	}

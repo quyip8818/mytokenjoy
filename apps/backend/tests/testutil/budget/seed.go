@@ -12,6 +12,6 @@ import (
 
 func SeedDeptOverrun(t *testing.T, st store.Store, deptID string, consumed float64) {
 	t.Helper()
-	testutil.SetDeptSnapshotConsumed(t, st, deptID, consumed)
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	testutil.SetDeptSnapshotConsumed(t, st, deptID, consumed)
 }

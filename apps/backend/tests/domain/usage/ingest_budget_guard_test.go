@@ -31,7 +31,6 @@ func TestIngestRejectsWhenDepartmentBudgetExceeded(t *testing.T) {
 		t.Fatalf("expected positive dept budget, got %+v", node)
 	}
 	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, node.Budget)
-
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(91001, 99))
 

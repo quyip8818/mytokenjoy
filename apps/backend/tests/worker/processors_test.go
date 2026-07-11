@@ -48,8 +48,8 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	runner, st, _ := newWorkerRunner(t, stub)
 	ctx := testutil.Ctx()
 
-	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
 
 	payload, err := json.Marshal(map[string]string{
 		"departmentId": contract.IDDept3, "platformKeyId": contract.IDPlatformKey1,

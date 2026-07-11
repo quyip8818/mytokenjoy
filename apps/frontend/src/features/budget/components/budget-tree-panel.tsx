@@ -76,7 +76,9 @@ function TreeNode({
             }
           } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault()
-            const items = (e.currentTarget.closest('[role="tree"]') as HTMLElement)?.querySelectorAll<HTMLElement>('[role="treeitem"]')
+            const items = (
+              e.currentTarget.closest('[role="tree"]') as HTMLElement
+            )?.querySelectorAll<HTMLElement>('[role="treeitem"]')
             if (!items) return
             const idx = Array.from(items).indexOf(e.currentTarget as HTMLElement)
             const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1

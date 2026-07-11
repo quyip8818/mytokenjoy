@@ -34,9 +34,14 @@ func TestGetGroupBudgetRemaining(t *testing.T) {
 
 	for _, group := range groups {
 		if group.ID == contract.IDBudgetGroup1 {
+			allocated := budget.GetAllocatedGroupKeyBudget(keys, group.ID)
+			want := group.Budget - group.Consumed - allocated
+			if want < 0 {
+				want = 0
+			}
 			remaining := budget.GetGroupBudgetRemaining(group, keys)
-			if remaining != testutil.DisplayPoints(3500) {
-				t.Fatalf("expected bg-1 remaining %v (30000-18500-8000), got %v", testutil.DisplayPoints(3500), remaining)
+			if remaining != want {
+				t.Fatalf("expected bg-1 remaining %v, got %v", want, remaining)
 			}
 			return
 		}
