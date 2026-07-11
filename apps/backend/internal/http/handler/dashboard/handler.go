@@ -31,7 +31,8 @@ func NewHandler(p httpdeps.Protected, service domaindashboard.Service) *Handler 
 func (h *Handler) CostSummary(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		result, err := h.service.CostSummary(ctx, params, scope)
+		deptID := r.URL.Query().Get("departmentId")
+		result, err := h.service.CostSummary(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
@@ -56,7 +57,8 @@ func (h *Handler) DepartmentMemberCosts(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) DailyCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		result, err := h.service.DailyCosts(ctx, params, scope)
+		deptID := r.URL.Query().Get("departmentId")
+		result, err := h.service.DailyCosts(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
@@ -66,7 +68,8 @@ func (h *Handler) TopConsumers(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		limit := common.ParseIntParam(query.Get("limit"), 5)
 		params := parseCostQueryParams(r)
-		result, err := h.service.TopConsumers(ctx, limit, params, scope)
+		deptID := query.Get("departmentId")
+		result, err := h.service.TopConsumers(ctx, limit, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
@@ -74,7 +77,8 @@ func (h *Handler) TopConsumers(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		result, err := h.service.ModelUsage(ctx, params, scope)
+		deptID := r.URL.Query().Get("departmentId")
+		result, err := h.service.ModelUsage(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
@@ -82,7 +86,8 @@ func (h *Handler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) TeamUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		result, err := h.service.TeamUsage(ctx, params, scope)
+		deptID := r.URL.Query().Get("departmentId")
+		result, err := h.service.TeamUsage(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }

@@ -17,13 +17,13 @@ func roundCost(v float64) float64 {
 	return math.Round(v*100) / 100
 }
 
-func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) (types.CostSummary, error) {
+func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) (types.CostSummary, error) {
 	current, err := s.resolveRange(params)
 	if err != nil {
 		return types.CostSummary{}, err
 	}
 	prev := pkgbudget.PreviousRange(current)
-	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
+	scopeDeptIDs, err := s.resolveScope(ctx, scope, deptID)
 	if err != nil {
 		return types.CostSummary{}, err
 	}
@@ -148,12 +148,12 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	return result, nil
 }
 
-func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DailyCost, error) {
+func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DailyCost, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
 	}
-	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
+	scopeDeptIDs, err := s.resolveScope(ctx, scope, deptID)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, 
 	return result, nil
 }
 
-func (s *service) TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.TopConsumer, error) {
+func (s *service) TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TopConsumer, error) {
 	if limit <= 0 {
 		limit = 5
 	}
@@ -181,7 +181,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	if err != nil {
 		return nil, err
 	}
-	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
+	scopeDeptIDs, err := s.resolveScope(ctx, scope, deptID)
 	if err != nil {
 		return nil, err
 	}

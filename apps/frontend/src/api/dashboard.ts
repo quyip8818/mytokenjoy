@@ -11,7 +11,7 @@ import type {
 } from './types'
 
 export const dashboardApi = {
-  getCostSummary: (params?: CostQueryParams) =>
+  getCostSummary: (params?: CostQueryParams & { departmentId?: string }) =>
     request<CostSummary>(`/dashboard/cost/summary${buildQuery(params ?? {})}`),
   getDepartmentCosts: (params?: CostQueryParams & { parentId?: string }) =>
     request<DepartmentCost[]>(`/dashboard/cost/departments${buildQuery(params ?? {})}`),
@@ -19,12 +19,12 @@ export const dashboardApi = {
     request<DepartmentCostMember[]>(
       `/dashboard/cost/departments/${departmentId}/members${buildQuery(params ?? {})}`,
     ),
-  getDailyCosts: (params?: CostQueryParams) =>
+  getDailyCosts: (params?: CostQueryParams & { departmentId?: string }) =>
     request<DailyCost[]>(`/dashboard/cost/daily${buildQuery(params ?? {})}`),
-  getTopConsumers: (params?: CostQueryParams & { limit?: number }) =>
+  getTopConsumers: (params?: CostQueryParams & { limit?: number; departmentId?: string }) =>
     request<TopConsumer[]>(`/dashboard/cost/top${buildQuery(params ?? {})}`),
-  getModelUsage: (params?: CostQueryParams) =>
+  getModelUsage: (params?: CostQueryParams & { departmentId?: string }) =>
     request<ModelUsage[]>(`/dashboard/usage/models${buildQuery(params ?? {})}`),
-  getTeamUsage: (params?: CostQueryParams) =>
+  getTeamUsage: (params?: CostQueryParams & { departmentId?: string }) =>
     request<TeamUsage[]>(`/dashboard/usage/teams${buildQuery(params ?? {})}`),
 }

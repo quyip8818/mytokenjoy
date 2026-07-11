@@ -9,12 +9,12 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.ModelUsage, error) {
+func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.ModelUsage, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
 	}
-	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
+	scopeDeptIDs, err := s.resolveScope(ctx, scope, deptID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,12 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	return result, nil
 }
 
-func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.TeamUsage, error) {
+func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TeamUsage, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
 	}
-	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
+	scopeDeptIDs, err := s.resolveScope(ctx, scope, deptID)
 	if err != nil {
 		return nil, err
 	}

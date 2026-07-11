@@ -43,14 +43,15 @@ export function useCostDashboardPage({ deptId, injectedApis }: UseCostDashboardP
     injectedApis,
     queryKey: queryKeys.dashboard.cost(costQuery, deptId, granularity),
     queryFn: async (apis) => {
+      const deptFilter = deptId ?? undefined
       const [summary, dailyCosts, deptCosts, topConsumers] = await Promise.all([
-        apis.dashboardApi.getCostSummary(costQuery),
-        apis.dashboardApi.getDailyCosts({ ...costQuery, granularity }),
+        apis.dashboardApi.getCostSummary({ ...costQuery, departmentId: deptFilter }),
+        apis.dashboardApi.getDailyCosts({ ...costQuery, granularity, departmentId: deptFilter }),
         apis.dashboardApi.getDepartmentCosts({
           ...costQuery,
           parentId: deptId ?? undefined,
         }),
-        apis.dashboardApi.getTopConsumers({ ...costQuery, limit: 5 }),
+        apis.dashboardApi.getTopConsumers({ ...costQuery, limit: 5, departmentId: deptFilter }),
       ])
       return { summary, dailyCosts, deptCosts, topConsumers }
     },
