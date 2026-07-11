@@ -181,11 +181,11 @@ func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO members (
 				id, company_id, name, phone, email, department_id,
-				status, source, external_id, personal_quota, password_hash
+				status, source, external_id, personal_budget, password_hash
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, member.ID, member.CompanyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalQuota, passwordHash); err != nil {
+			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget, passwordHash); err != nil {
 			return fmt.Errorf("seed member %s: %w", member.ID, err)
 		}
 		for _, roleName := range member.Roles {
@@ -424,12 +424,12 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO platform_keys (
 				id, company_id, name, key_prefix, key_hash, member_id,
-				budget_group_id, status, quota, created_at, expires_at
+				budget_group_id, status, budget, created_at, expires_at
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, key.ID, tid, key.Name, key.KeyPrefix, keyHash, key.MemberID,
 			key.BudgetGroupID, key.Status,
-			key.Quota, createdAt, expiresAt); err != nil {
+			key.Budget, createdAt, expiresAt); err != nil {
 			return err
 		}
 	}
@@ -448,12 +448,12 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO key_approvals (
-				id, company_id, type, applicant, applicant_id, department, reason, requested_quota,
+				id, company_id, type, applicant, applicant_id, department, reason, requested_budget,
 				status, approver, reject_reason, created_at, resolved_at
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			ON CONFLICT (company_id, id) DO NOTHING
 		`, approval.ID, tid, approval.Type, approval.Applicant, approval.ApplicantID, approval.Department,
-			approval.Reason, approval.RequestedQuota, approval.Status, approval.Approver,
+			approval.Reason, approval.RequestedBudget, approval.Status, approval.Approver,
 			approval.RejectReason, createdAt, resolvedAt); err != nil {
 			return err
 		}

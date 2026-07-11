@@ -30,7 +30,7 @@ export interface KeysWorkflowPayloads {
     onDone?: () => void
   }
   'approval-submit': {
-    defaultType?: 'key' | 'quota'
+    defaultType?: 'key' | 'budget'
     onSuccess?: () => void
   }
   'approval-review': {

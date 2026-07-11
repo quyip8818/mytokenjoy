@@ -35,7 +35,7 @@ export function MyKeysAdminPageShell({
       id={applyQuotaCta.id}
       variant="outline"
       className={applyQuotaCta.className}
-      onClick={() => openWithRefresh('approval-submit', { defaultType: 'quota' })}
+      onClick={() => openWithRefresh('approval-submit', { defaultType: 'budget' })}
     >
       申请额度
     </Button>
@@ -66,7 +66,7 @@ export function MyKeysAdminPageShell({
       stats={
         quota ? (
           <div className="grid grid-cols-3 gap-4">
-            <StatCard label="总额度" value={`¥${quota.totalQuota.toLocaleString()}`} />
+            <StatCard label="总额度" value={`¥${quota.totalBudget.toLocaleString()}`} />
             <StatCard label="已使用" value={`¥${quota.used.toLocaleString()}`} />
             <StatCard label="剩余" value={`¥${quota.remaining.toLocaleString()}`} accent />
           </div>

@@ -53,7 +53,7 @@ NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `inges
 | --- | --- |
 | delete+create 式 Rotate | 破坏 ingest `newapi_key_id` 连续性 |
 | Toggle 改回 async outbox | 用户操作应同步可见 |
-| 兼容「无 NewAPI 的 Platform Key」 | Demo / 生产统一要求 NewAPI；关则 `503` |
+| 「无 NewAPI 的 Platform Key」 | 统一要求 NewAPI；关则 `503` |
 | Gateway 用 `HasPrefix` 放行 | 精确匹配为安全目标 |
 
 ---
@@ -82,5 +82,5 @@ NewAPI notify → `POST /api/internal/webhooks/newapi-log` → **入队** `inges
 
 - `host.docker.internal`：Linux 需改 `MANAGEMENT_WEBHOOK_URL` 或加 `extra_hosts`
 - `pnpm gate:verify` 不覆盖 Backend Gateway，Gateway 须单独验
-- 只开 `NEWAPI_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
+- 只开 `NEW_API_GATEWAY_ENABLED` 不会生效，须同时 `NEW_API_ENABLED=true`
 - `DEPLOY_ENV=production` 时 NewAPI + Gateway + 入账为 **启动硬依赖**（见 [Backend-配置架构.md](./Backend-配置架构.md)）

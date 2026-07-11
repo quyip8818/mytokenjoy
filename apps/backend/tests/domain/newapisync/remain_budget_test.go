@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-func TestComputeRemainQuota(t *testing.T) {
+func TestComputeRemainBudget(t *testing.T) {
 	t.Parallel()
 	memberID := "m1"
 	groupID := "g1"
@@ -26,9 +26,9 @@ func TestComputeRemainQuota(t *testing.T) {
 		{
 			name: "key remaining only (no group or member)",
 			key: types.PlatformKey{
-				ID:    "k1",
-				Quota: 100,
-				Used:  30,
+				ID:     "k1",
+				Budget: 100,
+				Used:   30,
 			},
 			tree:         nil,
 			members:      nil,
@@ -41,7 +41,7 @@ func TestComputeRemainQuota(t *testing.T) {
 			name: "key remaining limited by budget group",
 			key: types.PlatformKey{
 				ID:            "k1",
-				Quota:         200,
+				Budget:        200,
 				Used:          50,
 				BudgetGroupID: &groupID,
 			},
@@ -55,9 +55,9 @@ func TestComputeRemainQuota(t *testing.T) {
 		{
 			name: "key remaining limited by department budget",
 			key: types.PlatformKey{
-				ID:    "k1",
-				Quota: 1000,
-				Used:  0,
+				ID:     "k1",
+				Budget: 1000,
+				Used:   0,
 			},
 			tree: []types.BudgetNode{
 				{ID: "d1", Budget: 500, Consumed: 450},
@@ -68,9 +68,9 @@ func TestComputeRemainQuota(t *testing.T) {
 		{
 			name: "department reserved pool reduces available",
 			key: types.PlatformKey{
-				ID:    "k1",
-				Quota: 1000,
-				Used:  0,
+				ID:     "k1",
+				Budget: 1000,
+				Used:   0,
 			},
 			tree: []types.BudgetNode{
 				{ID: "d1", Budget: 500, Consumed: 400, ReservedPool: floatPtr(30)},
@@ -81,9 +81,9 @@ func TestComputeRemainQuota(t *testing.T) {
 		{
 			name: "negative remaining clamped to zero",
 			key: types.PlatformKey{
-				ID:    "k1",
-				Quota: 10,
-				Used:  20,
+				ID:     "k1",
+				Budget: 10,
+				Used:   20,
 			},
 			tree:         nil,
 			departmentID: "d-unknown",
@@ -93,13 +93,13 @@ func TestComputeRemainQuota(t *testing.T) {
 			name: "member quota limits result",
 			key: types.PlatformKey{
 				ID:       "k1",
-				Quota:    500,
+				Budget:   500,
 				Used:     0,
 				MemberID: &memberID,
 			},
 			tree: nil,
 			members: []types.Member{
-				{ID: "m1", PersonalQuota: 100},
+				{ID: "m1", PersonalBudget: 100},
 			},
 			platformKeys: []types.PlatformKey{
 				{ID: "k1", MemberID: &memberID, Status: "active", Used: 80},
@@ -111,11 +111,11 @@ func TestComputeRemainQuota(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := domainnewapisync.ComputeRemainQuota(
+			got := domainnewapisync.ComputeRemainBudget(
 				tt.key, tt.tree, tt.members, tt.platformKeys, tt.groups, tt.departmentID,
 			)
 			if got != tt.want {
-				t.Errorf("ComputeRemainQuota() = %v, want %v", got, tt.want)
+				t.Errorf("ComputeRemainBudget() = %v, want %v", got, tt.want)
 			}
 		})
 	}

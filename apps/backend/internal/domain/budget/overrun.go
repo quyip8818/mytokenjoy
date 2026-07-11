@@ -59,7 +59,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		if err != nil {
 			return err
 		}
-		capacity, found, err := st.Org().MemberPersonalQuota(ctx, *payload.MemberID)
+		capacity, found, err := st.Org().MemberPersonalBudget(ctx, *payload.MemberID)
 		if err != nil {
 			return err
 		}

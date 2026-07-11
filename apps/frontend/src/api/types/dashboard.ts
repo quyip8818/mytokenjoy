@@ -108,7 +108,7 @@ export interface ModelUsage {
 export interface TeamUsage {
   departmentId: string
   departmentName: string
-  quota: number
+  budget: number
   consumed: number
   memberCount: number
   topModel: string

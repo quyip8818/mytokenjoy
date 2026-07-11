@@ -43,7 +43,7 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 	}
 }
 
-func TestGetMemberQuotaCapacity(t *testing.T) {
+func TestGetMemberBudgetCapacity(t *testing.T) {
 	t.Parallel()
 	reserved := 2000.0
 	node := types.BudgetNode{
@@ -53,7 +53,7 @@ func TestGetMemberQuotaCapacity(t *testing.T) {
 			{ID: "child-b", Budget: 5000},
 		},
 	}
-	capacity := budget.GetMemberQuotaCapacity(node)
+	capacity := budget.GetMemberBudgetCapacity(node)
 	want := 20000.0 - 2000.0 - 8000.0 - 5000.0
 	if capacity != want {
 		t.Fatalf("expected capacity %f, got %f", want, capacity)

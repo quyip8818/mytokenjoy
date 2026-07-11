@@ -43,7 +43,7 @@ export function MyKeysCardList({ keys }: MyKeysCardListProps) {
   return (
     <div className="divide-y divide-border">
       {keys.map((key) => {
-        const pct = key.quota > 0 ? Math.round((key.used / key.quota) * 100) : 0
+        const pct = key.budget > 0 ? Math.round((key.used / key.budget) * 100) : 0
         return (
           <div key={key.id} className="flex items-center gap-4 px-5 py-4">
             <div className="min-w-0 flex-1">
@@ -77,7 +77,7 @@ export function MyKeysCardList({ keys }: MyKeysCardListProps) {
               </div>
               <Progress value={pct} className="h-1.5" />
               <p className="mt-1 text-right text-xs text-muted-foreground tabular-nums">
-                ¥{key.used.toLocaleString()} / ¥{key.quota.toLocaleString()}
+                ¥{key.used.toLocaleString()} / ¥{key.budget.toLocaleString()}
               </p>
             </div>
           </div>

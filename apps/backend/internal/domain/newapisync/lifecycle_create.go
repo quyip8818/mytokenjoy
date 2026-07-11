@@ -103,7 +103,7 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := ComputeRemainQuota(key, tree, members, platformKeys, groups, departmentID)
+	remainCNY := ComputeRemainBudget(key, tree, members, platformKeys, groups, departmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)

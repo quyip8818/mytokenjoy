@@ -6,9 +6,9 @@
 
 ---
 
-## 0. 命名约定（终态）
+## 0. 命名约定
 
-禁止再引入 **Relay**；领域语言**不用 Token 指 Key**（JWT/session 写全称；LLM 计量 `inputTokens` 与厂商 Admin API 字面量除外）。`PlatformKey` 全链路保留，不改成 TokenJoyKey。
+领域词汇用 **Gateway** / **NewAPISync** / **PlatformKey**；不用 Relay；不用 Token 指 Key（JWT/session 写全称；LLM 计量 `inputTokens` 与厂商 Admin API 字面量除外）。`PlatformKey` 全链路保留，不改成 TokenJoyKey。
 
 | 词 | 职责 |
 | -- | ---- |
@@ -29,8 +29,8 @@
 
 | 配置 / 脚本 | 取值 |
 | ----------- | ---- |
-| Gateway 开关 | `NEWAPI_GATEWAY_ENABLED` |
-| SaaS 共享 group | `PLATFORM_SHARED_NEWAPI_GROUP` |
+| Gateway 开关 | `NEW_API_GATEWAY_ENABLED` |
+| SaaS 共享 group | `PLATFORM_SHARED_NEW_API_GROUP` |
 | 本地 NewAPI 栈 | `pnpm start:newapi` |
 
 厂商客户端在 `integration/newapi`（可保留 `CreateToken` 等厂商符号），不得泄漏到 domain / store / HTTP JSON。
@@ -183,7 +183,7 @@ sequenceDiagram
 | `PlatformAuth`   | `/api/platform/*`       | 平台签名 JWT；`SUPPORT_SAAS=false` 时路由 404                          |
 | `Authz`          | 需权限的路由            | **PEP**：`RequireAnyPermission` 对照 PDP 展开的 capability             |
 
-**目标架构**（已落地；无 demo 鉴权分叉）：[权限管理.md](./权限管理.md)。
+鉴权与 RBAC：[权限管理.md](./权限管理.md)。
 
 **CompanyResolve 规则：**
 
@@ -247,7 +247,7 @@ type Store interface {
 
 | 子包            | 职责                                                                               |
 | --------------- | ---------------------------------------------------------------------------------- |
-| `org`（根）     | `Service` 接口、`NewService`；嵌入 `structure.Local` + `remote.Service`            |
+| `org`（根）     | `Service` 接口、`NewService`；嵌入 `structure.LocalService` + `remote.Service`            |
 | `org/core`      | 共享 `Deps`、部门树 provision、authz revision bump                                 |
 | `org/structure` | 成员/角色/部门 CRUD、CSV 批量导入                                                  |
 | `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步（消费 `pkg/org` 的 diff/ID 工具） |
@@ -276,7 +276,7 @@ type Store interface {
 
 ## 6. Gateway 请求链
 
-`NEWAPI_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。代理时 **逐字节保留** 客户端 path（如 `/v1/chat/completions`），`NEW_API_BASE_URL` 仅含 scheme + host + port。
+`NEW_API_GATEWAY_ENABLED=true` 时挂载 `/v1/*`；**不经** Session。代理时 **逐字节保留** 客户端 path（如 `/v1/chat/completions`），`NEW_API_BASE_URL` 仅含 scheme + host + port。
 
 ```mermaid
 sequenceDiagram

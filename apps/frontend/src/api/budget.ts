@@ -6,7 +6,7 @@ import type {
   BudgetNode,
   MemberBudgetQuota,
   OverrunPolicyConfig,
-  UpdateMemberQuotaInput,
+  UpdateMemberBudgetInput,
 } from './types'
 
 function updateDepartmentRequest(
@@ -25,7 +25,7 @@ export const budgetApi = {
   updateDepartment: updateDepartmentRequest,
   getMemberQuotas: (departmentId: string) =>
     request<MemberBudgetQuota[]>(`/budget/departments/${departmentId}/member-quotas`),
-  updateMemberQuota: (memberId: string, data: UpdateMemberQuotaInput) =>
+  updateMemberQuota: (memberId: string, data: UpdateMemberBudgetInput) =>
     request<MemberBudgetQuota>(`/budget/members/${memberId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

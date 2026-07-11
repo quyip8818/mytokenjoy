@@ -10,14 +10,14 @@ import (
 )
 
 const memberSelect = `
-	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_quota
+	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget
 	FROM members m
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 `
 
 const memberListSelect = `
 	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''),
-		m.status, m.source, m.external_id, m.personal_quota,
+		m.status, m.source, m.external_id, m.personal_budget,
 		COALESCE(array_agg(r.name ORDER BY r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
 	FROM members m
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
@@ -30,7 +30,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	rows, err := r.db.Query(ctx, memberListSelect+`
 		WHERE m.company_id = $1
 		GROUP BY m.id, m.name, m.phone, m.email, m.department_id, o.name,
-			m.status, m.source, m.external_id, m.personal_quota
+			m.status, m.source, m.external_id, m.personal_budget
 		ORDER BY m.id
 	`, companyID)
 	if err != nil {
@@ -44,7 +44,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 		if err := rows.Scan(
 			&item.ID, &item.Name, &item.Phone, &item.Email,
 			&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
-			&item.PersonalQuota, &roles,
+			&item.PersonalBudget, &roles,
 		); err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 	if err := row.Scan(
 		&item.ID, &item.Name, &item.Phone, &item.Email,
 		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
-		&item.PersonalQuota,
+		&item.PersonalBudget,
 	); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -90,7 +90,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 
 func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_quota, m.password_hash
+		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget, m.password_hash
 		FROM members m
 		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 		WHERE m.company_id = $1 AND m.email = $2`, companyID, email)
@@ -99,7 +99,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 	if err := row.Scan(
 		&item.ID, &item.Name, &item.Phone, &item.Email,
 		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
-		&item.PersonalQuota, &passwordHash,
+		&item.PersonalBudget, &passwordHash,
 	); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, "", nil
@@ -131,7 +131,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_quota,
+		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,
 		       c.authz_revision
 		FROM members m
 		JOIN companies c ON c.id = m.company_id
@@ -143,7 +143,7 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberI
 	if err := row.Scan(
 		&item.ID, &item.Name, &item.Phone, &item.Email,
 		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
-		&item.PersonalQuota, &revision,
+		&item.PersonalBudget, &revision,
 	); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -177,11 +177,11 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberI
 	}, nil
 }
 
-func (r *pgOrgRepo) MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error) {
+func (r *pgOrgRepo) MemberPersonalBudget(ctx context.Context, memberID string) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var quota float64
 	err := r.db.QueryRow(ctx, `
-		SELECT personal_quota FROM members WHERE company_id = $1 AND id = $2
+		SELECT personal_budget FROM members WHERE company_id = $1 AND id = $2
 	`, companyID, memberID).Scan(&quota)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -205,7 +205,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO members (
 				id, company_id, name, phone, email, department_id,
-				status, source, external_id, personal_quota, updated_at
+				status, source, external_id, personal_budget, updated_at
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
@@ -215,10 +215,10 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 				status = EXCLUDED.status,
 				source = EXCLUDED.source,
 				external_id = EXCLUDED.external_id,
-				personal_quota = EXCLUDED.personal_quota,
+				personal_budget = EXCLUDED.personal_budget,
 				updated_at = NOW()
 		`, member.ID, companyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalQuota); err != nil {
+			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget); err != nil {
 			return fmt.Errorf("upsert member %s: %w", member.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `DELETE FROM member_roles WHERE company_id = $1 AND member_id = $2`, companyID, member.ID); err != nil {
@@ -256,14 +256,14 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 	return pruneByIDForCompany(ctx, r.db, "members", companyID, ids)
 }
 
-func (r *pgOrgRepo) UpdateMemberPersonalQuota(ctx context.Context, memberID string, personalQuota float64) error {
+func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID string, personalBudget float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		UPDATE members SET personal_quota = $3, updated_at = NOW()
+		UPDATE members SET personal_budget = $3, updated_at = NOW()
 		WHERE company_id = $1 AND id = $2
-	`, companyID, memberID, personalQuota)
+	`, companyID, memberID, personalBudget)
 	if err != nil {
-		return fmt.Errorf("update member personal quota: %w", err)
+		return fmt.Errorf("update member personal budget: %w", err)
 	}
 	return nil
 }

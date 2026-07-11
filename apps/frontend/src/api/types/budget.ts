@@ -39,13 +39,13 @@ export interface MemberBudgetQuota {
   memberId: string
   memberName: string
   departmentId: string
-  personalQuota: number
+  personalBudget: number
   allocated: number
   used: number
 }
 
-export interface UpdateMemberQuotaInput {
-  personalQuota: number
+export interface UpdateMemberBudgetInput {
+  personalBudget: number
 }
 
 export type OverrunPolicy = 'hard_reject' | 'approval' | 'downgrade'

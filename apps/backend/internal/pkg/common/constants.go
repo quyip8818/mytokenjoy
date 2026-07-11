@@ -2,7 +2,7 @@ package common
 
 const ModelNotInDeptMessage = "该模型不在您部门的可用范围内"
 
-const DefaultPersonalQuota = 5000
+const DefaultPersonalBudget = 5000
 
 const DefaultModelPricePoint = 1000
 

@@ -17,7 +17,7 @@ import (
 const minInvitePasswordLen = 8
 
 func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (types.Member, error) {
-	invite, err := s.store.Invite().GetInviteByToken(ctx, req.Token)
+	invite, err := s.store.Invite().GetInviteByCode(ctx, req.InviteCode)
 	if err != nil {
 		return types.Member{}, domain.NotFound("invite not found")
 	}
@@ -57,14 +57,14 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	}
 	memberID := fmt.Sprintf("member-%d-%d", company.ID, time.Now().UnixNano())
 	member := types.Member{
-		ID:            memberID,
-		CompanyID:     company.ID,
-		Name:          req.Name,
-		Email:         invite.Email,
-		DepartmentID:  deptID,
-		Status:        "active",
-		Roles:         []string{"超级管理员"},
-		PersonalQuota: common.DefaultPersonalQuota,
+		ID:             memberID,
+		CompanyID:      company.ID,
+		Name:           req.Name,
+		Email:          invite.Email,
+		DepartmentID:   deptID,
+		Status:         "active",
+		Roles:          []string{"超级管理员"},
+		PersonalBudget: common.DefaultPersonalBudget,
 	}
 	members, err := s.store.Org().Members(companyCtx)
 	if err != nil {
@@ -100,7 +100,7 @@ func rootOrgNodeID(nodes []types.OrgNode) string {
 	return ""
 }
 
-func randomToken() (string, error) {
+func randomInviteCode() (string, error) {
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
 		return "", err

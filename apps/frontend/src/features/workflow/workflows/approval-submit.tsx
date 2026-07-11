@@ -35,7 +35,7 @@ export function ApprovalSubmitWorkflow({
   const { memberId } = useSession()
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
-  const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'quota'
+  const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'budget'
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
@@ -74,7 +74,7 @@ export function ApprovalSubmitWorkflow({
       await apis.approvalApi.create({
         type,
         reason,
-        requestedQuota: Number(quota),
+        requestedBudget: Number(quota),
         requestedModels: models,
         memberId,
       })
@@ -117,7 +117,7 @@ export function ApprovalSubmitWorkflow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="key">Key 申请</SelectItem>
-              <SelectItem value="quota">额度追加</SelectItem>
+              <SelectItem value="budget">额度追加</SelectItem>
             </SelectContent>
           </Select>
         </div>

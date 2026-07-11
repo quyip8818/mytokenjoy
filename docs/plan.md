@@ -20,7 +20,7 @@
 ### Fix
 
 - [ ] **`gate-verify` 覆盖 Backend Gateway** — `gate-verify.sh` 增加：seed Key → `POST ${API_URL}/v1/chat/completions`（Bearer sk-）→ 期望 200 或业务 4xx（非 502）
-- [ ] **demo Gateway 组合校验** — 只开 `NEWAPI_GATEWAY_ENABLED`、不开 `NEW_API_ENABLED` 时启动失败或明确拒绝挂载
+- [ ] **demo Gateway 组合校验** — 只开 `NEW_API_GATEWAY_ENABLED`、不开 `NEW_API_ENABLED` 时启动失败或明确拒绝挂载
 - [ ] **Rebalance / Overrun NewAPI 关闭禁 noop** — `!Enabled()` 时勿静默 `return nil`；入队或处理失败可观测
 - [ ] **`noopWalletService`** — NewAPI 关闭时 `AvailableQuota` 恒 0 导致预检误拒；明确行为或禁止该组合下开 Gateway
 - [ ] **通知 `NOTIFY_WEBHOOK_URL` 失败可观测** — HTTP 失败勿对调用方一律 `return nil`
@@ -63,7 +63,7 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys-self-service
 **NewAPI / 管理面**
 
 - [ ] `NEW_API_ENABLED=true` + `NEW_API_BASE_URL` + `NEW_API_ADMIN_TOKEN`
-- [ ] 若开 Gateway：`NEWAPI_GATEWAY_ENABLED=true` 且 `NEW_API_ENABLED=true`
+- [ ] 若开 Gateway：`NEW_API_GATEWAY_ENABLED=true` 且 `NEW_API_ENABLED=true`
 - [ ] 以真实 POST `{log_id}` 与 ledger 为准，不以 compose 仅配 URL 当作已接通
 
 **本地**

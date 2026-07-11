@@ -31,14 +31,14 @@ type CreateCompanyRequest struct {
 }
 
 type CreateCompanyResult struct {
-	Company     store.Company
-	InviteToken string
+	Company    store.Company
+	InviteCode string
 }
 
 type AcceptInviteRequest struct {
-	Token    string
-	Name     string
-	Password string
+	InviteCode string
+	Name       string
+	Password   string
 }
 
 type service struct {

@@ -124,7 +124,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, s
 		}
 		result = append(result, types.TeamUsage{
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
-			Quota: quota, Consumed: consumedByDept[dept.ID],
+			Budget: quota, Consumed: consumedByDept[dept.ID],
 			MemberCount: memberCount, TopModel: topModels[dept.ID],
 		})
 	}

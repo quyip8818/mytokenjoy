@@ -29,9 +29,9 @@ type OrgRepository interface {
 	MemberByID(ctx context.Context, memberID string) (*types.Member, error)
 	MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error)
 	GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*MemberAuthz, error)
-	MemberPersonalQuota(ctx context.Context, memberID string) (float64, bool, error)
+	MemberPersonalBudget(ctx context.Context, memberID string) (float64, bool, error)
 	SetMembers(ctx context.Context, members []types.Member) error
-	UpdateMemberPersonalQuota(ctx context.Context, memberID string, personalQuota float64) error
+	UpdateMemberPersonalBudget(ctx context.Context, memberID string, personalBudget float64) error
 	SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error
 	Roles(ctx context.Context) ([]types.Role, error)
 	SetRoles(ctx context.Context, roles []types.Role) error

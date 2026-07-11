@@ -4,6 +4,6 @@ export const keysKeys = {
     [...keysKeys.all, 'platform', departmentId ?? 'all', type ?? 'all'] as const,
   provider: () => [...keysKeys.all, 'provider'] as const,
   mine: (memberId: string) => [...keysKeys.all, 'mine', memberId] as const,
-  quota: (memberId: string) => [...keysKeys.all, 'quota', memberId] as const,
+  budget: (memberId: string) => [...keysKeys.all, 'budget', memberId] as const,
   approvals: (tab: string) => [...keysKeys.all, 'approvals', tab] as const,
 }

@@ -28,7 +28,7 @@ type PlatformKey struct {
 	BudgetGroupID   *string `json:"budgetGroupId"`
 	BudgetGroupName *string `json:"budgetGroupName"`
 	Status          string  `json:"status"`
-	Quota           float64 `json:"quota"`
+	Budget          float64 `json:"budget"`
 	Used            float64 `json:"used"`
 	ModelWhitelist  []int64 `json:"modelWhitelist"`
 	CreatedAt       string  `json:"createdAt"`
@@ -49,7 +49,7 @@ type KeyApproval struct {
 	ApplicantID     string  `json:"applicantId"`
 	Department      string  `json:"department"`
 	Reason          string  `json:"reason"`
-	RequestedQuota  float64 `json:"requestedQuota"`
+	RequestedBudget float64 `json:"requestedBudget"`
 	RequestedModels []int64 `json:"requestedModels"`
 	Status          string  `json:"status"`
 	Approver        *string `json:"approver"`
@@ -58,14 +58,14 @@ type KeyApproval struct {
 	ResolvedAt      *string `json:"resolvedAt"`
 }
 
-type MemberQuotaSummary struct {
-	TotalQuota   float64 `json:"totalQuota"`
+type MemberBudgetSummary struct {
+	TotalBudget  float64 `json:"totalBudget"`
 	Used         float64 `json:"used"`
 	Remaining    float64 `json:"remaining"`
 	ReservedPool float64 `json:"reservedPool"`
 }
 
-type ApprovalQuotaCheck struct {
+type ApprovalBudgetCheck struct {
 	Sufficient   bool    `json:"sufficient"`
 	ReservedPool float64 `json:"reservedPool"`
 	Requested    float64 `json:"requested"`
@@ -89,13 +89,13 @@ type CreatePlatformKeyInput struct {
 	Name           string  `json:"name"`
 	MemberID       *string `json:"memberId"`
 	BudgetGroupID  *string `json:"budgetGroupId"`
-	Quota          float64 `json:"quota"`
+	Budget         float64 `json:"budget"`
 	ModelWhitelist []int64 `json:"modelWhitelist"`
 }
 
 type UpdatePlatformKeyInput struct {
 	Name           *string  `json:"name"`
-	Quota          *float64 `json:"quota"`
+	Budget         *float64 `json:"budget"`
 	ModelWhitelist []int64  `json:"modelWhitelist"`
 }
 
@@ -106,7 +106,7 @@ type TogglePlatformKeyInput struct {
 type CreateApprovalInput struct {
 	Type            string  `json:"type"`
 	Reason          string  `json:"reason"`
-	RequestedQuota  float64 `json:"requestedQuota"`
+	RequestedBudget float64 `json:"requestedBudget"`
 	RequestedModels []int64 `json:"requestedModels"`
 	MemberID        string  `json:"memberId"`
 }

@@ -25,10 +25,10 @@ export function ApprovalReviewWorkflow({
   const typeLabel = approval.type === 'key' ? 'Key 申请' : '额度追加'
 
   const handleApprove = async () => {
-    if (approval.type === 'quota') {
-      const check = await apis.approvalApi.checkQuota(approval.id)
+    if (approval.type === 'budget') {
+      const check = await apis.approvalApi.checkBudget(approval.id)
       if (!check.sufficient) {
-        onPush('quota-check', {
+        onPush('budget-check', {
           reservedPool: check.reservedPool,
           requested: check.requested,
         })
@@ -108,7 +108,7 @@ export function ApprovalReviewWorkflow({
           </div>
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">申请额度</h4>
-            <p className="text-lg font-semibold">¥{approval.requestedQuota.toLocaleString()}</p>
+            <p className="text-lg font-semibold">¥{approval.requestedBudget.toLocaleString()}</p>
           </div>
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">申请模型</h4>

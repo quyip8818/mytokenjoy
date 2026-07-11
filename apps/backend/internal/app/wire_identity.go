@@ -17,7 +17,7 @@ func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials
 	}
 	var platformToken sessiontoken.Issuer
 	if cfg.SupportSaas {
-		platformToken, err = sessiontoken.NewIssuer(cfg.ResolvedPlatformSessionSecret(), cfg.SessionTTLSec)
+		platformToken, err = sessiontoken.NewIssuer(cfg.PlatformSessionSecret, cfg.SessionTTLSec)
 		if err != nil {
 			return nil, nil, nil, nil, fmt.Errorf("platform session token: %w", err)
 		}

@@ -130,7 +130,7 @@ export function KeyFormWorkflow({
         name,
         memberId: isGroupKey ? effectiveMemberId || memberId : effectiveMemberId,
         budgetGroupId,
-        quota: Number(quota),
+        budget: Number(quota),
         modelWhitelist: models,
       })
       toast.success('Key 创建成功')
@@ -156,7 +156,7 @@ export function KeyFormWorkflow({
     try {
       await apis.platformKeyApi.update(key.id, {
         name,
-        quota: Number(quota),
+        budget: Number(quota),
         modelWhitelist: models,
       })
       toast.success('Key 已更新')

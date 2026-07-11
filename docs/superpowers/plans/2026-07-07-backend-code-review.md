@@ -25,8 +25,8 @@
 
 ### 建议
 
-1. 将 `gateway_service.go` 的反向代理逻辑移到 `http/handler/newapi/` 或独立 gateway 包
-2. Domain 对外部依赖定义本地接口（如 `domain/newapisync/TokenManager` interface），由 app 层注入实现
+1. Gateway 反代保持在 `domain/gateway`（数据面）；管理面同步在 `domain/newapisync`
+2. Domain 对外部依赖用本地子接口（如 `KeysNewAPISync` / `Lifecycle`），由 app 层注入
 3. 拆分 `OrgRepository` 为 `MemberRepository` + `IntegrationRepository`
 
 ---
@@ -150,7 +150,7 @@
 | ---------- | --------------------------------------------------------------------------------------- | ---------------------------------- |
 | **Medium** | Request ID 从未被下游使用——无 getter 函数、不出现在日志中、不转发给 newapi，本质是死代码 | `middleware/requestid.go`          |
 | **Medium** | 无请求级 access log（method/path/status/duration），问题排查困难                        | 系统性                             |
-| **Medium** | 健康检查 `/healthz` 永远返回 200，不验证 DB/newapi 连通性，k8s readiness probe 失效      | `handler/health.go`                |
+| **Medium** | 健康检查 `/healthz` 永远返回 200，不验证 DB/newapi 连通性，k8s readiness probe 失效      | `handler/health/handler.go`                |
 | **Low**    | 无 Prometheus metrics 端点，无法对接标准监控栈                                          | 系统性                             |
 | **Low**    | Audit trail 仅覆盖 platform 操作，租户内用户操作（key 创建、成员变更）无审计            | `domain/company/platform_audit.go` |
 | **Info**   | 无 OpenTelemetry / 分布式 tracing                                                       | 系统性                             |

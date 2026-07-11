@@ -51,7 +51,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if group == nil {
 			return types.PlatformKey{}, domain.NotFound("Budget group not found")
 		}
-		if msg := budget.ValidateGroupKeyQuota(*group, platformKeys, input.Quota, ""); msg != nil {
+		if msg := budget.ValidateGroupKeyBudget(*group, platformKeys, input.Budget, ""); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
@@ -66,7 +66,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if input.Quota > budget.GetQuotaRemaining(members, platformKeys, *input.MemberID) {
+		if input.Budget > budget.GetBudgetRemaining(members, platformKeys, *input.MemberID) {
 			return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 		}
 	}
@@ -79,7 +79,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		ID:   fmt.Sprintf("plk-%d", time.Now().UnixMilli()),
 		Name: input.Name, KeyPrefix: "pending...", MemberID: input.MemberID,
 		BudgetGroupID: input.BudgetGroupID,
-		Status:        "active", Quota: input.Quota, Used: 0,
+		Status:        "active", Budget: input.Budget, Used: 0,
 		ModelWhitelist: append([]int64{}, input.ModelWhitelist...),
 		CreatedAt:      time.Now().Format("2006-01-02"),
 	}

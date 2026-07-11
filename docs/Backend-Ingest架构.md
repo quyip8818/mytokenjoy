@@ -398,7 +398,7 @@ flowchart TB
 | `NEW_API_WEBHOOK_SECRET` | Backend 校验 webhook / metrics |
 | `MANAGEMENT_WEBHOOK_URL` | NewAPI 喊话地址（常指向 Backend internal webhook） |
 | `MANAGEMENT_WEBHOOK_SECRET` | NewAPI 发出时带的 secret |
-| `NEWAPI_GATEWAY_ENABLED` | 挂载 `/v1`；须与 `NEW_API_ENABLED` 同开才有意义 |
+| `NEW_API_GATEWAY_ENABLED` | 挂载 `/v1`；须与 `NEW_API_ENABLED` 同开才有意义 |
 | Worker 轮询间隔 | 控制 pending 消费 / reconcile 延迟上限 |
 
 常见坑：

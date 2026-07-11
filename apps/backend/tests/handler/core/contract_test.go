@@ -33,15 +33,15 @@ func getContractCases() []getContractCase {
 		{name: "org role members", path: "/api/org/roles/role-1/members"},
 		{name: "org permissions", path: "/api/org/permissions"},
 		{name: "budget tree", path: "/api/budget/tree"},
-		{name: "budget member quotas", path: "/api/budget/departments/dept-3/member-quotas"},
+		{name: "budget member budgets", path: "/api/budget/departments/dept-3/member-quotas"},
 		{name: "budget groups", path: "/api/budget/groups"},
 		{name: "budget overrun policy", path: "/api/budget/overrun-policy"},
 		{name: "budget alerts", path: "/api/budget/alerts"},
 		{name: "keys provider", path: "/api/keys/provider"},
 		{name: "keys platform", path: "/api/keys/platform"},
-		{name: "keys platform quota summary", path: "/api/keys/platform/quota-summary?memberId=m-1"},
+		{name: "keys platform budget summary", path: "/api/keys/platform/budget-summary?memberId=m-1"},
 		{name: "keys approvals", path: "/api/keys/approvals"},
-		{name: "keys approval quota check", path: "/api/keys/approvals/apv-1/quota-check"},
+		{name: "keys approval budget check", path: "/api/keys/approvals/apv-1/budget-check"},
 		{name: "models list", path: "/api/models"},
 		{name: "models routing", path: "/api/models/routing"},
 		{name: "models routing resolve", path: "/api/models/routing/resolve?deptId=dept-3"},
@@ -142,7 +142,7 @@ func TestSaaSContractEndpoints(t *testing.T) {
 		})
 	}
 
-	body := []byte(`{"token":"invalid","name":"X","password":"securepass123"}`)
+	body := []byte(`{"inviteCode":"invalid","name":"X","password":"securepass123"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

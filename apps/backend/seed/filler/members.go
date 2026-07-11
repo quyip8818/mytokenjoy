@@ -117,7 +117,7 @@ func buildGeneratedMember(id string, index int, departmentID, departmentName str
 func BuildAnchorMembers() []types.Member {
 	members := append([]types.Member{}, anchorMembers()...)
 	assignSpecialRoles(members)
-	applyMemberPersonalQuotas(members)
+	applyMemberPersonalBudgets(members)
 	return members
 }
 
@@ -125,23 +125,23 @@ func BuildMembers() []types.Member {
 	members := BuildAnchorMembers()
 	seq := 6
 
-	for _, quota := range leafDeptQuotas {
-		anchors := anchorsInDept(members, quota.DepartmentID)
-		generatedCount := quota.Count - len(anchors)
+	for _, budget := range leafDeptQuotas {
+		anchors := anchorsInDept(members, budget.DepartmentID)
+		generatedCount := budget.Count - len(anchors)
 		for i := 0; i < generatedCount; i++ {
 			members = append(members, buildGeneratedMember(
-				"m-"+itoa(seq), seq, quota.DepartmentID, quota.DepartmentName,
+				"m-"+itoa(seq), seq, budget.DepartmentID, budget.DepartmentName,
 			))
 			seq++
 		}
 	}
 
 	assignSpecialRoles(members)
-	applyMemberPersonalQuotas(members)
+	applyMemberPersonalBudgets(members)
 	return members
 }
 
-var anchorPersonalQuotas = map[string]float64{
+var anchorPersonalBudgets = map[string]float64{
 	contract.IDMemberAdmin:   50000,
 	contract.IDMember1:       10000,
 	"m-2":                    15000,
@@ -150,13 +150,13 @@ var anchorPersonalQuotas = map[string]float64{
 	contract.IDMemberPure:    3000,
 }
 
-func applyMemberPersonalQuotas(members []types.Member) {
+func applyMemberPersonalBudgets(members []types.Member) {
 	for i := range members {
-		if quota, ok := anchorPersonalQuotas[members[i].ID]; ok {
-			members[i].PersonalQuota = points.FromDisplay(quota)
+		if quota, ok := anchorPersonalBudgets[members[i].ID]; ok {
+			members[i].PersonalBudget = points.FromDisplay(quota)
 			continue
 		}
-		members[i].PersonalQuota = points.FromDisplay(common.DefaultPersonalQuota)
+		members[i].PersonalBudget = points.FromDisplay(common.DefaultPersonalBudget)
 	}
 }
 

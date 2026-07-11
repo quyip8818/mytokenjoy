@@ -42,14 +42,14 @@ func TestUpdateNodeOversell(t *testing.T) {
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
-func TestUpdateMemberQuotaBelowAllocated(t *testing.T) {
+func TestUpdateMemberBudgetBelowAllocated(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	_, err := svc.UpdateMemberQuota(testutil.Ctx(), contract.IDMember1, 1000)
+	_, err := svc.UpdateMemberBudget(testutil.Ctx(), contract.IDMember1, 1000)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
-func TestUpdateMemberQuotaSuccess(t *testing.T) {
+func TestUpdateMemberBudgetSuccess(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	members, err := st.Org().Members(testutil.Ctx())
@@ -69,12 +69,12 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	svc := budget.NewService(cfg, st, common.NewDelayer(false))
 
 	wantQuota := testutil.DisplayPoints(15000)
-	result, err := svc.UpdateMemberQuota(testutil.Ctx(), contract.IDMember1, wantQuota)
+	result, err := svc.UpdateMemberBudget(testutil.Ctx(), contract.IDMember1, wantQuota)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.PersonalQuota != wantQuota {
-		t.Fatalf("expected personal quota %v, got %v", wantQuota, result.PersonalQuota)
+	if result.PersonalBudget != wantQuota {
+		t.Fatalf("expected personal quota %v, got %v", wantQuota, result.PersonalBudget)
 	}
 	poolMap, err := st.Org().Members(testutil.Ctx())
 	if err != nil {
@@ -83,7 +83,7 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	var pool float64
 	for _, member := range poolMap {
 		if member.ID == contract.IDMember1 {
-			pool = member.PersonalQuota
+			pool = member.PersonalBudget
 			break
 		}
 	}
@@ -92,10 +92,10 @@ func TestUpdateMemberQuotaSuccess(t *testing.T) {
 	}
 }
 
-func TestListMemberQuotasUnknownDept(t *testing.T) {
+func TestListMemberBudgetsUnknownDept(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	_, err := svc.ListMemberQuotas(testutil.Ctx(), "dept-missing")
+	_, err := svc.ListMemberBudgets(testutil.Ctx(), "dept-missing")
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 

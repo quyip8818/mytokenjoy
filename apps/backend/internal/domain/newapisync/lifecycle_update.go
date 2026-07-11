@@ -56,7 +56,7 @@ func (l *NewAPISync) SyncUpdatePlatformKey(ctx context.Context, platformKeyID st
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapi.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := ComputeRemainQuota(key, tree, members, platformKeys, groups, mapping.DepartmentID)
+	remainCNY := ComputeRemainBudget(key, tree, members, platformKeys, groups, mapping.DepartmentID)
 	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
 	status := newapi.TokenStatusEnabled
 	if targetActive != nil {

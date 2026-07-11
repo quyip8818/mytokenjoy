@@ -5,7 +5,7 @@
     "keyPrefix": "tj-dev-001...",
     "memberId": "m-1",
     "status": "active",
-    "quota": 5000,
+    "budget": 5000,
     "modelWhitelist": [1, 4],
     "createdAt": "2026-03-01",
     "expiresAt": "2026-12-31"
@@ -16,7 +16,7 @@
     "keyPrefix": "tj-dev-002...",
     "memberId": "m-1",
     "status": "active",
-    "quota": 2000,
+    "budget": 2000,
     "modelWhitelist": [2, 5],
     "createdAt": "2026-05-10",
     "expiresAt": null
@@ -27,7 +27,7 @@
     "keyPrefix": "tj-svc-002...",
     "memberId": "m-2",
     "status": "active",
-    "quota": 10000,
+    "budget": 10000,
     "modelWhitelist": [1, 5],
     "createdAt": "2026-03-15",
     "expiresAt": null
@@ -39,7 +39,7 @@
     "memberId": "m-4",
     "budgetGroupId": "bg-1",
     "status": "disabled",
-    "quota": 2000,
+    "budget": 2000,
     "modelWhitelist": [2],
     "createdAt": "2026-05-01",
     "expiresAt": "2026-06-30"
@@ -50,7 +50,7 @@
     "keyPrefix": "tj-ci-005...",
     "budgetGroupId": "bg-4",
     "status": "active",
-    "quota": 8000,
+    "budget": 8000,
     "modelWhitelist": [4, 1],
     "createdAt": "2026-05-15",
     "expiresAt": null
@@ -62,7 +62,7 @@
     "memberId": "m-1",
     "budgetGroupId": "bg-1",
     "status": "active",
-    "quota": 8000,
+    "budget": 8000,
     "modelWhitelist": [1, 4],
     "createdAt": "2026-04-15",
     "expiresAt": null

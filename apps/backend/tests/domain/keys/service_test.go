@@ -11,10 +11,10 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestApprovalQuotaCheckInsufficient(t *testing.T) {
+func TestApprovalBudgetCheckInsufficient(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), contract.IDApproval1)
+	check, err := svc.ApprovalBudgetCheck(testutil.Ctx(), contract.IDApproval1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,17 +26,17 @@ func TestApprovalQuotaCheckInsufficient(t *testing.T) {
 	}
 }
 
-func TestApprovalQuotaCheckSufficient(t *testing.T) {
+func TestApprovalBudgetCheckSufficient(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
-		Type: "quota", Reason: "test", RequestedQuota: 1000,
+		Type: "budget", Reason: "test", RequestedBudget: 1000,
 		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	check, err := svc.ApprovalQuotaCheck(testutil.Ctx(), created.ID)
+	check, err := svc.ApprovalBudgetCheck(testutil.Ctx(), created.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,11 +71,11 @@ func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 	}
 }
 
-func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
+func TestApproveQuotaTypeAddsPersonalBudget(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
-		Type: "quota", Reason: "need more", RequestedQuota: 1000,
+		Type: "budget", Reason: "need more", RequestedBudget: 1000,
 		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
@@ -85,7 +85,7 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := budget.GetPersonalQuota(membersBefore, contract.IDMember1)
+	before := budget.GetPersonalBudget(membersBefore, contract.IDMember1)
 	if err := svc.ApproveApproval(testutil.Ctx(), created.ID, contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestApproveQuotaTypeAddsPersonalQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	after := budget.GetPersonalQuota(membersAfter, contract.IDMember1)
+	after := budget.GetPersonalBudget(membersAfter, contract.IDMember1)
 	if after != before+1000 {
 		t.Fatalf("expected personal quota +1000, before=%v after=%v", before, after)
 	}
@@ -103,7 +103,7 @@ func TestApproveInsufficientReserved(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
-		Type: "quota", Reason: "too much", RequestedQuota: 2_000_000,
+		Type: "budget", Reason: "too much", RequestedBudget: 2_000_000,
 		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
@@ -131,7 +131,7 @@ func TestCreatePlatformKeyRequiresNewAPI(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "test-key", MemberID: &memberID, Quota: 1000,
+		Name: "test-key", MemberID: &memberID, Budget: 1000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
@@ -142,7 +142,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	svc, _, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "test-key", MemberID: &memberID, Quota: 1000,
+		Name: "test-key", MemberID: &memberID, Budget: 1000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	if err != nil {
@@ -158,7 +158,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "too-big", MemberID: &memberID, Quota: 20_000_000,
+		Name: "too-big", MemberID: &memberID, Budget: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -169,7 +169,7 @@ func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "bad-models", MemberID: &memberID, Quota: 1000,
+		Name: "bad-models", MemberID: &memberID, Budget: 1000,
 		ModelWhitelist: []int64{999999},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -179,7 +179,7 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	_, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
-		Type: "quota", Reason: "bad models", RequestedQuota: 1000,
+		Type: "budget", Reason: "bad models", RequestedBudget: 1000,
 		RequestedModels: []int64{999999}, MemberID: contract.IDMember1,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -191,7 +191,7 @@ func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
 	groupID := contract.IDBudgetGroup1
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Quota: 20_000_000,
+		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Budget: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -202,7 +202,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 	svc, _ := newKeysService(t)
 	quota := 20_000_000.0
 	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
-		Quota: &quota,
+		Budget: &quota,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -212,13 +212,13 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	svc, st, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "release-me", MemberID: &memberID, Quota: 500,
+		Name: "release-me", MemberID: &memberID, Budget: 500,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	beforeSummary, err := svc.QuotaSummary(testutil.Ctx(), memberID)
+	beforeSummary, err := svc.BudgetSummary(testutil.Ctx(), memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID); err != nil {
 		t.Fatal(err)
 	}
-	afterSummary, err := svc.QuotaSummary(testutil.Ctx(), memberID)
+	afterSummary, err := svc.BudgetSummary(testutil.Ctx(), memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,20 +244,20 @@ func TestRejectApprovalNotFound(t *testing.T) {
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
-func TestApprovalQuotaCheckNotFound(t *testing.T) {
+func TestApprovalBudgetCheckNotFound(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	_, err := svc.ApprovalQuotaCheck(testutil.Ctx(), "missing-approval")
+	_, err := svc.ApprovalBudgetCheck(testutil.Ctx(), "missing-approval")
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
-func TestQuotaSummaryIncludesSnapshotUsed(t *testing.T) {
+func TestBudgetSummaryIncludesSnapshotUsed(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
 	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 1000)
 	testutil.SetPlatformKeySnapshotUsed(t, st, "plk-1b", 234.5)
-	summary, err := svc.QuotaSummary(ctx, contract.IDMember1)
+	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)
 	}

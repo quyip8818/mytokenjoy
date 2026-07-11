@@ -89,7 +89,7 @@ flowchart TB
 | `Company()` / `Invite()` / `Billing()` / `Platform()` | 租户与充值                                                                |
 | `Notification()` / `SchedulerLock()` / `Logs()`       | `notification_log`, `scheduler_locks`, 日志库三表                         |
 
-`PlatformKeyMappings()` → `PlatformKeyMappingRepository`（NewAPIKey 映射读写）。`AsyncJobs()` → `AsyncJobsRepository`（newapi_sync / rebalance / overrun / wallet_sync，共用 `async_jobs`）。Postgres 实现：`platform_key_mapping.go` / `async_jobs.go`。
+`PlatformKeyMappings()` → `PlatformKeyMappingRepository`（NewAPIKey 映射读写）。`AsyncJobs()` → `AsyncJobsRepository`（newapi_sync / rebalance / overrun / wallet_sync，共用 `async_jobs`）。Postgres 实现：`platform_key_mapping_repo.go` / `async_jobs_repo.go`。
 
 **租户：** 复合 PK `(company_id, …)`；全局表 `permissions` · `provider_keys` · `platform_operators` · `scheduler_locks`。
 
@@ -141,7 +141,7 @@ flowchart LR
 
 `key_hash` 用于 Gateway 鉴权；明文 Key 不落库。`model_allowlist.owner_type`：`platform_key` · `org_node` · `key_approval`。
 
-映射表列名终态：`newapi_key_id` / `newapi_key_remain_quota` / `newapi_group`；`provider_keys.newapi_channel_id`。outbox kind：`create_key` / `update_key` / `rebalance_key`（通道 `newapi_sync`）。无 `relay_*` / `newapi_token_*` 旧名。
+映射表列：`newapi_key_id` / `newapi_key_remain_quota` / `newapi_group`；`provider_keys.newapi_channel_id`。outbox kind：`create_key` / `update_key` / `rebalance_key`（通道 `newapi_sync`）。
 
 ### `async_jobs`
 
@@ -236,9 +236,9 @@ flowchart LR
 flowchart LR
   subgraph assign [配置 limit]
     OB[org_nodes.budget]
-    PQ[members.personal_quota]
+    PQ[members.personal_budget]
     BG[budget_groups.budget]
-    PKQ[platform_keys.quota]
+    PKQ[platform_keys.budget]
     WAL[companies.balance_point / lots]
   end
 
@@ -267,7 +267,7 @@ flowchart LR
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
 | **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 NewAPIKey remain |
-| **组织预算** | `org_nodes.budget` · `personal_quota` · `budget_groups.budget` · `platform_keys.quota`（均为 point） | **`budget_snapshots.consumed`**（四轴，point） | Gateway 预检、预算树、Overrun        |
+| **组织预算** | `org_nodes.budget` · `personal_budget` · `budget_groups.budget` · `platform_keys.budget`（均为 point） | **`budget_snapshots.consumed`**（四轴，point） | Gateway 预检、预算树、Overrun        |
 
 组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
@@ -276,9 +276,9 @@ flowchart LR
 | 统一词        | 代码 / 表字段                                                      | 实体                                | 说明                                          |
 | ------------- | ------------------------------------------------------------------ | ----------------------------------- | --------------------------------------------- |
 | **limit**     | `org_nodes.budget`                                                 | 部门节点                            | 组织树分配额                                  |
-| **limit**     | `members.personal_quota`                                           | 成员                                | 个人可分配上限                                |
+| **limit**     | `members.personal_budget`                                           | 成员                                | 个人可分配上限                                |
 | **limit**     | `budget_groups.budget`                                             | 预算组                              | 池额度                                        |
-| **limit**     | `platform_keys.quota`                                              | 平台 Key                            | Key 分配额                                    |
+| **limit**     | `platform_keys.budget`                                              | 平台 Key                            | Key 分配额                                    |
 | **limit**     | `companies.balance_point` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
 | **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | NewAPIKey                           | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
 | **consumed**  | `budget_snapshots.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |

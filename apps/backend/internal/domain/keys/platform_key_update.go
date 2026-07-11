@@ -56,7 +56,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}
-	if input.Quota != nil {
+	if input.Budget != nil {
 		if existing.BudgetGroupID != nil {
 			var group *types.BudgetGroup
 			for i := range groups {
@@ -68,17 +68,17 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 			if group == nil {
 				return types.PlatformKey{}, domain.NotFound("Budget group not found")
 			}
-			if msg := budget.ValidateGroupKeyQuota(*group, platformKeys, *input.Quota, existing.ID); msg != nil {
+			if msg := budget.ValidateGroupKeyBudget(*group, platformKeys, *input.Budget, existing.ID); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		} else if existing.MemberID != nil {
 			otherAllocated := 0.0
 			for _, key := range platformKeys {
 				if key.MemberID != nil && *key.MemberID == *existing.MemberID && key.BudgetGroupID == nil && key.Status == "active" && key.ID != existing.ID {
-					otherAllocated += key.Quota
+					otherAllocated += key.Budget
 				}
 			}
-			if otherAllocated+*input.Quota > budget.GetPersonalQuota(members, *existing.MemberID) {
+			if otherAllocated+*input.Budget > budget.GetPersonalBudget(members, *existing.MemberID) {
 				return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
 			}
 		}
@@ -86,8 +86,8 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if input.Name != nil {
 		existing.Name = *input.Name
 	}
-	if input.Quota != nil {
-		existing.Quota = *input.Quota
+	if input.Budget != nil {
+		existing.Budget = *input.Budget
 	}
 	if input.ModelWhitelist != nil {
 		existing.ModelWhitelist = append([]int64{}, input.ModelWhitelist...)

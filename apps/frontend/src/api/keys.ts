@@ -2,7 +2,7 @@ import { request, buildQuery } from './client'
 import type {
   ApprovalType,
   KeyApproval,
-  MemberQuotaSummary,
+  MemberBudgetSummary,
   Paginated,
   PlatformKey,
   ProviderKey,
@@ -38,10 +38,10 @@ export const platformKeyApi = {
     name: string
     memberId?: string
     budgetGroupId?: string
-    quota: number
+    budget: number
     modelWhitelist: number[]
   }) => request<PlatformKey>('/keys/platform', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: { name?: string; quota?: number; modelWhitelist?: number[] }) =>
+  update: (id: string, data: { name?: string; budget?: number; modelWhitelist?: number[] }) =>
     request<PlatformKey>(`/keys/platform/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   toggle: (id: string, enabled: boolean) =>
     request<PlatformKey>(`/keys/platform/${id}/toggle`, {
@@ -51,8 +51,8 @@ export const platformKeyApi = {
   rotate: (id: string) => request<PlatformKey>(`/keys/platform/${id}/rotate`, { method: 'POST' }),
   revoke: (id: string) => request<void>(`/keys/platform/${id}/revoke`, { method: 'PUT' }),
   delete: (id: string) => request<void>(`/keys/platform/${id}`, { method: 'DELETE' }),
-  getQuotaSummary: (memberId: string) =>
-    request<MemberQuotaSummary>(`/keys/platform/quota-summary?memberId=${memberId}`),
+  getBudgetSummary: (memberId: string) =>
+    request<MemberBudgetSummary>(`/keys/platform/budget-summary?memberId=${memberId}`),
 }
 
 export const approvalApi = {
@@ -61,7 +61,7 @@ export const approvalApi = {
   create: (data: {
     type: ApprovalType
     reason: string
-    requestedQuota: number
+    requestedBudget: number
     requestedModels: number[]
     memberId: string
   }) => request<KeyApproval>('/keys/approvals', { method: 'POST', body: JSON.stringify(data) }),
@@ -71,8 +71,8 @@ export const approvalApi = {
       method: 'PUT',
       body: JSON.stringify({ reason }),
     }),
-  checkQuota: (id: string) =>
+  checkBudget: (id: string) =>
     request<{ sufficient: boolean; reservedPool: number; requested: number }>(
-      `/keys/approvals/${id}/quota-check`,
+      `/keys/approvals/${id}/budget-check`,
     ),
 }

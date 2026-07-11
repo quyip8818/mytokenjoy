@@ -5,8 +5,8 @@ import { ModelPickerWorkflow } from '../workflows/model-picker'
 
 export const sharedWorkflowDefinitions = {
   'model-picker': defineWorkflow(ModelPickerWorkflow, { defaultLayer: 2, title: '选择模型' }),
-  'quota-check': defineAlertWorkflow({
-    id: 'quota-check',
+  'budget-check': defineAlertWorkflow({
+    id: 'budget-check',
     title: '额度不足',
     defaultLayer: 3,
     alert: (payload) => {

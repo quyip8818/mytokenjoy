@@ -29,11 +29,11 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	adminRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead)
 	adminRead.Get("/provider", h.ProviderList)
 	adminRead.Get("/platform", h.PlatformList)
-	adminRead.Get("/platform/quota-summary", h.PlatformQuotaSummary)
+	adminRead.Get("/platform/budget-summary", h.PlatformBudgetSummary)
 
 	approvalRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead, permission.BudgetApprove)
 	approvalRead.Get("/approvals", h.ApprovalsList)
-	approvalRead.Get("/approvals/{id}/quota-check", h.ApprovalQuotaCheck)
+	approvalRead.Get("/approvals/{id}/budget-check", h.ApprovalBudgetCheck)
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
@@ -115,8 +115,8 @@ func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, keys, err)
 }
 
-func (h *Handler) PlatformQuotaSummary(w http.ResponseWriter, r *http.Request) {
-	summary, err := h.service.QuotaSummary(r.Context(), r.URL.Query().Get("memberId"))
+func (h *Handler) PlatformBudgetSummary(w http.ResponseWriter, r *http.Request) {
+	summary, err := h.service.BudgetSummary(r.Context(), r.URL.Query().Get("memberId"))
 	httputil.WriteJSON(w, http.StatusOK, summary, err)
 }
 
@@ -191,8 +191,8 @@ func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, approval, err)
 }
 
-func (h *Handler) ApprovalQuotaCheck(w http.ResponseWriter, r *http.Request) {
-	result, err := h.service.ApprovalQuotaCheck(r.Context(), chi.URLParam(r, "id"))
+func (h *Handler) ApprovalBudgetCheck(w http.ResponseWriter, r *http.Request) {
+	result, err := h.service.ApprovalBudgetCheck(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 

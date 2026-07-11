@@ -25,7 +25,7 @@ export function MemberKeysPageShell({
             variant="outline"
             size="sm"
             className={cn(applyQuotaCta.className)}
-            onClick={() => openWithRefresh('approval-submit', { defaultType: 'quota' })}
+            onClick={() => openWithRefresh('approval-submit', { defaultType: 'budget' })}
           >
             申请额度
           </Button>

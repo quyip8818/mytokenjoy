@@ -87,11 +87,11 @@ func (p *PrecheckService) Run(ctx context.Context, in PrecheckInput) error {
 		}
 	}
 	if in.Mapping.MemberID != nil {
-		if err := p.checkMemberQuota(ctx, *in.Mapping.MemberID, periodKey); err != nil {
+		if err := p.checkMemberBudget(ctx, *in.Mapping.MemberID, periodKey); err != nil {
 			return err
 		}
 	}
-	if err := p.checkPlatformKeyQuota(ctx, in.Mapping.PlatformKeyID, periodKey); err != nil {
+	if err := p.checkPlatformKeyBudget(ctx, in.Mapping.PlatformKeyID, periodKey); err != nil {
 		return err
 	}
 	if err := p.checkNewAPIKeyRemainQuota(in.Mapping); err != nil {
@@ -203,8 +203,8 @@ func (p *PrecheckService) checkBudgetGroup(ctx context.Context, groupID, periodK
 	return nil
 }
 
-func (p *PrecheckService) checkMemberQuota(ctx context.Context, memberID, periodKey string) error {
-	quota, found, err := p.org.MemberPersonalQuota(ctx, memberID)
+func (p *PrecheckService) checkMemberBudget(ctx context.Context, memberID, periodKey string) error {
+	quota, found, err := p.org.MemberPersonalBudget(ctx, memberID)
 	if err != nil {
 		return err
 	}
@@ -221,19 +221,19 @@ func (p *PrecheckService) checkMemberQuota(ctx context.Context, memberID, period
 	return nil
 }
 
-func (p *PrecheckService) checkPlatformKeyQuota(ctx context.Context, keyID, periodKey string) error {
+func (p *PrecheckService) checkPlatformKeyBudget(ctx context.Context, keyID, periodKey string) error {
 	key, err := p.keys.PlatformKeyByID(ctx, keyID)
 	if err != nil {
 		return err
 	}
-	if key == nil || key.Quota <= 0 {
+	if key == nil || key.Budget <= 0 {
 		return nil
 	}
 	consumed, _, err := p.snapshots.GetConsumed(ctx, store.SnapshotAxisPlatformKey, keyID, periodKey)
 	if err != nil {
 		return err
 	}
-	if consumed+minEstimatePoint > key.Quota {
+	if consumed+minEstimatePoint > key.Budget {
 		return fmt.Errorf("budget exceeded")
 	}
 	return nil

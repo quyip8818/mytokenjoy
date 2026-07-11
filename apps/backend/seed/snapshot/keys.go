@@ -16,7 +16,7 @@ func loadPlatformKeys() []types.PlatformKey {
 		MemberID       *string `json:"memberId"`
 		BudgetGroupID  *string `json:"budgetGroupId"`
 		Status         string  `json:"status"`
-		Quota          float64 `json:"quota"`
+		Budget         float64 `json:"budget"`
 		ModelWhitelist []int64 `json:"modelWhitelist"`
 		CreatedAt      string  `json:"createdAt"`
 		ExpiresAt      *string `json:"expiresAt"`
@@ -31,7 +31,7 @@ func loadPlatformKeys() []types.PlatformKey {
 		keys[i] = types.PlatformKey{
 			ID: item.ID, Name: item.Name, KeyPrefix: item.KeyPrefix,
 			MemberID: item.MemberID, BudgetGroupID: item.BudgetGroupID,
-			Status: item.Status, Quota: seedPoints(item.Quota),
+			Status: item.Status, Budget: seedPoints(item.Budget),
 			ModelWhitelist: append([]int64{}, item.ModelWhitelist...),
 			CreatedAt:      item.CreatedAt, ExpiresAt: item.ExpiresAt,
 		}
@@ -73,9 +73,9 @@ func buildProviderKeys(refDate string) []types.ProviderKey {
 
 func buildApprovals() []types.KeyApproval {
 	return []types.KeyApproval{
-		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: "m-5", Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedQuota: seedPoints(5000), RequestedModels: []int64{contract.IDModel1, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
-		{ID: "apv-2", Type: "key", Applicant: "王五", ApplicantID: "m-3", Department: "后端组", Reason: "新项目需要多模型测试", RequestedQuota: seedPoints(8000), RequestedModels: []int64{contract.IDModel1, contract.IDModel5, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
-		{ID: "apv-3", Type: "quota", Applicant: "张三", ApplicantID: "m-1", Department: "后端组", Reason: "额度即将用完，申请追加", RequestedQuota: seedPoints(3000), RequestedModels: []int64{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
+		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: "m-5", Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedBudget: seedPoints(5000), RequestedModels: []int64{contract.IDModel1, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
+		{ID: "apv-2", Type: "key", Applicant: "王五", ApplicantID: "m-3", Department: "后端组", Reason: "新项目需要多模型测试", RequestedBudget: seedPoints(8000), RequestedModels: []int64{contract.IDModel1, contract.IDModel5, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
+		{ID: "apv-3", Type: "budget", Applicant: "张三", ApplicantID: "m-1", Department: "后端组", Reason: "额度即将用完，申请追加", RequestedBudget: seedPoints(3000), RequestedModels: []int64{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
 	}
 }
 

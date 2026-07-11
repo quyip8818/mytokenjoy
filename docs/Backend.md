@@ -16,8 +16,10 @@
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
-| [Backend-重构建议.md](./Backend-重构建议.md) | 终态收口形态、实施顺序与明确不做项                         |
-| [Backend-命名统一.md](./Backend-命名统一.md) | 命名终态对照、剩余不一致与 rename 建议 |
+| [Backend-重构建议.md](./Backend-重构建议.md) | 收口建议、明确不做项 |
+| [Backend-命名统一.md](./Backend-命名统一.md) | 命名约定 |
+
+
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
 | [NewAPI-集成状态与缺口.md](./NewAPI-集成状态与缺口.md) | NewAPI/Gateway 现状与可优化点 |
 
@@ -152,11 +154,11 @@ sequenceDiagram
 | `SECURE_COOKIE`               | `false`            | Set-Cookie Secure 标志；`production` 下必须为 `true`                          |
 | `CLOCK_ANCHOR`                | 空                 | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期                             |
 | `NEW_API_ENABLED`             | `false`            | NewAPI + worker                                                                |
-| `NEWAPI_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
+| `NEW_API_GATEWAY_ENABLED`       | `false`            | `/v1/*` Gateway                                                               |
 | `SUPPORT_SAAS`                | `false`            | SaaS 多企业                                                                   |
 | `TOKENJOY_COMPANY_ID`         | `1`                | 平台模型源公司 ID（默认模型与默认价格提供方）                                |
 | `LOCAL_COMPANY_ID`            | `2`                | 本地化部署业务公司 ID（单租户固定）                                          |
-| `PLATFORM_SHARED_NEWAPI_GROUP` | `platform_shared`  | SaaS NewAPI group                                                             |
+| `PLATFORM_SHARED_NEW_API_GROUP` | `platform_shared`  | SaaS NewAPI group                                                             |
 
 完整列表见 `apps/backend/.env.example`。
 

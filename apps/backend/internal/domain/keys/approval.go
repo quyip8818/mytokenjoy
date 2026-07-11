@@ -43,7 +43,7 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	created := types.KeyApproval{
 		ID:   fmt.Sprintf("apv-%d", time.Now().UnixMilli()),
 		Type: input.Type, Applicant: member.Name, ApplicantID: input.MemberID, Department: member.DepartmentName,
-		Reason: input.Reason, RequestedQuota: input.RequestedQuota,
+		Reason: input.Reason, RequestedBudget: input.RequestedBudget,
 		RequestedModels: append([]int64{}, input.RequestedModels...),
 		Status:          "pending", CreatedAt: time.Now().Format("2006-01-02 15:04"),
 	}
@@ -91,7 +91,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return err
 	}
 	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
-	if approval.Type == "quota" && approval.RequestedQuota > reservedPool {
+	if approval.Type == "budget" && approval.RequestedBudget > reservedPool {
 		return domain.Validation("Reserved pool insufficient")
 	}
 
@@ -106,25 +106,25 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 		if approval.Type == "key" {
-			keyQuota := approval.RequestedQuota
-			remaining := budget.GetQuotaRemaining(members, platformKeys, approval.ApplicantID)
+			keyQuota := approval.RequestedBudget
+			remaining := budget.GetBudgetRemaining(members, platformKeys, approval.ApplicantID)
 			if keyQuota > remaining {
-				members = budget.AddMemberPersonalQuota(members, approval.ApplicantID, keyQuota-remaining)
+				members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, keyQuota-remaining)
 			}
 			memberID := approval.ApplicantID
 			createdKeyID = fmt.Sprintf("plk-apv-%d", time.Now().UnixMilli())
 			platformKeys = append(platformKeys, types.PlatformKey{
 				ID:   createdKeyID,
 				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: "pending...",
-				MemberID: &memberID, Status: "active", Quota: keyQuota, Used: 0,
+				MemberID: &memberID, Status: "active", Budget: keyQuota, Used: 0,
 				ModelWhitelist: append([]int64{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})
 			if err := st.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 				return err
 			}
-		} else if approval.Type == "quota" {
-			members = budget.AddMemberPersonalQuota(members, approval.ApplicantID, approval.RequestedQuota)
+		} else if approval.Type == "budget" {
+			members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, approval.RequestedBudget)
 		}
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err

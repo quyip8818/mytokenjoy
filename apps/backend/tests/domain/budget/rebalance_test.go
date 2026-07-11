@@ -48,7 +48,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 	}
 	for i := range keys {
 		if keys[i].ID == contract.IDPlatformKey1 {
-			keys[i].Quota = 1000
+			keys[i].Budget = 1000
 			keys[i].Used = 999
 			if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 				t.Fatal(err)

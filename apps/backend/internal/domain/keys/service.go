@@ -20,7 +20,7 @@ type Service interface {
 	RotateProviderKey(ctx context.Context, id string, newKey string) (types.ProviderKey, error)
 	DeleteProviderKey(ctx context.Context, id string) error
 	ListPlatformKeys(ctx context.Context, filter types.PlatformKeyListFilter) (types.PageResult[types.PlatformKey], error)
-	QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error)
+	BudgetSummary(ctx context.Context, memberID string) (types.MemberBudgetSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
 	UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
 	TogglePlatformKey(ctx context.Context, id string, enabled bool) (types.PlatformKey, error)
@@ -29,7 +29,7 @@ type Service interface {
 	DeletePlatformKey(ctx context.Context, id string) error
 	ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error)
 	CreateApproval(ctx context.Context, input types.CreateApprovalInput) (types.KeyApproval, error)
-	ApprovalQuotaCheck(ctx context.Context, id string) (types.ApprovalQuotaCheck, error)
+	ApprovalBudgetCheck(ctx context.Context, id string) (types.ApprovalBudgetCheck, error)
 	ApproveApproval(ctx context.Context, id string, approverMemberID string) error
 	RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error
 }
@@ -54,24 +54,24 @@ func (s *service) ListProviderKeys(ctx context.Context) ([]types.ProviderKey, er
 	return s.store.Keys().ProviderKeys(ctx)
 }
 
-func (s *service) QuotaSummary(ctx context.Context, memberID string) (types.MemberQuotaSummary, error) {
+func (s *service) BudgetSummary(ctx context.Context, memberID string) (types.MemberBudgetSummary, error) {
 	if memberID == "" {
-		return types.MemberQuotaSummary{}, domain.BadRequest("memberId is required")
+		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
 	}
 	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
 	if err != nil {
-		return types.MemberQuotaSummary{}, err
+		return types.MemberBudgetSummary{}, err
 	}
 	members, err := s.store.Org().Members(ctx)
 	if err != nil {
-		return types.MemberQuotaSummary{}, err
+		return types.MemberBudgetSummary{}, err
 	}
 	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, s.store.BudgetSnapshots(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
-		return types.MemberQuotaSummary{}, err
+		return types.MemberBudgetSummary{}, err
 	}
 	reservedPool := budget.GetReservedPoolForMember(tree, members, memberID)
-	return budget.BuildQuotaSummary(members, platformKeys, memberID, reservedPool), nil
+	return budget.BuildBudgetSummary(members, platformKeys, memberID, reservedPool), nil
 }
 
 func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error) {
@@ -101,10 +101,10 @@ func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]ty
 	return filtered, nil
 }
 
-func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.ApprovalQuotaCheck, error) {
+func (s *service) ApprovalBudgetCheck(ctx context.Context, id string) (types.ApprovalBudgetCheck, error) {
 	approvals, err := s.store.Keys().Approvals(ctx)
 	if err != nil {
-		return types.ApprovalQuotaCheck{}, err
+		return types.ApprovalBudgetCheck{}, err
 	}
 	var approval *types.KeyApproval
 	for i := range approvals {
@@ -114,19 +114,19 @@ func (s *service) ApprovalQuotaCheck(ctx context.Context, id string) (types.Appr
 		}
 	}
 	if approval == nil {
-		return types.ApprovalQuotaCheck{}, domain.NotFound("Not found")
+		return types.ApprovalBudgetCheck{}, domain.NotFound("Not found")
 	}
-	requested := approval.RequestedQuota
+	requested := approval.RequestedBudget
 	tree, err := budget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
 	if err != nil {
-		return types.ApprovalQuotaCheck{}, err
+		return types.ApprovalBudgetCheck{}, err
 	}
 	members, err := s.store.Org().Members(ctx)
 	if err != nil {
-		return types.ApprovalQuotaCheck{}, err
+		return types.ApprovalBudgetCheck{}, err
 	}
 	reservedPool := budget.GetReservedPoolForMember(tree, members, approval.ApplicantID)
-	return types.ApprovalQuotaCheck{
+	return types.ApprovalBudgetCheck{
 		Sufficient: requested <= reservedPool, ReservedPool: reservedPool, Requested: requested,
 	}, nil
 }

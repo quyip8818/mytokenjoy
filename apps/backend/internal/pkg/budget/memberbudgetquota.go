@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func GetMemberQuotaCapacity(deptNode types.BudgetNode) float64 {
+func GetMemberBudgetCapacity(deptNode types.BudgetNode) float64 {
 	reserved := 0.0
 	if deptNode.ReservedPool != nil {
 		reserved = *deptNode.ReservedPool
@@ -21,24 +21,24 @@ func GetMemberQuotaCapacity(deptNode types.BudgetNode) float64 {
 }
 
 func BuildMemberBudgetQuota(member types.Member, platformKeys []types.PlatformKey) types.MemberBudgetQuota {
-	quota := member.PersonalQuota
+	quota := member.PersonalBudget
 	if quota <= 0 {
-		quota = GetPersonalQuota([]types.Member{member}, member.ID)
+		quota = GetPersonalBudget([]types.Member{member}, member.ID)
 	}
 	return types.MemberBudgetQuota{
 		MemberID: member.ID, MemberName: member.Name, DepartmentID: member.DepartmentID,
-		PersonalQuota: quota,
-		Allocated:     GetAllocatedKeyQuota(platformKeys, member.ID),
-		Used:          GetUsedKeyQuota(platformKeys, member.ID),
+		PersonalBudget: quota,
+		Allocated:      GetAllocatedKeyBudget(platformKeys, member.ID),
+		Used:           GetUsedKeyBudget(platformKeys, member.ID),
 	}
 }
 
-func ValidateMemberQuotaUpdate(
+func ValidateMemberBudgetUpdate(
 	tree []types.BudgetNode,
 	members []types.Member,
 	platformKeys []types.PlatformKey,
 	memberID string,
-	personalQuota float64,
+	personalBudget float64,
 ) *string {
 	member, ok := org.FindMemberByID(members, memberID)
 	if !ok {
@@ -46,8 +46,8 @@ func ValidateMemberQuotaUpdate(
 		return &msg
 	}
 
-	allocated := GetAllocatedKeyQuota(platformKeys, memberID)
-	if personalQuota < allocated {
+	allocated := GetAllocatedKeyBudget(platformKeys, memberID)
+	if personalBudget < allocated {
 		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（¥%s）", formatMoney(allocated))
 		return &msg
 	}
@@ -58,14 +58,14 @@ func ValidateMemberQuotaUpdate(
 		return &msg
 	}
 
-	capacity := GetMemberQuotaCapacity(*deptNode)
+	capacity := GetMemberBudgetCapacity(*deptNode)
 	otherSum := 0.0
 	for _, m := range members {
 		if m.DepartmentID == member.DepartmentID && m.ID != memberID {
-			otherSum += GetPersonalQuota(members, m.ID)
+			otherSum += GetPersonalBudget(members, m.ID)
 		}
 	}
-	if otherSum+personalQuota > capacity {
+	if otherSum+personalBudget > capacity {
 		remaining := capacity - otherSum
 		if remaining < 0 {
 			remaining = 0
@@ -76,19 +76,19 @@ func ValidateMemberQuotaUpdate(
 	return nil
 }
 
-func ApplyMemberQuotaUpdate(
+func ApplyMemberBudgetUpdate(
 	members []types.Member,
 	platformKeys []types.PlatformKey,
 	memberID string,
-	personalQuota float64,
+	personalBudget float64,
 ) (types.MemberBudgetQuota, []types.Member) {
-	updatedMembers := SetMemberPersonalQuota(members, memberID, personalQuota)
+	updatedMembers := SetMemberPersonalBudget(members, memberID, personalBudget)
 	member, ok := org.FindMemberByID(updatedMembers, memberID)
 	if !ok {
 		return types.MemberBudgetQuota{
-			MemberID: memberID, PersonalQuota: personalQuota,
-			Allocated: GetAllocatedKeyQuota(platformKeys, memberID),
-			Used:      GetUsedKeyQuota(platformKeys, memberID),
+			MemberID: memberID, PersonalBudget: personalBudget,
+			Allocated: GetAllocatedKeyBudget(platformKeys, memberID),
+			Used:      GetUsedKeyBudget(platformKeys, memberID),
 		}, updatedMembers
 	}
 	return BuildMemberBudgetQuota(*member, platformKeys), updatedMembers

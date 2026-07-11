@@ -36,8 +36,8 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     refresh: refreshQuota,
   } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.keys.quota(memberId),
-    queryFn: (apis) => apis.platformKeyApi.getQuotaSummary(memberId),
+    queryKey: queryKeys.keys.budget(memberId),
+    queryFn: (apis) => apis.platformKeyApi.getBudgetSummary(memberId),
     enabled: Boolean(memberId),
   })
 

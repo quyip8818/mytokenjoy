@@ -1,5 +1,5 @@
 export interface SharedWorkflowPayloads {
-  'quota-check': {
+  'budget-check': {
     reservedPool?: number
     requested?: number
   }

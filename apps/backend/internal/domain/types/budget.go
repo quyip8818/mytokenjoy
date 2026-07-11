@@ -38,16 +38,16 @@ type AlertRule struct {
 }
 
 type MemberBudgetQuota struct {
-	MemberID      string  `json:"memberId"`
-	MemberName    string  `json:"memberName"`
-	DepartmentID  string  `json:"departmentId"`
-	PersonalQuota float64 `json:"personalQuota"`
-	Allocated     float64 `json:"allocated"`
-	Used          float64 `json:"used"`
+	MemberID       string  `json:"memberId"`
+	MemberName     string  `json:"memberName"`
+	DepartmentID   string  `json:"departmentId"`
+	PersonalBudget float64 `json:"personalBudget"`
+	Allocated      float64 `json:"allocated"`
+	Used           float64 `json:"used"`
 }
 
-type UpdateMemberQuotaInput struct {
-	PersonalQuota float64 `json:"personalQuota"`
+type UpdateMemberBudgetInput struct {
+	PersonalBudget float64 `json:"personalBudget"`
 }
 
 type BudgetApproval struct {

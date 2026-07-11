@@ -77,7 +77,7 @@ func clonePlatformKeys(items []types.PlatformKey) []types.PlatformKey {
 func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 	cloned := types.PlatformKey{
 		ID: key.ID, Name: key.Name, KeyPrefix: key.KeyPrefix, Status: key.Status,
-		Quota: key.Quota, Used: key.Used, CreatedAt: key.CreatedAt,
+		Budget: key.Budget, Used: key.Used, CreatedAt: key.CreatedAt,
 		ModelWhitelist: append([]int64{}, key.ModelWhitelist...),
 	}
 	if key.FullKey != nil {
@@ -113,7 +113,7 @@ func cloneApprovals(items []types.KeyApproval) []types.KeyApproval {
 		cloned := types.KeyApproval{
 			ID: approval.ID, Type: approval.Type, Applicant: approval.Applicant,
 			ApplicantID: approval.ApplicantID, Department: approval.Department,
-			Reason: approval.Reason, RequestedQuota: approval.RequestedQuota,
+			Reason: approval.Reason, RequestedBudget: approval.RequestedBudget,
 			RequestedModels: append([]int64{}, approval.RequestedModels...),
 			Status:          approval.Status, CreatedAt: approval.CreatedAt,
 		}
@@ -160,7 +160,7 @@ func cloneMembers(items []types.Member) []types.Member {
 			ID: member.ID, CompanyID: member.CompanyID, Name: member.Name, Phone: member.Phone, Email: member.Email,
 			DepartmentID: member.DepartmentID, DepartmentName: member.DepartmentName,
 			Status: member.Status, Roles: append([]string{}, member.Roles...), Source: member.Source,
-			PersonalQuota: member.PersonalQuota,
+			PersonalBudget: member.PersonalBudget,
 		}
 		if member.ExternalID != nil {
 			externalID := *member.ExternalID

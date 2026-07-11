@@ -5,7 +5,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 )
 
-func ComputeRemainQuota(
+func ComputeRemainBudget(
 	key types.PlatformKey,
 	tree []types.BudgetNode,
 	members []types.Member,
@@ -13,7 +13,7 @@ func ComputeRemainQuota(
 	groups []types.BudgetGroup,
 	departmentID string,
 ) float64 {
-	keyRemaining := key.Quota - key.Used
+	keyRemaining := key.Budget - key.Used
 	if keyRemaining < 0 {
 		keyRemaining = 0
 	}
@@ -31,8 +31,8 @@ func ComputeRemainQuota(
 			}
 		}
 	} else if key.MemberID != nil {
-		memberUsed := budget.GetUsedKeyQuota(platformKeys, *key.MemberID)
-		memberCap := budget.GetPersonalQuota(members, *key.MemberID)
+		memberUsed := budget.GetUsedKeyBudget(platformKeys, *key.MemberID)
+		memberCap := budget.GetPersonalBudget(members, *key.MemberID)
 		memberRemaining := memberCap - memberUsed
 		if memberRemaining < 0 {
 			memberRemaining = 0

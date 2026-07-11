@@ -46,13 +46,13 @@ func TestCompanyInviteRoundTrip(t *testing.T) {
 
 	invite := store.CompanyInvite{
 		ID: "invite-rt-1", CompanyID: 1, Email: "rt@example.com",
-		Role: store.InviteRoleSuperAdmin, Token: "roundtrip-invite-token",
+		Role: store.InviteRoleSuperAdmin, InviteCode: "roundtrip-invite-token",
 		ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}
 	if err := st.Invite().CreateInvite(ctx, invite); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Invite().GetInviteByToken(ctx, invite.Token)
+	got, err := st.Invite().GetInviteByCode(ctx, invite.InviteCode)
 	if err != nil || got == nil || got.Email != invite.Email {
 		t.Fatalf("unexpected invite: %+v err=%v", got, err)
 	}
@@ -60,7 +60,7 @@ func TestCompanyInviteRoundTrip(t *testing.T) {
 	if err := st.Invite().MarkInviteAccepted(ctx, invite.ID, accepted); err != nil {
 		t.Fatal(err)
 	}
-	got, err = st.Invite().GetInviteByToken(ctx, invite.Token)
+	got, err = st.Invite().GetInviteByCode(ctx, invite.InviteCode)
 	if err != nil || got.AcceptedAt == nil {
 		t.Fatal("expected accepted_at to be set")
 	}

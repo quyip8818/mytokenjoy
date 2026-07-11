@@ -138,8 +138,8 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend i
 - `SECURE_COOKIE` — Set-Cookie Secure flag (required `true` when `DEPLOY_ENV=production`)
 - `CLOCK_ANCHOR` — Optional `YYYY-MM-DD` for fixed dashboard clock and seed reference date
 - `NEW_API_ENABLED=true` — Enable NewAPI integration
-- `NEWAPI_GATEWAY_ENABLED=true` — Enable `/v1` Gateway
+- `NEW_API_GATEWAY_ENABLED=true` — Enable `/v1` Gateway
 - `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — NewAPI service credentials
-- `PLATFORM_SHARED_NEWAPI_GROUP` — SaaS shared NewAPI group (default `platform_shared`)
+- `PLATFORM_SHARED_NEW_API_GROUP` — SaaS shared NewAPI group (default `platform_shared`)
 - `SESSION_SECRET` — JWT session signing key
 - `SUPPORT_SAAS=true` — Multi-tenant SaaS mode

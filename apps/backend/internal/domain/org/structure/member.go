@@ -88,7 +88,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		JobTitle: input.JobTitle, HireDate: input.HireDate,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
 		Status: types.MemberStatusActive, Roles: []string{permission.RoleMember}, Source: "manual",
-		PersonalQuota: common.DefaultPersonalQuota,
+		PersonalBudget: common.DefaultPersonalBudget,
 	}
 
 	err = s.d.Store.WithTx(ctx, func(st store.Store) error {

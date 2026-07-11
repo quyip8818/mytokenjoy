@@ -27,7 +27,7 @@ func TestOnboardingPlatformCreateAcceptInviteSession(t *testing.T) {
 
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
 		"onboard-co", "Onboard Co", "founder@onboard.example")
-	member, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteToken,
+	member, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteCode,
 		"Founder", "securepass123")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
@@ -57,10 +57,10 @@ func TestOnboardingRejectSecondAcceptInvite(t *testing.T) {
 
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
 		"once-co", "Once Co", "once@example.com")
-	_, _ = saas.AcceptInviteHTTP(t, router, created.InviteToken, "Admin", "securepass123")
+	_, _ = saas.AcceptInviteHTTP(t, router, created.InviteCode, "Admin", "securepass123")
 
 	body, _ := json.Marshal(map[string]string{
-		"token": created.InviteToken, "name": "Other", "password": "securepass456",
+		"inviteCode": created.InviteCode, "name": "Other", "password": "securepass456",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -79,7 +79,7 @@ func TestAcceptInviteHTTPRejectsShortPassword(t *testing.T) {
 		"short-pw-co", "Short PW", "short@example.com")
 
 	body, _ := json.Marshal(map[string]string{
-		"token": created.InviteToken, "name": "Admin", "password": "short",
+		"inviteCode": created.InviteCode, "name": "Admin", "password": "short",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
 	rec := httptest.NewRecorder()

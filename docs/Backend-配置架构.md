@@ -69,7 +69,7 @@ env.Parse
 
 | 条件 | 要求 |
 | --- | --- |
-| `NEWAPI_GATEWAY_ENABLED=true` | `NEW_API_ENABLED=true` |
+| `NEW_API_GATEWAY_ENABLED=true` | `NEW_API_ENABLED=true` |
 | `NEW_API_ENABLED=true` | `NEW_API_BASE_URL`、`NEW_API_ADMIN_TOKEN`；URL 无 path |
 | `LOG_DATABASE_URL` 非空 | `NEW_API_WEBHOOK_SECRET` 必填 |
 
@@ -155,7 +155,7 @@ func NowUTC(clk Clock) time.Time
 | `BOOTSTRAP_MODE` | `none` |
 | `SECURE_COOKIE` | `true` |
 | `NEW_API_ENABLED` | `true` |
-| `NEWAPI_GATEWAY_ENABLED` | `true` |
+| `NEW_API_GATEWAY_ENABLED` | `true` |
 | `LOG_DATABASE_URL` | 已设置 |
 | `NEW_API_WEBHOOK_SECRET` | 已设置 |
 | `DATA_SOURCE_CREDENTIAL_KEY` | 已设置且合法 |

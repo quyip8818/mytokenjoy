@@ -44,18 +44,18 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberQuotas(w http.ResponseWriter, r *http.Request) {
-	quotas, err := h.service.ListMemberQuotas(r.Context(), chi.URLParam(r, "departmentId"))
+	quotas, err := h.service.ListMemberBudgets(r.Context(), chi.URLParam(r, "departmentId"))
 	httputil.WriteJSON(w, http.StatusOK, quotas, err)
 }
 
-func (h *Handler) UpdateMemberQuota(w http.ResponseWriter, r *http.Request) {
-	var body types.UpdateMemberQuotaInput
+func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
+	var body types.UpdateMemberBudgetInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	quota, err := h.service.UpdateMemberQuota(r.Context(), chi.URLParam(r, "memberId"), body.PersonalQuota)
-	httputil.WriteJSON(w, http.StatusOK, quota, err)
+	result, err := h.service.UpdateMemberBudget(r.Context(), chi.URLParam(r, "memberId"), body.PersonalBudget)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) GroupsList(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +168,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
 	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)
-	allocateWrite.Put("/members/{memberId}", h.UpdateMemberQuota)
+	allocateWrite.Put("/members/{memberId}", h.UpdateMemberBudget)
 	allocateWrite.Post("/groups", h.GroupCreate)
 	allocateWrite.Put("/groups/{id}", h.GroupUpdate)
 	allocateWrite.Delete("/groups/{id}", h.GroupDelete)

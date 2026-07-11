@@ -75,7 +75,7 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	if err != nil {
 		return DashboardView{}, fmt.Errorf("query usage summary: %w", err)
 	}
-	quota, err := s.keys.QuotaSummary(ctx, memberID)
+	quota, err := s.keys.BudgetSummary(ctx, memberID)
 	if err != nil {
 		return DashboardView{}, fmt.Errorf("quota summary: %w", err)
 	}

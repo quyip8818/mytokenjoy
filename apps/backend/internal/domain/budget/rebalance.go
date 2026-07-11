@@ -106,7 +106,7 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapi.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	allocated := newapi.ToNewAPIUnits(
-		newapisync.ComputeRemainQuota(key, tree, members, platformKeys, groups, mapping.DepartmentID),
+		newapisync.ComputeRemainBudget(key, tree, members, platformKeys, groups, mapping.DepartmentID),
 		models,
 		effectiveIDs,
 	)

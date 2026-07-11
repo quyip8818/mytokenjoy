@@ -50,7 +50,7 @@ flowchart LR
 | 普通成员 | 个人额度、Key 配额、能否继续调用 |
 | 审计 / 财务 | 调用花费、归因部门 / 成员 |
 
-**账期：** 分配配置（`budget`、`personal_quota`、Key `quota`）跨月保留；已消耗按开账 `period_key`（通常 `YYYY-MM`，来自业务时钟）写入 `budget_snapshots`，新月自动从新账期累计。账本发生月见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
+**账期：** 分配配置（`budget`、`personal_budget`、Key `quota`）跨月保留；已消耗按开账 `period_key`（通常 `YYYY-MM`，来自业务时钟）写入 `budget_snapshots`，新月自动从新账期累计。账本发生月见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
@@ -70,7 +70,7 @@ flowchart TB
 
   subgraph org [组织预算轴]
     TREE[组织树 budget / reserved_pool]
-    TREE --> MEM[personal_quota]
+    TREE --> MEM[personal_budget]
     TREE --> BG[预算组 budget]
     MEM & BG --> PK[Key quota]
     SNAP[(budget_snapshots)]
@@ -149,7 +149,7 @@ flowchart TB
   ROOT[根节点<br/>未分配 = budget − reserved − Σ子部门]
   ROOT --> DEPT[子部门]
   DEPT --> CAP[成员可分配 capacity]
-  CAP --> M[成员 personal_quota]
+  CAP --> M[成员 personal_budget]
   M --> K[Key quota]
   DEPT --> POOL[预留池]
   DEPT --> BG[预算组 + 组内 Key]
@@ -158,7 +158,7 @@ flowchart TB
 | 层级 | 配置 | 说明 |
 | --- | --- | --- |
 | 部门 | `budget`、`reserved_pool` | 子节点之和 + 预留池 ≤ 父节点 |
-| 成员 | `personal_quota` | 部门内成员额度之和 ≤ capacity |
+| 成员 | `personal_budget` | 部门内成员额度之和 ≤ capacity |
 | Key | `quota`、模型白名单 | 从成员或预算组剩余额度切分 |
 | 预算组 | `budget` | 挂组 Key 走组额度；Overrun 不走成员个人分支 |
 
@@ -170,7 +170,7 @@ flowchart TB
 | 改成员额度 | ≥ 已分配给 Key 的配额之和；部门内总和 ≤ capacity |
 | 建 Key（成员） | quota ≤ 成员剩余可分配 |
 | 建 Key（预算组） | quota ≤ 组 budget − 组 consumed − 组内已分配 Key 配额 |
-| 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_quota` |
+| 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_budget` |
 
 组织树结构变更与模型白名单同事务提交；预算数字仅经预算域服务修改。
 
@@ -196,7 +196,7 @@ flowchart TB
 
 ## 5. 一次调用全链路
 
-生产须开 **Gateway**（`NEWAPI_GATEWAY_ENABLED=true`）。
+生产须开 **Gateway**（`NEW_API_GATEWAY_ENABLED=true`）。
 
 ```mermaid
 sequenceDiagram
@@ -231,7 +231,7 @@ sequenceDiagram
 | 企业 active | `companies` |
 | 钱包 ≥ 预估 | `balance_point` |
 | 部门未超 | `budget_snapshots`（org_node）+ `org_nodes.budget` |
-| 成员未超 | `budget_snapshots`（member）+ `personal_quota` |
+| 成员未超 | `budget_snapshots`（member）+ `personal_budget` |
 | Key 未超 | `budget_snapshots`（platform_key）+ Key `quota` |
 | 预算组未超 | `budget_snapshots`（budget_group）+ 组 `budget` |
 | NewAPIKey / 企业通道配额 | NewAPI；`wallet_sync` 滞后超阈时拒代理 |
@@ -351,7 +351,7 @@ flowchart LR
 
 | 范围 | 条件 | 动作 |
 | --- | --- | --- |
-| 成员 | 未挂组 Key，member 轴 consumed ≥ personal_quota | 禁用该成员非组 Key |
+| 成员 | 未挂组 Key，member 轴 consumed ≥ personal_budget | 禁用该成员非组 Key |
 | 部门 | org_node 轴 consumed ≥ budget | 禁用部门下全部 Key |
 | 预算组 | group 轴 consumed ≥ budget | 禁用组内 Key |
 
@@ -384,7 +384,7 @@ sequenceDiagram
 | 名称 | 计算 |
 | --- | --- |
 | 部门可分给成员 | budget − reserved_pool − Σ子部门 budget |
-| 成员可分给 Key | personal_quota − Σ已分配 Key quota |
+| 成员可分给 Key | personal_budget − Σ已分配 Key quota |
 | 成员本账期已用 | snapshots member 轴 |
 | 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key quota |
 | NewAPIKey 可用上限 | 上列候选取 min → 换 NewAPI 单位 |
@@ -418,7 +418,7 @@ sequenceDiagram
 | 百分比预警 | `alert_rules` 仅 CRUD，无运行时 Worker | 入账或定时任务按阈值发通知；与 PRD US-08 对齐 |
 | 超限文案 | `overrun_policy.blockMessage` 已存库，Precheck 返回通用错误 | Gateway 拒绝时读取并返回配置文案 |
 | 预留池扣减 | 额度审批只校验 `reserved_pool` 上限，字段不随审批减少 | 审批通过时扣减预留池或维护「已分配预留」子账，避免重复透支 |
-| 挂组 Key 预检 | Precheck 在存在 `member_id` 时仍检成员轴 | 与 Overrun / Rebalance 一致：挂组 Key 跳过成员 personal_quota 检查 |
+| 挂组 Key 预检 | Precheck 在存在 `member_id` 时仍检成员轴 | 与 Overrun / Rebalance 一致：挂组 Key 跳过成员 personal_budget 检查 |
 
 ### 应优化（可靠性 / 可观测）
 

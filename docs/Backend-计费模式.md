@@ -142,7 +142,7 @@ flowchart TB
 1. **Schema 即真相**：表结构以 `schema.sql` 为准；部署 wipe + seed，不做增量 `ALTER`/回填。
 2. **企业钱包权威**：Postgres `company_recharge_lots` + `balance_point`；NewAPI `users.quota` 仅为派生通道配额。
 3. **字段量纲**：`usage_ledger.amount`、`usage_buckets.cost`、`budget_snapshots.consumed`、组织 `budget` 均为 **point**；钱包 API 展示币由 lot 成本价闭合。
-4. **生产路径**：`NEWAPI_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
+4. **生产路径**：`NEW_API_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
 
 术语：**lot** = 充值批次；每笔 lot 必有 1:1 的 `company_recharge_orders` 行。
 
@@ -355,7 +355,7 @@ balance_point = Σ lot.points_remaining
 
 ### 5.5 投影表（均为 point）
 
-`usage_buckets.cost`、`budget_snapshots.consumed`、`org_nodes.budget`、`members.personal_quota`、`budget_groups.budget`、`platform_keys.quota` — 语义均为 point，无 `billing_currency` 拆键。
+`usage_buckets.cost`、`budget_snapshots.consumed`、`org_nodes.budget`、`members.personal_budget`、`budget_groups.budget`、`platform_keys.budget` — 语义均为 point，无 `billing_currency` 拆键。
 
 `models.input_price` / `output_price` 单位为 **point / 模型计价单位**。
 
@@ -433,7 +433,7 @@ domain/budget/
 
 store/postgres/
   billing_repo.go     lot CRUD、AggregateWallet、ExpandOverdraftLot
-  async_jobs.go       EnqueueWalletSync（滑动 debounce）
+  async_jobs_repo.go  EnqueueWalletSync（滑动 debounce）
   ledger_repo.go      InsertSegments
 
 infra/worker/

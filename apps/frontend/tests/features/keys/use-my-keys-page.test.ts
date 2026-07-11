@@ -11,7 +11,7 @@ describe('useMyKeysPage', () => {
     const apis = createMockApis({
       platformKeyApi: {
         list: vi.fn().mockResolvedValue({ items, total: 1 }),
-        getQuotaSummary: vi.fn().mockResolvedValue(quota),
+        getBudgetSummary: vi.fn().mockResolvedValue(quota),
       },
     })
 
@@ -23,7 +23,7 @@ describe('useMyKeysPage', () => {
     })
 
     expect(apis.platformKeyApi.list).toHaveBeenCalled()
-    expect(apis.platformKeyApi.getQuotaSummary).toHaveBeenCalled()
+    expect(apis.platformKeyApi.getBudgetSummary).toHaveBeenCalled()
     expect(result.current.quota).toEqual(quota)
   })
 })

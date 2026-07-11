@@ -67,7 +67,7 @@ type ModelUsage struct {
 type TeamUsage struct {
 	DepartmentID   string  `json:"departmentId"`
 	DepartmentName string  `json:"departmentName"`
-	Quota          float64 `json:"quota"`
+	Budget         float64 `json:"budget"`
 	Consumed       float64 `json:"consumed"`
 	MemberCount    float64 `json:"memberCount"`
 	TopModel       string  `json:"topModel"`

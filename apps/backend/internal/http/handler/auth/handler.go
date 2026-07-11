@@ -66,9 +66,9 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 type acceptInviteBody struct {
-	Token    string `json:"token"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
+	InviteCode string `json:"inviteCode"`
+	Name       string `json:"name"`
+	Password   string `json:"password"`
 }
 
 func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	member, err := h.companySvc.AcceptInvite(r.Context(), domaincompany.AcceptInviteRequest{
-		Token: body.Token, Name: body.Name, Password: body.Password,
+		InviteCode: body.InviteCode, Name: body.Name, Password: body.Password,
 	})
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)

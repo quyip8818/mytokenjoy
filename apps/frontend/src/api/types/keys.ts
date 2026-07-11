@@ -27,7 +27,7 @@ export interface PlatformKey {
   budgetGroupId: string | null
   budgetGroupName: string | null
   status: KeyStatus
-  quota: number
+  budget: number
   used: number
   modelWhitelist: number[]
   createdAt: string
@@ -35,7 +35,7 @@ export interface PlatformKey {
 }
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
-export type ApprovalType = 'key' | 'quota'
+export type ApprovalType = 'key' | 'budget'
 
 export interface KeyApproval {
   id: string
@@ -44,7 +44,7 @@ export interface KeyApproval {
   applicantId: string
   department: string
   reason: string
-  requestedQuota: number
+  requestedBudget: number
   requestedModels: number[]
   status: ApprovalStatus
   approver: string | null
@@ -53,8 +53,8 @@ export interface KeyApproval {
   resolvedAt: string | null
 }
 
-export interface MemberQuotaSummary {
-  totalQuota: number
+export interface MemberBudgetSummary {
+  totalBudget: number
   used: number
   remaining: number
   reservedPool: number

@@ -105,8 +105,8 @@ func (m *NewAPIMock) ApplyToConfig(cfg *config.Config) {
 }
 
 type CreateCompanyHTTPResult struct {
-	Company     store.Company
-	InviteToken string
+	Company    store.Company
+	InviteCode string
 }
 
 func NewRouter(t *testing.T, mock *NewAPIMock) http.Handler {
@@ -156,7 +156,7 @@ func CreateCompanyHTTP(t *testing.T, router http.Handler, platformCookie, slug, 
 	if err := json.NewDecoder(rec.Body).Decode(&created); err != nil {
 		t.Fatal(err)
 	}
-	if created.InviteToken == "" {
+	if created.InviteCode == "" {
 		t.Fatal("expected invite token")
 	}
 	return created
@@ -165,7 +165,7 @@ func CreateCompanyHTTP(t *testing.T, router http.Handler, platformCookie, slug, 
 func AcceptInviteHTTP(t *testing.T, router http.Handler, inviteToken, name, password string) (types.Member, string) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{
-		"token": inviteToken, "name": name, "password": password,
+		"inviteCode": inviteToken, "name": name, "password": password,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -192,7 +192,7 @@ func AcceptInviteHTTP(t *testing.T, router http.Handler, inviteToken, name, pass
 
 type ProvisionedCompany struct {
 	Company      store.Company
-	InviteToken  string
+	InviteCode   string
 	Member       types.Member
 	MemberCookie string
 }
@@ -200,9 +200,9 @@ type ProvisionedCompany struct {
 func ProvisionCompanyHTTP(t *testing.T, router http.Handler, platformCookie, slug, name, adminEmail, adminName, password string) ProvisionedCompany {
 	t.Helper()
 	created := CreateCompanyHTTP(t, router, platformCookie, slug, name, adminEmail)
-	member, cookie := AcceptInviteHTTP(t, router, created.InviteToken, adminName, password)
+	member, cookie := AcceptInviteHTTP(t, router, created.InviteCode, adminName, password)
 	return ProvisionedCompany{
-		Company: created.Company, InviteToken: created.InviteToken,
+		Company: created.Company, InviteCode: created.InviteCode,
 		Member: member, MemberCookie: cookie,
 	}
 }

@@ -27,7 +27,7 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 	platformCookie := saas.LoginPlatform(t, router)
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
 		"accept-co", "Accept Co", "accept@example.com")
-	_, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteToken,
+	_, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteCode,
 		"Accept Admin", "securepass123")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
@@ -64,13 +64,13 @@ func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
 		ID: "invite-test-2", CompanyID: contract.DefaultCompanyID,
 		Email: "short@newco.example", Role: store.InviteRoleSuperAdmin,
-		Token: "short-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
+		InviteCode: "short-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	_, err := svc.AcceptInvite(ctx, company.AcceptInviteRequest{
-		Token: "short-token", Name: "Admin", Password: "short",
+		InviteCode: "short-token", Name: "Admin", Password: "short",
 	})
 	if err == nil {
 		t.Fatal("expected error for short password")
@@ -87,13 +87,13 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
 		ID: "invite-expired", CompanyID: contract.DefaultCompanyID,
 		Email: "expired@example.com", Role: store.InviteRoleSuperAdmin,
-		Token: "expired-token", ExpiresAt: now.Add(-time.Hour), CreatedAt: now,
+		InviteCode: "expired-token", ExpiresAt: now.Add(-time.Hour), CreatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	_, err := svc.AcceptInvite(ctx, company.AcceptInviteRequest{
-		Token: "expired-token", Name: "Admin", Password: "securepass123",
+		InviteCode: "expired-token", Name: "Admin", Password: "securepass123",
 	})
 	if err == nil {
 		t.Fatal("expected error for expired invite")
@@ -110,18 +110,18 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
 		ID: "invite-used", CompanyID: contract.DefaultCompanyID,
 		Email: "used@example.com", Role: store.InviteRoleSuperAdmin,
-		Token: "used-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
+		InviteCode: "used-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := svc.AcceptInvite(ctx, company.AcceptInviteRequest{
-		Token: "used-token", Name: "Admin", Password: "securepass123",
+		InviteCode: "used-token", Name: "Admin", Password: "securepass123",
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	_, err := svc.AcceptInvite(ctx, company.AcceptInviteRequest{
-		Token: "used-token", Name: "Other", Password: "securepass456",
+		InviteCode: "used-token", Name: "Other", Password: "securepass456",
 	})
 	if err == nil {
 		t.Fatal("expected error for already accepted invite")
@@ -134,7 +134,7 @@ func TestAcceptInviteRejectsInvalidToken(t *testing.T) {
 	svc := company.NewService(cfg, st, nil)
 
 	_, err := svc.AcceptInvite(context.Background(), company.AcceptInviteRequest{
-		Token: "does-not-exist", Name: "Admin", Password: "securepass123",
+		InviteCode: "does-not-exist", Name: "Admin", Password: "securepass123",
 	})
 	if err == nil {
 		t.Fatal("expected error for invalid token")

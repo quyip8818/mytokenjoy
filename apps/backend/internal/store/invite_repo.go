@@ -14,7 +14,7 @@ type CompanyInvite struct {
 	CompanyID  int64
 	Email      string
 	Role       string
-	Token      string
+	InviteCode string
 	ExpiresAt  time.Time
 	AcceptedAt *time.Time
 	CreatedAt  time.Time
@@ -22,6 +22,6 @@ type CompanyInvite struct {
 
 type InviteRepository interface {
 	CreateInvite(ctx context.Context, invite CompanyInvite) error
-	GetInviteByToken(ctx context.Context, token string) (*CompanyInvite, error)
+	GetInviteByCode(ctx context.Context, inviteCode string) (*CompanyInvite, error)
 	MarkInviteAccepted(ctx context.Context, id string, acceptedAt time.Time) error
 }

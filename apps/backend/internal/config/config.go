@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -67,7 +65,6 @@ func Load() (Config, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
 	}
-	applyLegacyEnvAliases(&cfg)
 	cfg.BootstrapMode = strings.ToLower(strings.TrimSpace(cfg.BootstrapMode))
 	cfg.DeployEnv = strings.ToLower(strings.TrimSpace(cfg.DeployEnv))
 	if !cfg.SupportSaas {
@@ -77,31 +74,6 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
-}
-
-func applyLegacyEnvAliases(cfg *Config) {
-	if _, set := lookupEnv("NEW_API_GATEWAY_ENABLED"); !set {
-		if v, ok := lookupEnv("NEWAPI_GATEWAY_ENABLED"); ok {
-			cfg.GatewayEnabled = parseEnvBool(v)
-		}
-	}
-	if _, set := lookupEnv("PLATFORM_SHARED_NEW_API_GROUP"); !set {
-		if v, ok := lookupEnv("PLATFORM_SHARED_NEWAPI_GROUP"); ok {
-			cfg.PlatformSharedNewAPIGroup = v
-		}
-	}
-}
-
-func lookupEnv(key string) (string, bool) {
-	return os.LookupEnv(key)
-}
-
-func parseEnvBool(v string) bool {
-	b, err := strconv.ParseBool(strings.TrimSpace(v))
-	if err != nil {
-		return false
-	}
-	return b
 }
 
 func (c Config) IngestEnabled() bool {
@@ -117,8 +89,4 @@ func (c Config) CORSOriginList() []string {
 		}
 	}
 	return origins
-}
-
-func (c Config) ResolvedPlatformSessionSecret() string {
-	return c.PlatformSessionSecret
 }

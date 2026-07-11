@@ -12,7 +12,7 @@
 
 | 跨月保留（同一套） | 按月切开（多本） |
 | --- | --- |
-| 部门 `budget`、成员 `personal_quota`、Key `quota` 等 **额度上限** | `budget_snapshots` 里按 `period_key`（通常 `YYYY-MM`）累计的 **已消耗** |
+| 部门 `budget`、成员 `personal_budget`、Key `quota` 等 **额度上限** | `budget_snapshots` 里按 `period_key`（通常 `YYYY-MM`）累计的 **已消耗** |
 
 每月一张消耗账：6 月的已用记在 `period_key=2026-06`，7 月从 `2026-07` **重新累计**，不用手工清零。预检问的「还能不能花」= 看 **当前这本** 的已用是否触顶。
 

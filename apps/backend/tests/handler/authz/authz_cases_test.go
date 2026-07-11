@@ -30,7 +30,7 @@ func authzWriteCases(t *testing.T) []authzCase {
 		contract.IDDept3,
 	)
 	platformKeyBody := fmt.Sprintf(
-		`{"name":"k","memberId":%q,"quota":100,"modelWhitelist":[%d]}`,
+		`{"name":"k","memberId":%q,"budget":100,"modelWhitelist":[%d]}`,
 		contract.IDMember1, contract.IDModel1,
 	)
 	budgetUpdateBody := fmt.Sprintf(`{"budget":%d}`, validDept3Budget)

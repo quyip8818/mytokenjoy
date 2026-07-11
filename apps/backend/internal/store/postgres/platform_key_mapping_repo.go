@@ -129,11 +129,6 @@ func (r *platformKeyMappingRepo) ListMappingsByBudgetGroupID(ctx context.Context
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pk.budget_group_id = $2", companyID, budgetGroupID)
 }
 
-func (r *platformKeyMappingRepo) ListActiveMappings(ctx context.Context) ([]store.PlatformKeyMapping, error) {
-	companyID := store.CompanyID(ctx)
-	return r.listMappings(ctx, "pkm.company_id = $1 AND pkm.sync_status = $2", companyID, store.MappingSyncStatusSynced)
-}
-
 func (r *platformKeyMappingRepo) ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]store.PlatformKeyMapping, error) {
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pkm.sync_status = $2", companyID, store.MappingSyncStatusSynced)
 }

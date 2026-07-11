@@ -28,13 +28,13 @@ CREATE TABLE IF NOT EXISTS company_invites (
     company_id   BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     email        TEXT NOT NULL,
     role         TEXT NOT NULL DEFAULT 'super_admin',
-    token        TEXT NOT NULL UNIQUE,
+    invite_code  TEXT NOT NULL UNIQUE,
     expires_at   TIMESTAMPTZ NOT NULL,
     accepted_at  TIMESTAMPTZ,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_company_invites_token ON company_invites (token);
+CREATE INDEX IF NOT EXISTS idx_company_invites_invite_code ON company_invites (invite_code);
 CREATE INDEX IF NOT EXISTS idx_company_invites_company ON company_invites (company_id);
 
 CREATE TABLE IF NOT EXISTS platform_operators (
@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS members (
     source          TEXT NOT NULL DEFAULT '',
     external_id     TEXT,
     password_hash   TEXT,
-    personal_quota  NUMERIC(18, 6) NOT NULL DEFAULT 5000,
+    personal_budget NUMERIC(18, 6) NOT NULL DEFAULT 5000,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
@@ -378,7 +378,7 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     member_id       TEXT,
     budget_group_id TEXT,
     status          TEXT NOT NULL,
-    quota           NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    budget          NUMERIC(18, 6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS key_approvals (
     applicant_id    TEXT NOT NULL,
     department      TEXT NOT NULL,
     reason          TEXT NOT NULL,
-    requested_quota NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    requested_budget NUMERIC(18, 6) NOT NULL DEFAULT 0,
     status          TEXT NOT NULL,
     approver        TEXT,
     reject_reason   TEXT,

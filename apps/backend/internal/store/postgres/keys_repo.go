@@ -19,13 +19,13 @@ type pgKeysRepo struct {
 
 const platformKeySelect = `
 	SELECT id, name, key_prefix, member_id,
-		budget_group_id, status, quota, created_at, expires_at
+		budget_group_id, status, budget, created_at, expires_at
 	FROM platform_keys
 `
 
 const platformKeyListSelect = `
 	SELECT pk.id, pk.name, pk.key_prefix, pk.member_id,
-		pk.budget_group_id, pk.status, pk.quota, pk.created_at, pk.expires_at,
+		pk.budget_group_id, pk.status, pk.budget, pk.created_at, pk.expires_at,
 		COALESCE(array_agg(ma.model_id ORDER BY ma.model_id) FILTER (WHERE ma.model_id IS NOT NULL), '{}') AS model_ids
 	FROM platform_keys pk
 	LEFT JOIN model_allowlist ma
@@ -114,7 +114,7 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, platformKeyListSelect+`
 		WHERE pk.company_id = $1
-		GROUP BY pk.id, pk.name, pk.key_prefix, pk.member_id, pk.budget_group_id, pk.status, pk.quota, pk.created_at, pk.expires_at
+		GROUP BY pk.id, pk.name, pk.key_prefix, pk.member_id, pk.budget_group_id, pk.status, pk.budget, pk.created_at, pk.expires_at
 		ORDER BY pk.id
 	`, companyID)
 	if err != nil {
@@ -157,7 +157,7 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO platform_keys (
 				id, company_id, name, key_prefix, key_hash, member_id,
-				budget_group_id, status, quota, created_at, expires_at, updated_at
+				budget_group_id, status, budget, created_at, expires_at, updated_at
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
@@ -166,12 +166,12 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 				member_id = EXCLUDED.member_id,
 				budget_group_id = EXCLUDED.budget_group_id,
 				status = EXCLUDED.status,
-				quota = EXCLUDED.quota,
+				budget = EXCLUDED.budget,
 				expires_at = EXCLUDED.expires_at,
 				updated_at = NOW()
 		`, key.ID, companyID, key.Name, key.KeyPrefix, keyHash, key.MemberID,
 			key.BudgetGroupID, key.Status,
-			key.Quota, createdAt, expiresAt); err != nil {
+			key.Budget, createdAt, expiresAt); err != nil {
 			return fmt.Errorf("upsert platform key %s: %w", key.ID, err)
 		}
 		if err := r.allowlist.Replace(ctx, types.AllowlistOwnerPlatformKey, key.ID, key.ModelWhitelist); err != nil {
@@ -211,7 +211,7 @@ func (r *pgKeysRepo) resolvePlatformKeyHash(ctx context.Context, companyID int64
 func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, type, applicant, applicant_id, department, reason, requested_quota,
+		SELECT id, type, applicant, applicant_id, department, reason, requested_budget,
 			status, approver, reject_reason, created_at, resolved_at
 		FROM key_approvals WHERE company_id = $1 ORDER BY created_at DESC
 	`, companyID)
@@ -226,7 +226,7 @@ func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error)
 		var resolvedAt *time.Time
 		if err := rows.Scan(
 			&item.ID, &item.Type, &item.Applicant, &item.ApplicantID, &item.Department,
-			&item.Reason, &item.RequestedQuota, &item.Status, &item.Approver, &item.RejectReason,
+			&item.Reason, &item.RequestedBudget, &item.Status, &item.Approver, &item.RejectReason,
 			&createdAt, &resolvedAt,
 		); err != nil {
 			return nil, err
@@ -269,7 +269,7 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 		}
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO key_approvals (
-				id, company_id, type, applicant, applicant_id, department, reason, requested_quota,
+				id, company_id, type, applicant, applicant_id, department, reason, requested_budget,
 				status, approver, reject_reason, created_at, resolved_at
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			ON CONFLICT (company_id, id) DO UPDATE SET
@@ -278,14 +278,14 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 				applicant_id = EXCLUDED.applicant_id,
 				department = EXCLUDED.department,
 				reason = EXCLUDED.reason,
-				requested_quota = EXCLUDED.requested_quota,
+				requested_budget = EXCLUDED.requested_budget,
 				status = EXCLUDED.status,
 				approver = EXCLUDED.approver,
 				reject_reason = EXCLUDED.reject_reason,
 				created_at = EXCLUDED.created_at,
 				resolved_at = EXCLUDED.resolved_at
 		`, approval.ID, companyID, approval.Type, approval.Applicant, approval.ApplicantID, approval.Department,
-			approval.Reason, approval.RequestedQuota, approval.Status, approval.Approver,
+			approval.Reason, approval.RequestedBudget, approval.Status, approval.Approver,
 			approval.RejectReason, createdAt, resolvedAt); err != nil {
 			return fmt.Errorf("upsert approval %s: %w", approval.ID, err)
 		}
@@ -395,7 +395,7 @@ func scanPlatformKeyWithModels(rows pgx.Rows) (types.PlatformKey, error) {
 	if err := rows.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
 		&item.BudgetGroupID, &item.Status,
-		&item.Quota, &createdAt, &expiresAt,
+		&item.Budget, &createdAt, &expiresAt,
 		&modelIDs,
 	); err != nil {
 		return types.PlatformKey{}, err
@@ -417,7 +417,7 @@ func scanPlatformKey(rows pgx.Rows) (types.PlatformKey, error) {
 	if err := rows.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
 		&item.BudgetGroupID, &item.Status,
-		&item.Quota, &createdAt, &expiresAt,
+		&item.Budget, &createdAt, &expiresAt,
 	); err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -437,7 +437,7 @@ func scanPlatformKeyRow(row pgx.Row) (types.PlatformKey, error) {
 	if err := row.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
 		&item.BudgetGroupID, &item.Status,
-		&item.Quota, &createdAt, &expiresAt,
+		&item.Budget, &createdAt, &expiresAt,
 	); err != nil {
 		return types.PlatformKey{}, err
 	}

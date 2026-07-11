@@ -79,23 +79,23 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			return err
 		}
 		company.RootDeptID = &rootDeptID
-		inviteToken, err := randomToken()
+		inviteCode, err := randomInviteCode()
 		if err != nil {
 			return err
 		}
 		inviteID := fmt.Sprintf("invite-%d-%d", company.ID, time.Now().UnixNano())
 		if err := tx.Invite().CreateInvite(ctx, store.CompanyInvite{
-			ID:        inviteID,
-			CompanyID: company.ID,
-			Email:     req.SuperAdminEmail,
-			Role:      store.InviteRoleSuperAdmin,
-			Token:     inviteToken,
-			ExpiresAt: now.Add(7 * 24 * time.Hour),
-			CreatedAt: now,
+			ID:         inviteID,
+			CompanyID:  company.ID,
+			Email:      req.SuperAdminEmail,
+			Role:       store.InviteRoleSuperAdmin,
+			InviteCode: inviteCode,
+			ExpiresAt:  now.Add(7 * 24 * time.Hour),
+			CreatedAt:  now,
 		}); err != nil {
 			return err
 		}
-		result = CreateCompanyResult{Company: company, InviteToken: inviteToken}
+		result = CreateCompanyResult{Company: company, InviteCode: inviteCode}
 		return nil
 	})
 	if err != nil {

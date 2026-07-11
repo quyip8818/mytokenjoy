@@ -59,7 +59,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
-	if err := st.Org().UpdateMemberPersonalQuota(ctx, contract.IDMember1, 100); err != nil {
+	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
 	testutil.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)

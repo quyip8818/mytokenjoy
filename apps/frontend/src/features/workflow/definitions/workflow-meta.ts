@@ -15,7 +15,7 @@ export const WORKFLOW_META: Record<WorkflowId, WorkflowMeta> = {
   'model-edit': { defaultLayer: 1, title: '编辑自定义模型' },
   'whitelist-config': { defaultLayer: 1, title: '配置部门白名单' },
   'model-picker': { defaultLayer: 2, title: '选择模型' },
-  'quota-check': { defaultLayer: 3, title: '额度不足' },
+  'budget-check': { defaultLayer: 3, title: '额度不足' },
   'reject-reason': { defaultLayer: 2, title: '拒绝理由' },
 }
 
@@ -32,7 +32,7 @@ const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared'> 
   'model-edit': 'models',
   'whitelist-config': 'models',
   'model-picker': 'shared',
-  'quota-check': 'shared',
+  'budget-check': 'shared',
   'reject-reason': 'shared',
 }
 

@@ -38,7 +38,6 @@ type PlatformKeyMappingRepository interface {
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]PlatformKeyMapping, error)
 	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]PlatformKeyMapping, error)
 	ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]PlatformKeyMapping, error)
-	ListActiveMappings(ctx context.Context) ([]PlatformKeyMapping, error)
 	ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]PlatformKeyMapping, error)
 	UpsertMapping(ctx context.Context, mapping PlatformKeyMapping) error
 	UpdateMappingSync(ctx context.Context, platformKeyID string, keyID int64, status string, remainQuota *int64, syncedAt time.Time) error

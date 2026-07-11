@@ -23,8 +23,8 @@ func generateBudgetID(prefix string) string {
 type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
 	UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error)
-	ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error)
-	UpdateMemberQuota(ctx context.Context, memberID string, personalQuota float64) (types.MemberBudgetQuota, error)
+	ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error)
+	UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudgetQuota, error)
 	ListGroups(ctx context.Context) ([]types.BudgetGroup, error)
 	CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error)
 	UpdateGroup(ctx context.Context, id string, patch types.BudgetGroup) (types.BudgetGroup, error)
@@ -102,7 +102,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	return result, err
 }
 
-func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
+func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
 	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetSnapshots(), s.store.Org().Nodes(), s.cfg.Clock())
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (s *service) ListMemberQuotas(ctx context.Context, deptID string) ([]types.
 	return quotas, nil
 }
 
-func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, personalQuota float64) (types.MemberBudgetQuota, error) {
+func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudgetQuota, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
@@ -143,12 +143,12 @@ func (s *service) UpdateMemberQuota(ctx context.Context, memberID string, person
 	if err != nil {
 		return types.MemberBudgetQuota{}, err
 	}
-	if msg := pkgbudget.ValidateMemberQuotaUpdate(tree, members, platformKeys, memberID, personalQuota); msg != nil {
+	if msg := pkgbudget.ValidateMemberBudgetUpdate(tree, members, platformKeys, memberID, personalBudget); msg != nil {
 		return types.MemberBudgetQuota{}, domain.Validation(*msg)
 	}
-	result, updatedMembers := pkgbudget.ApplyMemberQuotaUpdate(members, platformKeys, memberID, personalQuota)
+	result, updatedMembers := pkgbudget.ApplyMemberBudgetUpdate(members, platformKeys, memberID, personalBudget)
 	if err := s.store.Org().SetMembers(ctx, updatedMembers); err != nil {
-		return types.MemberBudgetQuota{}, fmt.Errorf("persist member personal quota: %w", err)
+		return types.MemberBudgetQuota{}, fmt.Errorf("persist member personal budget: %w", err)
 	}
 	return result, nil
 }
@@ -451,7 +451,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 			if err := txStore.Org().Nodes().SetTree(ctx, nodes); err != nil {
 				return fmt.Errorf("persist budget tree: %w", err)
 			}
-			// Add to member's personal quota
+			// Add to member's personal budget
 			members, err := txStore.Org().Members(ctx)
 			if err != nil {
 				return err
@@ -459,7 +459,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 			found := false
 			for i := range members {
 				if members[i].ID == approval.ApplicantID {
-					members[i].PersonalQuota += approval.Amount
+					members[i].PersonalBudget += approval.Amount
 					found = true
 					break
 				}
@@ -468,7 +468,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 				return domain.NotFound("申请人不存在")
 			}
 			if err := txStore.Org().SetMembers(ctx, members); err != nil {
-				return fmt.Errorf("persist member personal quota: %w", err)
+				return fmt.Errorf("persist member personal budget: %w", err)
 			}
 			return nil
 		}); err != nil {

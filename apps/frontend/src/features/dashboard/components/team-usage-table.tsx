@@ -34,7 +34,7 @@ export function TeamUsageTable({ teamUsage }: TeamUsageTableProps) {
       </TableHeader>
       <TableBody>
         {teamUsage.map((t) => {
-          const pct = teamUsagePercent(t.consumed, t.quota)
+          const pct = teamUsagePercent(t.consumed, t.budget)
           return (
             <TableRow
               key={t.departmentId}
@@ -42,7 +42,7 @@ export function TeamUsageTable({ teamUsage }: TeamUsageTableProps) {
             >
               <TableCell className="font-medium">{t.departmentName}</TableCell>
               <TableCell className="text-muted-foreground tabular-nums">
-                {t.quota.toLocaleString()}
+                {t.budget.toLocaleString()}
               </TableCell>
               <TableCell className="font-medium tabular-nums">
                 {t.consumed.toLocaleString()}

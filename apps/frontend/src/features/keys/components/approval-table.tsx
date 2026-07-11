@@ -59,7 +59,7 @@ export function ApprovalTable({
             <TableCell className="text-muted-foreground">{approval.department}</TableCell>
             <TableCell className="max-w-48 truncate text-sm">{approval.reason}</TableCell>
             <TableCell className="text-right tabular-nums">
-              {approval.requestedQuota.toLocaleString()}
+              {approval.requestedBudget.toLocaleString()}
             </TableCell>
             <TableCell>
               <ApprovalStatusBadge status={approval.status} />

@@ -147,7 +147,7 @@ func TestStagingAllowsMissingNewAPIStack(t *testing.T) {
 	}
 }
 
-func TestNewAPIGatewayRequiresNewAPIEnabled(t *testing.T) {
+func TestGatewayRequiresNewAPIEnabled(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 	t.Setenv("NEW_API_GATEWAY_ENABLED", "true")
 	t.Setenv("NEW_API_ENABLED", "false")
