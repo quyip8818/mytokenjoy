@@ -10,24 +10,6 @@ import { Coins, Hash, Zap, DollarSign, User, type LucideIcon } from 'lucide-reac
 
 export const COST_CHART_COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
 
-export type DrillLevel = 'departments' | 'members'
-
-export interface DrillState {
-  level: DrillLevel
-  parentId: string | null
-  parentName: string | null
-  deptId: string | null
-  deptName: string | null
-}
-
-export const ROOT_DRILL: DrillState = {
-  level: 'departments',
-  parentId: null,
-  parentName: null,
-  deptId: null,
-  deptName: null,
-}
-
 export interface CostStatItem {
   label: string
   value: string
@@ -46,56 +28,8 @@ export function formatTokenCount(tokens: number): string {
   return `${(tokens / 1000000).toFixed(1)}M`
 }
 
-export function drillIntoDepartment(drill: DrillState, dept: DepartmentCost): DrillState {
-  if (drill.level === 'departments' && dept.hasChildren) {
-    return {
-      level: 'departments',
-      parentId: dept.departmentId,
-      parentName: dept.departmentName,
-      deptId: null,
-      deptName: null,
-    }
-  }
-  if (drill.level === 'departments') {
-    return {
-      level: 'members',
-      parentId: drill.parentId,
-      parentName: drill.parentName,
-      deptId: dept.departmentId,
-      deptName: dept.departmentName,
-    }
-  }
-  return drill
-}
-
-export function drillBack(drill: DrillState): DrillState {
-  if (drill.level === 'members') {
-    return {
-      level: 'departments',
-      parentId: drill.parentId,
-      parentName: drill.parentName,
-      deptId: null,
-      deptName: null,
-    }
-  }
-  if (drill.parentId) {
-    return ROOT_DRILL
-  }
-  return drill
-}
-
-export function getDrillTitle(drill: DrillState): string {
-  if (drill.level === 'members' && drill.deptName) return `${drill.deptName} · 成员明细`
-  if (drill.parentName) return `${drill.parentName} · 子部门`
-  return '部门花费明细'
-}
-
-export function canDrillBack(drill: DrillState): boolean {
-  return Boolean(drill.parentId || drill.level === 'members')
-}
-
 export function buildDeptCostsWithColors(
-  drillLevel: DrillLevel,
+  drillLevel: 'departments' | 'members',
   deptCosts: DepartmentCost[],
   memberCosts: DepartmentCostMember[],
 ) {
