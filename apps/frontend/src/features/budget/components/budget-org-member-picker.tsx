@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { ChevronRight, Folder, FolderOpen, Loader2, Search, Users } from 'lucide-react'
+import { ChevronRight, Loader2, Search, Users } from 'lucide-react'
 
 interface BudgetOrgMemberPickerProps {
   selectedIds: string[]
@@ -31,11 +31,13 @@ export function BudgetOrgMemberPicker({
   const [tree, setTree] = useState<Department[]>([])
   const [treeLoading, setTreeLoading] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  // deptId -> member list (loaded on demand)
   const [loadedMembers, setLoadedMembers] = useState<Record<string, Member[]>>({})
   const [loadingDepts, setLoadingDepts] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Member[] | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
+  // Track selected member names for display on the trigger button
   const [selectedNames, setSelectedNames] = useState<Map<string, string>>(new Map())
 
   // Fetch tree when popover opens
@@ -45,7 +47,6 @@ export function BudgetOrgMemberPicker({
     getDepartmentTree()
       .then((data) => {
         setTree(data ?? [])
-        // Default expand the path to the target department
         if (defaultExpandDepartmentId) {
           const pathIds = findAncestorPath(data, defaultExpandDepartmentId)
           setExpandedIds(new Set(pathIds))
@@ -53,14 +54,15 @@ export function BudgetOrgMemberPicker({
       })
       .finally(() => setTreeLoading(false))
   }, [open, getDepartmentTree, defaultExpandDepartmentId])
-
   const loadDeptMembers = useCallback(
-    async (deptId: string) => {
-      if (loadedMembers[deptId]) return
+    async (deptId: string): Promise<Member[]> => {
+      if (loadedMembers[deptId]) return loadedMembers[deptId]
       setLoadingDepts((prev) => new Set([...prev, deptId]))
       try {
         const members = await getMembers(deptId)
-        setLoadedMembers((prev) => ({ ...prev, [deptId]: members ?? [] }))
+        const result = members ?? []
+        setLoadedMembers((prev) => ({ ...prev, [deptId]: result }))
+        return result
       } finally {
         setLoadingDepts((prev) => {
           const next = new Set(prev)
@@ -80,51 +82,37 @@ export function BudgetOrgMemberPicker({
           next.delete(deptId)
         } else {
           next.add(deptId)
-          // Load members on first expand
-          loadDeptMembers(deptId)
         }
         return next
       })
     },
-    [loadDeptMembers],
-  )
-
-  const toggleMember = useCallback(
-    (member: Member) => {
-      const newNames = new Map(selectedNames)
-      if (selectedIds.includes(member.id)) {
-        onChange(selectedIds.filter((id) => id !== member.id))
-        newNames.delete(member.id)
-      } else {
-        onChange([...selectedIds, member.id])
-        newNames.set(member.id, member.name)
-      }
-      setSelectedNames(newNames)
-    },
-    [selectedIds, onChange, selectedNames],
+    [],
   )
 
   const toggleDepartment = useCallback(
-    (deptId: string) => {
-      const members = loadedMembers[deptId]
+    async (deptId: string) => {
+      // Load members if not yet loaded
+      const members = loadedMembers[deptId] ?? await loadDeptMembers(deptId)
       if (!members || members.length === 0) return
+
       const memberIds = members.map((m) => m.id)
       const allSelected = memberIds.every((id) => selectedIds.includes(id))
       const newNames = new Map(selectedNames)
+
       if (allSelected) {
-        // Deselect all members of this department
+        // Deselect all
         const remaining = selectedIds.filter((id) => !memberIds.includes(id))
         for (const id of memberIds) newNames.delete(id)
         onChange(remaining)
       } else {
-        // Select all members of this department
+        // Select all
         const toAdd = memberIds.filter((id) => !selectedIds.includes(id))
         for (const m of members) newNames.set(m.id, m.name)
         onChange([...selectedIds, ...toAdd])
       }
       setSelectedNames(newNames)
     },
-    [loadedMembers, selectedIds, onChange, selectedNames],
+    [loadedMembers, loadDeptMembers, selectedIds, onChange, selectedNames],
   )
 
   // Search debounce
@@ -145,10 +133,24 @@ export function BudgetOrgMemberPicker({
     return () => clearTimeout(timer)
   }, [search, searchMembers])
 
+  // Toggle a single member from search results
+  const toggleMember = useCallback(
+    (member: Member) => {
+      const newNames = new Map(selectedNames)
+      if (selectedIds.includes(member.id)) {
+        onChange(selectedIds.filter((id) => id !== member.id))
+        newNames.delete(member.id)
+      } else {
+        onChange([...selectedIds, member.id])
+        newNames.set(member.id, member.name)
+      }
+      setSelectedNames(newNames)
+    },
+    [selectedIds, onChange, selectedNames],
+  )
+
   const selectedLabels = useMemo(() => {
-    return selectedIds
-      .map((id) => selectedNames.get(id) ?? id)
-      .slice(0, 3)
+    return selectedIds.map((id) => selectedNames.get(id) ?? id).slice(0, 3)
   }, [selectedIds, selectedNames])
 
   return (
@@ -216,12 +218,11 @@ export function BudgetOrgMemberPicker({
                 dept={dept}
                 level={0}
                 expandedIds={expandedIds}
-                onToggle={toggleExpand}
-                onToggleDepartment={toggleDepartment}
+                selectedIds={selectedIds}
                 loadedMembers={loadedMembers}
                 loadingDepts={loadingDepts}
-                selectedIds={selectedIds}
-                onToggleMember={toggleMember}
+                onToggleExpand={toggleExpand}
+                onToggleDepartment={toggleDepartment}
               />
             ))
           )}
@@ -264,32 +265,18 @@ function SearchResultList({
     <ul className="space-y-0.5">
       {results.map((member) => (
         <li key={member.id}>
-          <MemberCheckRow
-            member={member}
-            checked={selectedIds.includes(member.id)}
-            onToggle={() => onToggle(member)}
-          />
+          <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+            <Checkbox
+              checked={selectedIds.includes(member.id)}
+              onCheckedChange={() => onToggle(member)}
+              aria-label={member.name}
+            />
+            <span className="flex-1 truncate text-xs">{member.name}</span>
+            <span className="text-[11px] text-muted-foreground">{member.departmentName}</span>
+          </label>
         </li>
       ))}
     </ul>
-  )
-}
-
-function MemberCheckRow({
-  member,
-  checked,
-  onToggle,
-}: {
-  member: Member
-  checked: boolean
-  onToggle: () => void
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
-      <Checkbox checked={checked} onCheckedChange={onToggle} aria-label={member.name} />
-      <span className="flex-1 truncate text-xs">{member.name}</span>
-      <span className="text-[11px] text-muted-foreground">{member.departmentName}</span>
-    </label>
   )
 }
 
@@ -297,115 +284,94 @@ function DeptTreeNode({
   dept,
   level,
   expandedIds,
-  onToggle,
-  onToggleDepartment,
+  selectedIds,
   loadedMembers,
   loadingDepts,
-  selectedIds,
-  onToggleMember,
+  onToggleExpand,
+  onToggleDepartment,
 }: {
   dept: Department
   level: number
   expandedIds: Set<string>
-  onToggle: (id: string) => void
-  onToggleDepartment: (id: string) => void
+  selectedIds: string[]
   loadedMembers: Record<string, Member[]>
   loadingDepts: Set<string>
-  selectedIds: string[]
-  onToggleMember: (member: Member) => void
+  onToggleExpand: (id: string) => void
+  onToggleDepartment: (id: string) => void
 }) {
   const hasChildren = dept.children && dept.children.length > 0
   const isExpanded = expandedIds.has(dept.id)
+  const isLoading = loadingDepts.has(dept.id)
   const members = loadedMembers[dept.id]
-  const isLoadingMembers = loadingDepts.has(dept.id)
 
-  // Compute department checkbox state
-  const deptChecked = members && members.length > 0 && members.every((m) => selectedIds.includes(m.id))
-  const deptIndeterminate = !deptChecked && members && members.some((m) => selectedIds.includes(m.id))
+  // Checkbox state
+  const allSelected = members && members.length > 0 && members.every((m) => selectedIds.includes(m.id))
+  const someSelected = !allSelected && members && members.some((m) => selectedIds.includes(m.id))
 
   return (
     <div>
       <div
-        role="treeitem"
-        tabIndex={0}
-        aria-expanded={isExpanded}
-        className="flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-xs hover:bg-muted"
+        className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs hover:bg-muted"
         style={{ paddingLeft: `${level * 14 + 6}px` }}
-        onClick={() => onToggle(dept.id)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onToggle(dept.id)
-          }
-        }}
       >
-        <span className="flex size-3.5 shrink-0 items-center justify-center">
-          <ChevronRight
-            className={cn(
-              'size-3 text-muted-foreground transition-transform duration-150',
-              isExpanded && 'rotate-90',
-            )}
-          />
-        </span>
-        {isExpanded ? (
-          <FolderOpen className="size-3.5 shrink-0 text-muted-foreground" />
+        {/* Expand/collapse arrow */}
+        {hasChildren ? (
+          <span
+            role="button"
+            tabIndex={-1}
+            aria-label={isExpanded ? '收起' : '展开'}
+            className="flex size-4 shrink-0 cursor-pointer items-center justify-center"
+            onClick={() => onToggleExpand(dept.id)}
+          >
+            <ChevronRight
+              className={cn(
+                'size-3 text-muted-foreground transition-transform duration-150',
+                isExpanded && 'rotate-90',
+              )}
+            />
+          </span>
         ) : (
-          <Folder className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="size-4" />
         )}
-        <span className="flex-1 truncate font-medium text-foreground">{dept.name}</span>
-        {members && members.length > 0 && (
+
+        {/* Checkbox + department name (clicking either toggles selection) */}
+        <label
+          className="flex flex-1 cursor-pointer items-center gap-1.5"
+          onClick={(e) => e.preventDefault()}
+        >
           <Checkbox
-            checked={deptChecked ? true : deptIndeterminate ? 'indeterminate' : false}
+            checked={allSelected ? true : someSelected ? 'indeterminate' : false}
             onCheckedChange={() => onToggleDepartment(dept.id)}
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`选择${dept.name}全部成员`}
             className="size-3.5"
+            aria-label={`选择${dept.name}`}
           />
-        )}
+          <span
+            className="flex-1 truncate font-medium text-foreground"
+            onClick={() => onToggleDepartment(dept.id)}
+          >
+            {dept.name}
+          </span>
+        </label>
+
+        {isLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
       </div>
 
-      {isExpanded && (
+      {/* Child departments */}
+      {hasChildren && isExpanded && (
         <div>
-          {/* Child departments */}
-          {hasChildren &&
-            dept.children!.map((child) => (
-              <DeptTreeNode
-                key={child.id}
-                dept={child}
-                level={level + 1}
-                expandedIds={expandedIds}
-                onToggle={onToggle}
-                onToggleDepartment={onToggleDepartment}
-                loadedMembers={loadedMembers}
-                loadingDepts={loadingDepts}
-                selectedIds={selectedIds}
-                onToggleMember={onToggleMember}
-              />
-            ))}
-
-          {/* Members of this department */}
-          {isLoadingMembers && (
-            <div
-              className="flex items-center gap-2 py-1 text-xs text-muted-foreground"
-              style={{ paddingLeft: `${(level + 1) * 14 + 6}px` }}
-            >
-              <Loader2 className="size-3 animate-spin" />
-              加载中…
-            </div>
-          )}
-          {members &&
-            members.map((member) => (
-              <div
-                key={member.id}
-                style={{ paddingLeft: `${(level + 1) * 14 + 6}px` }}
-              >
-                <MemberCheckRow
-                  member={member}
-                  checked={selectedIds.includes(member.id)}
-                  onToggle={() => onToggleMember(member)}
-                />
-              </div>
-            ))}
+          {dept.children!.map((child) => (
+            <DeptTreeNode
+              key={child.id}
+              dept={child}
+              level={level + 1}
+              expandedIds={expandedIds}
+              selectedIds={selectedIds}
+              loadedMembers={loadedMembers}
+              loadingDepts={loadingDepts}
+              onToggleExpand={onToggleExpand}
+              onToggleDepartment={onToggleDepartment}
+            />
+          ))}
         </div>
       )}
     </div>
