@@ -7,7 +7,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | 用途 | 文档 |
 | --- | --- |
 | 工程待办（上线前 fix / 功能 / 门禁） | **[plan.md](./plan.md)** |
-| 架构现状 | [Backend.md](./Backend.md) 及子文档、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
+| 架构现状 | [Backend.md](./Backend.md) 及子文档、[架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md)、[架构简化方案.md](./架构简化方案.md)、[架构简化-分阶段详解.md](./架构简化-分阶段详解.md)、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
 | 产品差距 | [Roadmap.md](./Roadmap.md)、[PRD-差距分析.md](./PRD-差距分析.md) |
 | 产品需求（只读权威） | [PRD.md](./PRD.md) |
 
@@ -23,6 +23,9 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
+| [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析 |
+| [架构简化方案.md](./架构简化方案.md) | 架构 / 后端 | 未上线演进蓝图：/v1 约束 + Phase 1–5 |
+| [架构简化-分阶段详解.md](./架构简化-分阶段详解.md) | 架构 / 后端 | 各 Phase 图解 + 例子：干什么、为什么 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
