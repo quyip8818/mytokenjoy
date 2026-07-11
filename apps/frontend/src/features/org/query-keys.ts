@@ -1,5 +1,6 @@
 export const orgKeys = {
   all: ['org'] as const,
+  tree: () => [...orgKeys.all, 'tree'] as const,
   departmentTree: () => [...orgKeys.all, 'department-tree'] as const,
   roles: () => [...orgKeys.all, 'roles'] as const,
   permissions: () => [...orgKeys.all, 'permissions'] as const,
