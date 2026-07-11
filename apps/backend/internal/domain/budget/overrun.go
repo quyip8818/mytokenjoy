@@ -52,62 +52,113 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 	if s.keyControl == nil || !s.keyControl.Enabled() {
 		return nil
 	}
-	st := s.store
 
-	if payload.MemberID != nil && payload.BudgetGroupID == nil {
-		used, err := st.Keys().SumMemberKeyUsed(ctx, *payload.MemberID, s.cfg.Clock())
+	type disableAction struct {
+		scope   string
+		target  string
+		keys    func(ctx context.Context) error
+		payload map[string]any
+	}
+
+	var actions []disableAction
+
+	// Read all budget/consumed values inside a transaction with advisory lock
+	// to get a consistent snapshot. Key disabling happens after the transaction.
+	if err := s.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
+
+		if payload.MemberID != nil && payload.BudgetGroupID == nil {
+			used, err := tx.Keys().SumMemberKeyUsed(ctx, *payload.MemberID, s.cfg.Clock())
+			if err != nil {
+				return err
+			}
+			capacity, found, err := tx.Org().MemberPersonalBudget(ctx, *payload.MemberID)
+			if err != nil {
+				return err
+			}
+			if found && used >= capacity {
+				memberID := *payload.MemberID
+				actions = append(actions, disableAction{
+					scope:  "member",
+					target: memberID,
+					keys:   func(ctx context.Context) error { return s.disableMemberKeys(ctx, memberID) },
+					payload: map[string]any{
+						"scope": "member", "memberId": memberID, "used": used, "capacity": capacity,
+					},
+				})
+				return nil
+			}
+		}
+
+		open, err := pkgbudget.OpenDepartmentPeriod(ctx, tx.Org().Nodes(), payload.DepartmentID, s.cfg.Clock())
 		if err != nil {
 			return err
 		}
-		capacity, found, err := st.Org().MemberPersonalBudget(ctx, *payload.MemberID)
+		snapshotPeriod := open.String()
+
+		budgetAmount, found, err := tx.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
 		if err != nil {
 			return err
 		}
-		if found && used >= capacity {
-			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, *payload.MemberID, map[string]any{
-				"scope": "member", "memberId": *payload.MemberID, "used": used, "capacity": capacity,
+		consumed, _, err := tx.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisOrgNode, payload.DepartmentID, snapshotPeriod)
+		if err != nil {
+			return err
+		}
+		if found && consumed >= budgetAmount {
+			deptID := payload.DepartmentID
+			actions = append(actions, disableAction{
+				scope:  "department",
+				target: deptID,
+				keys:   func(ctx context.Context) error { return s.disableDepartmentKeys(ctx, deptID) },
+				payload: map[string]any{
+					"scope": "department", "departmentId": deptID,
+					"consumed": consumed, "budget": budgetAmount,
+				},
 			})
-			return s.disableMemberKeys(ctx, *payload.MemberID)
+			return nil
 		}
-	}
 
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), payload.DepartmentID, s.cfg.Clock())
-	if err != nil {
+		if payload.BudgetGroupID != nil {
+			groupBudget, _, groupFound, err := tx.Budget().GetGroupBudget(ctx, *payload.BudgetGroupID)
+			if err != nil {
+				return err
+			}
+			groupConsumed, _, err := tx.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisBudgetGroup, *payload.BudgetGroupID, snapshotPeriod)
+			if err != nil {
+				return err
+			}
+			if groupFound && groupConsumed >= groupBudget {
+				groupID := *payload.BudgetGroupID
+				actions = append(actions, disableAction{
+					scope:  "budgetGroup",
+					target: groupID,
+					keys:   func(ctx context.Context) error { return s.disableBudgetGroupKeys(ctx, groupID) },
+					payload: map[string]any{
+						"scope": "budgetGroup", "budgetGroupId": groupID,
+						"consumed": groupConsumed, "budget": groupBudget,
+					},
+				})
+			}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
-	snapshotPeriod := open.String()
 
-	budgetAmount, found, err := st.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
-	if err != nil {
-		return err
-	}
-	consumed, _, err := st.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisOrgNode, payload.DepartmentID, snapshotPeriod)
-	if err != nil {
-		return err
-	}
-	if found && consumed >= budgetAmount {
-		s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, payload.DepartmentID, map[string]any{
-			"scope": "department", "departmentId": payload.DepartmentID,
-			"consumed": consumed, "budget": budgetAmount,
-		})
-		return s.disableDepartmentKeys(ctx, payload.DepartmentID)
-	}
-
-	if payload.BudgetGroupID != nil {
-		groupBudget, _, groupFound, err := st.Budget().GetGroupBudget(ctx, *payload.BudgetGroupID)
-		if err != nil {
+	// Execute disable actions and send notifications outside the transaction
+	for _, action := range actions {
+		s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, action.target, action.payload)
+		if err := action.keys(ctx); err != nil {
+			if s.logger != nil {
+				s.logger.Error("disable keys failed",
+					"scope", action.scope,
+					"target", action.target,
+					"error", err,
+				)
+			}
 			return err
-		}
-		groupConsumed, _, err := st.BudgetSnapshots().GetConsumed(ctx, store.SnapshotAxisBudgetGroup, *payload.BudgetGroupID, snapshotPeriod)
-		if err != nil {
-			return err
-		}
-		if groupFound && groupConsumed >= groupBudget {
-			s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, *payload.BudgetGroupID, map[string]any{
-				"scope": "budgetGroup", "budgetGroupId": *payload.BudgetGroupID,
-				"consumed": groupConsumed, "budget": groupBudget,
-			})
-			return s.disableBudgetGroupKeys(ctx, *payload.BudgetGroupID)
 		}
 	}
 	return nil
@@ -117,7 +168,15 @@ func (s *OverrunService) notifyOverrun(ctx context.Context, eventType, recipient
 	if s.notifier == nil {
 		return
 	}
-	_ = s.notifier.Send(ctx, types.Notification{EventType: eventType, Recipient: recipient, Payload: payload})
+	if err := s.notifier.Send(ctx, types.Notification{EventType: eventType, Recipient: recipient, Payload: payload}); err != nil {
+		if s.logger != nil {
+			s.logger.Error("overrun notification failed",
+				"event_type", eventType,
+				"recipient", recipient,
+				"error", err,
+			)
+		}
+	}
 }
 
 func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string) error {

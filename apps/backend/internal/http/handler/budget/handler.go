@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/domain"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -39,6 +40,14 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
+	if body.Budget < 0 {
+		httputil.WriteError(w, domain.Validation("budget must be non-negative"))
+		return
+	}
+	if body.ReservedPool != nil && *body.ReservedPool < 0 {
+		httputil.WriteError(w, domain.Validation("reservedPool must be non-negative"))
+		return
+	}
 	node, err := h.service.UpdateNode(r.Context(), chi.URLParam(r, "departmentId"), body.Budget, body.ReservedPool)
 	httputil.WriteJSON(w, http.StatusOK, node, err)
 }
@@ -52,6 +61,10 @@ func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
 	var body types.UpdateMemberBudgetInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
+		return
+	}
+	if body.PersonalBudget < 0 {
+		httputil.WriteError(w, domain.Validation("personalBudget must be non-negative"))
 		return
 	}
 	result, err := h.service.UpdateMemberBudget(r.Context(), chi.URLParam(r, "memberId"), body.PersonalBudget)

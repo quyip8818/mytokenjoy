@@ -3,6 +3,7 @@ package budget
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -18,6 +19,15 @@ func (s *service) ListGroups(ctx context.Context) ([]types.BudgetGroup, error) {
 func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetGroup{}, err
+	}
+	if strings.TrimSpace(group.Name) == "" {
+		return types.BudgetGroup{}, domain.Validation("group name is required")
+	}
+	if len(group.Name) > 100 {
+		return types.BudgetGroup{}, domain.Validation("group name must be 100 characters or less")
+	}
+	if group.Budget < 0 {
+		return types.BudgetGroup{}, domain.Validation("budget must be non-negative")
 	}
 	var result types.BudgetGroup
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
@@ -47,6 +57,12 @@ func (s *service) CreateGroup(ctx context.Context, group types.BudgetGroup) (typ
 func (s *service) UpdateGroup(ctx context.Context, id string, patch types.BudgetGroup) (types.BudgetGroup, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetGroup{}, err
+	}
+	if patch.Name != "" && len(patch.Name) > 100 {
+		return types.BudgetGroup{}, domain.Validation("group name must be 100 characters or less")
+	}
+	if patch.Budget < 0 {
+		return types.BudgetGroup{}, domain.Validation("budget must be non-negative")
 	}
 	var result types.BudgetGroup
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
