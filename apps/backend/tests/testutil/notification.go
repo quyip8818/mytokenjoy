@@ -3,8 +3,6 @@ package testutil
 import (
 	"context"
 	"errors"
-	"log/slog"
-	"os"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
@@ -24,9 +22,4 @@ type FailingNotifier struct{}
 
 func (n *FailingNotifier) Send(_ context.Context, _ types.Notification) error {
 	return errors.New("notification delivery failed")
-}
-
-// DiscardLogger returns a silent logger for tests.
-func DiscardLogger() *slog.Logger {
-	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError + 1}))
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestWalletSyncWorkerTopUpOnDrift(t *testing.T) {
@@ -38,7 +39,7 @@ func TestWalletSyncWorkerTopUpOnDrift(t *testing.T) {
 	if stub.TopUpCalls == 0 {
 		t.Fatal("expected wallet_sync worker to call TopUp on positive drift")
 	}
-	if testutil.PendingWalletSyncCount(fix.st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingWalletSyncCount(fix.st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected wallet_sync job drained")
 	}
 }

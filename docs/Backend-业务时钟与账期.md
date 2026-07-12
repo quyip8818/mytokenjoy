@@ -2,7 +2,7 @@
 
 > 现行说明。配置细节见 [Backend-配置架构.md](./Backend-配置架构.md)；预算业务见 [Backend-预算.md](./Backend-预算.md)。  
 > outbox / lease / session TTL 属**墙钟**轨（与账期无关）；River job 调度（`scheduled_at`、retry、Unique `ByPeriod`）统一用 Postgres `NOW()`，不用 `cfg.Clock()`。  
-> 详见 [实现-离线任务管理.md](./实现-离线任务管理.md)、[Backend-River实现.md](./Backend-River实现.md) §4（Unique `ByPeriod`）。
+> 详见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-River实现.md](./Backend-River实现.md) §4（Unique `ByPeriod`）。
 > 本篇不谈：NewAPI `remain_quota` 算法。
 
 ---

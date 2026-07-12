@@ -38,12 +38,12 @@ func TestMonthlyRebalanceWorkerEnqueuesCompanyRebalance(t *testing.T) {
 
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) > 0 {
+		if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) > 0 {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
+	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected company rebalance after monthly_rebalance worker")
 	}
 }

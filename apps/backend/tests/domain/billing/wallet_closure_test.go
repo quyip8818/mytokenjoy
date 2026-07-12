@@ -2,14 +2,13 @@ package billing_test
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/app"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -25,12 +24,7 @@ func newBillingServiceWithSync(t *testing.T, client *mock.StubAdminClient) (doma
 	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
-		func(ctx context.Context, companyID int64) error {
-			return jobs.InsertRebalance(ctx, enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
-		},
-		func(ctx context.Context, companyID int64) error {
-			return jobs.InsertWalletSync(ctx, enqueuer, nil, companyID)
-		},
+		app.NewBillingEnqueuer(enqueuer),
 	)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {

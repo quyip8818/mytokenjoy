@@ -85,7 +85,7 @@ flowchart TB
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
 | `Ledger()` / `Usage()` / `BudgetSnapshots()`          | `usage_ledger`, `usage_buckets`, `budget_snapshots`                       |
 | `PlatformKeyMappings()`               | `platform_key_mappings`                                                     |
-| River `Insert` / `InsertTx`（经 `river.Client`） | `river_job` 等 River 表；见 [实现-离线任务管理.md](./实现-离线任务管理.md) |
+| River `Insert` / `InsertTx`（经 `river.Client`） | `river_job` 等 River 表；见 [Backend-离线任务.md](./Backend-离线任务.md) |
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                        |
 | `Company()` / `Invite()` / `Billing()` / `Platform()` | 租户与充值                                                                |
 | `Notification()` / `SchedulerLock()` / `Logs()`       | `notification_log`, `scheduler_locks`, 日志库三表                         |
@@ -146,7 +146,7 @@ flowchart LR
 
 ### `river_job`（离线任务）
 
-> 目标态；替代现网 `async_jobs`。业务见 [实现-离线任务管理.md](./实现-离线任务管理.md)；Schema / Unique 见 [Backend-River实现.md](./Backend-River实现.md)。
+> 目标态；替代现网 `async_jobs`。业务见 [Backend-离线任务.md](./Backend-离线任务.md)；Schema / Unique 见 [Backend-River实现.md](./Backend-River实现.md)。
 
 | kind（`JobArgs.Kind()`） | Worker | 队列 |
 | --- | --- | --- |
@@ -165,7 +165,7 @@ flowchart LR
 
 ## 5. 用量与入账
 
-> 目标态：Ingest 只写 ledger + River `InsertTx`；看板 / consumed 由异步投影写入。见 [实现-异步预算投影.md](./实现-异步预算投影.md)。
+> 目标态：Ingest 只写 ledger + River `InsertTx`；看板 / consumed 由异步投影写入。见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
 
 ```mermaid
 flowchart LR

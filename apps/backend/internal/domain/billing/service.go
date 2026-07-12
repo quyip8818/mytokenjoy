@@ -25,13 +25,12 @@ type Service interface {
 }
 
 type service struct {
-	cfg           config.Config
-	store         store.Store
-	reader        domainusage.Reader
-	client        adminport.Port
-	wallet        company.WalletService
-	rebalanceAxis func(ctx context.Context, companyID int64) error
-	enqueueSync   func(ctx context.Context, companyID int64) error
+	cfg      config.Config
+	store    store.Store
+	reader   domainusage.Reader
+	client   adminport.Port
+	wallet   company.WalletService
+	enqueuer JobEnqueuer
 }
 
 func NewService(
@@ -40,12 +39,14 @@ func NewService(
 	reader domainusage.Reader,
 	client adminport.Port,
 	wallet company.WalletService,
-	rebalanceAxis func(ctx context.Context, companyID int64) error,
-	enqueueSync func(ctx context.Context, companyID int64) error,
+	enqueuer JobEnqueuer,
 ) Service {
+	if enqueuer == nil {
+		enqueuer = NoopJobEnqueuer
+	}
 	return &service{
 		cfg: cfg, store: st, reader: reader, client: client, wallet: wallet,
-		rebalanceAxis: rebalanceAxis, enqueueSync: enqueueSync,
+		enqueuer: enqueuer,
 	}
 }
 

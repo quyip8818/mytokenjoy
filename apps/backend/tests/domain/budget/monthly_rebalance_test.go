@@ -22,15 +22,15 @@ func TestMonthlyRebalanceEnqueuesOnMonthChange(t *testing.T) {
 	if err := scheduler.EnqueueMonthlyRebalanceAll(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
+	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected company rebalance after month change")
 	}
 
-	before := testutil.PendingRebalanceCount(st, contract.DefaultCompanyID)
+	before := riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID)
 	if err := scheduler.EnqueueMonthlyRebalanceAll(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) != before {
+	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) != before {
 		t.Fatal("expected no duplicate monthly rebalance within same month")
 	}
 }

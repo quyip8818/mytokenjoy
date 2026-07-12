@@ -23,7 +23,7 @@ type OverrunService struct {
 	cfg        config.Config
 	store      store.Store
 	keyControl newapisync.OverrunKeyControl
-	notifier   Notifier
+	notifier   types.Notifier
 	logger     *slog.Logger
 }
 
@@ -31,7 +31,7 @@ func NewOverrunService(
 	cfg config.Config,
 	st store.Store,
 	keyControl newapisync.OverrunKeyControl,
-	notifier Notifier,
+	notifier types.Notifier,
 	logger *slog.Logger,
 ) *OverrunService {
 	return &OverrunService{

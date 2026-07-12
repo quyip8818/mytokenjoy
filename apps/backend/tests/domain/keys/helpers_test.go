@@ -8,7 +8,6 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -20,11 +19,6 @@ import (
 func testSyncEnqueuer(t *testing.T, cfg config.Config, st store.Store) newapisync.SyncJobEnqueuer {
 	t.Helper()
 	return app.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st))
-}
-
-func testEnqueuer(t *testing.T, cfg config.Config, st store.Store) jobs.Enqueuer {
-	t.Helper()
-	return riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
 }
 
 func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {

@@ -32,7 +32,7 @@ func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrant
 }
 
 func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {
-	return domainbudget.NewService(cfg, i.store, i.delayer, EnqueueRebalanceAxis(enqueuer))
+	return domainbudget.NewService(cfg, i.store, i.delayer, NewBudgetEnqueuer(enqueuer))
 }
 
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
@@ -64,7 +64,7 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader, enqueuer jobs.Enqueuer) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, EnqueueRebalanceCompany(enqueuer), EnqueueWalletSync(enqueuer))
+	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, NewBillingEnqueuer(enqueuer))
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {

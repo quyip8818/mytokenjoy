@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestWorkerProcessesRebalanceQueue(t *testing.T) {
@@ -39,7 +40,7 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	if stub.UpdateTokenCalls == 0 {
 		t.Fatal("expected rebalance processor to update token")
 	}
-	if testutil.PendingRebalanceCount(fix.st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingRebalanceCount(fix.st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected rebalance queue drained")
 	}
 }

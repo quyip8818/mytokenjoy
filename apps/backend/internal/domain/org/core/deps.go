@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -14,16 +13,12 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type Notifier interface {
-	Send(ctx context.Context, notification types.Notification) error
-}
-
 type Deps struct {
 	Cfg         config.Config
 	Store       store.Store
 	Factory     datasource.Factory
 	ModelLimits newapisync.ModelLimitsLifecycle
-	Notifier    Notifier
+	Notifier    types.Notifier
 	Delayer     common.Delayer
 	Logger      *slog.Logger
 	Grants      grants.Normalizer
@@ -35,7 +30,7 @@ func NewDeps(
 	st store.Store,
 	factory datasource.Factory,
 	modelLimits newapisync.ModelLimitsLifecycle,
-	notifier Notifier,
+	notifier types.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,

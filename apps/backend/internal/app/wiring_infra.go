@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -18,13 +19,12 @@ import (
 
 type infra struct {
 	store         store.Store
-	adminClient   newapi.AdminClient
 	adminPort     adminport.Port
 	newAPISync    newapisync.Lifecycle
 	channelPolicy newapisync.ChannelPolicy
 	wallet        domaincompany.WalletService
 	companyGate   *domaincompany.Gate
-	notifier      notification.Notifier
+	notifier      types.Notifier
 	delayer       common.Delayer
 	enqueuer      jobs.Enqueuer
 	budgetCheck   budgetcheck.Store
@@ -46,7 +46,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 
 	return infra{
 		store:         st,
-		adminClient:   adminClient,
 		adminPort:     adminPort,
 		channelPolicy: channelPolicy,
 		wallet:        wallet,

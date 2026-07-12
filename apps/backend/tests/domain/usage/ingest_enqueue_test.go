@@ -17,6 +17,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
@@ -32,16 +33,16 @@ func TestIngestEnqueuesBudgetProjectAndWalletSync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if testutil.PendingBudgetProjectCount(st, contract.DefaultCompanyID) == 0 {
+	if riverfix.PendingBudgetProjectCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected budget_project job after ingest")
 	}
-	if testutil.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no rebalance jobs directly from ingest")
 	}
-	if testutil.PendingOverrunCount(st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingOverrunCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no overrun jobs directly from ingest")
 	}
-	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
+	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected wallet_sync job after ingest")
 	}
 }
@@ -76,10 +77,10 @@ func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 	if ingested {
 		t.Fatal("expected no ledger row when enqueue fails inside transaction")
 	}
-	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no wallet_sync job after rollback")
 	}
-	if testutil.PendingBudgetProjectCount(st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingBudgetProjectCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no budget_project job after rollback")
 	}
 }

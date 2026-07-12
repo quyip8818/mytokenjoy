@@ -16,6 +16,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestBillingWalletAfterPlatformRecharge(t *testing.T) {
@@ -93,7 +94,7 @@ func TestBillingSelfRechargeConfirmFlow(t *testing.T) {
 	if stored.Status != store.RechargeStatusConfirmed {
 		t.Fatalf("expected confirmed, got %s", stored.Status)
 	}
-	if testutil.PendingRebalanceCount(app.Store, provisioned.Company.ID) == 0 {
+	if riverfix.PendingRebalanceCount(app.Store, provisioned.Company.ID) == 0 {
 		t.Fatal("expected rebalance after confirmed recharge")
 	}
 }

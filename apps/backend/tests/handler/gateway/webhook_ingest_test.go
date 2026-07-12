@@ -17,6 +17,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func newWebhookApp(t *testing.T, mutate func(*config.Config)) *app.App {
@@ -77,7 +78,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 	if err != nil || !ingested {
 		t.Fatalf("expected ledger after worker, ingested=%v err=%v", ingested, err)
 	}
-	if testutil.PendingBudgetProjectCount(application.Store, contract.DefaultCompanyID) == 0 {
+	if riverfix.PendingBudgetProjectCount(application.Store, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected budget_project job after ingest")
 	}
 	if n := testutil.PendingIngestJobCount(t, application.Store); n != 0 {

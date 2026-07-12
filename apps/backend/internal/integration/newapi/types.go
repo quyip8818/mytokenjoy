@@ -49,8 +49,3 @@ type UpsertChannelRequest struct {
 	Key    string `json:"key"`
 	Status int    `json:"status"`
 }
-
-const (
-	TokenStatusEnabled  = 1
-	TokenStatusDisabled = 2
-)

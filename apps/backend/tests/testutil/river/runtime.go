@@ -120,8 +120,20 @@ func PendingJobCount(st store.Store, kind string, companyID int64) int {
 	return count
 }
 
-func HasPendingWalletSync(st store.Store, companyID int64) bool {
-	return PendingJobCount(st, jobs.KindWalletSync, companyID) > 0
+func PendingRebalanceCount(st store.Store, companyID int64) int {
+	return PendingJobCount(st, jobs.KindRebalance, companyID)
+}
+
+func PendingOverrunCount(st store.Store, companyID int64) int {
+	return PendingJobCount(st, jobs.KindOverrun, companyID)
+}
+
+func PendingWalletSyncCount(st store.Store, companyID int64) int {
+	return PendingJobCount(st, jobs.KindWalletSync, companyID)
+}
+
+func PendingBudgetProjectCount(st store.Store, companyID int64) int {
+	return PendingJobCount(st, jobs.KindBudgetProject, companyID)
 }
 
 func ListPendingNewAPISync(st store.Store, subKind string, limit int) int {
@@ -146,12 +158,4 @@ func ListPendingNewAPISync(st store.Store, subKind string, limit int) int {
 		n++
 	}
 	return n
-}
-
-func WaitForJobs(t *testing.T, ctx context.Context, r *TestRuntime, rounds int) {
-	t.Helper()
-	for i := 0; i < rounds; i++ {
-		r.WorkOnce(t, ctx)
-		time.Sleep(10 * time.Millisecond)
-	}
 }

@@ -19,6 +19,7 @@ export const mockBudgetTree: BudgetNode[] = [
     budget: 50000,
     consumed: 10000,
     period: '2026-01',
+    memberAvgBudget: 0,
     children: [],
   },
 ]

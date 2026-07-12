@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
-import { useAsyncFetch, useMemberBudgetQuotas } from '@/features/budget'
+import { useAsyncFetch } from '@/features/budget'
 
 const emptyMemberBudgets: MemberBudgetQuota[] = []
 
@@ -36,11 +36,6 @@ export function BudgetEditMemberBudget({
   applyAverageBudget,
 }: BudgetEditMemberBudgetProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const {
-    loading: loadingDisplay,
-    data: members,
-    refresh,
-  } = useMemberBudgetQuotas(node.id, getMemberBudgets)
 
   return (
     <div className="rounded-lg border border-border p-4">
@@ -77,10 +72,7 @@ export function BudgetEditMemberBudget({
         getMemberBudgets={getMemberBudgets}
         updateMemberBudget={updateMemberBudget}
         applyAverageBudget={applyAverageBudget}
-        onUpdated={() => {
-          onUpdated()
-          void refresh()
-        }}
+        onUpdated={onUpdated}
       />
     </div>
   )

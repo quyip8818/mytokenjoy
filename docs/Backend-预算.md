@@ -403,7 +403,7 @@ sequenceDiagram
 | 快照加载 | `pkg/budget` |
 | Gateway 预检 | `domain/gateway` |
 | 充值 | `domain/billing` |
-| 异步任务 | `river_job`（River；见 [实现-离线任务管理.md](./实现-离线任务管理.md)） |
+| 异步任务 | `river_job`（River；见 [Backend-离线任务.md](./Backend-离线任务.md)） |
 
 ---
 

@@ -16,6 +16,12 @@ func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
+	if budget < 0 {
+		return types.BudgetNode{}, domain.Validation("budget must be non-negative")
+	}
+	if reservedPool != nil && *reservedPool < 0 {
+		return types.BudgetNode{}, domain.Validation("reservedPool must be non-negative")
+	}
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetNode{}, err
 	}
@@ -90,6 +96,9 @@ func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types
 }
 
 func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudgetQuota, error) {
+	if personalBudget < 0 {
+		return types.MemberBudgetQuota{}, domain.Validation("personalBudget must be non-negative")
+	}
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.MemberBudgetQuota{}, err
 	}

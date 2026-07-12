@@ -286,7 +286,7 @@ flowchart TB
 
 ### 6.3 入账后副作用
 
-> 目标态见 [实现-异步预算投影.md](./实现-异步预算投影.md) §6、[实现-离线任务管理.md](./实现-离线任务管理.md)。入队统一为 River `Insert` / `InsertTx` → `river_job`。
+> 目标态见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。入队统一为 River `Insert` / `InsertTx` → `river_job`。
 
 | 副作用 | 条件 | River kind |
 | --- | --- | --- |
@@ -300,7 +300,7 @@ flowchart TB
 
 ## 7. 后台运行时（目标态）
 
-**两条线、两个包**（详见 [实现-离线任务管理.md](./实现-离线任务管理.md) §1）：
+**两条线、两个包**（详见 [Backend-离线任务.md](./Backend-离线任务.md) §1）：
 
 ```mermaid
 flowchart TB

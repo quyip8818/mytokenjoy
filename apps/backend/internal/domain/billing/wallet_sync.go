@@ -77,10 +77,8 @@ func (s *service) ReconcileWalletDrift(ctx context.Context) error {
 		if drift <= common.WalletSyncDriftEpsilon {
 			continue
 		}
-		if s.enqueueSync != nil {
-			if err := s.enqueueSync(company.WithContext(ctx, company.Context{CompanyID: co.ID}), co.ID); err != nil {
-				slog.Warn("wallet drift reconcile: enqueue wallet sync failed", "company_id", co.ID, "err", err)
-			}
+		if err := s.enqueuer.InsertWalletSync(company.WithContext(ctx, company.Context{CompanyID: co.ID}), co.ID); err != nil {
+			slog.Warn("wallet drift reconcile: enqueue wallet sync failed", "company_id", co.ID, "err", err)
 		}
 	}
 	return nil

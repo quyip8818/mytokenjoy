@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-func NotifySyncThresholdExceeded(ctx context.Context, notifier Notifier, cfg types.SyncConfig, detail string) {
+func NotifySyncThresholdExceeded(ctx context.Context, notifier types.Notifier, cfg types.SyncConfig, detail string) {
 	if notifier == nil {
 		return
 	}

@@ -20,7 +20,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenMissingWallet(t *test
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), nil, nil)
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
 
 	const companyID int64 = 888_001
 	ctx := context.Background()
@@ -43,7 +43,7 @@ func TestSyncCompanyWalletPropagatesStoreErrors(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{}
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), nil, nil)
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
 
 	err := svc.SyncCompanyWallet(context.Background(), 9_999_999_999)
 	if err == nil {

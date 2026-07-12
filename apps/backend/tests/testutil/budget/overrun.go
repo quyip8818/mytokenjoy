@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -23,7 +24,7 @@ func NewOverrunService(
 	cfg config.Config,
 	st store.Store,
 	stub *mock.StubAdminClient,
-	notifier notification.Notifier,
+	notifier types.Notifier,
 ) *budget.OverrunService {
 	t.Helper()
 	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, newapisync.NewChannelPolicy(cfg), app.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))

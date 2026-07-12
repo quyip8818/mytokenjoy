@@ -24,10 +24,6 @@ func ServiceUnavailable(msg string) error {
 	return NewDomainError(StatusServiceUnavailable, msg)
 }
 
-func Unimplemented(msg string) error {
-	return NewDomainError(StatusNotImplemented, msg)
-}
-
 func TooManyRequests(msg string) error {
 	return NewDomainError(StatusTooManyRequests, msg)
 }

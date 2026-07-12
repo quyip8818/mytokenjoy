@@ -122,20 +122,16 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 }
 
 func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
-	if s.enqueueSync != nil {
-		if err := s.enqueueSync(ctx, companyID); err != nil {
-			slog.Warn("after recharge: enqueue wallet sync failed", "company_id", companyID, "err", err)
-		}
+	if err := s.enqueuer.InsertWalletSync(ctx, companyID); err != nil {
+		slog.Warn("after recharge: enqueue wallet sync failed", "company_id", companyID, "err", err)
 	}
-	if s.rebalanceAxis != nil {
-		co, err := s.store.Company().GetByID(ctx, companyID)
-		if err == nil && co != nil && co.NewAPIWalletUserID != nil {
-			companyCtx := company.WithContext(ctx, company.Context{
-				CompanyID: companyID, NewAPIWalletUserID: *co.NewAPIWalletUserID, Status: co.Status,
-			})
-			if err := s.rebalanceAxis(companyCtx, companyID); err != nil {
-				slog.Warn("after recharge: enqueue rebalance failed", "company_id", companyID, "err", err)
-			}
+	co, err := s.store.Company().GetByID(ctx, companyID)
+	if err == nil && co != nil && co.NewAPIWalletUserID != nil {
+		companyCtx := company.WithContext(ctx, company.Context{
+			CompanyID: companyID, NewAPIWalletUserID: *co.NewAPIWalletUserID, Status: co.Status,
+		})
+		if err := s.enqueuer.InsertRebalanceCompany(companyCtx, companyID); err != nil {
+			slog.Warn("after recharge: enqueue rebalance failed", "company_id", companyID, "err", err)
 		}
 	}
 	return nil

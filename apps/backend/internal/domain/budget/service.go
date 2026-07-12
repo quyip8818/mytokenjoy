@@ -41,19 +41,22 @@ type Service interface {
 }
 
 type service struct {
-	cfg                  config.Config
-	store                store.Store
-	delayer              common.Delayer
-	logger               *slog.Logger
-	enqueueRebalanceAxis func(context.Context, string, string) error
+	cfg      config.Config
+	store    store.Store
+	delayer  common.Delayer
+	logger   *slog.Logger
+	enqueuer JobEnqueuer
 }
 
-func NewService(cfg config.Config, st store.Store, delayer common.Delayer, enqueueRebalanceAxis func(context.Context, string, string) error) Service {
+func NewService(cfg config.Config, st store.Store, delayer common.Delayer, enqueuer JobEnqueuer) Service {
+	if enqueuer == nil {
+		enqueuer = NoopJobEnqueuer
+	}
 	return &service{
-		cfg:                  cfg,
-		store:                st,
-		delayer:              delayer,
-		logger:               slog.Default(),
-		enqueueRebalanceAxis: enqueueRebalanceAxis,
+		cfg:      cfg,
+		store:    st,
+		delayer:  delayer,
+		logger:   slog.Default(),
+		enqueuer: enqueuer,
 	}
 }

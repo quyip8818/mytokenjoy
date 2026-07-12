@@ -16,6 +16,7 @@ function makeNode(overrides: Partial<BudgetNode> & Pick<BudgetNode, 'id' | 'name
     budget: 1000,
     consumed: 100,
     period: '2026-01',
+    memberAvgBudget: 0,
     ...overrides,
   }
 }

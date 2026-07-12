@@ -2,9 +2,9 @@
 
 > **定位**：离线任务 **as-built** 说明——当前代码如何实现、从哪入队、谁消费。  
 > **基础设施细节**（Schema、Unique、`InsertInTx` 约定）：[Backend-River实现.md](./Backend-River实现.md)  
-> **剩余验收**：[实现-离线任务管理.md](./实现-离线任务管理.md)  
+> **投影实现与剩余验收**：[Backend-预算.md](./Backend-预算.md)  
 > **入账快路径**：[Backend-Ingest架构.md](./Backend-Ingest架构.md)  
-> **预算投影域**：[Backend-预算.md](./Backend-预算.md)、[实现-异步预算投影.md](./实现-异步预算投影.md)
+> **预算投影域**：[Backend-预算.md](./Backend-预算.md)、[Backend-离线任务.md](./Backend-离线任务.md)
 
 ---
 
@@ -233,7 +233,7 @@ Leader 选举与漏 tick 说明见 [Backend-River实现.md §6、§8](./Backend-
 - Gateway 预检读 `gateway_soft_summaries`（`GatewaySoftVersion` / `GatewaySoftRemain`），经 `budgetcheck` 进程内缓存加速
 - 看板读 `usage_buckets`，由 `dashboard.Projector` / `dashboard.ReconcileService` 独立维护
 
-设计细节见 [Backend-预算.md](./Backend-预算.md)、[实现-异步预算投影.md](./实现-异步预算投影.md)。
+设计细节见 [Backend-预算.md](./Backend-预算.md)、[Backend-离线任务.md](./Backend-离线任务.md)。
 
 ---
 
@@ -301,6 +301,5 @@ internal/
 | [Backend-River实现.md](./Backend-River实现.md) | Schema、Unique 映射、队列、失败恢复 |
 | [Backend-架构.md](./Backend-架构.md) §7 | 后台运行时、NewAPISync 与 Worker 关系 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest |
-| [实现-离线任务管理.md](./实现-离线任务管理.md) | 剩余验收项 |
-| [实现-异步预算投影.md](./实现-异步预算投影.md) | 投影 schema 与 Gateway 读路径 |
+| [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md) | 异步预算投影、离线任务（已基本落地） |
 | [Backend-预算.md](./Backend-预算.md) | 预算域设计 |

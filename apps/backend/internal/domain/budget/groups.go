@@ -144,12 +144,10 @@ func (s *service) DeleteGroup(ctx context.Context, id string) error {
 	if err == nil {
 		s.logger.Info("budget.group.deleted", "group_id", id)
 		// Enqueue rebalance for affected members so their keys get updated quotas
-		if s.enqueueRebalanceAxis != nil {
-			for _, memberID := range deletedMemberIDs {
-				if rebalErr := s.enqueueRebalanceAxis(ctx, store.RebalanceAxisMember, memberID); rebalErr != nil {
-					s.logger.Error("enqueue rebalance failed after group delete",
-						"group_id", id, "member_id", memberID, "error", rebalErr)
-				}
+		for _, memberID := range deletedMemberIDs {
+			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); rebalErr != nil {
+				s.logger.Error("enqueue rebalance failed after group delete",
+					"group_id", id, "member_id", memberID, "error", rebalErr)
 			}
 		}
 	}

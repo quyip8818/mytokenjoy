@@ -19,7 +19,7 @@
 | **NewAPIKey** | PlatformKey 在 NewAPI 上的对应（列 `newapi_key_id`） |
 | **ProviderKey** / **NewAPIChannel** | 上游凭证 ↔ NewAPI Channel（列 `newapi_channel_id`） |
 | **PlatformKeyMapping** | PlatformKey ↔ NewAPIKey 同步状态与 remain 缓存（表 `platform_key_mappings`） |
-| **River Jobs** | `river_job`：离线任务统一队列（替代 `async_jobs`）；见 [实现-离线任务管理.md](./实现-离线任务管理.md) |
+| **River Jobs** | `river_job`：离线任务统一队列（替代 `async_jobs`）；见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md) |
 
 ```text
 调用：sk-xxx → Gateway → key_hash → PlatformKeyMapping → Precheck → 反代 NewAPI
@@ -273,7 +273,7 @@ type Store interface {
 }
 ```
 
-离线任务 **不在 Store**：由 `internal/infra/river.Client` 负责 `Insert` / `InsertTx`（见 [实现-离线任务管理.md](./实现-离线任务管理.md)）。
+离线任务 **不在 Store**：由 `internal/infra/river.Client` 负责 `Insert` / `InsertTx`（见 [Backend-离线任务.md](./Backend-离线任务.md)）。
 
 | 模式     | 条件                               | 说明                                                                          |
 | -------- | ---------------------------------- | ----------------------------------------------------------------------------- |
@@ -416,7 +416,7 @@ flowchart TB
 | Worker newapi_sync outbox | `OutboxHandler`（Platform + Provider + ModelLimits + Rebalance） |
 | `app` 装配 | `Lifecycle`（上述全部 + `NewAPIGate`） |
 
-实现位于 `domain/newapisync/lifecycle_*.go`；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [实现-离线任务管理.md](./实现-离线任务管理.md)。
+实现位于 `domain/newapisync/lifecycle_*.go`；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [Backend-离线任务.md](./Backend-离线任务.md)。
 
 ### 7.1 后台运行时（简化后）
 

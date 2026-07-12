@@ -6,25 +6,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
-
-func LoadBudgetTreeT(t *testing.T, ctx context.Context, st store.Store) []types.BudgetNode {
-	t.Helper()
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return tree
-}
-
-func PersistBudgetTreeT(t *testing.T, ctx context.Context, st store.Store, tree []types.BudgetNode) {
-	t.Helper()
-	if err := PersistBudgetTree(ctx, st, tree); err != nil {
-		t.Fatal(err)
-	}
-}
 
 func PersistBudgetTree(ctx context.Context, st store.Store, tree []types.BudgetNode) error {
 	nodes, err := st.Org().Nodes().Tree(ctx)
@@ -33,15 +16,6 @@ func PersistBudgetTree(ctx context.Context, st store.Store, tree []types.BudgetN
 	}
 	types.ApplyBudgetTreeToOrgNodes(nodes, tree)
 	return st.Budget().OrgNodeBudget().UpsertMany(ctx, pkgbudget.OrgNodeBudgetRowsFromNodes(nodes))
-}
-
-func LoadDepartmentsT(t *testing.T, ctx context.Context, st store.Store) []types.Department {
-	t.Helper()
-	depts, err := common.LoadDepartments(ctx, st.Org().Nodes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return depts
 }
 
 func PersistDepartmentsT(t *testing.T, ctx context.Context, st store.Store, departments []types.Department) {

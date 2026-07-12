@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -31,39 +30,4 @@ func NotificationLogs(st store.Store) []types.NotificationLogEntry {
 		return nil
 	}
 	return logs
-}
-
-func PendingRebalanceCount(st store.Store, companyID int64) int {
-	return pendingJobCount(st, jobs.KindRebalance, companyID)
-}
-
-func PendingOverrunCount(st store.Store, companyID int64) int {
-	return pendingJobCount(st, jobs.KindOverrun, companyID)
-}
-
-func PendingWalletSyncCount(st store.Store, companyID int64) int {
-	return pendingJobCount(st, jobs.KindWalletSync, companyID)
-}
-
-func PendingBudgetProjectCount(st store.Store, companyID int64) int {
-	return pendingJobCount(st, jobs.KindBudgetProject, companyID)
-}
-
-func pendingJobCount(st store.Store, kind string, companyID int64) int {
-	ctx := CtxForCompany(companyID)
-	pool := postgres.MainPool(st)
-	if pool == nil {
-		return 0
-	}
-	var count int
-	if err := pool.QueryRow(ctx, `
-		SELECT COUNT(*)
-		FROM river_job
-		WHERE kind = $1
-		  AND state IN ('available', 'retryable', 'scheduled', 'running')
-		  AND (args->>'company_id')::bigint = $2
-	`, kind, companyID).Scan(&count); err != nil {
-		return 0
-	}
-	return count
 }

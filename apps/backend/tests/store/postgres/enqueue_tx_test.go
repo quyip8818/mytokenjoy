@@ -30,7 +30,7 @@ func TestInsertInTxRollsBackWithStoreTransaction(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected forced rollback error")
 	}
-	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
+	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no wallet_sync job after transaction rollback")
 	}
 }
@@ -50,7 +50,7 @@ func TestInsertInTxCommitsWithStoreTransaction(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if testutil.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 1 {
+	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 1 {
 		t.Fatal("expected wallet_sync job after transaction commit")
 	}
 }

@@ -1,10 +1,6 @@
 package budget
 
-import (
-	"context"
-
-	"github.com/tokenjoy/backend/internal/domain/types"
-)
+import "context"
 
 // JobEnqueuer enqueues budget-domain River jobs without coupling to infra/jobs.
 type JobEnqueuer interface {
@@ -14,7 +10,16 @@ type JobEnqueuer interface {
 	InsertBudgetReconcile(ctx context.Context, companyID int64) error
 }
 
-// Notifier sends domain notifications without coupling to infra/notification.
-type Notifier interface {
-	Send(ctx context.Context, notification types.Notification) error
+type noopJobEnqueuer struct{}
+
+func (noopJobEnqueuer) InsertBudgetProject(context.Context, int64) error { return nil }
+func (noopJobEnqueuer) InsertOverrun(context.Context, int64, []byte) error {
+	return nil
 }
+func (noopJobEnqueuer) InsertRebalance(context.Context, int64, string, string) error { return nil }
+func (noopJobEnqueuer) InsertBudgetReconcile(context.Context, int64) error           { return nil }
+
+// NoopJobEnqueuer is the default when async budget jobs are disabled.
+var NoopJobEnqueuer JobEnqueuer = noopJobEnqueuer{}
+
+var _ JobEnqueuer = noopJobEnqueuer{}

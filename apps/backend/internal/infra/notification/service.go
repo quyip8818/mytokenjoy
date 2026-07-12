@@ -15,10 +15,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type Notifier interface {
-	Send(ctx context.Context, notification types.Notification) error
-}
-
 type Service struct {
 	cfg        config.Config
 	store      store.Store
@@ -38,7 +34,7 @@ func NewService(cfg config.Config, st store.Store, logger *slog.Logger) *Service
 	}
 }
 
-var _ Notifier = (*Service)(nil)
+var _ types.Notifier = (*Service)(nil)
 
 func (s *Service) Send(ctx context.Context, notification types.Notification) error {
 	payload, err := json.Marshal(notification.Payload)
@@ -116,33 +112,4 @@ func (s *Service) recordWebhookFailure(
 	}
 	_ = s.store.Notification().Append(ctx, entry)
 	s.logger.Warn("notification webhook failed", "event", notification.EventType, "error", sendErr)
-}
-
-func LogSyncThresholdExceeded(logger *slog.Logger, cfg types.SyncConfig, detail string) {
-	if logger == nil {
-		logger = slog.Default()
-	}
-	logger.Warn(
-		"sync threshold exceeded",
-		"detail", detail,
-		"notifyPhone", cfg.NotifyPhone,
-		"notifyEmail", cfg.NotifyEmail,
-		"notifyIm", cfg.NotifyIm,
-	)
-}
-
-func NotifySyncThresholdExceeded(ctx context.Context, notifier Notifier, cfg types.SyncConfig, detail string) {
-	if notifier == nil {
-		LogSyncThresholdExceeded(slog.Default(), cfg, detail)
-		return
-	}
-	_ = notifier.Send(ctx, types.Notification{
-		EventType: types.NotificationEventSyncThreshold,
-		Payload: map[string]any{
-			"detail":      detail,
-			"notifyPhone": cfg.NotifyPhone,
-			"notifyEmail": cfg.NotifyEmail,
-			"notifyIm":    cfg.NotifyIm,
-		},
-	})
 }

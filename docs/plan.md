@@ -183,15 +183,14 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ## §8 异步预算投影与离线任务管理
 
-设计文档（**同轮 wipe 落地**）：
+设计文档（已合并）：
 
 | 文档 | 状态 | 内容 |
 | --- | --- | --- |
-| [实现-离线任务管理.md](./实现-离线任务管理.md) | **部分完成** | River 基线已落地；剩余 `budget_project` + Periodic fanout |
 | [Backend-River实现.md](./Backend-River实现.md) | **已落地** | River 基础设施：Schema、Unique、队列、可观测 |
-| [实现-异步预算投影.md](./实现-异步预算投影.md) | **下一步** | ledger 单写、`budget_consumed` 异步、Gateway 瘦 SQL；**定时任务机制已就绪**（fanout kind 待注册） |
+| [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md) | **已基本落地** | 异步预算投影 + 离线任务；剩余产品确认、lag 可观测与 Redis smoke |
 
-实施顺序：River step 0–3 ✅ → [实现-异步预算投影.md](./实现-异步预算投影.md) §14 step 2–5 → 离线任务 fanout（[实现-离线任务管理.md](./实现-离线任务管理.md) §2–§4）。
+实施状态：River、`budget_project`、Periodic fanout、Dashboard 投影与 Gateway 瘦化均已落地；剩余项见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
 
 ---
 

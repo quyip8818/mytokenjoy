@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/seed/contract"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
@@ -16,15 +15,6 @@ type IngestBudgetFixture struct {
 	PlatformKeyID string
 	MemberID      string // empty when ingest mapping has no member quota axis
 	Amount        float64
-}
-
-func DefaultIngestBudgetFixture() IngestBudgetFixture {
-	return IngestBudgetFixture{
-		DepartmentID:  contract.IDDept3,
-		PlatformKeyID: contract.IDPlatformKey1,
-		MemberID:      contract.IDMember1,
-		Amount:        DefaultConsumeLogQuota(),
-	}
 }
 
 func DefaultConsumeLogQuota() float64 {
