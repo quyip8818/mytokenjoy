@@ -172,6 +172,16 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []string, depart
 			deptName = *path
 		}
 
+		// Load target department's member_avg_budget for personal budget reassignment
+		targetBudgetRow, found, err := st.Budget().OrgNodeBudget().Get(ctx, departmentID)
+		if err != nil {
+			return err
+		}
+		targetAvgBudget := 0.0
+		if found && targetBudgetRow.MemberAvgBudget > 0 {
+			targetAvgBudget = targetBudgetRow.MemberAvgBudget
+		}
+
 		members, err := st.Org().Members(ctx)
 		if err != nil {
 			return err
@@ -187,6 +197,11 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []string, depart
 			}
 			members[i].DepartmentID = departmentID
 			members[i].DepartmentName = deptName
+
+			// Update personal budget to target department's average
+			if targetAvgBudget > 0 {
+				members[i].PersonalBudget = targetAvgBudget
+			}
 
 			mappings, err := st.PlatformKeyMappings().ListMappingsByMemberID(ctx, members[i].ID)
 			if err != nil {
