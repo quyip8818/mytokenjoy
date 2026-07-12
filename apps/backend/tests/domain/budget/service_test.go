@@ -16,12 +16,13 @@ import (
 func TestUpdateNodeSuccess(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
+	prepareDept3NodeUpdateFixture(t, st)
 	reserved := budgetfix.DisplayPoints(1500)
-	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.DisplayPoints(21000), &reserved)
+	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
+	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, wantBudget, &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantBudget := budgetfix.DisplayPoints(21000)
 	if updated.Budget != wantBudget {
 		t.Fatalf("expected budget %v, got %v", wantBudget, updated.Budget)
 	}
@@ -184,9 +185,10 @@ func TestDeptRemainingAllocatableBudget(t *testing.T) {
 func TestOrgSyncSetTreeDoesNotOverwriteBudget(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
+	prepareDept3NodeUpdateFixture(t, st)
 	ctx := testutil.Ctx()
-	wantBudget := budgetfix.DisplayPoints(21000)
 	reserved := budgetfix.DisplayPoints(1500)
+	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
 	if _, err := svc.UpdateNode(ctx, contract.IDDept3, wantBudget, &reserved); err != nil {
 		t.Fatal(err)
 	}

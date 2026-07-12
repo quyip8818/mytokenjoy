@@ -8,6 +8,25 @@ import (
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
+func TestValidateBudgetNodeUpdateIncludesProjectsAndMembers(t *testing.T) {
+	t.Parallel()
+	tree := []types.BudgetNode{
+		{ID: "dept-a", Budget: 100000},
+	}
+	groups := []types.BudgetGroup{
+		{ID: "bg-1", Budget: 10000, DepartmentIDs: []string{"dept-a"}},
+	}
+	members := []types.Member{
+		{ID: "m-1", DepartmentID: "dept-a", PersonalBudget: 20000},
+	}
+	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-a", 25000, 5000, groups, members); msg == nil {
+		t.Fatal("expected budget below project+member+reserved allocation to fail")
+	}
+	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-a", 35000, 5000, groups, members); msg != nil {
+		t.Fatalf("expected budget covering allocations to pass, got %s", *msg)
+	}
+}
+
 func TestValidateBudgetNodeUpdate(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
