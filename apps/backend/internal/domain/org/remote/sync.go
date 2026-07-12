@@ -10,9 +10,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *Service) TriggerSync(ctx context.Context) (types.ImportResult, error) {

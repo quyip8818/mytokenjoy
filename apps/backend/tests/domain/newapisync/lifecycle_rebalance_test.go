@@ -6,15 +6,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 )
 
 type stubWallet struct {
@@ -38,53 +34,21 @@ func TestTrySyncCreateCapsRemainQuotaByWallet(t *testing.T) {
 		},
 	}
 
-	cfg, st := testutil.NewTestStore(t,
-		testutil.WithNewAPIEnabled(true),
-		testutil.WithNewAPIBaseURL("http://newapi.test"),
-		testutil.WithNewAPIAdminToken("token"),
-	)
+	sync, _, st := newapisynctf.NewTestService(t, newapisynctf.TestServiceOpts{
+		Stub:   stub,
+		Wallet: &stubWallet{quota: walletCap},
+	})
+
 	const walletUserID int64 = 501
 	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
 	if err := st.Company().UpdateNewAPIWalletUserID(ctx, contract.DefaultCompanyID, walletUserID); err != nil {
 		t.Fatal(err)
 	}
 
-	sync := newapisync.New(
-		cfg,
-		st,
-		newapi.NewAdminPortAdapter(stub),
-		&stubWallet{quota: walletCap},
-		newapisync.NewChannelPolicy(config.Config{}),
-		riverfix.NewInsertOnlyEnqueuer(t, cfg, st),
-	)
-
-	memberID := contract.IDMember1
-	key := types.PlatformKey{
-		ID:             "plk-wallet-cap",
-		Name:           "wallet-cap-key",
-		MemberID:       &memberID,
-		Status:         "active",
-		Budget:         1000,
-		ModelWhitelist: []int64{contract.IDModel1},
-		CreatedAt:      "2026-06-19",
-	}
-	keys, err := st.Keys().PlatformKeys(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keys = append(keys, key)
-	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
-		CompanyID:     contract.DefaultCompanyID,
-		PlatformKeyID: key.ID,
-		MemberID:      &memberID,
-		DepartmentID:  contract.IDDept3,
-		SyncStatus:    store.MappingSyncStatusPending,
-	}); err != nil {
-		t.Fatal(err)
-	}
+	key := newapisynctf.SeedPendingPlatformKey(t, st, newapisynctf.PendingPlatformKeyOpts{
+		ID:   "plk-wallet-cap",
+		Name: "wallet-cap-key",
+	})
 
 	if _, err := sync.TrySyncCreate(ctx, key.ID); err != nil {
 		t.Fatalf("TrySyncCreate: %v", err)

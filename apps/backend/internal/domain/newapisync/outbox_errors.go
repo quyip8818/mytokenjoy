@@ -1,8 +1,6 @@
 package newapisync
 
 import (
-	"strings"
-
 	"github.com/tokenjoy/backend/internal/domain"
 )
 
@@ -13,9 +11,5 @@ func IsPermanentOutboxError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if domain.IsServiceUnavailable(err) {
-		return true
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "unmarshal") || strings.Contains(msg, "unknown newapi sync outbox kind")
+	return domain.IsServiceUnavailable(err)
 }

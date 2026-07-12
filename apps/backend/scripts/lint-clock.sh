@@ -20,7 +20,8 @@ done < <(rg -n --glob '*.go' 'SnapshotKey\([^)]*time\.Now' \
   internal/domain \
   internal/pkg/budget \
   internal/store \
-  internal/infra/worker \
+  internal/infra/river \
+  internal/infra/ingest \
   seed || true)
 
 # Domain open-budget paths must use Open*/Occurrence* factories, not SnapshotKey.

@@ -28,7 +28,7 @@ function manualChunks(id: string): string | undefined {
 
 export const baseViteConfig: UserConfig = {
   base: '/',
-  plugins: [react(), tailwindcss(), apiBackendHealthPlugin()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -54,4 +54,7 @@ export const baseViteConfig: UserConfig = {
   },
 }
 
-export default defineConfig(baseViteConfig)
+export default defineConfig({
+  ...baseViteConfig,
+  plugins: [...(baseViteConfig.plugins ?? []), apiBackendHealthPlugin()],
+})

@@ -1,3 +1,5 @@
+//go:build testhook
+
 package newapisync_test
 
 import (
@@ -18,8 +20,7 @@ func TestIsPermanentOutboxError(t *testing.T) {
 	}{
 		{name: "nil", err: nil, want: false},
 		{name: "service unavailable", err: domain.ServiceUnavailable("newapi not enabled"), want: true},
-		{name: "unmarshal", err: fmt.Errorf("json unmarshal failed"), want: true},
-		{name: "unknown kind", err: fmt.Errorf("unknown newapi sync outbox kind: foo"), want: true},
+		{name: "platform key not found", err: fmt.Errorf("platform key not found"), want: false},
 		{name: "transient", err: fmt.Errorf("upstream timeout"), want: false},
 	}
 

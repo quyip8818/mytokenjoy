@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain"
+	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -148,7 +148,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
-		handler := httpmiddleware.AuthzRevisionHeader(&stubCompanyRepo{revision: 99})(next)
+		handler := httpmiddleware.AuthzRevisionHeader(&stubCompanyRepo{})(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/org/departments/tree", nil)
 		req = req.WithContext(httpx.WithSessionContext(req.Context(), types.SessionContext{

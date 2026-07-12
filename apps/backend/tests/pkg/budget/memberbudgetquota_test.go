@@ -7,8 +7,8 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestValidateMemberQuotaBelowAllocated(t *testing.T) {

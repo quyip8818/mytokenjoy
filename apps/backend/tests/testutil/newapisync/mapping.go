@@ -5,8 +5,8 @@ package newapisync
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )

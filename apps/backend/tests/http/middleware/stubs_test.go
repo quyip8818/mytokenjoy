@@ -5,8 +5,8 @@ package middleware_test
 import (
 	"context"
 
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain"
+	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -32,7 +32,9 @@ func (s *stubCompanyRepo) GetByID(context.Context, int64) (*store.Company, error
 func (s *stubCompanyRepo) GetBySlug(context.Context, string) (*store.Company, error) {
 	panic("stubCompanyRepo: GetBySlug")
 }
-func (s *stubCompanyRepo) Create(context.Context, store.Company) error { panic("stubCompanyRepo: Create") }
+func (s *stubCompanyRepo) Create(context.Context, store.Company) error {
+	panic("stubCompanyRepo: Create")
+}
 func (s *stubCompanyRepo) UpdateStatus(context.Context, int64, string) error {
 	panic("stubCompanyRepo: UpdateStatus")
 }
@@ -51,7 +53,9 @@ func (s *stubCompanyRepo) GetAuthzRevision(context.Context, int64) (int64, error
 func (s *stubCompanyRepo) BumpAuthzRevision(context.Context, int64) (int64, error) {
 	panic("stubCompanyRepo: BumpAuthzRevision")
 }
-func (s *stubCompanyRepo) List(context.Context) ([]store.Company, error) { panic("stubCompanyRepo: List") }
+func (s *stubCompanyRepo) List(context.Context) ([]store.Company, error) {
+	panic("stubCompanyRepo: List")
+}
 func (s *stubCompanyRepo) LockForUpdate(context.Context, int64) (*store.Company, error) {
 	panic("stubCompanyRepo: LockForUpdate")
 }
