@@ -14,7 +14,7 @@
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、异步投影、Rebalance、Overrun、分配规则     |
-| [Platform-Key产品设计.md](./Platform-Key产品设计.md) | Platform Key 三 scope、Gateway BudgetChain、schema |
+| [Platform-Key产品设计.md](./Platform-Key产品设计.md) | Platform Key 三 scope 实现文档（Schema、执法链、代码索引） |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
@@ -143,14 +143,14 @@ sequenceDiagram
 | 约束                | 说明                                                     |
 | ------------------- | -------------------------------------------------------- |
 | 无增量 migration    | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
-| 推导字段不入库      | `memberName` / `projectName` / `scope` 等仅 JSON enrich；`scope` 终态入库见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) |
+| 推导字段不入库      | `memberName` / `projectName` 等响应 enrich；`scope` / `member_id` / `project_id` 入库，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) |
 | Platform Key secret | 必须经 NewAPISync 下发；禁止本地 placeholder                  |
 | Rotate              | `POST .../rotate` → 200 + 一次性 `fullKey`；非 active `409` |
 | 错误语义            | 不存在 `404`；NewAPI 不可用 `503`；状态冲突 `409`           |
 
 **本地开发：** 创建 / 审批发 Key / Toggle / Revoke / Rotate 须启用 NewAPI；否则 `503`。
 
-**产品 / Gateway 规则：** [Platform-Key产品设计.md](./Platform-Key产品设计.md) §4；**池子 / personal / 审批：** [预算分配与扣减.md](./预算分配与扣减.md)。
+**执法链 / Gateway：** [Platform-Key产品设计.md](./Platform-Key产品设计.md) §1 · §4.5；**池子 / personal / 审批：** [预算分配与扣减.md](./预算分配与扣减.md)。
 
 **实现索引：** `domain/keys/platform_key_enrich.go` · `platform_key_newapi.go` · `platform_key_actions.go` · `domain/keys/approval.go` · `domain/newapisync/interface.go`
 

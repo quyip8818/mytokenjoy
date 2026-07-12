@@ -85,7 +85,7 @@ flowchart TB
 **约定：**
 
 - 充值**只涨钱包**，不自动涨部门 `budget`。
-- **limit** 在组织树、成员、Key、项目；**consumed** 只在 `budget_consumed`（四轴 × 账期；终态 + `project_member` 见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)）。
+- **limit** 在组织树、成员、Key、项目；**consumed** 只在 `budget_consumed`（三轴 × 账期；`project_member` 见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)）。
 - API 返回的 `consumed` 为当前账期从快照合并的视图，不是 Key 表上的持久列。
 
 ---
@@ -125,21 +125,19 @@ flowchart LR
 
 消耗追踪统一在 `budget_consumed` 表，通过 `axis_kind` 区分。各业务表上**没有** `consumed` 列。
 
-**现状（迁移前四轴）：** `org_node` · `project` · `platform_key` · `member`。
+**三轴：** `platform_key` · `member` · `project`（**不写** `org_node`）。部门花费读 `usage_ledger` 按 `department_id` 聚合；`usage_ledger.platform_key_scope` 持久化 scope 供写轴。`project_member` 仅写 `platform_key` + `project`；sub 已用 = Σ 该人 project_member Key 的 `platform_key` consumed。Gateway：`GatewayChainRemain`（`pkg/budget/chain.go`）；`gateway_soft_remain IS NULL` 放行；Key 创建 / 启用同步写 soft。
 
-**终态（见 [Backend-预算执法重构.md](./Backend-预算执法重构.md)）：** **三轴** `platform_key` · `member` · `project`；**停写** `org_node`。部门花费改 `usage_ledger` 聚合；`project_member` scope 选择性入账；sub 已用 = Σ project_member Key 的 `platform_key` consumed。member 预检 `min(key, personal, wallet)`；`gateway_soft_remain NULL` 放行，Key 创建同步写 soft。
+| 步骤 | 写入 | 说明 |
+| ---- | ---- | ---- |
+| 1 | `budget_consumed` · `platform_key` += cost | Key 已用 |
+| 2 | `budget_consumed` · `project` += cost | `project` / `project_member` scope |
+| 3 | `budget_consumed` · `member` += cost | 仅 `member` scope |
+| — | 无 org_node 轴 | 部门报表：`usage_ledger` 聚合 |
+| 批末 | `gateway_soft_*` + rebalance / overrun 入队 | `budget_projector.go` |
 
-| 步骤 | 写入（终态） | 说明 |
-| ---- | ----------------------------------------------------------- | --------------------------- |
-| 1 | `budget_consumed (axis_kind=platform_key)` += cost | Key 已用 |
-| 2 | `budget_consumed (axis_kind=project)` += cost | 若挂项目 |
-| 3 | `budget_consumed (axis_kind=member)` += cost | 仅 `member` scope（`project` / `project_member` **不写**） |
-| — | **无 org_node 轴** | 部门报表：`usage_ledger` 按 `department_id` 聚合 |
-| 批末 | `gateway_soft_*` 刷新 + 入队 `rebalance` / `overrun` | 见 `budget_projector.go` |
+父节点 **limit** 来自 `org_nodes.budget`；部门 **consumed 展示**读 `usage_ledger` 聚合，不读 `budget_consumed.org_node`。
 
-看板 hour/day 桶由独立的 `dashboard.Projector` 写 `usage_buckets`（Periodic fanout + 自续）。
-
-父节点 **limit** 来自 `org_nodes.budget`；**consumed 展示**读 `usage_ledger` 部门聚合（三轴重构后**不**读 `budget_consumed.org_node`）。
+看板 hour/day 桶由 `dashboard.Projector` 写 `usage_buckets`（Periodic fanout + 自续）。
 
 ### 2.3 读路径分离
 
@@ -148,7 +146,7 @@ flowchart LR
 | Gateway 预检              | `gateway_soft_remain` + limit（`LoadPrecheckContext`） | NULL 放行；≤0 403；PG 权威 |
 | 看板 cost / consumed 趋势 | `usage_buckets` SUM                                 | Dashboard 投影                                |
 | 预算树展示 limit          | `org_nodes.budget` 等配置                           | 部门 consumed 不读 `budget_consumed`          |
-| 部门本月花费              | `usage_ledger` 按 `department_id` 聚合              | 三轴重构后替代 org_node 轴                    |
+| 部门本月花费              | `usage_ledger` 按 `department_id` 聚合              | 替代 org_node consumed 轴                     |
 | 审计调用列表              | `usage_ledger`                                      | SSOT；不查 NewAPI logs                        |
 | minute 趋势               | `usage_ledger` 按分钟聚合                           | 窗口 ≤3h                                      |
 
@@ -181,7 +179,9 @@ flowchart TB
 | 改部门预算 | 子级：新 budget ≥ Σ子节点 + 预留池；对父级：新 budget + 兄弟 + 预留池 ≤ 父可用 |
 | 改成员额度 | ≥ 已分配给 Key 的配额之和；部门内总和 ≤ capacity |
 | 建 Key（成员） | budget ≤ 成员剩余可分配 |
-| 建 Key（项目） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget |
+| 建 Key（项目） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget（含 `project_member`） |
+| 建 Key（项目成员） | roster + `member_budget > 0`；budget ≤ sub 剩余；见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) |
+| 改项目成员子额度 | `PUT /api/budget/projects/{id}` · `memberBudgets`；须属于 roster |
 | 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_budget` |
 
 组织树结构变更与模型白名单同事务提交；预算数字仅经预算域服务修改。
@@ -197,7 +197,8 @@ flowchart TB
 | 预算树 | GET | `/api/budget/tree` |
 | 部门预算 | PUT | `/api/budget/departments/{departmentId}` |
 | 成员额度 | GET / PUT | `/api/budget/members/{memberId}` |
-| 项目 | CRUD | `/api/budget/projects/*` |
+| 项目 | CRUD | `/api/budget/projects/*`（含 `memberBudgets` patch） |
+| 项目成员已用 | GET | `/api/budget/projects/{id}/member-consumed` |
 | 预警规则 | CRUD | `/api/budget/alerts/*` |
 | 超限策略 | GET / PUT | `/api/budget/overrun-policy` |
 | 预算审批 | GET / PUT | `/api/budget/approvals`、`/api/budget/approvals/{id}` |
@@ -239,7 +240,7 @@ sequenceDiagram
 
 **Gateway 预检（同步）** — 全部通过才代理（单位 point）；1× `LoadPrecheckContext` + 纯内存 `Evaluate`：
 
-| scope | 公式（与 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §4 一致） |
+| scope | 公式（与 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §1 一致） |
 | --- | --- |
 | `member` | `min(key, personal, wallet)` — **不含**未分配/预留池/部门报表 |
 | `project` | `min(key, project, wallet)` |
@@ -280,7 +281,7 @@ flowchart TB
 | 存储 | 职责 |
 | --- | --- |
 | `usage_ledger` | 消耗 SSOT；幂等 `newapi:{log_id}` |
-| `budget_consumed` | 三轴 `platform_key` · `member` · `project`（部门报表改 `usage_ledger` 聚合，见 [Backend-预算执法重构.md](./Backend-预算执法重构.md)） |
+| `budget_consumed` | 三轴 `platform_key` · `member` · `project`；部门报表读 `usage_ledger` 聚合 |
 | `platform_keys.gateway_soft_*` | Gateway 预检软剩余（Projector 批末刷新） |
 | `usage_buckets` | 按小时聚合，供趋势图 |
 | 组织树 / 成员 / Key / 组 | 仅存 limit |
@@ -340,11 +341,11 @@ flowchart LR
 | platform_key | Key 创建 / 变更 / 入账 |
 | company | 充值完成 |
 
-（**已移除** `org_node` rebalance 触发；部门触顶仅 notify，见 [Backend-预算执法重构.md](./Backend-预算执法重构.md)。）
+（**已移除** `org_node` rebalance 触发；部门触顶仅 notify。）
 
 去重：`dedupe_key = axis_kind:axis_id`。
 
-**候选最小值（point）：** Key 剩余；成员剩余（非挂项目）；项目剩余（挂项目）；部门 budget − consumed − reserved_pool。再换 NewAPI 单位，并以 `balance_point` 作企业硬顶。
+**候选最小值（point）：** `GatewayChainRemain` 按 key `scope` 计算 remain → 换 NewAPI 单位，并以 `balance_point` 作企业硬顶。不再按部门 org_node consumed 封顶。
 
 ---
 
@@ -369,8 +370,9 @@ flowchart LR
 
 | 范围 | 条件 | 动作 |
 | --- | --- | --- |
+| Platform Key | platform_key 轴 consumed ≥ key.budget | disable 该 Key |
 | 成员 personal | member 轴 consumed ≥ personal_budget | 禁用该成员 **member** scope Key |
-| 部门 org_node | ledger 聚合 ≥ `org_nodes.budget` | **通知 only**；不封 Key（见 [Backend-预算执法重构.md](./Backend-预算执法重构.md)） |
+| 部门 | ledger 聚合 ≥ `org_nodes.budget` | **通知 only**；不封 Key |
 | 项目 | project 轴 consumed ≥ budget | 禁用该项目 **project** + **project_member** Key |
 | project_member sub | Σ Key consumed ≥ `member_budget` | 禁用该人该项目 **project_member** Key |
 
@@ -444,7 +446,6 @@ sequenceDiagram
 | 百分比预警 | `alert_rules` 仅 CRUD，无运行时 Worker | 入账或定时任务按阈值发通知；与 PRD US-08 对齐 |
 | 超限文案 | `overrun_policy.blockMessage` 已存库，Precheck 返回通用错误 | Gateway 拒绝时读取并返回配置文案 |
 | 预留池扣减 | 额度审批只校验 `reserved_pool` 上限，字段不随审批减少 | 审批通过时扣减预留池或维护「已分配预留」子账，避免重复透支 |
-| 挂项目 Key 预检 | Precheck 在存在 `member_id` 时仍检成员轴 | 与 Overrun / Rebalance 一致：挂项目 Key 跳过成员 personal_budget 检查 |
 
 ### 应优化（可靠性 / 可观测）
 
@@ -469,6 +470,6 @@ sequenceDiagram
 | 项 | 说明 |
 | --- | --- |
 | 双轴模型 | 钱包与组织预算分离是当前设计，运行正常 |
-| `budget_consumed` 三轴 | consumed SSOT，与预检 / Overrun / UI 一致（Gateway 读 `gateway_soft_*`）；终态见 [Backend-预算执法重构.md](./Backend-预算执法重构.md) |
+| `budget_consumed` 三轴 | consumed SSOT；Gateway 读 `gateway_soft_*`；与 Overrun / UI 一致 |
 | 自然月账期 | `period_key` 机制已满足按月清零 |
 | 充值不涨部门 budget | 产品约定，非缺陷 |

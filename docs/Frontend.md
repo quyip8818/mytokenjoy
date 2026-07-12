@@ -143,7 +143,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
 | 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
-**`platform_keys` 字段分层：** 持久化 `scope`‡ / `member_id` / `project_id`；响应 enrich `member_name` / `project_name` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。‡ `scope` 终态入库（`member` \| `project` \| `project_member`），见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)。
+**`platform_keys` 字段分层：** 持久化 `scope` / `member_id` / `project_id`；响应 enrich `member_name` / `project_name` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)。
 
 **`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。新库 `schema.sql` 已含全量 DDL。
 
@@ -423,13 +423,13 @@ HTTP 非 2xx 时，body 应包含：
 | DELETE | `/keys/platform/:id`           | —                                                                                    | `void`                   |                                                                      |
 | GET    | `/keys/platform/budget-summary` | query: `memberId`                                                                    | `MemberBudgetSummary`     |                                                                      |
 
-**UI（PR2）：**
+**UI：**
 
 | 页面 | 行为 |
 | --- | --- |
 | `/keys/platform` | 三 Tab：`member` / `project` / `project_member`；列表按 `scope` 筛选；创建 workflow 显式传 `scope` |
 | `/keys/mine` | 仅展示 `member` + `project_member`；个人创建入口固定 `scope: member` |
-| `/budget` 项目详情 | 成员子额度 `memberBudgets` 行内编辑；「签发项目 Key」/ 成员行「签发项目成员 Key」（`member_budget ≤ 0` 禁用后者） |
+| `/budget` 项目详情 | 成员子额度编辑、已消耗/剩余；Modal 编辑 roster、移除二次确认；签发 project / project_member Key |
 
 #### 审批 `approvalApi`
 

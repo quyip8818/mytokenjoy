@@ -48,15 +48,15 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if input.Budget > budget.GetBudgetRemaining(members, platformKeys, *input.MemberID) {
-			return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
+		if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *input.MemberID, input.Budget, ""); msg != nil {
+			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	case types.PlatformKeyScopeProject:
 		project, ok := budget.FindProject(projects, *input.ProjectID)
 		if !ok {
 			return types.PlatformKey{}, domain.NotFound("Project not found")
 		}
-		if msg := budget.ValidateProjectKeyBudget(project, platformKeys, input.Budget, ""); msg != nil {
+		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, input.Budget, ""); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
@@ -75,10 +75,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if msg := budget.ValidateProjectMemberKeyBudget(project, platformKeys, *input.MemberID, input.Budget, ""); msg != nil {
-			return types.PlatformKey{}, domain.Validation(*msg)
-		}
-		if msg := budget.ValidateProjectKeyBudget(project, platformKeys, input.Budget, ""); msg != nil {
+		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, input.Budget, ""); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}

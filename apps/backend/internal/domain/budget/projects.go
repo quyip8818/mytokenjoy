@@ -56,7 +56,7 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 			MemberBudgets:     cloneMemberBudgets(project.MemberBudgets),
 			OwnerDepartmentID: strings.TrimSpace(project.OwnerDepartmentID),
 		}
-		if err := validateProjectMemberBudgets(created.MemberIDs, created.MemberBudgets); err != nil {
+		if err := validateProjectMemberBudgets(created.Budget, created.MemberIDs, created.MemberBudgets); err != nil {
 			return err
 		}
 		projects = append(projects, created)
@@ -113,7 +113,7 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 				if patch.OwnerDepartmentID != nil && *patch.OwnerDepartmentID != "" {
 					projects[i].OwnerDepartmentID = *patch.OwnerDepartmentID
 				}
-				if err := validateProjectMemberBudgets(projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
+				if err := validateProjectMemberBudgets(projects[i].Budget, projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
 					return err
 				}
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {

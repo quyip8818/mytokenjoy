@@ -219,6 +219,43 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 	}
 }
 
+func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
+	t.Parallel()
+	svc, _ := newBudgetService(t)
+	ctx := testutil.Ctx()
+
+	t.Run("create", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.CreateProject(ctx, types.Project{
+			Name:              "Invalid Sub Budgets",
+			Budget:            5_000,
+			OwnerDepartmentID: contract.IDDept3,
+			MemberIDs:         []string{contract.IDMember1, contract.IDMember3},
+			MemberBudgets: map[string]float64{
+				contract.IDMember1: 3_000,
+				contract.IDMember3: 3_000,
+			},
+		})
+		testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
+	})
+
+	t.Run("update", func(t *testing.T) {
+		t.Parallel()
+		created, err := svc.CreateProject(ctx, types.Project{
+			Name:              "Over Cap Project",
+			Budget:            10_000,
+			OwnerDepartmentID: contract.IDDept3,
+			MemberIDs:         []string{contract.IDMember1, contract.IDMember3},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		over := map[string]float64{contract.IDMember1: 7_000, contract.IDMember3: 5_000}
+		_, err = svc.UpdateProject(ctx, created.ID, types.UpdateProjectInput{MemberBudgets: &over})
+		testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
+	})
+}
+
 func TestDeleteProject(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)

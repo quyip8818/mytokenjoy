@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 )
 
 func TestApprovalBudgetCheckInsufficient(t *testing.T) {
@@ -244,6 +245,58 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 		Budget: &quota,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
+}
+
+func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
+	t.Parallel()
+	svc, st, _ := newKeysServiceWithNewAPI(t)
+	ctx := testutil.Ctx()
+	budgetfix.SetProjectSnapshotConsumed(t, st, contract.IDProject1, 0)
+	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
+		PlatformKeyID: "plk-bg-1",
+		NewAPIKeyID:   88,
+	})
+
+	for _, tc := range []struct {
+		name    string
+		budget  float64
+		wantErr int
+	}{
+		{name: "rejects over member sub cap", budget: budgetfix.DisplayPoints(7000), wantErr: domain.StatusUnprocessable},
+		{name: "allows within member sub cap", budget: budgetfix.DisplayPoints(5500)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			updated, err := svc.UpdatePlatformKey(ctx, "plk-bg-1", types.UpdatePlatformKeyInput{Budget: &tc.budget})
+			if tc.wantErr != 0 {
+				testutil.AssertDomainStatus(t, err, tc.wantErr)
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if updated.Budget != tc.budget {
+				t.Fatalf("expected budget %v, got %v", tc.budget, updated.Budget)
+			}
+		})
+	}
+}
+
+func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
+	t.Parallel()
+	svc, st, _ := newKeysServiceWithNewAPI(t)
+	ctx := testutil.Ctx()
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	versionBefore := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1)
+	newBudget := budgetfix.DisplayPoints(4000)
+	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
+		Budget: &newBudget,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	versionAfter := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1)
+	if versionAfter <= versionBefore {
+		t.Fatalf("expected gateway soft version increase, before=%d after=%d", versionBefore, versionAfter)
+	}
 }
 
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {

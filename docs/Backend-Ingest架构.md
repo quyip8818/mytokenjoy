@@ -274,7 +274,7 @@ flowchart TB
 | — | `project_member` sub 已用 | Σ 该人 project_member Key 的 `platform_key` consumed |
 | 批末 | `gateway_soft_*` + rebalance / overrun 入队 | Gateway 软缓存；部门触顶仅 notify |
 
-入账按 Platform Key `scope` 选择性写轴，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §4。
+入账按 Platform Key `scope` 选择性写轴，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §4.6。
 
 看板 `usage_buckets` 由 `dashboard.Projector` 独立维护（Periodic fanout）。
 
@@ -288,7 +288,7 @@ flowchart TB
 | 分钟级趋势（≤3h） | `usage_ledger` 聚合 |
 | 小时/天看板 | `usage_buckets` |
 | Gateway 预检 | `gateway_soft_remain` + limit（开账月） |
-| 预算树 consumed | `budget_consumed`（开账月） |
+| 预算树 consumed | `budget_consumed`（开账月）；部门节点 limit-only | 部门花费见 `usage_ledger` |
 
 控制台 **不会** 为了展示再去扫 NewAPI logs。
 

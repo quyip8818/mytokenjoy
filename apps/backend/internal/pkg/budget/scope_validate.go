@@ -105,3 +105,37 @@ func MemberDepartmentID(members []types.Member, memberID string) string {
 	}
 	return ""
 }
+
+func ValidateMemberScopeKeyBudget(
+	members []types.Member,
+	platformKeys []types.PlatformKey,
+	memberID string,
+	budget float64,
+	excludeKeyID string,
+) *string {
+	if budget > memberScopeBudgetRemaining(members, platformKeys, memberID, excludeKeyID) {
+		msg := "额度不足，请先申请追加"
+		return &msg
+	}
+	return nil
+}
+
+func ValidateProjectScopeKeyBudget(
+	scope string,
+	project types.Project,
+	platformKeys []types.PlatformKey,
+	memberID *string,
+	budget float64,
+	excludeKeyID string,
+) *string {
+	if scope == types.PlatformKeyScopeProjectMember {
+		if memberID == nil {
+			msg := "memberId required for project_member scope"
+			return &msg
+		}
+		if msg := ValidateProjectMemberKeyBudget(project, platformKeys, *memberID, budget, excludeKeyID); msg != nil {
+			return msg
+		}
+	}
+	return ValidateProjectKeyBudget(project, platformKeys, budget, excludeKeyID)
+}

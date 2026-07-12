@@ -36,11 +36,22 @@ func SetMemberPersonalBudget(members []types.Member, memberID string, personalBu
 }
 
 func GetAllocatedKeyBudget(platformKeys []types.PlatformKey, memberID string) float64 {
+	return sumMemberScopeKeyBudget(platformKeys, memberID, "")
+}
+
+func sumMemberScopeKeyBudget(platformKeys []types.PlatformKey, memberID, excludeKeyID string) float64 {
 	sum := 0.0
 	for _, key := range platformKeys {
-		if key.MemberID != nil && *key.MemberID == memberID && key.ProjectID == nil && key.Status == "active" {
-			sum += key.Budget
+		if key.Scope != types.PlatformKeyScopeMember {
+			continue
 		}
+		if key.MemberID == nil || *key.MemberID != memberID || key.Status != "active" {
+			continue
+		}
+		if excludeKeyID != "" && key.ID == excludeKeyID {
+			continue
+		}
+		sum += key.Budget
 	}
 	return sum
 }
@@ -48,7 +59,10 @@ func GetAllocatedKeyBudget(platformKeys []types.PlatformKey, memberID string) fl
 func GetConsumedKeyBudget(platformKeys []types.PlatformKey, memberID string) float64 {
 	sum := 0.0
 	for _, key := range platformKeys {
-		if key.MemberID != nil && *key.MemberID == memberID && key.ProjectID == nil && key.Status == "active" {
+		if key.Scope != types.PlatformKeyScopeMember {
+			continue
+		}
+		if key.MemberID != nil && *key.MemberID == memberID && key.Status == "active" {
 			sum += key.Consumed
 		}
 	}
@@ -56,7 +70,11 @@ func GetConsumedKeyBudget(platformKeys []types.PlatformKey, memberID string) flo
 }
 
 func GetBudgetRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID string) float64 {
-	remaining := GetPersonalBudget(members, memberID) - GetAllocatedKeyBudget(platformKeys, memberID)
+	return memberScopeBudgetRemaining(members, platformKeys, memberID, "")
+}
+
+func memberScopeBudgetRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID, excludeKeyID string) float64 {
+	remaining := GetPersonalBudget(members, memberID) - sumMemberScopeKeyBudget(platformKeys, memberID, excludeKeyID)
 	if remaining < 0 {
 		return 0
 	}

@@ -52,30 +52,27 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		}
 	}
 	if input.Budget != nil {
-		if existing.ProjectID != nil {
-			var project *types.Project
-			for i := range projects {
-				if projects[i].ID == *existing.ProjectID {
-					project = &projects[i]
-					break
-				}
+		switch existing.Scope {
+		case types.PlatformKeyScopeMember:
+			if existing.MemberID == nil {
+				return types.PlatformKey{}, domain.Validation("memberId required for member scope")
 			}
-			if project == nil {
-				return types.PlatformKey{}, domain.NotFound("Project not found")
-			}
-			if msg := budget.ValidateProjectKeyBudget(*project, platformKeys, *input.Budget, existing.ID); msg != nil {
+			if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *existing.MemberID, *input.Budget, existing.ID); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
-		} else if existing.MemberID != nil {
-			otherAllocated := 0.0
-			for _, key := range platformKeys {
-				if key.MemberID != nil && *key.MemberID == *existing.MemberID && key.ProjectID == nil && key.Status == "active" && key.ID != existing.ID {
-					otherAllocated += key.Budget
-				}
+		case types.PlatformKeyScopeProject, types.PlatformKeyScopeProjectMember:
+			if existing.ProjectID == nil {
+				return types.PlatformKey{}, domain.Validation("projectId required")
 			}
-			if otherAllocated+*input.Budget > budget.GetPersonalBudget(members, *existing.MemberID) {
-				return types.PlatformKey{}, domain.Validation("额度不足，请先申请追加")
+			project, ok := budget.FindProject(projects, *existing.ProjectID)
+			if !ok {
+				return types.PlatformKey{}, domain.NotFound("Project not found")
 			}
+			if msg := budget.ValidateProjectScopeKeyBudget(existing.Scope, project, platformKeys, existing.MemberID, *input.Budget, existing.ID); msg != nil {
+				return types.PlatformKey{}, domain.Validation(*msg)
+			}
+		default:
+			return types.PlatformKey{}, domain.Validation("invalid platform key scope")
 		}
 	}
 	if input.Name != nil {

@@ -50,7 +50,7 @@ func buildProjects() []types.Project {
 			Consumed:  contract.DemoProjectConsumed[contract.IDProject1],
 			MemberIDs: []string{contract.IDMember1, "m-4", "m-6"},
 			MemberBudgets: map[string]float64{
-				contract.IDMember1: seedPoints(10000),
+				contract.IDMember1: seedPoints(6000),
 				"m-4":              seedPoints(5000),
 				"m-6":              seedPoints(3000),
 			},

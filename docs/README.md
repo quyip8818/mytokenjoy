@@ -24,12 +24,11 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 后端 / 架构 | 结构基线与剩余分层债务 |
-| **[Backend-预算执法重构.md](./Backend-预算执法重构.md)** | 后端 / 架构 | **已归档**：Gateway 执法三轴迁移记录（PR1+PR2 ✅） |
 | [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | Ingest + River 两条线、13 kind、入队与 Worker |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun |
 | **[预算分配与扣减.md](./预算分配与扣减.md)** | 产品 / 研发 | **权威**：切蛋糕 vs 独立结算；personal 用尽 → 审批追加（PRD US-10） |
-| **[Platform-Key产品设计.md](./Platform-Key产品设计.md)** | 产品 / 研发 | Platform Key 三 scope、Gateway BudgetChain、schema、UI |
+| **[Platform-Key产品设计.md](./Platform-Key产品设计.md)** | 产品 / 研发 | Platform Key 三 scope **实现文档**（Schema、代码索引、测试） |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
@@ -44,7 +43,6 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | 路径 | 说明 |
 | --- | --- |
 | [reviews/](./reviews/) | 安全评估等一次性笔记 |
-| [Backend-预算执法重构.md](./Backend-预算执法重构.md) | 三轴执法迁移记录（**已归档**） |
 
 ## 契约优先级
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
@@ -60,6 +61,11 @@ func (s *service) persistPlatformKeyWithNewAPISync(
 			return types.PlatformKey{}, rollbackErr
 		}
 		return types.PlatformKey{}, err
+	}
+	if updated.Budget != previous.Budget {
+		if err := domainbudget.RefreshPlatformKeySoft(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
+			return types.PlatformKey{}, err
+		}
 	}
 	return s.enrichPlatformKeyResponse(ctx, updated)
 }

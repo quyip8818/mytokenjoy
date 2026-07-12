@@ -38,10 +38,11 @@ func memberOnRoster(roster []string, memberID string) bool {
 	return false
 }
 
-func validateProjectMemberBudgets(roster []string, budgets map[string]float64) error {
+func validateProjectMemberBudgets(projectBudget float64, roster []string, budgets map[string]float64) error {
 	if len(budgets) == 0 {
 		return nil
 	}
+	var sum float64
 	for memberID, budget := range budgets {
 		if budget < 0 {
 			return domain.Validation("member budget must be non-negative")
@@ -49,6 +50,10 @@ func validateProjectMemberBudgets(roster []string, budgets map[string]float64) e
 		if !memberOnRoster(roster, memberID) {
 			return domain.Validation("member budget must belong to project roster")
 		}
+		sum += budget
+	}
+	if sum > projectBudget {
+		return domain.Validation("member budgets exceed project budget")
 	}
 	return nil
 }
