@@ -62,14 +62,15 @@ func orgNodeChildrenToDepartments(children []OrgNode) []Department {
 
 func OrgNodeToBudgetNode(node OrgNode) BudgetNode {
 	return BudgetNode{
-		ID:           node.ID,
-		Name:         node.Name,
-		ParentID:     node.ParentID,
-		Budget:       node.Budget,
-		Consumed:     node.Consumed,
-		ReservedPool: node.ReservedPool,
-		Children:     orgNodeChildrenToBudgetNodes(node.Children),
-		Period:       node.Period,
+		ID:              node.ID,
+		Name:            node.Name,
+		ParentID:        node.ParentID,
+		Budget:          node.Budget,
+		Consumed:        node.Consumed,
+		ReservedPool:    node.ReservedPool,
+		Children:        orgNodeChildrenToBudgetNodes(node.Children),
+		Period:          node.Period,
+		MemberAvgBudget: node.MemberAvgBudget,
 	}
 }
 

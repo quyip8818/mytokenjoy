@@ -42,9 +42,6 @@ export function BudgetEditMemberBudget({
     refresh,
   } = useMemberBudgetQuotas(node.id, getMemberBudgets)
 
-  const averageBudget =
-    members.length > 0 ? members.reduce((sum, m) => sum + m.personalBudget, 0) / members.length : 0
-
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -66,9 +63,9 @@ export function BudgetEditMemberBudget({
       <div className="flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5">
         <Users className="size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">人均额度</p>
+          <p className="text-xs text-muted-foreground">人均默认额度</p>
           <p className="text-sm font-medium tabular-nums">
-            {loadingDisplay ? '—' : formatDisplayCurrency(averageBudget)}
+            {node.memberAvgBudget > 0 ? formatDisplayCurrency(node.memberAvgBudget) : '未设置'}
           </p>
         </div>
       </div>

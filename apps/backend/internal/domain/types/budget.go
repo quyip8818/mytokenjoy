@@ -1,14 +1,15 @@
 package types
 
 type BudgetNode struct {
-	ID           string       `json:"id"`
-	Name         string       `json:"name"`
-	ParentID     *string      `json:"parentId"`
-	Budget       float64      `json:"budget"`
-	Consumed     float64      `json:"consumed"`
-	ReservedPool *float64     `json:"reservedPool,omitempty"`
-	Children     []BudgetNode `json:"children,omitempty"`
-	Period       string       `json:"period"`
+	ID              string       `json:"id"`
+	Name            string       `json:"name"`
+	ParentID        *string      `json:"parentId"`
+	Budget          float64      `json:"budget"`
+	Consumed        float64      `json:"consumed"`
+	ReservedPool    *float64     `json:"reservedPool,omitempty"`
+	Children        []BudgetNode `json:"children,omitempty"`
+	Period          string       `json:"period"`
+	MemberAvgBudget float64      `json:"memberAvgBudget"`
 }
 
 type BudgetGroup struct {

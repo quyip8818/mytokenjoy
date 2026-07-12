@@ -7,6 +7,7 @@ export interface BudgetNode {
   reservedPool?: number
   children?: BudgetNode[]
   period: string
+  memberAvgBudget: number
 }
 
 export interface OverrunPolicyConfig {
