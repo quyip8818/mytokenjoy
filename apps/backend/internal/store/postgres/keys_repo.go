@@ -17,13 +17,13 @@ type pgKeysRepo struct {
 
 const platformKeySelect = `
 	SELECT id, name, key_prefix, member_id,
-		budget_group_id, status, budget, created_at, expires_at
+		project_id, status, budget, created_at, expires_at
 	FROM platform_keys
 `
 
 const platformKeyListSelect = `
 	SELECT pk.id, pk.name, pk.key_prefix, pk.member_id,
-		pk.budget_group_id, pk.status, pk.budget, pk.created_at, pk.expires_at,
+		pk.project_id, pk.status, pk.budget, pk.created_at, pk.expires_at,
 		COALESCE(array_agg(ma.model_id ORDER BY ma.model_id) FILTER (WHERE ma.model_id IS NOT NULL), '{}') AS model_ids
 	FROM platform_keys pk
 	LEFT JOIN model_allowlist ma
@@ -56,13 +56,13 @@ func scanPlatformKeyWithModels(rows pgx.Rows) (types.PlatformKey, error) {
 	var modelIDs []int64
 	if err := rows.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
-		&item.BudgetGroupID, &item.Status,
+		&item.ProjectID, &item.Status,
 		&item.Budget, &createdAt, &expiresAt,
 		&modelIDs,
 	); err != nil {
 		return types.PlatformKey{}, err
 	}
-	item.Used = 0
+	item.Consumed = 0
 	item.CreatedAt = formatDateOnly(createdAt)
 	if expiresAt != nil {
 		s := formatDateOnly(*expiresAt)
@@ -78,12 +78,12 @@ func scanPlatformKey(rows pgx.Rows) (types.PlatformKey, error) {
 	var expiresAt *time.Time
 	if err := rows.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
-		&item.BudgetGroupID, &item.Status,
+		&item.ProjectID, &item.Status,
 		&item.Budget, &createdAt, &expiresAt,
 	); err != nil {
 		return types.PlatformKey{}, err
 	}
-	item.Used = 0
+	item.Consumed = 0
 	item.CreatedAt = formatDateOnly(createdAt)
 	if expiresAt != nil {
 		s := formatDateOnly(*expiresAt)
@@ -98,12 +98,12 @@ func scanPlatformKeyRow(row pgx.Row) (types.PlatformKey, error) {
 	var expiresAt *time.Time
 	if err := row.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
-		&item.BudgetGroupID, &item.Status,
+		&item.ProjectID, &item.Status,
 		&item.Budget, &createdAt, &expiresAt,
 	); err != nil {
 		return types.PlatformKey{}, err
 	}
-	item.Used = 0
+	item.Consumed = 0
 	item.CreatedAt = formatDateOnly(createdAt)
 	if expiresAt != nil {
 		s := formatDateOnly(*expiresAt)

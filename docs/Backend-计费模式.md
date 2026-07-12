@@ -350,7 +350,7 @@ balance_point = Σ lot.points_remaining
 
 ### 5.5 投影表（均为 point）
 
-`usage_buckets.cost`、`budget_consumed.consumed`、`org_nodes.budget`、`members.personal_budget`、`budget_groups.budget`、`platform_keys.budget` — 语义均为 point，无 `billing_currency` 拆键。
+`usage_buckets.cost`、`budget_consumed.consumed`、`org_nodes.budget`、`members.personal_budget`、`projects.budget`、`platform_keys.budget` — 语义均为 point，无 `billing_currency` 拆键。
 
 `models.input_price` / `output_price` 单位为 **point / 模型计价单位**。
 

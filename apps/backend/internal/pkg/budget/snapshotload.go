@@ -14,37 +14,18 @@ import (
 func ResolveKeyPeriodKey(
 	key types.PlatformKey,
 	members []types.Member,
-	groups []types.BudgetGroup,
+	projects []types.Project,
 	deptPeriod map[string]string,
 	rootPeriodKey string,
 	at time.Time,
 ) string {
-	deptID := keyDepartmentID(key, members, groups)
+	deptID := keyDepartmentID(key, members, projects)
 	if deptID != "" {
 		if orgPeriod, ok := deptPeriod[deptID]; ok {
 			return SnapshotKey(orgPeriod, at)
 		}
 	}
 	return rootPeriodKey
-}
-
-func ResolveGroupPeriodKeys(
-	group types.BudgetGroup,
-	deptPeriod map[string]string,
-	rootPeriodKey string,
-	at time.Time,
-) []string {
-	keys := make([]string, 0, len(group.DepartmentIDs))
-	for _, deptID := range group.DepartmentIDs {
-		if orgPeriod, ok := deptPeriod[deptID]; ok {
-			keys = append(keys, SnapshotKey(orgPeriod, at))
-		}
-	}
-	keys = uniqueStrings(keys)
-	if len(keys) == 0 {
-		return []string{rootPeriodKey}
-	}
-	return keys
 }
 
 func sumAxisConsumed(axisID string, periodKeys []string, byPeriod map[string]map[string]float64) float64 {
@@ -63,7 +44,7 @@ func PlatformKeyConsumed(
 	orgNodes store.OrgNodeRepository,
 	key types.PlatformKey,
 	members []types.Member,
-	groups []types.BudgetGroup,
+	projects []types.Project,
 	clk clock.Clock,
 ) (float64, bool, error) {
 	at := clock.NowUTC(clk)
@@ -71,20 +52,20 @@ func PlatformKeyConsumed(
 	if err != nil {
 		return 0, false, err
 	}
-	periodKey := ResolveKeyPeriodKey(key, members, groups, deptPeriod, rootPeriodKey, at)
+	periodKey := ResolveKeyPeriodKey(key, members, projects, deptPeriod, rootPeriodKey, at)
 	return snapshots.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
 }
 
-func keyDepartmentID(key types.PlatformKey, members []types.Member, groups []types.BudgetGroup) string {
+func keyDepartmentID(key types.PlatformKey, members []types.Member, projects []types.Project) string {
 	if key.MemberID != nil {
 		if member, ok := pkgorg.FindMemberByID(members, *key.MemberID); ok {
 			return member.DepartmentID
 		}
 	}
-	if key.BudgetGroupID != nil {
-		for _, group := range groups {
-			if group.ID == *key.BudgetGroupID && len(group.DepartmentIDs) > 0 {
-				return group.DepartmentIDs[0]
+	if key.ProjectID != nil {
+		for _, project := range projects {
+			if project.ID == *key.ProjectID && project.OwnerDepartmentID != "" {
+				return project.OwnerDepartmentID
 			}
 		}
 	}
@@ -175,7 +156,7 @@ func LoadPlatformKeysWithUsed(
 	if err != nil {
 		return nil, err
 	}
-	groups, err := budgetRepo.Groups(ctx)
+	projects, err := budgetRepo.Projects(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +167,7 @@ func LoadPlatformKeysWithUsed(
 	keyPeriodKeys := make(map[string]string, len(items))
 	periodKeys := make([]string, 0, len(items))
 	for _, key := range items {
-		periodKey := ResolveKeyPeriodKey(key, members, groups, deptPeriod, rootPeriodKey, at)
+		periodKey := ResolveKeyPeriodKey(key, members, projects, deptPeriod, rootPeriodKey, at)
 		keyPeriodKeys[key.ID] = periodKey
 		periodKeys = append(periodKeys, periodKey)
 	}
@@ -205,52 +186,56 @@ func LoadPlatformKeysWithUsed(
 	}
 	for i, key := range items {
 		if used, ok := usedByID[key.ID]; ok {
-			items[i].Used = used
+			items[i].Consumed = used
 		}
 	}
 	return items, nil
 }
 
-func LoadBudgetGroupsWithConsumed(
+func LoadProjectsWithConsumed(
 	ctx context.Context,
 	snapshots store.BudgetConsumedRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
 	clk clock.Clock,
-) ([]types.BudgetGroup, error) {
+) ([]types.Project, error) {
 	at := clock.NowUTC(clk)
-	groups, err := budgetRepo.Groups(ctx)
+	projects, err := budgetRepo.Projects(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if len(groups) == 0 {
-		return groups, nil
+	if len(projects) == 0 {
+		return projects, nil
+	}
+	members, err := org.Members(ctx)
+	if err != nil {
+		return nil, err
 	}
 	deptPeriod, rootPeriodKey, err := buildDeptPeriodMap(ctx, org.Nodes(), at)
 	if err != nil {
 		return nil, err
 	}
-	groupPeriodKeys := make(map[string][]string, len(groups))
-	periodKeys := make([]string, 0, len(groups))
-	for _, group := range groups {
-		keys := ResolveGroupPeriodKeys(group, deptPeriod, rootPeriodKey, at)
-		groupPeriodKeys[group.ID] = keys
+	projectPeriodKeys := make(map[string][]string, len(projects))
+	periodKeys := make([]string, 0, len(projects))
+	for _, project := range projects {
+		keys := ResolveProjectPeriodKeys(project, members, deptPeriod, rootPeriodKey, at)
+		projectPeriodKeys[project.ID] = keys
 		periodKeys = append(periodKeys, keys...)
 	}
-	byPeriod, err := snapshots.ListConsumedByPeriods(ctx, store.AxisKindBudgetGroup, uniqueStrings(periodKeys))
+	byPeriod, err := snapshots.ListConsumedByPeriods(ctx, store.AxisKindProject, uniqueStrings(periodKeys))
 	if err != nil {
 		return nil, err
 	}
-	consumedByID := make(map[string]float64, len(groups))
-	for _, group := range groups {
-		consumedByID[group.ID] = sumAxisConsumed(group.ID, groupPeriodKeys[group.ID], byPeriod)
+	consumedByID := make(map[string]float64, len(projects))
+	for _, project := range projects {
+		consumedByID[project.ID] = sumAxisConsumed(project.ID, projectPeriodKeys[project.ID], byPeriod)
 	}
-	for i, group := range groups {
-		if consumed, ok := consumedByID[group.ID]; ok {
-			groups[i].Consumed = consumed
+	for i, project := range projects {
+		if consumed, ok := consumedByID[project.ID]; ok {
+			projects[i].Consumed = consumed
 		}
 	}
-	return groups, nil
+	return projects, nil
 }
 
 func LoadBudgetTreeWithConsumed(

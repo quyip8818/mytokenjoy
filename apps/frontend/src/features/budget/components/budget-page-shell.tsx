@@ -3,7 +3,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import type { useBudgetPage } from '@/features/budget'
 import { BudgetTreePanel } from './budget-tree-panel'
 import { BudgetDetailTeam } from './budget-detail-team'
-import { BudgetDetailProject } from './budget-detail-project'
+import { ProjectDetail } from './project-detail'
 import { ChevronRight } from 'lucide-react'
 
 type BudgetPageShellProps = ReturnType<typeof useBudgetPage>
@@ -20,14 +20,14 @@ export function BudgetPageShell({
   handleSelectTeam,
   setActiveProjectId,
   updateDepartment,
-  groupsForNode,
+  projectsForNode,
   overrunPolicyLabel,
   departmentMembers,
   departmentMembersLoading,
   projectMembers,
-  createBudgetGroup,
-  updateBudgetGroup,
-  deleteBudgetGroup,
+  createProject,
+  updateProject,
+  deleteProject,
   getMemberBudgets,
   updateMemberBudget,
   applyAverageBudget,
@@ -70,13 +70,13 @@ export function BudgetPageShell({
 
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {activeProject ? (
-                  <BudgetDetailProject
+                  <ProjectDetail
                     project={activeProject}
                     members={projectMembers}
                     departmentMembers={departmentMembers}
                     membersLoading={departmentMembersLoading}
-                    onUpdateGroup={updateBudgetGroup}
-                    onDeleteGroup={deleteBudgetGroup}
+                    onUpdateProject={updateProject}
+                    onDeleteProject={deleteProject}
                     onUpdated={() => void refresh()}
                     onDeleted={() => {
                       setActiveProjectId(null)
@@ -86,13 +86,13 @@ export function BudgetPageShell({
                   <BudgetDetailTeam
                     node={selectedNode}
                     projects={projects.filter((project) =>
-                      groupsForNode(selectedNode.id).some((group) => group.id === project.id),
+                      projectsForNode(selectedNode.id).some((group) => group.id === project.id),
                     )}
                     overrunPolicyLabel={overrunPolicyLabel}
                     onUpdated={() => void refresh()}
                     onNavigateToProject={setActiveProjectId}
                     onUpdateDepartment={updateDepartment}
-                    onCreateGroup={createBudgetGroup}
+                    onCreateProject={createProject}
                     getMemberBudgets={getMemberBudgets}
                     updateMemberBudget={updateMemberBudget}
                     applyAverageBudget={applyAverageBudget}

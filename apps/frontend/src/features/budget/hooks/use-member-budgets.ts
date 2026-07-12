@@ -1,12 +1,12 @@
 import { useCallback } from 'react'
-import type { MemberBudgetQuota } from '@/api/types'
+import type { MemberBudget } from '@/api/types'
 import { useAsyncFetch } from './use-async-fetch'
 
-const emptyMemberBudgets: MemberBudgetQuota[] = []
+const emptyMemberBudgets: MemberBudget[] = []
 
-export function useMemberBudgetQuotas(
+export function useMemberBudgets(
   departmentId: string,
-  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>,
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>,
   enabled = true,
 ) {
   const fetchMembers = useCallback(

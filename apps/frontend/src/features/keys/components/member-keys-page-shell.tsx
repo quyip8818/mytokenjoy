@@ -9,8 +9,8 @@ type MemberKeysPageShellProps = ReturnType<typeof useMyKeysPage>
 
 export function MemberKeysPageShell({
   keys,
-  quota,
-  applyQuotaCta,
+  budgetSummary,
+  applyBudgetCta,
   createKeyCta,
   openCreateKey,
   openWithRefresh,
@@ -21,10 +21,10 @@ export function MemberKeysPageShell({
       actions={
         <>
           <Button
-            id={applyQuotaCta.id}
+            id={applyBudgetCta.id}
             variant="outline"
             size="sm"
-            className={cn(applyQuotaCta.className)}
+            className={cn(applyBudgetCta.className)}
             onClick={() => openWithRefresh('approval-submit', { defaultType: 'budget' })}
           >
             申请额度
@@ -34,7 +34,7 @@ export function MemberKeysPageShell({
             variant="default"
             size="sm"
             className={cn('gap-1.5', createKeyCta.className)}
-            disabled={quota !== null && quota.remaining <= 0}
+            disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
             onClick={() => openCreateKey()}
           >
             <Plus className="size-3.5" />

@@ -63,7 +63,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 		if key.ID != fixture.PlatformKeyID || key.Budget <= 0 {
 			continue
 		}
-		budgetfix.SetPlatformKeySnapshotUsed(t, st, fixture.PlatformKeyID, ingestHeadroomConsumed(key.Budget, fixture.Amount))
+		budgetfix.SetPlatformKeySnapshotConsumed(t, st, fixture.PlatformKeyID, ingestHeadroomConsumed(key.Budget, fixture.Amount))
 		break
 	}
 }

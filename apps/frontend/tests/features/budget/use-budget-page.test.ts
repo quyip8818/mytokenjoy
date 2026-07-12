@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { useBudgetPage } from '@/features/budget/hooks/use-budget-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
-import { mockBudgetGroups, mockBudgetTree } from '@tests/fixtures/budget'
+import { mockProjects, mockBudgetTree } from '@tests/fixtures/budget'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 
 describe('useBudgetPage', () => {
@@ -10,7 +10,7 @@ describe('useBudgetPage', () => {
     const apis = createMockApis({
       budgetApi: {
         getTree: vi.fn().mockResolvedValue(mockBudgetTree),
-        getGroups: vi.fn().mockResolvedValue(mockBudgetGroups),
+        getProjects: vi.fn().mockResolvedValue(mockProjects),
         getApprovals: vi.fn().mockResolvedValue([]),
         getOverrunPolicy: vi.fn().mockResolvedValue({
           thresholds: [80],
@@ -30,7 +30,7 @@ describe('useBudgetPage', () => {
     })
 
     expect(apis.budgetApi.getTree).toHaveBeenCalled()
-    expect(apis.budgetApi.getGroups).toHaveBeenCalled()
+    expect(apis.budgetApi.getProjects).toHaveBeenCalled()
     expect(result.current.selectedTeamId).toBe('n1')
     expect(result.current.pendingCount).toBe(0)
   })

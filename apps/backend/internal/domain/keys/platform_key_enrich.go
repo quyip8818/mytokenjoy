@@ -8,8 +8,8 @@ import (
 )
 
 type platformKeyLookups struct {
-	memberByID map[string]types.Member
-	groupByID  map[string]types.BudgetGroup
+	memberByID  map[string]types.Member
+	projectByID map[string]types.Project
 }
 
 func (s *service) loadPlatformKeyLookups(ctx context.Context) (platformKeyLookups, error) {
@@ -21,15 +21,15 @@ func (s *service) loadPlatformKeyLookups(ctx context.Context) (platformKeyLookup
 	for _, member := range members {
 		memberByID[member.ID] = member
 	}
-	groups, err := s.store.Budget().Groups(ctx)
+	projects, err := s.store.Budget().Projects(ctx)
 	if err != nil {
 		return platformKeyLookups{}, err
 	}
-	groupByID := make(map[string]types.BudgetGroup, len(groups))
-	for _, group := range groups {
-		groupByID[group.ID] = group
+	projectByID := make(map[string]types.Project, len(projects))
+	for _, project := range projects {
+		projectByID[project.ID] = project
 	}
-	return platformKeyLookups{memberByID: memberByID, groupByID: groupByID}, nil
+	return platformKeyLookups{memberByID: memberByID, projectByID: projectByID}, nil
 }
 
 func (l platformKeyLookups) members() []types.Member {
@@ -40,29 +40,27 @@ func (l platformKeyLookups) members() []types.Member {
 	return members
 }
 
-func (l platformKeyLookups) groups() []types.BudgetGroup {
-	groups := make([]types.BudgetGroup, 0, len(l.groupByID))
-	for _, group := range l.groupByID {
-		groups = append(groups, group)
+func (l platformKeyLookups) projects() []types.Project {
+	projects := make([]types.Project, 0, len(l.projectByID))
+	for _, project := range l.projectByID {
+		projects = append(projects, project)
 	}
-	return groups
+	return projects
 }
 
 func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.PlatformKey {
 	enriched := key
 	enriched.MemberName = nil
-	enriched.BudgetGroupName = nil
 	enriched.ProjectName = nil
 
-	if key.BudgetGroupID != nil {
-		enriched.Type = "project"
-		if group, ok := lookups.groupByID[*key.BudgetGroupID]; ok {
-			name := group.Name
-			enriched.BudgetGroupName = &name
+	if key.ProjectID != nil {
+		enriched.Scope = "project"
+		if project, ok := lookups.projectByID[*key.ProjectID]; ok {
+			name := project.Name
 			enriched.ProjectName = &name
 		}
 	} else {
-		enriched.Type = "member"
+		enriched.Scope = "member"
 	}
 
 	if key.MemberID != nil {
@@ -77,12 +75,12 @@ func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.
 }
 
 func (s *service) enrichPlatformKeyUsed(ctx context.Context, key types.PlatformKey, lookups platformKeyLookups) (types.PlatformKey, error) {
-	used, found, err := pkgbudget.PlatformKeyConsumed(ctx, s.store.BudgetConsumed(), s.store.Org().Nodes(), key, lookups.members(), lookups.groups(), s.cfg.Clock())
+	used, found, err := pkgbudget.PlatformKeyConsumed(ctx, s.store.BudgetConsumed(), s.store.Org().Nodes(), key, lookups.members(), lookups.projects(), s.cfg.Clock())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
 	if found {
-		key.Used = used
+		key.Consumed = used
 	}
 	return key, nil
 }

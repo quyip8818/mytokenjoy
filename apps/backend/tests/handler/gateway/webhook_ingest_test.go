@@ -79,7 +79,7 @@ func TestWebhookIngestSuccess(t *testing.T) {
 		t.Fatalf("expected ledger after worker, ingested=%v err=%v", ingested, err)
 	}
 	if riverfix.PendingBudgetProjectCount(application.Store, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected budget_project job after ingest")
+		t.Fatal("expected budget_projection job after ingest")
 	}
 	if n := testutil.PendingIngestJobCount(t, application.Store); n != 0 {
 		t.Fatalf("expected queue drained, pending=%d", n)

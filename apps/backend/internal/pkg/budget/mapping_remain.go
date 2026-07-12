@@ -65,9 +65,9 @@ func ComputeRemainForMapping(
 			return 0, err
 		}
 		if found {
-			key.Used = keyUsed
+			key.Consumed = keyUsed
 		} else {
-			key.Used = 0
+			key.Consumed = 0
 		}
 	}
 
@@ -78,8 +78,8 @@ func ComputeRemainForMapping(
 	deptAxis := &DeptAxisInput{Budget: limit, Consumed: deptConsumed}
 
 	var memberAxis *MemberAxisInput
-	if mapping.MemberID != nil && key.BudgetGroupID == nil {
-		quota, memberFound, err := org.MemberPersonalBudget(ctx, *mapping.MemberID)
+	if mapping.MemberID != nil && key.ProjectID == nil {
+		personalBudget, memberFound, err := org.MemberPersonalBudget(ctx, *mapping.MemberID)
 		if err != nil {
 			return 0, err
 		}
@@ -90,7 +90,7 @@ func ComputeRemainForMapping(
 			if err != nil {
 				return 0, err
 			}
-			memberAxis = &MemberAxisInput{Cap: quota, Consumed: memberConsumed}
+			memberAxis = &MemberAxisInput{Cap: personalBudget, Consumed: memberConsumed}
 		}
 	}
 

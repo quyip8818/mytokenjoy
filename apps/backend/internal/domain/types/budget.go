@@ -12,13 +12,20 @@ type BudgetNode struct {
 	MemberAvgBudget float64      `json:"memberAvgBudget"`
 }
 
-type BudgetGroup struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Budget        float64  `json:"budget"`
-	Consumed      float64  `json:"consumed"`
-	MemberIDs     []string `json:"memberIds"`
-	DepartmentIDs []string `json:"departmentIds"`
+type Project struct {
+	ID                string   `json:"id"`
+	Name              string   `json:"name"`
+	Budget            float64  `json:"budget"`
+	Consumed          float64  `json:"consumed"`
+	MemberIDs         []string `json:"memberIds"`
+	OwnerDepartmentID string   `json:"ownerDepartmentId"`
+}
+
+type UpdateProjectInput struct {
+	Name              *string   `json:"name"`
+	Budget            *float64  `json:"budget"`
+	MemberIDs         *[]string `json:"memberIds"`
+	OwnerDepartmentID *string   `json:"ownerDepartmentId"`
 }
 
 type OverrunPolicyConfig struct {
@@ -38,13 +45,13 @@ type AlertRule struct {
 	Enabled       bool     `json:"enabled"`
 }
 
-type MemberBudgetQuota struct {
+type MemberBudget struct {
 	MemberID       string  `json:"memberId"`
 	MemberName     string  `json:"memberName"`
 	DepartmentID   string  `json:"departmentId"`
 	PersonalBudget float64 `json:"personalBudget"`
 	Allocated      float64 `json:"allocated"`
-	Used           float64 `json:"used"`
+	Consumed       float64 `json:"consumed"`
 }
 
 type UpdateMemberBudgetInput struct {

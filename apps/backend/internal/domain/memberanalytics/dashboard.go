@@ -75,9 +75,9 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	if err != nil {
 		return DashboardView{}, fmt.Errorf("query usage summary: %w", err)
 	}
-	quota, err := s.keys.BudgetSummary(ctx, memberID)
+	budgetSummary, err := s.keys.BudgetSummary(ctx, memberID)
 	if err != nil {
-		return DashboardView{}, fmt.Errorf("quota summary: %w", err)
+		return DashboardView{}, fmt.Errorf("budget summary: %w", err)
 	}
 	trendPoints, err := s.reader.QuerySeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityHour,
@@ -107,7 +107,7 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	avgRPM, avgTPM := performanceStats(summary, start, end)
 	return DashboardView{
 		Account: AccountStats{
-			Balance:    quota.Remaining,
+			Balance:    budgetSummary.Remaining,
 			TotalSpent: summary.Cost,
 		},
 		UsageStats: UsageStats{

@@ -20,7 +20,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		return types.PlatformKey{}, err
 	}
 	platformKeys := budgetCtx.PlatformKeys
-	groups := budgetCtx.Groups
+	projects := budgetCtx.Projects
 	members := budgetCtx.Members
 	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
@@ -35,18 +35,18 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		return types.PlatformKey{}, err
 	}
 
-	if input.BudgetGroupID != nil {
-		var group *types.BudgetGroup
-		for i := range groups {
-			if groups[i].ID == *input.BudgetGroupID {
-				group = &groups[i]
+	if input.ProjectID != nil {
+		var project *types.Project
+		for i := range projects {
+			if projects[i].ID == *input.ProjectID {
+				project = &projects[i]
 				break
 			}
 		}
-		if group == nil {
-			return types.PlatformKey{}, domain.NotFound("Budget group not found")
+		if project == nil {
+			return types.PlatformKey{}, domain.NotFound("Project not found")
 		}
-		if msg := budget.ValidateGroupKeyBudget(*group, platformKeys, input.Budget, ""); msg != nil {
+		if msg := budget.ValidateProjectKeyBudget(*project, platformKeys, input.Budget, ""); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
@@ -73,8 +73,8 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	created := types.PlatformKey{
 		ID:   fmt.Sprintf("plk-%d", time.Now().UnixMilli()),
 		Name: input.Name, KeyPrefix: "pending...", MemberID: input.MemberID,
-		BudgetGroupID: input.BudgetGroupID,
-		Status:        "active", Budget: input.Budget, Used: 0,
+		ProjectID: input.ProjectID,
+		Status:    "active", Budget: input.Budget, Consumed: 0,
 		ModelWhitelist: append([]int64{}, input.ModelWhitelist...),
 		CreatedAt:      time.Now().Format("2006-01-02"),
 	}
@@ -83,7 +83,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		return types.PlatformKey{}, err
 	}
 
-	departmentID, err := s.resolvePlatformKeyDepartmentID(input, members, groups)
+	departmentID, err := s.resolvePlatformKeyDepartmentID(input, members, projects)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}

@@ -31,7 +31,7 @@ func Build(cfg config.Config) store.Snapshot {
 		Members:         members,
 		Roles:           roles,
 		Permissions:     buildPermissions(),
-		BudgetGroups:    buildBudgetGroups(),
+		Projects:        buildProjects(),
 		BudgetApprovals: buildBudgetApprovals(),
 		OverrunPolicy:   buildOverrunPolicy(),
 		AlertRules:      buildAlertRules(),

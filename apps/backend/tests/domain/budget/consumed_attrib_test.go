@@ -21,12 +21,12 @@ func TestConsumptionDeltasMatchesApplyIncrement(t *testing.T) {
 	}
 
 	memberID := contract.IDMember1
-	groupID := contract.IDBudgetGroup1
+	groupID := contract.IDProject1
 	entry := types.UsageLedgerEntry{
 		PlatformKeyID: contract.IDPlatformKey1,
 		DepartmentID:  contract.IDDept3,
 		MemberID:      &memberID,
-		BudgetGroupID: &groupID,
+		ProjectID:     &groupID,
 		Amount:        12.5,
 	}
 

@@ -4,20 +4,20 @@ export interface KeysWorkflowPayloads {
   'key-create': {
     adminCreate?: boolean
     targetMemberId?: string
-    budgetGroupId?: string
-    budgetGroupName?: string
+    projectId?: string
+    projectName?: string
     initialName?: string
-    initialQuota?: string
+    initialBudget?: string
     onSuccess?: (id?: string) => void
   }
   'key-edit': {
     key?: PlatformKey
     adminCreate?: boolean
     targetMemberId?: string
-    budgetGroupId?: string
-    budgetGroupName?: string
+    projectId?: string
+    projectName?: string
     initialName?: string
-    initialQuota?: string
+    initialBudget?: string
     onSuccess?: (id?: string) => void
   }
   'key-rotate-confirm': {

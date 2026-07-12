@@ -7,7 +7,7 @@ export type CtaHighlightKey =
   | 'MODEL'
   | 'OVERRUN'
   | 'CREATE_KEY'
-  | 'APPLY_QUOTA'
+  | 'APPLY_BUDGET'
 
 export interface CtaHighlightResult {
   id: string

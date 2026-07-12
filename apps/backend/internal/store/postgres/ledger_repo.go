@@ -34,7 +34,7 @@ func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.Led
 	listQuery := fmt.Sprintf(`
 		SELECT id, event_type, idempotency_key, segment_index, lot_id,
 			amount, display_amount, billing_currency,
-			department_id, member_id, budget_group_id, platform_key_id,
+			department_id, member_id, project_id, platform_key_id,
 			source, occurred_at, period_key, model, input_tokens, output_tokens,
 			call_detail, created_at
 		FROM usage_ledger
@@ -185,20 +185,20 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 	items := make([]types.UsageLedgerEntry, 0)
 	for rows.Next() {
 		var item types.UsageLedgerEntry
-		var memberID, budgetGroupID *string
+		var memberID, projectID *string
 		var detailJSON []byte
 		var occurredAt, createdAt time.Time
 		if err := rows.Scan(
 			&item.ID, &item.EventType, &item.IdempotencyKey, &item.SegmentIndex, &item.LotID,
 			&item.Amount, &item.DisplayAmount, &item.BillingCurrency,
-			&item.DepartmentID, &memberID, &budgetGroupID, &item.PlatformKeyID,
+			&item.DepartmentID, &memberID, &projectID, &item.PlatformKeyID,
 			&item.Source, &occurredAt, &item.PeriodKey, &item.Model, &item.InputTokens, &item.OutputTokens,
 			&detailJSON, &createdAt,
 		); err != nil {
 			return nil, err
 		}
 		item.MemberID = memberID
-		item.BudgetGroupID = budgetGroupID
+		item.ProjectID = projectID
 		item.OccurredAt = occurredAt
 		item.CreatedAt = createdAt
 		if len(detailJSON) > 0 {

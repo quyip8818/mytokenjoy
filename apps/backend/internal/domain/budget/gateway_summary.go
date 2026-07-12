@@ -69,8 +69,8 @@ func AffectedPlatformKeyIDs(ctx context.Context, st store.Store, repaired map[Ax
 			mappings, err = st.PlatformKeyMappings().ListMappingsByMemberID(ctx, key.AxisID)
 		case store.AxisKindOrgNode:
 			mappings, err = st.PlatformKeyMappings().ListMappingsByDepartmentID(ctx, key.AxisID)
-		case store.AxisKindBudgetGroup:
-			mappings, err = st.PlatformKeyMappings().ListMappingsByBudgetGroupID(ctx, key.AxisID)
+		case store.AxisKindProject:
+			mappings, err = st.PlatformKeyMappings().ListMappingsByProjectID(ctx, key.AxisID)
 		default:
 			continue
 		}

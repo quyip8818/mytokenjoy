@@ -35,7 +35,7 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		Members:         members,
 		Roles:           roles,
 		Permissions:     buildPermissions(),
-		BudgetGroups:    minimalBudgetGroups(),
+		Projects:        minimalProjects(),
 		BudgetApprovals: minimalBudgetApprovals(),
 		OverrunPolicy:   buildOverrunPolicy(),
 		AlertRules:      minimalAlertRules(),
@@ -113,11 +113,11 @@ func minimalModelAllowlist(keys []types.PlatformKey) []store.ModelAllowlistRow {
 	return rows
 }
 
-func minimalBudgetGroups() []types.BudgetGroup {
-	return []types.BudgetGroup{
+func minimalProjects() []types.Project {
+	return []types.Project{
 		{
-			ID: contract.IDBudgetGroup1, Name: "AI 创新项目组", Budget: 30000, Consumed: 18500,
-			MemberIDs: []string{contract.IDMember1, "m-4"}, DepartmentIDs: []string{contract.IDDept3, contract.IDDept4},
+			ID: contract.IDProject1, Name: "AI 创新项目组", Budget: 30000, Consumed: 18500,
+			MemberIDs: []string{contract.IDMember1, "m-4"}, OwnerDepartmentID: contract.IDDept3,
 		},
 	}
 }

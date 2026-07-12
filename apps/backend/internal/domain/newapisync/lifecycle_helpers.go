@@ -20,8 +20,8 @@ func (l *NewAPISync) newAPIWalletUserID(ctx context.Context) int64 {
 	return *company.NewAPIWalletUserID
 }
 
-func (l *NewAPISync) capRemainUnits(ctx context.Context, remainCNY float64, models []types.ModelInfo, effectiveIDs []int64) int64 {
-	allocated := newapiunits.ToNewAPIUnits(remainCNY, models, effectiveIDs)
+func (l *NewAPISync) capRemainUnits(ctx context.Context, remainPoint float64, models []types.ModelInfo, effectiveIDs []int64) int64 {
+	allocated := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
 	if l.wallet == nil {
 		return allocated
 	}
@@ -29,7 +29,7 @@ func (l *NewAPISync) capRemainUnits(ctx context.Context, remainCNY float64, mode
 	if walletID <= 0 {
 		return allocated
 	}
-	walletUnits, err := l.wallet.AvailableQuota(ctx, walletID)
+	walletUnits, err := l.wallet.AvailableNewAPIUnits(ctx, walletID)
 	if err != nil {
 		return allocated
 	}

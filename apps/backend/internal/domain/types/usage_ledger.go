@@ -35,7 +35,7 @@ type UsageLedgerEntry struct {
 	BillingCurrency string
 	DepartmentID    string
 	MemberID        *string
-	BudgetGroupID   *string
+	ProjectID       *string
 	PlatformKeyID   string
 	Source          string
 	OccurredAt      time.Time

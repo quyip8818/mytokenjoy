@@ -107,17 +107,17 @@ func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.Platf
 func (s *service) resolvePlatformKeyDepartmentID(
 	input types.CreatePlatformKeyInput,
 	members []types.Member,
-	groups []types.BudgetGroup,
+	projects []types.Project,
 ) (string, error) {
 	if input.MemberID != nil {
 		if member, ok := org.FindMemberByID(members, *input.MemberID); ok && member.DepartmentID != "" {
 			return member.DepartmentID, nil
 		}
 	}
-	if input.BudgetGroupID != nil {
-		for _, group := range groups {
-			if group.ID == *input.BudgetGroupID && len(group.DepartmentIDs) > 0 {
-				return group.DepartmentIDs[0], nil
+	if input.ProjectID != nil {
+		for _, project := range projects {
+			if project.ID == *input.ProjectID && project.OwnerDepartmentID != "" {
+				return project.OwnerDepartmentID, nil
 			}
 		}
 	}

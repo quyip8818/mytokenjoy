@@ -17,7 +17,7 @@ type stubWallet struct {
 	quota int64
 }
 
-func (s *stubWallet) AvailableQuota(context.Context, int64) (int64, error) {
+func (s *stubWallet) AvailableNewAPIUnits(context.Context, int64) (int64, error) {
 	return s.quota, nil
 }
 

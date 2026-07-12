@@ -116,7 +116,7 @@ func (r *usageRepo) QueryAggregates(ctx context.Context, q types.UsageAggregateQ
 }
 
 func (r *usageRepo) QuerySummary(ctx context.Context, q types.UsageAggregateQuery) (types.UsageSummaryTotals, error) {
-	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.OwnerDepartmentID, q.ScopeDeptIDs)
 	if err != nil {
 		return types.UsageSummaryTotals{}, err
 	}
@@ -124,11 +124,11 @@ func (r *usageRepo) QuerySummary(ctx context.Context, q types.UsageAggregateQuer
 }
 
 func (r *usageRepo) QueryFilteredBuckets(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageBucketRow, error) {
-	return r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	return r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.OwnerDepartmentID, q.ScopeDeptIDs)
 }
 
 func (r *usageRepo) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error) {
-	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.OwnerDepartmentID, q.ScopeDeptIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (r *usageRepo) TopModelsByDepartments(ctx context.Context, q types.UsageAgg
 }
 
 func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error) {
-	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.OwnerDepartmentID, q.ScopeDeptIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +145,10 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 		return nil, err
 	}
 	aggregated := aggregateUsageRows(rows, q.Granularity, q.GroupBy, loc)
-	if len(q.DepartmentIDs) > 0 {
+	if len(q.OwnerDepartmentID) > 0 {
 		filtered := make([]types.UsageAggregateRow, 0)
 		for _, row := range aggregated {
-			if containsString(q.DepartmentIDs, row.DepartmentID) {
+			if containsString(q.OwnerDepartmentID, row.DepartmentID) {
 				filtered = append(filtered, row)
 			}
 		}

@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
 import type {
   BudgetNode,
-  BudgetProjectView,
+  ProjectView,
   Department,
   Member,
-  MemberBudgetQuota,
+  MemberBudget,
   UpdateMemberBudgetInput,
 } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
-import { BudgetProjectDialog } from './budget-project-dialog'
+import { ProjectDialog } from './project-dialog'
 import { BudgetInitPrompt } from './budget-init-prompt'
 import { formatDisplayCurrency } from '@/lib/points'
 import { cn } from '@/lib/utils'
@@ -19,7 +19,7 @@ import { Plus, ChevronRight } from 'lucide-react'
 
 interface BudgetDetailTeamProps {
   node: BudgetNode
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   overrunPolicyLabel: string
   onUpdated: () => void
   onNavigateToProject: (projectId: string) => void
@@ -27,17 +27,14 @@ interface BudgetDetailTeamProps {
     departmentId: string,
     data: { budget: number; reservedPool?: number },
   ) => Promise<void>
-  onCreateGroup: (data: {
+  onCreateProject: (data: {
     name: string
     budget: number
     memberIds: string[]
-    departmentIds: string[]
+    ownerDepartmentId: string
   }) => Promise<void>
-  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (
-    memberId: string,
-    data: UpdateMemberBudgetInput,
-  ) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
   applyAverageBudget: (
     departmentId: string,
     data: { personalBudget: number; recursive: boolean },
@@ -84,7 +81,7 @@ export function BudgetDetailTeam({
   onUpdated,
   onNavigateToProject,
   onUpdateDepartment,
-  onCreateGroup,
+  onCreateProject,
   getMemberBudgets,
   updateMemberBudget,
   applyAverageBudget,
@@ -242,13 +239,13 @@ export function BudgetDetailTeam({
         applyAverageBudget={applyAverageBudget}
       />
 
-      <BudgetProjectDialog
+      <ProjectDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         department={node}
         existingProjectsBudget={projectBudgetSum}
         memberBudgetSum={memberBudgetSum}
-        onCreateGroup={onCreateGroup}
+        onCreateProject={onCreateProject}
         getDepartmentTree={getDepartmentTree}
         getMembers={getMembers}
         getAllDeptMembers={getAllDeptMembers}

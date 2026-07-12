@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { BudgetNode, BudgetProjectView } from '@/api/types'
+import type { BudgetNode, ProjectView } from '@/api/types'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 import { nodeReservedPool } from '../lib/mappers'
 
@@ -9,7 +9,7 @@ type RowDraft = {
 
 type UseBudgetAllocationEditOptions = {
   node: BudgetNode
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   onUpdated: () => void
   onUpdateDepartment: (
     departmentId: string,

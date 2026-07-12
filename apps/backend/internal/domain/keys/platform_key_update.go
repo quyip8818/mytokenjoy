@@ -19,7 +19,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		return types.PlatformKey{}, err
 	}
 	platformKeys := budgetCtx.PlatformKeys
-	groups := budgetCtx.Groups
+	projects := budgetCtx.Projects
 	idx := -1
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
@@ -52,24 +52,24 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 		}
 	}
 	if input.Budget != nil {
-		if existing.BudgetGroupID != nil {
-			var group *types.BudgetGroup
-			for i := range groups {
-				if groups[i].ID == *existing.BudgetGroupID {
-					group = &groups[i]
+		if existing.ProjectID != nil {
+			var project *types.Project
+			for i := range projects {
+				if projects[i].ID == *existing.ProjectID {
+					project = &projects[i]
 					break
 				}
 			}
-			if group == nil {
-				return types.PlatformKey{}, domain.NotFound("Budget group not found")
+			if project == nil {
+				return types.PlatformKey{}, domain.NotFound("Project not found")
 			}
-			if msg := budget.ValidateGroupKeyBudget(*group, platformKeys, *input.Budget, existing.ID); msg != nil {
+			if msg := budget.ValidateProjectKeyBudget(*project, platformKeys, *input.Budget, existing.ID); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		} else if existing.MemberID != nil {
 			otherAllocated := 0.0
 			for _, key := range platformKeys {
-				if key.MemberID != nil && *key.MemberID == *existing.MemberID && key.BudgetGroupID == nil && key.Status == "active" && key.ID != existing.ID {
+				if key.MemberID != nil && *key.MemberID == *existing.MemberID && key.ProjectID == nil && key.Status == "active" && key.ID != existing.ID {
 					otherAllocated += key.Budget
 				}
 			}

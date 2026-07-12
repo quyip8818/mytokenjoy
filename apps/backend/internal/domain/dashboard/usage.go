@@ -113,9 +113,9 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, d
 	}
 	result := make([]types.TeamUsage, 0, len(departments))
 	for _, dept := range departments {
-		quota := 0.0
+		deptBudget := 0.0
 		if node := findBudgetNode(tree, dept.ID); node != nil {
-			quota = node.Budget
+			deptBudget = node.Budget
 		}
 		memberCount := 0.0
 		for _, member := range members {
@@ -125,7 +125,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, d
 		}
 		result = append(result, types.TeamUsage{
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
-			Budget: quota, Consumed: consumedByDept[dept.ID],
+			Budget: deptBudget, Consumed: consumedByDept[dept.ID],
 			MemberCount: memberCount, TopModel: topModels[dept.ID],
 		})
 	}

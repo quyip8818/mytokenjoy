@@ -24,7 +24,7 @@ type PlatformKeyMapping struct {
 	NewAPIKeyID          *int64
 	MemberID             *string
 	DepartmentID         string
-	BudgetGroupID        *string
+	ProjectID            *string
 	NewAPIGroup          string
 	SyncStatus           string
 	SyncedAt             *time.Time
@@ -37,7 +37,7 @@ type PlatformKeyMappingRepository interface {
 	FindMappingByNewAPIKeyID(ctx context.Context, keyID int64) (*PlatformKeyMapping, error)
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]PlatformKeyMapping, error)
 	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]PlatformKeyMapping, error)
-	ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]PlatformKeyMapping, error)
+	ListMappingsByProjectID(ctx context.Context, projectID string) ([]PlatformKeyMapping, error)
 	ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []string) ([]PlatformKeyMapping, error)
 	ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]PlatformKeyMapping, error)
 	UpsertMapping(ctx context.Context, mapping PlatformKeyMapping) error

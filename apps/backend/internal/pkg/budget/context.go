@@ -12,7 +12,7 @@ type BudgetContext struct {
 	Tree         []types.BudgetNode
 	Members      []types.Member
 	PlatformKeys []types.PlatformKey
-	Groups       []types.BudgetGroup
+	Projects     []types.Project
 }
 
 func LoadBudgetContext(
@@ -35,7 +35,7 @@ func LoadBudgetContext(
 	if err != nil {
 		return BudgetContext{}, err
 	}
-	groups, err := LoadBudgetGroupsWithConsumed(ctx, snapshots, org, budgetRepo, clk)
+	groups, err := LoadProjectsWithConsumed(ctx, snapshots, org, budgetRepo, clk)
 	if err != nil {
 		return BudgetContext{}, err
 	}
@@ -43,7 +43,7 @@ func LoadBudgetContext(
 		Tree:         tree,
 		Members:      members,
 		PlatformKeys: platformKeys,
-		Groups:       groups,
+		Projects:     groups,
 	}, nil
 }
 
@@ -62,5 +62,5 @@ func (c BudgetContext) ComputeRemain(
 	memberAxis *MemberAxisInput,
 	deptAxis *DeptAxisInput,
 ) float64 {
-	return ComputeRemainBudget(key, c.Tree, c.Members, c.PlatformKeys, c.Groups, departmentID, memberAxis, deptAxis)
+	return ComputeRemainBudget(key, c.Tree, c.Members, c.PlatformKeys, c.Projects, departmentID, memberAxis, deptAxis)
 }

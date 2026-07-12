@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { BudgetProjectView, UpdateMemberBudgetInput } from '@/api/types'
+import type { ProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
 import { ApiError } from '@/api/client'
@@ -9,8 +9,8 @@ import { getCurrentBudgetPeriod } from '@/lib/date'
 import {
   findBudgetNode,
   formatBudgetPeriodLabel,
-  mapGroupsToProjectViews,
-  groupsForDepartment,
+  mapProjectsToViews,
+  projectsForDepartment,
   formatOverrunPolicyLabel,
   shiftBudgetPeriod,
   DEFAULT_OVERRUN_POLICY,
@@ -37,14 +37,14 @@ export function useBudgetPage(injectedApis?: AppApis) {
   })
 
   const {
-    data: groups = [],
-    loading: groupsLoading,
-    error: groupsError,
-    refresh: refreshGroups,
+    data: projectsData = [],
+    loading: projectsLoading,
+    error: projectsError,
+    refresh: refreshProjects,
   } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.budget.groups(),
-    queryFn: async (api) => (await api.budgetApi.getGroups()) ?? [],
+    queryKey: queryKeys.budget.projects(),
+    queryFn: async (api) => (await api.budgetApi.getProjects()) ?? [],
   })
 
   const { data: overrunPolicy } = useInjectedQuery({
@@ -73,12 +73,12 @@ export function useBudgetPage(injectedApis?: AppApis) {
 
   const resolvedSelectedTeamId = selectedTeamId ?? tree[0]?.id
 
-  const loading = treeLoading || groupsLoading
-  const error = treeError ?? groupsError
+  const loading = treeLoading || projectsLoading
+  const error = treeError ?? projectsError
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshTree(), refreshGroups(), refreshApprovals()])
-  }, [refreshTree, refreshGroups, refreshApprovals])
+    await Promise.all([refreshTree(), refreshProjects(), refreshApprovals()])
+  }, [refreshTree, refreshProjects, refreshApprovals])
 
   const selectedNode = useMemo(
     () => (resolvedSelectedTeamId ? findBudgetNode(tree, resolvedSelectedTeamId) : null),
@@ -97,9 +97,9 @@ export function useBudgetPage(injectedApis?: AppApis) {
     return map
   }, [tree])
 
-  const projects = useMemo((): BudgetProjectView[] => {
-    return mapGroupsToProjectViews(groups, nodeNameMap, period)
-  }, [groups, nodeNameMap, period])
+  const projects = useMemo((): ProjectView[] => {
+    return mapProjectsToViews(projectsData, nodeNameMap, period)
+  }, [projectsData, nodeNameMap, period])
 
   const activeProject = useMemo(
     () =>
@@ -151,15 +151,15 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis, refreshApprovals],
   )
 
-  const createBudgetGroup = useCallback(
+  const createProject = useCallback(
     async (data: {
       name: string
       budget: number
       memberIds: string[]
-      departmentIds: string[]
+      ownerDepartmentId: string
     }) => {
       try {
-        await apis.budgetApi.createGroup(data)
+        await apis.budgetApi.createProject(data)
         await refresh()
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : '创建项目失败')
@@ -169,10 +169,10 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis, refresh],
   )
 
-  const updateBudgetGroup = useCallback(
+  const updateProject = useCallback(
     async (groupId: string, data: { budget?: number; memberIds?: string[] }) => {
       try {
-        await apis.budgetApi.updateGroup(groupId, data)
+        await apis.budgetApi.updateProject(groupId, data)
         await refresh()
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : '更新项目失败')
@@ -182,10 +182,10 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis, refresh],
   )
 
-  const deleteBudgetGroup = useCallback(
+  const deleteProject = useCallback(
     async (groupId: string) => {
       try {
-        await apis.budgetApi.deleteGroup(groupId)
+        await apis.budgetApi.deleteProject(groupId)
         await refresh()
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : '删除项目失败')
@@ -274,14 +274,14 @@ export function useBudgetPage(injectedApis?: AppApis) {
     handleSelectTeam,
     setActiveProjectId,
     updateDepartment,
-    groupsForNode: (departmentId: string) => groupsForDepartment(groups, departmentId),
+    projectsForNode: (departmentId: string) => projectsForDepartment(projectsData, departmentId),
     overrunPolicyLabel,
     departmentMembers,
     departmentMembersLoading,
     projectMembers,
-    createBudgetGroup,
-    updateBudgetGroup,
-    deleteBudgetGroup,
+    createProject,
+    updateProject,
+    deleteProject,
     getMemberBudgets,
     updateMemberBudget,
     applyAverageBudget,

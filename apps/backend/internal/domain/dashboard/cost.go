@@ -71,13 +71,13 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	if err != nil {
 		return nil, err
 	}
-	childIDs := storeChildDepartmentIDs(departments, parentID)
+	childIDs := storeChildOwnerDepartmentID(departments, parentID)
 	if len(childIDs) == 0 {
 		return []types.DepartmentCost{}, nil
 	}
 	rows, err := s.reader.QueryAggregates(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone,
-		GroupBy: types.UsageGroupByDepartment, DepartmentIDs: childIDs, ScopeDeptIDs: scopeDeptIDs,
+		GroupBy: types.UsageGroupByDepartment, OwnerDepartmentID: childIDs, ScopeDeptIDs: scopeDeptIDs,
 	})
 	if err != nil {
 		return nil, err
@@ -218,7 +218,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	return result, nil
 }
 
-func storeChildDepartmentIDs(departments []types.Department, parentID string) []string {
+func storeChildOwnerDepartmentID(departments []types.Department, parentID string) []string {
 	if parentID == "" {
 		ids := make([]string, 0, len(departments))
 		for _, dept := range departments {

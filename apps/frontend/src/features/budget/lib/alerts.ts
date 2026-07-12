@@ -1,4 +1,4 @@
-import type { AlertRule, BudgetGroup, BudgetNode, BudgetProjectView } from '@/api/types'
+import type { AlertRule, Project, BudgetNode, ProjectView } from '@/api/types'
 
 export interface AlertRuleView extends AlertRule {
   targetType: 'team' | 'project'
@@ -8,18 +8,18 @@ export interface AlertRuleView extends AlertRule {
 }
 
 export function isProjectNodeId(nodeId: string): boolean {
-  return nodeId.startsWith('bg-')
+  return nodeId.startsWith('proj-')
 }
 
-export function alertRuleToView(rule: AlertRule, groups: BudgetGroup[]): AlertRuleView {
+export function alertRuleToView(rule: AlertRule, projects: Project[]): AlertRuleView {
   const isProject = isProjectNodeId(rule.nodeId)
-  const group = isProject ? groups.find((item) => item.id === rule.nodeId) : undefined
+  const project = isProject ? projects.find((item) => item.id === rule.nodeId) : undefined
   return {
     ...rule,
     targetType: isProject ? 'project' : 'team',
     targetId: rule.nodeId,
     targetName: rule.nodeName,
-    departmentId: group?.departmentIds[0],
+    departmentId: project?.ownerDepartmentId,
   }
 }
 
@@ -45,19 +45,19 @@ export function thresholdClass(threshold: number): string {
 }
 
 export function groupProjectsByTeam(
-  projects: BudgetProjectView[],
+  projects: ProjectView[],
   tree: BudgetNode[],
-): { teamId: string; teamName: string; projects: BudgetProjectView[] }[] {
-  const groups: { teamId: string; teamName: string; projects: BudgetProjectView[] }[] = []
+): { teamId: string; teamName: string; projects: ProjectView[] }[] {
+  const teams: { teamId: string; teamName: string; projects: ProjectView[] }[] = []
   function walk(nodes: BudgetNode[]) {
     for (const node of nodes) {
       const nodeProjects = projects.filter((project) => project.departmentId === node.id)
       if (nodeProjects.length > 0) {
-        groups.push({ teamId: node.id, teamName: node.name, projects: nodeProjects })
+        teams.push({ teamId: node.id, teamName: node.name, projects: nodeProjects })
       }
       if (node.children) walk(node.children)
     }
   }
   walk(tree)
-  return groups
+  return teams
 }

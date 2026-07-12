@@ -15,31 +15,30 @@ type ProviderKey struct {
 }
 
 type PlatformKey struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	KeyPrefix       string  `json:"keyPrefix"`
-	FullKey         *string `json:"fullKey,omitempty"`
-	Type            string  `json:"type"`
-	MemberID        *string `json:"memberId"`
-	MemberName      *string `json:"memberName"`
-	ProjectName     *string `json:"projectName"`
-	DepartmentID    string  `json:"departmentId"`
-	DepartmentName  string  `json:"departmentName"`
-	BudgetGroupID   *string `json:"budgetGroupId"`
-	BudgetGroupName *string `json:"budgetGroupName"`
-	Status          string  `json:"status"`
-	Budget          float64 `json:"budget"`
-	Used            float64 `json:"used"`
-	ModelWhitelist  []int64 `json:"modelWhitelist"`
-	CreatedAt       string  `json:"createdAt"`
-	ExpiresAt       *string `json:"expiresAt"`
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	KeyPrefix      string  `json:"keyPrefix"`
+	FullKey        *string `json:"fullKey,omitempty"`
+	Scope          string  `json:"scope"`
+	MemberID       *string `json:"memberId"`
+	MemberName     *string `json:"memberName"`
+	ProjectID      *string `json:"projectId"`
+	ProjectName    *string `json:"projectName"`
+	DepartmentID   string  `json:"departmentId"`
+	DepartmentName string  `json:"departmentName"`
+	Status         string  `json:"status"`
+	Budget         float64 `json:"budget"`
+	Consumed       float64 `json:"consumed"`
+	ModelWhitelist []int64 `json:"modelWhitelist"`
+	CreatedAt      string  `json:"createdAt"`
+	ExpiresAt      *string `json:"expiresAt"`
 }
 
 type PlatformKeyListFilter struct {
-	MemberID      string
-	BudgetGroupID string
-	DepartmentID  string
-	Type          string
+	MemberID     string
+	ProjectID    string
+	DepartmentID string
+	Scope        string
 }
 
 type KeyApproval struct {
@@ -60,7 +59,7 @@ type KeyApproval struct {
 
 type MemberBudgetSummary struct {
 	TotalBudget  float64 `json:"totalBudget"`
-	Used         float64 `json:"used"`
+	Consumed     float64 `json:"consumed"`
 	Remaining    float64 `json:"remaining"`
 	ReservedPool float64 `json:"reservedPool"`
 }
@@ -88,7 +87,7 @@ type RotateProviderKeyInput struct {
 type CreatePlatformKeyInput struct {
 	Name           string  `json:"name"`
 	MemberID       *string `json:"memberId"`
-	BudgetGroupID  *string `json:"budgetGroupId"`
+	ProjectID      *string `json:"projectId"`
 	Budget         float64 `json:"budget"`
 	ModelWhitelist []int64 `json:"modelWhitelist"`
 }

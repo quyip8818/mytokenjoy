@@ -44,7 +44,7 @@ func TestBudgetProjectorDedupesOverrunByPlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1); got <= 0 {
+	if got := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1); got <= 0 {
 		t.Fatalf("expected projector to apply ledger batch, consumed=%v", got)
 	}
 	if got := recorder.overruns; got != 1 {

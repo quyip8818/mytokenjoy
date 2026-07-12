@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView } from '@/api/types'
+import type { BudgetNode, ProjectView } from '@/api/types'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import {
@@ -17,7 +17,7 @@ interface BudgetAllocationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   node: BudgetNode
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   onUpdated: () => void
   onUpdateDepartment: (
     departmentId: string,
@@ -122,7 +122,7 @@ export function BudgetAllocationDialog({
                 placeholder="元"
               />
               <span className="w-20 text-right text-xs tabular-nums text-muted-foreground">
-                已用 {formatDisplayCurrency(child.consumed)}
+                已消耗 {formatDisplayCurrency(child.consumed)}
               </span>
             </div>
           ))}

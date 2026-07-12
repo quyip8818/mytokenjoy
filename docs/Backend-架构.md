@@ -40,7 +40,7 @@
 | **Domain port** | `domain/adminport/` | `Port` 接口：`CreateToken` / `UpdateToken` / `TopUp` / `GetUserQuota` / `RebuildAbilities` 等 |
 | **Adapter** | `integration/newapi/admin_port_adapter.go` | 唯一 HTTP 实现，映射厂商 Admin API |
 | **纯换算** | `pkg/newapiunits/` | point ↔ quota；domain 可直接引用 |
-| **Wallet 读** | `company.WalletService` | 依赖最小 `QuotaReader`；`adminport.Port` 满足接口；组合根注入 `adminPort` |
+| **Wallet 读** | `company.WalletService` | 依赖最小 `NewAPIWalletReader`；`adminport.Port` 满足接口；组合根注入 `adminPort` |
 
 装配：`wiring_infra.go` → `newapi.NewAdminPortAdapter(client)` → `buildDomainServices` 注入 `NewAPISync`、`billing`、`budget.Rebalance`、`models`、`company`。
 
@@ -437,7 +437,7 @@ flowchart LR
   subgraph river [river.Client]
     NS[newapi_sync]
     WS[wallet_sync]
-    BP[budget_project]
+    BP[budget_projection]
     RB[rebalance]
     OV[overrun]
     FAN[Periodic org_sync / reconcile fanout]
@@ -461,7 +461,7 @@ flowchart TB
   subgraph write [写入路径]
     NA[NewAPI settle] --> WH[webhook] --> ING[ingest]
     ING --> UL[(usage_ledger)]
-    ING -->|InsertTx| BP[budget_project]
+    ING -->|InsertTx| BP[budget_projection]
     BP --> BC[(budget_consumed)]
     PER[Periodic] --> DP[dashboard_project] --> UB[(usage_buckets)]
   end

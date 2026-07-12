@@ -22,13 +22,13 @@ func generateBudgetID(prefix string) string {
 type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
 	UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error)
-	ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error)
-	UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudgetQuota, error)
+	ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudget, error)
+	UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudget, error)
 	ApplyAverageBudget(ctx context.Context, deptID string, personalBudget float64, recursive bool) error
-	ListGroups(ctx context.Context) ([]types.BudgetGroup, error)
-	CreateGroup(ctx context.Context, group types.BudgetGroup) (types.BudgetGroup, error)
-	UpdateGroup(ctx context.Context, id string, patch types.BudgetGroup) (types.BudgetGroup, error)
-	DeleteGroup(ctx context.Context, id string) error
+	ListProjects(ctx context.Context) ([]types.Project, error)
+	CreateProject(ctx context.Context, project types.Project) (types.Project, error)
+	UpdateProject(ctx context.Context, id string, patch types.UpdateProjectInput) (types.Project, error)
+	DeleteProject(ctx context.Context, id string) error
 	GetOverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error)
 	UpdateOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) (types.OverrunPolicyConfig, error)
 	ListAlerts(ctx context.Context) ([]types.AlertRule, error)
@@ -37,7 +37,7 @@ type Service interface {
 	DeleteAlert(ctx context.Context, id string) error
 	ListApprovals(ctx context.Context) ([]types.BudgetApproval, error)
 	ResolveApproval(ctx context.Context, id string, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error)
-	GetGroupMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error)
+	GetProjectMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error)
 }
 
 type service struct {

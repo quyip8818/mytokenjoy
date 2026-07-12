@@ -83,7 +83,7 @@ func (r *budgetConsumedRepo) GetConsumed(ctx context.Context, axisKind, axisID, 
 	return consumed, true, nil
 }
 
-func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amountCNY float64) error {
+func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amountPoint float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
@@ -91,7 +91,7 @@ func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind, ax
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
 			consumed = budget_consumed.consumed + EXCLUDED.consumed,
 			updated_at = NOW()
-	`, companyID, axisKind, axisID, periodKey, amountCNY)
+	`, companyID, axisKind, axisID, periodKey, amountPoint)
 	return err
 }
 
@@ -107,7 +107,7 @@ func (r *budgetConsumedRepo) SetConsumed(ctx context.Context, axisKind, axisID, 
 	return err
 }
 
-func (r *budgetConsumedRepo) RollupOrgNodeAncestors(ctx context.Context, leafNodeID, periodKey string, amountCNY float64) error {
+func (r *budgetConsumedRepo) RollupOrgNodeAncestors(ctx context.Context, leafNodeID, periodKey string, amountPoint float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
@@ -120,6 +120,6 @@ func (r *budgetConsumedRepo) RollupOrgNodeAncestors(ctx context.Context, leafNod
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
 			consumed = budget_consumed.consumed + EXCLUDED.consumed,
 			updated_at = NOW()
-	`, companyID, leafNodeID, amountCNY, periodKey, store.AxisKindOrgNode)
+	`, companyID, leafNodeID, amountPoint, periodKey, store.AxisKindOrgNode)
 	return err
 }

@@ -95,17 +95,17 @@ type UsageSeriesResponse struct {
 }
 
 type UsageAggregateQuery struct {
-	Start         time.Time
-	End           time.Time
-	Granularity   string
-	Timezone      string
-	GroupBy       string
-	DepartmentID  string
-	DepartmentIDs []string
-	MemberID      string
-	ParentDeptID  string
-	Limit         int
-	ScopeDeptIDs  []string
+	Start             time.Time
+	End               time.Time
+	Granularity       string
+	Timezone          string
+	GroupBy           string
+	DepartmentID      string
+	OwnerDepartmentID []string
+	MemberID          string
+	ParentDeptID      string
+	Limit             int
+	ScopeDeptIDs      []string
 }
 
 type UsageAggregateRow struct {

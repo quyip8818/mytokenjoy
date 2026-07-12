@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { useBudgetAlertRulesPage } from '@/features/budget/hooks/use-budget-alert-rules-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
-import { mockBudgetGroups, mockBudgetTree } from '@tests/fixtures/budget'
+import { mockProjects, mockBudgetTree } from '@tests/fixtures/budget'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 
 describe('useBudgetAlertRulesPage', () => {
@@ -20,7 +20,7 @@ describe('useBudgetAlertRulesPage', () => {
     const apis = createMockApis({
       budgetApi: {
         getAlerts: vi.fn().mockResolvedValue(rules),
-        getGroups: vi.fn().mockResolvedValue(mockBudgetGroups),
+        getProjects: vi.fn().mockResolvedValue(mockProjects),
         getTree: vi.fn().mockResolvedValue(mockBudgetTree),
       },
       roleApi: {

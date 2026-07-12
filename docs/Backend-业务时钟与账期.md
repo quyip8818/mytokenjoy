@@ -183,7 +183,7 @@ flowchart LR
 ```text
 IngestRaw
   ├─ OccurrenceDepartmentPeriod(OccurredAt) → entry.PeriodKey → ledger
-  ├─ InsertTx budget_project               → budget.Projector 异步写 budget_consumed（开账 period）
+  ├─ InsertTx budget_projection               → budget.Projector 异步写 budget_consumed（开账 period）
   └─ usage_buckets                         ← dashboard.Projector（OccurredAt）
 ```
 
@@ -195,7 +195,7 @@ flowchart TB
   Entry --> Occ[OccurrenceDepartmentPeriod]
   Clock[cfg.Clock] --> Open[OpenDepartmentPeriod]
   Occ --> Ledger[Insert ledger]
-  Ledger --> Enq[InsertTx budget_project]
+  Ledger --> Enq[InsertTx budget_projection]
   Enq --> Proj[budget.Projector → budget_consumed]
   Entry --> DashProj[dashboard.Projector → buckets]
 ```
@@ -245,7 +245,7 @@ internal/pkg/budget/
   cost_range.go              看板 Resolve / PreviousRange
   snapshotload.go            Load* 读消耗
 
-domain/usage/ingest.go       ledger + 入队 budget_project
+domain/usage/ingest.go       ledger + 入队 budget_projection
 domain/budget/budget_projector.go  ApplyIncrement(..., OpenBudgetPeriod)
 domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（gateway_soft + limit）
 domain/budget/overrun.go     开账超支
@@ -302,7 +302,7 @@ flowchart TB
 | 锚点预检 | `TestPrecheckUsesClockAnchorForPeriodKey` |
 | 树与工厂同月 | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory` |
 | seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetSnapshotsAlignWithClockAnchor` |
-| Load* 开账月跟 Clock | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadBudgetGroupsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
+| Load* 开账月跟 Clock | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadProjectsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
 | 生产禁锚点 | `TestProductionRejectsClockAnchor` |
 
 ---

@@ -39,7 +39,7 @@ export function ApprovalSubmitWorkflow({
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
-  const [quota, setQuota] = useState('3000')
+  const [requestedBudget, setRequestedBudget] = useState('3000')
   const [models, setModels] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
 
@@ -74,7 +74,7 @@ export function ApprovalSubmitWorkflow({
       await apis.approvalApi.create({
         type,
         reason,
-        requestedBudget: Number(quota),
+        requestedBudget: Number(requestedBudget),
         requestedModels: models,
         memberId,
       })
@@ -137,9 +137,9 @@ export function ApprovalSubmitWorkflow({
           <Label>申请额度 (¥)</Label>
           <Input
             type="number"
-            value={quota}
+            value={requestedBudget}
             onChange={(e) => {
-              setQuota(e.target.value)
+              setRequestedBudget(e.target.value)
               onSetDirty(true)
             }}
           />

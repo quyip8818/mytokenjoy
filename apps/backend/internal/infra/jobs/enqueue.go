@@ -69,8 +69,8 @@ func InsertMonthlyRebalance(ctx context.Context, e Enqueuer, tx store.Tx) error 
 	return e.Insert(ctx, args, nil)
 }
 
-func InsertBudgetProject(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
-	args := BudgetProjectArgs{CompanyID: companyID}
+func InsertBudgetProjection(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+	args := BudgetProjectionArgs{CompanyID: companyID}
 	if tx != nil {
 		return e.InsertInTx(ctx, tx, args, nil)
 	}

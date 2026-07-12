@@ -143,7 +143,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
 | 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
-**`platform_keys` 字段分层：** 持久化 `member_id` / `budget_group_id` / `app_name`；响应 enrich `member_name` / `budget_group_name` / `type` / `department_*` / `project_name`（仅 JSON）；运行面 `platform_key_mappings.department_id` 独立分层。
+**`platform_keys` 字段分层：** 持久化 `member_id` / `project_id` / `app_name`；响应 enrich `member_name` / `project_name` / `scope` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。
 
 **`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。新库 `schema.sql` 已含全量 DDL。
 
@@ -226,7 +226,7 @@ HTTP 非 2xx 时，body 应包含：
 | `deptId`（path / query，非 budget）                   | dashboard `/cost/departments/{deptId}/...`、`?deptId=` 等                  |
 | 前端 API 客户端参数                                   | budget 域用 `departmentId`；dashboard/models query 映射为 `deptId`         |
 | `PUT /budget/departments/:departmentId`               | 更新部门节点预算                                                           |
-| `GET /budget/departments/:departmentId/member-quotas` | 该部门下成员配额列表                                                       |
+| `GET /budget/departments/:departmentId/member-budgets` | 该部门下成员配额列表                                                       |
 | `GET /dashboard/usage/teams`                          | 产品「团队用量」；响应字段仍为 `departmentId` / `departmentName`           |
 | `RoutingRule.id` 与 `nodeId`                          | 同值；新代码优先读 `nodeId`；`PUT /models/routing/:id` 中 `:id` = `nodeId` |
 
@@ -378,12 +378,12 @@ HTTP 非 2xx 时，body 应包含：
 | ------ | ------------------------------------------------- | ------------------------------------------------ | --------------------- | --------------------------------- |
 | GET    | `/budget/tree`                                    | query: `period?`                                 | `BudgetNode[]`        |                                   |
 | PUT    | `/budget/departments/:departmentId`               | `{ budget, reservedPool? }`                      | `BudgetNode`          |                                   |
-| GET    | `/budget/departments/:departmentId/member-quotas` | —                                                | `MemberBudgetQuota[]` |                                   |
-| PUT    | `/budget/members/:memberId`                       | `UpdateMemberQuotaInput`                         | `MemberBudgetQuota`   | 部门内超卖 / 低于已分配 Key → 422 |
-| GET    | `/budget/groups`                                  | —                                                | `BudgetGroup[]`       |                                   |
-| POST   | `/budget/groups`                                  | `Omit<BudgetGroup, 'id' \| 'consumed'>`          | `BudgetGroup`         |                                   |
-| PUT    | `/budget/groups/:id`                              | `Partial<Omit<BudgetGroup, 'id' \| 'consumed'>>` | `BudgetGroup`         |                                   |
-| DELETE | `/budget/groups/:id`                              | —                                                | `void`                |                                   |
+| GET    | `/budget/departments/:departmentId/member-budgets` | —                                                | `MemberBudget[]` |                                   |
+| PUT    | `/budget/members/:memberId`                       | `UpdateMemberBudgetInput`                         | `MemberBudget`   | 部门内超卖 / 低于已分配 Key → 422 |
+| GET    | `/budget/projects`                                  | —                                                | `Project[]`       |                                   |
+| POST   | `/budget/projects`                                  | `Omit<Project, 'id' \| 'consumed'>`          | `Project`         |                                   |
+| PUT    | `/budget/projects/:id`                              | `Partial<Omit<Project, 'id' \| 'consumed'>>` | `Project`         |                                   |
+| DELETE | `/budget/projects/:id`                              | —                                                | `void`                |                                   |
 | GET    | `/budget/overrun-policy`                          | —                                                | `OverrunPolicyConfig` |                                   |
 | PUT    | `/budget/overrun-policy`                          | `OverrunPolicyConfig`                            | `OverrunPolicyConfig` |                                   |
 | GET    | `/budget/alerts`                                  | —                                                | `AlertRule[]`         |                                   |
@@ -392,7 +392,7 @@ HTTP 非 2xx 时，body 应包含：
 | DELETE | `/budget/alerts/:id`                              | —                                                | `void`                |                                   |
 | GET    | `/budget/approvals`                               | —                                                | `BudgetApproval[]`    | 预算额度审批队列                  |
 | PUT    | `/budget/approvals/:id`                           | `{ status, rejectReason? }`                      | `void`                | `approved` \| `rejected`          |
-| GET    | `/budget/groups/:id/member-consumed`              | —                                                | `MemberConsumed[]`    | 组内成员已消耗                    |
+| GET    | `/budget/projects/:id/member-consumed`              | —                                                | `Record<string, number>`    | 项目内成员已消耗                    |
 
 ---
 
@@ -414,14 +414,14 @@ HTTP 非 2xx 时，body 应包含：
 
 | 方法   | 路径                           | Body / 查询                                                                          | 响应                     | 备注                                                                 |
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
-| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `budgetGroupId?`, `departmentId?`, `type?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`type`: `member` \| `project`                   |
-| POST   | `/keys/platform`               | `{ name, memberId?, budgetGroupId?, appName?, quota, modelWhitelist: number[] }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；Group Key 校验组剩余额度；白名单 → 422 |
+| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project`                   |
+| POST   | `/keys/platform`               | `{ name, memberId?, projectId?, appName?, budget, modelWhitelist: number[] }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；项目 Key 校验项目剩余额度；白名单 → 422 |
 | PUT    | `/keys/platform/:id`           | `{ name?, quota?, modelWhitelist?: number[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
 | PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
 | POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
 | PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
 | DELETE | `/keys/platform/:id`           | —                                                                                    | `void`                   |                                                                      |
-| GET    | `/keys/platform/quota-summary` | query: `memberId`                                                                    | `MemberQuotaSummary`     |                                                                      |
+| GET    | `/keys/platform/budget-summary` | query: `memberId`                                                                    | `MemberBudgetSummary`     |                                                                      |
 
 #### 审批 `approvalApi`
 
@@ -583,11 +583,11 @@ HTTP 非 2xx 时，body 应包含：
 
 **BudgetNode：** `id`, `name`, `parentId`, `budget`, `consumed`, `reservedPool?`, `children?`, `period`
 
-**MemberBudgetQuota：** `memberId`, `memberName`, `departmentId`, `personalQuota`, `allocated`, `used`
+**MemberBudget：** `memberId`, `memberName`, `departmentId`, `personalBudget`, `allocated`, `consumed`
 
-**UpdateMemberQuotaInput：** `personalQuota`
+**UpdateMemberBudgetInput：** `personalBudget`
 
-**BudgetGroup：** `id`, `name`, `budget`, `consumed`, `memberIds`, `departmentIds`
+**Project：** `id`, `name`, `budget`, `consumed`, `memberIds`, `ownerDepartmentId`
 
 **OverrunPolicyConfig：** `thresholds`, `notifyEmail`, `notifyPhone`, `notifyIm`, `blockMessage`
 
@@ -607,14 +607,14 @@ HTTP 非 2xx 时，body 应包含：
 
 **ProviderKey：** `id`, `provider`, `name`, `keyPrefix`, `status`, `balance`, `lastUsed`, `createdAt`, `rotateEnabled`
 
-**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `memberId`, `memberName`†, `appName`, `budgetGroupId`, `budgetGroupName`†, `type`†, `departmentId`†, `departmentName`†, `projectName`†, `status`, `quota`, `used`, `modelWhitelist: number[]`, `createdAt`, `expiresAt`  
+**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `scope`†, `memberId`, `memberName`†, `departmentId`†, `departmentName`†, `projectId`, `projectName`†, `status`, `budget`, `consumed`, `modelWhitelist: number[]`, `createdAt`, `expiresAt`  
 † 服务端 enrich 推导，不入库 `platform_keys`（见 §5.0.1）
 
 **ApprovalType：** `key` \| `quota` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
 
 **KeyApproval：** `id`, `type`, `applicant`, `applicantId`, `department`, `reason`, `requestedQuota`, `requestedModels: number[]`, `status`, `approver`, `rejectReason?`, `createdAt`, `resolvedAt`
 
-**MemberQuotaSummary：** `totalQuota`, `used`, `remaining`, `reservedPool`
+**MemberBudgetSummary：** `totalBudget`, `consumed`, `remaining`, `reservedPool`
 
 #### 5.5.4 Models — [`types/models.ts`](../apps/frontend/src/api/types/models.ts)
 

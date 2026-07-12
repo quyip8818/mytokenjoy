@@ -17,14 +17,13 @@ echo "🧹 清空预算管理数据（保留总公司 + admin）..."
 docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "
 BEGIN;
 
--- 解除 platform_keys 对 budget_group 和 member 的外键引用
-UPDATE platform_keys SET budget_group_id = NULL WHERE company_id = $COMPANY_ID;
+-- 解除 platform_keys 对 project 和 member 的外键引用
+UPDATE platform_keys SET project_id = NULL WHERE company_id = $COMPANY_ID;
 UPDATE platform_keys SET member_id = '$ADMIN_ID' WHERE company_id = $COMPANY_ID AND member_id != '$ADMIN_ID';
 
--- 删除预算组关联
-DELETE FROM budget_group_members WHERE company_id = $COMPANY_ID;
-DELETE FROM budget_group_departments WHERE company_id = $COMPANY_ID;
-DELETE FROM budget_groups WHERE company_id = $COMPANY_ID;
+-- 删除项目关联
+DELETE FROM project_members WHERE company_id = $COMPANY_ID;
+DELETE FROM projects WHERE company_id = $COMPANY_ID;
 
 -- 删除告警规则
 DELETE FROM alert_rule_notify_roles WHERE company_id = $COMPANY_ID;
@@ -60,5 +59,5 @@ docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "
   UNION ALL
   SELECT '成员', count(*) FROM members WHERE company_id = $COMPANY_ID
   UNION ALL
-  SELECT '预算组', count(*) FROM budget_groups WHERE company_id = $COMPANY_ID;
+  SELECT '项目', count(*) FROM projects WHERE company_id = $COMPANY_ID;
 "

@@ -26,7 +26,7 @@ describe('usePlatformKeysPage', () => {
     expect(apis.departmentApi.getTree).toHaveBeenCalled()
     expect(apis.platformKeyApi.list).toHaveBeenCalledWith({
       departmentId: undefined,
-      type: 'member',
+      scope: 'member',
     })
   })
 })

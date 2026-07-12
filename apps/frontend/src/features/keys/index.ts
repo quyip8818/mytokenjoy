@@ -9,7 +9,7 @@ export { ApprovalPageShell } from './components/approval-page-shell'
 export { PlatformKeysPageShell } from './components/platform-keys-page-shell'
 export { ProviderKeysPageShell } from './components/provider-keys-page-shell'
 export {
-  QUOTA_INSUFFICIENT_MESSAGE,
+  BUDGET_INSUFFICIENT_MESSAGE,
   PLATFORM_KEY_ROTATE_UNAVAILABLE_MESSAGE,
 } from './lib/constants'
 export type { PlatformKeyTab, ApprovalTab } from './lib/types'

@@ -68,8 +68,8 @@ type recordingBudgetEnqueuer struct {
 	overruns   int
 }
 
-func (r *recordingBudgetEnqueuer) InsertBudgetProject(ctx context.Context, companyID int64) error {
-	return r.inner.InsertBudgetProject(ctx, companyID)
+func (r *recordingBudgetEnqueuer) InsertBudgetProjection(ctx context.Context, companyID int64) error {
+	return r.inner.InsertBudgetProjection(ctx, companyID)
 }
 
 func (r *recordingBudgetEnqueuer) InsertOverrun(ctx context.Context, companyID int64, payload []byte) error {

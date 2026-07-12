@@ -39,7 +39,7 @@ func (s *service) ListPlatformKeys(
 	filtered := make([]types.PlatformKey, 0, len(items))
 	for _, key := range items {
 		enriched := enrichPlatformKey(key, lookups)
-		if !matchesPlatformKeyFilter(enriched, filter, allowedDeptIDs, lookups.groupByID) {
+		if !matchesPlatformKeyFilter(enriched, filter, allowedDeptIDs, lookups.projectByID) {
 			continue
 		}
 		filtered = append(filtered, enriched)
@@ -54,35 +54,31 @@ func matchesPlatformKeyFilter(
 	key types.PlatformKey,
 	filter types.PlatformKeyListFilter,
 	allowedDeptIDs map[string]struct{},
-	groupByID map[string]types.BudgetGroup,
+	projectByID map[string]types.Project,
 ) bool {
 	if filter.MemberID != "" && (key.MemberID == nil || *key.MemberID != filter.MemberID) {
 		return false
 	}
-	if filter.BudgetGroupID != "" && (key.BudgetGroupID == nil || *key.BudgetGroupID != filter.BudgetGroupID) {
+	if filter.ProjectID != "" && (key.ProjectID == nil || *key.ProjectID != filter.ProjectID) {
 		return false
 	}
-	if filter.Type != "" && key.Type != filter.Type {
+	if filter.Scope != "" && key.Scope != filter.Scope {
 		return false
 	}
 	if filter.DepartmentID == "" {
 		return true
 	}
-	if key.Type == "member" {
+	if key.Scope == "member" {
 		_, ok := allowedDeptIDs[key.DepartmentID]
 		return ok
 	}
-	if key.BudgetGroupID == nil {
+	if key.ProjectID == nil {
 		return false
 	}
-	group, ok := groupByID[*key.BudgetGroupID]
+	project, ok := projectByID[*key.ProjectID]
 	if !ok {
 		return false
 	}
-	for _, deptID := range group.DepartmentIDs {
-		if _, allowed := allowedDeptIDs[deptID]; allowed {
-			return true
-		}
-	}
-	return false
+	_, allowed := allowedDeptIDs[project.OwnerDepartmentID]
+	return allowed
 }

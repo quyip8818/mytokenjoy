@@ -43,9 +43,9 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, node, err)
 }
 
-func (h *Handler) MemberQuotas(w http.ResponseWriter, r *http.Request) {
-	quotas, err := h.service.ListMemberBudgets(r.Context(), chi.URLParam(r, "departmentId"))
-	httputil.WriteJSON(w, http.StatusOK, quotas, err)
+func (h *Handler) MemberBudgets(w http.ResponseWriter, r *http.Request) {
+	budgets, err := h.service.ListMemberBudgets(r.Context(), chi.URLParam(r, "departmentId"))
+	httputil.WriteJSON(w, http.StatusOK, budgets, err)
 }
 
 func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
@@ -76,33 +76,33 @@ func (h *Handler) ApplyAverageBudget(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"}, nil)
 }
 
-func (h *Handler) GroupsList(w http.ResponseWriter, r *http.Request) {
-	groups, err := h.service.ListGroups(r.Context())
+func (h *Handler) ProjectsList(w http.ResponseWriter, r *http.Request) {
+	groups, err := h.service.ListProjects(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, groups, err)
 }
 
-func (h *Handler) GroupCreate(w http.ResponseWriter, r *http.Request) {
-	var body types.BudgetGroup
+func (h *Handler) ProjectCreate(w http.ResponseWriter, r *http.Request) {
+	var body types.Project
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	group, err := h.service.CreateGroup(r.Context(), body)
+	group, err := h.service.CreateProject(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, group, err)
 }
 
-func (h *Handler) GroupUpdate(w http.ResponseWriter, r *http.Request) {
-	var body types.BudgetGroup
+func (h *Handler) ProjectUpdate(w http.ResponseWriter, r *http.Request) {
+	var body types.UpdateProjectInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	group, err := h.service.UpdateGroup(r.Context(), chi.URLParam(r, "id"), body)
+	group, err := h.service.UpdateProject(r.Context(), chi.URLParam(r, "id"), body)
 	httputil.WriteJSON(w, http.StatusOK, group, err)
 }
 
-func (h *Handler) GroupDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteGroup(r.Context(), chi.URLParam(r, "id"))
+func (h *Handler) ProjectDelete(w http.ResponseWriter, r *http.Request) {
+	err := h.service.DeleteProject(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
 }
 
@@ -166,18 +166,18 @@ func (h *Handler) ApprovalResolve(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, item, err)
 }
 
-func (h *Handler) GroupMemberConsumed(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProjectMemberConsumed(w http.ResponseWriter, r *http.Request) {
 	groupID := chi.URLParam(r, "id")
-	result, err := h.service.GetGroupMemberConsumed(r.Context(), groupID)
+	result, err := h.service.GetProjectMemberConsumed(r.Context(), groupID)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
-	read.Get("/departments/{departmentId}/member-quotas", h.MemberQuotas)
-	read.Get("/groups", h.GroupsList)
-	read.Get("/groups/{id}/member-consumed", h.GroupMemberConsumed)
+	read.Get("/departments/{departmentId}/member-budgets", h.MemberBudgets)
+	read.Get("/projects", h.ProjectsList)
+	read.Get("/projects/{id}/member-consumed", h.ProjectMemberConsumed)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
 	read.Get("/approvals", h.ApprovalsList)
@@ -188,9 +188,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)
 	allocateWrite.Put("/members/{memberId}", h.UpdateMemberBudget)
 	allocateWrite.Post("/departments/{departmentId}/apply-average-budget", h.ApplyAverageBudget)
-	allocateWrite.Post("/groups", h.GroupCreate)
-	allocateWrite.Put("/groups/{id}", h.GroupUpdate)
-	allocateWrite.Delete("/groups/{id}", h.GroupDelete)
+	allocateWrite.Post("/projects", h.ProjectCreate)
+	allocateWrite.Put("/projects/{id}", h.ProjectUpdate)
+	allocateWrite.Delete("/projects/{id}", h.ProjectDelete)
 
 	policyWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetPolicy))
 	policyWrite.Put("/overrun-policy", h.OverrunPolicyUpdate)

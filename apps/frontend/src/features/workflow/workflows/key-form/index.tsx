@@ -17,9 +17,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWorkflow } from '@/features/workflow/use-workflow'
 import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '@/features/keys'
+import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { useModelLabels } from '@/features/models/hooks/use-model-labels'
-import { formatQuotaContext, useKeyFormQuota, useKeyFormState } from './use-key-form-quota'
+import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -40,8 +40,8 @@ export function KeyFormWorkflow({
   const key =
     entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined
   const adminCreate = isCreate ? Boolean(entry.payload.adminCreate) : false
-  const budgetGroupId = isCreate ? entry.payload.budgetGroupId : undefined
-  const budgetGroupName = isCreate ? entry.payload.budgetGroupName : undefined
+  const projectId = isCreate ? entry.payload.projectId : undefined
+  const projectName = isCreate ? entry.payload.projectName : undefined
   const onSuccess = entry.payload.onSuccess
 
   const {
@@ -49,8 +49,8 @@ export function KeyFormWorkflow({
     setStep,
     name,
     setName,
-    quota,
-    setQuota,
+    budget,
+    setBudget,
     models,
     setModels,
     targetMemberId,
@@ -66,25 +66,25 @@ export function KeyFormWorkflow({
     initialTargetMemberId:
       isCreate && entry.id === 'key-create' ? entry.payload.targetMemberId : undefined,
     initialName: isCreate && entry.id === 'key-create' ? entry.payload.initialName : undefined,
-    initialQuota: isCreate && entry.id === 'key-create' ? entry.payload.initialQuota : undefined,
+    initialBudget: isCreate && entry.id === 'key-create' ? entry.payload.initialBudget : undefined,
   })
 
   const { labelFor } = useModelLabels(apis)
   const effectiveMemberId = adminCreate ? targetMemberId : memberId
-  const isGroupKey = Boolean(budgetGroupId)
+  const isProjectKey = Boolean(projectId)
 
   const {
-    quotaSummary,
-    groupBudgetRemaining,
-    quotaInsufficient,
-    quotaExceedsRemaining,
-    groupBudgetExceeds,
-  } = useKeyFormQuota({
+    budgetSummary,
+    projectBudgetRemaining,
+    budgetInsufficient,
+    budgetExceedsRemaining,
+    projectBudgetExceeds,
+  } = useKeyFormBudget({
     isCreate,
-    isGroupKey,
+    isProjectKey,
     effectiveMemberId,
-    budgetGroupId,
-    quota,
+    projectId,
+    budget,
     adminCreate,
     injectedApis: apis,
   })
@@ -112,25 +112,25 @@ export function KeyFormWorkflow({
   }
 
   const handleCreate = async () => {
-    if (quotaInsufficient) {
-      toast.error(QUOTA_INSUFFICIENT_MESSAGE)
+    if (budgetInsufficient) {
+      toast.error(BUDGET_INSUFFICIENT_MESSAGE)
       return
     }
-    if (quotaSummary && Number(quota) > quotaSummary.remaining) {
-      toast.error(`额度不能超过剩余 ¥${quotaSummary.remaining.toLocaleString()}`)
+    if (budgetSummary && Number(budget) > budgetSummary.remaining) {
+      toast.error(`额度不能超过剩余 ¥${budgetSummary.remaining.toLocaleString()}`)
       return
     }
-    if (groupBudgetExceeds) {
-      toast.error(`额度不能超过预算组剩余 ¥${groupBudgetRemaining!.toLocaleString()}`)
+    if (projectBudgetExceeds) {
+      toast.error(`额度不能超过预算组剩余 ¥${projectBudgetRemaining!.toLocaleString()}`)
       return
     }
     setSubmitting(true)
     try {
       const created = await apis.platformKeyApi.create({
         name,
-        memberId: isGroupKey ? effectiveMemberId || memberId : effectiveMemberId,
-        budgetGroupId,
-        budget: Number(quota),
+        memberId: isProjectKey ? effectiveMemberId || memberId : effectiveMemberId,
+        projectId,
+        budget: Number(budget),
         modelWhitelist: models,
       })
       toast.success('Key 创建成功')
@@ -156,7 +156,7 @@ export function KeyFormWorkflow({
     try {
       await apis.platformKeyApi.update(key.id, {
         name,
-        budget: Number(quota),
+        budget: Number(budget),
         modelWhitelist: models,
       })
       toast.success('Key 已更新')
@@ -193,24 +193,24 @@ export function KeyFormWorkflow({
       onClose={onClose}
       contextBar={
         isCreate
-          ? isGroupKey
-            ? `预算组：${budgetGroupName ?? ''} · 剩余可分配 ¥${(groupBudgetRemaining ?? 0).toLocaleString()}`
-            : formatQuotaContext(
-                quotaSummary,
+          ? isProjectKey
+            ? `预算组：${projectName ?? ''} · 剩余可分配 ¥${(projectBudgetRemaining ?? 0).toLocaleString()}`
+            : formatBudgetContext(
+                budgetSummary,
                 adminCreate ? targetMemberName || undefined : undefined,
               )
           : undefined
       }
       banner={
-        quotaInsufficient ? (
-          <p className="text-sm text-amber-800">{QUOTA_INSUFFICIENT_MESSAGE}</p>
-        ) : quotaExceedsRemaining ? (
+        budgetInsufficient ? (
+          <p className="text-sm text-amber-800">{BUDGET_INSUFFICIENT_MESSAGE}</p>
+        ) : budgetExceedsRemaining ? (
           <p className="text-sm text-amber-800">
-            申请额度超过剩余 ¥{quotaSummary!.remaining.toLocaleString()}
+            申请额度超过剩余 ¥{budgetSummary!.remaining.toLocaleString()}
           </p>
-        ) : groupBudgetExceeds ? (
+        ) : projectBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过预算组剩余 ¥{groupBudgetRemaining!.toLocaleString()}
+            申请额度超过预算组剩余 ¥{projectBudgetRemaining!.toLocaleString()}
           </p>
         ) : undefined
       }
@@ -222,11 +222,11 @@ export function KeyFormWorkflow({
               primaryLabel="下一步"
               onPrimary={() => setStep(2)}
               primaryDisabled={
-                quotaInsufficient ||
+                budgetInsufficient ||
                 !name.trim() ||
-                (adminCreate && !isGroupKey && !targetMemberId) ||
-                quotaExceedsRemaining ||
-                groupBudgetExceeds
+                (adminCreate && !isProjectKey && !targetMemberId) ||
+                budgetExceedsRemaining ||
+                projectBudgetExceeds
               }
             />
           ) : (
@@ -239,9 +239,9 @@ export function KeyFormWorkflow({
               primaryDisabled={
                 models.length === 0 ||
                 submitting ||
-                quotaInsufficient ||
-                quotaExceedsRemaining ||
-                groupBudgetExceeds
+                budgetInsufficient ||
+                budgetExceedsRemaining ||
+                projectBudgetExceeds
               }
             />
           )
@@ -287,9 +287,9 @@ export function KeyFormWorkflow({
                 <Label>额度 (¥)</Label>
                 <Input
                   type="number"
-                  value={quota}
+                  value={budget}
                   onChange={(e) => {
-                    setQuota(e.target.value)
+                    setBudget(e.target.value)
                     onSetDirty(true)
                   }}
                 />
@@ -313,9 +313,9 @@ export function KeyFormWorkflow({
                     <Label>额度 (¥)</Label>
                     <Input
                       type="number"
-                      value={quota}
+                      value={budget}
                       onChange={(e) => {
-                        setQuota(e.target.value)
+                        setBudget(e.target.value)
                         onSetDirty(true)
                       }}
                     />
@@ -331,14 +331,14 @@ export function KeyFormWorkflow({
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
               <p>名称：{name || '—'}</p>
-              <p>额度：¥{Number(quota).toLocaleString()}</p>
+              <p>额度：¥{Number(budget).toLocaleString()}</p>
               <p>模型：{models.length} 个</p>
             </div>
           ) : (
             key && (
               <>
                 <p className="text-muted-foreground font-mono">{key.keyPrefix}</p>
-                <p className="text-muted-foreground">已用：¥{key.used.toLocaleString()}</p>
+                <p className="text-muted-foreground">已消耗：¥{key.consumed.toLocaleString()}</p>
               </>
             )
           )}

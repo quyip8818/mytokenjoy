@@ -120,19 +120,19 @@ func TestOverrunDoesNotNotifyWhenBelowBudget(t *testing.T) {
 	}
 }
 
-func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
+func TestOverrunProjectSendsNotification(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	groups, err := st.Budget().Groups(ctx)
+	groups, err := st.Budget().Projects(ctx)
 	if err != nil || len(groups) == 0 {
-		t.Fatal("expected budget groups in seed")
+		t.Fatal("expected projects in seed")
 	}
 	groupID := groups[0].ID
-	budgetfix.SetGroupSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
+	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
 	groupIDCopy := groupID
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -140,7 +140,7 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 	}
 	for i := range keys {
 		if keys[i].ID == contract.IDPlatformKey1 {
-			keys[i].BudgetGroupID = &groupIDCopy
+			keys[i].ProjectID = &groupIDCopy
 		}
 	}
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
@@ -158,7 +158,7 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"budgetGroupId": groupIDCopy,
+		"projectId":     groupIDCopy,
 		"departmentId":  contract.IDDept3,
 		"platformKeyId": contract.IDPlatformKey1,
 	})
@@ -178,6 +178,6 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatal("expected overrun_blocked notification for budget group breach")
+		t.Fatal("expected overrun_blocked notification for project breach")
 	}
 }

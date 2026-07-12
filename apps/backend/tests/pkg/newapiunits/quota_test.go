@@ -27,7 +27,7 @@ func TestCostFromQuota(t *testing.T) {
 	}
 }
 
-func TestHighestModelPriceCNY(t *testing.T) {
+func TestHighestModelPricePoint(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
 		{ModelID: 1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
@@ -36,21 +36,21 @@ func TestHighestModelPriceCNY(t *testing.T) {
 	}
 
 	t.Run("all models", func(t *testing.T) {
-		price := newapiunits.HighestModelPriceCNY(models, nil)
+		price := newapiunits.HighestModelPricePoint(models, nil)
 		if price != 20 {
 			t.Errorf("expected 20, got %v", price)
 		}
 	})
 
 	t.Run("whitelist subset", func(t *testing.T) {
-		price := newapiunits.HighestModelPriceCNY(models, []int64{1, 2})
+		price := newapiunits.HighestModelPricePoint(models, []int64{1, 2})
 		if price != 10 {
 			t.Errorf("expected 10, got %v", price)
 		}
 	})
 
 	t.Run("empty models returns default", func(t *testing.T) {
-		price := newapiunits.HighestModelPriceCNY(nil, nil)
+		price := newapiunits.HighestModelPricePoint(nil, nil)
 		if price <= 0 {
 			t.Errorf("expected positive default, got %v", price)
 		}

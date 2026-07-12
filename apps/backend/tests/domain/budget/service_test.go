@@ -111,47 +111,85 @@ func TestListMemberBudgetsUnknownDept(t *testing.T) {
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
-func TestCreateGroup(t *testing.T) {
+func TestCreateProject(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	created, err := svc.CreateGroup(testutil.Ctx(), types.BudgetGroup{
-		Name: "Test Group", Budget: 5000,
+	created, err := svc.CreateProject(testutil.Ctx(), types.Project{
+		Name:              "Test Project",
+		Budget:            5000,
+		OwnerDepartmentID: contract.IDDept3,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if created.ID == "" {
-		t.Fatal("expected created group id")
+		t.Fatal("expected created project id")
 	}
-	groups, err := st.Budget().Groups(testutil.Ctx())
+	projects, err := st.Budget().Projects(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
 	found := false
-	for _, group := range groups {
-		if group.ID == created.ID && group.Name == "Test Group" {
+	for _, project := range projects {
+		if project.ID == created.ID && project.Name == "Test Project" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatal("created group not found in store")
+		t.Fatal("created project not found in store")
 	}
 }
 
-func TestDeleteGroup(t *testing.T) {
+func TestUpdateProjectMemberIDsPreservesBudget(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	if err := svc.DeleteGroup(testutil.Ctx(), contract.IDBudgetGroup4); err != nil {
-		t.Fatal(err)
-	}
-	groups, err := st.Budget().Groups(testutil.Ctx())
+	created, err := svc.CreateProject(testutil.Ctx(), types.Project{
+		Name:              "Patch Members",
+		Budget:            5000,
+		OwnerDepartmentID: contract.IDDept3,
+		MemberIDs:         []string{contract.IDMember1},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, group := range groups {
-		if group.ID == contract.IDBudgetGroup4 {
-			t.Fatal("expected bg-4 deleted")
+	memberIDs := []string{contract.IDMember1, contract.IDMember3}
+	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
+		MemberIDs: &memberIDs,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Budget != 5000 {
+		t.Fatalf("expected budget preserved at 5000, got %v", updated.Budget)
+	}
+	if len(updated.MemberIDs) != 2 {
+		t.Fatalf("expected 2 members, got %v", updated.MemberIDs)
+	}
+	stored, err := st.Budget().Projects(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, project := range stored {
+		if project.ID == created.ID && project.Budget != 5000 {
+			t.Fatalf("expected persisted budget 5000, got %v", project.Budget)
+		}
+	}
+}
+
+func TestDeleteProject(t *testing.T) {
+	t.Parallel()
+	svc, st := newBudgetService(t)
+	if err := svc.DeleteProject(testutil.Ctx(), contract.IDProject4); err != nil {
+		t.Fatal(err)
+	}
+	projects, err := st.Budget().Projects(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, project := range projects {
+		if project.ID == contract.IDProject4 {
+			t.Fatal("expected proj-4 deleted")
 		}
 	}
 }

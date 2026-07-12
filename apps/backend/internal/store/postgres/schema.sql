@@ -263,31 +263,24 @@ CREATE TABLE IF NOT EXISTS org_import_failures (
 );
 
 -- Budget domain
-CREATE TABLE IF NOT EXISTS budget_groups (
-    id         TEXT NOT NULL,
-    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    name       TEXT NOT NULL,
-    budget     NUMERIC(18, 6) NOT NULL DEFAULT 0,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, id)
+CREATE TABLE IF NOT EXISTS projects (
+    id                   TEXT NOT NULL,
+    company_id           BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    name                 TEXT NOT NULL,
+    budget               NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    owner_department_id  TEXT NOT NULL,
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, id),
+    FOREIGN KEY (company_id, owner_department_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT
 );
 
-CREATE TABLE IF NOT EXISTS budget_group_members (
+CREATE TABLE IF NOT EXISTS project_members (
     company_id BIGINT NOT NULL,
-    group_id   TEXT NOT NULL,
+    project_id TEXT NOT NULL,
     member_id  TEXT NOT NULL,
-    PRIMARY KEY (company_id, group_id, member_id),
-    FOREIGN KEY (company_id, group_id) REFERENCES budget_groups (company_id, id) ON DELETE CASCADE,
+    PRIMARY KEY (company_id, project_id, member_id),
+    FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE CASCADE,
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS budget_group_departments (
-    company_id    BIGINT NOT NULL,
-    group_id      TEXT NOT NULL,
-    department_id TEXT NOT NULL,
-    PRIMARY KEY (company_id, group_id, department_id),
-    FOREIGN KEY (company_id, group_id) REFERENCES budget_groups (company_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (company_id, department_id) REFERENCES org_nodes (company_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS overrun_policy (
@@ -384,7 +377,7 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     key_prefix      TEXT NOT NULL,
     key_hash        TEXT NOT NULL,
     member_id       TEXT,
-    budget_group_id TEXT,
+    project_id      TEXT,
     status          TEXT NOT NULL,
     budget          NUMERIC(18, 6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -395,12 +388,12 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     gateway_soft_version BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, id),
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE RESTRICT,
-    FOREIGN KEY (company_id, budget_group_id) REFERENCES budget_groups (company_id, id) ON DELETE RESTRICT
+    FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_keys_key_hash ON platform_keys (key_hash);
 CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id, member_id) WHERE member_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_platform_keys_budget_group ON platform_keys (company_id, budget_group_id) WHERE budget_group_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_platform_keys_project ON platform_keys (company_id, project_id) WHERE project_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_platform_keys_active ON platform_keys (company_id, status) WHERE status = 'active';
 
 CREATE INDEX IF NOT EXISTS idx_platform_keys_soft_stale
@@ -469,7 +462,7 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     billing_currency CHAR(3) NOT NULL,
     department_id    TEXT NOT NULL,
     member_id        TEXT,
-    budget_group_id  TEXT,
+    project_id       TEXT,
     platform_key_id  TEXT NOT NULL,
     source           TEXT NOT NULL,
     occurred_at      TIMESTAMPTZ NOT NULL,
@@ -540,7 +533,7 @@ CREATE INDEX IF NOT EXISTS idx_platform_key_mappings_sync_pending
 
 CREATE TABLE IF NOT EXISTS budget_consumed (
     company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('org_node', 'budget_group', 'platform_key', 'member')),
+    axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('org_node', 'project', 'platform_key', 'member')),
     axis_id    TEXT NOT NULL,
     period_key TEXT NOT NULL,
     consumed   NUMERIC(18, 6) NOT NULL DEFAULT 0,
@@ -591,4 +584,4 @@ CREATE TABLE IF NOT EXISTS notification_log (
 CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
     ON notification_log (company_id, created_at DESC);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_groups_unique_name ON budget_groups(company_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_unique_name ON projects(company_id, name);

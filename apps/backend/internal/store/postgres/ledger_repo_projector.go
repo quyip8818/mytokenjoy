@@ -22,7 +22,7 @@ func (r *pgLedgerRepo) ListCallSettledAfterCursor(ctx context.Context, cursor st
 		rows, err = r.db.Query(ctx, `
 			SELECT id, event_type, idempotency_key, segment_index, lot_id,
 				amount, display_amount, billing_currency,
-				department_id, member_id, budget_group_id, platform_key_id,
+				department_id, member_id, project_id, platform_key_id,
 				source, occurred_at, period_key, model, input_tokens, output_tokens,
 				call_detail, created_at
 			FROM usage_ledger
@@ -34,7 +34,7 @@ func (r *pgLedgerRepo) ListCallSettledAfterCursor(ctx context.Context, cursor st
 		rows, err = r.db.Query(ctx, `
 			SELECT id, event_type, idempotency_key, segment_index, lot_id,
 				amount, display_amount, billing_currency,
-				department_id, member_id, budget_group_id, platform_key_id,
+				department_id, member_id, project_id, platform_key_id,
 				source, occurred_at, period_key, model, input_tokens, output_tokens,
 				call_detail, created_at
 			FROM usage_ledger
@@ -56,7 +56,7 @@ func (r *pgLedgerRepo) ListCallSettledSince(ctx context.Context, since time.Time
 	rows, err := r.db.Query(ctx, `
 		SELECT id, event_type, idempotency_key, segment_index, lot_id,
 			amount, display_amount, billing_currency,
-			department_id, member_id, budget_group_id, platform_key_id,
+			department_id, member_id, project_id, platform_key_id,
 			source, occurred_at, period_key, model, input_tokens, output_tokens,
 			call_detail, created_at
 		FROM usage_ledger

@@ -1,4 +1,4 @@
-import type { BudgetNode, BudgetProjectView, Role } from '@/api/types'
+import type { BudgetNode, ProjectView, Role } from '@/api/types'
 import { groupProjectsByTeam } from '@/features/budget'
 import { ALERT_PRESET_THRESHOLDS } from '@/features/budget'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ import type { useAlertRuleForm } from '../hooks/use-alert-rule-form'
 
 type AlertRuleFormFieldsProps = {
   tree: BudgetNode[]
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   roles: Role[]
   form: ReturnType<typeof useAlertRuleForm>
 }
@@ -84,12 +84,12 @@ export function AlertRuleFormFields({ tree, projects, roles, form }: AlertRuleFo
               <SelectValue placeholder="选择项目…" />
             </SelectTrigger>
             <SelectContent>
-              {groupProjectsByTeam(projects, tree).map((group) => (
-                <div key={group.teamId}>
+              {groupProjectsByTeam(projects, tree).map((team) => (
+                <div key={team.teamId}>
                   <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                    {group.teamName}
+                    {team.teamName}
                   </div>
-                  {group.projects.map((project) => (
+                  {team.projects.map((project) => (
                     <SelectItem key={project.id} value={project.id} className="pl-6">
                       {project.name}
                     </SelectItem>

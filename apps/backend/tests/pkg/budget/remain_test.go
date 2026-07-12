@@ -19,34 +19,34 @@ func TestComputeRemainBudget(t *testing.T) {
 		tree         []types.BudgetNode
 		members      []types.Member
 		platformKeys []types.PlatformKey
-		groups       []types.BudgetGroup
+		projects     []types.Project
 		departmentID string
 		want         float64
 	}{
 		{
-			name: "key remaining only (no group or member)",
+			name: "key remaining only (no project or member)",
 			key: types.PlatformKey{
-				ID:     "k1",
-				Budget: 100,
-				Used:   30,
+				ID:       "k1",
+				Budget:   100,
+				Consumed: 30,
 			},
 			tree:         nil,
 			members:      nil,
 			platformKeys: nil,
-			groups:       nil,
+			projects:     nil,
 			departmentID: "d-unknown",
 			want:         70,
 		},
 		{
-			name: "key remaining limited by budget group",
+			name: "key remaining limited by project",
 			key: types.PlatformKey{
-				ID:            "k1",
-				Budget:        200,
-				Used:          50,
-				BudgetGroupID: &groupID,
+				ID:        "k1",
+				Budget:    200,
+				Consumed:  50,
+				ProjectID: &groupID,
 			},
 			tree: nil,
-			groups: []types.BudgetGroup{
+			projects: []types.Project{
 				{ID: "g1", Budget: 80, Consumed: 60},
 			},
 			departmentID: "d-unknown",
@@ -55,9 +55,9 @@ func TestComputeRemainBudget(t *testing.T) {
 		{
 			name: "key remaining limited by department budget",
 			key: types.PlatformKey{
-				ID:     "k1",
-				Budget: 1000,
-				Used:   0,
+				ID:       "k1",
+				Budget:   1000,
+				Consumed: 0,
 			},
 			tree: []types.BudgetNode{
 				{ID: "d1", Budget: 500, Consumed: 450},
@@ -68,9 +68,9 @@ func TestComputeRemainBudget(t *testing.T) {
 		{
 			name: "department reserved pool reduces available",
 			key: types.PlatformKey{
-				ID:     "k1",
-				Budget: 1000,
-				Used:   0,
+				ID:       "k1",
+				Budget:   1000,
+				Consumed: 0,
 			},
 			tree: []types.BudgetNode{
 				{ID: "d1", Budget: 500, Consumed: 400, ReservedPool: budgetfix.FloatPtr(30)},
@@ -81,9 +81,9 @@ func TestComputeRemainBudget(t *testing.T) {
 		{
 			name: "negative remaining clamped to zero",
 			key: types.PlatformKey{
-				ID:     "k1",
-				Budget: 10,
-				Used:   20,
+				ID:       "k1",
+				Budget:   10,
+				Consumed: 20,
 			},
 			tree:         nil,
 			departmentID: "d-unknown",
@@ -94,7 +94,7 @@ func TestComputeRemainBudget(t *testing.T) {
 			key: types.PlatformKey{
 				ID:       "k1",
 				Budget:   500,
-				Used:     0,
+				Consumed: 0,
 				MemberID: &memberID,
 			},
 			tree: nil,
@@ -102,7 +102,7 @@ func TestComputeRemainBudget(t *testing.T) {
 				{ID: "m1", PersonalBudget: 100},
 			},
 			platformKeys: []types.PlatformKey{
-				{ID: "k1", MemberID: &memberID, Status: "active", Used: 80},
+				{ID: "k1", MemberID: &memberID, Status: "active", Consumed: 80},
 			},
 			departmentID: "d-unknown",
 			want:         20,
@@ -112,7 +112,7 @@ func TestComputeRemainBudget(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := pkgbudget.ComputeRemainBudget(
-				tt.key, tt.tree, tt.members, tt.platformKeys, tt.groups, tt.departmentID, nil, nil,
+				tt.key, tt.tree, tt.members, tt.platformKeys, tt.projects, tt.departmentID, nil, nil,
 			)
 			if got != tt.want {
 				t.Errorf("ComputeRemainBudget() = %v, want %v", got, tt.want)

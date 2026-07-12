@@ -2,10 +2,10 @@ export { budgetKeys } from './query-keys'
 export { useBudgetPage } from './hooks/use-budget-page'
 export { useBudgetAlertRulesPage } from './hooks/use-budget-alert-rules-page'
 export { useAsyncFetch } from './hooks/use-async-fetch'
-export { useMemberBudgetQuotas } from './hooks/use-member-budget-quotas'
+export { useMemberBudgets } from './hooks/use-member-budgets'
 export { BudgetTreePanel } from './components/budget-tree-panel'
 export { BudgetDetailTeam } from './components/budget-detail-team'
-export { BudgetDetailProject } from './components/budget-detail-project'
+export { ProjectDetail } from './components/project-detail'
 export { BudgetApprovalDrawer } from './components/budget-approval-drawer'
 export { BudgetPageShell } from './components/budget-page-shell'
 export { BudgetAlertsPageShell } from './components/budget-alerts-page-shell'
@@ -17,8 +17,8 @@ export {
   formatOverrunPolicyLabel,
   formatBudgetPeriodLabel,
   findBudgetNode,
-  mapGroupsToProjectViews,
-  groupsForDepartment,
+  mapProjectsToViews,
+  projectsForDepartment,
   computeUnallocated,
   sumChildrenBudget,
   nodeReservedPool,

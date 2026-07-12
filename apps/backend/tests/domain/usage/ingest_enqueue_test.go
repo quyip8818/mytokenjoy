@@ -34,7 +34,7 @@ func TestIngestEnqueuesBudgetProjectAndWalletSync(t *testing.T) {
 	}
 
 	if riverfix.PendingBudgetProjectCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected budget_project job after ingest")
+		t.Fatal("expected budget_projection job after ingest")
 	}
 	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no rebalance jobs directly from ingest")
@@ -81,7 +81,7 @@ func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 		t.Fatal("expected no wallet_sync job after rollback")
 	}
 	if riverfix.PendingBudgetProjectCount(st, contract.DefaultCompanyID) != 0 {
-		t.Fatal("expected no budget_project job after rollback")
+		t.Fatal("expected no budget_projection job after rollback")
 	}
 }
 

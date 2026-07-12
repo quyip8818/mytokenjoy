@@ -49,14 +49,14 @@ func Dept3SnapshotConsumed(t *testing.T, st store.Store) float64 {
 	return SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
 }
 
-func PlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string) float64 {
+func PlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID string) float64 {
 	t.Helper()
 	return SnapshotConsumed(t, st, store.AxisKindPlatformKey, keyID)
 }
 
-func SetPlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string, used float64) {
+func SetPlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID string, consumed float64) {
 	t.Helper()
-	SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, keyID, contract.DemoBudgetPeriod, used)
+	SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, keyID, contract.DemoBudgetPeriod, consumed)
 }
 
 func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string, consumed float64) {
@@ -67,10 +67,10 @@ func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID,
 	}
 }
 
-func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, consumed float64) {
+func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID string, consumed float64) {
 	t.Helper()
 	ctx := ctx()
-	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindBudgetGroup, groupID, contract.DemoBudgetPeriod, consumed); err != nil {
+	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindProject, projectID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -31,7 +31,7 @@ flowchart LR
   subgraph admin [管理员]
     A1[充值 → 涨钱包]
     A2[组织树分配部门预算 / 预留池]
-    A3[成员额度 / 预算组 / Key 配额]
+    A3[成员额度 / 项目 / Key 配额]
   end
 
   subgraph runtime [运行时]
@@ -46,7 +46,7 @@ flowchart LR
 | 角色 | 关心什么 |
 | --- | --- |
 | 企业超管 | 钱包余额、根部门总预算、下级分配 |
-| 部门 TL | 本部门预算、预留池、成员额度、预算组 |
+| 部门 TL | 本部门预算、预留池、成员额度、项目 |
 | 普通成员 | 个人额度、Key 配额、能否继续调用 |
 | 审计 / 财务 | 调用花费、归因部门 / 成员 |
 
@@ -71,10 +71,10 @@ flowchart TB
   subgraph org [组织预算轴]
     TREE[组织树 budget / reserved_pool]
     TREE --> MEM[personal_budget]
-    TREE --> BG[预算组 budget]
+    TREE --> BG[项目 budget]
     MEM & BG --> PK[Key budget]
     SNAP[(budget_consumed)]
-    ING[入账] -->|InsertTx budget_project| JOB[budget_project]
+    ING[入账] -->|InsertTx budget_projection| JOB[budget_projection]
     JOB --> SNAP
   end
 
@@ -85,8 +85,8 @@ flowchart TB
 **约定：**
 
 - 充值**只涨钱包**，不自动涨部门 `budget`。
-- **limit** 在组织树、成员、Key、预算组；**consumed** 只在 `budget_consumed`（四轴 × 账期）。
-- API 返回的 `used` / `consumed` 为当前账期从快照合并的视图，不是 Key 表上的持久列。
+- **limit** 在组织树、成员、Key、项目；**consumed** 只在 `budget_consumed`（四轴 × 账期）。
+- API 返回的 `consumed` 为当前账期从快照合并的视图，不是 Key 表上的持久列。
 
 ---
 
@@ -98,15 +98,13 @@ flowchart TB
 | **投影** | `budget_consumed` / `usage_buckets`    | `budget.Projector` / `dashboard.Projector`（River 异步） | 超限/Rebalance、hour/day 看板、预算树 |
 | **Gateway 缓存** | `platform_keys.gateway_soft_*` | Projector 批末刷新 | Gateway 预检（进程内 `budgetcheck` 缓存） |
 
-> **术语：** `used` 与 `consumed` 同义，统一读法见 [Backend-存储架构.md](./Backend-存储架构.md) §8。组织轴 consumed SSOT 为 `budget_consumed`（按 `axis_kind` 区分 `org_node`、`budget_group`、`platform_key`、`member`），各业务表上不存在 consumed/used 列。
-
 ```mermaid
 flowchart LR
   WH[Webhook] -->|EnqueuePending| Q[(ingest_jobs)]
   Q --> ING[IngestService]
   COMP[补偿轮询] --> ING
   ING --> UL[(usage_ledger)]
-  ING -->|InsertTx| BP[budget_project]
+  ING -->|InsertTx| BP[budget_projection]
   BP --> BC[(budget_consumed)]
   BP --> GS[gateway_soft_summaries]
   PER[Periodic] --> DP[dashboard_project] --> UB[(usage_buckets)]
@@ -119,18 +117,18 @@ flowchart LR
 2. Worker：`ingest_jobs` 消费入账（含 webhook 快路径与失败重试）+ `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
 3. `FindMappingByNewAPIKeyID` → `company_id`、部门/成员/组归因
 4. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
-5. `store.WithTx`：ledger `INSERT ON CONFLICT` → FIFO 扣 lot → 同事务入队 `budget_project` + `wallet_sync`
+5. `store.WithTx`：ledger `INSERT ON CONFLICT` → FIFO 扣 lot → 同事务入队 `budget_projection` + `wallet_sync`
 
 **Ingest 不同步写 consumed / buckets**；`rebalance` / `overrun` 由 `budget.Projector` 批末入队。
 
 ### 2.2 `budget.Projector` 投影顺序
 
-消耗追踪统一在 `budget_consumed` 表，通过 `axis_kind` 区分（`org_node`、`budget_group`、`platform_key`、`member`）。各业务表上**没有** `used` / `consumed` 列。
+消耗追踪统一在 `budget_consumed` 表，通过 `axis_kind` 区分（`org_node`、`project`、`platform_key`、`member`）。各业务表上**没有** `consumed` 列。
 
 | 步骤 | 写入                                                        | 说明                        |
 | ---- | ----------------------------------------------------------- | --------------------------- |
 | 1    | `budget_consumed (axis_kind=platform_key)` += cost         | Key 已用                    |
-| 2    | `budget_consumed (axis_kind=budget_group)` += cost         | 若挂组                      |
+| 2    | `budget_consumed (axis_kind=project)` += cost         | 若挂项目                      |
 | 3    | `budget_consumed (axis_kind=member)` += cost               | 若可归因成员                |
 | 4    | `budget_consumed (axis_kind=org_node)` 祖先 rollup += cost | 以 `department_id` 为叶子   |
 | 批末 | `gateway_soft_*` 刷新 + 入队 `rebalance` / `overrun`       | 见 `budget_projector.go`    |
@@ -161,15 +159,15 @@ flowchart TB
   CAP --> M[成员 personal_budget]
   M --> K[Key budget]
   DEPT --> POOL[预留池]
-  DEPT --> BG[预算组 + 组内 Key]
+  DEPT --> BG[项目 + 组内 Key]
 ```
 
 | 层级 | 配置 | 说明 |
 | --- | --- | --- |
 | 部门 | `budget`、`reserved_pool` | 子节点之和 + 预留池 ≤ 父节点 |
 | 成员 | `personal_budget` | 部门内成员额度之和 ≤ capacity |
-| Key | `budget`、模型白名单 | 从成员或预算组剩余额度切分 |
-| 预算组 | `budget` | 挂组 Key 走组额度；Overrun 不走成员个人分支 |
+| Key | `budget`、模型白名单 | 从成员或项目剩余额度切分 |
+| 项目 | `budget` | 挂项目 Key 走项目额度；Overrun 不走成员个人分支 |
 
 **写入校验：**
 
@@ -178,7 +176,7 @@ flowchart TB
 | 改部门预算 | 子级：新 budget ≥ Σ子节点 + 预留池；对父级：新 budget + 兄弟 + 预留池 ≤ 父可用 |
 | 改成员额度 | ≥ 已分配给 Key 的配额之和；部门内总和 ≤ capacity |
 | 建 Key（成员） | budget ≤ 成员剩余可分配 |
-| 建 Key（预算组） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget |
+| 建 Key（项目） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget |
 | 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_budget` |
 
 组织树结构变更与模型白名单同事务提交；预算数字仅经预算域服务修改。
@@ -194,7 +192,7 @@ flowchart TB
 | 预算树 | GET | `/api/budget/tree` |
 | 部门预算 | PUT | `/api/budget/departments/{departmentId}` |
 | 成员额度 | GET / PUT | `/api/budget/members/{memberId}` |
-| 预算组 | CRUD | `/api/budget/groups/*` |
+| 项目 | CRUD | `/api/budget/projects/*` |
 | 预警规则 | CRUD | `/api/budget/alerts/*` |
 | 超限策略 | GET / PUT | `/api/budget/overrun-policy` |
 | 预算审批 | GET / PUT | `/api/budget/approvals`、`/api/budget/approvals/{id}` |
@@ -227,7 +225,7 @@ sequenceDiagram
   NA-->>NA: 200 accepted
   W->>Q: ClaimPending
   W->>ING: IngestByLogID
-  ING->>ING: 账本 + lot + 入队 budget_project
+  ING->>ING: 账本 + lot + 入队 budget_projection
   Note over ING: Projector 异步写 consumed
   ING->>W: rebalance / overrun（批末）
   W->>NA: UpdateToken
@@ -258,7 +256,7 @@ flowchart TB
   CFG[配置表 limit]
 
   ING[入账] --> UL
-  ING -->|budget_project| BS
+  ING -->|budget_projection| BS
   BS --> GS
   PER[dashboard_project] --> UB
   CFG --> GW[预检]
@@ -271,7 +269,7 @@ flowchart TB
 | 存储 | 职责 |
 | --- | --- |
 | `usage_ledger` | 消耗 SSOT；幂等 `newapi:{log_id}` |
-| `budget_consumed` | 四轴 `org_node` · `budget_group` · `platform_key` · `member` |
+| `budget_consumed` | 四轴 `org_node` · `project` · `platform_key` · `member` |
 | `platform_keys.gateway_soft_*` | Gateway 预检软剩余（Projector 批末刷新） |
 | `usage_buckets` | 按小时聚合，供趋势图 |
 | 组织树 / 成员 / Key / 组 | 仅存 limit |
@@ -284,7 +282,7 @@ flowchart TB
 | 调用审计 | `usage_ledger` |
 | 分钟级短趋势 | `usage_ledger` 聚合 |
 
-部门 consumed 含祖先 rollup。`used` 与 `consumed` 同义。表结构见 [Backend-存储架构.md](./Backend-存储架构.md) §5–§8。
+部门 consumed 含祖先 rollup。表结构见 [Backend-存储架构.md](./Backend-存储架构.md) §5–§8。
 
 ---
 
@@ -298,13 +296,13 @@ flowchart LR
   ING --> TX[单事务]
   TX --> L[usage_ledger]
   TX --> F[FIFO 扣 lot]
-  TX --> Q[InsertTx budget_project + wallet_sync]
+  TX --> Q[InsertTx budget_projection + wallet_sync]
   Q --> BP[budget.Projector]
   BP --> BC[budget_consumed + gateway_soft]
 ```
 
 1. 结算日志 → Webhook 或 Worker 补洞 → 按 `newapi_key_id` 归因
-2. 单事务：账本幂等插入 → 扣 lot → 入队 `budget_project` + `wallet_sync`
+2. 单事务：账本幂等插入 → 扣 lot → 入队 `budget_projection` + `wallet_sync`
 3. `budget.Projector` 异步写 `budget_consumed`、刷新 Gateway 软缓存；批末入队 `rebalance` / `overrun`
 4. 失败走 `ingest_jobs` 重试（与 newapi_sync outbox 分离）
 
@@ -327,13 +325,13 @@ flowchart LR
 | `axis_kind` | 触发 |
 | --- | --- |
 | member | 入账带成员 |
-| department | 每次入账 |
-| budget_group | 入账命中组 |
+| org_node | 每次入账（部门树） |
+| project | 入账命中项目 |
 | company | 充值完成 |
 
 去重：`dedupe_key = axis_kind:axis_id`。
 
-**候选最小值（point）：** Key 剩余；成员剩余（非挂组）；组剩余（挂组）；部门 budget − consumed − reserved_pool。再换 NewAPI 单位，并以 `balance_point` 作企业硬顶。
+**候选最小值（point）：** Key 剩余；成员剩余（非挂项目）；项目剩余（挂项目）；部门 budget − consumed − reserved_pool。再换 NewAPI 单位，并以 `balance_point` 作企业硬顶。
 
 ---
 
@@ -358,9 +356,9 @@ flowchart LR
 
 | 范围 | 条件 | 动作 |
 | --- | --- | --- |
-| 成员 | 未挂组 Key，member 轴 consumed ≥ personal_budget | 禁用该成员非组 Key |
+| 成员 | 未挂项目 Key，member 轴 consumed ≥ personal_budget | 禁用该成员非项目 Key |
 | 部门 | org_node 轴 consumed ≥ budget | 禁用部门下全部 Key |
-| 预算组 | group 轴 consumed ≥ budget | 禁用组内 Key |
+| 项目 | group 轴 consumed ≥ budget | 禁用组内 Key |
 
 **预警配置：** `alert_rules`、`overrun_policy` 可经 API 配置并持久化；超限通知经 `NOTIFY_WEBHOOK_URL` 出站（如 `overrun_blocked`）。
 
@@ -430,7 +428,7 @@ sequenceDiagram
 | 百分比预警 | `alert_rules` 仅 CRUD，无运行时 Worker | 入账或定时任务按阈值发通知；与 PRD US-08 对齐 |
 | 超限文案 | `overrun_policy.blockMessage` 已存库，Precheck 返回通用错误 | Gateway 拒绝时读取并返回配置文案 |
 | 预留池扣减 | 额度审批只校验 `reserved_pool` 上限，字段不随审批减少 | 审批通过时扣减预留池或维护「已分配预留」子账，避免重复透支 |
-| 挂组 Key 预检 | Precheck 在存在 `member_id` 时仍检成员轴 | 与 Overrun / Rebalance 一致：挂组 Key 跳过成员 personal_budget 检查 |
+| 挂项目 Key 预检 | Precheck 在存在 `member_id` 时仍检成员轴 | 与 Overrun / Rebalance 一致：挂项目 Key 跳过成员 personal_budget 检查 |
 
 ### 应优化（可靠性 / 可观测）
 

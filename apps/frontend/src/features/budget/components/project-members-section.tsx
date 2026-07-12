@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { BudgetProjectView, Member } from '@/api/types'
+import type { ProjectView, Member } from '@/api/types'
 import { budgetApi } from '@/api/budget'
 import { formatDisplayCurrency } from '@/lib/points'
 import { BudgetMemberPicker } from './budget-member-picker'
@@ -14,25 +14,25 @@ import {
 } from '@/components/ui/table'
 import { Check, UserMinus, UserPlus, X } from 'lucide-react'
 
-type BudgetProjectMembersSectionProps = {
-  project: BudgetProjectView
+type ProjectMembersSectionProps = {
+  project: ProjectView
   members: Member[]
   departmentMembers: Member[]
   membersLoading?: boolean
-  onUpdateGroup: (groupId: string, data: { memberIds: string[] }) => Promise<void>
+  onUpdateProject: (projectId: string, data: { memberIds: string[] }) => Promise<void>
   onUpdated: () => void
-  getGroupMemberConsumed?: (groupId: string) => Promise<Record<string, number>>
+  getProjectMemberConsumed?: (projectId: string) => Promise<Record<string, number>>
 }
 
-export function BudgetProjectMembersSection({
+export function ProjectMembersSection({
   project,
   members,
   departmentMembers,
   membersLoading = false,
-  onUpdateGroup,
+  onUpdateProject,
   onUpdated,
-  getGroupMemberConsumed,
-}: BudgetProjectMembersSectionProps) {
+  getProjectMemberConsumed,
+}: ProjectMembersSectionProps) {
   const [editingMembers, setEditingMembers] = useState(false)
   const [draftMemberIds, setDraftMemberIds] = useState<string[]>([])
   const [savingMembers, setSavingMembers] = useState(false)
@@ -41,7 +41,7 @@ export function BudgetProjectMembersSection({
 
   useEffect(() => {
     let cancelled = false
-    const fetchFn = getGroupMemberConsumed ?? budgetApi.getGroupMemberConsumed
+    const fetchFn = getProjectMemberConsumed ?? budgetApi.getProjectMemberConsumed
     fetchFn(project.id)
       .then((data) => {
         if (!cancelled) setConsumedMap(data)
@@ -50,7 +50,7 @@ export function BudgetProjectMembersSection({
     return () => {
       cancelled = true
     }
-  }, [project.id, getGroupMemberConsumed])
+  }, [project.id, getProjectMemberConsumed])
 
   function startEditMembers() {
     setDraftMemberIds([...project.memberIds])
@@ -67,7 +67,7 @@ export function BudgetProjectMembersSection({
     setSavingMembers(true)
     setMembersError(null)
     try {
-      await onUpdateGroup(project.id, { memberIds: draftMemberIds })
+      await onUpdateProject(project.id, { memberIds: draftMemberIds })
       setEditingMembers(false)
       onUpdated()
     } catch {
@@ -176,7 +176,7 @@ export function BudgetProjectMembersSection({
                           onClick={async () => {
                             const next = project.memberIds.filter((id) => id !== m.id)
                             try {
-                              await onUpdateGroup(project.id, { memberIds: next })
+                              await onUpdateProject(project.id, { memberIds: next })
                               onUpdated()
                             } catch {
                               // silent — optimistic UX not required here

@@ -8,16 +8,16 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
-type BudgetProjectWorker struct {
-	river.WorkerDefaults[jobs.BudgetProjectArgs]
+type BudgetProjectionWorker struct {
+	river.WorkerDefaults[jobs.BudgetProjectionArgs]
 	projector *domainbudget.Projector
 }
 
-func NewBudgetProjectWorker(projector *domainbudget.Projector) *BudgetProjectWorker {
-	return &BudgetProjectWorker{projector: projector}
+func NewBudgetProjectionWorker(projector *domainbudget.Projector) *BudgetProjectionWorker {
+	return &BudgetProjectionWorker{projector: projector}
 }
 
-func (w *BudgetProjectWorker) Work(ctx context.Context, job *river.Job[jobs.BudgetProjectArgs]) error {
+func (w *BudgetProjectionWorker) Work(ctx context.Context, job *river.Job[jobs.BudgetProjectionArgs]) error {
 	if w.projector == nil {
 		return nil
 	}

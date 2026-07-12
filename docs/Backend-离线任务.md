@@ -31,7 +31,7 @@ flowchart TB
     WH[webhook / pending] --> ING[IngestService.IngestRaw]
     REC[reconcile 水位] --> ING
     ING --> LEDGER[usage_ledger 写入]
-    ING -->|InsertInTx| BP[budget_project]
+    ING -->|InsertInTx| BP[budget_projection]
     ING -->|InsertInTx| WSjob[wallet_sync]
     DRIFT[ReconcileWalletDrift] -->|Insert| WSjob
   end
@@ -92,9 +92,9 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/*_enque
 | `overrun` | default | per payload | Projector 批末 | `workers/overrun.go` | `budget.OverrunProcessor.Run` |
 | `org_sync` | default | per company；fanout 用 `company_id=0` | Periodic fanout / fanout 扇出 | `workers/org_sync.go` | `FanoutScheduledSyncJobs` / `RunScheduledSync` |
 | `monthly_rebalance` | default | 1min | Periodic | `workers/monthly_rebalance.go` | `MonthlyRebalanceScheduler.EnqueueMonthlyRebalanceAll` |
-| `budget_project` | default | args，1s 窗，多 state | 入账同事务、批末自续 | `workers/budget_project.go` | `budget.Projector.RunBatch` |
-| `budget_reconcile` | low | args，30min | fanout 扇出 | `workers/budget_project.go` | `budget.ReconcileService.RunCompany` |
-| `budget_reconcile_fanout` | low | args，30min | Periodic | `workers/budget_project.go` | `budget.ReconcileService.FanoutReconcileJobs` |
+| `budget_projection` | default | args，1s 窗，多 state | 入账同事务、批末自续 | `workers/budget_projection.go` | `budget.Projector.RunBatch` |
+| `budget_reconcile` | low | args，30min | fanout 扇出 | `workers/budget_projection.go` | `budget.ReconcileService.RunCompany` |
+| `budget_reconcile_fanout` | low | args，30min | Periodic | `workers/budget_projection.go` | `budget.ReconcileService.FanoutReconcileJobs` |
 | `dashboard_project` | low | args，1h | fanout 扇出、批末自续 | `workers/dashboard_project.go` | `dashboard.Projector.RunBatch` |
 | `dashboard_project_fanout` | low | args，1h | Periodic | `workers/dashboard_project.go` | `dashboard.Projector.FanoutProjectJobs` |
 | `dashboard_reconcile` | low | args，24h | fanout 扇出 | `workers/dashboard_project.go` | `dashboard.ReconcileService.RunCompany` |
@@ -113,7 +113,7 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 **Ingest 成功路径**（`domain/usage/ingest.go` → `WithTx`）：
 
 1. `ledger` 写入（`InsertSegments`）
-2. `InsertBudgetProject`
+2. `InsertBudgetProjection`
 3. `InsertWalletSync`
 
 任一步失败 → 整笔事务回滚（含已插入的 `river_job` 行）。  
@@ -123,7 +123,7 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 
 | 来源 | kind | 说明 |
 | --- | --- | --- |
-| `budget.Projector.RunBatch` | `rebalance`、`overrun` | 批末 side effect；批未跑完时自续 `budget_project` |
+| `budget.Projector.RunBatch` | `rebalance`、`overrun` | 批末 side effect；批未跑完时自续 `budget_projection` |
 | `billing.afterRecharge` | `wallet_sync`、`rebalance`（company 轴） | 经 `billing.JobEnqueuer`（`app/billing_enqueuer.go`）；失败 `slog.Warn`，不阻断充值 |
 | `billing.ReconcileWalletDrift` | `wallet_sync` | ingest Worker 周期调用；失败 Warn |
 | `budget.ReconcileService.RunCompany` | `rebalance`（company 轴） | reconcile 修复 drift 后 |
@@ -150,7 +150,7 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 ### 5.2 `rebalance` / `overrun`
 
 - Args 带 `company_id` + axis / payload；worker 注入 tenant context 后调 `Rebalancer` / `OverrunProcessor`
-- 主要触发源为 `budget.Projector` 批末；行为与迁移前 processor 等价
+- 主要触发源为 `budget.Projector` 批末
 - 测试见 `tests/worker/processors_test.go`
 
 ### 5.3 `newapi_sync`
@@ -168,11 +168,11 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 - Periodic 检测开账月是否变化（`MonthlyRebalanceScheduler.lastMonth`）
 - 月切时对所有 active company 入队 company 轴 `rebalance`
 
-### 5.6 `budget_project`
+### 5.6 `budget_projection`
 
 - 按 `budget_projection_progress` 游标批量读 ledger，写 `budget_consumed`、更新 `gateway_soft_summaries`
 - 批末：`budgetcheck.RefreshSummaries` 刷新进程内 Gateway 缓存，入队 `rebalance` / `overrun`
-- 本批满 `batchSize`（500）→ 自续入队 `budget_project`
+- 本批满 `batchSize`（500）→ 自续入队 `budget_projection`
 
 ### 5.7 `budget_reconcile` / `budget_reconcile_fanout`
 
@@ -234,7 +234,7 @@ Leader 选举与 Periodic 漏 tick：见 `internal/infra/river/periodic.go`、`r
 
 **现状（异步预算投影已落地）：**
 
-- Ingest **只写** `usage_ledger`；同事务入队 `budget_project` + `wallet_sync`
+- Ingest **只写** `usage_ledger`；同事务入队 `budget_projection` + `wallet_sync`
 - `budget.Projector` 异步写 `budget_consumed`、`gateway_soft_summaries`；批末入队 `rebalance` / `overrun`
 - Gateway 预检读 `gateway_soft_summaries`（`GatewaySoftVersion` / `GatewaySoftRemain`），经 `budgetcheck` 进程内缓存加速
 - 看板读 `usage_buckets`，由 `dashboard.Projector` / `dashboard.ReconcileService` 独立维护
@@ -282,7 +282,7 @@ internal/
   app/newapisync_enqueuer.go       # newapisync.SyncJobEnqueuer
   app/org_enqueuer.go              # remote.JobEnqueuer
   config/river.go                  # RIVER_* env；fanout 间隔常量
-  domain/usage/ingest.go           # 事务内 budget_project + wallet_sync
+  domain/usage/ingest.go           # 事务内 budget_projection + wallet_sync
   domain/budget/budget_projector.go
   domain/budget/budget_reconcile.go
   domain/budget/monthly_rebalance.go

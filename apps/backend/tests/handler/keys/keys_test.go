@@ -25,7 +25,7 @@ func keysCases() []keysCase {
 				t.Helper()
 				var payload struct {
 					Items []struct {
-						Type           string  `json:"type"`
+						Scope          string  `json:"scope"`
 						MemberName     *string `json:"memberName"`
 						DepartmentID   string  `json:"departmentId"`
 						DepartmentName string  `json:"departmentName"`
@@ -39,7 +39,7 @@ func keysCases() []keysCase {
 				}
 				foundMember := false
 				for _, item := range payload.Items {
-					if item.Type == "member" && item.DepartmentID != "" {
+					if item.Scope == "member" && item.DepartmentID != "" {
 						foundMember = true
 						if item.MemberName == nil || *item.MemberName == "" {
 							t.Fatalf("expected memberName from join, got %+v", item)
@@ -53,20 +53,20 @@ func keysCases() []keysCase {
 			},
 		},
 		{
-			name: "platform list type filter",
-			path: "/api/keys/platform?type=project",
+			name: "platform list scope filter",
+			path: "/api/keys/platform?scope=project",
 			assert: func(t *testing.T, body []byte) {
 				t.Helper()
 				var payload struct {
 					Items []struct {
-						Type string `json:"type"`
+						Scope string `json:"scope"`
 					} `json:"items"`
 				}
 				if err := json.Unmarshal(body, &payload); err != nil {
 					t.Fatal(err)
 				}
 				for _, item := range payload.Items {
-					if item.Type != "project" {
+					if item.Scope != "project" {
 						t.Fatalf("expected only project keys, got %+v", item)
 					}
 				}
@@ -79,7 +79,7 @@ func keysCases() []keysCase {
 				t.Helper()
 				var payload struct {
 					Items []struct {
-						Type string `json:"type"`
+						Scope string `json:"scope"`
 					} `json:"items"`
 				}
 				if err := json.Unmarshal(body, &payload); err != nil {

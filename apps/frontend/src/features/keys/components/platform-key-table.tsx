@@ -71,7 +71,7 @@ export function PlatformKeyTable({
                 <KeyStatusBadge status={key.status} />
               </TableCell>
               <TableCell>
-                <BudgetProgressCell value={key.used} total={key.budget} />
+                <BudgetProgressCell value={key.consumed} total={key.budget} />
               </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">

@@ -2,13 +2,13 @@ package postgres
 
 import "github.com/tokenjoy/backend/internal/domain/types"
 
-func cloneBudgetGroups(items []types.BudgetGroup) []types.BudgetGroup {
-	result := make([]types.BudgetGroup, len(items))
-	for i, group := range items {
-		result[i] = types.BudgetGroup{
-			ID: group.ID, Name: group.Name, Budget: group.Budget, Consumed: group.Consumed,
-			MemberIDs:     append([]string{}, group.MemberIDs...),
-			DepartmentIDs: append([]string{}, group.DepartmentIDs...),
+func cloneProjects(items []types.Project) []types.Project {
+	result := make([]types.Project, len(items))
+	for i, project := range items {
+		result[i] = types.Project{
+			ID: project.ID, Name: project.Name, Budget: project.Budget, Consumed: project.Consumed,
+			MemberIDs:         append([]string{}, project.MemberIDs...),
+			OwnerDepartmentID: project.OwnerDepartmentID,
 		}
 	}
 	return result
@@ -78,7 +78,7 @@ func clonePlatformKeys(items []types.PlatformKey) []types.PlatformKey {
 func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 	cloned := types.PlatformKey{
 		ID: key.ID, Name: key.Name, KeyPrefix: key.KeyPrefix, Status: key.Status,
-		Budget: key.Budget, Used: key.Used, CreatedAt: key.CreatedAt,
+		Budget: key.Budget, Consumed: key.Consumed, CreatedAt: key.CreatedAt,
 		ModelWhitelist: append([]int64{}, key.ModelWhitelist...),
 	}
 	if key.FullKey != nil {
@@ -93,13 +93,13 @@ func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 		memberName := *key.MemberName
 		cloned.MemberName = &memberName
 	}
-	if key.BudgetGroupID != nil {
-		budgetGroupID := *key.BudgetGroupID
-		cloned.BudgetGroupID = &budgetGroupID
+	if key.ProjectID != nil {
+		projectID := *key.ProjectID
+		cloned.ProjectID = &projectID
 	}
-	if key.BudgetGroupName != nil {
-		budgetGroupName := *key.BudgetGroupName
-		cloned.BudgetGroupName = &budgetGroupName
+	if key.ProjectName != nil {
+		projectName := *key.ProjectName
+		cloned.ProjectName = &projectName
 	}
 	if key.ExpiresAt != nil {
 		expiresAt := *key.ExpiresAt

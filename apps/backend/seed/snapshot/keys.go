@@ -14,7 +14,7 @@ func loadPlatformKeys() []types.PlatformKey {
 		Name           string  `json:"name"`
 		KeyPrefix      string  `json:"keyPrefix"`
 		MemberID       *string `json:"memberId"`
-		BudgetGroupID  *string `json:"budgetGroupId"`
+		ProjectID      *string `json:"projectId"`
 		Status         string  `json:"status"`
 		Budget         float64 `json:"budget"`
 		ModelWhitelist []int64 `json:"modelWhitelist"`
@@ -30,15 +30,15 @@ func loadPlatformKeys() []types.PlatformKey {
 	for i, item := range raw {
 		keys[i] = types.PlatformKey{
 			ID: item.ID, Name: item.Name, KeyPrefix: item.KeyPrefix,
-			MemberID: item.MemberID, BudgetGroupID: item.BudgetGroupID,
+			MemberID: item.MemberID, ProjectID: item.ProjectID,
 			Status: item.Status, Budget: seedPoints(item.Budget),
 			ModelWhitelist: append([]int64{}, item.ModelWhitelist...),
 			CreatedAt:      item.CreatedAt, ExpiresAt: item.ExpiresAt,
 		}
 	}
 	for i := range keys {
-		if used, ok := contract.DemoPlatformKeyUsed[keys[i].ID]; ok {
-			keys[i].Used = used
+		if consumed, ok := contract.DemoPlatformKeyConsumed[keys[i].ID]; ok {
+			keys[i].Consumed = consumed
 		}
 	}
 	return keys

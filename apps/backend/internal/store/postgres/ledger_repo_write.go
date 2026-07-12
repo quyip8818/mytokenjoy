@@ -36,14 +36,14 @@ func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID int64, e
 		INSERT INTO usage_ledger (
 			id, company_id, event_type, idempotency_key, segment_index, lot_id,
 			amount, display_amount, billing_currency,
-			department_id, member_id, budget_group_id, platform_key_id,
+			department_id, member_id, project_id, platform_key_id,
 			source, occurred_at, period_key, model, input_tokens, output_tokens,
 			call_detail, created_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
 		ON CONFLICT (company_id, idempotency_key, lot_id, occurred_at) DO NOTHING
 	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.SegmentIndex, entry.LotID,
 		entry.Amount, entry.DisplayAmount, entry.BillingCurrency,
-		entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
+		entry.DepartmentID, entry.MemberID, entry.ProjectID, entry.PlatformKeyID,
 		entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,
 		detailJSON, entry.CreatedAt.UTC())
 	if err != nil {

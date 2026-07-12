@@ -26,7 +26,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
-	beforeUsed := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	beforeKeyConsumed := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
 	beforeConsumed := budgetfix.Dept3SnapshotConsumed(t, st)
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(1001, 99))
@@ -43,9 +43,9 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		t.Fatalf("expected ledger entry for log 1001, exists=%v err=%v", exists, err)
 	}
 
-	afterUsed := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
-	if afterUsed <= beforeUsed {
-		t.Fatalf("expected key used increase, before=%v after=%v", beforeUsed, afterUsed)
+	afterKeyConsumed := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
+	if afterKeyConsumed <= beforeKeyConsumed {
+		t.Fatalf("expected key consumed increase, before=%v after=%v", beforeKeyConsumed, afterKeyConsumed)
 	}
 
 	afterConsumed := budgetfix.Dept3SnapshotConsumed(t, st)

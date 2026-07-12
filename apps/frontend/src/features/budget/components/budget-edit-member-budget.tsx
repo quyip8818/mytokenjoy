@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { BudgetNode, MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
+import type { BudgetNode, MemberBudget, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -12,16 +12,13 @@ import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
 import { useAsyncFetch } from '@/features/budget'
 
-const emptyMemberBudgets: MemberBudgetQuota[] = []
+const emptyMemberBudgets: MemberBudget[] = []
 
 interface BudgetEditMemberBudgetProps {
   node: BudgetNode
   onUpdated: () => void
-  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (
-    memberId: string,
-    data: UpdateMemberBudgetInput,
-  ) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
   applyAverageBudget: (
     departmentId: string,
     data: { personalBudget: number; recursive: boolean },
@@ -84,11 +81,8 @@ interface MemberBudgetEditDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   departmentId: string
-  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (
-    memberId: string,
-    data: UpdateMemberBudgetInput,
-  ) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
   applyAverageBudget: (
     departmentId: string,
     data: { personalBudget: number; recursive: boolean },
@@ -160,7 +154,7 @@ function MemberBudgetEditDialog({
     }
   }
 
-  const startEdit = useCallback((member: MemberBudgetQuota) => {
+  const startEdit = useCallback((member: MemberBudget) => {
     setEditingId(member.memberId)
     setDraft(String(pointsToDisplay(member.personalBudget)))
   }, [])
@@ -213,7 +207,7 @@ function MemberBudgetEditDialog({
           <DialogTitle>成员额度设置</DialogTitle>
         </DialogHeader>
 
-        {/* Average quota setting */}
+        {/* Average budget setting */}
         <div className="mb-4">
           <Label className="mb-1.5 block text-xs text-muted-foreground">
             统一设置人均额度（元）
@@ -282,7 +276,7 @@ function MemberBudgetEditDialog({
                     <tr className="border-b border-border text-left text-xs text-muted-foreground">
                       <th className="pb-2 font-medium">成员</th>
                       <th className="pb-2 font-medium">个人额度</th>
-                      <th className="pb-2 font-medium">已用</th>
+                      <th className="pb-2 font-medium">已消耗</th>
                       <th className="pb-2 text-right font-medium">操作</th>
                     </tr>
                   </thead>
@@ -315,7 +309,7 @@ function MemberBudgetEditDialog({
                           )}
                         </td>
                         <td className="py-2 tabular-nums text-muted-foreground">
-                          {formatDisplayCurrency(member.used)}
+                          {formatDisplayCurrency(member.consumed)}
                         </td>
                         <td className="py-2 text-right">
                           {editingId === member.memberId ? (

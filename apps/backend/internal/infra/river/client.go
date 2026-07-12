@@ -64,7 +64,7 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))
 	river.AddWorker(workersBundle, workers.NewOrgSyncWorker(deps.OrgSync))
 	river.AddWorker(workersBundle, workers.NewMonthlyRebalanceWorker(deps.MonthlyRebalance))
-	river.AddWorker(workersBundle, workers.NewBudgetProjectWorker(deps.BudgetProjector))
+	river.AddWorker(workersBundle, workers.NewBudgetProjectionWorker(deps.BudgetProjector))
 	river.AddWorker(workersBundle, workers.NewBudgetReconcileWorker(deps.BudgetReconcile))
 	river.AddWorker(workersBundle, workers.NewBudgetReconcileFanoutWorker(deps.BudgetReconcile))
 	river.AddWorker(workersBundle, workers.NewDashboardProjectWorker(deps.DashboardProjector))

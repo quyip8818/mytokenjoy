@@ -3,7 +3,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { MemberBudgetSummary, PlatformKey } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 
-export function formatQuotaContext(
+export function formatBudgetContext(
   summary: MemberBudgetSummary | null,
   department?: string,
 ): string {
@@ -13,80 +13,86 @@ export function formatQuotaContext(
   return parts.join(' · ')
 }
 
-export interface UseKeyFormQuotaOptions {
+export interface UseKeyFormBudgetOptions {
   isCreate: boolean
-  isGroupKey: boolean
+  isProjectKey: boolean
   effectiveMemberId: string
-  budgetGroupId?: string
-  quota: string
+  projectId?: string
+  budget: string
   adminCreate: boolean
   injectedApis?: AppApis
 }
 
-export function useKeyFormQuota({
+export function useKeyFormBudget({
   isCreate,
-  isGroupKey,
+  isProjectKey,
   effectiveMemberId,
-  budgetGroupId,
-  quota,
+  projectId,
+  budget,
   adminCreate,
   injectedApis,
-}: UseKeyFormQuotaOptions) {
+}: UseKeyFormBudgetOptions) {
   const apis = useInjectedApis(injectedApis)
-  const [quotaState, setQuotaState] = useState<{
+  const [budgetState, setBudgetState] = useState<{
     memberId: string
     summary: MemberBudgetSummary
   } | null>(null)
-  const [groupBudgetRemaining, setGroupBudgetRemaining] = useState<number | null>(null)
+  const [projectBudgetRemaining, setProjectBudgetRemaining] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!isCreate || isGroupKey || !effectiveMemberId) return
+    if (!isCreate || isProjectKey || !effectiveMemberId) return
     let cancelled = false
     void apis.platformKeyApi.getBudgetSummary(effectiveMemberId).then((summary) => {
-      if (!cancelled) setQuotaState({ memberId: effectiveMemberId, summary })
+      if (!cancelled) setBudgetState({ memberId: effectiveMemberId, summary })
     })
     return () => {
       cancelled = true
     }
-  }, [apis, isCreate, isGroupKey, effectiveMemberId])
+  }, [apis, isCreate, isProjectKey, effectiveMemberId])
 
   useEffect(() => {
-    if (!isCreate || !budgetGroupId) return
+    if (!isCreate || !projectId) return
     let cancelled = false
-    void Promise.all([
-      apis.budgetApi.getGroups(),
-      apis.platformKeyApi.list({ budgetGroupId }),
-    ]).then(([groups, keysRes]) => {
-      if (cancelled) return
-      const group = groups.find((g) => g.id === budgetGroupId)
-      if (!group) {
-        setGroupBudgetRemaining(null)
-        return
-      }
-      const allocated = keysRes.items
-        .filter((k) => k.status === 'active')
-        .reduce((sum, k) => sum + k.budget, 0)
-      setGroupBudgetRemaining(Math.max(0, group.budget - group.consumed - allocated))
-    })
+    void Promise.all([apis.budgetApi.getProjects(), apis.platformKeyApi.list({ projectId })]).then(
+      ([groups, keysRes]) => {
+        if (cancelled) return
+        const group = groups.find((g) => g.id === projectId)
+        if (!group) {
+          setProjectBudgetRemaining(null)
+          return
+        }
+        const allocated = keysRes.items
+          .filter((k) => k.status === 'active')
+          .reduce((sum, k) => sum + k.budget, 0)
+        setProjectBudgetRemaining(Math.max(0, group.budget - group.consumed - allocated))
+      },
+    )
     return () => {
       cancelled = true
     }
-  }, [apis, isCreate, budgetGroupId])
+  }, [apis, isCreate, projectId])
 
-  const quotaSummary = quotaState?.memberId === effectiveMemberId ? quotaState.summary : null
-  const quotaInsufficient =
-    isCreate && !isGroupKey && !adminCreate && quotaSummary !== null && quotaSummary.remaining <= 0
-  const quotaExceedsRemaining =
-    isCreate && !isGroupKey && quotaSummary !== null && Number(quota) > quotaSummary.remaining
-  const groupBudgetExceeds =
-    isCreate && isGroupKey && groupBudgetRemaining !== null && Number(quota) > groupBudgetRemaining
+  const budgetSummary = budgetState?.memberId === effectiveMemberId ? budgetState.summary : null
+  const budgetInsufficient =
+    isCreate &&
+    !isProjectKey &&
+    !adminCreate &&
+    budgetSummary !== null &&
+    budgetSummary.remaining <= 0
+  const budgetExceedsRemaining =
+    isCreate && !isProjectKey && budgetSummary !== null && Number(budget) > budgetSummary.remaining
+  const projectBudgetExceeds =
+    isCreate &&
+    isProjectKey &&
+    projectBudgetRemaining !== null &&
+    Number(budget) > projectBudgetRemaining
 
   return {
-    quotaSummary,
-    groupBudgetRemaining,
-    quotaInsufficient,
-    quotaExceedsRemaining,
-    groupBudgetExceeds,
+    budgetSummary,
+    projectBudgetRemaining,
+    budgetInsufficient,
+    budgetExceedsRemaining,
+    projectBudgetExceeds,
   }
 }
 
@@ -96,7 +102,7 @@ export interface UseKeyFormStateOptions {
   defaultMemberId: string
   initialTargetMemberId?: string
   initialName?: string
-  initialQuota?: string
+  initialBudget?: string
 }
 
 export function useKeyFormState({
@@ -105,11 +111,11 @@ export function useKeyFormState({
   defaultMemberId,
   initialTargetMemberId,
   initialName,
-  initialQuota,
+  initialBudget,
 }: UseKeyFormStateOptions) {
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
-  const [quota, setQuota] = useState(String(key?.budget ?? initialQuota ?? '5000'))
+  const [budget, setBudget] = useState(String(key?.budget ?? initialBudget ?? '5000'))
   const [models, setModels] = useState<number[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(
     adminCreate ? (initialTargetMemberId ?? '') : defaultMemberId,
@@ -122,8 +128,8 @@ export function useKeyFormState({
     setStep,
     name,
     setName,
-    quota,
-    setQuota,
+    budget,
+    setBudget,
     models,
     setModels,
     targetMemberId,

@@ -14,17 +14,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 
-type BudgetProjectDeleteActionProps = {
+type ProjectDeleteActionProps = {
   projectName: string
   deleting: boolean
   onDelete: () => Promise<void>
 }
 
-export function BudgetProjectDeleteAction({
-  projectName,
-  deleting,
-  onDelete,
-}: BudgetProjectDeleteActionProps) {
+export function ProjectDeleteAction({ projectName, deleting, onDelete }: ProjectDeleteActionProps) {
   const [open, setOpen] = useState(false)
 
   async function handleDelete() {

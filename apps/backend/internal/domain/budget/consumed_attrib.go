@@ -38,9 +38,9 @@ func ConsumptionDeltas(ctx context.Context, nodes store.OrgNodeRepository, entry
 	deltas := []AxisDelta{{
 		Kind: store.AxisKindPlatformKey, AxisID: entry.PlatformKeyID, PeriodKey: periodKey, Amount: entry.Amount,
 	}}
-	if entry.BudgetGroupID != nil {
+	if entry.ProjectID != nil {
 		deltas = append(deltas, AxisDelta{
-			Kind: store.AxisKindBudgetGroup, AxisID: *entry.BudgetGroupID, PeriodKey: periodKey, Amount: entry.Amount,
+			Kind: store.AxisKindProject, AxisID: *entry.ProjectID, PeriodKey: periodKey, Amount: entry.Amount,
 		})
 	}
 	if entry.MemberID != nil {
@@ -70,8 +70,8 @@ func ApplyIncrement(ctx context.Context, writer ConsumedIncrementWriter, nodes s
 	if err := writer.IncrementConsumed(ctx, store.AxisKindPlatformKey, entry.PlatformKeyID, periodKey, entry.Amount); err != nil {
 		return err
 	}
-	if entry.BudgetGroupID != nil {
-		if err := writer.IncrementConsumed(ctx, store.AxisKindBudgetGroup, *entry.BudgetGroupID, periodKey, entry.Amount); err != nil {
+	if entry.ProjectID != nil {
+		if err := writer.IncrementConsumed(ctx, store.AxisKindProject, *entry.ProjectID, periodKey, entry.Amount); err != nil {
 			return err
 		}
 	}

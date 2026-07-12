@@ -1,4 +1,4 @@
-import type { BudgetProjectView } from '@/api/types'
+import type { ProjectView } from '@/api/types'
 import {
   Table,
   TableBody,
@@ -16,7 +16,7 @@ import { thresholdClass, type AlertRuleView } from '../lib/alerts'
 
 interface BudgetAlertsTableProps {
   rules: AlertRuleView[]
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   onToggle: (rule: AlertRuleView) => void
   onEdit: (rule: AlertRuleView) => void
   onDelete: (rule: AlertRuleView) => void

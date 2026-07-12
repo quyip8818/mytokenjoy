@@ -16,7 +16,7 @@ const (
 	KindNewAPISync               = "newapi_sync"
 	KindOrgSync                  = "org_sync"
 	KindMonthlyRebalance         = "monthly_rebalance"
-	KindBudgetProject            = "budget_project"
+	KindBudgetProjection         = "budget_projection"
 	KindBudgetReconcile          = "budget_reconcile"
 	KindBudgetReconcileFanout    = "budget_reconcile_fanout"
 	KindDashboardProject         = "dashboard_project"
@@ -139,13 +139,13 @@ func (MonthlyRebalanceArgs) InsertOpts() river.InsertOpts {
 	}
 }
 
-type BudgetProjectArgs struct {
+type BudgetProjectionArgs struct {
 	CompanyID int64 `json:"company_id" river:"unique"`
 }
 
-func (BudgetProjectArgs) Kind() string { return KindBudgetProject }
+func (BudgetProjectionArgs) Kind() string { return KindBudgetProjection }
 
-func (BudgetProjectArgs) InsertOpts() river.InsertOpts {
+func (BudgetProjectionArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{
 		Queue: config.RiverQueueDefault,
 		UniqueOpts: river.UniqueOpts{

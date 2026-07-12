@@ -18,13 +18,13 @@ export interface OverrunPolicyConfig {
   blockMessage: string
 }
 
-export interface BudgetGroup {
+export interface Project {
   id: string
   name: string
   budget: number
   consumed: number
   memberIds: string[]
-  departmentIds: string[]
+  ownerDepartmentId: string
 }
 
 export interface AlertRule {
@@ -36,13 +36,13 @@ export interface AlertRule {
   enabled: boolean
 }
 
-export interface MemberBudgetQuota {
+export interface MemberBudget {
   memberId: string
   memberName: string
   departmentId: string
   personalBudget: number
   allocated: number
-  used: number
+  consumed: number
 }
 
 export interface UpdateMemberBudgetInput {
@@ -51,7 +51,7 @@ export interface UpdateMemberBudgetInput {
 
 export type OverrunPolicy = 'hard_reject' | 'approval' | 'downgrade'
 
-export interface BudgetProjectView {
+export interface ProjectView {
   id: string
   name: string
   budget: number

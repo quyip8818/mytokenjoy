@@ -86,12 +86,12 @@ type departmentsPage struct {
 }
 
 type userItem struct {
-	UserID        string   `json:"user_id"`
-	Name          string   `json:"name"`
-	Email         string   `json:"email"`
-	Mobile        string   `json:"mobile"`
-	DepartmentIDs []string `json:"department_ids"`
-	EmployeeNo    string   `json:"employee_no"`
+	UserID            string   `json:"user_id"`
+	Name              string   `json:"name"`
+	Email             string   `json:"email"`
+	Mobile            string   `json:"mobile"`
+	OwnerDepartmentID []string `json:"department_ids"`
+	EmployeeNo        string   `json:"employee_no"`
 }
 
 type usersPage struct {
@@ -254,8 +254,8 @@ func (c *Client) ListMembers(ctx context.Context) ([]Member, []types.ImportFailu
 
 func mapUser(user userItem) Member {
 	deptExternalID := ""
-	if len(user.DepartmentIDs) > 0 {
-		deptExternalID = user.DepartmentIDs[0]
+	if len(user.OwnerDepartmentID) > 0 {
+		deptExternalID = user.OwnerDepartmentID[0]
 	}
 	return Member{
 		ExternalID:           user.UserID,

@@ -17,7 +17,7 @@ func NewUsageIngestEnqueuer(enqueuer jobs.Enqueuer) domainusage.IngestJobEnqueue
 }
 
 func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64) error {
-	if err := jobs.InsertBudgetProject(ctx, u.enqueuer, tx, companyID); err != nil {
+	if err := jobs.InsertBudgetProjection(ctx, u.enqueuer, tx, companyID); err != nil {
 		return err
 	}
 	return jobs.InsertWalletSync(ctx, u.enqueuer, tx, companyID)

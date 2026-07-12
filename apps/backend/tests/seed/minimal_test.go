@@ -20,8 +20,8 @@ func TestLoadMinimalSnapshot(t *testing.T) {
 	if len(snapshot.PlatformKeys) != 1 || snapshot.PlatformKeys[0].ID != contract.IDPlatformKey1 {
 		t.Fatalf("expected single anchor platform key, got %+v", snapshot.PlatformKeys)
 	}
-	if len(snapshot.BudgetGroups) != 1 || snapshot.BudgetGroups[0].ID != contract.IDBudgetGroup1 {
-		t.Fatalf("expected minimal budget group bg-1, got %+v", snapshot.BudgetGroups)
+	if len(snapshot.Projects) != 1 || snapshot.Projects[0].ID != contract.IDProject1 {
+		t.Fatalf("expected minimal project proj-1, got %+v", snapshot.Projects)
 	}
 	if len(snapshot.UsageLedger) != 0 {
 		t.Fatalf("expected no usage ledger in minimal seed, got %d", len(snapshot.UsageLedger))

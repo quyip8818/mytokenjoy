@@ -194,7 +194,7 @@ flowchart LR
   Map --> Co[company_id]
   Map --> Dept[department_id]
   Map --> Key[platform_key_id]
-  Map --> Mem[member / budget_group]
+  Map --> Mem[member / project]
   Key --> Attr[归因字段进入 ledger]
 ```
 
@@ -237,7 +237,7 @@ flowchart LR
 | `budget_consumed`（Projector） | **当前开账月** `Clock` | 门禁与预算树「扣在哪本打开的账上」 |
 | `usage_buckets` | 发生时间 | 看板趋势跟真实发生时刻 |
 
-Ingest **只写 ledger + lot + 入队**；`budget_consumed` 由 River `budget_project` → `budget.Projector` 异步写入。开账轨与发生轨细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
+Ingest **只写 ledger + lot + 入队**；`budget_consumed` 由 River `budget_projection` → `budget.Projector` 异步写入。开账轨与发生轨细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
@@ -257,11 +257,11 @@ flowchart TB
   G -->|新账| H[enforceBudgetCap]
   H --> I[AllocateConsumptionLots FIFO]
   I --> J[InsertSegments]
-  J --> K[InsertTx budget_project + wallet_sync]
+  J --> K[InsertTx budget_projection + wallet_sync]
   K --> Z2[返回成功]
 ```
 
-**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、入队 `budget_project` + `wallet_sync`。  
+**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、入队 `budget_projection` + `wallet_sync`。  
 `budget_consumed`、`gateway_soft_*`、`usage_buckets` 均由异步 Projector 写入（见 [Backend-离线任务.md](./Backend-离线任务.md)）。
 
 ### 6.1 预算投影（`budget.Projector`，异步）
@@ -269,7 +269,7 @@ flowchart TB
 | 步骤 | 目标 | 作用 |
 | --- | --- | --- |
 | 1 | `budget_consumed` · platform_key | Key 已用 |
-| 2 | `budget_consumed` · budget_group | 若挂组 |
+| 2 | `budget_consumed` · project | 若挂项目 |
 | 3 | `budget_consumed` · member | 若可归因成员 |
 | 4 | `budget_consumed` · org_node 祖先 rollup | 部门树向上累加 |
 | 批末 | `gateway_soft_*` + rebalance / overrun 入队 | Gateway 软缓存 |
@@ -296,7 +296,7 @@ flowchart TB
 
 | 副作用 | 条件 | River kind |
 | --- | --- | --- |
-| `budget_project` | 入账成功 | `critical`（`InsertTx` 与 ledger 同事务） |
+| `budget_projection` | 入账成功 | `critical`（`InsertTx` 与 ledger 同事务） |
 | `wallet_sync` | **始终** | `default`（`InsertTx`；Unique 5s throttle） |
 | rebalance / overrun | **不在 Ingest** | Projector 批末 `Insert` |
 

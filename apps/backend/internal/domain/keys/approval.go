@@ -105,10 +105,10 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 		if approval.Type == "key" {
-			keyQuota := approval.RequestedBudget
+			keyBudget := approval.RequestedBudget
 			remaining := budget.GetBudgetRemaining(members, platformKeys, approval.ApplicantID)
-			if keyQuota > remaining {
-				personalBudgetAdded = keyQuota - remaining
+			if keyBudget > remaining {
+				personalBudgetAdded = keyBudget - remaining
 				members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, personalBudgetAdded)
 			}
 			memberID := approval.ApplicantID
@@ -116,7 +116,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			platformKeys = append(platformKeys, types.PlatformKey{
 				ID:   createdKeyID,
 				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: "pending...",
-				MemberID: &memberID, Status: "active", Budget: keyQuota, Used: 0,
+				MemberID: &memberID, Status: "active", Budget: keyBudget, Consumed: 0,
 				ModelWhitelist: append([]int64{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})

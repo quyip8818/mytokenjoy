@@ -29,9 +29,9 @@ interface MyKeysTableProps {
   onDelete: (key: PlatformKey) => void
 }
 
-function keyQuotaPercent(key: PlatformKey) {
+function keyBudgetPercent(key: PlatformKey) {
   if (key.budget <= 0) return 0
-  return Math.min(100, Math.round((key.used / key.budget) * 100))
+  return Math.min(100, Math.round((key.consumed / key.budget) * 100))
 }
 
 function KeyRowActions({
@@ -98,9 +98,9 @@ export function MyKeysTable({
             <TableCell>
               <div className="min-w-28 space-y-1">
                 <div className="text-xs text-muted-foreground">
-                  ¥{key.used.toLocaleString()} / ¥{key.budget.toLocaleString()}
+                  ¥{key.consumed.toLocaleString()} / ¥{key.budget.toLocaleString()}
                 </div>
-                <Progress value={keyQuotaPercent(key)} className="h-1.5" />
+                <Progress value={keyBudgetPercent(key)} className="h-1.5" />
               </div>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">

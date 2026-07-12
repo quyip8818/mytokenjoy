@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView, Role } from '@/api/types'
+import type { BudgetNode, ProjectView, Role } from '@/api/types'
 import type { AlertRuleView } from '@/features/budget'
 import {
   Dialog,
@@ -17,7 +17,7 @@ interface AlertRuleDialogProps {
   onOpenChange: (open: boolean) => void
   rule: AlertRuleView | null
   tree: BudgetNode[]
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   roles: Role[]
   onSave: (view: AlertRuleView, existingId?: string) => Promise<void>
 }
@@ -57,7 +57,7 @@ function AlertRuleDialogContent({
 }: {
   rule: AlertRuleView | null
   tree: BudgetNode[]
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   roles: Role[]
   onOpenChange: (open: boolean) => void
   onSave: (view: AlertRuleView, existingId?: string) => Promise<void>

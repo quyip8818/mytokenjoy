@@ -2,9 +2,9 @@ import { request } from './client'
 import type {
   AlertRule,
   BudgetApproval,
-  BudgetGroup,
+  Project,
   BudgetNode,
-  MemberBudgetQuota,
+  MemberBudget,
   OverrunPolicyConfig,
   UpdateMemberBudgetInput,
 } from './types'
@@ -24,9 +24,9 @@ export const budgetApi = {
     request<BudgetNode[]>(`/budget/tree${period ? `?period=${period}` : ''}`),
   updateDepartment: updateDepartmentRequest,
   getMemberBudgets: (departmentId: string) =>
-    request<MemberBudgetQuota[]>(`/budget/departments/${departmentId}/member-quotas`),
+    request<MemberBudget[]>(`/budget/departments/${departmentId}/member-budgets`),
   updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) =>
-    request<MemberBudgetQuota>(`/budget/members/${memberId}`, {
+    request<MemberBudget>(`/budget/members/${memberId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -38,12 +38,12 @@ export const budgetApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  getGroups: () => request<BudgetGroup[]>('/budget/groups'),
-  createGroup: (data: Omit<BudgetGroup, 'id' | 'consumed'>) =>
-    request<BudgetGroup>('/budget/groups', { method: 'POST', body: JSON.stringify(data) }),
-  updateGroup: (id: string, data: Partial<Omit<BudgetGroup, 'id' | 'consumed'>>) =>
-    request<BudgetGroup>(`/budget/groups/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteGroup: (id: string) => request<void>(`/budget/groups/${id}`, { method: 'DELETE' }),
+  getProjects: () => request<Project[]>('/budget/projects'),
+  createProject: (data: Omit<Project, 'id' | 'consumed'>) =>
+    request<Project>('/budget/projects', { method: 'POST', body: JSON.stringify(data) }),
+  updateProject: (id: string, data: Partial<Omit<Project, 'id' | 'consumed'>>) =>
+    request<Project>(`/budget/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProject: (id: string) => request<void>(`/budget/projects/${id}`, { method: 'DELETE' }),
   getOverrunPolicy: () => request<OverrunPolicyConfig>('/budget/overrun-policy'),
   updateOverrunPolicy: (data: OverrunPolicyConfig) =>
     request<OverrunPolicyConfig>('/budget/overrun-policy', {
@@ -56,8 +56,8 @@ export const budgetApi = {
   createAlert: (data: Omit<AlertRule, 'id'>) =>
     request<AlertRule>('/budget/alerts', { method: 'POST', body: JSON.stringify(data) }),
   deleteAlert: (id: string) => request<void>(`/budget/alerts/${id}`, { method: 'DELETE' }),
-  getGroupMemberConsumed: (groupId: string) =>
-    request<Record<string, number>>(`/budget/groups/${groupId}/member-consumed`),
+  getProjectMemberConsumed: (projectId: string) =>
+    request<Record<string, number>>(`/budget/projects/${projectId}/member-consumed`),
   getApprovals: () => request<BudgetApproval[]>('/budget/approvals'),
   resolveApproval: (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) =>
     request<BudgetApproval>(`/budget/approvals/${id}`, {

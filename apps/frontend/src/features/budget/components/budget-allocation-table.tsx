@@ -1,4 +1,4 @@
-import type { BudgetNode, BudgetProjectView } from '@/api/types'
+import type { BudgetNode, ProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -16,7 +16,7 @@ import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/p
 type BudgetAllocationTableProps = {
   node: BudgetNode
   children: BudgetNode[]
-  nodeProjects: BudgetProjectView[]
+  nodeProjects: ProjectView[]
   overrunPolicyLabel: string
   editing: boolean
   drafts: Record<string, { budget: string }>

@@ -8,12 +8,12 @@ import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/features/workflow'
-import { QUOTA_INSUFFICIENT_MESSAGE } from '../lib/constants'
+import { BUDGET_INSUFFICIENT_MESSAGE } from '../lib/constants'
 
 export function useMyKeysPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { memberId } = useSession()
-  const applyQuotaCta = useCtaHighlight('APPLY_QUOTA')
+  const applyBudgetCta = useCtaHighlight('APPLY_BUDGET')
   const createKeyCta = useCtaHighlight('CREATE_KEY')
   const { flashRow, rowClass } = useRowHighlight()
   const [deleteTarget, setDeleteTarget] = useState<PlatformKey | null>(null)
@@ -30,10 +30,10 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     enabled: Boolean(memberId),
   })
   const {
-    data: quota = null,
-    loading: quotaLoading,
-    error: quotaError,
-    refresh: refreshQuota,
+    data: budgetSummary = null,
+    loading: budgetLoading,
+    error: budgetError,
+    refresh: refreshBudget,
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.keys.budget(memberId),
@@ -41,10 +41,10 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     enabled: Boolean(memberId),
   })
 
-  const loading = keysLoading || quotaLoading
-  const error = keysError ?? quotaError
+  const loading = keysLoading || budgetLoading
+  const error = keysError ?? budgetError
   const refresh = async () => {
-    await Promise.all([refreshKeys(), refreshQuota()])
+    await Promise.all([refreshKeys(), refreshBudget()])
   }
   const { openWithRefresh, open } = useWorkflowRefresh({
     refresh,
@@ -72,14 +72,14 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     flashRow(id)
   }
 
-  const openCreateKey = (options?: { name?: string; quota?: string }) => {
-    if (quota !== null && quota.remaining <= 0) {
-      toast.error(QUOTA_INSUFFICIENT_MESSAGE)
+  const openCreateKey = (options?: { name?: string; budget?: string }) => {
+    if (budgetSummary !== null && budgetSummary.remaining <= 0) {
+      toast.error(BUDGET_INSUFFICIENT_MESSAGE)
       return
     }
     openWithRefresh('key-create', {
       initialName: options?.name,
-      initialQuota: options?.quota,
+      initialBudget: options?.budget,
     })
   }
 
@@ -97,12 +97,12 @@ export function useMyKeysPage(injectedApis?: AppApis) {
 
   return {
     keys,
-    quota,
+    budgetSummary,
     loading,
     error,
     deleteTarget,
     setDeleteTarget,
-    applyQuotaCta,
+    applyBudgetCta,
     createKeyCta,
     handleDelete,
     handleToggle,

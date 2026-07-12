@@ -30,14 +30,14 @@ export const platformKeyApi = {
     page?: number
     pageSize?: number
     memberId?: string
-    budgetGroupId?: string
+    projectId?: string
     departmentId?: string
-    type?: 'member' | 'project'
+    scope?: 'member' | 'project'
   }) => request<Paginated<PlatformKey>>(`/keys/platform${buildQuery(params ?? {})}`),
   create: (data: {
     name: string
     memberId?: string
-    budgetGroupId?: string
+    projectId?: string
     budget: number
     modelWhitelist: number[]
   }) => request<PlatformKey>('/keys/platform', { method: 'POST', body: JSON.stringify(data) }),

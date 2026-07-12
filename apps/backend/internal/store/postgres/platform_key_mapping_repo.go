@@ -23,7 +23,7 @@ var _ store.PlatformKeyMappingRepository = (*platformKeyMappingRepo)(nil)
 
 const mappingSelect = `
 	SELECT pkm.company_id, pkm.platform_key_id, pkm.newapi_key_id,
-	       pk.member_id, m.department_id, pk.budget_group_id,
+	       pk.member_id, m.department_id, pk.project_id,
 	       pkm.newapi_group, pkm.sync_status, pkm.synced_at, pkm.newapi_key_remain_quota
 	FROM platform_key_mappings pkm
 	JOIN platform_keys pk ON pk.company_id = pkm.company_id AND pk.id = pkm.platform_key_id
@@ -32,11 +32,11 @@ const mappingSelect = `
 
 func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	var m store.PlatformKeyMapping
-	var memberID, budgetGroupID, departmentID *string
+	var memberID, projectID, departmentID *string
 	var keyID, remainQuota *int64
 	var syncedAt *time.Time
 	err := row.Scan(
-		&m.CompanyID, &m.PlatformKeyID, &keyID, &memberID, &departmentID, &budgetGroupID,
+		&m.CompanyID, &m.PlatformKeyID, &keyID, &memberID, &departmentID, &projectID,
 		&m.NewAPIGroup, &m.SyncStatus, &syncedAt, &remainQuota,
 	)
 	if err != nil {
@@ -50,7 +50,7 @@ func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	if m.DepartmentID == "" && strings.HasPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix) {
 		m.DepartmentID = strings.TrimPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix)
 	}
-	m.BudgetGroupID = budgetGroupID
+	m.ProjectID = projectID
 	m.SyncedAt = syncedAt
 	m.NewAPIKeyRemainQuota = remainQuota
 	return m, nil
@@ -124,9 +124,9 @@ func (r *platformKeyMappingRepo) ListMappingsByDepartmentID(ctx context.Context,
 	return r.listMappings(ctx, "pkm.company_id = $1 AND m.department_id = $2", companyID, departmentID)
 }
 
-func (r *platformKeyMappingRepo) ListMappingsByBudgetGroupID(ctx context.Context, budgetGroupID string) ([]store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) ListMappingsByProjectID(ctx context.Context, projectID string) ([]store.PlatformKeyMapping, error) {
 	companyID := store.CompanyID(ctx)
-	return r.listMappings(ctx, "pkm.company_id = $1 AND pk.budget_group_id = $2", companyID, budgetGroupID)
+	return r.listMappings(ctx, "pkm.company_id = $1 AND pk.project_id = $2", companyID, projectID)
 }
 
 func (r *platformKeyMappingRepo) ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []string) ([]store.PlatformKeyMapping, error) {

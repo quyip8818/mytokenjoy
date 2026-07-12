@@ -4,7 +4,7 @@ import "context"
 
 // JobEnqueuer enqueues budget-domain River jobs without coupling to infra/jobs.
 type JobEnqueuer interface {
-	InsertBudgetProject(ctx context.Context, companyID int64) error
+	InsertBudgetProjection(ctx context.Context, companyID int64) error
 	InsertOverrun(ctx context.Context, companyID int64, payload []byte) error
 	InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error
 	InsertBudgetReconcile(ctx context.Context, companyID int64) error
@@ -12,7 +12,7 @@ type JobEnqueuer interface {
 
 type noopJobEnqueuer struct{}
 
-func (noopJobEnqueuer) InsertBudgetProject(context.Context, int64) error { return nil }
+func (noopJobEnqueuer) InsertBudgetProjection(context.Context, int64) error { return nil }
 func (noopJobEnqueuer) InsertOverrun(context.Context, int64, []byte) error {
 	return nil
 }

@@ -15,8 +15,8 @@ var schemaSQL string
 //go:embed river_schema.sql
 var riverSchemaSQL string
 
-// applySchema runs embedded DDL including River main-line migrations 001-007.
-// App DDL is idempotent on every start; River bootstrap runs once per database.
+// applySchema applies embedded DDL on startup. App tables use CREATE IF NOT EXISTS
+// for idempotent bootstrap on empty databases; River schema installs once per DB.
 func applySchema(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
 	if _, err := pool.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS ltree`); err != nil {
 		return fmt.Errorf("create ltree extension: %w", err)

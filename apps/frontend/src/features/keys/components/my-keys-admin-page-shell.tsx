@@ -14,13 +14,13 @@ type MyKeysAdminPageShellProps = ReturnType<typeof useMyKeysPage>
 
 export function MyKeysAdminPageShell({
   keys,
-  quota,
+  budgetSummary,
   loading,
   error,
   refresh,
   deleteTarget,
   setDeleteTarget,
-  applyQuotaCta,
+  applyBudgetCta,
   createKeyCta,
   handleDelete,
   handleToggleWithFlash,
@@ -30,11 +30,11 @@ export function MyKeysAdminPageShell({
   openRotateKey,
   openWithRefresh,
 }: MyKeysAdminPageShellProps) {
-  const applyQuotaButton = (
+  const applyBudgetButton = (
     <Button
-      id={applyQuotaCta.id}
+      id={applyBudgetCta.id}
       variant="outline"
-      className={applyQuotaCta.className}
+      className={applyBudgetCta.className}
       onClick={() => openWithRefresh('approval-submit', { defaultType: 'budget' })}
     >
       申请额度
@@ -46,7 +46,7 @@ export function MyKeysAdminPageShell({
       id={createKeyCta.id}
       variant="brand"
       className={createKeyCta.className}
-      disabled={quota !== null && quota.remaining <= 0}
+      disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
       onClick={() => openCreateKey()}
     >
       创建 Key
@@ -57,18 +57,18 @@ export function MyKeysAdminPageShell({
     <PageShell
       actions={
         <>
-          <PermissionGate permission={PERMISSION.SELF_APPROVAL}>{applyQuotaButton}</PermissionGate>
+          <PermissionGate permission={PERMISSION.SELF_APPROVAL}>{applyBudgetButton}</PermissionGate>
           <PermissionGate write permission={PERMISSION.SELF_KEYS}>
             {createKeyButton}
           </PermissionGate>
         </>
       }
       stats={
-        quota ? (
+        budgetSummary ? (
           <div className="grid grid-cols-3 gap-4">
-            <StatCard label="总额度" value={`¥${quota.totalBudget.toLocaleString()}`} />
-            <StatCard label="已使用" value={`¥${quota.used.toLocaleString()}`} />
-            <StatCard label="剩余" value={`¥${quota.remaining.toLocaleString()}`} accent />
+            <StatCard label="总额度" value={`¥${budgetSummary.totalBudget.toLocaleString()}`} />
+            <StatCard label="已使用" value={`¥${budgetSummary.consumed.toLocaleString()}`} />
+            <StatCard label="剩余" value={`¥${budgetSummary.remaining.toLocaleString()}`} accent />
           </div>
         ) : loading ? (
           <div className="grid grid-cols-3 gap-4">

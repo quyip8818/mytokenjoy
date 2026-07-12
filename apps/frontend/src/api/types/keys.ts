@@ -18,17 +18,16 @@ export interface PlatformKey {
   name: string
   keyPrefix: string
   fullKey?: string
-  type: 'member' | 'project'
+  scope: 'member' | 'project'
   memberId: string | null
   memberName: string | null
-  projectName: string | null
   departmentId: string
   departmentName: string
-  budgetGroupId: string | null
-  budgetGroupName: string | null
+  projectId: string | null
+  projectName: string | null
   status: KeyStatus
   budget: number
-  used: number
+  consumed: number
   modelWhitelist: number[]
   createdAt: string
   expiresAt: string | null
@@ -55,7 +54,7 @@ export interface KeyApproval {
 
 export interface MemberBudgetSummary {
   totalBudget: number
-  used: number
+  consumed: number
   remaining: number
   reservedPool: number
 }

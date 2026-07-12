@@ -61,19 +61,19 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 	}
 }
 
-func TestOverrunBudgetGroupAxis(t *testing.T) {
+func TestOverrunProjectAxis(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	groups, err := st.Budget().Groups(ctx)
+	groups, err := st.Budget().Projects(ctx)
 	if err != nil || len(groups) == 0 {
-		t.Fatal("expected budget group")
+		t.Fatal("expected project")
 	}
 	groupID := groups[0].ID
-	budgetfix.SetGroupSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
+	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
 	groupIDCopy := groupID
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -81,7 +81,7 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 	}
 	for i := range keys {
 		if keys[i].ID == contract.IDPlatformKey1 {
-			keys[i].BudgetGroupID = &groupIDCopy
+			keys[i].ProjectID = &groupIDCopy
 		}
 	}
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
@@ -99,7 +99,7 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"budgetGroupId": groupIDCopy,
+		"projectId":     groupIDCopy,
 		"departmentId":  contract.IDDept3,
 		"platformKeyId": contract.IDPlatformKey1,
 	})
@@ -110,7 +110,7 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls == 0 {
-		t.Fatal("expected UpdateToken when budget group overrun")
+		t.Fatal("expected UpdateToken when project overrun")
 	}
 }
 
@@ -136,7 +136,7 @@ func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
 	if keyBudget <= 0 {
 		t.Fatal("expected plk-1 to have positive budget")
 	}
-	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, keyBudget+0.01)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, keyBudget+0.01)
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,
@@ -153,7 +153,7 @@ func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
 	}
 }
 
-func TestOverrunSkipsMemberAxisWhenBudgetGroupPresent(t *testing.T) {
+func TestOverrunSkipsMemberAxisWhenProjectPresent(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
@@ -166,17 +166,17 @@ func TestOverrunSkipsMemberAxisWhenBudgetGroupPresent(t *testing.T) {
 	}
 	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
 
-	groups, err := st.Budget().Groups(ctx)
+	groups, err := st.Budget().Projects(ctx)
 	if err != nil || len(groups) == 0 {
-		t.Fatal("expected budget group")
+		t.Fatal("expected project")
 	}
 	groupID := groups[0].ID
-	budgetfix.SetGroupSnapshotConsumed(t, st, groupID, 0)
+	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, 0)
 
 	payload, err := json.Marshal(map[string]any{
-		"memberId":      contract.IDMember1,
-		"budgetGroupId": groupID,
-		"departmentId":  contract.IDDept3,
+		"memberId":     contract.IDMember1,
+		"projectId":    groupID,
+		"departmentId": contract.IDDept3,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -185,6 +185,6 @@ func TestOverrunSkipsMemberAxisWhenBudgetGroupPresent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 0 {
-		t.Fatal("expected member axis to be skipped when budget group is present")
+		t.Fatal("expected member axis to be skipped when project is present")
 	}
 }

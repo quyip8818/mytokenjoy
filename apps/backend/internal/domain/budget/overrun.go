@@ -15,7 +15,7 @@ import (
 type overrunPayload struct {
 	DepartmentID  string  `json:"departmentId"`
 	MemberID      *string `json:"memberId,omitempty"`
-	BudgetGroupID *string `json:"budgetGroupId,omitempty"`
+	ProjectID     *string `json:"projectId,omitempty"`
 	PlatformKeyID string  `json:"platformKeyId"`
 }
 
@@ -99,7 +99,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			}
 		}
 
-		if payload.MemberID != nil && payload.BudgetGroupID == nil {
+		if payload.MemberID != nil && payload.ProjectID == nil {
 			memberConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindMember, *payload.MemberID, periodKey)
 			if err != nil {
 				return err
@@ -115,7 +115,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 					target: memberID,
 					keys:   func(ctx context.Context) error { return s.disableMemberKeys(ctx, memberID) },
 					payload: map[string]any{
-						"scope": "member", "memberId": memberID, "used": memberConsumed, "capacity": capacity,
+						"scope": "member", "memberId": memberID, "consumed": memberConsumed, "capacity": capacity,
 					},
 				}
 				return nil
@@ -133,35 +133,35 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		if deptFound && pkgbudget.BudgetExhausted(deptConsumed, deptBudget) {
 			deptID := payload.DepartmentID
 			action = &disableAction{
-				scope:  "department",
+				scope:  "org_node",
 				target: deptID,
 				keys:   func(ctx context.Context) error { return s.disableDepartmentKeys(ctx, deptID) },
 				payload: map[string]any{
-					"scope": "department", "departmentId": deptID,
+					"axisKind": "org_node", "departmentId": deptID,
 					"consumed": deptConsumed, "budget": deptBudget,
 				},
 			}
 			return nil
 		}
 
-		if payload.BudgetGroupID != nil {
-			groupBudget, _, groupFound, err := tx.Budget().GetGroupBudget(ctx, *payload.BudgetGroupID)
+		if payload.ProjectID != nil {
+			projectBudget, _, projectFound, err := tx.Budget().GetProjectBudget(ctx, *payload.ProjectID)
 			if err != nil {
 				return err
 			}
-			groupConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindBudgetGroup, *payload.BudgetGroupID, periodKey)
+			projectConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindProject, *payload.ProjectID, periodKey)
 			if err != nil {
 				return err
 			}
-			if groupFound && pkgbudget.BudgetExhausted(groupConsumed, groupBudget) {
-				groupID := *payload.BudgetGroupID
+			if projectFound && pkgbudget.BudgetExhausted(projectConsumed, projectBudget) {
+				projectID := *payload.ProjectID
 				action = &disableAction{
-					scope:  "budgetGroup",
-					target: groupID,
-					keys:   func(ctx context.Context) error { return s.disableBudgetGroupKeys(ctx, groupID) },
+					scope:  "project",
+					target: projectID,
+					keys:   func(ctx context.Context) error { return s.disableProjectKeys(ctx, projectID) },
 					payload: map[string]any{
-						"scope": "budgetGroup", "budgetGroupId": groupID,
-						"consumed": groupConsumed, "budget": groupBudget,
+						"axisKind": "project", "projectId": projectID,
+						"consumed": projectConsumed, "budget": projectBudget,
 					},
 				}
 			}
@@ -229,8 +229,8 @@ func (s *OverrunService) disableDepartmentKeys(ctx context.Context, departmentID
 	return nil
 }
 
-func (s *OverrunService) disableBudgetGroupKeys(ctx context.Context, budgetGroupID string) error {
-	mappings, err := s.store.PlatformKeyMappings().ListMappingsByBudgetGroupID(ctx, budgetGroupID)
+func (s *OverrunService) disableProjectKeys(ctx context.Context, projectID string) error {
+	mappings, err := s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, projectID)
 	if err != nil {
 		return err
 	}

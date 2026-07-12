@@ -37,10 +37,10 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 	switch axisKind {
 	case store.RebalanceAxisMember:
 		mappings, err = s.store.PlatformKeyMappings().ListMappingsByMemberID(ctx, axisID)
-	case store.RebalanceAxisDepartment:
+	case store.RebalanceAxisOrgNode:
 		mappings, err = s.store.PlatformKeyMappings().ListMappingsByDepartmentID(ctx, axisID)
-	case store.RebalanceAxisBudgetGroup:
-		mappings, err = s.store.PlatformKeyMappings().ListMappingsByBudgetGroupID(ctx, axisID)
+	case store.RebalanceAxisProject:
+		mappings, err = s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, axisID)
 	case store.RebalanceAxisCompany:
 		companyID, parseErr := strconv.ParseInt(axisID, 10, 64)
 		if parseErr != nil {
@@ -139,7 +139,7 @@ func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.Pl
 	if err != nil {
 		return allocated, err
 	}
-	walletUnits := newapiunits.ToQuotaUnits(co.WalletRemain, models, nil)
+	walletUnits := newapiunits.ToNewAPIUnits(co.WalletRemain, models, nil)
 	mappings, err := s.store.PlatformKeyMappings().ListActiveMappingsByCompany(ctx, mapping.CompanyID)
 	if err != nil {
 		return allocated, err

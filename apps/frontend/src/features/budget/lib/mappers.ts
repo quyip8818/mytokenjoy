@@ -1,5 +1,5 @@
-import type { BudgetGroup, BudgetNode, OverrunPolicy } from '@/api/types'
-import type { BudgetProjectView } from '@/api/types'
+import type { Project, BudgetNode, OverrunPolicy } from '@/api/types'
+import type { ProjectView } from '@/api/types'
 
 export const DEFAULT_OVERRUN_POLICY: OverrunPolicy = 'hard_reject'
 
@@ -85,38 +85,38 @@ export function nodeReservedPool(node: BudgetNode): number {
   return node.reservedPool ?? 0
 }
 
-export function groupToProjectView(
-  group: BudgetGroup,
+export function toProjectView(
+  project: Project,
   departmentName: string,
   period: string,
   overrunPolicy: OverrunPolicy = DEFAULT_OVERRUN_POLICY,
-): BudgetProjectView {
+): ProjectView {
   return {
-    id: group.id,
-    name: group.name,
-    budget: group.budget,
-    consumed: group.consumed,
-    memberIds: group.memberIds,
-    departmentId: group.departmentIds[0] ?? '',
+    id: project.id,
+    name: project.name,
+    budget: project.budget,
+    consumed: project.consumed,
+    memberIds: project.memberIds,
+    departmentId: project.ownerDepartmentId,
     departmentName,
     overrunPolicy,
     period,
   }
 }
 
-export function mapGroupsToProjectViews(
-  groups: BudgetGroup[],
+export function mapProjectsToViews(
+  projects: Project[],
   nodeMap: Map<string, string>,
   period: string,
   overrunPolicy: OverrunPolicy = DEFAULT_OVERRUN_POLICY,
-): BudgetProjectView[] {
-  return groups.map((group) => {
-    const deptId = group.departmentIds[0] ?? ''
+): ProjectView[] {
+  return projects.map((project) => {
+    const deptId = project.ownerDepartmentId
     const deptName = nodeMap.get(deptId) ?? ''
-    return groupToProjectView(group, deptName, period, overrunPolicy)
+    return toProjectView(project, deptName, period, overrunPolicy)
   })
 }
 
-export function groupsForDepartment(groups: BudgetGroup[], departmentId: string): BudgetGroup[] {
-  return groups.filter((group) => group.departmentIds.includes(departmentId))
+export function projectsForDepartment(projects: Project[], departmentId: string): Project[] {
+  return projects.filter((project) => project.ownerDepartmentId === departmentId)
 }

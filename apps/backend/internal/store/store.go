@@ -20,7 +20,7 @@ type Snapshot struct {
 	Members         []types.Member
 	Roles           []types.Role
 	Permissions     []types.Permission
-	BudgetGroups    []types.BudgetGroup
+	Projects        []types.Project
 	OverrunPolicy   types.OverrunPolicyConfig
 	AlertRules      []types.AlertRule
 	BudgetApprovals []types.BudgetApproval

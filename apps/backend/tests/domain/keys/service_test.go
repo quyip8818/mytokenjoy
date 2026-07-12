@@ -220,13 +220,13 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
-func TestCreateGroupKeyQuotaExceeded(t *testing.T) {
+func TestCreateProjectKeyQuotaExceeded(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	groupID := contract.IDBudgetGroup1
+	groupID := contract.IDProject1
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "group-over", BudgetGroupID: &groupID, MemberID: &memberID, Budget: 20_000_000,
+		Name: "group-over", ProjectID: &groupID, MemberID: &memberID, Budget: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -286,18 +286,18 @@ func TestApprovalBudgetCheckNotFound(t *testing.T) {
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
-func TestBudgetSummaryIncludesSnapshotUsed(t *testing.T) {
+func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
-	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 1000)
-	budgetfix.SetPlatformKeySnapshotUsed(t, st, "plk-1b", 234.5)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 1000)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, "plk-1b", 234.5)
 	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Used != 1234.5 {
-		t.Fatalf("expected used 1234.5 from snapshot, got %v", summary.Used)
+	if summary.Consumed != 1234.5 {
+		t.Fatalf("expected consumed 1234.5 from snapshot, got %v", summary.Consumed)
 	}
 }
 

@@ -12,7 +12,7 @@ describe('useUsageDashboardPage', () => {
           {
             departmentId: 'd1',
             departmentName: 'HQ',
-            quota: 1000,
+            budget: 1000,
             consumed: 500,
             memberCount: 5,
             topModel: 'gpt-4',

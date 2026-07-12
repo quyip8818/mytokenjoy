@@ -54,13 +54,13 @@ func TestBudgetReconcileRepairsDriftAndEnqueuesRebalance(t *testing.T) {
 		t.Fatalf("expected positive platform key consumed from ledger, got %v", wantPlatformKey)
 	}
 
-	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 0.01)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 0.01)
 
 	if err := budgetAsync.Reconcile.RunCompany(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 
-	got := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	got := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
 	if budget.ConsumedDrift(wantPlatformKey, got) {
 		t.Fatalf("expected reconcile to repair platform key consumed to %v, got %v", wantPlatformKey, got)
 	}

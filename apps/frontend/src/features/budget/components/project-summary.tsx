@@ -1,14 +1,14 @@
-import type { BudgetProjectView } from '@/api/types'
+import type { ProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { POLICY_LABELS } from '@/features/budget'
 import { formatDisplayCurrency } from '@/lib/points'
 
-type BudgetProjectHeaderProps = {
-  project: BudgetProjectView
+type ProjectHeaderProps = {
+  project: ProjectView
 }
 
-export function BudgetProjectHeader({ project }: BudgetProjectHeaderProps) {
+export function ProjectHeader({ project }: ProjectHeaderProps) {
   const policy = POLICY_LABELS[project.overrunPolicy]
 
   return (
@@ -24,8 +24,8 @@ export function BudgetProjectHeader({ project }: BudgetProjectHeaderProps) {
   )
 }
 
-type BudgetProjectSummaryProps = {
-  project: BudgetProjectView
+type ProjectSummaryProps = {
+  project: ProjectView
 }
 
 function SummaryCard({
@@ -54,7 +54,7 @@ function SummaryCard({
   )
 }
 
-export function BudgetProjectSummary({ project }: BudgetProjectSummaryProps) {
+export function ProjectSummary({ project }: ProjectSummaryProps) {
   const remaining = project.budget - project.consumed
 
   return (

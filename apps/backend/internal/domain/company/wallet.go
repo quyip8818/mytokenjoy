@@ -10,27 +10,27 @@ import (
 )
 
 type WalletService interface {
-	AvailableQuota(ctx context.Context, walletUserID int64) (int64, error)
+	AvailableNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error)
 }
 
-type QuotaReader interface {
+type NewAPIWalletReader interface {
 	GetUserQuota(ctx context.Context, userID int64) (int64, error)
 }
 
 type walletService struct {
 	cfg      config.Config
-	reader   QuotaReader
+	reader   NewAPIWalletReader
 	cacheTTL time.Duration
 	mu       sync.RWMutex
 	cache    map[int64]walletCacheEntry
 }
 
 type walletCacheEntry struct {
-	quota     int64
+	units     int64
 	expiresAt time.Time
 }
 
-func NewWalletService(cfg config.Config, reader QuotaReader) WalletService {
+func NewWalletService(cfg config.Config, reader NewAPIWalletReader) WalletService {
 	if reader == nil {
 		return &noopWalletService{}
 	}
@@ -44,11 +44,11 @@ func NewWalletService(cfg config.Config, reader QuotaReader) WalletService {
 
 type noopWalletService struct{}
 
-func (n *noopWalletService) AvailableQuota(ctx context.Context, walletUserID int64) (int64, error) {
+func (n *noopWalletService) AvailableNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error) {
 	return 0, domain.ServiceUnavailable("wallet service unavailable")
 }
 
-func (s *walletService) AvailableQuota(ctx context.Context, walletUserID int64) (int64, error) {
+func (s *walletService) AvailableNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error) {
 	if walletUserID <= 0 {
 		return 0, domain.NewDomainError(400, "wallet account not configured")
 	}
@@ -56,15 +56,15 @@ func (s *walletService) AvailableQuota(ctx context.Context, walletUserID int64) 
 	s.mu.RLock()
 	if entry, ok := s.cache[walletUserID]; ok && now.Before(entry.expiresAt) {
 		s.mu.RUnlock()
-		return entry.quota, nil
+		return entry.units, nil
 	}
 	s.mu.RUnlock()
-	quota, err := s.reader.GetUserQuota(ctx, walletUserID)
+	units, err := s.reader.GetUserQuota(ctx, walletUserID)
 	if err != nil {
 		return 0, err
 	}
 	s.mu.Lock()
-	s.cache[walletUserID] = walletCacheEntry{quota: quota, expiresAt: now.Add(s.cacheTTL)}
+	s.cache[walletUserID] = walletCacheEntry{units: units, expiresAt: now.Add(s.cacheTTL)}
 	s.mu.Unlock()
-	return quota, nil
+	return units, nil
 }

@@ -133,7 +133,7 @@ func PendingWalletSyncCount(st store.Store, companyID int64) int {
 }
 
 func PendingBudgetProjectCount(st store.Store, companyID int64) int {
-	return PendingJobCount(st, jobs.KindBudgetProject, companyID)
+	return PendingJobCount(st, jobs.KindBudgetProjection, companyID)
 }
 
 func ListPendingNewAPISync(st store.Store, subKind string, limit int) int {

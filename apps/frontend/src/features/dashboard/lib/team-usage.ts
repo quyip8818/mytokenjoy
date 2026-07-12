@@ -1,4 +1,4 @@
-export function teamUsagePercent(consumed: number, quota: number): number {
-  if (quota <= 0) return 0
-  return Math.min(100, Math.round((consumed / quota) * 100))
+export function teamUsagePercent(consumed: number, budget: number): number {
+  if (budget <= 0) return 0
+  return Math.min(100, Math.round((consumed / budget) * 100))
 }

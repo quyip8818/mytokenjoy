@@ -109,7 +109,7 @@ func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 0.01)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 0.01)
 	if err := budgetAsync.Reconcile.RunCompany(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
 			break
 		}
 	}
-	got := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	got := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
 	if budget.ConsumedDrift(wantPlatformKey, got) {
 		t.Fatalf("expected repaired consumed %v, got %v", wantPlatformKey, got)
 	}

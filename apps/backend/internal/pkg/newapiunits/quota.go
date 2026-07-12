@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
-func HighestModelPriceCNY(models []types.ModelInfo, allowedIDs []int64) float64 {
+func HighestModelPricePoint(models []types.ModelInfo, allowedIDs []int64) float64 {
 	byID := modelcatalog.IndexByID(models)
 	highest := 0.0
 	for _, id := range allowedIDs {
@@ -47,7 +47,7 @@ func ToNewAPIUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs 
 	if pointRemaining <= 0 {
 		return 0
 	}
-	price := HighestModelPriceCNY(models, allowedIDs)
+	price := HighestModelPricePoint(models, allowedIDs)
 	units := pointRemaining / price * float64(common.QuotaPerUnit)
 	if units < 0 {
 		return 0
@@ -59,16 +59,8 @@ func FromNewAPIUnits(units int64, models []types.ModelInfo, allowedIDs []int64) 
 	if units <= 0 {
 		return 0
 	}
-	price := HighestModelPriceCNY(models, allowedIDs)
+	price := HighestModelPricePoint(models, allowedIDs)
 	return float64(units) / float64(common.QuotaPerUnit) * price
-}
-
-func ToQuotaUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs []int64) int64 {
-	return ToNewAPIUnits(pointRemaining, models, allowedIDs)
-}
-
-func FromQuotaUnits(units int64, models []types.ModelInfo, allowedIDs []int64) float64 {
-	return FromNewAPIUnits(units, models, allowedIDs)
 }
 
 func FormatModelLimits(callTypes []string) string {

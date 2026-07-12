@@ -1,13 +1,13 @@
-import type { BudgetGroup, BudgetNode } from '@/api/types'
+import type { Project, BudgetNode } from '@/api/types'
 
-export const mockBudgetGroups: BudgetGroup[] = [
+export const mockProjects: Project[] = [
   {
-    id: 'bg1',
+    id: 'proj-1',
     name: '项目 A',
     budget: 10000,
     consumed: 2000,
     memberIds: ['m1'],
-    departmentIds: ['d1'],
+    ownerDepartmentId: 'd1',
   },
 ]
 

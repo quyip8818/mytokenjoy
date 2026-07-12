@@ -13,26 +13,18 @@ import (
 )
 
 func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
-	for _, group := range snap.BudgetGroups {
+	for _, project := range snap.Projects {
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO budget_groups (id, company_id, name, budget)
-			VALUES ($1, $2, $3, $4) ON CONFLICT (company_id, id) DO NOTHING
-		`, group.ID, tid, group.Name, group.Budget); err != nil {
+			INSERT INTO projects (id, company_id, name, budget, owner_department_id)
+			VALUES ($1, $2, $3, $4, $5) ON CONFLICT (company_id, id) DO NOTHING
+		`, project.ID, tid, project.Name, project.Budget, project.OwnerDepartmentID); err != nil {
 			return err
 		}
-		for _, memberID := range group.MemberIDs {
+		for _, memberID := range project.MemberIDs {
 			if _, err := exec.Exec(ctx, `
-				INSERT INTO budget_group_members (company_id, group_id, member_id) VALUES ($1, $2, $3)
+				INSERT INTO project_members (company_id, project_id, member_id) VALUES ($1, $2, $3)
 				ON CONFLICT DO NOTHING
-			`, tid, group.ID, memberID); err != nil {
-				return err
-			}
-		}
-		for _, deptID := range group.DepartmentIDs {
-			if _, err := exec.Exec(ctx, `
-				INSERT INTO budget_group_departments (company_id, group_id, department_id) VALUES ($1, $2, $3)
-				ON CONFLICT DO NOTHING
-			`, tid, group.ID, deptID); err != nil {
+			`, tid, project.ID, memberID); err != nil {
 				return err
 			}
 		}
@@ -76,19 +68,19 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, 
 			return fmt.Errorf("seed budget consumed org node %s: %w", node.ID, err)
 		}
 	}
-	for _, group := range snap.BudgetGroups {
-		if group.Consumed <= 0 {
+	for _, project := range snap.Projects {
+		if project.Consumed <= 0 {
 			continue
 		}
-		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindBudgetGroup, group.ID, periodKey, group.Consumed); err != nil {
-			return fmt.Errorf("seed budget consumed group %s: %w", group.ID, err)
+		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindProject, project.ID, periodKey, project.Consumed); err != nil {
+			return fmt.Errorf("seed budget consumed project %s: %w", project.ID, err)
 		}
 	}
 	for _, key := range snap.PlatformKeys {
-		if key.Used <= 0 {
+		if key.Consumed <= 0 {
 			continue
 		}
-		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindPlatformKey, key.ID, periodKey, key.Used); err != nil {
+		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindPlatformKey, key.ID, periodKey, key.Consumed); err != nil {
 			return fmt.Errorf("seed budget consumed platform key %s: %w", key.ID, err)
 		}
 	}

@@ -42,7 +42,7 @@ type DeptAxisInput struct {
 }
 
 // ComputeRemainBudget returns the effective remaining budget for a platform key as the
-// minimum of key, optional budget-group or member, and department caps.
+// minimum of key, optional project or member, and department caps.
 // memberAxis nil uses summed platform-key usage (NewAPI sync).
 // deptAxis nil uses budget tree nodes (NewAPI sync); non-nil uses explicit dept snapshot values.
 func ComputeRemainBudget(
@@ -50,7 +50,7 @@ func ComputeRemainBudget(
 	tree []types.BudgetNode,
 	members []types.Member,
 	platformKeys []types.PlatformKey,
-	groups []types.BudgetGroup,
+	projects []types.Project,
 	departmentID string,
 	memberAxis *MemberAxisInput,
 	deptAxis *DeptAxisInput,
@@ -58,21 +58,21 @@ func ComputeRemainBudget(
 	candidates := make([]float64, 0, 4)
 
 	if key.Budget > 0 {
-		keyRemaining := key.Budget - key.Used
+		keyRemaining := key.Budget - key.Consumed
 		if keyRemaining < 0 {
 			keyRemaining = 0
 		}
 		candidates = append(candidates, keyRemaining)
 	}
 
-	if key.BudgetGroupID != nil {
-		for _, group := range groups {
-			if group.ID == *key.BudgetGroupID {
-				bgRemaining := group.Budget - group.Consumed
-				if bgRemaining < 0 {
-					bgRemaining = 0
+	if key.ProjectID != nil {
+		for _, project := range projects {
+			if project.ID == *key.ProjectID {
+				projectRemaining := project.Budget - project.Consumed
+				if projectRemaining < 0 {
+					projectRemaining = 0
 				}
-				candidates = append(candidates, bgRemaining)
+				candidates = append(candidates, projectRemaining)
 				break
 			}
 		}
@@ -86,7 +86,7 @@ func ComputeRemainBudget(
 			}
 			candidates = append(candidates, memberRemaining)
 		default:
-			memberUsed := GetUsedKeyBudget(platformKeys, *key.MemberID)
+			memberUsed := GetConsumedKeyBudget(platformKeys, *key.MemberID)
 			memberCap := GetPersonalBudget(members, *key.MemberID)
 			memberRemaining := memberCap - memberUsed
 			if memberRemaining < 0 {

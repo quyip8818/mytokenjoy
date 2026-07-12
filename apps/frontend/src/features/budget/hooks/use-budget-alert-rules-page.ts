@@ -3,7 +3,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { OverrunPolicyConfig } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
-import { mapGroupsToProjectViews } from '../lib/mappers'
+import { mapProjectsToViews } from '../lib/mappers'
 import { alertRuleToView, alertRuleFromView, type AlertRuleView } from '../lib/alerts'
 
 export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
@@ -23,10 +23,10 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
     queryFn: (api) => api.budgetApi.getAlerts(),
   })
 
-  const { data: groups = [] } = useInjectedQuery({
+  const { data: projectsData = [] } = useInjectedQuery({
     injectedApis,
-    queryKey: queryKeys.budget.groups(),
-    queryFn: (api) => api.budgetApi.getGroups(),
+    queryKey: queryKeys.budget.projects(),
+    queryFn: (api) => api.budgetApi.getProjects(),
   })
 
   const { data: tree = [] } = useInjectedQuery({
@@ -56,8 +56,8 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
   )
 
   const ruleViews = useMemo(
-    () => rules.map((rule) => alertRuleToView(rule, groups)),
-    [rules, groups],
+    () => rules.map((rule) => alertRuleToView(rule, projectsData)),
+    [rules, projectsData],
   )
 
   const nodeNameMap = useMemo(() => {
@@ -73,8 +73,8 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
   }, [tree])
 
   const projects = useMemo(
-    () => mapGroupsToProjectViews(groups, nodeNameMap, tree[0]?.period ?? ''),
-    [groups, nodeNameMap, tree],
+    () => mapProjectsToViews(projectsData, nodeNameMap, tree[0]?.period ?? ''),
+    [projectsData, nodeNameMap, tree],
   )
 
   const handleToggle = useCallback(

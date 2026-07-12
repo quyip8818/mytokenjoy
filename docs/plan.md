@@ -68,7 +68,7 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ### 种子数据契约
 
-- [ ] `platform_keys.json` 删除 `memberName`、`budgetGroupName`、`appName` 等不入库字段
+- [ ] `platform_keys.json` 删除 `memberName`、`projectName`（原 `budgetGroupName`）、`appName` 等不入库字段
 
 ---
 
@@ -118,7 +118,7 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 - [ ] 审批四 Tab：pending / approved / rejected / all 正确；角标仅 pending
 - [ ] 模型列表：内置 / 自定义 Tab；custom 显示 `endpoint`
 - [ ] Postgres 重启后 custom 模型 `endpoint` 持久化仍在
-- [ ] 改名同步：改成员名 / 预算组名后，平台 Key 列表展示名即时更新（enrich）
+- [ ] 改名同步：改成员名 / 项目名后，平台 Key 列表展示名即时更新（enrich）
 
 ### 自动化（发布前复跑）
 
@@ -164,8 +164,8 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 | # | 任务 | 技术方向 |
 | --- | --- | --- |
-| 1 | 删冗余列 | `DROP member_name, budget_group_name`；repo 停读写 |
-| 2 | SQL 筛选 | `ListPlatformKeysFiltered`，JOIN members / budget_groups |
+| 1 | 删冗余列 | `DROP member_name, project_name`；repo 停读写 |
+| 2 | SQL 筛选 | `ListPlatformKeysFiltered`，JOIN members / projects |
 | 3 | 真分页 | `page` / `pageSize` / `total` + SQL `LIMIT/OFFSET` |
 | 4 | 列表 RBAC | 非管理员默认 `departmentId=会话部门` |
 | 5 | 后端搜索 `q` | 名称/前缀模糊 |
@@ -188,6 +188,6 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 | [Backend-离线任务.md](./Backend-离线任务.md) | River 队列、13 kind、Worker、Periodic、入队点 |
 | [Backend-预算.md](./Backend-预算.md) | 双轴、`budget_consumed` 异步投影、Rebalance、Overrun |
 
-River、`budget_project`、Periodic fanout、Dashboard 投影与 Gateway 瘦化均已落地；剩余产品确认与 lag 可观测见上文 backlog。
+River、`budget_projection`、Periodic fanout、Dashboard 投影与 Gateway 瘦化均已落地；剩余产品确认与 lag 可观测见上文 backlog。
 
 ---

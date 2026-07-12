@@ -28,7 +28,7 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	var used float64
 	for _, key := range keys {
 		if key.ID == contract.IDPlatformKey1 {
-			used = key.Used
+			used = key.Consumed
 			break
 		}
 	}
@@ -37,27 +37,27 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	}
 }
 
-func TestLoadBudgetGroupsWithConsumedUsesOpenPeriod(t *testing.T) {
+func TestLoadProjectsWithConsumedUsesOpenPeriod(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
 	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
-	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
-	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
+	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindProject, contract.IDProject1, "2026-06", 10)
+	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindProject, contract.IDProject1, "2026-07", 7)
 
-	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), clk)
+	projects, err := pkgbudget.LoadProjectsWithConsumed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), clk)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var consumed float64
-	for _, group := range groups {
-		if group.ID == contract.IDBudgetGroup1 {
-			consumed = group.Consumed
+	for _, project := range projects {
+		if project.ID == contract.IDProject1 {
+			consumed = project.Consumed
 			break
 		}
 	}
 	if consumed != 7 {
-		t.Fatalf("expected bg-1 consumed=7 from open period 2026-07, got %v", consumed)
+		t.Fatalf("expected proj-1 consumed=7 from open period 2026-07, got %v", consumed)
 	}
 }

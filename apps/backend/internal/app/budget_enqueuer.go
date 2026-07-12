@@ -16,8 +16,8 @@ func NewBudgetEnqueuer(enqueuer jobs.Enqueuer) domainbudget.JobEnqueuer {
 	return budgetJobEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
 }
 
-func (b budgetJobEnqueuer) InsertBudgetProject(ctx context.Context, companyID int64) error {
-	return jobs.InsertBudgetProject(ctx, b.enqueuer, nil, companyID)
+func (b budgetJobEnqueuer) InsertBudgetProjection(ctx context.Context, companyID int64) error {
+	return jobs.InsertBudgetProjection(ctx, b.enqueuer, nil, companyID)
 }
 
 func (b budgetJobEnqueuer) InsertOverrun(ctx context.Context, companyID int64, payload []byte) error {

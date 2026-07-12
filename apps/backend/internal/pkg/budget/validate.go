@@ -32,7 +32,7 @@ func ValidateBudgetNodeUpdate(
 	nodeID string,
 	newBudget float64,
 	newReservedPool float64,
-	groups []types.BudgetGroup,
+	projects []types.Project,
 	members []types.Member,
 ) *string {
 	node := FindBudgetNode(tree, nodeID)
@@ -41,7 +41,7 @@ func ValidateBudgetNodeUpdate(
 		return &msg
 	}
 	childrenSum := SumChildrenBudget(*node)
-	projectSum := GroupsBudgetForDept(groups, nodeID)
+	projectSum := ProjectsBudgetForDept(projects, nodeID)
 	memberSum := MemberBudgetSumForDept(members, nodeID)
 	totalAllocated := childrenSum + newReservedPool + projectSum + memberSum
 	if newBudget < totalAllocated {
@@ -73,15 +73,12 @@ func ValidateBudgetNodeUpdate(
 	return nil
 }
 
-// GroupsBudgetForDept returns the sum of budget group budgets assigned to a department.
-func GroupsBudgetForDept(groups []types.BudgetGroup, deptID string) float64 {
+// ProjectsBudgetForDept returns the sum of project budgets owned by a department.
+func ProjectsBudgetForDept(projects []types.Project, deptID string) float64 {
 	sum := 0.0
-	for _, g := range groups {
-		for _, d := range g.DepartmentIDs {
-			if d == deptID {
-				sum += g.Budget
-				break
-			}
+	for _, p := range projects {
+		if p.OwnerDepartmentID == deptID {
+			sum += p.Budget
 		}
 	}
 	return sum

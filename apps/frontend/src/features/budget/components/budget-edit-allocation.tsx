@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { BudgetNode, BudgetProjectView } from '@/api/types'
+import type { BudgetNode, ProjectView } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
 import { BudgetAllocationTable } from './budget-allocation-table'
@@ -7,7 +7,7 @@ import { BudgetAllocationDialog } from './budget-allocation-dialog'
 
 interface BudgetEditAllocationProps {
   node: BudgetNode
-  projects: BudgetProjectView[]
+  projects: ProjectView[]
   overrunPolicyLabel: string
   onUpdated: () => void
   onUpdateDepartment: (

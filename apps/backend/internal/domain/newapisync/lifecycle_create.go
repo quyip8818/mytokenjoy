@@ -26,7 +26,7 @@ func (l *NewAPISync) SyncCreatePlatformKey(ctx context.Context, key types.Platfo
 		PlatformKeyID: key.ID,
 		MemberID:      key.MemberID,
 		DepartmentID:  departmentID,
-		BudgetGroupID: key.BudgetGroupID,
+		ProjectID:     key.ProjectID,
 		NewAPIGroup:   l.channelPolicy.ResolveNewAPIGroup(ctx, departmentID),
 		SyncStatus:    store.MappingSyncStatusPending,
 	}
@@ -71,10 +71,10 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 			departmentID = member.DepartmentID
 		}
 	}
-	if departmentID == "" && key.BudgetGroupID != nil {
-		for _, group := range budgetCtx.Groups {
-			if group.ID == *key.BudgetGroupID && len(group.DepartmentIDs) > 0 {
-				departmentID = group.DepartmentIDs[0]
+	if departmentID == "" && key.ProjectID != nil {
+		for _, project := range budgetCtx.Projects {
+			if project.ID == *key.ProjectID && project.OwnerDepartmentID != "" {
+				departmentID = project.OwnerDepartmentID
 				break
 			}
 		}
@@ -86,8 +86,8 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
 	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
-	remainCNY := budgetCtx.ComputeRemain(key, departmentID, nil, nil)
-	remainUnits := l.capRemainUnits(ctx, remainCNY, models, effectiveIDs)
+	remainPoint := budgetCtx.ComputeRemain(key, departmentID, nil, nil)
+	remainUnits := l.capRemainUnits(ctx, remainPoint, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)
 	req := adminport.CreateTokenInput{

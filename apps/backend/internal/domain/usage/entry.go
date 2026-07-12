@@ -76,7 +76,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 		Amount:         cost,
 		DepartmentID:   input.Mapping.DepartmentID,
 		MemberID:       memberID,
-		BudgetGroupID:  input.Mapping.BudgetGroupID,
+		ProjectID:      input.Mapping.ProjectID,
 		PlatformKeyID:  input.Mapping.PlatformKeyID,
 		Source:         input.Source,
 		OccurredAt:     occurredAt,

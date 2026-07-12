@@ -20,9 +20,9 @@ func newBudgetService(t *testing.T) (budget.Service, store.Store) {
 }
 
 type deptBudgetInputs struct {
-	tree    []types.BudgetNode
-	groups  []types.BudgetGroup
-	members []types.Member
+	tree     []types.BudgetNode
+	projects []types.Project
+	members  []types.Member
 }
 
 func loadDeptBudgetInputs(t *testing.T, st store.Store, deptID string) deptBudgetInputs {
@@ -36,7 +36,7 @@ func loadDeptBudgetInputs(t *testing.T, st store.Store, deptID string) deptBudge
 	if pkgbudget.FindBudgetNode(tree, deptID) == nil {
 		t.Fatalf("department %q not found in budget tree", deptID)
 	}
-	groups, err := st.Budget().Groups(ctx)
+	projects, err := st.Budget().Projects(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func loadDeptBudgetInputs(t *testing.T, st store.Store, deptID string) deptBudge
 	if err != nil {
 		t.Fatal(err)
 	}
-	return deptBudgetInputs{tree: tree, groups: groups, members: members}
+	return deptBudgetInputs{tree: tree, projects: projects, members: members}
 }
 
 // prepareDept3NodeUpdateFixture relaxes demo-seed allocations on dept-3 so UpdateNode
@@ -65,20 +65,16 @@ func prepareDept3NodeUpdateFixture(t *testing.T, st store.Store) {
 	if err := st.Org().SetMembers(ctx, members); err != nil {
 		t.Fatal(err)
 	}
-	groups, err := st.Budget().Groups(ctx)
+	projects, err := st.Budget().Projects(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range groups {
-		filtered := groups[i].DepartmentIDs[:0]
-		for _, deptID := range groups[i].DepartmentIDs {
-			if deptID != contract.IDDept3 {
-				filtered = append(filtered, deptID)
-			}
+	for i := range projects {
+		if projects[i].OwnerDepartmentID == contract.IDDept3 {
+			projects[i].OwnerDepartmentID = contract.IDDept2
 		}
-		groups[i].DepartmentIDs = filtered
 	}
-	if err := st.Budget().SetGroups(ctx, groups); err != nil {
+	if err := st.Budget().SetProjects(ctx, projects); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -91,13 +87,13 @@ func chooseValidDeptBudget(t *testing.T, st store.Store, deptID string, reserved
 	node := pkgbudget.FindBudgetNode(inputs.tree, deptID)
 	floor := pkgbudget.SumChildrenBudget(*node) +
 		reserved +
-		pkgbudget.GroupsBudgetForDept(inputs.groups, deptID) +
+		pkgbudget.ProjectsBudgetForDept(inputs.projects, deptID) +
 		pkgbudget.MemberBudgetSumForDept(inputs.members, deptID)
 
 	candidates := []float64{floor + budgetfix.DisplayPoints(1000), floor}
 	for _, budget := range candidates {
 		if msg := pkgbudget.ValidateBudgetNodeUpdate(
-			inputs.tree, deptID, budget, reserved, inputs.groups, inputs.members,
+			inputs.tree, deptID, budget, reserved, inputs.projects, inputs.members,
 		); msg == nil {
 			return budget
 		}

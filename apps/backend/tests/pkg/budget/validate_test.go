@@ -13,8 +13,8 @@ func TestValidateBudgetNodeUpdateIncludesProjectsAndMembers(t *testing.T) {
 	tree := []types.BudgetNode{
 		{ID: "dept-a", Budget: 100000},
 	}
-	groups := []types.BudgetGroup{
-		{ID: "bg-1", Budget: 10000, DepartmentIDs: []string{"dept-a"}},
+	groups := []types.Project{
+		{ID: "proj-1", Budget: 10000, OwnerDepartmentID: "dept-a"},
 	}
 	members := []types.Member{
 		{ID: "m-1", DepartmentID: "dept-a", PersonalBudget: 20000},

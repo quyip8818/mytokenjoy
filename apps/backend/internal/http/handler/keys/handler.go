@@ -102,10 +102,10 @@ func (h *Handler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	keys, err := h.service.ListPlatformKeys(r.Context(), types.PlatformKeyListFilter{
-		MemberID:      query.Get("memberId"),
-		BudgetGroupID: query.Get("budgetGroupId"),
-		DepartmentID:  query.Get("departmentId"),
-		Type:          query.Get("type"),
+		MemberID:     query.Get("memberId"),
+		ProjectID:    query.Get("projectId"),
+		DepartmentID: query.Get("departmentId"),
+		Scope:        query.Get("scope"),
 	})
 	if err == nil {
 		for i := range keys.Items {

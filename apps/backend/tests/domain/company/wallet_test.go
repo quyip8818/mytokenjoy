@@ -25,13 +25,13 @@ func (s *stubQuotaClient) GetUserQuota(_ context.Context, _ int64) (int64, error
 	return s.quota, s.err
 }
 
-func TestWalletServiceAvailableQuota(t *testing.T) {
+func TestWalletServiceAvailableNewAPIUnits(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 50000}
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
 
-	quota, err := svc.AvailableQuota(context.Background(), 1)
+	quota, err := svc.AvailableNewAPIUnits(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -46,8 +46,8 @@ func TestWalletServiceCachesResult(t *testing.T) {
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
 
-	svc.AvailableQuota(context.Background(), 1)
-	svc.AvailableQuota(context.Background(), 1)
+	svc.AvailableNewAPIUnits(context.Background(), 1)
+	svc.AvailableNewAPIUnits(context.Background(), 1)
 
 	if client.callCount != 1 {
 		t.Errorf("expected 1 backend call (cached), got %d", client.callCount)
@@ -60,12 +60,12 @@ func TestWalletServiceInvalidWalletID(t *testing.T) {
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
 
-	_, err := svc.AvailableQuota(context.Background(), 0)
+	_, err := svc.AvailableNewAPIUnits(context.Background(), 0)
 	if err == nil {
 		t.Fatal("expected error for zero wallet ID")
 	}
 
-	_, err = svc.AvailableQuota(context.Background(), -1)
+	_, err = svc.AvailableNewAPIUnits(context.Background(), -1)
 	if err == nil {
 		t.Fatal("expected error for negative wallet ID")
 	}
@@ -76,7 +76,7 @@ func TestWalletServiceNilClient(t *testing.T) {
 	cfg := config.Config{}
 	svc := company.NewWalletService(cfg, nil)
 
-	_, err := svc.AvailableQuota(context.Background(), 1)
+	_, err := svc.AvailableNewAPIUnits(context.Background(), 1)
 	if err == nil {
 		t.Fatal("noop wallet should return service unavailable error")
 	}
@@ -88,7 +88,7 @@ func TestWalletServiceClientError(t *testing.T) {
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
 
-	_, err := svc.AvailableQuota(context.Background(), 1)
+	_, err := svc.AvailableNewAPIUnits(context.Background(), 1)
 	if err == nil {
 		t.Fatal("expected error when client fails")
 	}
@@ -100,9 +100,9 @@ func TestWalletServiceCacheExpires(t *testing.T) {
 	cfg := config.Config{CompanyWalletCacheTTLSec: 0}
 	svc := company.NewWalletService(cfg, client)
 
-	svc.AvailableQuota(context.Background(), 1)
+	svc.AvailableNewAPIUnits(context.Background(), 1)
 	time.Sleep(10 * time.Millisecond)
-	svc.AvailableQuota(context.Background(), 1)
+	svc.AvailableNewAPIUnits(context.Background(), 1)
 
 	if client.callCount < 2 {
 		t.Errorf("expected at least 2 calls with expired cache, got %d", client.callCount)

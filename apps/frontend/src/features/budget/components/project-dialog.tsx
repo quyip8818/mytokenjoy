@@ -13,17 +13,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-interface BudgetProjectDialogProps {
+interface ProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   department: BudgetNode
   existingProjectsBudget?: number
   memberBudgetSum?: number
-  onCreateGroup: (data: {
+  onCreateProject: (data: {
     name: string
     budget: number
     memberIds: string[]
-    departmentIds: string[]
+    ownerDepartmentId: string
   }) => Promise<void>
   getDepartmentTree: () => Promise<Department[]>
   getMembers: (departmentId: string) => Promise<Member[]>
@@ -31,18 +31,18 @@ interface BudgetProjectDialogProps {
   searchMembers: (keyword: string) => Promise<Member[]>
 }
 
-export function BudgetProjectDialog({
+export function ProjectDialog({
   open,
   onOpenChange,
   department,
   existingProjectsBudget = 0,
   memberBudgetSum = 0,
-  onCreateGroup,
+  onCreateProject,
   getDepartmentTree,
   getMembers,
   getAllDeptMembers,
   searchMembers,
-}: BudgetProjectDialogProps) {
+}: ProjectDialogProps) {
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
   const [memberIds, setMemberIds] = useState<string[]>([])
@@ -87,11 +87,11 @@ export function BudgetProjectDialog({
 
     setSaving(true)
     try {
-      await onCreateGroup({
+      await onCreateProject({
         name: trimmedName,
         budget: displayToPoints(budgetNum),
         memberIds,
-        departmentIds: [department.id],
+        ownerDepartmentId: department.id,
       })
       resetForm()
       onOpenChange(false)

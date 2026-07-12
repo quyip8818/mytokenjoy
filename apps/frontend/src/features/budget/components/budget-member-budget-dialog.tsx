@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { MemberBudgetQuota, UpdateMemberBudgetInput } from '@/api/types'
+import type { MemberBudget, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,11 +13,8 @@ interface BudgetMemberBudgetDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   departmentId: string
-  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (
-    memberId: string,
-    data: UpdateMemberBudgetInput,
-  ) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
 }
 
 export function BudgetMemberBudgetDialog({
@@ -53,11 +50,8 @@ export function BudgetMemberBudgetDialog({
 
 interface BudgetMemberBudgetDialogBodyProps {
   departmentId: string
-  getMemberBudgets: (departmentId: string) => Promise<MemberBudgetQuota[]>
-  updateMemberBudget: (
-    memberId: string,
-    data: UpdateMemberBudgetInput,
-  ) => Promise<MemberBudgetQuota>
+  getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
 }
 
 function BudgetMemberBudgetDialogBody({
@@ -65,7 +59,7 @@ function BudgetMemberBudgetDialogBody({
   getMemberBudgets,
   updateMemberBudget,
 }: BudgetMemberBudgetDialogBodyProps) {
-  const [memberBudgets, setMemberBudgets] = useState<MemberBudgetQuota[]>([])
+  const [memberBudgets, setMemberBudgets] = useState<MemberBudget[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -94,7 +88,7 @@ function BudgetMemberBudgetDialogBody({
     }
   }, [departmentId, getMemberBudgets])
 
-  const startEdit = useCallback((member: MemberBudgetQuota) => {
+  const startEdit = useCallback((member: MemberBudget) => {
     setEditingId(member.memberId)
     setDraft(String(pointsToDisplay(member.personalBudget)))
   }, [])
@@ -151,7 +145,7 @@ function BudgetMemberBudgetDialogBody({
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
             <th className="pb-2 font-medium">成员</th>
             <th className="pb-2 font-medium">个人额度</th>
-            <th className="pb-2 font-medium">已用</th>
+            <th className="pb-2 font-medium">已消耗</th>
             <th className="pb-2 text-right font-medium">操作</th>
           </tr>
         </thead>
@@ -176,7 +170,7 @@ function BudgetMemberBudgetDialogBody({
 }
 
 interface MemberRowProps {
-  member: MemberBudgetQuota
+  member: MemberBudget
   editing: boolean
   draft: string
   saving: boolean
@@ -221,7 +215,7 @@ function MemberRow({
         )}
       </td>
       <td className="py-2 tabular-nums text-muted-foreground">
-        {formatDisplayCurrency(member.used)}
+        {formatDisplayCurrency(member.consumed)}
       </td>
       <td className="py-2 text-right">
         {editing ? (

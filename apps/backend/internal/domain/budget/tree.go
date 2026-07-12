@@ -47,7 +47,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if reserved != nil {
 			reservedValue = *reserved
 		}
-		groups, err := tx.Budget().Groups(ctx)
+		projects, err := tx.Budget().Projects(ctx)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if err != nil {
 			return err
 		}
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, groups, members); msg != nil {
+		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, projects, members); msg != nil {
 			return domain.Validation(*msg)
 		}
 		update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
@@ -78,7 +78,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	return result, err
 }
 
-func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudgetQuota, error) {
+func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudget, error) {
 	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return nil, err
@@ -86,23 +86,23 @@ func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types
 	if pkgbudget.FindBudgetNode(budgetCtx.Tree, deptID) == nil {
 		return nil, domain.NotFound("Department not found")
 	}
-	quotas := make([]types.MemberBudgetQuota, 0)
+	memberBudgets := make([]types.MemberBudget, 0)
 	for _, member := range budgetCtx.Members {
 		if member.DepartmentID == deptID {
-			quotas = append(quotas, pkgbudget.BuildMemberBudgetQuota(member, budgetCtx.PlatformKeys))
+			memberBudgets = append(memberBudgets, pkgbudget.BuildMemberBudget(member, budgetCtx.PlatformKeys))
 		}
 	}
-	return quotas, nil
+	return memberBudgets, nil
 }
 
-func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudgetQuota, error) {
+func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudget, error) {
 	if personalBudget < 0 {
-		return types.MemberBudgetQuota{}, domain.Validation("personalBudget must be non-negative")
+		return types.MemberBudget{}, domain.Validation("personalBudget must be non-negative")
 	}
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
-		return types.MemberBudgetQuota{}, err
+		return types.MemberBudget{}, err
 	}
-	var result types.MemberBudgetQuota
+	var result types.MemberBudget
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
@@ -143,7 +143,7 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 		if err != nil {
 			return err
 		}
-		groups, err := tx.Budget().Groups(ctx)
+		groups, err := tx.Budget().Projects(ctx)
 		if err != nil {
 			return err
 		}
@@ -181,7 +181,7 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 			for _, child := range node.Children {
 				childrenSum += child.Budget
 			}
-			projectSum := pkgbudget.GroupsBudgetForDept(groups, id)
+			projectSum := pkgbudget.ProjectsBudgetForDept(groups, id)
 			memberCount := countMembersInDept(members, id)
 			totalAfter := childrenSum + projectSum + float64(memberCount)*personalBudget
 
@@ -302,29 +302,26 @@ func collectDeptIDs(nodes []types.OrgNode, rootID string, recursive bool) map[st
 	return result
 }
 
-func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error) {
-	groups, err := s.store.Budget().Groups(ctx)
+func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID string) (map[string]float64, error) {
+	projects, err := s.store.Budget().Projects(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var target *types.BudgetGroup
-	for i := range groups {
-		if groups[i].ID == groupID {
-			target = &groups[i]
+	var target *types.Project
+	for i := range projects {
+		if projects[i].ID == projectID {
+			target = &projects[i]
 			break
 		}
 	}
 	if target == nil {
-		return nil, domain.NotFound("Group not found")
+		return nil, domain.NotFound("Project not found")
 	}
 	if len(target.MemberIDs) == 0 {
 		return make(map[string]float64), nil
 	}
 
-	deptID := ""
-	if len(target.DepartmentIDs) > 0 {
-		deptID = target.DepartmentIDs[0]
-	}
+	deptID := target.OwnerDepartmentID
 	open, err := pkgbudget.OpenDepartmentPeriod(ctx, s.store.Org().Nodes(), deptID, s.cfg.Clock())
 	if err != nil {
 		return nil, err

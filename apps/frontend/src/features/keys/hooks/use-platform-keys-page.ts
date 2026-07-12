@@ -51,7 +51,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
       a.platformKeyApi
         .list({
           departmentId: selectedDeptId,
-          type: activeTab,
+          scope: activeTab,
         })
         .then((res) => res.items),
   })

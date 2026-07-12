@@ -105,7 +105,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 
 	hasMore := len(entries) >= p.batchSize
 	if hasMore {
-		if err := p.enqueuer.InsertBudgetProject(ctx, companyID); err != nil {
+		if err := p.enqueuer.InsertBudgetProjection(ctx, companyID); err != nil {
 			return false, err
 		}
 	}
@@ -122,14 +122,14 @@ func collectBatchEffects(entries []types.UsageLedgerEntry) batchEffects {
 		if entry.MemberID != nil {
 			effects.rebalanceAxes[store.RebalanceAxisMember+":"+*entry.MemberID] = struct{}{}
 		}
-		effects.rebalanceAxes[store.RebalanceAxisDepartment+":"+entry.DepartmentID] = struct{}{}
-		if entry.BudgetGroupID != nil {
-			effects.rebalanceAxes[store.RebalanceAxisBudgetGroup+":"+*entry.BudgetGroupID] = struct{}{}
+		effects.rebalanceAxes[store.RebalanceAxisOrgNode+":"+entry.DepartmentID] = struct{}{}
+		if entry.ProjectID != nil {
+			effects.rebalanceAxes[store.RebalanceAxisProject+":"+*entry.ProjectID] = struct{}{}
 		}
 		payload := overrunPayload{
 			DepartmentID:  entry.DepartmentID,
 			MemberID:      entry.MemberID,
-			BudgetGroupID: entry.BudgetGroupID,
+			ProjectID:     entry.ProjectID,
 			PlatformKeyID: entry.PlatformKeyID,
 		}
 		if entry.PlatformKeyID != "" {

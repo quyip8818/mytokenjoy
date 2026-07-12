@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { BudgetProjectView } from '@/api/types'
+import type { ProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,17 +9,17 @@ import { Check, Pencil, X } from 'lucide-react'
 import { POLICY_LABELS } from '@/features/budget'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 
-type BudgetProjectSettingsFormProps = {
-  project: BudgetProjectView
-  onUpdateGroup: (groupId: string, data: { budget: number }) => Promise<void>
+type ProjectSettingsFormProps = {
+  project: ProjectView
+  onUpdateProject: (projectId: string, data: { budget: number }) => Promise<void>
   onUpdated: () => void
 }
 
-export function BudgetProjectSettingsForm({
+export function ProjectSettingsForm({
   project,
-  onUpdateGroup,
+  onUpdateProject,
   onUpdated,
-}: BudgetProjectSettingsFormProps) {
+}: ProjectSettingsFormProps) {
   const policy = POLICY_LABELS[project.overrunPolicy]
   const pct = project.budget > 0 ? Math.round((project.consumed / project.budget) * 100) : 0
 
@@ -52,7 +52,7 @@ export function BudgetProjectSettingsForm({
     }
     setSavingSettings(true)
     try {
-      await onUpdateGroup(project.id, { budget: displayToPoints(budgetNum) })
+      await onUpdateProject(project.id, { budget: displayToPoints(budgetNum) })
       setEditingSettings(false)
       onUpdated()
     } catch {

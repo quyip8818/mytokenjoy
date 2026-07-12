@@ -43,10 +43,10 @@ func buildBudgetTree() []types.BudgetNode {
 	}
 }
 
-func buildBudgetGroups() []types.BudgetGroup {
-	return []types.BudgetGroup{
-		{ID: contract.IDBudgetGroup1, Name: "AI 创新项目组", Budget: seedPoints(15000), Consumed: contract.DemoBudgetGroupConsumed[contract.IDBudgetGroup1], MemberIDs: []string{contract.IDMember1, "m-4", "m-6"}, DepartmentIDs: []string{contract.IDDept3, contract.IDDept4}},
-		{ID: contract.IDBudgetGroup4, Name: "内部效率工具", Budget: seedPoints(8000), Consumed: contract.DemoBudgetGroupConsumed[contract.IDBudgetGroup4], MemberIDs: []string{"m-15", "m-16"}, DepartmentIDs: []string{"dept-5"}},
+func buildProjects() []types.Project {
+	return []types.Project{
+		{ID: contract.IDProject1, Name: "AI 创新项目组", Budget: seedPoints(15000), Consumed: contract.DemoProjectConsumed[contract.IDProject1], MemberIDs: []string{contract.IDMember1, "m-4", "m-6"}, OwnerDepartmentID: contract.IDDept3},
+		{ID: contract.IDProject4, Name: "内部效率工具", Budget: seedPoints(8000), Consumed: contract.DemoProjectConsumed[contract.IDProject4], MemberIDs: []string{"m-15", "m-16"}, OwnerDepartmentID: "dept-5"},
 	}
 }
 

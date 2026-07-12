@@ -8,6 +8,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | --- | --- |
 | 工程待办（上线前 fix / 功能 / 门禁） | **[plan.md](./plan.md)** |
 | 架构现状 | [Backend.md](./Backend.md) 及子文档、[Backend-结构优化.md](./Backend-结构优化.md)、[架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md)、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
+| 命名统一 | **[命名统一.md](./命名统一.md)** |
 | 产品差距 | [Roadmap.md](./Roadmap.md)、[PRD-差距分析.md](./PRD-差距分析.md) |
 | 产品需求（只读权威） | [PRD.md](./PRD.md) |
 
@@ -23,10 +24,13 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
+| **[命名统一.md](./命名统一.md)** | 研发 / 架构 | 四层语义规范、已完成项与剩余命名债务（§3） |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 后端 / 架构 | 结构基线与剩余分层债务 |
 | [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | Ingest + River 两条线、13 kind、入队与 Worker |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun |
+| **[预算分配与扣减.md](./预算分配与扣减.md)** | 产品 / 研发 | **权威**：切蛋糕 vs 独立结算、Key 计费模式、扣费举例 |
+| **[Platform-Key产品设计.md](./Platform-Key产品设计.md)** | 产品 / 研发 | Platform Key 种类、命名、Job 用法、五种方案与推荐路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
