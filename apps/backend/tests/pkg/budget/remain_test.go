@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestComputeRemainBudget(t *testing.T) {
@@ -72,7 +73,7 @@ func TestComputeRemainBudget(t *testing.T) {
 				Used:   0,
 			},
 			tree: []types.BudgetNode{
-				{ID: "d1", Budget: 500, Consumed: 400, ReservedPool: floatPtr(30)},
+				{ID: "d1", Budget: 500, Consumed: 400, ReservedPool: budgetfix.FloatPtr(30)},
 			},
 			departmentID: "d1",
 			want:         70,

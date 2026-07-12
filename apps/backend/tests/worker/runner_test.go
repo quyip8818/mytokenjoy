@@ -90,35 +90,6 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 	}
 }
 
-func TestReconcileLogs(t *testing.T) {
-	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 88, RemainQuota: 1000}}
-	fix := newWorkerFixture(t, stub)
-	ctx := testutil.Ctx()
-
-	tokenID := int64(88)
-	newapisynctf.PrepareIngestFixture(t, fix.st, newapisynctf.MappingOpts{
-		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
-	})
-	testutil.SeedConsumeLog(t, fix.st, testutil.DefaultConsumeLog(500, tokenID))
-
-	if err := fix.ingestWorker.RunReconcileOnce(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	ingested, err := testutil.HasLedgerLogID(fix.st, 500)
-	if err != nil || !ingested {
-		t.Fatalf("expected log 500 in ledger via reconcile, err=%v ingested=%v", err, ingested)
-	}
-	cursor, err := fix.st.Logs().GetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cursor != 500 {
-		t.Fatalf("expected cursor 500, got %d", cursor)
-	}
-}
-
 type errTest string
 
 func (e errTest) Error() string { return string(e) }

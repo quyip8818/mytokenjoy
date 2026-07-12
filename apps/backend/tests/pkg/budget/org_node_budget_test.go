@@ -6,6 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -24,7 +25,7 @@ func TestOrgNodeBudgetRowFromNode_DefaultPeriod(t *testing.T) {
 
 func TestOrgNodeBudgetRowFromNode_PreservesFields(t *testing.T) {
 	t.Parallel()
-	reserved := floatPtr(500)
+	reserved := budgetfix.FloatPtr(500)
 	row := pkgbudget.OrgNodeBudgetRowFromNode(types.OrgNode{
 		ID: "dept-b", Budget: 2000, ReservedPool: reserved,
 		Period: "2026-06", MemberAvgBudget: 300,
@@ -44,7 +45,7 @@ func TestOrgNodeBudgetRowsFromNodes_FlattensTree(t *testing.T) {
 			ID: "root", Budget: 1000, Period: pkgbudget.PeriodMonthly,
 			Children: []types.OrgNode{
 				{ID: "child-a", Budget: 400},
-				{ID: "child-b", Budget: 600, ReservedPool: floatPtr(50)},
+				{ID: "child-b", Budget: 600, ReservedPool: budgetfix.FloatPtr(50)},
 			},
 		},
 	}

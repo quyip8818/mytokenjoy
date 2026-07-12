@@ -64,21 +64,6 @@ func TestGatewayProxiesValidRequest(t *testing.T) {
 	}
 }
 
-func TestGatewayRejectsSuspendedCompany(t *testing.T) {
-	t.Parallel()
-	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		Budget:        1000,
-		CompanyStatus: "suspended",
-	})
-
-	req := gatewaytf.GatewayRequest(scenario.FullKey)
-	w := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(w, req)
-	if w.Code == http.StatusOK {
-		t.Error("expected non-200 for suspended company")
-	}
-}
-
 func TestGatewayAllowsModelsListing(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})

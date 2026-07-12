@@ -18,6 +18,7 @@
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
+| [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化（PR1/PR2 完成，PR3 待办） |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务现状：两条异步线、6 kind、入队点、Worker、Periodic |
 | [实现-离线任务管理.md](./实现-离线任务管理.md) | 离线任务剩余项（`budget_project`、Periodic fanout） |
 | [Backend-River实现.md](./Backend-River实现.md) | River 表、Unique、队列配置、`InsertInTx` 约定 |
@@ -47,7 +48,7 @@ Seed 与测试见本文 [§5](#5-测试与-seed)。
 | `domain/adminport` | NewAPI Admin 领域端口（`Port` 接口）；实现见 `integration/newapi/admin_port_adapter.go` |
 | `domain/grants` | 预设角色常量 + `Normalizer` 接口；实现见 `infra/permission/normalizer.go` |
 | `domain/memberanalytics` | 成员工作台只读聚合（`GET /me/*`） |
-| `pkg/newapiunits` | point ↔ NewAPI quota 换算；`integration/newapi/quota.go` 为薄委托 |
+| `pkg/newapiunits` | point ↔ NewAPI quota 换算（domain / tests 直接引用） |
 
 NewAPI 边界与 DI 详见 [Backend-架构.md](./Backend-架构.md) §0、§7。
 
@@ -242,6 +243,10 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 | `TEST_PKG_PARALLEL` | `2` | 包级并行 `-p`；过高会与 PostgreSQL 争用，全量变慢 |
 | `TEST_PARALLEL` | `8` | 包内 `t.Parallel()` 上限 |
 
+本地快速循环：`make test-fast`（仅 `./tests/pkg/...`，**无 Postgres**）。定向域测：`go test -tags=testhook ./tests/domain/<域>/...`；middleware / handler 契约：`go test -tags=testhook ./tests/http/middleware/...` 或 `./tests/handler/core/... -run 'Contract|Mutating'`。提交前：`make test-unit`。
+
+**PR1+PR2 优化成果（2026-07-12）：** 617 `Test*`、墙钟 ~101s（原 ~115s）；P0 盲区（middleware / newapisync outbox / mutating contract）已关闭。详见 [Backend-测试优化.md](./Backend-测试优化.md)。
+
 ### 5.0 PostgreSQL 隔离与 clone
 
 | 路径 | 何时用 | 行为 |
@@ -254,9 +259,11 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 
 - 生产：`schema.sql` + `applyMonthlyPartitions` → `usage_ledger` / `usage_buckets` / `operation_logs` 为真分区表（2024–2032）。
 - 测试 clone：只对**父表** `CREATE TABLE … (LIKE … INCLUDING ALL)`，**不**复制 36 个月分区子表；`LIKE` 后父表为**普通表**，任意 `occurred_at` 可写。与优化前行为一致，只是去掉无用子表 DDL（单次 clone ~0.85s → ~0.34s）。
-- 全量墙钟：限制 `-p` 后约 **115s**（原 ~290s+）；瓶颈是 schema clone 次数，不是业务断言。
+- 全量墙钟：限制 `-p` 后约 **101s**（PR1+PR2 后实测；原 ~115s，更早 ~290s+）；瓶颈是 schema clone 次数，不是业务断言。
 
 改 `schema.sql` 或分区策略后：升 `tests/testutil/pg/template.go` 的 `testTemplateVersion`，或 `DROP SCHEMA test_template CASCADE` 触发模板重建。`make test-db-clean` 可清理孤儿 `test_*` schema。
+
+测试套件 coverage / 速度优化见 [Backend-测试优化.md](./Backend-测试优化.md)。
 
 
 | 层       | 目录                   | CI                           |
@@ -272,7 +279,7 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 | 子包              | 职责                                                              |
 | ----------------- | ----------------------------------------------------------------- |
 | `testutil/`（根） | 通用：`config`、`ctx`、`NewTestStore`、`assert`、`app`、`session` |
-| `testutil/budget` | Budget overrun fixture：`NewOverrunService`、`SeedDeptOverrun`    |
+| `testutil/budget` | `FloatPtr` helper（[`ptr.go`](../apps/backend/tests/testutil/budget/ptr.go)）+ overrun fixture：`NewOverrunService`、`SeedDeptOverrun` |
 | `testutil/org`    | Org Service、Feishu fixture、预算树持久化                         |
 | `testutil/saas`   | SaaS 配置、NewAPI mock、平台 HTTP 开户                            |
 | `testutil/http`   | Router、AdminCookie、ServeAuthz、ProdRouter、Client DSL           |
@@ -284,8 +291,16 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 
 - **Domain**：按 bounded context 分子目录；共享 helper 放在 `helpers_test.go`（如 `tests/domain/org/helpers_test.go`）。
 - **Handler**：按 API 域分子包（`core/`、`authz/`、`org/`、`billing/`、`platform/`、`gateway/` 等），每目录独立 `package *_test`；HTTP fixture 统一用 `testutil/http` 与 `testutil/saas`。
+- **HTTP middleware**：`tests/http/middleware/` — chi + stub 单元测，不用 `NewApp`（见 [Backend-测试优化.md §4.1-A](./Backend-测试优化.md)）。
 
-新 GET 端点追加 `tests/handler/core/contract_test.go`。SaaS 配置：`testutil/saas.ApplyConfig`。
+| 层 | SSOT 文件 | 说明 |
+| --- | --- | --- |
+| GET 契约 | `handler/core/contract_test.go` | 1× `NewRouter`，只读 subtest |
+| 写操作 smoke | `handler/core/mutating_contract_test.go` | 替代已删 `handler/budget/budget_test.go` |
+| Middleware 单元 | `http/middleware/` | chi + stub（`stubs_test.go` + `middleware_test.go`） |
+| NewAPISync outbox | `domain/newapisync/outbox_*.go` | N1–N2 无 PG |
+
+新 GET 端点追加 `tests/handler/core/contract_test.go`；新写 API 追加 `mutating_contract_test.go`（或确认 `authz_cases_test.go` 已覆盖 403）。SaaS 配置：`testutil/saas.ApplyConfig`。
 
 ### 5.3 Seed
 
@@ -309,4 +324,6 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 - [ ] `internal/domain/` + `internal/http/handler/`
 - [ ] `apps/backend/seed/`（demo 数据，见 [§5.3](#53-seed)）
 - [ ] `tests/handler/core/contract_test.go`（新 GET）
+- [ ] `tests/handler/core/mutating_contract_test.go`（新写 API smoke；403 可复用 authz_cases）
+- [ ] `tests/http/middleware/middleware_test.go`（新 middleware 行为）
 - [ ] 已实现项从 [Roadmap.md](./Roadmap.md) 移除

@@ -188,6 +188,15 @@ func NowUTC(clk Clock) time.Time
 
 测试构造以 `WithProductionContract`、`NewSecureCookieRouter`、`ApplyDemoRuntime` 等为准；无 `WithProfile` / `WithMinimalSeed` 类 helper。
 
+**开发循环：**
+
+| 命令 | 用途 |
+| --- | --- |
+| `make test-fast` | 仅 `tests/pkg/...`，无 `DATABASE_URL` |
+| `make test-unit` | 全量 `go test -tags=testhook ./tests/...` |
+
+详见 [Backend-测试优化.md §5.2-A](./Backend-测试优化.md)。
+
 ---
 
 ## 10. 源码索引

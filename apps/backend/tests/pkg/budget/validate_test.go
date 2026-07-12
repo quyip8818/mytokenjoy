@@ -5,15 +5,16 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestValidateBudgetNodeUpdate(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
 		{
-			ID: "root", Budget: 100000, ReservedPool: floatPtr(10000),
+			ID: "root", Budget: 100000, ReservedPool: budgetfix.FloatPtr(10000),
 			Children: []types.BudgetNode{
-				{ID: "dept-a", Budget: 40000, ReservedPool: floatPtr(5000)},
+				{ID: "dept-a", Budget: 40000, ReservedPool: budgetfix.FloatPtr(5000)},
 				{ID: "dept-b", Budget: 40000},
 			},
 		},
@@ -31,9 +32,9 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
 		{
-			ID: "root", Budget: 100000, ReservedPool: floatPtr(10000),
+			ID: "root", Budget: 100000, ReservedPool: budgetfix.FloatPtr(10000),
 			Children: []types.BudgetNode{
-				{ID: "dept-a", Budget: 40000, ReservedPool: floatPtr(5000)},
+				{ID: "dept-a", Budget: 40000, ReservedPool: budgetfix.FloatPtr(5000)},
 				{ID: "dept-b", Budget: 40000},
 			},
 		},

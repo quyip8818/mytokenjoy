@@ -157,10 +157,11 @@ apps/backend/
 │   └── store/               # postgres/
 ├── seed/                    # demo 引导与契约（见 [Backend.md](./Backend.md) §5.3）
 ├── tests/
-│   ├── testutil/            # 根 + org/saas/http/gateway/newapisync/worker 子包
+│   ├── testutil/            # 根 + org/saas/http/gateway/budget/worker 子包
+│   ├── http/middleware/     # middleware 单元（chi + stub）
 │   ├── pkg/
 │   ├── domain/<域>/         # helpers_test.go + 主题测试文件
-│   ├── handler/<域>/        # 按 API 域分子包（core/authz/org/...）
+│   ├── handler/<域>/        # core/ 含 contract + mutating_contract
 │   └── store/postgres/
 └── Makefile
 ```
@@ -488,6 +489,10 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | 读鉴权      | 全部 GET 挂 Session + 读 capability（无 demo 例外）          |
 | Worker 测试 | `app.WithoutWorker()`                                        |
 | 新 GET      | `tests/handler/core/contract_test.go` 追加用例               |
+| 写 smoke    | `tests/handler/core/mutating_contract_test.go`               |
+| Middleware  | `tests/http/middleware/middleware_test.go`（非 `NewApp`）   |
+| Gateway 拒绝矩阵 | 见 [Backend-测试优化.md §12](./Backend-测试优化.md)（PR3） |
+| 测试优化 backlog | [Backend-测试优化.md §10/§12](./Backend-测试优化.md)     |
 | Handler 测  | 按域分子目录；fixture 用 `testutil/http`、`testutil/saas`    |
 | Domain 测   | 共享 helper 收拢至 `tests/domain/<域>/helpers_test.go`       |
 | pkg 测      | `tests/pkg/org/` 等；组织 diff/ID 与 `internal/pkg/org` 对称 |

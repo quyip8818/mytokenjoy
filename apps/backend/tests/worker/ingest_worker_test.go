@@ -40,6 +40,34 @@ func TestReconcileMultipleLogs(t *testing.T) {
 	}
 }
 
+func TestReconcileLogs(t *testing.T) {
+	t.Parallel()
+	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	ctx := testutil.Ctx()
+
+	tokenID := int64(88)
+	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
+		PlatformKeyID: contract.IDPlatformKey1, NewAPIKeyID: tokenID,
+	})
+	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(500, tokenID))
+
+	if err := runner.RunReconcileOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	ingested, err := testutil.HasLedgerLogID(st, 500)
+	if err != nil || !ingested {
+		t.Fatalf("expected log 500 in ledger via reconcile, err=%v ingested=%v", err, ingested)
+	}
+	cursor, err := st.Logs().GetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cursor != 500 {
+		t.Fatalf("expected cursor 500, got %d", cursor)
+	}
+}
+
 func TestReconcileBusinessFailAdvancesCursor(t *testing.T) {
 	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)

@@ -17,30 +17,6 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-func TestOverrunDisablesDepartmentKeys(t *testing.T) {
-	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
-	ctx := testutil.Ctx()
-
-	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
-
-	payload, err := json.Marshal(map[string]any{
-		"departmentId":  contract.IDDept3,
-		"platformKeyId": contract.IDPlatformKey1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
-		t.Fatal(err)
-	}
-	if stub.UpdateTokenCalls == 0 {
-		t.Fatal("expected UpdateToken when department overrun")
-	}
-}
-
 func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)

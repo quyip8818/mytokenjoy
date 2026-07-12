@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -26,7 +27,7 @@ func TestValidateMemberQuotaBelowAllocated(t *testing.T) {
 func TestValidateMemberQuotaExceedsDeptCapacity(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
-		{ID: "dept-3", Budget: 20000, ReservedPool: floatPtr(2000)},
+		{ID: "dept-3", Budget: 20000, ReservedPool: budgetfix.FloatPtr(2000)},
 	}
 	members := []types.Member{
 		{ID: "m-1", DepartmentID: "dept-3", PersonalBudget: 10000},

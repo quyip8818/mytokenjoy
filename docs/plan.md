@@ -192,3 +192,15 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 | [实现-异步预算投影.md](./实现-异步预算投影.md) | **下一步** | ledger 单写、`budget_consumed` 异步、Gateway 瘦 SQL；**定时任务机制已就绪**（fanout kind 待注册） |
 
 实施顺序：River step 0–3 ✅ → [实现-异步预算投影.md](./实现-异步预算投影.md) §14 step 2–5 → 离线任务 fanout（[实现-离线任务管理.md](./实现-离线任务管理.md) §2–§4）。
+
+---
+
+## §9 Backend 测试（PR3）
+
+规格见 [Backend-测试优化.md §12](./Backend-测试优化.md#12-pr3-实施规格)（唯一技术说明；本节仅 checklist）。
+
+- [ ] Gateway `tests/testutil/gateway/rejection_cases.go` + evaluate/precheck 共享 table
+- [ ] Handler G2/G3 HTTP smoke（`TestGatewayRejectionHTTPMapping`，分 scenario）
+- [ ] precheck 减 case / 去 subtest `Parallel`（可选）
+- [ ] outbox N4 worker 503 → JobCancel（可选；Gateway-only PR 可跳过）
+- [ ] P2-3：`internal/infra/permission/*_test.go` 迁入 `tests/` 或 Backend.md 白名单（若本轮不做则留 P1）

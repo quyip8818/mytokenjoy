@@ -5,8 +5,8 @@ package newapisync
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -26,7 +26,7 @@ func DefaultMappingOpts() MappingOpts {
 		NewAPIKeyID:   99,
 		MemberID:      contract.IDMember1,
 		DepartmentID:  contract.IDDept3,
-		NewAPIGroup:   newapi.NewAPIGroupForDepartment(contract.IDDept3),
+		NewAPIGroup:   newapiunits.NewAPIGroupForDepartment(contract.IDDept3),
 	}
 }
 
@@ -39,7 +39,7 @@ func UpsertMapping(t *testing.T, st store.Store, opts MappingOpts) {
 		opts.DepartmentID = contract.IDDept3
 	}
 	if opts.NewAPIGroup == "" {
-		opts.NewAPIGroup = newapi.NewAPIGroupForDepartment(opts.DepartmentID)
+		opts.NewAPIGroup = newapiunits.NewAPIGroupForDepartment(opts.DepartmentID)
 	}
 	var memberID *string
 	if !opts.NoMember {

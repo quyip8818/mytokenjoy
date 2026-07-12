@@ -36,6 +36,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
+| [Backend-测试优化.md](./Backend-测试优化.md) | 后端 / 测试 | coverage + 速度优化；PR1/PR2 完成、PR3 规格 §12 |
 | [工程收口.md](./工程收口.md) | 研发 / 架构 | 后端、前端、NewAPI 待收口项（按优先级） |
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 
@@ -74,6 +75,10 @@ pnpm verify           # lint + test + build + backend build:check（PR 前）
 pnpm test             # 前端 Vitest + 后端 go test（需 PostgreSQL）
 pnpm test:e2e         # 前端 Playwright E2E
 pnpm start:newapi      # 完整 NewAPI 栈（Postgres + Redis + new-api）
+
+# 后端测试分层（详见 Backend-测试优化.md）
+cd apps/backend && make test-fast    # 仅 tests/pkg/...，无 Postgres
+cd apps/backend && make test-unit    # 全量 go test（需 pnpm start:postgres）
 ```
 
 ## CI

@@ -12,26 +12,6 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestListRechargeRecordsHTTP(t *testing.T) {
-	t.Parallel()
-	app := testhttp.NewApp(t, nil)
-	testutil.ApplyDemoRuntime(t, app.Store, app.Config)
-	req := httptest.NewRequest(http.MethodGet, "/api/billing/recharge-records", nil)
-	req.Header.Set("Cookie", testhttp.AdminCookie(t))
-	rec := httptest.NewRecorder()
-	app.Router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
-	}
-	var records []domainbilling.RechargeRecord
-	if err := json.NewDecoder(rec.Body).Decode(&records); err != nil {
-		t.Fatal(err)
-	}
-	if len(records) < 5 {
-		t.Fatalf("expected at least 5 seeded records, got %d", len(records))
-	}
-}
-
 func TestWalletIncludesUsageStats(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, nil)

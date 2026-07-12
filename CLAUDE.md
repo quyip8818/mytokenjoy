@@ -109,12 +109,15 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 - Tests live in `tests/` (external test packages, e.g., `package gateway_test`)
 - Use `testutil.NewTestStore(t, opts...)` or `testutil.NewTestApp(t, mutate)` for store/app
 - Requires PostgreSQL: `pnpm start:postgres` before `make test-unit`
+- **Dev loop:** `make test-fast` (from `apps/backend/`, pure `tests/pkg/...`, no Postgres) for pkg changes; `go test -tags=testhook ./tests/domain/<域>/...` or `./tests/http/middleware/...` for a single domain; **`make test-unit`** before commit/PR
+- **SSOT patterns:** GET contracts → `tests/handler/core/contract_test.go`; write smoke → `mutating_contract_test.go`; middleware unit → `tests/http/middleware/` (`stubs_test.go` + `middleware_test.go`, chi + stub, not full `NewApp`); newapisync outbox → `tests/domain/newapisync/outbox_*.go`
 - Use `testutil.Ctx()` for a default company context
 - Use `testutil.CtxForCompany(id)` for specific company
 - Config options: `testutil.WithNewAPIEnabled(true)`, `testutil.WithSupportSaas(true)`, etc.
 - Org service: `orgfix.NewService(t, cfg, st)` from `tests/testutil/org`
 - Gateway scenarios: `gatewaytf.BuildGatewayScenario(t, opts)` from `tests/testutil/gateway`
 - HTTP handler tests use `testutil/http` with real chi router + seeded store
+- Float pointer helper: `budgetfix.FloatPtr` from `tests/testutil/budget/ptr.go`
 - The `-tags=testhook` build tag activates test hooks in `internal/app/testhook.go` and `testhook_registry.go` (`BuildRegistry`, `MustNewAPISync`)
 
 ## Key Documentation
@@ -123,6 +126,7 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 - `docs/PRD.md` — Product requirements (authoritative PRD)
 - `docs/Frontend.md` — Frontend development guide and API contract
 - `docs/Backend.md` — Backend design document (index)
+- `docs/Backend-测试优化.md` — Test coverage + speed optimization (PR1/PR2 done, PR3 backlog)
 - `docs/Backend-架构.md` — Layering, naming (Gateway / NewAPISync / PlatformKey), Store, Worker
 - `docs/Backend-配置架构.md` — Config load, production contract, bootstrap, Clock
 - `docs/Backend-业务时钟与账期.md` — Business clock, dual period keys, guards

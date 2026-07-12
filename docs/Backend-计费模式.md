@@ -434,8 +434,7 @@ infra/jobs/enqueuer.go        InsertTx(wallet_sync) + Unique 5s
 infra/river/                  Client + Workers + Periodic
 infra/ingest/worker.go        日志库 pending / reconcile
 
-pkg/newapiunits/quota.go        point ↔ quota units（domain 直接引用）
-integration/newapi/quota.go     薄委托至 newapiunits
+pkg/newapiunits/quota.go        point ↔ quota units（domain / tests 直接引用）
 ```
 
 **HTTP：**

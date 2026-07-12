@@ -25,7 +25,7 @@ func TestUpdateSyncConfigValidation(t *testing.T) {
 		slog.Default(),
 		permission.NewGrantNormalizer(),
 	)
-	svc := remote.New(deps)
+	svc := remote.New(deps, nil)
 
 	tests := []struct {
 		name    string
