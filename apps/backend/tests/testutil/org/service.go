@@ -20,10 +20,15 @@ import (
 
 func NewService(t *testing.T, cfg config.Config, st store.Store) org.Service {
 	t.Helper()
+	return NewServiceWithEnqueuer(t, cfg, st, jobs.NoopEnqueuer{})
+}
+
+func NewServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enqueuer jobs.Enqueuer) org.Service {
+	t.Helper()
 	factory := datasource.NewFactory(cfg)
 	newAPISync := newapisync.New(cfg, st, nil, nil, newapisync.NewChannelPolicy(cfg), jobs.NoopEnqueuer{})
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, newAPISync, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer())
+	return org.NewService(cfg, st, factory, newAPISync, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), enqueuer)
 }
 
 func NewServiceFromStore(t *testing.T, opts ...testutil.ConfigOption) (config.Config, store.Store, org.Service) {

@@ -14,7 +14,7 @@ func BuildPeriodicJobs(cfg config.Config) []*river.PeriodicJob {
 		river.NewPeriodicJob(
 			river.PeriodicInterval(cfg.WorkerOrgSyncInterval()),
 			func() (river.JobArgs, *river.InsertOpts) {
-				return jobs.OrgSyncArgs{}, nil
+				return jobs.OrgSyncArgs{CompanyID: jobs.OrgSyncFanoutCompanyID}, jobs.OrgSyncFanoutInsertOpts()
 			},
 			nil,
 		),

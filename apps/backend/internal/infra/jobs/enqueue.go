@@ -44,12 +44,21 @@ func InsertNewAPISync(ctx context.Context, e Enqueuer, tx store.Tx, args NewAPIS
 	return e.Insert(ctx, args, nil)
 }
 
-func InsertOrgSync(ctx context.Context, e Enqueuer, tx store.Tx) error {
-	args := OrgSyncArgs{}
+func InsertOrgSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+	args := OrgSyncArgs{CompanyID: companyID}
 	if tx != nil {
 		return e.InsertInTx(ctx, tx, args, nil)
 	}
 	return e.Insert(ctx, args, nil)
+}
+
+func InsertOrgSyncFanout(ctx context.Context, e Enqueuer, tx store.Tx) error {
+	args := OrgSyncArgs{CompanyID: OrgSyncFanoutCompanyID}
+	opts := OrgSyncFanoutInsertOpts()
+	if tx != nil {
+		return e.InsertInTx(ctx, tx, args, opts)
+	}
+	return e.Insert(ctx, args, opts)
 }
 
 func InsertMonthlyRebalance(ctx context.Context, e Enqueuer, tx store.Tx) error {

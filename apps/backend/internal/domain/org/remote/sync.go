@@ -6,44 +6,75 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
 func (s *Service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
-	return s.syncFromProvider(ctx, types.SyncTypeManual)
+	var result types.ImportResult
+	err := s.runOrgSyncLocked(ctx, true, func(ctx context.Context) error {
+		var syncErr error
+		result, syncErr = s.syncFromProvider(ctx, types.SyncTypeManual)
+		return syncErr
+	})
+	if err != nil {
+		return types.ImportResult{}, err
+	}
+	return result, nil
 }
 
 func (s *Service) RunScheduledSync(ctx context.Context) error {
-	cfg, err := s.d.Store.Org().Integration(ctx)
-	if err != nil {
+	due, err := s.dueForScheduledSync(ctx)
+	if err != nil || !due {
 		return err
 	}
-	if !cfg.Enabled {
-		return nil
-	}
-	if !s.shouldRunScheduledSync(ctx, cfg.ToSyncConfig()) {
-		return nil
-	}
+	return s.runOrgSyncLocked(ctx, false, func(ctx context.Context) error {
+		_, syncErr := s.syncFromProvider(ctx, types.SyncTypeScheduled)
+		return syncErr
+	})
+}
 
-	holder := s.schedulerHolder()
-	acquired, err := s.d.Store.SchedulerLock().TryAcquire(
-		ctx, types.SchedulerLockOrgSync, holder, 15*time.Minute,
-	)
+// FanoutScheduledSyncJobs enqueues org_sync for tenants due for scheduled sync.
+func (s *Service) FanoutScheduledSyncJobs(ctx context.Context) error {
+	return company.ForEachActiveCompany(ctx, s.d.Store.Company(), func(entryCtx context.Context, co store.Company) error {
+		due, err := s.dueForScheduledSync(entryCtx)
+		if err != nil || !due {
+			return err
+		}
+		return jobs.InsertOrgSync(entryCtx, s.enqueuer, nil, co.ID)
+	})
+}
+
+func (s *Service) dueForScheduledSync(ctx context.Context) (bool, error) {
+	integration, err := s.d.Store.Org().Integration(ctx)
+	if err != nil {
+		return false, err
+	}
+	cfg := integration.ToSyncConfig()
+	if !cfg.Enabled {
+		return false, nil
+	}
+	return s.shouldRunScheduledSync(ctx, cfg), nil
+}
+
+func (s *Service) runOrgSyncLocked(ctx context.Context, conflictIfBusy bool, fn func(context.Context) error) error {
+	release, acquired, err := s.acquireOrgSyncLock(ctx)
 	if err != nil {
 		return err
 	}
 	if !acquired {
+		if conflictIfBusy {
+			return domain.Conflict("org sync already in progress")
+		}
 		return nil
 	}
-	defer func() {
-		_ = s.d.Store.SchedulerLock().Release(ctx, types.SchedulerLockOrgSync, holder)
-	}()
-
-	_, syncErr := s.syncFromProvider(ctx, types.SyncTypeScheduled)
-	return syncErr
+	defer release()
+	return fn(ctx)
 }
 
 func (s *Service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConfig) bool {
@@ -87,6 +118,22 @@ func (s *Service) lastScheduledSyncTime(ctx context.Context) *time.Time {
 
 func (s *Service) schedulerHolder() string {
 	return fmt.Sprintf("worker-%d", time.Now().UnixNano())
+}
+
+func (s *Service) acquireOrgSyncLock(ctx context.Context) (release func(), acquired bool, err error) {
+	companyID := company.CompanyID(ctx)
+	if companyID == 0 {
+		return func() {}, false, fmt.Errorf("org sync: company context required")
+	}
+	holder := s.schedulerHolder()
+	lockName := types.OrgSyncLockName(companyID)
+	acquired, err = s.d.Store.SchedulerLock().TryAcquire(ctx, lockName, holder, 15*time.Minute)
+	if err != nil || !acquired {
+		return func() {}, acquired, err
+	}
+	return func() {
+		_ = s.d.Store.SchedulerLock().Release(ctx, lockName, holder)
+	}, true, nil
 }
 
 func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.ImportResult, error) {

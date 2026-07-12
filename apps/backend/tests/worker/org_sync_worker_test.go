@@ -12,12 +12,14 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/store/postgres"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
 type recordingOrgSync struct {
-	syncAllCalls int
+	fanoutCalls    int
+	scheduledCalls int
 }
 
 func (r *recordingOrgSync) GetSyncConfig(context.Context) (types.SyncConfig, error) {
@@ -30,10 +32,13 @@ func (r *recordingOrgSync) TriggerSync(context.Context) (types.ImportResult, err
 	return types.ImportResult{}, nil
 }
 
-func (r *recordingOrgSync) RunScheduledSync(context.Context) error { return nil }
+func (r *recordingOrgSync) RunScheduledSync(context.Context) error {
+	r.scheduledCalls++
+	return nil
+}
 
-func (r *recordingOrgSync) RunScheduledSyncAll(context.Context) error {
-	r.syncAllCalls++
+func (r *recordingOrgSync) FanoutScheduledSyncJobs(context.Context) error {
+	r.fanoutCalls++
 	return nil
 }
 
@@ -41,37 +46,51 @@ func (r *recordingOrgSync) ListSyncLogs(context.Context, int, int) (types.PageRe
 	return types.PageResult[types.SyncLog]{}, nil
 }
 
-func TestOrgSyncWorkerInvokesRunScheduledSyncAll(t *testing.T) {
-	t.Parallel()
+func startOrgSyncRiver(t *testing.T, recording *recordingOrgSync) (*riverinfra.Client, jobs.Enqueuer) {
+	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	ctx := context.Background()
-	recording := &recordingOrgSync{}
-	stub := &mock.StubAdminClient{}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	reg, holder, err := app.BuildRegistry(cfg, logger, st, app.WithAdminClient(stub), app.WithOrgSync(recording))
+	reg, holder, err := app.BuildRegistry(cfg, logger, st, app.WithAdminClient(&mock.StubAdminClient{}), app.WithOrgSync(recording))
 	if err != nil {
 		t.Fatal(err)
 	}
-	pool := postgres.MainPool(st)
-	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{OrgSync: reg.OrgSync}, logger)
+	client, err := riverinfra.NewClient(cfg, postgres.MainPool(st), riverinfra.Deps{OrgSync: reg.OrgSync}, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
 	holder.Set(client.Enqueuer)
-	if err := client.Start(ctx); err != nil {
+	if err := client.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = client.Stop(ctx) })
+	t.Cleanup(func() { _ = client.Stop(context.Background()) })
+	return client, client.Enqueuer
+}
 
-	if err := jobs.InsertOrgSync(ctx, client.Enqueuer, nil); err != nil {
-		t.Fatal(err)
-	}
-
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) && recording.syncAllCalls == 0 {
+func waitUntil(t *testing.T, deadline time.Duration, ok func() bool) {
+	t.Helper()
+	until := time.Now().Add(deadline)
+	for time.Now().Before(until) {
+		if ok() {
+			return
+		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	if recording.syncAllCalls != 1 {
-		t.Fatalf("expected RunScheduledSyncAll once, got %d", recording.syncAllCalls)
+	t.Fatal("condition not met before deadline")
+}
+
+func TestOrgSyncWorkerRoutesFanoutAndTenantJobs(t *testing.T) {
+	t.Parallel()
+	recording := &recordingOrgSync{}
+	_, enqueuer := startOrgSyncRiver(t, recording)
+	ctx := context.Background()
+
+	if err := jobs.InsertOrgSyncFanout(ctx, enqueuer, nil); err != nil {
+		t.Fatal(err)
 	}
+	waitUntil(t, 5*time.Second, func() bool { return recording.fanoutCalls == 1 })
+
+	if err := jobs.InsertOrgSync(ctx, enqueuer, nil, contract.DefaultCompanyID); err != nil {
+		t.Fatal(err)
+	}
+	waitUntil(t, 5*time.Second, func() bool { return recording.scheduledCalls == 1 })
 }

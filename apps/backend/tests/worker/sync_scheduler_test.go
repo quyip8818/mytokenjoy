@@ -7,7 +7,10 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func syncLogCount(t *testing.T, env orgfix.FeishuOrgEnv) int {
@@ -27,7 +30,7 @@ func TestScheduledSyncUsesLock(t *testing.T) {
 		DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
 	})
 
-	acquired, err := env.Store.SchedulerLock().TryAcquire(testutil.Ctx(), types.SchedulerLockOrgSync, "other", time.Minute)
+	acquired, err := env.Store.SchedulerLock().TryAcquire(testutil.Ctx(), types.OrgSyncLockName(contract.DefaultCompanyID), "other", time.Minute)
 	if err != nil || !acquired {
 		t.Fatalf("expected lock acquired, err=%v acquired=%v", err, acquired)
 	}
@@ -77,5 +80,22 @@ func TestScheduledSyncSkipsDuplicateWithinFrequency(t *testing.T) {
 	}
 	if syncLogCount(t, env) != afterFirst {
 		t.Fatalf("expected no duplicate scheduled log within frequency, first=%d after=%d", afterFirst, syncLogCount(t, env))
+	}
+}
+
+func TestFanoutScheduledSyncEnqueuesDueTenant(t *testing.T) {
+	t.Parallel()
+	env := orgfix.SetupFeishuConnected(t)
+	env = orgfix.WithSyncConfig(t, env, types.SyncConfig{
+		Enabled: true, StartTime: "00:00", FrequencyHours: 1,
+		DeleteMemberThreshold: 10, DeleteDepartmentThreshold: 5,
+	})
+	svc := orgfix.NewServiceWithEnqueuer(t, env.Cfg, env.Store, riverfix.NewInsertOnlyEnqueuer(t, env.Cfg, env.Store))
+
+	if err := svc.FanoutScheduledSyncJobs(testutil.Ctx()); err != nil {
+		t.Fatal(err)
+	}
+	if riverfix.PendingJobCount(env.Store, jobs.KindOrgSync, contract.DefaultCompanyID) == 0 {
+		t.Fatal("expected org_sync job for due tenant")
 	}
 }

@@ -45,7 +45,7 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueu
 	keysSvc := wireKeys(cfg, i)
 	grants := permission.NewGrantNormalizer()
 	return domainServices{
-		org:             wireOrg(cfg, i, logger, grants),
+		org:             wireOrg(cfg, i, logger, grants, enqueuer),
 		budget:          wireBudget(cfg, i, enqueuer),
 		keys:            keysSvc,
 		models:          wireModels(cfg, i),

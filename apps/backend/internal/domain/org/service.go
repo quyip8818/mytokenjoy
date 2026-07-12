@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/org/structure"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -29,10 +30,11 @@ func NewService(
 	delayer common.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,
+	enqueuer jobs.Enqueuer,
 ) Service {
 	deps := core.NewDeps(cfg, st, factory, modelLimits, notifier, delayer, logger, grants)
 	return &service{
 		LocalService: structure.New(deps),
-		Service:      remote.New(deps),
+		Service:      remote.New(deps, enqueuer),
 	}
 }

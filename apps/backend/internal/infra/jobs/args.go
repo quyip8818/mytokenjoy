@@ -90,12 +90,39 @@ func (NewAPISyncArgs) InsertOpts() river.InsertOpts {
 	}
 }
 
-type OrgSyncArgs struct{}
+type OrgSyncArgs struct {
+	CompanyID int64 `json:"company_id" river:"unique"`
+}
+
+// OrgSyncFanoutCompanyID marks a periodic fanout job (not a tenant).
+const OrgSyncFanoutCompanyID int64 = 0
 
 func (OrgSyncArgs) Kind() string { return KindOrgSync }
 
 func (OrgSyncArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{Queue: config.RiverQueueDefault}
+	return river.InsertOpts{
+		Queue: config.RiverQueueDefault,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs: true,
+			ByState: []rivertype.JobState{
+				rivertype.JobStateAvailable,
+				rivertype.JobStatePending,
+				rivertype.JobStateRunning,
+				rivertype.JobStateRetryable,
+				rivertype.JobStateScheduled,
+			},
+		},
+	}
+}
+
+func OrgSyncFanoutInsertOpts() *river.InsertOpts {
+	return &river.InsertOpts{
+		Queue: config.RiverQueueDefault,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: 5 * time.Minute,
+		},
+	}
 }
 
 type MonthlyRebalanceArgs struct{}
@@ -103,7 +130,13 @@ type MonthlyRebalanceArgs struct{}
 func (MonthlyRebalanceArgs) Kind() string { return KindMonthlyRebalance }
 
 func (MonthlyRebalanceArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{Queue: config.RiverQueueDefault}
+	return river.InsertOpts{
+		Queue: config.RiverQueueDefault,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: time.Minute,
+		},
+	}
 }
 
 type BudgetProjectArgs struct {
