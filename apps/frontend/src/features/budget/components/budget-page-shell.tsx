@@ -1,32 +1,22 @@
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import type { useBudgetPage } from '@/features/budget'
 import { BudgetTreePanel } from './budget-tree-panel'
 import { BudgetDetailTeam } from './budget-detail-team'
 import { BudgetDetailProject } from './budget-detail-project'
-import { BudgetApprovalDrawer } from './budget-approval-drawer'
+import { ChevronRight } from 'lucide-react'
 
 type BudgetPageShellProps = ReturnType<typeof useBudgetPage>
 
 export function BudgetPageShell({
   tree,
   projects,
-  periodLabel,
   selectedTeamId,
   selectedNode,
   activeProject,
-  approvalOpen,
-  setApprovalOpen,
-  pendingCount,
-  approvals,
-  resolveApproval,
   loading,
   error,
   refresh,
-  shiftPeriod,
   handleSelectTeam,
   setActiveProjectId,
   updateDepartment,
@@ -56,46 +46,6 @@ export function BudgetPageShell({
         contentClassName="flex min-h-0 flex-1 flex-col"
       >
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs"
-              onClick={() => setApprovalOpen(true)}
-            >
-              <ClipboardCheck className="size-4" />
-              审批
-              {pendingCount > 0 && (
-                <Badge className="ml-1 size-5 items-center justify-center rounded-full bg-red-500 p-0 text-[10px] text-white">
-                  {pendingCount}
-                </Badge>
-              )}
-            </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                aria-label="上一月"
-                onClick={() => shiftPeriod(-1)}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Badge variant="outline" className="border-border text-xs tabular-nums">
-                {periodLabel}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                aria-label="下一月"
-                onClick={() => shiftPeriod(1)}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <BudgetTreePanel tree={tree} selectedId={selectedTeamId} onSelect={handleSelectTeam} />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -161,14 +111,6 @@ export function BudgetPageShell({
           </div>
         </div>
       </DataSection>
-
-      <BudgetApprovalDrawer
-        open={approvalOpen}
-        onOpenChange={setApprovalOpen}
-        approvals={approvals}
-        onResolve={resolveApproval}
-        onResolved={() => void refresh()}
-      />
     </PageShell>
   )
 }
