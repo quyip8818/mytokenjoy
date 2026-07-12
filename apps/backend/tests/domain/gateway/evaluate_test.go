@@ -24,7 +24,7 @@ func TestEvaluateRejects(t *testing.T) {
 		},
 		{
 			name: "insufficient wallet",
-			mut:  func(pc *domaingateway.PrecheckContext) { pc.Wallet.BalancePoint = 0 },
+			mut:  func(pc *domaingateway.PrecheckContext) { pc.Wallet.WalletRemain = 0 },
 		},
 		{
 			name: "inactive key",

@@ -66,7 +66,10 @@ func orgNodeRoutingByID() map[string]orgNodeRoutingSeed {
 }
 
 func buildOrgNodes() []types.OrgNode {
-	depts := buildDepartments()
+	return assembleOrgNodes(buildDepartments())
+}
+
+func assembleOrgNodes(depts []types.Department) []types.OrgNode {
 	budgetTree := buildBudgetTree()
 	routing := orgNodeRoutingByID()
 	ruleByNode := make(map[string]types.RoutingRule, len(routing))
@@ -80,9 +83,7 @@ func buildOrgNodes() []types.OrgNode {
 			Inherited:       cfg.inherited,
 		}
 	}
-	nodes := mergeOrgNodeTree(depts, budgetTree, ruleByNode)
-	types.ApplyBudgetTreeToOrgNodes(nodes, budgetTree)
-	return nodes
+	return mergeOrgNodeTree(depts, budgetTree, ruleByNode)
 }
 
 func mergeOrgNodeTree(

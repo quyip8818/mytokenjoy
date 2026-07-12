@@ -45,7 +45,7 @@ func applyGatewayCompanyState(t *testing.T, cfg config.Config, st store.Store, o
 	if opts.WalletBalancePoint != nil {
 		walletPoint = *opts.WalletBalancePoint
 	}
-	if err := st.Company().UpdateWalletPoint(ctx, opts.CompanyID, walletPoint, nil); err != nil {
+	if err := st.Company().SetWalletRemain(ctx, opts.CompanyID, walletPoint, nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.Company().UpdateNewAPIWalletUserID(ctx, opts.CompanyID, opts.NewAPIWalletUserID); err != nil {

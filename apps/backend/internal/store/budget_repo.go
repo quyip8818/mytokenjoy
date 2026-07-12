@@ -9,6 +9,7 @@ import (
 
 type BudgetRepository interface {
 	AcquireBudgetLock(ctx context.Context) error
+	OrgNodeBudget() OrgNodeBudgetRepository
 	GetGroupBudget(ctx context.Context, groupID string) (budget, consumed float64, found bool, err error)
 	Groups(ctx context.Context) ([]types.BudgetGroup, error)
 	SetGroups(ctx context.Context, groups []types.BudgetGroup) error

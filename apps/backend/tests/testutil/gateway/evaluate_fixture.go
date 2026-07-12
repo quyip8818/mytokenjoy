@@ -12,7 +12,7 @@ func BasePrecheckContext() domaingateway.PrecheckContext {
 	return domaingateway.PrecheckContext{
 		Wallet: domaingateway.WalletState{
 			CompanyStatus: "active",
-			BalancePoint:  100000,
+			WalletRemain:  100000,
 		},
 		Routing: domaingateway.RoutingState{
 			KeyStatus: "active",
@@ -23,6 +23,6 @@ func BasePrecheckContext() domaingateway.PrecheckContext {
 // SufficientBudgetContext returns a context that passes wallet checks.
 func SufficientBudgetContext() domaingateway.PrecheckContext {
 	pc := BasePrecheckContext()
-	pc.Wallet.BalancePoint = float64(common.DefaultPointsPerUnit) * 100
+	pc.Wallet.WalletRemain = float64(common.DefaultPointsPerUnit) * 100
 	return pc
 }

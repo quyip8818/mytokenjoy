@@ -7,7 +7,7 @@ import (
 type WalletState struct {
 	CompanyID          int64
 	CompanyStatus      string
-	BalancePoint       float64
+	WalletRemain       float64
 	NewAPIWalletUserID *int64
 }
 
@@ -35,7 +35,7 @@ func PrecheckContextFromStore(row *store.PrecheckContextRow) PrecheckContext {
 		Wallet: WalletState{
 			CompanyID:          row.CompanyID,
 			CompanyStatus:      row.CompanyStatus,
-			BalancePoint:       row.BalancePoint,
+			WalletRemain:       row.WalletRemain,
 			NewAPIWalletUserID: row.NewAPIWalletUserID,
 		},
 		Routing: RoutingState{

@@ -8,6 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	domainwallet "github.com/tokenjoy/backend/internal/domain/wallet"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -31,7 +32,7 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildGiftLot(order, currency)
-	if err := s.store.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+	if err := domainwallet.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
 		return err
 	}
 	return s.afterRecharge(ctx, companyID)
@@ -57,7 +58,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay fl
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildAdjustLot(order, currency, amountDisplay)
-	if err := s.store.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+	if err := domainwallet.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
 		return err
 	}
 	return s.afterRecharge(ctx, companyID)
@@ -83,7 +84,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	order.Status = store.RechargeStatusConfirmed
 	order.PointsPerUnit = ppu
 	lot := BuildPaidLot(order, co.BillingCurrency, ppu)
-	if err := s.store.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+	if err := domainwallet.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
 		return err
 	}
 	return s.afterRecharge(ctx, order.CompanyID)
@@ -114,7 +115,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildPaidLot(order, currency, ppu)
-	if err := s.store.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+	if err := domainwallet.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
 		return err
 	}
 	return s.afterRecharge(ctx, companyID)

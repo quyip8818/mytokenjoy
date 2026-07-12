@@ -32,6 +32,16 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	if node == nil || node.Budget != wantBudget {
 		t.Fatalf("expected persisted budget %v, got %+v", wantBudget, node)
 	}
+	row, found, err := st.Budget().OrgNodeBudget().Get(testutil.Ctx(), contract.IDDept3)
+	if err != nil || !found {
+		t.Fatalf("org_node_budget row missing: found=%v err=%v", found, err)
+	}
+	if row.Budget != wantBudget {
+		t.Fatalf("org_node_budget budget: got %v want %v", row.Budget, wantBudget)
+	}
+	if row.ReservedPool == nil || *row.ReservedPool != reserved {
+		t.Fatalf("org_node_budget reserved: got %+v want %v", row.ReservedPool, reserved)
+	}
 }
 
 func TestUpdateNodeOversell(t *testing.T) {
@@ -167,5 +177,43 @@ func TestDeptRemainingAllocatableBudget(t *testing.T) {
 	remaining := dept3.Budget - reserved - childrenSum
 	if remaining <= 0 {
 		t.Fatalf("expected positive remaining allocatable, got %f", remaining)
+	}
+}
+
+func TestOrgSyncSetTreeDoesNotOverwriteBudget(t *testing.T) {
+	t.Parallel()
+	svc, st := newBudgetService(t)
+	ctx := testutil.Ctx()
+	wantBudget := testutil.DisplayPoints(21000)
+	reserved := testutil.DisplayPoints(1500)
+	if _, err := svc.UpdateNode(ctx, contract.IDDept3, wantBudget, &reserved); err != nil {
+		t.Fatal(err)
+	}
+	nodes, err := st.Org().Nodes().Tree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var touch func([]types.OrgNode)
+	touch = func(list []types.OrgNode) {
+		for i := range list {
+			if list[i].ID == contract.IDDept3 {
+				list[i].Name = list[i].Name + " Synced"
+				list[i].Budget = 0
+			}
+			if len(list[i].Children) > 0 {
+				touch(list[i].Children)
+			}
+		}
+	}
+	touch(nodes)
+	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
+		t.Fatal(err)
+	}
+	limit, found, err := st.Org().Nodes().GetNodeBudget(ctx, contract.IDDept3)
+	if err != nil || !found {
+		t.Fatalf("get budget: found=%v err=%v", found, err)
+	}
+	if limit != wantBudget {
+		t.Fatalf("expected budget %v unchanged after org sync, got %v", wantBudget, limit)
 	}
 }

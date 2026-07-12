@@ -48,11 +48,13 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
 			return domain.NotFound("Node not found")
 		}
-		types.ApplyBudgetTreeToOrgNodes(nodes, tree)
-		if err := tx.Org().Nodes().SetTree(ctx, nodes); err != nil {
-			return fmt.Errorf("persist budget tree: %w", err)
-		}
 		updated := pkgbudget.FindBudgetNode(tree, id)
+		if updated == nil {
+			return domain.NotFound("Node not found")
+		}
+		if err := pkgbudget.PersistNodeBudget(ctx, tx.Budget().OrgNodeBudget(), id, *updated); err != nil {
+			return fmt.Errorf("persist node budget: %w", err)
+		}
 		result = *updated
 		return nil
 	})
@@ -149,9 +151,8 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 		}
 
 		// Mark the target department's member_avg_budget
-		markNodeAvgBudget(nodes, deptID, personalBudget)
-		if err := tx.Org().Nodes().SetTree(ctx, nodes); err != nil {
-			return fmt.Errorf("persist org tree: %w", err)
+		if err := pkgbudget.PersistMemberAvgBudget(ctx, tx.Budget().OrgNodeBudget(), deptID, personalBudget); err != nil {
+			return fmt.Errorf("persist member avg budget: %w", err)
 		}
 		return nil
 	})
@@ -187,22 +188,6 @@ func collectDeptIDs(nodes []types.OrgNode, rootID string, recursive bool) map[st
 	return result
 }
 
-func markNodeAvgBudget(nodes []types.OrgNode, nodeID string, budget float64) {
-	var walk func([]types.OrgNode)
-	walk = func(list []types.OrgNode) {
-		for i := range list {
-			if list[i].ID == nodeID {
-				list[i].MemberAvgBudget = budget
-				return
-			}
-			if len(list[i].Children) > 0 {
-				walk(list[i].Children)
-			}
-		}
-	}
-	walk(nodes)
-}
-
 func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error) {
 	groups, err := s.store.Budget().Groups(ctx)
 	if err != nil {
@@ -232,16 +217,14 @@ func (s *service) GetGroupMemberConsumed(ctx context.Context, groupID string) (m
 	}
 	periodKey := open.String()
 
-	// Batch fetch all member consumed values for this period
 	allConsumed, err := s.store.BudgetConsumed().ListConsumed(ctx, store.AxisKindMember, periodKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter to only members in this group
 	result := make(map[string]float64, len(target.MemberIDs))
 	for _, memberID := range target.MemberIDs {
-		result[memberID] = allConsumed[memberID] // defaults to 0 if not found
+		result[memberID] = allConsumed[memberID]
 	}
 	return result, nil
 }

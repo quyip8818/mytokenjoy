@@ -70,7 +70,6 @@ func (r *billingRepo) ConfirmRechargeWithLot(
 	ctx context.Context,
 	order store.RechargeOrder,
 	lot store.RechargeLot,
-	balanceDeltaPoint float64,
 ) error {
 	tag, err := r.db.Exec(ctx, `
 		UPDATE company_recharge_orders SET
@@ -103,18 +102,7 @@ func (r *billingRepo) ConfirmRechargeWithLot(
 	if lotTag.RowsAffected() == 0 {
 		return nil
 	}
-	var fifoHead *string
-	if lot.PointsRemaining > 0 && lot.LotKind != store.LotKindOverdraft {
-		fifoHead = &lot.ID
-	}
-	_, err = r.db.Exec(ctx, `
-		UPDATE companies SET
-			balance_point = balance_point + $2,
-			fifo_head_lot_id = COALESCE($3, fifo_head_lot_id),
-			updated_at = NOW()
-		WHERE id = $1
-	`, order.CompanyID, balanceDeltaPoint, fifoHead)
-	return err
+	return nil
 }
 
 func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID int64, fifoHeadID *string) ([]store.RechargeLot, error) {
@@ -198,12 +186,6 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 		if err != nil {
 			return nil, err
 		}
-		_, err = r.db.Exec(ctx, `
-			UPDATE companies SET balance_point = balance_point + $2, updated_at = NOW() WHERE id = $1
-		`, companyID, pointsDelta)
-		if err != nil {
-			return nil, err
-		}
 		return r.GetLotByID(ctx, existingID)
 	}
 	if err != nil && err != pgx.ErrNoRows {
@@ -225,7 +207,7 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 		AmountDisplay: 0, PointsGranted: pointsDelta, PointsRemaining: pointsDelta,
 		UnitPriceDisplay: 0, Status: store.LotStatusActive, CreatedAt: now, UpdatedAt: now,
 	}
-	if err := r.ConfirmRechargeWithLot(ctx, order, lot, pointsDelta); err != nil {
+	if err := r.ConfirmRechargeWithLot(ctx, order, lot); err != nil {
 		return nil, err
 	}
 	return &lot, nil
@@ -233,9 +215,9 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 
 func (r *billingRepo) AggregateWallet(ctx context.Context, companyID int64) (store.WalletAggregate, error) {
 	var billingCurrency string
-	var balancePoint float64
-	if err := r.db.QueryRow(ctx, `SELECT billing_currency, balance_point FROM companies WHERE id = $1`, companyID).
-		Scan(&billingCurrency, &balancePoint); err != nil {
+	var walletRemain float64
+	if err := r.db.QueryRow(ctx, `SELECT billing_currency, wallet_remain FROM companies WHERE id = $1`, companyID).
+		Scan(&billingCurrency, &walletRemain); err != nil {
 		return store.WalletAggregate{}, err
 	}
 	rows, err := r.db.Query(ctx, `
@@ -272,7 +254,7 @@ func (r *billingRepo) AggregateWallet(ctx context.Context, companyID int64) (sto
 	return store.WalletAggregate{
 		BillingCurrency: billingCurrency,
 		Balances:        balances,
-		BalancePoint:    balancePoint,
+		WalletRemain:    walletRemain,
 		GiftPoints:      giftPoints,
 		OverdraftPoints: overdraftPoints,
 	}, rows.Err()

@@ -7,6 +7,7 @@ import (
 
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	domainwallet "github.com/tokenjoy/backend/internal/domain/wallet"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
@@ -31,7 +32,7 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 		order.LotKind = store.LotKindPaid
 		if order.Status == store.RechargeStatusConfirmed {
 			lot := domainbilling.BuildPaidLot(order, currency, ppu)
-			if err := st.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+			if err := domainwallet.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 				return fmt.Errorf("seed recharge lot %s: %w", order.ID, err)
 			}
 			continue

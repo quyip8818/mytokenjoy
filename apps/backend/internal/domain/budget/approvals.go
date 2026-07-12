@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -69,19 +68,16 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 				deptID = member.DepartmentID
 			}
 
-			nodes, err := txStore.Org().Nodes().Tree(ctx)
+			row, found, err := txStore.Budget().OrgNodeBudget().Get(ctx, deptID)
 			if err != nil {
 				return err
 			}
-			tree := types.OrgNodesToBudgetTree(nodes)
-			deptNode := pkgbudget.FindBudgetNode(tree, deptID)
-			if deptNode == nil {
+			if !found {
 				return domain.NotFound("部门不存在")
 			}
-
-			reserved := float64(0)
-			if deptNode.ReservedPool != nil {
-				reserved = *deptNode.ReservedPool
+			reserved := 0.0
+			if row.ReservedPool != nil {
+				reserved = *row.ReservedPool
 			}
 			if reserved < approval.Amount {
 				return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %.2f 元", reserved))
@@ -91,24 +87,23 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 				return err
 			}
 			newReserved := reserved - approval.Amount
-			deptNode.ReservedPool = &newReserved
-			types.ApplyBudgetTreeToOrgNodes(nodes, tree)
-			if err := txStore.Org().Nodes().SetTree(ctx, nodes); err != nil {
-				return fmt.Errorf("persist budget tree: %w", err)
+			row.ReservedPool = &newReserved
+			if err := txStore.Budget().OrgNodeBudget().Upsert(ctx, deptID, row); err != nil {
+				return fmt.Errorf("persist reserved pool: %w", err)
 			}
 			members, err := txStore.Org().Members(ctx)
 			if err != nil {
 				return err
 			}
-			found := false
+			memberFound := false
 			for i := range members {
 				if members[i].ID == approval.ApplicantID {
 					members[i].PersonalBudget += approval.Amount
-					found = true
+					memberFound = true
 					break
 				}
 			}
-			if !found {
+			if !memberFound {
 				return domain.NotFound("申请人不存在")
 			}
 			if err := txStore.Org().SetMembers(ctx, members); err != nil {

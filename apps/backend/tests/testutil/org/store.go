@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -31,7 +32,7 @@ func PersistBudgetTree(ctx context.Context, st store.Store, tree []types.BudgetN
 		return err
 	}
 	types.ApplyBudgetTreeToOrgNodes(nodes, tree)
-	return st.Org().Nodes().SetTree(ctx, nodes)
+	return st.Budget().OrgNodeBudget().UpsertMany(ctx, pkgbudget.OrgNodeBudgetRowsFromNodes(nodes))
 }
 
 func LoadDepartmentsT(t *testing.T, ctx context.Context, st store.Store) []types.Department {
@@ -90,31 +91,4 @@ func applyDepartmentsToOrgNodes(nodes []types.OrgNode, byID map[string]types.Dep
 			applyDepartmentsToOrgNodes(nodes[i].Children, byID)
 		}
 	}
-}
-
-func OrgNodesFromBudgetTree(tree []types.BudgetNode) []types.OrgNode {
-	nodes := make([]types.OrgNode, len(tree))
-	for i, node := range tree {
-		nodes[i] = orgNodeFromBudgetNode(node)
-	}
-	return nodes
-}
-
-func orgNodeFromBudgetNode(node types.BudgetNode) types.OrgNode {
-	out := types.OrgNode{
-		ID:           node.ID,
-		Name:         node.Name,
-		ParentID:     node.ParentID,
-		Budget:       node.Budget,
-		Consumed:     node.Consumed,
-		ReservedPool: node.ReservedPool,
-		Period:       node.Period,
-	}
-	if len(node.Children) > 0 {
-		out.Children = make([]types.OrgNode, len(node.Children))
-		for i, child := range node.Children {
-			out.Children[i] = orgNodeFromBudgetNode(child)
-		}
-	}
-	return out
 }

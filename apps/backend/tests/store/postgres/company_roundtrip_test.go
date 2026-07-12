@@ -5,6 +5,7 @@ import (
 	"time"
 
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
+	domainwallet "github.com/tokenjoy/backend/internal/domain/wallet"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -93,7 +94,11 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	}
 	order.Status = store.RechargeStatusConfirmed
 	lot := domainbilling.BuildPaidLot(order, "CNY", ppu)
-	if err := st.Billing().ConfirmRechargeWithLot(ctx, order, lot, lot.PointsGranted); err != nil {
+	before, err := st.Company().GetByID(ctx, order.CompanyID)
+	if err != nil || before == nil {
+		t.Fatal("expected company before recharge")
+	}
+	if err := domainwallet.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
 	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)
@@ -113,5 +118,12 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("expected order in company list")
+	}
+	co, err := st.Company().GetByID(ctx, order.CompanyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company after recharge")
+	}
+	if co.WalletRemain != before.WalletRemain+lot.PointsGranted {
+		t.Fatalf("wallet_remain: got %v want %v", co.WalletRemain, before.WalletRemain+lot.PointsGranted)
 	}
 }

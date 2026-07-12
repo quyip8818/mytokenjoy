@@ -126,7 +126,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	}
 	rootDept := fmt.Sprintf("dept-root-%d", provisioned.Company.ID)
 	ctx := testutil.CtxForCompany(provisioned.Company.ID)
-	if err := app.Store.Company().UpdateWalletPoint(ctx, provisioned.Company.ID, 100000, nil); err != nil {
+	if err := app.Store.Company().SetWalletRemain(ctx, provisioned.Company.ID, 100000, nil); err != nil {
 		t.Fatal(err)
 	}
 

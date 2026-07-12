@@ -14,9 +14,9 @@ import (
 // cloneDataExcludedTables are runtime ingest tables seeded empty like production;
 // clone structure only so per-test writes never inherit template pollution.
 var cloneDataExcludedTables = map[string]struct{}{
-	"logs":               {},
-	"ingest_jobs":        {},
-	"reconcile_cursors":  {},
+	"logs":              {},
+	"ingest_jobs":       {},
+	"reconcile_cursors": {},
 }
 
 func cloneIncludesData(table string, hasRows bool) bool {

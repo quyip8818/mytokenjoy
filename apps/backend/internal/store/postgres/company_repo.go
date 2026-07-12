@@ -18,7 +18,7 @@ func newCompanyRepo(db dbQuerier) *companyRepo {
 func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
-			billing_currency, fifo_head_lot_id, balance_point,
+			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies WHERE id = $1
 	`, id)
@@ -28,7 +28,7 @@ func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, er
 func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
-			billing_currency, fifo_head_lot_id, balance_point,
+			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies WHERE slug = $1
 	`, slug)
@@ -42,12 +42,12 @@ func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO companies (
 			id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
-			billing_currency, fifo_head_lot_id, balance_point,
+			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`, company.ID, company.Slug, company.Name, company.Status, company.RootDeptID,
 		company.NewAPIWalletUserID, company.PackageID, company.AuthzRevision,
-		company.BillingCurrency, company.FIFOHeadLotID, company.BalancePoint,
+		company.BillingCurrency, company.FIFOHeadLotID, company.WalletRemain,
 		company.CreatedAt, company.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create company: %w", err)
@@ -82,7 +82,7 @@ func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id int64, rootDeptID
 func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
-			billing_currency, fifo_head_lot_id, balance_point,
+			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies ORDER BY id
 	`)
@@ -124,21 +124,32 @@ func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id int64) (int64, e
 func (r *companyRepo) LockForUpdate(ctx context.Context, id int64) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, slug, name, status, root_dept_id, newapi_wallet_user_id, package_id, authz_revision,
-			billing_currency, fifo_head_lot_id, balance_point,
+			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies WHERE id = $1 FOR UPDATE
 	`, id)
 	return scanCompanyExtended(row)
 }
 
-func (r *companyRepo) UpdateWalletPoint(ctx context.Context, id int64, balancePoint float64, fifoHeadLotID *string) error {
+func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id int64, delta float64, fifoHeadLotID *string) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
-			balance_point = $2,
+			wallet_remain = wallet_remain + $2,
 			fifo_head_lot_id = COALESCE($3, fifo_head_lot_id),
 			updated_at = NOW()
 		WHERE id = $1
-	`, id, balancePoint, fifoHeadLotID)
+	`, id, delta, fifoHeadLotID)
+	return err
+}
+
+func (r *companyRepo) SetWalletRemain(ctx context.Context, id int64, walletRemain float64, fifoHeadLotID *string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE companies SET
+			wallet_remain = $2,
+			fifo_head_lot_id = COALESCE($3, fifo_head_lot_id),
+			updated_at = NOW()
+		WHERE id = $1
+	`, id, walletRemain, fifoHeadLotID)
 	return err
 }
 
@@ -146,7 +157,7 @@ func scanCompanyExtended(row scannable) (*store.Company, error) {
 	var c store.Company
 	err := row.Scan(&c.ID, &c.Slug, &c.Name, &c.Status, &c.RootDeptID,
 		&c.NewAPIWalletUserID, &c.PackageID, &c.AuthzRevision,
-		&c.BillingCurrency, &c.FIFOHeadLotID, &c.BalancePoint,
+		&c.BillingCurrency, &c.FIFOHeadLotID, &c.WalletRemain,
 		&c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		return nil, err

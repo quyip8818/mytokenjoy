@@ -26,7 +26,7 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if err != nil {
 		return err
 	}
-	target := newapiunits.ToQuotaUnits(co.BalancePoint, models, nil)
+	target := newapiunits.ToQuotaUnits(co.WalletRemain, models, nil)
 	current, err := s.wallet.AvailableQuota(ctx, *co.NewAPIWalletUserID)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (s *service) ReconcileWalletDrift(ctx context.Context) error {
 			continue
 		}
 		naPoint := newapiunits.FromNewAPIUnits(quota, models, nil)
-		drift := co.BalancePoint - naPoint
+		drift := co.WalletRemain - naPoint
 		if drift < 0 {
 			drift = -drift
 		}

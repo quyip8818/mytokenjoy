@@ -17,7 +17,7 @@ func Evaluate(pc PrecheckContext, model string, skipModelCheck bool) error {
 	if domaincompany.IsGatewayBlocked(pc.Wallet.CompanyStatus) {
 		return fmt.Errorf("company not active")
 	}
-	if pc.Wallet.BalancePoint < minEstimatePoint {
+	if pc.Wallet.WalletRemain < minEstimatePoint {
 		return fmt.Errorf("insufficient wallet balance")
 	}
 	if pc.Routing.KeyStatus != "active" {

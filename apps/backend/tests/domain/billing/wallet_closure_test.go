@@ -53,7 +53,7 @@ func TestWalletClosureFormula(t *testing.T) {
 	client := &mock.StubAdminClient{
 		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
 	}
-	svc, _, ctx := newBillingServiceWithSync(t, client)
+	svc, st, ctx := newBillingServiceWithSync(t, client)
 
 	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, "platform-op-closure"); err != nil {
 		t.Fatal(err)
@@ -84,5 +84,16 @@ func TestWalletClosureFormula(t *testing.T) {
 	}
 	if view.GiftPoints != 5000 {
 		t.Fatalf("expected giftPoints=5000, got %v", view.GiftPoints)
+	}
+
+	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company after recharge")
+	}
+	if co.WalletRemain != view.BalancePoint {
+		t.Fatalf("wallet_remain mismatch: company=%v view.balancePoint=%v", co.WalletRemain, view.BalancePoint)
+	}
+	if co.WalletRemain <= 0 {
+		t.Fatalf("expected positive wallet_remain, got %v", co.WalletRemain)
 	}
 }

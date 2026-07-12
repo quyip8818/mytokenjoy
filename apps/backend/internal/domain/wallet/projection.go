@@ -1,10 +1,9 @@
-package usage
+package wallet
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -15,7 +14,8 @@ type LotSegment struct {
 	BillingCurrency string
 }
 
-func AllocateConsumptionLots(ctx context.Context, st store.Store, companyID int64, amountPoint float64) ([]LotSegment, error) {
+// ConsumeLots is the sole write path for ingest lot consumption + wallet_remain.
+func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoint float64) ([]LotSegment, error) {
 	co, err := st.Company().LockForUpdate(ctx, companyID)
 	if err != nil {
 		return nil, err
@@ -74,11 +74,11 @@ func AllocateConsumptionLots(ctx context.Context, st store.Store, companyID int6
 		}
 		remaining = 0
 	}
-	newBalance := co.BalancePoint - amountPoint + overdraftAdded
-	if newBalance < 0 {
-		newBalance = 0
+	newRemain := co.WalletRemain - amountPoint + overdraftAdded
+	if newRemain < 0 {
+		newRemain = 0
 	}
-	if err := st.Company().UpdateWalletPoint(ctx, companyID, newBalance, nextHead); err != nil {
+	if err := st.Company().SetWalletRemain(ctx, companyID, newRemain, nextHead); err != nil {
 		return nil, err
 	}
 	if remaining > 0 {
@@ -87,19 +87,22 @@ func AllocateConsumptionLots(ctx context.Context, st store.Store, companyID int6
 	return segments, nil
 }
 
-func LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []LotSegment) []types.UsageLedgerEntry {
-	out := make([]types.UsageLedgerEntry, 0, len(segs))
-	for i, seg := range segs {
-		entry := base
-		entry.SegmentIndex = i
-		entry.LotID = seg.LotID
-		entry.Amount = seg.Points
-		entry.DisplayAmount = seg.DisplayAmount
-		entry.BillingCurrency = seg.BillingCurrency
-		if i > 0 {
-			entry.CallDetail = types.UsageCallDetail{}
+// CreditFromLot is the sole write path for recharge lot insert + wallet_remain delta.
+func CreditFromLot(
+	ctx context.Context,
+	st store.Store,
+	order store.RechargeOrder,
+	lot store.RechargeLot,
+	deltaPoint float64,
+) error {
+	return st.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Billing().ConfirmRechargeWithLot(ctx, order, lot); err != nil {
+			return err
 		}
-		out = append(out, entry)
-	}
-	return out
+		var fifoHead *string
+		if lot.PointsRemaining > 0 && lot.LotKind != store.LotKindOverdraft {
+			fifoHead = &lot.ID
+		}
+		return tx.Company().ApplyWalletDelta(ctx, order.CompanyID, deltaPoint, fifoHead)
+	})
 }

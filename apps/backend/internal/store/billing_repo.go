@@ -80,7 +80,7 @@ type WalletCurrencyBalance struct {
 type WalletAggregate struct {
 	BillingCurrency string
 	Balances        []WalletCurrencyBalance
-	BalancePoint    float64
+	WalletRemain    float64
 	GiftPoints      float64
 	OverdraftPoints float64
 }
@@ -89,7 +89,7 @@ type BillingRepository interface {
 	CreateRechargeOrder(ctx context.Context, order RechargeOrder) error
 	GetRechargeOrder(ctx context.Context, id string) (*RechargeOrder, error)
 	ListRechargeOrders(ctx context.Context, companyID int64) ([]RechargeOrder, error)
-	ConfirmRechargeWithLot(ctx context.Context, order RechargeOrder, lot RechargeLot, balanceDeltaPoint float64) error
+	ConfirmRechargeWithLot(ctx context.Context, order RechargeOrder, lot RechargeLot) error
 	ListActiveLotsFIFO(ctx context.Context, companyID int64, fifoHeadID *string) ([]RechargeLot, error)
 	UpdateLotRemaining(ctx context.Context, lot RechargeLot) error
 	GetLotByID(ctx context.Context, lotID string) (*RechargeLot, error)

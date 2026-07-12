@@ -21,7 +21,7 @@ const loadPrecheckContextSQL = `
 SELECT
 	c.id AS company_id,
 	c.status AS company_status,
-	c.balance_point,
+	c.wallet_remain,
 	c.newapi_wallet_user_id,
 	pk.id AS platform_key_id,
 	pk.status AS key_status,
@@ -53,7 +53,7 @@ func (r *gatewayPrecheckRepo) LoadPrecheckContext(ctx context.Context, keyHash s
 	err := row.Scan(
 		&out.CompanyID,
 		&out.CompanyStatus,
-		&out.BalancePoint,
+		&out.WalletRemain,
 		&newAPIWalletUserID,
 		&out.PlatformKeyID,
 		&out.KeyStatus,

@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -28,7 +30,7 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 			model_allowlist, key_approvals, platform_keys, provider_keys,
 			operation_logs, usage_ledger, budget_consumed,
 			alert_rules, model_capabilities,
-			budget_groups, org_nodes, members,
+			org_node_budget, budget_groups, org_nodes, members,
 			roles, permissions, models,
 			org_sync_logs, org_import_failures,
 			org_integration, overrun_policy, audit_settings,
@@ -80,6 +82,28 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	assertCount(t, ctx, pool, "models", len(snap.Models))
 	assertCount(t, ctx, pool, "provider_keys", len(snap.ProviderKeys))
 	assertCount(t, ctx, pool, "platform_keys", len(snap.PlatformKeys))
+	assertCount(t, ctx, pool, "org_node_budget", len(pkgorg.FlattenOrgNodeTree(snap.OrgNodes)))
+	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, testutil.DisplayPoints(20000), testutil.DisplayPoints(1500))
+}
+
+func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID string, wantBudget, wantReserved float64) {
+	t.Helper()
+	var budget float64
+	var reserved *float64
+	err := pool.QueryRow(ctx, `
+		SELECT budget, reserved_pool
+		FROM org_node_budget
+		WHERE company_id = $1 AND node_id = $2
+	`, contract.DefaultCompanyID, nodeID).Scan(&budget, &reserved)
+	if err != nil {
+		t.Fatalf("query org_node_budget %s: %v", nodeID, err)
+	}
+	if budget != wantBudget {
+		t.Fatalf("%s budget: got %v want %v", nodeID, budget, wantBudget)
+	}
+	if reserved == nil || *reserved != wantReserved {
+		t.Fatalf("%s reserved_pool: got %+v want %v", nodeID, reserved, wantReserved)
+	}
 }
 
 func assertCount(t *testing.T, ctx context.Context, pool *pgxpool.Pool, table string, want int) {

@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	domainwallet "github.com/tokenjoy/backend/internal/domain/wallet"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -89,11 +90,11 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		} else if exists {
 			return nil
 		}
-		segs, err := AllocateConsumptionLots(ctx, st, company.CompanyID(ctx), entry.Amount)
+		segs, err := domainwallet.ConsumeLots(ctx, st, company.CompanyID(ctx), entry.Amount)
 		if err != nil {
 			return err
 		}
-		ledgerEntries := LedgerSegmentsFromEntry(entry, segs)
+		ledgerEntries := domainwallet.LedgerSegmentsFromEntry(entry, segs)
 		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
 		if err != nil || inserted == 0 {
 			return err

@@ -6,36 +6,10 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
-
-func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode) error {
-	paths := store.ComputeOrgNodePaths(nodes)
-	flat := pkgorg.FlattenOrgNodeTree(nodes)
-	for i, node := range flat {
-		path, ok := paths[node.ID]
-		if !ok {
-			path = store.OrgNodePathLabel(node.ID)
-		}
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO org_nodes (
-				id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
-				budget, reserved_pool, period, default_model_id, fallback_model_id, routing_inherited
-			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-			ON CONFLICT (company_id, id) DO NOTHING
-		`, node.ID, tid, node.Name, node.ParentID, path,
-			node.ExternalID, node.Source, node.ManagerID, i,
-			node.Budget, node.ReservedPool, node.Period,
-			node.DefaultModelID, node.FallbackModelID,
-			node.RoutingInherited); err != nil {
-			return fmt.Errorf("seed org node %s: %w", node.ID, err)
-		}
-	}
-	return nil
-}
 
 func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members []types.Member, roleIDByName map[string]string) error {
 	demoHash := contract.DemoPasswordHash()

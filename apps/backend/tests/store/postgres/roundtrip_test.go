@@ -30,8 +30,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	if !pkgbudget.UpdateBudgetNodeInTree(tree, contract.IDDept3, types.BudgetNode{Budget: 500}) {
 		t.Fatal("update budget node")
 	}
-	nodes := orgfix.OrgNodesFromBudgetTree(tree)
-	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
+	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
 	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 100)

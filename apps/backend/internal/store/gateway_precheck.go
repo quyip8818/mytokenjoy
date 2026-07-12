@@ -8,7 +8,7 @@ import (
 type PrecheckContextRow struct {
 	CompanyID          int64
 	CompanyStatus      string
-	BalancePoint       float64
+	WalletRemain       float64
 	NewAPIWalletUserID *int64
 
 	PlatformKeyID string

@@ -65,7 +65,7 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 
 func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
 	if snap.SeedAt.IsZero() {
-		return fmt.Errorf("seed budget snapshots require Snapshot.SeedAt")
+		return fmt.Errorf("seed budget consumed require Snapshot.SeedAt")
 	}
 	periodKey := pkgbudget.RootPeriodKey(snap.OrgNodes, snap.SeedAt.UTC())
 	for _, node := range pkgorg.FlattenOrgNodeTree(snap.OrgNodes) {
@@ -73,7 +73,7 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, 
 			continue
 		}
 		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindOrgNode, node.ID, periodKey, node.Consumed); err != nil {
-			return fmt.Errorf("seed budget snapshot org node %s: %w", node.ID, err)
+			return fmt.Errorf("seed budget consumed org node %s: %w", node.ID, err)
 		}
 	}
 	for _, group := range snap.BudgetGroups {
@@ -81,7 +81,7 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, 
 			continue
 		}
 		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindBudgetGroup, group.ID, periodKey, group.Consumed); err != nil {
-			return fmt.Errorf("seed budget snapshot group %s: %w", group.ID, err)
+			return fmt.Errorf("seed budget consumed group %s: %w", group.ID, err)
 		}
 	}
 	for _, key := range snap.PlatformKeys {
@@ -89,7 +89,7 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, 
 			continue
 		}
 		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindPlatformKey, key.ID, periodKey, key.Used); err != nil {
-			return fmt.Errorf("seed budget snapshot platform key %s: %w", key.ID, err)
+			return fmt.Errorf("seed budget consumed platform key %s: %w", key.ID, err)
 		}
 	}
 	return nil

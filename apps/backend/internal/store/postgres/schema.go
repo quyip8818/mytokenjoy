@@ -12,14 +12,26 @@ import (
 //go:embed schema.sql
 var schemaSQL string
 
+//go:embed river_schema.sql
+var riverSchemaSQL string
+
 // applySchema runs embedded DDL including River main-line migrations 001-007.
-// schema.sql seeds river_migration so a fresh wipe DB skips runtime river migrate-up.
+// App DDL is idempotent on every start; River bootstrap runs once per database.
 func applySchema(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
 	if _, err := pool.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS ltree`); err != nil {
 		return fmt.Errorf("create ltree extension: %w", err)
 	}
 	if _, err := pool.Exec(ctx, schemaSQL); err != nil {
 		return fmt.Errorf("apply schema: %w", err)
+	}
+	var riverInstalled bool
+	if err := pool.QueryRow(ctx, `SELECT to_regclass('river_job') IS NOT NULL`).Scan(&riverInstalled); err != nil {
+		return fmt.Errorf("check river schema: %w", err)
+	}
+	if !riverInstalled {
+		if _, err := pool.Exec(ctx, riverSchemaSQL); err != nil {
+			return fmt.Errorf("apply river schema: %w", err)
+		}
 	}
 	if err := applyMonthlyPartitions(ctx, pool, cfg); err != nil {
 		return fmt.Errorf("apply partitions: %w", err)

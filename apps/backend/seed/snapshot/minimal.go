@@ -75,23 +75,7 @@ func buildMinimalDepartments() []types.Department {
 }
 
 func buildMinimalOrgNodes() []types.OrgNode {
-	depts := buildMinimalDepartments()
-	budgetTree := buildBudgetTree()
-	routing := orgNodeRoutingByID()
-	ruleByNode := make(map[string]types.RoutingRule, len(routing))
-	for nodeID, cfg := range routing {
-		ruleByNode[nodeID] = types.RoutingRule{
-			ID:              nodeID,
-			NodeID:          nodeID,
-			AllowedModelIDs: append([]int64{}, cfg.allowedModelIDs...),
-			DefaultModelID:  cfg.defaultModelID,
-			FallbackModelID: cfg.fallbackModelID,
-			Inherited:       cfg.inherited,
-		}
-	}
-	nodes := mergeOrgNodeTree(depts, budgetTree, ruleByNode)
-	types.ApplyBudgetTreeToOrgNodes(nodes, budgetTree)
-	return nodes
+	return assembleOrgNodes(buildMinimalDepartments())
 }
 
 func minimalPlatformKeys() []types.PlatformKey {

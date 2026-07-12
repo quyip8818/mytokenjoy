@@ -139,7 +139,7 @@ func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.Pl
 	if err != nil {
 		return allocated, err
 	}
-	walletUnits := newapiunits.ToQuotaUnits(co.BalancePoint, models, nil)
+	walletUnits := newapiunits.ToQuotaUnits(co.WalletRemain, models, nil)
 	mappings, err := s.store.PlatformKeyMappings().ListActiveMappingsByCompany(ctx, mapping.CompanyID)
 	if err != nil {
 		return allocated, err

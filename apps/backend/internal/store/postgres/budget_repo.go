@@ -19,3 +19,7 @@ func (r *pgBudgetRepo) AcquireBudgetLock(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, "SELECT pg_advisory_xact_lock($1, $2)", budgetLockNamespace, companyID)
 	return err
 }
+
+func (r *pgBudgetRepo) OrgNodeBudget() store.OrgNodeBudgetRepository {
+	return r
+}

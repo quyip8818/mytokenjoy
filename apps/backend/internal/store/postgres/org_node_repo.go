@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -18,9 +19,11 @@ func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
 		SELECT n.id, n.name, n.parent_id, n.external_id, n.source, n.manager_id, n.sort_order,
-			n.budget, n.reserved_pool, n.period, n.default_model_id, n.fallback_model_id, n.routing_inherited,
-			n.member_avg_budget
+			COALESCE(b.budget, 0), b.reserved_pool,
+			COALESCE(b.period, 'monthly'), n.default_model_id, n.fallback_model_id, n.routing_inherited,
+			COALESCE(b.member_avg_budget, 0)
 		FROM org_nodes n
+		LEFT JOIN org_node_budget b ON b.company_id = n.company_id AND b.node_id = n.id
 		WHERE n.company_id = $1
 		ORDER BY n.sort_order
 	`, companyID)
@@ -84,9 +87,8 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO org_nodes (
 				id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
-				budget, reserved_pool, period, default_model_id, fallback_model_id, routing_inherited,
-				member_avg_budget, updated_at
-			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+				default_model_id, fallback_model_id, routing_inherited, updated_at
+			) VALUES ($1, $2, $3, $4, $5::ltree, $6, $7, $8, $9, $10, $11, $12, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				parent_id = EXCLUDED.parent_id,
@@ -95,30 +97,33 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 				source = EXCLUDED.source,
 				manager_id = EXCLUDED.manager_id,
 				sort_order = EXCLUDED.sort_order,
-				budget = EXCLUDED.budget,
-				reserved_pool = EXCLUDED.reserved_pool,
-				period = EXCLUDED.period,
 				default_model_id = EXCLUDED.default_model_id,
 				fallback_model_id = EXCLUDED.fallback_model_id,
 				routing_inherited = EXCLUDED.routing_inherited,
-				member_avg_budget = EXCLUDED.member_avg_budget,
 				updated_at = NOW()
 		`, row.ID, companyID, row.Name, row.ParentID, path,
 			row.ExternalID, row.Source, row.ManagerID, row.sortOrder,
-			row.Budget, row.ReservedPool, row.Period,
-			row.DefaultModelID, row.FallbackModelID, row.RoutingInherited,
-			row.MemberAvgBudget); err != nil {
+			row.DefaultModelID, row.FallbackModelID, row.RoutingInherited); err != nil {
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}
-	return pruneByIDForCompany(ctx, r.db, "org_nodes", companyID, ids)
+	if err := pruneByIDForCompany(ctx, r.db, "org_nodes", companyID, ids); err != nil {
+		return err
+	}
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO org_node_budget (company_id, node_id, budget, period, member_avg_budget, updated_at)
+		SELECT company_id, id, 0, 'monthly', 0, NOW()
+		FROM org_nodes WHERE company_id = $1
+		ON CONFLICT (company_id, node_id) DO NOTHING
+	`, companyID)
+	return err
 }
 
 func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID string) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var budget float64
 	err := r.db.QueryRow(ctx, `
-		SELECT budget FROM org_nodes WHERE company_id = $1 AND id = $2
+		SELECT budget FROM org_node_budget WHERE company_id = $1 AND node_id = $2
 	`, companyID, nodeID).Scan(&budget)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -133,11 +138,11 @@ func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID string) (strin
 	companyID := store.CompanyID(ctx)
 	var period string
 	err := r.db.QueryRow(ctx, `
-		SELECT period FROM org_nodes WHERE company_id = $1 AND id = $2
+		SELECT period FROM org_node_budget WHERE company_id = $1 AND node_id = $2
 	`, companyID, nodeID).Scan(&period)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return "", false, nil
+			return pkgbudget.PeriodMonthly, false, nil
 		}
 		return "", false, err
 	}

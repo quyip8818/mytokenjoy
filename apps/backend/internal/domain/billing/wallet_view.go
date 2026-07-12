@@ -48,7 +48,7 @@ func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
 	view := WalletView{
 		CompanyID:       companyCtx.CompanyID,
 		BillingCurrency: agg.BillingCurrency,
-		BalancePoint:    agg.BalancePoint,
+		BalancePoint:    agg.WalletRemain,
 		GiftPoints:      agg.GiftPoints,
 		OverdraftPoints: agg.OverdraftPoints,
 	}
