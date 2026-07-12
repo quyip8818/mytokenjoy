@@ -6,7 +6,7 @@ import { AUDIT_FILTER_ALL, buildOperationsQuery, type AuditOperationsFilter } fr
 import { OPERATION_AUDIT_CSV_HEADERS, buildOperationAuditCsvRows } from '../lib/export'
 import { useAuditListPage } from './use-audit-list-page'
 import { downloadCsv } from '@/lib/csv-export'
-import { queryKeys } from '@/features/query'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useAuditMemberOptions } from './use-audit-member-options'
 
 const INITIAL_FILTER: AuditOperationsFilter = {
@@ -50,6 +50,13 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
     [members],
   )
 
+  const timelineQuery = useMemo(() => buildOperationsQuery(filter), [filter])
+  const { data: timeline = [], loading: timelineLoading } = useInjectedQuery({
+    injectedApis,
+    queryKey: [...queryKeys.audit.operations({ filter, page: 0 }), 'timeline'],
+    queryFn: (apis) => apis.auditApi.getOperationsTimeline(timelineQuery),
+  })
+
   const handleExport = useCallback(() => {
     downloadCsv(
       'operation-audit.csv',
@@ -68,6 +75,8 @@ export function useAuditOperationsPage(injectedApis?: AppApis) {
     loading,
     error,
     refresh,
+    timeline,
+    timelineLoading,
     actionFilter: filter.action,
     datePreset: filter.datePreset,
     operatorId: filter.operatorId,

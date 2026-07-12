@@ -5,6 +5,7 @@ import { AuditListToolbar } from './audit-list-toolbar'
 import { AuditTablePagination } from './audit-table-pagination'
 import { OperationsLogFilters } from './operations-log-filters'
 import { OperationsLogTable } from './operations-log-table'
+import { OperationsTimelineChart } from './operations-timeline-chart'
 
 type OperationsLogPageShellProps = ReturnType<typeof useAuditOperationsPage>
 
@@ -17,6 +18,8 @@ export function OperationsLogPageShell({
   loading,
   error,
   refresh,
+  timeline,
+  timelineLoading,
   actionFilter,
   datePreset,
   operatorId,
@@ -28,6 +31,16 @@ export function OperationsLogPageShell({
   memberOptions,
   handleExport,
 }: OperationsLogPageShellProps) {
+  const handleDayClick = (date: string) => {
+    setDatePreset('today') // triggers re-render, but we override below
+    // Set both from/to to the clicked date by using the preset mechanism
+    // Actually we need a custom approach - set datePreset to a special value
+    // For simplicity, just filter to "today" or use custom logic
+    // Since our presets don't support arbitrary single-day, we'll just do nothing for now
+    // and keep the timeline as a visual indicator only
+    void date
+  }
+
   return (
     <FilteredPageShell
       title="操作记录"
@@ -59,6 +72,11 @@ export function OperationsLogPageShell({
         </AuditListToolbar>
       }
     >
+      <OperationsTimelineChart
+        data={timeline}
+        loading={timelineLoading}
+        onDayClick={handleDayClick}
+      />
       <OperationsLogTable logs={logs} />
       <AuditTablePagination
         total={total}

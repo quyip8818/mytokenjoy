@@ -72,11 +72,38 @@ func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
+func (h *Handler) OperationsTimeline(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	params := types.AuditOperationsQueryParams{
+		Action:     query.Get("action"),
+		OperatorID: query.Get("operatorId"),
+		From:       query.Get("from"),
+		To:         query.Get("to"),
+	}
+	result, err := h.service.OperationsTimeline(r.Context(), params)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
+}
+
+func (h *Handler) CallsSummary(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	params := types.AuditCallsQueryParams{
+		Model:    query.Get("model"),
+		Status:   query.Get("status"),
+		CallerID: query.Get("callerId"),
+		From:     query.Get("from"),
+		To:       query.Get("to"),
+	}
+	result, err := h.service.CallsSummary(r.Context(), params)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
+}
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.AuditRead)
 	read.Get("/settings", h.SettingsGet)
 	read.Get("/operations", h.OperationsList)
+	read.Get("/operations/timeline", h.OperationsTimeline)
 	read.Get("/calls", h.CallsList)
+	read.Get("/calls/summary", h.CallsSummary)
 
 	httpmiddleware.ReadRoutes(r, h.Protected).
 		With(httpmiddleware.RequireAnyPermission(permission.OrgStructure)).

@@ -5,6 +5,7 @@ import { AuditListToolbar } from './audit-list-toolbar'
 import { AuditTablePagination } from './audit-table-pagination'
 import { CallLogsFilters } from './call-logs-filters'
 import { CallLogsTable } from './call-logs-table'
+import { CallLogsSummaryCards } from './call-logs-summary-cards'
 
 type CallLogsPageShellProps = ReturnType<typeof useAuditCallsPage>
 
@@ -17,6 +18,8 @@ export function CallLogsPageShell({
   loading,
   error,
   refresh,
+  summary,
+  summaryLoading,
   statusFilter,
   callerId,
   modelFilter,
@@ -68,6 +71,7 @@ export function CallLogsPageShell({
         </AuditListToolbar>
       }
     >
+      <CallLogsSummaryCards summary={summary} loading={summaryLoading} />
       <CallLogsTable
         logs={logs}
         expandedId={expandedId}

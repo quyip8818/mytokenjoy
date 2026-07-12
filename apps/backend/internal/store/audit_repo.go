@@ -21,5 +21,6 @@ type AuditRepository interface {
 	SetSettings(ctx context.Context, settings types.AuditSettings) error
 	OperationLogs(ctx context.Context) ([]types.OperationLog, error)
 	ListOperationsPage(ctx context.Context, filter AuditOperationFilter) ([]types.OperationLog, int, error)
+	OperationCountsByDay(ctx context.Context, filter AuditOperationFilter) ([]types.OperationDailyCount, error)
 	AppendOperationLog(ctx context.Context, log types.OperationLog) error
 }

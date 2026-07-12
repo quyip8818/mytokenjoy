@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import {
-  AuditDatePresetSelect,
   AuditKeywordInput,
   AuditMemberSelect,
   AuditToolbar,
 } from '@/features/audit'
+import { AuditDateRangePicker } from './audit-date-range-picker'
 
 interface AuditListToolbarProps {
   datePreset: string
@@ -33,7 +33,7 @@ export function AuditListToolbar({
 }: AuditListToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <AuditDatePresetSelect value={datePreset} onValueChange={onDatePresetChange} />
+      <AuditDateRangePicker value={datePreset} onChange={onDatePresetChange} />
       {children}
       <AuditMemberSelect
         value={memberId}

@@ -65,3 +65,15 @@ export interface AuditCallsQueryParams extends AuditDateRangeParams {
   callerId?: string
   keyword?: string
 }
+
+export interface OperationDailyCount {
+  date: string
+  count: number
+}
+
+export interface CallsSummary {
+  totalCalls: number
+  errorCount: number
+  errorRate: number
+  avgLatencyMs: number
+}
