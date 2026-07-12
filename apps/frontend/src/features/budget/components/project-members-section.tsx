@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { ProjectView, Member } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
-import { budgetApi } from '@/api/budget'
-import { formatDisplayCurrency } from '@/lib/points'
 import { BudgetMemberPicker } from './budget-member-picker'
 import {
   Dialog,
@@ -12,6 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -30,7 +38,6 @@ type ProjectMembersSectionProps = {
   membersLoading?: boolean
   onUpdateProject: (projectId: string, data: { memberIds: string[] }) => Promise<void>
   onUpdated: () => void
-  getProjectMemberConsumed?: (projectId: string) => Promise<Record<string, number>>
 }
 
 export function ProjectMembersSection({
@@ -40,25 +47,11 @@ export function ProjectMembersSection({
   membersLoading = false,
   onUpdateProject,
   onUpdated,
-  getProjectMemberConsumed,
 }: ProjectMembersSectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [draftMemberIds, setDraftMemberIds] = useState<string[]>([])
   const [savingMembers, setSavingMembers] = useState(false)
-  const [consumedMap, setConsumedMap] = useState<Record<string, number>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    const fetchFn = getProjectMemberConsumed ?? budgetApi.getProjectMemberConsumed
-    fetchFn(project.id)
-      .then((data) => {
-        if (!cancelled) setConsumedMap(data)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [project.id, getProjectMemberConsumed])
+  const [removeTarget, setRemoveTarget] = useState<Member | null>(null)
 
   function openDialog() {
     setDraftMemberIds([...project.memberIds])
@@ -79,14 +72,17 @@ export function ProjectMembersSection({
     }
   }
 
-  async function removeMember(memberId: string) {
-    const next = project.memberIds.filter((id) => id !== memberId)
+  async function confirmRemove() {
+    if (!removeTarget) return
+    const next = project.memberIds.filter((id) => id !== removeTarget.id)
     try {
       await onUpdateProject(project.id, { memberIds: next })
       onUpdated()
-      toast.success('成员已移除')
+      toast.success(`已移除成员「${removeTarget.name}」`)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '移除失败，请重试')
+    } finally {
+      setRemoveTarget(null)
     }
   }
 
@@ -113,11 +109,8 @@ export function ProjectMembersSection({
               <TableHead className="text-xs font-medium uppercase text-muted-foreground">
                 成员
               </TableHead>
-              <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
-                已消耗
-              </TableHead>
-              <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
-                占比
+              <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+                部门
               </TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -125,38 +118,28 @@ export function ProjectMembersSection({
           <TableBody>
             {members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={3} className="py-6 text-center text-xs text-muted-foreground">
                   暂无关联成员
                 </TableCell>
               </TableRow>
             ) : (
-              members.map((m) => {
-                const memberConsumed = consumedMap[m.id] ?? 0
-                const memberPct =
-                  project.consumed > 0 ? Math.round((memberConsumed / project.consumed) * 100) : 0
-                return (
-                  <TableRow key={m.id} className="even:bg-muted/40 hover:bg-muted/50">
-                    <TableCell className="font-medium">{m.name}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatDisplayCurrency(memberConsumed)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {memberPct}%
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 text-muted-foreground hover:text-red-600"
-                        aria-label={`移除成员 ${m.name}`}
-                        onClick={() => void removeMember(m.id)}
-                      >
-                        <UserMinus className="size-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
+              members.map((m) => (
+                <TableRow key={m.id} className="even:bg-muted/40 hover:bg-muted/50">
+                  <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{m.departmentName}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 text-muted-foreground hover:text-red-600"
+                      aria-label={`移除成员 ${m.name}`}
+                      onClick={() => setRemoveTarget(m)}
+                    >
+                      <UserMinus className="size-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -185,6 +168,26 @@ export function ProjectMembersSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(open) => { if (!open) setRemoveTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认移除成员</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定将「{removeTarget?.name}」从项目中移除吗？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRemoveTarget(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void confirmRemove()}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              移除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
