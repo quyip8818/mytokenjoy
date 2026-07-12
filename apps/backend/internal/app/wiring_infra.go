@@ -41,8 +41,8 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		enqueuer = jobs.NoopEnqueuer{}
 	}
 	channelPolicy := newapisync.NewChannelPolicy(cfg)
-	wallet := domaincompany.NewWalletService(cfg, adminClient)
 	adminPort := newapi.NewAdminPortAdapter(adminClient)
+	wallet := domaincompany.NewWalletService(cfg, adminPort)
 
 	return infra{
 		store:         st,

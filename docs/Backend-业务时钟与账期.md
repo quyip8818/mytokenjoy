@@ -248,7 +248,7 @@ domain/usage/ingest.go       双轨写入
 domain/usage/projection.go   Apply(..., OpenBudgetPeriod)
 domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（开账 period 在 SQL 内）
 domain/budget/overrun.go     开账超支
-infra/worker/runner.go       → 删除；月切改 Periodic monthly_rebalance_fanout
+infra/river/                 月切改 Periodic monthly_rebalance_fanout（原 infra/worker/runner.go 已删除）
 
 seed/snapshot/*.go           SeedAt、ledger OccurrenceSnapshotKey
 seed/apply/tables.go         RootPeriodKey → snapshots

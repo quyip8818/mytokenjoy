@@ -100,3 +100,7 @@ func (a AdminPortAdapter) TopUp(ctx context.Context, req adminport.TopUpInput) e
 func (a AdminPortAdapter) RebuildAbilities(ctx context.Context) error {
 	return a.client.RebuildAbilities(ctx)
 }
+
+func (a AdminPortAdapter) GetUserQuota(ctx context.Context, userID int64) (int64, error) {
+	return a.client.GetUserQuota(ctx, userID)
+}

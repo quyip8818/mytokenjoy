@@ -3,7 +3,6 @@ package gateway_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/tests/testutil"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
@@ -11,49 +10,15 @@ import (
 func TestPrecheckRejects(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name string
-		opts gatewaytf.GatewayScenarioOpts
-		cfg  []testutil.ConfigOption
-		run  func(t *testing.T, fx gatewaytf.PrecheckFixture)
-	}{
-		{
-			name: "model not in whitelist",
-			opts: gatewaytf.GatewayScenarioOpts{Budget: 1000},
-			run: func(t *testing.T, fx gatewaytf.PrecheckFixture) {
-				if err := fx.Run("unknown-model", false); err == nil {
-					t.Fatal("expected model not allowed error")
-				}
-			},
-		},
-		{
-			name: "suspended company",
-			opts: gatewaytf.GatewayScenarioOpts{Budget: 1000, CompanyStatus: "suspended"},
-			run: func(t *testing.T, fx gatewaytf.PrecheckFixture) {
-				if err := fx.Run("gpt-4o", false); err == nil {
-					t.Fatal("expected suspended company error")
-				}
-			},
-		},
-		{
-			name: "insufficient wallet",
-			opts: gatewaytf.GatewayScenarioOpts{
-				Budget:             1000,
-				WalletBalancePoint: testutil.Float64Ptr(0),
-			},
-			run: func(t *testing.T, fx gatewaytf.PrecheckFixture) {
-				if err := fx.Run("gpt-4o", false); err == nil {
-					t.Fatal("expected insufficient wallet error")
-				}
-			},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			fx := gatewaytf.NewPrecheckFixture(t, tc.opts, tc.cfg...)
-			tc.run(t, fx)
+	for _, tc := range gatewaytf.RejectionCases() {
+		if !tc.Precheck {
+			continue
+		}
+		t.Run(tc.Name, func(t *testing.T) {
+			fx := gatewaytf.NewPrecheckFixture(t, tc.Scenario)
+			if err := fx.Run(tc.Model, false); err == nil {
+				t.Fatalf("expected rejection for %s", tc.Name)
+			}
 		})
 	}
 }

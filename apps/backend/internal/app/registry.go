@@ -30,11 +30,11 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 func (r ServiceRegistry) IngestWorker(cfg config.Config, logger *slog.Logger) *ingest.Worker {
 	return ingest.NewWorker(
 		cfg,
-		r.Store.Logs(),
+		r.Infra.store.Logs(),
 		r.IngestSvc,
 		r.IngestQueue,
 		r.IngestMetrics,
-		r.Store.SchedulerLock(),
+		r.Infra.store.SchedulerLock(),
 		r.BillingSvc,
 		logger,
 	)
@@ -64,7 +64,6 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 	return ServiceRegistry{
 		Deps: httpdeps.Deps{
 			Config:               cfg,
-			Store:                i.store,
 			AuthzSvc:             authzSvc,
 			Credentials:          credSvc,
 			SessionToken:         memberToken,

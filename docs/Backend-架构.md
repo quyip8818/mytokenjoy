@@ -37,10 +37,10 @@
 
 | 层 | 路径 | 职责 |
 | -- | ---- | ---- |
-| **Domain port** | `domain/adminport/` | `Port` 接口：`CreateToken` / `UpdateToken` / `TopUp` / `RebuildAbilities` 等 |
+| **Domain port** | `domain/adminport/` | `Port` 接口：`CreateToken` / `UpdateToken` / `TopUp` / `GetUserQuota` / `RebuildAbilities` 等 |
 | **Adapter** | `integration/newapi/admin_port_adapter.go` | 唯一 HTTP 实现，映射厂商 Admin API |
 | **纯换算** | `pkg/newapiunits/` | point ↔ quota；domain 可直接引用 |
-| **例外** | `company.WalletService` | 只读 `GetUserQuota` 仍用 raw `AdminClient` |
+| **Wallet 读** | `company.WalletService` | 依赖最小 `QuotaReader`；`adminport.Port` 满足接口；组合根注入 `adminPort` |
 
 装配：`wiring_infra.go` → `newapi.NewAdminPortAdapter(client)` → `buildDomainServices` 注入 `NewAPISync`、`billing`、`budget.Rebalance`、`models`、`company`。
 
@@ -170,14 +170,14 @@ apps/backend/
 └── Makefile
 ```
 
-**目标态：** 分层不变；domain 并行访问 Store 与**按域定义的端口**（5 域 `ports.go` + `app/*_enqueuer.go`）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
+**目标态：** 分层不变；domain 并行访问 Store 与端口（Job 类：5 域 `ports.go` + `app/*_enqueuer.go`；其它端口定义位置见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口)）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
 
 ### 3.1 文件命名与拆分
 
 | 场景 | 命名 |
 | --- | --- |
 | 领域服务 | `service.go`；按流程拆分 `service_<动词>.go` |
-| 领域端口 | `ports.go` |
+| 领域端口 | `ports.go`（Job enqueuer）；其它端口见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口) |
 | PlatformKey | `platform_key_<动作>.go` |
 | NewAPISync | `lifecycle_<动作>.go`；共用逻辑放 `lifecycle_helpers.go` |
 | 投影 / 对账 | `*_projector.go`、`*_reconcile.go` |

@@ -11,7 +11,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 )
 
-// stubQuotaClient implements the GetUserQuota interface for testing.
 type stubQuotaClient struct {
 	mu        sync.Mutex
 	quota     int64
@@ -47,9 +46,7 @@ func TestWalletServiceCachesResult(t *testing.T) {
 	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
 	svc := company.NewWalletService(cfg, client)
 
-	// First call
 	svc.AvailableQuota(context.Background(), 1)
-	// Second call should use cache
 	svc.AvailableQuota(context.Background(), 1)
 
 	if client.callCount != 1 {
@@ -100,7 +97,6 @@ func TestWalletServiceClientError(t *testing.T) {
 func TestWalletServiceCacheExpires(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 5000}
-	// Set TTL to 0 so cache expires immediately
 	cfg := config.Config{CompanyWalletCacheTTLSec: 0}
 	svc := company.NewWalletService(cfg, client)
 

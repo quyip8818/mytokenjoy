@@ -193,7 +193,7 @@ make test-unit
 | --- | --- | --- |
 | **PR1** Track S | test-fast 边界、删重复、newapiunits SSOT | ✅ |
 | **PR2** Track C | middleware、outbox N1–N3、mutating H1–H2 | ✅ |
-| **PR3** | Gateway rejection_cases + G2/G3（可选） | 待做 |
+| **PR3** | Gateway rejection_cases + G2/G3 | ✅ Phase 1（见 [Backend-结构优化.md](./Backend-结构优化.md)） |
 
 ---
 

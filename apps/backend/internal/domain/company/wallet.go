@@ -13,11 +13,13 @@ type WalletService interface {
 	AvailableQuota(ctx context.Context, walletUserID int64) (int64, error)
 }
 
+type QuotaReader interface {
+	GetUserQuota(ctx context.Context, userID int64) (int64, error)
+}
+
 type walletService struct {
-	cfg    config.Config
-	client interface {
-		GetUserQuota(ctx context.Context, userID int64) (int64, error)
-	}
+	cfg      config.Config
+	reader   QuotaReader
 	cacheTTL time.Duration
 	mu       sync.RWMutex
 	cache    map[int64]walletCacheEntry
@@ -28,15 +30,13 @@ type walletCacheEntry struct {
 	expiresAt time.Time
 }
 
-func NewWalletService(cfg config.Config, client interface {
-	GetUserQuota(ctx context.Context, userID int64) (int64, error)
-}) WalletService {
-	if client == nil {
+func NewWalletService(cfg config.Config, reader QuotaReader) WalletService {
+	if reader == nil {
 		return &noopWalletService{}
 	}
 	return &walletService{
 		cfg:      cfg,
-		client:   client,
+		reader:   reader,
 		cacheTTL: time.Duration(cfg.CompanyWalletCacheTTLSec) * time.Second,
 		cache:    make(map[int64]walletCacheEntry),
 	}
@@ -59,7 +59,7 @@ func (s *walletService) AvailableQuota(ctx context.Context, walletUserID int64) 
 		return entry.quota, nil
 	}
 	s.mu.RUnlock()
-	quota, err := s.client.GetUserQuota(ctx, walletUserID)
+	quota, err := s.reader.GetUserQuota(ctx, walletUserID)
 	if err != nil {
 		return 0, err
 	}

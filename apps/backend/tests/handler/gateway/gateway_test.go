@@ -16,16 +16,23 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/saas"
 )
 
-func TestGatewayRejectsInsufficientWallet(t *testing.T) {
+func TestGatewayRejectionHTTPMapping(t *testing.T) {
 	t.Parallel()
-	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
-		WalletBalancePoint: testutil.Float64Ptr(0),
-		Budget:             1000,
-	})
-	rec := httptest.NewRecorder()
-	scenario.Gateway.ServeHTTP(rec, gatewaytf.GatewayRequest(scenario.FullKey))
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for empty wallet, got %d", rec.Code)
+
+	for _, tc := range gatewaytf.RejectionCases() {
+		if tc.WantHTTP == 0 {
+			continue
+		}
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			scenario := gatewaytf.BuildGatewayScenario(t, tc.Scenario)
+			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, tc.Model)
+			rec := httptest.NewRecorder()
+			scenario.Gateway.ServeHTTP(rec, req)
+			if rec.Code != tc.WantHTTP {
+				t.Fatalf("expected %d for %s, got %d body=%s", tc.WantHTTP, tc.Name, rec.Code, rec.Body.String())
+			}
+		})
 	}
 }
 

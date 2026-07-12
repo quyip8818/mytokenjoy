@@ -10,56 +10,15 @@ import (
 func TestEvaluateRejects(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name string
-		mut  func(pc *domaingateway.PrecheckContext)
-	}{
-		{
-			name: "empty model",
-			mut:  func(pc *domaingateway.PrecheckContext) {},
-		},
-		{
-			name: "blocked company",
-			mut:  func(pc *domaingateway.PrecheckContext) { pc.Wallet.CompanyStatus = "suspended" },
-		},
-		{
-			name: "insufficient wallet",
-			mut:  func(pc *domaingateway.PrecheckContext) { pc.Wallet.WalletRemain = 0 },
-		},
-		{
-			name: "inactive key",
-			mut:  func(pc *domaingateway.PrecheckContext) { pc.Routing.KeyStatus = "disabled" },
-		},
-		{
-			name: "model not in allowlist",
-			mut: func(pc *domaingateway.PrecheckContext) {
-				pc.Routing.HasAllowlist = true
-				pc.Routing.AllowlistTypes = []string{"gpt-4o"}
-			},
-		},
-		{
-			name: "exhausted soft remain",
-			mut: func(pc *domaingateway.PrecheckContext) {
-				zero := 0.0
-				pc.Budget.SoftRemain = &zero
-			},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tc := range gatewaytf.RejectionCases() {
+		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 			pc := gatewaytf.BasePrecheckContext()
-			tc.mut(&pc)
-			model := "gpt-4o"
-			if tc.name == "empty model" {
-				model = ""
+			if tc.MutatePC != nil {
+				tc.MutatePC(&pc)
 			}
-			if tc.name == "model not in allowlist" {
-				model = "unknown-model"
-			}
-			if err := domaingateway.Evaluate(pc, model, false); err == nil {
-				t.Fatalf("expected rejection for %s", tc.name)
+			if err := domaingateway.Evaluate(pc, tc.Model, false); err == nil {
+				t.Fatalf("expected rejection for %s", tc.Name)
 			}
 		})
 	}
