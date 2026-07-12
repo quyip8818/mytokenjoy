@@ -96,6 +96,15 @@ export function BudgetDetailTeam({
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [memberRefreshKey, setMemberRefreshKey] = useState(0)
 
+  // Load member budget sum for this department (must be before any early return)
+  const [memberBudgetSum, setMemberBudgetSum] = useState(0)
+  useEffect(() => {
+    if (node.budget === 0) return
+    getMemberBudgets(node.id).then((members) => {
+      setMemberBudgetSum(members.reduce((sum, m) => sum + m.personalBudget, 0))
+    })
+  }, [node.id, node.budget, memberRefreshKey, getMemberBudgets])
+
   // Show initialization prompt if budget is not set
   if (node.budget === 0) {
     const isRoot = node.parentId === null || node.parentId === undefined
@@ -121,14 +130,6 @@ export function BudgetDetailTeam({
   const nodeProjects = projects.filter((project) => project.departmentId === node.id)
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
   const projectBudgetSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
-
-  // Load member budget sum for this department
-  const [memberBudgetSum, setMemberBudgetSum] = useState(0)
-  useEffect(() => {
-    getMemberBudgets(node.id).then((members) => {
-      setMemberBudgetSum(members.reduce((sum, m) => sum + m.personalBudget, 0))
-    })
-  }, [node.id, memberRefreshKey, getMemberBudgets])
 
   const allocated = childrenBudgetSum + projectBudgetSum + memberBudgetSum
   const reservedPool = node.budget - allocated
