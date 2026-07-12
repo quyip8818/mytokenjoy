@@ -21,13 +21,9 @@ func GetMemberBudgetCapacity(deptNode types.BudgetNode) float64 {
 }
 
 func BuildMemberBudgetQuota(member types.Member, platformKeys []types.PlatformKey) types.MemberBudgetQuota {
-	quota := member.PersonalBudget
-	if quota <= 0 {
-		quota = GetPersonalBudget([]types.Member{member}, member.ID)
-	}
 	return types.MemberBudgetQuota{
 		MemberID: member.ID, MemberName: member.Name, DepartmentID: member.DepartmentID,
-		PersonalBudget: quota,
+		PersonalBudget: member.PersonalBudget,
 		Allocated:      GetAllocatedKeyBudget(platformKeys, member.ID),
 		Used:           GetUsedKeyBudget(platformKeys, member.ID),
 	}
