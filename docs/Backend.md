@@ -13,8 +13,7 @@
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、命名约定、Store、NewAPISync/Gateway、River/Ingest、文件命名 §3.1、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
-| [Backend-预算.md](./Backend-预算.md)         | 双轴、异步投影、Rebalance、Overrun、分配规则     |
-| [Platform-Key产品设计.md](./Platform-Key产品设计.md) | Platform Key 三 scope 实现文档（Schema、执法链、代码索引） |
+| [Backend-预算.md](./Backend-预算.md)         | 双轴、异步投影、Rebalance、Overrun、Platform Key 三 scope 执法链 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
@@ -65,7 +64,7 @@ NewAPI 边界与 DI 详见 [Backend-架构.md](./Backend-架构.md) §0、§7。
 | NewAPI 企业隔离      | 单集群；每企业一个 `newapi_wallet_user_id` |
 | 计费主账             | Postgres `company_recharge_lots` + ledger；NewAPI `users.quota` 为派生缓存 |
 | 模型目录             | `models` 同表双角色：`TOKENJOY_COMPANY_ID` 源 + 租户自有模型；全局内置对租户永远存在、仅平台可禁用；管理 API 用 `modelId`，Gateway 运行时仍用 `callType` |
-| NewAPIKey `remain_quota` | 分配视图；`rebalance` 按 Postgres `balance_point` 封顶 |
+| NewAPIKey `remain_quota` | 分配视图；`rebalance` 按 Postgres `wallet_remain` 封顶 |
 | 双轴                 | 钱包=预付 point（lot）；部门 budget=组织内 point 配额 |
 | Gateway              | 1× `LoadPrecheckContext` + `Evaluate` 后透传 NewAPI |
 
@@ -143,14 +142,14 @@ sequenceDiagram
 | 约束                | 说明                                                     |
 | ------------------- | -------------------------------------------------------- |
 | 无增量 migration    | 改 `schema.sql` 后 wipe 重建（`docker compose down -v`） |
-| 推导字段不入库      | `memberName` / `projectName` 等响应 enrich；`scope` / `member_id` / `project_id` 入库，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) |
+| 推导字段不入库      | `memberName` / `projectName` 等响应 enrich；`scope` / `member_id` / `project_id` 入库，见 [Backend-存储架构.md](./Backend-存储架构.md) · [Frontend.md](./Frontend.md) §5.5 |
 | Platform Key secret | 必须经 NewAPISync 下发；禁止本地 placeholder                  |
 | Rotate              | `POST .../rotate` → 200 + 一次性 `fullKey`；非 active `409` |
 | 错误语义            | 不存在 `404`；NewAPI 不可用 `503`；状态冲突 `409`           |
 
 **本地开发：** 创建 / 审批发 Key / Toggle / Revoke / Rotate 须启用 NewAPI；否则 `503`。
 
-**执法链 / Gateway：** [Platform-Key产品设计.md](./Platform-Key产品设计.md) §1 · §4.5；**池子 / personal / 审批：** [预算分配与扣减.md](./预算分配与扣减.md)。
+**执法链 / Gateway：** [Backend-预算.md](./Backend-预算.md) §2.2 · `pkg/budget/chain.go`；**池子 / personal / 审批：** [预算分配与扣减.md](./预算分配与扣减.md)。
 
 **实现索引：** `domain/keys/platform_key_enrich.go` · `platform_key_newapi.go` · `platform_key_actions.go` · `domain/keys/approval.go` · `domain/newapisync/interface.go`
 
@@ -316,7 +315,7 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 | `apply/tables.go` | 将快照写入 Postgres（`ApplyTables`） |
 | `runtime/` | 启动时按需写入（`ApplyUsageBuckets`、`ApplyUsageLedger`、充值 lot 等） |
 
-启动流程：`postgres.New` → apply `schema.sql` → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖。详见 [Backend-配置架构.md](./Backend-配置架构.md) §5。计费相关 lot / `balance_point` 见 [Backend-计费模式.md](./Backend-计费模式.md)。
+启动流程：`postgres.New` → apply `schema.sql` → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖。详见 [Backend-配置架构.md](./Backend-配置架构.md) §5。计费相关 lot / `wallet_remain` 见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ---
 

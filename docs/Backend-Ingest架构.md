@@ -122,7 +122,7 @@ Ingest 靠 `logs.token_id` 反查 mapping。若 Rotate 换了 token 主键，旧
 ### 3.2 运行面：Gateway
 
 - 调用方只认识 TokenJoy 的 `/v1/*`。
-- Gateway 先做 Precheck（`LoadPrecheckContext` + `Evaluate`：企业状态、组织预算、钱包 `balance_point`、模型白名单、Key 状态），通过后 **反代** 到 NewAPI。**不读** NewAPI quota，不因 `wallet_sync` 滞后拒单。
+- Gateway 先做 Precheck（`LoadPrecheckContext` + `Evaluate`：企业状态、组织预算、钱包 `wallet_remain`、模型白名单、Key 状态），通过后 **反代** 到 NewAPI。**不读** NewAPI quota，不因 `wallet_sync` 滞后拒单。
 - Gateway **不负责入账**；入账发生在 NewAPI settle 之后。
 
 ### 3.3 结算面：Webhook + 直读日志库
@@ -225,7 +225,7 @@ flowchart LR
 | NewAPI | 通道 `quota` | NewAPI quota units |
 | Backend Ingest | 企业钱包 / 组织预算 | TokenJoy **point** |
 
-二者有取整差，靠 **wallet_sync**（debounce 入队 → River Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `balance_point` 一致。Gateway **不**因漂移或 pending sync 拒单；漂移由异步 `wallet_sync` 与对账冷路径消化。
+二者有取整差，靠 **wallet_sync**（debounce 入队 → River Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `wallet_remain` 一致。Gateway **不**因漂移或 pending sync 拒单；漂移由异步 `wallet_sync` 与对账冷路径消化。
 
 ### 5.4 账期对齐：发生月 vs 开账月（双轨）
 
@@ -274,7 +274,7 @@ flowchart TB
 | — | `project_member` sub 已用 | Σ 该人 project_member Key 的 `platform_key` consumed |
 | 批末 | `gateway_soft_*` + rebalance / overrun 入队 | Gateway 软缓存；部门触顶仅 notify |
 
-入账按 Platform Key `scope` 选择性写轴，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §4.6。
+入账按 Platform Key `scope` 选择性写轴，见 [Backend-预算.md](./Backend-预算.md) §2.2。
 
 看板 `usage_buckets` 由 `dashboard.Projector` 独立维护（Periodic fanout）。
 
@@ -443,7 +443,7 @@ flowchart TB
 | --- | --- | --- |
 | `LOG_DATABASE_URL` | — | 共享日志库；**Ingest 总开关** |
 | `NEW_API_WEBHOOK_SECRET` | — | Webhook + metrics 鉴权 |
-| `NEW_API_ENABLED` | `false` | 副作用入队 + Async Worker 消费 rebalance/overrun/wallet |
+| `NEW_API_ENABLED` | `false` | 副作用入队 + River Client（线 B）消费 rebalance/overrun/wallet |
 | `NEW_API_GATEWAY_ENABLED` | `false` | 挂载 `/v1` Gateway |
 | `WORKER_POLL_INTERVAL_SEC` | `5` | pending 消费间隔 |
 | `INGEST_RECONCILE_INTERVAL_SEC` | `300` | reconcile 间隔 |
@@ -475,7 +475,7 @@ flowchart TB
     GW[Gateway Precheck]
     ING[IngestService]
     IW[IngestWorker]
-    AW[Async Worker]
+    RC[River Client 线 B]
     MAIN[(主库)]
   end
 
@@ -498,7 +498,7 @@ flowchart TB
   IW --> ING
   ING --> LOGS
   ING --> MAIN
-  AW -->|wallet_sync / rebalance| ADM
+  RC -->|wallet_sync / rebalance| ADM
   API --> MAIN
 ```
 
@@ -509,8 +509,8 @@ flowchart TB
 | 这次调用 Raw 发生了什么？ | `newapi.logs` |
 | 企业账上记了多少、归因到谁？ | `usage_ledger` |
 | 本月预算用了多少？ | `budget_consumed`（开账月） |
-| 通道还能不能打？ | Gateway 预检（`balance_point` + snapshots）；NewAPI remain 为执行面派生 |
-| 企业还剩多少预付？ | Postgres `balance_point` / lots（NewAPI user quota 是派生缓存） |
+| 通道还能不能打？ | Gateway 预检（`wallet_remain` + snapshots）；NewAPI remain 为执行面派生 |
+| 企业还剩多少预付？ | Postgres `wallet_remain` / lots（NewAPI user quota 是派生缓存） |
 
 ---
 
@@ -596,5 +596,5 @@ flowchart TB
 - **通信** = 管理面 Admin API + 运行面 Gateway 反代 + 结算面 webhook/直读，三条线各司其职。  
 - **日志共享** = 独立日志库；NewAPI 写 `newapi.logs`，Backend 写 pending/cursor，并读 logs 入账。  
 - **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota（`pkg/newapiunits`）的 wallet_sync、发生月↔开账月双轨。  
-- **Worker** = **两个 goroutine**：IngestWorker（pending + reconcile）与 Async Worker（outbox / wallet / rebalance / overrun / org sync）并行。  
+- **Worker** = **两条异步线**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：线 A `infra/ingest.Worker`（pending + reconcile）与线 B `infra/river.Client`（`wallet_sync` / rebalance / overrun / org sync 等 River job）并行。  
 - **可靠** = webhook 求快 ACK，IngestWorker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。

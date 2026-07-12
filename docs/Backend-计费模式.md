@@ -57,7 +57,7 @@ flowchart LR
     end
 
     subgraph Point["Point 世界"]
-        P1[balance_point]
+        P1[wallet_remain]
         P2[budget limit / consumed]
         P3[usage_buckets.cost]
     end
@@ -75,7 +75,9 @@ flowchart LR
 | 世界 | 含义 | 典型存储 |
 | --- | --- | --- |
 | **Usage** | token / 次数；审计，不计价 | `usage_ledger.input_tokens` 等 |
-| **Point** | 内部统一货币；预算、Gateway、投影 | `balance_point`、`usage_ledger.amount`、`usage_buckets.cost` |
+| **Point** | 内部统一货币；预算、Gateway、投影 | `wallet_remain`、`usage_ledger.amount`、`usage_buckets.cost` |
+
+HTTP 响应字段为 `walletRemainPoint`（见 [Frontend.md](./Frontend.md) §5.9 · `api/billing.ts`）。
 | **Wallet（lot）** | 充值批次 + 展示币成本价 | `company_recharge_lots`、`usage_ledger.display_amount` |
 
 映射链：`Usage → Point →（FIFO 扣 lot）→ display_amount = points × unit_price_display`
@@ -89,7 +91,7 @@ flowchart TB
     subgraph SSOT["Postgres（资金真相）"]
         LOT[company_recharge_lots]
         LED[usage_ledger]
-        BP[companies.balance_point]
+        BP[companies.wallet_remain]
     end
 
     subgraph Derived["派生 / 缓存"]
@@ -123,13 +125,13 @@ flowchart TB
 
 | 能力 | SSOT | 派生 |
 | --- | --- | --- |
-| 企业可用 point | `Σ lot.points_remaining` / `companies.balance_point` | — |
+| 企业可用 point | `Σ lot.points_remaining` / `companies.wallet_remain` | — |
 | 展示币钱包闭合 | `company_recharge_lots`（`paid` + `adjust`） | — |
 | 单笔消耗 | `usage_ledger`（point + `display_amount`） | — |
 | 组织 consumed | `budget_consumed.consumed`（point） | — |
 | 看板 cost | `usage_buckets.cost`（point） | 展示币按需聚合 ledger |
-| Token 分配 | — | NewAPI `remain_quota`；rebalance 按 `balance_point` 封顶 |
-| Gateway 挡单 | Postgres `balance_point` + 组织预算（`LoadPrecheckContext` + `Evaluate`） | NewAPI 同步（冷路径，不挡预检） |
+| Token 分配 | — | NewAPI `remain_quota`；rebalance 按 `wallet_remain` 封顶 |
+| Gateway 挡单 | Postgres `wallet_remain` + 组织预算（`LoadPrecheckContext` + `Evaluate`） | NewAPI 同步（冷路径，不挡预检） |
 | NewAPI 企业 wallet | — | `wallet_sync` 从 Postgres 派生 |
 
 **不变量：**
@@ -140,7 +142,7 @@ flowchart TB
 ### 3.2 设计约束
 
 1. **Schema 即真相**：表结构以 `schema.sql` 为准；部署 wipe + seed，不做增量 `ALTER`/回填。
-2. **企业钱包权威**：Postgres `company_recharge_lots` + `balance_point`；NewAPI `users.quota` 仅为派生通道配额。
+2. **企业钱包权威**：Postgres `company_recharge_lots` + `wallet_remain`；NewAPI `users.quota` 仅为派生通道配额。
 3. **字段量纲**：`usage_ledger.amount`、`usage_buckets.cost`、`budget_consumed.consumed`、组织 `budget` 均为 **point**；钱包 API 展示币由 lot 成本价闭合。
 4. **生产路径**：`NEW_API_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
 
@@ -170,7 +172,7 @@ flowchart TB
         C2[rebalance → token remain_quota]
     end
 
-    Credit --> LOT[(lot + balance_point)]
+    Credit --> LOT[(lot + wallet_remain)]
     B1 --> GW[Gateway Precheck]
     GW -->|通过| B2
     B2 --> LOT
@@ -190,7 +192,7 @@ sequenceDiagram
     participant NA as NewAPI
 
     UI->>B: ConfirmRecharge / PlatformGift / PlatformAdjust
-    B->>PG: BEGIN → order + lot + balance_point → confirmed
+    B->>PG: BEGIN → order + lot + wallet_remain → confirmed
     B->>PG: enqueue wallet_sync（debounced）
     B->>PG: COMMIT
     Note over B,PG: 不等待 NewAPI；lot 落库即成立
@@ -215,7 +217,7 @@ sequenceDiagram
 
 - 每笔 lot 必有 1:1 `company_recharge_orders`。
 - **overdraft**：每企业至多一个 active lot；不足时累加 `points_granted/remaining`，不每次新建。
-- 新企业 `balance_point = 0`，无初始 lot；首笔充值或平台赠送后才有额度。
+- 新企业 `wallet_remain = 0`，无初始 lot；首笔充值或平台赠送后才有额度。
 
 ### 4.3 消耗：FIFO + overdraft
 
@@ -229,7 +231,7 @@ flowchart TD
     E -->|否| F[写 ledger 段 + 投影]
     E -->|是| G[扩展 overdraft lot]
     G --> F
-    F --> H[更新 balance_point / fifo_head]
+    F --> H[更新 wallet_remain / fifo_head]
     F --> I[enqueue wallet_sync debounced]
     F --> J[rebalance / overrun 副作用]
 ```
@@ -240,12 +242,12 @@ flowchart TD
 
 ### 4.4 Gateway 预检（纯 Postgres + 纯内存 Evaluate）
 
-全部比较单位为 **point**（展示币不参与挡单）。**不读 NewAPI**；读 `balance_point` 与 `platform_keys.gateway_soft_remain` + limit。`wallet_sync` 滞后不挡单；漂移由异步同步消化。
+全部比较单位为 **point**（展示币不参与挡单）。**不读 NewAPI**；读 `wallet_remain` 与 `platform_keys.gateway_soft_remain` + limit。`wallet_sync` 滞后不挡单；漂移由异步同步消化。
 
 | # | 检查 | 数据源 |
 | --- | --- | --- |
 | 1 | 企业 active | `LoadPrecheckContext` → `companies.status` |
-| 2 | `balance_point ≥ estimate` | 同左（投影列 O(1)） |
+| 2 | `wallet_remain ≥ estimate` | 同左（投影列 O(1)） |
 | 3 | 组织预算 min 轴（dept / key / member / group） | snapshots + limit，一次 SQL 带出 |
 | 4 | Key `status = active` | `platform_keys` |
 | 5 | 模型白名单（有配置时） | `model_allowlist` + `models.type` |
@@ -267,7 +269,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    ING[ingest 扣 balance_point] --> TX[InsertTx wallet_sync]
+    ING[ingest 扣 wallet_remain] --> TX[InsertTx wallet_sync]
     TX --> U[Unique 5s 同 company 合并]
     U --> W[WalletSyncWorker TopUp delta]
     W --> NA[NewAPI users.quota]
@@ -275,10 +277,10 @@ flowchart LR
 ```
 
 1. ingest / 充值后 `InsertTx(wallet_sync)`；`Unique ByPeriod: 5s`（等同现网 debounce 语义）。
-2. `target = ToQuotaUnits(balance_point, modelPriceUpper)` → `TopUp(delta)`。
-3. 定时对账：`|FromQuotaUnits(na) − balance_point| > ε` → 入队 sync。
+2. `target = ToQuotaUnits(wallet_remain, modelPriceUpper)` → `TopUp(delta)`。
+3. 定时对账：`|FromQuotaUnits(na) − wallet_remain| > ε` → 入队 sync。
 
-> Gateway 预检读 `balance_point` 与 `gateway_soft_remain`；不因 pending sync 或漂移拒单。
+> Gateway 预检读 `wallet_remain` 与 `gateway_soft_remain`；不因 pending sync 或漂移拒单。
 
 ---
 
@@ -297,7 +299,7 @@ erDiagram
         bigint id PK
         char billing_currency
         text fifo_head_lot_id
-        numeric balance_point
+        numeric wallet_remain
     }
     company_recharge_lots {
         text id PK
@@ -336,7 +338,7 @@ totalConsumed(c)  = totalTopup(c) − balance(c)
 
 ```text
 Σ lot.points_granted − Σ ledger.amount = Σ lot.points_remaining
-balance_point = Σ lot.points_remaining
+wallet_remain = Σ lot.points_remaining
 ```
 
 ### 5.4 lot_kind 与展示币
@@ -391,7 +393,7 @@ amount_display = points_granted / PPU(billing_currency)   // paid lot
 | 4 | 投影同事务 | ledger → snapshots / buckets |
 | 5 | 幂等 | `(company_id, idempotency_key, lot_id)` |
 | 6 | FIFO 原子 | lot 扣减与 ledger 同事务 |
-| 7 | 通道校准 | sync 后 NewAPI 与 `balance_point` 在 ε 内 |
+| 7 | 通道校准 | sync 后 NewAPI 与 `wallet_remain` 在 ε 内 |
 
 ### 6.3 边界行为
 
@@ -420,11 +422,11 @@ domain/usage/
   ingest.go           事务：分配 lot → InsertSegments → 投影 → enqueue sync
 
 domain/gateway/
-  precheck.go         LoadPrecheckContext + Evaluate（balance_point + 预算 + allowlist）
+  precheck.go         LoadPrecheckContext + Evaluate（wallet_remain + 预算 + allowlist）
   gateway_service.go  Retry-After 透传
 
 domain/budget/
-  rebalance.go        按 balance_point 封顶 NewAPIKey remain_quota
+  rebalance.go        按 wallet_remain 封顶 NewAPIKey remain_quota
 
 store/postgres/
   billing_repo.go     lot CRUD、AggregateWallet、ExpandOverdraftLot
@@ -498,12 +500,12 @@ go test -tags=testhook ./tests/store/postgres/... -run WalletSync
 
 | 场景 | 数据源 |
 | --- | --- |
-| Gateway / 超限 | `balance_point` + `budget_consumed` |
+| Gateway / 超限 | `wallet_remain` + `budget_consumed` |
 | 看板 | `usage_buckets.cost` |
 | 钱包展示币 | `company_recharge_lots` 聚合 |
 | 财务时段 | `usage_ledger.display_amount` + 时间范围 |
 
-优化优先级：`balance_point` 缓存 → `fifo_head_lot_id` → lot FIFO 索引 → ledger 分区索引。
+优化优先级：`wallet_remain` 缓存 → `fifo_head_lot_id` → lot FIFO 索引 → ledger 分区索引。
 
 ---
 

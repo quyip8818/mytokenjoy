@@ -58,13 +58,13 @@ flowchart LR
 
 | 轴 | 权威数据 | 管什么 | 谁改 |
 | --- | --- | --- | --- |
-| **企业钱包** | 充值 lot、`balance_point` | 预付资金硬上限（point） | 充值确认 → 异步同步 NewAPI |
+| **企业钱包** | 充值 lot、`wallet_remain` | 预付资金硬上限（point） | 充值确认 → 异步同步 NewAPI |
 | **组织预算** | 组织树 limit + `budget_consumed` | 部门 / 成员 / Key / 组的花费与上限 | 控制台写 limit；Projector 异步累加 consumed |
 
 ```mermaid
 flowchart TB
   subgraph wallet [钱包轴]
-    LOT[充值 lot] --> BAL[balance_point]
+    LOT[充值 lot] --> BAL[wallet_remain]
     BAL -.-> NA_W[NewAPI users.quota]
   end
 
@@ -85,7 +85,7 @@ flowchart TB
 **约定：**
 
 - 充值**只涨钱包**，不自动涨部门 `budget`。
-- **limit** 在组织树、成员、Key、项目；**consumed** 只在 `budget_consumed`（三轴 × 账期；`project_member` 见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)）。
+- **limit** 在组织树、成员、Key、项目；**consumed** 只在 `budget_consumed`（三轴 × 账期；`project_member` sub 已用见 `pkg/budget/chain.go`）。
 - API 返回的 `consumed` 为当前账期从快照合并的视图，不是 Key 表上的持久列。
 
 ---
@@ -180,7 +180,7 @@ flowchart TB
 | 改成员额度 | ≥ 已分配给 Key 的配额之和；部门内总和 ≤ capacity |
 | 建 Key（成员） | budget ≤ 成员剩余可分配 |
 | 建 Key（项目） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget（含 `project_member`） |
-| 建 Key（项目成员） | roster + `member_budget > 0`；budget ≤ sub 剩余；见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) |
+| 建 Key（项目成员） | roster + `member_budget > 0`；budget ≤ sub 剩余；见 `pkg/budget/scope_validate.go` |
 | 改项目成员子额度 | `PUT /api/budget/projects/{id}` · `memberBudgets`；须属于 roster |
 | 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_budget` |
 
@@ -240,7 +240,7 @@ sequenceDiagram
 
 **Gateway 预检（同步）** — 全部通过才代理（单位 point）；1× `LoadPrecheckContext` + 纯内存 `Evaluate`：
 
-| scope | 公式（与 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §1 一致） |
+| scope | 公式（与 [预算分配与扣减.md](./预算分配与扣减.md) §14 一致） |
 | --- | --- |
 | `member` | `min(key, personal, wallet)` — **不含**未分配/预留池/部门报表 |
 | `project` | `min(key, project, wallet)` |
@@ -249,11 +249,11 @@ sequenceDiagram
 | 检查 | 数据 |
 | --- | --- |
 | 企业 active | `companies.status` |
-| 钱包 ≥ 预估 | `balance_point` |
+| 钱包 ≥ 预估 | `wallet_remain` |
 | Key / personal / 项目未超 | `gateway_soft_remain` + limit（`LoadPrecheckContext`） |
 | 模型与 Key 状态 | allowlist、`platform_keys.status` |
 
-NewAPI quota 与 `wallet_sync` **不参与**热路径预检；Gateway 读 Postgres `balance_point` 与 `gateway_soft_*`；漂移由异步 `wallet_sync` 与对账消化。
+NewAPI quota 与 `wallet_sync` **不参与**热路径预检；Gateway 读 Postgres `wallet_remain` 与 `gateway_soft_*`；漂移由异步 `wallet_sync` 与对账消化。
 
 ---
 
@@ -345,7 +345,7 @@ flowchart LR
 
 去重：`dedupe_key = axis_kind:axis_id`。
 
-**候选最小值（point）：** `GatewayChainRemain` 按 key `scope` 计算 remain → 换 NewAPI 单位，并以 `balance_point` 作企业硬顶。不再按部门 org_node consumed 封顶。
+**候选最小值（point）：** `GatewayChainRemain` 按 key `scope` 计算 remain → 换 NewAPI 单位，并以 `wallet_remain` 作企业硬顶。不再按部门 org_node consumed 封顶。
 
 ---
 
@@ -392,7 +392,7 @@ sequenceDiagram
   participant NA as NewAPI
 
   U->>B: 创建并确认订单
-  B->>DB: lot + balance_point
+  B->>DB: lot + wallet_remain
   B->>DB: wallet_sync 入队
   B->>NA: TopUp / SetUserQuota
   B->>DB: company 轴 rebalance 入队
@@ -411,7 +411,7 @@ sequenceDiagram
 | 成员本账期已用 | `budget_consumed` member 轴 |
 | 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key budget |
 | NewAPIKey 可用上限 | 上列候选取 min → 换 NewAPI 单位 |
-| 企业硬顶 | Σ NewAPIKey remain ≤ balance_point 对应通道配额 |
+| 企业硬顶 | Σ NewAPIKey remain ≤ wallet_remain 对应通道配额 |
 
 ---
 

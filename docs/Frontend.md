@@ -143,7 +143,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
 | 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
-**`platform_keys` 字段分层：** 持久化 `scope` / `member_id` / `project_id`；响应 enrich `member_name` / `project_name` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)。
+**`platform_keys` 字段分层：** 持久化 `scope` / `member_id` / `project_id`；响应 enrich `member_name` / `project_name` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。见 [Backend-存储架构.md](./Backend-存储架构.md) · 本文 §5.5。
 
 **`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。新库 `schema.sql` 已含全量 DDL。
 
