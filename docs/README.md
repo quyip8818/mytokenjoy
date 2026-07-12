@@ -7,7 +7,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | 用途 | 文档 |
 | --- | --- |
 | 工程待办（上线前 fix / 功能 / 门禁） | **[plan.md](./plan.md)** |
-| 架构现状 | [Backend.md](./Backend.md) 及子文档、[架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md)、[架构简化方案.md](./架构简化方案.md)、[架构简化-分阶段详解.md](./架构简化-分阶段详解.md)、[架构简化-Phase2详解.md](./架构简化-Phase2详解.md)、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
+| 架构现状 | [Backend.md](./Backend.md) 及子文档、[Backend-结构优化.md](./Backend-结构优化.md)、[架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md)、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
 | 产品差距 | [Roadmap.md](./Roadmap.md)、[PRD-差距分析.md](./PRD-差距分析.md) |
 | 产品需求（只读权威） | [PRD.md](./PRD.md) |
 
@@ -23,21 +23,18 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend.md](./Backend.md) | 后端 | 索引：SaaS、运行、Gateway、Keys、Seed、测试 |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
+| [Backend-结构优化.md](./Backend-结构优化.md) | 后端 / 架构 | 结构基线与剩余分层债务 |
 | [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析 |
-| [架构简化方案.md](./架构简化方案.md) | 架构 / 后端 | 未上线演进蓝图：/v1 约束 + Phase 1–5 |
-| [架构简化-分阶段详解.md](./架构简化-分阶段详解.md) | 架构 / 后端 | 各 Phase 图解 + 例子：干什么、为什么 |
-| [架构简化-Phase2详解.md](./架构简化-Phase2详解.md) | 架构 / 后端 / DBA | Phase 2 专篇：表结构变更、Ingest 写路径、例子 |
-| [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md) | 架构 / 后端 | **已基本落地**：异步预算投影 + 离线任务 |
-| [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | **现状**：Ingest + River 两条线、13 kind、入队与 Worker |
-| [Backend-River实现.md](./Backend-River实现.md) | 后端 | River 基础设施（Schema、Unique、队列、可观测 SQL）— **已落地** |
+| [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | Ingest + River 两条线、13 kind、入队与 Worker |
+| [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定 |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
-| [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、Ingest、Rebalance、Overrun |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
-| [Backend-测试优化.md](./Backend-测试优化.md) | 后端 / 测试 | coverage + 速度优化；PR1/PR2 完成、PR3 规格 §12 |
+| [Backend-测试优化.md](./Backend-测试优化.md) | 后端 / 测试 | coverage + 速度优化 |
 | [工程收口.md](./工程收口.md) | 研发 / 架构 | 后端、前端、NewAPI 待收口项（按优先级） |
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
+| [架构终态设计.md](./架构终态设计.md) | 架构 | 目标架构与域边界 |
 
 ### 归档笔记（非权威 backlog）
 
@@ -47,22 +44,20 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 
 ## 契约优先级
 
-1. API 路径与 JSON → [Frontend.md](./Frontend.md) §5 + `apps/frontend/src/api/types/`（部分计费类型内联于 `api/billing.ts` 等域客户端）
+1. API 路径与 JSON → [Frontend.md](./Frontend.md) §5 + `apps/frontend/src/api/types/`
 2. 后端类型 → `apps/backend/internal/domain/types/`
 3. 业务规则 → 各 domain `Service` 实现
 4. 工程待办 → [plan.md](./plan.md)
 5. 产品差距 → [Roadmap.md](./Roadmap.md)
 
-## Backlog 分工（避免重复维护）
+## Backlog 分工
 
 | 文档 | 写什么 | 不写什么 |
 | --- | --- | --- |
 | [plan.md](./plan.md) | 上线前 fix、联调门禁、发布验收 | 产品级长期 ❌（见 Roadmap） |
 | [工程收口.md](./工程收口.md) | 架构/联调/边界类未完成项 | 日常功能 backlog |
 | [Roadmap.md](./Roadmap.md) | PRD vs 实现差距状态 | 具体工程步骤 |
-| [reviews/](./reviews/) | 一次性审计笔记（如安全评估） | 活跃 backlog |
-
-已完成的一次性计划（如 `budget-audit-fix-plan.md`、agent `superpowers/` 草案）按约定删除，未竟项并入 `plan.md` 或 `工程收口.md`。
+| [reviews/](./reviews/) | 一次性审计笔记 | 活跃 backlog |
 
 ## 常用命令
 
@@ -75,7 +70,6 @@ pnpm test             # 前端 Vitest + 后端 go test（需 PostgreSQL）
 pnpm test:e2e         # 前端 Playwright E2E
 pnpm start:newapi      # 完整 NewAPI 栈（Postgres + Redis + new-api）
 
-# 后端测试分层（详见 Backend-测试优化.md）
 cd apps/backend && make test-fast    # 仅 tests/pkg/...，无 Postgres
 cd apps/backend && make test-unit    # 全量 go test（需 pnpm start:postgres）
 ```

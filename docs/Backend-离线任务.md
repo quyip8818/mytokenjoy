@@ -1,16 +1,15 @@
 # Backend · 离线任务（现状）
 
 > **定位**：离线任务 **as-built** 说明——当前代码如何实现、从哪入队、谁消费。  
-> **基础设施细节**（Schema、Unique、`InsertInTx` 约定）：[Backend-River实现.md](./Backend-River实现.md)  
-> **投影实现与剩余验收**：[Backend-预算.md](./Backend-预算.md)  
-> **入账快路径**：[Backend-Ingest架构.md](./Backend-Ingest架构.md)  
-> **预算投影域**：[Backend-预算.md](./Backend-预算.md)、[Backend-离线任务.md](./Backend-离线任务.md)
+> **Schema / Unique / 事务入队**：`internal/infra/jobs/`（`args.go`、`enqueue.go`）、`store/tx.go`  
+> **投影实现**：[Backend-预算.md](./Backend-预算.md)  
+> **入账快路径**：[Backend-Ingest架构.md](./Backend-Ingest架构.md)
 
 ---
 
 ## 1. 运行时概览
 
-进程内 **两条异步线**，无 `async_jobs`、无 poll `Runner`：
+进程内 **两条异步线**，队列为 `river_job`：
 
 ```text
 cmd/server
@@ -60,17 +59,24 @@ flowchart TB
 | **river workers** | `internal/infra/river/workers` | 薄壳：`Work()` → 调 domain 一个方法 |
 | **river client** | `internal/infra/river` | Client 装配、Periodic、队列权重 |
 
-Domain 入队只依赖 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），见 [Backend-River实现.md §3](./Backend-River实现.md#3-事务入队不泄漏-pgx-到-domain)。
+Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/*_enqueuer.go`）；底层统一 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），domain 不 import `pgx`。
 
-### 2.1 Holder 装配顺序
+### 2.1 Holder 与域端口
 
-Registry 阶段 domain 服务已构造，但 River Client 尚未就绪，因此：
+`jobs.Holder` **仅用于 bootstrap**：River Client 未就绪前占位 `NoopEnqueuer`，避免 nil。Client 启动后 `holder.Set(client.Enqueuer)`。
 
-1. `jobs.NewHolder(NoopEnqueuer)` — 占位，避免 nil
-2. domain / billing / ingest / newapisync 注入 `*jobs.Holder`（实现 `Enqueuer`）
-3. `river.NewClient` 成功后 `holder.Set(client.Enqueuer)`
+**业务入队走域端口**，不直接依赖 Holder：
 
-代码：`internal/infra/jobs/holder.go`、`wire_river.go`。
+| 域 | 端口 | 适配器 |
+| --- | --- | --- |
+| billing | `billing.JobEnqueuer` | `app/billing_enqueuer.go` |
+| budget | `budget.JobEnqueuer` | `app/budget_enqueuer.go` |
+| usage | `usage.IngestJobEnqueuer` | `app/usage_enqueuer.go` |
+| dashboard | `dashboard.JobEnqueuer` | `app/dashboard_enqueuer.go` |
+| newapisync | `newapisync.SyncJobEnqueuer` | `app/newapisync_enqueuer.go` |
+| org-remote | `remote.JobEnqueuer` | `app/org_enqueuer.go` |
+
+代码：`internal/infra/jobs/holder.go`、`wire_river.go`、`wire_domain_services.go`。
 
 `RIVER_ENABLED=false` 时 Holder 保持 `NoopEnqueuer`（`Insert` 返回 `nil`，**不入队**）。
 
@@ -118,7 +124,7 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 | 来源 | kind | 说明 |
 | --- | --- | --- |
 | `budget.Projector.RunBatch` | `rebalance`、`overrun` | 批末 side effect；批未跑完时自续 `budget_project` |
-| `billing.afterRecharge` | `wallet_sync`、`rebalance`（company 轴） | 经 `wire_helpers` 注入的 enqueue 函数；失败 `slog.Warn`，不阻断充值 |
+| `billing.afterRecharge` | `wallet_sync`、`rebalance`（company 轴） | 经 `billing.JobEnqueuer`（`app/billing_enqueuer.go`）；失败 `slog.Warn`，不阻断充值 |
 | `billing.ReconcileWalletDrift` | `wallet_sync` | ingest Worker 周期调用；失败 Warn |
 | `budget.ReconcileService.RunCompany` | `rebalance`（company 轴） | reconcile 修复 drift 后 |
 | `newapisync/lifecycle_*.go` | `newapi_sync` | Create/Update Key、Provider、ModelLimits；**当前非** DB 同事务 |
@@ -201,7 +207,7 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 
 Fanout 模式：Periodic 只入队 **1 条** fanout job → worker 扫全 active company 并批量 `Insert` 子 job。
 
-Leader 选举与漏 tick 说明见 [Backend-River实现.md §6、§8](./Backend-River实现.md)。
+Leader 选举与 Periodic 漏 tick：见 `internal/infra/river/periodic.go`、`river_leader` 表。
 
 ---
 
@@ -239,10 +245,10 @@ Leader 选举与漏 tick 说明见 [Backend-River实现.md §6、§8](./Backend-
 
 ## 9. 存储与运维
 
-- 表：`river_job`、`river_leader`、`river_queue`、`river_migration` 等，合入 `schema.sql`（wipe 部署，无 runtime migrate-up）
+- 表：`river_job`、`river_leader`、`river_queue`、`river_migration` 等，合入 `schema.sql`
 - 投影进度：`budget_projection_progress`、`dashboard_projection_progress`
 - 保留 `scheduler_locks`：Ingest reconcile（`ingest_reconcile`）、org 同步 per-tenant（`org_sync:{company_id}`）；与 River leader 无关
-- 运维 SQL（队列深度、discarded、按 tenant）：[Backend-River实现.md §7](./Backend-River实现.md#7-可观测首版-sql)
+- 运维 SQL（队列深度、discarded、按 tenant）：查 `river_job` + `store.RiverJobView`；Unique 定义见 `infra/jobs/args.go`
 - 测试查 job：`store.RiverJobView` + `postgres/log_testhook.go`（`-tags=testhook`）
 
 ---
@@ -268,28 +274,32 @@ Leader 选举与漏 tick 说明见 [Backend-River实现.md §6、§8](./Backend-
 
 ```text
 internal/
-  app/wire_river.go              # 装配 ingest + river；Holder.Set；budget.Async / dashboard 注入
-  app/wire_helpers.go            # billing enqueue 闭包
-  config/river.go                # RIVER_* env；fanout 间隔常量
-  domain/usage/ingest.go         # 事务内 budget_project + wallet_sync
-  domain/budget/async.go         # Projector + ReconcileService 装配
+  app/wire_river.go              # 装配 ingest + river；Holder.Set
+  app/billing_enqueuer.go        # billing.JobEnqueuer
+  app/budget_enqueuer.go           # budget.JobEnqueuer
+  app/usage_enqueuer.go            # usage.IngestJobEnqueuer
+  app/dashboard_enqueuer.go        # dashboard.JobEnqueuer
+  app/newapisync_enqueuer.go       # newapisync.SyncJobEnqueuer
+  app/org_enqueuer.go              # remote.JobEnqueuer
+  config/river.go                  # RIVER_* env；fanout 间隔常量
+  domain/usage/ingest.go           # 事务内 budget_project + wallet_sync
   domain/budget/budget_projector.go
   domain/budget/budget_reconcile.go
   domain/budget/monthly_rebalance.go
   domain/dashboard/dashboard_projector.go
   domain/dashboard/dashboard_reconcile.go
   domain/billing/wallet_sync.go
-  domain/billing/lot_confirm.go  # afterRecharge
-  domain/org/remote/sync.go         # 同步、fanout、锁
+  domain/billing/lot_confirm.go    # afterRecharge → JobEnqueuer
+  domain/org/remote/sync.go        # 同步、fanout、锁
   domain/newapisync/lifecycle_*.go
-  infra/jobs/                    # Enqueuer, Holder, Args, enqueue.go
-  infra/river/client.go          # registerWorkers, queueConfig
+  infra/jobs/                      # Enqueuer, Holder, Args, enqueue.go
+  infra/river/client.go            # registerWorkers, queueConfig
   infra/river/periodic.go
   infra/river/workers/*.go
-  infra/ingest/worker.go         # 线 A
-  store/tx.go                    # store.Tx 窄接口
-  store/postgres/tx.go           # txStore + WithTx
-  store/river_job_view.go        # 测试读 job
+  infra/ingest/worker.go           # 线 A
+  store/tx.go                      # store.Tx 窄接口
+  store/postgres/tx.go             # txStore + WithTx
+  store/river_job_view.go          # 测试读 job
 ```
 
 ---
@@ -298,8 +308,6 @@ internal/
 
 | 文档 | 内容 |
 | --- | --- |
-| [Backend-River实现.md](./Backend-River实现.md) | Schema、Unique 映射、队列、失败恢复 |
 | [Backend-架构.md](./Backend-架构.md) §7 | 后台运行时、NewAPISync 与 Worker 关系 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest |
-| [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md) | 异步预算投影、离线任务（已基本落地） |
-| [Backend-预算.md](./Backend-预算.md) | 预算域设计 |
+| [Backend-预算.md](./Backend-预算.md) | 预算域、`budget_consumed` 异步投影 |

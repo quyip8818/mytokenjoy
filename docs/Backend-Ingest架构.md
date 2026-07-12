@@ -147,7 +147,8 @@ flowchart TB
     RM[platform_key_mappings]
     UL[usage_ledger]
     UB[usage_buckets]
-    BS[budget_snapshots]
+    BC[budget_consumed]
+    GS[gateway_soft_*]
     RJ[river_job]
   end
 
@@ -224,7 +225,7 @@ flowchart LR
 | NewAPI | 通道 `quota` | NewAPI quota units |
 | Backend Ingest | 企业钱包 / 组织预算 | TokenJoy **point** |
 
-二者有取整差，靠 **wallet_sync**（debounce 入队 → Async Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `balance_point` 一致。Gateway **不再**因漂移或 pending sync 拒单（Phase 1）；漂移由异步同步与对账冷路径消化（见 [架构简化方案.md](./架构简化方案.md) Phase 3）。
+二者有取整差，靠 **wallet_sync**（debounce 入队 → River Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `balance_point` 一致。Gateway **不**因漂移或 pending sync 拒单；漂移由异步 `wallet_sync` 与对账冷路径消化。
 
 ### 5.4 账期对齐：发生月 vs 开账月（双轨）
 
@@ -233,10 +234,10 @@ flowchart LR
 | 写入目标 | 用哪个月 | 含义 |
 | --- | --- | --- |
 | `usage_ledger.period_key` | **发生时间** `OccurredAt` | 审计「这笔调用发生在哪个月」 |
-| `budget_snapshots`（Apply） | **当前开账月** `Clock` | 门禁与预算树「扣在哪本打开的账上」 |
+| `budget_consumed`（Projector） | **当前开账月** `Clock` | 门禁与预算树「扣在哪本打开的账上」 |
 | `usage_buckets` | 发生时间 | 看板趋势跟真实发生时刻 |
 
-Ingest 是 **唯一双写点**：只有入账路径同时碰发生轨与开账轨。细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
+Ingest **只写 ledger + lot + 入队**；`budget_consumed` 由 River `budget_project` → `budget.Projector` 异步写入。开账轨与发生轨细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
@@ -256,22 +257,26 @@ flowchart TB
   G -->|新账| H[enforceBudgetCap]
   H --> I[AllocateConsumptionLots FIFO]
   I --> J[InsertSegments]
-  J --> K[Apply 投影]
-  K --> L[enqueueSideEffects]
-  L --> M[enqueueWalletSync debounce]
+  J --> K[InsertTx budget_project + wallet_sync]
+  K --> Z2[返回成功]
 ```
 
-### 6.1 投影写什么（`projection.Apply`）
+**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、入队 `budget_project` + `wallet_sync`。  
+`budget_consumed`、`gateway_soft_*`、`usage_buckets` 均由异步 Projector 写入（见 [Backend-离线任务.md](./Backend-离线任务.md)）。
+
+### 6.1 预算投影（`budget.Projector`，异步）
 
 | 步骤 | 目标 | 作用 |
 | --- | --- | --- |
-| 1 | `budget_snapshots` · platform_key | Key 已用 |
-| 2 | `budget_snapshots` · budget_group | 若挂组 |
-| 3 | `budget_snapshots` · member | 若挂成员 |
-| 4 | `budget_snapshots` · org_node 祖先 rollup | 部门树向上累加 |
-| 5 | `usage_buckets` | 小时桶 × 部门 × 成员 × 模型 |
+| 1 | `budget_consumed` · platform_key | Key 已用 |
+| 2 | `budget_consumed` · budget_group | 若挂组 |
+| 3 | `budget_consumed` · member | 若可归因成员 |
+| 4 | `budget_consumed` · org_node 祖先 rollup | 部门树向上累加 |
+| 批末 | `gateway_soft_*` + rebalance / overrun 入队 | Gateway 软缓存 |
 
-**事实 SSOT** 是 `usage_ledger`；snapshots / buckets 是同事务投影，供预检、预算树、看板快速读取。
+看板 `usage_buckets` 由 `dashboard.Projector` 独立维护（Periodic fanout）。
+
+**事实 SSOT** 是 `usage_ledger`；`budget_consumed` / buckets / gateway_soft 均为可重建投影。
 
 ### 6.2 读路径分离（入账后谁读什么）
 
@@ -280,13 +285,14 @@ flowchart TB
 | 审计调用列表 | `usage_ledger` |
 | 分钟级趋势（≤3h） | `usage_ledger` 聚合 |
 | 小时/天看板 | `usage_buckets` |
-| 预算树 consumed / Gateway 预检 | `budget_snapshots`（开账月） |
+| Gateway 预检 | `gateway_soft_remain` + limit（开账月） |
+| 预算树 consumed | `budget_consumed`（开账月） |
 
 控制台 **不会** 为了展示再去扫 NewAPI logs。
 
 ### 6.3 入账后副作用
 
-> 目标态见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。入队统一为 River `Insert` / `InsertTx` → `river_job`。
+见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。入队统一为 River `Insert` / `InsertTx` → `river_job`。
 
 | 副作用 | 条件 | River kind |
 | --- | --- | --- |
@@ -298,7 +304,7 @@ flowchart TB
 
 ---
 
-## 7. 后台运行时（目标态）
+## 7. 后台运行时
 
 **两条线、两个包**（详见 [Backend-离线任务.md](./Backend-离线任务.md) §1）：
 
@@ -500,7 +506,7 @@ flowchart TB
 | --- | --- |
 | 这次调用 Raw 发生了什么？ | `newapi.logs` |
 | 企业账上记了多少、归因到谁？ | `usage_ledger` |
-| 本月预算用了多少？ | `budget_snapshots`（开账月） |
+| 本月预算用了多少？ | `budget_consumed`（开账月） |
 | 通道还能不能打？ | Gateway 预检（`balance_point` + snapshots）；NewAPI remain 为执行面派生 |
 | 企业还剩多少预付？ | Postgres `balance_point` / lots（NewAPI user quota 是派生缓存） |
 

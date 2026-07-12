@@ -60,7 +60,7 @@ flowchart TB
 | --------------------------- | -------------------------------------------------------------------- |
 | 部门 + 节点预算 + 路由      | `org_nodes`（HTTP 投影 `Department` / `BudgetNode` / `RoutingRule`） |
 | 平台 Key 归因               | `platform_keys`；`platform_key_mappings` 仅同步状态                         |
-| 消耗 SSOT / 看板 / 预检缓存 | `usage_ledger` / `usage_buckets` / `budget_snapshots`                |
+| 消耗 SSOT / 看板 / Gateway 软缓存 | `usage_ledger` / `usage_buckets` / `budget_consumed` + `gateway_soft_*` |
 | 企业钱包余额                | SSOT：`company_recharge_lots` / `balance_point`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_user_id`） |
 | SaaS 上游 Key               | 全局 `provider_keys`（无 `company_id`）                              |
 
@@ -80,10 +80,10 @@ flowchart TB
 | 接口                                                  | 主表                                                                      |
 | ----------------------------------------------------- | ------------------------------------------------------------------------- |
 | `Org()` / `Nodes()`                                   | `org_nodes`, `members`, `roles`, `permissions`, `org_integration`, …      |
-| `Budget()`                                            | `budget_groups`, `budget_snapshots`, `alert_rules`, `budget_approvals`, … |
+| `Budget()`                                            | `budget_groups`, `budget_consumed`, `alert_rules`, `budget_approvals`, … |
 | `Keys()`                                              | `provider_keys`, `platform_keys`, `key_approvals`                         |
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
-| `Ledger()` / `Usage()` / `BudgetSnapshots()`          | `usage_ledger`, `usage_buckets`, `budget_snapshots`                       |
+| `Ledger()` / `Usage()` / `BudgetConsumed()`           | `usage_ledger`, `usage_buckets`, `budget_consumed`                       |
 | `PlatformKeyMappings()`               | `platform_key_mappings`                                                     |
 | River `Insert` / `InsertTx`（经 `river.Client`） | `river_job` 等 River 表；见 [Backend-离线任务.md](./Backend-离线任务.md) |
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                        |
@@ -127,7 +127,7 @@ erDiagram
 | 列组 | 字段                                                         | 读写入口                                        |
 | ---- | ------------------------------------------------------------ | ----------------------------------------------- |
 | 树   | `id`, `parent_id`, `path`, `name`, `manager_id`              | `Org().Nodes()`                                 |
-| 预算 | `budget`, `reserved_pool`, `period`                          | `budget.Service`；consumed → `budget_snapshots` |
+| 预算 | `budget`, `reserved_pool`, `period`                          | `budget.Service`；consumed → `budget_consumed` |
 | 路由 | `default_model_id`, `fallback_model_id`, `routing_inherited` | `models.Service`；白名单 → `model_allowlist`（`model_id`）；管理 API 读写 `modelId[]`，读路径 enrich `ModelRef` |
 
 ### 密钥与 NewAPI 映射
@@ -146,7 +146,7 @@ flowchart LR
 
 ### `river_job`（离线任务）
 
-> 目标态；替代现网 `async_jobs`。业务见 [Backend-离线任务.md](./Backend-离线任务.md)；Schema / Unique 见 [Backend-River实现.md](./Backend-River实现.md)。
+业务见 [Backend-离线任务.md](./Backend-离线任务.md)；Schema / Unique 见 `internal/infra/jobs/args.go`。
 
 | kind（`JobArgs.Kind()`） | Worker | 队列 |
 | --- | --- | --- |
@@ -165,7 +165,7 @@ flowchart LR
 
 ## 5. 用量与入账
 
-> 目标态：Ingest 只写 ledger + River `InsertTx`；看板 / consumed 由异步投影写入。见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
+Ingest 只写 ledger + River `InsertTx`；看板 / consumed 由异步投影写入。见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
 
 ```mermaid
 flowchart LR
@@ -196,7 +196,7 @@ flowchart LR
 
 ### 主库
 
-> 现网约 37 张；目标态 wipe 后：`budget_snapshots` → `budget_consumed` + progress 表；`async_jobs` → River 表（见 [Backend-River实现.md](./Backend-River实现.md) §2）。
+主库约 37 张表；预算 consumed 在 `budget_consumed` + `budget_projection_progress`；离线队列为 River 表（`river_job` 等）。
 
 | 域     | 表                                                                                                                                                                      |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -258,7 +258,7 @@ flowchart LR
   end
 
   subgraph spend [累计 consumed]
-    BS[(budget_snapshots.consumed point)]
+    BS[(budget_consumed point)]
     UL[(usage_ledger.amount point)]
     LOT[(company_recharge_lots)]
   end
@@ -270,7 +270,7 @@ flowchart LR
     W[wallet display currency]
   end
 
-  ING[Ingest] --> BS & UL & LOT
+  ING[Ingest + Projector] --> BS & UL & LOT
   BS --> C & U
   assign --> R
   BS --> R
@@ -282,9 +282,9 @@ flowchart LR
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
 | **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 NewAPIKey remain |
-| **组织预算** | `org_nodes.budget` · `personal_budget` · `budget_groups.budget` · `platform_keys.budget`（均为 point） | **`budget_snapshots.consumed`**（四轴，point） | Gateway 预检、预算树、Overrun        |
+| **组织预算** | `org_nodes.budget` · `personal_budget` · `budget_groups.budget` · `platform_keys.budget`（均为 point） | **`budget_consumed`**（四轴，point） | Gateway 预检（`gateway_soft_*`）、预算树、Overrun        |
 
-组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_snapshots` 是 consumed 的存储 SSOT。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
+组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_consumed` 是 consumed 的存储 SSOT。Gateway 热路径读 `platform_keys.gateway_soft_remain`（Projector 批末刷新）。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ### 8.3 字段对照（代码名 → 统一词）
 
@@ -296,10 +296,10 @@ flowchart LR
 | **limit**     | `platform_keys.budget`                                              | 平台 Key                            | Key 分配额                                    |
 | **limit**     | `companies.balance_point` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
 | **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | NewAPIKey                           | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
-| **consumed**  | `budget_snapshots.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |
+| **consumed**  | `budget_consumed.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |
 | **consumed**  | `usage_ledger.amount`                                              | 单笔调用                            | 事实账本（point）                             |
 | **consumed**  | `usage_buckets.cost`                                               | 看板聚合                            | 展示投影（point）                             |
-| **consumed**  | JSON `consumed`                                                    | `BudgetNode` · `Department` · 看板  | 读自 snapshot                                 |
+| **consumed**  | JSON `consumed`                                                    | `BudgetNode` · `Department` · 看板  | 读自 `budget_consumed`                                 |
 | **consumed**  | JSON `used`                                                        | `PlatformKey` · `MemberBudgetQuota` | **与 consumed 同义**，仅 JSON 名不同          |
 | **remaining** | JSON `remaining` / `remain`                                        | `MemberQuotaSummary` 等             | 计算字段                                      |
 | **remaining** | NewAPI `remain_quota`                                              | NewAPIKey                           | NewAPIKey remain 配额，受钱包 rebalance 封顶             |

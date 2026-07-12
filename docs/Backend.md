@@ -13,16 +13,15 @@
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、命名约定、Store、NewAPISync/Gateway、River/Ingest、文件命名 §3.1、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
-| [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
+| [Backend-预算.md](./Backend-预算.md)         | 双轴、异步投影、Rebalance、Overrun、分配规则     |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
-| [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化（PR1/PR2 完成，PR3 待办） |
+| [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化 |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 当前结构基线与剩余分层债务 |
-| [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务现状：两条异步线、13 kind、入队点、Worker、Periodic |
-| [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md) | 异步预算投影 + 离线任务（已基本落地） |
-| [Backend-River实现.md](./Backend-River实现.md) | River 表、Unique、队列配置、`InsertInTx` 约定 |
+| [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务：两条异步线、13 kind、入队点、Worker、Periodic |
+| [Backend-预算.md](./Backend-预算.md) | 双轴、异步投影、Rebalance、Overrun |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 

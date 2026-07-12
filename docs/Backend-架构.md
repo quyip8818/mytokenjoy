@@ -19,7 +19,7 @@
 | **NewAPIKey** | PlatformKey 在 NewAPI 上的对应（列 `newapi_key_id`） |
 | **ProviderKey** / **NewAPIChannel** | 上游凭证 ↔ NewAPI Channel（列 `newapi_channel_id`） |
 | **PlatformKeyMapping** | PlatformKey ↔ NewAPIKey 同步状态与 remain 缓存（表 `platform_key_mappings`） |
-| **River Jobs** | `river_job`：离线任务统一队列（替代 `async_jobs`）；见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md) |
+| **River Jobs** | `river_job`：离线任务统一队列；见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md) |
 
 ```text
 调用：sk-xxx → Gateway → key_hash → PlatformKeyMapping → Precheck → 反代 NewAPI
@@ -170,7 +170,7 @@ apps/backend/
 └── Makefile
 ```
 
-**目标态：** 分层不变；domain 并行访问 Store 与端口（Job 类：5 域 `ports.go` + `app/*_enqueuer.go`；其它端口定义位置见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口)）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
+**结构基线：** 分层不变；domain 并行访问 Store 与端口（Job 类：六域 `ports.go` + `app/*_enqueuer.go`；其它端口定义位置见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口)）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
 
 ### 3.1 文件命名与拆分
 
@@ -420,7 +420,7 @@ flowchart TB
 
 ### 7.1 后台运行时（简化后）
 
-**仅两个组件**（详见 [Backend-离线任务.md](./Backend-离线任务.md)；River 表与 Unique 见 [Backend-River实现.md](./Backend-River实现.md)）：
+**仅两个组件**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：
 
 | 组件 | 职责 |
 | --- | --- |
@@ -448,9 +448,7 @@ flowchart LR
   ING -->|InsertTx| BP
 ```
 
-入账主路径不变：webhook → pending → `IngestByLogID`；reconcile 补洞见 [工程收口.md](./工程收口.md)。
-
-**删除：** `worker.Runner`、`asyncLoop`、`WORKER_ORG_SYNC_INTERVAL` inline tick（改 Periodic `org_sync` → `SyncService.RunScheduledSyncAll`）。
+入账主路径：webhook → pending → `IngestByLogID`；reconcile 补洞见 [工程收口.md](./工程收口.md)。
 
 ---
 
@@ -460,7 +458,7 @@ Dashboard 域**全部 GET、无副作用**；端点见 [Frontend.md](./Frontend.
 
 ```mermaid
 flowchart TB
-  subgraph write [写入路径 — 目标态]
+  subgraph write [写入路径]
     NA[NewAPI settle] --> WH[webhook] --> ING[ingest]
     ING --> UL[(usage_ledger)]
     ING -->|InsertTx| BP[budget_project]

@@ -181,25 +181,13 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ---
 
-## §8 异步预算投影与离线任务管理
+## §8 异步预算投影与离线任务
 
-设计文档（已合并）：
+| 文档 | 内容 |
+| --- | --- |
+| [Backend-离线任务.md](./Backend-离线任务.md) | River 队列、13 kind、Worker、Periodic、入队点 |
+| [Backend-预算.md](./Backend-预算.md) | 双轴、`budget_consumed` 异步投影、Rebalance、Overrun |
 
-| 文档 | 状态 | 内容 |
-| --- | --- | --- |
-| [Backend-River实现.md](./Backend-River实现.md) | **已落地** | River 基础设施：Schema、Unique、队列、可观测 |
-| [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md) | **已基本落地** | 异步预算投影 + 离线任务；剩余产品确认、lag 可观测与 Redis smoke |
-
-实施状态：River、`budget_project`、Periodic fanout、Dashboard 投影与 Gateway 瘦化均已落地；剩余项见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
+River、`budget_project`、Periodic fanout、Dashboard 投影与 Gateway 瘦化均已落地；剩余产品确认与 lag 可观测见上文 backlog。
 
 ---
-
-## §9 Backend 测试（PR3）
-
-规格见 [Backend-测试优化.md §12](./Backend-测试优化.md#12-pr3-实施规格)（唯一技术说明；本节仅 checklist）。
-
-- [ ] Gateway `tests/testutil/gateway/rejection_cases.go` + evaluate/precheck 共享 table
-- [ ] Handler G2/G3 HTTP smoke（`TestGatewayRejectionHTTPMapping`，分 scenario）
-- [ ] precheck 减 case / 去 subtest `Parallel`（可选）
-- [ ] outbox N4 worker 503 → JobCancel（可选；Gateway-only PR 可跳过）
-- [ ] P2-3：`internal/infra/permission/*_test.go` 迁入 `tests/` 或 Backend.md 白名单（若本轮不做则留 P1）

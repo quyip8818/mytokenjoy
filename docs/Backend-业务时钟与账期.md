@@ -2,7 +2,7 @@
 
 > 现行说明。配置细节见 [Backend-配置架构.md](./Backend-配置架构.md)；预算业务见 [Backend-预算.md](./Backend-预算.md)。  
 > outbox / lease / session TTL 属**墙钟**轨（与账期无关）；River job 调度（`scheduled_at`、retry、Unique `ByPeriod`）统一用 Postgres `NOW()`，不用 `cfg.Clock()`。  
-> 详见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-River实现.md](./Backend-River实现.md) §4（Unique `ByPeriod`）。
+> 详见 [Backend-离线任务.md](./Backend-离线任务.md)；Unique `ByPeriod` 见 `internal/infra/jobs/args.go`。
 > 本篇不谈：NewAPI `remain_quota` 算法。
 
 ---
@@ -13,7 +13,7 @@
 
 | 跨月保留（同一套） | 按月切开（多本） |
 | --- | --- |
-| 部门 `budget`、成员 `personal_budget`、Key `quota` 等 **额度上限** | `budget_snapshots` 里按 `period_key`（通常 `YYYY-MM`）累计的 **已消耗** |
+| 部门 `budget`、成员 `personal_budget`、Key `quota` 等 **额度上限** | `budget_consumed` 里按 `period_key`（通常 `YYYY-MM`）累计的 **已消耗** |
 
 每月一张消耗账：6 月的已用记在 `period_key=2026-06`，7 月从 `2026-07` **重新累计**，不用手工清零。预检问的「还能不能花」= 看 **当前这本** 的已用是否触顶。
 
@@ -38,7 +38,7 @@ flowchart TB
 flowchart LR
   Q1["现在开着哪本消耗账？"] --> CLK["cfg.Clock() → OpenBudgetPeriod"]
   Q2["这笔调用发生在哪月？"] --> EVT["OccurredAt → OccurrencePeriod"]
-  CLK --> OPEN["budget_snapshots 当前 period"]
+  CLK --> OPEN["budget_consumed 当前 period"]
   EVT --> LEDGER["usage_ledger / buckets"]
 ```
 
@@ -63,7 +63,7 @@ sequenceDiagram
   participant Call as 调用 OccurredAt=6/30
   participant Ingest as Ingest 业务日=7/1
   participant Ledger as usage_ledger
-  participant Snap as budget_snapshots
+  participant Snap as budget_consumed
   Call->>Ingest: 延迟入库
   Ingest->>Ledger: period_key = 2026-06（发生月）
   Ingest->>Snap: period_key = 2026-07（当前开着的本）
@@ -90,7 +90,7 @@ flowchart TB
   subgraph biz [业务时钟]
     C[cfg.Clock]
     C --> O[OpenBudgetPeriod]
-    O --> S[budget_snapshots]
+    O --> S[budget_consumed]
     O --> G[precheck / overrun / Load*]
     O --> M[worker 月切]
   end
@@ -112,7 +112,7 @@ flowchart TB
 
 | 类型 | 时间源 | 写入 | 读取场景 |
 | --- | --- | --- | --- |
-| `OpenBudgetPeriod` | Clock | `budget_snapshots.period_key` | 预检、超支、预算树、Key 配额 |
+| `OpenBudgetPeriod` | Clock | `budget_consumed.period_key` | 预检、超支、预算树、Key 配额 |
 | `OccurrencePeriod` | OccurredAt | `usage_ledger.period_key` | 审计、发生月统计 |
 
 DB 列仍是 `string`；域边界用 `.String()` 进出。
@@ -124,7 +124,7 @@ DB 列仍是 `string`；域边界用 `.String()` 进出。
 | 层 | 存什么 | 谁写 |
 | --- | --- | --- |
 | `org_nodes.period` | 账期**规格**，现行只允许 `monthly` | 建公司、部门 provision、seed、导入 |
-| `budget_snapshots.period_key` / `usage_ledger.period_key` | 具体 **`YYYY-MM` 账本键** | 开账 / 发生工厂 + ingest |
+| `budget_consumed.period_key` / `usage_ledger.period_key` | 具体 **`YYYY-MM` 账本键** | 开账 / 发生工厂 + ingest |
 
 `org_nodes.period` 有 `CHECK (period IN ('monthly'))`；业务路径（`BudgetPeriod()`、seed、开户）一律写 `monthly`。**不能把** `"2026-06"` 这类固定月串落库到 `org_nodes.period`。
 
@@ -167,9 +167,9 @@ flowchart LR
     AT[OccurredAt] --> OCD[OccurrenceDepartmentPeriod]
     AT --> OCS[OccurrenceSnapshotKey]
   end
-  OD --> Apply[Apply → snapshots]
+  OD --> Proj[Projector → budget_consumed]
   OS --> Read[Load* / SumMemberKeyUsed]
-  RK --> SeedSnap[seed budget_snapshots]
+  RK --> SeedSnap[seed budget_consumed]
   OCD --> Led[ledger.PeriodKey]
   OCS --> SeedLed[seed ledger]
 ```
@@ -178,13 +178,13 @@ flowchart LR
 
 ---
 
-## 5. Ingest：唯一双写点
+## 5. Ingest 与 Projector
 
 ```text
 IngestRaw
   ├─ OccurrenceDepartmentPeriod(OccurredAt) → entry.PeriodKey → ledger
-  ├─ OpenDepartmentPeriod(Clock)            → Apply → budget_snapshots
-  └─ usage_buckets                          ← OccurredAt
+  ├─ InsertTx budget_project               → budget.Projector 异步写 budget_consumed（开账 period）
+  └─ usage_buckets                         ← dashboard.Projector（OccurredAt）
 ```
 
 ```mermaid
@@ -195,11 +195,12 @@ flowchart TB
   Entry --> Occ[OccurrenceDepartmentPeriod]
   Clock[cfg.Clock] --> Open[OpenDepartmentPeriod]
   Occ --> Ledger[Insert ledger]
-  Open --> Apply[Apply snapshots]
-  Entry --> Buckets[usage_buckets]
+  Ledger --> Enq[InsertTx budget_project]
+  Enq --> Proj[budget.Projector → budget_consumed]
+  Entry --> DashProj[dashboard.Projector → buckets]
 ```
 
-读路径（预检、预算树、Key used、超支）只拿 `Open*` / `Load*(..., Clock)`，不读发生轨来做门禁。
+读路径（预检、预算树、Key used、超支）只拿 `Open*` / `Load*(..., Clock)`，不读发生轨来做门禁。Gateway 预检读 `gateway_soft_remain`（Projector 批末刷新）。
 
 ---
 
@@ -244,14 +245,14 @@ internal/pkg/budget/
   cost_range.go              看板 Resolve / PreviousRange
   snapshotload.go            Load* 读消耗
 
-domain/usage/ingest.go       双轨写入
-domain/usage/projection.go   Apply(..., OpenBudgetPeriod)
-domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（开账 period 在 SQL 内）
+domain/usage/ingest.go       ledger + 入队 budget_project
+domain/budget/budget_projector.go  ApplyIncrement(..., OpenBudgetPeriod)
+domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（gateway_soft + limit）
 domain/budget/overrun.go     开账超支
-infra/river/                 月切改 Periodic monthly_rebalance_fanout（原 infra/worker/runner.go 已删除）
+infra/river/                 月切 Periodic monthly_rebalance
 
 seed/snapshot/*.go           SeedAt、ledger OccurrenceSnapshotKey
-seed/apply/tables.go         RootPeriodKey → snapshots
+seed/apply/tables.go         RootPeriodKey → budget_consumed
 scripts/lint-clock.sh        符号护栏
 ```
 
@@ -287,7 +288,7 @@ flowchart TB
 | 手段 | 作用 |
 | --- | --- |
 | `OpenBudgetPeriod` / `OccurrencePeriod` | 类型上区分开账 vs 发生 |
-| Ingest 单写入口 | 快照只经 `Apply(..., OpenBudgetPeriod)` |
+| Ingest 写 ledger + 入队 | consumed 只经 `budget.Projector`（开账 `OpenBudgetPeriod`） |
 | `OccurredAtFromPayload` | 缺事件时间 fail |
 | `make lint-clock` | 禁 `SnapshotKey(...time.Now)`；`domain/{budget,gateway,newapisync,usage}` 禁直调 `SnapshotKey` |
 
@@ -296,7 +297,7 @@ flowchart TB
 | 场景 | 测试 |
 | --- | --- |
 | 账本跟 OccurredAt | `TestIngestStoresLedgerPeriodKey` |
-| 跨月：快照跟 Clock | `TestIngestSnapshotUsesNowPeriodForMonthlyOrg` |
+| 跨月：consumed 跟 Clock | `TestIngestSnapshotUsesNowPeriodForMonthlyOrg` |
 | 缺 OccurredAt | `TestOccurredAtFromPayloadRejectsMissing` |
 | 锚点预检 | `TestPrecheckUsesClockAnchorForPeriodKey` |
 | 树与工厂同月 | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory` |
@@ -310,4 +311,4 @@ flowchart TB
 
 1. 这段要的是墙钟、**当前开着哪本消耗账**，还是 **事件发生在哪月**？  
 2. 开账 `period_key` 是否只来自 `Open*` / `RootPeriodKey`（seed）？  
-3. 有 `CLOCK_ANCHOR` 时：开账路径（seed 快照 / 看板 / 预检 / ingest Apply）是否落在同一本？ledger 是否仍跟 `OccurredAt`？
+3. 有 `CLOCK_ANCHOR` 时：开账路径（seed consumed / 看板 / 预检 / Projector）是否落在同一本？ledger 是否仍跟 `OccurredAt`？

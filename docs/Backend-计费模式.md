@@ -96,7 +96,7 @@ flowchart TB
         NA[NewAPI users.quota]
         TK[Token remain_quota]
         BK[usage_buckets.cost]
-        SN[budget_snapshots.consumed]
+        SN[budget_consumed]
     end
 
     subgraph Entry["入口"]
@@ -126,7 +126,7 @@ flowchart TB
 | 企业可用 point | `Σ lot.points_remaining` / `companies.balance_point` | — |
 | 展示币钱包闭合 | `company_recharge_lots`（`paid` + `adjust`） | — |
 | 单笔消耗 | `usage_ledger`（point + `display_amount`） | — |
-| 组织 consumed | `budget_snapshots.consumed`（point） | — |
+| 组织 consumed | `budget_consumed.consumed`（point） | — |
 | 看板 cost | `usage_buckets.cost`（point） | 展示币按需聚合 ledger |
 | Token 分配 | — | NewAPI `remain_quota`；rebalance 按 `balance_point` 封顶 |
 | Gateway 挡单 | Postgres `balance_point` + 组织预算（`LoadPrecheckContext` + `Evaluate`） | NewAPI 同步（冷路径，不挡预检） |
@@ -141,7 +141,7 @@ flowchart TB
 
 1. **Schema 即真相**：表结构以 `schema.sql` 为准；部署 wipe + seed，不做增量 `ALTER`/回填。
 2. **企业钱包权威**：Postgres `company_recharge_lots` + `balance_point`；NewAPI `users.quota` 仅为派生通道配额。
-3. **字段量纲**：`usage_ledger.amount`、`usage_buckets.cost`、`budget_snapshots.consumed`、组织 `budget` 均为 **point**；钱包 API 展示币由 lot 成本价闭合。
+3. **字段量纲**：`usage_ledger.amount`、`usage_buckets.cost`、`budget_consumed.consumed`、组织 `budget` 均为 **point**；钱包 API 展示币由 lot 成本价闭合。
 4. **生产路径**：`NEW_API_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
 
 术语：**lot** = 充值批次；每笔 lot 必有 1:1 的 `company_recharge_orders` 行。
@@ -238,9 +238,9 @@ flowchart TD
 - **禁止**因 lot 不足让 Webhook 永久失败；不足走 overdraft 并应告警。
 - `gift` / `overdraft` 消耗时 `display_amount = 0`，不参与钱包展示闭合。
 
-### 4.4 Gateway 预检（Phase 1：纯 Postgres + 纯内存 Evaluate）
+### 4.4 Gateway 预检（纯 Postgres + 纯内存 Evaluate）
 
-全部比较单位为 **point**（展示币不参与挡单）。**不读 NewAPI**；`wallet_sync` 滞后不再挡单（漂移由异步 PlatformSync 消化，见 [架构简化方案.md](./架构简化方案.md) Phase 3）。
+全部比较单位为 **point**（展示币不参与挡单）。**不读 NewAPI**；读 `balance_point` 与 `platform_keys.gateway_soft_remain` + limit。`wallet_sync` 滞后不挡单；漂移由异步同步消化。
 
 | # | 检查 | 数据源 |
 | --- | --- | --- |
@@ -278,7 +278,7 @@ flowchart LR
 2. `target = ToQuotaUnits(balance_point, modelPriceUpper)` → `TopUp(delta)`。
 3. 定时对账：`|FromQuotaUnits(na) − balance_point| > ε` → 入队 sync。
 
-> Gateway 预检**不再**因 pending sync 或漂移拒单（Phase 1）；仅读 `balance_point` 投影。
+> Gateway 预检读 `balance_point` 与 `gateway_soft_remain`；不因 pending sync 或漂移拒单。
 
 ---
 
@@ -350,7 +350,7 @@ balance_point = Σ lot.points_remaining
 
 ### 5.5 投影表（均为 point）
 
-`usage_buckets.cost`、`budget_snapshots.consumed`、`org_nodes.budget`、`members.personal_budget`、`budget_groups.budget`、`platform_keys.budget` — 语义均为 point，无 `billing_currency` 拆键。
+`usage_buckets.cost`、`budget_consumed.consumed`、`org_nodes.budget`、`members.personal_budget`、`budget_groups.budget`、`platform_keys.budget` — 语义均为 point，无 `billing_currency` 拆键。
 
 `models.input_price` / `output_price` 单位为 **point / 模型计价单位**。
 
@@ -498,7 +498,7 @@ go test -tags=testhook ./tests/store/postgres/... -run WalletSync
 
 | 场景 | 数据源 |
 | --- | --- |
-| Gateway / 超限 | `balance_point` + `budget_snapshots` |
+| Gateway / 超限 | `balance_point` + `budget_consumed` |
 | 看板 | `usage_buckets.cost` |
 | 钱包展示币 | `company_recharge_lots` 聚合 |
 | 财务时段 | `usage_ledger.display_amount` + 时间范围 |
