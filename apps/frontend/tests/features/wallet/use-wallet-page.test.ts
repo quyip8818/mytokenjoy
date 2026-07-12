@@ -10,7 +10,7 @@ describe('useWalletPage', () => {
       companyId: 1,
       billingCurrency: 'CNY',
       balances: [{ currency: 'CNY', balance: 100, totalTopup: 150, totalConsumed: 50 }],
-      balancePoint: 100000,
+      walletRemainPoint: 100000,
       giftPoints: 0,
       overdraftPoints: 0,
       totalRequests: 10,

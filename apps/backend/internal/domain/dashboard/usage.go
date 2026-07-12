@@ -67,7 +67,7 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	return result, nil
 }
 
-func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TeamUsage, error) {
+func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DepartmentUsage, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, d
 	if err != nil {
 		return nil, err
 	}
-	result := make([]types.TeamUsage, 0, len(departments))
+	result := make([]types.DepartmentUsage, 0, len(departments))
 	for _, dept := range departments {
 		deptBudget := 0.0
 		if node := findBudgetNode(tree, dept.ID); node != nil {
@@ -123,7 +123,7 @@ func (s *service) TeamUsage(ctx context.Context, params types.CostQueryParams, d
 				memberCount++
 			}
 		}
-		result = append(result, types.TeamUsage{
+		result = append(result, types.DepartmentUsage{
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Budget: deptBudget, Consumed: consumedByDept[dept.ID],
 			MemberCount: memberCount, TopModel: topModels[dept.ID],

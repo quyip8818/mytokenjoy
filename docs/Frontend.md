@@ -416,7 +416,7 @@ HTTP 非 2xx 时，body 应包含：
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
 | GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project`                   |
 | POST   | `/keys/platform`               | `{ name, memberId?, projectId?, appName?, budget, modelWhitelist: number[] }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；项目 Key 校验项目剩余额度；白名单 → 422 |
-| PUT    | `/keys/platform/:id`           | `{ name?, quota?, modelWhitelist?: number[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
+| PUT    | `/keys/platform/:id`           | `{ name?, budget?, modelWhitelist?: number[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
 | PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
 | POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
 | PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
@@ -428,10 +428,10 @@ HTTP 非 2xx 时，body 应包含：
 | 方法 | 路径                              | Body / 查询                                                   | 响应                                      | 备注                                |
 | ---- | --------------------------------- | ------------------------------------------------------------- | ----------------------------------------- | ----------------------------------- |
 | GET  | `/keys/approvals`                 | query: `tab?`, `memberId?`                                    | `KeyApproval[]`                           | `tab`: `pending` \| `mine` \| `all` |
-| POST | `/keys/approvals`                 | `{ type, reason, requestedQuota, requestedModels: number[], memberId }` | `KeyApproval`                             | 白名单校验 → 422                    |
+| POST | `/keys/approvals`                 | `{ type, reason, requestedBudget, requestedModels: number[], memberId }` | `KeyApproval`                             | 白名单校验 → 422                    |
 | PUT  | `/keys/approvals/:id/approve`     | —                                                             | `void`                                    | 预留池不足 → 422                    |
 | PUT  | `/keys/approvals/:id/reject`      | `{ reason? }`                                                 | `void`                                    |                                     |
-| GET  | `/keys/approvals/:id/quota-check` | —                                                             | `{ sufficient, reservedPool, requested }` |                                     |
+| GET  | `/keys/approvals/:id/budget-check` | —                                                             | `{ sufficient, reservedPool, requested }` |                                     |
 
 ---
 
@@ -475,7 +475,7 @@ HTTP 非 2xx 时，body 应包含：
 **数据源约定**
 
 - `cost/*`、`usage/models`、`usage/teams` 的 **consumed / cost** 均来自 **`usage_buckets` 周期聚合**（不读 `org_nodes.consumed`）。
-- `usage/teams` 的 **quota** 来自 **`org_nodes`** 预算树。
+- `usage/teams` 的 **budget**（部门 limit）来自 **`org_nodes`** 预算树。
 - 聚合/展示时区默认 **`Asia/Shanghai`**（IANA）；响应 `timezone` 字段返回实际使用值；企业可配置覆盖。
 - `week` / `month` 由服务端对 buckets 做 `date_trunc('week' \| 'month', …)`，不走 `usage/series`。
 
@@ -504,7 +504,7 @@ HTTP 非 2xx 时，body 应包含：
 | GET  | `/dashboard/cost/daily`                       | `CostQueryParams`               | `DailyCost[]`            |
 | GET  | `/dashboard/cost/top`                         | `limit?` + `CostQueryParams`    | `TopConsumer[]`          |
 | GET  | `/dashboard/usage/models`                     | `CostQueryParams?`              | `ModelUsage[]`           |
-| GET  | `/dashboard/usage/teams`                      | `CostQueryParams?`              | `TeamUsage[]`            |
+| GET  | `/dashboard/usage/teams`                      | `CostQueryParams?`              | `DepartmentUsage[]`            |
 
 `parentId` 为空时返回顶层部门成本；指定时返回该部门的子部门成本列表，用于成本钻取。
 
@@ -610,9 +610,9 @@ HTTP 非 2xx 时，body 应包含：
 **PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `scope`†, `memberId`, `memberName`†, `departmentId`†, `departmentName`†, `projectId`, `projectName`†, `status`, `budget`, `consumed`, `modelWhitelist: number[]`, `createdAt`, `expiresAt`  
 † 服务端 enrich 推导，不入库 `platform_keys`（见 §5.0.1）
 
-**ApprovalType：** `key` \| `quota` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
+**ApprovalType：** `key` \| `budget` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`
 
-**KeyApproval：** `id`, `type`, `applicant`, `applicantId`, `department`, `reason`, `requestedQuota`, `requestedModels: number[]`, `status`, `approver`, `rejectReason?`, `createdAt`, `resolvedAt`
+**KeyApproval：** `id`, `type`, `applicant`, `applicantId`, `department`, `reason`, `requestedBudget`, `requestedModels: number[]`, `status`, `approver`, `rejectReason?`, `createdAt`, `resolvedAt`
 
 **MemberBudgetSummary：** `totalBudget`, `consumed`, `remaining`, `reservedPool`
 
@@ -666,7 +666,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **ModelUsage：** `callType`, `modelName`, `provider`, `requests`, `tokens`, `cost`, `percentage`, `modelId?`
 
-**TeamUsage：** `departmentId`, `departmentName`, `quota`, `consumed`, `memberCount`, `topModel`
+**DepartmentUsage：** `departmentId`, `departmentName`, `budget`, `consumed`, `memberCount`, `topModel`
 
 #### 5.5.6 Audit — [`types/audit.ts`](../apps/frontend/src/api/types/audit.ts)
 
@@ -689,6 +689,8 @@ HTTP 非 2xx 时，body 应包含：
 #### 5.5.8 Member — [`types/member.ts`](../apps/frontend/src/api/types/member.ts)
 
 **MemberDashboardView：** 成员工作台 `GET /me/dashboard` 聚合视图。
+
+**AccountStats：** `budgetRemaining`, `totalSpent`
 
 ---
 
@@ -781,13 +783,13 @@ HTTP 非 2xx 时，body 应包含：
 | `companyId`       | `number`             | 企业 ID |
 | `billingCurrency` | `string`             | 当前租户默认展示币 |
 | `balances`        | `WalletCurrency[]`   | 按币种余额列表 |
-| `balancePoint`    | `number`             | 全 lot 剩余 point |
+| `walletRemainPoint` | `number`             | 全 lot 剩余 point |
 | `giftPoints`      | `number`             | gift lot 剩余 point |
 | `overdraftPoints` | `number`             | overdraft lot 累计 point |
 
 **`WalletCurrency`**：`currency` / `balance` / `totalTopup` / `totalConsumed`；同币种满足 `totalTopup - totalConsumed = balance`。前端以 `balances[]` 为唯一展示数据源。
 
-**预算 API：** JSON 字段 `budget` / `consumed` / `quota` 均为 **point**；前端展示时 `÷ PPU(1000)` 换算为 ¥，提交时 `× PPU` 写回。详见 [Backend-计费模式.md](./Backend-计费模式.md) §8.2。
+**预算 API：** JSON 字段 `budget` / `consumed` 均为 **point**；前端展示时 `÷ PPU(1000)` 换算为 ¥，提交时 `× PPU` 写回。详见 [Backend-计费模式.md](./Backend-计费模式.md) §8.2。
 
 **`RechargeOrder`**
 
@@ -873,7 +875,7 @@ HTTP 非 2xx 时，body 应包含：
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`）；含 recharge / gift / adjust | 未接入                                    | 无 `/platform/login`               |
 | `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
-> **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`balancePoint`、`giftPoints`、`overdraftPoints`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
+> **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`walletRemainPoint`、`giftPoints`、`overdraftPoints`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

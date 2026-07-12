@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestTeamUsageTopModelBatch(t *testing.T) {
+func TestDepartmentUsageTopModelBatch(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
@@ -33,17 +33,17 @@ func TestTeamUsageTopModelBatch(t *testing.T) {
 		BucketStart:  base,
 	})
 
-	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
+	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
 	var dept3Top, dept4Top string
-	for _, team := range teams {
-		switch team.DepartmentID {
+	for _, dept := range departments {
+		switch dept.DepartmentID {
 		case contract.IDDept3:
-			dept3Top = team.TopModel
+			dept3Top = dept.TopModel
 		case contract.IDDept4:
-			dept4Top = team.TopModel
+			dept4Top = dept.TopModel
 		}
 	}
 	if dept3Top != "gpt-4o" {

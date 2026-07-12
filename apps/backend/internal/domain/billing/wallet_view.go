@@ -15,13 +15,13 @@ type WalletCurrencyView struct {
 }
 
 type WalletView struct {
-	CompanyID       int64                `json:"companyId"`
-	BillingCurrency string               `json:"billingCurrency"`
-	Balances        []WalletCurrencyView `json:"balances"`
-	BalancePoint    float64              `json:"balancePoint"`
-	GiftPoints      float64              `json:"giftPoints"`
-	OverdraftPoints float64              `json:"overdraftPoints"`
-	TotalRequests   int64                `json:"totalRequests"`
+	CompanyID         int64                `json:"companyId"`
+	BillingCurrency   string               `json:"billingCurrency"`
+	Balances          []WalletCurrencyView `json:"balances"`
+	WalletRemainPoint float64              `json:"walletRemainPoint"`
+	GiftPoints        float64              `json:"giftPoints"`
+	OverdraftPoints   float64              `json:"overdraftPoints"`
+	TotalRequests     int64                `json:"totalRequests"`
 }
 
 func PrimaryWalletBalance(view WalletView) float64 {
@@ -46,11 +46,11 @@ func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
 		return WalletView{}, err
 	}
 	view := WalletView{
-		CompanyID:       companyCtx.CompanyID,
-		BillingCurrency: agg.BillingCurrency,
-		BalancePoint:    agg.WalletRemain,
-		GiftPoints:      agg.GiftPoints,
-		OverdraftPoints: agg.OverdraftPoints,
+		CompanyID:         companyCtx.CompanyID,
+		BillingCurrency:   agg.BillingCurrency,
+		WalletRemainPoint: agg.WalletRemain,
+		GiftPoints:        agg.GiftPoints,
+		OverdraftPoints:   agg.OverdraftPoints,
 	}
 	for _, b := range agg.Balances {
 		view.Balances = append(view.Balances, WalletCurrencyView{

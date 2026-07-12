@@ -6,7 +6,7 @@ import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 describe('useMemberDashboardPage', () => {
   it('loads member dashboard on mount', async () => {
     const dashboard = {
-      account: { balance: 100, totalSpent: 50 },
+      account: { budgetRemaining: 100, totalSpent: 50 },
       usageStats: { requestCount: 10, totalCount: 10 },
       resourceConsumption: { totalCost: 20, totalTokens: 1000 },
       performance: { avgRPM: 1.5, avgTPM: 200 },

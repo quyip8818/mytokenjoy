@@ -99,22 +99,22 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 18.5, CallCount: 2})
-	teams, err := svc.TeamUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", domainusage.SessionScope{
+	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", domainusage.SessionScope{
 		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, team := range teams {
-		if team.DepartmentID != contract.IDDept3 {
+	for _, dept := range departments {
+		if dept.DepartmentID != contract.IDDept3 {
 			continue
 		}
-		if team.Consumed != 18.5 {
-			t.Fatalf("expected consumed from buckets 18.5, got %v", team.Consumed)
+		if dept.Consumed != 18.5 {
+			t.Fatalf("expected consumed from buckets 18.5, got %v", dept.Consumed)
 		}
 		return
 	}
-	t.Fatal("dept-3 team usage not found")
+	t.Fatal("dept-3 department usage not found")
 }
 
 func TestCostSummaryPeriodOverPeriod(t *testing.T) {

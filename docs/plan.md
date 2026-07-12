@@ -47,7 +47,7 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 **刻意保留占位（需产品决策）**
 
 - 钱包发票 Tab / 兑换码：UI disabled 或空态
-- 预算树 overrun 展示列保留；memberQuota 列已移除
+- 预算树 overrun 展示列保留
 
 ---
 
@@ -68,7 +68,7 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ### 种子数据契约
 
-- [ ] `platform_keys.json` 删除 `memberName`、`projectName`（原 `budgetGroupName`）、`appName` 等不入库字段
+- [ ] `platform_keys.json` 删除 `memberName`、`projectName`、`appName` 等不入库字段
 
 ---
 
@@ -183,11 +183,6 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ## §8 异步预算投影与离线任务
 
-| 文档 | 内容 |
-| --- | --- |
-| [Backend-离线任务.md](./Backend-离线任务.md) | River 队列、13 kind、Worker、Periodic、入队点 |
-| [Backend-预算.md](./Backend-预算.md) | 双轴、`budget_consumed` 异步投影、Rebalance、Overrun |
-
-River、`budget_projection`、Periodic fanout、Dashboard 投影与 Gateway 瘦化均已落地；剩余产品确认与 lag 可观测见上文 backlog。
+设计见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
 
 ---

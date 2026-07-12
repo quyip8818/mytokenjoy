@@ -1,5 +1,5 @@
 export interface AccountStats {
-  balance: number
+  budgetRemaining: number
   totalSpent: number
 }
 

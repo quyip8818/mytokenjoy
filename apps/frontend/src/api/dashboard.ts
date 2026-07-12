@@ -6,7 +6,7 @@ import type {
   DepartmentCost,
   DepartmentCostMember,
   ModelUsage,
-  TeamUsage,
+  DepartmentUsage,
   TopConsumer,
 } from './types'
 
@@ -25,6 +25,6 @@ export const dashboardApi = {
     request<TopConsumer[]>(`/dashboard/cost/top${buildQuery(params ?? {})}`),
   getModelUsage: (params?: CostQueryParams & { departmentId?: string }) =>
     request<ModelUsage[]>(`/dashboard/usage/models${buildQuery(params ?? {})}`),
-  getTeamUsage: (params?: CostQueryParams & { departmentId?: string }) =>
-    request<TeamUsage[]>(`/dashboard/usage/teams${buildQuery(params ?? {})}`),
+  getDepartmentUsage: (params?: CostQueryParams & { departmentId?: string }) =>
+    request<DepartmentUsage[]>(`/dashboard/usage/teams${buildQuery(params ?? {})}`),
 }

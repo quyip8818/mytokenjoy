@@ -11,7 +11,7 @@ export interface WalletView {
   companyId: number
   billingCurrency: string
   balances: WalletCurrencyView[]
-  balancePoint: number
+  walletRemainPoint: number
   giftPoints: number
   overdraftPoints: number
   totalRequests: number

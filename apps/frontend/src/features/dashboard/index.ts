@@ -33,5 +33,5 @@ export { UsageDashboardPageShell } from './components/usage-dashboard-page-shell
 export { UsageDashboardLayoutPageShell } from './components/usage-dashboard-layout-page-shell'
 export { DashboardDateRangePicker } from './components/dashboard-date-range-picker'
 export { UsageModelChart } from './components/usage-model-chart'
-export { TeamUsageTable } from './components/team-usage-table'
-export { teamUsagePercent } from './lib/team-usage'
+export { DepartmentUsageTable } from './components/department-usage-table'
+export { departmentUsagePercent } from './lib/department-usage'

@@ -1,5 +1,4 @@
 import {
-  Wallet,
   Zap,
   DollarSign,
   Activity,
@@ -9,7 +8,6 @@ import {
   Gauge,
   Clock,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import type {
   AccountStats,
   PerformanceStats,
@@ -24,7 +22,6 @@ interface MemberDashboardStatsProps {
   usageStats: UsageStats
   resourceConsumption: ResourceConsumption
   performance: PerformanceStats
-  onRecharge: () => void
 }
 
 export function MemberDashboardStats({
@@ -33,23 +30,17 @@ export function MemberDashboardStats({
   usageStats,
   resourceConsumption,
   performance,
-  onRecharge,
 }: MemberDashboardStatsProps) {
   return (
     <div className="grid grid-cols-4 gap-4">
       <MemberStatGroup
         title="账户数据"
-        icon={Wallet}
+        icon={Coins}
         items={[
           {
-            label: '当前余额',
-            value: loading ? '—' : `¥${accountData.balance.toFixed(2)}`,
+            label: '预算剩余',
+            value: loading ? '—' : `¥${accountData.budgetRemaining.toFixed(2)}`,
             icon: Coins,
-            action: (
-              <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={onRecharge}>
-                充值
-              </Button>
-            ),
           },
           {
             label: '历史消耗',

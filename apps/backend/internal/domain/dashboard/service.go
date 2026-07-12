@@ -21,7 +21,7 @@ type Service interface {
 	DailyCosts(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DailyCost, error)
 	TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TopConsumer, error)
 	ModelUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.ModelUsage, error)
-	TeamUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TeamUsage, error)
+	DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DepartmentUsage, error)
 }
 
 type service struct {

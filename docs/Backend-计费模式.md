@@ -23,7 +23,7 @@
 | 指标 | 用户看到 | 后端字段 | 用途 |
 | --- | --- | --- | --- |
 | **展示币** | 钱包页 ¥ 余额、充值记录 | `balances[].balance` | 财务对账、充值 − 消耗 = 余额 |
-| **Point** | 可用 point、赠送 point（技术向） | `balancePoint` | Gateway 挡单、预算 limit、NewAPI 同步 |
+| **Point** | 可用 point、赠送 point（技术向） | `walletRemainPoint` | Gateway 挡单、预算 limit、NewAPI 同步 |
 
 换算关系（当前默认）：`1 元 (CNY) = 1000 point`（`DefaultPointsPerUnit`）。
 
@@ -445,7 +445,7 @@ pkg/newapiunits/quota.go        point ↔ quota units（domain / tests 直接引
 **前端：**
 
 - `src/lib/points.ts` — `pointsToDisplay` / `displayToPoints`
-- 钱包页读 `balances[]` + `balancePoint`；预算页 UI 展示币编辑、API 存 point
+- 钱包页读 `balances[]` + `walletRemainPoint`；预算页 UI 展示币编辑、API 存 point
 
 ---
 
@@ -460,7 +460,7 @@ pkg/newapiunits/quota.go        point ↔ quota units（domain / tests 直接引
   "balances": [
     { "currency": "CNY", "balance": 37.5, "totalTopup": 100.0, "totalConsumed": 62.5 }
   ],
-  "balancePoint": 375000,
+  "walletRemainPoint": 375000,
   "giftPoints": 50000,
   "overdraftPoints": 0,
   "totalRequests": 1234

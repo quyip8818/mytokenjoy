@@ -64,7 +64,7 @@ type ModelUsage struct {
 	Percentage float64 `json:"percentage"`
 }
 
-type TeamUsage struct {
+type DepartmentUsage struct {
 	DepartmentID   string  `json:"departmentId"`
 	DepartmentName string  `json:"departmentName"`
 	Budget         float64 `json:"budget"`

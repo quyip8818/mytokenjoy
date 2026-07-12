@@ -73,8 +73,8 @@ func TestWalletClosureFormula(t *testing.T) {
 				b.Currency, b.TotalTopup, b.TotalConsumed, b.Balance, delta)
 		}
 	}
-	if view.BalancePoint <= 0 {
-		t.Fatalf("expected positive balancePoint, got %v", view.BalancePoint)
+	if view.WalletRemainPoint <= 0 {
+		t.Fatalf("expected positive walletRemainPoint, got %v", view.WalletRemainPoint)
 	}
 	if view.GiftPoints != 5000 {
 		t.Fatalf("expected giftPoints=5000, got %v", view.GiftPoints)
@@ -84,8 +84,8 @@ func TestWalletClosureFormula(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after recharge")
 	}
-	if co.WalletRemain != view.BalancePoint {
-		t.Fatalf("wallet_remain mismatch: company=%v view.balancePoint=%v", co.WalletRemain, view.BalancePoint)
+	if co.WalletRemain != view.WalletRemainPoint {
+		t.Fatalf("wallet_remain mismatch: company=%v view.walletRemainPoint=%v", co.WalletRemain, view.WalletRemainPoint)
 	}
 	if co.WalletRemain <= 0 {
 		t.Fatalf("expected positive wallet_remain, got %v", co.WalletRemain)

@@ -11,8 +11,8 @@ import (
 )
 
 type AccountStats struct {
-	Balance    float64 `json:"balance"`
-	TotalSpent float64 `json:"totalSpent"`
+	BudgetRemaining float64 `json:"budgetRemaining"`
+	TotalSpent      float64 `json:"totalSpent"`
 }
 
 type UsageStats struct {
@@ -107,8 +107,8 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	avgRPM, avgTPM := performanceStats(summary, start, end)
 	return DashboardView{
 		Account: AccountStats{
-			Balance:    budgetSummary.Remaining,
-			TotalSpent: summary.Cost,
+			BudgetRemaining: budgetSummary.Remaining,
+			TotalSpent:      summary.Cost,
 		},
 		UsageStats: UsageStats{
 			RequestCount: summary.CallCount,

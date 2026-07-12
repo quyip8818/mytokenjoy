@@ -5,10 +5,10 @@ import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 
 describe('useUsageDashboardPage', () => {
-  it('loads team and model usage on mount', async () => {
+  it('loads department and model usage on mount', async () => {
     const apis = createMockApis({
       dashboardApi: {
-        getTeamUsage: vi.fn().mockResolvedValue([
+        getDepartmentUsage: vi.fn().mockResolvedValue([
           {
             departmentId: 'd1',
             departmentName: 'HQ',
@@ -39,17 +39,17 @@ describe('useUsageDashboardPage', () => {
 
     await waitForLoaded(result, 'loading')
     await waitFor(() => {
-      expect(result.current.teamUsage).toHaveLength(1)
+      expect(result.current.departmentUsage).toHaveLength(1)
     })
 
-    expect(apis.dashboardApi.getTeamUsage).toHaveBeenCalled()
+    expect(apis.dashboardApi.getDepartmentUsage).toHaveBeenCalled()
     expect(apis.dashboardApi.getModelUsage).toHaveBeenCalled()
   })
 
   it('passes period params when deptId changes', async () => {
     const apis = createMockApis({
       dashboardApi: {
-        getTeamUsage: vi.fn().mockResolvedValue([]),
+        getDepartmentUsage: vi.fn().mockResolvedValue([]),
         getModelUsage: vi.fn().mockResolvedValue([]),
       },
     })
@@ -60,7 +60,7 @@ describe('useUsageDashboardPage', () => {
     )
 
     await waitForLoaded(result, 'loading')
-    expect(apis.dashboardApi.getTeamUsage).toHaveBeenCalledWith(
+    expect(apis.dashboardApi.getDepartmentUsage).toHaveBeenCalledWith(
       expect.objectContaining({ period: 'current_month' }),
     )
   })

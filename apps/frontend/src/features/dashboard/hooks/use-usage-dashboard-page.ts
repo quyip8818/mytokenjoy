@@ -37,15 +37,15 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
   )
 
   const {
-    data: teamUsage = [],
-    loading: teamLoading,
-    error: teamError,
-    refresh: refreshTeam,
+    data: departmentUsage = [],
+    loading: departmentLoading,
+    error: departmentError,
+    refresh: refreshDepartment,
   } = useInjectedQuery({
     injectedApis,
-    queryKey: [...queryKeys.dashboard.usage(), 'team', costQuery, deptId],
+    queryKey: [...queryKeys.dashboard.usage(), 'department', costQuery, deptId],
     queryFn: (a) =>
-      a.dashboardApi.getTeamUsage({ ...costQuery, departmentId: deptId ?? undefined }),
+      a.dashboardApi.getDepartmentUsage({ ...costQuery, departmentId: deptId ?? undefined }),
   })
 
   const {
@@ -76,10 +76,10 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
       }),
   })
 
-  const loading = teamLoading || modelLoading || topLoading
-  const error = teamError ?? modelError ?? topError
+  const loading = departmentLoading || modelLoading || topLoading
+  const error = departmentError ?? modelError ?? topError
   const refresh = async () => {
-    await Promise.all([refreshTeam(), refreshModel(), refreshTop()])
+    await Promise.all([refreshDepartment(), refreshModel(), refreshTop()])
   }
 
   const handlePeriodChange = useCallback((value: string | null) => {
@@ -96,7 +96,7 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
     endDate,
     customDateInvalid,
     deptId,
-    teamUsage,
+    departmentUsage,
     modelUsage,
     topConsumers,
     loading,

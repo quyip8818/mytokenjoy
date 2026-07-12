@@ -13,7 +13,7 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
   const balance = primary?.balance ?? 0
   const totalConsumed = primary?.totalConsumed ?? 0
   const totalTopup = primary?.totalTopup ?? 0
-  const balancePoint = wallet?.balancePoint ?? 0
+  const walletRemainPoint = wallet?.walletRemainPoint ?? 0
   const giftPoints = wallet?.giftPoints ?? 0
   const overdraftPoints = wallet?.overdraftPoints ?? 0
   const totalRequests = wallet?.totalRequests ?? 0
@@ -39,7 +39,7 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
           icon={BarChart3}
           iconLayout="inline"
           label="可用 point"
-          value={loading ? '—' : balancePoint.toLocaleString()}
+          value={loading ? '—' : walletRemainPoint.toLocaleString()}
         />
         <StatCard
           icon={Gift}

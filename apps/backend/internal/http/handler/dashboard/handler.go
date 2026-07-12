@@ -83,11 +83,11 @@ func (h *Handler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) TeamUsage(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DepartmentUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
 		deptID := r.URL.Query().Get("departmentId")
-		result, err := h.service.TeamUsage(ctx, params, deptID, scope)
+		result, err := h.service.DepartmentUsage(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
@@ -119,7 +119,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	usageRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardUsage)
 	usageRead.Get("/usage/models", h.ModelUsage)
-	usageRead.Get("/usage/teams", h.TeamUsage)
+	usageRead.Get("/usage/teams", h.DepartmentUsage)
 	usageRead.Get("/usage/series", h.UsageSeries)
 }
 

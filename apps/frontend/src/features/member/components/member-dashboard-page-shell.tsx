@@ -1,8 +1,3 @@
-import { useNavigate } from 'react-router'
-import { toast } from 'sonner'
-import { ROUTES } from '@/config/routes'
-import { PERMISSION } from '@/lib/permissions'
-import { usePermissions } from '@/hooks/use-permissions'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import type { useMemberDashboardPage } from '@/features/member'
@@ -27,17 +22,6 @@ export function MemberDashboardPageShell({
   trendTotal,
   callTotal,
 }: MemberDashboardPageShellProps) {
-  const navigate = useNavigate()
-  const { has } = usePermissions()
-
-  const handleRecharge = () => {
-    if (has([PERMISSION.BILLING_READ, PERMISSION.BILLING_RECHARGE])) {
-      navigate(ROUTES.wallet)
-      return
-    }
-    toast.message('请联系管理员进行充值')
-  }
-
   return (
     <PageShell>
       <DataSection
@@ -52,7 +36,6 @@ export function MemberDashboardPageShell({
           usageStats={usageStats}
           resourceConsumption={resourceConsumption}
           performance={performance}
-          onRecharge={handleRecharge}
         />
         <MemberConsumptionCharts
           loading={loading}

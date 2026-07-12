@@ -8,7 +8,7 @@ import type {
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 const EMPTY_DASHBOARD: MemberDashboardView = {
-  account: { balance: 0, totalSpent: 0 },
+  account: { budgetRemaining: 0, totalSpent: 0 },
   usageStats: { requestCount: 0, totalCount: 0 },
   resourceConsumption: { totalCost: 0, totalTokens: 0 },
   performance: { avgRPM: 0, avgTPM: 0 },

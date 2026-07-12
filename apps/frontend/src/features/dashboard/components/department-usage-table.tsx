@@ -1,5 +1,5 @@
-import type { TeamUsage } from '@/api/types'
-import { teamUsagePercent } from '@/features/dashboard'
+import type { DepartmentUsage } from '@/api/types'
+import { departmentUsagePercent } from '@/features/dashboard'
 import {
   Table,
   TableBody,
@@ -11,12 +11,12 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 
-interface TeamUsageTableProps {
-  teamUsage: TeamUsage[]
+interface DepartmentUsageTableProps {
+  departmentUsage: DepartmentUsage[]
   onSelectDept?: (deptId: string) => void
 }
 
-export function TeamUsageTable({ teamUsage, onSelectDept }: TeamUsageTableProps) {
+export function DepartmentUsageTable({ departmentUsage, onSelectDept }: DepartmentUsageTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -34,20 +34,20 @@ export function TeamUsageTable({ teamUsage, onSelectDept }: TeamUsageTableProps)
         </TableRow>
       </TableHeader>
       <TableBody>
-        {teamUsage.map((t) => {
-          const pct = teamUsagePercent(t.consumed, t.budget)
+        {departmentUsage.map((row) => {
+          const pct = departmentUsagePercent(row.consumed, row.budget)
           return (
             <TableRow
-              key={t.departmentId}
+              key={row.departmentId}
               className="border-border-subtle hover:bg-muted/50 transition-colors cursor-pointer"
-              onClick={() => onSelectDept?.(t.departmentId)}
+              onClick={() => onSelectDept?.(row.departmentId)}
             >
-              <TableCell className="font-medium">{t.departmentName}</TableCell>
+              <TableCell className="font-medium">{row.departmentName}</TableCell>
               <TableCell className="text-muted-foreground tabular-nums">
-                {t.budget.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                {row.budget.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell className="font-medium tabular-nums">
-                {t.consumed.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                {row.consumed.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2.5">
@@ -60,10 +60,10 @@ export function TeamUsageTable({ teamUsage, onSelectDept }: TeamUsageTableProps)
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="text-right text-muted-foreground">{t.memberCount}</TableCell>
+              <TableCell className="text-right text-muted-foreground">{row.memberCount}</TableCell>
               <TableCell>
                 <Badge variant="secondary" className="text-xs font-medium">
-                  {t.topModel}
+                  {row.topModel}
                 </Badge>
               </TableCell>
             </TableRow>

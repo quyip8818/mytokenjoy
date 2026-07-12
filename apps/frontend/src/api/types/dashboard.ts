@@ -72,7 +72,7 @@ export interface ModelUsage {
   percentage: number
 }
 
-export interface TeamUsage {
+export interface DepartmentUsage {
   departmentId: string
   departmentName: string
   budget: number

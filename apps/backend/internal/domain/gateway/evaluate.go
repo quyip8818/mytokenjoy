@@ -21,7 +21,7 @@ func Evaluate(pc PrecheckContext, model string, skipModelCheck bool) error {
 		return fmt.Errorf("company not active")
 	}
 	if pc.Wallet.WalletRemain < minEstimatePoint {
-		return fmt.Errorf("insufficient wallet balance")
+		return fmt.Errorf("insufficient wallet points")
 	}
 	if pc.Routing.KeyStatus != "active" {
 		return fmt.Errorf("platform key inactive")

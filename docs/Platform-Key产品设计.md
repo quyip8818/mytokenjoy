@@ -2,7 +2,7 @@
 
 说明 **Platform Key** 的种类划分、命名约定、长期 Job 用法，以及如何避免「一人多把 Key 很混乱」。本文是**产品设计参考**，与 [PRD.md](./PRD.md) 对照使用；实现差距见文末。
 
-**相关：** [PRD.md](./PRD.md) US-07 / US-10 / US-11 · [预算分配与扣减.md](./预算分配与扣减.md) · [命名统一.md](./命名统一.md)
+**相关：** [PRD.md](./PRD.md) US-07 / US-10 / US-11 · [预算分配与扣减.md](./预算分配与扣减.md) · [Backend-存储架构.md](./Backend-存储架构.md) §8
 
 ---
 
@@ -66,7 +66,7 @@ flowchart TB
 | `project` | 项目 Key（服务 / 共享） | `projectId` |
 | `project_member` | 项目成员 Key（项目内分到人） | `memberId` + `projectId` |
 
-> 代码 / API 统一 **`Project` / `projectId` / scope `project`**（方案 B，见 [命名统一.md](./命名统一.md)）。US-11 用途标签只用 **`appName`**，不用 `project` 词根。
+> 代码 / API 统一 **`Project` / `projectId` / scope `project`**（方案 B，见 [Backend-架构.md](./Backend-架构.md)）。US-11 用途标签只用 **`appName`**，不用 `project` 词根。
 
 ### 3.2 对外（界面文案）
 
@@ -567,7 +567,7 @@ flowchart TD
 | --- | --- |
 | [PRD.md](./PRD.md) | 权威需求与验收 |
 | [预算分配与扣减.md](./预算分配与扣减.md) | 扣费池、部门 vs 项目独立结算 |
-| [命名统一.md](./命名统一.md) | **`Project` 实体**；废弃 `budgetGroup` |
+| [Backend-存储架构.md](./Backend-存储架构.md) §8 | **`Project` 实体**与四层计量命名 |
 | [plan.md](./plan.md) | 工程排期 |
 
 ---
