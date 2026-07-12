@@ -8,9 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/budget"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -62,28 +62,26 @@ func resetBudgetProjectorCursor(t *testing.T, st store.Store) {
 	}
 }
 
-type recordingEnqueuer struct {
-	inner      jobs.Enqueuer
+type recordingBudgetEnqueuer struct {
+	inner      budget.JobEnqueuer
 	rebalances int
 	overruns   int
 }
 
-func (r *recordingEnqueuer) Insert(ctx context.Context, args river.JobArgs, opts *river.InsertOpts) error {
-	switch args.Kind() {
-	case jobs.KindRebalance:
-		r.rebalances++
-	case jobs.KindOverrun:
-		r.overruns++
-	}
-	return r.inner.Insert(ctx, args, opts)
+func (r *recordingBudgetEnqueuer) InsertBudgetProject(ctx context.Context, companyID int64) error {
+	return r.inner.InsertBudgetProject(ctx, companyID)
 }
 
-func (r *recordingEnqueuer) InsertInTx(ctx context.Context, tx store.Tx, args river.JobArgs, opts *river.InsertOpts) error {
-	switch args.Kind() {
-	case jobs.KindRebalance:
-		r.rebalances++
-	case jobs.KindOverrun:
-		r.overruns++
-	}
-	return r.inner.InsertInTx(ctx, tx, args, opts)
+func (r *recordingBudgetEnqueuer) InsertOverrun(ctx context.Context, companyID int64, payload []byte) error {
+	r.overruns++
+	return r.inner.InsertOverrun(ctx, companyID, payload)
+}
+
+func (r *recordingBudgetEnqueuer) InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error {
+	r.rebalances++
+	return r.inner.InsertRebalance(ctx, companyID, axisKind, axisID)
+}
+
+func (r *recordingBudgetEnqueuer) InsertBudgetReconcile(ctx context.Context, companyID int64) error {
+	return r.inner.InsertBudgetReconcile(ctx, companyID)
 }

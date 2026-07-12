@@ -7,10 +7,10 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
@@ -28,9 +28,8 @@ func TestBudgetReconcileRepairsDriftAndEnqueuesRebalance(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	baseEnqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
-	recorder := &recordingEnqueuer{inner: baseEnqueuer}
-	budgetAsync := budget.NewAsync(cfg, st, recorder, budgetcheck.Noop{}, logger)
+	recorder := &recordingBudgetEnqueuer{inner: riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st)}
+	budgetAsync := budget.NewAsync(cfg, st, recorder, budget.NoopGatewaySoftCache, logger)
 	if _, err := budgetAsync.Projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
@@ -55,13 +54,13 @@ func TestBudgetReconcileRepairsDriftAndEnqueuesRebalance(t *testing.T) {
 		t.Fatalf("expected positive platform key consumed from ledger, got %v", wantPlatformKey)
 	}
 
-	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 0.01)
+	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 0.01)
 
 	if err := budgetAsync.Reconcile.RunCompany(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 
-	got := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	got := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
 	if budget.ConsumedDrift(wantPlatformKey, got) {
 		t.Fatalf("expected reconcile to repair platform key consumed to %v, got %v", wantPlatformKey, got)
 	}

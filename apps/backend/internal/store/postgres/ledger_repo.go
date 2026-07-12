@@ -11,67 +11,10 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/usagequery"
 )
 
 type pgLedgerRepo struct {
 	db dbQuerier
-}
-
-func (r *pgLedgerRepo) InsertOnConflict(ctx context.Context, entry types.UsageLedgerEntry) (bool, error) {
-	return r.insertLedgerEntry(ctx, store.CompanyID(ctx), entry)
-}
-
-func (r *pgLedgerRepo) InsertSegments(ctx context.Context, entries []types.UsageLedgerEntry) (int, error) {
-	companyID := store.CompanyID(ctx)
-	inserted := 0
-	for _, entry := range entries {
-		ok, err := r.insertLedgerEntry(ctx, companyID, entry)
-		if err != nil {
-			return inserted, err
-		}
-		if ok {
-			inserted++
-		}
-	}
-	return inserted, nil
-}
-
-func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID int64, entry types.UsageLedgerEntry) (bool, error) {
-	detailJSON, err := json.Marshal(entry.CallDetail)
-	if err != nil {
-		return false, err
-	}
-	tag, err := r.db.Exec(ctx, `
-		INSERT INTO usage_ledger (
-			id, company_id, event_type, idempotency_key, segment_index, lot_id,
-			amount, display_amount, billing_currency,
-			department_id, member_id, budget_group_id, platform_key_id,
-			source, occurred_at, period_key, model, input_tokens, output_tokens,
-			call_detail, created_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
-		ON CONFLICT (company_id, idempotency_key, lot_id, occurred_at) DO NOTHING
-	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.SegmentIndex, entry.LotID,
-		entry.Amount, entry.DisplayAmount, entry.BillingCurrency,
-		entry.DepartmentID, entry.MemberID, entry.BudgetGroupID, entry.PlatformKeyID,
-		entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,
-		detailJSON, entry.CreatedAt.UTC())
-	if err != nil {
-		return false, err
-	}
-	return tag.RowsAffected() > 0, nil
-}
-
-func (r *pgLedgerRepo) ExistsIdempotency(ctx context.Context, idempotencyKey string) (bool, error) {
-	var exists bool
-	err := r.db.QueryRow(ctx, `
-		SELECT EXISTS(
-			SELECT 1 FROM usage_ledger
-			WHERE company_id = $1 AND idempotency_key = $2
-			LIMIT 1
-		)
-	`, store.CompanyID(ctx), idempotencyKey).Scan(&exists)
-	return exists, err
 }
 
 func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.LedgerCallFilter) ([]types.UsageLedgerEntry, int, error) {
@@ -144,7 +87,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 		); err != nil {
 			return nil, err
 		}
-		row.BucketStart = usagequery.TruncateBucket(occurredAt, types.UsageGranularityMinute, loc)
+		row.BucketStart = truncateUsageBucket(occurredAt, types.UsageGranularityMinute, loc)
 		row.Cost = amount
 		row.CallCount = 1
 		row.InputTokens = inputTokens
@@ -155,12 +98,12 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 		return nil, err
 	}
 
-	aggregated := usagequery.AggregateRows(bucketRows, types.UsageGranularityMinute, q.GroupBy, loc)
+	aggregated := aggregateUsageRows(bucketRows, types.UsageGranularityMinute, q.GroupBy, loc)
 	points := make([]types.UsageSeriesPoint, len(aggregated))
 	for i, row := range aggregated {
-		points[i] = usagequery.AggregateToSeriesPoint(row)
+		points[i] = aggregateToSeriesPoint(row)
 	}
-	usagequery.SortSeriesPoints(points)
+	sortUsageSeriesPoints(points)
 	return points, nil
 }
 
@@ -266,67 +209,6 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 		items = append(items, item)
 	}
 	return items, rows.Err()
-}
-
-func (r *pgLedgerRepo) ListCallSettledAfterCursor(ctx context.Context, cursor store.LedgerProjectorCursor) ([]types.UsageLedgerEntry, error) {
-	companyID := store.CompanyID(ctx)
-	limit := cursor.Limit
-	if limit <= 0 {
-		limit = 500
-	}
-
-	var rows pgx.Rows
-	var err error
-	if cursor.LastOccurredAt == nil || cursor.LastLedgerID == nil {
-		rows, err = r.db.Query(ctx, `
-			SELECT id, event_type, idempotency_key, segment_index, lot_id,
-				amount, display_amount, billing_currency,
-				department_id, member_id, budget_group_id, platform_key_id,
-				source, occurred_at, period_key, model, input_tokens, output_tokens,
-				call_detail, created_at
-			FROM usage_ledger
-			WHERE company_id = $1 AND event_type = 'call_settled'
-			ORDER BY occurred_at ASC, id ASC
-			LIMIT $2
-		`, companyID, limit)
-	} else {
-		rows, err = r.db.Query(ctx, `
-			SELECT id, event_type, idempotency_key, segment_index, lot_id,
-				amount, display_amount, billing_currency,
-				department_id, member_id, budget_group_id, platform_key_id,
-				source, occurred_at, period_key, model, input_tokens, output_tokens,
-				call_detail, created_at
-			FROM usage_ledger
-			WHERE company_id = $1 AND event_type = 'call_settled'
-			  AND (occurred_at, id) > ($2, $3)
-			ORDER BY occurred_at ASC, id ASC
-			LIMIT $4
-		`, companyID, cursor.LastOccurredAt.UTC(), *cursor.LastLedgerID, limit)
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanLedgerRows(rows)
-}
-
-func (r *pgLedgerRepo) ListCallSettledSince(ctx context.Context, since time.Time) ([]types.UsageLedgerEntry, error) {
-	companyID := store.CompanyID(ctx)
-	rows, err := r.db.Query(ctx, `
-		SELECT id, event_type, idempotency_key, segment_index, lot_id,
-			amount, display_amount, billing_currency,
-			department_id, member_id, budget_group_id, platform_key_id,
-			source, occurred_at, period_key, model, input_tokens, output_tokens,
-			call_detail, created_at
-		FROM usage_ledger
-		WHERE company_id = $1 AND event_type = 'call_settled' AND occurred_at >= $2
-		ORDER BY occurred_at ASC, id ASC
-	`, companyID, since.UTC())
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanLedgerRows(rows)
 }
 
 var _ store.LedgerRepository = (*pgLedgerRepo)(nil)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 // IngestBudgetFixture describes budget axes checked by ingest enforceBudgetCap.
@@ -48,7 +49,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 		t.Fatal(err)
 	}
 	if found && limit > 0 {
-		SetDeptSnapshotConsumed(t, st, fixture.DepartmentID, ingestHeadroomConsumed(limit, fixture.Amount))
+		budgetfix.SetDeptSnapshotConsumed(t, st, fixture.DepartmentID, ingestHeadroomConsumed(limit, fixture.Amount))
 	}
 
 	if fixture.MemberID != "" {
@@ -57,7 +58,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 			t.Fatal(err)
 		}
 		if memberFound {
-			SetMemberSnapshotConsumed(t, st, fixture.MemberID, ingestHeadroomConsumed(quota, fixture.Amount))
+			budgetfix.SetMemberSnapshotConsumed(t, st, fixture.MemberID, ingestHeadroomConsumed(quota, fixture.Amount))
 		}
 	}
 
@@ -72,7 +73,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 		if key.ID != fixture.PlatformKeyID || key.Budget <= 0 {
 			continue
 		}
-		SetPlatformKeySnapshotUsed(t, st, fixture.PlatformKeyID, ingestHeadroomConsumed(key.Budget, fixture.Amount))
+		budgetfix.SetPlatformKeySnapshotUsed(t, st, fixture.PlatformKeyID, ingestHeadroomConsumed(key.Budget, fixture.Amount))
 		break
 	}
 }

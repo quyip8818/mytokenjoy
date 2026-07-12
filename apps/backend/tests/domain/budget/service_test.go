@@ -10,17 +10,18 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestUpdateNodeSuccess(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	reserved := testutil.DisplayPoints(1500)
-	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, testutil.DisplayPoints(21000), &reserved)
+	reserved := budgetfix.DisplayPoints(1500)
+	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.DisplayPoints(21000), &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantBudget := testutil.DisplayPoints(21000)
+	wantBudget := budgetfix.DisplayPoints(21000)
 	if updated.Budget != wantBudget {
 		t.Fatalf("expected budget %v, got %v", wantBudget, updated.Budget)
 	}
@@ -47,8 +48,8 @@ func TestUpdateNodeSuccess(t *testing.T) {
 func TestUpdateNodeOversell(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	reserved := testutil.DisplayPoints(1500)
-	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, testutil.DisplayPoints(90000), &reserved)
+	reserved := budgetfix.DisplayPoints(1500)
+	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.DisplayPoints(90000), &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -78,7 +79,7 @@ func TestUpdateMemberBudgetSuccess(t *testing.T) {
 	}
 	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil)
 
-	wantQuota := testutil.DisplayPoints(15000)
+	wantQuota := budgetfix.DisplayPoints(15000)
 	result, err := svc.UpdateMemberBudget(testutil.Ctx(), contract.IDMember1, wantQuota)
 	if err != nil {
 		t.Fatal(err)
@@ -184,8 +185,8 @@ func TestOrgSyncSetTreeDoesNotOverwriteBudget(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
 	ctx := testutil.Ctx()
-	wantBudget := testutil.DisplayPoints(21000)
-	reserved := testutil.DisplayPoints(1500)
+	wantBudget := budgetfix.DisplayPoints(21000)
+	reserved := budgetfix.DisplayPoints(1500)
 	if _, err := svc.UpdateNode(ctx, contract.IDDept3, wantBudget, &reserved); err != nil {
 		t.Fatal(err)
 	}

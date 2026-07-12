@@ -5,7 +5,9 @@ package riverfix
 import (
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/store"
@@ -22,4 +24,15 @@ func NewInsertOnlyEnqueuer(t *testing.T, cfg config.Config, st store.Store) jobs
 		t.Fatal(err)
 	}
 	return client.Enqueuer
+}
+
+// NewBudgetInsertOnlyEnqueuer wraps NewInsertOnlyEnqueuer as domain/budget.JobEnqueuer.
+func NewBudgetInsertOnlyEnqueuer(t *testing.T, cfg config.Config, st store.Store) domainbudget.JobEnqueuer {
+	t.Helper()
+	return app.NewBudgetEnqueuer(NewInsertOnlyEnqueuer(t, cfg, st))
+}
+
+// budgetEnqueuerFromHolder adapts a jobs.Enqueuer for tests using app.BuildRegistry holder.
+func budgetEnqueuerFromHolder(enqueuer jobs.Enqueuer) domainbudget.JobEnqueuer {
+	return app.NewBudgetEnqueuer(enqueuer)
 }

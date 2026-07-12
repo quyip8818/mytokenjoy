@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -15,18 +15,18 @@ type recordingCache struct {
 
 func (r *recordingCache) Enabled() bool { return true }
 
-func (r *recordingCache) Get(context.Context, int64, string) (budgetcheck.Entry, bool, error) {
-	return budgetcheck.Entry{}, false, nil
+func (r *recordingCache) Get(context.Context, int64, string) (domainbudget.GatewaySoftEntry, bool, error) {
+	return domainbudget.GatewaySoftEntry{}, false, nil
 }
 
-func (r *recordingCache) Set(context.Context, int64, string, budgetcheck.Entry) error {
+func (r *recordingCache) Set(context.Context, int64, string, domainbudget.GatewaySoftEntry) error {
 	r.sets++
 	return nil
 }
 
 func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 	cache := &recordingCache{}
-	budgetcheck.RefreshSummaries(context.Background(), cache, nil, 1, []store.GatewaySoftSummary{
+	domainbudget.RefreshGatewaySoftSummaries(context.Background(), cache, nil, 1, []store.GatewaySoftSummary{
 		{
 			PlatformKeyID: "pk-1",
 			KeyHash:       "hash-1",
@@ -40,15 +40,15 @@ func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 	}
 }
 
-func TestBlocksWithVersion(t *testing.T) {
-	entry := budgetcheck.Entry{SoftRemain: 0, Version: 2}
-	if !budgetcheck.BlocksWithVersion(entry, 2) {
+func TestBlocksGatewaySoft(t *testing.T) {
+	entry := domainbudget.GatewaySoftEntry{SoftRemain: 0, Version: 2}
+	if !domainbudget.BlocksGatewaySoft(entry, 2) {
 		t.Fatal("expected block when versions match and remain <= 0")
 	}
-	if budgetcheck.BlocksWithVersion(entry, 3) {
+	if domainbudget.BlocksGatewaySoft(entry, 3) {
 		t.Fatal("expected allow when redis version is stale")
 	}
-	if budgetcheck.BlocksWithVersion(budgetcheck.Entry{SoftRemain: 0, Version: 1}, 0) {
+	if domainbudget.BlocksGatewaySoft(domainbudget.GatewaySoftEntry{SoftRemain: 0, Version: 1}, 0) {
 		t.Fatal("expected allow when pg version is unset")
 	}
 }

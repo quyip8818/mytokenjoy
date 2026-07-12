@@ -6,7 +6,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/tests/testutil"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
@@ -67,8 +66,8 @@ func TestOrgNodeBudgetRowsFromNodes_FlattensTree(t *testing.T) {
 
 func TestOrgNodeBudgetRowsFromNodes_MatchesSnapshotDept3(t *testing.T) {
 	t.Parallel()
-	wantBudget := testutil.DisplayPoints(20000)
-	wantReserved := testutil.DisplayPoints(1500)
+	wantBudget := budgetfix.DisplayPoints(20000)
+	wantReserved := budgetfix.DisplayPoints(1500)
 	rows := pkgbudget.OrgNodeBudgetRowsFromNodes([]types.OrgNode{
 		{
 			ID: "dept-3", Budget: wantBudget, ReservedPool: &wantReserved,

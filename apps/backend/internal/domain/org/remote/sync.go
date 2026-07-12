@@ -7,9 +7,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -46,7 +45,7 @@ func (s *Service) FanoutScheduledSyncJobs(ctx context.Context) error {
 		if err != nil || !due {
 			return err
 		}
-		return jobs.InsertOrgSync(entryCtx, s.enqueuer, nil, co.ID)
+		return s.enqueuer.InsertOrgSync(entryCtx, co.ID)
 	})
 }
 
@@ -169,13 +168,13 @@ func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.
 	cfg := integration.ToSyncConfig()
 	if len(diff.RemoveMembers) > cfg.DeleteMemberThreshold {
 		detail := fmt.Sprintf("member deletions %d exceed threshold %d", len(diff.RemoveMembers), cfg.DeleteMemberThreshold)
-		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
+		core.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}
 	if len(diff.RemoveDepartments) > cfg.DeleteDepartmentThreshold {
 		detail := fmt.Sprintf("department deletions %d exceed threshold %d", len(diff.RemoveDepartments), cfg.DeleteDepartmentThreshold)
-		notification.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
+		core.NotifySyncThresholdExceeded(ctx, s.d.Notifier, cfg, detail)
 		_ = s.appendSyncLog(ctx, syncType, types.SyncResultFailure, detail)
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, detail)
 	}

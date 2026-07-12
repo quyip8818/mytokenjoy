@@ -1,4 +1,4 @@
-package usagequery
+package postgres
 
 import (
 	"sort"
@@ -8,14 +8,14 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
-type AggKey struct {
+type usageAggKey struct {
 	Bucket       string
 	DepartmentID string
 	MemberID     string
 	Model        string
 }
 
-func ContainsString(items []string, target string) bool {
+func containsString(items []string, target string) bool {
 	for _, item := range items {
 		if item == target {
 			return true
@@ -24,35 +24,7 @@ func ContainsString(items []string, target string) bool {
 	return false
 }
 
-func FilterRows(
-	rows []types.UsageBucketRow,
-	start, end time.Time,
-	departmentID, memberID string,
-	scopeDeptIDs, departmentIDs []string,
-) []types.UsageBucketRow {
-	result := make([]types.UsageBucketRow, 0, len(rows))
-	for _, row := range rows {
-		if row.BucketStart.Before(start) || !row.BucketStart.Before(end) {
-			continue
-		}
-		if departmentID != "" && row.DepartmentID != departmentID {
-			continue
-		}
-		if len(departmentIDs) > 0 && !ContainsString(departmentIDs, row.DepartmentID) {
-			continue
-		}
-		if memberID != "" && row.MemberID != memberID {
-			continue
-		}
-		if len(scopeDeptIDs) > 0 && !ContainsString(scopeDeptIDs, row.DepartmentID) {
-			continue
-		}
-		result = append(result, row)
-	}
-	return result
-}
-
-func TruncateBucket(t time.Time, granularity string, loc *time.Location) time.Time {
+func truncateUsageBucket(t time.Time, granularity string, loc *time.Location) time.Time {
 	switch granularity {
 	case types.UsageGranularityDay:
 		return common.TruncateInTZ(t, 24*time.Hour, loc)
@@ -69,7 +41,7 @@ func TruncateBucket(t time.Time, granularity string, loc *time.Location) time.Ti
 	}
 }
 
-func AggregateRows(
+func aggregateUsageRows(
 	rows []types.UsageBucketRow,
 	granularity, groupBy string,
 	loc *time.Location,
@@ -77,15 +49,15 @@ func AggregateRows(
 	if groupBy == "" {
 		groupBy = types.UsageGroupByNone
 	}
-	buckets := make(map[AggKey]types.UsageAggregateRow)
+	buckets := make(map[usageAggKey]types.UsageAggregateRow)
 	for _, row := range rows {
 		var truncated time.Time
 		var bucketLabel string
 		if granularity != "" {
-			truncated = TruncateBucket(row.BucketStart, granularity, loc)
+			truncated = truncateUsageBucket(row.BucketStart, granularity, loc)
 			bucketLabel = truncated.UTC().Format(time.RFC3339)
 		}
-		key := AggKey{Bucket: bucketLabel}
+		key := usageAggKey{Bucket: bucketLabel}
 		switch groupBy {
 		case types.UsageGroupByDepartment:
 			key.DepartmentID = row.DepartmentID
@@ -118,7 +90,7 @@ func AggregateRows(
 	return result
 }
 
-func AggregateToSeriesPoint(row types.UsageAggregateRow) types.UsageSeriesPoint {
+func aggregateToSeriesPoint(row types.UsageAggregateRow) types.UsageSeriesPoint {
 	return types.UsageSeriesPoint{
 		Bucket:       row.Bucket,
 		DepartmentID: row.DepartmentID,
@@ -131,7 +103,7 @@ func AggregateToSeriesPoint(row types.UsageAggregateRow) types.UsageSeriesPoint 
 	}
 }
 
-func SortSeriesPoints(points []types.UsageSeriesPoint) {
+func sortUsageSeriesPoints(points []types.UsageSeriesPoint) {
 	sort.Slice(points, func(i, j int) bool {
 		if points[i].Bucket != points[j].Bucket {
 			return points[i].Bucket < points[j].Bucket
@@ -146,7 +118,7 @@ func SortSeriesPoints(points []types.UsageSeriesPoint) {
 	})
 }
 
-func SummaryTotals(rows []types.UsageBucketRow, start, end time.Time) types.UsageSummaryTotals {
+func summaryUsageTotals(rows []types.UsageBucketRow, start, end time.Time) types.UsageSummaryTotals {
 	var totals types.UsageSummaryTotals
 	for _, row := range rows {
 		if row.BucketStart.Before(start) || !row.BucketStart.Before(end) {
@@ -160,7 +132,7 @@ func SummaryTotals(rows []types.UsageBucketRow, start, end time.Time) types.Usag
 	return totals
 }
 
-func LimitByCost(rows []types.UsageAggregateRow, limit int) []types.UsageAggregateRow {
+func limitUsageByCost(rows []types.UsageAggregateRow, limit int) []types.UsageAggregateRow {
 	if limit <= 0 || len(rows) <= limit {
 		return rows
 	}
@@ -170,7 +142,7 @@ func LimitByCost(rows []types.UsageAggregateRow, limit int) []types.UsageAggrega
 	return rows[:limit]
 }
 
-func TopModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[string]string {
+func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[string]string {
 	if len(deptIDs) == 0 {
 		return map[string]string{}
 	}

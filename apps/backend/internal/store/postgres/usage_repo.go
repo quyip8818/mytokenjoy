@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/usagequery"
 )
 
 type usageRepo struct {
@@ -106,9 +105,9 @@ func (r *usageRepo) QuerySeries(ctx context.Context, q types.UsageSeriesQuery) (
 	}
 	points := make([]types.UsageSeriesPoint, len(rows))
 	for i, row := range rows {
-		points[i] = usagequery.AggregateToSeriesPoint(row)
+		points[i] = aggregateToSeriesPoint(row)
 	}
-	usagequery.SortSeriesPoints(points)
+	sortUsageSeriesPoints(points)
 	return points, nil
 }
 
@@ -121,11 +120,19 @@ func (r *usageRepo) QuerySummary(ctx context.Context, q types.UsageAggregateQuer
 	if err != nil {
 		return types.UsageSummaryTotals{}, err
 	}
-	return usagequery.SummaryTotals(rows, q.Start, q.End), nil
+	return summaryUsageTotals(rows, q.Start, q.End), nil
 }
 
 func (r *usageRepo) QueryFilteredBuckets(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageBucketRow, error) {
 	return r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+}
+
+func (r *usageRepo) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error) {
+	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.DepartmentIDs, q.ScopeDeptIDs)
+	if err != nil {
+		return nil, err
+	}
+	return topModelPerDepartment(rows, deptIDs), nil
 }
 
 func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error) {
@@ -137,17 +144,17 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 	if err != nil {
 		return nil, err
 	}
-	aggregated := usagequery.AggregateRows(rows, q.Granularity, q.GroupBy, loc)
+	aggregated := aggregateUsageRows(rows, q.Granularity, q.GroupBy, loc)
 	if len(q.DepartmentIDs) > 0 {
 		filtered := make([]types.UsageAggregateRow, 0)
 		for _, row := range aggregated {
-			if usagequery.ContainsString(q.DepartmentIDs, row.DepartmentID) {
+			if containsString(q.DepartmentIDs, row.DepartmentID) {
 				filtered = append(filtered, row)
 			}
 		}
 		aggregated = filtered
 	}
-	return usagequery.LimitByCost(aggregated, q.Limit), nil
+	return limitUsageByCost(aggregated, q.Limit), nil
 }
 
 func (r *usageRepo) fetchFilteredRows(

@@ -7,10 +7,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	domainwallet "github.com/tokenjoy/backend/internal/domain/wallet"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/infra/notification"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -19,30 +17,32 @@ type IngestService struct {
 	cfg      config.Config
 	store    store.Store
 	logStore store.LogStore
-	notifier notification.Notifier
 	logger   *slog.Logger
-	enqueuer jobs.Enqueuer
+	enqueuer IngestJobEnqueuer
 }
 
 func NewIngestService(
 	cfg config.Config,
 	st store.Store,
 	logStore store.LogStore,
-	notifier notification.Notifier,
 	logger *slog.Logger,
-	enqueuer jobs.Enqueuer,
+	enqueuer IngestJobEnqueuer,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
 	}
 	if enqueuer == nil {
-		enqueuer = jobs.NoopEnqueuer{}
+		enqueuer = noopIngestEnqueuer{}
 	}
 	return &IngestService{
-		cfg: cfg, store: st, logStore: logStore, notifier: notifier, logger: logger,
+		cfg: cfg, store: st, logStore: logStore, logger: logger,
 		enqueuer: enqueuer,
 	}
 }
+
+type noopIngestEnqueuer struct{}
+
+func (noopIngestEnqueuer) EnqueueAfterIngest(context.Context, store.Tx, int64) error { return nil }
 
 func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source string) error {
 	raw, err := s.logStore.GetConsumeLogByID(ctx, logID)
@@ -90,23 +90,23 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		} else if exists {
 			return nil
 		}
-		segs, err := domainwallet.ConsumeLots(ctx, st, company.CompanyID(ctx), entry.Amount)
+		segs, err := billinglot.ConsumeLots(ctx, st, company.CompanyID(ctx), entry.Amount)
 		if err != nil {
 			return err
 		}
-		ledgerEntries := domainwallet.LedgerSegmentsFromEntry(entry, segs)
+		ledgerEntries := billinglot.LedgerSegmentsFromEntry(entry, segs)
 		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
-		if err != nil || inserted == 0 {
+		if err != nil {
 			return err
+		}
+		if inserted == 0 {
+			return fmt.Errorf("ingest: ledger insert returned zero rows")
 		}
 		tx, ok := st.(store.Tx)
 		if !ok {
 			return fmt.Errorf("ingest: transaction store required")
 		}
-		if err := jobs.InsertBudgetProject(ctx, s.enqueuer, tx, company.CompanyID(ctx)); err != nil {
-			return err
-		}
-		if err := jobs.InsertWalletSync(ctx, s.enqueuer, tx, company.CompanyID(ctx)); err != nil {
+		if err := s.enqueuer.EnqueueAfterIngest(ctx, tx, company.CompanyID(ctx)); err != nil {
 			return err
 		}
 		return nil

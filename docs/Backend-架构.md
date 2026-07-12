@@ -2,7 +2,7 @@
 
 `apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Gateway 集成与看板读路径。
 
-**相关：** [Backend.md](./Backend.md)（索引）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend.md](./Backend.md)（索引）· [Backend-结构优化.md](./Backend-结构优化.md)（目标架构与收口路线）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
 
 ---
 
@@ -119,7 +119,7 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 apps/backend/
 ├── cmd/server/main.go
 ├── internal/
-│   ├── app/                 # DI 组合根（wire_helpers + wire_domain_services + wire_gateway + registry）
+│   ├── app/                 # DI 组合根（wire_* + *_enqueuer.go 端口适配 + registry）
 │   ├── config/
 │   ├── identity/            # sessiontoken、credentials、authz、httpx
 │   ├── domain/
@@ -139,6 +139,7 @@ apps/backend/
 │   │   ├── gateway/         # GatewayService + Precheck（/v1 数据面）
 │   │   ├── company/         # 企业、开户、邀请
 │   │   ├── billing/         # 充值、lot 钱包、wallet_sync
+│   │   │   └── lot/         # lot 写 SSOT（consume / ledger）
 │   │   └── memberanalytics/ # 成员工作台只读聚合（GET /me/*）
 │   ├── http/
 │   │   ├── router.go
@@ -147,17 +148,20 @@ apps/backend/
 │   │   ├── middleware/
 │   │   └── httputil/、response/
 │   ├── infra/
+│   │   ├── jobs/            # Job 参数 + Enqueuer
+│   │   ├── river/           # River client + workers（薄壳调 domain）
+│   │   ├── ingest/          # 入账 worker
+│   │   ├── budgetcheck/     # Gateway Precheck 预算校验
 │   │   ├── permission/
-│   │   ├── worker/          # newapi_sync outbox、wallet_sync、rebalance、overrun、org sync
 │   │   └── notification/
 │   ├── integration/
 │   │   ├── newapi/
 │   │   └── datasource/feishu/
 │   ├── pkg/                 # budget/、org/、newapiunits/、common/、ctxcompany/
-│   └── store/               # postgres/
+│   └── store/               # postgres/（usage_aggregate.go；*_repo_<主题>.go）
 ├── seed/                    # demo 引导与契约（见 [Backend.md](./Backend.md) §5.3）
 ├── tests/
-│   ├── testutil/            # 根 + org/saas/http/gateway/budget/worker 子包
+│   ├── testutil/            # 根 + org/saas/http/gateway/budget/worker 子包（budget/ = budgetfix）
 │   ├── http/middleware/     # middleware 单元（chi + stub）
 │   ├── pkg/
 │   ├── domain/<域>/         # helpers_test.go + 主题测试文件
@@ -165,6 +169,24 @@ apps/backend/
 │   └── store/postgres/
 └── Makefile
 ```
+
+**目标态：** 分层不变；domain 并行访问 Store 与**按域定义的端口**（5 域 `ports.go` + `app/*_enqueuer.go`）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-目标架构)（**结构变化先改该文档，再同步本段**）。
+
+### 3.1 文件命名与拆分
+
+| 场景 | 命名 |
+| --- | --- |
+| 领域服务 | `service.go`；按流程拆分 `service_<动词>.go` |
+| 领域端口 | `ports.go` |
+| PlatformKey | `platform_key_<动作>.go` |
+| NewAPISync | `lifecycle_<动作>.go`；共用逻辑放 `lifecycle_helpers.go` |
+| 投影 / 对账 | `*_projector.go`、`*_reconcile.go` |
+| org | 子包 `core/`、`structure/`、`remote/` + 动词文件 |
+| Store 大 Repo | `<域>_repo_<主题>.go` |
+
+**子包：** 仅 org 采用三层子包（已验证）；**`billing/lot/`** 为 lot 写 SSOT 子包（避免 `billing ↔ usage` 循环依赖）；其余域保持扁平，直到出现稳定正交子域。  
+**Handler 拆分：** org 按 REST 资源多文件；其它域在单文件职责明显超过一个资源时再拆。  
+**Store 拆分：** 单 Repo 职责超过一个聚合主题时，按 `<域>_repo_<主题>.go` 拆。
 
 ---
 

@@ -1,8 +1,8 @@
-package wallet
+package lot
 
 import "github.com/tokenjoy/backend/internal/domain/types"
 
-func LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []LotSegment) []types.UsageLedgerEntry {
+func LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []Segment) []types.UsageLedgerEntry {
 	out := make([]types.UsageLedgerEntry, 0, len(segs))
 	for i, seg := range segs {
 		entry := base

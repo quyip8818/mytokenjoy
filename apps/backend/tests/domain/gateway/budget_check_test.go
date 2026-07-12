@@ -3,15 +3,15 @@ package gateway_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
-	"github.com/tokenjoy/backend/tests/testutil"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
 func TestPrecheckBlocksOnPGSoftSummary(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
-	testutil.SetGatewaySoftRemain(t, fx.Store, fx.LoadPrecheckRow(t).PlatformKeyID, 0)
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	budgetfix.SetGatewaySoftRemain(t, fx.Store, fx.LoadPrecheckRow(t).PlatformKeyID, 0)
 	if err := fx.Run("gpt-4o", false); err == nil {
 		t.Fatal("expected PG soft summary block")
 	}
@@ -19,7 +19,7 @@ func TestPrecheckBlocksOnPGSoftSummary(t *testing.T) {
 
 func TestPrecheckAllowsNullPGSoftSummary(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
 	if err := fx.Run("gpt-4o", false); err != nil {
 		t.Fatalf("expected allow when soft summary NULL, got %v", err)
 	}
@@ -45,20 +45,20 @@ func TestGatewayBudgetCheckSoftBlock(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+			fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
 			fake := gatewaytf.NewFakeBudgetCheck()
 			fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
 			row := fx.LoadPrecheckRow(t)
 			if tc.pgVersion > 0 {
-				testutil.SetGatewaySoftRemain(t, fx.Store, row.PlatformKeyID, 1)
+				budgetfix.SetGatewaySoftRemain(t, fx.Store, row.PlatformKeyID, 1)
 				for i := int64(1); i < tc.pgVersion; i++ {
-					testutil.SetGatewaySoftRemain(t, fx.Store, row.PlatformKeyID, 1)
+					budgetfix.SetGatewaySoftRemain(t, fx.Store, row.PlatformKeyID, 1)
 				}
 			}
 			row = fx.LoadPrecheckRow(t)
 
-			_ = fake.Set(fx.Ctx, row.CompanyID, fx.KeyHash(), budgetcheck.Entry{
+			_ = fake.Set(fx.Ctx, row.CompanyID, fx.KeyHash(), domainbudget.GatewaySoftEntry{
 				SoftRemain: tc.softRemain,
 				Version:    tc.version,
 			})
@@ -79,7 +79,7 @@ func TestGatewayBudgetCheckSoftBlock(t *testing.T) {
 
 func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
 	fake := gatewaytf.NewFakeBudgetCheck()
 	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
@@ -93,8 +93,8 @@ func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 
 func TestGatewayBudgetCheckDisabledSkipsGet(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
-	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, budgetcheck.Noop{})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, domainbudget.NoopGatewaySoftCache)
 
 	if err := fx.Run("gpt-4o", false); err != nil {
 		t.Fatalf("expected allow with disabled soft block, got %v", err)

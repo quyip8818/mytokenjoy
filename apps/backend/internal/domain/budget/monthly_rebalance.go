@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -16,12 +15,12 @@ import (
 type MonthlyRebalanceScheduler struct {
 	cfg       config.Config
 	store     store.Store
-	enqueuer  jobs.Enqueuer
+	enqueuer  JobEnqueuer
 	lastMonth string
 	mu        sync.Mutex
 }
 
-func NewMonthlyRebalanceScheduler(cfg config.Config, st store.Store, enqueuer jobs.Enqueuer) *MonthlyRebalanceScheduler {
+func NewMonthlyRebalanceScheduler(cfg config.Config, st store.Store, enqueuer JobEnqueuer) *MonthlyRebalanceScheduler {
 	return &MonthlyRebalanceScheduler{
 		cfg:       cfg,
 		store:     st,
@@ -42,6 +41,6 @@ func (s *MonthlyRebalanceScheduler) EnqueueMonthlyRebalanceAll(ctx context.Conte
 	s.lastMonth = currentMonth
 
 	return company.ForEachActiveCompany(ctx, s.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return jobs.InsertRebalance(entryCtx, s.enqueuer, nil, co.ID, store.RebalanceAxisCompany, fmt.Sprintf("%d", co.ID))
+		return s.enqueuer.InsertRebalance(entryCtx, co.ID, store.RebalanceAxisCompany, fmt.Sprintf("%d", co.ID))
 	})
 }

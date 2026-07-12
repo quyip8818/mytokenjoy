@@ -10,7 +10,7 @@
 
 | 文档                                         | 内容                                                       |
 | -------------------------------------------- | ---------------------------------------------------------- |
-| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、命名约定、Store、NewAPISync/Gateway/Worker、看板读路径 |
+| [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、命名约定、Store、NewAPISync/Gateway、River/Ingest、文件命名 §3.1、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
 | [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、Ingest、projection、Rebalance、Overrun、分配规则     |
@@ -19,6 +19,7 @@
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
 | [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化（PR1/PR2 完成，PR3 待办） |
+| [Backend-结构优化.md](./Backend-结构优化.md) | 目标架构、分层债务与分阶段收口路线 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务现状：两条异步线、6 kind、入队点、Worker、Periodic |
 | [实现-离线任务管理.md](./实现-离线任务管理.md) | 离线任务剩余项（`budget_project`、Periodic fanout） |
 | [Backend-River实现.md](./Backend-River实现.md) | River 表、Unique、队列配置、`InsertInTx` 约定 |

@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
@@ -17,8 +18,8 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, "2026-06", 99)
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, "2026-07", 42)
+	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, "2026-06", 99)
+	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, "2026-07", 42)
 
 	keys, err := pkgbudget.LoadPlatformKeysWithUsed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), st.Keys(), clk)
 	if err != nil {
@@ -42,8 +43,8 @@ func TestLoadBudgetGroupsWithConsumedUsesOpenPeriod(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	clk := clock.Fixed(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
-	testutil.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
+	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-06", 10)
+	budgetfix.SetSnapshotConsumedAtPeriod(t, st, store.AxisKindBudgetGroup, contract.IDBudgetGroup1, "2026-07", 7)
 
 	groups, err := pkgbudget.LoadBudgetGroupsWithConsumed(ctx, st.BudgetConsumed(), st.Org(), st.Budget(), clk)
 	if err != nil {

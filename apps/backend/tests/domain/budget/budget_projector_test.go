@@ -7,10 +7,10 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
@@ -38,14 +38,13 @@ func TestBudgetProjectorDedupesOverrunByPlatformKey(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	baseEnqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
-	recorder := &recordingEnqueuer{inner: baseEnqueuer}
-	projector := budget.NewAsync(cfg, st, recorder, budgetcheck.Noop{}, logger).Projector
+	recorder := &recordingBudgetEnqueuer{inner: riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st)}
+	projector := budget.NewAsync(cfg, st, recorder, budget.NoopGatewaySoftCache, logger).Projector
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 
-	if got := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1); got <= 0 {
+	if got := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1); got <= 0 {
 		t.Fatalf("expected projector to apply ledger batch, consumed=%v", got)
 	}
 	if got := recorder.overruns; got != 1 {

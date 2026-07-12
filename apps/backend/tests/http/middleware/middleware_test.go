@@ -148,7 +148,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
-		handler := httpmiddleware.AuthzRevisionHeader(&stubCompanyRepo{})(next)
+		handler := httpmiddleware.AuthzRevisionHeader(&stubRevisionReader{})(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/org/departments/tree", nil)
 		req = req.WithContext(httpx.WithSessionContext(req.Context(), types.SessionContext{
@@ -166,7 +166,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
-		handler := httpmiddleware.AuthzRevisionHeader(&stubCompanyRepo{revision: 77})(next)
+		handler := httpmiddleware.AuthzRevisionHeader(&stubRevisionReader{revision: 77})(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/org/departments/tree", nil)
 		req = req.WithContext(domaincompany.WithContext(req.Context(), domaincompany.Context{

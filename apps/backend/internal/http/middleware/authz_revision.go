@@ -3,12 +3,12 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
-func AuthzRevisionHeader(companyRepo store.CompanyRepository) func(http.Handler) http.Handler {
+func AuthzRevisionHeader(reader authz.RevisionReader) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var revision int64
@@ -17,7 +17,7 @@ func AuthzRevisionHeader(companyRepo store.CompanyRepository) func(http.Handler)
 				revision = sessionCtx.AuthzRevision
 				hasRevision = true
 			} else if companyID := ctxcompany.ID(r.Context()); companyID > 0 {
-				if rev, err := companyRepo.GetAuthzRevision(r.Context(), companyID); err == nil {
+				if rev, err := reader.GetAuthzRevision(r.Context(), companyID); err == nil {
 					revision = rev
 					hasRevision = true
 				}

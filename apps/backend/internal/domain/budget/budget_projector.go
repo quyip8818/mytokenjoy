@@ -8,8 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -19,10 +17,10 @@ const defaultProjectorBatchSize = 500
 type Projector struct {
 	cfg          config.Config
 	store        store.Store
-	enqueuer     jobs.Enqueuer
+	enqueuer     JobEnqueuer
 	batchSize    int
 	logger       *slog.Logger
-	gatewayCache budgetcheck.Store
+	gatewayCache GatewaySoftCache
 }
 
 type batchEffects struct {
@@ -100,14 +98,14 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 		return false, nil
 	}
 
-	budgetcheck.RefreshSummaries(ctx, p.gatewayCache, p.logger, companyID, summaries)
+	RefreshGatewaySoftSummaries(ctx, p.gatewayCache, p.logger, companyID, summaries)
 	if err := p.enqueueBatchEffects(ctx, companyID, effects); err != nil {
 		return false, err
 	}
 
 	hasMore := len(entries) >= p.batchSize
 	if hasMore {
-		if err := jobs.InsertBudgetProject(ctx, p.enqueuer, nil, companyID); err != nil {
+		if err := p.enqueuer.InsertBudgetProject(ctx, companyID); err != nil {
 			return false, err
 		}
 	}
@@ -150,7 +148,7 @@ func (p *Projector) enqueueBatchEffects(ctx context.Context, companyID int64, ef
 		if err != nil {
 			return err
 		}
-		if err := jobs.InsertOverrun(ctx, p.enqueuer, nil, companyID, raw); err != nil {
+		if err := p.enqueuer.InsertOverrun(ctx, companyID, raw); err != nil {
 			return err
 		}
 	}
@@ -159,7 +157,7 @@ func (p *Projector) enqueueBatchEffects(ctx context.Context, companyID int64, ef
 		if err != nil {
 			return err
 		}
-		if err := jobs.InsertOverrun(ctx, p.enqueuer, nil, companyID, raw); err != nil {
+		if err := p.enqueuer.InsertOverrun(ctx, companyID, raw); err != nil {
 			return err
 		}
 	}
@@ -168,7 +166,7 @@ func (p *Projector) enqueueBatchEffects(ctx context.Context, companyID int64, ef
 		if !ok {
 			continue
 		}
-		if err := jobs.InsertRebalance(ctx, p.enqueuer, nil, companyID, axisKind, axisID); err != nil {
+		if err := p.enqueuer.InsertRebalance(ctx, companyID, axisKind, axisID); err != nil {
 			return err
 		}
 	}

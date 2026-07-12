@@ -22,7 +22,7 @@ func TestOverrunDepartmentThresholdSendsNotification(t *testing.T) {
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.DisplayPoints(25000))
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,
@@ -62,7 +62,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
-	testutil.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
 
 	payload, err := json.Marshal(map[string]any{
 		"memberId":      contract.IDMember1,
@@ -132,7 +132,7 @@ func TestOverrunBudgetGroupSendsNotification(t *testing.T) {
 		t.Fatal("expected budget groups in seed")
 	}
 	groupID := groups[0].ID
-	testutil.SetGroupSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
+	budgetfix.SetGroupSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
 	groupIDCopy := groupID
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {

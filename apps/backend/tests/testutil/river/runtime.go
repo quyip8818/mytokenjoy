@@ -45,18 +45,18 @@ func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.S
 		t.Fatal(err)
 	}
 	pool := postgres.MainPool(st)
-	budgetAsync := budget.NewAsync(cfg, st, holder, budgetcheck.Noop{}, logger)
+	budgetAsync := budget.NewAsync(cfg, st, budgetEnqueuerFromHolder(holder), budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
 	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Billing:            reg.BillingSvc,
 		Overrun:            reg.Overrun,
 		Rebalance:          reg.Rebalance,
 		NewAPISync:         reg.MustNewAPISync(),
 		OrgSync:            reg.OrgSync,
-		MonthlyRebalance:   budget.NewMonthlyRebalanceScheduler(cfg, st, holder),
+		MonthlyRebalance:   budget.NewMonthlyRebalanceScheduler(cfg, st, budgetEnqueuerFromHolder(holder)),
 		BudgetProjector:    budgetAsync.Projector,
 		BudgetReconcile:    budgetAsync.Reconcile,
-		DashboardProjector: domaindashboard.NewProjector(cfg, st, holder, logger),
-		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, holder, logger),
+		DashboardProjector: domaindashboard.NewProjector(cfg, st, app.NewDashboardEnqueuer(holder), logger),
+		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, app.NewDashboardEnqueuer(holder), logger),
 	}, logger)
 	if err != nil {
 		t.Fatal(err)

@@ -18,7 +18,7 @@ func TestMonthlyRebalanceWorkerEnqueuesCompanyRebalance(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := context.Background()
-	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
+	enqueuer := riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st)
 	scheduler := domainbudget.NewMonthlyRebalanceScheduler(cfg, st, enqueuer)
 	domainbudget.SetLastMonthForTest(scheduler, "2020-01")
 

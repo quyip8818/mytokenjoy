@@ -1,3 +1,5 @@
 package company
 
-const SaaSMinCompanyID int64 = 1_000_000
+import "github.com/tokenjoy/backend/internal/pkg/companyids"
+
+const SaaSMinCompanyID = companyids.SaaSMinCompanyID

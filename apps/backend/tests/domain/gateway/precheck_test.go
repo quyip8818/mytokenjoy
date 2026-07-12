@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
@@ -106,7 +107,7 @@ func TestPrecheckAllowsModelsListingWithoutModelField(t *testing.T) {
 
 func TestPrecheckPassesRegardlessOfDeptConsumed(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
 	if err := fx.Run("gpt-4o", false); err != nil {
 		t.Fatalf("expected precheck to pass without budget consumed join, got %v", err)
 	}

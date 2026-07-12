@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -60,7 +60,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	return GatewayScenario{Gateway: gw, Store: st, Cfg: cfg, FullKey: fullKey}
 }
 
-func NewPrecheckService(cfg config.Config, st store.Store, cache budgetcheck.Store) *domaingateway.PrecheckService {
+func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.GatewaySoftCache) *domaingateway.PrecheckService {
 	return domaingateway.NewPrecheckService(st.GatewayPrecheck(), cfg.Clock(), cache)
 }
 

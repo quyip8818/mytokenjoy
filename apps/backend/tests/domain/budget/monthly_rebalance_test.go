@@ -3,7 +3,7 @@ package budget_test
 import (
 	"testing"
 
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -14,10 +14,10 @@ func TestMonthlyRebalanceEnqueuesOnMonthChange(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
-	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
+	enqueuer := riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st)
 
-	scheduler := domainbudget.NewMonthlyRebalanceScheduler(cfg, st, enqueuer)
-	domainbudget.SetLastMonthForTest(scheduler, "2020-01")
+	scheduler := budget.NewMonthlyRebalanceScheduler(cfg, st, enqueuer)
+	budget.SetLastMonthForTest(scheduler, "2020-01")
 
 	if err := scheduler.EnqueueMonthlyRebalanceAll(ctx); err != nil {
 		t.Fatal(err)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -16,12 +16,12 @@ type Prechecker interface {
 type PrecheckService struct {
 	loader      store.GatewayPrecheckRepository
 	clock       clock.Clock
-	budgetCheck budgetcheck.Store
+	budgetCheck domainbudget.GatewaySoftCache
 }
 
-func NewPrecheckService(loader store.GatewayPrecheckRepository, clk clock.Clock, budgetCheck budgetcheck.Store) *PrecheckService {
+func NewPrecheckService(loader store.GatewayPrecheckRepository, clk clock.Clock, budgetCheck domainbudget.GatewaySoftCache) *PrecheckService {
 	if budgetCheck == nil {
-		budgetCheck = budgetcheck.Noop{}
+		budgetCheck = domainbudget.NoopGatewaySoftCache
 	}
 	return &PrecheckService{
 		loader:      loader,
@@ -52,7 +52,7 @@ func (p *PrecheckService) softBudgetCheck(ctx context.Context, companyID int64, 
 	if err != nil || !ok {
 		return nil
 	}
-	if budgetcheck.BlocksWithVersion(entry, pgVersion) {
+	if domainbudget.BlocksGatewaySoft(entry, pgVersion) {
 		return ErrBudgetExhausted
 	}
 	return nil

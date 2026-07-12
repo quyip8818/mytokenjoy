@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestValidateGroupKeyBudget(t *testing.T) {
@@ -17,7 +18,7 @@ func TestValidateGroupKeyBudget(t *testing.T) {
 
 	for _, group := range groups {
 		if group.ID == contract.IDBudgetGroup1 {
-			if msg := budget.ValidateGroupKeyBudget(group, keys, testutil.DisplayPoints(99999), ""); msg == nil {
+			if msg := budget.ValidateGroupKeyBudget(group, keys, budgetfix.DisplayPoints(99999), ""); msg == nil {
 				t.Fatal("expected validation error when quota exceeds group remaining")
 			}
 			return

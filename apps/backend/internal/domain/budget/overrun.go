@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/notification"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -24,7 +23,7 @@ type OverrunService struct {
 	cfg        config.Config
 	store      store.Store
 	keyControl newapisync.OverrunKeyControl
-	notifier   notification.Notifier
+	notifier   Notifier
 	logger     *slog.Logger
 }
 
@@ -32,7 +31,7 @@ func NewOverrunService(
 	cfg config.Config,
 	st store.Store,
 	keyControl newapisync.OverrunKeyControl,
-	notifier notification.Notifier,
+	notifier Notifier,
 	logger *slog.Logger,
 ) *OverrunService {
 	return &OverrunService{

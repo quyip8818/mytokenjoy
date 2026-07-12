@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestApprovalBudgetCheckInsufficient(t *testing.T) {
@@ -289,8 +290,8 @@ func TestBudgetSummaryIncludesSnapshotUsed(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
-	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 1000)
-	testutil.SetPlatformKeySnapshotUsed(t, st, "plk-1b", 234.5)
+	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 1000)
+	budgetfix.SetPlatformKeySnapshotUsed(t, st, "plk-1b", 234.5)
 	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)

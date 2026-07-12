@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
@@ -37,7 +38,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		DepartmentID:  contract.IDDept3,
 	})
 
-	before := testutil.Dept3SnapshotConsumed(t, st)
+	before := budgetfix.Dept3SnapshotConsumed(t, st)
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(98002, 77))
 	if err := ingest.IngestByLogID(ctx, 98002, types.SourceWebhook); err != nil {
@@ -45,7 +46,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 	}
 	runner.RunOnce(ctx)
 
-	after := testutil.Dept3SnapshotConsumed(t, st)
+	after := budgetfix.Dept3SnapshotConsumed(t, st)
 	if after <= before {
 		t.Fatalf("expected department rollup for app key, before=%v after=%v", before, after)
 	}

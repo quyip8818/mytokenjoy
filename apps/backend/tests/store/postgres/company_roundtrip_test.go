@@ -5,7 +5,7 @@ import (
 	"time"
 
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
-	domainwallet "github.com/tokenjoy/backend/internal/domain/wallet"
+	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -98,7 +98,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err != nil || before == nil {
 		t.Fatal("expected company before recharge")
 	}
-	if err := domainwallet.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
 	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)

@@ -6,14 +6,13 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
 func (l *NewAPISync) EnqueueUpsertProviderKey(ctx context.Context, providerKeyID string) error {
 	if !l.Enabled() {
 		return nil
 	}
-	return jobs.InsertNewAPISync(ctx, l.enqueuer, nil, jobs.NewAPISyncArgs{
+	return l.enqueuer.InsertNewAPISync(ctx, SyncJob{
 		CompanyID:     company.CompanyID(ctx),
 		SubKind:       OutboxKindUpsertChannel,
 		ProviderKeyID: providerKeyID,

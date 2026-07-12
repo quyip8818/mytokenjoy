@@ -43,7 +43,7 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
-	testutil.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
 
 	payload, err := json.Marshal(map[string]any{
 		"memberId":      contract.IDMember1,
@@ -73,7 +73,7 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 		t.Fatal("expected budget group")
 	}
 	groupID := groups[0].ID
-	testutil.SetGroupSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
+	budgetfix.SetGroupSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
 	groupIDCopy := groupID
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -136,7 +136,7 @@ func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
 	if keyBudget <= 0 {
 		t.Fatal("expected plk-1 to have positive budget")
 	}
-	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, keyBudget+0.01)
+	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, keyBudget+0.01)
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,
@@ -164,14 +164,14 @@ func TestOverrunSkipsMemberAxisWhenBudgetGroupPresent(t *testing.T) {
 	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
-	testutil.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
 
 	groups, err := st.Budget().Groups(ctx)
 	if err != nil || len(groups) == 0 {
 		t.Fatal("expected budget group")
 	}
 	groupID := groups[0].ID
-	testutil.SetGroupSnapshotConsumed(t, st, groupID, 0)
+	budgetfix.SetGroupSnapshotConsumed(t, st, groupID, 0)
 
 	payload, err := json.Marshal(map[string]any{
 		"memberId":      contract.IDMember1,

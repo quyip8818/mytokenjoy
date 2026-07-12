@@ -28,7 +28,7 @@ func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 
 func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger, grants, enqueuer)
+	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger, grants, NewOrgEnqueuer(enqueuer))
 }
 
 func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {
@@ -72,7 +72,7 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), i.notifier, logger, enqueuer)
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, NewUsageIngestEnqueuer(enqueuer))
 }
 
 func wireReader(i infra) domainusage.Reader {

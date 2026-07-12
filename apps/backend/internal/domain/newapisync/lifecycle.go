@@ -4,7 +4,6 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -13,14 +12,14 @@ type NewAPISync struct {
 	store         store.Store
 	client        adminport.Port
 	mappings      store.PlatformKeyMappingRepository
-	enqueuer      jobs.Enqueuer
+	enqueuer      SyncJobEnqueuer
 	wallet        company.WalletService
 	channelPolicy ChannelPolicy
 }
 
-func New(cfg config.Config, st store.Store, client adminport.Port, wallet company.WalletService, channelPolicy ChannelPolicy, enqueuer jobs.Enqueuer) *NewAPISync {
+func New(cfg config.Config, st store.Store, client adminport.Port, wallet company.WalletService, channelPolicy ChannelPolicy, enqueuer SyncJobEnqueuer) *NewAPISync {
 	if enqueuer == nil {
-		enqueuer = jobs.NoopEnqueuer{}
+		enqueuer = NoopSyncJobEnqueuer
 	}
 	return &NewAPISync{
 		cfg:           cfg,

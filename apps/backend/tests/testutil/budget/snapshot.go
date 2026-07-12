@@ -1,12 +1,18 @@
-package testutil
+package budgetfix
 
 import (
+	"context"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/points"
 )
+
+func ctx() context.Context {
+	return company.DefaultContext(contract.DefaultCompanyID)
+}
 
 func DisplayPoints(display float64) float64 {
 	return points.FromDisplay(display)
@@ -14,7 +20,7 @@ func DisplayPoints(display float64) float64 {
 
 func SetDeptSnapshotConsumed(t *testing.T, st store.Store, deptID string, consumed float64) {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindOrgNode, deptID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +33,7 @@ func SnapshotConsumed(t *testing.T, st store.Store, axisKind, axisID string) flo
 
 func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string) float64 {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	consumed, found, err := st.BudgetConsumed().GetConsumed(ctx, axisKind, axisID, periodKey)
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +61,7 @@ func SetPlatformKeySnapshotUsed(t *testing.T, st store.Store, keyID string, used
 
 func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string, consumed float64) {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, axisKind, axisID, periodKey, consumed); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +69,7 @@ func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID,
 
 func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, consumed float64) {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindBudgetGroup, groupID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +77,7 @@ func SetGroupSnapshotConsumed(t *testing.T, st store.Store, groupID string, cons
 
 func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, consumed float64) {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindMember, memberID, contract.DemoBudgetPeriod, consumed); err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +85,7 @@ func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, co
 
 func SetGatewaySoftRemain(t *testing.T, st store.Store, keyID string, remain float64) {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
 		{PlatformKeyID: keyID, SoftRemain: remain},
 	}); err != nil {
@@ -89,7 +95,7 @@ func SetGatewaySoftRemain(t *testing.T, st store.Store, keyID string, remain flo
 
 func GatewaySoftRemain(t *testing.T, st store.Store, keyID string) (remain *float64, version int64) {
 	t.Helper()
-	ctx := Ctx()
+	ctx := ctx()
 	items, err := st.GatewaySoftSummaries().ListByPlatformKeyIDs(ctx, []string{keyID})
 	if err != nil {
 		t.Fatal(err)

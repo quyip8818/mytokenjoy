@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/companyids"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -53,7 +53,7 @@ func validateCompanyIDsForMode(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	}
 	rows, err := pool.Query(ctx, `
 		SELECT id FROM companies WHERE id <> $1 AND id >= $2
-	`, cfg.TokenJoyCompanyID, domaincompany.SaaSMinCompanyID)
+	`, cfg.TokenJoyCompanyID, companyids.SaaSMinCompanyID)
 	if err != nil {
 		return fmt.Errorf("validate company ids: %w", err)
 	}

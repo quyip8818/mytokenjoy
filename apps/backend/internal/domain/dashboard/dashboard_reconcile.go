@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -19,13 +18,13 @@ const reconcileEpsilon = 0.000001
 type ReconcileService struct {
 	cfg      config.Config
 	store    store.Store
-	enqueuer jobs.Enqueuer
+	enqueuer JobEnqueuer
 	logger   *slog.Logger
 }
 
-func NewReconcileService(cfg config.Config, st store.Store, enqueuer jobs.Enqueuer, logger *slog.Logger) *ReconcileService {
+func NewReconcileService(cfg config.Config, st store.Store, enqueuer JobEnqueuer, logger *slog.Logger) *ReconcileService {
 	if enqueuer == nil {
-		enqueuer = jobs.NoopEnqueuer{}
+		enqueuer = NoopJobEnqueuer
 	}
 	return &ReconcileService{cfg: cfg, store: st, enqueuer: enqueuer, logger: logger}
 }
@@ -85,7 +84,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 
 func (s *ReconcileService) FanoutReconcileJobs(ctx context.Context) error {
 	return company.ForEachActiveCompany(ctx, s.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return jobs.InsertDashboardReconcile(entryCtx, s.enqueuer, nil, co.ID)
+		return s.enqueuer.InsertDashboardReconcile(entryCtx, co.ID)
 	})
 }
 

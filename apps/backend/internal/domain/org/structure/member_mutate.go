@@ -2,11 +2,8 @@ package structure
 
 import (
 	"context"
-	"errors"
 	"slices"
-	"strings"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -15,55 +12,6 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
-
-var protectedRoles = map[string]struct{}{
-	grants.RoleSuperAdmin: {},
-	grants.RoleOrgAdmin:   {},
-}
-
-func validateRolesNotEscalated(roles []string) error {
-	for _, role := range roles {
-		if _, protected := protectedRoles[role]; protected {
-			return domain.Forbidden("cannot assign protected role via member update")
-		}
-	}
-	return nil
-}
-
-func (s *LocalService) ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error) {
-	items, err := s.d.Store.Org().Members(ctx)
-	if err != nil {
-		return types.MemberPageResult{}, err
-	}
-	if departmentID != "" {
-		departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
-		if err != nil {
-			return types.MemberPageResult{}, err
-		}
-		items = pkgorg.FilterMembersByDepartment(items, departments, departmentID, directOnly)
-	}
-	// Count pending before keyword filtering so count is always accurate.
-	pendingCount := 0
-	for _, m := range items {
-		if m.Status == types.MemberStatusPending {
-			pendingCount++
-		}
-	}
-	if keyword != "" {
-		filtered := make([]types.Member, 0)
-		for _, member := range items {
-			if strings.Contains(member.Name, keyword) {
-				filtered = append(filtered, member)
-			}
-		}
-		items = filtered
-	}
-	paged, total, safePage, safeSize := common.Paginate(items, page, pageSize)
-	return types.MemberPageResult{
-		Items: paged, Total: total, Page: safePage, PageSize: safeSize,
-		PendingCount: pendingCount,
-	}, nil
-}
 
 func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
 	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
@@ -108,29 +56,6 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		return types.Member{}, mapMemberUniqueError(err)
 	}
 	return member, nil
-}
-
-func mapMemberUniqueError(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		if strings.Contains(pgErr.ConstraintName, "email") {
-			return domain.Conflict("邮箱已存在")
-		}
-		if strings.Contains(pgErr.ConstraintName, "phone") {
-			return domain.Conflict("手机号已存在")
-		}
-		return domain.Conflict("成员信息重复")
-	}
-	return err
-}
-
-func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, members []types.Member) error {
-	nodes, err := st.Org().Nodes().Tree(ctx)
-	if err != nil {
-		return err
-	}
-	nodes = core.RecalcDepartmentMemberCounts(nodes, members)
-	return st.Org().Nodes().SetTree(ctx, nodes)
 }
 
 func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
@@ -280,87 +205,4 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []string, depart
 		}
 		return persistRecalculatedMemberCounts(ctx, st, members)
 	})
-}
-
-func (s *LocalService) InviteMember() error {
-	return domain.NewDomainError(domain.StatusNotImplemented, "Invite member is not implemented")
-}
-
-func (s *LocalService) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
-	members, err := s.d.Store.Org().Members(ctx)
-	if err != nil {
-		return types.BatchInviteResult{}, err
-	}
-	targets := make([]types.Member, 0)
-	if len(ids) > 0 {
-		idSet := make(map[string]struct{}, len(ids))
-		for _, id := range ids {
-			idSet[id] = struct{}{}
-		}
-		for _, member := range members {
-			if _, ok := idSet[member.ID]; ok {
-				targets = append(targets, member)
-			}
-		}
-	} else {
-		for _, member := range members {
-			if member.Status == types.MemberStatusPending || member.Status == types.MemberStatusInactive {
-				targets = append(targets, member)
-			}
-		}
-	}
-	return types.BatchInviteResult{Sent: len(targets)}, nil
-}
-
-func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
-	members, err := s.d.Store.Org().Members(ctx)
-	if err != nil {
-		return types.MemberBatchImportResult{}, err
-	}
-	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
-	if err != nil {
-		return types.MemberBatchImportResult{}, err
-	}
-	flat := pkgorg.FlattenDepartmentTree(departments)
-	failures := make([]types.MemberBatchImportFailure, 0)
-	imported := 0
-
-	for index, row := range rows {
-		var dept *types.Department
-		for i := range flat {
-			if flat[i].Name == row.DepartmentName {
-				dept = &flat[i]
-				break
-			}
-		}
-		if dept == nil {
-			failures = append(failures, types.MemberBatchImportFailure{
-				Row: index + 1, Reason: "types.Department not found",
-			})
-			continue
-		}
-		members = append(members, types.Member{
-			ID:   generateID("m-import"),
-			Name: row.Name, Phone: row.Phone, Email: row.Email,
-			DepartmentID: dept.ID, DepartmentName: dept.Name,
-			Status: types.MemberStatusActive, Roles: []string{grants.RoleMember}, Source: "imported",
-		})
-		imported++
-	}
-
-	if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
-		return types.MemberBatchImportResult{Imported: imported, Failures: append(failures, types.MemberBatchImportFailure{
-			Row: 0, Reason: "Failed to persist imported members",
-		})}, nil
-	}
-	if imported > 0 {
-		if err := persistRecalculatedMemberCounts(ctx, s.d.Store, members); err != nil {
-			return types.MemberBatchImportResult{}, err
-		}
-		if err := core.BumpAuthzRevision(ctx, s.d); err != nil {
-			return types.MemberBatchImportResult{}, err
-		}
-	}
-
-	return types.MemberBatchImportResult{Imported: imported, Failures: failures}, nil
 }

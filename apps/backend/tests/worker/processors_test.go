@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
@@ -50,7 +51,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	newapisynctf.UpsertMapping(t, fix.st, newapisynctf.DefaultMappingOpts())
-	testutil.SetDeptSnapshotConsumed(t, fix.st, contract.IDDept3, testutil.DisplayPoints(25000))
+	budgetfix.SetDeptSnapshotConsumed(t, fix.st, contract.IDDept3, budgetfix.DisplayPoints(25000))
 
 	payload, err := json.Marshal(map[string]string{
 		"departmentId": contract.IDDept3, "platformKeyId": contract.IDPlatformKey1,

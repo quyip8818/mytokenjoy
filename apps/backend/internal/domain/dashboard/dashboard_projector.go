@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -17,14 +16,14 @@ const defaultDashboardBatchSize = 500
 type Projector struct {
 	cfg       config.Config
 	store     store.Store
-	enqueuer  jobs.Enqueuer
+	enqueuer  JobEnqueuer
 	batchSize int
 	logger    *slog.Logger
 }
 
-func NewProjector(cfg config.Config, st store.Store, enqueuer jobs.Enqueuer, logger *slog.Logger) *Projector {
+func NewProjector(cfg config.Config, st store.Store, enqueuer JobEnqueuer, logger *slog.Logger) *Projector {
 	if enqueuer == nil {
-		enqueuer = jobs.NoopEnqueuer{}
+		enqueuer = NoopJobEnqueuer
 	}
 	return &Projector{
 		cfg:       cfg,
@@ -83,7 +82,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	}
 	hasMore := count >= p.batchSize
 	if hasMore {
-		if err := jobs.InsertDashboardProject(ctx, p.enqueuer, nil, companyID); err != nil {
+		if err := p.enqueuer.InsertDashboardProject(ctx, companyID); err != nil {
 			return false, err
 		}
 	}
@@ -92,7 +91,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 
 func (p *Projector) FanoutProjectJobs(ctx context.Context) error {
 	return company.ForEachActiveCompany(ctx, p.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return jobs.InsertDashboardProject(entryCtx, p.enqueuer, nil, co.ID)
+		return p.enqueuer.InsertDashboardProject(entryCtx, co.ID)
 	})
 }
 

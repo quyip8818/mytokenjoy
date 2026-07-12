@@ -9,8 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/org/structure"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -26,11 +24,11 @@ func NewService(
 	st store.Store,
 	factory datasource.Factory,
 	modelLimits newapisync.ModelLimitsLifecycle,
-	notifier notification.Notifier,
+	notifier core.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,
-	enqueuer jobs.Enqueuer,
+	enqueuer remote.JobEnqueuer,
 ) Service {
 	deps := core.NewDeps(cfg, st, factory, modelLimits, notifier, delayer, logger, grants)
 	return &service{

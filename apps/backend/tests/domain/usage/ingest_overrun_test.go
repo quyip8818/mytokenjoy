@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
@@ -28,7 +29,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testutil.SetDeptSnapshotConsumed(t, st, contract.IDDept3, testutil.DisplayPoints(25000))
+	budgetfix.SetDeptSnapshotConsumed(t, st, contract.IDDept3, budgetfix.DisplayPoints(25000))
 	runner.RunOnce(ctx)
 
 	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
@@ -36,7 +37,7 @@ func TestIngestOverrunDisablesDepartmentKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	node := pkgbudget.FindBudgetNode(tree, contract.IDDept3)
-	consumed := testutil.SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
+	consumed := budgetfix.SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
 	if node == nil || consumed < node.Budget {
 		t.Fatalf("expected dept-3 consumed >= budget, consumed=%v budget=%v", consumed, node.Budget)
 	}

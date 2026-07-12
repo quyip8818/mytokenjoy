@@ -7,10 +7,10 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
@@ -28,12 +28,12 @@ func TestBudgetProjectorWritesGatewaySoftSummary(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	projector := budget.NewAsync(cfg, st, riverfix.NewInsertOnlyEnqueuer(t, cfg, st), budgetcheck.Noop{}, logger).Projector
+	projector := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopGatewaySoftCache, logger).Projector
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 
-	remain, version := testutil.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
+	remain, version := budgetfix.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
 	if remain == nil || *remain <= 0 {
 		t.Fatalf("expected positive gateway soft remain, got %v", remain)
 	}
@@ -55,11 +55,11 @@ func TestBudgetProjectorVersionMonotonicPerBatch(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	projector := budget.NewAsync(cfg, st, riverfix.NewInsertOnlyEnqueuer(t, cfg, st), budgetcheck.Noop{}, logger).Projector
+	projector := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopGatewaySoftCache, logger).Projector
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
-	if got := testutil.GatewaySoftVersion(t, st, contract.IDPlatformKey1); got != 1 {
+	if got := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1); got != 1 {
 		t.Fatalf("expected version 1 after first batch, got %d", got)
 	}
 
@@ -70,7 +70,7 @@ func TestBudgetProjectorVersionMonotonicPerBatch(t *testing.T) {
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
-	if got := testutil.GatewaySoftVersion(t, st, contract.IDPlatformKey1); got != 2 {
+	if got := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1); got != 2 {
 		t.Fatalf("expected version 2 after second batch, got %d", got)
 	}
 }
@@ -104,12 +104,12 @@ func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	budgetAsync := budget.NewAsync(cfg, st, riverfix.NewInsertOnlyEnqueuer(t, cfg, st), budgetcheck.Noop{}, logger)
+	budgetAsync := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopGatewaySoftCache, logger)
 	if _, err := budgetAsync.Projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 
-	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 0.01)
+	budgetfix.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, 0.01)
 	if err := budgetAsync.Reconcile.RunCompany(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
@@ -129,11 +129,11 @@ func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
 			break
 		}
 	}
-	got := testutil.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
+	got := budgetfix.PlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1)
 	if budget.ConsumedDrift(wantPlatformKey, got) {
 		t.Fatalf("expected repaired consumed %v, got %v", wantPlatformKey, got)
 	}
-	if version := testutil.GatewaySoftVersion(t, st, contract.IDPlatformKey1); version < 2 {
+	if version := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1); version < 2 {
 		t.Fatalf("expected summary version to increase after reconcile, got %d", version)
 	}
 }

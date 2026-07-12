@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
@@ -34,7 +33,7 @@ func (l *NewAPISync) SyncCreatePlatformKey(ctx context.Context, key types.Platfo
 	if err := l.mappings.UpsertMapping(ctx, mapping); err != nil {
 		return err
 	}
-	return jobs.InsertNewAPISync(ctx, l.enqueuer, nil, jobs.NewAPISyncArgs{
+	return l.enqueuer.InsertNewAPISync(ctx, SyncJob{
 		CompanyID:     company.CompanyID(ctx),
 		SubKind:       OutboxKindCreateKey,
 		PlatformKeyID: key.ID,

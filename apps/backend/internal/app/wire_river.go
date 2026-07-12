@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
@@ -36,18 +37,20 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		return nil, fmt.Errorf("postgres pool unavailable")
 	}
 
-	budgetAsync := domainbudget.NewAsync(cfg, st, holder, reg.Infra.budgetCheck, logger)
+	budgetEnqueuer := NewBudgetEnqueuer(holder)
+	budgetCache := budgetcheck.WrapStore(reg.Infra.budgetCheck)
+	budgetAsync := domainbudget.NewAsync(cfg, st, budgetEnqueuer, budgetCache, logger)
 	riverClient, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Billing:            reg.BillingSvc,
 		Overrun:            reg.Overrun,
 		Rebalance:          reg.Rebalance,
 		NewAPISync:         reg.Infra.newAPISync,
 		OrgSync:            reg.OrgSync,
-		MonthlyRebalance:   domainbudget.NewMonthlyRebalanceScheduler(cfg, st, holder),
+		MonthlyRebalance:   domainbudget.NewMonthlyRebalanceScheduler(cfg, st, budgetEnqueuer),
 		BudgetProjector:    budgetAsync.Projector,
 		BudgetReconcile:    budgetAsync.Reconcile,
-		DashboardProjector: domaindashboard.NewProjector(cfg, st, holder, logger),
-		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, holder, logger),
+		DashboardProjector: domaindashboard.NewProjector(cfg, st, NewDashboardEnqueuer(holder), logger),
+		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, NewDashboardEnqueuer(holder), logger),
 	}, logger)
 	if err != nil {
 		return nil, err

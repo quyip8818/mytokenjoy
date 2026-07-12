@@ -21,6 +21,15 @@ func (s *stubCompanyService) ResolveCompanyContext(ctx context.Context, companyI
 	return domaincompany.Context{}, domain.NotFound("company not found")
 }
 
+type stubRevisionReader struct {
+	revision int64
+	err      error
+}
+
+func (s *stubRevisionReader) GetAuthzRevision(context.Context, int64) (int64, error) {
+	return s.revision, s.err
+}
+
 type stubCompanyRepo struct {
 	revision int64
 	err      error

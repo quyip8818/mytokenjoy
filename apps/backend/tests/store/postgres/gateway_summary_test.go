@@ -6,6 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func platformKey1Hash() string {
@@ -49,7 +50,7 @@ func TestLoadPrecheckContextReturnsSoftSummary(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	testutil.SetGatewaySoftRemain(t, st, contract.IDPlatformKey1, 42)
+	budgetfix.SetGatewaySoftRemain(t, st, contract.IDPlatformKey1, 42)
 	row, err := st.GatewayPrecheck().LoadPrecheckContext(ctx, platformKey1Hash())
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +91,7 @@ func TestSetPlatformKeysPreservesGatewaySoftSummary(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	testutil.SetGatewaySoftRemain(t, st, contract.IDPlatformKey1, 99)
+	budgetfix.SetGatewaySoftRemain(t, st, contract.IDPlatformKey1, 99)
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +99,7 @@ func TestSetPlatformKeysPreservesGatewaySoftSummary(t *testing.T) {
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 		t.Fatal(err)
 	}
-	remain, version := testutil.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
+	remain, version := budgetfix.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
 	if remain == nil || *remain != 99 {
 		t.Fatalf("soft remain = %v, want 99", remain)
 	}

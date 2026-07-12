@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -30,7 +29,7 @@ func (r *pgOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error)
 }
 
 func (r *pgOrgRepo) rolesForCompany(ctx context.Context, companyID int64) ([]types.Role, error) {
-	return r.Roles(company.WithContext(ctx, company.Context{CompanyID: companyID}))
+	return r.rolesByCompanyID(ctx, companyID)
 }
 
 func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID int64) (map[string]string, error) {
@@ -51,7 +50,10 @@ func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID int64) (map[
 }
 
 func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
-	companyID := store.CompanyID(ctx)
+	return r.rolesByCompanyID(ctx, store.CompanyID(ctx))
+}
+
+func (r *pgOrgRepo) rolesByCompanyID(ctx context.Context, companyID int64) ([]types.Role, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT r.id, r.name, r.type, COUNT(mr.member_id)::int
 		FROM roles r

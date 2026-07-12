@@ -11,6 +11,7 @@ import (
 
 type Service interface {
 	GetSessionContext(ctx context.Context, companyID int64, memberID string) (types.SessionContext, error)
+	RevisionReader
 }
 
 type service struct {
@@ -18,11 +19,17 @@ type service struct {
 	cache *LRUCache
 }
 
+var _ RevisionReader = (*service)(nil)
+
 func NewService(cfg config.Config, st store.Store) Service {
 	return &service{
 		store: st,
 		cache: NewLRUCache(cfg.AuthzCacheSize),
 	}
+}
+
+func (s *service) GetAuthzRevision(ctx context.Context, companyID int64) (int64, error) {
+	return s.store.Company().GetAuthzRevision(ctx, companyID)
 }
 
 func (s *service) GetSessionContext(ctx context.Context, companyID int64, memberID string) (types.SessionContext, error) {

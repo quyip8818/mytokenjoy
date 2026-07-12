@@ -2,17 +2,16 @@ package remote
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
 type Service struct {
 	d        *core.Deps
-	enqueuer jobs.Enqueuer
+	enqueuer JobEnqueuer
 }
 
-func New(d *core.Deps, enqueuer jobs.Enqueuer) *Service {
+func New(d *core.Deps, enqueuer JobEnqueuer) *Service {
 	if enqueuer == nil {
-		enqueuer = jobs.NoopEnqueuer{}
+		enqueuer = NoopJobEnqueuer
 	}
 	return &Service{d: d, enqueuer: enqueuer}
 }

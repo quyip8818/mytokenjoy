@@ -5,7 +5,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/usagequery"
 )
 
 type readerService struct {
@@ -41,11 +40,7 @@ func (s *readerService) QuerySeries(ctx context.Context, q types.UsageSeriesQuer
 }
 
 func (s *readerService) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error) {
-	rows, err := s.usage.QueryFilteredBuckets(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	return usagequery.TopModelPerDepartment(rows, deptIDs), nil
+	return s.usage.TopModelsByDepartments(ctx, q, deptIDs)
 }
 
 var (

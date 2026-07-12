@@ -8,8 +8,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -17,9 +15,9 @@ import (
 type ReconcileService struct {
 	cfg          config.Config
 	store        store.Store
-	enqueuer     jobs.Enqueuer
+	enqueuer     JobEnqueuer
 	logger       *slog.Logger
-	gatewayCache budgetcheck.Store
+	gatewayCache GatewaySoftCache
 }
 
 func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) error {
@@ -104,13 +102,13 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		return nil
 	}
 
-	budgetcheck.RefreshSummaries(ctx, s.gatewayCache, s.logger, companyID, summaries)
-	return jobs.InsertRebalance(ctx, s.enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+	RefreshGatewaySoftSummaries(ctx, s.gatewayCache, s.logger, companyID, summaries)
+	return s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 }
 
 func (s *ReconcileService) FanoutReconcileJobs(ctx context.Context) error {
 	return company.ForEachActiveCompany(ctx, s.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return jobs.InsertBudgetReconcile(entryCtx, s.enqueuer, nil, co.ID)
+		return s.enqueuer.InsertBudgetReconcile(entryCtx, co.ID)
 	})
 }
 

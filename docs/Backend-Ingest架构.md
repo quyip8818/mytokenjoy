@@ -1,8 +1,8 @@
 # Backend Ingest 架构：用量如何从 NewAPI 回到 TokenJoy
 
 > **读者**：想搞清「一次 LLM 调用的钱，怎么记到企业账上」的研发 / 运维 / 联调同学。  
-> **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/worker/`。  
-> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7 · [工程收口.md](./工程收口.md)
+> **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/ingest/`。  
+> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7 · [Backend-结构优化.md](./Backend-结构优化.md) · [工程收口.md](./工程收口.md)
 
 ---
 
@@ -515,7 +515,7 @@ flowchart TB
 | Outcome / Queue | `internal/domain/usage/ingest_outcome.go`, `ingest_queue.go` | 错误分类、重试、入队 |
 | Side effects | `internal/domain/usage/side_effects.go` | rebalance / overrun 入队 |
 | HTTP Handler | `internal/http/handler/ingest/handler.go` | webhook + metrics |
-| IngestWorker | `internal/infra/worker/ingest_worker.go` | pending + reconcile |
+| IngestWorker | `internal/infra/ingest/worker.go` | pending + reconcile |
 | Ingest Worker | `internal/infra/ingest/worker.go` | 日志库 pending / reconcile |
 | River | `internal/infra/river/client.go` | 全部离线 job |
 | Metrics | `internal/infra/ingestmetrics/collector.go` | 计数与 lag |
