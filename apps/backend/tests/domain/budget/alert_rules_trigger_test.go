@@ -141,6 +141,7 @@ func TestOverrunProjectSendsNotification(t *testing.T) {
 	for i := range keys {
 		if keys[i].ID == contract.IDPlatformKey1 {
 			keys[i].ProjectID = &groupIDCopy
+			keys[i].Scope = types.PlatformKeyScopeProject
 		}
 	}
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {

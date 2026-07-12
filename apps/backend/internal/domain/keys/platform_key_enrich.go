@@ -54,13 +54,10 @@ func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.
 	enriched.ProjectName = nil
 
 	if key.ProjectID != nil {
-		enriched.Scope = "project"
 		if project, ok := lookups.projectByID[*key.ProjectID]; ok {
 			name := project.Name
 			enriched.ProjectName = &name
 		}
-	} else {
-		enriched.Scope = "member"
 	}
 
 	if key.MemberID != nil {

@@ -12,7 +12,7 @@ import (
 
 // PrepareIngestFixture upserts a platform key mapping and prepares budget snapshot
 // headroom for a successful ingest. Use this instead of UpsertMapping when the
-// test expects ingest to pass enforceBudgetCap; demo seed dept-3 is intentionally
+// test expects ingest to succeed without immediate overrun; demo seed dept-3 is intentionally
 // over budget.
 func PrepareIngestFixture(t *testing.T, st store.Store, opts MappingOpts, amount ...float64) {
 	t.Helper()

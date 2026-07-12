@@ -27,7 +27,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	beforeKeyConsumed := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
-	beforeConsumed := budgetfix.Dept3SnapshotConsumed(t, st)
+	beforeMemberConsumed := budgetfix.SnapshotConsumed(t, st, store.AxisKindMember, contract.IDMember1)
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(1001, 99))
 	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
@@ -48,9 +48,9 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 		t.Fatalf("expected key consumed increase, before=%v after=%v", beforeKeyConsumed, afterKeyConsumed)
 	}
 
-	afterConsumed := budgetfix.Dept3SnapshotConsumed(t, st)
-	if afterConsumed <= beforeConsumed {
-		t.Fatalf("expected consumed rollup, before=%v after=%v", beforeConsumed, afterConsumed)
+	afterMemberConsumed := budgetfix.SnapshotConsumed(t, st, store.AxisKindMember, contract.IDMember1)
+	if afterMemberConsumed <= beforeMemberConsumed {
+		t.Fatalf("expected member consumed increase, before=%v after=%v", beforeMemberConsumed, afterMemberConsumed)
 	}
 }
 
@@ -165,19 +165,19 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	raw.CreatedAt = occurred.Unix()
 	testutil.SeedConsumeLog(t, st, raw)
 
-	beforeSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, snapshotPeriod)
-	beforeLedgerPeriod := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, ledgerPeriod)
+	beforeSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, snapshotPeriod)
+	beforeLedgerPeriod := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, ledgerPeriod)
 
 	if err := ingest.IngestByLogID(ctx, 9901, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 	runner.RunOnce(ctx)
 
-	afterSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, snapshotPeriod)
+	afterSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, snapshotPeriod)
 	if afterSnapshot <= beforeSnapshot {
 		t.Fatalf("expected snapshot period %q consumption increase, before=%v after=%v", snapshotPeriod, beforeSnapshot, afterSnapshot)
 	}
-	afterLedgerPeriod := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindOrgNode, contract.IDDept3, ledgerPeriod)
+	afterLedgerPeriod := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, ledgerPeriod)
 	if afterLedgerPeriod != beforeLedgerPeriod {
 		t.Fatalf("expected no consumption at ledger period %q, before=%v after=%v", ledgerPeriod, beforeLedgerPeriod, afterLedgerPeriod)
 	}

@@ -37,6 +37,7 @@ KEY_NAID="${VERIFY_NEWAPI_KEY_ID}"
 
 verify_info "Ledger ingest..."
 verify_inject_consume_log_and_ingest "${KEY_NAID}"
+verify_three_axis_consumed_after_ingest "${KEY_ID}"
 
 verify_info "Toggle off..."
 resp="${VERIFY_TMPDIR}/toggle-off.json"
@@ -102,8 +103,8 @@ fi
 
 echo ""
 echo "INTEGRATION VERIFY PASSED"
-echo "  Gate flow (disposable key + Gateway + webhook)"
-echo "  Ledger ingest"
+  echo "  Gate flow (disposable key + Gateway + webhook + soft remain)"
+  echo "  Ledger ingest (three-axis consumed)"
 echo "  Toggle off/on"
 echo "  Rotate (old 403, new OK, newapi_key_id unchanged)"
 echo "  Revoke (403, DB revoked, NewAPI token gone)"

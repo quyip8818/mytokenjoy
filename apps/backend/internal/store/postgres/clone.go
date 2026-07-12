@@ -10,6 +10,12 @@ func cloneProjects(items []types.Project) []types.Project {
 			MemberIDs:         append([]string{}, project.MemberIDs...),
 			OwnerDepartmentID: project.OwnerDepartmentID,
 		}
+		if len(project.MemberBudgets) > 0 {
+			result[i].MemberBudgets = make(map[string]float64, len(project.MemberBudgets))
+			for k, v := range project.MemberBudgets {
+				result[i].MemberBudgets[k] = v
+			}
+		}
 	}
 	return result
 }
@@ -77,7 +83,7 @@ func clonePlatformKeys(items []types.PlatformKey) []types.PlatformKey {
 
 func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 	cloned := types.PlatformKey{
-		ID: key.ID, Name: key.Name, KeyPrefix: key.KeyPrefix, Status: key.Status,
+		ID: key.ID, Name: key.Name, KeyPrefix: key.KeyPrefix, Scope: key.Scope, Status: key.Status,
 		Budget: key.Budget, Consumed: key.Consumed, CreatedAt: key.CreatedAt,
 		ModelWhitelist: append([]int64{}, key.ModelWhitelist...),
 	}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
@@ -72,11 +71,6 @@ func applyGatewayBudgetState(t *testing.T, cfg config.Config, st store.Store, op
 	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
-
-	periodKey := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
-	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindOrgNode, opts.DepartmentID, periodKey, opts.Consumed); err != nil {
-		t.Fatal(err)
-	}
 }
 
 type gatewayKeySetup struct {
@@ -109,6 +103,7 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 			ID:        "plk-gateway-test",
 			Name:      "Gateway Test Key",
 			KeyPrefix: "sk-test",
+			Scope:     types.PlatformKeyScopeMember,
 			FullKey:   &setup.fullKey,
 			MemberID:  &m,
 			Status:    "active",

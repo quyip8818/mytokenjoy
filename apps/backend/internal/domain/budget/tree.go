@@ -8,11 +8,12 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
-	return pkgbudget.LoadBudgetTreeWithConsumed(ctx, s.store.BudgetConsumed(), s.store.Org().Nodes(), s.cfg.Clock())
+	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 }
 
 func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
@@ -328,14 +329,21 @@ func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID string
 	}
 	periodKey := open.String()
 
-	allConsumed, err := s.store.BudgetConsumed().ListConsumed(ctx, store.AxisKindMember, periodKey)
+	keys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
+	consumedRepo := s.store.BudgetConsumed()
 
 	result := make(map[string]float64, len(target.MemberIDs))
 	for _, memberID := range target.MemberIDs {
-		result[memberID] = allConsumed[memberID]
+		sum, err := pkgbudget.SumProjectMemberKeyConsumedFromRepo(
+			ctx, consumedRepo, keys, projectID, memberID, periodKey,
+		)
+		if err != nil {
+			return nil, err
+		}
+		result[memberID] = sum
 	}
 	return result, nil
 }

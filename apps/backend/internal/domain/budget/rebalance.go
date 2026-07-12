@@ -37,8 +37,6 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 	switch axisKind {
 	case store.RebalanceAxisMember:
 		mappings, err = s.store.PlatformKeyMappings().ListMappingsByMemberID(ctx, axisID)
-	case store.RebalanceAxisOrgNode:
-		mappings, err = s.store.PlatformKeyMappings().ListMappingsByDepartmentID(ctx, axisID)
 	case store.RebalanceAxisProject:
 		mappings, err = s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, axisID)
 	case store.RebalanceAxisCompany:
@@ -92,8 +90,18 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, s.store.Org().Nodes(), mapping.DepartmentID, s.cfg.Clock())
+	if err != nil {
+		return err
+	}
+	remainPoint, err := pkgbudget.ComputeRemainForMapping(
+		ctx, budgetCtx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Company(), mapping, open.String(),
+	)
+	if err != nil {
+		return err
+	}
 	allocated := newapiunits.ToNewAPIUnits(
-		budgetCtx.ComputeRemain(key, mapping.DepartmentID, nil, nil),
+		remainPoint,
 		models,
 		effectiveIDs,
 	)
@@ -116,7 +124,10 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 	if err != nil {
 		return err
 	}
-	return s.store.PlatformKeyMappings().UpdateMappingNewAPIKeyRemainQuota(ctx, mapping.PlatformKeyID, updated.RemainQuota)
+	if err := s.store.PlatformKeyMappings().UpdateMappingNewAPIKeyRemainQuota(ctx, mapping.PlatformKeyID, updated.RemainQuota); err != nil {
+		return err
+	}
+	return RefreshPlatformKeySoft(ctx, s.store, mapping.PlatformKeyID, s.cfg.Clock(), nil)
 }
 
 func (s *RebalanceService) newAPIWalletUserID(ctx context.Context, companyID int64) int64 {

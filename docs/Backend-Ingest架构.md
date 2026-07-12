@@ -254,11 +254,10 @@ flowchart TB
   E --> F{WithTx}
   F --> G[ExistsIdempotency]
   G -->|已存在| Z[静默成功]
-  G -->|新账| H[enforceBudgetCap]
-  H --> I[AllocateConsumptionLots FIFO]
-  I --> J[InsertSegments]
-  J --> K[InsertTx budget_projection + wallet_sync]
-  K --> Z2[返回成功]
+  G -->|新账| H[AllocateConsumptionLots FIFO]
+  H --> I[InsertSegments]
+  I --> J[InsertTx budget_projection + wallet_sync]
+  J --> Z2[返回成功]
 ```
 
 **Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、入队 `budget_projection` + `wallet_sync`。  
@@ -269,10 +268,13 @@ flowchart TB
 | 步骤 | 目标 | 作用 |
 | --- | --- | --- |
 | 1 | `budget_consumed` · platform_key | Key 已用 |
-| 2 | `budget_consumed` · project | 若挂项目 |
-| 3 | `budget_consumed` · member | 若可归因成员 |
-| 4 | `budget_consumed` · org_node 祖先 rollup | 部门树向上累加 |
-| 批末 | `gateway_soft_*` + rebalance / overrun 入队 | Gateway 软缓存 |
+| 2 | `budget_consumed` · project | 若挂项目（`project` / `project_member` scope） |
+| 3 | `budget_consumed` · member | 仅 `member` scope（`project` / `project_member` **不写**） |
+| — | **无 org_node 轴** | 部门报表：`usage_ledger` 按 `department_id` 聚合 |
+| — | `project_member` sub 已用 | Σ 该人 project_member Key 的 `platform_key` consumed |
+| 批末 | `gateway_soft_*` + rebalance / overrun 入队 | Gateway 软缓存；部门触顶仅 notify |
+
+入账按 Platform Key `scope` 选择性写轴，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md) §4。
 
 看板 `usage_buckets` 由 `dashboard.Projector` 独立维护（Periodic fanout）。
 

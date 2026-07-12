@@ -16,13 +16,13 @@ type pgKeysRepo struct {
 }
 
 const platformKeySelect = `
-	SELECT id, name, key_prefix, member_id,
+	SELECT id, name, key_prefix, scope, member_id,
 		project_id, status, budget, created_at, expires_at
 	FROM platform_keys
 `
 
 const platformKeyListSelect = `
-	SELECT pk.id, pk.name, pk.key_prefix, pk.member_id,
+	SELECT pk.id, pk.name, pk.key_prefix, pk.scope, pk.member_id,
 		pk.project_id, pk.status, pk.budget, pk.created_at, pk.expires_at,
 		COALESCE(array_agg(ma.model_id ORDER BY ma.model_id) FILTER (WHERE ma.model_id IS NOT NULL), '{}') AS model_ids
 	FROM platform_keys pk
@@ -55,7 +55,7 @@ func scanPlatformKeyWithModels(rows pgx.Rows) (types.PlatformKey, error) {
 	var expiresAt *time.Time
 	var modelIDs []int64
 	if err := rows.Scan(
-		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
+		&item.ID, &item.Name, &item.KeyPrefix, &item.Scope, &item.MemberID,
 		&item.ProjectID, &item.Status,
 		&item.Budget, &createdAt, &expiresAt,
 		&modelIDs,
@@ -77,7 +77,7 @@ func scanPlatformKey(rows pgx.Rows) (types.PlatformKey, error) {
 	var createdAt time.Time
 	var expiresAt *time.Time
 	if err := rows.Scan(
-		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
+		&item.ID, &item.Name, &item.KeyPrefix, &item.Scope, &item.MemberID,
 		&item.ProjectID, &item.Status,
 		&item.Budget, &createdAt, &expiresAt,
 	); err != nil {
@@ -97,7 +97,7 @@ func scanPlatformKeyRow(row pgx.Row) (types.PlatformKey, error) {
 	var createdAt time.Time
 	var expiresAt *time.Time
 	if err := row.Scan(
-		&item.ID, &item.Name, &item.KeyPrefix, &item.MemberID,
+		&item.ID, &item.Name, &item.KeyPrefix, &item.Scope, &item.MemberID,
 		&item.ProjectID, &item.Status,
 		&item.Budget, &createdAt, &expiresAt,
 	); err != nil {

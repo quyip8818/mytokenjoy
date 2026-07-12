@@ -20,7 +20,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
-		ID: "plk-test", Name: "test-key", MemberID: &memberID,
+		ID: "plk-test", Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
 		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
@@ -49,7 +49,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
-		ID: "plk-sync", Name: "sync-key", MemberID: &memberID,
+		ID: "plk-sync", Name: "sync-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
 		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
@@ -108,7 +108,7 @@ func TestRollbackFailedCreate(t *testing.T) {
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
-		ID: "plk-rollback", Name: "rollback", MemberID: &memberID,
+		ID: "plk-rollback", Name: "rollback", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
 		Status: "active", Budget: 500, ModelWhitelist: []int64{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}

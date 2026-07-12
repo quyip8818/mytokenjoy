@@ -109,7 +109,7 @@ verify_api_call() {
 verify_create_platform_key() {
   local name="$1"
   local body resp code
-  body=$(printf '{"name":"%s","memberId":"m-1","budget":100,"modelWhitelist":[1]}' "${name}")
+  body=$(printf '{"name":"%s","scope":"member","memberId":"m-1","budget":100,"modelWhitelist":[1]}' "${name}")
   resp="${VERIFY_TMPDIR}/create-key-${name}.json"
   code=$(verify_api_call POST "/api/keys/platform" "${body}" "${resp}")
   if [[ "${code}" != "200" ]]; then
@@ -120,11 +120,37 @@ verify_create_platform_key() {
   if [[ -z "${VERIFY_PLATFORM_KEY_ID}" || -z "${VERIFY_PLATFORM_KEY_BEARER}" ]]; then
     verify_fail "create key missing id/fullKey: $(cat "${resp}")"
   fi
+  verify_platform_key_soft_remain "${VERIFY_PLATFORM_KEY_ID}"
   VERIFY_NEWAPI_KEY_ID=$(verify_mapping_newapi_key_id "${VERIFY_PLATFORM_KEY_ID}")
   if [[ -z "${VERIFY_NEWAPI_KEY_ID}" ]]; then
     verify_fail "no newapi_key_id mapping for ${VERIFY_PLATFORM_KEY_ID}"
   fi
   verify_info "Created key ${VERIFY_PLATFORM_KEY_ID} (newapi_key_id=${VERIFY_NEWAPI_KEY_ID})"
+}
+
+verify_platform_key_soft_remain() {
+  local platform_key_id="$1"
+  local remain
+  remain=$(verify_psql_main "SELECT gateway_soft_remain FROM platform_keys WHERE id='${platform_key_id}' AND company_id=${VERIFY_DEFAULT_COMPANY_ID} LIMIT 1")
+  if [[ -z "${remain}" ]]; then
+    verify_fail "gateway_soft_remain NULL for ${platform_key_id}"
+  fi
+  verify_info "gateway_soft_remain=${remain} for ${platform_key_id}"
+}
+
+verify_three_axis_consumed_after_ingest() {
+  local platform_key_id="$1"
+  local pk_consumed member_consumed org_node_count
+  pk_consumed=$(verify_psql_main "SELECT COALESCE(SUM(consumed),0) FROM budget_consumed WHERE axis_kind='platform_key' AND axis_id='${platform_key_id}' AND company_id=${VERIFY_DEFAULT_COMPANY_ID}")
+  member_consumed=$(verify_psql_main "SELECT COALESCE(SUM(consumed),0) FROM budget_consumed WHERE axis_kind='member' AND axis_id='m-1' AND company_id=${VERIFY_DEFAULT_COMPANY_ID}")
+  org_node_count=$(verify_psql_main "SELECT COUNT(*) FROM budget_consumed WHERE axis_kind='org_node' AND company_id=${VERIFY_DEFAULT_COMPANY_ID}")
+  if [[ "${pk_consumed}" == "0" ]]; then
+    verify_fail "expected platform_key consumed > 0 after ingest, got ${pk_consumed}"
+  fi
+  if [[ "${member_consumed}" == "0" ]]; then
+    verify_fail "expected member consumed > 0 after ingest, got ${member_consumed}"
+  fi
+  verify_info "three-axis OK: platform_key=${pk_consumed} member=${member_consumed} (org_node rows=${org_node_count}, not written on ingest)"
 }
 
 verify_gateway_code() {

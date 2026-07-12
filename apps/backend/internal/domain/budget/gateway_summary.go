@@ -42,7 +42,9 @@ func ComputeGatewaySummaryUpdates(
 		if err != nil {
 			return nil, err
 		}
-		remain, err := pkgbudget.ComputeRemainForMapping(ctx, budgetCtx, st.BudgetConsumed(), st.Org(), mapping, open.String())
+		remain, err := pkgbudget.ComputeRemainForMapping(
+			ctx, budgetCtx, st.BudgetConsumed(), st.Org(), st.Budget(), st.Company(), mapping, open.String(),
+		)
 		if err != nil {
 			continue
 		}
@@ -52,6 +54,24 @@ func ComputeGatewaySummaryUpdates(
 		})
 	}
 	return updates, nil
+}
+
+// RefreshPlatformKeySoft recomputes and persists gateway_soft_* for one platform key.
+func RefreshPlatformKeySoft(ctx context.Context, st store.Store, keyID string, clk clock.Clock, cache GatewaySoftCache) error {
+	updates, err := ComputeGatewaySummaryUpdates(ctx, st, map[string]struct{}{keyID: {}}, clk)
+	if err != nil {
+		return err
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	summaries, err := st.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+	if err != nil {
+		return err
+	}
+	coID := store.CompanyID(ctx)
+	RefreshGatewaySoftSummaries(ctx, cache, nil, coID, summaries)
+	return nil
 }
 
 // AffectedPlatformKeyIDs resolves platform keys whose gateway soft summary may
@@ -67,8 +87,6 @@ func AffectedPlatformKeyIDs(ctx context.Context, st store.Store, repaired map[Ax
 			continue
 		case store.AxisKindMember:
 			mappings, err = st.PlatformKeyMappings().ListMappingsByMemberID(ctx, key.AxisID)
-		case store.AxisKindOrgNode:
-			mappings, err = st.PlatformKeyMappings().ListMappingsByDepartmentID(ctx, key.AxisID)
 		case store.AxisKindProject:
 			mappings, err = st.PlatformKeyMappings().ListMappingsByProjectID(ctx, key.AxisID)
 		default:

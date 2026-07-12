@@ -7,6 +7,7 @@ import {
   findBudgetNode,
   formatBudgetPeriodLabel,
   getBudgetProgressTone,
+  toProjectView,
   updateBudgetNodeInTree,
 } from '@/features/budget/lib/mappers'
 
@@ -97,5 +98,24 @@ describe('formatBudgetPeriodLabel', () => {
   it('formats YYYY-MM period from API', () => {
     expect(formatBudgetPeriodLabel('2026-06')).toBe('2026 年 6 月')
     expect(formatBudgetPeriodLabel(undefined)).toBe('-')
+  })
+})
+
+describe('toProjectView', () => {
+  it('passes memberBudgets through to project view', () => {
+    const view = toProjectView(
+      {
+        id: 'proj-1',
+        name: '项目 A',
+        budget: 10000,
+        consumed: 2000,
+        memberIds: ['m1'],
+        memberBudgets: { m1: 3000 },
+        ownerDepartmentId: 'd1',
+      },
+      '总部',
+      '2026-01',
+    )
+    expect(view.memberBudgets).toEqual({ m1: 3000 })
   })
 })

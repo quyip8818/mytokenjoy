@@ -52,7 +52,21 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	newapisynctf.UpsertMapping(t, fix.st, newapisynctf.DefaultMappingOpts())
-	budgetfix.SetDeptSnapshotConsumed(t, fix.st, contract.IDDept3, budgetfix.DisplayPoints(25000))
+	keys, err := fix.st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keyBudget float64
+	for _, key := range keys {
+		if key.ID == contract.IDPlatformKey1 {
+			keyBudget = key.Budget
+			break
+		}
+	}
+	if keyBudget <= 0 {
+		t.Fatal("expected plk-1 to have positive budget")
+	}
+	budgetfix.SetPlatformKeySnapshotConsumed(t, fix.st, contract.IDPlatformKey1, keyBudget+0.01)
 
 	payload, err := json.Marshal(map[string]string{
 		"departmentId": contract.IDDept3, "platformKeyId": contract.IDPlatformKey1,
@@ -66,7 +80,7 @@ func TestWorkerProcessesOverrunQueue(t *testing.T) {
 
 	fix.runRiver(t)
 
-	keys, err := fix.st.Keys().PlatformKeys(ctx)
+	keys, err = fix.st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

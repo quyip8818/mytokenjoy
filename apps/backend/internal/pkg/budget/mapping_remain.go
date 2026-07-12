@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -15,24 +16,8 @@ type MappingStores struct {
 	Org      store.OrgRepository
 	Budget   store.BudgetRepository
 	Keys     store.KeysRepository
+	Company  store.CompanyRepository
 	Clock    clock.Clock
-}
-
-// RemainForMapping returns effective remaining budget for ingest cap checks.
-func RemainForMapping(
-	ctx context.Context,
-	stores MappingStores,
-	mapping *store.PlatformKeyMapping,
-	periodKey string,
-) (float64, error) {
-	if mapping.DepartmentID == "" {
-		return 0, fmt.Errorf("department not found")
-	}
-	budgetCtx, err := LoadBudgetContext(ctx, stores.Consumed, stores.Org, stores.Budget, stores.Keys, stores.Clock)
-	if err != nil {
-		return 0, err
-	}
-	return ComputeRemainForMapping(ctx, budgetCtx, stores.Consumed, stores.Org, *mapping, periodKey)
 }
 
 // ComputeRemainForMapping uses a preloaded budget context for batch gateway summary writes.
@@ -41,58 +26,106 @@ func ComputeRemainForMapping(
 	budgetCtx BudgetContext,
 	consumed store.BudgetConsumedRepository,
 	org store.OrgRepository,
+	budgetRepo store.BudgetRepository,
+	companyRepo store.CompanyRepository,
 	mapping store.PlatformKeyMapping,
 	periodKey string,
 ) (float64, error) {
 	if mapping.DepartmentID == "" {
 		return 0, fmt.Errorf("department not found")
 	}
-	limit, found, err := org.Nodes().GetNodeBudget(ctx, mapping.DepartmentID)
-	if err != nil {
-		return 0, err
-	}
-	if !found || limit <= 0 {
-		return 0, fmt.Errorf("budget exceeded")
-	}
-
 	key, ok := budgetCtx.FindPlatformKey(mapping.PlatformKeyID)
 	if !ok {
 		return 0, fmt.Errorf("platform key not found")
 	}
-	if key.Budget > 0 {
-		keyUsed, found, err := consumed.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
-		if err != nil {
-			return 0, err
-		}
-		if found {
-			key.Consumed = keyUsed
-		} else {
-			key.Consumed = 0
-		}
+	if key.Scope == "" {
+		return 0, fmt.Errorf("platform key scope missing")
 	}
-
-	deptConsumed, _, err := consumed.GetConsumed(ctx, store.AxisKindOrgNode, mapping.DepartmentID, periodKey)
+	inputs, err := BuildChainInputs(ctx, budgetCtx, consumed, org, budgetRepo, companyRepo, key, mapping, periodKey)
 	if err != nil {
 		return 0, err
 	}
-	deptAxis := &DeptAxisInput{Budget: limit, Consumed: deptConsumed}
+	remain, _ := GatewayChainRemain(key.Scope, inputs)
+	return remain, nil
+}
 
-	var memberAxis *MemberAxisInput
-	if mapping.MemberID != nil && key.ProjectID == nil {
-		personalBudget, memberFound, err := org.MemberPersonalBudget(ctx, *mapping.MemberID)
+func BuildChainInputs(
+	ctx context.Context,
+	budgetCtx BudgetContext,
+	consumed store.BudgetConsumedRepository,
+	org store.OrgRepository,
+	budgetRepo store.BudgetRepository,
+	companyRepo store.CompanyRepository,
+	key types.PlatformKey,
+	mapping store.PlatformKeyMapping,
+	periodKey string,
+) (ChainInputs, error) {
+	inputs := ChainInputs{}
+	if key.Budget > 0 {
+		keyUsed, found, err := consumed.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
 		if err != nil {
-			return 0, err
+			return ChainInputs{}, err
 		}
-		if !memberFound {
-			memberAxis = &MemberAxisInput{Skip: true}
-		} else {
-			memberConsumed, _, err := consumed.GetConsumed(ctx, store.AxisKindMember, *mapping.MemberID, periodKey)
-			if err != nil {
-				return 0, err
-			}
-			memberAxis = &MemberAxisInput{Cap: personalBudget, Consumed: memberConsumed}
+		if found {
+			key.Consumed = keyUsed
 		}
+		inputs.KeyBudget = key.Budget
+		inputs.KeyConsumed = key.Consumed
 	}
 
-	return budgetCtx.ComputeRemain(key, mapping.DepartmentID, memberAxis, deptAxis), nil
+	co, err := companyRepo.GetByID(ctx, mapping.CompanyID)
+	if err != nil {
+		return ChainInputs{}, err
+	}
+	if co != nil {
+		inputs.WalletRemain = co.WalletRemain
+	}
+
+	switch key.Scope {
+	case types.PlatformKeyScopeMember:
+		if mapping.MemberID == nil {
+			return ChainInputs{}, fmt.Errorf("member mapping required")
+		}
+		capacity, found, err := org.MemberPersonalBudget(ctx, *mapping.MemberID)
+		if err != nil {
+			return ChainInputs{}, err
+		}
+		if found {
+			inputs.PersonalCap = capacity
+			memberConsumed, _, err := consumed.GetConsumed(ctx, store.AxisKindMember, *mapping.MemberID, periodKey)
+			if err != nil {
+				return ChainInputs{}, err
+			}
+			inputs.PersonalConsumed = memberConsumed
+		}
+	case types.PlatformKeyScopeProject, types.PlatformKeyScopeProjectMember:
+		if mapping.ProjectID == nil {
+			return ChainInputs{}, fmt.Errorf("project mapping required")
+		}
+		project, ok := FindProject(budgetCtx.Projects, *mapping.ProjectID)
+		if !ok {
+			return ChainInputs{}, fmt.Errorf("project not found")
+		}
+		inputs.ProjectCap = project.Budget
+		projectConsumed, _, err := consumed.GetConsumed(ctx, store.AxisKindProject, *mapping.ProjectID, periodKey)
+		if err != nil {
+			return ChainInputs{}, err
+		}
+		inputs.ProjectConsumed = projectConsumed
+		if key.Scope == types.PlatformKeyScopeProjectMember {
+			if mapping.MemberID == nil {
+				return ChainInputs{}, fmt.Errorf("member mapping required for project_member")
+			}
+			memberBudget, found, err := budgetRepo.GetProjectMemberBudget(ctx, *mapping.ProjectID, *mapping.MemberID)
+			if err != nil {
+				return ChainInputs{}, err
+			}
+			if !found {
+				return ChainInputs{}, fmt.Errorf("project member roster not found")
+			}
+			inputs.MemberBudget = memberBudget
+			inputs.SubConsumed = SumProjectMemberKeyConsumed(budgetCtx.PlatformKeys, *mapping.ProjectID, *mapping.MemberID)
+		}
+	}
+	return inputs, nil
 }

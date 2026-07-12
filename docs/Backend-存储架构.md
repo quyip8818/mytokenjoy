@@ -120,7 +120,7 @@ erDiagram
 | -------- | -------------------- | ------------------------ |
 | 结构     | 树形逐级分配         | 扁平共享池               |
 | 与 Key   | 经部门归因           | 挂 `project_id`     |
-| consumed | `axis_kind=org_node` | `axis_kind=project` |
+| consumed | `usage_ledger` 部门聚合（报表） | `axis_kind=project` |
 
 ### `org_nodes` 列组
 
@@ -184,7 +184,7 @@ flowchart LR
 | --- | --- |
 | `usage_ledger` | 消耗 SSOT |
 | `usage_buckets` | 看板 hour/day（Dashboard 投影写） |
-| `budget_consumed` | 四轴 consumed（BudgetProjector 写） |
+| `budget_consumed` | 三轴 consumed（BudgetProjector 写；部门报表改 ledger 聚合） |
 | `river_job` | 离线执行意图 |
 | `ingest_jobs` | 入账失败重试（**日志库**） |
 
@@ -281,7 +281,9 @@ flowchart LR
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
 | **企业钱包** | `Σ lot.points_remaining` / `companies.balance_point`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 NewAPIKey remain |
-| **组织预算** | `org_nodes.budget` · `personal_budget` · `projects.budget` · `platform_keys.budget`（均为 point） | **`budget_consumed`**（四轴，point） | Gateway 预检（`gateway_soft_*`）、预算树、Overrun        |
+| **组织预算** | `org_nodes.budget` · `personal_budget` · `projects.budget` · `project_members.member_budget`† · `platform_keys.budget`（均为 point） | **`budget_consumed`**（三轴‡，point） | Gateway 预检（`gateway_soft_*`）、预算树、Overrun        |
+
+† `member_budget` 终态列，见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)。‡ **三轴** `platform_key` · `member` · `project`；部门花费读 `usage_ledger` 聚合，**停写** `budget_consumed.org_node`。
 
 组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_consumed` 是 consumed 的存储 SSOT。Gateway 热路径读 `platform_keys.gateway_soft_remain`（Projector 批末刷新）。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
@@ -292,10 +294,11 @@ flowchart LR
 | **limit**     | `org_nodes.budget`                                                 | 部门节点                            | 组织树分配额                                  |
 | **limit**     | `members.personal_budget`                                           | 成员                                | 个人可分配上限                                |
 | **limit**     | `projects.budget`                                             | 项目                              | 池额度                                        |
+| **limit**     | `project_members.member_budget`                               | 项目成员                            | 项目内子额度（终态）                            |
 | **limit**     | `platform_keys.budget`                                              | 平台 Key                            | Key 分配额                                    |
 | **limit**     | `companies.balance_point` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
 | **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | NewAPIKey                           | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
-| **consumed**  | `budget_consumed.consumed`                                        | 四轴                                | **组织轴 consumed SSOT**（point）             |
+| **consumed**  | `budget_consumed.consumed`                                        | 三轴                    | **组织轴 consumed SSOT**；部门报表改 `usage_ledger` 聚合 |
 | **consumed**  | `usage_ledger.amount`                                              | 单笔调用                            | 事实账本（point）                             |
 | **consumed**  | `usage_buckets.cost`                                               | 看板聚合                            | 展示投影（point）                             |
 | **consumed**  | JSON `consumed`                                                    | `BudgetNode` · `PlatformKey` · `MemberBudget` · 看板  | 读自 `budget_consumed`                                 |

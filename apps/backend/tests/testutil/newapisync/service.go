@@ -80,6 +80,7 @@ func SeedPendingPlatformKey(t *testing.T, st store.Store, opts PendingPlatformKe
 	key := types.PlatformKey{
 		ID:             opts.ID,
 		Name:           opts.Name,
+		Scope:          types.PlatformKeyScopeMember,
 		MemberID:       &memberID,
 		Status:         "active",
 		Budget:         opts.Budget,

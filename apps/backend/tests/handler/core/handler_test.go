@@ -260,15 +260,15 @@ func TestKeysPlatformCreateMissingMemberID(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body, _ := json.Marshal(map[string]any{
-		"name": "test", "budget": 1000, "modelWhitelist": []int64{contract.IDModel1},
+		"name": "test", "scope": types.PlatformKeyScopeMember, "budget": 1000, "modelWhitelist": []int64{contract.IDModel1},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", rec.Code)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d", rec.Code)
 	}
 }
 

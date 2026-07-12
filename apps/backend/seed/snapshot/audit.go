@@ -45,6 +45,10 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 	if err := json.Unmarshal(data.UsageLedgerJSON, &rows); err != nil {
 		panic("seed: load usage ledger: " + err.Error())
 	}
+	keyScope := make(map[string]string, len(loadPlatformKeys()))
+	for _, key := range loadPlatformKeys() {
+		keyScope[key.ID] = key.Scope
+	}
 	entries := make([]types.UsageLedgerEntry, 0, len(rows))
 	for i, row := range rows {
 		occurredAt, err := parseSeedLedgerTime(row.CreatedAt)
@@ -55,23 +59,32 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 		if row.CallerType == types.CallerTypeMember {
 			memberID = &row.CallerID
 		}
+		platformKeyID := contract.IDPlatformKey1
+		if row.CallerType == types.CallerTypePlatformKey {
+			platformKeyID = row.CallerID
+		}
+		scope := keyScope[platformKeyID]
+		if scope == "" {
+			panic(fmt.Sprintf("seed: unknown platform key %q for ledger row %s", platformKeyID, row.ID))
+		}
 		entries = append(entries, types.UsageLedgerEntry{
-			ID:              row.ID,
-			EventType:       types.EventTypeCallSettled,
-			IdempotencyKey:  fmt.Sprintf("%sseed-%d", types.IdempotencyPrefixNewAPI, i+1),
-			LotID:           "tu-1",
-			Amount:          seedPoints(row.Cost),
-			DisplayAmount:   row.Cost,
-			BillingCurrency: "CNY",
-			DepartmentID:    contract.IDDept3,
-			MemberID:        memberID,
-			PlatformKeyID:   contract.IDPlatformKey1,
-			Source:          types.SourceWebhook,
-			OccurredAt:      occurredAt.UTC(),
-			PeriodKey:       pkgbudget.OccurrenceSnapshotKey(pkgbudget.PeriodMonthly, occurredAt.UTC()).String(),
-			Model:           row.Model,
-			InputTokens:     int64(row.InputTokens),
-			OutputTokens:    int64(row.OutputTokens),
+			ID:               row.ID,
+			EventType:        types.EventTypeCallSettled,
+			IdempotencyKey:   fmt.Sprintf("%sseed-%d", types.IdempotencyPrefixNewAPI, i+1),
+			LotID:            "tu-1",
+			Amount:           seedPoints(row.Cost),
+			DisplayAmount:    row.Cost,
+			BillingCurrency:  "CNY",
+			DepartmentID:     contract.IDDept3,
+			MemberID:         memberID,
+			PlatformKeyID:    platformKeyID,
+			PlatformKeyScope: scope,
+			Source:           types.SourceWebhook,
+			OccurredAt:       occurredAt.UTC(),
+			PeriodKey:        pkgbudget.OccurrenceSnapshotKey(pkgbudget.PeriodMonthly, occurredAt.UTC()).String(),
+			Model:            row.Model,
+			InputTokens:      int64(row.InputTokens),
+			OutputTokens:     int64(row.OutputTokens),
 			CallDetail: types.UsageCallDetail{
 				Caller:         row.Caller,
 				CallerID:       row.CallerID,

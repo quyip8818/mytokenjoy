@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { waitFor } from '@testing-library/react'
+import { act, waitFor } from '@testing-library/react'
 import { useBudgetPage } from '@/features/budget/hooks/use-budget-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { mockProjects, mockBudgetTree } from '@tests/fixtures/budget'
@@ -33,5 +33,33 @@ describe('useBudgetPage', () => {
     expect(apis.budgetApi.getProjects).toHaveBeenCalled()
     expect(result.current.selectedTeamId).toBe('n1')
     expect(result.current.pendingCount).toBe(0)
+  })
+
+  it('updates project memberBudgets via budget API', async () => {
+    const updateProject = vi.fn().mockResolvedValue(mockProjects[0])
+    const apis = createMockApis({
+      budgetApi: {
+        getTree: vi.fn().mockResolvedValue(mockBudgetTree),
+        getProjects: vi.fn().mockResolvedValue(mockProjects),
+        getApprovals: vi.fn().mockResolvedValue([]),
+        getOverrunPolicy: vi.fn().mockResolvedValue({
+          thresholds: [80],
+          notifyEmail: false,
+          notifyPhone: false,
+          notifyIm: false,
+          blockMessage: '',
+        }),
+        updateProject,
+      },
+    })
+
+    const { result } = renderHookWithProviders(() => useBudgetPage(apis), { apis })
+    await waitForLoaded(result, 'loading')
+
+    await act(async () => {
+      await result.current.updateProject('proj-1', { memberBudgets: { m1: 4000 } })
+    })
+
+    expect(updateProject).toHaveBeenCalledWith('proj-1', { memberBudgets: { m1: 4000 } })
   })
 })

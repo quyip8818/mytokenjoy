@@ -278,6 +278,7 @@ CREATE TABLE IF NOT EXISTS project_members (
     company_id BIGINT NOT NULL,
     project_id TEXT NOT NULL,
     member_id  TEXT NOT NULL,
+    member_budget DOUBLE PRECISION NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, project_id, member_id),
     FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE CASCADE,
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE
@@ -378,6 +379,7 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     key_hash        TEXT NOT NULL,
     member_id       TEXT,
     project_id      TEXT,
+    scope           TEXT NOT NULL,
     status          TEXT NOT NULL,
     budget          NUMERIC(18, 6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -388,10 +390,13 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     gateway_soft_version BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, id),
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE RESTRICT,
-    FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE RESTRICT
+    FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE RESTRICT,
+    CONSTRAINT chk_platform_keys_scope
+        CHECK (scope IN ('member', 'project', 'project_member'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_keys_key_hash ON platform_keys (key_hash);
+CREATE INDEX IF NOT EXISTS idx_platform_keys_scope ON platform_keys (company_id, scope);
 CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id, member_id) WHERE member_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_platform_keys_project ON platform_keys (company_id, project_id) WHERE project_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_platform_keys_active ON platform_keys (company_id, status) WHERE status = 'active';
@@ -464,6 +469,7 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     member_id        TEXT,
     project_id       TEXT,
     platform_key_id  TEXT NOT NULL,
+    platform_key_scope TEXT NOT NULL CHECK (platform_key_scope IN ('member', 'project', 'project_member')),
     source           TEXT NOT NULL,
     occurred_at      TIMESTAMPTZ NOT NULL,
     period_key       TEXT NOT NULL,
@@ -533,7 +539,7 @@ CREATE INDEX IF NOT EXISTS idx_platform_key_mappings_sync_pending
 
 CREATE TABLE IF NOT EXISTS budget_consumed (
     company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('org_node', 'project', 'platform_key', 'member')),
+    axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('project', 'platform_key', 'member')),
     axis_id    TEXT NOT NULL,
     period_key TEXT NOT NULL,
     consumed   NUMERIC(18, 6) NOT NULL DEFAULT 0,

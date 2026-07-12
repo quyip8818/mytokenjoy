@@ -3,18 +3,59 @@
 package budgetfix
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
+	"github.com/tokenjoy/backend/seed/runtime"
 )
 
-func SeedDeptOverrun(t *testing.T, st store.Store, deptID string, consumed float64) {
+func SeedDeptOverrun(t *testing.T, st store.Store, deptID string, ledgerSpent float64) {
 	t.Helper()
 	seedDefaultMapping(t, st)
-	SetDeptSnapshotConsumed(t, st, deptID, consumed)
+	ctx := company.DefaultContext(contract.DefaultCompanyID)
+	if err := runtime.ApplyRechargeOrders(ctx, st); err != nil {
+		t.Fatal(err)
+	}
+	lots, err := st.Billing().ListActiveLotsFIFO(ctx, contract.DefaultCompanyID, nil)
+	if err != nil || len(lots) == 0 {
+		t.Fatal("expected recharge lot for ledger seed")
+	}
+	memberID := contract.IDMember1
+	now := time.Now().UTC()
+	entry := types.UsageLedgerEntry{
+		ID:               fmt.Sprintf("ledger-dept-overrun-%s-%d", deptID, int(ledgerSpent)),
+		CompanyID:        contract.DefaultCompanyID,
+		EventType:        types.EventTypeCallSettled,
+		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%d", deptID, int(ledgerSpent)),
+		LotID:            lots[0].ID,
+		Amount:           ledgerSpent,
+		DisplayAmount:    ledgerSpent,
+		BillingCurrency:  "CNY",
+		DepartmentID:     deptID,
+		MemberID:         &memberID,
+		PlatformKeyID:    contract.IDPlatformKey1,
+		PlatformKeyScope: types.PlatformKeyScopeMember,
+		Source:           types.SourceWebhook,
+		OccurredAt:       now,
+		PeriodKey:        contract.DemoBudgetPeriod,
+		Model:            "gpt-4o",
+		CallDetail: types.UsageCallDetail{
+			Caller:     "test",
+			CallerID:   memberID,
+			CallerType: types.CallerTypeMember,
+			Status:     types.CallStatusSuccess,
+		},
+		CreatedAt: now,
+	}
+	if _, err := st.Ledger().InsertOnConflict(ctx, entry); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func seedDefaultMapping(t *testing.T, st store.Store) {

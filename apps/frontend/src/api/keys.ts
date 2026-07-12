@@ -5,6 +5,7 @@ import type {
   MemberBudgetSummary,
   Paginated,
   PlatformKey,
+  PlatformKeyScope,
   ProviderKey,
 } from './types'
 
@@ -32,10 +33,11 @@ export const platformKeyApi = {
     memberId?: string
     projectId?: string
     departmentId?: string
-    scope?: 'member' | 'project'
+    scope?: PlatformKeyScope
   }) => request<Paginated<PlatformKey>>(`/keys/platform${buildQuery(params ?? {})}`),
   create: (data: {
     name: string
+    scope: PlatformKeyScope
     memberId?: string
     projectId?: string
     budget: number

@@ -166,7 +166,7 @@ func TestCreatePlatformKeyRequiresNewAPI(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "test-key", MemberID: &memberID, Budget: 1000,
+		Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 1000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
@@ -174,10 +174,10 @@ func TestCreatePlatformKeyRequiresNewAPI(t *testing.T) {
 
 func TestCreatePlatformKeySuccess(t *testing.T) {
 	t.Parallel()
-	svc, _, _ := newKeysServiceWithNewAPI(t)
+	svc, st, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "test-key", MemberID: &memberID, Budget: 1000,
+		Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 1000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	if err != nil {
@@ -186,6 +186,10 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	if created.FullKey == nil || *created.FullKey != "sk-test-key" {
 		t.Fatalf("expected platform key full key, got %+v", created.FullKey)
 	}
+	remain, _ := budgetfix.GatewaySoftRemain(t, st, created.ID)
+	if remain == nil {
+		t.Fatal("expected gateway soft remain after key create")
+	}
 }
 
 func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
@@ -193,7 +197,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "too-big", MemberID: &memberID, Budget: 20_000_000,
+		Name: "too-big", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -204,7 +208,7 @@ func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "bad-models", MemberID: &memberID, Budget: 1000,
+		Name: "bad-models", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 1000,
 		ModelWhitelist: []int64{999999},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -226,7 +230,7 @@ func TestCreateProjectKeyQuotaExceeded(t *testing.T) {
 	groupID := contract.IDProject1
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "group-over", ProjectID: &groupID, MemberID: &memberID, Budget: 20_000_000,
+		Name: "group-over", Scope: types.PlatformKeyScopeProject, ProjectID: &groupID, MemberID: &memberID, Budget: 20_000_000,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -247,7 +251,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	svc, st, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "release-me", MemberID: &memberID, Budget: 500,
+		Name: "release-me", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 500,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	if err != nil {

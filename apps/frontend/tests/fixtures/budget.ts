@@ -7,6 +7,7 @@ export const mockProjects: Project[] = [
     budget: 10000,
     consumed: 2000,
     memberIds: ['m1'],
+    memberBudgets: { m1: 3000 },
     ownerDepartmentId: 'd1',
   },
 ]

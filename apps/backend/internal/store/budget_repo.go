@@ -11,6 +11,7 @@ type BudgetRepository interface {
 	AcquireBudgetLock(ctx context.Context) error
 	OrgNodeBudget() OrgNodeBudgetRepository
 	GetProjectBudget(ctx context.Context, projectID string) (budget, consumed float64, found bool, err error)
+	GetProjectMemberBudget(ctx context.Context, projectID, memberID string) (float64, bool, error)
 	Projects(ctx context.Context) ([]types.Project, error)
 	SetProjects(ctx context.Context, projects []types.Project) error
 	OverrunPolicy(ctx context.Context) (types.OverrunPolicyConfig, error)

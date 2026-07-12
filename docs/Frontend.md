@@ -143,7 +143,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
 | 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
-**`platform_keys` 字段分层：** 持久化 `member_id` / `project_id` / `app_name`；响应 enrich `member_name` / `project_name` / `scope` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。
+**`platform_keys` 字段分层：** 持久化 `scope`‡ / `member_id` / `project_id`；响应 enrich `member_name` / `project_name` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。‡ `scope` 终态入库（`member` \| `project` \| `project_member`），见 [Platform-Key产品设计.md](./Platform-Key产品设计.md)。
 
 **`models` 表扩展列：** `model_type`（`builtin`/`custom`）、`description`、`visibility`、`endpoint`（custom 部署地址）。新库 `schema.sql` 已含全量 DDL。
 
@@ -414,14 +414,22 @@ HTTP 非 2xx 时，body 应包含：
 
 | 方法   | 路径                           | Body / 查询                                                                          | 响应                     | 备注                                                                 |
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
-| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project`                   |
-| POST   | `/keys/platform`               | `{ name, memberId?, projectId?, appName?, budget, modelWhitelist: number[] }`               | `PlatformKey`            | 个人 Key 缺 `memberId` → 400；项目 Key 校验项目剩余额度；白名单 → 422 |
+| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project` \| `project_member` |
+| POST   | `/keys/platform`               | `{ name, scope, memberId?, projectId?, budget, modelWhitelist: number[] }`               | `PlatformKey`            | `scope` **必填**；个人 Key 缺 `memberId` → 400；`project_member` 需 roster + `member_budget > 0`；白名单 → 422 |
 | PUT    | `/keys/platform/:id`           | `{ name?, budget?, modelWhitelist?: number[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
 | PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
 | POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
 | PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
 | DELETE | `/keys/platform/:id`           | —                                                                                    | `void`                   |                                                                      |
 | GET    | `/keys/platform/budget-summary` | query: `memberId`                                                                    | `MemberBudgetSummary`     |                                                                      |
+
+**UI（PR2）：**
+
+| 页面 | 行为 |
+| --- | --- |
+| `/keys/platform` | 三 Tab：`member` / `project` / `project_member`；列表按 `scope` 筛选；创建 workflow 显式传 `scope` |
+| `/keys/mine` | 仅展示 `member` + `project_member`；个人创建入口固定 `scope: member` |
+| `/budget` 项目详情 | 成员子额度 `memberBudgets` 行内编辑；「签发项目 Key」/ 成员行「签发项目成员 Key」（`member_budget ≤ 0` 禁用后者） |
 
 #### 审批 `approvalApi`
 
@@ -587,7 +595,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **UpdateMemberBudgetInput：** `personalBudget`
 
-**Project：** `id`, `name`, `budget`, `consumed`, `memberIds`, `ownerDepartmentId`
+**Project：** `id`, `name`, `budget`, `consumed`, `memberIds`, `memberBudgets?`, `ownerDepartmentId`
 
 **OverrunPolicyConfig：** `thresholds`, `notifyEmail`, `notifyPhone`, `notifyIm`, `blockMessage`
 

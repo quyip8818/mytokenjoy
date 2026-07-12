@@ -55,7 +55,7 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	}
 
 	memberRows, err := r.db.Query(ctx, `
-		SELECT project_id, member_id FROM project_members
+		SELECT project_id, member_id, member_budget FROM project_members
 		WHERE company_id = $1 ORDER BY project_id, member_id
 	`, companyID)
 	if err != nil {
@@ -64,14 +64,35 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	defer memberRows.Close()
 	for memberRows.Next() {
 		var projectID, memberID string
-		if err := memberRows.Scan(&projectID, &memberID); err != nil {
+		var memberBudget float64
+		if err := memberRows.Scan(&projectID, &memberID, &memberBudget); err != nil {
 			return nil, err
 		}
 		if idx, ok := projectIndex[projectID]; ok {
 			projects[idx].MemberIDs = append(projects[idx].MemberIDs, memberID)
+			if projects[idx].MemberBudgets == nil {
+				projects[idx].MemberBudgets = make(map[string]float64)
+			}
+			projects[idx].MemberBudgets[memberID] = memberBudget
 		}
 	}
 	return projects, memberRows.Err()
+}
+
+func (r *pgBudgetRepo) GetProjectMemberBudget(ctx context.Context, projectID, memberID string) (float64, bool, error) {
+	companyID := store.CompanyID(ctx)
+	var budget float64
+	err := r.db.QueryRow(ctx, `
+		SELECT member_budget FROM project_members
+		WHERE company_id = $1 AND project_id = $2 AND member_id = $3
+	`, companyID, projectID, memberID).Scan(&budget)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+	return budget, true, nil
 }
 
 func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project) error {
@@ -97,9 +118,13 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 			return err
 		}
 		for _, memberID := range project.MemberIDs {
+			memberBudget := 0.0
+			if project.MemberBudgets != nil {
+				memberBudget = project.MemberBudgets[memberID]
+			}
 			if _, err := r.db.Exec(ctx, `
-				INSERT INTO project_members (company_id, project_id, member_id) VALUES ($1, $2, $3)
-			`, companyID, project.ID, memberID); err != nil {
+				INSERT INTO project_members (company_id, project_id, member_id, member_budget) VALUES ($1, $2, $3, $4)
+			`, companyID, project.ID, memberID, memberBudget); err != nil {
 				return err
 			}
 		}

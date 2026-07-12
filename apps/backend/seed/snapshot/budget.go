@@ -45,8 +45,27 @@ func buildBudgetTree() []types.BudgetNode {
 
 func buildProjects() []types.Project {
 	return []types.Project{
-		{ID: contract.IDProject1, Name: "AI 创新项目组", Budget: seedPoints(15000), Consumed: contract.DemoProjectConsumed[contract.IDProject1], MemberIDs: []string{contract.IDMember1, "m-4", "m-6"}, OwnerDepartmentID: contract.IDDept3},
-		{ID: contract.IDProject4, Name: "内部效率工具", Budget: seedPoints(8000), Consumed: contract.DemoProjectConsumed[contract.IDProject4], MemberIDs: []string{"m-15", "m-16"}, OwnerDepartmentID: "dept-5"},
+		{
+			ID: contract.IDProject1, Name: "AI 创新项目组", Budget: seedPoints(15000),
+			Consumed:  contract.DemoProjectConsumed[contract.IDProject1],
+			MemberIDs: []string{contract.IDMember1, "m-4", "m-6"},
+			MemberBudgets: map[string]float64{
+				contract.IDMember1: seedPoints(10000),
+				"m-4":              seedPoints(5000),
+				"m-6":              seedPoints(3000),
+			},
+			OwnerDepartmentID: contract.IDDept3,
+		},
+		{
+			ID: contract.IDProject4, Name: "内部效率工具", Budget: seedPoints(8000),
+			Consumed:  contract.DemoProjectConsumed[contract.IDProject4],
+			MemberIDs: []string{"m-15", "m-16"},
+			MemberBudgets: map[string]float64{
+				"m-15": seedPoints(4000),
+				"m-16": seedPoints(4000),
+			},
+			OwnerDepartmentID: "dept-5",
+		},
 	}
 }
 

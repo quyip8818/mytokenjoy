@@ -13,19 +13,21 @@ type BudgetNode struct {
 }
 
 type Project struct {
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	Budget            float64  `json:"budget"`
-	Consumed          float64  `json:"consumed"`
-	MemberIDs         []string `json:"memberIds"`
-	OwnerDepartmentID string   `json:"ownerDepartmentId"`
+	ID                string             `json:"id"`
+	Name              string             `json:"name"`
+	Budget            float64            `json:"budget"`
+	Consumed          float64            `json:"consumed"`
+	MemberIDs         []string           `json:"memberIds"`
+	MemberBudgets     map[string]float64 `json:"memberBudgets,omitempty"`
+	OwnerDepartmentID string             `json:"ownerDepartmentId"`
 }
 
 type UpdateProjectInput struct {
-	Name              *string   `json:"name"`
-	Budget            *float64  `json:"budget"`
-	MemberIDs         *[]string `json:"memberIds"`
-	OwnerDepartmentID *string   `json:"ownerDepartmentId"`
+	Name              *string             `json:"name"`
+	Budget            *float64            `json:"budget"`
+	MemberIDs         *[]string           `json:"memberIds"`
+	MemberBudgets     *map[string]float64 `json:"memberBudgets"`
+	OwnerDepartmentID *string             `json:"ownerDepartmentId"`
 }
 
 type OverrunPolicyConfig struct {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -34,6 +35,11 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 	}
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return types.PlatformKey{}, err
+	}
+	if enabled {
+		if err := domainbudget.RefreshPlatformKeySoft(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
+			return types.PlatformKey{}, err
+		}
 	}
 	return s.enrichPlatformKeyResponse(ctx, platformKeys[idx])
 }

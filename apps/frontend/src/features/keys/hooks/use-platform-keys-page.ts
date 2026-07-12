@@ -76,10 +76,24 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     if (!search.trim()) return keys
     const lower = search.toLowerCase()
     return keys.filter((key) => {
-      const owner = activeTab === 'member' ? key.memberName : key.projectName
+      if (activeTab === 'member') {
+        return (
+          key.name.toLowerCase().includes(lower) ||
+          (key.memberName?.toLowerCase().includes(lower) ?? false) ||
+          key.keyPrefix.toLowerCase().includes(lower)
+        )
+      }
+      if (activeTab === 'project_member') {
+        return (
+          key.name.toLowerCase().includes(lower) ||
+          (key.memberName?.toLowerCase().includes(lower) ?? false) ||
+          (key.projectName?.toLowerCase().includes(lower) ?? false) ||
+          key.keyPrefix.toLowerCase().includes(lower)
+        )
+      }
       return (
         key.name.toLowerCase().includes(lower) ||
-        (owner?.toLowerCase().includes(lower) ?? false) ||
+        (key.projectName?.toLowerCase().includes(lower) ?? false) ||
         key.keyPrefix.toLowerCase().includes(lower)
       )
     })
@@ -109,8 +123,8 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
   )
 
   const openCreateKey = useCallback(
-    () => openWithRefresh('key-create', { adminCreate: true }),
-    [openWithRefresh],
+    () => openWithRefresh('key-create', { adminCreate: true, scope: activeTab }),
+    [activeTab, openWithRefresh],
   )
 
   return {

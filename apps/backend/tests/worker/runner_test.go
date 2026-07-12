@@ -60,7 +60,7 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
-		ID: "plk-worker", Name: "worker-key", MemberID: &memberID,
+		ID: "plk-worker", Name: "worker-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
 		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}

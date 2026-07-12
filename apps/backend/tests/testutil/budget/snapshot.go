@@ -18,14 +18,6 @@ func DisplayPoints(display float64) float64 {
 	return points.FromDisplay(display)
 }
 
-func SetDeptSnapshotConsumed(t *testing.T, st store.Store, deptID string, consumed float64) {
-	t.Helper()
-	ctx := ctx()
-	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindOrgNode, deptID, contract.DemoBudgetPeriod, consumed); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func SnapshotConsumed(t *testing.T, st store.Store, axisKind, axisID string) float64 {
 	t.Helper()
 	return SnapshotConsumedAtPeriod(t, st, axisKind, axisID, contract.DemoBudgetPeriod)
@@ -42,11 +34,6 @@ func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, pe
 		return 0
 	}
 	return consumed
-}
-
-func Dept3SnapshotConsumed(t *testing.T, st store.Store) float64 {
-	t.Helper()
-	return SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
 }
 
 func PlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID string) float64 {

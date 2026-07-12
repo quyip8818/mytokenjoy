@@ -1,5 +1,20 @@
 package types
 
+const (
+	PlatformKeyScopeMember        = "member"
+	PlatformKeyScopeProject       = "project"
+	PlatformKeyScopeProjectMember = "project_member"
+)
+
+func ValidPlatformKeyScope(scope string) bool {
+	switch scope {
+	case PlatformKeyScopeMember, PlatformKeyScopeProject, PlatformKeyScopeProjectMember:
+		return true
+	default:
+		return false
+	}
+}
+
 type ProviderKey struct {
 	ID              string   `json:"id"`
 	Provider        string   `json:"provider"`
@@ -86,6 +101,7 @@ type RotateProviderKeyInput struct {
 
 type CreatePlatformKeyInput struct {
 	Name           string  `json:"name"`
+	Scope          string  `json:"scope"`
 	MemberID       *string `json:"memberId"`
 	ProjectID      *string `json:"projectId"`
 	Budget         float64 `json:"budget"`

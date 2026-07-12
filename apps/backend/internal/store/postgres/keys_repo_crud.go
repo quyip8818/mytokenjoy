@@ -99,7 +99,7 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, platformKeyListSelect+`
 		WHERE pk.company_id = $1
-		GROUP BY pk.id, pk.name, pk.key_prefix, pk.member_id, pk.project_id, pk.status, pk.budget, pk.created_at, pk.expires_at
+		GROUP BY pk.id, pk.name, pk.key_prefix, pk.scope, pk.member_id, pk.project_id, pk.status, pk.budget, pk.created_at, pk.expires_at
 		ORDER BY pk.id
 	`, companyID)
 	if err != nil {
@@ -141,20 +141,21 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 		}
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO platform_keys (
-				id, company_id, name, key_prefix, key_hash, member_id,
+				id, company_id, name, key_prefix, key_hash, scope, member_id,
 				project_id, status, budget, created_at, expires_at, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				key_prefix = EXCLUDED.key_prefix,
 				key_hash = EXCLUDED.key_hash,
+				scope = EXCLUDED.scope,
 				member_id = EXCLUDED.member_id,
 				project_id = EXCLUDED.project_id,
 				status = EXCLUDED.status,
 				budget = EXCLUDED.budget,
 				expires_at = EXCLUDED.expires_at,
 				updated_at = NOW()
-		`, key.ID, companyID, key.Name, key.KeyPrefix, keyHash, key.MemberID,
+		`, key.ID, companyID, key.Name, key.KeyPrefix, keyHash, key.Scope, key.MemberID,
 			key.ProjectID, key.Status,
 			key.Budget, createdAt, expiresAt); err != nil {
 			return fmt.Errorf("upsert platform key %s: %w", key.ID, err)

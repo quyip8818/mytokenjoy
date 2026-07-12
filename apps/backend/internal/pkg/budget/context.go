@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -23,7 +24,7 @@ func LoadBudgetContext(
 	keys store.KeysRepository,
 	clk clock.Clock,
 ) (BudgetContext, error) {
-	tree, err := LoadBudgetTreeWithConsumed(ctx, snapshots, org.Nodes(), clk)
+	tree, err := common.LoadBudgetTree(ctx, org.Nodes())
 	if err != nil {
 		return BudgetContext{}, err
 	}
@@ -54,13 +55,4 @@ func (c BudgetContext) FindPlatformKey(id string) (types.PlatformKey, bool) {
 		}
 	}
 	return types.PlatformKey{}, false
-}
-
-func (c BudgetContext) ComputeRemain(
-	key types.PlatformKey,
-	departmentID string,
-	memberAxis *MemberAxisInput,
-	deptAxis *DeptAxisInput,
-) float64 {
-	return ComputeRemainBudget(key, c.Tree, c.Members, c.PlatformKeys, c.Projects, departmentID, memberAxis, deptAxis)
 }

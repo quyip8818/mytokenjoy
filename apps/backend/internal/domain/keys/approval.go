@@ -116,7 +116,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			platformKeys = append(platformKeys, types.PlatformKey{
 				ID:   createdKeyID,
 				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: "pending...",
-				MemberID: &memberID, Status: "active", Budget: keyBudget, Consumed: 0,
+				Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Status: "active", Budget: keyBudget, Consumed: 0,
 				ModelWhitelist: append([]int64{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})

@@ -12,7 +12,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestOrgNodesBudgetRoundTrip(t *testing.T) {
@@ -34,7 +33,6 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
-	budgetfix.SetDeptSnapshotConsumed(t, st, contract.IDDept3, 100)
 	got, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
@@ -42,10 +40,6 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	updated := pkgbudget.FindBudgetNode(got, contract.IDDept3)
 	if updated == nil || updated.Budget != 500 {
 		t.Fatalf("child budget mismatch: %+v", updated)
-	}
-	consumed := budgetfix.SnapshotConsumed(t, st, store.AxisKindOrgNode, contract.IDDept3)
-	if consumed != 100 {
-		t.Fatalf("child consumed mismatch: got %v want 100", consumed)
 	}
 }
 

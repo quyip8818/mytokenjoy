@@ -13,7 +13,7 @@ import (
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
-func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
+func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
 	runner, st, ingest := workerfix.NewRuntime(t, stub)
@@ -24,6 +24,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		ID:        "plk-3",
 		Name:      "App Key",
 		KeyPrefix: "sk-app",
+		Scope:     types.PlatformKeyScopeProject,
 		FullKey:   &fullKey,
 		Status:    "active",
 		CreatedAt: "2026-06-19",
@@ -38,7 +39,7 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 		DepartmentID:  contract.IDDept3,
 	})
 
-	before := budgetfix.Dept3SnapshotConsumed(t, st)
+	before := budgetfix.PlatformKeySnapshotConsumed(t, st, "plk-3")
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(98002, 77))
 	if err := ingest.IngestByLogID(ctx, 98002, types.SourceWebhook); err != nil {
@@ -46,8 +47,8 @@ func TestIngestAppKeyRollsUpDepartment(t *testing.T) {
 	}
 	runner.RunOnce(ctx)
 
-	after := budgetfix.Dept3SnapshotConsumed(t, st)
+	after := budgetfix.PlatformKeySnapshotConsumed(t, st, "plk-3")
 	if after <= before {
-		t.Fatalf("expected department rollup for app key, before=%v after=%v", before, after)
+		t.Fatalf("expected platform key consumed increase for app key, before=%v after=%v", before, after)
 	}
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -86,54 +85,6 @@ func uniqueStrings(values []string) []string {
 		out = append(out, value)
 	}
 	return out
-}
-
-func mergeBudgetTreeConsumed(
-	ctx context.Context,
-	snapshots store.BudgetConsumedRepository,
-	tree []types.BudgetNode,
-	clk clock.Clock,
-) ([]types.BudgetNode, error) {
-	at := clock.NowUTC(clk)
-
-	// Collect unique period keys from all nodes
-	periodKeySet := make(map[string]struct{})
-	var collectPeriods func(nodes []types.BudgetNode)
-	collectPeriods = func(nodes []types.BudgetNode) {
-		for i := range nodes {
-			periodKeySet[SnapshotKey(nodes[i].Period, at)] = struct{}{}
-			if len(nodes[i].Children) > 0 {
-				collectPeriods(nodes[i].Children)
-			}
-		}
-	}
-	collectPeriods(tree)
-
-	// Batch-fetch consumed values for all org nodes per period
-	consumedByPeriod := make(map[string]map[string]float64) // periodKey -> nodeID -> consumed
-	for periodKey := range periodKeySet {
-		consumed, err := snapshots.ListConsumed(ctx, store.AxisKindOrgNode, periodKey)
-		if err != nil {
-			return nil, err
-		}
-		consumedByPeriod[periodKey] = consumed
-	}
-
-	// Walk tree and assign consumed from pre-fetched map
-	var walk func(nodes []types.BudgetNode)
-	walk = func(nodes []types.BudgetNode) {
-		for i := range nodes {
-			periodKey := SnapshotKey(nodes[i].Period, at)
-			if consumed, ok := consumedByPeriod[periodKey][nodes[i].ID]; ok {
-				nodes[i].Consumed = consumed
-			}
-			if len(nodes[i].Children) > 0 {
-				walk(nodes[i].Children)
-			}
-		}
-	}
-	walk(tree)
-	return tree, nil
 }
 
 func LoadPlatformKeysWithUsed(
@@ -236,17 +187,4 @@ func LoadProjectsWithConsumed(
 		}
 	}
 	return projects, nil
-}
-
-func LoadBudgetTreeWithConsumed(
-	ctx context.Context,
-	snapshots store.BudgetConsumedRepository,
-	orgNodes store.OrgNodeRepository,
-	clk clock.Clock,
-) ([]types.BudgetNode, error) {
-	tree, err := common.LoadBudgetTree(ctx, orgNodes)
-	if err != nil {
-		return nil, err
-	}
-	return mergeBudgetTreeConsumed(ctx, snapshots, tree, clk)
 }

@@ -9,6 +9,7 @@ import (
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -82,6 +83,7 @@ func TestOverrunProjectAxis(t *testing.T) {
 	for i := range keys {
 		if keys[i].ID == contract.IDPlatformKey1 {
 			keys[i].ProjectID = &groupIDCopy
+			keys[i].Scope = types.PlatformKeyScopeProject
 		}
 	}
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
@@ -150,6 +152,64 @@ func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
 	}
 	if stub.UpdateTokenCalls == 0 {
 		t.Fatal("expected UpdateToken when platform key overrun")
+	}
+}
+
+func TestOverrunProjectMemberAxisWhenOverQuota(t *testing.T) {
+	t.Parallel()
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
+	ctx := testutil.Ctx()
+
+	projects, err := st.Budget().Projects(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberBudget := 100.0
+	for i := range projects {
+		if projects[i].ID == contract.IDProject1 {
+			if projects[i].MemberBudgets == nil {
+				projects[i].MemberBudgets = make(map[string]float64)
+			}
+			projects[i].MemberBudgets[contract.IDMember1] = memberBudget
+			break
+		}
+	}
+	if err := st.Budget().SetProjects(ctx, projects); err != nil {
+		t.Fatal(err)
+	}
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, "plk-bg-1", memberBudget+0.01)
+
+	projectID := contract.IDProject1
+	memberID := contract.IDMember1
+	tokenID := int64(88)
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
+		PlatformKeyID: "plk-bg-1",
+		NewAPIKeyID:   &tokenID,
+		MemberID:      &memberID,
+		ProjectID:     &projectID,
+		DepartmentID:  contract.IDDept3,
+		SyncStatus:    store.MappingSyncStatusSynced,
+		NewAPIGroup:   "group-" + projectID,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"memberId":      contract.IDMember1,
+		"projectId":     contract.IDProject1,
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": "plk-bg-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
+		t.Fatal(err)
+	}
+	if stub.UpdateTokenCalls == 0 {
+		t.Fatal("expected UpdateToken when project_member sub-budget overrun")
 	}
 }
 

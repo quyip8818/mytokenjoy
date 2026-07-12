@@ -177,6 +177,48 @@ func TestUpdateProjectMemberIDsPreservesBudget(t *testing.T) {
 	}
 }
 
+func TestUpdateProjectMemberBudgets(t *testing.T) {
+	t.Parallel()
+	svc, st := newBudgetService(t)
+	created, err := svc.CreateProject(testutil.Ctx(), types.Project{
+		Name:              "Sub Budget Project",
+		Budget:            10000,
+		OwnerDepartmentID: contract.IDDept3,
+		MemberIDs:         []string{contract.IDMember1, contract.IDMember3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgets := map[string]float64{contract.IDMember1: 3000, contract.IDMember3: 2000}
+	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
+		MemberBudgets: &budgets,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MemberBudgets[contract.IDMember1] != 3000 || updated.MemberBudgets[contract.IDMember3] != 2000 {
+		t.Fatalf("unexpected member budgets: %+v", updated.MemberBudgets)
+	}
+	stored, err := st.Budget().Projects(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, project := range stored {
+		if project.ID != created.ID {
+			continue
+		}
+		if project.MemberBudgets[contract.IDMember1] != 3000 {
+			t.Fatalf("persisted member1 budget = %v, want 3000", project.MemberBudgets[contract.IDMember1])
+		}
+	}
+	_, err = svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
+		MemberBudgets: &map[string]float64{contract.IDMemberPure: 100},
+	})
+	if err == nil {
+		t.Fatal("expected validation error for member not on roster")
+	}
+}
+
 func TestDeleteProject(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)

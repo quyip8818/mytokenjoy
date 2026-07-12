@@ -151,6 +151,7 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 		ID:        "plk-minute-test",
 		Name:      "Minute Test Key",
 		KeyPrefix: "sk-minute",
+		Scope:     types.PlatformKeyScopeMember,
 		MemberID:  &memberID,
 		Status:    "active",
 		CreatedAt: "2026-06-19",

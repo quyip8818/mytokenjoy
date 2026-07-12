@@ -32,4 +32,5 @@ type LedgerRepository interface {
 	QueryMinuteSeries(ctx context.Context, q types.UsageSeriesQuery) ([]types.UsageSeriesPoint, error)
 	ListCallSettledAfterCursor(ctx context.Context, cursor LedgerProjectorCursor) ([]types.UsageLedgerEntry, error)
 	ListCallSettledSince(ctx context.Context, since time.Time) ([]types.UsageLedgerEntry, error)
+	SumAmountByDepartment(ctx context.Context, departmentID, periodKey string) (float64, error)
 }

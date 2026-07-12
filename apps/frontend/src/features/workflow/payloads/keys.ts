@@ -1,8 +1,9 @@
-import type { KeyApproval, PlatformKey } from '@/api/types'
+import type { KeyApproval, PlatformKey, PlatformKeyScope } from '@/api/types'
 
 export interface KeysWorkflowPayloads {
   'key-create': {
     adminCreate?: boolean
+    scope: PlatformKeyScope
     targetMemberId?: string
     projectId?: string
     projectName?: string

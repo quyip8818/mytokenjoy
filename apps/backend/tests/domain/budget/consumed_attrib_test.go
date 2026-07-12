@@ -21,21 +21,20 @@ func TestConsumptionDeltasMatchesApplyIncrement(t *testing.T) {
 	}
 
 	memberID := contract.IDMember1
-	groupID := contract.IDProject1
 	entry := types.UsageLedgerEntry{
-		PlatformKeyID: contract.IDPlatformKey1,
-		DepartmentID:  contract.IDDept3,
-		MemberID:      &memberID,
-		ProjectID:     &groupID,
-		Amount:        12.5,
+		PlatformKeyID:    contract.IDPlatformKey1,
+		PlatformKeyScope: types.PlatformKeyScopeMember,
+		DepartmentID:     contract.IDDept3,
+		MemberID:         &memberID,
+		Amount:           12.5,
 	}
 
 	deltas, err := budget.ConsumptionDeltas(ctx, st.Org().Nodes(), entry, open)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(deltas) < 4 {
-		t.Fatalf("expected at least 4 deltas, got %d", len(deltas))
+	if len(deltas) != 2 {
+		t.Fatalf("expected 2 deltas (platform_key + member), got %d", len(deltas))
 	}
 
 	periodKey := open.String()
@@ -77,8 +76,8 @@ func TestExpectedConsumedAggregatesMultipleEntries(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	entries := []types.UsageLedgerEntry{
-		{PlatformKeyID: contract.IDPlatformKey1, DepartmentID: contract.IDDept3, Amount: 1},
-		{PlatformKeyID: contract.IDPlatformKey1, DepartmentID: contract.IDDept3, Amount: 2},
+		{PlatformKeyID: contract.IDPlatformKey1, PlatformKeyScope: types.PlatformKeyScopeMember, DepartmentID: contract.IDDept3, Amount: 1},
+		{PlatformKeyID: contract.IDPlatformKey1, PlatformKeyScope: types.PlatformKeyScopeMember, DepartmentID: contract.IDDept3, Amount: 2},
 	}
 	expected, err := budget.ExpectedConsumed(ctx, st.Org().Nodes(), entries, cfg.Clock())
 	if err != nil {

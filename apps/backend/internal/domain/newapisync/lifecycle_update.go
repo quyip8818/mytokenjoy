@@ -44,7 +44,16 @@ func (l *NewAPISync) SyncUpdatePlatformKey(ctx context.Context, platformKeyID st
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
 	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
-	remainPoint := budgetCtx.ComputeRemain(key, mapping.DepartmentID, nil, nil)
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, l.store.Org().Nodes(), mapping.DepartmentID, l.cfg.Clock())
+	if err != nil {
+		return err
+	}
+	remainPoint, err := pkgbudget.ComputeRemainForMapping(
+		ctx, budgetCtx, l.store.BudgetConsumed(), l.store.Org(), l.store.Budget(), l.store.Company(), *mapping, open.String(),
+	)
+	if err != nil {
+		return err
+	}
 	remainUnits := l.capRemainUnits(ctx, remainPoint, models, effectiveIDs)
 	status := adminport.TokenStatusEnabled
 	if targetActive != nil {

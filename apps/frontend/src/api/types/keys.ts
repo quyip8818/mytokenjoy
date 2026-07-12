@@ -13,12 +13,14 @@ export interface ProviderKey {
   rotateEnabled: boolean
 }
 
+export type PlatformKeyScope = 'member' | 'project' | 'project_member'
+
 export interface PlatformKey {
   id: string
   name: string
   keyPrefix: string
   fullKey?: string
-  scope: 'member' | 'project'
+  scope: PlatformKeyScope
   memberId: string | null
   memberName: string | null
   departmentId: string

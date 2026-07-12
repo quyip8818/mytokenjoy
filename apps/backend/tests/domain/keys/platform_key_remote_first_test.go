@@ -147,7 +147,7 @@ func TestNilNewAPIClientReturns503(t *testing.T) {
 	_, err := svc.TogglePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, false)
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
 	_, err = svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "x", MemberID: &memberID, Budget: 100,
+		Name: "x", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 100,
 		ModelWhitelist: []int64{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)

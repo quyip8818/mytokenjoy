@@ -17,6 +17,14 @@ type pgLedgerRepo struct {
 	db dbQuerier
 }
 
+const ledgerSelectColumns = `
+	id, event_type, idempotency_key, segment_index, lot_id,
+	amount, display_amount, billing_currency,
+	department_id, member_id, project_id, platform_key_id, platform_key_scope,
+	source, occurred_at, period_key, model, input_tokens, output_tokens,
+	call_detail, created_at
+`
+
 func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.LedgerCallFilter) ([]types.UsageLedgerEntry, int, error) {
 	companyID := store.CompanyID(ctx)
 	where, args := buildLedgerCallWhere(companyID, filter)
@@ -32,16 +40,12 @@ func (r *pgLedgerRepo) ListCallSettledPage(ctx context.Context, filter store.Led
 	offset := (page - 1) * pageSize
 	listArgs := append(append([]any{}, args...), pageSize, offset)
 	listQuery := fmt.Sprintf(`
-		SELECT id, event_type, idempotency_key, segment_index, lot_id,
-			amount, display_amount, billing_currency,
-			department_id, member_id, project_id, platform_key_id,
-			source, occurred_at, period_key, model, input_tokens, output_tokens,
-			call_detail, created_at
+		SELECT %s
 		FROM usage_ledger
 		WHERE %s
 		ORDER BY occurred_at DESC
 		LIMIT $%d OFFSET $%d
-	`, where, len(args)+1, len(args)+2)
+	`, ledgerSelectColumns, where, len(args)+1, len(args)+2)
 
 	rows, err := r.db.Query(ctx, listQuery, listArgs...)
 	if err != nil {
@@ -191,7 +195,7 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 		if err := rows.Scan(
 			&item.ID, &item.EventType, &item.IdempotencyKey, &item.SegmentIndex, &item.LotID,
 			&item.Amount, &item.DisplayAmount, &item.BillingCurrency,
-			&item.DepartmentID, &memberID, &projectID, &item.PlatformKeyID,
+			&item.DepartmentID, &memberID, &projectID, &item.PlatformKeyID, &item.PlatformKeyScope,
 			&item.Source, &occurredAt, &item.PeriodKey, &item.Model, &item.InputTokens, &item.OutputTokens,
 			&detailJSON, &createdAt,
 		); err != nil {
@@ -209,6 +213,20 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID, periodKey string) (float64, error) {
+	companyID := store.CompanyID(ctx)
+	var total float64
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM usage_ledger
+		WHERE company_id = $1
+		  AND department_id = $2
+		  AND period_key = $3
+		  AND event_type = $4
+	`, companyID, departmentID, periodKey, types.EventTypeCallSettled).Scan(&total)
+	return total, err
 }
 
 var _ store.LedgerRepository = (*pgLedgerRepo)(nil)

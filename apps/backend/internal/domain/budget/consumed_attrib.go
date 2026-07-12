@@ -27,10 +27,9 @@ type AxisDelta struct {
 
 type ConsumedIncrementWriter interface {
 	IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amount float64) error
-	RollupOrgNodeAncestors(ctx context.Context, leafNodeID, periodKey string, amount float64) error
 }
 
-func ConsumptionDeltas(ctx context.Context, nodes store.OrgNodeRepository, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) ([]AxisDelta, error) {
+func ConsumptionDeltas(_ context.Context, _ store.OrgNodeRepository, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) ([]AxisDelta, error) {
 	if open.IsZero() {
 		return nil, fmt.Errorf("consumption deltas require open budget period")
 	}
@@ -38,50 +37,36 @@ func ConsumptionDeltas(ctx context.Context, nodes store.OrgNodeRepository, entry
 	deltas := []AxisDelta{{
 		Kind: store.AxisKindPlatformKey, AxisID: entry.PlatformKeyID, PeriodKey: periodKey, Amount: entry.Amount,
 	}}
-	if entry.ProjectID != nil {
-		deltas = append(deltas, AxisDelta{
-			Kind: store.AxisKindProject, AxisID: *entry.ProjectID, PeriodKey: periodKey, Amount: entry.Amount,
-		})
-	}
-	if entry.MemberID != nil {
-		deltas = append(deltas, AxisDelta{
-			Kind: store.AxisKindMember, AxisID: *entry.MemberID, PeriodKey: periodKey, Amount: entry.Amount,
-		})
-	}
-	if entry.DepartmentID != "" {
-		ancestorIDs, err := nodes.ListSelfAndAncestorIDs(ctx, entry.DepartmentID)
-		if err != nil {
-			return nil, err
-		}
-		for _, id := range ancestorIDs {
+	scope := entry.PlatformKeyScope
+	switch scope {
+	case types.PlatformKeyScopeMember:
+		if entry.MemberID != nil {
 			deltas = append(deltas, AxisDelta{
-				Kind: store.AxisKindOrgNode, AxisID: id, PeriodKey: periodKey, Amount: entry.Amount,
+				Kind: store.AxisKindMember, AxisID: *entry.MemberID, PeriodKey: periodKey, Amount: entry.Amount,
 			})
 		}
+	case types.PlatformKeyScopeProject, types.PlatformKeyScopeProjectMember:
+		if entry.ProjectID != nil {
+			deltas = append(deltas, AxisDelta{
+				Kind: store.AxisKindProject, AxisID: *entry.ProjectID, PeriodKey: periodKey, Amount: entry.Amount,
+			})
+		}
+	default:
+		return nil, fmt.Errorf("unknown platform key scope %q", scope)
 	}
 	return deltas, nil
 }
 
-func ApplyIncrement(ctx context.Context, writer ConsumedIncrementWriter, nodes store.OrgNodeRepository, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) error {
+func ApplyIncrement(ctx context.Context, writer ConsumedIncrementWriter, _ store.OrgNodeRepository, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) error {
 	if open.IsZero() {
 		return fmt.Errorf("apply increment requires open budget period")
 	}
-	periodKey := open.String()
-	if err := writer.IncrementConsumed(ctx, store.AxisKindPlatformKey, entry.PlatformKeyID, periodKey, entry.Amount); err != nil {
+	deltas, err := ConsumptionDeltas(ctx, nil, entry, open)
+	if err != nil {
 		return err
 	}
-	if entry.ProjectID != nil {
-		if err := writer.IncrementConsumed(ctx, store.AxisKindProject, *entry.ProjectID, periodKey, entry.Amount); err != nil {
-			return err
-		}
-	}
-	if entry.MemberID != nil {
-		if err := writer.IncrementConsumed(ctx, store.AxisKindMember, *entry.MemberID, periodKey, entry.Amount); err != nil {
-			return err
-		}
-	}
-	if entry.DepartmentID != "" {
-		if err := writer.RollupOrgNodeAncestors(ctx, entry.DepartmentID, periodKey, entry.Amount); err != nil {
+	for _, delta := range deltas {
+		if err := writer.IncrementConsumed(ctx, delta.Kind, delta.AxisID, delta.PeriodKey, delta.Amount); err != nil {
 			return err
 		}
 	}

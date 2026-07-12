@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -21,10 +20,14 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 			return err
 		}
 		for _, memberID := range project.MemberIDs {
+			memberBudget := 0.0
+			if project.MemberBudgets != nil {
+				memberBudget = project.MemberBudgets[memberID]
+			}
 			if _, err := exec.Exec(ctx, `
-				INSERT INTO project_members (company_id, project_id, member_id) VALUES ($1, $2, $3)
+				INSERT INTO project_members (company_id, project_id, member_id, member_budget) VALUES ($1, $2, $3, $4)
 				ON CONFLICT DO NOTHING
-			`, tid, project.ID, memberID); err != nil {
+			`, tid, project.ID, memberID, memberBudget); err != nil {
 				return err
 			}
 		}
@@ -60,12 +63,15 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, 
 		return fmt.Errorf("seed budget consumed require Snapshot.SeedAt")
 	}
 	periodKey := pkgbudget.RootPeriodKey(snap.OrgNodes, snap.SeedAt.UTC())
-	for _, node := range pkgorg.FlattenOrgNodeTree(snap.OrgNodes) {
-		if node.Consumed <= 0 {
-			continue
+	memberConsumed := make(map[string]float64)
+	for _, key := range snap.PlatformKeys {
+		if key.Scope == types.PlatformKeyScopeMember && key.MemberID != nil && key.Consumed > 0 {
+			memberConsumed[*key.MemberID] += key.Consumed
 		}
-		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindOrgNode, node.ID, periodKey, node.Consumed); err != nil {
-			return fmt.Errorf("seed budget consumed org node %s: %w", node.ID, err)
+	}
+	for memberID, consumed := range memberConsumed {
+		if err := insertBudgetConsumedRow(ctx, exec, tid, store.AxisKindMember, memberID, periodKey, consumed); err != nil {
+			return fmt.Errorf("seed budget consumed member %s: %w", memberID, err)
 		}
 	}
 	for _, project := range snap.Projects {

@@ -86,7 +86,23 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
 	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
-	remainPoint := budgetCtx.ComputeRemain(key, departmentID, nil, nil)
+	mapping := store.PlatformKeyMapping{
+		CompanyID:     company.CompanyID(ctx),
+		PlatformKeyID: key.ID,
+		MemberID:      key.MemberID,
+		DepartmentID:  departmentID,
+		ProjectID:     key.ProjectID,
+	}
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, l.store.Org().Nodes(), departmentID, l.cfg.Clock())
+	if err != nil {
+		return "", err
+	}
+	remainPoint, err := pkgbudget.ComputeRemainForMapping(
+		ctx, budgetCtx, l.store.BudgetConsumed(), l.store.Org(), l.store.Budget(), l.store.Company(), mapping, open.String(),
+	)
+	if err != nil {
+		return "", err
+	}
 	remainUnits := l.capRemainUnits(ctx, remainPoint, models, effectiveIDs)
 
 	walletUserID := l.newAPIWalletUserID(ctx)

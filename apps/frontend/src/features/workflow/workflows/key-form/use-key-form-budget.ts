@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { MemberBudgetSummary, PlatformKey } from '@/api/types'
+import type { MemberBudgetSummary, PlatformKey, PlatformKeyScope } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 
 export function formatBudgetContext(
@@ -15,7 +15,7 @@ export function formatBudgetContext(
 
 export interface UseKeyFormBudgetOptions {
   isCreate: boolean
-  isProjectKey: boolean
+  scope: PlatformKeyScope
   effectiveMemberId: string
   projectId?: string
   budget: string
@@ -25,7 +25,7 @@ export interface UseKeyFormBudgetOptions {
 
 export function useKeyFormBudget({
   isCreate,
-  isProjectKey,
+  scope,
   effectiveMemberId,
   projectId,
   budget,
@@ -38,9 +38,10 @@ export function useKeyFormBudget({
     summary: MemberBudgetSummary
   } | null>(null)
   const [projectBudgetRemaining, setProjectBudgetRemaining] = useState<number | null>(null)
+  const [subBudgetRemaining, setSubBudgetRemaining] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!isCreate || isProjectKey || !effectiveMemberId) return
+    if (!isCreate || scope !== 'member' || !effectiveMemberId) return
     let cancelled = false
     void apis.platformKeyApi.getBudgetSummary(effectiveMemberId).then((summary) => {
       if (!cancelled) setBudgetState({ memberId: effectiveMemberId, summary })
@@ -48,10 +49,10 @@ export function useKeyFormBudget({
     return () => {
       cancelled = true
     }
-  }, [apis, isCreate, isProjectKey, effectiveMemberId])
+  }, [apis, isCreate, scope, effectiveMemberId])
 
   useEffect(() => {
-    if (!isCreate || !projectId) return
+    if (!isCreate || scope !== 'project' || !projectId) return
     let cancelled = false
     void Promise.all([apis.budgetApi.getProjects(), apis.platformKeyApi.list({ projectId })]).then(
       ([groups, keysRes]) => {
@@ -70,29 +71,60 @@ export function useKeyFormBudget({
     return () => {
       cancelled = true
     }
-  }, [apis, isCreate, projectId])
+  }, [apis, isCreate, scope, projectId])
+
+  useEffect(() => {
+    if (!isCreate || scope !== 'project_member' || !projectId || !effectiveMemberId) return
+    let cancelled = false
+    void Promise.all([
+      apis.budgetApi.getProjects(),
+      apis.platformKeyApi.list({ projectId, scope: 'project_member', memberId: effectiveMemberId }),
+    ]).then(([groups, keysRes]) => {
+      if (cancelled) return
+      const group = groups.find((g) => g.id === projectId)
+      if (!group) {
+        setSubBudgetRemaining(null)
+        return
+      }
+      const subCap = group.memberBudgets?.[effectiveMemberId] ?? 0
+      const allocated = keysRes.items
+        .filter((k: PlatformKey) => k.status === 'active' && k.memberId === effectiveMemberId)
+        .reduce((sum, k) => sum + k.budget, 0)
+      setSubBudgetRemaining(Math.max(0, subCap - allocated))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [apis, effectiveMemberId, isCreate, projectId, scope])
 
   const budgetSummary = budgetState?.memberId === effectiveMemberId ? budgetState.summary : null
   const budgetInsufficient =
     isCreate &&
-    !isProjectKey &&
+    scope === 'member' &&
     !adminCreate &&
     budgetSummary !== null &&
     budgetSummary.remaining <= 0
   const budgetExceedsRemaining =
-    isCreate && !isProjectKey && budgetSummary !== null && Number(budget) > budgetSummary.remaining
+    isCreate && scope === 'member' && budgetSummary !== null && Number(budget) > budgetSummary.remaining
   const projectBudgetExceeds =
     isCreate &&
-    isProjectKey &&
+    scope === 'project' &&
     projectBudgetRemaining !== null &&
     Number(budget) > projectBudgetRemaining
+  const subBudgetExceeds =
+    isCreate &&
+    scope === 'project_member' &&
+    subBudgetRemaining !== null &&
+    Number(budget) > subBudgetRemaining
 
   return {
     budgetSummary,
     projectBudgetRemaining,
+    subBudgetRemaining,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
+    subBudgetExceeds,
   }
 }
 

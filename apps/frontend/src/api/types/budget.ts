@@ -24,6 +24,7 @@ export interface Project {
   budget: number
   consumed: number
   memberIds: string[]
+  memberBudgets?: Record<string, number>
   ownerDepartmentId: string
 }
 
@@ -57,6 +58,7 @@ export interface ProjectView {
   budget: number
   consumed: number
   memberIds: string[]
+  memberBudgets?: Record<string, number>
   departmentId: string
   departmentName: string
   overrunPolicy: OverrunPolicy

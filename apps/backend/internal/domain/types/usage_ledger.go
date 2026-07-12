@@ -24,25 +24,26 @@ type UsageCallDetail struct {
 }
 
 type UsageLedgerEntry struct {
-	ID              string
-	CompanyID       int64
-	EventType       string
-	IdempotencyKey  string
-	Amount          float64
-	LotID           string
-	SegmentIndex    int
-	DisplayAmount   float64
-	BillingCurrency string
-	DepartmentID    string
-	MemberID        *string
-	ProjectID       *string
-	PlatformKeyID   string
-	Source          string
-	OccurredAt      time.Time
-	PeriodKey       string
-	Model           string
-	InputTokens     int64
-	OutputTokens    int64
-	CallDetail      UsageCallDetail
-	CreatedAt       time.Time
+	ID               string
+	CompanyID        int64
+	EventType        string
+	IdempotencyKey   string
+	Amount           float64
+	LotID            string
+	SegmentIndex     int
+	DisplayAmount    float64
+	BillingCurrency  string
+	DepartmentID     string
+	MemberID         *string
+	ProjectID        *string
+	PlatformKeyID    string
+	PlatformKeyScope string
+	Source           string
+	OccurredAt       time.Time
+	PeriodKey        string
+	Model            string
+	InputTokens      int64
+	OutputTokens     int64
+	CallDetail       UsageCallDetail
+	CreatedAt        time.Time
 }

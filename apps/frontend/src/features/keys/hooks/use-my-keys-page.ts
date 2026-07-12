@@ -26,7 +26,10 @@ export function useMyKeysPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.keys.mine(memberId),
-    queryFn: (apis) => apis.platformKeyApi.list({ memberId }).then((res) => res.items),
+    queryFn: (apis) =>
+      apis.platformKeyApi.list({ memberId }).then((res) =>
+        res.items.filter((key) => key.scope === 'member' || key.scope === 'project_member'),
+      ),
     enabled: Boolean(memberId),
   })
   const {
@@ -78,6 +81,7 @@ export function useMyKeysPage(injectedApis?: AppApis) {
       return
     }
     openWithRefresh('key-create', {
+      scope: 'member',
       initialName: options?.name,
       initialBudget: options?.budget,
     })

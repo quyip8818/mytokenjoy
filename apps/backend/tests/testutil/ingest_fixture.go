@@ -9,7 +9,7 @@ import (
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
-// IngestBudgetFixture describes budget axes checked by ingest enforceBudgetCap.
+// IngestBudgetFixture describes budget axes used when preparing ingest headroom in tests.
 type IngestBudgetFixture struct {
 	DepartmentID  string
 	PlatformKeyID string
@@ -21,9 +21,8 @@ func DefaultConsumeLogQuota() float64 {
 	return 500_000
 }
 
-// PrepareIngestBudgetHeadroom sets snapshot consumed values so enforceBudgetCap
-// allows an ingest of fixture.Amount. Demo seed may exceed department budgets by
-// design; tests that expect successful ingest must call this explicitly.
+// PrepareIngestBudgetHeadroom sets snapshot consumed values so ingest projections
+// do not immediately trigger overrun disable for the seeded demo budgets.
 func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBudgetFixture) {
 	t.Helper()
 	if fixture.DepartmentID == "" {
@@ -34,14 +33,6 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 	}
 
 	ctx := Ctx()
-	limit, found, err := st.Org().Nodes().GetNodeBudget(ctx, fixture.DepartmentID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if found && limit > 0 {
-		budgetfix.SetDeptSnapshotConsumed(t, st, fixture.DepartmentID, ingestHeadroomConsumed(limit, fixture.Amount))
-	}
-
 	if fixture.MemberID != "" {
 		quota, memberFound, err := st.Org().MemberPersonalBudget(ctx, fixture.MemberID)
 		if err != nil {

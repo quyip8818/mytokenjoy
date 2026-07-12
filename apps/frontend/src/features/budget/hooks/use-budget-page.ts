@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { ProjectView, UpdateMemberBudgetInput } from '@/api/types'
+import type { PlatformKeyScope, ProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
+import { useWorkflowRefresh } from '@/features/workflow'
 import { getCurrentBudgetPeriod } from '@/lib/date'
 import {
   findBudgetNode,
@@ -79,6 +80,11 @@ export function useBudgetPage(injectedApis?: AppApis) {
   const refresh = useCallback(async () => {
     await Promise.all([refreshTree(), refreshProjects(), refreshApprovals()])
   }, [refreshTree, refreshProjects, refreshApprovals])
+
+  const { openWithRefresh } = useWorkflowRefresh({
+    refresh,
+    invalidateKeys: [queryKeys.keys.all],
+  })
 
   const selectedNode = useMemo(
     () => (resolvedSelectedTeamId ? findBudgetNode(tree, resolvedSelectedTeamId) : null),
@@ -170,7 +176,10 @@ export function useBudgetPage(injectedApis?: AppApis) {
   )
 
   const updateProject = useCallback(
-    async (groupId: string, data: { budget?: number; memberIds?: string[] }) => {
+    async (
+      groupId: string,
+      data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> },
+    ) => {
       try {
         await apis.budgetApi.updateProject(groupId, data)
         await refresh()
@@ -180,6 +189,20 @@ export function useBudgetPage(injectedApis?: AppApis) {
       }
     },
     [apis, refresh],
+  )
+
+  const openCreateProjectKey = useCallback(
+    (project: ProjectView, scope: PlatformKeyScope, memberId?: string, memberName?: string) => {
+      openWithRefresh('key-create', {
+        adminCreate: true,
+        scope,
+        projectId: project.id,
+        projectName: project.name,
+        targetMemberId: memberId,
+        initialName: memberName ? `${memberName}-项目 Key` : `${project.name}-项目 Key`,
+      })
+    },
+    [openWithRefresh],
   )
 
   const deleteProject = useCallback(
@@ -282,6 +305,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
     createProject,
     updateProject,
     deleteProject,
+    openCreateProjectKey,
     getMemberBudgets,
     updateMemberBudget,
     applyAverageBudget,

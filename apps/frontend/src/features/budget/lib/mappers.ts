@@ -97,6 +97,7 @@ export function toProjectView(
     budget: project.budget,
     consumed: project.consumed,
     memberIds: project.memberIds,
+    memberBudgets: project.memberBudgets,
     departmentId: project.ownerDepartmentId,
     departmentName,
     overrunPolicy,

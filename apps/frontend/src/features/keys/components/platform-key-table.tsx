@@ -1,4 +1,5 @@
 import type { PlatformKey } from '@/api/types'
+import type { PlatformKeyTab } from '@/features/keys'
 import {
   Table,
   TableBody,
@@ -14,7 +15,7 @@ import { KeyPrefixBadge, KeyStatusBadge } from './status-badges'
 
 interface PlatformKeyTableProps {
   keys: PlatformKey[]
-  type: 'member' | 'project'
+  type: PlatformKeyTab
   rowClass: (id: string) => string
   onRevoke: (id: string) => void
   modelLabel?: (modelId: number) => string
@@ -27,7 +28,8 @@ export function PlatformKeyTable({
   onRevoke,
   modelLabel = (id) => `#${id}`,
 }: PlatformKeyTableProps) {
-  const ownerLabel = type === 'member' ? '成员' : '项目'
+  const ownerLabel =
+    type === 'member' ? '成员' : type === 'project_member' ? '成员 / 项目' : '项目'
 
   return (
     <Table>
@@ -58,7 +60,11 @@ export function PlatformKeyTable({
               className={`border-border-subtle even:bg-muted/40 hover:bg-muted/50 ${rowClass(key.id)}`}
             >
               <TableCell className="text-sm font-medium">
-                {type === 'member' ? (key.memberName ?? '—') : (key.projectName ?? '—')}
+                {type === 'member'
+                  ? (key.memberName ?? '—')
+                  : type === 'project_member'
+                    ? `${key.memberName ?? '—'} / ${key.projectName ?? '—'}`
+                    : (key.projectName ?? '—')}
               </TableCell>
               <TableCell className="text-sm">{key.name}</TableCell>
               <TableCell className="text-sm text-muted-foreground">

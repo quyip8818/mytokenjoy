@@ -69,22 +69,31 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 
 	detail := buildCallDetail(input, memberID, modelName)
 
+	scope := ""
+	if input.PlatformKey != nil {
+		scope = input.PlatformKey.Scope
+	}
+	if scope == "" {
+		return types.UsageLedgerEntry{}, fmt.Errorf("platform key scope required")
+	}
+
 	return types.UsageLedgerEntry{
-		ID:             fmt.Sprintf("ul-%d", time.Now().UnixNano()),
-		EventType:      types.EventTypeCallSettled,
-		IdempotencyKey: NewAPIIdempotencyKey(input.Raw.ID),
-		Amount:         cost,
-		DepartmentID:   input.Mapping.DepartmentID,
-		MemberID:       memberID,
-		ProjectID:      input.Mapping.ProjectID,
-		PlatformKeyID:  input.Mapping.PlatformKeyID,
-		Source:         input.Source,
-		OccurredAt:     occurredAt,
-		Model:          modelName,
-		InputTokens:    input.Raw.PromptTokens,
-		OutputTokens:   input.Raw.CompletionTokens,
-		CallDetail:     detail,
-		CreatedAt:      time.Now().UTC(),
+		ID:               fmt.Sprintf("ul-%d", time.Now().UnixNano()),
+		EventType:        types.EventTypeCallSettled,
+		IdempotencyKey:   NewAPIIdempotencyKey(input.Raw.ID),
+		Amount:           cost,
+		DepartmentID:     input.Mapping.DepartmentID,
+		MemberID:         memberID,
+		ProjectID:        input.Mapping.ProjectID,
+		PlatformKeyID:    input.Mapping.PlatformKeyID,
+		PlatformKeyScope: scope,
+		Source:           input.Source,
+		OccurredAt:       occurredAt,
+		Model:            modelName,
+		InputTokens:      input.Raw.PromptTokens,
+		OutputTokens:     input.Raw.CompletionTokens,
+		CallDetail:       detail,
+		CreatedAt:        time.Now().UTC(),
 	}, nil
 }
 

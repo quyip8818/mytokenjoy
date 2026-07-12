@@ -106,20 +106,3 @@ func (r *budgetConsumedRepo) SetConsumed(ctx context.Context, axisKind, axisID, 
 	`, companyID, axisKind, axisID, periodKey, consumed)
 	return err
 }
-
-func (r *budgetConsumedRepo) RollupOrgNodeAncestors(ctx context.Context, leafNodeID, periodKey string, amountPoint float64) error {
-	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
-		SELECT $1, $5, ancestor.id, $4, $3, NOW()
-		FROM org_nodes leaf
-		JOIN org_nodes ancestor
-		  ON ancestor.company_id = leaf.company_id
-		 AND ancestor.path @> leaf.path
-		WHERE leaf.company_id = $1 AND leaf.id = $2
-		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
-			consumed = budget_consumed.consumed + EXCLUDED.consumed,
-			updated_at = NOW()
-	`, companyID, leafNodeID, amountPoint, periodKey, store.AxisKindOrgNode)
-	return err
-}

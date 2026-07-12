@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import type { Member } from '@/api/types'
+import type { Member, PlatformKeyScope } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
@@ -39,10 +39,13 @@ export function KeyFormWorkflow({
   const isCreate = entry.id === 'key-create'
   const key =
     entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined
-  const adminCreate = isCreate ? Boolean(entry.payload.adminCreate) : false
-  const projectId = isCreate ? entry.payload.projectId : undefined
-  const projectName = isCreate ? entry.payload.projectName : undefined
+  const createPayload =
+    entry.id === 'key-create' ? (entry as WorkflowStackEntry<'key-create'>).payload : undefined
+  const adminCreate = Boolean(createPayload?.adminCreate)
+  const projectId = createPayload?.projectId
+  const projectName = createPayload?.projectName
   const onSuccess = entry.payload.onSuccess
+  const scope: PlatformKeyScope = createPayload?.scope ?? 'member'
 
   const {
     step,
@@ -63,25 +66,26 @@ export function KeyFormWorkflow({
     key,
     adminCreate,
     defaultMemberId: memberId,
-    initialTargetMemberId:
-      isCreate && entry.id === 'key-create' ? entry.payload.targetMemberId : undefined,
-    initialName: isCreate && entry.id === 'key-create' ? entry.payload.initialName : undefined,
-    initialBudget: isCreate && entry.id === 'key-create' ? entry.payload.initialBudget : undefined,
+    initialTargetMemberId: createPayload?.targetMemberId,
+    initialName: createPayload?.initialName,
+    initialBudget: createPayload?.initialBudget,
   })
 
-  const { labelFor } = useModelLabels(apis)
-  const effectiveMemberId = adminCreate ? targetMemberId : memberId
-  const isProjectKey = Boolean(projectId)
+  const { labelFor } = useModelLabels()
+  const effectiveMemberId = adminCreate || scope === 'project_member' ? targetMemberId : memberId
+  const requiresMemberPick = adminCreate || scope === 'project_member'
 
   const {
     budgetSummary,
     projectBudgetRemaining,
+    subBudgetRemaining,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
+    subBudgetExceeds,
   } = useKeyFormBudget({
     isCreate,
-    isProjectKey,
+    scope,
     effectiveMemberId,
     projectId,
     budget,
@@ -121,15 +125,25 @@ export function KeyFormWorkflow({
       return
     }
     if (projectBudgetExceeds) {
-      toast.error(`额度不能超过预算组剩余 ¥${projectBudgetRemaining!.toLocaleString()}`)
+      toast.error(`额度不能超过项目剩余 ¥${projectBudgetRemaining!.toLocaleString()}`)
+      return
+    }
+    if (subBudgetExceeds) {
+      toast.error(`额度不能超过成员子额度剩余 ¥${subBudgetRemaining!.toLocaleString()}`)
       return
     }
     setSubmitting(true)
     try {
       const created = await apis.platformKeyApi.create({
         name,
-        memberId: isProjectKey ? effectiveMemberId || memberId : effectiveMemberId,
-        projectId,
+        scope,
+        memberId:
+          scope === 'member' || scope === 'project_member'
+            ? effectiveMemberId || memberId
+            : scope === 'project' && adminCreate
+              ? effectiveMemberId || undefined
+              : undefined,
+        projectId: scope === 'project' || scope === 'project_member' ? projectId : undefined,
         budget: Number(budget),
         modelWhitelist: models,
       })
@@ -169,6 +183,20 @@ export function KeyFormWorkflow({
     }
   }
 
+  const contextBar = (() => {
+    if (!isCreate) return undefined
+    if (scope === 'project_member') {
+      return `项目：${projectName ?? ''} · 成员：${targetMemberName || '—'} · 子额度剩余 ¥${(subBudgetRemaining ?? 0).toLocaleString()}`
+    }
+    if (scope === 'project') {
+      return `项目：${projectName ?? ''} · 剩余可分配 ¥${(projectBudgetRemaining ?? 0).toLocaleString()}`
+    }
+    return formatBudgetContext(
+      budgetSummary,
+      adminCreate ? targetMemberName || undefined : undefined,
+    )
+  })()
+
   const modelSection = (
     <div className="space-y-3">
       <Label>模型白名单</Label>
@@ -191,16 +219,7 @@ export function KeyFormWorkflow({
     <WorkflowPanelChrome
       title={isCreate ? '创建 Key' : '编辑 Key'}
       onClose={onClose}
-      contextBar={
-        isCreate
-          ? isProjectKey
-            ? `预算组：${projectName ?? ''} · 剩余可分配 ¥${(projectBudgetRemaining ?? 0).toLocaleString()}`
-            : formatBudgetContext(
-                budgetSummary,
-                adminCreate ? targetMemberName || undefined : undefined,
-              )
-          : undefined
-      }
+      contextBar={contextBar}
       banner={
         budgetInsufficient ? (
           <p className="text-sm text-amber-800">{BUDGET_INSUFFICIENT_MESSAGE}</p>
@@ -210,7 +229,11 @@ export function KeyFormWorkflow({
           </p>
         ) : projectBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过预算组剩余 ¥{projectBudgetRemaining!.toLocaleString()}
+            申请额度超过项目剩余 ¥{projectBudgetRemaining!.toLocaleString()}
+          </p>
+        ) : subBudgetExceeds ? (
+          <p className="text-sm text-amber-800">
+            申请额度超过成员子额度剩余 ¥{subBudgetRemaining!.toLocaleString()}
           </p>
         ) : undefined
       }
@@ -224,9 +247,10 @@ export function KeyFormWorkflow({
               primaryDisabled={
                 budgetInsufficient ||
                 !name.trim() ||
-                (adminCreate && !isProjectKey && !targetMemberId) ||
+                (requiresMemberPick && !targetMemberId) ||
                 budgetExceedsRemaining ||
-                projectBudgetExceeds
+                projectBudgetExceeds ||
+                subBudgetExceeds
               }
             />
           ) : (
@@ -241,7 +265,8 @@ export function KeyFormWorkflow({
                 submitting ||
                 budgetInsufficient ||
                 budgetExceedsRemaining ||
-                projectBudgetExceeds
+                projectBudgetExceeds ||
+                subBudgetExceeds
               }
             />
           )
@@ -260,7 +285,7 @@ export function KeyFormWorkflow({
           {isCreate && <WorkflowStepper steps={['基本信息', '模型白名单']} current={step} />}
           {isCreate && step === 1 ? (
             <>
-              {adminCreate && (
+              {requiresMemberPick && (
                 <div className="space-y-1.5">
                   <Label>绑定成员</Label>
                   <Button

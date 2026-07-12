@@ -122,26 +122,37 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			}
 		}
 
-		deptBudget, deptFound, err := tx.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
-		if err != nil {
-			return err
-		}
-		deptConsumed, _, err := consumedRepo.GetConsumed(ctx, store.AxisKindOrgNode, payload.DepartmentID, periodKey)
-		if err != nil {
-			return err
-		}
-		if deptFound && pkgbudget.BudgetExhausted(deptConsumed, deptBudget) {
-			deptID := payload.DepartmentID
-			action = &disableAction{
-				scope:  "org_node",
-				target: deptID,
-				keys:   func(ctx context.Context) error { return s.disableDepartmentKeys(ctx, deptID) },
-				payload: map[string]any{
-					"axisKind": "org_node", "departmentId": deptID,
-					"consumed": deptConsumed, "budget": deptBudget,
-				},
+		if payload.ProjectID != nil && payload.MemberID != nil {
+			memberBudget, found, err := tx.Budget().GetProjectMemberBudget(ctx, *payload.ProjectID, *payload.MemberID)
+			if err != nil {
+				return err
 			}
-			return nil
+			if found && memberBudget > 0 {
+				keys, err := tx.Keys().PlatformKeys(ctx)
+				if err != nil {
+					return err
+				}
+				subConsumed, err := pkgbudget.SumProjectMemberKeyConsumedFromRepo(
+					ctx, consumedRepo, keys, *payload.ProjectID, *payload.MemberID, periodKey,
+				)
+				if err != nil {
+					return err
+				}
+				if pkgbudget.BudgetExhausted(subConsumed, memberBudget) {
+					memberID := *payload.MemberID
+					projectID := *payload.ProjectID
+					action = &disableAction{
+						scope:  "project_member",
+						target: memberID + ":" + projectID,
+						keys:   func(ctx context.Context) error { return s.disableProjectMemberKeys(ctx, projectID, memberID) },
+						payload: map[string]any{
+							"scope": "project_member", "memberId": memberID, "projectId": projectID,
+							"consumed": subConsumed, "memberBudget": memberBudget,
+						},
+					}
+					return nil
+				}
+			}
 		}
 
 		if payload.ProjectID != nil {
@@ -164,6 +175,25 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 						"consumed": projectConsumed, "budget": projectBudget,
 					},
 				}
+				return nil
+			}
+		}
+
+		deptBudget, deptFound, err := tx.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
+		if err != nil {
+			return err
+		}
+		if deptFound && deptBudget > 0 {
+			deptSpent, err := tx.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID, periodKey)
+			if err != nil {
+				return err
+			}
+			if pkgbudget.BudgetExhausted(deptSpent, deptBudget) {
+				deptID := payload.DepartmentID
+				s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, deptID, map[string]any{
+					"axisKind": "department_ledger", "departmentId": deptID,
+					"consumed": deptSpent, "budget": deptBudget, "notifyOnly": true,
+				})
 			}
 		}
 		return nil
@@ -216,26 +246,35 @@ func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string)
 	return nil
 }
 
-func (s *OverrunService) disableDepartmentKeys(ctx context.Context, departmentID string) error {
-	mappings, err := s.store.PlatformKeyMappings().ListMappingsByDepartmentID(ctx, departmentID)
+func (s *OverrunService) disableProjectKeys(ctx context.Context, projectID string) error {
+	keys, err := s.store.Keys().ListActiveKeysByProjectID(ctx, projectID)
 	if err != nil {
 		return err
 	}
-	for _, mapping := range mappings {
-		if err := s.keyControl.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+	for _, key := range keys {
+		if key.Scope != types.PlatformKeyScopeProject && key.Scope != types.PlatformKeyScopeProjectMember {
+			continue
+		}
+		if err := s.keyControl.DisablePlatformKey(ctx, key.ID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *OverrunService) disableProjectKeys(ctx context.Context, projectID string) error {
-	mappings, err := s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, projectID)
+func (s *OverrunService) disableProjectMemberKeys(ctx context.Context, projectID, memberID string) error {
+	keys, err := s.store.Keys().ListActiveKeysByProjectID(ctx, projectID)
 	if err != nil {
 		return err
 	}
-	for _, mapping := range mappings {
-		if err := s.keyControl.DisablePlatformKey(ctx, mapping.PlatformKeyID); err != nil {
+	for _, key := range keys {
+		if key.Scope != types.PlatformKeyScopeProjectMember {
+			continue
+		}
+		if key.MemberID == nil || *key.MemberID != memberID {
+			continue
+		}
+		if err := s.keyControl.DisablePlatformKey(ctx, key.ID); err != nil {
 			return err
 		}
 	}

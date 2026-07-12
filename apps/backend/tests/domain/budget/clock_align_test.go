@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -21,7 +22,7 @@ func TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory(t *testing.T) {
 		t.Fatalf("OpenDepartmentPeriod = %q, want 2026-06", open.String())
 	}
 
-	tree, err := pkgbudget.LoadBudgetTreeWithConsumed(ctx, st.BudgetConsumed(), st.Org().Nodes(), cfg.Clock())
+	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

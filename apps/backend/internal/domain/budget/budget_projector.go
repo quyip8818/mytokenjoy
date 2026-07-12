@@ -119,10 +119,9 @@ func collectBatchEffects(entries []types.UsageLedgerEntry) batchEffects {
 		overrunByKey:  make(map[string]overrunPayload),
 	}
 	for _, entry := range entries {
-		if entry.MemberID != nil {
+		if entry.MemberID != nil && entry.PlatformKeyScope == types.PlatformKeyScopeMember {
 			effects.rebalanceAxes[store.RebalanceAxisMember+":"+*entry.MemberID] = struct{}{}
 		}
-		effects.rebalanceAxes[store.RebalanceAxisOrgNode+":"+entry.DepartmentID] = struct{}{}
 		if entry.ProjectID != nil {
 			effects.rebalanceAxes[store.RebalanceAxisProject+":"+*entry.ProjectID] = struct{}{}
 		}

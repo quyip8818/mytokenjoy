@@ -67,11 +67,11 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO platform_keys (
-				id, company_id, name, key_prefix, key_hash, member_id,
+				id, company_id, name, key_prefix, key_hash, scope, member_id,
 				project_id, status, budget, created_at, expires_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, key.ID, tid, key.Name, key.KeyPrefix, keyHash, key.MemberID,
+		`, key.ID, tid, key.Name, key.KeyPrefix, keyHash, key.Scope, key.MemberID,
 			key.ProjectID, key.Status,
 			key.Budget, createdAt, expiresAt); err != nil {
 			return err

@@ -28,6 +28,7 @@ export function BudgetPageShell({
   createProject,
   updateProject,
   deleteProject,
+  openCreateProjectKey,
   getMemberBudgets,
   updateMemberBudget,
   applyAverageBudget,
@@ -77,6 +78,7 @@ export function BudgetPageShell({
                     membersLoading={departmentMembersLoading}
                     onUpdateProject={updateProject}
                     onDeleteProject={deleteProject}
+                    onCreateProjectKey={openCreateProjectKey}
                     onUpdated={() => void refresh()}
                     onDeleted={() => {
                       setActiveProjectId(null)

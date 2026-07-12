@@ -20,11 +20,7 @@ func (r *pgLedgerRepo) ListCallSettledAfterCursor(ctx context.Context, cursor st
 	var err error
 	if cursor.LastOccurredAt == nil || cursor.LastLedgerID == nil {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, event_type, idempotency_key, segment_index, lot_id,
-				amount, display_amount, billing_currency,
-				department_id, member_id, project_id, platform_key_id,
-				source, occurred_at, period_key, model, input_tokens, output_tokens,
-				call_detail, created_at
+			SELECT `+ledgerSelectColumns+`
 			FROM usage_ledger
 			WHERE company_id = $1 AND event_type = 'call_settled'
 			ORDER BY occurred_at ASC, id ASC
@@ -32,11 +28,7 @@ func (r *pgLedgerRepo) ListCallSettledAfterCursor(ctx context.Context, cursor st
 		`, companyID, limit)
 	} else {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, event_type, idempotency_key, segment_index, lot_id,
-				amount, display_amount, billing_currency,
-				department_id, member_id, project_id, platform_key_id,
-				source, occurred_at, period_key, model, input_tokens, output_tokens,
-				call_detail, created_at
+			SELECT `+ledgerSelectColumns+`
 			FROM usage_ledger
 			WHERE company_id = $1 AND event_type = 'call_settled'
 			  AND (occurred_at, id) > ($2, $3)
@@ -54,11 +46,7 @@ func (r *pgLedgerRepo) ListCallSettledAfterCursor(ctx context.Context, cursor st
 func (r *pgLedgerRepo) ListCallSettledSince(ctx context.Context, since time.Time) ([]types.UsageLedgerEntry, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT id, event_type, idempotency_key, segment_index, lot_id,
-			amount, display_amount, billing_currency,
-			department_id, member_id, project_id, platform_key_id,
-			source, occurred_at, period_key, model, input_tokens, output_tokens,
-			call_detail, created_at
+		SELECT `+ledgerSelectColumns+`
 		FROM usage_ledger
 		WHERE company_id = $1 AND event_type = 'call_settled' AND occurred_at >= $2
 		ORDER BY occurred_at ASC, id ASC

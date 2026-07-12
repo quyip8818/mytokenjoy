@@ -53,7 +53,11 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 			Budget:            project.Budget,
 			Consumed:          0,
 			MemberIDs:         append([]string{}, project.MemberIDs...),
+			MemberBudgets:     cloneMemberBudgets(project.MemberBudgets),
 			OwnerDepartmentID: strings.TrimSpace(project.OwnerDepartmentID),
+		}
+		if err := validateProjectMemberBudgets(created.MemberIDs, created.MemberBudgets); err != nil {
+			return err
 		}
 		projects = append(projects, created)
 		if err := tx.Budget().SetProjects(ctx, projects); err != nil {
@@ -97,9 +101,20 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 				}
 				if patch.MemberIDs != nil {
 					projects[i].MemberIDs = append([]string{}, (*patch.MemberIDs)...)
+					projects[i].MemberBudgets = pruneMemberBudgets(projects[i].MemberBudgets, projects[i].MemberIDs)
+				}
+				if patch.MemberBudgets != nil {
+					merged, err := mergeMemberBudgetPatch(projects[i].MemberBudgets, *patch.MemberBudgets, projects[i].MemberIDs)
+					if err != nil {
+						return err
+					}
+					projects[i].MemberBudgets = merged
 				}
 				if patch.OwnerDepartmentID != nil && *patch.OwnerDepartmentID != "" {
 					projects[i].OwnerDepartmentID = *patch.OwnerDepartmentID
+				}
+				if err := validateProjectMemberBudgets(projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
+					return err
 				}
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {
 					return fmt.Errorf("persist projects: %w", err)
