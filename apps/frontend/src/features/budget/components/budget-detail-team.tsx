@@ -97,14 +97,22 @@ export function BudgetDetailTeam({
 
   // Show initialization prompt if budget is not set
   if (node.budget === 0) {
+    const isRoot = node.parentId === null || node.parentId === undefined
     return (
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-5">
         <h3 className="text-sm font-semibold text-foreground">{node.name}</h3>
-        <BudgetInitPrompt
-          departmentId={node.id}
-          departmentName={node.name}
-          onUpdateDepartment={onUpdateDepartment}
-        />
+        {isRoot ? (
+          <BudgetInitPrompt
+            departmentId={node.id}
+            departmentName={node.name}
+            onUpdateDepartment={onUpdateDepartment}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border p-8 text-center">
+            <p className="text-sm font-medium text-foreground">当前部门尚未分配额度</p>
+            <p className="text-xs text-muted-foreground">请在上级部门中为该部门分配预算额度</p>
+          </div>
+        )}
       </div>
     )
   }
