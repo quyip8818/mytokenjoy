@@ -3,6 +3,7 @@ import { DataSection } from '@/components/layout/data-section'
 import type { useUsageDashboardPage } from '../hooks/use-usage-dashboard-page'
 import { TeamUsageTable } from './team-usage-table'
 import { UsageModelChart } from './usage-model-chart'
+import { UsageMemberRankingTable } from './usage-member-ranking-table'
 
 interface UsageDashboardPageShellProps {
   pageData: ReturnType<typeof useUsageDashboardPage>
@@ -10,7 +11,7 @@ interface UsageDashboardPageShellProps {
 }
 
 export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboardPageShellProps) {
-  const { teamUsage, modelUsage, loading, error, refresh } = pageData
+  const { teamUsage, modelUsage, topConsumers, loading, error, refresh } = pageData
 
   if (error) {
     return <ErrorState message={error.message} onRetry={() => void refresh()} />
@@ -18,16 +19,16 @@ export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboa
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-[5fr_3fr] gap-6">
-        <DataSection
-          title="团队用量与配额"
-          loading={loading}
-          skeletonColumns={6}
-          className="border-border shadow-xs"
-        >
-          <TeamUsageTable teamUsage={teamUsage} onSelectDept={onSelectDept} />
-        </DataSection>
+      <DataSection
+        title="团队用量与配额"
+        loading={loading}
+        skeletonColumns={6}
+        className="border-border shadow-xs"
+      >
+        <TeamUsageTable teamUsage={teamUsage} onSelectDept={onSelectDept} />
+      </DataSection>
 
+      <div className="grid grid-cols-[5fr_3fr] gap-6">
         <DataSection
           title="模型费用分布"
           loading={loading}
@@ -36,6 +37,8 @@ export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboa
         >
           <UsageModelChart modelUsage={modelUsage} />
         </DataSection>
+
+        <UsageMemberRankingTable topConsumers={topConsumers} loading={loading} />
       </div>
     </div>
   )

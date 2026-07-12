@@ -28,3 +28,12 @@ export function resolveLast7DaysRange(): { from: string; to: string } {
     to: formatLocalDate(to),
   }
 }
+
+export function getWeekStartLocal(): string {
+  const now = new Date()
+  const day = now.getDay()
+  // Monday = 1, Sunday = 0 → offset to get Monday as week start
+  const diff = day === 0 ? 6 : day - 1
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff)
+  return formatLocalDate(monday)
+}

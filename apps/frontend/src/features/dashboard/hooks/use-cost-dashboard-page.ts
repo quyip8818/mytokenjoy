@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
-import type { CostGranularity, CostPeriod, CostQueryParams } from '@/api/types'
+import type { BudgetNode, CostGranularity, CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_GRANULARITY, COST_PERIOD } from '../lib/constants'
-import { formatLocalDate, getMonthStartLocal, getTodayLocal } from '@/lib/date'
+import { formatLocalDate, getCurrentBudgetPeriod, getMonthStartLocal, getTodayLocal, getWeekStartLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { buildCostStats, buildDeptCostsWithColors, COST_CHART_COLORS } from '../lib/dashboard'
 import type { CostStatItem } from '../lib/dashboard'
+import { budgetKeys, findBudgetNode } from '@/features/budget'
 
 export type { CostStatItem }
 export { COST_CHART_COLORS }
@@ -21,6 +22,9 @@ function buildCostQuery(period: CostPeriod, startDate: string, endDate: string):
     const from = new Date()
     from.setDate(from.getDate() - 29)
     return { period: 'custom', startDate: formatLocalDate(from), endDate: formatLocalDate(to) }
+  }
+  if (period === COST_PERIOD.CURRENT_WEEK) {
+    return { period: 'custom', startDate: getWeekStartLocal(), endDate: getTodayLocal() }
   }
   if (period === COST_PERIOD.CUSTOM) {
     return { period, startDate, endDate }
@@ -57,6 +61,25 @@ export function useCostDashboardPage({ deptId, injectedApis }: UseCostDashboardP
     },
   })
 
+  const budgetPeriod = getCurrentBudgetPeriod()
+  const { data: budgetTree = [], loading: budgetLoading } = useInjectedQuery({
+    injectedApis,
+    queryKey: budgetKeys.tree(budgetPeriod),
+    queryFn: (apis) => apis.budgetApi.getTree(budgetPeriod),
+  })
+
+  const budgetSummary = useMemo(() => {
+    if (budgetTree.length === 0) return { budget: 0, consumed: 0 }
+    if (!deptId) {
+      // Company-wide: sum all root nodes
+      const budget = budgetTree.reduce((sum: number, n: BudgetNode) => sum + n.budget, 0)
+      const consumed = budgetTree.reduce((sum: number, n: BudgetNode) => sum + n.consumed, 0)
+      return { budget, consumed }
+    }
+    const node = findBudgetNode(budgetTree, deptId)
+    return { budget: node?.budget ?? 0, consumed: node?.consumed ?? 0 }
+  }, [budgetTree, deptId])
+
   const handlePeriodChange = useCallback((value: string | null) => {
     if (!value) return
     setPeriod(value as CostPeriod)
@@ -84,6 +107,8 @@ export function useCostDashboardPage({ deptId, injectedApis }: UseCostDashboardP
     customDateInvalid,
     deptId,
     loading,
+    budgetLoading,
+    budgetSummary,
     error,
     refresh,
     summary,

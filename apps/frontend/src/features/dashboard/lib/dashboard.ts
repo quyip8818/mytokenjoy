@@ -1,5 +1,5 @@
 import type { CostSummary, DepartmentCost, DepartmentCostMember } from '@/api/types'
-import { Coins, Hash, Zap, DollarSign, User, type LucideIcon } from 'lucide-react'
+import { Coins, Zap, User, type LucideIcon } from 'lucide-react'
 
 export const COST_CHART_COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
 
@@ -49,20 +49,6 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
       accent: 'bg-primary',
     },
     {
-      label: '平均单次成本',
-      value: summary ? `¥${summary.avgCostPerRequest.toFixed(2)}` : '-',
-      mom: summary?.avgCostPerRequestMom,
-      icon: DollarSign,
-      accent: 'bg-cyan-400',
-    },
-    {
-      label: '人均成本',
-      value: summary ? `¥${summary.avgCostPerMember.toFixed(2)}` : '-',
-      mom: summary?.avgCostPerMemberMom,
-      icon: User,
-      accent: 'bg-violet-500',
-    },
-    {
       label: '总调用次数',
       value: summary?.totalRequests.toLocaleString() ?? '-',
       mom: summary?.totalRequestsMom,
@@ -70,9 +56,10 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
       accent: 'bg-amber-400',
     },
     {
-      label: '总 Token',
-      value: summary ? formatTokenCount(summary.totalTokens) : '-',
-      icon: Hash,
+      label: '人均成本',
+      value: summary ? `¥${summary.avgCostPerMember.toFixed(2)}` : '-',
+      mom: summary?.avgCostPerMemberMom,
+      icon: User,
       accent: 'bg-violet-500',
     },
   ]

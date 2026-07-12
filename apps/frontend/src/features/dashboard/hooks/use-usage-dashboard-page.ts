@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_PERIOD } from '../lib/constants'
-import { formatLocalDate, getMonthStartLocal, getTodayLocal } from '@/lib/date'
+import { formatLocalDate, getMonthStartLocal, getTodayLocal, getWeekStartLocal } from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 interface UseUsageDashboardPageOptions {
@@ -16,6 +16,9 @@ function buildCostQuery(period: CostPeriod, startDate: string, endDate: string):
     const from = new Date()
     from.setDate(from.getDate() - 29)
     return { period: 'custom', startDate: formatLocalDate(from), endDate: formatLocalDate(to) }
+  }
+  if (period === COST_PERIOD.CURRENT_WEEK) {
+    return { period: 'custom', startDate: getWeekStartLocal(), endDate: getTodayLocal() }
   }
   if (period === COST_PERIOD.CUSTOM) {
     return { period, startDate, endDate }
@@ -57,10 +60,22 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
       a.dashboardApi.getModelUsage({ ...costQuery, departmentId: deptId ?? undefined }),
   })
 
-  const loading = teamLoading || modelLoading
-  const error = teamError ?? modelError
+  const {
+    data: topConsumers = [],
+    loading: topLoading,
+    error: topError,
+    refresh: refreshTop,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: [...queryKeys.dashboard.usage(), 'top', costQuery, deptId],
+    queryFn: (a) =>
+      a.dashboardApi.getTopConsumers({ ...costQuery, limit: 10, departmentId: deptId ?? undefined }),
+  })
+
+  const loading = teamLoading || modelLoading || topLoading
+  const error = teamError ?? modelError ?? topError
   const refresh = async () => {
-    await Promise.all([refreshTeam(), refreshModel()])
+    await Promise.all([refreshTeam(), refreshModel(), refreshTop()])
   }
 
   const handlePeriodChange = useCallback((value: string | null) => {
@@ -79,6 +94,7 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
     deptId,
     teamUsage,
     modelUsage,
+    topConsumers,
     loading,
     error,
     refresh,

@@ -32,6 +32,8 @@ func ValidateBudgetNodeUpdate(
 	nodeID string,
 	newBudget float64,
 	newReservedPool float64,
+	groups []types.BudgetGroup,
+	members []types.Member,
 ) *string {
 	node := FindBudgetNode(tree, nodeID)
 	if node == nil {
@@ -39,8 +41,12 @@ func ValidateBudgetNodeUpdate(
 		return &msg
 	}
 	childrenSum := SumChildrenBudget(*node)
-	if newBudget < childrenSum+newReservedPool {
-		msg := fmt.Sprintf("部门预算不能低于子级预算与预留池之和（¥%.0f）", childrenSum+newReservedPool)
+	projectSum := GroupsBudgetForDept(groups, nodeID)
+	memberSum := MemberBudgetSumForDept(members, nodeID)
+	totalAllocated := childrenSum + newReservedPool + projectSum + memberSum
+	if newBudget < totalAllocated {
+		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门¥%.0f + 项目¥%.0f + 成员¥%.0f + 预留池¥%.0f = ¥%.0f）",
+			childrenSum/1000, projectSum/1000, memberSum/1000, newReservedPool/1000, totalAllocated/1000)
 		return &msg
 	}
 	parent := FindParentNode(tree, nodeID)
@@ -60,9 +66,34 @@ func ValidateBudgetNodeUpdate(
 			if remaining < 0 {
 				remaining = 0
 			}
-			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 ¥%.0f", remaining)
+			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 ¥%.0f", remaining/1000)
 			return &msg
 		}
 	}
 	return nil
+}
+
+// GroupsBudgetForDept returns the sum of budget group budgets assigned to a department.
+func GroupsBudgetForDept(groups []types.BudgetGroup, deptID string) float64 {
+	sum := 0.0
+	for _, g := range groups {
+		for _, d := range g.DepartmentIDs {
+			if d == deptID {
+				sum += g.Budget
+				break
+			}
+		}
+	}
+	return sum
+}
+
+// MemberBudgetSumForDept returns the sum of all members' personal budgets in a department.
+func MemberBudgetSumForDept(members []types.Member, deptID string) float64 {
+	sum := 0.0
+	for _, m := range members {
+		if m.DepartmentID == deptID {
+			sum += m.PersonalBudget
+		}
+	}
+	return sum
 }

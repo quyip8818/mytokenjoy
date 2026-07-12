@@ -35,7 +35,7 @@ describe('useCostDashboardPage', () => {
 
     expect(apis.dashboardApi.getCostSummary).toHaveBeenCalled()
     expect(result.current.summary).toEqual(summary)
-    expect(result.current.stats).toHaveLength(5)
+    expect(result.current.stats).toHaveLength(3)
     expect(result.current.stats[0]?.label).toBe('总花费')
   })
 

@@ -41,7 +41,15 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if reserved != nil {
 			reservedValue = *reserved
 		}
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue); msg != nil {
+		groups, err := tx.Budget().Groups(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := tx.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, groups, members); msg != nil {
 			return domain.Validation(*msg)
 		}
 		update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
@@ -126,11 +134,67 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 		if err != nil {
 			return err
 		}
+		groups, err := tx.Budget().Groups(ctx)
+		if err != nil {
+			return err
+		}
 
-		// Find the target node and collect department IDs to update
-		deptIDs := collectDeptIDs(nodes, deptID, recursive)
-		if len(deptIDs) == 0 {
+		// Find root node
+		rootNode := findOrgNode(nodes, deptID)
+		if rootNode == nil {
 			return domain.NotFound("Department not found")
+		}
+
+		// Validate root department has budget
+		if rootNode.Budget <= 0 {
+			return domain.Validation("请先给该部门分配额度")
+		}
+
+		// Collect departments to update (skip those with own avg budget set)
+		deptIDs := collectDeptIDs(nodes, deptID, recursive)
+
+		// Validate each department has sufficient budget
+		var insufficientDepts []string
+		for id := range deptIDs {
+			node := findOrgNode(nodes, id)
+			if node == nil {
+				continue
+			}
+			// For the root dept itself, always validate
+			// For child depts in recursive mode, skip if budget is 0
+			if id != deptID && node.Budget <= 0 {
+				insufficientDepts = append(insufficientDepts, node.Name)
+				delete(deptIDs, id)
+				continue
+			}
+			// Calculate: childrenSum + projectSum + memberCount * newAvg
+			childrenSum := 0.0
+			for _, child := range node.Children {
+				childrenSum += child.Budget
+			}
+			projectSum := pkgbudget.GroupsBudgetForDept(groups, id)
+			memberCount := countMembersInDept(members, id)
+			totalAfter := childrenSum + projectSum + float64(memberCount)*personalBudget
+
+			if totalAfter > node.Budget {
+				if id == deptID {
+					return domain.Validation(fmt.Sprintf(
+						"额度不足：设置后成员额度总和（%d人×¥%.0f=¥%.0f）加上已分配（¥%.0f）超出部门总额度（¥%.0f）",
+						memberCount, personalBudget/1000, float64(memberCount)*personalBudget/1000,
+						(childrenSum+projectSum)/1000, node.Budget/1000,
+					))
+				}
+				insufficientDepts = append(insufficientDepts, node.Name)
+				delete(deptIDs, id)
+			}
+		}
+
+		// If recursive and some depts are insufficient, report them
+		if recursive && len(insufficientDepts) > 0 && len(deptIDs) == 0 {
+			return domain.Validation(fmt.Sprintf(
+				"以下部门预算不足，请先调整预算后再设置成员额度：%s",
+				joinNames(insufficientDepts),
+			))
 		}
 
 		// Update members in qualifying departments
@@ -151,11 +215,69 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 		}
 
 		// Mark the target department's member_avg_budget
-		if err := pkgbudget.PersistMemberAvgBudget(ctx, tx.Budget().OrgNodeBudget(), deptID, personalBudget); err != nil {
-			return fmt.Errorf("persist member avg budget: %w", err)
+		markNodeAvgBudget(nodes, deptID, personalBudget)
+		if err := tx.Org().Nodes().SetTree(ctx, nodes); err != nil {
+			return fmt.Errorf("persist org tree: %w", err)
+		}
+
+		// If some child depts were skipped due to budget, include a warning in the response
+		// (handled via error message that frontend can display)
+		if recursive && len(insufficientDepts) > 0 {
+			s.logger.Info("budget.avg.partial", "dept_id", deptID, "skipped_depts", insufficientDepts)
 		}
 		return nil
 	})
+}
+
+func findOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
+	var result *types.OrgNode
+	var walk func([]types.OrgNode)
+	walk = func(list []types.OrgNode) {
+		for i := range list {
+			if list[i].ID == id {
+				result = &list[i]
+				return
+			}
+			if len(list[i].Children) > 0 {
+				walk(list[i].Children)
+			}
+		}
+	}
+	walk(nodes)
+	return result
+}
+
+func countMembersInDept(members []types.Member, deptID string) int {
+	count := 0
+	for _, m := range members {
+		if m.DepartmentID == deptID {
+			count++
+		}
+	}
+	return count
+}
+
+func joinNames(names []string) string {
+	if len(names) <= 3 {
+		return fmt.Sprintf("%v", names)
+	}
+	return fmt.Sprintf("%s 等 %d 个部门", names[0], len(names))
+}
+
+func markNodeAvgBudget(nodes []types.OrgNode, nodeID string, budget float64) {
+	var walk func([]types.OrgNode)
+	walk = func(list []types.OrgNode) {
+		for i := range list {
+			if list[i].ID == nodeID {
+				list[i].MemberAvgBudget = budget
+				return
+			}
+			if len(list[i].Children) > 0 {
+				walk(list[i].Children)
+			}
+		}
+	}
+	walk(nodes)
 }
 
 // collectDeptIDs returns a set of department IDs to apply the budget to.

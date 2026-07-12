@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { BudgetProjectDialog } from './budget-project-dialog'
+import { BudgetInitPrompt } from './budget-init-prompt'
 import { formatDisplayCurrency } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
@@ -93,6 +94,28 @@ export function BudgetDetailTeam({
   searchMembers,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  // Show initialization prompt if budget is not set
+  if (node.budget === 0) {
+    const isRoot = node.parentId === null || node.parentId === undefined
+    return (
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-5">
+        <h3 className="text-sm font-semibold text-foreground">{node.name}</h3>
+        {isRoot ? (
+          <BudgetInitPrompt
+            departmentId={node.id}
+            departmentName={node.name}
+            onUpdateDepartment={onUpdateDepartment}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border p-8 text-center">
+            <p className="text-sm font-medium text-foreground">当前部门尚未分配额度</p>
+            <p className="text-xs text-muted-foreground">请在上级部门中为该部门分配预算额度</p>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const nodeProjects = projects.filter((project) => project.departmentId === node.id)
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
