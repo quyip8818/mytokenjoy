@@ -5,6 +5,7 @@ import { CostTrendChart } from './cost-trend-chart'
 import { CostDistributionChart } from '@/features/dashboard'
 import { DeptComparisonTable } from '@/features/dashboard'
 import { CostTopConsumersTable } from '@/features/dashboard'
+import { BudgetHeroCard } from './budget-hero-card'
 
 interface CostDashboardPageShellProps {
   pageData: ReturnType<typeof useCostDashboardPage>
@@ -14,6 +15,8 @@ interface CostDashboardPageShellProps {
 export function CostDashboardPageShell({ pageData, onSelectDept }: CostDashboardPageShellProps) {
   const {
     loading,
+    budgetLoading,
+    budgetSummary,
     error,
     refresh,
     stats,
@@ -30,6 +33,11 @@ export function CostDashboardPageShell({ pageData, onSelectDept }: CostDashboard
 
   return (
     <div className="space-y-6">
+      <BudgetHeroCard
+        budget={budgetSummary.budget}
+        consumed={budgetSummary.consumed}
+        loading={budgetLoading}
+      />
       <CostSummaryStats stats={stats} loading={loading} />
       <div className="grid grid-cols-[5fr_3fr] gap-6">
         <CostTrendChart dailyCosts={dailyCosts} loading={loading} granularity={granularity} />
