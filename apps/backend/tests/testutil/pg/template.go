@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const testTemplateVersion = 15 // bump when schema.sql (incl. River DDL) or clone policy changes
+const testTemplateVersion = 17 // bump when schema.sql (incl. River DDL) or clone policy changes
 
 var (
 	templateOnce sync.Once

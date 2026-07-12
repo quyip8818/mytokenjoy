@@ -149,6 +149,54 @@ func TestListCallsStatusFilter(t *testing.T) {
 	}
 }
 
+func TestListCallsCallDetailFilters(t *testing.T) {
+	t.Parallel()
+	_, st := testutil.NewTestStoreWithDemoRuntime(t)
+	querier := domainusage.NewCallLogQuerier(st.Ledger())
+	ctx := testutil.Ctx()
+
+	all, err := querier.ListCalls(ctx, types.AuditCallsQueryParams{Page: 1, PageSize: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if all.Total == 0 {
+		t.Skip("no seed call logs")
+	}
+
+	callerID := all.Items[0].CallerID
+	if callerID == "" {
+		t.Skip("first entry has no callerId")
+	}
+	byCaller, err := querier.ListCalls(ctx, types.AuditCallsQueryParams{
+		Page: 1, PageSize: 100, CallerID: callerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byCaller.Total == 0 {
+		t.Fatalf("expected results for callerId %q", callerID)
+	}
+	for _, item := range byCaller.Items {
+		if item.CallerID != callerID {
+			t.Errorf("expected callerId %q, got %q", callerID, item.CallerID)
+		}
+	}
+
+	keyword := all.Items[0].PreviewSnippet
+	if keyword == "" {
+		t.Skip("first entry has no previewSnippet")
+	}
+	byKeyword, err := querier.ListCalls(ctx, types.AuditCallsQueryParams{
+		Page: 1, PageSize: 100, Keyword: keyword,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byKeyword.Total == 0 {
+		t.Fatalf("expected results for keyword %q", keyword)
+	}
+}
+
 func TestListCallsPagination(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStoreWithDemoRuntime(t)

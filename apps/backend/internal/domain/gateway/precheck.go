@@ -41,13 +41,10 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 	if err := Evaluate(PrecheckContextFromStore(row), model, skipModelCheck); err != nil {
 		return err
 	}
-	return p.softBudgetCheck(ctx, row.CompanyID, keyHash)
+	return p.softBudgetCheck(ctx, row.CompanyID, keyHash, row.GatewaySoftVersion)
 }
 
-// softBudgetCheck is a best-effort +1 Redis GET. A miss or any error degrades to
-// allow (never falls back to Postgres). It only bridges the sub-second window
-// before Overrun disables an over-budget key downstream.
-func (p *PrecheckService) softBudgetCheck(ctx context.Context, companyID int64, keyHash string) error {
+func (p *PrecheckService) softBudgetCheck(ctx context.Context, companyID int64, keyHash string, pgVersion int64) error {
 	if !p.budgetCheck.Enabled() {
 		return nil
 	}
@@ -55,8 +52,8 @@ func (p *PrecheckService) softBudgetCheck(ctx context.Context, companyID int64, 
 	if err != nil || !ok {
 		return nil
 	}
-	if budgetcheck.Blocks(entry) {
-		return fmt.Errorf("budget exhausted")
+	if budgetcheck.BlocksWithVersion(entry, pgVersion) {
+		return ErrBudgetExhausted
 	}
 	return nil
 }

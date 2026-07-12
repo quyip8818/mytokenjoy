@@ -43,43 +43,69 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		return err
 	}
 
-	consumedRepo := s.store.BudgetConsumed()
+	var summaries []store.GatewaySoftSummary
 	repaired := false
-	repairedKeys := make(map[string]struct{})
-	for key, want := range expected {
-		got, found, err := consumedRepo.GetConsumed(ctx, key.Kind, key.AxisID, key.PeriodKey)
+	repairedAxes := make(map[AxisKey]struct{})
+	err = s.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
+		consumedRepo := tx.BudgetConsumed()
+		for key, want := range expected {
+			got, found, err := consumedRepo.GetConsumed(ctx, key.Kind, key.AxisID, key.PeriodKey)
+			if err != nil {
+				return err
+			}
+			if !found {
+				got = 0
+			}
+			if !ConsumedDrift(want, got) {
+				continue
+			}
+			if err := consumedRepo.SetConsumed(ctx, key.Kind, key.AxisID, key.PeriodKey, want); err != nil {
+				return err
+			}
+			repaired = true
+			repairedAxes[key] = struct{}{}
+			if s.logger != nil {
+				s.logger.Warn("budget reconcile drift repaired",
+					"company_id", companyID,
+					"axis_kind", key.Kind,
+					"axis_id", key.AxisID,
+					"period_key", key.PeriodKey,
+					"expected", want,
+					"actual", got,
+				)
+			}
+		}
+		if !repaired {
+			return nil
+		}
+		affectedKeys, err := AffectedPlatformKeyIDs(ctx, tx, repairedAxes)
 		if err != nil {
 			return err
 		}
-		if !found {
-			got = 0
-		}
-		if !ConsumedDrift(want, got) {
-			continue
-		}
-		if err := consumedRepo.SetConsumed(ctx, key.Kind, key.AxisID, key.PeriodKey, want); err != nil {
+		updates, err := ComputeGatewaySummaryUpdates(ctx, tx, affectedKeys, s.cfg.Clock())
+		if err != nil {
 			return err
 		}
-		repaired = true
-		if key.Kind == store.AxisKindPlatformKey {
-			repairedKeys[key.AxisID] = struct{}{}
+		if len(updates) > 0 {
+			summaries, err = tx.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+			if err != nil {
+				return err
+			}
 		}
-		if s.logger != nil {
-			s.logger.Warn("budget reconcile drift repaired",
-				"company_id", companyID,
-				"axis_kind", key.Kind,
-				"axis_id", key.AxisID,
-				"period_key", key.PeriodKey,
-				"expected", want,
-				"actual", got,
-			)
-		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
-	if repaired {
-		budgetcheck.RefreshPlatformKeys(ctx, s.cfg, s.store, s.gatewayCache, s.logger, companyID, repairedKeys)
-		return jobs.InsertRebalance(ctx, s.enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+	if !repaired {
+		return nil
 	}
-	return nil
+
+	budgetcheck.RefreshSummaries(ctx, s.gatewayCache, s.logger, companyID, summaries)
+	return jobs.InsertRebalance(ctx, s.enqueuer, nil, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 }
 
 func (s *ReconcileService) FanoutReconcileJobs(ctx context.Context) error {

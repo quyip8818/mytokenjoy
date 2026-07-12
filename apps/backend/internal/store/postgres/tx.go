@@ -14,6 +14,7 @@ type txStore struct {
 	ledger                      store.LedgerRepository
 	mappings                    store.PlatformKeyMappingRepository
 	gatewayPrecheck             store.GatewayPrecheckRepository
+	gatewaySoftSummaries        store.GatewaySoftSummaryRepository
 	budgetConsumed              store.BudgetConsumedRepository
 	budgetProjectionProgress    store.ProjectionProgressRepository
 	dashboardProjectionProgress store.ProjectionProgressRepository
@@ -52,6 +53,10 @@ func (s *txStore) PlatformKeyMappings() store.PlatformKeyMappingRepository {
 
 func (s *txStore) GatewayPrecheck() store.GatewayPrecheckRepository {
 	return s.gatewayPrecheck
+}
+
+func (s *txStore) GatewaySoftSummaries() store.GatewaySoftSummaryRepository {
+	return s.gatewaySoftSummaries
 }
 
 func (s *txStore) SchedulerLock() store.SchedulerLockRepository {
@@ -107,6 +112,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 		ledger:                      &pgLedgerRepo{db: tx},
 		mappings:                    newPlatformKeyMappingRepo(tx),
 		gatewayPrecheck:             newGatewayPrecheckRepo(tx),
+		gatewaySoftSummaries:        newGatewaySoftSummaryRepo(tx),
 		budgetConsumed:              newBudgetConsumedRepo(tx),
 		budgetProjectionProgress:    newBudgetProjectionProgressRepo(tx),
 		dashboardProjectionProgress: newDashboardProjectionProgressRepo(tx),

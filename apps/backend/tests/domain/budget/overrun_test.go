@@ -137,3 +137,78 @@ func TestOverrunBudgetGroupAxis(t *testing.T) {
 		t.Fatal("expected UpdateToken when budget group overrun")
 	}
 }
+
+func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
+	t.Parallel()
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
+	ctx := testutil.Ctx()
+
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	keys, err := st.Keys().PlatformKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keyBudget float64
+	for _, key := range keys {
+		if key.ID == contract.IDPlatformKey1 {
+			keyBudget = key.Budget
+			break
+		}
+	}
+	if keyBudget <= 0 {
+		t.Fatal("expected plk-1 to have positive budget")
+	}
+	testutil.SetPlatformKeySnapshotUsed(t, st, contract.IDPlatformKey1, keyBudget+0.01)
+
+	payload, err := json.Marshal(map[string]any{
+		"departmentId":  contract.IDDept3,
+		"platformKeyId": contract.IDPlatformKey1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
+		t.Fatal(err)
+	}
+	if stub.UpdateTokenCalls == 0 {
+		t.Fatal("expected UpdateToken when platform key overrun")
+	}
+}
+
+func TestOverrunSkipsMemberAxisWhenBudgetGroupPresent(t *testing.T) {
+	t.Parallel()
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
+	ctx := testutil.Ctx()
+
+	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
+	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
+		t.Fatal(err)
+	}
+	testutil.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+
+	groups, err := st.Budget().Groups(ctx)
+	if err != nil || len(groups) == 0 {
+		t.Fatal("expected budget group")
+	}
+	groupID := groups[0].ID
+	testutil.SetGroupSnapshotConsumed(t, st, groupID, 0)
+
+	payload, err := json.Marshal(map[string]any{
+		"memberId":      contract.IDMember1,
+		"budgetGroupId": groupID,
+		"departmentId":  contract.IDDept3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := overrun.ProcessOverrunPayload(ctx, payload); err != nil {
+		t.Fatal(err)
+	}
+	if stub.UpdateTokenCalls != 0 {
+		t.Fatal("expected member axis to be skipped when budget group is present")
+	}
+}

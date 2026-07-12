@@ -8,20 +8,38 @@ import (
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
-// TestGatewayBudgetCheckSoftBlock verifies the optional GatewayBudgetCheck soft
-// block: an exhausted soft_remain blocks; a positive one allows; and every
-// enabled precheck performs exactly one Redis GET.
+func TestPrecheckBlocksOnPGSoftSummary(t *testing.T) {
+	t.Parallel()
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+	testutil.SetGatewaySoftRemain(t, fx.Store, fx.LoadPrecheckRow(t).PlatformKeyID, 0)
+	if err := fx.Run("gpt-4o", false); err == nil {
+		t.Fatal("expected PG soft summary block")
+	}
+}
+
+func TestPrecheckAllowsNullPGSoftSummary(t *testing.T) {
+	t.Parallel()
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
+	if err := fx.Run("gpt-4o", false); err != nil {
+		t.Fatalf("expected allow when soft summary NULL, got %v", err)
+	}
+}
+
 func TestGatewayBudgetCheckSoftBlock(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name       string
 		softRemain float64
+		version    int64
+		pgVersion  int64
 		wantErr    bool
 	}{
-		{name: "exhausted blocks", softRemain: -1, wantErr: true},
-		{name: "zero blocks", softRemain: 0, wantErr: true},
-		{name: "positive allows", softRemain: 50, wantErr: false},
+		{name: "exhausted blocks", softRemain: -1, version: 1, pgVersion: 1, wantErr: true},
+		{name: "zero blocks", softRemain: 0, version: 1, pgVersion: 1, wantErr: true},
+		{name: "positive allows", softRemain: 50, version: 1, pgVersion: 1, wantErr: false},
+		{name: "stale version allows", softRemain: 0, version: 1, pgVersion: 2, wantErr: false},
+		{name: "no pg version ignores redis", softRemain: 0, version: 1, pgVersion: 0, wantErr: false},
 	}
 
 	for _, tc := range cases {
@@ -31,19 +49,26 @@ func TestGatewayBudgetCheckSoftBlock(t *testing.T) {
 			fake := gatewaytf.NewFakeBudgetCheck()
 			fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
-			companyID := fx.LoadPrecheckRow(t).CompanyID
-			_ = fake.Set(fx.Ctx, companyID, fx.KeyHash(), budgetcheck.Entry{
-				PeriodKey:  "2026-07",
+			row := fx.LoadPrecheckRow(t)
+			if tc.pgVersion > 0 {
+				testutil.SetGatewaySoftRemain(t, fx.Store, row.PlatformKeyID, 1)
+				for i := int64(1); i < tc.pgVersion; i++ {
+					testutil.SetGatewaySoftRemain(t, fx.Store, row.PlatformKeyID, 1)
+				}
+			}
+			row = fx.LoadPrecheckRow(t)
+
+			_ = fake.Set(fx.Ctx, row.CompanyID, fx.KeyHash(), budgetcheck.Entry{
 				SoftRemain: tc.softRemain,
-				KeyStatus:  "active",
+				Version:    tc.version,
 			})
 
 			err := fx.Run("gpt-4o", false)
 			if tc.wantErr && err == nil {
-				t.Fatalf("expected soft block error for soft_remain=%v", tc.softRemain)
+				t.Fatalf("expected soft block error for soft_remain=%v version=%d pgVersion=%d", tc.softRemain, tc.version, row.GatewaySoftVersion)
 			}
 			if !tc.wantErr && err != nil {
-				t.Fatalf("expected allow for soft_remain=%v, got %v", tc.softRemain, err)
+				t.Fatalf("expected allow for soft_remain=%v version=%d pgVersion=%d, got %v", tc.softRemain, tc.version, row.GatewaySoftVersion, err)
 			}
 			if fake.Gets() != 1 {
 				t.Fatalf("expected exactly 1 Redis GET, got %d", fake.Gets())
@@ -52,8 +77,6 @@ func TestGatewayBudgetCheckSoftBlock(t *testing.T) {
 	}
 }
 
-// TestGatewayBudgetCheckMissAllows verifies a cache miss degrades to allow and
-// never falls back to Postgres.
 func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})
@@ -68,8 +91,6 @@ func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 	}
 }
 
-// TestGatewayBudgetCheckDisabledSkipsGet verifies the default no-op store skips
-// the Redis GET entirely.
 func TestGatewayBudgetCheckDisabledSkipsGet(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: testutil.DisplayPoints(1000)})

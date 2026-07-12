@@ -1,51 +1,61 @@
-// Package budgetcheck defines the optional GatewayBudgetCheck soft-block cache.
-//
-// It is a best-effort, non-authoritative signal written by the async budget
-// projector/reconciler and read by the Gateway precheck. A miss MUST degrade to
-// "allow"; the Gateway never falls back to Postgres for this signal.
+// Package budgetcheck is the optional Gateway soft-block Redis cache.
+// PG gateway_soft_* is authoritative; Redis only enhances when version >= PG.
 package budgetcheck
 
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
+
+	"github.com/tokenjoy/backend/internal/store"
 )
 
-// Entry is the value stored per (company, key_hash).
-//
-// The period_key is carried in the value (not the Redis key) so the Gateway
-// never needs to recompute the budget period (which would require joining
-// org_nodes). See docs/实现-异步预算投影.md §10.
 type Entry struct {
-	PeriodKey  string    `json:"periodKey"`
 	SoftRemain float64   `json:"softRemain"`
-	KeyStatus  string    `json:"keyStatus"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+	Version    int64     `json:"version"`
 }
 
-// Store is the GatewayBudgetCheck cache contract.
 type Store interface {
-	// Enabled reports whether a real backing store is configured. Callers on the
-	// write path MUST skip all computation when this is false.
 	Enabled() bool
-	// Get returns the cached entry. ok=false means miss (degrade to allow).
 	Get(ctx context.Context, companyID int64, keyHash string) (Entry, bool, error)
-	// Set writes the entry with the store's configured TTL.
 	Set(ctx context.Context, companyID int64, keyHash string, entry Entry) error
 }
 
-// Blocks reports whether a cached entry should soft-block the Gateway request.
-func Blocks(entry Entry) bool {
+func BlocksWithVersion(entry Entry, pgVersion int64) bool {
+	if pgVersion <= 0 || entry.Version < pgVersion {
+		return false
+	}
 	return entry.SoftRemain <= 0
 }
 
-// Key builds the Redis key: gateway:budget_check:{company_id}:{key_hash}.
 func Key(companyID int64, keyHash string) string {
 	return fmt.Sprintf("gateway:budget_check:%d:%s", companyID, keyHash)
 }
 
-// Noop is the default store used when REDIS_URL is empty. Get always misses and
-// Set is a cheap no-op.
+func RefreshSummaries(
+	ctx context.Context,
+	cache Store,
+	logger *slog.Logger,
+	companyID int64,
+	summaries []store.GatewaySoftSummary,
+) {
+	if cache == nil || !cache.Enabled() || len(summaries) == 0 {
+		return
+	}
+	for _, summary := range summaries {
+		entry := Entry{
+			SoftRemain: summary.SoftRemain,
+			UpdatedAt:  summary.UpdatedAt,
+			Version:    summary.Version,
+		}
+		if err := cache.Set(ctx, companyID, summary.KeyHash, entry); err != nil && logger != nil {
+			logger.Warn("gateway budget check set failed", "key_id", summary.PlatformKeyID, "error", err)
+		}
+	}
+}
+
 type Noop struct{}
 
 func (Noop) Enabled() bool { return false }

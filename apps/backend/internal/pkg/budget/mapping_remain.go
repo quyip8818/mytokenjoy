@@ -19,7 +19,6 @@ type MappingStores struct {
 }
 
 // RemainForMapping returns effective remaining budget for ingest cap checks.
-// periodKey is the open budget period for the mapping's department.
 func RemainForMapping(
 	ctx context.Context,
 	stores MappingStores,
@@ -29,7 +28,26 @@ func RemainForMapping(
 	if mapping.DepartmentID == "" {
 		return 0, fmt.Errorf("department not found")
 	}
-	limit, found, err := stores.OrgNodes.GetNodeBudget(ctx, mapping.DepartmentID)
+	budgetCtx, err := LoadBudgetContext(ctx, stores.Consumed, stores.Org, stores.Budget, stores.Keys, stores.Clock)
+	if err != nil {
+		return 0, err
+	}
+	return ComputeRemainForMapping(ctx, budgetCtx, stores.Consumed, stores.Org, *mapping, periodKey)
+}
+
+// ComputeRemainForMapping uses a preloaded budget context for batch gateway summary writes.
+func ComputeRemainForMapping(
+	ctx context.Context,
+	budgetCtx BudgetContext,
+	consumed store.BudgetConsumedRepository,
+	org store.OrgRepository,
+	mapping store.PlatformKeyMapping,
+	periodKey string,
+) (float64, error) {
+	if mapping.DepartmentID == "" {
+		return 0, fmt.Errorf("department not found")
+	}
+	limit, found, err := org.Nodes().GetNodeBudget(ctx, mapping.DepartmentID)
 	if err != nil {
 		return 0, err
 	}
@@ -37,27 +55,23 @@ func RemainForMapping(
 		return 0, fmt.Errorf("budget exceeded")
 	}
 
-	budgetCtx, err := LoadBudgetContext(ctx, stores.Consumed, stores.Org, stores.Budget, stores.Keys, stores.Clock)
-	if err != nil {
-		return 0, err
-	}
 	key, ok := budgetCtx.FindPlatformKey(mapping.PlatformKeyID)
 	if !ok {
 		return 0, fmt.Errorf("platform key not found")
 	}
 	if key.Budget > 0 {
-		consumed, found, err := stores.Consumed.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
+		keyUsed, found, err := consumed.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
 		if err != nil {
 			return 0, err
 		}
 		if found {
-			key.Used = consumed
+			key.Used = keyUsed
 		} else {
 			key.Used = 0
 		}
 	}
 
-	deptConsumed, _, err := stores.Consumed.GetConsumed(ctx, store.AxisKindOrgNode, mapping.DepartmentID, periodKey)
+	deptConsumed, _, err := consumed.GetConsumed(ctx, store.AxisKindOrgNode, mapping.DepartmentID, periodKey)
 	if err != nil {
 		return 0, err
 	}
@@ -65,14 +79,14 @@ func RemainForMapping(
 
 	var memberAxis *MemberAxisInput
 	if mapping.MemberID != nil && key.BudgetGroupID == nil {
-		quota, memberFound, err := stores.Org.MemberPersonalBudget(ctx, *mapping.MemberID)
+		quota, memberFound, err := org.MemberPersonalBudget(ctx, *mapping.MemberID)
 		if err != nil {
 			return 0, err
 		}
 		if !memberFound {
 			memberAxis = &MemberAxisInput{Skip: true}
 		} else {
-			memberConsumed, _, err := stores.Consumed.GetConsumed(ctx, store.AxisKindMember, *mapping.MemberID, periodKey)
+			memberConsumed, _, err := consumed.GetConsumed(ctx, store.AxisKindMember, *mapping.MemberID, periodKey)
 			if err != nil {
 				return 0, err
 			}

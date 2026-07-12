@@ -37,6 +37,13 @@ func TestEvaluateRejects(t *testing.T) {
 				pc.Routing.AllowlistTypes = []string{"gpt-4o"}
 			},
 		},
+		{
+			name: "exhausted soft remain",
+			mut: func(pc *domaingateway.PrecheckContext) {
+				zero := 0.0
+				pc.Budget.SoftRemain = &zero
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -58,10 +65,35 @@ func TestEvaluateRejects(t *testing.T) {
 	}
 }
 
-func TestEvaluateAllowsModelsListingSkip(t *testing.T) {
+func TestEvaluateAllowsNullSoftRemain(t *testing.T) {
 	t.Parallel()
-	if err := domaingateway.Evaluate(gatewaytf.BasePrecheckContext(), "", true); err != nil {
+	if err := domaingateway.Evaluate(gatewaytf.BasePrecheckContext(), "gpt-4o", false); err != nil {
+		t.Fatalf("expected pass with NULL soft remain, got %v", err)
+	}
+}
+
+func TestEvaluateAllowsPositiveSoftRemain(t *testing.T) {
+	t.Parallel()
+	pc := gatewaytf.BasePrecheckContext()
+	pos := 10.0
+	pc.Budget.SoftRemain = &pos
+	if err := domaingateway.Evaluate(pc, "gpt-4o", false); err != nil {
 		t.Fatalf("expected pass, got %v", err)
+	}
+}
+
+func TestEvaluateModelsListingSkipsAllowlistNotBudget(t *testing.T) {
+	t.Parallel()
+	pc := gatewaytf.BasePrecheckContext()
+	zero := 0.0
+	pc.Budget.SoftRemain = &zero
+	if err := domaingateway.Evaluate(pc, "", true); err == nil {
+		t.Fatal("expected budget exhausted for /v1/models path")
+	}
+	pos := 10.0
+	pc.Budget.SoftRemain = &pos
+	if err := domaingateway.Evaluate(pc, "", true); err != nil {
+		t.Fatalf("expected pass without model check, got %v", err)
 	}
 }
 

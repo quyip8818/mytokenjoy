@@ -51,6 +51,7 @@ type Store interface {
 	BudgetProjectionProgress() ProjectionProgressRepository
 	DashboardProjectionProgress() ProjectionProgressRepository
 	GatewayPrecheck() GatewayPrecheckRepository
+	GatewaySoftSummaries() GatewaySoftSummaryRepository
 	SchedulerLock() SchedulerLockRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository

@@ -39,7 +39,10 @@ SELECT
 		  AND ma.owner_type = 'platform_key'
 		  AND ma.owner_id = pk.id
 		  AND mdl.enabled = TRUE
-	), '{}') AS allowlist_types
+	), '{}') AS allowlist_types,
+	pk.gateway_soft_remain,
+	pk.gateway_soft_at,
+	pk.gateway_soft_version
 FROM platform_keys pk
 JOIN companies c ON c.id = pk.company_id
 WHERE pk.key_hash = $1
@@ -59,6 +62,9 @@ func (r *gatewayPrecheckRepo) LoadPrecheckContext(ctx context.Context, keyHash s
 		&out.KeyStatus,
 		&out.HasAllowlist,
 		&out.AllowlistTypes,
+		&out.GatewaySoftRemain,
+		&out.GatewaySoftAt,
+		&out.GatewaySoftVersion,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil

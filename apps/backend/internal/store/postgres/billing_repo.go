@@ -21,12 +21,12 @@ func (r *billingRepo) CreateRechargeOrder(ctx context.Context, order store.Recha
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO company_recharge_orders (
 			id, company_id, amount, currency, points_per_unit, points_granted,
-			source, lot_kind, idempotency_key, newapi_sync_ref, status,
+			source, lot_kind, idempotency_key, status,
 			display_order_id, payment_method, invoice_status,
 			created_by, created_at, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 	`, order.ID, order.CompanyID, order.Amount, order.Currency, order.PointsPerUnit, order.PointsGranted,
-		order.Source, order.LotKind, order.IdempotencyKey, order.NewAPISyncRef, order.Status,
+		order.Source, order.LotKind, order.IdempotencyKey, order.Status,
 		order.DisplayOrderID, order.PaymentMethod, order.InvoiceStatus,
 		order.CreatedBy, order.CreatedAt, order.UpdatedAt)
 	return err
@@ -35,7 +35,7 @@ func (r *billingRepo) CreateRechargeOrder(ctx context.Context, order store.Recha
 func (r *billingRepo) GetRechargeOrder(ctx context.Context, id string) (*store.RechargeOrder, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, company_id, amount, currency, points_per_unit, points_granted,
-			source, lot_kind, idempotency_key, newapi_sync_ref, status,
+			source, lot_kind, idempotency_key, status,
 			display_order_id, payment_method, invoice_status,
 			created_by, created_at, updated_at
 		FROM company_recharge_orders WHERE id = $1
@@ -46,7 +46,7 @@ func (r *billingRepo) GetRechargeOrder(ctx context.Context, id string) (*store.R
 func (r *billingRepo) ListRechargeOrders(ctx context.Context, companyID int64) ([]store.RechargeOrder, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, company_id, amount, currency, points_per_unit, points_granted,
-			source, lot_kind, idempotency_key, newapi_sync_ref, status,
+			source, lot_kind, idempotency_key, status,
 			display_order_id, payment_method, invoice_status,
 			created_by, created_at, updated_at
 		FROM company_recharge_orders WHERE company_id = $1 ORDER BY created_at DESC
@@ -268,7 +268,7 @@ func scanRechargeOrder(row rechargeScanner) (*store.RechargeOrder, error) {
 	var o store.RechargeOrder
 	if err := row.Scan(
 		&o.ID, &o.CompanyID, &o.Amount, &o.Currency, &o.PointsPerUnit, &o.PointsGranted,
-		&o.Source, &o.LotKind, &o.IdempotencyKey, &o.NewAPISyncRef, &o.Status,
+		&o.Source, &o.LotKind, &o.IdempotencyKey, &o.Status,
 		&o.DisplayOrderID, &o.PaymentMethod, &o.InvoiceStatus,
 		&o.CreatedBy, &o.CreatedAt, &o.UpdatedAt,
 	); err != nil {

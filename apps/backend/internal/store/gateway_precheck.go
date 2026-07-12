@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 )
 
 // PrecheckContextRow is the store DTO loaded in a single round-trip for /v1 precheck.
@@ -16,6 +17,10 @@ type PrecheckContextRow struct {
 
 	HasAllowlist   bool
 	AllowlistTypes []string
+
+	GatewaySoftRemain  *float64
+	GatewaySoftAt      *time.Time
+	GatewaySoftVersion int64
 }
 
 type GatewayPrecheckRepository interface {

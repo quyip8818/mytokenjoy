@@ -76,3 +76,37 @@ func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, co
 		t.Fatal(err)
 	}
 }
+
+func SetGatewaySoftRemain(t *testing.T, st store.Store, keyID string, remain float64) {
+	t.Helper()
+	ctx := Ctx()
+	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
+		{PlatformKeyID: keyID, SoftRemain: remain},
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func GatewaySoftRemain(t *testing.T, st store.Store, keyID string) (remain *float64, version int64) {
+	t.Helper()
+	ctx := Ctx()
+	items, err := st.GatewaySoftSummaries().ListByPlatformKeyIDs(ctx, []string{keyID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) == 0 {
+		t.Fatalf("gateway soft summary not found for key %s", keyID)
+	}
+	item := items[0]
+	if item.SoftRemain != 0 || item.Version > 0 {
+		r := item.SoftRemain
+		return &r, item.Version
+	}
+	return nil, item.Version
+}
+
+func GatewaySoftVersion(t *testing.T, st store.Store, keyID string) int64 {
+	t.Helper()
+	_, version := GatewaySoftRemain(t, st, keyID)
+	return version
+}

@@ -25,6 +25,13 @@ type Projector struct {
 	gatewayCache budgetcheck.Store
 }
 
+type batchEffects struct {
+	touchedKeys     map[string]struct{}
+	overrunByKey    map[string]overrunPayload
+	deptOnlyOverrun *overrunPayload
+	rebalanceAxes   map[string]struct{}
+}
+
 func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error) {
 	co, err := p.store.Company().GetByID(ctx, companyID)
 	if err != nil {
@@ -36,7 +43,12 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	ctx = company.WithContext(ctx, companyFromStore(*co))
 
 	var entries []types.UsageLedgerEntry
+	var summaries []store.GatewaySoftSummary
+	var effects batchEffects
 	err = p.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+			return err
+		}
 		progress, err := tx.BudgetProjectionProgress().GetForUpdate(ctx, store.BudgetProjectionStream)
 		if err != nil {
 			return err
@@ -63,6 +75,17 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 				return err
 			}
 		}
+		effects = collectBatchEffects(batch)
+		updates, err := ComputeGatewaySummaryUpdates(ctx, tx, effects.touchedKeys, p.cfg.Clock())
+		if err != nil {
+			return err
+		}
+		if len(updates) > 0 {
+			summaries, err = tx.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+			if err != nil {
+				return err
+			}
+		}
 		last := batch[len(batch)-1]
 		if err := tx.BudgetProjectionProgress().Advance(ctx, store.BudgetProjectionStream, last.OccurredAt, last.ID); err != nil {
 			return err
@@ -77,7 +100,8 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 		return false, nil
 	}
 
-	if err := p.enqueueBatchSideEffects(ctx, companyID, entries); err != nil {
+	budgetcheck.RefreshSummaries(ctx, p.gatewayCache, p.logger, companyID, summaries)
+	if err := p.enqueueBatchEffects(ctx, companyID, effects); err != nil {
 		return false, err
 	}
 
@@ -90,35 +114,56 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	return hasMore, nil
 }
 
-func (p *Projector) enqueueBatchSideEffects(ctx context.Context, companyID int64, entries []types.UsageLedgerEntry) error {
-	rebalanceAxes := make(map[string]struct{})
-	touchedKeys := make(map[string]struct{})
+func collectBatchEffects(entries []types.UsageLedgerEntry) batchEffects {
+	effects := batchEffects{
+		rebalanceAxes: make(map[string]struct{}),
+		touchedKeys:   make(map[string]struct{}),
+		overrunByKey:  make(map[string]overrunPayload),
+	}
 	for _, entry := range entries {
 		if entry.MemberID != nil {
-			rebalanceAxes[store.RebalanceAxisMember+":"+*entry.MemberID] = struct{}{}
+			effects.rebalanceAxes[store.RebalanceAxisMember+":"+*entry.MemberID] = struct{}{}
 		}
-		rebalanceAxes[store.RebalanceAxisDepartment+":"+entry.DepartmentID] = struct{}{}
+		effects.rebalanceAxes[store.RebalanceAxisDepartment+":"+entry.DepartmentID] = struct{}{}
 		if entry.BudgetGroupID != nil {
-			rebalanceAxes[store.RebalanceAxisBudgetGroup+":"+*entry.BudgetGroupID] = struct{}{}
+			effects.rebalanceAxes[store.RebalanceAxisBudgetGroup+":"+*entry.BudgetGroupID] = struct{}{}
 		}
-		if entry.PlatformKeyID != "" {
-			touchedKeys[entry.PlatformKeyID] = struct{}{}
-		}
-
-		payload, err := json.Marshal(overrunPayload{
+		payload := overrunPayload{
 			DepartmentID:  entry.DepartmentID,
 			MemberID:      entry.MemberID,
 			BudgetGroupID: entry.BudgetGroupID,
 			PlatformKeyID: entry.PlatformKeyID,
-		})
+		}
+		if entry.PlatformKeyID != "" {
+			effects.touchedKeys[entry.PlatformKeyID] = struct{}{}
+			effects.overrunByKey[entry.PlatformKeyID] = payload
+			continue
+		}
+		effects.deptOnlyOverrun = &payload
+	}
+	return effects
+}
+
+func (p *Projector) enqueueBatchEffects(ctx context.Context, companyID int64, effects batchEffects) error {
+	for _, payload := range effects.overrunByKey {
+		raw, err := json.Marshal(payload)
 		if err != nil {
 			return err
 		}
-		if err := jobs.InsertOverrun(ctx, p.enqueuer, nil, companyID, payload); err != nil {
+		if err := jobs.InsertOverrun(ctx, p.enqueuer, nil, companyID, raw); err != nil {
 			return err
 		}
 	}
-	for key := range rebalanceAxes {
+	if effects.deptOnlyOverrun != nil {
+		raw, err := json.Marshal(*effects.deptOnlyOverrun)
+		if err != nil {
+			return err
+		}
+		if err := jobs.InsertOverrun(ctx, p.enqueuer, nil, companyID, raw); err != nil {
+			return err
+		}
+	}
+	for key := range effects.rebalanceAxes {
 		axisKind, axisID, ok := splitRebalanceKey(key)
 		if !ok {
 			continue
@@ -127,8 +172,6 @@ func (p *Projector) enqueueBatchSideEffects(ctx context.Context, companyID int64
 			return err
 		}
 	}
-	// Best-effort optional soft-block cache; skipped when disabled.
-	budgetcheck.RefreshPlatformKeys(ctx, p.cfg, p.store, p.gatewayCache, p.logger, companyID, touchedKeys)
 	return nil
 }
 

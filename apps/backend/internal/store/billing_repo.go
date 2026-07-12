@@ -45,7 +45,6 @@ type RechargeOrder struct {
 	Source         string
 	LotKind        string
 	IdempotencyKey *string
-	NewAPISyncRef  *string
 	Status         string
 	DisplayOrderID string
 	PaymentMethod  string

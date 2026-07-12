@@ -18,9 +18,15 @@ type RoutingState struct {
 	AllowlistTypes []string
 }
 
+type BudgetState struct {
+	SoftRemain *float64
+	Version    int64
+}
+
 type PrecheckContext struct {
 	Wallet  WalletState
 	Routing RoutingState
+	Budget  BudgetState
 }
 
 func PrecheckContextFromStore(row *store.PrecheckContextRow) PrecheckContext {
@@ -43,6 +49,10 @@ func PrecheckContextFromStore(row *store.PrecheckContextRow) PrecheckContext {
 			KeyStatus:      row.KeyStatus,
 			HasAllowlist:   row.HasAllowlist,
 			AllowlistTypes: allowlist,
+		},
+		Budget: BudgetState{
+			SoftRemain: row.GatewaySoftRemain,
+			Version:    row.GatewaySoftVersion,
 		},
 	}
 }

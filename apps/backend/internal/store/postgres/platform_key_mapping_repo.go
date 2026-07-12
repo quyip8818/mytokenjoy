@@ -129,6 +129,14 @@ func (r *platformKeyMappingRepo) ListMappingsByBudgetGroupID(ctx context.Context
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pk.budget_group_id = $2", companyID, budgetGroupID)
 }
 
+func (r *platformKeyMappingRepo) ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []string) ([]store.PlatformKeyMapping, error) {
+	if len(platformKeyIDs) == 0 {
+		return nil, nil
+	}
+	companyID := store.CompanyID(ctx)
+	return r.listMappings(ctx, "pkm.company_id = $1 AND pkm.platform_key_id = ANY($2)", companyID, platformKeyIDs)
+}
+
 func (r *platformKeyMappingRepo) ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]store.PlatformKeyMapping, error) {
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pkm.sync_status = $2", companyID, store.MappingSyncStatusSynced)
 }

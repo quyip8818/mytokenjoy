@@ -528,7 +528,7 @@ go test -tags=testhook ./tests/store/postgres/... -run WalletSync
 | 项 | 说明 |
 | --- | --- |
 | overdraft 告警接入 | ingest 扩展 overdraft 时打 metric / 通知运营 |
-| `newapi_sync_ref` 或 sync 审计表 | 记录每次 sync 前后 quota，便于排障（非资金闭环必需） |
+| sync 审计表 | 记录每次 sync 前后 quota，便于排障（非资金闭环必需） |
 | Gateway 动态 estimate | 按请求模型 + 预估 token 算 `estimate`，减少「预检过、实际超」 |
 
 **P2 — 产品能力**

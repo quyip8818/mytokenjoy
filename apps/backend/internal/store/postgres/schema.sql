@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS company_recharge_orders (
     source           TEXT NOT NULL,
     lot_kind         TEXT NOT NULL,
     idempotency_key  TEXT,
-    newapi_sync_ref  TEXT,
     status           TEXT NOT NULL DEFAULT 'pending',
     display_order_id TEXT NOT NULL DEFAULT '',
     payment_method   TEXT NOT NULL DEFAULT '',
@@ -391,6 +390,9 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    gateway_soft_remain  NUMERIC(18, 6),
+    gateway_soft_at      TIMESTAMPTZ,
+    gateway_soft_version BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, id),
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE RESTRICT,
     FOREIGN KEY (company_id, budget_group_id) REFERENCES budget_groups (company_id, id) ON DELETE RESTRICT
@@ -400,6 +402,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_keys_key_hash ON platform_keys (k
 CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id, member_id) WHERE member_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_platform_keys_budget_group ON platform_keys (company_id, budget_group_id) WHERE budget_group_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_platform_keys_active ON platform_keys (company_id, status) WHERE status = 'active';
+
+CREATE INDEX IF NOT EXISTS idx_platform_keys_soft_stale
+    ON platform_keys (company_id, gateway_soft_at)
+    WHERE status = 'active' AND gateway_soft_remain IS NOT NULL;
+
+COMMENT ON COLUMN platform_keys.gateway_soft_remain IS
+    'Projector/Reconcile maintained minimum budget remain; projection, not SSOT';
+COMMENT ON COLUMN platform_keys.gateway_soft_version IS
+    'Monotonic soft-summary version shared with the optional Redis cache';
 
 CREATE TABLE IF NOT EXISTS key_approvals (
     id              TEXT NOT NULL,
@@ -466,10 +477,6 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     model            TEXT NOT NULL,
     input_tokens     BIGINT NOT NULL DEFAULT 0,
     output_tokens    BIGINT NOT NULL DEFAULT 0,
-    call_status      TEXT,
-    caller_id        TEXT,
-    caller_name      TEXT,
-    preview_snippet  TEXT,
     call_detail      JSONB NOT NULL DEFAULT '{}',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id, occurred_at),
@@ -489,10 +496,6 @@ CREATE INDEX IF NOT EXISTS idx_usage_ledger_dept_occurred
 
 CREATE INDEX IF NOT EXISTS idx_usage_ledger_platform_key_occurred
     ON usage_ledger (company_id, platform_key_id, occurred_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_usage_ledger_caller_occurred
-    ON usage_ledger (company_id, caller_id, occurred_at DESC)
-    WHERE caller_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS usage_buckets (
     company_id    BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,

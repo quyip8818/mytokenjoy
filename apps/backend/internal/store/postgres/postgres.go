@@ -13,15 +13,16 @@ import (
 )
 
 type Store struct {
-	pool              *pgxpool.Pool
-	logPool           *pgxpool.Pool
-	logTables         logTables
-	mappings          *platformKeyMappingRepo
-	gatewayPrecheck   *gatewayPrecheckRepo
-	logs              store.LogStore
-	domain            domainRepos
-	tokenJoyCompanyID int64
-	credentialKey     []byte
+	pool                 *pgxpool.Pool
+	logPool              *pgxpool.Pool
+	logTables            logTables
+	mappings             *platformKeyMappingRepo
+	gatewayPrecheck      *gatewayPrecheckRepo
+	gatewaySoftSummaries *gatewaySoftSummaryRepo
+	logs                 store.LogStore
+	domain               domainRepos
+	tokenJoyCompanyID    int64
+	credentialKey        []byte
 }
 
 type domainRepos struct {
@@ -95,6 +96,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 	}
 	s.mappings = newPlatformKeyMappingRepo(pool)
 	s.gatewayPrecheck = newGatewayPrecheckRepo(pool)
+	s.gatewaySoftSummaries = newGatewaySoftSummaryRepo(pool)
 	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID, s.credentialKey)
 	return s, nil
 }
@@ -156,7 +158,10 @@ func (s *Store) DashboardProjectionProgress() store.ProjectionProgressRepository
 
 func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }
 func (s *Store) GatewayPrecheck() store.GatewayPrecheckRepository        { return s.gatewayPrecheck }
-func (s *Store) Logs() store.LogStore                                    { return s.logs }
+func (s *Store) GatewaySoftSummaries() store.GatewaySoftSummaryRepository {
+	return s.gatewaySoftSummaries
+}
+func (s *Store) Logs() store.LogStore { return s.logs }
 
 func (s *Store) Pool() *pgxpool.Pool { return s.pool }
 
