@@ -215,9 +215,8 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 		}
 
 		// Mark the target department's member_avg_budget
-		markNodeAvgBudget(nodes, deptID, personalBudget)
-		if err := tx.Org().Nodes().SetTree(ctx, nodes); err != nil {
-			return fmt.Errorf("persist org tree: %w", err)
+		if err := pkgbudget.PersistMemberAvgBudget(ctx, tx.Budget().OrgNodeBudget(), deptID, personalBudget); err != nil {
+			return fmt.Errorf("persist member avg budget: %w", err)
 		}
 
 		// If some child depts were skipped due to budget, include a warning in the response
@@ -262,22 +261,6 @@ func joinNames(names []string) string {
 		return fmt.Sprintf("%v", names)
 	}
 	return fmt.Sprintf("%s 等 %d 个部门", names[0], len(names))
-}
-
-func markNodeAvgBudget(nodes []types.OrgNode, nodeID string, budget float64) {
-	var walk func([]types.OrgNode)
-	walk = func(list []types.OrgNode) {
-		for i := range list {
-			if list[i].ID == nodeID {
-				list[i].MemberAvgBudget = budget
-				return
-			}
-			if len(list[i].Children) > 0 {
-				walk(list[i].Children)
-			}
-		}
-	}
-	walk(nodes)
 }
 
 // collectDeptIDs returns a set of department IDs to apply the budget to.
