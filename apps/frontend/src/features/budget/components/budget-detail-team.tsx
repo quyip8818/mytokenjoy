@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { BudgetProjectDialog } from './budget-project-dialog'
+import { BudgetInitPrompt } from './budget-init-prompt'
 import { formatDisplayCurrency } from '@/lib/points'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
@@ -93,6 +94,20 @@ export function BudgetDetailTeam({
   searchMembers,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  // Show initialization prompt if budget is not set
+  if (node.budget === 0) {
+    return (
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-5">
+        <h3 className="text-sm font-semibold text-foreground">{node.name}</h3>
+        <BudgetInitPrompt
+          departmentId={node.id}
+          departmentName={node.name}
+          onUpdateDepartment={onUpdateDepartment}
+        />
+      </div>
+    )
+  }
 
   const nodeProjects = projects.filter((project) => project.departmentId === node.id)
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0

@@ -20,10 +20,10 @@ func TestValidateBudgetNodeUpdate(t *testing.T) {
 		},
 	}
 
-	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-a", 45000, 5000); msg != nil {
+	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-a", 45000, 5000, nil, nil); msg != nil {
 		t.Fatalf("expected valid increase, got %s", *msg)
 	}
-	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-a", 90000, 5000); msg == nil {
+	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-a", 90000, 5000, nil, nil); msg == nil {
 		t.Fatal("expected oversell against parent")
 	}
 }
@@ -39,7 +39,7 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 			},
 		},
 	}
-	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-b", 55000, 0); msg == nil {
+	if msg := budget.ValidateBudgetNodeUpdate(tree, "dept-b", 55000, 0, nil, nil); msg == nil {
 		t.Fatal("expected sibling sum to exceed parent capacity")
 	}
 }

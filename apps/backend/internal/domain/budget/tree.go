@@ -41,7 +41,15 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if reserved != nil {
 			reservedValue = *reserved
 		}
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue); msg != nil {
+		groups, err := tx.Budget().Groups(ctx)
+		if err != nil {
+			return err
+		}
+		members, err := tx.Org().Members(ctx)
+		if err != nil {
+			return err
+		}
+		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, groups, members); msg != nil {
 			return domain.Validation(*msg)
 		}
 		update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
@@ -164,7 +172,7 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 			for _, child := range node.Children {
 				childrenSum += child.Budget
 			}
-			projectSum := groupsBudgetForDept(groups, id)
+			projectSum := pkgbudget.GroupsBudgetForDept(groups, id)
 			memberCount := countMembersInDept(members, id)
 			totalAfter := childrenSum + projectSum + float64(memberCount)*personalBudget
 
@@ -237,19 +245,6 @@ func findOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
 	}
 	walk(nodes)
 	return result
-}
-
-func groupsBudgetForDept(groups []types.BudgetGroup, deptID string) float64 {
-	sum := 0.0
-	for _, g := range groups {
-		for _, d := range g.DepartmentIDs {
-			if d == deptID {
-				sum += g.Budget
-				break
-			}
-		}
-	}
-	return sum
 }
 
 func countMembersInDept(members []types.Member, deptID string) int {
