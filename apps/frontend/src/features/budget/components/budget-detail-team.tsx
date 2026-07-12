@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   BudgetNode,
   BudgetProjectView,
@@ -94,6 +94,7 @@ export function BudgetDetailTeam({
   searchMembers,
 }: BudgetDetailTeamProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [memberRefreshKey, setMemberRefreshKey] = useState(0)
 
   // Show initialization prompt if budget is not set
   if (node.budget === 0) {
@@ -120,7 +121,16 @@ export function BudgetDetailTeam({
   const nodeProjects = projects.filter((project) => project.departmentId === node.id)
   const childrenBudgetSum = node.children?.reduce((sum, child) => sum + child.budget, 0) ?? 0
   const projectBudgetSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
-  const allocated = childrenBudgetSum + projectBudgetSum
+
+  // Load member budget sum for this department
+  const [memberBudgetSum, setMemberBudgetSum] = useState(0)
+  useEffect(() => {
+    getMemberBudgets(node.id).then((members) => {
+      setMemberBudgetSum(members.reduce((sum, m) => sum + m.personalBudget, 0))
+    })
+  }, [node.id, memberRefreshKey, getMemberBudgets])
+
+  const allocated = childrenBudgetSum + projectBudgetSum + memberBudgetSum
   const reservedPool = node.budget - allocated
   const pct = node.budget > 0 ? Math.round((node.consumed / node.budget) * 100) : 0
 
@@ -222,7 +232,10 @@ export function BudgetDetailTeam({
 
       <BudgetEditMemberBudget
         node={node}
-        onUpdated={onUpdated}
+        onUpdated={() => {
+          onUpdated()
+          setMemberRefreshKey((k) => k + 1)
+        }}
         getMemberBudgets={getMemberBudgets}
         updateMemberBudget={updateMemberBudget}
         applyAverageBudget={applyAverageBudget}
@@ -233,6 +246,7 @@ export function BudgetDetailTeam({
         onOpenChange={setCreateDialogOpen}
         department={node}
         existingProjectsBudget={projectBudgetSum}
+        memberBudgetSum={memberBudgetSum}
         onCreateGroup={onCreateGroup}
         getDepartmentTree={getDepartmentTree}
         getMembers={getMembers}
