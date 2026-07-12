@@ -65,6 +65,9 @@ export function BudgetInitPrompt({
             <DialogTitle>设置{departmentName}总额度</DialogTitle>
           </DialogHeader>
           <div className="py-2">
+            <p className="mb-3 text-xs text-muted-foreground">
+              预算周期为每月，额度将在每月 1 号自动刷新。
+            </p>
             <Input
               type="number"
               min={0}
