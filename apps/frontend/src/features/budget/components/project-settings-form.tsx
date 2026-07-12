@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { ProjectView } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,9 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
 import { Pencil } from 'lucide-react'
-import { POLICY_LABELS } from '@/features/budget'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 
 type ProjectSettingsFormProps = {
@@ -29,7 +26,6 @@ export function ProjectSettingsForm({
   onUpdateProject,
   onUpdated,
 }: ProjectSettingsFormProps) {
-  const policy = POLICY_LABELS[project.overrunPolicy]
   const pct = project.budget > 0 ? Math.round((project.consumed / project.budget) * 100) : 0
   const [dialogOpen, setDialogOpen] = useState(false)
   const [draftBudget, setDraftBudget] = useState('')
@@ -86,12 +82,6 @@ export function ProjectSettingsForm({
             <p className="text-sm font-medium tabular-nums">
               {formatDisplayCurrency(project.budget)}
             </p>
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="text-xs text-muted-foreground">超限策略</Label>
-            <Badge variant="outline" className={cn(policy.className, 'w-fit text-xs font-normal')}>
-              {policy.label}
-            </Badge>
           </div>
         </div>
         <div className="mt-3 border-t border-border pt-3">

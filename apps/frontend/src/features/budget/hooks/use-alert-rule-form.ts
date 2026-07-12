@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { OverrunPolicy } from '@/api/types'
 import type { AlertRuleView } from '../lib/alerts'
 
 export type AlertRuleFormState = {
@@ -7,6 +8,7 @@ export type AlertRuleFormState = {
   targetName: string
   thresholds: number[]
   notifyRoleIds: string[]
+  action: OverrunPolicy
 }
 
 export function buildAlertRulePayload(
@@ -22,6 +24,7 @@ export function buildAlertRulePayload(
     targetName: state.targetName,
     thresholds: state.thresholds,
     notifyRoleIds: state.notifyRoleIds,
+    action: state.action,
     enabled: rule?.enabled ?? true,
   }
 }
@@ -44,6 +47,7 @@ export function useAlertRuleForm(rule: AlertRuleView | null) {
   const [notifyRoleIds, setNotifyRoleIds] = useState<string[]>(
     rule?.notifyRoleIds ? [...rule.notifyRoleIds] : [],
   )
+  const [action, setAction] = useState<OverrunPolicy>(rule?.action ?? 'hard_reject')
 
   function resetTarget() {
     setTargetId('')
@@ -88,6 +92,7 @@ export function useAlertRuleForm(rule: AlertRuleView | null) {
     targetName,
     thresholds,
     notifyRoleIds,
+    action,
   }
 
   return {
@@ -100,6 +105,7 @@ export function useAlertRuleForm(rule: AlertRuleView | null) {
     removeThreshold,
     toggleRole,
     selectPreset,
+    setAction,
     validate: () => validateAlertRuleForm(state),
     buildPayload: () => buildAlertRulePayload(state, rule),
   }

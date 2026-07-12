@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { Pencil, Trash2 } from 'lucide-react'
 import { thresholdClass, type AlertRuleView } from '../lib/alerts'
+import { POLICY_LABELS } from '../lib/constants'
 
 interface BudgetAlertsTableProps {
   rules: AlertRuleView[]
@@ -44,6 +45,9 @@ export function BudgetAlertsTable({
               阈值
             </TableHead>
             <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+              动作
+            </TableHead>
+            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
               通知角色
             </TableHead>
             <TableHead className="text-xs font-medium uppercase text-muted-foreground">
@@ -57,7 +61,7 @@ export function BudgetAlertsTable({
         <TableBody>
           {rules.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                 暂无预警规则，点击上方按钮创建
               </TableCell>
             </TableRow>
@@ -105,6 +109,11 @@ export function BudgetAlertsTable({
                       </Badge>
                     ))}
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={cn('text-xs', POLICY_LABELS[rule.action]?.className)}>
+                    {POLICY_LABELS[rule.action]?.label ?? '硬拒绝'}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {rule.notifyRoleIds.length} 个角色

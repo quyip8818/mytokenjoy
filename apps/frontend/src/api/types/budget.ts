@@ -34,6 +34,7 @@ export interface AlertRule {
   nodeName: string
   thresholds: number[]
   notifyRoleIds: string[]
+  action: OverrunPolicy
   enabled: boolean
 }
 
