@@ -11,7 +11,9 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-const validDept3Budget = 20000000
+// Demo seed dept-3 is intentionally oversubscribed; use dept-6 for successful budget updates.
+const budgetUpdateDeptID = "dept-6"
+const validBudgetUpdateAmount = 21000000
 
 type authzCase struct {
 	name       string
@@ -33,7 +35,7 @@ func authzWriteCases(t *testing.T) []authzCase {
 		`{"name":"k","memberId":%q,"budget":100,"modelWhitelist":[%d]}`,
 		contract.IDMember1, contract.IDModel1,
 	)
-	budgetUpdateBody := fmt.Sprintf(`{"budget":%d}`, validDept3Budget)
+	budgetUpdateBody := fmt.Sprintf(`{"budget":%d}`, validBudgetUpdateAmount)
 	deptCreateBody := fmt.Sprintf(`{"name":"Auth Test","parentId":%q}`, contract.IDDept2)
 	adminCookie := testhttp.AdminCookie(t)
 	pureCookie := testutil.SessionCookie(t, contract.IDMemberPure)
@@ -42,9 +44,9 @@ func authzWriteCases(t *testing.T) []authzCase {
 		{name: "department create unauthorized", method: http.MethodPost, path: "/api/org/departments", body: deptCreateBody, wantStatus: http.StatusUnauthorized},
 		{name: "department create forbidden", method: http.MethodPost, path: "/api/org/departments", body: deptCreateBody, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "department create allowed", method: http.MethodPost, path: "/api/org/departments", body: deptCreateBody, cookie: adminCookie, wantStatus: http.StatusOK},
-		{name: "budget update unauthorized", method: http.MethodPut, path: "/api/budget/departments/" + contract.IDDept3, body: budgetUpdateBody, wantStatus: http.StatusUnauthorized},
-		{name: "budget update forbidden", method: http.MethodPut, path: "/api/budget/departments/" + contract.IDDept3, body: `{"budget":1000}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
-		{name: "budget update allowed", method: http.MethodPut, path: "/api/budget/departments/" + contract.IDDept3, body: budgetUpdateBody, cookie: adminCookie, wantStatus: http.StatusOK},
+		{name: "budget update unauthorized", method: http.MethodPut, path: "/api/budget/departments/" + budgetUpdateDeptID, body: budgetUpdateBody, wantStatus: http.StatusUnauthorized},
+		{name: "budget update forbidden", method: http.MethodPut, path: "/api/budget/departments/" + budgetUpdateDeptID, body: `{"budget":1000}`, cookie: pureCookie, wantStatus: http.StatusForbidden},
+		{name: "budget update allowed", method: http.MethodPut, path: "/api/budget/departments/" + budgetUpdateDeptID, body: budgetUpdateBody, cookie: adminCookie, wantStatus: http.StatusOK},
 		{name: "keys platform create unauthorized", method: http.MethodPost, path: "/api/keys/platform", body: platformKeyBody, wantStatus: http.StatusUnauthorized},
 		{name: "keys platform create forbidden", method: http.MethodPost, path: "/api/keys/platform", body: platformKeyBody, cookie: pureCookie, wantStatus: http.StatusForbidden},
 		{name: "model create forbidden", method: http.MethodPost, path: "/api/models", body: `{"type":"test-model","name":"Test","baseUrl":"http://x","inputPrice":1,"outputPrice":2}`, cookie: pureCookie, wantStatus: http.StatusForbidden},

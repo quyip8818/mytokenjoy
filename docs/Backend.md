@@ -19,7 +19,7 @@
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
 | [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化（PR1/PR2 完成，PR3 待办） |
-| [Backend-结构优化.md](./Backend-结构优化.md) | 目标架构、分层债务与分阶段收口路线 |
+| [Backend-结构优化.md](./Backend-结构优化.md) | 当前结构基线与剩余分层债务 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务现状：两条异步线、6 kind、入队点、Worker、Periodic |
 | [实现-离线任务管理.md](./实现-离线任务管理.md) | 离线任务剩余项（`budget_project`、Periodic fanout） |
 | [Backend-River实现.md](./Backend-River实现.md) | River 表、Unique、队列配置、`InsertInTx` 约定 |

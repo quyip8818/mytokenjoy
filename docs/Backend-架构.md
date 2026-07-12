@@ -2,7 +2,7 @@
 
 `apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Gateway 集成与看板读路径。
 
-**相关：** [Backend.md](./Backend.md)（索引）· [Backend-结构优化.md](./Backend-结构优化.md)（目标架构与收口路线）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend.md](./Backend.md)（索引）· [Backend-结构优化.md](./Backend-结构优化.md)（当前结构基线与剩余债务）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
 
 ---
 
@@ -170,7 +170,7 @@ apps/backend/
 └── Makefile
 ```
 
-**目标态：** 分层不变；domain 并行访问 Store 与**按域定义的端口**（5 域 `ports.go` + `app/*_enqueuer.go`）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-目标架构)（**结构变化先改该文档，再同步本段**）。
+**目标态：** 分层不变；domain 并行访问 Store 与**按域定义的端口**（5 域 `ports.go` + `app/*_enqueuer.go`）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
 
 ### 3.1 文件命名与拆分
 

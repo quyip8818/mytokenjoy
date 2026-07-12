@@ -38,7 +38,9 @@ export function BudgetInitPrompt({
     try {
       await onUpdateDepartment(departmentId, { budget: displayToPoints(value) })
       setDialogOpen(false)
-      toast.success(`已设置${departmentName}总额度为 ${formatDisplayCurrency(displayToPoints(value))}`)
+      toast.success(
+        `已设置${departmentName}总额度为 ${formatDisplayCurrency(displayToPoints(value))}`,
+      )
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '设置失败，请重试')
     } finally {

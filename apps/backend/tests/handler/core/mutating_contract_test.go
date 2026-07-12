@@ -18,8 +18,11 @@ func TestMutatingContractEndpoints(t *testing.T) {
 	cookie := testhttp.AdminCookie(t)
 
 	t.Run("budget department update", func(t *testing.T) {
-		body := []byte(`{"budget":21000000,"reservedPool":1500000}`)
-		req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))
+		// dept-6 has no demo oversubscription; dept-3 is reserved for overrun scenarios.
+		const deptID = "dept-6"
+		const wantBudget = 21000000
+		body := []byte(`{"budget":21000000}`)
+		req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/"+deptID, bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Cookie", cookie)
 		rec := httptest.NewRecorder()
@@ -31,8 +34,8 @@ func TestMutatingContractEndpoints(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&node); err != nil {
 			t.Fatal(err)
 		}
-		if node.Budget != 21000000 {
-			t.Fatalf("expected budget 21000000, got %v", node.Budget)
+		if node.Budget != wantBudget {
+			t.Fatalf("expected budget %v, got %v", wantBudget, node.Budget)
 		}
 	})
 

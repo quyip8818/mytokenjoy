@@ -128,7 +128,7 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 - `docs/Backend.md` — Backend design document (index)
 - `docs/Backend-测试优化.md` — Test coverage + speed optimization (PR1/PR2 done, PR3 backlog)
 - `docs/Backend-架构.md` — Layering, naming (Gateway / NewAPISync / PlatformKey), Store, Worker
-- `docs/Backend-结构优化.md` — Target architecture, layering debt, and phased refactor roadmap
+- `docs/Backend-结构优化.md` — Current architecture baseline and remaining structural debt
 - `docs/Backend-配置架构.md` — Config load, production contract, bootstrap, Clock
 - `docs/Backend-业务时钟与账期.md` — Business clock, dual period keys, guards
 - `docs/Backend-预算.md` — Budget subsystem design

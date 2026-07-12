@@ -69,7 +69,11 @@ export function useUsageDashboardPage({ deptId, injectedApis }: UseUsageDashboar
     injectedApis,
     queryKey: [...queryKeys.dashboard.usage(), 'top', costQuery, deptId],
     queryFn: (a) =>
-      a.dashboardApi.getTopConsumers({ ...costQuery, limit: 10, departmentId: deptId ?? undefined }),
+      a.dashboardApi.getTopConsumers({
+        ...costQuery,
+        limit: 10,
+        departmentId: deptId ?? undefined,
+      }),
   })
 
   const loading = teamLoading || modelLoading || topLoading

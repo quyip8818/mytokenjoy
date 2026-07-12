@@ -62,12 +62,16 @@ export function BudgetHeroCard({ budget, consumed, loading }: BudgetHeroCardProp
         </span>
       </div>
       <div className="mt-3 flex items-center gap-3">
-        <Progress value={pct} className={cn('h-3 flex-1', tone === 'danger' && '[&>div]:bg-red-500', tone === 'warning' && '[&>div]:bg-amber-500')} />
-        <span
+        <Progress
+          value={pct}
           className={cn(
-            'text-sm font-semibold tabular-nums',
-            getBudgetProgressClass(pct, true),
+            'h-3 flex-1',
+            tone === 'danger' && '[&>div]:bg-red-500',
+            tone === 'warning' && '[&>div]:bg-amber-500',
           )}
+        />
+        <span
+          className={cn('text-sm font-semibold tabular-nums', getBudgetProgressClass(pct, true))}
         >
           {pct}%
         </span>

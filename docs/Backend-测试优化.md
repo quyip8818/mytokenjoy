@@ -4,7 +4,7 @@
 > **基线（2026-07 初）：** 615 个 `Test*`、全量墙钟 ~115s。  
 > **本 PR 后（2026-07-12 实测）：** **617** `Test*`、墙钟 **~101s**；`make test-fast` **无 PG**。
 
-相关约定见 [Backend.md §5](./Backend.md#5-测试与-seed)。结构收口见 [Backend-结构优化.md §3 Phase 1.4](./Backend-结构优化.md#phase-1--p0-结构与端口试点24-pr)（`rejection_cases` SSOT，可独立 PR）。
+相关约定见 [Backend.md §5](./Backend.md#5-测试与-seed)。Gateway 拒绝场景 SSOT 见 [Backend-结构优化.md §2.1](./Backend-结构优化.md#21-gateway-rejection_cases-ssot)（`rejection_cases`，可独立 PR）。
 
 ---
 
@@ -64,7 +64,7 @@
 
 ## 3. 重复 / 待做（PR3 可选）
 
-Gateway precheck / evaluate / handler 对同一拒绝场景有**重复 case 数据**（非功能盲区）。PR3 抽 `tests/testutil/gateway/rejection_cases.go` + handler G2/G3 smoke；与 [Backend-结构优化.md §3 Phase 1.4](./Backend-结构优化.md#phase-1--p0-结构与端口试点24-pr) 同一事项，**可独立 PR，不阻塞端口试点**。**完整 PR3 优先级低**（见 team 讨论）。
+Gateway precheck / evaluate / handler 对同一拒绝场景有**重复 case 数据**（非功能盲区）。PR3 抽 `tests/testutil/gateway/rejection_cases.go` + handler G2/G3 smoke；与 [Backend-结构优化.md §2.1](./Backend-结构优化.md#21-gateway-rejection_cases-ssot) 同一事项，**可独立 PR**。**完整 PR3 优先级低**（见 team 讨论）。
 
 | 场景 | evaluate | precheck | handler HTTP |
 | --- | --- | --- | --- |

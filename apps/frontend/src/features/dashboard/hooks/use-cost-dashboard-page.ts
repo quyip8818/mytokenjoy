@@ -2,7 +2,13 @@ import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { BudgetNode, CostGranularity, CostPeriod, CostQueryParams } from '@/api/types'
 import { COST_GRANULARITY, COST_PERIOD } from '../lib/constants'
-import { formatLocalDate, getCurrentBudgetPeriod, getMonthStartLocal, getTodayLocal, getWeekStartLocal } from '@/lib/date'
+import {
+  formatLocalDate,
+  getCurrentBudgetPeriod,
+  getMonthStartLocal,
+  getTodayLocal,
+  getWeekStartLocal,
+} from '@/lib/date'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { buildCostStats, buildDeptCostsWithColors, COST_CHART_COLORS } from '../lib/dashboard'
 import type { CostStatItem } from '../lib/dashboard'
