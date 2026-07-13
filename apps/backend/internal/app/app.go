@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -80,6 +82,15 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder)
 	if err != nil {
 		return nil, err
+	}
+	if cfg.AllowsDevHTTPRoutes() {
+		if sync, ok := registry.Infra.newAPISync.(*newapisync.NewAPISync); ok {
+			if err := sync.BootstrapUnsyncedPlatformKeys(
+				company.DefaultContext(cfg.LocalCompanyID), cfg.LocalCompanyID,
+			); err != nil {
+				logger.Warn("local platform key newapi bootstrap failed", "error", err)
+			}
+		}
 	}
 
 	router := httpapi.NewRouter(registry.HTTPDeps(logger))

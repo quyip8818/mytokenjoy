@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
+	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/infra/ingest"
@@ -61,6 +62,10 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 		panic(err)
 	}
 	metrics := ingestMetricsRecorder(cfg)
+	var devBearer newapisync.DevBearerResolver
+	if sync, ok := i.newAPISync.(*newapisync.NewAPISync); ok {
+		devBearer = sync
+	}
 	return ServiceRegistry{
 		Deps: httpdeps.Deps{
 			Config:               cfg,
@@ -84,6 +89,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			WalletSvc:            i.wallet,
 			CompanyGate:          i.companyGate,
 			Gateway:              gateway,
+			DevBearerResolver:    devBearer,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

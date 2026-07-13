@@ -28,8 +28,7 @@ export function PlatformKeyTable({
   onRevoke,
   modelLabel = (id) => `#${id}`,
 }: PlatformKeyTableProps) {
-  const ownerLabel =
-    type === 'member' ? '成员' : type === 'project_member' ? '成员 / 项目' : '项目'
+  const ownerLabel = type === 'member' ? '成员' : type === 'project_member' ? '成员 / 项目' : '项目'
 
   return (
     <Table>

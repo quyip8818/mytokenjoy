@@ -18,7 +18,7 @@ func orgNodeRoutingByID() map[string]orgNodeRoutingSeed {
 		"dept-1": {
 			allowedModelIDs: []int64{
 				contract.IDModel1, contract.IDModel2, contract.IDModel4,
-				contract.IDModel5, contract.IDModel8,
+				contract.IDModel5, contract.IDModel8, contract.IDModel9,
 			},
 			defaultModelID:  modelIDPtr("gpt-4o-mini"),
 			fallbackModelID: modelIDPtr("deepseek-v3"),
@@ -32,7 +32,7 @@ func orgNodeRoutingByID() map[string]orgNodeRoutingSeed {
 			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
 		contract.IDDept3: {
-			allowedModelIDs: []int64{contract.IDModel1, contract.IDModel4, contract.IDModel5},
+			allowedModelIDs: []int64{contract.IDModel1, contract.IDModel4, contract.IDModel5, contract.IDModel9},
 			inherited:       true,
 		},
 		"dept-6": {

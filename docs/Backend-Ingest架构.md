@@ -459,6 +459,7 @@ flowchart TB
 - webhook `200 accepted` **不等于**已入账；看 `ingest_jobs_pending` / `ingest_lag_seconds` / ledger。
 - `NEW_API_ENABLED=false` 时 ingest **仍工作**（写账），只是不同步 NewAPI remain / overrun。
 - webhook 全关时系统仍可工作：只靠 reconcile，延迟变大。
+- **本地模拟消耗 Popup**：`pnpm start` 为全栈（含 NewAPI + `dev-mock-llm`）；`pnpm docker:reset` 含 bootstrap。模型 `local-test-model` 仅 `DEPLOY_ENV=local` Gateway 放行。见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
 
 ---
 
@@ -589,6 +590,7 @@ flowchart TB
 8. 表结构：[Backend-存储架构.md](./Backend-存储架构.md)  
 9. 上线缺口：[工程收口.md](./工程收口.md)  
 10. 性能与投影 lag：[Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md)
+11. 本地模拟消耗 Popup：[本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)
 
 ---
 

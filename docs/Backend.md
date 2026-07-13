@@ -184,11 +184,14 @@ sequenceDiagram
 - 单租户与 SaaS 模式不可切换
 
 ```bash
-pnpm start          # Postgres + backend :8080 + frontend :5173
-pnpm start:newapi    # 完整 NewAPI 栈
-pnpm verify:gate          # 通路冒烟（自建 Key + Gateway + webhook）
+pnpm start          # Postgres + Redis + NewAPI + backend :8080 + frontend :5173 + dev-mock-llm :8765
+pnpm start:infra    # 仅 Docker 基础设施
+pnpm start:newapi   # 前台 attach NewAPI 栈（调试用）
+pnpm verify:gate    # 通路冒烟（自建 Key + Gateway + webhook）
 pnpm verify:integration   # 入账 + lifecycle + metrics
 ```
+
+全链路 ingest 手工测试：`local-test-model` + Dev Popup，见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
 
 生产：nginx 将 `/api/`、`/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），`/api/` 须在 SPA fallback 之前。错误体：`{ "message": "..." }`。
 
@@ -218,11 +221,13 @@ flowchart LR
 | Postgres | `tokenjoy` + `newapi` 两库                  |
 | Redis    | NewAPI 会话与缓存                           |
 
-**Bootstrap：** `docker compose -f apps/newapi/docker-compose.yml up -d` → NewAPI 根管理员 → `NEW_API_ADMIN_TOKEN` → Webhook secret 对齐 → Channel `group=platform_shared`。
+**Bootstrap：** `docker compose -f apps/newapi/docker-compose.yml up -d` → `pnpm bootstrap:local`（或 `pnpm docker:reset`，已内含 bootstrap）→ Webhook secret 对齐 → Channel `group=platform_shared`。
 
 **NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。
 
 **安全：** NewAPI 不对公网；Admin Token 仅存 Backend 环境变量。
+
+**Dev-only 模型：** catalog 类型 `local-test-model`（demo seed ID 9）仅供本地 ingest 全链路测试；Gateway **仅**在 `DEPLOY_ENV=local` 时放行，`staging` / `production` 均在 precheck 之前返回 403，即便 Platform Key 白名单包含该模型。详见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
 
 Gateway / NewAPISync 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 

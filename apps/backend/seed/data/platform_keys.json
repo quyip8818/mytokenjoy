@@ -7,7 +7,7 @@
     "memberId": "m-1",
     "status": "active",
     "budget": 5000,
-    "modelWhitelist": [1, 4],
+    "modelWhitelist": [1, 4, 9],
     "createdAt": "2026-03-01",
     "expiresAt": "2026-12-31"
   },
@@ -31,7 +31,7 @@
     "memberId": "m-2",
     "status": "active",
     "budget": 10000,
-    "modelWhitelist": [1, 5],
+    "modelWhitelist": [1, 5, 9],
     "createdAt": "2026-03-15",
     "expiresAt": null
   },

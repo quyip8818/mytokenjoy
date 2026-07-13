@@ -15,7 +15,10 @@ install-air:
 
 start:
 	@test -x "$(AIR)" || (echo "air not found; run: pnpm install"; exit 1)
-	@set -a && [ -f .env ] && . ./.env; set +a; "$(AIR)"
+	@set -a \
+		&& [ -f .env.development ] && . ./.env.development \
+		&& [ -f .env ] && . ./.env \
+		; set +a; "$(AIR)"
 
 build:
 	@mkdir -p tmp

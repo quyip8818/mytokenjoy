@@ -9,6 +9,11 @@ API_URL="${API_URL:-http://localhost:8080}"
 NEWAPI_URL="${NEWAPI_URL:-http://localhost:3000}"
 WEBHOOK_SECRET="${NEW_API_WEBHOOK_SECRET:-tokenjoy-webhook-secret}"
 NEW_API_ADMIN_TOKEN="${NEW_API_ADMIN_TOKEN:-}"
+BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-${VERIFY_ROOT}/apps/backend/.env}"
+NEW_API_ROOT_USERNAME="${NEW_API_ROOT_USERNAME:-root}"
+NEW_API_ROOT_PASSWORD="${NEW_API_ROOT_PASSWORD:-tokenjoy123}"
+NEW_API_ADMIN_USER_ID="${NEW_API_ADMIN_USER_ID:-1}"
+export NEW_API_ROOT_USERNAME NEW_API_ROOT_PASSWORD
 DATABASE_URL="${DATABASE_URL:-postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable}"
 LOG_DATABASE_URL="${LOG_DATABASE_URL:-postgres://tokenjoy:tokenjoy@127.0.0.1:5432/logs?sslmode=disable}"
 WORKER_WAIT_SEC="${WORKER_WAIT_SEC:-8}"
@@ -43,6 +48,11 @@ for part in sys.argv[2].split('.'):
   v = v.get(part) if isinstance(v, dict) else None
   if v is None: break
 print('' if v is None else v)" "${file}" "${field}"
+}
+
+verify_json_success() {
+  local file="$1"
+  python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("yes" if d.get("success") else "no")' "${file}"
 }
 
 verify_require_tools() {
@@ -205,6 +215,7 @@ verify_newapi_token_http_code() {
   local token_id="$1"
   curl -s -o /dev/null -w "%{http_code}" \
     -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
+    -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
     "${NEWAPI_URL}/api/token/${token_id}" || true
 }
 
@@ -251,4 +262,122 @@ verify_run_gate_flow() {
   verify_create_platform_key "gate-${VERIFY_RUN_TS}"
   verify_assert_gateway_ok "gateway" "$(verify_gateway_code "${VERIFY_PLATFORM_KEY_BEARER}")"
   verify_post_webhook "900001"
+}
+
+# Load apps/backend/.env when NEW_API_ADMIN_TOKEN is unset (verify / channel scripts).
+verify_load_backend_dotenv() {
+  if [[ -n "${NEW_API_ADMIN_TOKEN}" || ! -f "${BACKEND_ENV_FILE}" ]]; then
+    return 0
+  fi
+  # shellcheck disable=SC1090
+  set -a && source "${BACKEND_ENV_FILE}" && set +a
+}
+
+verify_write_env_var() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  python3 - "${file}" "${key}" "${value}" <<'PY'
+import os
+import sys
+
+path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
+lines: list[str] = []
+found = False
+if os.path.exists(path):
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith(f"{key}="):
+                lines.append(f"{key}={value}\n")
+                found = True
+            else:
+                lines.append(line)
+if not found:
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    lines.append(f"{key}={value}\n")
+os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+with open(path, "w", encoding="utf-8") as fh:
+    fh.writelines(lines)
+PY
+}
+
+verify_newapi_root_login() {
+  local resp code
+  resp="${VERIFY_TMPDIR}/newapi-login.json"
+  code=$(curl -s -o "${resp}" -w "%{http_code}" -c "${VERIFY_COOKIE_JAR}" -b "${VERIFY_COOKIE_JAR}" \
+    -X POST "${NEWAPI_URL}/api/user/login" \
+    -H "Content-Type: application/json" \
+    -d "$(python3 -c 'import json,os; print(json.dumps({"username":os.environ["NEW_API_ROOT_USERNAME"],"password":os.environ["NEW_API_ROOT_PASSWORD"]}))')")
+  if [[ "${code}" == "200" && "$(verify_json_success "${resp}")" == "yes" ]]; then
+    return 0
+  fi
+  verify_info "NewAPI root login failed HTTP ${code}: $(cat "${resp}")"
+  return 1
+}
+
+verify_newapi_run_setup() {
+  local resp code
+  resp="${VERIFY_TMPDIR}/newapi-setup.json"
+  code=$(curl -s -o "${resp}" -w "%{http_code}" \
+    -X POST "${NEWAPI_URL}/api/setup" \
+    -H "Content-Type: application/json" \
+    -d "$(python3 -c 'import json,os; u=os.environ["NEW_API_ROOT_USERNAME"]; p=os.environ["NEW_API_ROOT_PASSWORD"]; print(json.dumps({"username":u,"password":p,"confirmPassword":p}))')")
+  if [[ "${code}" == "200" && "$(verify_json_success "${resp}")" == "yes" ]]; then
+    verify_info "NewAPI root account created (${NEW_API_ROOT_USERNAME})"
+    return 0
+  fi
+  verify_info "NewAPI setup HTTP ${code}: $(cat "${resp}")"
+  return 0
+}
+
+verify_newapi_ensure_root() {
+  if verify_newapi_root_login; then
+    verify_info "NewAPI root login OK (${NEW_API_ROOT_USERNAME})"
+    return 0
+  fi
+
+  verify_newapi_run_setup
+
+  verify_newapi_root_login || verify_fail "NewAPI root login failed after setup — set NEW_API_ROOT_USERNAME/NEW_API_ROOT_PASSWORD to match your NewAPI root account"
+  verify_info "NewAPI root login OK (${NEW_API_ROOT_USERNAME})"
+}
+
+verify_newapi_mint_admin_token() {
+  local resp
+  resp="${VERIFY_TMPDIR}/newapi-admin-token.json"
+  local code
+  code=$(curl -s -o "${resp}" -w "%{http_code}" -b "${VERIFY_COOKIE_JAR}" -c "${VERIFY_COOKIE_JAR}" \
+    -H "New-Api-User: ${NEW_API_ADMIN_USER_ID}" \
+    "${NEWAPI_URL}/api/user/token")
+  if [[ "${code}" != "200" ]]; then
+    verify_fail "fetch NewAPI admin token HTTP ${code}: $(cat "${resp}")"
+  fi
+  NEW_API_ADMIN_TOKEN="$(verify_json_field "${resp}" "data")"
+  if [[ -z "${NEW_API_ADMIN_TOKEN}" ]]; then
+    verify_fail "empty admin token in response: $(cat "${resp}")"
+  fi
+  export NEW_API_ADMIN_TOKEN
+}
+
+verify_assert_newapi_admin_token() {
+  local code
+  code=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
+    -H "New-Api-User: ${NEW_API_ADMIN_USER_ID}" \
+    "${NEWAPI_URL}/api/token/?p=0&size=1")
+  if [[ "${code}" != "200" ]]; then
+    verify_fail "NEW_API_ADMIN_TOKEN rejected by NewAPI (HTTP ${code})"
+  fi
+  verify_info "NEW_API_ADMIN_TOKEN verified against NewAPI"
+}
+
+verify_bootstrap_newapi_admin_token() {
+  verify_require_tools
+  verify_wait_newapi
+  verify_newapi_ensure_root
+  verify_newapi_mint_admin_token
+  verify_assert_newapi_admin_token
+  verify_write_env_var "${BACKEND_ENV_FILE}" "NEW_API_ADMIN_TOKEN" "${NEW_API_ADMIN_TOKEN}"
+  verify_info "Wrote NEW_API_ADMIN_TOKEN to ${BACKEND_ENV_FILE}"
 }

@@ -88,8 +88,8 @@ export function ProjectSettingsForm({
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>本月消耗进度</span>
             <span className="tabular-nums">
-              {formatDisplayCurrency(project.consumed)} / {formatDisplayCurrency(project.budget)}{' '}
-              ({pct}%)
+              {formatDisplayCurrency(project.consumed)} / {formatDisplayCurrency(project.budget)} (
+              {pct}%)
             </span>
           </div>
         </div>
@@ -111,7 +111,9 @@ export function ProjectSettingsForm({
                 min={0}
                 value={draftBudget}
                 onChange={(e) => setDraftBudget(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void handleSave() }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleSave()
+                }}
                 className="h-8 tabular-nums"
                 autoFocus
               />
@@ -121,7 +123,12 @@ export function ProjectSettingsForm({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} disabled={saving}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDialogOpen(false)}
+              disabled={saving}
+            >
               取消
             </Button>
             <Button size="sm" onClick={handleSave} disabled={saving}>

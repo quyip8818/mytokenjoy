@@ -54,6 +54,10 @@ func (a AdminPortAdapter) GetToken(ctx context.Context, tokenID int64) (adminpor
 	return mapTokenResult(a.client.GetToken(ctx, tokenID))
 }
 
+func (a AdminPortAdapter) GetTokenKey(ctx context.Context, tokenID int64) (string, error) {
+	return a.client.GetTokenKey(ctx, tokenID)
+}
+
 func (a AdminPortAdapter) RegenerateToken(ctx context.Context, tokenID int64) (adminport.TokenResult, error) {
 	return mapTokenResult(a.client.RegenerateToken(ctx, tokenID))
 }

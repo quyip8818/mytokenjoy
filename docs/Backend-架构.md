@@ -31,7 +31,7 @@
 | ----------- | ---- |
 | Gateway 开关 | `NEW_API_GATEWAY_ENABLED` |
 | SaaS 共享 group | `PLATFORM_SHARED_NEW_API_GROUP` |
-| 本地 NewAPI 栈 | `pnpm start:newapi` |
+| 本地 NewAPI 栈 | `pnpm start`（含 `start:infra`）；调试 attach 用 `pnpm start:newapi` |
 
 **NewAPI Admin 边界**（domain 零 `integration/newapi` import）：
 
@@ -328,6 +328,7 @@ sequenceDiagram
   participant NA as NewAPI
 
   C->>GW: OpenAI 兼容请求
+  GW->>GW: Dev-only 模型守卫（local-test-model 仅非 production）
   GW->>ST: LoadPrecheckContext(key_hash)
   ST-->>GW: PrecheckContext
   GW->>GW: Evaluate（纯内存）
@@ -341,6 +342,8 @@ sequenceDiagram
 ```
 
 预检：`PrecheckService` = `GatewayPrecheck.LoadPrecheckContext` + `Evaluate()`（**1× Postgres round-trip**，0 NewAPI HTTP）。放行条件见 [Backend-预算.md](./Backend-预算.md) §5。
+
+**Dev-only 模型：** `gateway.DevOnlyModel`（`local-test-model`）在 `DEPLOY_ENV=production` 时于 precheck 前直接 403，用于本地 ingest 测试，见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
 
 ### 6.1 Platform Key 写路径
 

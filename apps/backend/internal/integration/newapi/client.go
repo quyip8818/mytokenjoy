@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -15,6 +16,7 @@ type AdminClient interface {
 	CreateToken(ctx context.Context, req CreateTokenRequest) (Token, error)
 	UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token, error)
 	GetToken(ctx context.Context, tokenID int64) (Token, error)
+	GetTokenKey(ctx context.Context, tokenID int64) (string, error)
 	DeleteToken(ctx context.Context, tokenID int64) error
 	RegenerateToken(ctx context.Context, tokenID int64) (Token, error)
 	CreateUser(ctx context.Context, req CreateUserRequest) (User, error)
@@ -25,16 +27,18 @@ type AdminClient interface {
 }
 
 type Client struct {
-	baseURL    string
-	adminToken string
-	httpClient *http.Client
+	baseURL     string
+	adminToken  string
+	adminUserID int64
+	httpClient  *http.Client
 }
 
-func NewClient(baseURL, adminToken string) *Client {
+func NewClient(baseURL, adminToken string, adminUserID int64) *Client {
 	return &Client{
-		baseURL:    strings.TrimRight(baseURL, "/"),
-		adminToken: adminToken,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		baseURL:     strings.TrimRight(baseURL, "/"),
+		adminToken:  adminToken,
+		adminUserID: adminUserID,
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -58,6 +62,9 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.adminToken)
+	if c.adminUserID > 0 {
+		req.Header.Set("New-Api-User", strconv.FormatInt(c.adminUserID, 10))
+	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := c.httpClient.Do(req)
 	if err != nil {

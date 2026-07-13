@@ -10,6 +10,7 @@ func modelIDByType() map[string]int64 {
 		"claude-sonnet-4-6": contract.IDModel4,
 		"deepseek-v3":       contract.IDModel5,
 		"qwen-plus":         contract.IDModel8,
+		"local-test-model":  contract.IDModel9,
 	}
 }
 

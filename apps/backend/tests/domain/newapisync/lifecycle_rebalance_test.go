@@ -26,10 +26,14 @@ func TestTrySyncCreateCapsRemainQuotaByWallet(t *testing.T) {
 
 	const walletCap int64 = 50
 	var lastRemain int64
+	const platformKeyID = "plk-wallet-cap"
 	stub := &mock.StubAdminClient{
 		Token: newapi.Token{ID: 1, Key: "sk-test", RemainQuota: walletCap},
 		CreateTokenFn: func(_ context.Context, req newapi.CreateTokenRequest) (newapi.Token, error) {
 			lastRemain = req.RemainQuota
+			if req.Name != "tokenjoy:"+platformKeyID {
+				t.Fatalf("expected unique token name tokenjoy:%s, got %q", platformKeyID, req.Name)
+			}
 			return newapi.Token{ID: 1, Key: "sk-test", RemainQuota: req.RemainQuota}, nil
 		},
 	}
@@ -46,7 +50,7 @@ func TestTrySyncCreateCapsRemainQuotaByWallet(t *testing.T) {
 	}
 
 	key := newapisynctf.SeedPendingPlatformKey(t, st, newapisynctf.PendingPlatformKeyOpts{
-		ID:   "plk-wallet-cap",
+		ID:   platformKeyID,
 		Name: "wallet-cap-key",
 	})
 

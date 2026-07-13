@@ -105,7 +105,10 @@ export function useKeyFormBudget({
     budgetSummary !== null &&
     budgetSummary.remaining <= 0
   const budgetExceedsRemaining =
-    isCreate && scope === 'member' && budgetSummary !== null && Number(budget) > budgetSummary.remaining
+    isCreate &&
+    scope === 'member' &&
+    budgetSummary !== null &&
+    Number(budget) > budgetSummary.remaining
   const projectBudgetExceeds =
     isCreate &&
     scope === 'project' &&

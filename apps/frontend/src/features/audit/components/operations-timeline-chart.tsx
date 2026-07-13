@@ -7,7 +7,11 @@ interface OperationsTimelineChartProps {
   onDayClick?: (date: string) => void
 }
 
-export function OperationsTimelineChart({ data, loading, onDayClick }: OperationsTimelineChartProps) {
+export function OperationsTimelineChart({
+  data,
+  loading,
+  onDayClick,
+}: OperationsTimelineChartProps) {
   if (loading) {
     return (
       <div className="flex h-[120px] items-center justify-center rounded-lg border bg-card">

@@ -17,6 +17,7 @@ done
 # shellcheck source=_verify-lib.sh
 source "$(cd "$(dirname "$0")" && pwd)/_verify-lib.sh"
 trap verify_cleanup EXIT
+verify_load_backend_dotenv
 
 echo "== TokenJoy verify:integration =="
 echo "Backend: ${API_URL} | NewAPI: ${NEWAPI_URL}"

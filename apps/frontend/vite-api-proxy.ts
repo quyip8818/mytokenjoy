@@ -45,6 +45,14 @@ export function createApiProxyConfig(base: string, target?: string): Record<stri
         proxy.on('error', proxyErrorHandler)
       },
     },
+    // Gateway path used by Dev local-test-model Popup.
+    '/v1': {
+      target: proxyTarget,
+      changeOrigin: true,
+      configure: (proxy) => {
+        proxy.on('error', proxyErrorHandler)
+      },
+    },
   }
 }
 

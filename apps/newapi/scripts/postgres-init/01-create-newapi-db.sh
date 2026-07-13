@@ -6,3 +6,7 @@ psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "${POSTGRES_DB}" 
 	CREATE DATABASE newapi;
 	CREATE DATABASE logs;
 EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "logs" <<-EOSQL
+	CREATE SCHEMA IF NOT EXISTS newapi;
+EOSQL

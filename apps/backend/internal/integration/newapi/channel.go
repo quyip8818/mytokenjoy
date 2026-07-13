@@ -18,5 +18,5 @@ func (c *Client) UpsertChannel(ctx context.Context, req UpsertChannelRequest) (C
 }
 
 func (c *Client) RebuildAbilities(ctx context.Context) error {
-	return c.do(ctx, "GET", "/api/ability/sync", nil, nil)
+	return c.do(ctx, "GET", "/api/channel/sync", nil, nil)
 }

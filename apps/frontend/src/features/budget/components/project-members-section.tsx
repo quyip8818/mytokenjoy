@@ -176,7 +176,12 @@ export function ProjectMembersSection({
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} disabled={savingMembers}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDialogOpen(false)}
+              disabled={savingMembers}
+            >
               取消
             </Button>
             <Button size="sm" onClick={saveMembers} disabled={savingMembers}>

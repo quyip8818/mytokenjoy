@@ -21,9 +21,7 @@ export function CallLogsSummaryCards({ summary, loading }: CallLogsSummaryCardsP
         label="错误率"
         value={loading ? '-' : `${(summary?.errorRate ?? 0).toFixed(1)}%`}
         icon={AlertTriangle}
-        iconAccent={
-          (summary?.errorRate ?? 0) > 5 ? 'bg-red-500' : 'bg-emerald-500'
-        }
+        iconAccent={(summary?.errorRate ?? 0) > 5 ? 'bg-red-500' : 'bg-emerald-500'}
         iconAccentStyle="solid"
       />
       <StatCard

@@ -20,6 +20,8 @@ importers:
 
   apps/backend: {}
 
+  apps/dev-mock-llm: {}
+
   apps/frontend:
     dependencies:
       '@fontsource-variable/inter':

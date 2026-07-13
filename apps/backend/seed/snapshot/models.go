@@ -6,6 +6,7 @@ import (
 )
 
 func buildModels() []types.ModelInfo {
+	devMockEndpoint := "http://127.0.0.1:8765/v1"
 	return []types.ModelInfo{
 		{ModelID: contract.IDModel1, CompanyID: contract.TokenJoyCompanyID, Provider: "openai", Type: "gpt-4o", Name: "GPT-4o", Description: "OpenAI flagship multimodal model", InputPrice: seedPoints(2.5), OutputPrice: seedPoints(10), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat", "vision", "function_calling"}},
 		{ModelID: contract.IDModel2, CompanyID: contract.TokenJoyCompanyID, Provider: "openai", Type: "gpt-4o-mini", Name: "GPT-4o Mini", Description: "Cost-efficient OpenAI model", InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat", "vision", "function_calling"}},
@@ -15,5 +16,6 @@ func buildModels() []types.ModelInfo {
 		{ModelID: contract.IDModel6, CompanyID: contract.TokenJoyCompanyID, Provider: "deepseek", Type: "deepseek-r1", Name: "DeepSeek R1", Description: "DeepSeek reasoning model", InputPrice: seedPoints(0.55), OutputPrice: seedPoints(2.19), MaxContext: 64000, Enabled: false, Capabilities: []string{"chat", "function_calling"}},
 		{ModelID: contract.IDModel7, CompanyID: contract.TokenJoyCompanyID, Provider: "qwen", Type: "qwen-max", Name: "Qwen Max", Description: "Alibaba Qwen flagship", InputPrice: seedPoints(2.0), OutputPrice: seedPoints(6.0), MaxContext: 32000, Enabled: false, Capabilities: []string{"chat", "function_calling"}},
 		{ModelID: contract.IDModel8, CompanyID: contract.TokenJoyCompanyID, Provider: "qwen", Type: "qwen-plus", Name: "Qwen Plus", Description: "Alibaba Qwen plus tier", InputPrice: seedPoints(0.8), OutputPrice: seedPoints(2.0), MaxContext: 131072, Enabled: true, Capabilities: []string{"chat", "vision"}},
+		{ModelID: contract.IDModel9, CompanyID: contract.TokenJoyCompanyID, Provider: types.ProviderCustom, Type: "local-test-model", Name: "Local Test Model", Description: "Local upstream for full-path ingest testing; echoes requested usage", Endpoint: &devMockEndpoint, InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat"}},
 	}
 }

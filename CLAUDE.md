@@ -8,7 +8,11 @@ All commands run from the repo root (pnpm workspace, `pnpm@11.9.0`):
 
 ```bash
 # Full-stack
-pnpm start              # Backend + frontend together (waits for backend healthz)
+pnpm start:lite          # Postgres + backend + frontend (no NewAPI / dev-mock)
+pnpm start               # Full stack: infra + backend + frontend + dev-mock (simulate consume)
+pnpm docker:reset        # Wipe Postgres volume + bootstrap NewAPI admin token → apps/backend/.env
+pnpm bootstrap:local     # Infra + mint admin token + dev-mock channel (without wiping DB)
+pnpm bootstrap:token     # Mint admin token only (NewAPI must be running)
 pnpm verify             # Full CI check: lint + test + build
 pnpm generate:permissions  # Regenerate permission keys from packages/contracts manifest
 
@@ -33,7 +37,8 @@ make format             # gofmt -w .
 cd apps/backend && go test ./tests/domain/gateway/... -run TestPrecheckRejectsZeroBudget -v
 
 # NewAPI (apps/newapi)
-pnpm start:newapi       # docker compose up
+pnpm start:newapi       # 前台 attach NewAPI 栈（调试用；日常用 pnpm start 即可）
+pnpm start:dev-mock     # dev-mock-llm only (:8765; included in pnpm start)
 pnpm verify:gate        # 通路冒烟（自建 Key + Gateway + webhook）
 pnpm verify:integration # 入账 + Toggle/Rotate/Revoke + metrics（需 NEW_API_ADMIN_TOKEN）
 ```
@@ -98,7 +103,7 @@ tests/                   — ALL unit tests (mirrors internal/ structure)
 
 **Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer.
 
-**NewAPI integration:** Domain talks to NewAPI Admin via `domain/adminport.Port` (adapter in `integration/newapi/admin_port_adapter.go`); quota conversion in `pkg/newapiunits/`. `domain/newapisync/` syncs PlatformKey/ProviderKey; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward.
+**NewAPI integration:** Domain talks to NewAPI Admin via `domain/adminport.Port` (adapter in `integration/newapi/admin_port_adapter.go`); quota conversion in `pkg/newapiunits/`. `domain/newapisync/` syncs PlatformKey/ProviderKey; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward. Dev-only model `local-test-model` is blocked in production (`DEPLOY_ENV=production`) before precheck — see `docs/manual-testing/本地模式-模拟消耗Popup.md`.
 
 ### NewAPI (`apps/newapi/`)
 

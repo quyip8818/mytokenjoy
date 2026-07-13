@@ -14,6 +14,7 @@ const (
 	IDModel6 int64 = 6
 	IDModel7 int64 = 7
 	IDModel8 int64 = 8
+	IDModel9 int64 = 9
 
 	IDDept2          = "dept-2"
 	IDDept3          = "dept-3"

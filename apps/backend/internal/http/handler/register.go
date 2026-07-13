@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/billing"
 	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
 	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
+	devhandler "github.com/tokenjoy/backend/internal/http/handler/dev"
 	ingesthandler "github.com/tokenjoy/backend/internal/http/handler/ingest"
 	keyshandler "github.com/tokenjoy/backend/internal/http/handler/keys"
 	mehandler "github.com/tokenjoy/backend/internal/http/handler/me"
@@ -31,6 +32,7 @@ type Registry struct {
 	audit          *audithandler.Handler
 	me             *mehandler.Handler
 	internalIngest *ingesthandler.Handler
+	dev            *devhandler.Handler
 }
 
 func NewRegistry(deps httpdeps.Deps) Registry {
@@ -49,6 +51,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		audit:          audithandler.NewHandler(p, deps.AuditSvc),
 		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc),
 		internalIngest: ingesthandler.NewHandler(deps.Config, deps.IngestQueue, deps.IngestMetrics, deps.Logger),
+		dev:            devhandler.NewHandler(p, deps.DevBearerResolver),
 	}
 }
 
@@ -69,4 +72,8 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	r.Route("/dashboard", reg.dashboard.RegisterRoutes)
 	r.Route("/audit", reg.audit.RegisterRoutes)
 	r.Route("/me", reg.me.RegisterRoutes)
+	// /api/dev/* — local development only; see config.AllowsDevHTTPRoutes.
+	if reg.cfg.Config.AllowsDevHTTPRoutes() {
+		r.Route("/dev", reg.dev.RegisterRoutes)
+	}
 }

@@ -111,7 +111,10 @@ export function BudgetAlertsTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={cn('text-xs', POLICY_LABELS[rule.action]?.className)}>
+                  <Badge
+                    variant="outline"
+                    className={cn('text-xs', POLICY_LABELS[rule.action]?.className)}
+                  >
                     {POLICY_LABELS[rule.action]?.label ?? '硬拒绝'}
                   </Badge>
                 </TableCell>

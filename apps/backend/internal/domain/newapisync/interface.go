@@ -10,6 +10,10 @@ type NewAPIGate interface {
 	Enabled() bool
 }
 
+type DevBearerResolver interface {
+	ResolvePlatformKeyBearer(ctx context.Context, platformKeyID string) (string, error)
+}
+
 type PlatformKeyLifecycle interface {
 	SyncCreatePlatformKey(ctx context.Context, key types.PlatformKey, departmentID string) error
 	TrySyncCreate(ctx context.Context, platformKeyID string) (string, error)

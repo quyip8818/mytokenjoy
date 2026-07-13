@@ -16,6 +16,13 @@ const (
 
 func (c Config) IsProductionDeploy() bool { return c.DeployEnv == DeployEnvProduction }
 
+// AllowsDevHTTPRoutes is the single gate for /api/dev/* (including
+// GET /api/dev/platform-keys/{id}/bearer). True only when DEPLOY_ENV=local.
+//
+// Do not register or serve dev HTTP routes under staging/production, and do not
+// add alternate env flags or feature toggles for this surface.
+func (c Config) AllowsDevHTTPRoutes() bool { return c.DeployEnv == DeployEnvLocal }
+
 func (c Config) Clock() clock.Clock {
 	anchor := strings.TrimSpace(c.ClockAnchor)
 	if anchor == "" {

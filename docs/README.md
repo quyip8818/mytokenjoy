@@ -1,6 +1,6 @@
 # TokenJoy 文档索引
 
-Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（NewAPI）；共享契约 `packages/contracts`。本地联调：`pnpm start`。
+Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（NewAPI）+ `apps/dev-mock-llm`（本地 ingest 测试上游）；共享契约 `packages/contracts`。本地联调：`pnpm start`（Postgres + Redis + NewAPI + backend + frontend + mock）。
 
 ## 权威来源
 
@@ -39,6 +39,12 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [权限管理.md](./权限管理.md) | 后端 / 前端 / 架构 | Identity JWT + PDP |
 | [架构终态设计.md](./架构终态设计.md) | 架构 | **目标态**（非 as-built）：Gateway 性能、投影、执法分层 |
 
+### 本地联调 / 手工测试
+
+| 文档 | 读者 | 内容 |
+| --- | --- | --- |
+| **[本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)** | 产品 / QA / 研发 | `local-test-model` 全链路 ingest 测试：如何运作、如何验收 |
+
 ### 归档笔记（非权威 backlog）
 
 | 路径 | 说明 |
@@ -67,16 +73,19 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 
 ```bash
 pnpm install          # 安装依赖
-pnpm start            # Postgres + backend :8080 + frontend :5173
-pnpm start:postgres   # 仅起 PostgreSQL（跑后端测试前必须）
+pnpm start            # Postgres + Redis + NewAPI + backend :8080 + frontend :5173 + dev-mock-llm :8765
+pnpm start:infra      # 仅 Docker 基础设施（Postgres + Redis + NewAPI）
+pnpm start:postgres   # 仅 PostgreSQL（跑后端测试前必须）
 pnpm verify           # lint + test + build + backend build:check（PR 前）
 pnpm test             # 前端 Vitest + 后端 go test（需 PostgreSQL）
 pnpm test:e2e         # 前端 Playwright E2E
-pnpm start:newapi      # 完整 NewAPI 栈（Postgres + Redis + new-api）
+pnpm start:newapi     # 前台 attach NewAPI 栈（调试用）
 
 cd apps/backend && make test-fast    # 仅 tests/pkg/...，无 Postgres
 cd apps/backend && make test-unit    # 全量 go test（需 pnpm start:postgres）
 ```
+
+全链路 ingest 手工测试（`local-test-model` + Popup）：见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。`pnpm start` 为全栈；`pnpm docker:reset` 会自动 bootstrap admin token；channel 失败时再跑 `setup-dev-mock-channel.sh`。
 
 ## CI
 

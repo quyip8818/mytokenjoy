@@ -27,6 +27,7 @@ type GatewayScenarioOpts struct {
 	RemainQuota        int64
 	CompanyStatus      string
 	ProxyBackendURL    string
+	DeployEnv          string
 }
 
 type GatewayScenario struct {
@@ -51,6 +52,9 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	}
 	cfg.NewAPIBaseURL = backendURL
 	cfg.GatewayEnabled = true
+	if opts.DeployEnv != "" {
+		cfg.DeployEnv = opts.DeployEnv
+	}
 
 	precheck := NewPrecheckService(cfg, st, nil)
 	gw, err := domaingateway.NewGatewayService(cfg, precheck)

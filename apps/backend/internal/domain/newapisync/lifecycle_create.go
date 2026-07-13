@@ -13,7 +13,6 @@ import (
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
-	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -52,7 +51,6 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	if !ok {
 		return "", fmt.Errorf("platform key not found")
 	}
-	members := budgetCtx.Members
 	departments, err := common.LoadDepartments(ctx, l.store.Org().Nodes())
 	if err != nil {
 		return "", err
@@ -65,20 +63,7 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	if err != nil {
 		return "", err
 	}
-	departmentID := ""
-	if key.MemberID != nil {
-		if member, found := org.FindMemberByID(members, *key.MemberID); found {
-			departmentID = member.DepartmentID
-		}
-	}
-	if departmentID == "" && key.ProjectID != nil {
-		for _, project := range budgetCtx.Projects {
-			if project.ID == *key.ProjectID && project.OwnerDepartmentID != "" {
-				departmentID = project.OwnerDepartmentID
-				break
-			}
-		}
-	}
+	departmentID := departmentIDForPlatformKey(key, budgetCtx)
 	if departmentID == "" {
 		return "", fmt.Errorf("department not resolved for key")
 	}
@@ -108,7 +93,7 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	walletUserID := l.newAPIWalletUserID(ctx)
 	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
-		Name:               key.Name,
+		Name:               newAPITokenName(key.ID),
 		RemainQuota:        remainUnits,
 		UnlimitedQuota:     false,
 		ModelLimitsEnabled: len(effectiveCallTypes) > 0,

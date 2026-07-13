@@ -35,7 +35,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 	if adminClientOverride != nil {
 		adminClient = adminClientOverride
 	} else {
-		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken)
+		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken, cfg.NewAPIAdminUserID)
 	}
 	if enqueuer == nil {
 		enqueuer = jobs.NoopEnqueuer{}

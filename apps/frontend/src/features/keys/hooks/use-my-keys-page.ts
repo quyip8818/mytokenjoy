@@ -27,9 +27,11 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     injectedApis,
     queryKey: queryKeys.keys.mine(memberId),
     queryFn: (apis) =>
-      apis.platformKeyApi.list({ memberId }).then((res) =>
-        res.items.filter((key) => key.scope === 'member' || key.scope === 'project_member'),
-      ),
+      apis.platformKeyApi
+        .list({ memberId })
+        .then((res) =>
+          res.items.filter((key) => key.scope === 'member' || key.scope === 'project_member'),
+        ),
     enabled: Boolean(memberId),
   })
   const {

@@ -13,6 +13,7 @@ type StubAdminClient struct {
 	CreateTokenFn      func(ctx context.Context, req newapi.CreateTokenRequest) (newapi.Token, error)
 	UpdateTokenFn      func(ctx context.Context, req newapi.UpdateTokenRequest) (newapi.Token, error)
 	GetTokenFn         func(ctx context.Context, tokenID int64) (newapi.Token, error)
+	GetTokenKeyFn      func(ctx context.Context, tokenID int64) (string, error)
 	DeleteTokenFn      func(ctx context.Context, tokenID int64) error
 	RegenerateTokenFn  func(ctx context.Context, tokenID int64) (newapi.Token, error)
 	CreateUserFn       func(ctx context.Context, req newapi.CreateUserRequest) (newapi.User, error)
@@ -24,6 +25,7 @@ type StubAdminClient struct {
 	CreateTokenCalls      int
 	UpdateTokenCalls      int
 	GetTokenCalls         int
+	GetTokenKeyCalls      int
 	DeleteTokenCalls      int
 	RegenerateTokenCalls  int
 	CreateUserCalls       int
@@ -55,6 +57,17 @@ func (s *StubAdminClient) GetToken(ctx context.Context, tokenID int64) (newapi.T
 		return s.GetTokenFn(ctx, tokenID)
 	}
 	return s.Token, nil
+}
+
+func (s *StubAdminClient) GetTokenKey(ctx context.Context, tokenID int64) (string, error) {
+	s.GetTokenKeyCalls++
+	if s.GetTokenKeyFn != nil {
+		return s.GetTokenKeyFn(ctx, tokenID)
+	}
+	if s.Token.Key != "" {
+		return s.Token.Key, nil
+	}
+	return "", nil
 }
 
 func (s *StubAdminClient) DeleteToken(ctx context.Context, tokenID int64) error {

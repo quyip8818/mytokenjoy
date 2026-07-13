@@ -20,7 +20,8 @@ main.tsx → App.tsx
       └─ WorkflowProvider → Sidebar / Header / Outlet / WorkflowPanelStack
 ```
 
-- `pnpm start`：backend `:8080` + Vite `:5173`；`/api` 反代 Go（`vite-api-proxy.ts`）
+- `pnpm start`：Postgres + Redis + NewAPI + backend `:8080` + frontend `:5173` + `dev-mock-llm` `:8765`；`/api` 与 `/v1` 反代 Go（`vite-api-proxy.ts`）
+- Dev Header「模拟消耗」：仅 `import.meta.env.DEV`；走 `POST /v1` 全链路 ingest 测试，见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)
 - 登录：`POST /auth/login`（邮箱密码）→ HttpOnly JWT Cookie → `GET /session`
 - 首页 `/` 按权限跳转 `HOME_PATH_CANDIDATES`
 
@@ -159,7 +160,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 本地开发与 nginx 同域部署均为 `/api`。
 
-开发环境通过 Vite dev/preview 将 `{BASE_URL}/api` 同域反代到 Go（默认 `http://127.0.0.1:8080`，可用 `VITE_API_PROXY_TARGET` 覆盖）。生产使用 nginx 等同域反代：静态资源托管 `apps/frontend/dist`，`/api/` 与 `/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），**`/api/` 的 `location` 须写在 SPA `try_files` fallback 之前**。
+开发环境通过 Vite dev/preview 将 `{BASE_URL}/api` 与 **`/v1`** 同域反代到 Go（默认 `http://127.0.0.1:8080`，可用 `VITE_API_PROXY_TARGET` 覆盖）。`/v1` 供 Dev Popup 调用 Gateway（`POST /v1/chat/completions`），不经 Session。生产使用 nginx 等同域反代：静态资源托管 `apps/frontend/dist`，`/api/` 与 `/healthz` 反代到本机 Go（如 `127.0.0.1:8080`），**`/api/` 的 `location` 须写在 SPA `try_files` fallback 之前**。
 
 #### 5.1.2 请求头
 
@@ -721,7 +722,7 @@ HTTP 非 2xx 时，body 应包含：
 | `VITE_API_PROXY_TARGET` | 可选；覆盖 Vite 反代目标（默认 `http://127.0.0.1:8080`） |
 | `BASE_URL`              | Vite 应用根路径；影响 `API_BASE_PATH`（默认 `/`）        |
 
-根目录 `pnpm start` 并发启动 backend + frontend；[`apps/frontend/.env.development`](../apps/frontend/.env.development) 默认配置代理目标。
+根目录 `pnpm start` 并发启动 backend、frontend、`dev-mock-llm`；[`apps/frontend/.env.development`](../apps/frontend/.env.development) 默认配置代理目标。
 
 #### 5.7.2 鉴权（目标态）
 
@@ -902,14 +903,16 @@ pnpm install && pnpm start
 
 1. `/login` 用种子账号登录（见 `权限管理.md` WP-2.6）→ JWT Cookie
 2. 空库需设 `BOOTSTRAP_MODE=demo` 才会写入种子与演示 runtime；看板时间锚定可选 `CLOCK_ANCHOR=2026-06-19`（见 [Backend-配置架构.md](./Backend-配置架构.md)、[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)）
-3. 重置：`pnpm docker:reset && pnpm start`
+3. 日常 UI/API：`pnpm start:lite`（Postgres + backend + frontend）
+4. 全链路模拟消耗 / ingest：`pnpm start`（含 NewAPI + dev-mock）
+5. 重置：`pnpm docker:reset && pnpm start`（`docker:reset` 会自动 bootstrap NewAPI admin token 到 `apps/backend/.env`）
 
 | 变量                    | 说明                                   |
 | ----------------------- | -------------------------------------- |
 | `VITE_API_PROXY_TARGET` | 反代目标，默认 `http://127.0.0.1:8080` |
 | `DATABASE_URL`          | 后端 Postgres                          |
 
-可选 NewAPI：`pnpm start:newapi` + `NEW_API_ENABLED=true`。验收：`pnpm verify`、`pnpm test:e2e`。
+可选单独 attach NewAPI 日志：`pnpm start:newapi`（日常 `pnpm start` 已后台起栈）。验收：`pnpm verify`、`pnpm test:e2e`。
 
 生产同域：静态托管 `dist`，`/api/`、`/healthz` 反代 Go；`/api/` 须在 SPA fallback 之前。
 

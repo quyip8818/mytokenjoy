@@ -21,8 +21,9 @@ type GatewayService interface {
 }
 
 type gatewayService struct {
-	precheck Prechecker
-	proxy    *httputil.ReverseProxy
+	precheck      Prechecker
+	proxy         *httputil.ReverseProxy
+	allowDevModel bool
 }
 
 func NewGatewayService(cfg config.Config, precheck Prechecker) (GatewayService, error) {
@@ -38,8 +39,9 @@ func NewGatewayService(cfg config.Config, precheck Prechecker) (GatewayService, 
 		req.Host = target.Host
 	}
 	return &gatewayService{
-		precheck: precheck,
-		proxy:    proxy,
+		precheck:      precheck,
+		proxy:         proxy,
+		allowDevModel: cfg.AllowsDevHTTPRoutes(),
 	}, nil
 }
 
@@ -67,10 +69,15 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "read request body", http.StatusForbidden)
 		return
 	}
+	model := parseRequestModel(body)
+	if !g.allowDevModel && isDevOnlyModel(model) {
+		http.Error(w, "request rejected", http.StatusForbidden)
+		return
+	}
 	if err := g.precheck.Run(
 		r.Context(),
 		store.HashPlatformKey(platformKeySecret),
-		parseRequestModel(body),
+		model,
 		r.URL.Path == "/v1/models",
 	); err != nil {
 		http.Error(w, "request rejected", http.StatusForbidden)
@@ -115,6 +122,14 @@ var allowedGatewayPaths = map[string]struct{}{
 func isAllowedGatewayPath(path string) bool {
 	_, ok := allowedGatewayPaths[path]
 	return ok
+}
+
+// DevOnlyModel is the catalog model backed by the local dev-mock upstream
+// (see apps/dev-mock-llm). It is only reachable when DEPLOY_ENV=local.
+const DevOnlyModel = "local-test-model"
+
+func isDevOnlyModel(model string) bool {
+	return model == DevOnlyModel
 }
 
 var _ GatewayService = (*gatewayService)(nil)

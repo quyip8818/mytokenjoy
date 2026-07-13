@@ -1,10 +1,8 @@
 ARG UPSTREAM_REF=1e80ce03e8592af09eafb32c36ac20e79d359937
 
-FROM oven/bun:1@sha256:0733e50325078969732ebe3b15ce4c4be5082f18c4ac1a0f0ca4839c2e4e42a7 AS upstream-src
+FROM oven/bun:1-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS upstream-src
 ARG UPSTREAM_REF
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git ca-certificates
 WORKDIR /upstream
 RUN git clone https://github.com/QuantumNous/new-api.git . \
     && git fetch --depth 1 origin "${UPSTREAM_REF}" \
@@ -18,7 +16,7 @@ RUN bun install --frozen-lockfile \
 
 FROM upstream-src AS web-classic
 WORKDIR /upstream/web
-RUN bun install --filter ./classic --frozen-lockfile \
+RUN bun install --frozen-lockfile \
     && cd classic \
     && VITE_REACT_APP_VERSION=$(cat /upstream/VERSION) bun run build
 
