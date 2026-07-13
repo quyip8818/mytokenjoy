@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -84,26 +82,12 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	if err != nil {
 		return nil, err
 	}
-	if cfg.AllowsDevHTTPRoutes() {
-		if sync, ok := registry.Infra.newAPISync.(*newapisync.NewAPISync); ok {
-			bootstrapCtx := company.DefaultContext(cfg.LocalCompanyID)
-			unready, err := sync.UnreadyPlatformKeyIDs(bootstrapCtx)
-			if err != nil {
-				logger.Warn("check demo platform key readiness failed", "error", err)
-			} else if len(unready) > 0 {
-				logger.Warn(
-					"demo platform keys not synced; run pnpm docker:reset or: cd apps/backend && make dev-bootstrap",
-					"unready_keys", unready,
-				)
-			}
-		}
-	}
-
 	router := httpapi.NewRouter(registry.HTTPDeps(logger))
 
 	workerCtx, cancel := context.WithCancel(context.Background())
 	if !o.skipWorker {
 		bgWorkers.start(workerCtx, cfg)
+		startDeferredWatchdog(workerCtx, cfg, logger, st, holder)
 	}
 
 	return &App{
@@ -121,24 +105,6 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 			},
 		},
 	}, nil
-}
-
-func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o options, holder *jobs.Holder, orgAdmin *OrgRiverAdminHolder) (ServiceRegistry, error) {
-	if holder == nil {
-		holder = jobs.NewHolder(jobs.NoopEnqueuer{})
-	}
-	if orgAdmin == nil {
-		orgAdmin = NewOrgRiverAdminHolder(nil)
-	}
-	infraDeps, err := buildInfraWithStore(cfg, logger, st, holder, o.adminClient)
-	if err != nil {
-		return ServiceRegistry{}, err
-	}
-	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger, holder, orgAdmin))
-	if o.orgSync != nil {
-		registry.OrgSync = o.orgSync
-	}
-	return registry, nil
 }
 
 func (a *App) Close() {

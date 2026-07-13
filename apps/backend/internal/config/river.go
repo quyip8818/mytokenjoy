@@ -8,8 +8,9 @@ const (
 
 // RiverConfig holds River worker settings (embedded in Config for env parsing).
 type RiverConfig struct {
-	RiverEnabled       bool `env:"RIVER_ENABLED" envDefault:"true"`
-	RiverMaxWorkersEnv int  `env:"RIVER_MAX_WORKERS" envDefault:"20"`
+	RiverEnabled         bool `env:"RIVER_ENABLED" envDefault:"true"`
+	RiverPeriodicEnabled bool `env:"RIVER_PERIODIC_ENABLED" envDefault:"true"`
+	RiverMaxWorkersEnv   int  `env:"RIVER_MAX_WORKERS" envDefault:"20"`
 }
 
 func (c Config) RiverMaxWorkers() int {

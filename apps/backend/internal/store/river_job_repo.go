@@ -9,4 +9,7 @@ type RiverJobRepository interface {
 	ListActiveOrgSyncJobIDs(ctx context.Context, companyID int64) ([]int64, error)
 	ListCancellableOrgSyncJobIDs(ctx context.Context, companyID int64) ([]int64, error)
 	HasActiveOrgSync(ctx context.Context, companyID int64) (bool, error)
+	CountActiveJobs(ctx context.Context) (int, error)
+	// CountRunnableJobs is jobs workers can claim now (excludes future scheduled).
+	CountRunnableJobs(ctx context.Context) (int, error)
 }

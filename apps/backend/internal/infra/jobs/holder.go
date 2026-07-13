@@ -8,7 +8,7 @@ import (
 )
 
 // Holder allows wiring domain enqueue paths before the River client is constructed.
-// Registry builds with NoopEnqueuer first; wire_river sets the real enqueuer after NewClient.
+// Registry builds with NoopEnqueuer first; compose_worker sets the real enqueuer after NewClient.
 type Holder struct {
 	inner Enqueuer
 }

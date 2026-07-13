@@ -1,3 +1,5 @@
+// compose_worker.go — River + Ingest background workers.
+// Budget/Dashboard Projector + Reconcile are constructed here only (not in HTTP domain services).
 package app
 
 import (
@@ -60,6 +62,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		DashboardReconcile: dashboardReconcile,
 		Scheduler:          sched,
 		BulkEnqueuer:       bulk,
+		DisablePeriodic:    !cfg.RiverPeriodicEnabled,
 	}, logger)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Heavy infra bootstrap: build/wait NewAPI. Used by pnpm docker:reset, pnpm bootstrap, pnpm infra.
+# Daily attach: ensure-infra.sh (--no-build).
 set -euo pipefail
 
 # shellcheck source=_verify-lib.sh

@@ -15,3 +15,10 @@ func (c Config) WatchdogBulkBatchSize() int {
 	}
 	return c.WatchdogBulkBatchSizeEnv
 }
+
+func (c Config) WatchdogStartupDelay() time.Duration {
+	if c.WatchdogStartupDelaySec <= 0 {
+		return 5 * time.Second
+	}
+	return time.Duration(c.WatchdogStartupDelaySec) * time.Second
+}

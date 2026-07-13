@@ -1,7 +1,7 @@
 # Backend 结构优化
 
 > **目的：** 记录 `apps/backend/` **当前结构基线**与**剩余分层债务**（非上线阻塞）。  
-> **相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-测试优化.md](./Backend-测试优化.md) · [工程收口.md](./工程收口.md)  
+> **相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-模块化设计.md](./Backend-模块化设计.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-测试优化.md](./Backend-测试优化.md) · [工程收口.md](./工程收口.md)  
 > **维护：** 结构变化先更新本文，再同步 [Backend-架构.md §3](./Backend-架构.md#3-项目结构)。
 
 **读者速览：** domain 零 `infra/*` import；六域 Job 端口（`ports.go` + `app/*_enqueuer.go`）；`types.Notifier` SSOT；lot 写 SSOT 在 `domain/billing/lot/`；业务测在 `tests/`。§1 为现状；§2 为剩余债务；§3 为 PR 自检。
@@ -95,10 +95,11 @@ rg '\.Store\b' apps/backend/internal/http/handler/
 
 | 序 | 类型 | 项 |
 | ---: | --- | --- |
-| 1 | 可读性 | [2.1 大文件机械拆分](#21-大文件机械拆分) |
-| 2 | 架构 | [2.4 离线任务模块化](#24-离线任务模块化) |
-| 3 | 性能 | [2.2 schema clone 性能](#22-schema-clone-性能) |
-| 4 | 分层 | [2.3 端口定义位置收敛](#23-端口定义位置收敛) |
+| 1 | 可读性 | [2.1 大文件机械拆分](#21-大文件机械拆分) · [Backend-模块化设计.md §5 PR-B/C](./Backend-模块化设计.md#5-分阶段重构pr-切片) |
+| 2 | 架构 | [2.4 离线任务模块化](#24-离线任务模块化)（**已基本达成**，见 [Backend-离线任务.md](./Backend-离线任务.md)） |
+| 3 | 组合根 | [Backend-模块化设计.md §4.2](./Backend-模块化设计.md#42-app-组合根重组) `app/` 命名收敛（PR-A） |
+| 4 | 性能 | [2.2 schema clone 性能](#22-schema-clone-性能) |
+| 5 | 分层 | [2.3 端口定义位置收敛](#23-端口定义位置收敛) |
 
 ### 2.1 大文件机械拆分
 
@@ -107,19 +108,11 @@ rg '\.Store\b' apps/backend/internal/http/handler/
 | `integration/datasource/feishu/client.go` | ~391 | `auth.go`、`departments.go`、`members.go` |
 | `infra/jobs/args.go` | ~253 | 见 [2.4](#24-离线任务模块化)：`jobs/kinds/*.go` + `trigger/catalog.go` |
 
-### 2.4 离线任务架构（目标态）
+### 2.4 离线任务架构
 
-**权威文档：** [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md)（最终架构：L0/L1/L2、`tenant_background_state`、唯一 `tenant_watchdog` Periodic）。
+**as-built：** [Backend-离线任务.md](./Backend-离线任务.md)（`kinds_*.go`、`scheduler/`、唯一 `tenant_watchdog` 已落地）。
 
-| 区域 | 终态 |
-| --- | --- |
-| Periodic | 仅 `tenant_watchdog`（7d）；删除全部 `*_fanout` / `monthly_rebalance` |
-| 调度状态 | `tenant_background_state` 表 SSOT；`CreateCompany` / seed `EnsureRow` |
-| 月切 | `EnsureMonthRebalance` 只入队；`last_rebalanced_period` **rebalance 成功后**写入 |
-| org | per-tenant `ScheduledAt`；`UpdateSyncConfig` 闭环 Cancel + Reschedule |
-| `infra/jobs/` | `kinds/`、`enqueue/`、`trigger/catalog.go` |
-| `infra/scheduler/` | `due.go` + `bulk_enqueue.go`（分批） |
-| `infra/river/` | `periodic/watchdog.go`；`workers/{budget,dashboard,org,sideeffect}/` |
+**剩余：** 启动补漏 `compose_watchdog.go`、结构守卫脚本（见 [Backend-模块化设计.md §5 PR-D/E](./Backend-模块化设计.md#5-分阶段重构pr-切片)）。不再新增 fanout Periodic。
 
 ### 2.2 schema clone 性能
 

@@ -58,4 +58,25 @@ func (r *riverJobRepo) HasActiveOrgSync(ctx context.Context, companyID int64) (b
 	return len(ids) > 0, nil
 }
 
+func (r *riverJobRepo) CountActiveJobs(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)::int
+		FROM river_job
+		WHERE state IN ('available', 'pending', 'scheduled', 'running', 'retryable')
+	`).Scan(&n)
+	return n, err
+}
+
+func (r *riverJobRepo) CountRunnableJobs(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)::int
+		FROM river_job
+		WHERE state IN ('available', 'pending', 'running', 'retryable')
+		   OR (state = 'scheduled' AND scheduled_at <= NOW())
+	`).Scan(&n)
+	return n, err
+}
+
 var _ store.RiverJobRepository = (*riverJobRepo)(nil)

@@ -7,14 +7,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 All commands run from the repo root (pnpm workspace, `pnpm@11.9.0`):
 
 ```bash
-# Full-stack
-pnpm start:lite          # Postgres + backend + frontend (no NewAPI / dev-mock)
-pnpm start               # Full stack: infra + backend + frontend + dev-mock (simulate consume)
-pnpm docker:reset        # Wipe Postgres volume + bootstrap NewAPI admin token + demo seed/sync → apps/backend/.env
-pnpm bootstrap:local     # Infra + mint admin token + dev-mock channel (without wiping DB)
-pnpm bootstrap:token     # Mint admin token only (NewAPI must be running)
-pnpm verify             # Full CI check: lint + test + build
-pnpm generate:permissions  # Regenerate permission keys from packages/contracts manifest
+# Full-stack (orchestration: scripts/dev/* · scripts/verify.sh)
+pnpm start               # ensure-infra (no build) + backend + frontend + dev-mock
+pnpm start:lite          # Postgres + backend + frontend only
+pnpm docker:reset        # Wipe PG + full infra + token + L1a/L1b (alias: pnpm reset)
+pnpm bootstrap           # Infra + admin token + dev-mock channel (no wipe)
+pnpm bootstrap -- --token-only   # Mint admin token only (NewAPI must be running)
+pnpm infra               # Postgres + Redis + NewAPI (background)
+pnpm infra postgres      # Postgres only (before backend tests)
+pnpm infra attach        # Foreground attach NewAPI compose stack
+pnpm verify              # CI: lint + test + build
+pnpm verify gate         # Gateway + webhook smoke
+pnpm verify integration  # Ledger + lifecycle + metrics
+pnpm generate:permissions
+
+# Tests
+pnpm test                # All package tests (starts Postgres)
+pnpm test -- --nocache   # Vitest/go tests without cache
+pnpm test:e2e
 
 # Frontend (apps/frontend)
 pnpm -F @tokenjoy/frontend start     # Vite dev server
@@ -32,16 +42,10 @@ make test-unit          # go test -tags=testhook ./tests/... (requires PostgreSQ
 make lint               # go vet + gofmt check
 make format             # gofmt -w .
 
-# Prerequisites: pnpm start:postgres (or DATABASE_URL)
+# Prerequisites: pnpm infra postgres (or DATABASE_URL)
 
 # Single backend test:
 cd apps/backend && go test ./tests/domain/gateway/... -run TestPrecheckRejectsZeroBudget -v
-
-# NewAPI (apps/newapi)
-pnpm start:newapi       # 前台 attach NewAPI 栈（调试用；日常用 pnpm start 即可）
-pnpm start:dev-mock     # dev-mock-llm only (:8765; included in pnpm start)
-pnpm verify:gate        # 通路冒烟（自建 Key + Gateway + webhook）
-pnpm verify:integration # 入账 + Toggle/Rotate/Revoke + metrics（需 NEW_API_ADMIN_TOKEN）
 ```
 
 ## Architecture
@@ -114,7 +118,7 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 
 - Tests live in `tests/` (external test packages, e.g., `package gateway_test`)
 - Use `testutil.NewTestStore(t, opts...)` or `testutil.NewTestApp(t, mutate)` for store/app
-- Requires PostgreSQL: `pnpm start:postgres` before `make test-unit`
+- Requires PostgreSQL: `pnpm infra postgres` before `make test-unit`
 - **Dev loop:** `make test-fast` (from `apps/backend/`, pure `tests/pkg/...`, no Postgres) for pkg changes; `go test -tags=testhook ./tests/domain/<域>/...` or `./tests/http/middleware/...` for a single domain; **`make test-unit`** before commit/PR
 - **SSOT patterns:** GET contracts → `tests/handler/core/contract_test.go`; write smoke → `mutating_contract_test.go`; middleware unit → `tests/http/middleware/` (`stubs_test.go` + `middleware_test.go`, chi + stub, not full `NewApp`); newapisync outbox → `tests/domain/newapisync/outbox_*.go`
 - Use `testutil.Ctx()` for a default company context

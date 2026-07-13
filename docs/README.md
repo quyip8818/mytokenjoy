@@ -7,7 +7,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | 用途 | 文档 |
 | --- | --- |
 | 工程待办（上线前 fix / 功能 / 门禁） | **[plan.md](./plan.md)** |
-| 架构现状 | [Backend.md](./Backend.md) 及子文档、[Backend-结构优化.md](./Backend-结构优化.md)、[Backend-离线任务.md](./Backend-离线任务.md)（**as-built** 离线任务）、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
+| 架构现状 | [Backend.md](./Backend.md) 及子文档、[Backend-结构优化.md](./Backend-结构优化.md)、[Backend-模块化设计.md](./Backend-模块化设计.md)、[Backend-离线任务.md](./Backend-离线任务.md)（**as-built** 离线任务）、[工程收口.md](./工程收口.md)、[Frontend.md](./Frontend.md) |
 | 架构目标 / 评审 | [架构终态设计.md](./架构终态设计.md)（**目标态，非 as-built**）、[架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) |
 | 产品差距 | [Roadmap.md](./Roadmap.md)、[PRD-差距分析.md](./PRD-差距分析.md) |
 | 产品需求（只读权威） | [PRD.md](./PRD.md) |
@@ -25,10 +25,10 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 后端 / 架构 | 结构基线与剩余分层债务 |
+| [Backend-模块化设计.md](./Backend-模块化设计.md) | 后端 / 架构 | **目标态**：模块地图、`app/` 重组、分阶段 PR 切片 |
 | [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) | 后端 / 架构 | **v1 Gateway → Ingest** 性能项（G/I/P/R）+ 不牺牲热路径的 Lag 缩窗（§10） |
 | [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析（含上线后 migration 建议） |
-| [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | **as-built**：Ingest + River 两条线、13 kind、入队与 Worker |
-| [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md) | 后端 / 架构 | **目标态**：离线任务 L0/L1/L2、`tenant_watchdog`、目录终态 |
+| [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | **as-built**：Ingest + River 两条线、10 kind、入队与 Worker |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun、Platform Key 执法链（**as-built**） |
 | **[预算分配与扣减.md](./预算分配与扣减.md)** | 产品 / 研发 | **权威**：切蛋糕 vs 独立结算；三 scope 产品行为；personal 用尽 → 审批追加 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定（含 `platform_keys.scope`） |
@@ -44,7 +44,8 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 
 | 文档 | 读者 | 内容 |
 | --- | --- | --- |
-| **[本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)** | 产品 / QA / 研发 | `local-test-model` 全链路 ingest 测试：如何运作、如何验收 |
+| **[本地开发-启动优化.md](./本地开发-启动优化.md)** | 研发 | **SSOT**：命令契约、L0–L2、决策树 |
+| **[本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)** | 产品 / QA / 研发 | `local-test-model` 全链路 ingest 测试 |
 
 ### 归档笔记（非权威 backlog）
 
@@ -73,17 +74,21 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 ## 常用命令
 
 ```bash
-pnpm install          # 安装依赖
-pnpm start            # Postgres + Redis + NewAPI + backend :8080 + frontend :5173 + dev-mock-llm :8765
-pnpm start:infra      # 仅 Docker 基础设施（Postgres + Redis + NewAPI）
-pnpm start:postgres   # 仅 PostgreSQL（跑后端测试前必须）
-pnpm verify           # lint + test + build + backend build:check（PR 前）
-pnpm test             # 前端 Vitest + 后端 go test（需 PostgreSQL）
-pnpm test:e2e         # 前端 Playwright E2E
-pnpm start:newapi     # 前台 attach NewAPI 栈（调试用）
+pnpm install
+pnpm start            # 轻量：ensure-infra + backend + frontend + mock（见 本地开发-启动优化.md）
+pnpm start:lite       # 无 NewAPI / mock
+pnpm docker:reset     # 重初始化 L1a+L1b（alias: pnpm reset）
+pnpm infra            # 仅 Docker 基础设施
+pnpm infra postgres   # 仅 PG（跑后端测试前）
+pnpm verify           # CI：lint + test + build
+pnpm verify gate      # 通路冒烟
+pnpm verify integration
+pnpm test
+pnpm test:e2e
+pnpm infra attach     # 前台 attach NewAPI（调试）
 
 cd apps/backend && make test-fast    # 仅 tests/pkg/...，无 Postgres
-cd apps/backend && make test-unit    # 全量 go test（需 pnpm start:postgres）
+cd apps/backend && make test-unit    # 全量 go test（需 pnpm infra postgres）
 ```
 
 全链路 ingest 手工测试（`local-test-model` + Popup）：见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。`pnpm start` 为全栈；`pnpm docker:reset` 会自动 bootstrap admin token；channel 失败时再跑 `setup-dev-mock-channel.sh`。

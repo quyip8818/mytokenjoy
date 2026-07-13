@@ -20,9 +20,10 @@
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
 | [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化 |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 当前结构基线与剩余分层债务 |
+| [Backend-模块化设计.md](./Backend-模块化设计.md) | 模块地图、目录目标态、`app/` 重组与 PR 切片 |
 | [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) | v1 Gateway → Ingest 性能与投影 Lag 优化路线图 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务：两条异步线、13 kind、入队点、Worker、Periodic |
-| [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md) | 离线任务目标态：L0/L1/L2、tenant_background_state、唯一看门狗 |
+| [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务 as-built：L0/L1/L2、`tenant_background_state`、唯一看门狗 |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 
@@ -186,10 +187,10 @@ sequenceDiagram
 
 ```bash
 pnpm start          # Postgres + Redis + NewAPI + backend :8080 + frontend :5173 + dev-mock-llm :8765
-pnpm start:infra    # 仅 Docker 基础设施
-pnpm start:newapi   # 前台 attach NewAPI 栈（调试用）
-pnpm verify:gate    # 通路冒烟（自建 Key + Gateway + webhook）
-pnpm verify:integration   # 入账 + lifecycle + metrics
+pnpm infra          # 仅 Docker 基础设施
+pnpm infra attach   # 前台 attach NewAPI 栈（调试用）
+pnpm verify gate    # 通路冒烟（自建 Key + Gateway + webhook）
+pnpm verify integration   # 入账 + lifecycle + metrics
 ```
 
 全链路 ingest 手工测试：`local-test-model` + Dev Popup，见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
@@ -222,7 +223,7 @@ flowchart LR
 | Postgres | `tokenjoy` + `newapi` 两库                  |
 | Redis    | NewAPI 会话与缓存                           |
 
-**Bootstrap：** `docker compose -f apps/newapi/docker-compose.yml up -d` → `pnpm bootstrap:local`（或 `pnpm docker:reset`，已内含 bootstrap）→ Webhook secret 对齐 → Channel `group=platform_shared`。
+**Bootstrap：** `pnpm infra` → `pnpm bootstrap`（或 `pnpm docker:reset`，已内含 bootstrap）→ Webhook secret 对齐 → Channel `group=platform_shared`。
 
 **NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。
 
@@ -242,7 +243,7 @@ Gateway / NewAPISync 架构与 Worker 见 [Backend-架构.md](./Backend-架构.m
 
 ```bash
 cd apps/backend
-pnpm start:postgres   # 必须
+pnpm infra postgres   # 必须
 make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 ```
 

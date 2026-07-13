@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
 import type { CallLog, PlatformKey } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
-import { queryKeys } from '@/features/query'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { toast } from 'sonner'
 import {
   DEFAULT_INPUT_TOKENS,
@@ -62,16 +62,50 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
   const apis = useInjectedApis(injectedApis)
   const queryClient = useQueryClient()
 
-  const [platformKeys, setPlatformKeys] = useState<PlatformKey[]>([])
-  const [keysLoading, setKeysLoading] = useState(false)
-  const [selectedKeyId, setSelectedKeyIdState] = useState(readStoredPlatformKeyId)
-  const [bearer, setBearer] = useState('')
-  const [resolvingKey, setResolvingKey] = useState(false)
+  const [userSelectedKeyId, setUserSelectedKeyId] = useState(readStoredPlatformKeyId)
   const [inputTokensText, setInputTokensText] = useState(String(DEFAULT_INPUT_TOKENS))
   const [outputTokensText, setOutputTokensText] = useState(String(DEFAULT_OUTPUT_TOKENS))
   const [phase, setPhase] = useState<Phase>('idle')
-  const [error, setError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [matchedCall, setMatchedCall] = useState<CallLog | null>(null)
+
+  const {
+    data: platformKeys = [],
+    loading: keysLoading,
+    error: keysQueryError,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: [...queryKeys.keys.all, 'simulate-consume'] as const,
+    queryFn: (a) =>
+      a.platformKeyApi
+        .list({ scope: 'member', page: 1, pageSize: 50 })
+        .then((page) => page.items.filter((key) => key.status === 'active')),
+    enabled: open,
+  })
+
+  const selectedKeyId = useMemo(() => {
+    if (!open || platformKeys.length === 0) return userSelectedKeyId
+    if (userSelectedKeyId && platformKeys.some((key) => key.id === userSelectedKeyId)) {
+      return userSelectedKeyId
+    }
+    const storedId = readStoredPlatformKeyId()
+    return platformKeys.find((key) => key.id === storedId)?.id ?? platformKeys[0]?.id ?? ''
+  }, [open, platformKeys, userSelectedKeyId])
+
+  const {
+    data: bearer = '',
+    loading: resolvingKey,
+    error: bearerQueryError,
+  } = useInjectedQuery({
+    injectedApis,
+    queryKey: [...queryKeys.keys.all, 'simulate-bearer', selectedKeyId] as const,
+    queryFn: async (a) => {
+      const sk = await resolveBearer(a.devApi, selectedKeyId)
+      writeStoredPlatformKeyId(selectedKeyId)
+      return sk
+    },
+    enabled: open && Boolean(selectedKeyId),
+  })
 
   const inputTokens = useMemo(
     () => parseInputTokens(inputTokensText, DEFAULT_INPUT_TOKENS),
@@ -91,71 +125,24 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
     [platformKeys],
   )
 
-  const selectPlatformKey = useCallback(
-    async (platformKeyId: string) => {
-      setSelectedKeyIdState(platformKeyId)
-      writeStoredPlatformKeyId(platformKeyId)
-      if (!platformKeyId) {
-        setBearer('')
-        return
-      }
-      setResolvingKey(true)
-      setError(null)
-      try {
-        const sk = await resolveBearer(apis.devApi, platformKeyId)
-        setBearer(sk)
-      } catch (err) {
-        setBearer('')
-        setError(err instanceof Error ? err.message : '无法获取 Platform Key')
-      } finally {
-        setResolvingKey(false)
-      }
-    },
-    [apis.devApi],
-  )
+  const error =
+    submitError ??
+    (keysQueryError ? '无法加载 Platform Key 列表' : null) ??
+    (bearerQueryError instanceof Error ? bearerQueryError.message : null)
 
-  useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    setKeysLoading(true)
-    void apis.platformKeyApi
-      .list({ scope: 'member', page: 1, pageSize: 50 })
-      .then((page) => {
-        if (cancelled) return
-        const activeKeys = page.items.filter((key) => key.status === 'active')
-        setPlatformKeys(activeKeys)
-
-        const storedId = readStoredPlatformKeyId()
-        const initialId =
-          activeKeys.find((key) => key.id === storedId)?.id ?? activeKeys[0]?.id ?? ''
-        if (initialId) {
-          void selectPlatformKey(initialId)
-        } else {
-          setSelectedKeyIdState('')
-          setBearer('')
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPlatformKeys([])
-          setError('无法加载 Platform Key 列表')
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setKeysLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [apis.platformKeyApi, open, selectPlatformKey])
+  const selectPlatformKey = useCallback((platformKeyId: string) => {
+    setUserSelectedKeyId(platformKeyId)
+    writeStoredPlatformKeyId(platformKeyId)
+    setSubmitError(null)
+  }, [])
 
   const handleSubmit = useCallback(async () => {
     if (!selectedKeyId) {
-      setError('请选择 Platform Key')
+      setSubmitError('请选择 Platform Key')
       return
     }
     if (inputTokens < 1) {
-      setError('Input tokens 须 ≥ 1')
+      setSubmitError('Input tokens 须 ≥ 1')
       return
     }
 
@@ -163,15 +150,14 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
     if (!sk) {
       try {
         sk = await resolveBearer(apis.devApi, selectedKeyId)
-        setBearer(sk)
       } catch (err) {
-        setError(err instanceof Error ? err.message : '无法获取 Platform Key')
+        setSubmitError(err instanceof Error ? err.message : '无法获取 Platform Key')
         return
       }
     }
 
     setPhase('calling')
-    setError(null)
+    setSubmitError(null)
     setMatchedCall(null)
 
     try {
@@ -182,7 +168,7 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
 
       const call = await pollForNewCall(apis.auditApi, baselineIds, inputTokens, outputTokens)
       if (!call) {
-        setError('轮询超时：请检查 Ingest Worker 是否在运行')
+        setSubmitError('轮询超时：请检查 Ingest Worker 是否在运行')
         return
       }
 
@@ -196,9 +182,9 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
       toast.success('入账完成，可在调用审计中查看')
     } catch (err) {
       if (err instanceof GatewayClientError) {
-        setError(err.body || `Gateway 预检失败 (${err.status})`)
+        setSubmitError(err.body || `Gateway 预检失败 (${err.status})`)
       } else {
-        setError(err instanceof Error ? err.message : '提交失败')
+        setSubmitError(err instanceof Error ? err.message : '提交失败')
       }
     } finally {
       setPhase('idle')

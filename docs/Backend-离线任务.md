@@ -1,7 +1,7 @@
 # Backend · 离线任务（现状）
 
 > **定位**：离线任务 **as-built** 说明——当前代码如何实现、从哪入队、谁消费。  
-> **设计背景（L0/L1/L2 + 唯一看门狗）**：[Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md)  
+> **设计背景（L0/L1/L2 + 唯一看门狗）**：见本文 §1–§4；模块目录见 [Backend-模块化设计.md §4.4](./Backend-模块化设计.md#44-infra-异步栈终态大部分已达成)  
 > **Schema / Unique / 事务入队**：`internal/infra/jobs/`（`kinds_*.go`、`enqueue.go`）、`store/tx.go`  
 > **投影实现**：[Backend-预算.md](./Backend-预算.md)  
 > **入账快路径**：[Backend-Ingest架构.md](./Backend-Ingest架构.md)
@@ -24,7 +24,7 @@ cmd/server
 | **A — Ingest** | `internal/infra/ingest` | 日志库 `ingest_jobs`；主库 `scheduler_locks` | webhook/reconcile 驱动 `IngestByLogID`；钱包漂移扫描 |
 | **B — River** | `internal/infra/river` | 主库 `river_job` 等 | 全部副作用 job：claim、retry、**唯一 Periodic** |
 
-装配入口：`internal/app/wire_river.go` → `buildBackgroundWorkers`。
+装配入口：`internal/app/compose_worker.go` → `buildBackgroundWorkers`。
 
 ```mermaid
 flowchart TB
@@ -61,7 +61,7 @@ flowchart TB
 | **river workers** | `internal/infra/river/workers` | 薄壳：`Work()` → 调 domain 一个方法 |
 | **river client** | `internal/infra/river` | Client 装配、Periodic、队列权重 |
 
-Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/*_enqueuer.go`）；底层统一 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），domain 不 import `pgx`。
+Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/port_*.go`）；底层统一 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），domain 不 import `pgx`。
 
 ### 2.1 Holder 与域端口
 
@@ -71,12 +71,12 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/*_enque
 
 | 域 | 端口 | 适配器 |
 | --- | --- | --- |
-| billing | `billing.JobEnqueuer` | `app/billing_enqueuer.go` |
-| budget | `budget.JobEnqueuer` | `app/budget_enqueuer.go` |
-| usage | `usage.IngestJobEnqueuer` | `app/usage_enqueuer.go` |
-| dashboard | `dashboard.JobEnqueuer` | `app/dashboard_enqueuer.go` |
-| newapisync | `newapisync.SyncJobEnqueuer` | `app/newapisync_enqueuer.go` |
-| org-remote | `remote.JobEnqueuer` | `app/org_enqueuer.go`（含 `CancelPendingOrgSync`） |
+| billing | `billing.JobEnqueuer` | `app/port_billing.go` |
+| budget | `budget.JobEnqueuer` | `app/port_budget.go` |
+| usage | `usage.IngestJobEnqueuer` | `app/port_usage.go` |
+| dashboard | `dashboard.JobEnqueuer` | `app/port_dashboard.go` |
+| newapisync | `newapisync.SyncJobEnqueuer` | `app/port_newapisync.go` |
+| org-remote | `remote.JobEnqueuer` | `app/port_org.go`（含 `CancelPendingOrgSync`） |
 
 `RIVER_ENABLED=false` 时 Holder 保持 `NoopEnqueuer`（`Insert` 返回 `nil`，**不入队**）。
 
@@ -125,7 +125,7 @@ Store：`store/tenant_background_state.go` + `postgres/tenant_background_state_r
 
 ### 5.1 事务内（`InsertInTx`，与 ledger 同事务）
 
-**Ingest 成功路径**（`domain/usage/ingest.go` → `app/usage_enqueuer.go` → `WithTx`）：
+**Ingest 成功路径**（`domain/usage/ingest.go` → `app/port_usage.go` → `WithTx`）：
 
 1. `ledger` 写入（`InsertSegments`）
 2. `InsertBudgetProjection`
@@ -198,17 +198,26 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 ---
 
-## 7. Periodic 任务
+## 7. Periodic 与启动时看门狗
 
-注册：`internal/infra/river/periodic/watchdog.go`（仅 `RIVER_ENABLED=true`）。
+| 机制 | 何时跑 | 是否挡启动 |
+| --- | --- | --- |
+| **`tenant_watchdog` Periodic** | `RIVER_PERIODIC_ENABLED=true`（默认）时每 `WATCHDOG_INTERVAL_SEC`（7d） | 否（River 后台 goroutine） |
+| **Deferred 首次扫描** | 进程启动 `WATCHDOG_STARTUP_DELAY_SEC`（默认 5s）后 `scheduler.RunOnce` | **否**——只入队，Worker 后台消费 |
+| **`/healthz`** | 立即可用 | — |
+| **`/api/dev/readiness`** | L1b：platform key 已 sync（`pnpm docker:reset` → `dev-bootstrap`）；**不**挡 `pnpm start` | 与 River / 看门狗无关 |
 
-| Periodic job | 间隔 env | 默认 | 入队 kind |
-| --- | --- | --- | --- |
-| `tenant_watchdog` | `WATCHDOG_INTERVAL_SEC` | 604800（7d） | `tenant_watchdog` |
+注册 Periodic：`internal/infra/river/periodic/watchdog.go`（需 `RIVER_ENABLED` + `RIVER_PERIODIC_ENABLED`）。
 
-批量大小：`WATCHDOG_BULK_BATCH_SIZE`（默认 200）。
+Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` 在 Worker 启动后调用）。
 
-**已删除 env**：`WORKER_ORG_SYNC_INTERVAL_SEC`、`WORKER_MONTHLY_REBALANCE_INTERVAL_SEC`、`WORKER_BUDGET_RECONCILE_INTERVAL_SEC` 及 fanout worker。
+`dev-bootstrap`（`pnpm docker:reset` 末步）负责 L1a seed + L1b platform key 同步；`pnpm start` 只等 `/healthz`。契约见 [本地开发-启动优化.md](./本地开发-启动优化.md)。
+
+| env | 默认 | 含义 |
+| --- | --- | --- |
+| `WATCHDOG_INTERVAL_SEC` | `604800` | Periodic 间隔 |
+| `WATCHDOG_STARTUP_DELAY_SEC` | `5` | 启动后首次 due 扫描延迟 |
+| `WATCHDOG_BULK_BATCH_SIZE` | `200` | 每批 tenant 数 |
 
 ---
 
@@ -217,8 +226,10 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 | 变量 | 默认 | 含义 |
 | --- | --- | --- |
 | `RIVER_ENABLED` | `true` | 是否启动 River Client |
+| `RIVER_PERIODIC_ENABLED` | `true` | 是否注册 `tenant_watchdog` Periodic |
 | `RIVER_MAX_WORKERS` | `20` | 全局 worker 上限；按 2:2:1 分到 critical / default / low |
 | `WATCHDOG_INTERVAL_SEC` | `604800` | 看门狗 Periodic 间隔 |
+| `WATCHDOG_STARTUP_DELAY_SEC` | `5` | 启动后 deferred due 扫描延迟（不挡 health） |
 | `WATCHDOG_BULK_BATCH_SIZE` | `200` | 看门狗每批处理 tenant 数 |
 | `WORKER_POLL_INTERVAL_SEC` | `1` | ingest Worker 轮询（**仅**线 A） |
 | `INGEST_RECONCILE_*` | — | reconcile 批次与锁（线 A，非 River） |
@@ -255,8 +266,8 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 ```text
 internal/
-  app/wire_river.go
-  app/*_enqueuer.go
+  app/compose_worker.go
+  app/port_*.go
   config/watchdog.go
   domain/usage/ingest.go
   domain/budget/budget_projector.go
@@ -280,7 +291,7 @@ internal/
 
 | 文档 | 内容 |
 | --- | --- |
-| [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md) | 目标架构与设计决策 |
+| [Backend-模块化设计.md](./Backend-模块化设计.md) | 模块地图与 `infra/` 目录终态 |
 | [Backend-架构.md](./Backend-架构.md) §7 | 后台运行时 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest |
 | [Backend-预算.md](./Backend-预算.md) | 预算域、异步投影 |

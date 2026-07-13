@@ -39,6 +39,7 @@ type Config struct {
 	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"1"` // ingest pending poll only
 	WatchdogIntervalSec      int `env:"WATCHDOG_INTERVAL_SEC" envDefault:"604800"`
 	WatchdogBulkBatchSizeEnv int `env:"WATCHDOG_BULK_BATCH_SIZE" envDefault:"200"`
+	WatchdogStartupDelaySec  int `env:"WATCHDOG_STARTUP_DELAY_SEC" envDefault:"5"`
 
 	RiverConfig
 

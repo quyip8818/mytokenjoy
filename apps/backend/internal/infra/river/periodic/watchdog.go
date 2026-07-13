@@ -7,7 +7,7 @@ import (
 )
 
 func BuildWatchdogJobs(cfg config.Config) []*river.PeriodicJob {
-	if !cfg.RiverEnabled {
+	if !cfg.RiverEnabled || !cfg.RiverPeriodicEnabled {
 		return nil
 	}
 	return []*river.PeriodicJob{
