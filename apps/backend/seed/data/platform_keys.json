@@ -7,7 +7,7 @@
     "memberId": "m-1",
     "status": "active",
     "budget": 5000,
-    "modelWhitelist": [1, 4, 9],
+    "modelWhitelist": [100, 103, 1],
     "createdAt": "2026-03-01",
     "expiresAt": "2026-12-31"
   },
@@ -19,7 +19,7 @@
     "memberId": "m-1",
     "status": "active",
     "budget": 2000,
-    "modelWhitelist": [2, 5],
+    "modelWhitelist": [101, 104],
     "createdAt": "2026-05-10",
     "expiresAt": null
   },
@@ -31,7 +31,7 @@
     "memberId": "m-2",
     "status": "active",
     "budget": 10000,
-    "modelWhitelist": [1, 5, 9],
+    "modelWhitelist": [100, 104, 1],
     "createdAt": "2026-03-15",
     "expiresAt": null
   },
@@ -44,7 +44,7 @@
     "projectId": "proj-1",
     "status": "disabled",
     "budget": 2000,
-    "modelWhitelist": [2],
+    "modelWhitelist": [101],
     "createdAt": "2026-05-01",
     "expiresAt": "2026-06-30"
   },
@@ -56,7 +56,7 @@
     "projectId": "proj-4",
     "status": "active",
     "budget": 8000,
-    "modelWhitelist": [4, 1],
+    "modelWhitelist": [103, 100],
     "createdAt": "2026-05-15",
     "expiresAt": null
   },
@@ -69,7 +69,7 @@
     "projectId": "proj-1",
     "status": "active",
     "budget": 8000,
-    "modelWhitelist": [1, 4],
+    "modelWhitelist": [100, 103],
     "createdAt": "2026-04-15",
     "expiresAt": null
   }

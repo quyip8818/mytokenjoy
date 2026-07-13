@@ -18,19 +18,8 @@ func (l *NewAPISync) SyncRotatePlatformKey(ctx context.Context, platformKeyID st
 	if err != nil {
 		return "", err
 	}
-	platformKeys, err := l.store.Keys().PlatformKeys(ctx)
-	if err != nil {
+	if err := l.persistPlatformKeySecret(ctx, platformKeyID, token.Key); err != nil {
 		return "", err
-	}
-	for i := range platformKeys {
-		if platformKeys[i].ID == platformKeyID {
-			platformKeys[i].FullKey = &token.Key
-			platformKeys[i].KeyPrefix = newAPIPlatformKeyPrefix(token.Key)
-			if err := l.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
-				return "", err
-			}
-			break
-		}
 	}
 	return token.Key, nil
 }

@@ -105,24 +105,13 @@ func (l *NewAPISync) TrySyncCreate(ctx context.Context, platformKeyID string) (s
 	if err != nil {
 		return "", err
 	}
+	if err := l.persistPlatformKeySecret(ctx, key.ID, token.Key); err != nil {
+		return "", err
+	}
 	now := time.Now()
 	remain := token.RemainQuota
 	if err := l.mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, &remain, now); err != nil {
 		return "", err
-	}
-	keys, err := l.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return "", err
-	}
-	for i := range keys {
-		if keys[i].ID == key.ID {
-			keys[i].FullKey = &token.Key
-			keys[i].KeyPrefix = newAPIPlatformKeyPrefix(token.Key)
-			if err := l.store.Keys().SetPlatformKeys(ctx, keys); err != nil {
-				return "", err
-			}
-			break
-		}
 	}
 	return token.Key, nil
 }

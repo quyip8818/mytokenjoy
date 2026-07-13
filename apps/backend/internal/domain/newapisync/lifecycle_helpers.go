@@ -2,6 +2,7 @@ package newapisync
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -54,4 +55,20 @@ func newAPIPlatformKeyPrefix(fullKey string) string {
 		prefix = prefix[:12] + "..."
 	}
 	return prefix
+}
+
+func (l *NewAPISync) persistPlatformKeySecret(ctx context.Context, platformKeyID, fullKey string) error {
+	keys, err := l.store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
+	for i := range keys {
+		if keys[i].ID != platformKeyID {
+			continue
+		}
+		keys[i].FullKey = &fullKey
+		keys[i].KeyPrefix = newAPIPlatformKeyPrefix(fullKey)
+		return l.store.Keys().SetPlatformKeys(ctx, keys)
+	}
+	return fmt.Errorf("platform key not found: %s", platformKeyID)
 }

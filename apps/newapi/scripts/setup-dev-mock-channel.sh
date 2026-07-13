@@ -29,6 +29,8 @@ fi
 
 verify_wait_newapi
 
+verify_ensure_newapi_group "${GROUP}" "后端组"
+
 list_resp="$(mktemp)"
 resp="$(mktemp)"
 trap 'rm -f "${list_resp}" "${resp}"' EXIT

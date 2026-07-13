@@ -3,6 +3,7 @@ package newapisync
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -46,6 +47,9 @@ func (l *NewAPISync) BootstrapUnsyncedPlatformKeys(ctx context.Context, companyI
 		if err := l.SyncCreatePlatformKey(ctx, key, departmentID); err != nil {
 			return fmt.Errorf("bootstrap platform key %s: %w", key.ID, err)
 		}
+	}
+	if err := l.repairStalePlatformKeyHashes(ctx); err != nil {
+		slog.Default().Warn("repair stale platform key hashes failed", "error", err)
 	}
 	return nil
 }

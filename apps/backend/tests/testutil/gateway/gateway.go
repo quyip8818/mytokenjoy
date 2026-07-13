@@ -28,6 +28,7 @@ type GatewayScenarioOpts struct {
 	CompanyStatus      string
 	ProxyBackendURL    string
 	DeployEnv          string
+	FullKey            string
 }
 
 type GatewayScenario struct {

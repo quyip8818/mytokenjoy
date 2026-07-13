@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -50,12 +51,11 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
-	auth := r.Header.Get("Authorization")
-	if !strings.HasPrefix(auth, "Bearer sk-") {
+	platformKeySecret, ok := parseBearerSecret(r.Header.Get("Authorization"))
+	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	platformKeySecret := strings.TrimPrefix(auth, "Bearer ")
 	if r.Body != nil {
 		r.Body = http.MaxBytesReader(w, r.Body, gatewayMaxBodyBytes)
 	}
@@ -71,19 +71,21 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	model := parseRequestModel(body)
 	if !g.allowDevModel && isDevOnlyModel(model) {
+		logGatewayRejection(r.URL.Path, model, "dev-only model outside local environment")
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}
-	if err := g.precheck.Run(
-		r.Context(),
-		store.HashPlatformKey(platformKeySecret),
-		model,
-		r.URL.Path == "/v1/models",
-	); err != nil {
+	opts := PrecheckForRequest(r.URL.Path, model, g.allowDevModel)
+	if err := g.precheck.Run(r.Context(), store.HashPlatformKey(platformKeySecret), model, opts); err != nil {
+		logGatewayRejection(r.URL.Path, model, err.Error())
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}
 	g.proxy.ServeHTTP(w, r)
+}
+
+func logGatewayRejection(path, model, reason string) {
+	slog.Default().Info("gateway request rejected", "path", path, "model", model, "reason", reason)
 }
 
 func readAndRestoreBody(r *http.Request) ([]byte, error) {

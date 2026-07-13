@@ -7,6 +7,13 @@ import (
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
+func precheckOpts(skipModel, skipAllowlist bool) domaingateway.PrecheckOpts {
+	return domaingateway.PrecheckOpts{
+		SkipModelCheck:     skipModel,
+		SkipModelAllowlist: skipAllowlist,
+	}
+}
+
 func TestEvaluateRejects(t *testing.T) {
 	t.Parallel()
 
@@ -17,7 +24,7 @@ func TestEvaluateRejects(t *testing.T) {
 			if tc.MutatePC != nil {
 				tc.MutatePC(&pc)
 			}
-			if err := domaingateway.Evaluate(pc, tc.Model, false); err == nil {
+			if err := domaingateway.Evaluate(pc, tc.Model, precheckOpts(false, false)); err == nil {
 				t.Fatalf("expected rejection for %s", tc.Name)
 			}
 		})
@@ -26,7 +33,7 @@ func TestEvaluateRejects(t *testing.T) {
 
 func TestEvaluateAllowsNullSoftRemain(t *testing.T) {
 	t.Parallel()
-	if err := domaingateway.Evaluate(gatewaytf.BasePrecheckContext(), "gpt-4o", false); err != nil {
+	if err := domaingateway.Evaluate(gatewaytf.BasePrecheckContext(), "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass with NULL soft remain, got %v", err)
 	}
 }
@@ -36,7 +43,7 @@ func TestEvaluateAllowsPositiveSoftRemain(t *testing.T) {
 	pc := gatewaytf.BasePrecheckContext()
 	pos := 10.0
 	pc.Budget.SoftRemain = &pos
-	if err := domaingateway.Evaluate(pc, "gpt-4o", false); err != nil {
+	if err := domaingateway.Evaluate(pc, "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass, got %v", err)
 	}
 }
@@ -46,12 +53,12 @@ func TestEvaluateModelsListingSkipsAllowlistNotBudget(t *testing.T) {
 	pc := gatewaytf.BasePrecheckContext()
 	zero := 0.0
 	pc.Budget.SoftRemain = &zero
-	if err := domaingateway.Evaluate(pc, "", true); err == nil {
+	if err := domaingateway.Evaluate(pc, "", precheckOpts(true, false)); err == nil {
 		t.Fatal("expected budget exhausted for /v1/models path")
 	}
 	pos := 10.0
 	pc.Budget.SoftRemain = &pos
-	if err := domaingateway.Evaluate(pc, "", true); err != nil {
+	if err := domaingateway.Evaluate(pc, "", precheckOpts(true, false)); err != nil {
 		t.Fatalf("expected pass without model check, got %v", err)
 	}
 }
@@ -61,14 +68,24 @@ func TestEvaluateAllowsModelInAllowlist(t *testing.T) {
 	pc := gatewaytf.BasePrecheckContext()
 	pc.Routing.HasAllowlist = true
 	pc.Routing.AllowlistTypes = []string{"gpt-4o", "gpt-4o-mini"}
-	if err := domaingateway.Evaluate(pc, "gpt-4o", false); err != nil {
+	if err := domaingateway.Evaluate(pc, "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass, got %v", err)
+	}
+}
+
+func TestEvaluateSkipsAllowlistForDevCatalogModel(t *testing.T) {
+	t.Parallel()
+	pc := gatewaytf.BasePrecheckContext()
+	pc.Routing.HasAllowlist = true
+	pc.Routing.AllowlistTypes = []string{"gpt-4o"}
+	if err := domaingateway.Evaluate(pc, "local-test-model", precheckOpts(false, true)); err != nil {
+		t.Fatalf("expected dev catalog model to bypass allowlist, got %v", err)
 	}
 }
 
 func TestEvaluatePassesWithSufficientWallet(t *testing.T) {
 	t.Parallel()
-	if err := domaingateway.Evaluate(gatewaytf.SufficientBudgetContext(), "gpt-4o", false); err != nil {
+	if err := domaingateway.Evaluate(gatewaytf.SufficientBudgetContext(), "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass, got %v", err)
 	}
 }

@@ -3,15 +3,7 @@ package snapshot
 import "github.com/tokenjoy/backend/seed/contract"
 
 func modelIDByType() map[string]int64 {
-	return map[string]int64{
-		"gpt-4o":            contract.IDModel1,
-		"gpt-4o-mini":       contract.IDModel2,
-		"claude-opus-4-8":   contract.IDModel3,
-		"claude-sonnet-4-6": contract.IDModel4,
-		"deepseek-v3":       contract.IDModel5,
-		"qwen-plus":         contract.IDModel8,
-		"local-test-model":  contract.IDModel9,
-	}
+	return contract.ModelTypeToID
 }
 
 func modelIDs(types []string) []int64 {

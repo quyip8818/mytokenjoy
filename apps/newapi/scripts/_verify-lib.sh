@@ -85,6 +85,67 @@ verify_wait_newapi() {
   curl -fsS "${NEWAPI_URL}/api/status" >/dev/null || verify_fail "NewAPI /api/status unreachable"
 }
 
+# Register a TokenJoy department group in NewAPI options so tokens/channels can use it.
+verify_ensure_newapi_group() {
+  local group="$1"
+  local label="${2:-$group}"
+  if [[ -z "${NEW_API_ADMIN_TOKEN}" || -z "${group}" ]]; then
+    return 0
+  fi
+  python3 - "${group}" "${label}" <<'PY'
+import json
+import os
+import subprocess
+import sys
+import urllib.request
+
+group, label = sys.argv[1], sys.argv[2]
+base = os.environ.get("NEWAPI_URL", "http://localhost:3000").rstrip("/")
+token = os.environ["NEW_API_ADMIN_TOKEN"]
+user_id = os.environ.get("NEW_API_ADMIN_USER_ID", "1")
+
+def request(method: str, path: str, body: dict | None = None) -> dict:
+    data = None
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "New-Api-User": user_id,
+    }
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(f"{base}{path}", data=data, headers=headers, method=method)
+    with urllib.request.urlopen(req) as resp:
+        return json.load(resp)
+
+options = {item["key"]: item.get("value", "") for item in request("GET", "/api/option/").get("data", [])}
+
+def merge_map(key: str, group: str, label: str) -> str | None:
+    raw = options.get(key, "") or "{}"
+    try:
+        data = json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        data = {}
+    if not isinstance(data, dict) or group in data:
+        return None
+    data[group] = label if key == "UserUsableGroups" else 1
+    return json.dumps(data, ensure_ascii=False)
+
+updates = []
+for key in ("UserUsableGroups", "GroupRatio"):
+    merged = merge_map(key, group, label)
+    if merged is not None:
+        updates.append({"key": key, "value": merged})
+
+if not updates:
+    print(f"NewAPI group already registered: {group}")
+    sys.exit(0)
+
+for item in updates:
+    request("PUT", "/api/option/", item)
+print(f"Registered NewAPI group: {group}")
+PY
+}
+
 verify_require_backend_health() {
   verify_info "Checking Backend health..."
   curl -fsS "${API_URL}/healthz" >/dev/null || verify_fail "Backend /healthz unreachable — start Backend with NEW_API_ENABLED + Gateway + LOG_DATABASE_URL"
@@ -119,7 +180,7 @@ verify_api_call() {
 verify_create_platform_key() {
   local name="$1"
   local body resp code
-  body=$(printf '{"name":"%s","scope":"member","memberId":"m-1","budget":100,"modelWhitelist":[1]}' "${name}")
+  body=$(printf '{"name":"%s","scope":"member","memberId":"m-1","budget":100,"modelWhitelist":[100]}' "${name}")
   resp="${VERIFY_TMPDIR}/create-key-${name}.json"
   code=$(verify_api_call POST "/api/keys/platform" "${body}" "${resp}")
   if [[ "${code}" != "200" ]]; then

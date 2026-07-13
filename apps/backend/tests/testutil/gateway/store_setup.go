@@ -92,7 +92,11 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 		memberID = members[0].ID
 	}
 
-	setup := gatewayKeySetup{fullKey: defaultGatewayFullKey, platformKeyID: contract.IDPlatformKey1}
+	fullKey := defaultGatewayFullKey
+	if opts.FullKey != "" {
+		fullKey = opts.FullKey
+	}
+	setup := gatewayKeySetup{fullKey: fullKey, platformKeyID: contract.IDPlatformKey1}
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)

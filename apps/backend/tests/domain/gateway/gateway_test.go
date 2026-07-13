@@ -32,6 +32,30 @@ func TestGatewayRejectsInvalidToken(t *testing.T) {
 	}
 }
 
+func TestGatewayAcceptsNewAPIStyleToken(t *testing.T) {
+	t.Parallel()
+	const newAPIKey = "pKozjXrW57MlfHG27zHRLVuVeDLCpkGPCCXtdNSRFkliAGDQ"
+
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"id":"chatcmpl-newapi-key"}`))
+	}))
+	defer backend.Close()
+
+	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
+		Budget:          1000,
+		ProxyBackendURL: backend.URL,
+		FullKey:         newAPIKey,
+	})
+
+	req := gatewaytf.GatewayRequest(scenario.FullKey)
+	w := httptest.NewRecorder()
+	scenario.Gateway.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 for NewAPI-style token, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestGatewayRejectsNonBearerAuth(t *testing.T) {
 	t.Parallel()
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})

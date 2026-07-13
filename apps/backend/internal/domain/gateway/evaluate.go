@@ -13,8 +13,8 @@ var ErrBudgetExhausted = errors.New("budget exhausted")
 
 const minEstimatePoint = 0.01 * float64(common.DefaultPointsPerUnit)
 
-func Evaluate(pc PrecheckContext, model string, skipModelCheck bool) error {
-	if !skipModelCheck && model == "" {
+func Evaluate(pc PrecheckContext, model string, opts PrecheckOpts) error {
+	if !opts.SkipModelCheck && model == "" {
 		return fmt.Errorf("model field is required")
 	}
 	if domaincompany.IsGatewayBlocked(pc.Wallet.CompanyStatus) {
@@ -26,7 +26,7 @@ func Evaluate(pc PrecheckContext, model string, skipModelCheck bool) error {
 	if pc.Routing.KeyStatus != "active" {
 		return fmt.Errorf("platform key inactive")
 	}
-	if !skipModelCheck {
+	if !opts.SkipModelCheck && !opts.SkipModelAllowlist {
 		if err := checkPlatformKey(pc.Routing, model); err != nil {
 			return err
 		}

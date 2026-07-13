@@ -10,7 +10,22 @@ import (
 )
 
 type Prechecker interface {
-	Run(ctx context.Context, keyHash string, model string, skipModelCheck bool) error
+	Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) error
+}
+
+// PrecheckOpts controls optional gateway precheck skips.
+type PrecheckOpts struct {
+	SkipModelCheck     bool // /v1/models listing
+	SkipModelAllowlist bool // local dev-only catalog models
+}
+
+// PrecheckForRequest builds precheck options from the gateway request context.
+func PrecheckForRequest(path, model string, allowDev bool) PrecheckOpts {
+	opts := PrecheckOpts{SkipModelCheck: path == "/v1/models"}
+	if allowDev && isDevOnlyModel(model) {
+		opts.SkipModelAllowlist = true
+	}
+	return opts
 }
 
 type PrecheckService struct {
@@ -30,7 +45,7 @@ func NewPrecheckService(loader store.GatewayPrecheckRepository, clk clock.Clock,
 	}
 }
 
-func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string, skipModelCheck bool) error {
+func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) error {
 	row, err := p.loader.LoadPrecheckContext(ctx, keyHash)
 	if err != nil {
 		return err
@@ -38,7 +53,7 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 	if row == nil {
 		return fmt.Errorf("platform key not found")
 	}
-	if err := Evaluate(PrecheckContextFromStore(row), model, skipModelCheck); err != nil {
+	if err := Evaluate(PrecheckContextFromStore(row), model, opts); err != nil {
 		return err
 	}
 	return p.softBudgetCheck(ctx, row.CompanyID, keyHash, row.GatewaySoftVersion)

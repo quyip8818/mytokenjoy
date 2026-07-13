@@ -227,7 +227,7 @@ flowchart LR
 
 **安全：** NewAPI 不对公网；Admin Token 仅存 Backend 环境变量。
 
-**Dev-only 模型：** catalog 类型 `local-test-model`（demo seed ID 9）仅供本地 ingest 全链路测试；Gateway **仅**在 `DEPLOY_ENV=local` 时放行，`staging` / `production` 均在 precheck 之前返回 403，即便 Platform Key 白名单包含该模型。详见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
+**Dev-only 模型：** catalog 类型 `local-test-model`（demo seed ID 1）仅供本地 ingest 全链路测试；生产 catalog 模型 ID 从 100 起。Gateway **仅**在 `DEPLOY_ENV=local` 时放行 `local-test-model`，且 dev 下 catalog id `< 100` 的模型跳过 Platform Key 白名单校验；`staging` / `production` 均在 precheck 之前对 `local-test-model` 返回 403。详见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
 
 Gateway / NewAPISync 架构与 Worker 见 [Backend-架构.md](./Backend-架构.md) §7。
 
@@ -322,6 +322,8 @@ make test-unit        # go test -tags=testhook -p 2 -parallel 8 ./tests/...
 | `runtime/` | 启动时按需写入（`ApplyUsageBuckets`、`ApplyUsageLedger`、充值 lot 等） |
 
 启动流程：`postgres.New` → apply `schema.sql` → 空库按 `BOOTSTRAP_MODE` 引导（`none` 失败、`minimal`/`demo` 写入种子；`demo` 额外 `runtime.ApplyDemo`）；非空库永不覆盖。详见 [Backend-配置架构.md](./Backend-配置架构.md) §5。计费相关 lot / `wallet_remain` 见 [Backend-计费模式.md](./Backend-计费模式.md)。
+
+**Seed 修复清单（demo 数据、模型 ID、白名单）：** [apps/backend/seed/FIXES.md](../apps/backend/seed/FIXES.md)。NewAPI 集成修复见 [Backend-NewAPI集成修复.md](./Backend-NewAPI集成修复.md)。
 
 ---
 
