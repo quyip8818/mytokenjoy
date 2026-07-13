@@ -21,7 +21,12 @@ func NewRouter(t *testing.T) http.Handler {
 
 func NewApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	t.Helper()
-	return testutil.NewTestAppWithOptions(t, mutate, app.WithoutWorker())
+	return testutil.NewTestAppWithOptions(
+		t,
+		mutate,
+		app.WithoutWorker(),
+		app.WithAdminClient(testutil.DefaultStubAdminClient()),
+	)
 }
 
 func AdminCookie(t *testing.T) string {

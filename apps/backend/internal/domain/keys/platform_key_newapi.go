@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
@@ -78,32 +77,10 @@ func platformKeyPrefix(fullKey string) string {
 	return prefix
 }
 
-func (s *service) updatePlatformKeyFullKey(ctx context.Context, keyID string, fullKey string) error {
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return err
-	}
-	for i := range platformKeys {
-		if platformKeys[i].ID == keyID {
-			platformKeys[i].FullKey = &fullKey
-			platformKeys[i].KeyPrefix = platformKeyPrefix(fullKey)
-			return s.store.Keys().SetPlatformKeys(ctx, platformKeys)
-		}
-	}
-	return domain.NotFound("Not found")
-}
-
 func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.PlatformKey, departmentID string) (types.PlatformKey, error) {
-	if err := s.newAPISync.SyncCreatePlatformKey(ctx, created, departmentID); err != nil {
-		return types.PlatformKey{}, fmt.Errorf("newapi sync enqueue: %w", err)
-	}
-	fullKey, err := s.newAPISync.TrySyncCreate(ctx, created.ID)
+	fullKey, err := s.newAPISync.SyncPlatformKeyCreate(ctx, created, departmentID)
 	if err != nil {
-		s.newAPISync.RollbackFailedCreate(ctx, created.ID)
 		return types.PlatformKey{}, domain.ServiceUnavailable("NewAPI sync failed")
-	}
-	if err := s.updatePlatformKeyFullKey(ctx, created.ID, fullKey); err != nil {
-		return types.PlatformKey{}, err
 	}
 	created.FullKey = &fullKey
 	created.KeyPrefix = platformKeyPrefix(fullKey)

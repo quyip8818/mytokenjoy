@@ -21,7 +21,7 @@ func mapTokenResult(token Token, err error) (adminport.TokenResult, error) {
 	if err != nil {
 		return adminport.TokenResult{}, err
 	}
-	return adminport.TokenResult{ID: token.ID, Key: token.Key, RemainQuota: token.RemainQuota}, nil
+	return adminport.TokenResult{ID: token.ID, Key: token.Key, RemainQuota: token.RemainQuota, Group: token.Group}, nil
 }
 
 func (a AdminPortAdapter) CreateToken(ctx context.Context, req adminport.CreateTokenInput) (adminport.TokenResult, error) {
@@ -73,6 +73,7 @@ func (a AdminPortAdapter) UpsertChannel(ctx context.Context, req adminport.Upser
 		Name:   req.Name,
 		Key:    req.Key,
 		Status: req.Status,
+		Group:  req.Group,
 	})
 	if err != nil {
 		return adminport.ChannelResult{}, err
@@ -107,4 +108,8 @@ func (a AdminPortAdapter) RebuildAbilities(ctx context.Context) error {
 
 func (a AdminPortAdapter) GetUserQuota(ctx context.Context, userID int64) (int64, error) {
 	return a.client.GetUserQuota(ctx, userID)
+}
+
+func (a AdminPortAdapter) EnsureGroup(ctx context.Context, group, displayName string) error {
+	return a.client.EnsureGroup(ctx, group, displayName)
 }

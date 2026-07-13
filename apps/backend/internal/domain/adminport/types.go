@@ -26,6 +26,7 @@ type TokenResult struct {
 	ID          int64
 	Key         string
 	RemainQuota int64
+	Group       string
 }
 
 type UpsertChannelInput struct {
@@ -34,6 +35,7 @@ type UpsertChannelInput struct {
 	Name   string
 	Key    string
 	Status int
+	Group  string
 }
 
 type ChannelResult struct {

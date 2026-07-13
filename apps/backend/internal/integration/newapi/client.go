@@ -24,6 +24,7 @@ type AdminClient interface {
 	TopUp(ctx context.Context, req TopUpRequest) error
 	UpsertChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error)
 	RebuildAbilities(ctx context.Context) error
+	EnsureGroup(ctx context.Context, group, displayName string) error
 }
 
 type Client struct {

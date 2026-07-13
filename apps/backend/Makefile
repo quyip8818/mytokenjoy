@@ -1,4 +1,4 @@
-.PHONY: install-air start build run test test-unit test-unit-nocache test-fast lint lint-clock format scaffold-domain clean
+.PHONY: install-air start build run test test-unit test-unit-nocache test-fast lint lint-clock format scaffold-domain clean dev-bootstrap
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
@@ -26,6 +26,13 @@ build:
 
 run: build
 	exec ./$(SERVER_BIN)
+
+dev-bootstrap:
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
+	@set -a \
+		&& [ -f .env.development ] && . ./.env.development \
+		&& [ -f .env ] && . ./.env \
+		; set +a; go run ./cmd/dev-bootstrap
 
 test: test-unit
 

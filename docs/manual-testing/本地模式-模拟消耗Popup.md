@@ -63,7 +63,7 @@ apps/newapi/scripts/setup-dev-mock-channel.sh   # 若 bootstrap 未成功配 cha
 | --- | --- |
 | **mock** | `pnpm start` 已内置 |
 | **NewAPI** | `pnpm start` 已内置（Docker `:3000`）；`pnpm docker:reset` / `pnpm bootstrap:local` 自动写 `apps/backend/.env` 的 `NEW_API_ADMIN_TOKEN`；另需 `NEW_API_ENABLED` + `NEW_API_GATEWAY_ENABLED`（`.env.development` 默认已开） |
-| **catalog** | demo seed 含 `local-test-model`（ID 1）；生产模型 ID 从 100 起；旧库需 `pnpm docker:reset` 或重建后 reseed |
+| **catalog** | demo seed 含 `local-test-model`（ID 1）；生产模型 ID 从 100 起；改 seed 或本地状态异常 → `pnpm docker:reset` |
 | **channel** | 模型 `local-test-model`，`base_url` → `http://host.docker.internal:8765/v1`，group 与 Key 部门一致（默认 `dept-dept-3`） |
 | **排错** | [本地模式-修复索引.md](./本地模式-修复索引.md) → seed / NewAPI 集成分模块修复项 |
 | **Key** | 登录 `admin@example.com` / `demo1234`；Backend 启动时会为未 sync 的 seed Key 入队 NewAPI create（与线上一致）；Worker 跑完后 Popup 选 Key → `GET /api/dev/platform-keys/{id}/bearer` 只读拿 bearer；白名单需含 model **1**（`local-test-model`） |

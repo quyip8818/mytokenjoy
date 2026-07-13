@@ -8,6 +8,7 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/infra/ingest"
@@ -62,9 +63,11 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 		panic(err)
 	}
 	metrics := ingestMetricsRecorder(cfg)
-	var devBearer newapisync.DevBearerResolver
+	var devBearer devapi.BearerResolver
+	var devReadiness devapi.ReadinessChecker
 	if sync, ok := i.newAPISync.(*newapisync.NewAPISync); ok {
 		devBearer = sync
+		devReadiness = sync
 	}
 	return ServiceRegistry{
 		Deps: httpdeps.Deps{
@@ -90,6 +93,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			CompanyGate:          i.companyGate,
 			Gateway:              gateway,
 			DevBearerResolver:    devBearer,
+			DevReadinessChecker:  devReadiness,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

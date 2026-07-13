@@ -22,7 +22,7 @@ Run after pnpm docker:reset (or whenever NewAPI Postgres volume was wiped):
   default          start-infra + token + dev-mock channel (best-effort)
   --skip-channel   Skip local-test-model channel setup
 
-Then: pnpm start  (Backend reseeds demo data + syncs Platform Keys)
+Then: pnpm start  (starts full stack; demo keys already seeded + synced by docker:reset)
 EOF
       exit 0
       ;;
@@ -59,5 +59,5 @@ fi
 echo ""
 echo "Bootstrap complete."
 echo "  NEW_API_ADMIN_TOKEN → ${BACKEND_ENV_FILE}"
-echo "Next: pnpm start   (reseeds Backend + starts full stack)"
+echo "Next: pnpm start   (demo seed + platform key sync already done if you ran pnpm docker:reset)"
 echo "      If Backend is already running, restart it to load the new token."

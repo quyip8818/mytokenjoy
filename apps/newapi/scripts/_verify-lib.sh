@@ -149,6 +149,13 @@ PY
 verify_require_backend_health() {
   verify_info "Checking Backend health..."
   curl -fsS "${API_URL}/healthz" >/dev/null || verify_fail "Backend /healthz unreachable — start Backend with NEW_API_ENABLED + Gateway + LOG_DATABASE_URL"
+  verify_info "Checking dev platform key readiness..."
+  local resp="${VERIFY_TMPDIR}/readiness.json"
+  local code
+  code=$(curl -s -o "${resp}" -w "%{http_code}" "${API_URL}/api/dev/readiness")
+  if [[ "${code}" != "200" ]]; then
+    verify_fail "Backend /api/dev/readiness not ready (HTTP ${code}): $(cat "${resp}")"
+  fi
 }
 
 verify_admin_login() {

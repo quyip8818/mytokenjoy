@@ -10,7 +10,7 @@ All commands run from the repo root (pnpm workspace, `pnpm@11.9.0`):
 # Full-stack
 pnpm start:lite          # Postgres + backend + frontend (no NewAPI / dev-mock)
 pnpm start               # Full stack: infra + backend + frontend + dev-mock (simulate consume)
-pnpm docker:reset        # Wipe Postgres volume + bootstrap NewAPI admin token → apps/backend/.env
+pnpm docker:reset        # Wipe Postgres volume + bootstrap NewAPI admin token + demo seed/sync → apps/backend/.env
 pnpm bootstrap:local     # Infra + mint admin token + dev-mock channel (without wiping DB)
 pnpm bootstrap:token     # Mint admin token only (NewAPI must be running)
 pnpm verify             # Full CI check: lint + test + build
@@ -27,6 +27,7 @@ pnpm -F @tokenjoy/frontend exec vitest run tests/features/auth/use-login-page.te
 
 # Backend (apps/backend, from apps/backend/)
 make start              # go run ./cmd/server (reads .env)
+make dev-bootstrap      # seed empty DB + sync demo platform keys (after docker:reset)
 make test-unit          # go test -tags=testhook ./tests/... (requires PostgreSQL)
 make lint               # go vet + gofmt check
 make format             # gofmt -w .

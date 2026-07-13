@@ -13,7 +13,7 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
-	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/identity/authz"
@@ -45,5 +45,6 @@ type Deps struct {
 	WalletSvc            domaincompany.WalletService
 	CompanyGate          *domaincompany.Gate
 	Gateway              domaingateway.GatewayService
-	DevBearerResolver    domainnewapisync.DevBearerResolver
+	DevBearerResolver    devapi.BearerResolver
+	DevReadinessChecker  devapi.ReadinessChecker
 }

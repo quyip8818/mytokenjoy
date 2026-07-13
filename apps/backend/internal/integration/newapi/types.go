@@ -48,4 +48,5 @@ type UpsertChannelRequest struct {
 	Name   string `json:"name"`
 	Key    string `json:"key"`
 	Status int    `json:"status"`
+	Group  string `json:"group,omitempty"`
 }

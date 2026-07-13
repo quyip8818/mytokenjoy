@@ -56,7 +56,7 @@
     "projectId": "proj-4",
     "status": "active",
     "budget": 8000,
-    "modelWhitelist": [103, 100],
+    "modelWhitelist": [101, 104],
     "createdAt": "2026-05-15",
     "expiresAt": null
   },

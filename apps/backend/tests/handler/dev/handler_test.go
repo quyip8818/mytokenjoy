@@ -12,6 +12,18 @@ import (
 
 const devBearerPath = "/api/dev/platform-keys/" + contract.IDPlatformKey1 + "/bearer"
 
+func TestDevReadinessAvailableInLocal(t *testing.T) {
+	t.Parallel()
+	router := testhttp.NewApp(t, func(cfg *config.Config) {
+		testutil.WithDeployEnv(config.DeployEnvLocal)(cfg)
+	}).Router
+
+	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/dev/readiness", "", "", nil)
+	if rec.Code != http.StatusOK && rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected dev readiness route in local (200 or 503), got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestDevPlatformKeyBearerAvailableInLocal(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewApp(t, func(cfg *config.Config) {
@@ -38,7 +50,12 @@ func TestDevPlatformKeyBearerNotRegisteredOutsideLocal(t *testing.T) {
 				}
 			}).Router
 
-			rec := testhttp.ServeAuthz(t, router, http.MethodGet, devBearerPath, testhttp.AdminCookie(t), "", nil)
+			rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/dev/readiness", "", "", nil)
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("expected 404 for readiness in %s, got %d", env, rec.Code)
+			}
+
+			rec = testhttp.ServeAuthz(t, router, http.MethodGet, devBearerPath, testhttp.AdminCookie(t), "", nil)
 			if rec.Code != http.StatusNotFound {
 				t.Fatalf("expected 404 for %s, got %d body=%s", env, rec.Code, rec.Body.String())
 			}

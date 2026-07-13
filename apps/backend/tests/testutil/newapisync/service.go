@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -25,21 +26,34 @@ type TestServiceOpts struct {
 
 func NewTestService(t *testing.T, opts TestServiceOpts) (*domainnewapisync.NewAPISync, config.Config, store.Store) {
 	t.Helper()
+	return newTestService(t, opts, nil)
+}
+
+func NewLocalTestService(t *testing.T, stub *mock.StubAdminClient, cfgOpts ...testutil.ConfigOption) (*domainnewapisync.NewAPISync, store.Store) {
+	t.Helper()
+	base := []testutil.ConfigOption{testutil.WithDeployEnv("local")}
+	sync, _, st := newTestService(t, TestServiceOpts{Stub: stub}, append(base, cfgOpts...))
+	return sync, st
+}
+
+func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.ConfigOption) (*domainnewapisync.NewAPISync, config.Config, store.Store) {
+	t.Helper()
 	stub := opts.Stub
 	if stub == nil {
 		stub = &mock.StubAdminClient{Token: newapi.Token{ID: 1, Key: "sk-test", RemainQuota: 1000}}
 	}
-	cfg, st := testutil.NewTestStore(t,
+	base := []testutil.ConfigOption{
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
-	)
+	}
+	cfg, st := testutil.NewTestStore(t, append(base, cfgOpts...)...)
 	sync := domainnewapisync.New(
 		cfg,
 		st,
 		newapi.NewAdminPortAdapter(stub),
 		opts.Wallet,
-		domainnewapisync.NewChannelPolicy(cfg),
+		policy.NewChannelPolicy(cfg),
 		app.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
 	)
 	return sync, cfg, st

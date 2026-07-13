@@ -8,7 +8,7 @@ import (
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -76,7 +76,7 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 	if err := fix.newAPISync.SyncCreatePlatformKey(ctx, key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
-	if riverfix.ListPendingNewAPISync(fix.st, newapisync.OutboxKindCreateKey, 100) == 0 {
+	if riverfix.ListPendingNewAPISync(fix.st, outbox.KindCreateKey, 100) == 0 {
 		t.Fatal("expected pending create_key outbox before RunOnce")
 	}
 
@@ -85,7 +85,7 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 	if stub.CreateTokenCalls < 1 {
 		t.Fatalf("expected CreateToken to be called, got %d", stub.CreateTokenCalls)
 	}
-	if riverfix.ListPendingNewAPISync(fix.st, newapisync.OutboxKindCreateKey, 100) != 0 {
+	if riverfix.ListPendingNewAPISync(fix.st, outbox.KindCreateKey, 100) != 0 {
 		t.Fatal("expected newapi sync outbox done after RunOnce")
 	}
 }

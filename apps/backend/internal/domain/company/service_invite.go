@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/pkg/secrets"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -120,7 +121,5 @@ func randomInviteCode() (string, error) {
 }
 
 func randomPassword() string {
-	buf := make([]byte, 16)
-	_, _ = rand.Read(buf)
-	return hex.EncodeToString(buf)
+	return secrets.RandomHex(16)
 }

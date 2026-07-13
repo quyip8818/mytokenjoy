@@ -55,7 +55,7 @@ rg '\.Store\b' apps/backend/internal/http/handler/
 | `budget.JobEnqueuer` | `domain/budget/ports.go` | `app/budget_enqueuer.go` | 预算投影 / overrun / rebalance |
 | `usage.IngestJobEnqueuer` | `domain/usage/ports.go` | `app/usage_enqueuer.go` | 入账后 enqueue；**须透传 `store.Tx`** |
 | `dashboard.JobEnqueuer` | `domain/dashboard/ports.go` | `app/dashboard_enqueuer.go` | 看板投影 / reconcile |
-| `newapisync.SyncJobEnqueuer` | `domain/newapisync/ports.go` | `app/newapisync_enqueuer.go` | PlatformKey 生命周期 |
+| `newapisync.SyncJobEnqueuer` | `domain/newapisync/ports/ports.go` | `app/newapisync_enqueuer.go` | PlatformKey 生命周期 |
 | `remote.JobEnqueuer` | `domain/org/remote/ports.go` | `app/org_enqueuer.go` | org sync job |
 
 **其它端口：**

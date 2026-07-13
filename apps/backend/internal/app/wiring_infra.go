@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -21,7 +22,7 @@ type infra struct {
 	store         store.Store
 	adminPort     adminport.Port
 	newAPISync    newapisync.Lifecycle
-	channelPolicy newapisync.ChannelPolicy
+	channelPolicy policy.ChannelPolicy
 	wallet        domaincompany.WalletService
 	companyGate   *domaincompany.Gate
 	notifier      types.Notifier
@@ -40,7 +41,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 	if enqueuer == nil {
 		enqueuer = jobs.NoopEnqueuer{}
 	}
-	channelPolicy := newapisync.NewChannelPolicy(cfg)
+	channelPolicy := policy.NewChannelPolicy(cfg)
 	adminPort := newapi.NewAdminPortAdapter(adminClient)
 	wallet := domaincompany.NewWalletService(cfg, adminPort)
 

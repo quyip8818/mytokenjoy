@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
@@ -11,11 +11,11 @@ type newAPISyncJobEnqueuer struct {
 	enqueuer jobs.Enqueuer
 }
 
-func NewNewAPISyncEnqueuer(enqueuer jobs.Enqueuer) domainnewapisync.SyncJobEnqueuer {
+func NewNewAPISyncEnqueuer(enqueuer jobs.Enqueuer) ports.SyncJobEnqueuer {
 	return newAPISyncJobEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
 }
 
-func (n newAPISyncJobEnqueuer) InsertNewAPISync(ctx context.Context, job domainnewapisync.SyncJob) error {
+func (n newAPISyncJobEnqueuer) InsertNewAPISync(ctx context.Context, job ports.SyncJob) error {
 	return jobs.InsertNewAPISync(ctx, n.enqueuer, nil, jobs.NewAPISyncArgs{
 		CompanyID:     job.CompanyID,
 		SubKind:       job.SubKind,
@@ -29,4 +29,4 @@ func (n newAPISyncJobEnqueuer) InsertRebalance(ctx context.Context, companyID in
 	return jobs.InsertRebalance(ctx, n.enqueuer, nil, companyID, axisKind, axisID)
 }
 
-var _ domainnewapisync.SyncJobEnqueuer = newAPISyncJobEnqueuer{}
+var _ ports.SyncJobEnqueuer = newAPISyncJobEnqueuer{}

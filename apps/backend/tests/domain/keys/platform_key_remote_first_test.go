@@ -6,13 +6,11 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
@@ -310,8 +308,5 @@ func TestUpdatePlatformKeyAppliesSyncImmediately(t *testing.T) {
 	}
 	if stub.UpdateTokenCalls < 1 {
 		t.Fatalf("expected sync update call, got %d", stub.UpdateTokenCalls)
-	}
-	if pending := riverfix.ListPendingNewAPISync(st, newapisync.OutboxKindUpdateKey, 100); pending != 0 {
-		t.Fatalf("expected no pending update_key outbox, got %d", pending)
 	}
 }

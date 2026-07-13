@@ -4,6 +4,7 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -40,11 +41,26 @@ func DefaultStubAdminClient() *mock.StubAdminClient {
 
 func defaultStubAdminClient() *mock.StubAdminClient {
 	var nextUserID int64 = 200
+	var nextTokenID int64 = 1000
 	return &mock.StubAdminClient{
 		User: newapi.User{ID: nextUserID, Quota: 0},
 		CreateUserFn: func(_ context.Context, _ newapi.CreateUserRequest) (newapi.User, error) {
 			nextUserID++
 			return newapi.User{ID: nextUserID, Quota: 0}, nil
+		},
+		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+			nextTokenID++
+			return newapi.Token{
+				ID:          nextTokenID,
+				Key:         fmt.Sprintf("sk-test-%d", nextTokenID),
+				RemainQuota: 1000,
+			}, nil
+		},
+		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
+			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-test-%d", tokenID), RemainQuota: 1000}, nil
+		},
+		GetTokenKeyFn: func(_ context.Context, tokenID int64) (string, error) {
+			return fmt.Sprintf("sk-test-%d", tokenID), nil
 		},
 	}
 }

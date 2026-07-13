@@ -133,7 +133,7 @@ apps/backend/
 │   │   ├── dashboard/       # 看板只读聚合
 │   │   ├── audit/           # 操作审计、调用审计读模型
 │   │   ├── usage/           # Ingest、projection、Reader
-│   │   ├── newapisync/      # NewAPISync（lifecycle_*.go、channel policy）
+│   │   ├── newapisync/      # NewAPISync（platformkey/、provision/、policy/、outbox/ 子包）
 │   │   ├── adminport/       # NewAPI Admin 领域端口（Port 接口 + 输入类型）
 │   │   ├── grants/          # 预设角色常量 + Normalizer 接口
 │   │   ├── gateway/         # GatewayService + Precheck（/v1 数据面）
@@ -179,7 +179,7 @@ apps/backend/
 | 领域服务 | `service.go`；按流程拆分 `service_<动词>.go` |
 | 领域端口 | `ports.go`（Job enqueuer）；其它端口见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口) |
 | PlatformKey | `platform_key_<动作>.go` |
-| NewAPISync | `lifecycle_<动作>.go`；共用逻辑放 `lifecycle_helpers.go` |
+| NewAPISync | 子包 `platformkey/`、`provision/`、`provider/`、`modellimits/`、`outbox/`、`policy/`；根包 `sync.go` + `lifecycle_iface.go` |
 | 投影 / 对账 | `*_projector.go`、`*_reconcile.go` |
 | org | 子包 `core/`、`structure/`、`remote/` + 动词文件 |
 | Store 大 Repo | `<域>_repo_<主题>.go` |
@@ -419,7 +419,7 @@ flowchart TB
 | Worker newapi_sync outbox | `OutboxHandler`（Platform + Provider + ModelLimits + Rebalance） |
 | `app` 装配 | `Lifecycle`（上述全部 + `NewAPIGate`） |
 
-实现位于 `domain/newapisync/lifecycle_*.go`；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [Backend-离线任务.md](./Backend-离线任务.md)。
+实现位于 `domain/newapisync/` 子包（`platformkey/`、`provider/`、`modellimits/` 等）；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [Backend-离线任务.md](./Backend-离线任务.md) 与 [Backend-NewAPI-Provision架构.md](./Backend-NewAPI-Provision架构.md)。
 
 ### 7.1 后台运行时（简化后）
 

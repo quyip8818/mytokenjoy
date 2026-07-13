@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "make install-air",
     "start": "make start",
+    "dev-bootstrap": "make dev-bootstrap",
     "build": "make build",
     "build:check": "go build -o /dev/null ./...",
     "lint": "make lint",

@@ -127,8 +127,8 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 | `billing.afterRecharge` | `wallet_sync`、`rebalance`（company 轴） | 经 `billing.JobEnqueuer`（`app/billing_enqueuer.go`）；失败 `slog.Warn`，不阻断充值 |
 | `billing.ReconcileWalletDrift` | `wallet_sync` | ingest Worker 周期调用；失败 Warn |
 | `budget.ReconcileService.RunCompany` | `rebalance`（company 轴） | reconcile 修复 drift 后 |
-| `newapisync/lifecycle_*.go` | `newapi_sync` | Create/Update Key、Provider、ModelLimits；**当前非** DB 同事务 |
-| `newapisync/lifecycle_rebalance.go` | `rebalance` | Rebalance 轴变更 |
+| `newapisync/platformkey/`、`provider/`、`modellimits/` | `newapi_sync` | Create/Update Key、Provider、ModelLimits；**当前非** DB 同事务 |
+| `newapisync/sync.go`（`EnqueueRebalanceAxis`） | `rebalance` | Rebalance 轴变更 |
 | `MonthlyRebalanceScheduler` | `rebalance`（company 轴） | 月切后扇出 |
 | `budget.ReconcileService.FanoutReconcileJobs` | `budget_reconcile` | Periodic fanout → 每 active company 一条 |
 | `dashboard.Projector.FanoutProjectJobs` | `dashboard_project` | Periodic fanout → 每 active company 一条 |
@@ -291,7 +291,9 @@ internal/
   domain/billing/wallet_sync.go
   domain/billing/lot_confirm.go    # afterRecharge → JobEnqueuer
   domain/org/remote/sync.go        # 同步、fanout、锁
-  domain/newapisync/lifecycle_*.go
+  domain/newapisync/platformkey/   # Create/Update/Revoke/Rotate
+  domain/newapisync/provider/
+  domain/newapisync/modellimits/
   infra/jobs/                      # Enqueuer, Holder, Args, enqueue.go
   infra/river/client.go            # registerWorkers, queueConfig
   infra/river/periodic.go

@@ -85,10 +85,15 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}
 	if cfg.AllowsDevHTTPRoutes() {
 		if sync, ok := registry.Infra.newAPISync.(*newapisync.NewAPISync); ok {
-			if err := sync.BootstrapUnsyncedPlatformKeys(
-				company.DefaultContext(cfg.LocalCompanyID), cfg.LocalCompanyID,
-			); err != nil {
-				logger.Warn("local platform key newapi bootstrap failed", "error", err)
+			bootstrapCtx := company.DefaultContext(cfg.LocalCompanyID)
+			unready, err := sync.UnreadyPlatformKeyIDs(bootstrapCtx)
+			if err != nil {
+				logger.Warn("check demo platform key readiness failed", "error", err)
+			} else if len(unready) > 0 {
+				logger.Warn(
+					"demo platform keys not synced; run pnpm docker:reset or: cd apps/backend && make dev-bootstrap",
+					"unready_keys", unready,
+				)
 			}
 		}
 	}

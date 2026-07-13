@@ -3,7 +3,7 @@ package keys_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -15,7 +15,7 @@ import (
 
 func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 1, Key: "sk-test", RemainQuota: 1000}}
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 881, Key: "sk-test", RemainQuota: 1000}}
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
@@ -37,14 +37,14 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if riverfix.ListPendingNewAPISync(st, newapisync.OutboxKindCreateKey, 10) == 0 {
+	if riverfix.ListPendingNewAPISync(st, outbox.KindCreateKey, 10) == 0 {
 		t.Fatal("expected create_key outbox entry")
 	}
 }
 
 func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, Key: "sk-test-key", RemainQuota: 1000}}
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 882, Key: "sk-test-key", RemainQuota: 1000}}
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1

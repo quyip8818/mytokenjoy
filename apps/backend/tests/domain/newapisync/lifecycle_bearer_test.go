@@ -11,7 +11,6 @@ import (
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 )
 
 func TestResolvePlatformKeyBearerReturnsSecretWithoutRotate(t *testing.T) {
@@ -29,11 +28,13 @@ func TestResolvePlatformKeyBearerReturnsSecretWithoutRotate(t *testing.T) {
 		},
 	}
 
-	sync, _, st := newapisynctf.NewTestService(t, newapisynctf.TestServiceOpts{Stub: stub})
+	sync, st := newSyncWithStub(t, stub)
 	ctx := testutil.Ctx()
 
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
+		DepartmentID:  contract.IDDept3,
+		NewAPIGroup:   "dept-dept-3",
 		NewAPIKeyID:   &tokenID,
 		SyncStatus:    store.MappingSyncStatusSynced,
 	}); err != nil {
@@ -46,6 +47,9 @@ func TestResolvePlatformKeyBearerReturnsSecretWithoutRotate(t *testing.T) {
 	}
 	if got != bearer {
 		t.Fatalf("expected bearer %q, got %q", bearer, got)
+	}
+	if stub.UpdateTokenCalls != 0 {
+		t.Fatalf("expected no UpdateToken calls, got %d", stub.UpdateTokenCalls)
 	}
 	if stub.GetTokenKeyCalls != 1 {
 		t.Fatalf("expected one GetTokenKey call, got %d", stub.GetTokenKeyCalls)

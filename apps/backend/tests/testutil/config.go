@@ -94,6 +94,9 @@ func WithProductionContract() ConfigOption {
 func WithSupportSaas(enabled bool) ConfigOption {
 	return func(cfg *config.Config) {
 		cfg.SupportSaas = enabled
+		if enabled && cfg.PlatformSharedNewAPIGroup == "" {
+			cfg.PlatformSharedNewAPIGroup = "platform_shared"
+		}
 	}
 }
 
