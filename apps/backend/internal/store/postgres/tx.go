@@ -23,6 +23,8 @@ type txStore struct {
 	company                     store.CompanyRepository
 	invite                      store.InviteRepository
 	billing                     store.BillingRepository
+	tenantBackgroundState       store.TenantBackgroundStateRepository
+	riverJob                    store.RiverJobRepository
 	parent                      *Store
 }
 
@@ -87,6 +89,14 @@ func (s *txStore) Billing() store.BillingRepository {
 	return s.billing
 }
 
+func (s *txStore) TenantBackgroundState() store.TenantBackgroundStateRepository {
+	return s.tenantBackgroundState
+}
+
+func (s *txStore) RiverJob() store.RiverJobRepository {
+	return s.riverJob
+}
+
 func (s *txStore) Logs() store.LogStore {
 	return s.parent.Logs()
 }
@@ -121,6 +131,8 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 		company:                     newCompanyRepo(tx),
 		invite:                      newInviteRepo(tx),
 		billing:                     newBillingRepo(tx),
+		tenantBackgroundState:       newTenantBackgroundStateRepo(tx),
+		riverJob:                    newRiverJobRepo(tx),
 		parent:                      s,
 	}
 	if err := fn(txView); err != nil {

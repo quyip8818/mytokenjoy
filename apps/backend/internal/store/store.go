@@ -53,6 +53,8 @@ type Store interface {
 	GatewayPrecheck() GatewayPrecheckRepository
 	GatewaySoftSummaries() GatewaySoftSummaryRepository
 	SchedulerLock() SchedulerLockRepository
+	TenantBackgroundState() TenantBackgroundStateRepository
+	RiverJob() RiverJobRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository
 	Logs() LogStore

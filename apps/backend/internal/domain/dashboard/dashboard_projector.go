@@ -89,12 +89,6 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	return hasMore, nil
 }
 
-func (p *Projector) FanoutProjectJobs(ctx context.Context) error {
-	return company.ForEachActiveCompany(ctx, p.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return p.enqueuer.InsertDashboardProject(entryCtx, co.ID)
-	})
-}
-
 func upsertDashboardBucket(ctx context.Context, usage store.UsageRepository, entry types.UsageLedgerEntry) error {
 	var memberID string
 	if entry.MemberID != nil {

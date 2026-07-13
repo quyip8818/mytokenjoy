@@ -28,6 +28,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) | 后端 / 架构 | **v1 Gateway → Ingest** 性能项（G/I/P/R）+ 不牺牲热路径的 Lag 缩窗（§10） |
 | [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析（含上线后 migration 建议） |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | **as-built**：Ingest + River 两条线、13 kind、入队与 Worker |
+| [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md) | 后端 / 架构 | **目标态**：离线任务 L0/L1/L2、`tenant_watchdog`、目录终态 |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun、Platform Key 执法链（**as-built**） |
 | **[预算分配与扣减.md](./预算分配与扣减.md)** | 产品 / 研发 | **权威**：切蛋糕 vs 独立结算；三 scope 产品行为；personal 用尽 → 审批追加 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定（含 `platform_keys.scope`） |

@@ -13,9 +13,11 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
+	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -31,6 +33,14 @@ type TestRuntime struct {
 }
 
 func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.Store) {
+	return newRuntime(t, stub, nil)
+}
+
+func NewRuntimeWithOrgSync(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.SyncService) (*TestRuntime, store.Store) {
+	return newRuntime(t, stub, orgSync)
+}
+
+func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.SyncService) (*TestRuntime, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
@@ -40,23 +50,35 @@ func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.S
 		testutil.WithNewAPIWebhookSecret("secret"),
 	)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	reg, holder, err := app.BuildRegistry(cfg, logger, st, app.WithAdminClient(stub))
+	opts := []app.Option{app.WithAdminClient(stub)}
+	if orgSync != nil {
+		opts = append(opts, app.WithOrgSync(orgSync))
+	}
+	reg, holder, err := app.BuildRegistry(cfg, logger, st, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pool := postgres.MainPool(st)
-	budgetAsync := budget.NewAsync(cfg, st, budgetEnqueuerFromHolder(holder), budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
+	budgetEnqueuer := budgetEnqueuerFromHolder(holder)
+	budgetAsync := budget.NewAsync(cfg, st, budgetEnqueuer, budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
+	dashboardEnqueuer := app.NewDashboardEnqueuer(holder)
+	sched := scheduler.NewService(cfg, st)
+	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
+		Cfg:                cfg,
+		Store:              st,
 		Billing:            reg.BillingSvc,
 		Overrun:            reg.Overrun,
 		Rebalance:          reg.Rebalance,
 		NewAPISync:         reg.MustNewAPISync(),
 		OrgSync:            reg.OrgSync,
-		MonthlyRebalance:   budget.NewMonthlyRebalanceScheduler(cfg, st, budgetEnqueuerFromHolder(holder)),
 		BudgetProjector:    budgetAsync.Projector,
 		BudgetReconcile:    budgetAsync.Reconcile,
-		DashboardProjector: domaindashboard.NewProjector(cfg, st, app.NewDashboardEnqueuer(holder), logger),
-		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, app.NewDashboardEnqueuer(holder), logger),
+		DashboardProjector: domaindashboard.NewProjector(cfg, st, dashboardEnqueuer, logger),
+		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, dashboardEnqueuer, logger),
+		Scheduler:          sched,
+		BulkEnqueuer:       bulk,
+		DisablePeriodic:    true,
 	}, logger)
 	if err != nil {
 		t.Fatal(err)
@@ -80,13 +102,18 @@ func (r *TestRuntime) Stop(t *testing.T, ctx context.Context) {
 func (r *TestRuntime) WorkOnce(t *testing.T, ctx context.Context) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
+	var sawPending bool
 	for time.Now().Before(deadline) {
-		if pendingActiveJobs(r.st) == 0 {
+		n := pendingActiveJobs(r.st)
+		if n > 0 {
+			sawPending = true
+		}
+		if sawPending && n == 0 {
 			return
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	t.Fatalf("timeout waiting for river jobs to complete; pending=%d", pendingActiveJobs(r.st))
+	t.Fatalf("timeout waiting for river jobs to complete; pending=%d sawPending=%v", pendingActiveJobs(r.st), sawPending)
 }
 
 func pendingActiveJobs(st store.Store) int {
@@ -134,6 +161,10 @@ func PendingWalletSyncCount(st store.Store, companyID int64) int {
 
 func PendingBudgetProjectCount(st store.Store, companyID int64) int {
 	return PendingJobCount(st, jobs.KindBudgetProjection, companyID)
+}
+
+func PendingDashboardProjectCount(st store.Store, companyID int64) int {
+	return PendingJobCount(st, jobs.KindDashboardProject, companyID)
 }
 
 func ListPendingNewAPISync(st store.Store, subKind string, limit int) int {

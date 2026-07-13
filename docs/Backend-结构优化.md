@@ -96,15 +96,30 @@ rg '\.Store\b' apps/backend/internal/http/handler/
 | 序 | 类型 | 项 |
 | ---: | --- | --- |
 | 1 | 可读性 | [2.1 大文件机械拆分](#21-大文件机械拆分) |
-| 2 | 性能 | [2.2 schema clone 性能](#22-schema-clone-性能) |
-| 3 | 分层 | [2.3 端口定义位置收敛](#23-端口定义位置收敛) |
+| 2 | 架构 | [2.4 离线任务模块化](#24-离线任务模块化) |
+| 3 | 性能 | [2.2 schema clone 性能](#22-schema-clone-性能) |
+| 4 | 分层 | [2.3 端口定义位置收敛](#23-端口定义位置收敛) |
 
 ### 2.1 大文件机械拆分
 
 | 文件 | 行数 | 拆法 |
 | --- | ---: | --- |
 | `integration/datasource/feishu/client.go` | ~391 | `auth.go`、`departments.go`、`members.go` |
-| `infra/jobs/args.go` | ~253 | 按 kind 拆 `args_wallet_sync.go` 等；`Insert*` 仍集中在 `enqueue.go` |
+| `infra/jobs/args.go` | ~253 | 见 [2.4](#24-离线任务模块化)：`jobs/kinds/*.go` + `trigger/catalog.go` |
+
+### 2.4 离线任务架构（目标态）
+
+**权威文档：** [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md)（最终架构：L0/L1/L2、`tenant_background_state`、唯一 `tenant_watchdog` Periodic）。
+
+| 区域 | 终态 |
+| --- | --- |
+| Periodic | 仅 `tenant_watchdog`（7d）；删除全部 `*_fanout` / `monthly_rebalance` |
+| 调度状态 | `tenant_background_state` 表 SSOT；`CreateCompany` / seed `EnsureRow` |
+| 月切 | `EnsureMonthRebalance` 只入队；`last_rebalanced_period` **rebalance 成功后**写入 |
+| org | per-tenant `ScheduledAt`；`UpdateSyncConfig` 闭环 Cancel + Reschedule |
+| `infra/jobs/` | `kinds/`、`enqueue/`、`trigger/catalog.go` |
+| `infra/scheduler/` | `due.go` + `bulk_enqueue.go`（分批） |
+| `infra/river/` | `periodic/watchdog.go`；`workers/{budget,dashboard,org,sideeffect}/` |
 
 ### 2.2 schema clone 性能
 

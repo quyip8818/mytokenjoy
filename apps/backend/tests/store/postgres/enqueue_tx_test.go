@@ -12,7 +12,6 @@ import (
 )
 
 func TestInsertInTxRollsBackWithStoreTransaction(t *testing.T) {
-	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
@@ -36,7 +35,6 @@ func TestInsertInTxRollsBackWithStoreTransaction(t *testing.T) {
 }
 
 func TestInsertInTxCommitsWithStoreTransaction(t *testing.T) {
-	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)

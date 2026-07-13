@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -19,7 +20,10 @@ func (s *Service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
 	err := s.runOrgSyncLocked(ctx, true, func(ctx context.Context) error {
 		var syncErr error
 		result, syncErr = s.syncFromProvider(ctx, types.SyncTypeManual)
-		return syncErr
+		if syncErr != nil {
+			return syncErr
+		}
+		return s.recordSyncSuccess(ctx, time.Now().UTC())
 	})
 	if err != nil {
 		return types.ImportResult{}, err
@@ -28,37 +32,100 @@ func (s *Service) TriggerSync(ctx context.Context) (types.ImportResult, error) {
 }
 
 func (s *Service) RunScheduledSync(ctx context.Context) error {
-	due, err := s.dueForScheduledSync(ctx)
-	if err != nil || !due {
+	cfg, err := s.GetSyncConfig(ctx)
+	if err != nil {
+		return err
+	}
+	if !cfg.Enabled {
+		return nil
+	}
+	if err := s.ensureScheduledOrgSync(ctx); err != nil {
 		return err
 	}
 	return s.runOrgSyncLocked(ctx, false, func(ctx context.Context) error {
 		_, syncErr := s.syncFromProvider(ctx, types.SyncTypeScheduled)
-		return syncErr
+		if syncErr != nil {
+			return syncErr
+		}
+		return s.recordSyncSuccess(ctx, time.Now().UTC())
 	})
 }
 
-// FanoutScheduledSyncJobs enqueues org_sync for tenants due for scheduled sync.
-func (s *Service) FanoutScheduledSyncJobs(ctx context.Context) error {
-	return company.ForEachActiveCompany(ctx, s.d.Store.Company(), func(entryCtx context.Context, co store.Company) error {
-		due, err := s.dueForScheduledSync(entryCtx)
-		if err != nil || !due {
+func (s *Service) ensureScheduledOrgSync(ctx context.Context) error {
+	companyID := company.CompanyID(ctx)
+	if companyID == 0 {
+		return fmt.Errorf("org sync: company context required")
+	}
+	cfg, err := s.GetSyncConfig(ctx)
+	if err != nil {
+		return err
+	}
+	if !cfg.Enabled {
+		return nil
+	}
+	tbs, err := s.d.Store.TenantBackgroundState().Get(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	now := clock.NowUTC(s.d.Cfg.Clock())
+	if tbs != nil && tbs.NextOrgSyncAt != nil && tbs.NextOrgSyncAt.After(now) {
+		hasPending, err := s.d.Store.RiverJob().HasActiveOrgSync(ctx, companyID)
+		if err != nil {
 			return err
 		}
-		return s.enqueuer.InsertOrgSync(entryCtx, co.ID)
-	})
+		if hasPending {
+			return nil
+		}
+	}
+	hasPending, err := s.d.Store.RiverJob().HasActiveOrgSync(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	if hasPending {
+		return nil
+	}
+	return s.rescheduleOrgSync(ctx, cfg, tbs, now)
 }
 
-func (s *Service) dueForScheduledSync(ctx context.Context) (bool, error) {
-	integration, err := s.d.Store.Org().Integration(ctx)
+func (s *Service) recordSyncSuccess(ctx context.Context, syncedAt time.Time) error {
+	companyID := company.CompanyID(ctx)
+	cfg, err := s.GetSyncConfig(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
-	cfg := integration.ToSyncConfig()
 	if !cfg.Enabled {
-		return false, nil
+		return nil
 	}
-	return s.shouldRunScheduledSync(ctx, cfg), nil
+	next := ComputeNextOrgSync(cfg, &syncedAt, s.d.Cfg.Clock())
+	if err := s.d.Store.TenantBackgroundState().UpsertOrgSchedule(ctx, companyID, next, &syncedAt); err != nil {
+		return err
+	}
+	if err := s.enqueuer.CancelPendingOrgSync(ctx, companyID); err != nil {
+		return err
+	}
+	return s.enqueuer.InsertOrgSync(ctx, companyID, &next)
+}
+
+func (s *Service) rescheduleOrgSync(ctx context.Context, cfg types.SyncConfig, tbs *store.TenantBackgroundState, now time.Time) error {
+	companyID := company.CompanyID(ctx)
+	if err := s.d.Store.TenantBackgroundState().EnsureRow(ctx, companyID); err != nil {
+		return err
+	}
+	var last *time.Time
+	if tbs != nil {
+		last = tbs.LastOrgSyncAt
+	}
+	next := ComputeNextOrgSync(cfg, last, s.d.Cfg.Clock())
+	if next.Before(now) {
+		next = now
+	}
+	if err := s.d.Store.TenantBackgroundState().UpsertOrgSchedule(ctx, companyID, next, last); err != nil {
+		return err
+	}
+	if err := s.enqueuer.CancelPendingOrgSync(ctx, companyID); err != nil {
+		return err
+	}
+	return s.enqueuer.InsertOrgSync(ctx, companyID, &next)
 }
 
 func (s *Service) runOrgSyncLocked(ctx context.Context, conflictIfBusy bool, fn func(context.Context) error) error {
@@ -74,45 +141,6 @@ func (s *Service) runOrgSyncLocked(ctx context.Context, conflictIfBusy bool, fn 
 	}
 	defer release()
 	return fn(ctx)
-}
-
-func (s *Service) shouldRunScheduledSync(ctx context.Context, cfg types.SyncConfig) bool {
-	if cfg.FrequencyHours <= 0 {
-		return false
-	}
-	lastRun := s.lastScheduledSyncTime(ctx)
-	if lastRun != nil && time.Since(*lastRun) < time.Duration(cfg.FrequencyHours)*time.Hour {
-		return false
-	}
-	if cfg.StartTime == "" {
-		return true
-	}
-	parsed, err := time.Parse("15:04", cfg.StartTime)
-	if err != nil {
-		s.d.Logger.Warn("invalid sync start time", "start_time", cfg.StartTime, "error", err)
-		return false
-	}
-	now := time.Now()
-	startToday := time.Date(now.Year(), now.Month(), now.Day(), parsed.Hour(), parsed.Minute(), 0, 0, now.Location())
-	return !now.Before(startToday)
-}
-
-func (s *Service) lastScheduledSyncTime(ctx context.Context) *time.Time {
-	logs, err := s.d.Store.Org().SyncLogs(ctx)
-	if err != nil {
-		return nil
-	}
-	for _, entry := range logs {
-		if entry.Type != types.SyncTypeScheduled {
-			continue
-		}
-		parsed, err := time.Parse("2006-01-02 15:04", entry.Time)
-		if err != nil {
-			continue
-		}
-		return &parsed
-	}
-	return nil
 }
 
 func (s *Service) schedulerHolder() string {
@@ -233,7 +261,25 @@ func (s *Service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) er
 		return err
 	}
 	integration.ApplySyncConfig(cfg)
-	return s.d.Store.Org().SetIntegration(ctx, integration)
+	if err := s.d.Store.Org().SetIntegration(ctx, integration); err != nil {
+		return err
+	}
+
+	companyID := company.CompanyID(ctx)
+	if companyID == 0 {
+		return fmt.Errorf("org sync config: company context required")
+	}
+	if err := s.d.Store.TenantBackgroundState().EnsureRow(ctx, companyID); err != nil {
+		return err
+	}
+	if !cfg.Enabled {
+		return s.enqueuer.CancelPendingOrgSync(ctx, companyID)
+	}
+	tbs, err := s.d.Store.TenantBackgroundState().Get(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	return s.rescheduleOrgSync(ctx, cfg, tbs, clock.NowUTC(s.d.Cfg.Clock()))
 }
 
 func (s *Service) ListSyncLogs(ctx context.Context, page, pageSize int) (types.PageResult[types.SyncLog], error) {

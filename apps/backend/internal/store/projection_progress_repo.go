@@ -18,6 +18,7 @@ type ProjectionProgress struct {
 }
 
 type ProjectionProgressRepository interface {
+	Get(ctx context.Context, stream string) (*ProjectionProgress, error)
 	GetForUpdate(ctx context.Context, stream string) (*ProjectionProgress, error)
 	Advance(ctx context.Context, stream string, lastOccurredAt time.Time, lastLedgerID string) error
 }

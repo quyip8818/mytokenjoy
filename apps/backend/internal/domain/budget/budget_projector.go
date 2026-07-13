@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/budget/schedule"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -39,6 +40,10 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 		return false, nil
 	}
 	ctx = company.WithContext(ctx, companyFromStore(*co))
+
+	if err := schedule.EnsureMonthRebalance(ctx, p.cfg, p.store, p.enqueuer, companyID); err != nil {
+		return false, err
+	}
 
 	var entries []types.UsageLedgerEntry
 	var summaries []store.GatewaySoftSummary

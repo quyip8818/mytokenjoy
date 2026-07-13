@@ -2,10 +2,13 @@ package workers
 
 import (
 	"context"
+	"time"
 
 	"github.com/riverqueue/river"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type DashboardProjectWorker struct {
@@ -21,54 +24,28 @@ func (w *DashboardProjectWorker) Work(ctx context.Context, job *river.Job[jobs.D
 	if w.projector == nil {
 		return nil
 	}
-	_, err := w.projector.RunBatch(ctx, job.Args.CompanyID)
+	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
+	_, err := w.projector.RunBatch(entryCtx, job.Args.CompanyID)
 	return err
-}
-
-type DashboardProjectFanoutWorker struct {
-	river.WorkerDefaults[jobs.DashboardProjectFanoutArgs]
-	projector *domaindashboard.Projector
-}
-
-func NewDashboardProjectFanoutWorker(projector *domaindashboard.Projector) *DashboardProjectFanoutWorker {
-	return &DashboardProjectFanoutWorker{projector: projector}
-}
-
-func (w *DashboardProjectFanoutWorker) Work(ctx context.Context, _ *river.Job[jobs.DashboardProjectFanoutArgs]) error {
-	if w.projector == nil {
-		return nil
-	}
-	return w.projector.FanoutProjectJobs(ctx)
 }
 
 type DashboardReconcileWorker struct {
 	river.WorkerDefaults[jobs.DashboardReconcileArgs]
 	reconcile *domaindashboard.ReconcileService
+	store     store.Store
 }
 
-func NewDashboardReconcileWorker(reconcile *domaindashboard.ReconcileService) *DashboardReconcileWorker {
-	return &DashboardReconcileWorker{reconcile: reconcile}
+func NewDashboardReconcileWorker(reconcile *domaindashboard.ReconcileService, st store.Store) *DashboardReconcileWorker {
+	return &DashboardReconcileWorker{reconcile: reconcile, store: st}
 }
 
 func (w *DashboardReconcileWorker) Work(ctx context.Context, job *river.Job[jobs.DashboardReconcileArgs]) error {
 	if w.reconcile == nil {
 		return nil
 	}
-	return w.reconcile.RunCompany(ctx, job.Args.CompanyID)
-}
-
-type DashboardReconcileFanoutWorker struct {
-	river.WorkerDefaults[jobs.DashboardReconcileFanoutArgs]
-	reconcile *domaindashboard.ReconcileService
-}
-
-func NewDashboardReconcileFanoutWorker(reconcile *domaindashboard.ReconcileService) *DashboardReconcileFanoutWorker {
-	return &DashboardReconcileFanoutWorker{reconcile: reconcile}
-}
-
-func (w *DashboardReconcileFanoutWorker) Work(ctx context.Context, _ *river.Job[jobs.DashboardReconcileFanoutArgs]) error {
-	if w.reconcile == nil {
-		return nil
+	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
+	if err := w.reconcile.RunCompany(entryCtx, job.Args.CompanyID); err != nil {
+		return err
 	}
-	return w.reconcile.FanoutReconcileJobs(ctx)
+	return w.store.TenantBackgroundState().SetLastDashboardReconcileAt(entryCtx, job.Args.CompanyID, time.Now().UTC())
 }

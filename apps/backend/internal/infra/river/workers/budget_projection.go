@@ -2,10 +2,13 @@ package workers
 
 import (
 	"context"
+	"time"
 
 	"github.com/riverqueue/river"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type BudgetProjectionWorker struct {
@@ -21,38 +24,28 @@ func (w *BudgetProjectionWorker) Work(ctx context.Context, job *river.Job[jobs.B
 	if w.projector == nil {
 		return nil
 	}
-	_, err := w.projector.RunBatch(ctx, job.Args.CompanyID)
+	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
+	_, err := w.projector.RunBatch(entryCtx, job.Args.CompanyID)
 	return err
 }
 
 type BudgetReconcileWorker struct {
 	river.WorkerDefaults[jobs.BudgetReconcileArgs]
 	reconcile *domainbudget.ReconcileService
+	store     store.Store
 }
 
-func NewBudgetReconcileWorker(reconcile *domainbudget.ReconcileService) *BudgetReconcileWorker {
-	return &BudgetReconcileWorker{reconcile: reconcile}
+func NewBudgetReconcileWorker(reconcile *domainbudget.ReconcileService, st store.Store) *BudgetReconcileWorker {
+	return &BudgetReconcileWorker{reconcile: reconcile, store: st}
 }
 
 func (w *BudgetReconcileWorker) Work(ctx context.Context, job *river.Job[jobs.BudgetReconcileArgs]) error {
 	if w.reconcile == nil {
 		return nil
 	}
-	return w.reconcile.RunCompany(ctx, job.Args.CompanyID)
-}
-
-type BudgetReconcileFanoutWorker struct {
-	river.WorkerDefaults[jobs.BudgetReconcileFanoutArgs]
-	reconcile *domainbudget.ReconcileService
-}
-
-func NewBudgetReconcileFanoutWorker(reconcile *domainbudget.ReconcileService) *BudgetReconcileFanoutWorker {
-	return &BudgetReconcileFanoutWorker{reconcile: reconcile}
-}
-
-func (w *BudgetReconcileFanoutWorker) Work(ctx context.Context, _ *river.Job[jobs.BudgetReconcileFanoutArgs]) error {
-	if w.reconcile == nil {
-		return nil
+	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
+	if err := w.reconcile.RunCompany(entryCtx, job.Args.CompanyID); err != nil {
+		return err
 	}
-	return w.reconcile.FanoutReconcileJobs(ctx)
+	return w.store.TenantBackgroundState().SetLastBudgetReconcileAt(entryCtx, job.Args.CompanyID, time.Now().UTC())
 }

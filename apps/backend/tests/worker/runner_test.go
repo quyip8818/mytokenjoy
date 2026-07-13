@@ -20,7 +20,6 @@ import (
 )
 
 func TestProcessUnknownNewAPISyncOutboxKindFails(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
@@ -53,7 +52,6 @@ func TestProcessUnknownNewAPISyncOutboxKindFails(t *testing.T) {
 }
 
 func TestProcessNewAPISyncOutbox(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
@@ -95,7 +93,6 @@ type errTest string
 func (e errTest) Error() string { return string(e) }
 
 func TestIngestJobMappingLateRecovery(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()

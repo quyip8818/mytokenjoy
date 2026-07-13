@@ -16,7 +16,6 @@ import (
 )
 
 func TestWalletSyncWorkerTopUpOnDrift(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{
 		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
 	}
@@ -45,7 +44,6 @@ func TestWalletSyncWorkerTopUpOnDrift(t *testing.T) {
 }
 
 func TestWalletSyncWorkerCancelsWhenWalletNotConfigured(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()

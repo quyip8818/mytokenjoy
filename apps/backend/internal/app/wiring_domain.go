@@ -39,13 +39,13 @@ func wireIngestQueue(i infra) domainusage.Queue {
 	return domainusage.NewQueue(i.store.Logs())
 }
 
-func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) domainServices {
+func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, orgAdmin *OrgRiverAdminHolder) domainServices {
 	reader := wireReader(i)
 	ingestQueue := wireIngestQueue(i)
 	keysSvc := wireKeys(cfg, i)
 	grants := permission.NewGrantNormalizer()
 	return domainServices{
-		org:             wireOrg(cfg, i, logger, grants, enqueuer),
+		org:             wireOrg(cfg, i, logger, grants, enqueuer, orgAdmin),
 		budget:          wireBudget(cfg, i, enqueuer),
 		keys:            keysSvc,
 		models:          wireModels(cfg, i),

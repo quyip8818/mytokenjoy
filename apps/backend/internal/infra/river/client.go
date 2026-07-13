@@ -16,35 +16,47 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/infra/river/periodic"
 	"github.com/tokenjoy/backend/internal/infra/river/workers"
+	"github.com/tokenjoy/backend/internal/infra/scheduler"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Client struct {
 	inner    *river.Client[pgx.Tx]
 	Enqueuer jobs.Enqueuer
+	store    store.Store
 }
 
 type Deps struct {
+	Cfg                config.Config
+	Store              store.Store
 	Billing            domainbilling.Service
 	Overrun            domainbudget.OverrunProcessor
 	Rebalance          domainbudget.Rebalancer
 	NewAPISync         newapisync.OutboxHandler
 	OrgSync            domainorg.SyncService
-	MonthlyRebalance   *domainbudget.MonthlyRebalanceScheduler
 	BudgetProjector    *domainbudget.Projector
 	BudgetReconcile    *domainbudget.ReconcileService
 	DashboardProjector *domaindashboard.Projector
 	DashboardReconcile *domaindashboard.ReconcileService
+	Scheduler          *scheduler.Service
+	BulkEnqueuer       *scheduler.BulkEnqueuer
+	DisablePeriodic    bool // tests: skip tenant_watchdog periodic registration
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	var periodicJobs []*river.PeriodicJob
+	if !deps.DisablePeriodic {
+		periodicJobs = periodic.BuildWatchdogJobs(cfg)
+	}
 	inner, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		Queues:       queueConfig(cfg),
 		Workers:      registerWorkers(deps),
-		PeriodicJobs: BuildPeriodicJobs(cfg),
+		PeriodicJobs: periodicJobs,
 		Logger:       logger,
 	})
 	if err != nil {
@@ -53,24 +65,22 @@ func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Lo
 	return &Client{
 		inner:    inner,
 		Enqueuer: jobs.NewEnqueuer(inner),
+		store:    deps.Store,
 	}, nil
 }
 
 func registerWorkers(deps Deps) *river.Workers {
 	workersBundle := river.NewWorkers()
 	river.AddWorker(workersBundle, workers.NewWalletSyncWorker(deps.Billing))
-	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance))
+	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.Store, deps.Cfg))
 	river.AddWorker(workersBundle, workers.NewOverrunWorker(deps.Overrun))
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))
 	river.AddWorker(workersBundle, workers.NewOrgSyncWorker(deps.OrgSync))
-	river.AddWorker(workersBundle, workers.NewMonthlyRebalanceWorker(deps.MonthlyRebalance))
 	river.AddWorker(workersBundle, workers.NewBudgetProjectionWorker(deps.BudgetProjector))
-	river.AddWorker(workersBundle, workers.NewBudgetReconcileWorker(deps.BudgetReconcile))
-	river.AddWorker(workersBundle, workers.NewBudgetReconcileFanoutWorker(deps.BudgetReconcile))
+	river.AddWorker(workersBundle, workers.NewBudgetReconcileWorker(deps.BudgetReconcile, deps.Store))
 	river.AddWorker(workersBundle, workers.NewDashboardProjectWorker(deps.DashboardProjector))
-	river.AddWorker(workersBundle, workers.NewDashboardProjectFanoutWorker(deps.DashboardProjector))
-	river.AddWorker(workersBundle, workers.NewDashboardReconcileWorker(deps.DashboardReconcile))
-	river.AddWorker(workersBundle, workers.NewDashboardReconcileFanoutWorker(deps.DashboardReconcile))
+	river.AddWorker(workersBundle, workers.NewDashboardReconcileWorker(deps.DashboardReconcile, deps.Store))
+	river.AddWorker(workersBundle, workers.NewWatchdogWorker(deps.Scheduler, deps.BulkEnqueuer, deps.Store, deps.Cfg))
 	return workersBundle
 }
 
@@ -102,4 +112,20 @@ func (c *Client) Inner() *river.Client[pgx.Tx] {
 		return nil
 	}
 	return c.inner
+}
+
+func (c *Client) CancelOrgSyncPending(ctx context.Context, companyID int64) error {
+	if c == nil || c.inner == nil || c.store == nil {
+		return nil
+	}
+	ids, err := c.store.RiverJob().ListCancellableOrgSyncJobIDs(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if _, err := c.inner.JobCancel(ctx, id); err != nil {
+			return err
+		}
+	}
+	return nil
 }

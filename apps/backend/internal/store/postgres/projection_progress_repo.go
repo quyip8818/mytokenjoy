@@ -22,6 +22,25 @@ func newDashboardProjectionProgressRepo(db dbQuerier) store.ProjectionProgressRe
 	return &projectionProgressRepo{db: db, table: "dashboard_projection_progress"}
 }
 
+func (r *projectionProgressRepo) Get(ctx context.Context, stream string) (*store.ProjectionProgress, error) {
+	companyID := store.CompanyID(ctx)
+	row := r.db.QueryRow(ctx, fmt.Sprintf(`
+		SELECT company_id, stream, last_occurred_at, last_ledger_id
+		FROM %s
+		WHERE company_id = $1 AND stream = $2
+	`, r.table), companyID, stream)
+
+	var progress store.ProjectionProgress
+	err := row.Scan(&progress.CompanyID, &progress.Stream, &progress.LastOccurredAt, &progress.LastLedgerID)
+	if err == pgx.ErrNoRows {
+		return &store.ProjectionProgress{CompanyID: companyID, Stream: stream}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &progress, nil
+}
+
 func (r *projectionProgressRepo) GetForUpdate(ctx context.Context, stream string) (*store.ProjectionProgress, error) {
 	companyID := store.CompanyID(ctx)
 	if _, err := r.db.Exec(ctx, fmt.Sprintf(`

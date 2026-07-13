@@ -82,12 +82,6 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 	return nil
 }
 
-func (s *ReconcileService) FanoutReconcileJobs(ctx context.Context) error {
-	return company.ForEachActiveCompany(ctx, s.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return s.enqueuer.InsertDashboardReconcile(entryCtx, co.ID)
-	})
-}
-
 func expectedBuckets(entries []types.UsageLedgerEntry) map[bucketKey]types.UsageBucketRow {
 	out := make(map[bucketKey]types.UsageBucketRow)
 	for _, entry := range entries {

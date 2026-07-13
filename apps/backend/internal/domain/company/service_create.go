@@ -41,6 +41,9 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if err := tx.Company().Create(ctx, company); err != nil {
 			return err
 		}
+		if err := tx.TenantBackgroundState().EnsureRow(ctx, company.ID); err != nil {
+			return err
+		}
 		companyCtx := WithContext(ctx, Context{CompanyID: company.ID, Slug: company.Slug, Status: company.Status})
 		if s.client == nil {
 			return fmt.Errorf("newapi admin client required")

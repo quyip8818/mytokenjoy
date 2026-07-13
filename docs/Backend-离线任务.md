@@ -1,7 +1,8 @@
 # Backend · 离线任务（现状）
 
 > **定位**：离线任务 **as-built** 说明——当前代码如何实现、从哪入队、谁消费。  
-> **Schema / Unique / 事务入队**：`internal/infra/jobs/`（`args.go`、`enqueue.go`）、`store/tx.go`  
+> **设计背景（L0/L1/L2 + 唯一看门狗）**：[Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md)  
+> **Schema / Unique / 事务入队**：`internal/infra/jobs/`（`kinds_*.go`、`enqueue.go`）、`store/tx.go`  
 > **投影实现**：[Backend-预算.md](./Backend-预算.md)  
 > **入账快路径**：[Backend-Ingest架构.md](./Backend-Ingest架构.md)
 
@@ -21,7 +22,7 @@ cmd/server
 | 线 | 包 | 存储 | 职责 |
 | --- | --- | --- | --- |
 | **A — Ingest** | `internal/infra/ingest` | 日志库 `ingest_jobs`；主库 `scheduler_locks` | webhook/reconcile 驱动 `IngestByLogID`；钱包漂移扫描 |
-| **B — River** | `internal/infra/river` | 主库 `river_job` 等 | 全部副作用 job：claim、retry、Periodic |
+| **B — River** | `internal/infra/river` | 主库 `river_job` 等 | 全部副作用 job：claim、retry、**唯一 Periodic** |
 
 装配入口：`internal/app/wire_river.go` → `buildBackgroundWorkers`。
 
@@ -32,6 +33,7 @@ flowchart TB
     REC[reconcile 水位] --> ING
     ING --> LEDGER[usage_ledger 写入]
     ING -->|InsertInTx| BP[budget_projection]
+    ING -->|InsertInTx| DP[dashboard_project]
     ING -->|InsertInTx| WSjob[wallet_sync]
     DRIFT[ReconcileWalletDrift] -->|Insert| WSjob
   end
@@ -39,12 +41,11 @@ flowchart TB
   subgraph lineB [线 B — river.Client]
     BP --> BPW[budget.Projector.RunBatch]
     BPW --> CONSUMED[budget_consumed + gateway_soft_summaries]
-    BPW -->|批末 Insert| RB[rebalance / overrun]
+    BPW -->|批首 EnsureMonthRebalance| RB[rebalance company 轴]
+    BPW -->|批末| RB2[rebalance / overrun]
     BPW -->|批末自续| BP
-    PER[Periodic fanout] --> TENANT[per-company 子 job]
-    TENANT --> DOM[domain Projector / Reconcile]
-    RJ[其他 river_job] --> W[Workers]
-    W --> DOM
+    WD[tenant_watchdog Periodic] --> SCHED[infra/scheduler due + bulk enqueue]
+    SCHED --> TENANT[per-company 子 job]
   end
 ```
 
@@ -56,6 +57,7 @@ flowchart TB
 | --- | --- | --- |
 | **domain** | `domain/*` | 业务逻辑；**不** import `river` / `pgx` |
 | **jobs** | `internal/infra/jobs` | `Enqueuer` 接口、Job Args、`Insert*` helper |
+| **scheduler** | `internal/infra/scheduler` | L2 只读 due 查询 + 看门狗批量入队 |
 | **river workers** | `internal/infra/river/workers` | 薄壳：`Work()` → 调 domain 一个方法 |
 | **river client** | `internal/infra/river` | Client 装配、Periodic、队列权重 |
 
@@ -74,182 +76,161 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/*_enque
 | usage | `usage.IngestJobEnqueuer` | `app/usage_enqueuer.go` |
 | dashboard | `dashboard.JobEnqueuer` | `app/dashboard_enqueuer.go` |
 | newapisync | `newapisync.SyncJobEnqueuer` | `app/newapisync_enqueuer.go` |
-| org-remote | `remote.JobEnqueuer` | `app/org_enqueuer.go` |
-
-代码：`internal/infra/jobs/holder.go`、`wire_river.go`、`wire_domain_services.go`。
+| org-remote | `remote.JobEnqueuer` | `app/org_enqueuer.go`（含 `CancelPendingOrgSync`） |
 
 `RIVER_ENABLED=false` 时 Holder 保持 `NoopEnqueuer`（`Insert` 返回 `nil`，**不入队**）。
 
 ---
 
-## 3. 已实现的 Job kind（13 个）
+## 3. 已实现的 Job kind（10 个）
 
-| kind | 队列 | Unique | 触发 | Worker | Domain 入口 |
+| kind | 队列 | Unique | 触发层级 | Worker | Domain 入口 |
 | --- | --- | --- | --- | --- | --- |
-| `newapi_sync` | critical | 无 | Keys/Models 生命周期 | `workers/newapi_sync.go` | `newapisync.OutboxHandler` |
-| `wallet_sync` | default | args，5s 窗 | 入账、充值、漂移 reconcile | `workers/wallet_sync.go` | `billing.SyncCompanyWallet` |
-| `rebalance` | default | per axis | Projector 批末、充值、月切、预算 reconcile 修复、轴变更 | `workers/rebalance.go` | `budget.Rebalancer.Run` |
-| `overrun` | default | per payload | Projector 批末 | `workers/overrun.go` | `budget.OverrunProcessor.Run` |
-| `org_sync` | default | per company；fanout 用 `company_id=0` | Periodic fanout / fanout 扇出 | `workers/org_sync.go` | `FanoutScheduledSyncJobs` / `RunScheduledSync` |
-| `monthly_rebalance` | default | 1min | Periodic | `workers/monthly_rebalance.go` | `MonthlyRebalanceScheduler.EnqueueMonthlyRebalanceAll` |
-| `budget_projection` | default | args，1s 窗，多 state | 入账同事务、批末自续 | `workers/budget_projection.go` | `budget.Projector.RunBatch` |
-| `budget_reconcile` | low | args，30min | fanout 扇出 | `workers/budget_projection.go` | `budget.ReconcileService.RunCompany` |
-| `budget_reconcile_fanout` | low | args，30min | Periodic | `workers/budget_projection.go` | `budget.ReconcileService.FanoutReconcileJobs` |
-| `dashboard_project` | low | args，1h | fanout 扇出、批末自续 | `workers/dashboard_project.go` | `dashboard.Projector.RunBatch` |
-| `dashboard_project_fanout` | low | args，1h | Periodic | `workers/dashboard_project.go` | `dashboard.Projector.FanoutProjectJobs` |
-| `dashboard_reconcile` | low | args，24h | fanout 扇出 | `workers/dashboard_project.go` | `dashboard.ReconcileService.RunCompany` |
-| `dashboard_reconcile_fanout` | low | args，24h | Periodic | `workers/dashboard_project.go` | `dashboard.ReconcileService.FanoutReconcileJobs` |
+| `newapi_sync` | critical | 无 | L1 业务 | `workers/newapi_sync.go` | `newapisync.OutboxHandler` |
+| `wallet_sync` | default | args，5s 窗 | L0 ingest / L1 充值漂移 | `workers/wallet_sync.go` | `billing.SyncCompanyWallet` |
+| `rebalance` | default | per axis | L1 批末/充值/月切；L2 看门狗 | `workers/rebalance.go` | `budget.Rebalancer.ProcessAxis` |
+| `overrun` | default | per payload | L1 Projector 批末 | `workers/overrun.go` | `budget.OverrunProcessor.Run` |
+| `org_sync` | default | per company | L1 ScheduledAt；L2 看门狗补漏 | `workers/org_sync.go` | `org.RunScheduledSync` |
+| `budget_projection` | default | args，1s 窗 | L0 ingest；L1 批末自续；L2 看门狗 | `workers/budget_projection.go` | `budget.Projector.RunBatch` |
+| `budget_reconcile` | low | args，30min | L1 手动 API；L2 看门狗 | `workers/budget_projection.go` | `budget.ReconcileService.RunCompany` |
+| `dashboard_project` | low | args，1h | L0 ingest；L1 批末自续；L2 看门狗 | `workers/dashboard_project.go` | `dashboard.Projector.RunBatch` |
+| `dashboard_reconcile` | low | args，24h | L1 手动 API；L2 看门狗 | `workers/dashboard_project.go` | `dashboard.ReconcileService.RunCompany` |
+| `tenant_watchdog` | low | ByPeriod = 看门狗间隔 | L2 Periodic | `workers/watchdog.go` | `scheduler.CollectDue` + `BulkEnqueue` |
 
-Args 与 `InsertOpts()`：`internal/infra/jobs/args.go`。  
+Args 与 `InsertOpts()`：`internal/infra/jobs/kinds_*.go`。  
 入队 helper：`internal/infra/jobs/enqueue.go`。  
 Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 
+**已删除**（fanout / 月切 Periodic）：`monthly_rebalance`、`budget_reconcile_fanout`、`dashboard_project_fanout`、`dashboard_reconcile_fanout`、`org_sync{company_id:0}` fanout。
+
 ---
 
-## 4. 入队点（谁写入 `river_job`）
+## 4. `tenant_background_state`（租户后台 SSOT）
 
-### 4.1 事务内（`InsertInTx`，与 ledger 同事务）
+表：`tenant_background_state`（`schema.sql`）。每 active company 一行，由 `CreateCompany` / seed `EnsureRow` 初始化。
 
-**Ingest 成功路径**（`domain/usage/ingest.go` → `WithTx`）：
+| 字段 | 写入时机 | 读取方 |
+| --- | --- | --- |
+| `next_org_sync_at` | `UpdateSyncConfig` / 同步成功后 reschedule | L1 org、`scheduler.orgDue` |
+| `last_org_sync_at` | 同步成功 | `ComputeNextOrgSync` |
+| `last_rebalanced_period` | **仅** company 轴 `rebalance` worker 成功 | `EnsureMonthRebalance`、`scheduler.monthDue` |
+| `last_budget_reconcile_at` | `budget_reconcile` worker 成功 | `scheduler.budgetReconcileDue` |
+| `last_dashboard_reconcile_at` | `dashboard_reconcile` worker 成功 | `scheduler.dashboardReconcileDue` |
+
+Store：`store/tenant_background_state.go` + `postgres/tenant_background_state_repo.go`。
+
+---
+
+## 5. 入队点（谁写入 `river_job`）
+
+### 5.1 事务内（`InsertInTx`，与 ledger 同事务）
+
+**Ingest 成功路径**（`domain/usage/ingest.go` → `app/usage_enqueuer.go` → `WithTx`）：
 
 1. `ledger` 写入（`InsertSegments`）
 2. `InsertBudgetProjection`
-3. `InsertWalletSync`
+3. `InsertDashboardProject`
+4. `InsertWalletSync`
 
 任一步失败 → 整笔事务回滚（含已插入的 `river_job` 行）。  
-`rebalance` / `overrun` **不再**在 Ingest 同事务入队，改由 `budget.Projector` 批末入队。
+`rebalance` / `overrun` **不在** Ingest 同事务入队，改由 `budget.Projector` 批末入队。
 
-### 4.2 事务外（`Insert`）
+### 5.2 L1 — 业务路径（`Insert`）
 
 | 来源 | kind | 说明 |
 | --- | --- | --- |
-| `budget.Projector.RunBatch` | `rebalance`、`overrun` | 批末 side effect；批未跑完时自续 `budget_projection` |
-| `billing.afterRecharge` | `wallet_sync`、`rebalance`（company 轴） | 经 `billing.JobEnqueuer`（`app/billing_enqueuer.go`）；失败 `slog.Warn`，不阻断充值 |
-| `billing.ReconcileWalletDrift` | `wallet_sync` | ingest Worker 周期调用；失败 Warn |
+| `budget.Projector.RunBatch` 批首 | `rebalance`（company 轴） | `schedule.EnsureMonthRebalance`（读 TBS，未切月才入队） |
+| `budget.Projector.RunBatch` 批末 | `rebalance`、`overrun` | 批末 side effect；批未跑完时自续 `budget_projection` |
+| `billing.afterRecharge` | `wallet_sync`、`rebalance`（company 轴） | 失败 `slog.Warn`，不阻断充值 |
+| `billing.ReconcileWalletDrift` | `wallet_sync` | ingest Worker 周期调用 |
 | `budget.ReconcileService.RunCompany` | `rebalance`（company 轴） | reconcile 修复 drift 后 |
-| `newapisync/platformkey/`、`provider/`、`modellimits/` | `newapi_sync` | Create/Update Key、Provider、ModelLimits；**当前非** DB 同事务 |
-| `newapisync/sync.go`（`EnqueueRebalanceAxis`） | `rebalance` | Rebalance 轴变更 |
-| `MonthlyRebalanceScheduler` | `rebalance`（company 轴） | 月切后扇出 |
-| `budget.ReconcileService.FanoutReconcileJobs` | `budget_reconcile` | Periodic fanout → 每 active company 一条 |
-| `dashboard.Projector.FanoutProjectJobs` | `dashboard_project` | Periodic fanout → 每 active company 一条 |
+| `newapisync/*` | `newapi_sync` | Key / Provider / ModelLimits 生命周期 |
+| `org.UpdateSyncConfig` / 同步成功 | `org_sync`（`ScheduledAt`） | `CancelPendingOrgSync` 后 reschedule |
 | `dashboard.Projector.RunBatch` | `dashboard_project` | 批未跑完时自续 |
-| `dashboard.ReconcileService.FanoutReconcileJobs` | `dashboard_reconcile` | Periodic fanout → 每 active company 一条 |
-| River Periodic | 见 §6 | fanout / sync 单 job 入队 |
-| `org.SyncService.FanoutScheduledSyncJobs` | `org_sync` | 仅 enabled 且到期的 tenant |
+| 手动 reconcile API | `budget_reconcile` / `dashboard_reconcile` | 管理端触发 |
+
+### 5.3 L2 — 看门狗（`tenant_watchdog`）
+
+唯一 Periodic：`infra/river/periodic/watchdog.go` → 入队 `tenant_watchdog`。  
+Worker：`workers/watchdog.go` → `scheduler.Service.CollectDue` + `BulkEnqueuer.EnqueueDue`（默认每批 200 tenant）。
+
+Due 判据（只读 store，见 `infra/scheduler/due.go`）：
+
+- **org**：`next_org_sync_at <= now` 且无 active `org_sync` job；或 org 已启用但 `next_org_sync_at` 缺失（无 TBS 行或列为 NULL）且无 active job
+- **月切 rebalance**：`last_rebalanced_period != 当前开账月`
+- **budget / dashboard 投影滞后**：ledger 游标之后仍有 settled 记录
+- **reconcile**：投影不滞后且 `last_*_reconcile_at` 超过 7 天
 
 ---
 
-## 5. Worker 行为摘要
+## 6. Worker 行为摘要
 
-### 5.1 `wallet_sync`
+### 6.1 `wallet_sync`
 
 - 比较 DB `BalancePoint` 与 NewAPI 可用 quota，正/负漂移调用 `TopUp`
-- 公司无 `NewAPIWalletUserID` → domain 返回 `billing.ErrWalletNotConfigured` → worker `river.JobCancel`（永久取消，不重试）
-- **Store 查询错误**原样返回 → River 重试（勿与「未配置钱包」混淆）
+- 公司无 `NewAPIWalletUserID` → `billing.ErrWalletNotConfigured` → `river.JobCancel`
 
-### 5.2 `rebalance` / `overrun`
+### 6.2 `rebalance` / `overrun`
 
-- Args 带 `company_id` + axis / payload；worker 注入 tenant context 后调 `Rebalancer` / `OverrunProcessor`
-- 主要触发源为 `budget.Projector` 批末
-- 测试见 `tests/worker/processors_test.go`
+- Args 带 `company_id` + axis / payload
+- company 轴成功 → 写 `tenant_background_state.last_rebalanced_period`（`EnsureRow` 后 `SetLastRebalancedPeriod`）
 
-### 5.3 `newapi_sync`
+### 6.3 `org_sync`
 
-- `sub_kind`：`create_key` / `update_key` / `upsert_channel` / `update_model_limits`
-- 未知 sub_kind 或 `IsPermanentOutboxError` → `JobCancel`
+- per-tenant job，`ScheduledAt` 由 L1 reschedule 设置
+- `RunScheduledSync`：锁 `org_sync:{company_id}`；成功后更新 TBS 并 reschedule 下一条
+- Worker 入口 `ensureScheduledOrgSync` 自愈：到期且无 pending job → reschedule
 
-### 5.4 `org_sync`
+### 6.4 `budget_projection` / `dashboard_project`
 
-- Periodic 入队 `org_sync{company_id:0}` → worker 调 `FanoutScheduledSyncJobs`，对到期 tenant 入队 `org_sync{company_id}`
-- per-tenant job → `RunScheduledSync`；锁 `org_sync:{company_id}`；手动 `TriggerSync` 共用（冲突 409）
+- 按投影进度游标批量读 ledger，写 `budget_consumed` / `usage_buckets`
+- 批首 `EnsureMonthRebalance`；批末入队 side effect；批满自续
 
-### 5.5 `monthly_rebalance`
+### 6.5 `budget_reconcile` / `dashboard_reconcile`
 
-- Periodic 检测开账月是否变化（`MonthlyRebalanceScheduler.lastMonth`）
-- 月切时对所有 active company 入队 company 轴 `rebalance`
+- per-company 对比 ledger 与投影表，修复 drift
+- 成功 → 写 `last_budget_reconcile_at` / `last_dashboard_reconcile_at`
 
-### 5.6 `budget_projection`
+### 6.6 `tenant_watchdog`
 
-- 按 `budget_projection_progress` 游标批量读 ledger，写 `budget_consumed`、更新 `gateway_soft_summaries`
-- 批末：`budgetcheck.RefreshSummaries` 刷新进程内 Gateway 缓存，入队 `rebalance` / `overrun`
-- 本批满 `batchSize`（500）→ 自续入队 `budget_projection`
-
-### 5.7 `budget_reconcile` / `budget_reconcile_fanout`
-
-- fanout：Periodic 入队 1 条 → `FanoutReconcileJobs` → 每 company 入队 `budget_reconcile`
-- per-company：对比近 2 个月 ledger 与 `budget_consumed`，修复 drift；必要时更新 gateway summary 并入队 company 轴 `rebalance`
-
-### 5.8 `dashboard_project` / `dashboard_project_fanout`
-
-- fanout：Periodic 入队 1 条 → `FanoutProjectJobs` → 每 company 入队 `dashboard_project`
-- per-company：按 `dashboard_projection_progress` 游标批量 upsert `usage_buckets`；批满则自续
-
-### 5.9 `dashboard_reconcile` / `dashboard_reconcile_fanout`
-
-- fanout：Periodic 入队 1 条 → `FanoutReconcileJobs` → 每 company 入队 `dashboard_reconcile`
-- per-company：对比近 90 天 ledger 与 `usage_buckets`，修复 drift
+- 扫描全 active company，批量入队 L2 补课 job（见 §5.3）
+- **不**承担 L0/L1 主路径；7 天 SLA 兜底
 
 ---
 
-## 6. Periodic 任务
+## 7. Periodic 任务
 
-注册：`internal/infra/river/periodic.go`（仅 `RIVER_ENABLED=true`）。
+注册：`internal/infra/river/periodic/watchdog.go`（仅 `RIVER_ENABLED=true`）。
 
-| Periodic job | 间隔 | 默认 | 入队 kind |
+| Periodic job | 间隔 env | 默认 | 入队 kind |
 | --- | --- | --- | --- |
-| 组织同步 fanout | `WORKER_ORG_SYNC_INTERVAL_SEC` | 60s | `org_sync`（`company_id=0`） |
-| 月切 rebalance | `WORKER_POLL_INTERVAL_SEC` | 1s | `monthly_rebalance` |
-| 预算 reconcile fanout | 代码常量 | 30min | `budget_reconcile_fanout` |
-| 看板投影 fanout | 代码常量 | 1h | `dashboard_project_fanout` |
-| 看板 reconcile fanout | 代码常量 | 24h | `dashboard_reconcile_fanout` |
+| `tenant_watchdog` | `WATCHDOG_INTERVAL_SEC` | 604800（7d） | `tenant_watchdog` |
 
-后三项间隔见 `internal/config/river.go`（`WorkerBudgetReconcileInterval` 等），当前**无**独立 env。
+批量大小：`WATCHDOG_BULK_BATCH_SIZE`（默认 200）。
 
-Fanout 模式：Periodic 只入队 **1 条** fanout job → worker 扫全 active company 并批量 `Insert` 子 job。
-
-Leader 选举与 Periodic 漏 tick：见 `internal/infra/river/periodic.go`、`river_leader` 表。
+**已删除 env**：`WORKER_ORG_SYNC_INTERVAL_SEC`、`WORKER_MONTHLY_REBALANCE_INTERVAL_SEC`、`WORKER_BUDGET_RECONCILE_INTERVAL_SEC` 及 fanout worker。
 
 ---
 
-## 7. 配置
-
-嵌入 `config.Config` 的 `RiverConfig`（`internal/config/river.go`）：
+## 8. 配置
 
 | 变量 | 默认 | 含义 |
 | --- | --- | --- |
-| `RIVER_ENABLED` | `true` | 是否启动 River Client 并 `holder.Set` 真 Enqueuer |
+| `RIVER_ENABLED` | `true` | 是否启动 River Client |
 | `RIVER_MAX_WORKERS` | `20` | 全局 worker 上限；按 2:2:1 分到 critical / default / low |
-
-与 Ingest 共用、但语义不同的 interval：
-
-| 变量 | 用途 |
-| --- | --- |
-| `WORKER_POLL_INTERVAL_SEC` | ingest Worker 轮询间隔；**兼** monthly_rebalance Periodic |
-| `WORKER_ORG_SYNC_INTERVAL_SEC` | org_sync Periodic |
-| `INGEST_RECONCILE_*` | reconcile 批次与锁（线 A，非 River） |
+| `WATCHDOG_INTERVAL_SEC` | `604800` | 看门狗 Periodic 间隔 |
+| `WATCHDOG_BULK_BATCH_SIZE` | `200` | 看门狗每批处理 tenant 数 |
+| `WORKER_POLL_INTERVAL_SEC` | `1` | ingest Worker 轮询（**仅**线 A） |
+| `INGEST_RECONCILE_*` | — | reconcile 批次与锁（线 A，非 River） |
 
 ---
 
-## 8. 与 Ingest / 预算的当前关系
+## 9. 与 Ingest / 预算的关系
 
-**现状（异步预算投影已落地）：**
-
-- Ingest **只写** `usage_ledger`；同事务入队 `budget_projection` + `wallet_sync`
+- Ingest 写 `usage_ledger`；同事务入队 `budget_projection` + `dashboard_project` + `wallet_sync`
 - `budget.Projector` 异步写 `budget_consumed`、`gateway_soft_summaries`；批末入队 `rebalance` / `overrun`
-- Gateway 预检读 `gateway_soft_summaries`（`GatewaySoftVersion` / `GatewaySoftRemain`），经 `budgetcheck` 进程内缓存加速
-- 看板读 `usage_buckets`，由 `dashboard.Projector` / `dashboard.ReconcileService` 独立维护
-
-设计细节见 [Backend-预算.md](./Backend-预算.md)、[Backend-离线任务.md](./Backend-离线任务.md)。
-
----
-
-## 9. 存储与运维
-
-- 表：`river_job`、`river_leader`、`river_queue`、`river_migration` 等，合入 `schema.sql`
-- 投影进度：`budget_projection_progress`、`dashboard_projection_progress`
-- 保留 `scheduler_locks`：Ingest reconcile（`ingest_reconcile`）、org 同步 per-tenant（`org_sync:{company_id}`）；与 River leader 无关
-- 运维 SQL（队列深度、discarded、按 tenant）：查 `river_job` + `store.RiverJobView`；Unique 定义见 `infra/jobs/args.go`
-- 测试查 job：`store.RiverJobView` + `postgres/log_testhook.go`（`-tags=testhook`）
+- Gateway 预检读 `gateway_soft_summaries`（经 `budgetcheck` 进程内缓存）
+- 看板读 `usage_buckets`，由 `dashboard.Projector` / `dashboard.ReconcileService` 维护
 
 ---
 
@@ -257,16 +238,16 @@ Leader 选举与 Periodic 漏 tick：见 `internal/infra/river/periodic.go`、`r
 
 | 区域 | 路径 |
 | --- | --- |
-| Worker 集成 | `tests/worker/`（rebalance、overrun、newapi_sync、wallet_sync、org_sync、monthly_rebalance） |
+| Worker 集成 | `tests/worker/` |
+| 看门狗 due | `tests/infra/scheduler/due_test.go` |
+| TBS 生命周期 | `tests/domain/company/create_company_test.go` |
 | 入队 / Unique | `tests/store/postgres/wallet_sync_test.go`、`enqueue_tx_test.go` |
-| Ingest 入队 | `tests/domain/usage/ingest_enqueue_test.go`；`tests/handler/gateway/webhook_ingest_test.go` |
-| 预算投影 / reconcile | `tests/domain/budget/budget_projector_test.go`、`budget_reconcile_test.go`、`gateway_summary_test.go`、`ingest_fixture_test.go` |
-| 看板投影 / reconcile | `tests/domain/dashboard/dashboard_projector_test.go`、`dashboard_reconcile_test.go` |
-| Billing / wallet | `tests/domain/billing/wallet_sync_test.go`、`service_test.go` |
-| 月切 scheduler | `tests/domain/budget/monthly_rebalance_test.go` |
-| 测试辅助 | `tests/testutil/river/`（`NewRuntime`、`NewInsertOnlyEnqueuer`）；`tests/testutil/worker/`（ingest-only / River `RunOnce`） |
+| Ingest 三 job | `tests/domain/usage/ingest_enqueue_test.go` |
+| Org ScheduledAt | `tests/worker/sync_scheduler_test.go` |
+| 月切 EnsureMonthRebalance | `tests/domain/budget/schedule/monthly_test.go`（或 `monthly_rebalance_test.go`） |
+| 测试辅助 | `tests/testutil/river/`（`NewRuntime`、`DisablePeriodic`） |
 
-单测需 PostgreSQL：`make test-unit`（`-tags=testhook`）。测试配置默认 `RiverEnabled: true`（`tests/testutil/config.go`）。
+单测需 PostgreSQL：`make test-unit`（`-tags=testhook`）。
 
 ---
 
@@ -274,34 +255,23 @@ Leader 选举与 Periodic 漏 tick：见 `internal/infra/river/periodic.go`、`r
 
 ```text
 internal/
-  app/wire_river.go              # 装配 ingest + river；Holder.Set
-  app/billing_enqueuer.go        # billing.JobEnqueuer
-  app/budget_enqueuer.go           # budget.JobEnqueuer
-  app/usage_enqueuer.go            # usage.IngestJobEnqueuer
-  app/dashboard_enqueuer.go        # dashboard.JobEnqueuer
-  app/newapisync_enqueuer.go       # newapisync.SyncJobEnqueuer
-  app/org_enqueuer.go              # remote.JobEnqueuer
-  config/river.go                  # RIVER_* env；fanout 间隔常量
-  domain/usage/ingest.go           # 事务内 budget_projection + wallet_sync
+  app/wire_river.go
+  app/*_enqueuer.go
+  config/watchdog.go
+  domain/usage/ingest.go
   domain/budget/budget_projector.go
-  domain/budget/budget_reconcile.go
-  domain/budget/monthly_rebalance.go
-  domain/dashboard/dashboard_projector.go
-  domain/dashboard/dashboard_reconcile.go
-  domain/billing/wallet_sync.go
-  domain/billing/lot_confirm.go    # afterRecharge → JobEnqueuer
-  domain/org/remote/sync.go        # 同步、fanout、锁
-  domain/newapisync/platformkey/   # Create/Update/Revoke/Rotate
-  domain/newapisync/provider/
-  domain/newapisync/modellimits/
-  infra/jobs/                      # Enqueuer, Holder, Args, enqueue.go
-  infra/river/client.go            # registerWorkers, queueConfig
-  infra/river/periodic.go
+  domain/budget/schedule/monthly.go      # EnsureMonthRebalance
+  domain/org/remote/sync.go              # reschedule / cancel / 自愈
+  domain/org/remote/schedule.go          # ComputeNextOrgSync
+  infra/jobs/                            # kinds_*.go, enqueue.go, catalog.go
+  infra/scheduler/due.go                 # L2 due 查询
+  infra/scheduler/bulk_enqueue.go
+  infra/river/client.go
+  infra/river/periodic/watchdog.go
   infra/river/workers/*.go
-  infra/ingest/worker.go           # 线 A
-  store/tx.go                      # store.Tx 窄接口
-  store/postgres/tx.go             # txStore + WithTx
-  store/river_job_view.go          # 测试读 job
+  store/tenant_background_state.go
+  store/postgres/tenant_background_state_repo.go
+  store/river_job_repo.go                # HasActiveOrgSync, cancel 查询
 ```
 
 ---
@@ -310,6 +280,7 @@ internal/
 
 | 文档 | 内容 |
 | --- | --- |
-| [Backend-架构.md](./Backend-架构.md) §7 | 后台运行时、NewAPISync 与 Worker 关系 |
+| [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md) | 目标架构与设计决策 |
+| [Backend-架构.md](./Backend-架构.md) §7 | 后台运行时 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest |
-| [Backend-预算.md](./Backend-预算.md) | 预算域、`budget_consumed` 异步投影 |
+| [Backend-预算.md](./Backend-预算.md) | 预算域、异步投影 |

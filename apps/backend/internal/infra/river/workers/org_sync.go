@@ -19,11 +19,9 @@ func NewOrgSyncWorker(sync domainorg.SyncService) *OrgSyncWorker {
 }
 
 func (w *OrgSyncWorker) Work(ctx context.Context, job *river.Job[jobs.OrgSyncArgs]) error {
-	if w.sync == nil {
+	if job.Args.CompanyID == 0 {
 		return nil
 	}
-	if job.Args.CompanyID == jobs.OrgSyncFanoutCompanyID {
-		return w.sync.FanoutScheduledSyncJobs(ctx)
-	}
-	return w.sync.RunScheduledSync(company.WithDefaultCompany(ctx, job.Args.CompanyID))
+	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
+	return w.sync.RunScheduledSync(entryCtx)
 }

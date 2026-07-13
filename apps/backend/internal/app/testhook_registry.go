@@ -19,7 +19,8 @@ func BuildRegistry(cfg config.Config, logger *slog.Logger, st store.Store, opts 
 		opt(&o)
 	}
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	registry, err := assembleRegistry(cfg, logger, st, o, holder)
+	orgAdmin := NewOrgRiverAdminHolder(nil)
+	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return ServiceRegistry{}, nil, err
 	}

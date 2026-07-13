@@ -2,12 +2,14 @@ package worker_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -17,7 +19,6 @@ import (
 )
 
 func TestWorkerProcessesRebalanceQueue(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
@@ -45,8 +46,28 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	}
 }
 
+func TestWorkerCompanyRebalanceSetsLastRebalancedPeriod(t *testing.T) {
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
+	fix := newWorkerFixture(t, stub)
+	ctx := testutil.Ctx()
+	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, fix.rt.Registry.Config.Clock()).String()
+
+	if err := jobs.InsertRebalance(ctx, fix.rt.Enqueuer, nil, contract.DefaultCompanyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", contract.DefaultCompanyID)); err != nil {
+		t.Fatal(err)
+	}
+
+	fix.runRiver(t)
+
+	tbs, err := fix.st.TenantBackgroundState().Get(ctx, contract.DefaultCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tbs == nil || tbs.LastRebalancedPeriod != current {
+		t.Fatalf("expected last_rebalanced_period=%q, got %+v", current, tbs)
+	}
+}
+
 func TestWorkerProcessesOverrunQueue(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()

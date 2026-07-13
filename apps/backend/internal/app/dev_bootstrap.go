@@ -33,7 +33,8 @@ func RunDevBootstrap(ctx context.Context, cfg config.Config, logger *slog.Logger
 	var o options
 	o.skipWorker = true
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	registry, err := assembleRegistry(cfg, logger, st, o, holder)
+	orgAdmin := NewOrgRiverAdminHolder(nil)
+	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return fmt.Errorf("assemble registry: %w", err)
 	}

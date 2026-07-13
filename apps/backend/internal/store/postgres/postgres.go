@@ -121,6 +121,14 @@ func (s *Store) SchedulerLock() store.SchedulerLockRepository {
 	return &schedulerLockRepo{db: s.pool}
 }
 
+func (s *Store) TenantBackgroundState() store.TenantBackgroundStateRepository {
+	return newTenantBackgroundStateRepo(s.pool)
+}
+
+func (s *Store) RiverJob() store.RiverJobRepository {
+	return newRiverJobRepo(s.pool)
+}
+
 func (s *Store) Usage() store.UsageRepository {
 	return &usageRepo{db: s.pool}
 }

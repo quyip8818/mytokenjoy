@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 const (
 	RiverQueueCritical = "critical"
 	RiverQueueDefault  = "default"
@@ -19,16 +17,4 @@ func (c Config) RiverMaxWorkers() int {
 		return 20
 	}
 	return c.RiverMaxWorkersEnv
-}
-
-func (c Config) WorkerBudgetReconcileInterval() time.Duration {
-	return 30 * time.Minute
-}
-
-func (c Config) WorkerDashboardProjectInterval() time.Duration {
-	return time.Hour
-}
-
-func (c Config) WorkerDashboardReconcileInterval() time.Duration {
-	return 24 * time.Hour
 }

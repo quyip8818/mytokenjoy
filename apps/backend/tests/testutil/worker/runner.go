@@ -12,27 +12,35 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 type TestRuntime struct {
 	*riverfix.TestRuntime
-	t *testing.T
+	t       *testing.T
+	started bool
 }
 
 func (r *TestRuntime) RunOnce(ctx context.Context) {
+	riverfix.TestMu.Lock()
+	defer riverfix.TestMu.Unlock()
+	if !r.started {
+		r.Start(r.t, ctx)
+		r.started = true
+	}
 	r.WorkOnce(r.t, ctx)
 }
 
 func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.Store, *domainusage.IngestService) {
 	t.Helper()
 	rt, st := riverfix.NewRuntime(t, stub)
+	budgetfix.EnsureMonthRebalanceCurrent(t, testutil.Ctx(), rt.Cfg, st, contract.DefaultCompanyID)
 	wrapped := &TestRuntime{TestRuntime: rt, t: t}
-	ctx := context.Background()
-	rt.Start(t, ctx)
-	t.Cleanup(func() { rt.Stop(t, ctx) })
+	t.Cleanup(func() { rt.Stop(t, context.Background()) })
 	return wrapped, st, rt.Registry.MustIngestService()
 }
 

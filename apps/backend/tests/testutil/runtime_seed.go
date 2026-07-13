@@ -26,7 +26,7 @@ func resetRuntimeTables(t *testing.T, cfg config.Config, st store.Store) {
 	ctx := context.Background()
 	pool := postgres.MainPool(st)
 	_, err := pool.Exec(ctx, `
-		TRUNCATE company_recharge_lots, company_recharge_orders, usage_buckets, usage_ledger RESTART IDENTITY CASCADE
+		TRUNCATE company_recharge_lots, company_recharge_orders, usage_buckets, usage_ledger, river_job RESTART IDENTITY CASCADE
 	`)
 	if err != nil {
 		t.Fatalf("reset runtime tables: %v", err)

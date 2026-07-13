@@ -13,7 +13,6 @@ import (
 )
 
 func TestEnqueueWalletSyncDebouncesAndSlides(t *testing.T) {
-	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	companyID := contract.DefaultCompanyID

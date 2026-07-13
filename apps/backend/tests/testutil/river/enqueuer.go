@@ -20,7 +20,7 @@ import (
 func NewInsertOnlyEnqueuer(t *testing.T, cfg config.Config, st store.Store) jobs.Enqueuer {
 	t.Helper()
 	pool := postgres.MainPool(st)
-	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{}, nil)
+	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{DisablePeriodic: true}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -20,6 +20,9 @@ func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx
 	if err := jobs.InsertBudgetProjection(ctx, u.enqueuer, tx, companyID); err != nil {
 		return err
 	}
+	if err := jobs.InsertDashboardProject(ctx, u.enqueuer, tx, companyID); err != nil {
+		return err
+	}
 	return jobs.InsertWalletSync(ctx, u.enqueuer, tx, companyID)
 }
 

@@ -183,6 +183,6 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ## §8 异步预算投影与离线任务
 
-设计见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
+设计见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。**目标态**见 [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md)（实施后重写 as-built 文档）。
 
 ---

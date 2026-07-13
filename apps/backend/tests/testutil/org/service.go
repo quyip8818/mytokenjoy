@@ -30,7 +30,7 @@ func NewServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enq
 	factory := datasource.NewFactory(cfg)
 	newAPISync := newapisync.New(cfg, st, nil, nil, policy.NewChannelPolicy(cfg), app.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, newAPISync, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), app.NewOrgEnqueuer(enqueuer))
+	return org.NewService(cfg, st, factory, newAPISync, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), app.NewOrgEnqueuer(enqueuer, app.NewOrgRiverAdminHolder(nil)))
 }
 
 func NewServiceFromStore(t *testing.T, opts ...testutil.ConfigOption) (config.Config, store.Store, org.Service) {

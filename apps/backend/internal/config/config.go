@@ -36,8 +36,9 @@ type Config struct {
 
 	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
 
-	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"1"`      // ingest poll + monthly_rebalance month-boundary poll
-	WorkerOrgSyncIntervalSec int `env:"WORKER_ORG_SYNC_INTERVAL_SEC" envDefault:"60"` // Periodic org_sync interval
+	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"1"` // ingest pending poll only
+	WatchdogIntervalSec      int `env:"WATCHDOG_INTERVAL_SEC" envDefault:"604800"`
+	WatchdogBulkBatchSizeEnv int `env:"WATCHDOG_BULK_BATCH_SIZE" envDefault:"200"`
 
 	RiverConfig
 

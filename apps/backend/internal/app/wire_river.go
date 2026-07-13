@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
+	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -31,7 +32,7 @@ type backgroundWorkers struct {
 	river  *riverinfra.Client
 }
 
-func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder) (*backgroundWorkers, error) {
+func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder, orgAdmin *OrgRiverAdminHolder) (*backgroundWorkers, error) {
 	pool := postgresPool(st)
 	if pool == nil {
 		return nil, fmt.Errorf("postgres pool unavailable")
@@ -40,23 +41,34 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 	budgetEnqueuer := NewBudgetEnqueuer(holder)
 	budgetCache := budgetcheck.WrapStore(reg.Infra.budgetCheck)
 	budgetAsync := domainbudget.NewAsync(cfg, st, budgetEnqueuer, budgetCache, logger)
+	dashboardProjector := domaindashboard.NewProjector(cfg, st, NewDashboardEnqueuer(holder), logger)
+	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, NewDashboardEnqueuer(holder), logger)
+	sched := scheduler.NewService(cfg, st)
+	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
+
 	riverClient, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
+		Cfg:                cfg,
+		Store:              st,
 		Billing:            reg.BillingSvc,
 		Overrun:            reg.Overrun,
 		Rebalance:          reg.Rebalance,
 		NewAPISync:         reg.Infra.newAPISync,
 		OrgSync:            reg.OrgSync,
-		MonthlyRebalance:   domainbudget.NewMonthlyRebalanceScheduler(cfg, st, budgetEnqueuer),
 		BudgetProjector:    budgetAsync.Projector,
 		BudgetReconcile:    budgetAsync.Reconcile,
-		DashboardProjector: domaindashboard.NewProjector(cfg, st, NewDashboardEnqueuer(holder), logger),
-		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, NewDashboardEnqueuer(holder), logger),
+		DashboardProjector: dashboardProjector,
+		DashboardReconcile: dashboardReconcile,
+		Scheduler:          sched,
+		BulkEnqueuer:       bulk,
 	}, logger)
 	if err != nil {
 		return nil, err
 	}
 	if cfg.RiverEnabled {
 		holder.Set(riverClient.Enqueuer)
+		if orgAdmin != nil {
+			orgAdmin.Set(riverClient)
+		}
 	}
 
 	ingestWorker := ingest.NewWorker(
@@ -80,19 +92,25 @@ func (b *backgroundWorkers) start(ctx context.Context, cfg config.Config) {
 	if b == nil {
 		return
 	}
-	if cfg.IngestEnabled() && b.ingest != nil {
+	if b.ingest != nil && cfg.IngestEnabled() {
 		b.ingest.Start(ctx)
 	}
-	if cfg.RiverEnabled && b.river != nil {
-		if err := b.river.Start(ctx); err != nil {
-			slog.Default().Error("river client start failed", "error", err)
-		}
+	if b.river != nil && cfg.RiverEnabled {
+		go func() {
+			if err := b.river.Start(ctx); err != nil && ctx.Err() == nil {
+				slog.Error("river client stopped", "error", err)
+			}
+		}()
 	}
 }
 
 func (b *backgroundWorkers) stop(ctx context.Context) {
-	if b == nil || b.river == nil {
+	if b == nil {
 		return
 	}
-	_ = b.river.Stop(ctx)
+	if b.river != nil {
+		_ = b.river.Stop(ctx)
+	}
 }
+
+var _ = (*pgxpool.Pool)(nil)

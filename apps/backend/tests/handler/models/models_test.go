@@ -17,7 +17,7 @@ import (
 func TestRoutingUpdateHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"allowedModelIds":[1]}`)
+	body := []byte(`{"allowedModelIds":[100]}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/dept-3", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))

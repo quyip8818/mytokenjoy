@@ -20,7 +20,6 @@ import (
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	runner, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()
@@ -136,7 +135,6 @@ func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 }
 
 func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	runner, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()

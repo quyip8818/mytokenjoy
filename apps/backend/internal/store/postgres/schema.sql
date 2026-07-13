@@ -568,6 +568,23 @@ CREATE TABLE IF NOT EXISTS dashboard_projection_progress (
     PRIMARY KEY (company_id, stream)
 );
 
+CREATE TABLE IF NOT EXISTS tenant_background_state (
+    company_id                  BIGINT PRIMARY KEY REFERENCES companies (id) ON DELETE CASCADE,
+    next_org_sync_at            TIMESTAMPTZ,
+    last_org_sync_at            TIMESTAMPTZ,
+    last_rebalanced_period      VARCHAR(7) NOT NULL DEFAULT '',
+    last_budget_reconcile_at    TIMESTAMPTZ,
+    last_dashboard_reconcile_at TIMESTAMPTZ,
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tbs_org_sync_due
+    ON tenant_background_state (next_org_sync_at)
+    WHERE next_org_sync_at IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tbs_rebalance_period
+    ON tenant_background_state (last_rebalanced_period);
+
 CREATE TABLE IF NOT EXISTS scheduler_locks (
     lock_name   TEXT PRIMARY KEY,
     holder      TEXT NOT NULL,

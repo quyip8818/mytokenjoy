@@ -71,7 +71,8 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}
 
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	registry, err := assembleRegistry(cfg, logger, st, o, holder)
+	orgAdmin := NewOrgRiverAdminHolder(nil)
+	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		return nil, err
 	}
 
-	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder)
+	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder, orgAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -122,15 +123,18 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}, nil
 }
 
-func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o options, holder *jobs.Holder) (ServiceRegistry, error) {
+func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o options, holder *jobs.Holder, orgAdmin *OrgRiverAdminHolder) (ServiceRegistry, error) {
 	if holder == nil {
 		holder = jobs.NewHolder(jobs.NoopEnqueuer{})
+	}
+	if orgAdmin == nil {
+		orgAdmin = NewOrgRiverAdminHolder(nil)
 	}
 	infraDeps, err := buildInfraWithStore(cfg, logger, st, holder, o.adminClient)
 	if err != nil {
 		return ServiceRegistry{}, err
 	}
-	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger, holder))
+	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger, holder, orgAdmin))
 	if o.orgSync != nil {
 		registry.OrgSync = o.orgSync
 	}

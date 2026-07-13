@@ -14,7 +14,6 @@ import (
 )
 
 func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
-	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
 	runner, st, ingest := workerfix.NewRuntime(t, stub)
 	ctx := testutil.Ctx()

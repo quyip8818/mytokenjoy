@@ -14,7 +14,6 @@ import (
 )
 
 func TestReconcileMultipleLogs(t *testing.T) {
-	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(88)
@@ -41,7 +40,6 @@ func TestReconcileMultipleLogs(t *testing.T) {
 }
 
 func TestReconcileLogs(t *testing.T) {
-	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 
@@ -69,7 +67,6 @@ func TestReconcileLogs(t *testing.T) {
 }
 
 func TestReconcileBusinessFailAdvancesCursor(t *testing.T) {
-	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	const logID = int64(701)
@@ -91,7 +88,6 @@ func TestReconcileBusinessFailAdvancesCursor(t *testing.T) {
 }
 
 func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
-	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 901, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
@@ -114,7 +110,6 @@ func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
 }
 
 func TestReconcileIngestWithoutAdminSync(t *testing.T) {
-	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(66)
@@ -133,7 +128,6 @@ func TestReconcileIngestWithoutAdminSync(t *testing.T) {
 }
 
 func TestIngestJobMaxAttemptsMarksDead(t *testing.T) {
-	t.Parallel()
 	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	const logID = int64(602)

@@ -35,7 +35,7 @@ func insertSeedCompany(ctx context.Context, exec TableWriter, snap store.Snapsho
 	`, t.ID, t.Slug, t.Name, t.Status); err != nil {
 		return fmt.Errorf("seed company: %w", err)
 	}
-	return nil
+	return insertSeedTenantBackgroundState(ctx, exec, contract.TokenJoyCompanyID, t.ID)
 }
 
 func insertSeedPermissions(ctx context.Context, exec TableWriter, permissions []types.Permission) error {

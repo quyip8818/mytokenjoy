@@ -106,12 +106,6 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 	return s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 }
 
-func (s *ReconcileService) FanoutReconcileJobs(ctx context.Context) error {
-	return company.ForEachActiveCompany(ctx, s.store.Company(), func(entryCtx context.Context, co store.Company) error {
-		return s.enqueuer.InsertBudgetReconcile(entryCtx, co.ID)
-	})
-}
-
 func reconcileWindowStart(now time.Time) time.Time {
 	return now.AddDate(0, -2, 0)
 }

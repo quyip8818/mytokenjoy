@@ -9,13 +9,6 @@ func (c Config) WorkerPollInterval() time.Duration {
 	return time.Duration(c.WorkerPollIntervalSec) * time.Second
 }
 
-func (c Config) WorkerOrgSyncInterval() time.Duration {
-	if c.WorkerOrgSyncIntervalSec <= 0 {
-		return time.Minute
-	}
-	return time.Duration(c.WorkerOrgSyncIntervalSec) * time.Second
-}
-
 func (c Config) IngestReconcileInterval() time.Duration {
 	if c.IngestReconcileIntervalSec <= 0 {
 		return 300 * time.Second
