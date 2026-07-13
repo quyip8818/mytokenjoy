@@ -25,6 +25,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-配置架构.md](./Backend-配置架构.md) | 后端 / 运维 | 配置、生产契约、空库引导、Clock |
 | [Backend-架构.md](./Backend-架构.md) | 后端 / 架构 | 分层、请求链、命名约定、Gateway、看板读路径 |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 后端 / 架构 | 结构基线与剩余分层债务 |
+| [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) | 后端 / 架构 | **v1 Gateway → Ingest** 性能项（G/I/P/R）+ 不牺牲热路径的 Lag 缩窗（§10） |
 | [架构评审-系统与数据模型.md](./架构评审-系统与数据模型.md) | 架构 / DBA | 架构债与问题分析（含上线后 migration 建议） |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 后端 | **as-built**：Ingest + River 两条线、13 kind、入队与 Worker |
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun、Platform Key 执法链（**as-built**） |

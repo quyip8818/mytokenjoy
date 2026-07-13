@@ -133,12 +133,25 @@ func resolveProvider(modelName string, models []types.ModelInfo) string {
 	return ""
 }
 
-func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, raw store.RawConsumeLog, source string) (EntryBuildInput, error) {
-	modelName := ResolveConsumeModel(raw)
+type EntryBuildSnapshot struct {
+	Catalog []types.ModelInfo
+	OrgTree []types.OrgNode
+}
+
+func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader) (EntryBuildSnapshot, error) {
 	catalog, err := deps.Models().Models(ctx)
 	if err != nil {
-		return EntryBuildInput{}, err
+		return EntryBuildSnapshot{}, err
 	}
+	tree, err := deps.Org().Nodes().Tree(ctx)
+	if err != nil {
+		return EntryBuildSnapshot{}, err
+	}
+	return EntryBuildSnapshot{Catalog: catalog, OrgTree: tree}, nil
+}
+
+func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, raw store.RawConsumeLog, source string, snap EntryBuildSnapshot) (EntryBuildInput, error) {
+	modelName := ResolveConsumeModel(raw)
 	settings, err := deps.Audit().Settings(ctx)
 	if err != nil {
 		return EntryBuildInput{}, err
@@ -147,10 +160,10 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 	if err != nil {
 		return EntryBuildInput{}, err
 	}
-	allowedIDs := resolveBillingAllowedIDs(ctx, deps, mapping, platformKey)
+	allowedIDs := resolveBillingAllowedIDs(ctx, deps, mapping, platformKey, snap)
 	input := EntryBuildInput{
 		Raw: raw, Mapping: mapping, Source: source,
-		Catalog: catalog, AllowedIDs: allowedIDs, Settings: settings,
+		Catalog: snap.Catalog, AllowedIDs: allowedIDs, Settings: settings,
 		PlatformKey: platformKey,
 	}
 	if mapping.MemberID != nil {
@@ -164,23 +177,17 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 	return input, nil
 }
 
-func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, platformKey *types.PlatformKey) []int64 {
+func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, platformKey *types.PlatformKey, snap EntryBuildSnapshot) []int64 {
 	if platformKey == nil {
 		return nil
 	}
 	keyIDs := append([]int64{}, platformKey.ModelWhitelist...)
-	departments, err := common.LoadDepartments(ctx, deps.Org().Nodes())
+	orgNodes := cachedOrgNodes{tree: snap.OrgTree}
+	departments := types.OrgNodesToDepartments(snap.OrgTree)
+	rules, err := common.LoadRoutingRules(ctx, orgNodes, deps.Models().Allowlist())
 	if err != nil {
 		return keyIDs
 	}
-	rules, err := common.LoadRoutingRules(ctx, deps.Org().Nodes(), deps.Models().Allowlist())
-	if err != nil {
-		return keyIDs
-	}
-	catalog, err := deps.Models().Models(ctx)
-	if err != nil {
-		return keyIDs
-	}
-	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, catalog)
+	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, snap.Catalog)
 	return newapiunits.EffectiveWhitelistIDs(keyIDs, deptAllowed)
 }

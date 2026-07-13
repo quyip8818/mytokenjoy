@@ -135,6 +135,8 @@ flowchart LR
 | — | 无 org_node 轴 | 部门报表：`usage_ledger` 聚合 |
 | 批末 | `gateway_soft_*` + rebalance / overrun 入队 | `budget_projector.go` |
 
+投影 lag 与性能优化项见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md)（§10 Lag；`wallet_remain` 无 lag）。
+
 父节点 **limit** 来自 `org_nodes.budget`；部门 **consumed 展示**读 `usage_ledger` 聚合，不读 `budget_consumed.org_node`。
 
 看板 hour/day 桶由 `dashboard.Projector` 写 `usage_buckets`（Periodic fanout + 自续）。

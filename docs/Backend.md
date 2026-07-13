@@ -20,6 +20,7 @@
 | [Backend-配置架构.md](./Backend-配置架构.md) | 配置加载、生产契约、空库引导、Clock、测试约定 |
 | [Backend-测试优化.md](./Backend-测试优化.md) | 测试 coverage + 速度优化 |
 | [Backend-结构优化.md](./Backend-结构优化.md) | 当前结构基线与剩余分层债务 |
+| [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) | v1 Gateway → Ingest 性能与投影 Lag 优化路线图 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务：两条异步线、13 kind、入队点、Worker、Periodic |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。

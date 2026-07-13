@@ -2,7 +2,7 @@
 
 > **读者**：想搞清「一次 LLM 调用的钱，怎么记到企业账上」的研发 / 运维 / 联调同学。  
 > **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/ingest/`。  
-> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7 · [Backend-结构优化.md](./Backend-结构优化.md) · [工程收口.md](./工程收口.md)
+> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7 · [Backend-结构优化.md](./Backend-结构优化.md) · [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) · [工程收口.md](./工程收口.md)
 
 ---
 
@@ -445,7 +445,7 @@ flowchart TB
 | `NEW_API_WEBHOOK_SECRET` | — | Webhook + metrics 鉴权 |
 | `NEW_API_ENABLED` | `false` | 副作用入队 + River Client（线 B）消费 rebalance/overrun/wallet |
 | `NEW_API_GATEWAY_ENABLED` | `false` | 挂载 `/v1` Gateway |
-| `WORKER_POLL_INTERVAL_SEC` | `5` | pending 消费间隔 |
+| `WORKER_POLL_INTERVAL_SEC` | `1` | pending 消费间隔 |
 | `INGEST_RECONCILE_INTERVAL_SEC` | `300` | reconcile 间隔 |
 | `INGEST_RECONCILE_BATCH_SIZE` | `500` | 每批扫描 log 数 |
 | `INGEST_RECONCILE_MAX_ROUNDS` | `10` | 单次 reconcile 最多批次数 |
@@ -568,7 +568,8 @@ flowchart TB
 | 方向 | 现状 | 建议 |
 | --- | --- | --- |
 | Notify 队列满 | NewAPI 内存队列有界，满则 drop | 可接受因有 reconcile；监控 drop |
-| 入账延迟 | 取决于 `WORKER_POLL_INTERVAL_SEC` | 监控 `ingest_lag_seconds` / pending |
+| 入账延迟 | 取决于 `WORKER_POLL_INTERVAL_SEC` | 监控 `ingest_lag_seconds` / pending；调参见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) **I1** |
+| 投影 / 预检摘要 lag | `gateway_soft_*` 异步刷新 | 缩窗见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) **§10**；SLA 见 [架构终态设计.md](./架构终态设计.md) §14 |
 | Update Key 非严格 Remote-first | 先写 DB 再 sync | 与 Create 路径统一 |
 | 预检 estimate | 固定最小值 | 按模型单价动态估价 |
 | enqueue→ledger 延迟 | 无直方图 | 可增加延迟 metric |
@@ -586,7 +587,8 @@ flowchart TB
 6. 深入算法：[Backend-预算.md](./Backend-预算.md) · [Backend-计费模式.md](./Backend-计费模式.md)  
 7. 账期细节：[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)  
 8. 表结构：[Backend-存储架构.md](./Backend-存储架构.md)  
-9. 上线缺口：[工程收口.md](./工程收口.md)
+9. 上线缺口：[工程收口.md](./工程收口.md)  
+10. 性能与投影 lag：[Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md)
 
 ---
 

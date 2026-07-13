@@ -34,6 +34,17 @@ func OpenDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, de
 	return OpenBudgetPeriod{key: key}, nil
 }
 
+// OccurrenceDepartmentPeriodFromTree resolves the ledger occurrence period from a pre-loaded org tree.
+func OccurrenceDepartmentPeriodFromTree(orgTree []types.OrgNode, departmentID string, occurredAt time.Time) (OccurrencePeriod, error) {
+	orgPeriod := PeriodMonthly
+	if departmentID != "" {
+		if node := pkgorg.FindOrgNode(orgTree, departmentID); node != nil {
+			orgPeriod = node.Period
+		}
+	}
+	return OccurrencePeriod{key: SnapshotKey(orgPeriod, occurredAt)}, nil
+}
+
 // OccurrenceDepartmentPeriod resolves the ledger occurrence period from event time.
 func OccurrenceDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, occurredAt time.Time) (OccurrencePeriod, error) {
 	key, err := departmentPeriodKey(ctx, nodes, departmentID, occurredAt)

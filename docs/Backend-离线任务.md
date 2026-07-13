@@ -198,7 +198,7 @@ Worker 注册：`internal/infra/river/client.go` → `registerWorkers`。
 | Periodic job | 间隔 | 默认 | 入队 kind |
 | --- | --- | --- | --- |
 | 组织同步 fanout | `WORKER_ORG_SYNC_INTERVAL_SEC` | 60s | `org_sync`（`company_id=0`） |
-| 月切 rebalance | `WORKER_POLL_INTERVAL_SEC` | 5s | `monthly_rebalance` |
+| 月切 rebalance | `WORKER_POLL_INTERVAL_SEC` | 1s | `monthly_rebalance` |
 | 预算 reconcile fanout | 代码常量 | 30min | `budget_reconcile_fanout` |
 | 看板投影 fanout | 代码常量 | 1h | `dashboard_project_fanout` |
 | 看板 reconcile fanout | 代码常量 | 24h | `dashboard_reconcile_fanout` |

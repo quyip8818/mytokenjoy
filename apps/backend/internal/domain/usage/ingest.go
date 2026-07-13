@@ -66,7 +66,11 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		return err
 	}
 
-	buildInput, err := LoadEntryBuildInput(ctx, s.store, mapping, raw, source)
+	snap, err := LoadEntryBuildSnapshot(ctx, s.store)
+	if err != nil {
+		return err
+	}
+	buildInput, err := LoadEntryBuildInput(ctx, s.store, mapping, raw, source, snap)
 	if err != nil {
 		return err
 	}
@@ -74,8 +78,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if err != nil {
 		return err
 	}
-	nodes := s.store.Org().Nodes()
-	occurrence, err := pkgbudget.OccurrenceDepartmentPeriod(ctx, nodes, entry.DepartmentID, entry.OccurredAt)
+	occurrence, err := pkgbudget.OccurrenceDepartmentPeriodFromTree(snap.OrgTree, entry.DepartmentID, entry.OccurredAt)
 	if err != nil {
 		return err
 	}
