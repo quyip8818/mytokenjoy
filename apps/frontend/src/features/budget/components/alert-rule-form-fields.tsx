@@ -1,6 +1,6 @@
-import type { BudgetNode, ProjectView, Role } from '@/api/types'
+import type { BudgetNode, OverrunPolicy, ProjectView, Role } from '@/api/types'
 import { groupProjectsByTeam } from '@/features/budget'
-import { ALERT_PRESET_THRESHOLDS } from '@/features/budget'
+import { ALERT_PRESET_THRESHOLDS, POLICY_LABELS } from '@/features/budget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -37,6 +37,7 @@ export function AlertRuleFormFields({ tree, projects, roles, form }: AlertRuleFo
     removeThreshold,
     toggleRole,
     selectPreset,
+    setAction,
   } = form
 
   return (
@@ -165,6 +166,30 @@ export function AlertRuleFormFields({ tree, projects, roles, form }: AlertRuleFo
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="grid gap-2">
+        <Label className="text-xs font-medium">触发动作</Label>
+        <RadioGroup
+          value={state.action}
+          onValueChange={(value) => setAction(value as OverrunPolicy)}
+          className="flex flex-wrap gap-3"
+        >
+          {(Object.keys(POLICY_LABELS) as OverrunPolicy[]).map((key) => (
+            <label
+              key={key}
+              className={cn(
+                'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                state.action === key
+                  ? POLICY_LABELS[key].className
+                  : 'border-border hover:bg-muted/50',
+              )}
+            >
+              <RadioGroupItem value={key} id={`action-${key}`} />
+              <span>{POLICY_LABELS[key].label}</span>
+            </label>
+          ))}
+        </RadioGroup>
       </div>
 
       <div className="grid gap-2">

@@ -29,6 +29,7 @@ type LedgerRepository interface {
 	InsertSegments(ctx context.Context, entries []types.UsageLedgerEntry) (inserted int, err error)
 	ExistsIdempotency(ctx context.Context, idempotencyKey string) (bool, error)
 	ListCallSettledPage(ctx context.Context, filter LedgerCallFilter) ([]types.UsageLedgerEntry, int, error)
+	CallsSummary(ctx context.Context, filter LedgerCallFilter) (types.CallsSummary, error)
 	QueryMinuteSeries(ctx context.Context, q types.UsageSeriesQuery) ([]types.UsageSeriesPoint, error)
 	ListCallSettledAfterCursor(ctx context.Context, cursor LedgerProjectorCursor) ([]types.UsageLedgerEntry, error)
 	ListCallSettledSince(ctx context.Context, since time.Time) ([]types.UsageLedgerEntry, error)

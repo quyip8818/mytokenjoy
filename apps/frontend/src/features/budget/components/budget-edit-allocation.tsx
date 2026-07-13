@@ -8,7 +8,6 @@ import { BudgetAllocationDialog } from './budget-allocation-dialog'
 interface BudgetEditAllocationProps {
   node: BudgetNode
   projects: ProjectView[]
-  overrunPolicyLabel: string
   onUpdated: () => void
   onUpdateDepartment: (
     departmentId: string,
@@ -19,7 +18,6 @@ interface BudgetEditAllocationProps {
 export function BudgetEditAllocation({
   node,
   projects,
-  overrunPolicyLabel,
   onUpdated,
   onUpdateDepartment,
 }: BudgetEditAllocationProps) {
@@ -49,7 +47,6 @@ export function BudgetEditAllocation({
         node={node}
         children={children}
         nodeProjects={nodeProjects}
-        overrunPolicyLabel={overrunPolicyLabel}
         editing={false}
         drafts={{}}
         onUpdateDraft={() => {}}

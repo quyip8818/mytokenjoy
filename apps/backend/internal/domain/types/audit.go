@@ -52,3 +52,15 @@ type AuditCallsQueryParams struct {
 	From     string `json:"from"`
 	To       string `json:"to"`
 }
+
+type OperationDailyCount struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type CallsSummary struct {
+	TotalCalls   int     `json:"totalCalls"`
+	ErrorCount   int     `json:"errorCount"`
+	ErrorRate    float64 `json:"errorRate"`
+	AvgLatencyMs float64 `json:"avgLatencyMs"`
+}

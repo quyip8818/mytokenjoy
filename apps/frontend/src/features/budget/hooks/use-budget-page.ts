@@ -12,9 +12,7 @@ import {
   formatBudgetPeriodLabel,
   mapProjectsToViews,
   projectsForDepartment,
-  formatOverrunPolicyLabel,
   shiftBudgetPeriod,
-  DEFAULT_OVERRUN_POLICY,
 } from '../lib/mappers'
 import { filterProjectMembers, useBudgetDepartmentMembers } from './use-budget-department-members'
 
@@ -270,10 +268,6 @@ export function useBudgetPage(injectedApis?: AppApis) {
     [apis],
   )
 
-  const overrunPolicyLabel = formatOverrunPolicyLabel(
-    activeProject?.overrunPolicy ?? DEFAULT_OVERRUN_POLICY,
-  )
-
   return {
     tree,
     projects,
@@ -298,7 +292,6 @@ export function useBudgetPage(injectedApis?: AppApis) {
     setActiveProjectId,
     updateDepartment,
     projectsForNode: (departmentId: string) => projectsForDepartment(projectsData, departmentId),
-    overrunPolicyLabel,
     departmentMembers,
     departmentMembersLoading,
     projectMembers,

@@ -1,5 +1,4 @@
 import type { BudgetNode, ProjectView } from '@/api/types'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -17,7 +16,6 @@ type BudgetAllocationTableProps = {
   node: BudgetNode
   children: BudgetNode[]
   nodeProjects: ProjectView[]
-  overrunPolicyLabel: string
   editing: boolean
   drafts: Record<string, { budget: string }>
   onUpdateDraft: (id: string, value: string) => void
@@ -27,7 +25,6 @@ export function BudgetAllocationTable({
   node,
   children,
   nodeProjects,
-  overrunPolicyLabel,
   editing,
   drafts,
   onUpdateDraft,
@@ -48,9 +45,6 @@ export function BudgetAllocationTable({
             </TableHead>
             <TableHead className="w-32 text-xs font-medium uppercase text-muted-foreground">
               进度
-            </TableHead>
-            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-              超限策略
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -94,11 +88,6 @@ export function BudgetAllocationTable({
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-xs">
-                    {overrunPolicyLabel}
-                  </Badge>
-                </TableCell>
               </TableRow>
             )
           })}
@@ -124,11 +113,6 @@ export function BudgetAllocationTable({
                       {projectPct}%
                     </span>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-xs">
-                    {overrunPolicyLabel}
-                  </Badge>
                 </TableCell>
               </TableRow>
             )

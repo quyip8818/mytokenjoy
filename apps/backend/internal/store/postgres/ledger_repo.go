@@ -229,4 +229,26 @@ func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID, 
 	return total, err
 }
 
+func (r *pgLedgerRepo) CallsSummary(ctx context.Context, filter store.LedgerCallFilter) (types.CallsSummary, error) {
+	companyID := store.CompanyID(ctx)
+	where, args := buildLedgerCallWhere(companyID, filter)
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) AS total,
+		       COUNT(*) FILTER (WHERE call_detail->>'status' != 'success') AS error_count,
+		       COALESCE(AVG((call_detail->>'latencyMs')::float), 0) AS avg_latency
+		FROM usage_ledger
+		WHERE %s
+	`, where)
+
+	var summary types.CallsSummary
+	err := r.db.QueryRow(ctx, query, args...).Scan(&summary.TotalCalls, &summary.ErrorCount, &summary.AvgLatencyMs)
+	if err != nil {
+		return types.CallsSummary{}, err
+	}
+	if summary.TotalCalls > 0 {
+		summary.ErrorRate = float64(summary.ErrorCount) / float64(summary.TotalCalls) * 100
+	}
+	return summary, nil
+}
+
 var _ store.LedgerRepository = (*pgLedgerRepo)(nil)

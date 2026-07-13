@@ -185,4 +185,39 @@ func (r *pgAuditRepo) AppendOperationLog(ctx context.Context, log types.Operatio
 	return err
 }
 
+func (r *pgAuditRepo) OperationCountsByDay(ctx context.Context, filter store.AuditOperationFilter) ([]types.OperationDailyCount, error) {
+	companyID := store.CompanyID(ctx)
+	where, args := buildAuditOperationWhere(companyID, filter)
+	query := fmt.Sprintf(`
+		SELECT created_at::date AS date, COUNT(*) AS count
+		FROM operation_logs
+		WHERE %s
+		GROUP BY created_at::date
+		ORDER BY date
+	`, where)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]types.OperationDailyCount, 0)
+	for rows.Next() {
+		var date time.Time
+		var count int
+		if err := rows.Scan(&date, &count); err != nil {
+			return nil, err
+		}
+		items = append(items, types.OperationDailyCount{
+			Date:  date.Format("2006-01-02"),
+			Count: count,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 var _ store.AuditRepository = (*pgAuditRepo)(nil)

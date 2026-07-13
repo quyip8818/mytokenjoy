@@ -7,7 +7,7 @@ import { CALL_AUDIT_CSV_HEADERS, buildCallAuditCsvRows } from '../lib/export'
 import { useAuditListPage } from './use-audit-list-page'
 import { useAuditSettings } from './use-audit-settings'
 import { downloadCsv } from '@/lib/csv-export'
-import { queryKeys } from '@/features/query'
+import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useAuditModelOptions } from './use-audit-model-options'
 import { useAuditMemberOptions } from './use-audit-member-options'
 
@@ -53,6 +53,14 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
     () => Object.fromEntries(members.map((member) => [member.id, member.name])),
     [members],
   )
+
+  const summaryQuery = useMemo(() => buildCallsQuery(filter), [filter])
+  const { data: summary = null, loading: summaryLoading } = useInjectedQuery({
+    injectedApis,
+    queryKey: [...queryKeys.audit.calls({ filter, page: 0 }), 'summary'],
+    queryFn: (apis) => apis.auditApi.getCallsSummary(summaryQuery),
+  })
+
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const handleExport = useCallback(() => {
@@ -73,6 +81,8 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
     loading,
     error,
     refresh,
+    summary,
+    summaryLoading,
     statusFilter: filter.status,
     callerId: filter.callerId,
     modelFilter: filter.model,

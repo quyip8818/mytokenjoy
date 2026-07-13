@@ -26,7 +26,7 @@ export function alertRuleToView(rule: AlertRule, projects: Project[]): AlertRule
 export function alertRuleFromView(
   view: Pick<
     AlertRuleView,
-    'targetType' | 'targetId' | 'targetName' | 'thresholds' | 'notifyRoleIds' | 'enabled'
+    'targetType' | 'targetId' | 'targetName' | 'thresholds' | 'notifyRoleIds' | 'action' | 'enabled'
   >,
 ): Omit<AlertRule, 'id'> {
   return {
@@ -34,6 +34,7 @@ export function alertRuleFromView(
     nodeName: view.targetName,
     thresholds: view.thresholds,
     notifyRoleIds: view.notifyRoleIds,
+    action: view.action,
     enabled: view.enabled,
   }
 }

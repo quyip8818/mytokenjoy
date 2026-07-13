@@ -20,7 +20,6 @@ import { Plus, ChevronRight } from 'lucide-react'
 interface BudgetDetailTeamProps {
   node: BudgetNode
   projects: ProjectView[]
-  overrunPolicyLabel: string
   onUpdated: () => void
   onNavigateToProject: (projectId: string) => void
   onUpdateDepartment: (
@@ -77,7 +76,6 @@ function SummaryCard({
 export function BudgetDetailTeam({
   node,
   projects,
-  overrunPolicyLabel,
   onUpdated,
   onNavigateToProject,
   onUpdateDepartment,
@@ -160,7 +158,6 @@ export function BudgetDetailTeam({
       <BudgetEditAllocation
         node={node}
         projects={projects}
-        overrunPolicyLabel={overrunPolicyLabel}
         onUpdated={onUpdated}
         onUpdateDepartment={onUpdateDepartment}
       />
