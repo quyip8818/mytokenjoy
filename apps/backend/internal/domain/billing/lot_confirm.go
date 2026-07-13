@@ -3,7 +3,6 @@ package billing
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -15,8 +14,11 @@ import (
 func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy string) error {
 	companyID := company.CompanyID(ctx)
 	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil || co == nil {
-		return fmt.Errorf("company not found")
+	if err != nil {
+		return err
+	}
+	if co == nil {
+		return domain.NotFound("company not found")
 	}
 	now := time.Now().UTC()
 	currency := co.BillingCurrency
@@ -41,8 +43,11 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay float64, createdBy string) error {
 	companyID := company.CompanyID(ctx)
 	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil || co == nil {
-		return fmt.Errorf("company not found")
+	if err != nil {
+		return err
+	}
+	if co == nil {
+		return domain.NotFound("company not found")
 	}
 	now := time.Now().UTC()
 	currency := co.BillingCurrency
@@ -66,8 +71,11 @@ func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay fl
 
 func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOrder) error {
 	co, err := s.store.Company().GetByID(ctx, order.CompanyID)
-	if err != nil || co == nil {
-		return fmt.Errorf("company not found")
+	if err != nil {
+		return err
+	}
+	if co == nil {
+		return domain.NotFound("company not found")
 	}
 	ppu := order.PointsPerUnit
 	if ppu <= 0 {
@@ -93,8 +101,11 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, source, createdBy string, idempotencyKey *string) error {
 	companyID := company.CompanyID(ctx)
 	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil || co == nil {
-		return fmt.Errorf("company not found")
+	if err != nil {
+		return err
+	}
+	if co == nil {
+		return domain.NotFound("company not found")
 	}
 	now := time.Now().UTC()
 	ppu := DefaultPointsPerUnit()
@@ -123,18 +134,19 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 
 func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
 	if err := s.enqueuer.InsertWalletSync(ctx, companyID); err != nil {
-		slog.Warn("after recharge: enqueue wallet sync failed", "company_id", companyID, "err", err)
+		return err
 	}
 	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err == nil && co != nil && co.NewAPIWalletUserID != nil {
-		companyCtx := company.WithContext(ctx, company.Context{
-			CompanyID: companyID, NewAPIWalletUserID: *co.NewAPIWalletUserID, Status: co.Status,
-		})
-		if err := s.enqueuer.InsertRebalanceCompany(companyCtx, companyID); err != nil {
-			slog.Warn("after recharge: enqueue rebalance failed", "company_id", companyID, "err", err)
-		}
+	if err != nil {
+		return err
 	}
-	return nil
+	if co == nil || co.NewAPIWalletUserID == nil {
+		return nil
+	}
+	companyCtx := company.WithContext(ctx, company.Context{
+		CompanyID: companyID, NewAPIWalletUserID: *co.NewAPIWalletUserID, Status: co.Status,
+	})
+	return s.enqueuer.InsertRebalanceCompany(companyCtx, companyID)
 }
 
 func (s *service) ConfirmPayment(ctx context.Context, orderID string) error {

@@ -42,7 +42,7 @@
 | **纯换算** | `pkg/newapiunits/` | point ↔ quota；domain 可直接引用 |
 | **Wallet 读** | `company.WalletService` | 依赖最小 `NewAPIWalletReader`；`adminport.Port` 满足接口；组合根注入 `adminPort` |
 
-装配：`wiring_infra.go` → `newapi.NewAdminPortAdapter(client)` → `buildDomainServices` 注入 `NewAPISync`、`billing`、`budget.Rebalance`、`models`、`company`。
+装配：`compose_infra.go` → `newapi.NewAdminPortAdapter(client)` → `buildDomainServices` 注入 `NewAPISync`、`billing`、`budget.Rebalance`、`models`、`company`。
 
 ---
 
@@ -101,7 +101,7 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 ```
 
 - 域 DTO 统一定义在 `internal/domain/types/`。
-- 各 domain 包保留 Service 接口与业务逻辑；跨域编排放在调用方或 `app/wiring_*.go`。
+- 各 domain 包保留 Service 接口与业务逻辑；跨域编排放在调用方或 `app/compose_*.go`。
 - HTTP 错误收敛到 `httputil`；Service 返回 `domain.DomainError`，Handler 映射 400/401/403/404/422/500。
 - **Handler 零业务规则**：鉴权、编解码、调 `domain.Service`；业务校验与规则在 domain（如成员自删保护、`UsageSeries` 参数校验、`audit.ListCalls` 委托 reader）。
 
@@ -119,7 +119,7 @@ HTTP → middleware (CORS, CompanyResolve, Session, Authz, Recover)
 apps/backend/
 ├── cmd/server/main.go
 ├── internal/
-│   ├── app/                 # DI 组合根（wire_* + *_enqueuer.go 端口适配 + registry）
+│   ├── app/                 # DI 组合根（compose_* + port_* + registry）
 │   ├── config/
 │   ├── identity/            # sessiontoken、credentials、authz、httpx
 │   ├── domain/
@@ -170,7 +170,7 @@ apps/backend/
 └── Makefile
 ```
 
-**结构基线：** 分层不变；domain 并行访问 Store 与端口（Job 类：六域 `ports.go` + `app/*_enqueuer.go`；其它端口定义位置见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口)）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
+**结构基线：** 分层不变；domain 并行访问 Store 与端口（Job 类：六域 `ports.go` + `app/port_*.go`；其它端口定义位置见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口)）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；详见 [Backend-结构优化.md §1](./Backend-结构优化.md#1-当前架构)（**结构变化先改该文档，再同步本段**）。
 
 ### 3.1 文件命名与拆分
 

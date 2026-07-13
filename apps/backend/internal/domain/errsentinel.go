@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 func NotFound(msg string) error {
 	return NewDomainError(StatusNotFound, msg)
 }
@@ -26,4 +28,12 @@ func ServiceUnavailable(msg string) error {
 
 func TooManyRequests(msg string) error {
 	return NewDomainError(StatusTooManyRequests, msg)
+}
+
+func IsNotFound(err error) bool {
+	var domainErr *DomainError
+	if !errors.As(err, &domainErr) {
+		return false
+	}
+	return domainErr.Status == StatusNotFound
 }

@@ -20,6 +20,9 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 	if err != nil {
 		return nil, err
 	}
+	if co == nil {
+		return nil, fmt.Errorf("company not found: %d", companyID)
+	}
 	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, co.FIFOHeadLotID)
 	if err != nil {
 		return nil, err

@@ -530,7 +530,7 @@ flowchart TB
 | Metrics | `internal/infra/ingestmetrics/collector.go` | 计数与 lag |
 | LogStore | `internal/store/log_repo.go`, `postgres/log_repo.go` | 日志库 CRUD |
 | Config | `internal/config/config.go`, `validate.go`, `worker.go` | 启用条件与间隔 |
-| Wiring | `internal/app/wire_domain_services.go`, `registry.go` | DI 与 Worker 启动 |
+| Wiring | `internal/app/assemble.go`、`compose_domain_wire.go`、`compose_worker.go`、`registry.go` | DI 与 Worker 启动 |
 
 ---
 

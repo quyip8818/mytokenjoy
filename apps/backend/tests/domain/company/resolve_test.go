@@ -3,6 +3,7 @@ package company_test
 import (
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -38,5 +39,20 @@ func TestResolveCompanyContext(t *testing.T) {
 	}
 	if got.CompanyID != contract.DefaultCompanyID {
 		t.Fatalf("expected company %d, got %d", contract.DefaultCompanyID, got.CompanyID)
+	}
+}
+
+func TestResolveCompanyContext_MissingIsNotFound(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t)
+	svc := domaincompany.NewService(cfg, st, newapi.NewAdminPortAdapter(&mock.StubAdminClient{}), permission.NewGrantNormalizer())
+	ctx := testutil.Ctx()
+
+	_, err := svc.ResolveCompanyContext(ctx, 999_999_999)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !domain.IsNotFound(err) {
+		t.Fatalf("expected NotFound, got %v", err)
 	}
 }

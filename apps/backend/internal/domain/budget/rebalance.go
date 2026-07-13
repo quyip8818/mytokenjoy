@@ -106,9 +106,16 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 		effectiveIDs,
 	)
 	newRemain := allocated
-	if walletID := s.newAPIWalletUserID(ctx, mapping.CompanyID); walletID > 0 {
+	walletID, err := s.newAPIWalletUserID(ctx, mapping.CompanyID)
+	if err != nil {
+		return err
+	}
+	if walletID > 0 {
 		walletUnits, walletErr := s.walletAvailable(ctx, mapping, allocated)
-		if walletErr == nil && walletUnits < newRemain {
+		if walletErr != nil {
+			return walletErr
+		}
+		if walletUnits < newRemain {
 			newRemain = walletUnits
 		}
 	}
@@ -130,30 +137,36 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 	return RefreshPlatformKeySoft(ctx, s.store, mapping.PlatformKeyID, s.cfg.Clock(), nil)
 }
 
-func (s *RebalanceService) newAPIWalletUserID(ctx context.Context, companyID int64) int64 {
+func (s *RebalanceService) newAPIWalletUserID(ctx context.Context, companyID int64) (int64, error) {
 	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletUserID > 0 {
-		return companyCtx.NewAPIWalletUserID
+		return companyCtx.NewAPIWalletUserID, nil
 	}
-	company, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil || company == nil || company.NewAPIWalletUserID == nil {
-		return 0
+	co, err := s.store.Company().GetByID(ctx, companyID)
+	if err != nil {
+		return 0, err
 	}
-	return *company.NewAPIWalletUserID
+	if co == nil || co.NewAPIWalletUserID == nil {
+		return 0, nil
+	}
+	return *co.NewAPIWalletUserID, nil
 }
 
 func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.PlatformKeyMapping, allocated int64) (int64, error) {
 	co, err := s.store.Company().GetByID(ctx, mapping.CompanyID)
-	if err != nil || co == nil {
-		return allocated, err
+	if err != nil {
+		return 0, err
+	}
+	if co == nil {
+		return 0, fmt.Errorf("company not found: %d", mapping.CompanyID)
 	}
 	models, err := s.store.Models().Models(ctx)
 	if err != nil {
-		return allocated, err
+		return 0, err
 	}
 	walletUnits := newapiunits.ToNewAPIUnits(co.WalletRemain, models, nil)
 	mappings, err := s.store.PlatformKeyMappings().ListActiveMappingsByCompany(ctx, mapping.CompanyID)
 	if err != nil {
-		return allocated, err
+		return 0, err
 	}
 	var used int64
 	for _, m := range mappings {

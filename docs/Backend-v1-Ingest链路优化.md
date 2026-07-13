@@ -597,7 +597,7 @@ L1 lag ≈ ingest 排队
 | `infra/ingest/worker.go` | poll 间隔、claim、reconcile |
 | `domain/usage/ingest.go` | 入账主路径、事务 |
 | `domain/usage/entry.go` | `LoadEntryBuildInput` 重复读 |
-| `app/usage_enqueuer.go` | ingest 同事务入队 `budget_projection` |
+| `app/port_usage.go` | ingest 同事务入队 `budget_projection` |
 | `store/postgres/log_repo.go` | log 行读取 |
 | `domain/budget/budget_projector.go` | 投影批处理、占锁、self-chain |
 | `domain/budget/gateway_summary.go` | `ComputeGatewaySummaryUpdates` |

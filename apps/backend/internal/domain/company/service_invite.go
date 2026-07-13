@@ -47,7 +47,10 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		return types.Member{}, fmt.Errorf("hash password: %w", err)
 	}
 	company, err := s.store.Company().GetByID(ctx, invite.CompanyID)
-	if err != nil || company == nil {
+	if err != nil {
+		return types.Member{}, err
+	}
+	if company == nil {
 		return types.Member{}, domain.NotFound("company not found")
 	}
 	companyCtx := WithContext(ctx, Context{

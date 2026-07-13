@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
@@ -35,7 +36,11 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer se
 
 			companyCtx, err := companySvc.ResolveCompanyContext(r.Context(), companyID)
 			if err != nil {
-				httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
+				if domain.IsNotFound(err) {
+					httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
+					return
+				}
+				httputil.WriteError(w, err)
 				return
 			}
 			if companyCtx.Status == "" {

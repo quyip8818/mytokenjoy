@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -22,7 +23,7 @@ func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, er
 			created_at, updated_at
 		FROM companies WHERE id = $1
 	`, id)
-	return scanCompanyExtended(row)
+	return scanCompanyExtendedOptional(row)
 }
 
 func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Company, error) {
@@ -32,7 +33,7 @@ func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Compan
 			created_at, updated_at
 		FROM companies WHERE slug = $1
 	`, slug)
-	return scanCompanyExtended(row)
+	return scanCompanyExtendedOptional(row)
 }
 
 func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
@@ -151,6 +152,14 @@ func (r *companyRepo) SetWalletRemain(ctx context.Context, id int64, walletRemai
 		WHERE id = $1
 	`, id, walletRemain, fifoHeadLotID)
 	return err
+}
+
+func scanCompanyExtendedOptional(row scannable) (*store.Company, error) {
+	c, err := scanCompanyExtended(row)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	return c, err
 }
 
 func scanCompanyExtended(row scannable) (*store.Company, error) {

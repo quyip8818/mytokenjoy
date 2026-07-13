@@ -4,6 +4,7 @@ package middleware_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -49,6 +50,28 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("M1b company resolve infra error is 500", func(t *testing.T) {
+		t.Parallel()
+		stub := &stubCompanyService{
+			resolve: func(context.Context, int64) (domaincompany.Context, error) {
+				return domaincompany.Context{}, fmt.Errorf("db unavailable")
+			},
+		}
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatal("next should not run")
+		})
+		cfg := sessionConfig()
+		cfg.LocalCompanyID = contract.DefaultCompanyID
+		handler := httpmiddleware.CompanyResolve(cfg, stub, testutil.SessionIssuer(t))(next)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusInternalServerError {
+			t.Fatalf("expected 500, got %d body=%s", rec.Code, rec.Body.String())
 		}
 	})
 

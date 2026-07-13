@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -16,7 +17,10 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if err != nil {
 		return err
 	}
-	if co == nil || co.NewAPIWalletUserID == nil {
+	if co == nil {
+		return domain.NotFound("company not found")
+	}
+	if co.NewAPIWalletUserID == nil {
 		return ErrWalletNotConfigured
 	}
 	if s.client == nil {

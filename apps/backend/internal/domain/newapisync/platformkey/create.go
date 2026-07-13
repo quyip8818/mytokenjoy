@@ -113,14 +113,20 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 	if err != nil {
 		return "", err
 	}
-	remainUnits := capRemainUnits(ctx, d, remainPoint, models, effectiveIDs)
+	remainUnits, err := capRemainUnits(ctx, d, remainPoint, models, effectiveIDs)
+	if err != nil {
+		return "", err
+	}
 
 	group := d.ChannelPolicy.ResolveNewAPIGroup(ctx, departmentID)
 	if err := d.Client.EnsureGroup(ctx, group, policy.GroupDisplayName(departmentID)); err != nil {
 		return "", fmt.Errorf("ensure newapi group %s: %w", group, err)
 	}
 
-	walletUserID := newAPIWalletUserID(ctx, d)
+	walletUserID, err := newAPIWalletUserID(ctx, d)
+	if err != nil {
+		return "", err
+	}
 	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
 		Name:               TokenName(key.ID),

@@ -16,7 +16,7 @@ func (s *service) ResolveFromMember(ctx context.Context, memberID string) (Conte
 		companyCtx := WithContext(ctx, Context{CompanyID: company.ID})
 		members, err := s.store.Org().Members(companyCtx)
 		if err != nil {
-			continue
+			return Context{}, err
 		}
 		for _, member := range members {
 			if member.ID == memberID {
@@ -33,15 +33,18 @@ func (s *service) ResolveFromMember(ctx context.Context, memberID string) (Conte
 }
 
 func (s *service) ResolveCompanyContext(ctx context.Context, companyID int64) (Context, error) {
-	company, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil || company == nil {
+	co, err := s.store.Company().GetByID(ctx, companyID)
+	if err != nil {
+		return Context{}, err
+	}
+	if co == nil {
 		return Context{}, domain.NotFound("company not found")
 	}
 	return Context{
-		CompanyID:          company.ID,
-		Slug:               company.Slug,
-		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
-		Status:             company.Status,
+		CompanyID:          co.ID,
+		Slug:               co.Slug,
+		NewAPIWalletUserID: newAPIWalletUserIDValue(co),
+		Status:             co.Status,
 	}, nil
 }
 
@@ -49,18 +52,18 @@ func (s *service) ResolveCompanyContextBySlug(ctx context.Context, slug string) 
 	if slug == "" {
 		return Context{}, domain.BadRequest("company slug required")
 	}
-	company, err := s.store.Company().GetBySlug(ctx, slug)
+	co, err := s.store.Company().GetBySlug(ctx, slug)
 	if err != nil {
 		return Context{}, err
 	}
-	if company == nil {
+	if co == nil {
 		return Context{}, domain.NotFound("company not found")
 	}
 	return Context{
-		CompanyID:          company.ID,
-		Slug:               company.Slug,
-		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
-		Status:             company.Status,
+		CompanyID:          co.ID,
+		Slug:               co.Slug,
+		NewAPIWalletUserID: newAPIWalletUserIDValue(co),
+		Status:             co.Status,
 	}, nil
 }
 

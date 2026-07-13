@@ -54,9 +54,13 @@ test-db-clean:
 clean:
 	rm -rf tmp
 
-lint: lint-clock
+lint: lint-clock lint-layer
 	go vet -tags=testhook ./...
 	@test -z "$$(gofmt -l .)" || (echo "gofmt required on:"; gofmt -l .; exit 1)
+
+lint-layer:
+	@chmod +x ./scripts/layer-guard.sh
+	./scripts/layer-guard.sh
 
 lint-clock:
 	@chmod +x ./scripts/lint-clock.sh

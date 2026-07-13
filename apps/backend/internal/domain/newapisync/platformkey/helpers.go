@@ -10,35 +10,41 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
-func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) int64 {
+func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) (int64, error) {
 	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletUserID > 0 {
-		return companyCtx.NewAPIWalletUserID
+		return companyCtx.NewAPIWalletUserID, nil
 	}
 	companyID := company.CompanyID(ctx)
 	co, err := d.Store.Company().GetByID(ctx, companyID)
-	if err != nil || co == nil || co.NewAPIWalletUserID == nil {
-		return 0
+	if err != nil {
+		return 0, err
 	}
-	return *co.NewAPIWalletUserID
+	if co == nil || co.NewAPIWalletUserID == nil {
+		return 0, nil
+	}
+	return *co.NewAPIWalletUserID, nil
 }
 
-func capRemainUnits(ctx context.Context, d syncdeps.Deps, remainPoint float64, models []types.ModelInfo, effectiveIDs []int64) int64 {
+func capRemainUnits(ctx context.Context, d syncdeps.Deps, remainPoint float64, models []types.ModelInfo, effectiveIDs []int64) (int64, error) {
 	allocated := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
 	if d.Wallet == nil {
-		return allocated
+		return allocated, nil
 	}
-	walletID := newAPIWalletUserID(ctx, d)
+	walletID, err := newAPIWalletUserID(ctx, d)
+	if err != nil {
+		return 0, err
+	}
 	if walletID <= 0 {
-		return allocated
+		return allocated, nil
 	}
 	walletUnits, err := d.Wallet.AvailableNewAPIUnits(ctx, walletID)
 	if err != nil {
-		return allocated
+		return 0, err
 	}
 	if allocated < walletUnits {
-		return allocated
+		return allocated, nil
 	}
-	return walletUnits
+	return walletUnits, nil
 }
 
 func newAPIPlatformKeyPrefix(fullKey string) string {
@@ -55,12 +61,11 @@ func persistPlatformKeySecret(ctx context.Context, d syncdeps.Deps, platformKeyI
 		return err
 	}
 	for i := range keys {
-		if keys[i].ID != platformKeyID {
-			continue
+		if keys[i].ID == platformKeyID {
+			keys[i].FullKey = &fullKey
+			keys[i].KeyPrefix = newAPIPlatformKeyPrefix(fullKey)
+			return d.Store.Keys().SetPlatformKeys(ctx, keys)
 		}
-		keys[i].FullKey = &fullKey
-		keys[i].KeyPrefix = newAPIPlatformKeyPrefix(fullKey)
-		return d.Store.Keys().SetPlatformKeys(ctx, keys)
 	}
 	return fmt.Errorf("platform key not found: %s", platformKeyID)
 }

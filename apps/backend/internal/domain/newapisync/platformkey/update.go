@@ -55,7 +55,10 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID s
 	if err != nil {
 		return err
 	}
-	remainUnits := capRemainUnits(ctx, d, remainPoint, models, effectiveIDs)
+	remainUnits, err := capRemainUnits(ctx, d, remainPoint, models, effectiveIDs)
+	if err != nil {
+		return err
+	}
 	status := adminport.TokenStatusEnabled
 	if targetActive != nil {
 		if !*targetActive {
@@ -102,7 +105,10 @@ func DisablePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID stri
 		return nil
 	}
 	mapping, err := d.Mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
-	if err != nil || mapping == nil || mapping.NewAPIKeyID == nil {
+	if err != nil {
+		return err
+	}
+	if mapping == nil || mapping.NewAPIKeyID == nil {
 		return nil
 	}
 	status := adminport.TokenStatusDisabled

@@ -13,7 +13,10 @@ func SyncRevokePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID s
 		return domain.ServiceUnavailable("newapi not enabled")
 	}
 	mapping, err := d.Mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
-	if err != nil || mapping == nil || mapping.NewAPIKeyID == nil {
+	if err != nil {
+		return err
+	}
+	if mapping == nil || mapping.NewAPIKeyID == nil {
 		return nil
 	}
 	if err := d.Client.DeleteToken(ctx, *mapping.NewAPIKeyID); err != nil {

@@ -167,8 +167,7 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 		s.logger.Info("budget.project.deleted", "project_id", id)
 		for _, memberID := range deletedMemberIDs {
 			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); rebalErr != nil {
-				s.logger.Error("enqueue rebalance failed after project delete",
-					"project_id", id, "member_id", memberID, "error", rebalErr)
+				return rebalErr
 			}
 		}
 	}

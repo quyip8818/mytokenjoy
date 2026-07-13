@@ -120,11 +120,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		}
 
 		if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, result.ApplicantID); err != nil {
-			s.logger.Error("enqueue rebalance failed after approval",
-				"approval_id", id,
-				"member_id", result.ApplicantID,
-				"error", err,
-			)
+			return types.BudgetApproval{}, err
 		}
 		s.logger.Info("budget.approval.approved", "approval_id", id, "applicant_id", result.ApplicantID, "amount", result.Amount)
 	} else {
