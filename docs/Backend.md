@@ -26,6 +26,7 @@
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务 as-built：L0/L1/L2、`tenant_background_state`、唯一看门狗 |
 | [Backend-NewAPI-多租户钥匙代建.md](./Backend-NewAPI-多租户钥匙代建.md) | 方案 A as-built：Admin 代建 Token 指定 `user_id` |
 | [Backend-NewAPI-Token归属.md](./Backend-NewAPI-Token归属.md) | 重定向至上篇 |
+| [Backend-SaaS-客户开户与加人.md](./Backend-SaaS-客户开户与加人.md) | SaaS 开户/加人实现：符合性、缺口、PR 切片 |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 
