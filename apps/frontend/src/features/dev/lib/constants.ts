@@ -13,9 +13,6 @@ const INPUT_PRICE_DISPLAY = 0.15
 const OUTPUT_PRICE_DISPLAY = 0.6
 const TOKENS_PER_MILLION = 1_000_000
 
-export const POLL_INTERVAL_MS = 1000
-export const POLL_MAX_ATTEMPTS = 30
-
 export function estimateConsumePoints(inputTokens: number, outputTokens: number): number {
   const inputCost = (inputTokens / TOKENS_PER_MILLION) * displayToPoints(INPUT_PRICE_DISPLAY)
   const outputCost = (outputTokens / TOKENS_PER_MILLION) * displayToPoints(OUTPUT_PRICE_DISPLAY)

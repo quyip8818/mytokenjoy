@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
-import type { CallLog, PlatformKey } from '@/api/types'
+import type { PlatformKey } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { toast } from 'sonner'
@@ -11,14 +11,7 @@ import {
   PLATFORM_KEY_ID_SESSION_KEY,
   formatEstimatedConsume,
 } from '../lib/constants'
-import {
-  GatewayClientError,
-  fetchBaselineCallIds,
-  pollForNewCall,
-  postChatCompletions,
-} from '../lib/simulate-consume'
-
-type Phase = 'idle' | 'calling' | 'waiting'
+import { GatewayClientError, postChatCompletions } from '../lib/simulate-consume'
 
 function readStoredPlatformKeyId(): string {
   if (!import.meta.env.DEV) return ''
@@ -31,15 +24,10 @@ function writeStoredPlatformKeyId(platformKeyId: string) {
   else sessionStorage.removeItem(PLATFORM_KEY_ID_SESSION_KEY)
 }
 
-function parseInputTokens(value: string, fallback: number): number {
+function parseTokenCount(value: string, fallback: number, min: number): number {
   const parsed = Number.parseInt(value, 10)
-  if (!Number.isFinite(parsed)) return fallback
+  if (!Number.isFinite(parsed) || parsed < min) return fallback
   return parsed
-}
-
-function parseOutputTokens(value: string, fallback: number): number {
-  const parsed = Number.parseInt(value, 10)
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
 }
 
 function formatPlatformKeyLabel(key: PlatformKey): string {
@@ -58,16 +46,19 @@ async function resolveBearer(
   return bearer
 }
 
-export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) {
+export function useSimulateConsumeDialog(
+  open: boolean,
+  injectedApis?: AppApis,
+  onSuccess?: () => void,
+) {
   const apis = useInjectedApis(injectedApis)
   const queryClient = useQueryClient()
 
   const [userSelectedKeyId, setUserSelectedKeyId] = useState(readStoredPlatformKeyId)
   const [inputTokensText, setInputTokensText] = useState(String(DEFAULT_INPUT_TOKENS))
   const [outputTokensText, setOutputTokensText] = useState(String(DEFAULT_OUTPUT_TOKENS))
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [matchedCall, setMatchedCall] = useState<CallLog | null>(null)
 
   const {
     data: platformKeys = [],
@@ -108,11 +99,11 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
   })
 
   const inputTokens = useMemo(
-    () => parseInputTokens(inputTokensText, DEFAULT_INPUT_TOKENS),
+    () => parseTokenCount(inputTokensText, DEFAULT_INPUT_TOKENS, 0),
     [inputTokensText],
   )
   const outputTokens = useMemo(
-    () => parseOutputTokens(outputTokensText, DEFAULT_OUTPUT_TOKENS),
+    () => parseTokenCount(outputTokensText, DEFAULT_OUTPUT_TOKENS, 0),
     [outputTokensText],
   )
   const estimatedCost = useMemo(
@@ -156,30 +147,19 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
       }
     }
 
-    setPhase('calling')
+    setSubmitting(true)
     setSubmitError(null)
-    setMatchedCall(null)
 
     try {
-      const baselineIds = await fetchBaselineCallIds(apis.auditApi)
       await postChatCompletions({ bearer: sk, inputTokens, outputTokens })
-      toast.message('已调用，等待入账…')
-      setPhase('waiting')
-
-      const call = await pollForNewCall(apis.auditApi, baselineIds, inputTokens, outputTokens)
-      if (!call) {
-        setSubmitError('轮询超时：请检查 Ingest Worker 是否在运行')
-        return
-      }
-
-      setMatchedCall(call)
-      await Promise.all([
+      toast.success('Gateway 已受理，入账由 Worker 异步完成')
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.audit.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.wallet.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.budget.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ])
-      toast.success('入账完成，可在调用审计中查看')
+      onSuccess?.()
     } catch (err) {
       if (err instanceof GatewayClientError) {
         setSubmitError(err.body || `Gateway 预检失败 (${err.status})`)
@@ -187,9 +167,17 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
         setSubmitError(err instanceof Error ? err.message : '提交失败')
       }
     } finally {
-      setPhase('idle')
+      setSubmitting(false)
     }
-  }, [apis.auditApi, apis.devApi, bearer, inputTokens, outputTokens, queryClient, selectedKeyId])
+  }, [
+    apis.devApi,
+    bearer,
+    inputTokens,
+    onSuccess,
+    outputTokens,
+    queryClient,
+    selectedKeyId,
+  ])
 
   return {
     platformKeys,
@@ -203,10 +191,8 @@ export function useSimulateConsumeDialog(open: boolean, injectedApis?: AppApis) 
     outputTokensText,
     setOutputTokensText,
     estimatedCost,
-    busy: phase !== 'idle' || resolvingKey,
-    waiting: phase === 'waiting',
+    busy: submitting || resolvingKey,
     error,
-    matchedCall,
     handleSubmit,
   }
 }

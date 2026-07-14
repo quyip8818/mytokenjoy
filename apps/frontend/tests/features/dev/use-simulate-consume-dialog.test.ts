@@ -12,76 +12,42 @@ vi.mock('@/features/dev/lib/simulate-consume', async (importOriginal) => {
   }
 })
 
+const activeKey = {
+  id: 'plk-1',
+  name: '张三-开发调试',
+  keyPrefix: 'sk-gate',
+  status: 'active' as const,
+  scope: 'member' as const,
+}
+
 describe('useSimulateConsumeDialog', () => {
   beforeEach(() => {
     vi.mocked(simulateConsume.postChatCompletions).mockReset()
     sessionStorage.clear()
   })
 
-  it('selects platform key from dropdown and submits gateway call', async () => {
-    const baselineCall = {
-      id: 'call-old',
-      caller: '张三',
-      callerId: 'm-1',
-      callerType: 'platform_key' as const,
-      model: 'local-test-model',
-      provider: 'custom' as const,
-      inputTokens: 1,
-      outputTokens: 1,
-      latencyMs: 10,
-      status: 'success' as const,
-      cost: 1,
-      createdAt: '2026-06-01T00:00:00Z',
-      previewSnippet: '',
-    }
-    const newCall = {
-      ...baselineCall,
-      id: 'call-new',
-      inputTokens: 12_000_000,
-      outputTokens: 8_000_000,
-    }
-
-    const getCalls = vi
-      .fn()
-      .mockResolvedValueOnce({ items: [baselineCall], total: 1, page: 1, pageSize: 50 })
-      .mockResolvedValueOnce({ items: [newCall, baselineCall], total: 2, page: 1, pageSize: 50 })
-
+  it('submits gateway call then invokes onSuccess', async () => {
     const getPlatformKeyBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
-
+    const onSuccess = vi.fn()
     const apis = createMockApis({
-      auditApi: { getCalls },
       devApi: { getPlatformKeyBearer },
       platformKeyApi: {
-        list: vi.fn().mockResolvedValue({
-          items: [
-            {
-              id: 'plk-1',
-              name: '张三-开发调试',
-              keyPrefix: 'sk-gate',
-              status: 'active',
-              scope: 'member',
-            },
-          ],
-          total: 1,
-        }),
+        list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
       },
     })
-
     vi.mocked(simulateConsume.postChatCompletions).mockResolvedValue()
 
-    const { result } = renderHookWithProviders(() => useSimulateConsumeDialog(true, apis), { apis })
+    const { result } = renderHookWithProviders(
+      () => useSimulateConsumeDialog(true, apis, onSuccess),
+      { apis },
+    )
 
     await waitFor(() => {
       expect(result.current.selectedKeyId).toBe('plk-1')
     })
-    expect(getPlatformKeyBearer).toHaveBeenCalledWith('plk-1')
 
     await act(async () => {
       await result.current.handleSubmit()
-    })
-
-    await waitFor(() => {
-      expect(result.current.matchedCall?.id).toBe('call-new')
     })
 
     expect(simulateConsume.postChatCompletions).toHaveBeenCalledWith({
@@ -89,30 +55,25 @@ describe('useSimulateConsumeDialog', () => {
       inputTokens: 12_000_000,
       outputTokens: 8_000_000,
     })
-    expect(getCalls).toHaveBeenCalled()
+    expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(result.current.error).toBeNull()
+    expect(result.current.busy).toBe(false)
   })
 
   it('rejects submit when input tokens is zero', async () => {
     const getPlatformKeyBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
+    const onSuccess = vi.fn()
     const apis = createMockApis({
       devApi: { getPlatformKeyBearer },
       platformKeyApi: {
-        list: vi.fn().mockResolvedValue({
-          items: [
-            {
-              id: 'plk-1',
-              name: '张三-开发调试',
-              keyPrefix: 'sk-gate',
-              status: 'active',
-              scope: 'member',
-            },
-          ],
-          total: 1,
-        }),
+        list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
       },
     })
 
-    const { result } = renderHookWithProviders(() => useSimulateConsumeDialog(true, apis), { apis })
+    const { result } = renderHookWithProviders(
+      () => useSimulateConsumeDialog(true, apis, onSuccess),
+      { apis },
+    )
 
     await waitFor(() => {
       expect(result.current.selectedKeyId).toBe('plk-1')
@@ -127,6 +88,7 @@ describe('useSimulateConsumeDialog', () => {
     })
 
     expect(simulateConsume.postChatCompletions).not.toHaveBeenCalled()
+    expect(onSuccess).not.toHaveBeenCalled()
     expect(result.current.error).toBe('Input tokens 须 ≥ 1')
   })
 })

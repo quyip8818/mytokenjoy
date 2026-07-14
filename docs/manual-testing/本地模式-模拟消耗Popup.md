@@ -1,6 +1,6 @@
 # 本地模式 — 模拟消耗 Popup
 
-> Dev Header「模拟消耗」→ 用 **`local-test-model`** 跑通 **Gateway → NewAPI → Ingest → 投影** 全链路，在 audit / wallet / budget 验收。  
+> Dev Header「模拟消耗」→ 用 **`local-test-model`** 跑通 **Gateway → NewAPI**；入账 / 投影由后台 Worker 异步完成。  
 > 唯一「假」的部分是上游 LLM：`dev-mock-llm` 按表单回显 `usage`。  
 > Ingest 机制见 [Backend-Ingest架构.md](../Backend-Ingest架构.md)。
 
@@ -13,8 +13,8 @@
 | Gateway 预检（Key、白名单、预算） | Popup 发真 `POST /v1/chat/completions` |
 | Gateway 生产守卫 | `local-test-model` 在 `DEPLOY_ENV=production` 硬拦截 403 |
 | NewAPI 结算与 logs | mock 返回可控 `usage` |
-| Webhook → IngestWorker → ledger | NewAPI 正常 notify |
-| River 投影（audit / wallet / budget） | Popup 轮询 `auditApi.getCalls` 后 invalidate |
+| Webhook → IngestWorker → ledger | 后台异步（Popup **不**等待） |
+| River 投影（audit / wallet / budget） | 提交成功后后台 soft invalidate；稍后手动刷新页面验收 |
 
 **不验证**：真实模型推理。  
 **不新增**：除 `GET /api/dev/platform-keys/{id}/bearer`（**仅本地开发**：`DEPLOY_ENV=local` + `KeysAdmin`；staging/production 路由不注册）外的 Backend handler。
@@ -43,12 +43,8 @@ sequenceDiagram
   N->>N: 写 logs、按 usage 结算
   N->>W: notify log_id
   G-->>P: 200
-  Note over P: Toast「已调用，等待入账…」
-  I->>I: webhook → queue → ledger → River
-  loop 1s × 30
-    P->>P: GET /api/audit/calls
-  end
-  P-->>U: 新行出现 → invalidate wallet/budget/dashboard
+  Note over P: Toast「Gateway 已受理」并关闭 Popup
+  I->>I: webhook → queue → ledger → River（后台）
 ```
 
 ### 1. 准备环境
@@ -92,10 +88,10 @@ Popup 经 Vite `/v1` 代理打到 Backend Gateway：
 
 | 阶段 | 信号 | 含义 |
 | --- | --- | --- |
-| Gateway | HTTP **200** | 调用已转发；**尚未扣费** |
+| Gateway | HTTP **200** | Popup 成功并关闭；调用已转发 |
 | Gateway | HTTP **403** | 预检失败、生产守卫、或 Key 禁用 |
-| Ingest | audit 出现 `local-test-model` 新行，tokens 与表单一致 | 入账成功 |
-| 投影 | `/wallet` 余额降、`/budget` consumed 升 | 约 5–15s lag |
+| Ingest | 稍后 audit 出现 `local-test-model` 新行 | 入账成功（后台，不阻塞 Popup） |
+| 投影 | `/wallet` 余额降、`/budget` consumed 升 | 约数秒 lag |
 
 默认 12M+8M、单价对齐 gpt-4o-mini 时，wallet 约降 **¥6.60**。
 
@@ -126,7 +122,7 @@ Popup 经 Vite `/v1` 代理打到 Backend Gateway：
 | 范围 | 命令 |
 | --- | --- |
 | mock 解析 `dev_usage` | `pnpm -F @tokenjoy/dev-mock-llm test` |
-| Popup 提交 + audit 轮询 | `pnpm -F @tokenjoy/frontend exec vitest run tests/features/dev/use-simulate-consume-dialog.test.ts` |
+| Popup 提交（Gateway 200 即成功） | `pnpm -F @tokenjoy/frontend exec vitest run tests/features/dev/use-simulate-consume-dialog.test.ts` |
 | Gateway 生产守卫 | `go test -tags=testhook ./tests/domain/gateway/... -run DevModel` |
 | 栈级冒烟 | `pnpm verify:gate`（Gateway + webhook，非 Popup） |
 
@@ -136,9 +132,6 @@ Popup 经 Vite `/v1` 代理打到 Backend Gateway：
 
 | # | 检查 |
 | --- | --- |
-| 1 | Gateway **200**（`DEPLOY_ENV=local`） |
-| 2 | `logs.newapi.logs` 中 tokens = 表单值 |
-| 3 | `/audit/calls` 新行 `local-test-model` |
-| 4 | `/wallet` 约降 ¥6.6 |
-| 5 | Key 禁用后 **403** |
-| 6 | production 部署下 `local-test-model` **403** |
+| 1 | Gateway **200**（`DEPLOY_ENV=local`）即 Popup 成功 |
+| 2 | 稍后 audit / wallet / budget 反映入账（后台） |
+| 3 | production 下 `local-test-model` **403** |

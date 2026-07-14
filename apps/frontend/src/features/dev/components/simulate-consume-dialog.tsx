@@ -26,7 +26,7 @@ interface SimulateConsumeDialogProps {
 }
 
 export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDialogProps) {
-  const dialog = useSimulateConsumeDialog(open)
+  const dialog = useSimulateConsumeDialog(open, undefined, () => onOpenChange(false))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -34,8 +34,8 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
         <DialogHeader>
           <DialogTitle>模拟消耗</DialogTitle>
           <DialogDescription>
-            调用 <code>{LOCAL_TEST_MODEL}</code> 走完整 Gateway → Ingest 链路。200
-            仅表示调用成功，入账需等 Worker。
+            调用 <code>{LOCAL_TEST_MODEL}</code> 走 Gateway 预检与转发。HTTP 200
+            即表示调用成功；扣费 / 入账由后台 Worker 异步完成。
           </DialogDescription>
         </DialogHeader>
 
@@ -107,13 +107,6 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
               {dialog.error}
             </pre>
           ) : null}
-
-          {dialog.matchedCall ? (
-            <p className="text-sm text-green-700 dark:text-green-400">
-              已入账：{dialog.matchedCall.inputTokens.toLocaleString()} in /{' '}
-              {dialog.matchedCall.outputTokens.toLocaleString()} out
-            </p>
-          ) : null}
         </div>
 
         <DialogFooter>
@@ -125,7 +118,7 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
             {dialog.busy ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />
-                {dialog.waiting ? '等待入账…' : '提交中…'}
+                提交中…
               </>
             ) : (
               '提交'
