@@ -20,7 +20,7 @@ import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { useModelLabels } from '@/features/models/hooks/use-model-labels'
 import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
-import { formatDisplayCurrency } from '@/lib/points'
+import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -80,6 +80,7 @@ export function KeyFormWorkflow({
     budgetSummary,
     projectBudgetRemaining,
     subBudgetRemaining,
+    budgetPoints,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
@@ -121,7 +122,7 @@ export function KeyFormWorkflow({
       toast.error(BUDGET_INSUFFICIENT_MESSAGE)
       return
     }
-    if (budgetSummary && Number(budget) > budgetSummary.remaining) {
+    if (budgetSummary && budgetPoints > budgetSummary.remaining) {
       toast.error(`额度不能超过剩余 ${formatDisplayCurrency(budgetSummary.remaining)}`)
       return
     }
@@ -145,7 +146,7 @@ export function KeyFormWorkflow({
               ? effectiveMemberId || undefined
               : undefined,
         projectId: scope === 'project' || scope === 'project_member' ? projectId : undefined,
-        budget: Number(budget),
+        budget: budgetPoints,
         modelWhitelist: models,
       })
       toast.success('Key 创建成功')
@@ -171,7 +172,7 @@ export function KeyFormWorkflow({
     try {
       await apis.platformKeyApi.update(key.id, {
         name,
-        budget: Number(budget),
+        budget: displayToPoints(Number(budget) || 0),
         modelWhitelist: models,
       })
       toast.success('Key 已更新')
@@ -357,7 +358,7 @@ export function KeyFormWorkflow({
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
               <p>名称：{name || '—'}</p>
-              <p>额度：{formatDisplayCurrency(Number(budget))}</p>
+              <p>额度：{formatDisplayCurrency(budgetPoints)}</p>
               <p>模型：{models.length} 个</p>
             </div>
           ) : (

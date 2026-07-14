@@ -16,8 +16,8 @@ func resolveBillingCurrency(co *store.Company) string {
 	return common.ResolveBillingCurrency(co.BillingCurrency)
 }
 
-func (s *service) lookupPointsPerUnit(ctx context.Context, currency string) (int64, error) {
-	cur, err := s.store.Billing().GetCurrency(ctx, currency)
+func lookupCurrencyPPU(ctx context.Context, st store.Store, currency string) (int64, error) {
+	cur, err := st.Billing().GetCurrency(ctx, currency)
 	if err != nil {
 		return 0, err
 	}
@@ -33,8 +33,17 @@ func (s *service) lookupPointsPerUnit(ctx context.Context, currency string) (int
 	return cur.PointsPerUnit, nil
 }
 
+func (s *service) lookupPointsPerUnit(ctx context.Context, currency string) (int64, error) {
+	return lookupCurrencyPPU(ctx, s.store, currency)
+}
+
 func (s *service) resolveChargeRate(ctx context.Context, companyID int64) (currency string, ppu int64, err error) {
-	co, err := s.store.Company().GetByID(ctx, companyID)
+	return ResolveCompanyChargeRate(ctx, s.store, companyID)
+}
+
+// ResolveCompanyChargeRate returns the company's billing currency and points_per_unit.
+func ResolveCompanyChargeRate(ctx context.Context, st store.Store, companyID int64) (currency string, ppu int64, err error) {
+	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return "", 0, err
 	}
@@ -42,7 +51,7 @@ func (s *service) resolveChargeRate(ctx context.Context, companyID int64) (curre
 		return "", 0, domain.NotFound("company not found")
 	}
 	currency = resolveBillingCurrency(co)
-	ppu, err = s.lookupPointsPerUnit(ctx, currency)
+	ppu, err = lookupCurrencyPPU(ctx, st, currency)
 	if err != nil {
 		return "", 0, err
 	}

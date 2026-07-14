@@ -32,6 +32,12 @@ func TestSessionCookieReturnsMember(t *testing.T) {
 	if !payload.ReadOnly {
 		t.Fatal("expected read-only session for m-pure")
 	}
+	if payload.BillingCurrency == "" {
+		t.Fatal("expected billingCurrency")
+	}
+	if payload.PointsPerUnit <= 0 {
+		t.Fatal("expected pointsPerUnit > 0")
+	}
 }
 
 func TestSessionInvalidTokenReturns401(t *testing.T) {

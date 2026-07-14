@@ -17,4 +17,6 @@ export interface SessionContext {
   member: Member
   permissions: string[]
   readOnly: boolean
+  billingCurrency: string
+  pointsPerUnit: number
 }

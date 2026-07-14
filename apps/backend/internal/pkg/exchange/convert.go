@@ -32,7 +32,12 @@ func ToDisplayAt(points float64, pointsPerUnit int64) float64 {
 	return points / float64(pointsPerUnit)
 }
 
-// Format is a currency-symbol-free display amount for user-facing messages.
+// Format is a currency-symbol-free display amount using DefaultPointsPerUnit.
 func Format(points float64) string {
-	return fmt.Sprintf("%.0f", ToDisplay(points))
+	return FormatAt(points, common.DefaultPointsPerUnit)
+}
+
+// FormatAt formats points using the given points-per-unit (company currency PPU).
+func FormatAt(points float64, pointsPerUnit int64) string {
+	return fmt.Sprintf("%.0f", ToDisplayAt(points, pointsPerUnit))
 }

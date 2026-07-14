@@ -1,4 +1,5 @@
 import type { CostSummary, DepartmentCost, DepartmentCostMember } from '@/api/types'
+import { formatMoney } from '@/lib/points'
 import { Coins, Zap, User, type LucideIcon } from 'lucide-react'
 
 export const COST_CHART_COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']
@@ -43,7 +44,7 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
   return [
     {
       label: '总花费',
-      value: summary ? `¥${summary.totalCost.toFixed(2)}` : '-',
+      value: summary ? formatMoney(summary.totalCost) : '-',
       mom: summary?.totalCostMom,
       icon: Coins,
       accent: 'bg-primary',
@@ -57,7 +58,7 @@ export function buildCostStats(summary: CostSummary | null): CostStatItem[] {
     },
     {
       label: '人均成本',
-      value: summary ? `¥${summary.avgCostPerMember.toFixed(2)}` : '-',
+      value: summary ? formatMoney(summary.avgCostPerMember) : '-',
       mom: summary?.avgCostPerMemberMom,
       icon: User,
       accent: 'bg-violet-500',

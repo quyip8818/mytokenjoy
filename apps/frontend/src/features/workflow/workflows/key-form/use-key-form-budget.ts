@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { MemberBudgetSummary, PlatformKey, PlatformKeyScope } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
-import { formatDisplayCurrency } from '@/lib/points'
+import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 
 export function formatBudgetContext(
   summary: MemberBudgetSummary | null,
@@ -98,6 +98,7 @@ export function useKeyFormBudget({
     }
   }, [apis, effectiveMemberId, isCreate, projectId, scope])
 
+  const budgetPoints = displayToPoints(Number(budget) || 0)
   const budgetSummary = budgetState?.memberId === effectiveMemberId ? budgetState.summary : null
   const budgetInsufficient =
     isCreate &&
@@ -109,22 +110,23 @@ export function useKeyFormBudget({
     isCreate &&
     scope === 'member' &&
     budgetSummary !== null &&
-    Number(budget) > budgetSummary.remaining
+    budgetPoints > budgetSummary.remaining
   const projectBudgetExceeds =
     isCreate &&
     scope === 'project' &&
     projectBudgetRemaining !== null &&
-    Number(budget) > projectBudgetRemaining
+    budgetPoints > projectBudgetRemaining
   const subBudgetExceeds =
     isCreate &&
     scope === 'project_member' &&
     subBudgetRemaining !== null &&
-    Number(budget) > subBudgetRemaining
+    budgetPoints > subBudgetRemaining
 
   return {
     budgetSummary,
     projectBudgetRemaining,
     subBudgetRemaining,
+    budgetPoints,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
@@ -138,6 +140,7 @@ export interface UseKeyFormStateOptions {
   defaultMemberId: string
   initialTargetMemberId?: string
   initialName?: string
+  /** Display-currency initial budget (optional). Point budgets come from key.budget. */
   initialBudget?: string
 }
 
@@ -151,7 +154,11 @@ export function useKeyFormState({
 }: UseKeyFormStateOptions) {
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
-  const [budget, setBudget] = useState(String(key?.budget ?? initialBudget ?? '5000'))
+  const [budget, setBudget] = useState(() => {
+    if (key != null) return String(pointsToDisplay(key.budget))
+    if (initialBudget != null) return initialBudget
+    return String(pointsToDisplay(5000))
+  })
   const [models, setModels] = useState<number[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(
     adminCreate ? (initialTargetMemberId ?? '') : defaultMemberId,

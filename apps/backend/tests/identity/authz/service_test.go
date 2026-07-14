@@ -31,6 +31,12 @@ func TestGetSessionContextSuccess(t *testing.T) {
 	if ctx.AuthzRevision < 0 {
 		t.Fatal("expected authz revision")
 	}
+	if ctx.BillingCurrency == "" {
+		t.Fatal("expected billingCurrency")
+	}
+	if ctx.PointsPerUnit <= 0 {
+		t.Fatal("expected pointsPerUnit > 0")
+	}
 }
 
 func TestGetSessionContextNotFound(t *testing.T) {

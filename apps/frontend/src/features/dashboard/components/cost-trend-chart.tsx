@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { DataSection } from '@/components/layout/data-section'
 import type { CostGranularity, DailyCost } from '@/api/types'
+import { formatMoney } from '@/lib/points'
 
 interface CostTrendChartProps {
   dailyCosts: DailyCost[]
@@ -36,7 +37,7 @@ export function CostTrendChart({ dailyCosts, loading, granularity }: CostTrendCh
           />
           <YAxis fontSize={11} stroke="#94a3b8" axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(value) => [`¥${Number(value).toFixed(2)}`, '花费']}
+            formatter={(value) => [formatMoney(Number(value)), '花费']}
             labelFormatter={(l) => `日期: ${l}`}
             contentStyle={{
               borderRadius: '8px',

@@ -40,6 +40,8 @@ export function createMockSession(
     member: mockMember,
     permissions,
     readOnly,
+    billingCurrency: 'CNY',
+    pointsPerUnit: 1000,
   }
 }
 

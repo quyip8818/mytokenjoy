@@ -6,6 +6,7 @@ import { defaultApis } from '@/api/app-apis'
 import { setAuthzRevisionHandler, setForbiddenHandler } from '@/api/client'
 import { LOGIN_PATH } from '@/config/auth'
 import { queryKeys, useInjectedQuery } from '@/features/query'
+import { createBillingExchange, setActiveBillingExchange } from '@/lib/points'
 import { AUTHZ_BROADCAST_CHANNEL, SESSION_FOCUS_REFRESH_MS } from './authz-sync'
 import { SessionReactContext } from './context'
 import type { AppSession } from './types'
@@ -44,8 +45,6 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
     await refreshSessionRef.current?.()
   }, [])
 
-  // Debounced refresh: coalesce multiple revision changes within 500ms into one refresh.
-  // Also skip if session was fetched very recently (within 2s) — likely from our own mutation.
   const debouncedRefreshSession = useCallback(() => {
     if (refreshTimerRef.current) return
     refreshTimerRef.current = setTimeout(() => {
@@ -115,11 +114,17 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
       member: query.data?.member ?? null,
       permissions: query.data?.permissions ?? [],
       readOnly: query.data?.readOnly ?? false,
+      billingCurrency: query.data?.billingCurrency ?? 'CNY',
+      pointsPerUnit: query.data?.pointsPerUnit ?? 0,
       loading: query.loading,
       sessionError: query.error,
       refreshSession,
     }
   }, [query, refreshSession])
+
+  useEffect(() => {
+    setActiveBillingExchange(createBillingExchange(session.pointsPerUnit || undefined))
+  }, [session.pointsPerUnit])
 
   return <SessionReactContext.Provider value={session}>{children}</SessionReactContext.Provider>
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -37,13 +38,21 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 	if err != nil {
 		return types.SessionContext{}, err
 	}
+
+	currency, ppu, err := billing.ResolveCompanyChargeRate(ctx, s.store, companyID)
+	if err != nil {
+		return types.SessionContext{}, err
+	}
+
 	if member, perms, readOnly, ok := s.cache.Get(companyID, memberID, revision); ok {
 		return types.SessionContext{
-			CompanyID:     companyID,
-			AuthzRevision: revision,
-			Member:        member,
-			Permissions:   perms,
-			ReadOnly:      readOnly,
+			CompanyID:       companyID,
+			AuthzRevision:   revision,
+			Member:          member,
+			Permissions:     perms,
+			ReadOnly:        readOnly,
+			BillingCurrency: currency,
+			PointsPerUnit:   ppu,
 		}, nil
 	}
 
@@ -58,10 +67,12 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 	readOnly := IsReadOnlySession(permissions)
 	s.cache.Put(companyID, memberID, revision, authz.Member, permissions, readOnly)
 	return types.SessionContext{
-		CompanyID:     companyID,
-		AuthzRevision: revision,
-		Member:        authz.Member,
-		Permissions:   permissions,
-		ReadOnly:      readOnly,
+		CompanyID:       companyID,
+		AuthzRevision:   revision,
+		Member:          authz.Member,
+		Permissions:     permissions,
+		ReadOnly:        readOnly,
+		BillingCurrency: currency,
+		PointsPerUnit:   ppu,
 	}, nil
 }

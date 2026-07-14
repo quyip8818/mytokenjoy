@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts'
 import type { ModelUsage } from '@/api/types'
+import { formatMoney } from '@/lib/points'
 
 export interface UsageModelChartProps {
   modelUsage: readonly ModelUsage[]
@@ -23,9 +24,7 @@ export function UsageModelChart({ modelUsage }: UsageModelChartProps) {
         <YAxis type="category" dataKey="modelName" width={130} fontSize={12} stroke="#94a3b8" />
         <Tooltip
           formatter={(value, name) => [
-            name === '花费 (¥)'
-              ? `¥${Number(value).toLocaleString()}`
-              : Number(value).toLocaleString(),
+            name === '花费 (¥)' ? formatMoney(Number(value)) : Number(value).toLocaleString(),
             name,
           ]}
           contentStyle={{

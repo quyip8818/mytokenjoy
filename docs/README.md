@@ -32,8 +32,8 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [Backend-预算.md](./Backend-预算.md) | 后端 / 计费 | 双轴、异步投影、Rebalance、Overrun、Platform Key 执法链（**as-built**） |
 | **[预算分配与扣减.md](./预算分配与扣减.md)** | 产品 / 研发 | **权威**：切蛋糕 vs 独立结算；三 scope 产品行为；personal 用尽 → 审批追加 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定（含 `platform_keys.scope`） |
-| [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
-| [Backend-币种与入账全链路.md](./Backend-币种与入账全链路.md) | 后端 / 计费 | 币种与入账：现状 / 目标架构 |
+| [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point+lot、币种/PPU、冻结展示、事实/投影 |
+| [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) | 后端 / 计费 | 退款/冲正实现说明（设计 only） |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
 | [Backend-测试优化.md](./Backend-测试优化.md) | 后端 / 测试 | coverage + 速度优化 |

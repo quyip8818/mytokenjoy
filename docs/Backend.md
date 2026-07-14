@@ -12,8 +12,8 @@
 | -------------------------------------------- | ---------------------------------------------------------- |
 | [Backend-架构.md](./Backend-架构.md)         | 分层、请求链、命名约定、Store、NewAPISync/Gateway、River/Ingest、文件命名 §3.1、看板读路径 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 双库 37+3 表、域关系、核心实体、消耗/额度术语、ID 约定     |
-| [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；钱包 SSOT、展示币闭合、运行时流程 |
-| [Backend-币种与入账全链路.md](./Backend-币种与入账全链路.md) | 币种/入账：现状、目标架构、要解决的问题 |
+| [Backend-计费模式.md](./Backend-计费模式.md) | point + lot 计费架构；币种/PPU、冻结展示、事实/投影、钱包 SSOT |
+| [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) | 退款/冲正实现说明（未实现，仅设计） |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、异步投影、Rebalance、Overrun、Platform Key 三 scope 执法链 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |

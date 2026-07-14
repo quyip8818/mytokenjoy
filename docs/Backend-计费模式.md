@@ -1,86 +1,78 @@
 # Backend 计费模式
 
-**一句话：** 内部统一 **point** 计量；钱包展示币以 **lot 成本价** 为 SSOT；NewAPI `users.quota` 仅为 **派生通道配额**（可重建、非资金真相）。
+**一句话：** 内部统一 **point** 计量；钱包 / CallLog / 看板 Spend 以 **lot 冻结展示币** 为 SSOT；NewAPI `users.quota` 仅为 **派生通道配额**（可重建、非资金真相）。
 
-**相关：** [Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-架构.md](./Backend-架构.md) §0 · [Backend.md](./Backend.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md)（设计 only） · [Frontend.md](./Frontend.md)
 
 **阅读路径：**
 
 | 章节 | 适合谁 | 内容 |
 | --- | --- | --- |
-| §1–2 | 产品 / 新同学 | 用户看到什么、钱从哪来去哪 |
-| §3–4 | 后端开发 | 权威边界、端到端流程 |
-| §5–7 | 实现 / Code Review | 数据模型、公式、代码地图 |
-| §8–9 | 联调 / 运维 | API 契约、部署约束 |
-| §10 | 架构演进 | 已知风险与未来优化 |
+| §1–2 | 产品 / 新同学 | 两套金额、三世界、币种配置 |
+| §3–4 | 后端开发 | 权威边界、事实/投影、端到端流程 |
+| §5–7 | 实现 / Review | 数据模型、公式、代码地图 |
+| §8–9 | 联调 / 运维 | API 契约、部署 |
+| §10 | 架构演进 | 风险、已收口项、待做 |
 
 ---
 
 ## 1. 产品视角：两套数，别混读
 
-用户和管理员会接触两类金额，**量纲不同、用途不同**：
-
 | 指标 | 用户看到 | 后端字段 | 用途 |
 | --- | --- | --- | --- |
-| **展示币** | 钱包页 ¥ 余额、充值记录 | `balances[].balance` | 财务对账、充值 − 消耗 = 余额 |
-| **Point** | 可用 point、赠送 point（技术向） | `walletRemainPoint` | Gateway 挡单、预算 limit、NewAPI 同步 |
+| **展示币** | 钱包余额、CallLog 费用、看板 Spend | `balances[]`、`ledger.display_amount`、`buckets.display_cost` | 财务闭合；**入账时冻结** |
+| **Point** | 预算/Key 额度（UI 常再换算成「元」） | `wallet_remain`、`budget_*`、`key.budget` | Gateway、预算、ingest |
 
-换算关系（当前默认）：`1 元 (CNY) = 1000 point`（`DefaultPointsPerUnit`）。
+默认：`1 CNY = 1000 point`（`DefaultPointsPerUnit`，与 `currencies` seed 对齐）。
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  钱包页（展示币）          预算页（展示币 UI）              │
-│  ¥100 余额                ¥50 部门额度                    │
-│       │                         │                       │
-│       │ ÷ PPU                   │ ÷ PPU 展示 / × PPU 提交│
-│       ▼                         ▼                       │
-│  lot 成本价闭合              API 存 point                 │
-│       │                         │                       │
-│       └──────── point 世界 ──────┘                       │
-│                    │                                     │
-│              Gateway / ingest / 预算 consumed            │
-└─────────────────────────────────────────────────────────┘
+钱包 / CallLog / Spend     预算 / Key 额度 UI
+   已是展示币                   用户填展示额
+   formatMoney                  ÷PPU 展示 / ×PPU 提交
+        │                              │
+        ▼                              ▼
+   lot 单价冻结                 API 只存 point
+        └──────── point 世界（Gateway / ingest）────────┘
 ```
 
-**产品文案建议：** 区分「账户余额」（钱包 lot 闭合）与「预算管理」（组织额度近似，按当前 PPU 换算）。
+**文案：** 「账户余额」= lot 闭合；「预算额度」= 组织额度（按**当前**公司 PPU 近似展示，≠ 历史 CallLog 单价）。
+
+易错：**量纲混用**（填 ¥ 当 point 提交 → ~1000×）、**二次换算**（对已是展示币再 ÷PPU）。
 
 ---
 
-## 2. 三个世界
+## 2. 三个世界与币种配置
 
 ```mermaid
 flowchart LR
-    subgraph Usage["Usage 世界"]
-        U1[input_tokens]
-        U2[output_tokens]
-        U3[call_count]
-    end
-
-    subgraph Point["Point 世界"]
-        P1[wallet_remain]
-        P2[budget limit / consumed]
-        P3[usage_buckets.cost]
-    end
-
-    subgraph Wallet["Wallet 世界（lot）"]
-        W1[amount_display]
-        W2[unit_price_display]
-        W3[display_amount on ledger]
-    end
-
-    Usage -->|"CostFromQuota"| Point
-    Point -->|"FIFO 扣 lot"| Wallet
+  U[Usage tokens] -->|CostFromQuota| P[Point]
+  P -->|FIFO × lot.unit_price| W[Wallet 展示币]
+  P --> B[预算 / soft remain]
+  P -->|ToNewAPIUnits| N[NewAPI quota]
 ```
 
-| 世界 | 含义 | 典型存储 |
-| --- | --- | --- |
-| **Usage** | token / 次数；审计，不计价 | `usage_ledger.input_tokens` 等 |
-| **Point** | 内部统一货币；预算、Gateway、投影 | `wallet_remain`、`usage_ledger.amount`、`usage_buckets.cost` |
+| 世界 | 含义 | 典型字段 | 改公司币后现算？ |
+| --- | --- | --- | --- |
+| Usage | token / 次数 | `input_tokens` / `output_tokens` | — |
+| Point | 内部统一货币 | `wallet_remain`、`ledger.amount`、`budget_*`、`models.*_price` | 额度本身不换币 |
+| Wallet | lot 成本价 + 冻结展示 | `unit_price_display`、`ledger.display_amount`、`buckets.display_cost` | **否** |
 
-HTTP 响应字段为 `walletRemainPoint`（见 [Frontend.md](./Frontend.md) §5.9 · `api/billing.ts`）。
-| **Wallet（lot）** | 充值批次 + 展示币成本价 | `company_recharge_lots`、`usage_ledger.display_amount` |
+### 2.1 币种 / PPU SSOT
 
-映射链：`Usage → Point →（FIFO 扣 lot）→ display_amount = points × unit_price_display`
+| 位置 | 作用 |
+| --- | --- |
+| `common.DefaultBillingCurrency`（`CNY`） | 唯一硬编码默认币码 |
+| `common.ResolveBillingCurrency` | 空 → 默认 |
+| `currencies.points_per_unit` | **PPU 表级 SSOT** |
+| `companies.billing_currency` | 公司**当前**计费币（只影响**新**充值 / overdraft） |
+| Session `billingCurrency` + `pointsPerUnit` | FE 写边界注入（`ResolveCompanyChargeRate`） |
+
+### 2.2 冻结规则（已实现）
+
+1. 订单：落 `currency` + `points_per_unit` + `points_granted`。  
+2. Lot：`unit_price_display = amount_display / points_granted`（paid/adjust）；gift/overdraft 单价 0。  
+3. 消耗：`display_amount = take × lot.unit_price_display`，币种 = **lot.billing_currency**。  
+4. 改 `companies.billing_currency`：历史 lot / ledger **不回写**。
 
 ---
 
@@ -88,65 +80,65 @@ HTTP 响应字段为 `walletRemainPoint`（见 [Frontend.md](./Frontend.md) §5.
 
 ```mermaid
 flowchart TB
-    subgraph SSOT["Postgres（资金真相）"]
-        LOT[company_recharge_lots]
-        LED[usage_ledger]
-        BP[companies.wallet_remain]
-    end
-
-    subgraph Derived["派生 / 缓存"]
-        NA[NewAPI users.quota]
-        TK[Token remain_quota]
-        BK[usage_buckets.cost]
-        SN[budget_consumed]
-    end
-
-    subgraph Entry["入口"]
-        GW[Gateway Precheck]
-        ING[Usage Ingest]
-        RCH[Recharge / Gift / Adjust]
-    end
-
-    RCH --> LOT
-    RCH --> BP
-    ING --> LOT
-    ING --> LED
-    ING --> SN
-    ING --> BK
-    BP -->|wallet_sync| NA
-    BP -->|rebalance| TK
-    GW --> BP
-    GW --> SN
-    GW -.->|双检| NA
-    GW -.->|双检| TK
+  subgraph SSOT["事实面（强一致）"]
+    LOT[company_recharge_lots]
+    LED[usage_ledger]
+    BP[companies.wallet_remain]
+  end
+  subgraph Derived["投影 / 派生（最终一致，可重建）"]
+    Soft[gateway_soft_remain]
+    SN[budget_consumed]
+    BK[usage_buckets]
+    NA[NewAPI users.quota]
+  end
+  RCH[Recharge/Gift/Adjust] --> LOT
+  RCH --> BP
+  ING[Ingest] --> LOT
+  ING --> LED
+  ING --> BP
+  LED -.-> Soft
+  LED -.-> SN
+  LED -.-> BK
+  BP -->|wallet_sync| NA
+  GW[Gateway] --> BP
+  GW --> Soft
 ```
+
+| 面 | 代表 | Gateway |
+| --- | --- | --- |
+| 事实 | lots、ledger、`wallet_remain` | `wallet_remain` 可读；**禁止**热路径 `SUM(ledger)` |
+| 投影 | soft / consumed / buckets | soft 可用（带 lag） |
+
+与 [架构终态设计.md](./架构终态设计.md) 一致：**摘要列是投影，不是事实。**
 
 ### 3.1 权威矩阵
 
 | 能力 | SSOT | 派生 |
 | --- | --- | --- |
-| 企业可用 point | `Σ lot.points_remaining` / `companies.wallet_remain` | — |
-| 展示币钱包闭合 | `company_recharge_lots`（`paid` + `adjust`） | — |
-| 单笔消耗 | `usage_ledger`（point + `display_amount`） | — |
-| 组织 consumed | `budget_consumed.consumed`（point） | — |
-| 看板 cost | `usage_buckets.cost`（point） | 展示币按需聚合 ledger |
-| Token 分配 | — | NewAPI `remain_quota`；rebalance 按 `wallet_remain` 封顶 |
-| Gateway 挡单 | Postgres `wallet_remain` + 组织预算（`LoadPrecheckContext` + `Evaluate`） | NewAPI 同步（冷路径，不挡预检） |
-| NewAPI 企业 wallet | — | `wallet_sync` 从 Postgres 派生 |
+| 企业可用 point | `wallet_remain` / Σ lot remaining | — |
+| 展示币钱包 | `company_recharge_lots`（paid+adjust） | — |
+| 单笔消耗 | `usage_ledger`（amount + display） | — |
+| 组织 consumed | — | `budget_consumed`（point） |
+| 看板 Spend | — | `usage_buckets.display_cost`（展示币） |
+| Gateway 挡单 | `wallet_remain` + soft | NewAPI 不挡预检 |
+| NewAPI wallet | — | `wallet_sync` |
 
-**不变量：**
+**不变量：** 禁止用 NewAPI quota 反算对外钱包；漂移以 Postgres 为准。
 
-- 禁止用 NewAPI quota 反算对外钱包余额。
-- Postgres 与 NewAPI 漂移：**以 Postgres 为准**校准。
+### 3.2 写 / 读边界（量纲纪律）
 
-### 3.2 设计约束
+```text
+写边界（仅此换算）：表单展示→point（session.PPU）｜充值币→point（currencies.PPU）｜quota→point（CostFromQuota）
+事实面：lots + ledger + wallet_remain
+投影面：consumed / soft / buckets（不重计价）
+读边界：已结算钱 → formatMoney｜额度 point → formatDisplayCurrency
+```
 
-1. **Schema 即真相**：表结构以 `schema.sql` 为准；部署 wipe + seed，不做增量 `ALTER`/回填。
-2. **企业钱包权威**：Postgres `company_recharge_lots` + `wallet_remain`；NewAPI `users.quota` 仅为派生通道配额。
-3. **字段量纲**：`usage_ledger.amount`、`usage_buckets.cost`、`budget_consumed.consumed`、组织 `budget` 均为 **point**；钱包 API 展示币由 lot 成本价闭合。
-4. **生产路径**：`NEW_API_GATEWAY_ENABLED=true`；禁止旁路直连 NewAPI 消费（否则 overdraft 激增）。
+### 3.3 设计约束
 
-术语：**lot** = 充值批次；每笔 lot 必有 1:1 的 `company_recharge_orders` 行。
+1. Schema 以 `schema.sql` 为准；本地 wipe + seed。  
+2. 生产路径 `NEW_API_GATEWAY_ENABLED=true`；禁止旁路消费。  
+3. lot = 充值批次；每笔 lot 1:1 `company_recharge_orders`。
 
 ---
 
@@ -156,207 +148,119 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph Credit["入账（加 point）"]
-        A1[自助/平台充值 paid]
-        A2[平台赠送 gift]
-        A3[平台调账 adjust]
-    end
-
-    subgraph Debit["出账（减 point）"]
-        B1[API 调用]
-        B2[Webhook ingest]
-    end
-
-    subgraph Sync["派生同步"]
-        C1[wallet_sync → NewAPI quota]
-        C2[rebalance → token remain_quota]
-    end
-
-    Credit --> LOT[(lot + wallet_remain)]
-    B1 --> GW[Gateway Precheck]
-    GW -->|通过| B2
-    B2 --> LOT
-    B2 --> LED[(usage_ledger)]
-    LOT --> C1
-    LOT --> C2
+  Credit[充值/gift/adjust] --> LOT[(lot + wallet_remain)]
+  Call[API 调用] --> GW[Gateway Precheck]
+  GW -->|通过| Proxy[Proxy NewAPI]
+  Proxy --> ING[Ingest]
+  ING --> LOT
+  ING --> LED[(usage_ledger)]
+  LED --> Proj[异步 budget/dashboard 投影]
+  LOT --> Sync[wallet_sync / rebalance]
 ```
 
-### 4.2 充值：订单 → lot → 异步同步
+入账同事务：**lot + ledger + wallet_remain**。  
+`budget_consumed` / `gateway_soft_*` / `usage_buckets`：**异步投影**（非同事务；有 soft lag）。
+
+### 4.2 充值
 
 ```mermaid
 sequenceDiagram
-    participant UI as 控制台 / 平台 API
-    participant B as billing.Service
-    participant PG as Postgres
-    participant W as wallet_sync worker
-    participant NA as NewAPI
+  participant B as billing
+  participant Co as companies
+  participant Cur as currencies
+  participant PG as lots + wallet
 
-    UI->>B: ConfirmRecharge / PlatformGift / PlatformAdjust
-    B->>PG: BEGIN → order + lot + wallet_remain → confirmed
-    B->>PG: enqueue wallet_sync（debounced）
-    B->>PG: COMMIT
-    Note over B,PG: 不等待 NewAPI；lot 落库即成立
-    W->>PG: claim pending job（next_retry 到期后）
-    W->>NA: TopUp(delta) 差量同步 quota
-    W->>PG: mark done
-    B->>PG: enqueue rebalance（company 轴）
+  B->>Co: billing_currency
+  B->>Cur: points_per_unit
+  Note over B: points = amount × PPU
+  B->>PG: BuildPaidLot 锁定单价/币种
+  B->>PG: wallet_remain += points
+  B-->>B: enqueue wallet_sync + rebalance
 ```
 
-**lot_kind 矩阵：**
+| 场景 | `lot_kind` | 展示币 |
+| --- | --- | --- |
+| 自助/平台充值 | `paid` | `points/PPU`，锁单价 |
+| 赠送 | `gift` | 0 |
+| 调账 | `adjust` | 显式写入 |
+| ingest 透支 | `overdraft`（每企业至多一个 active） | 0 |
 
-| 场景 | `source` | `lot_kind` | 订单 `amount` | 展示币 |
-| --- | --- | --- | --- | --- |
-| 企业自助充值 | `self` | `paid` | 实付 | `points / PPU` |
-| 平台代充 | `platform` | `paid` | 实付 | 公式计算 |
-| 平台赠送 | `gift` | `gift` | `0` | `0` |
-| 运维补点（有价） | `adjust` | `adjust` | 单据 | 显式写入 |
-| 运维补点（无价） | `adjust` | `adjust` | `0` | `0` |
-| ingest 透支兜底 | `system` | `overdraft` | `0` | `0` |
-
-规则：
-
-- 每笔 lot 必有 1:1 `company_recharge_orders`。
-- **overdraft**：每企业至多一个 active lot；不足时累加 `points_granted/remaining`，不每次新建。
-- 新企业 `wallet_remain = 0`，无初始 lot；首笔充值或平台赠送后才有额度。
+新企业 `wallet_remain=0`，无初始 lot。
 
 ### 4.3 消耗：FIFO + overdraft
 
 ```mermaid
 flowchart TD
-    A[Webhook 结算] --> B[锁 company FOR UPDATE]
-    B --> C{幂等键已存在?}
-    C -->|是| Z[跳过]
-    C -->|否| D[FIFO 扣 active lots]
-    D --> E{剩余 point > 0?}
-    E -->|否| F[写 ledger 段 + 投影]
-    E -->|是| G[扩展 overdraft lot]
-    G --> F
-    F --> H[更新 wallet_remain / fifo_head]
-    F --> I[enqueue wallet_sync debounced]
-    F --> J[rebalance / overrun 副作用]
+  A[Webhook/reconcile] --> B[锁 company]
+  B --> C{幂等?}
+  C -->|否| D[CostFromQuota → FIFO 扣 lot]
+  D --> E{不足?}
+  E -->|是| F[扩展 overdraft]
+  E -->|否| G[ledger 段 amount+display 冻结]
+  F --> G
+  G --> H[wallet_remain / enqueue sync]
+  G --> I[异步投影]
 ```
 
-- 单次消耗可跨多个 lot → 多段 `usage_ledger`（`segment_index` + `lot_id`）。
-- **禁止**因 lot 不足让 Webhook 永久失败；不足走 overdraft 并应告警。
-- `gift` / `overdraft` 消耗时 `display_amount = 0`，不参与钱包展示闭合。
+- 跨 lot → 多段 ledger；gift/overdraft 段 `display_amount=0`。  
+- lot 不足**不得**让 webhook 永久失败 → overdraft（应可观测告警，见 §10）。
 
-### 4.4 Gateway 预检（纯 Postgres + 纯内存 Evaluate）
+### 4.4 Gateway 预检
 
-全部比较单位为 **point**（展示币不参与挡单）。**不读 NewAPI**；读 `wallet_remain` 与 `platform_keys.gateway_soft_remain` + limit。`wallet_sync` 滞后不挡单；漂移由异步同步消化。
+单位均为 **point**。不读 NewAPI；读 `wallet_remain` + `gateway_soft_remain`。
 
-| # | 检查 | 数据源 |
-| --- | --- | --- |
-| 1 | 企业 active | `LoadPrecheckContext` → `companies.status` |
-| 2 | `wallet_remain ≥ estimate` | 同左（投影列 O(1)） |
-| 3 | 组织预算 min 轴（dept / key / member / group） | snapshots + limit，一次 SQL 带出 |
-| 4 | Key `status = active` | `platform_keys` |
-| 5 | 模型白名单（有配置时） | `model_allowlist` + `models.type` |
+| # | 检查 |
+| --- | --- |
+| 1 | 企业 active |
+| 2 | `wallet_remain ≥ minEstimate`（当前固定 `0.01×DefaultPPU`） |
+| 3 | soft remain > 0（有配置时） |
+| 4 | Key active / 未过期 |
+| 5 | 模型白名单 |
 
-当前 `estimate` = 固定 `0.01 × PPU`（10 point），非按请求模型动态估价。
+**不做：** 动态 estimate；热路径扫 ledger；ingest 同事务重投影。  
+soft lag：见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) §10。
 
-实现：`store.GatewayPrecheck.LoadPrecheckContext` → `gateway.Evaluate`。
+### 4.5 wallet_sync
 
-### 4.5 wallet_sync：双扣与校准
-
-每次 API 调用存在**两套扣费**：
-
-| 侧 | 扣什么 | 量纲 |
-| --- | --- | --- |
-| Postgres ingest | 实际模型价 | point |
-| NewAPI 通道 | quota units | `QuotaPerUnit = 500000` 比例 |
-
-二者必然有取整差。策略：
-
-```mermaid
-flowchart LR
-    ING[ingest 扣 wallet_remain] --> TX[InsertTx wallet_sync]
-    TX --> U[Unique 5s 同 company 合并]
-    U --> W[WalletSyncWorker TopUp delta]
-    W --> NA[NewAPI users.quota]
-    RC[ReconcileWalletDrift] --> TX
-```
-
-1. ingest / 充值后 `InsertTx(wallet_sync)`；`Unique ByPeriod: 5s`（等同现网 debounce 语义）。
-2. `target = ToNewAPIUnits(wallet_remain, modelPriceUpper)`（溢出饱和到 `MaxInt64`）→ `FreshNewAPIUnits` 读权威 `users.quota` → `QuotaDelta(target,current)` → `TopUp(delta)` → invalidate 缓存。
-3. 定时对账：`|FromQuotaUnits(na) − wallet_remain| > ε` → 入队 sync。
-4. NewAPI 返回 `bigint out of range`（SQLSTATE 22003）视为不可重试，Worker `JobCancel`，避免刷屏 retry。
-
-> Gateway 预检读 `wallet_remain` 与 `gateway_soft_remain`；不因 pending sync 或漂移拒单。
-> 校准 / platformkey 封顶走 `FreshNewAPIUnits`，避免过期钱包缓存导致对近满 quota 再 add。
+Postgres 扣 point 与 NewAPI 扣 quota 有取整差：`Unique 5s` debounce → `ToNewAPIUnits` → `TopUp(delta)`；漂移超 ε 入队校准。Gateway **不因** pending sync 拒单。
 
 ---
 
 ## 5. 数据模型精要
 
-### 5.1 核心表关系
+### 5.1 表关系
 
 ```mermaid
 erDiagram
-    currencies ||--o{ companies : billing_currency
-    companies ||--o{ company_recharge_orders : has
-    company_recharge_orders ||--|| company_recharge_lots : "1:1"
-    companies ||--o{ company_recharge_lots : owns
-    company_recharge_lots ||--o{ usage_ledger : debits
-    companies {
-        bigint id PK
-        char billing_currency
-        text fifo_head_lot_id
-        numeric wallet_remain
-    }
-    company_recharge_lots {
-        text id PK
-        text lot_kind
-        numeric points_granted
-        numeric points_remaining
-        numeric amount_display
-        numeric unit_price_display
-    }
-    usage_ledger {
-        text id
-        text lot_id FK
-        int segment_index
-        numeric amount
-        numeric display_amount
-    }
+  currencies ||--o{ companies : billing_currency
+  companies ||--o{ company_recharge_orders : has
+  company_recharge_orders ||--|| company_recharge_lots : "1:1"
+  company_recharge_lots ||--o{ usage_ledger : debits
 ```
 
 ### 5.2 展示币闭合（paid + adjust）
 
 ```text
-unit_price_display = amount_display / points_granted     -- 创建时锁定
-
-totalTopup(c)     = Σ amount_display
-                    WHERE billing_currency = c AND lot_kind IN ('paid','adjust')
-
-balance(c)        = Σ (points_remaining × unit_price_display)
-                    WHERE billing_currency = c AND lot_kind IN ('paid','adjust')
-
-totalConsumed(c)  = totalTopup(c) − balance(c)
+unit_price_display = amount_display / points_granted
+balance(c) = Σ (points_remaining × unit_price_display)  WHERE currency=c AND kind∈{paid,adjust}
+totalTopup − totalConsumed = balance
 ```
 
-钱包 API 保证：`totalTopup − totalConsumed = balance`（同币种）。
-
-### 5.3 Point 守恒（全 lot）
+### 5.3 Point 守恒
 
 ```text
-Σ lot.points_granted − Σ ledger.amount = Σ lot.points_remaining
-wallet_remain = Σ lot.points_remaining
+Σ points_granted − Σ ledger.amount = Σ points_remaining
+wallet_remain = Σ points_remaining
 ```
 
-### 5.4 lot_kind 与展示币
+### 5.4 lot_kind
 
-| `lot_kind` | point 可花 | 计入 totalTopup | 消耗 display |
+| kind | 可花 | 计 totalTopup | 消耗 display |
 | --- | --- | --- | --- |
-| `paid` | ✅ | ✅ | `points × unit_price` |
-| `adjust` | ✅ | ✅（含 0 价调账） | 同上 |
-| `gift` | ✅ | ❌ | `0` |
-| `overdraft` | ✅（兜底） | ❌ | `0` |
+| paid / adjust | ✅ | ✅ | `× unit_price` |
+| gift / overdraft | ✅ | ❌ | 0 |
 
-### 5.5 投影表（均为 point）
-
-`usage_buckets.cost`、`budget_consumed.consumed`、`org_nodes.budget`、`members.personal_budget`、`projects.budget`、`platform_keys.budget` — 语义均为 point，无 `billing_currency` 拆键。
-
-`models.input_price` / `output_price` 单位为 **point / 模型计价单位**。
+预算 limit / consumed、`models.*_price` 均为 **point**。
 
 ---
 
@@ -364,200 +268,153 @@ wallet_remain = Σ lot.points_remaining
 
 ### 6.1 换算
 
-```go
-// NewAPI log quota → point
-CostFromQuota(quota, modelPricePoint) = quota / QuotaPerUnit * modelPricePoint
-
-// point → NewAPI quota（sync / rebalance 用上界价，宁少勿超；溢出饱和到 MaxInt64）
-ToNewAPIUnits(points, modelPriceUpper) = sat(points / modelPriceUpper * QuotaPerUnit)
-
-// wallet_sync TopUp 增量：保证 current+delta ∈ [0, MaxInt64]
-QuotaDelta(target, current) = clamped(target - current)
-
-// rebalance key 封顶：used = AddSat(Σ other remain)；available = SubFloor0(walletUnits, used)；remain = min(allocated, available)
-
-// 展示币 ↔ point（充值时）
-points_granted = amount_paid × PPU(currency)
-amount_display = points_granted / PPU(billing_currency)   // paid lot
+```text
+CostFromQuota(quota, price) = quota / QuotaPerUnit × price
+  price = InputPrice + OutputPrice（当前产品 SSOT；ingest 与 wallet_sync 同公式，变更须同 PR）
+ToNewAPIUnits(points, upperPrice) = sat(points / upperPrice × QuotaPerUnit)
+points_granted = amount_display × PPU(currency)
 ```
 
-常量（`internal/pkg/common`）：
+| 常量 | 值 |
+| --- | --- |
+| `DefaultPointsPerUnit` | 1000 |
+| `QuotaPerUnit` | 500000 |
+| `WalletSyncDebounceSecs` | 5 |
+| `WalletSyncDriftEpsilon` | 0.01×PPU |
 
-| 常量 | 值 | 用途 |
-| --- | --- | --- |
-| `DefaultPointsPerUnit` | 1000 | CNY 默认换算 |
-| `QuotaPerUnit` | 500000 | NewAPI quota 比例 |
-| `WalletSyncDebounceSecs` | 5 | sync 延迟 + Gateway Retry-After |
-| `WalletSyncDriftEpsilon` | 10 point | 漂移阈值 |
+### 6.2 闭环
 
-### 6.2 一致性闭环
-
-| # | 闭环 | 验证 |
-| --- | --- | --- |
-| 1 | point 守恒 | lot 授予 − ledger 扣减 = lot 剩余 |
-| 2 | 展示币闭合 | `wallet_closure_test` |
-| 3 | 段成本价 | `ledger.display_amount = amount × lot.unit_price_display` |
-| 4 | 投影同事务 | ledger → snapshots / buckets |
-| 5 | 幂等 | `(company_id, idempotency_key, lot_id)` |
-| 6 | FIFO 原子 | lot 扣减与 ledger 同事务 |
-| 7 | 通道校准 | sync 后 NewAPI 与 `wallet_remain` 在 ε 内 |
+| # | 验证 |
+| --- | --- |
+| 1 | point 守恒：授予 − ledger = remaining |
+| 2 | 展示币闭合：`wallet_closure_test` |
+| 3 | `display_amount = amount × unit_price` |
+| 4 | 幂等 `(company_id, idempotency_key, lot_id, …)` |
+| 5 | FIFO 与 ledger / wallet 同事务 |
+| 6 | sync 后 NewAPI 与 wallet 在 ε 内 |
+| 7 | 投影终态：`Σ ledger.amount ≈ budget_consumed`（可 reconcile） |
 
 ### 6.3 边界行为
 
 | 场景 | 行为 |
 | --- | --- |
-| 预检余额不足 | Gateway 拒绝，不 proxy |
-| ingest lot 不足 | 扩展 overdraft，告警 |
-| 跨 lot 消耗 | 多 ledger 段 |
-| 切换 `billing_currency` | 已有 lot 按原币种保留；`balances[]` 分币种展示 |
-| 退款 | **未实现** |
+| 预检不足 | 拒绝，不 proxy |
+| lot 不足 | overdraft |
+| 改币种 | 旧 lot/CallLog 不变；新充值用新币 |
+| 退款 | **未实现** → [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) |
 
 ---
 
-## 7. 代码模块地图
+## 7. 代码地图
 
 ```text
-domain/billing/
-  lot.go              BuildPaidLot / Gift / Adjust；PPU 换算
-  lot_confirm.go      充值确认 → ConfirmRechargeWithLot
-  wallet_view.go      GetWallet → AggregateWallet
-  wallet_sync.go      SyncCompanyWallet / ReconcileWalletDrift
-  service.go          PlatformRecharge / Gift / Adjust
+pkg/common/constants.go          DefaultBillingCurrency / DefaultPointsPerUnit
+pkg/exchange/convert.go          ToPointsAt / ToDisplayAt / Format
+pkg/newapiunits/quota.go         CostFromQuota / ToNewAPIUnits
 
-domain/usage/
-  lot_allocate.go     FIFO AllocateConsumptionLots + overdraft
-  ingest.go           事务：分配 lot → InsertSegments → 投影 → enqueue sync
+domain/billing/currency.go       ResolveCompanyChargeRate
+domain/billing/lot*.go           BuildPaidLot / Confirm / ConsumeLots
+domain/billing/wallet_*.go       AggregateWallet / Sync
 
-domain/gateway/
-  precheck.go         LoadPrecheckContext + Evaluate（wallet_remain + 预算 + allowlist）
-  gateway_service.go  Retry-After 透传
+domain/usage/ingest.go           入账事务
+domain/usage/ledger_audit.go     CallLog.cost = DisplayAmount
 
-domain/budget/
-  rebalance.go        按 wallet_remain 封顶 NewAPIKey remain_quota
+identity/authz/service.go        Session 下发 billingCurrency + pointsPerUnit
+domain/gateway/evaluate.go       预检
 
-store/postgres/
-  billing_repo.go     lot CRUD、AggregateWallet、ExpandOverdraftLot
-  ledger_repo.go      InsertSegments
-
-infra/jobs/enqueuer.go        InsertTx(wallet_sync) + Unique 5s
-infra/river/                  Client + Workers + Periodic
-infra/ingest/worker.go        日志库 pending / reconcile
-
-pkg/newapiunits/quota.go        point ↔ quota units（domain / tests 直接引用）
+apps/frontend/src/lib/points.ts  createBillingExchange / setActive（session 同步）
+                                 formatMoney(展示币) vs formatDisplayCurrency(point)
 ```
 
-**HTTP：**
-
-- `GET /billing/wallet` — 钱包视图
-- `POST /platform/companies/{id}/recharge|gift|adjust` — 平台操作
-
-**前端：**
-
-- `src/lib/points.ts` — `pointsToDisplay` / `displayToPoints`
-- 钱包页读 `balances[]` + `walletRemainPoint`；预算页 UI 展示币编辑、API 存 point
+**HTTP：** `GET /billing/wallet` · `GET /session`（含币种/PPU）· `POST /platform/.../recharge|gift|adjust`
 
 ---
 
-## 8. API 契约
+## 8. API 与前端契约
 
-### 8.1 钱包
+### 8.1 Session（写边界）
+
+```json
+{ "billingCurrency": "CNY", "pointsPerUnit": 1000, "...": "..." }
+```
+
+FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToPoints` / `pointsToDisplay`。
+
+### 8.2 钱包
 
 ```json
 {
-  "companyId": 2,
   "billingCurrency": "CNY",
-  "balances": [
-    { "currency": "CNY", "balance": 37.5, "totalTopup": 100.0, "totalConsumed": 62.5 }
-  ],
-  "walletRemainPoint": 375000,
-  "giftPoints": 50000,
-  "overdraftPoints": 0,
-  "totalRequests": 1234
+  "balances": [{ "currency": "CNY", "balance": 37.5, "totalTopup": 100, "totalConsumed": 62.5 }],
+  "walletRemainPoint": 37500,
+  "giftPoints": 0,
+  "overdraftPoints": 0
 }
 ```
 
-充值记录 `status`：`pending` | `confirmed` | `failed`。
+### 8.3 读侧 helper
 
-### 8.2 预算
+| 数据 | Helper |
+| --- | --- |
+| CallLog / Spend / 钱包余额 | `formatMoney`（禁止再 ÷PPU） |
+| 预算 / Key remaining | `formatDisplayCurrency` |
 
-- API JSON 读写均为 **point**。
-- 前端 `÷ PPU` 展示、`× PPU` 提交。
-- 部门真实展示币花费：按时间范围聚合 `usage_ledger.display_amount`。
+预算/Key API **只收发 point**。
 
 ---
 
 ## 9. 部署与运维
 
 ```bash
-# 改 schema 后：wipe + seed（无增量 migration）
-pnpm start:postgres
-# down -v && seed
-
-# 回归
+pnpm start:postgres   # schema 变更：wipe + seed
 cd apps/backend && make test-unit
-pnpm -F @tokenjoy/frontend test
-
-# 重点
 go test -tags=testhook ./tests/domain/billing/... -run WalletClosure
-go test -tags=testhook ./tests/domain/gateway/... -run Wallet
-go test -tags=testhook ./tests/store/postgres/... -run WalletSync
+go test -tags=testhook ./tests/identity/authz/...
 ```
 
-**性能读路径：**
-
-| 场景 | 数据源 |
+| 场景 | 读哪 |
 | --- | --- |
-| Gateway / 超限 | `wallet_remain` + `budget_consumed` |
-| 看板 | `usage_buckets.cost` |
-| 钱包展示币 | `company_recharge_lots` 聚合 |
-| 财务时段 | `usage_ledger.display_amount` + 时间范围 |
-
-优化优先级：`wallet_remain` 缓存 → `fifo_head_lot_id` → lot FIFO 索引 → ledger 分区索引。
+| Gateway | `wallet_remain` + soft |
+| 看板 Spend | `usage_buckets.display_cost` |
+| 钱包 | lots 聚合 |
+| 财务时段 | `ledger.display_amount` |
 
 ---
 
-## 10. 已知风险与未来优化
+## 10. 风险、收口与演进
 
-### 10.1 当前接受的风险
+### 10.1 已收口（量纲）
 
-| 风险 | 缓解 | 严重度 |
-| --- | --- | --- |
-| 预检与 ingest 竞态 | company 行锁；短窗 overdraft | 低 |
-| sync 取整差 | ε 对账 + debounce + PlatformSync（Phase 3） | 低 |
-| 预算展示 ≠ 钱包财务 | 产品文案区分；财务走 ledger | 中（预期） |
-| 固定 minEstimate | 挡住极端零余额；大请求可能预检漏估 | 低 |
-| float64 运算 | Postgres `NUMERIC` 落库；大额可换 decimal | 低 |
-| 无退款 | Roadmap 冲正单 | 中（产品缺口） |
-
-### 10.2 建议优化（按优先级）
-
-**P1 — 正确性 / 可观测性**
-
-| 项 | 说明 |
+| 项 | 状态 |
 | --- | --- |
-| overdraft 告警接入 | ingest 扩展 overdraft 时打 metric / 通知运营 |
-| sync 审计表 | 记录每次 sync 前后 quota，便于排障（非资金闭环必需） |
-| Gateway 动态 estimate | 按请求模型 + 预估 token 算 `estimate`，减少「预检过、实际超」 |
+| Session 下发币种+PPU | ✅ |
+| Key/审批 display↔points | ✅ |
+| CallLog/看板 `formatMoney` | ✅ |
+| CostFromQuota 公式钉死（单测） | ✅（未改公式） |
+| 充值 PPU 查表 + FIFO 冻结 display | ✅ |
 
-**P2 — 产品能力**
+### 10.2 接受中的风险
 
-| 项 | 说明 |
+| 风险 | 缓解 |
 | --- | --- |
-| 退款 / 冲正 | `lot_kind=refund` 或负向 adjust + ledger 冲正 |
-| 平台 gift/adjust 控制台 UI | 后端 API 已有，补运营界面 |
-| 预算 API 边界换算 | handler 自动 `point ↔ 展示币`，字段语义对齐钱包 |
+| soft lag | 投影加速 + `budget_reconcile`；不扫 ledger |
+| sync 取整 | ε + debounce |
+| 固定 minEstimate | 故意保持粗闸门 |
+| float64 | NUMERIC 落库 |
+| 无退款 | 设计见退款文，未实现 |
 
-**P3 — 规模 / 多币种**
+### 10.3 待做
 
-| 项 | 说明 |
+| 优先级 | 项 |
 | --- | --- |
-| 多币种充值路径 | schema 已支持 `currencies` + `balances[]`，补业务与 FX 规则 |
-| `billing_currency` 切换流程 | 产品规则 + 已有 lot 按币种保留于 `balances[]` |
-| decimal 全链路 | Go 侧 `shopspring/decimal` 替换 float64 |
-| lot 归档 | exhausted lot 定期归档，减 FIFO 扫描成本 |
+| P1 | overdraft 告警/打点 |
+| P2 | 退款/冲正（[设计文档](./plan/Backend-退款与冲正.md)） |
+| P2 | gift/adjust 运营 UI |
+| P3 | 多币种充值业务 / 改币种产品流程 / decimal / lot 归档 |
 
-### 10.3 架构红线
+### 10.4 红线
 
-- 不用 NewAPI quota 反算钱包余额
-- 不以增量 migration / 双写维持多套账本
-- 不以旁路直连 NewAPI 作为主消费路径
+- 不用 NewAPI quota 反算钱包  
+- 不 UPDATE 历史 `display_amount` 用新汇率  
+- 不以旁路直连 NewAPI 为主消费路径  
+- 不做 Gateway 动态 estimate（除非产品另开需求）  

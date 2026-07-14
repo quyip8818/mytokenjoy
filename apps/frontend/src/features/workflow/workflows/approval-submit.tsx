@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
+import { displayToPoints } from '@/lib/points'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -74,7 +75,7 @@ export function ApprovalSubmitWorkflow({
       await apis.approvalApi.create({
         type,
         reason,
-        requestedBudget: Number(requestedBudget),
+        requestedBudget: displayToPoints(Number(requestedBudget) || 0),
         requestedModels: models,
         memberId,
       })

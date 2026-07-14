@@ -22,9 +22,17 @@ func TestToNewAPIUnitsUsesHighestWhitelistPrice(t *testing.T) {
 
 func TestCostFromQuota(t *testing.T) {
 	t.Parallel()
+	// Product SSOT: amount_point = quota / QuotaPerUnit * ModelPricePoint
+	// (ModelPricePoint = InputPrice+OutputPrice). Ingest and wallet_sync share this;
+	// change both in the same PR. Do not reconvert settled ledger.display_amount.
 	cost := newapiunits.CostFromQuota(500000, 2)
 	if cost != 2 {
 		t.Fatalf("expected 2, got %v", cost)
+	}
+	// 1.5× QuotaPerUnit × price 1000 → 1500 points
+	cost2 := newapiunits.CostFromQuota(750000, 1000)
+	if cost2 != 1500 {
+		t.Fatalf("expected 1500, got %v", cost2)
 	}
 }
 

@@ -1,5 +1,6 @@
 import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { DataSection } from '@/components/layout/data-section'
+import { formatMoney } from '@/lib/points'
 
 interface CostDistributionChartProps {
   data: Array<{ departmentName: string; cost: number; fill: string }>
@@ -29,7 +30,7 @@ export function CostDistributionChart({ data, loading }: CostDistributionChartPr
           />
           <Legend wrapperStyle={{ fontSize: '12px' }} />
           <Tooltip
-            formatter={(value) => [`¥${Number(value).toLocaleString()}`, '花费']}
+            formatter={(value) => [formatMoney(Number(value)), '花费']}
             contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
           />
         </PieChart>
