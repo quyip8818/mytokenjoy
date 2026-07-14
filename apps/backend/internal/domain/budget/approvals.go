@@ -7,6 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -80,7 +81,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 				reserved = *row.ReservedPool
 			}
 			if reserved < approval.Amount {
-				return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %.2f 元", reserved))
+				return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %s", exchange.Format(reserved)))
 			}
 
 			if err := txStore.Budget().UpdateBudgetApproval(ctx, id, input.Status, input.RejectReason, now); err != nil {

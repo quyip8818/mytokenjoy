@@ -8,6 +8,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
@@ -23,8 +24,22 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	if len(orders) > 0 {
 		return nil
 	}
+	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
+	if err != nil {
+		return fmt.Errorf("load company for seed recharge: %w", err)
+	}
+	if co == nil {
+		return fmt.Errorf("company %d not found for seed recharge", contract.DefaultCompanyID)
+	}
+	currency := common.ResolveBillingCurrency(co.BillingCurrency)
+	cur, err := st.Billing().GetCurrency(ctx, currency)
+	if err != nil {
+		return fmt.Errorf("load currency %s: %w", currency, err)
+	}
 	ppu := domainbilling.DefaultPointsPerUnit()
-	currency := "CNY"
+	if cur != nil && cur.PointsPerUnit > 0 {
+		ppu = cur.PointsPerUnit
+	}
 	for _, order := range buildSeedRechargeOrders() {
 		order.Currency = currency
 		order.PointsPerUnit = ppu

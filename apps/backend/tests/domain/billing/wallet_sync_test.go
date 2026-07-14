@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -28,7 +29,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenMissingWallet(t *test
 	now := time.Now().UTC()
 	if err := st.Company().Create(ctx, store.Company{
 		ID: companyID, Slug: "no-wallet", Name: "No Wallet", Status: store.CompanyStatusActive,
-		BillingCurrency: "CNY", CreatedAt: now, UpdatedAt: now,
+		BillingCurrency: common.DefaultBillingCurrency, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +53,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenWalletIDZero(t *testi
 	zero := int64(0)
 	if err := st.Company().Create(ctx, store.Company{
 		ID: companyID, Slug: "zero-wallet", Name: "Zero Wallet", Status: store.CompanyStatusActive,
-		NewAPIWalletUserID: &zero, BillingCurrency: "CNY", CreatedAt: now, UpdatedAt: now,
+		NewAPIWalletUserID: &zero, BillingCurrency: common.DefaultBillingCurrency, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -6,7 +6,20 @@ const DefaultPersonalBudget = 0
 
 const DefaultModelPricePoint = 1000
 
+// DefaultBillingCurrency is the only hardcoded billing currency code.
+// Empty company.BillingCurrency resolves here; never substitute for ledger/lot rows.
+const DefaultBillingCurrency = "CNY"
+
+// DefaultPointsPerUnit is the seed PPU for DefaultBillingCurrency (currencies table).
 const DefaultPointsPerUnit = 1000
+
+// ResolveBillingCurrency returns code, or DefaultBillingCurrency when empty.
+func ResolveBillingCurrency(code string) string {
+	if code == "" {
+		return DefaultBillingCurrency
+	}
+	return code
+}
 
 const QuotaPerUnit = 500000
 

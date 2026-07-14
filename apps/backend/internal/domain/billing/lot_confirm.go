@@ -63,6 +63,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	if co == nil {
 		return domain.NotFound("company not found")
 	}
+	// Prefer order snapshot when present; company currency only fills blanks (order create must have stamped them).
 	currency := order.Currency
 	if currency == "" {
 		currency = resolveBillingCurrency(co)

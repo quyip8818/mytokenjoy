@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -159,7 +160,7 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	t.Parallel()
 	client := &mock.StubAdminClient{}
 	svc, st, ctx := newBillingService(t, client)
-	cur, err := st.Billing().GetCurrency(ctx, "CNY")
+	cur, err := st.Billing().GetCurrency(ctx, common.DefaultBillingCurrency)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,8 +171,8 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if order.Currency != "CNY" {
-		t.Fatalf("currency: got %q want CNY", order.Currency)
+	if order.Currency != common.DefaultBillingCurrency {
+		t.Fatalf("currency: got %q want default currency", order.Currency)
 	}
 	if order.PointsPerUnit != cur.PointsPerUnit {
 		t.Fatalf("points_per_unit: got %d want %d (from currencies)", order.PointsPerUnit, cur.PointsPerUnit)

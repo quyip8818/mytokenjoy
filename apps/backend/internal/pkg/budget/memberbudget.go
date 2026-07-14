@@ -128,7 +128,7 @@ func ValidateMemberBudgetUpdate(
 
 	allocated := GetAllocatedKeyBudget(platformKeys, memberID)
 	if personalBudget < allocated {
-		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（¥%.0f）", exchange.ToDisplay(allocated))
+		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（%s）", exchange.Format(allocated))
 		return &msg
 	}
 
@@ -150,7 +150,7 @@ func ValidateMemberBudgetUpdate(
 		if remaining < 0 {
 			remaining = 0
 		}
-		msg := fmt.Sprintf("超出部门可分配成员额度，当前剩余约 ¥%.0f", exchange.ToDisplay(remaining))
+		msg := fmt.Sprintf("超出部门可分配成员额度，当前剩余约 %s", exchange.Format(remaining))
 		return &msg
 	}
 	return nil

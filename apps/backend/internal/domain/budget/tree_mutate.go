@@ -168,9 +168,9 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 			if totalAfter > node.Budget {
 				if id == deptID {
 					return domain.Validation(fmt.Sprintf(
-						"额度不足：设置后成员额度总和（%d人×¥%.0f=¥%.0f）加上已分配（¥%.0f）超出部门总额度（¥%.0f）",
-						memberCount, exchange.ToDisplay(personalBudget), exchange.ToDisplay(float64(memberCount)*personalBudget),
-						exchange.ToDisplay(childrenSum+projectSum), exchange.ToDisplay(node.Budget),
+						"额度不足：设置后成员额度总和（%d人×%s=%s）加上已分配（%s）超出部门总额度（%s）",
+						memberCount, exchange.Format(personalBudget), exchange.Format(float64(memberCount)*personalBudget),
+						exchange.Format(childrenSum+projectSum), exchange.Format(node.Budget),
 					))
 				}
 				insufficientDepts = append(insufficientDepts, node.Name)

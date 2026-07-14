@@ -9,6 +9,7 @@ func LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []Segment) []type
 		entry.SegmentIndex = i
 		entry.LotID = seg.LotID
 		entry.Amount = seg.Points
+		// Snapshot at settle time: later company.BillingCurrency changes must not rewrite these.
 		entry.DisplayAmount = seg.DisplayAmount
 		entry.BillingCurrency = seg.BillingCurrency
 		if i > 0 {

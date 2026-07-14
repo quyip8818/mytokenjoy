@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -84,7 +85,7 @@ func ValidateProjectMemberKeyBudget(
 		if display < 0 {
 			display = 0
 		}
-		msg := fmt.Sprintf("成员项目子额度剩余约 ¥%.0f", display)
+		msg := fmt.Sprintf("成员项目子额度剩余约 %s", exchange.Format(display))
 		return &msg
 	}
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -56,10 +57,7 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 		remaining -= take
 	}
 	if remaining > 0 {
-		currency := co.BillingCurrency
-		if currency == "" {
-			currency = "CNY"
-		}
+		currency := common.ResolveBillingCurrency(co.BillingCurrency)
 		overdraftAdded = remaining
 		od, err := st.Billing().ExpandOverdraftLot(ctx, companyID, currency, remaining)
 		if err != nil {

@@ -13,9 +13,9 @@ import (
 func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO currencies (currency, points_per_unit, enabled)
-		VALUES ('CNY', $1, TRUE)
+		VALUES ($1, $2, TRUE)
 		ON CONFLICT (currency) DO NOTHING
-	`, common.DefaultPointsPerUnit); err != nil {
+	`, common.DefaultBillingCurrency, common.DefaultPointsPerUnit); err != nil {
 		return fmt.Errorf("seed currencies: %w", err)
 	}
 	return nil

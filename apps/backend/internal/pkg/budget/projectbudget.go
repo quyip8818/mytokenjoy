@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -73,7 +74,7 @@ func ValidateProjectKeyBudget(project types.Project, platformKeys []types.Platfo
 		if display < 0 {
 			display = 0
 		}
-		msg := fmt.Sprintf("项目剩余可分配额度约 ¥%.0f", display)
+		msg := fmt.Sprintf("项目剩余可分配额度约 %s", exchange.Format(display))
 		return &msg
 	}
 	return nil

@@ -6,6 +6,7 @@ import (
 
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -76,7 +77,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	ppu := domainbilling.DefaultPointsPerUnit()
 
 	order := store.RechargeOrder{
-		ID: "rch-rt-1", CompanyID: 1, Amount: 99, Currency: "CNY",
+		ID: "rch-rt-1", CompanyID: 1, Amount: 99, Currency: common.DefaultBillingCurrency,
 		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(99, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending,
@@ -93,7 +94,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 		t.Fatalf("unexpected order: %+v err=%v", got, err)
 	}
 	order.Status = store.RechargeStatusConfirmed
-	lot := domainbilling.BuildPaidLot(order, "CNY", ppu)
+	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, ppu)
 	before, err := st.Company().GetByID(ctx, order.CompanyID)
 	if err != nil || before == nil {
 		t.Fatal("expected company before recharge")

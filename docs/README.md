@@ -33,6 +33,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | **[预算分配与扣减.md](./预算分配与扣减.md)** | 产品 / 研发 | **权威**：切蛋糕 vs 独立结算；三 scope 产品行为；personal 用尽 → 审批追加 |
 | [Backend-存储架构.md](./Backend-存储架构.md) | 后端 / DBA | 双库表、域关系、Store 与 ID 约定（含 `platform_keys.scope`） |
 | [Backend-计费模式.md](./Backend-计费模式.md) | 后端 / 计费 | point + lot、钱包、wallet_sync |
+| [Backend-币种与入账全链路.md](./Backend-币种与入账全链路.md) | 后端 / 计费 | 币种与入账：现状 / 目标架构 |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 后端 / 联调 | 入账全链路：通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 后端 / 架构 | 业务时钟、双轨 period、护栏 |
 | [Backend-测试优化.md](./Backend-测试优化.md) | 后端 / 测试 | coverage + 速度优化 |

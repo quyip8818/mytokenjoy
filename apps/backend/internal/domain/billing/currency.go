@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 func resolveBillingCurrency(co *store.Company) string {
-	if co != nil && co.BillingCurrency != "" {
-		return co.BillingCurrency
+	if co == nil {
+		return common.DefaultBillingCurrency
 	}
-	return "CNY"
+	return common.ResolveBillingCurrency(co.BillingCurrency)
 }
 
 func (s *service) lookupPointsPerUnit(ctx context.Context, currency string) (int64, error) {

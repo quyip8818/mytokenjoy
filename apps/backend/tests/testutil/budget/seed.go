@@ -9,6 +9,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -36,7 +37,7 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID string, ledgerSpent fl
 		LotID:            lots[0].ID,
 		Amount:           ledgerSpent,
 		DisplayAmount:    ledgerSpent,
-		BillingCurrency:  "CNY",
+		BillingCurrency:  common.DefaultBillingCurrency,
 		DepartmentID:     deptID,
 		MemberID:         &memberID,
 		PlatformKeyID:    contract.IDPlatformKey1,

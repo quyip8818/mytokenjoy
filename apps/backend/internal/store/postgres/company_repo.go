@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -38,7 +39,7 @@ func (r *companyRepo) GetBySlug(ctx context.Context, slug string) (*store.Compan
 
 func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	if company.BillingCurrency == "" {
-		company.BillingCurrency = "CNY"
+		company.BillingCurrency = common.ResolveBillingCurrency("")
 	}
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO companies (

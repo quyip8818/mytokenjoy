@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS companies (
     newapi_wallet_user_id     BIGINT,
     package_id                TEXT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
+    -- Default must match common.DefaultBillingCurrency.
     billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),
     fifo_head_lot_id          TEXT,
     wallet_remain             NUMERIC(28, 10) NOT NULL DEFAULT 0,

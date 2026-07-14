@@ -1,10 +1,14 @@
 package exchange
 
-import "github.com/tokenjoy/backend/internal/pkg/common"
+import (
+	"fmt"
 
-// Point ↔ display helpers. Default PPU = common.DefaultPointsPerUnit (CNY).
-// Use for budget/key/wallet point amounts only.
-// Settled call fees already store display on ledger.DisplayAmount — do not reconvert.
+	"github.com/tokenjoy/backend/internal/pkg/common"
+)
+
+// Point ↔ display helpers using DefaultPointsPerUnit.
+// For charge/lot settle paths, use company.BillingCurrency PPU via ToPointsAt / ToDisplayAt.
+// Settled ledger rows already store DisplayAmount + BillingCurrency — do not reconvert.
 
 func ToPoints(display float64) float64 {
 	return ToPointsAt(display, common.DefaultPointsPerUnit)
@@ -26,4 +30,9 @@ func ToDisplayAt(points float64, pointsPerUnit int64) float64 {
 		return 0
 	}
 	return points / float64(pointsPerUnit)
+}
+
+// Format is a currency-symbol-free display amount for user-facing messages.
+func Format(points float64) string {
+	return fmt.Sprintf("%.0f", ToDisplay(points))
 }

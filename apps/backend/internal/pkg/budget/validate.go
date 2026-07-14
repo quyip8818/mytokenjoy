@@ -46,9 +46,9 @@ func ValidateBudgetNodeUpdate(
 	memberSum := MemberBudgetSumForDept(members, nodeID)
 	totalAllocated := childrenSum + newReservedPool + projectSum + memberSum
 	if newBudget < totalAllocated {
-		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门¥%.0f + 项目¥%.0f + 成员¥%.0f + 预留池¥%.0f = ¥%.0f）",
-			exchange.ToDisplay(childrenSum), exchange.ToDisplay(projectSum), exchange.ToDisplay(memberSum),
-			exchange.ToDisplay(newReservedPool), exchange.ToDisplay(totalAllocated))
+		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门%s + 项目%s + 成员%s + 预留池%s = %s）",
+			exchange.Format(childrenSum), exchange.Format(projectSum), exchange.Format(memberSum),
+			exchange.Format(newReservedPool), exchange.Format(totalAllocated))
 		return &msg
 	}
 	parent := FindParentNode(tree, nodeID)
@@ -68,7 +68,7 @@ func ValidateBudgetNodeUpdate(
 			if remaining < 0 {
 				remaining = 0
 			}
-			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 ¥%.0f", exchange.ToDisplay(remaining))
+			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 %s", exchange.Format(remaining))
 			return &msg
 		}
 	}

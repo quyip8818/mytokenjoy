@@ -7,6 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -52,7 +53,7 @@ func TestWalletSyncWorkerCancelsWhenWalletNotConfigured(t *testing.T) {
 	now := time.Now().UTC()
 	if err := fix.st.Company().Create(ctx, store.Company{
 		ID: companyID, Slug: "wallet-sync-cancel", Name: "No Wallet Co",
-		Status: store.CompanyStatusActive, BillingCurrency: "CNY", CreatedAt: now, UpdatedAt: now,
+		Status: store.CompanyStatusActive, BillingCurrency: common.DefaultBillingCurrency, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
 	}
