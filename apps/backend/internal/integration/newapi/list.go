@@ -8,7 +8,6 @@ import (
 const (
 	maxListPages = 20
 
-	tokenListFirstPage   = 0
 	channelListFirstPage = 1
 )
 

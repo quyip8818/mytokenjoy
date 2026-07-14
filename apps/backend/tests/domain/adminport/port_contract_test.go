@@ -17,14 +17,14 @@ func TestAdminPortAdapterImplementsPort(t *testing.T) {
 func TestAdminPortAdapterCreateTokenMapsResult(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{
-		Token: newapi.Token{ID: 7, Key: "sk-demo", RemainQuota: 42},
+		Token: newapi.Token{ID: 7, UserID: 501, Key: "sk-demo", RemainQuota: 42, Group: "platform_shared"},
 	}
 	port := newapi.NewAdminPortAdapter(stub)
-	got, err := port.CreateToken(context.Background(), adminport.CreateTokenInput{Name: "demo"})
+	got, err := port.CreateToken(context.Background(), adminport.CreateTokenInput{UserID: 501, Name: "demo"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ID != 7 || got.Key != "sk-demo" || got.RemainQuota != 42 {
+	if got.ID != 7 || got.UserID != 501 || got.Key != "sk-demo" || got.RemainQuota != 42 || got.Group != "platform_shared" {
 		t.Fatalf("unexpected token result: %+v", got)
 	}
 }

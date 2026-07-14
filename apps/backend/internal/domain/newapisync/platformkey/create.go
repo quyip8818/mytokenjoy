@@ -126,6 +126,9 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 	if err != nil {
 		return "", err
 	}
+	if walletUserID <= 0 {
+		return "", fmt.Errorf("newapi wallet user id required for platform key %s", key.ID)
+	}
 	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
 		Name:               TokenName(key.ID),
@@ -141,14 +144,26 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 		return "", err
 	}
 	if err := persistPlatformKeySecret(ctx, d, key.ID, token.Key); err != nil {
+		deleteRemoteTokenBestEffort(ctx, d, key.ID, token.ID)
 		return "", err
 	}
 	now := time.Now()
 	remain := token.RemainQuota
 	if err := d.Mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, &remain, now); err != nil {
+		deleteRemoteTokenBestEffort(ctx, d, key.ID, token.ID)
 		return "", err
 	}
 	return token.Key, nil
+}
+
+func deleteRemoteTokenBestEffort(ctx context.Context, d syncdeps.Deps, platformKeyID string, tokenID int64) {
+	if tokenID <= 0 {
+		return
+	}
+	if err := d.Client.DeleteToken(ctx, tokenID); err != nil {
+		slog.Default().Warn("compensate delete newapi token failed",
+			"platform_key_id", platformKeyID, "newapi_token_id", tokenID, "error", err)
+	}
 }
 
 func RollbackFailedCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) {

@@ -23,11 +23,14 @@ type tokenPutBody struct {
 }
 
 func (c *Client) CreateToken(ctx context.Context, req CreateTokenRequest) (Token, error) {
-	if err := c.do(ctx, "POST", "/api/token/", req, nil); err != nil {
+	var token Token
+	if err := c.do(ctx, "POST", "/api/token/", req, &token); err != nil {
 		return Token{}, err
 	}
-	token, err := c.findTokenByName(ctx, req.Name)
-	if err != nil {
+	if err := validateCreatedToken(req, token); err != nil {
+		if token.ID > 0 {
+			_ = c.DeleteToken(ctx, token.ID)
+		}
 		return Token{}, err
 	}
 	if token.Key == "" || strings.Contains(token.Key, "*") {
@@ -36,17 +39,14 @@ func (c *Client) CreateToken(ctx context.Context, req CreateTokenRequest) (Token
 	return token, nil
 }
 
-func (c *Client) findTokenByName(ctx context.Context, name string) (Token, error) {
-	token, err := findLatestByName(
-		ctx, c, name, tokenListFirstPage,
-		func(page int) string { return "/api/token/?p=" + strconv.Itoa(page) },
-		func(t Token) string { return t.Name },
-		func(t Token) int64 { return t.ID },
-	)
-	if err != nil {
-		return Token{}, fmt.Errorf("newapi token not found after create: %w", err)
+func validateCreatedToken(req CreateTokenRequest, token Token) error {
+	if token.ID <= 0 {
+		return fmt.Errorf("newapi create token: response missing id (admin create-token contract required)")
 	}
-	return token, nil
+	if req.UserID > 0 && token.UserID != req.UserID {
+		return fmt.Errorf("newapi create token: owner mismatch want=%d got=%d", req.UserID, token.UserID)
+	}
+	return nil
 }
 
 func (c *Client) UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token, error) {

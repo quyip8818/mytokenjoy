@@ -22,7 +22,7 @@ func mapTokenResult(token Token, err error) (adminport.TokenResult, error) {
 	if err != nil {
 		return adminport.TokenResult{}, err
 	}
-	return adminport.TokenResult{ID: token.ID, Key: token.Key, RemainQuota: token.RemainQuota, Group: token.Group}, nil
+	return adminport.TokenResult{ID: token.ID, UserID: token.UserID, Key: token.Key, RemainQuota: token.RemainQuota, Group: token.Group}, nil
 }
 
 func (a AdminPortAdapter) CreateToken(ctx context.Context, req adminport.CreateTokenInput) (adminport.TokenResult, error) {

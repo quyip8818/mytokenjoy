@@ -24,6 +24,8 @@
 | [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) | v1 Gateway → Ingest 性能与投影 Lag 优化路线图 |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务：两条异步线、13 kind、入队点、Worker、Periodic |
 | [Backend-离线任务.md](./Backend-离线任务.md) | 离线任务 as-built：L0/L1/L2、`tenant_background_state`、唯一看门狗 |
+| [Backend-NewAPI-多租户钥匙代建.md](./Backend-NewAPI-多租户钥匙代建.md) | 方案 A as-built：Admin 代建 Token 指定 `user_id` |
+| [Backend-NewAPI-Token归属.md](./Backend-NewAPI-Token归属.md) | 重定向至上篇 |
 
 **模型目录（现状）：** `models` 同表双角色（平台源 + 租户自有）；管理 API 用 `modelId`，Gateway/审计用 `callType`；见 §2.1 ADR。
 
@@ -225,7 +227,7 @@ flowchart LR
 
 **Bootstrap：** `pnpm infra` → `pnpm bootstrap`（或 `pnpm docker:reset`，已内含 bootstrap）→ Webhook secret 对齐 → Channel `group=platform_shared`。
 
-**NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。**现状缺口与修复方案**见 [Backend-NewAPI-Token归属.md](./Backend-NewAPI-Token归属.md)。
+**NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。实现见 [Backend-NewAPI-多租户钥匙代建.md](./Backend-NewAPI-多租户钥匙代建.md)。
 
 **安全：** NewAPI 不对公网；Admin Token 仅存 Backend 环境变量。
 

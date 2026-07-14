@@ -24,6 +24,7 @@ type UpdateTokenInput struct {
 
 type TokenResult struct {
 	ID          int64
+	UserID      int64
 	Key         string
 	RemainQuota int64
 	Group       string

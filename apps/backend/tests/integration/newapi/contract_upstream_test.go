@@ -291,3 +291,4 @@ func TestUpdateTokenHealsZeroExpiredTime(t *testing.T) {
 		t.Fatalf("expected heal expired_time 0→-1, got %#v", got["expired_time"])
 	}
 }
+

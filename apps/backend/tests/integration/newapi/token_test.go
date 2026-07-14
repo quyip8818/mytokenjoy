@@ -3,115 +3,132 @@ package newapi_test
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
-func TestCreateTokenFindsTokenAcrossPagesByUniqueName(t *testing.T) {
+func TestCreateTokenUsesResponseDataAndAssertsOwner(t *testing.T) {
 	t.Parallel()
 
-	const tokenName = "tokenjoy:plk-page-test"
-	var listCalls int
-
+	var gotBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/token/":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"success":true,"message":"","data":null}`))
-		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/token/"):
-			listCalls++
-			page, _ := strconv.Atoi(r.URL.Query().Get("p"))
-			var payload any
-			switch page {
-			case 0:
-				payload = map[string]any{
-					"page":      0,
-					"page_size": 2,
-					"total":     3,
-					"items": []map[string]any{
-						{"id": 1, "name": "other", "key": "sk-other"},
-						{"id": 2, "name": "another", "key": "sk-another"},
-					},
-				}
-			case 1:
-				payload = map[string]any{
-					"page":      1,
-					"page_size": 2,
-					"total":     3,
-					"items": []map[string]any{
-						{"id": 99, "name": tokenName, "key": "sk-found"},
-					},
-				}
-			default:
-				payload = map[string]any{"page": page, "page_size": 2, "total": 3, "items": []any{}}
-			}
-			raw, err := json.Marshal(map[string]any{"success": true, "message": "", "data": payload})
-			if err != nil {
-				t.Fatal(err)
-			}
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(raw)
+			raw, _ := io.ReadAll(r.Body)
+			_ = json.Unmarshal(raw, &gotBody)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"success": true,
+				"data": map[string]any{
+					"id": 99, "user_id": 2, "name": "tokenjoy:plk-1", "key": "sk-created",
+					"remain_quota": 10, "group": "platform_shared",
+				},
+			})
 		default:
-			http.NotFound(w, r)
+			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 	}))
 	defer server.Close()
 
 	client := newapi.NewClient(server.URL, "admin-token", 1)
-	token, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{Name: tokenName})
+	token, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{
+		UserID: 2, Name: "tokenjoy:plk-1", RemainQuota: 10, Group: "platform_shared", ExpiredTime: -1,
+	})
 	if err != nil {
 		t.Fatalf("CreateToken: %v", err)
 	}
-	if token.ID != 99 {
-		t.Fatalf("expected token id 99, got %d", token.ID)
+	if gotBody["user_id"] != float64(2) {
+		t.Fatalf("expected request user_id 2, got %#v", gotBody["user_id"])
 	}
-	if token.Key != "sk-found" {
-		t.Fatalf("expected sk-found, got %q", token.Key)
+	if token.ID != 99 || token.UserID != 2 || token.Key != "sk-created" {
+		t.Fatalf("unexpected token %#v", token)
 	}
-	if listCalls < 2 {
-		t.Fatalf("expected at least 2 list pages, got %d", listCalls)
+}
+
+func TestCreateTokenFailsWhenResponseMissingID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && r.URL.Path == "/api/token/" {
+			_, _ = w.Write([]byte(`{"success":true,"message":"","data":null}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	client := newapi.NewClient(server.URL, "admin-token", 1)
+	_, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{UserID: 2, Name: "tokenjoy:x"})
+	if err == nil || !strings.Contains(err.Error(), "missing id") {
+		t.Fatalf("expected missing id error, got %v", err)
+	}
+}
+
+func TestCreateTokenFailsAndDeletesOnOwnerMismatch(t *testing.T) {
+	t.Parallel()
+
+	var deletedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/token/":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"success": true,
+				"data":    map[string]any{"id": 55, "user_id": 1, "name": "tokenjoy:x", "key": "sk-wrong"},
+			})
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/token/"):
+			deletedPath = r.URL.Path
+			_, _ = w.Write([]byte(`{"success":true}`))
+		default:
+			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := newapi.NewClient(server.URL, "admin-token", 1)
+	_, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{UserID: 2, Name: "tokenjoy:x"})
+	if err == nil || !strings.Contains(err.Error(), "owner mismatch") {
+		t.Fatalf("expected owner mismatch, got %v", err)
+	}
+	if deletedPath != "/api/token/55" {
+		t.Fatalf("expected delete /api/token/55, got %q", deletedPath)
 	}
 }
 
 func TestCreateTokenRegeneratesWhenKeyMasked(t *testing.T) {
 	t.Parallel()
 
-	const tokenName = "tokenjoy:plk-masked"
 	var regenerateCalled bool
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/token/":
-			_, _ = w.Write([]byte(`{"success":true,"message":"","data":null}`))
-		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/token/"):
-			raw, _ := json.Marshal(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"success": true,
-				"data": map[string]any{
-					"page": 0, "page_size": 10, "total": 1,
-					"items": []map[string]any{{"id": 7, "name": tokenName, "key": "sk-****"}},
-				},
+				"data":    map[string]any{"id": 7, "user_id": 2, "name": "tokenjoy:plk-masked", "key": "sk-****"},
 			})
-			_, _ = w.Write(raw)
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/regenerate"):
 			regenerateCalled = true
-			raw, _ := json.Marshal(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"success": true,
-				"data":    map[string]any{"id": 7, "name": tokenName, "key": "sk-full"},
+				"data":    map[string]any{"id": 7, "user_id": 2, "name": "tokenjoy:plk-masked", "key": "sk-full"},
 			})
-			_, _ = w.Write(raw)
 		default:
-			http.NotFound(w, r)
+			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 	}))
 	defer server.Close()
 
 	client := newapi.NewClient(server.URL, "admin-token", 1)
-	token, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{Name: tokenName})
+	token, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{
+		UserID: 2, Name: "tokenjoy:plk-masked",
+	})
 	if err != nil {
 		t.Fatalf("CreateToken: %v", err)
 	}
