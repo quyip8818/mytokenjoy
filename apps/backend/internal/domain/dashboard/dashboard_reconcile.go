@@ -85,25 +85,10 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 func expectedBuckets(entries []types.UsageLedgerEntry) map[bucketKey]types.UsageBucketRow {
 	out := make(map[bucketKey]types.UsageBucketRow)
 	for _, entry := range entries {
-		var memberID string
-		if entry.MemberID != nil {
-			memberID = *entry.MemberID
-		}
-		key := bucketKey{
-			BucketStart:  entry.OccurredAt.UTC().Truncate(time.Hour),
-			DepartmentID: entry.DepartmentID,
-			MemberID:     memberID,
-			Model:        entry.Model,
-		}
+		delta := bucketFromLedgerEntry(entry)
+		key := bucketKeyFromRow(delta)
 		row := out[key]
-		row.BucketStart = key.BucketStart
-		row.DepartmentID = key.DepartmentID
-		row.MemberID = key.MemberID
-		row.Model = key.Model
-		row.Cost += entry.Amount
-		row.CallCount++
-		row.InputTokens += entry.InputTokens
-		row.OutputTokens += entry.OutputTokens
+		mergeBucketDelta(&row, delta)
 		out[key] = row
 	}
 	return out
@@ -120,6 +105,7 @@ func bucketKeyFromRow(row types.UsageBucketRow) bucketKey {
 
 func bucketDrift(expected, actual types.UsageBucketRow) bool {
 	return !floatClose(expected.Cost, actual.Cost) ||
+		!floatClose(expected.DisplayCost, actual.DisplayCost) ||
 		expected.CallCount != actual.CallCount ||
 		expected.InputTokens != actual.InputTokens ||
 		expected.OutputTokens != actual.OutputTokens

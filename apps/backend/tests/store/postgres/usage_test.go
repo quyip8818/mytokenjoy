@@ -20,12 +20,14 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 		MemberID:     "m-usage-test",
 		Model:        "gpt-4o",
 		Cost:         1.5,
+		DisplayCost:  0.015,
 		CallCount:    1,
 	}
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
 	}
 	row.Cost = 2.5
+	row.DisplayCost = 0.025
 	row.CallCount = 1
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
@@ -38,17 +40,17 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	}
 	defer conn.Close(ctx)
 
-	var cost float64
+	var cost, displayCost float64
 	var callCount int
 	err = conn.QueryRow(ctx, `
-		SELECT cost, call_count FROM usage_buckets
+		SELECT cost, display_cost, call_count FROM usage_buckets
 		WHERE bucket_start = $1 AND department_id = $2 AND member_id = $3 AND model = $4
-	`, bucket, row.DepartmentID, row.MemberID, row.Model).Scan(&cost, &callCount)
+	`, bucket, row.DepartmentID, row.MemberID, row.Model).Scan(&cost, &displayCost, &callCount)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cost != 4.0 || callCount != 2 {
-		t.Fatalf("expected accumulated usage 4.0/2 calls, got cost=%v calls=%d", cost, callCount)
+	if cost != 4.0 || displayCost != 0.04 || callCount != 2 {
+		t.Fatalf("expected accumulated usage 4.0/0.04/2 calls, got cost=%v display=%v calls=%d", cost, displayCost, callCount)
 	}
 }
 
@@ -59,7 +61,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: "dept-series", MemberID: "m-1",
-		Model: "gpt-4o", Cost: 5, CallCount: 2,
+		Model: "gpt-4o", Cost: 5000, DisplayCost: 5, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -74,6 +76,6 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(points) != 1 || points[0].Cost != 5 {
-		t.Fatalf("expected one day point with cost 5, got %+v", points)
+		t.Fatalf("expected one day point with display cost 5, got %+v", points)
 	}
 }

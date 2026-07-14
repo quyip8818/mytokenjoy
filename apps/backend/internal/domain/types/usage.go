@@ -55,11 +55,15 @@ type UsageBucketRow struct {
 	DepartmentID string
 	MemberID     string
 	Model        string
-	Cost         float64
+	Cost         float64 // point
+	DisplayCost  float64 // display currency (Σ ledger.display_amount)
 	CallCount    int
 	InputTokens  int64
 	OutputTokens int64
 }
+
+// Spend is the display-currency amount for dashboard / series APIs.
+func (r UsageBucketRow) Spend() float64 { return r.DisplayCost }
 
 type UsageSeriesQuery struct {
 	Granularity  string
@@ -113,18 +117,26 @@ type UsageAggregateRow struct {
 	DepartmentID string
 	MemberID     string
 	Model        string
-	Cost         float64
+	Cost         float64 // point
+	DisplayCost  float64 // display currency
 	CallCount    int
 	InputTokens  int64
 	OutputTokens int64
 }
 
+// Spend is the display-currency amount for dashboard / series APIs.
+func (r UsageAggregateRow) Spend() float64 { return r.DisplayCost }
+
 type UsageSummaryTotals struct {
-	Cost         float64
+	Cost         float64 // point
+	DisplayCost  float64 // display currency
 	CallCount    int
 	InputTokens  int64
 	OutputTokens int64
 }
+
+// Spend is the display-currency amount for dashboard / series APIs.
+func (t UsageSummaryTotals) Spend() float64 { return t.DisplayCost }
 
 type NotificationLogEntry struct {
 	ID        string

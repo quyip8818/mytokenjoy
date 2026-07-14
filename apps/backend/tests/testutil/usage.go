@@ -19,6 +19,7 @@ type UsageBucketOpts struct {
 	MemberID     string
 	Model        string
 	Cost         float64
+	DisplayCost  float64
 	CallCount    int
 }
 
@@ -29,6 +30,7 @@ func DefaultUsageBucketOpts() UsageBucketOpts {
 		MemberID:     contract.IDMember1,
 		Model:        "gpt-4o",
 		Cost:         1,
+		DisplayCost:  1,
 		CallCount:    1,
 	}
 }
@@ -51,9 +53,12 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 	if opts.CallCount == 0 {
 		opts.CallCount = def.CallCount
 	}
+	if opts.DisplayCost == 0 && opts.Cost != 0 {
+		opts.DisplayCost = opts.Cost
+	}
 	if err := st.Usage().UpsertBucket(Ctx(), types.UsageBucketRow{
 		BucketStart: opts.BucketStart, DepartmentID: opts.DepartmentID, MemberID: opts.MemberID,
-		Model: opts.Model, Cost: opts.Cost, CallCount: opts.CallCount,
+		Model: opts.Model, Cost: opts.Cost, DisplayCost: opts.DisplayCost, CallCount: opts.CallCount,
 	}); err != nil {
 		t.Fatal(err)
 	}

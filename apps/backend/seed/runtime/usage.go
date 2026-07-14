@@ -112,7 +112,7 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 		rows = append(rows, types.UsageBucketRow{
 			BucketStart:  time.Date(lastMonth.Year(), lastMonth.Month(), e.day, e.hour, 0, 0, 0, time.UTC),
 			DepartmentID: e.dept, MemberID: e.member, Model: e.model,
-			Cost: e.cost * scale, CallCount: e.calls,
+			Cost: e.cost * scale, DisplayCost: e.cost * scale, CallCount: e.calls,
 		})
 	}
 
@@ -123,7 +123,7 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 		rows = append(rows, types.UsageBucketRow{
 			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), e.day, e.hour, 0, 0, 0, time.UTC),
 			DepartmentID: e.dept, MemberID: e.member, Model: e.model,
-			Cost: e.cost * scale, CallCount: e.calls,
+			Cost: e.cost * scale, DisplayCost: e.cost * scale, CallCount: e.calls,
 		})
 	}
 

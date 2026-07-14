@@ -3,7 +3,6 @@ package dashboard
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -90,20 +89,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 }
 
 func upsertDashboardBucket(ctx context.Context, usage store.UsageRepository, entry types.UsageLedgerEntry) error {
-	var memberID string
-	if entry.MemberID != nil {
-		memberID = *entry.MemberID
-	}
-	return usage.UpsertBucket(ctx, types.UsageBucketRow{
-		BucketStart:  entry.OccurredAt.UTC().Truncate(time.Hour),
-		DepartmentID: entry.DepartmentID,
-		MemberID:     memberID,
-		Model:        entry.Model,
-		Cost:         entry.Amount,
-		CallCount:    1,
-		InputTokens:  entry.InputTokens,
-		OutputTokens: entry.OutputTokens,
-	})
+	return usage.UpsertBucket(ctx, bucketFromLedgerEntry(entry))
 }
 
 func companyContextFromStore(co store.Company) company.Context {

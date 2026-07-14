@@ -51,7 +51,24 @@ func TestDashboardProjectorUpsertBucketFromLedger(t *testing.T) {
 	if len(points) != 1 {
 		t.Fatalf("expected one bucket, got %+v", points)
 	}
-	if points[0].Cost <= 0 {
-		t.Fatalf("expected positive bucket cost, got %f", points[0].Cost)
+	if points[0].Cost != entries[0].DisplayAmount {
+		t.Fatalf("series cost should be display_amount %f, got %f", entries[0].DisplayAmount, points[0].Cost)
+	}
+	buckets, err := st.Usage().ListBucketsSince(ctx, occurred.Truncate(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(buckets) == 0 {
+		t.Fatal("expected usage bucket row")
+	}
+	found := false
+	for _, b := range buckets {
+		if b.Model == entries[0].Model && b.Cost == entries[0].Amount && b.DisplayCost == entries[0].DisplayAmount {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected bucket with cost=%f display_cost=%f, got %+v", entries[0].Amount, entries[0].DisplayAmount, buckets)
 	}
 }

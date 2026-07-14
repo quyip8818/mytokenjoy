@@ -54,6 +54,7 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 		MemberID:     memberID,
 		Model:        entry.Model,
 		Cost:         0.01,
+		DisplayCost:  0,
 		CallCount:    1,
 		InputTokens:  1,
 		OutputTokens: 1,
@@ -66,23 +67,28 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	points, err := st.Usage().QuerySeries(ctx, types.UsageSeriesQuery{
-		Granularity: types.UsageGranularityHour,
-		Start:       bucketStart,
-		End:         bucketStart.Add(time.Hour),
-		GroupBy:     types.UsageGroupByNone,
-		Timezone:    types.UsageDefaultTimezone,
-	})
+	buckets, err := st.Usage().ListBucketsSince(ctx, bucketStart)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(points) != 1 {
-		t.Fatalf("expected one bucket after reconcile, got %+v", points)
+	var repaired *types.UsageBucketRow
+	for i := range buckets {
+		row := buckets[i]
+		if row.BucketStart.Equal(bucketStart) && row.DepartmentID == entry.DepartmentID && row.Model == entry.Model {
+			repaired = &row
+			break
+		}
 	}
-	if points[0].Cost <= 0.01 {
-		t.Fatalf("expected reconcile to repair bucket cost above drift seed, got %f", points[0].Cost)
+	if repaired == nil {
+		t.Fatalf("expected repaired bucket, got %+v", buckets)
 	}
-	if points[0].CallCount != 1 {
-		t.Fatalf("expected call count 1 after reconcile, got %d", points[0].CallCount)
+	if repaired.Cost != entry.Amount {
+		t.Fatalf("expected point cost %f after reconcile, got %f", entry.Amount, repaired.Cost)
+	}
+	if repaired.DisplayCost != entry.DisplayAmount {
+		t.Fatalf("expected display cost %f after reconcile, got %f", entry.DisplayAmount, repaired.DisplayCost)
+	}
+	if repaired.CallCount != 1 {
+		t.Fatalf("expected call count 1 after reconcile, got %d", repaired.CallCount)
 	}
 }

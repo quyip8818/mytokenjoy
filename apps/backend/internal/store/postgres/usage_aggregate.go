@@ -78,6 +78,7 @@ func aggregateUsageRows(
 		existing.MemberID = key.MemberID
 		existing.Model = key.Model
 		existing.Cost += row.Cost
+		existing.DisplayCost += row.DisplayCost
 		existing.CallCount += row.CallCount
 		existing.InputTokens += row.InputTokens
 		existing.OutputTokens += row.OutputTokens
@@ -96,7 +97,7 @@ func aggregateToSeriesPoint(row types.UsageAggregateRow) types.UsageSeriesPoint 
 		DepartmentID: row.DepartmentID,
 		MemberID:     row.MemberID,
 		Model:        row.Model,
-		Cost:         row.Cost,
+		Cost:         row.Spend(),
 		CallCount:    row.CallCount,
 		InputTokens:  row.InputTokens,
 		OutputTokens: row.OutputTokens,
@@ -125,6 +126,7 @@ func summaryUsageTotals(rows []types.UsageBucketRow, start, end time.Time) types
 			continue
 		}
 		totals.Cost += row.Cost
+		totals.DisplayCost += row.DisplayCost
 		totals.CallCount += row.CallCount
 		totals.InputTokens += row.InputTokens
 		totals.OutputTokens += row.OutputTokens
@@ -137,7 +139,7 @@ func limitUsageByCost(rows []types.UsageAggregateRow, limit int) []types.UsageAg
 		return rows
 	}
 	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].Cost > rows[j].Cost
+		return rows[i].Spend() > rows[j].Spend()
 	})
 	return rows[:limit]
 }
@@ -158,7 +160,7 @@ func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[st
 		if costs[row.DepartmentID] == nil {
 			costs[row.DepartmentID] = make(map[string]float64)
 		}
-		costs[row.DepartmentID][row.Model] += row.Cost
+		costs[row.DepartmentID][row.Model] += row.Spend()
 	}
 	result := make(map[string]string, len(deptIDs))
 	for deptID, models := range costs {

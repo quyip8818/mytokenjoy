@@ -108,14 +108,14 @@ func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardV
 	return DashboardView{
 		Account: AccountStats{
 			BudgetRemaining: budgetSummary.Remaining,
-			TotalSpent:      summary.Cost,
+			TotalSpent:      summary.Spend(),
 		},
 		UsageStats: UsageStats{
 			RequestCount: summary.CallCount,
 			TotalCount:   summary.CallCount,
 		},
 		ResourceConsumption: ResourceConsumption{
-			TotalCost:   summary.Cost,
+			TotalCost:   summary.Spend(),
 			TotalTokens: summary.InputTokens + summary.OutputTokens,
 		},
 		Performance: PerformanceStats{

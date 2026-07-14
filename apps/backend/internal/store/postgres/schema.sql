@@ -504,6 +504,7 @@ CREATE TABLE IF NOT EXISTS usage_buckets (
     member_scope  TEXT GENERATED ALWAYS AS (COALESCE(member_id, '')) STORED,
     model         TEXT NOT NULL,
     cost          NUMERIC(28, 10) NOT NULL DEFAULT 0,
+    display_cost  NUMERIC(28, 10) NOT NULL DEFAULT 0,
     call_count    INT NOT NULL DEFAULT 0,
     input_tokens  BIGINT NOT NULL DEFAULT 0,
     output_tokens BIGINT NOT NULL DEFAULT 0,

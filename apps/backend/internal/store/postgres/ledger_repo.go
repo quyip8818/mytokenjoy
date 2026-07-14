@@ -64,7 +64,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	where, args := buildLedgerSeriesWhere(companyID, q)
 	query := fmt.Sprintf(`
 		SELECT occurred_at, department_id, COALESCE(member_id, ''), model,
-			amount, input_tokens, output_tokens
+			amount, display_amount, input_tokens, output_tokens
 		FROM usage_ledger
 		WHERE %s
 	`, where)
@@ -83,16 +83,17 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	for rows.Next() {
 		var occurredAt time.Time
 		var row types.UsageBucketRow
-		var amount float64
+		var amount, displayAmount float64
 		var inputTokens, outputTokens int64
 		if err := rows.Scan(
 			&occurredAt, &row.DepartmentID, &row.MemberID, &row.Model,
-			&amount, &inputTokens, &outputTokens,
+			&amount, &displayAmount, &inputTokens, &outputTokens,
 		); err != nil {
 			return nil, err
 		}
 		row.BucketStart = truncateUsageBucket(occurredAt, types.UsageGranularityMinute, loc)
 		row.Cost = amount
+		row.DisplayCost = displayAmount
 		row.CallCount = 1
 		row.InputTokens = inputTokens
 		row.OutputTokens = outputTokens
