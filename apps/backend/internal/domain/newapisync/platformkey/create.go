@@ -94,8 +94,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 	}
 
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
-	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
-	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
+	effectiveIDs, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
 	mapping := store.PlatformKeyMapping{
 		CompanyID:     company.CompanyID(ctx),
 		PlatformKeyID: key.ID,

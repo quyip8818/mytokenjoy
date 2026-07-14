@@ -6,6 +6,7 @@ import (
 
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -16,16 +17,15 @@ type Prechecker interface {
 // PrecheckOpts controls optional gateway precheck skips.
 type PrecheckOpts struct {
 	SkipModelCheck     bool // /v1/models listing
-	SkipModelAllowlist bool // local dev-only catalog models
+	SkipModelAllowlist bool // modelcatalog.IsLocalOnlyCallType when allowDev
 }
 
 // PrecheckForRequest builds precheck options from the gateway request context.
 func PrecheckForRequest(path, model string, allowDev bool) PrecheckOpts {
-	opts := PrecheckOpts{SkipModelCheck: path == "/v1/models"}
-	if allowDev && isDevOnlyModel(model) {
-		opts.SkipModelAllowlist = true
+	return PrecheckOpts{
+		SkipModelCheck:     path == "/v1/models",
+		SkipModelAllowlist: allowDev && modelcatalog.IsLocalOnlyCallType(model),
 	}
-	return opts
 }
 
 type PrecheckService struct {

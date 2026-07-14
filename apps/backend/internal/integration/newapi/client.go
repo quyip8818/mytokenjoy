@@ -36,7 +36,7 @@ type Client struct {
 
 func NewClient(baseURL, adminToken string, adminUserID int64) *Client {
 	return &Client{
-		baseURL:     strings.TrimRight(baseURL, "/"),
+		baseURL:     strings.TrimRight(strings.TrimSpace(baseURL), "/"),
 		adminToken:  adminToken,
 		adminUserID: adminUserID,
 		httpClient:  &http.Client{Timeout: 30 * time.Second},

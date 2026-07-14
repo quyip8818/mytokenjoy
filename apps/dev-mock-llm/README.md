@@ -32,7 +32,7 @@ pnpm start:dev-mock   # http://127.0.0.1:8765
 Docker 内 NewAPI 指向宿主机 mock：
 
 - 模型：`local-test-model`
-- Base URL：`http://host.docker.internal:8765/v1`
+- Base URL：`http://host.docker.internal:8765`（经 `baseurl.Origin` / `verify_http_origin` 规范化）
 
 ```bash
 apps/newapi/scripts/setup-dev-mock-channel.sh

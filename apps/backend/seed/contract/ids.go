@@ -1,5 +1,7 @@
 package contract
 
+import "github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+
 const (
 	TokenJoyCompanyID int64 = 1
 	LocalCompanyID    int64 = 2
@@ -8,7 +10,7 @@ const (
 
 	IDModelLocalTest int64 = 1
 
-	ProdCatalogModelIDStart int64 = 100
+	ProdCatalogModelIDStart int64 = modelcatalog.ProdCatalogModelIDStart
 	IDModel1                int64 = ProdCatalogModelIDStart // gpt-4o
 	IDModel2                int64 = 101                     // gpt-4o-mini
 	IDModel3                int64 = 102                     // claude-opus-4-8
@@ -39,13 +41,13 @@ const (
 
 // ModelTypeToID maps demo seed model types to catalog model_id values.
 var ModelTypeToID = map[string]int64{
-	"local-test-model":  IDModelLocalTest,
-	"gpt-4o":            IDModel1,
-	"gpt-4o-mini":       IDModel2,
-	"claude-opus-4-8":   IDModel3,
-	"claude-sonnet-4-6": IDModel4,
-	"deepseek-v3":       IDModel5,
-	"deepseek-r1":       IDModel6,
-	"qwen-max":          IDModel7,
-	"qwen-plus":         IDModel8,
+	modelcatalog.DevCallTypeLocalTest: IDModelLocalTest,
+	"gpt-4o":                          IDModel1,
+	"gpt-4o-mini":                     IDModel2,
+	"claude-opus-4-8":                 IDModel3,
+	"claude-sonnet-4-6":               IDModel4,
+	"deepseek-v3":                     IDModel5,
+	"deepseek-r1":                     IDModel6,
+	"qwen-max":                        IDModel7,
+	"qwen-plus":                       IDModel8,
 }

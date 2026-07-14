@@ -2,13 +2,14 @@ package snapshot
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
 func buildModels() []types.ModelInfo {
-	devMockEndpoint := "http://127.0.0.1:8765/v1"
+	devMockEndpoint := "http://127.0.0.1:8765"
 	return []types.ModelInfo{
-		{ModelID: contract.IDModelLocalTest, CompanyID: contract.TokenJoyCompanyID, Provider: types.ProviderCustom, Type: "local-test-model", Name: "Local Test Model", Description: "Local upstream for full-path ingest testing; echoes requested usage", Endpoint: &devMockEndpoint, InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat"}},
+		{ModelID: contract.IDModelLocalTest, CompanyID: contract.TokenJoyCompanyID, Provider: types.ProviderCustom, Type: modelcatalog.DevCallTypeLocalTest, Name: "Local Test Model", Description: "Local upstream for full-path ingest testing; echoes requested usage", Endpoint: &devMockEndpoint, InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat"}},
 		{ModelID: contract.IDModel1, CompanyID: contract.TokenJoyCompanyID, Provider: "openai", Type: "gpt-4o", Name: "GPT-4o", Description: "OpenAI flagship multimodal model", InputPrice: seedPoints(2.5), OutputPrice: seedPoints(10), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat", "vision", "function_calling"}},
 		{ModelID: contract.IDModel2, CompanyID: contract.TokenJoyCompanyID, Provider: "openai", Type: "gpt-4o-mini", Name: "GPT-4o Mini", Description: "Cost-efficient OpenAI model", InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat", "vision", "function_calling"}},
 		{ModelID: contract.IDModel3, CompanyID: contract.TokenJoyCompanyID, Provider: "anthropic", Type: "claude-opus-4-8", Name: "Claude Opus 4.8", Description: "Anthropic flagship model", InputPrice: seedPoints(15), OutputPrice: seedPoints(75), MaxContext: 1000000, Enabled: true, Capabilities: []string{"chat", "vision", "function_calling"}},

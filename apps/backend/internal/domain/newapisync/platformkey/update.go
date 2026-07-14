@@ -43,8 +43,7 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID s
 		return err
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
-	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
-	effectiveCallTypes := newapiunits.EffectiveCallTypes(models, effectiveIDs)
+	effectiveIDs, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
 	open, err := pkgbudget.OpenDepartmentPeriod(ctx, d.Store.Org().Nodes(), mapping.DepartmentID, d.Cfg.Clock())
 	if err != nil {
 		return err

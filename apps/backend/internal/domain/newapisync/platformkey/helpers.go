@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
@@ -68,4 +69,10 @@ func persistPlatformKeySecret(ctx context.Context, d syncdeps.Deps, platformKeyI
 		}
 	}
 	return fmt.Errorf("platform key not found: %s", platformKeyID)
+}
+
+func resolveModelLimits(d syncdeps.Deps, models []types.ModelInfo, keyWhitelist, deptAllowed []int64) (effectiveIDs []int64, callTypes []string) {
+	effectiveIDs = newapiunits.EffectiveWhitelistIDs(keyWhitelist, deptAllowed)
+	callTypes = modelcatalog.ModelLimitsCallTypes(models, effectiveIDs, d.Cfg.AllowsDevHTTPRoutes())
+	return effectiveIDs, callTypes
 }

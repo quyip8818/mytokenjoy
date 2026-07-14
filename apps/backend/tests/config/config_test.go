@@ -103,13 +103,26 @@ func TestProductionRequiresNewAPIEnabled(t *testing.T) {
 	}
 }
 
-func TestProductionRejectsNewAPIBaseURLWithPath(t *testing.T) {
+func TestProductionNormalizesNewAPIBaseURLV1Suffix(t *testing.T) {
 	testutil.ApplyProductionEnv(t)
 	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000/v1")
 
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("expected /v1 suffix to normalize, got %v", err)
+	}
+	if cfg.NewAPIBaseURL != "http://127.0.0.1:3000" {
+		t.Fatalf("expected origin without /v1, got %q", cfg.NewAPIBaseURL)
+	}
+}
+
+func TestProductionRejectsNewAPIBaseURLWithNonRootPath(t *testing.T) {
+	testutil.ApplyProductionEnv(t)
+	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000/api")
+
 	_, err := config.Load()
 	if err == nil {
-		t.Fatal("expected error when NEW_API_BASE_URL includes a path")
+		t.Fatal("expected error when NEW_API_BASE_URL includes a non-root path")
 	}
 	if !strings.Contains(err.Error(), "path") {
 		t.Fatalf("expected path error, got %v", err)

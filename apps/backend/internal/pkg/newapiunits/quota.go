@@ -110,10 +110,6 @@ func EffectiveWhitelistIDs(keyWhitelist, deptAllowed []int64) []int64 {
 	return out
 }
 
-func EffectiveCallTypes(models []types.ModelInfo, allowedIDs []int64) []string {
-	return modelcatalog.CallTypesForIDs(models, allowedIDs)
-}
-
 func NewAPIGroupForDepartment(departmentID string) string {
 	return fmt.Sprintf("%s%s", common.NewAPIGroupPrefix, departmentID)
 }

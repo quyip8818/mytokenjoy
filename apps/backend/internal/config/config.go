@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/tokenjoy/backend/internal/pkg/baseurl"
 )
 
 type Config struct {
@@ -89,10 +90,25 @@ func Load() (Config, error) {
 	}
 	cfg.BootstrapMode = strings.ToLower(strings.TrimSpace(cfg.BootstrapMode))
 	cfg.DeployEnv = strings.ToLower(strings.TrimSpace(cfg.DeployEnv))
+	if err := cfg.normalize(); err != nil {
+		return Config{}, err
+	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+func (c *Config) normalize() error {
+	if !c.NewAPIEnabled || strings.TrimSpace(c.NewAPIBaseURL) == "" {
+		return nil
+	}
+	origin, err := baseurl.Origin(c.NewAPIBaseURL)
+	if err != nil {
+		return fmt.Errorf("NEW_API_BASE_URL: %w", err)
+	}
+	c.NewAPIBaseURL = origin
+	return nil
 }
 
 func (c Config) IngestEnabled() bool {

@@ -1,7 +1,13 @@
 # Shared helpers for verify:gate and verify:integration.
 # shellcheck shell=bash
 
-VERIFY_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_VERIFY_LIB_SRC="${BASH_SOURCE[0]:-}"
+if [[ -z "${_VERIFY_LIB_SRC}" && -n "${ZSH_VERSION:-}" ]]; then
+  # zsh does not set BASH_SOURCE when sourcing
+  # shellcheck disable=SC2296
+  _VERIFY_LIB_SRC="${(%):-%x}"
+fi
+VERIFY_SCRIPTS_DIR="$(cd "$(dirname "${_VERIFY_LIB_SRC}")" && pwd)"
 VERIFY_ROOT="$(cd "${VERIFY_SCRIPTS_DIR}/../../.." && pwd)"
 VERIFY_COMPOSE_FILE="${VERIFY_ROOT}/apps/newapi/docker-compose.yml"
 
@@ -85,6 +91,11 @@ verify_wait_newapi() {
   curl -fsS "${NEWAPI_URL}/api/status" >/dev/null || verify_fail "NewAPI /api/status unreachable"
 }
 
+# Mirror of apps/backend/internal/pkg/baseurl.Origin
+verify_http_origin() {
+  python3 "${VERIFY_SCRIPTS_DIR}/lib/newapi_admin.py" origin "${1:-}"
+}
+
 # Register a TokenJoy department group in NewAPI options so tokens/channels can use it.
 verify_ensure_newapi_group() {
   local group="$1"
@@ -92,58 +103,18 @@ verify_ensure_newapi_group() {
   if [[ -z "${NEW_API_ADMIN_TOKEN}" || -z "${group}" ]]; then
     return 0
   fi
-  python3 - "${group}" "${label}" <<'PY'
-import json
-import os
-import subprocess
-import sys
-import urllib.request
+  python3 "${VERIFY_SCRIPTS_DIR}/lib/newapi_admin.py" ensure-group "${group}" "${label}"
+}
 
-group, label = sys.argv[1], sys.argv[2]
-base = os.environ.get("NEWAPI_URL", "http://localhost:3000").rstrip("/")
-token = os.environ["NEW_API_ADMIN_TOKEN"]
-user_id = os.environ.get("NEW_API_ADMIN_USER_ID", "1")
-
-def request(method: str, path: str, body: dict | None = None) -> dict:
-    data = None
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "New-Api-User": user_id,
-    }
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(f"{base}{path}", data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req) as resp:
-        return json.load(resp)
-
-options = {item["key"]: item.get("value", "") for item in request("GET", "/api/option/").get("data", [])}
-
-def merge_map(key: str, group: str, label: str) -> str | None:
-    raw = options.get(key, "") or "{}"
-    try:
-        data = json.loads(raw) if raw else {}
-    except json.JSONDecodeError:
-        data = {}
-    if not isinstance(data, dict) or group in data:
-        return None
-    data[group] = label if key == "UserUsableGroups" else 1
-    return json.dumps(data, ensure_ascii=False)
-
-updates = []
-for key in ("UserUsableGroups", "GroupRatio"):
-    merged = merge_map(key, group, label)
-    if merged is not None:
-        updates.append({"key": key, "value": merged})
-
-if not updates:
-    print(f"NewAPI group already registered: {group}")
-    sys.exit(0)
-
-for item in updates:
-    request("PUT", "/api/option/", item)
-print(f"Registered NewAPI group: {group}")
-PY
+# Seed ModelRatio/CompletionRatio for local-test-model (aligned with gpt-4o-mini / TokenJoy seed).
+verify_ensure_local_test_model_pricing() {
+  local model="${1:-local-test-model}"
+  local model_ratio="${2:-0.075}"
+  local completion_ratio="${3:-4}"
+  if [[ -z "${NEW_API_ADMIN_TOKEN}" || -z "${model}" ]]; then
+    return 0
+  fi
+  python3 "${VERIFY_SCRIPTS_DIR}/lib/newapi_admin.py" ensure-model-pricing "${model}" "${model_ratio}" "${completion_ratio}"
 }
 
 verify_require_backend_health() {

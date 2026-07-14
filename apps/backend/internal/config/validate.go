@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"net/url"
 	"strings"
 )
 
@@ -84,9 +83,6 @@ func (c Config) validateNewAPI() error {
 	if strings.TrimSpace(c.NewAPIBaseURL) == "" {
 		return fmt.Errorf("NEW_API_BASE_URL is required when NEW_API_ENABLED=true")
 	}
-	if err := validateNewAPIBaseURL(c.NewAPIBaseURL); err != nil {
-		return err
-	}
 	if strings.TrimSpace(c.NewAPIAdminToken) == "" {
 		return fmt.Errorf("NEW_API_ADMIN_TOKEN is required when NEW_API_ENABLED=true")
 	}
@@ -105,15 +101,4 @@ func validateDataSourceCredentialKey(raw string) error {
 		return nil
 	}
 	return fmt.Errorf("DATA_SOURCE_CREDENTIAL_KEY is invalid")
-}
-
-func validateNewAPIBaseURL(raw string) error {
-	parsed, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return fmt.Errorf("NEW_API_BASE_URL is invalid: %w", err)
-	}
-	if parsed.Path != "" && parsed.Path != "/" {
-		return fmt.Errorf("NEW_API_BASE_URL must not include a path")
-	}
-	return nil
 }

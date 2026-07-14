@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -28,7 +28,7 @@ type gatewayService struct {
 }
 
 func NewGatewayService(cfg config.Config, precheck Prechecker) (GatewayService, error) {
-	target, err := url.Parse(strings.TrimRight(cfg.NewAPIBaseURL, "/"))
+	target, err := url.Parse(cfg.NewAPIBaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	model := parseRequestModel(body)
-	if !g.allowDevModel && isDevOnlyModel(model) {
+	if !g.allowDevModel && modelcatalog.IsLocalOnlyCallType(model) {
 		logGatewayRejection(r.URL.Path, model, "dev-only model outside local environment")
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
@@ -124,14 +124,6 @@ var allowedGatewayPaths = map[string]struct{}{
 func isAllowedGatewayPath(path string) bool {
 	_, ok := allowedGatewayPaths[path]
 	return ok
-}
-
-// DevOnlyModel is the catalog model backed by the local dev-mock upstream
-// (see apps/dev-mock-llm). It is only reachable when DEPLOY_ENV=local.
-const DevOnlyModel = "local-test-model"
-
-func isDevOnlyModel(model string) bool {
-	return model == DevOnlyModel
 }
 
 var _ GatewayService = (*gatewayService)(nil)
