@@ -17,9 +17,6 @@ func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) e
 	if _, ok := company.FromContext(ctx); !ok {
 		ctx = company.DefaultContext(contract.DefaultCompanyID)
 	}
-	if err := HealUsageBucketDisplayCosts(ctx, st); err != nil {
-		return fmt.Errorf("heal usage bucket display_cost: %w", err)
-	}
 	empty, err := usageBucketsEmpty(ctx, st)
 	if err != nil {
 		return fmt.Errorf("check usage buckets: %w", err)
@@ -30,47 +27,6 @@ func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) e
 	for _, row := range buildUsageBuckets(cfg.SeedReferenceDate()) {
 		if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 			return fmt.Errorf("seed usage bucket: %w", err)
-		}
-	}
-	return nil
-}
-
-// HealUsageBucketDisplayCosts fixes buckets where display_cost was wrongly
-// copied from point cost (ratio ≈ 1). Correct spend is cost / PPU.
-func HealUsageBucketDisplayCosts(ctx context.Context, st store.Store) error {
-	if _, ok := company.FromContext(ctx); !ok {
-		ctx = company.DefaultContext(contract.DefaultCompanyID)
-	}
-	totals, err := st.Usage().QuerySummary(ctx, types.UsageAggregateQuery{
-		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-		End:      time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
-		Timezone: types.UsageDefaultTimezone,
-	})
-	if err != nil {
-		return err
-	}
-	if totals.Cost <= 0 || totals.DisplayCost <= 0 {
-		return nil
-	}
-	if totals.DisplayCost/totals.Cost < 0.05 {
-		return nil
-	}
-	ppu := float64(common.DefaultPointsPerUnit)
-	rows, err := st.Usage().QueryFilteredBuckets(ctx, types.UsageAggregateQuery{
-		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-		End:      time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
-		Timezone: types.UsageDefaultTimezone,
-	})
-	if err != nil {
-		return err
-	}
-	for _, row := range rows {
-		if row.Cost <= 0 || row.DisplayCost/row.Cost < 0.05 {
-			continue
-		}
-		row.DisplayCost = row.Cost / ppu
-		if err := st.Usage().SetBucket(ctx, row); err != nil {
-			return err
 		}
 	}
 	return nil
