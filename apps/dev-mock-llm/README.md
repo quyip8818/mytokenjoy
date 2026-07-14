@@ -33,6 +33,7 @@ Docker 内 NewAPI 指向宿主机 mock：
 
 - 模型：`local-test-model`
 - Base URL：`http://host.docker.internal:8765`（经 `baseurl.Origin` / `verify_http_origin` 规范化）
+- **必须**开启 channel `pass_through_body_enabled`：默认 relay 会丢掉非 DTO 字段，`dev_usage` 到不了本服务
 
 ```bash
 apps/newapi/scripts/setup-dev-mock-channel.sh

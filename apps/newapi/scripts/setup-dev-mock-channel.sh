@@ -11,7 +11,11 @@ GROUP="${DEV_MOCK_CHANNEL_GROUP:-dept-dept-3}"
 NAME="${DEV_MOCK_CHANNEL_NAME:-local-test-model}"
 CHANNEL_KEY="${DEV_MOCK_CHANNEL_KEY:-sk-local-test}"
 
-verify_info "local-test-model channel → ${BASE_URL} (group=${GROUP})"
+# NewAPI ChannelSettings (`setting` column). Pass-through keeps TokenJoy
+# `dev_usage` in the upstream body so dev-mock-llm can echo usage.
+CHANNEL_SETTING_JSON='{"pass_through_body_enabled":true}'
+
+verify_info "local-test-model channel → ${BASE_URL} (group=${GROUP}, pass_through_body=on)"
 
 if [[ -z "${NEW_API_ADMIN_TOKEN}" ]]; then
   cat <<EOF
@@ -22,6 +26,7 @@ NEW_API_ADMIN_TOKEN unset — create channel manually:
 2. NewAPI Admin → Channels → Add
    - Type: OpenAI · Name: ${NAME} · Models: ${MODEL}
    - Base URL: ${BASE_URL} · Key: ${CHANNEL_KEY} · Group: ${GROUP}
+   - Extra: enable Pass Through Body (pass_through_body_enabled)
 3. System Settings → Group & Model Pricing → set ModelRatio for ${MODEL}
 4. Abilities → Sync
 
@@ -60,6 +65,33 @@ for item in items:
 PY
 )
 
+channel_payload() {
+  local mode="$1"
+  python3 - "${mode}" "${existing_id:-}" "${NAME}" "${CHANNEL_KEY}" "${BASE_URL}" "${MODEL}" "${GROUP}" "${CHANNEL_SETTING_JSON}" <<'PY'
+import json
+import sys
+
+mode, existing_id, name, key, base_url, model, group, setting = sys.argv[1:9]
+channel = {
+    "type": 1,
+    "name": name,
+    "key": key,
+    "base_url": base_url,
+    "models": model,
+    "group": group,
+    "weight": 1,
+    "priority": 0,
+    "setting": setting,
+}
+if mode == "update":
+    channel["id"] = int(existing_id)
+    print(json.dumps(channel))
+else:
+    channel["status"] = 1
+    print(json.dumps({"mode": "single", "channel": channel}))
+PY
+}
+
 if [[ -n "${existing_id}" ]]; then
   # NewAPI UpdateChannel rejects bodies that include "status".
   code=$(curl -s -o "${resp}" -w "%{http_code}" \
@@ -67,20 +99,7 @@ if [[ -n "${existing_id}" ]]; then
     -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
     -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
     -H "Content-Type: application/json" \
-    -d "$(cat <<EOF
-{
-  "id": ${existing_id},
-  "type": 1,
-  "name": "${NAME}",
-  "key": "${CHANNEL_KEY}",
-  "base_url": "${BASE_URL}",
-  "models": "${MODEL}",
-  "group": "${GROUP}",
-  "weight": 1,
-  "priority": 0
-}
-EOF
-)")
+    -d "$(channel_payload update)")
   if [[ "${code}" != "200" ]] || [[ "$(verify_json_success "${resp}")" != "yes" ]]; then
     verify_fail "update channel HTTP ${code}: $(cat "${resp}")"
   fi
@@ -91,23 +110,7 @@ else
     -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
     -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
     -H "Content-Type: application/json" \
-    -d "$(cat <<EOF
-{
-  "mode": "single",
-  "channel": {
-    "type": 1,
-    "name": "${NAME}",
-    "key": "${CHANNEL_KEY}",
-    "base_url": "${BASE_URL}",
-    "models": "${MODEL}",
-    "group": "${GROUP}",
-    "status": 1,
-    "weight": 1,
-    "priority": 0
-  }
-}
-EOF
-)")
+    -d "$(channel_payload create)")
   if [[ "${code}" != "200" ]] || [[ "$(verify_json_success "${resp}")" != "yes" ]]; then
     verify_fail "create channel HTTP ${code}: $(cat "${resp}")"
   fi
