@@ -33,8 +33,5 @@ func (w *NewAPISyncWorker) Work(ctx context.Context, job *river.Job[jobs.NewAPIS
 	default:
 		return river.JobCancel(fmt.Errorf("unknown newapi sync sub kind: %s", job.Args.SubKind))
 	}
-	if err != nil && outbox.IsPermanentOutboxError(err) {
-		return river.JobCancel(err)
-	}
-	return err
+	return cancelIfNonRetryable(err)
 }

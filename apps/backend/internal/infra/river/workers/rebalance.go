@@ -26,7 +26,7 @@ func NewRebalanceWorker(rebalance domainbudget.Rebalancer, st store.Store, cfg c
 func (w *RebalanceWorker) Work(ctx context.Context, job *river.Job[jobs.RebalanceArgs]) error {
 	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
 	if err := w.rebalance.ProcessAxis(entryCtx, job.Args.AxisKind, job.Args.AxisID); err != nil {
-		return err
+		return cancelIfNonRetryable(err)
 	}
 	if job.Args.AxisKind != store.RebalanceAxisCompany {
 		return nil

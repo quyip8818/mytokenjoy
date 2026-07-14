@@ -20,5 +20,5 @@ func NewOverrunWorker(overrun domainbudget.OverrunProcessor) *OverrunWorker {
 
 func (w *OverrunWorker) Work(ctx context.Context, job *river.Job[jobs.OverrunArgs]) error {
 	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
-	return w.overrun.ProcessOverrunPayload(entryCtx, job.Args.Payload)
+	return cancelIfNonRetryable(w.overrun.ProcessOverrunPayload(entryCtx, job.Args.Payload))
 }

@@ -167,12 +167,15 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 ### 6.1 `wallet_sync`
 
-- 比较 DB `BalancePoint` 与 NewAPI 可用 quota，正/负漂移调用 `TopUp`
+- 读权威 `users.quota`（`FreshNewAPIUnits`）与 `wallet_remain` → `ToNewAPIUnits` → `QuotaDelta` → `TopUp`
 - 公司无 `NewAPIWalletUserID` → `billing.ErrWalletNotConfigured` → `river.JobCancel`
+- NewAPI / PG `bigint out of range`（SQLSTATE 22003）、缺 `newapi_wallet_user_id` 等配置错误 → `IsNonRetryableNewAPIError` → `JobCancel`（rebalance / newapi_sync / overrun 同策略）
 
 ### 6.2 `rebalance` / `overrun`
 
 - Args 带 `company_id` + axis / payload
+- rebalance 用 `AddSat` / `SubFloor0` 封顶：`wallet_remain` 换算单位 − 其它 key remain，防 int64 绕回过分配
+- platformkey create/update 封顶读 wallet：`FreshNewAPIUnits`
 - company 轴成功 → 写 `tenant_background_state.last_rebalanced_period`（`EnsureRow` 后 `SetLastRebalancedPeriod`）
 
 ### 6.3 `org_sync`

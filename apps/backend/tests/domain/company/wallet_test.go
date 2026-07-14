@@ -94,6 +94,45 @@ func TestWalletServiceClientError(t *testing.T) {
 	}
 }
 
+func TestWalletServiceFreshBypassesCache(t *testing.T) {
+	t.Parallel()
+	client := &stubQuotaClient{quota: 10000}
+	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	svc := company.NewWalletService(cfg, client)
+
+	if _, err := svc.AvailableNewAPIUnits(context.Background(), 1); err != nil {
+		t.Fatal(err)
+	}
+	client.mu.Lock()
+	client.quota = 42
+	client.mu.Unlock()
+	got, err := svc.FreshNewAPIUnits(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 42 {
+		t.Fatalf("expected fresh 42, got %d", got)
+	}
+	if client.callCount != 2 {
+		t.Fatalf("expected 2 backend calls, got %d", client.callCount)
+	}
+}
+
+func TestWalletServiceInvalidate(t *testing.T) {
+	t.Parallel()
+	client := &stubQuotaClient{quota: 10000}
+	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	svc := company.NewWalletService(cfg, client)
+
+	svc.AvailableNewAPIUnits(context.Background(), 1)
+	svc.InvalidateNewAPIUnits(1)
+	svc.AvailableNewAPIUnits(context.Background(), 1)
+
+	if client.callCount != 2 {
+		t.Errorf("expected 2 backend calls after invalidate, got %d", client.callCount)
+	}
+}
+
 func TestWalletServiceCacheExpires(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 5000}
@@ -108,6 +147,7 @@ func TestWalletServiceCacheExpires(t *testing.T) {
 		t.Errorf("expected at least 2 calls with expired cache, got %d", client.callCount)
 	}
 }
+
 
 func TestIsGatewayBlockedStatus(t *testing.T) {
 	t.Parallel()

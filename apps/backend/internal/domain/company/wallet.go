@@ -11,6 +11,9 @@ import (
 
 type WalletService interface {
 	AvailableNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error)
+	// FreshNewAPIUnits bypasses cache, refreshes the entry, and returns authoritative quota.
+	FreshNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error)
+	InvalidateNewAPIUnits(walletUserID int64)
 }
 
 type NewAPIWalletReader interface {
@@ -18,7 +21,6 @@ type NewAPIWalletReader interface {
 }
 
 type walletService struct {
-	cfg      config.Config
 	reader   NewAPIWalletReader
 	cacheTTL time.Duration
 	mu       sync.RWMutex
@@ -35,7 +37,6 @@ func NewWalletService(cfg config.Config, reader NewAPIWalletReader) WalletServic
 		return &noopWalletService{}
 	}
 	return &walletService{
-		cfg:      cfg,
 		reader:   reader,
 		cacheTTL: time.Duration(cfg.CompanyWalletCacheTTLSec) * time.Second,
 		cache:    make(map[int64]walletCacheEntry),
@@ -48,6 +49,12 @@ func (n *noopWalletService) AvailableNewAPIUnits(ctx context.Context, walletUser
 	return 0, domain.ServiceUnavailable("wallet service unavailable")
 }
 
+func (n *noopWalletService) FreshNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error) {
+	return n.AvailableNewAPIUnits(ctx, walletUserID)
+}
+
+func (n *noopWalletService) InvalidateNewAPIUnits(walletUserID int64) {}
+
 func (s *walletService) AvailableNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error) {
 	if walletUserID <= 0 {
 		return 0, domain.NewDomainError(400, "wallet account not configured")
@@ -59,6 +66,17 @@ func (s *walletService) AvailableNewAPIUnits(ctx context.Context, walletUserID i
 		return entry.units, nil
 	}
 	s.mu.RUnlock()
+	return s.fetchAndCache(ctx, walletUserID, now)
+}
+
+func (s *walletService) FreshNewAPIUnits(ctx context.Context, walletUserID int64) (int64, error) {
+	if walletUserID <= 0 {
+		return 0, domain.NewDomainError(400, "wallet account not configured")
+	}
+	return s.fetchAndCache(ctx, walletUserID, time.Now())
+}
+
+func (s *walletService) fetchAndCache(ctx context.Context, walletUserID int64, now time.Time) (int64, error) {
 	units, err := s.reader.GetUserQuota(ctx, walletUserID)
 	if err != nil {
 		return 0, err
@@ -67,4 +85,13 @@ func (s *walletService) AvailableNewAPIUnits(ctx context.Context, walletUserID i
 	s.cache[walletUserID] = walletCacheEntry{units: units, expiresAt: now.Add(s.cacheTTL)}
 	s.mu.Unlock()
 	return units, nil
+}
+
+func (s *walletService) InvalidateNewAPIUnits(walletUserID int64) {
+	if walletUserID <= 0 {
+		return
+	}
+	s.mu.Lock()
+	delete(s.cache, walletUserID)
+	s.mu.Unlock()
 }

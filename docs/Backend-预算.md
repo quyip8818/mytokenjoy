@@ -347,7 +347,7 @@ flowchart LR
 
 去重：`dedupe_key = axis_kind:axis_id`。
 
-**候选最小值（point）：** `GatewayChainRemain` 按 key `scope` 计算 remain → 换 NewAPI 单位，并以 `wallet_remain` 作企业硬顶。不再按部门 org_node consumed 封顶。
+**候选最小值（point）：** `GatewayChainRemain` 按 key `scope` 计算 remain → 换 NewAPI 单位（`ToNewAPIUnits` 饱和），并以 `wallet_remain` 作企业硬顶；多 key 累加用 `AddSat`/`SubFloor0`，避免 int64 绕回。不再按部门 org_node consumed 封顶。
 
 ---
 

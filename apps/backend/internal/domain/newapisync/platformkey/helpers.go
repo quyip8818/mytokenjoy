@@ -43,7 +43,7 @@ func capRemainUnits(ctx context.Context, d syncdeps.Deps, remainPoint float64, m
 	if walletID <= 0 {
 		return allocated, nil
 	}
-	walletUnits, err := d.Wallet.AvailableNewAPIUnits(ctx, walletID)
+	walletUnits, err := d.Wallet.FreshNewAPIUnits(ctx, walletID)
 	if err != nil {
 		return 0, err
 	}

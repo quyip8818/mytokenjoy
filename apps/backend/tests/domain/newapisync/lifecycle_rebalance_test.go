@@ -21,6 +21,12 @@ func (s *stubWallet) AvailableNewAPIUnits(context.Context, int64) (int64, error)
 	return s.quota, nil
 }
 
+func (s *stubWallet) FreshNewAPIUnits(ctx context.Context, id int64) (int64, error) {
+	return s.AvailableNewAPIUnits(ctx, id)
+}
+
+func (s *stubWallet) InvalidateNewAPIUnits(int64) {}
+
 func TestTrySyncCreateCapsRemainQuotaByWallet(t *testing.T) {
 	t.Parallel()
 

@@ -177,12 +177,9 @@ func (s *RebalanceService) walletAvailable(ctx context.Context, mapping store.Pl
 		if m.PlatformKeyID == mapping.PlatformKeyID || m.NewAPIKeyRemainQuota == nil {
 			continue
 		}
-		used += *m.NewAPIKeyRemainQuota
+		used = newapiunits.AddSat(used, *m.NewAPIKeyRemainQuota)
 	}
-	available := walletUnits - used
-	if available < 0 {
-		return 0, nil
-	}
+	available := newapiunits.SubFloor0(walletUnits, used)
 	if allocated < available {
 		return allocated, nil
 	}

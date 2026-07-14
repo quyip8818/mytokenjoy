@@ -25,5 +25,5 @@ func (w *WalletSyncWorker) Work(ctx context.Context, job *river.Job[jobs.WalletS
 	if errors.Is(err, domainbilling.ErrWalletNotConfigured) {
 		return river.JobCancel(err)
 	}
-	return err
+	return cancelIfNonRetryable(err)
 }

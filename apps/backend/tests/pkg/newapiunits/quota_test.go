@@ -1,6 +1,7 @@
 package newapiunits_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -90,6 +91,72 @@ func TestToNewAPIUnitsZeroRemaining(t *testing.T) {
 	units := newapiunits.ToNewAPIUnits(0, nil, nil)
 	if units != 0 {
 		t.Errorf("expected 0, got %d", units)
+	}
+}
+
+func TestToNewAPIUnitsSaturatesOverflow(t *testing.T) {
+	t.Parallel()
+	models := []types.ModelInfo{
+		{ModelID: 1, Type: "tiny", InputPrice: 1e-12, OutputPrice: 0, Enabled: true},
+	}
+	units := newapiunits.ToNewAPIUnits(1e20, models, []int64{1})
+	if units != math.MaxInt64 {
+		t.Fatalf("expected MaxInt64, got %d", units)
+	}
+}
+
+func TestQuotaDeltaClampsAddRoom(t *testing.T) {
+	t.Parallel()
+	current := int64(math.MaxInt64 - 10)
+	delta := newapiunits.QuotaDelta(math.MaxInt64, current)
+	if delta != 10 {
+		t.Fatalf("expected delta 10, got %d", delta)
+	}
+	if current+delta != math.MaxInt64 {
+		t.Fatalf("overflowing add: current+delta=%d", current+delta)
+	}
+	// Asking past MaxInt64 must not wrap.
+	if got := newapiunits.QuotaDelta(math.MaxInt64, math.MaxInt64-5); got != 5 {
+		t.Fatalf("expected 5, got %d", got)
+	}
+}
+
+func TestQuotaDeltaSubtract(t *testing.T) {
+	t.Parallel()
+	got := newapiunits.QuotaDelta(100, 500)
+	if got != -400 {
+		t.Fatalf("expected -400, got %d", got)
+	}
+}
+
+func TestQuotaDeltaNegativeCurrentTreatedAsZero(t *testing.T) {
+	t.Parallel()
+	got := newapiunits.QuotaDelta(10, -5)
+	if got != 10 {
+		t.Fatalf("expected 10, got %d", got)
+	}
+}
+
+func TestAddSat(t *testing.T) {
+	t.Parallel()
+	if got := newapiunits.AddSat(math.MaxInt64-1, 5); got != math.MaxInt64 {
+		t.Fatalf("expected MaxInt64, got %d", got)
+	}
+	if got := newapiunits.AddSat(10, 20); got != 30 {
+		t.Fatalf("expected 30, got %d", got)
+	}
+}
+
+func TestSubFloor0(t *testing.T) {
+	t.Parallel()
+	if got := newapiunits.SubFloor0(10, 3); got != 7 {
+		t.Fatalf("expected 7, got %d", got)
+	}
+	if got := newapiunits.SubFloor0(3, 10); got != 0 {
+		t.Fatalf("expected 0, got %d", got)
+	}
+	if got := newapiunits.SubFloor0(math.MaxInt64, math.MaxInt64); got != 0 {
+		t.Fatalf("expected 0, got %d", got)
 	}
 }
 

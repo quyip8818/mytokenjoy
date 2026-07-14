@@ -11,6 +11,7 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -75,5 +76,50 @@ func TestSyncCompanyWalletPropagatesStoreErrors(t *testing.T) {
 	}
 	if errors.Is(err, domainbilling.ErrWalletNotConfigured) {
 		t.Fatal("store lookup failure must not be mapped to ErrWalletNotConfigured")
+	}
+}
+
+func TestSyncCompanyWalletIgnoresStaleLowCache(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	const walletUserID int64 = 777
+	var quota int64
+	var lastTopUp newapi.TopUpRequest
+	client := &mock.StubAdminClient{
+		GetUserQuotaFn: func(_ context.Context, id int64) (int64, error) {
+			if id != walletUserID {
+				t.Fatalf("unexpected wallet user %d", id)
+			}
+			return quota, nil
+		},
+		TopUpFn: func(_ context.Context, req newapi.TopUpRequest) error {
+			lastTopUp = req
+			quota += req.Quota
+			return nil
+		},
+	}
+	wallet := company.NewWalletService(cfg, client)
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet, domainbilling.NoopJobEnqueuer)
+
+	ctx := context.Background()
+	coID := contract.DefaultCompanyID
+	if err := st.Company().UpdateNewAPIWalletUserID(ctx, coID, walletUserID); err != nil {
+		t.Fatal(err)
+	}
+	// Poison cache with a low reading while NewAPI already holds a near-max quota.
+	quota = 0
+	if _, err := wallet.AvailableNewAPIUnits(ctx, walletUserID); err != nil {
+		t.Fatal(err)
+	}
+	quota = 4_980_468_515_629_721_982
+	if err := svc.SyncCompanyWallet(company.WithContext(ctx, company.Context{CompanyID: coID}), coID); err != nil {
+		t.Fatal(err)
+	}
+	if lastTopUp.UserID != walletUserID {
+		t.Fatalf("unexpected TopUp user %+v", lastTopUp)
+	}
+	if lastTopUp.Quota >= 0 {
+		t.Fatalf("expected subtract TopUp from stale-cache guard, got %+v (calls=%d)", lastTopUp, client.TopUpCalls)
 	}
 }

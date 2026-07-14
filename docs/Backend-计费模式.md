@@ -277,10 +277,12 @@ flowchart LR
 ```
 
 1. ingest / 充值后 `InsertTx(wallet_sync)`；`Unique ByPeriod: 5s`（等同现网 debounce 语义）。
-2. `target = ToQuotaUnits(wallet_remain, modelPriceUpper)` → `TopUp(delta)`。
+2. `target = ToNewAPIUnits(wallet_remain, modelPriceUpper)`（溢出饱和到 `MaxInt64`）→ `FreshNewAPIUnits` 读权威 `users.quota` → `QuotaDelta(target,current)` → `TopUp(delta)` → invalidate 缓存。
 3. 定时对账：`|FromQuotaUnits(na) − wallet_remain| > ε` → 入队 sync。
+4. NewAPI 返回 `bigint out of range`（SQLSTATE 22003）视为不可重试，Worker `JobCancel`，避免刷屏 retry。
 
 > Gateway 预检读 `wallet_remain` 与 `gateway_soft_remain`；不因 pending sync 或漂移拒单。
+> 校准 / platformkey 封顶走 `FreshNewAPIUnits`，避免过期钱包缓存导致对近满 quota 再 add。
 
 ---
 
@@ -366,8 +368,13 @@ wallet_remain = Σ lot.points_remaining
 // NewAPI log quota → point
 CostFromQuota(quota, modelPricePoint) = quota / QuotaPerUnit * modelPricePoint
 
-// point → NewAPI quota（sync / rebalance 用上界价，宁少勿超）
-ToQuotaUnits(points, modelPriceUpper) = points / modelPriceUpper * QuotaPerUnit
+// point → NewAPI quota（sync / rebalance 用上界价，宁少勿超；溢出饱和到 MaxInt64）
+ToNewAPIUnits(points, modelPriceUpper) = sat(points / modelPriceUpper * QuotaPerUnit)
+
+// wallet_sync TopUp 增量：保证 current+delta ∈ [0, MaxInt64]
+QuotaDelta(target, current) = clamped(target - current)
+
+// rebalance key 封顶：used = AddSat(Σ other remain)；available = SubFloor0(walletUnits, used)；remain = min(allocated, available)
 
 // 展示币 ↔ point（充值时）
 points_granted = amount_paid × PPU(currency)

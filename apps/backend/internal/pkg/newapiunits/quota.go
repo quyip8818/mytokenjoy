@@ -2,6 +2,7 @@ package newapiunits
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -44,13 +45,16 @@ func CostFromQuota(quota int64, modelPricePoint float64) float64 {
 }
 
 func ToNewAPIUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs []int64) int64 {
-	if pointRemaining <= 0 {
+	if pointRemaining <= 0 || math.IsNaN(pointRemaining) || math.IsInf(pointRemaining, 0) {
 		return 0
 	}
 	price := HighestModelPricePoint(models, allowedIDs)
 	units := pointRemaining / price * float64(common.QuotaPerUnit)
-	if units < 0 {
+	if units <= 0 || math.IsNaN(units) {
 		return 0
+	}
+	if math.IsInf(units, 0) || units >= float64(math.MaxInt64) {
+		return math.MaxInt64
 	}
 	return int64(units)
 }

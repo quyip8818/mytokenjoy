@@ -3,6 +3,7 @@ package newapi
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -78,6 +79,9 @@ func (c *Client) TopUp(ctx context.Context, req TopUpRequest) error {
 	mode := manageModeAdd
 	value := req.Quota
 	if value < 0 {
+		if value == math.MinInt64 {
+			return fmt.Errorf("topup quota delta out of range")
+		}
 		mode = manageModeSubtract
 		value = -value
 	}

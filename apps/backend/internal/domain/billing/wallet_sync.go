@@ -25,7 +25,7 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if !ok {
 		return ErrWalletNotConfigured
 	}
-	if s.client == nil {
+	if s.client == nil || s.wallet == nil {
 		return fmt.Errorf("newapi admin client required")
 	}
 	models, err := s.store.Models().Models(ctx)
@@ -33,18 +33,22 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 		return err
 	}
 	target := newapiunits.ToNewAPIUnits(co.WalletRemain, models, nil)
-	current, err := s.wallet.AvailableNewAPIUnits(ctx, walletUserID)
+	current, err := s.wallet.FreshNewAPIUnits(ctx, walletUserID)
 	if err != nil {
 		return err
 	}
-	delta := target - current
+	delta := newapiunits.QuotaDelta(target, current)
 	if delta == 0 {
 		return nil
 	}
-	return s.client.TopUp(ctx, adminport.TopUpInput{
+	if err := s.client.TopUp(ctx, adminport.TopUpInput{
 		UserID: walletUserID,
 		Quota:  delta,
-	})
+	}); err != nil {
+		return err
+	}
+	s.wallet.InvalidateNewAPIUnits(walletUserID)
+	return nil
 }
 
 func (s *service) ReconcileWalletDrift(ctx context.Context) error {
@@ -64,7 +68,7 @@ func (s *service) ReconcileWalletDrift(ctx context.Context) error {
 		if !ok {
 			continue
 		}
-		quota, err := s.wallet.AvailableNewAPIUnits(ctx, walletUserID)
+		quota, err := s.wallet.FreshNewAPIUnits(ctx, walletUserID)
 		if err != nil {
 			continue
 		}

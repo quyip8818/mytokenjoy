@@ -48,11 +48,22 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 		testutil.WithNewAPIAdminToken("token"),
 	}
 	cfg, st := testutil.NewTestStore(t, append(base, cfgOpts...)...)
+	if err := st.Company().UpdateNewAPIWalletUserID(
+		testutil.CtxForCompany(contract.DefaultCompanyID),
+		contract.DefaultCompanyID,
+		501,
+	); err != nil {
+		t.Fatal(err)
+	}
+	wallet := opts.Wallet
+	if wallet == nil {
+		wallet = company.NewWalletService(cfg, stub)
+	}
 	sync := domainnewapisync.New(
 		cfg,
 		st,
 		newapi.NewAdminPortAdapter(stub),
-		opts.Wallet,
+		wallet,
 		policy.NewChannelPolicy(cfg),
 		app.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
 	)
