@@ -46,9 +46,7 @@ type Deps struct {
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
-	if logger == nil {
-		logger = slog.Default()
-	}
+	logger = quietLogger(logger)
 	var periodicJobs []*river.PeriodicJob
 	if !deps.DisablePeriodic {
 		periodicJobs = periodic.BuildWatchdogJobs(cfg)
