@@ -1,9 +1,10 @@
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import type { PermissionKey } from '@/lib/permission-keys'
+import { BillingExchangeProvider } from '@/features/session/billing-exchange-provider'
 import { SessionReactContext } from '@/features/session/context'
 import type { AppSession } from '@/features/session/types'
 import type { Member } from '@/api/types'
-import { createBillingExchange, setActiveBillingExchange } from '@/lib/points'
+import { createBillingExchange } from '@/lib/points'
 
 const mockMember: Member = {
   id: 'm-admin',
@@ -44,9 +45,11 @@ export function TestSessionProvider({
     [permissions, readOnly],
   )
 
-  useEffect(() => {
-    setActiveBillingExchange(createBillingExchange(session.pointsPerUnit))
-  }, [session.pointsPerUnit])
+  const exchange = useMemo(() => createBillingExchange(1000, 'CNY'), [])
 
-  return <SessionReactContext.Provider value={session}>{children}</SessionReactContext.Provider>
+  return (
+    <SessionReactContext.Provider value={session}>
+      <BillingExchangeProvider exchange={exchange}>{children}</BillingExchangeProvider>
+    </SessionReactContext.Provider>
+  )
 }

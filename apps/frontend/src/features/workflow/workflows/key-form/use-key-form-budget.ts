@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { MemberBudgetSummary, PlatformKey, PlatformKeyScope } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
-import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
+import { useBillingExchange } from '@/features/session'
+import { formatDisplayCurrency } from '@/lib/points'
 
 export function formatBudgetContext(
   summary: MemberBudgetSummary | null,
@@ -34,6 +35,7 @@ export function useKeyFormBudget({
   injectedApis,
 }: UseKeyFormBudgetOptions) {
   const apis = useInjectedApis(injectedApis)
+  const { displayToPoints } = useBillingExchange()
   const [budgetState, setBudgetState] = useState<{
     memberId: string
     summary: MemberBudgetSummary
@@ -152,6 +154,7 @@ export function useKeyFormState({
   initialName,
   initialBudget,
 }: UseKeyFormStateOptions) {
+  const { pointsToDisplay } = useBillingExchange()
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
   const [budget, setBudget] = useState(() => {

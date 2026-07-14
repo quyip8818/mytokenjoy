@@ -22,8 +22,8 @@ export function DepartmentUsageTable({ departmentUsage, onSelectDept }: Departme
       <TableHeader>
         <TableRow className="border-border/50 hover:bg-transparent">
           <TableHead className="text-xs font-semibold text-muted-foreground">部门</TableHead>
-          <TableHead className="text-xs font-semibold text-muted-foreground">额度 (¥)</TableHead>
-          <TableHead className="text-xs font-semibold text-muted-foreground">已消耗 (¥)</TableHead>
+          <TableHead className="text-xs font-semibold text-muted-foreground">额度</TableHead>
+          <TableHead className="text-xs font-semibold text-muted-foreground">已消耗</TableHead>
           <TableHead className="text-xs font-semibold text-muted-foreground w-48">
             消耗进度
           </TableHead>

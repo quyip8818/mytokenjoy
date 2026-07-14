@@ -37,7 +37,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if riverfix.ListPendingNewAPISync(st, outbox.KindCreateKey, 10) == 0 {
+	if riverfix.ListPendingNewAPISync(t, st, outbox.KindCreateKey, 10) == 0 {
 		t.Fatal("expected create_key outbox entry")
 	}
 }

@@ -36,7 +36,7 @@ func TestTamperedJWTRejected(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, contract.IDMemberAdmin)
-	tampered := token[:len(token)-1] + "x"
+	tampered := token + "x"
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member="+tampered, "", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())

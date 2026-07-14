@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { ApprovalStatusBadge } from './status-badges'
-import { formatDisplayCurrency } from '@/lib/points'
+import { currencySymbol, formatDisplayCurrency } from '@/lib/points'
+import { useBillingExchange } from '@/features/session'
 
 interface ApprovalTableProps {
   approvals: KeyApproval[]
@@ -26,6 +27,9 @@ export function ApprovalTable({
   onApprove,
   onReject,
 }: ApprovalTableProps) {
+  const { billingCurrency } = useBillingExchange()
+  const currencyLabel = currencySymbol(billingCurrency)
+
   return (
     <Table>
       <TableHeader>
@@ -40,7 +44,7 @@ export function ApprovalTable({
             申请理由
           </TableHead>
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            申请额度 (¥)
+            申请额度 ({currencyLabel})
           </TableHead>
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
             状态

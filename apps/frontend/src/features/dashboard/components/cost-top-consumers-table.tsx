@@ -32,7 +32,7 @@ export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumer
             <TableHead className="text-xs font-semibold text-muted-foreground">成员</TableHead>
             <TableHead className="text-xs font-semibold text-muted-foreground">部门</TableHead>
             <TableHead className="text-right text-xs font-semibold text-muted-foreground">
-              花费 (¥)
+              花费
             </TableHead>
             <TableHead className="text-right text-xs font-semibold text-muted-foreground">
               Token 数

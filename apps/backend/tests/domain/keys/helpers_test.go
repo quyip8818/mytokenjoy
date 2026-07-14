@@ -13,8 +13,10 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
@@ -38,6 +40,7 @@ func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *m
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
+	newapisynctf.EnsureWalletUserID(t, st, contract.DefaultCompanyID, newapisynctf.TestWalletUserID)
 	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st))
 	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false)), st, stub
 }
@@ -49,6 +52,7 @@ func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPI
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
 		testutil.WithNewAPIAdminToken("token"),
 	)
+	newapisynctf.EnsureWalletUserID(t, st, contract.DefaultCompanyID, newapisynctf.TestWalletUserID)
 	return newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), nil, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st)), st
 }
 

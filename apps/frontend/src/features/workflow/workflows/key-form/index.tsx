@@ -20,7 +20,8 @@ import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { useModelLabels } from '@/features/models/hooks/use-model-labels'
 import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
-import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
+import { useBillingExchange } from '@/features/session'
+import { currencySymbol, formatDisplayCurrency } from '@/lib/points'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -36,6 +37,8 @@ export function KeyFormWorkflow({
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
+  const { displayToPoints, billingCurrency } = useBillingExchange()
+  const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const isCreate = entry.id === 'key-create'
   const key =
@@ -311,7 +314,7 @@ export function KeyFormWorkflow({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>额度 (¥)</Label>
+                <Label>额度 ({currencyLabel})</Label>
                 <Input
                   type="number"
                   value={budget}
@@ -337,7 +340,7 @@ export function KeyFormWorkflow({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>额度 (¥)</Label>
+                    <Label>额度 ({currencyLabel})</Label>
                     <Input
                       type="number"
                       value={budget}

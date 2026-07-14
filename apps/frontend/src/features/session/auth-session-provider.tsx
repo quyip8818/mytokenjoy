@@ -6,8 +6,9 @@ import { defaultApis } from '@/api/app-apis'
 import { setAuthzRevisionHandler, setForbiddenHandler } from '@/api/client'
 import { LOGIN_PATH } from '@/config/auth'
 import { queryKeys, useInjectedQuery } from '@/features/query'
-import { createBillingExchange, setActiveBillingExchange } from '@/lib/points'
+import { createBillingExchange } from '@/lib/points'
 import { AUTHZ_BROADCAST_CHANNEL, SESSION_FOCUS_REFRESH_MS } from './authz-sync'
+import { BillingExchangeProvider } from './billing-exchange-provider'
 import { SessionReactContext } from './context'
 import type { AppSession } from './types'
 
@@ -122,9 +123,14 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
     }
   }, [query, refreshSession])
 
-  useEffect(() => {
-    setActiveBillingExchange(createBillingExchange(session.pointsPerUnit || undefined))
-  }, [session.pointsPerUnit])
+  const billingExchange = useMemo(
+    () => createBillingExchange(session.pointsPerUnit || undefined, session.billingCurrency),
+    [session.billingCurrency, session.pointsPerUnit],
+  )
 
-  return <SessionReactContext.Provider value={session}>{children}</SessionReactContext.Provider>
+  return (
+    <SessionReactContext.Provider value={session}>
+      <BillingExchangeProvider exchange={billingExchange}>{children}</BillingExchangeProvider>
+    </SessionReactContext.Provider>
+  )
 }

@@ -19,7 +19,7 @@ describe('formatBudgetContext', () => {
         { remaining: 1200, consumed: 300, totalBudget: 1500, reservedPool: 0 },
         '研发部',
       ),
-    ).toContain('1,200')
+    ).toContain('¥1.2')
   })
 })
 
@@ -56,7 +56,7 @@ describe('useKeyFormBudget', () => {
           scope: 'project_member',
           effectiveMemberId: 'm1',
           projectId: 'proj-1',
-          budget: '1000',
+          budget: '1',
           adminCreate: true,
           injectedApis: apis,
         }),
@@ -108,7 +108,7 @@ describe('useKeyFormBudget', () => {
           scope: 'project',
           effectiveMemberId: '',
           projectId: 'proj-1',
-          budget: '1000',
+          budget: '1',
           adminCreate: true,
           injectedApis: apis,
         }),

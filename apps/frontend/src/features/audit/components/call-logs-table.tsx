@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CALL_LOG_STATUS_LABELS, CALL_LOG_STATUS_VARIANTS } from '@/features/audit'
-import { formatMoney } from '@/lib/points'
+import { formatMoney, currencySymbol } from '@/lib/points'
+import { useBillingExchange } from '@/features/session'
 
 export interface CallLogsTableProps {
   logs: readonly CallLog[]
@@ -26,6 +27,7 @@ export function CallLogsTable({
   contentRetentionEnabled,
   onToggleExpanded,
 }: CallLogsTableProps) {
+  const { billingCurrency } = useBillingExchange()
   return (
     <Table>
       <TableHeader>
@@ -38,7 +40,7 @@ export function CallLogsTable({
           <TableHead className="text-right">输入 Token</TableHead>
           <TableHead className="text-right">输出 Token</TableHead>
           <TableHead className="text-right">延迟</TableHead>
-          <TableHead className="text-right">费用 (¥)</TableHead>
+          <TableHead className="text-right">费用 ({currencySymbol(billingCurrency)})</TableHead>
           <TableHead>状态</TableHead>
         </TableRow>
       </TableHeader>

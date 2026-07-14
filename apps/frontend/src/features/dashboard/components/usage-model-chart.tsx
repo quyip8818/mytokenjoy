@@ -24,7 +24,7 @@ export function UsageModelChart({ modelUsage }: UsageModelChartProps) {
         <YAxis type="category" dataKey="modelName" width={130} fontSize={12} stroke="#94a3b8" />
         <Tooltip
           formatter={(value, name) => [
-            name === '花费 (¥)' ? formatMoney(Number(value)) : Number(value).toLocaleString(),
+            name === '花费' ? formatMoney(Number(value)) : Number(value).toLocaleString(),
             name,
           ]}
           contentStyle={{
@@ -34,7 +34,7 @@ export function UsageModelChart({ modelUsage }: UsageModelChartProps) {
           }}
         />
         <Legend wrapperStyle={{ fontSize: '12px' }} />
-        <Bar dataKey="cost" name="花费 (¥)" fill="#4f46e5" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="cost" name="花费" fill="#4f46e5" radius={[0, 4, 4, 0]} />
         <Bar dataKey="requests" name="请求数" fill="#7c3aed" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>

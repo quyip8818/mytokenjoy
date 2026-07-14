@@ -167,11 +167,12 @@ func PendingDashboardProjectCount(st store.Store, companyID int64) int {
 	return PendingJobCount(st, jobs.KindDashboardProject, companyID)
 }
 
-func ListPendingNewAPISync(st store.Store, subKind string, limit int) int {
+func ListPendingNewAPISync(t testing.TB, st store.Store, subKind string, limit int) int {
+	t.Helper()
 	ctx := context.Background()
 	pool := postgres.MainPool(st)
 	if pool == nil {
-		return 0
+		t.Fatal("main pool is nil")
 	}
 	rows, err := pool.Query(ctx, `
 		SELECT 1 FROM river_job
@@ -181,12 +182,15 @@ func ListPendingNewAPISync(st store.Store, subKind string, limit int) int {
 		LIMIT $3
 	`, jobs.KindNewAPISync, subKind, limit)
 	if err != nil {
-		return 0
+		t.Fatalf("list pending newapi_sync: %v", err)
 	}
 	defer rows.Close()
 	n := 0
 	for rows.Next() {
 		n++
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("list pending newapi_sync: %v", err)
 	}
 	return n
 }

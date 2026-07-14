@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { useInjectedApis } from '@/api/use-apis'
-import { useSession } from '@/features/session'
-import { displayToPoints } from '@/lib/points'
+import { useSession, useBillingExchange } from '@/features/session'
+import { currencySymbol } from '@/lib/points'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -34,6 +34,8 @@ export function ApprovalSubmitWorkflow({
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
+  const { displayToPoints, billingCurrency } = useBillingExchange()
+  const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
   const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'budget'
@@ -135,7 +137,7 @@ export function ApprovalSubmitWorkflow({
           />
         </div>
         <div className="space-y-1.5">
-          <Label>申请额度 (¥)</Label>
+          <Label>申请额度 ({currencyLabel})</Label>
           <Input
             type="number"
             value={requestedBudget}

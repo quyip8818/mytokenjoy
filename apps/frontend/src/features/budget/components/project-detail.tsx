@@ -80,9 +80,6 @@ export function ProjectDetail({
         departmentMembers={departmentMembers}
         membersLoading={membersLoading}
         onUpdateProject={onUpdateProject}
-        onCreateMemberKey={(member) =>
-          onCreateProjectKey(project, 'project_member', member.id, member.name)
-        }
         onUpdated={onUpdated}
       />
 

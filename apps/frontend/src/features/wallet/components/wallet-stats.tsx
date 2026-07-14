@@ -1,6 +1,7 @@
 import { AlertTriangle, BarChart3, Gift, TrendingUp, Wallet } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
 import type { WalletView } from '@/api/billing'
+import { formatCurrencyAmount, formatMoney } from '@/lib/points'
 import { primaryWalletBalance } from '../lib/selectors'
 
 interface WalletStatsProps {
@@ -27,13 +28,13 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
           icon={Wallet}
           iconLayout="inline"
           label="当前余额"
-          value={loading ? '—' : `¥${balance.toFixed(2)}`}
+          value={loading ? '—' : formatMoney(balance)}
         />
         <StatCard
           icon={TrendingUp}
           iconLayout="inline"
           label="历史消耗"
-          value={loading ? '—' : `¥${totalConsumed.toFixed(2)}`}
+          value={loading ? '—' : formatMoney(totalConsumed)}
         />
         <StatCard
           icon={BarChart3}
@@ -60,7 +61,8 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
               >
                 <span className="text-muted-foreground">{entry.currency}</span>
                 <span>
-                  ¥{entry.balance.toFixed(2)} / 充值 ¥{entry.totalTopup.toFixed(2)}
+                  {formatCurrencyAmount(entry.balance, entry.currency)} / 充值{' '}
+                  {formatCurrencyAmount(entry.totalTopup, entry.currency)}
                 </span>
               </div>
             ))}
@@ -72,8 +74,8 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           <AlertTriangle className="size-4 shrink-0" />
           <span>
-            透支额度 {overdraftPoints.toLocaleString()} point，请尽快充值（累计充值 ¥
-            {totalTopup.toFixed(2)}）
+            透支额度 {overdraftPoints.toLocaleString()} point，请尽快充值（累计充值{' '}
+            {formatMoney(totalTopup)}）
           </span>
         </div>
       )}

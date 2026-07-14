@@ -35,11 +35,11 @@ func TestSyncPlatformKeyCreateDoesNotEnqueueOutbox(t *testing.T) {
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 		t.Fatal(err)
 	}
-	before := riverfix.ListPendingNewAPISync(st, outbox.KindCreateKey, 100)
+	before := riverfix.ListPendingNewAPISync(t, st, outbox.KindCreateKey, 100)
 	if _, err := sync.SyncPlatformKeyCreate(ctx, key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
-	after := riverfix.ListPendingNewAPISync(st, outbox.KindCreateKey, 100)
+	after := riverfix.ListPendingNewAPISync(t, st, outbox.KindCreateKey, 100)
 	if after > before {
 		t.Fatalf("expected no new create_key outbox entry, before=%d after=%d", before, after)
 	}

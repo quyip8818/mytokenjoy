@@ -17,6 +17,7 @@ import {
   Legend,
 } from 'recharts'
 import { MemberChartSection } from '@/features/member'
+import { formatMoney } from '@/lib/points'
 
 const CALL_DISTRIBUTION_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#06b6d4'] as const
 
@@ -48,7 +49,7 @@ export function MemberConsumptionCharts({
           <div>
             <h4 className="text-sm font-medium">模型消耗分布</h4>
             <p className="mb-4 text-xs text-muted-foreground">
-              总计：{loading ? '—' : `¥${distributionTotal.toFixed(2)}`}
+              总计：{loading ? '—' : formatMoney(distributionTotal)}
             </p>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={consumptionDistribution}>
@@ -88,7 +89,7 @@ export function MemberConsumptionCharts({
           <div>
             <h4 className="text-sm font-medium">模型消耗趋势</h4>
             <p className="mb-4 text-xs text-muted-foreground">
-              总计：{loading ? '—' : trendTotal.toFixed(2)}
+              总计：{loading ? '—' : formatMoney(trendTotal)}
             </p>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={consumptionTrend}>

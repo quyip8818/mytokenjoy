@@ -30,7 +30,7 @@ export function UsageMemberRankingTable({ topConsumers, loading }: UsageMemberRa
             <TableHead className="text-xs font-semibold text-muted-foreground">排名</TableHead>
             <TableHead className="text-xs font-semibold text-muted-foreground">成员</TableHead>
             <TableHead className="text-right text-xs font-semibold text-muted-foreground">
-              花费 (¥)
+              花费
             </TableHead>
             <TableHead className="text-right text-xs font-semibold text-muted-foreground">
               请求数

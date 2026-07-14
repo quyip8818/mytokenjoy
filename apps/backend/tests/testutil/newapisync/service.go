@@ -20,8 +20,22 @@ import (
 )
 
 type TestServiceOpts struct {
-	Stub   *mock.StubAdminClient
-	Wallet company.WalletService
+	Stub           *mock.StubAdminClient
+	Wallet         company.WalletService
+	SkipWalletSeed bool
+}
+
+const TestWalletUserID int64 = 501
+
+func EnsureWalletUserID(t *testing.T, st store.Store, companyID, walletUserID int64) {
+	t.Helper()
+	if err := st.Company().UpdateNewAPIWalletUserID(
+		testutil.CtxForCompany(companyID),
+		companyID,
+		walletUserID,
+	); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func NewTestService(t *testing.T, opts TestServiceOpts) (*domainnewapisync.NewAPISync, config.Config, store.Store) {
@@ -31,8 +45,11 @@ func NewTestService(t *testing.T, opts TestServiceOpts) (*domainnewapisync.NewAP
 
 func NewLocalTestService(t *testing.T, stub *mock.StubAdminClient, cfgOpts ...testutil.ConfigOption) (*domainnewapisync.NewAPISync, store.Store) {
 	t.Helper()
+	if stub != nil && stub.User.ID == 0 {
+		stub.User.ID = TestWalletUserID
+	}
 	base := []testutil.ConfigOption{testutil.WithDeployEnv("local")}
-	sync, _, st := newTestService(t, TestServiceOpts{Stub: stub}, append(base, cfgOpts...))
+	sync, _, st := newTestService(t, TestServiceOpts{Stub: stub, SkipWalletSeed: true}, append(base, cfgOpts...))
 	return sync, st
 }
 
@@ -48,12 +65,8 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 		testutil.WithNewAPIAdminToken("token"),
 	}
 	cfg, st := testutil.NewTestStore(t, append(base, cfgOpts...)...)
-	if err := st.Company().UpdateNewAPIWalletUserID(
-		testutil.CtxForCompany(contract.DefaultCompanyID),
-		contract.DefaultCompanyID,
-		501,
-	); err != nil {
-		t.Fatal(err)
+	if !opts.SkipWalletSeed {
+		EnsureWalletUserID(t, st, contract.DefaultCompanyID, TestWalletUserID)
 	}
 	wallet := opts.Wallet
 	if wallet == nil {
