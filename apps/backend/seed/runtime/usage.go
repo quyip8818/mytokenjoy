@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
@@ -15,6 +16,9 @@ import (
 func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) error {
 	if _, ok := company.FromContext(ctx); !ok {
 		ctx = company.DefaultContext(contract.DefaultCompanyID)
+	}
+	if err := HealUsageBucketDisplayCosts(ctx, st); err != nil {
+		return fmt.Errorf("heal usage bucket display_cost: %w", err)
 	}
 	empty, err := usageBucketsEmpty(ctx, st)
 	if err != nil {
@@ -31,6 +35,47 @@ func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) e
 	return nil
 }
 
+// HealUsageBucketDisplayCosts fixes buckets where display_cost was wrongly
+// copied from point cost (ratio ≈ 1). Correct spend is cost / PPU.
+func HealUsageBucketDisplayCosts(ctx context.Context, st store.Store) error {
+	if _, ok := company.FromContext(ctx); !ok {
+		ctx = company.DefaultContext(contract.DefaultCompanyID)
+	}
+	totals, err := st.Usage().QuerySummary(ctx, types.UsageAggregateQuery{
+		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		End:      time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
+		Timezone: types.UsageDefaultTimezone,
+	})
+	if err != nil {
+		return err
+	}
+	if totals.Cost <= 0 || totals.DisplayCost <= 0 {
+		return nil
+	}
+	if totals.DisplayCost/totals.Cost < 0.05 {
+		return nil
+	}
+	ppu := float64(common.DefaultPointsPerUnit)
+	rows, err := st.Usage().QueryFilteredBuckets(ctx, types.UsageAggregateQuery{
+		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		End:      time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
+		Timezone: types.UsageDefaultTimezone,
+	})
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		if row.Cost <= 0 || row.DisplayCost/row.Cost < 0.05 {
+			continue
+		}
+		row.DisplayCost = row.Cost / ppu
+		if err := st.Usage().SetBucket(ctx, row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
 	totals, err := st.Usage().QuerySummary(ctx, types.UsageAggregateQuery{
 		Start:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -40,7 +85,7 @@ func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return totals.CallCount == 0 && totals.Cost == 0, nil
+	return totals.CallCount == 0 && totals.Cost == 0 && totals.DisplayCost == 0, nil
 }
 
 func buildUsageBuckets(refDate string) []types.UsageBucketRow {
@@ -51,11 +96,12 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	currentMonth := time.Date(anchor.Year(), anchor.Month(), 1, 0, 0, 0, 0, time.UTC)
 	lastMonth := currentMonth.AddDate(0, -1, 0)
 
-	rootConsumed := contract.DemoRootConsumed()
-	const rawTotal = 39.5
-	scale := rootConsumed / rawTotal
+	// DemoLeafDeptConsumed is already in points (×PPU). Entry sketch costs are display yuan.
+	rootPoints := contract.DemoRootConsumed()
+	const rawDisplayTotal = 39.5
+	pointsScale := rootPoints / rawDisplayTotal
+	ppu := float64(common.DefaultPointsPerUnit)
 
-	// Richer demo data: multiple days, departments, members, and models.
 	type entry struct {
 		day    int
 		hour   int
@@ -79,7 +125,6 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 		{27, 16, contract.IDDept5, contract.IDMember3, "gpt-4o", 1.4, 31},
 	}
 
-	// Current month: richer daily distribution up to anchor day
 	maxDay := anchor.Day()
 	currentMonthEntries := []entry{
 		{1, 9, contract.IDDept3, contract.IDMember1, "gpt-4o", 2.8, 52},
@@ -106,26 +151,28 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 		{9, 11, contract.IDDept3, contract.IDMemberPure, "gpt-4o", 2.1, 43},
 	}
 
-	var rows []types.UsageBucketRow
-
-	for _, e := range lastMonthEntries {
-		rows = append(rows, types.UsageBucketRow{
-			BucketStart:  time.Date(lastMonth.Year(), lastMonth.Month(), e.day, e.hour, 0, 0, 0, time.UTC),
-			DepartmentID: e.dept, MemberID: e.member, Model: e.model,
-			Cost: e.cost * scale, DisplayCost: e.cost * scale, CallCount: e.calls,
-		})
+	toBucket := func(e entry, when time.Time) types.UsageBucketRow {
+		points := e.cost * pointsScale
+		return types.UsageBucketRow{
+			BucketStart:  when,
+			DepartmentID: e.dept,
+			MemberID:     e.member,
+			Model:        e.model,
+			Cost:         points,
+			DisplayCost:  points / ppu,
+			CallCount:    e.calls,
+		}
 	}
 
+	var rows []types.UsageBucketRow
+	for _, e := range lastMonthEntries {
+		rows = append(rows, toBucket(e, time.Date(lastMonth.Year(), lastMonth.Month(), e.day, e.hour, 0, 0, 0, time.UTC)))
+	}
 	for _, e := range currentMonthEntries {
 		if e.day > maxDay {
 			continue
 		}
-		rows = append(rows, types.UsageBucketRow{
-			BucketStart:  time.Date(currentMonth.Year(), currentMonth.Month(), e.day, e.hour, 0, 0, 0, time.UTC),
-			DepartmentID: e.dept, MemberID: e.member, Model: e.model,
-			Cost: e.cost * scale, DisplayCost: e.cost * scale, CallCount: e.calls,
-		})
+		rows = append(rows, toBucket(e, time.Date(currentMonth.Year(), currentMonth.Month(), e.day, e.hour, 0, 0, 0, time.UTC)))
 	}
-
 	return rows
 }

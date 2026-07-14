@@ -179,6 +179,9 @@ func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 	if !empty {
+		if cfg.BootstrapIsDemo() {
+			return runtime.HealUsageBucketDisplayCosts(ctx, s)
+		}
 		return nil
 	}
 	if !cfg.BootstrapIsMinimal() && !cfg.BootstrapIsDemo() {

@@ -212,7 +212,8 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 		}
 		result = append(result, types.TopConsumer{
 			MemberID: row.MemberID, MemberName: name, Department: deptName,
-			Cost: roundCost(row.Spend()), Requests: float64(row.CallCount), Tokens: 0,
+			Cost: roundCost(row.Spend()), Requests: float64(row.CallCount),
+			Tokens: float64(row.InputTokens + row.OutputTokens),
 		})
 	}
 	return result, nil
