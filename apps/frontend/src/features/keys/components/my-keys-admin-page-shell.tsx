@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { PermissionGate } from '@/components/auth/permission-gate'
 import { PERMISSION } from '@/lib/permissions'
+import { formatDisplayCurrency } from '@/lib/points'
 import type { useMyKeysPage } from '@/features/keys'
 import { MyKeysTable } from './my-keys-table'
 
@@ -66,9 +67,9 @@ export function MyKeysAdminPageShell({
       stats={
         budgetSummary ? (
           <div className="grid grid-cols-3 gap-4">
-            <StatCard label="总额度" value={`¥${budgetSummary.totalBudget.toLocaleString()}`} />
-            <StatCard label="已使用" value={`¥${budgetSummary.consumed.toLocaleString()}`} />
-            <StatCard label="剩余" value={`¥${budgetSummary.remaining.toLocaleString()}`} accent />
+            <StatCard label="总额度" value={formatDisplayCurrency(budgetSummary.totalBudget)} />
+            <StatCard label="已使用" value={formatDisplayCurrency(budgetSummary.consumed)} />
+            <StatCard label="剩余" value={formatDisplayCurrency(budgetSummary.remaining)} accent />
           </div>
         ) : loading ? (
           <div className="grid grid-cols-3 gap-4">

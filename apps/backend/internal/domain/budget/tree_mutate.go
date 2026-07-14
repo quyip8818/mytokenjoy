@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -168,8 +169,8 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 				if id == deptID {
 					return domain.Validation(fmt.Sprintf(
 						"额度不足：设置后成员额度总和（%d人×¥%.0f=¥%.0f）加上已分配（¥%.0f）超出部门总额度（¥%.0f）",
-						memberCount, personalBudget/1000, float64(memberCount)*personalBudget/1000,
-						(childrenSum+projectSum)/1000, node.Budget/1000,
+						memberCount, exchange.ToDisplay(personalBudget), exchange.ToDisplay(float64(memberCount)*personalBudget),
+						exchange.ToDisplay(childrenSum+projectSum), exchange.ToDisplay(node.Budget),
 					))
 				}
 				insufficientDepts = append(insufficientDepts, node.Name)

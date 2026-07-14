@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { formatDisplayCurrency } from '@/lib/points'
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -77,7 +78,7 @@ export function MyKeysCardList({ keys }: MyKeysCardListProps) {
               </div>
               <Progress value={pct} className="h-1.5" />
               <p className="mt-1 text-right text-xs text-muted-foreground tabular-nums">
-                ¥{key.consumed.toLocaleString()} / ¥{key.budget.toLocaleString()}
+                {formatDisplayCurrency(key.consumed)} / {formatDisplayCurrency(key.budget)}
               </p>
             </div>
           </div>

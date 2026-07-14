@@ -3,6 +3,7 @@ import type { CallLog } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatMoney } from '@/lib/points'
 
 interface CallLogsListProps {
   logs: CallLog[]
@@ -26,7 +27,7 @@ export function CallLogsList({ logs, total, page, totalPages, onPageChange }: Ca
               {log.inputTokens.toLocaleString()} + {log.outputTokens.toLocaleString()} tok
             </span>
             <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-              ¥{log.cost.toFixed(2)}
+              {formatMoney(log.cost)}
             </span>
             <Badge
               variant="outline"

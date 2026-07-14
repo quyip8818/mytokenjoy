@@ -6,6 +6,7 @@ import type {
   UsageStats,
 } from '@/api/types/member'
 import { MemberStatGroup } from '@/features/member'
+import { formatDisplayCurrency, formatMoney } from '@/lib/points'
 
 interface MemberDashboardStatsProps {
   loading: boolean
@@ -30,12 +31,12 @@ export function MemberDashboardStats({
         items={[
           {
             label: '预算剩余',
-            value: loading ? '—' : `¥${accountData.budgetRemaining.toFixed(2)}`,
+            value: loading ? '—' : formatDisplayCurrency(accountData.budgetRemaining),
             icon: Coins,
           },
           {
             label: '历史消耗',
-            value: loading ? '—' : `¥${accountData.totalSpent.toFixed(2)}`,
+            value: loading ? '—' : formatMoney(accountData.totalSpent),
             icon: DollarSign,
           },
         ]}
@@ -62,7 +63,7 @@ export function MemberDashboardStats({
         items={[
           {
             label: '统计额度',
-            value: loading ? '—' : `¥${resourceConsumption.totalCost.toFixed(2)}`,
+            value: loading ? '—' : formatMoney(resourceConsumption.totalCost),
             icon: Coins,
           },
           {

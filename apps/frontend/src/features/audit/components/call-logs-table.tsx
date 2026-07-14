@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CALL_LOG_STATUS_LABELS, CALL_LOG_STATUS_VARIANTS } from '@/features/audit'
+import { formatMoney } from '@/lib/points'
 
 export interface CallLogsTableProps {
   logs: readonly CallLog[]
@@ -79,7 +80,7 @@ export function CallLogsTable({
                 </TableCell>
                 <TableCell className="text-right font-mono text-xs">{log.latencyMs}ms</TableCell>
                 <TableCell className="text-right font-mono text-xs">
-                  {log.cost.toFixed(2)}
+                  {formatMoney(log.cost)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge variant={statusVariant}>

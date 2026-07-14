@@ -148,7 +148,6 @@ func TestWalletServiceCacheExpires(t *testing.T) {
 	}
 }
 
-
 func TestIsGatewayBlockedStatus(t *testing.T) {
 	t.Parallel()
 	if company.IsGatewayBlocked("active") {

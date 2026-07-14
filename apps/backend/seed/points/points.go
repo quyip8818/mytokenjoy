@@ -1,7 +1,11 @@
 package points
 
-import "github.com/tokenjoy/backend/internal/pkg/common"
+import "github.com/tokenjoy/backend/internal/pkg/exchange"
 
 func FromDisplay(display float64) float64 {
-	return display * float64(common.DefaultPointsPerUnit)
+	return exchange.ToPoints(display)
+}
+
+func ToDisplay(points float64) float64 {
+	return exchange.ToDisplay(points)
 }

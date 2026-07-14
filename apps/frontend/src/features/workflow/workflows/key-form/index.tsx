@@ -20,6 +20,7 @@ import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { useModelLabels } from '@/features/models/hooks/use-model-labels'
 import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
+import { formatDisplayCurrency } from '@/lib/points'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -121,15 +122,15 @@ export function KeyFormWorkflow({
       return
     }
     if (budgetSummary && Number(budget) > budgetSummary.remaining) {
-      toast.error(`额度不能超过剩余 ¥${budgetSummary.remaining.toLocaleString()}`)
+      toast.error(`额度不能超过剩余 ${formatDisplayCurrency(budgetSummary.remaining)}`)
       return
     }
     if (projectBudgetExceeds) {
-      toast.error(`额度不能超过项目剩余 ¥${projectBudgetRemaining!.toLocaleString()}`)
+      toast.error(`额度不能超过项目剩余 ${formatDisplayCurrency(projectBudgetRemaining!)}`)
       return
     }
     if (subBudgetExceeds) {
-      toast.error(`额度不能超过成员子额度剩余 ¥${subBudgetRemaining!.toLocaleString()}`)
+      toast.error(`额度不能超过成员子额度剩余 ${formatDisplayCurrency(subBudgetRemaining!)}`)
       return
     }
     setSubmitting(true)
@@ -186,10 +187,10 @@ export function KeyFormWorkflow({
   const contextBar = (() => {
     if (!isCreate) return undefined
     if (scope === 'project_member') {
-      return `项目：${projectName ?? ''} · 成员：${targetMemberName || '—'} · 子额度剩余 ¥${(subBudgetRemaining ?? 0).toLocaleString()}`
+      return `项目：${projectName ?? ''} · 成员：${targetMemberName || '—'} · 子额度剩余 ${formatDisplayCurrency(subBudgetRemaining ?? 0)}`
     }
     if (scope === 'project') {
-      return `项目：${projectName ?? ''} · 剩余可分配 ¥${(projectBudgetRemaining ?? 0).toLocaleString()}`
+      return `项目：${projectName ?? ''} · 剩余可分配 ${formatDisplayCurrency(projectBudgetRemaining ?? 0)}`
     }
     return formatBudgetContext(
       budgetSummary,
@@ -225,15 +226,15 @@ export function KeyFormWorkflow({
           <p className="text-sm text-amber-800">{BUDGET_INSUFFICIENT_MESSAGE}</p>
         ) : budgetExceedsRemaining ? (
           <p className="text-sm text-amber-800">
-            申请额度超过剩余 ¥{budgetSummary!.remaining.toLocaleString()}
+            申请额度超过剩余 {formatDisplayCurrency(budgetSummary!.remaining)}
           </p>
         ) : projectBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过项目剩余 ¥{projectBudgetRemaining!.toLocaleString()}
+            申请额度超过项目剩余 {formatDisplayCurrency(projectBudgetRemaining!)}
           </p>
         ) : subBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过成员子额度剩余 ¥{subBudgetRemaining!.toLocaleString()}
+            申请额度超过成员子额度剩余 {formatDisplayCurrency(subBudgetRemaining!)}
           </p>
         ) : undefined
       }
@@ -356,14 +357,16 @@ export function KeyFormWorkflow({
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
               <p>名称：{name || '—'}</p>
-              <p>额度：¥{Number(budget).toLocaleString()}</p>
+              <p>额度：{formatDisplayCurrency(Number(budget))}</p>
               <p>模型：{models.length} 个</p>
             </div>
           ) : (
             key && (
               <>
                 <p className="text-muted-foreground font-mono">{key.keyPrefix}</p>
-                <p className="text-muted-foreground">已消耗：¥{key.consumed.toLocaleString()}</p>
+                <p className="text-muted-foreground">
+                  已消耗：{formatDisplayCurrency(key.consumed)}
+                </p>
               </>
             )
           )}

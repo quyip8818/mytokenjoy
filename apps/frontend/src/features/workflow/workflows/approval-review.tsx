@@ -3,12 +3,13 @@ import { toast } from 'sonner'
 import type { KeyApproval } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'
-import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
+import { WorkflowPanelChrome, WorkflowPanelFooter } from '@/features/workflow'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
 import { useModelLabels } from '@/features/models/hooks/use-model-labels'
+import { formatDisplayCurrency } from '@/lib/points'
 
 export function ApprovalReviewWorkflow({
   entry,
@@ -108,7 +109,9 @@ export function ApprovalReviewWorkflow({
           </div>
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">申请额度</h4>
-            <p className="text-lg font-semibold">¥{approval.requestedBudget.toLocaleString()}</p>
+            <p className="text-lg font-semibold">
+              {formatDisplayCurrency(approval.requestedBudget)}
+            </p>
           </div>
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">申请模型</h4>

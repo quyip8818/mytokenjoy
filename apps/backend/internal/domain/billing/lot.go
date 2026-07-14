@@ -2,18 +2,16 @@ package billing
 
 import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 func PointsGrantedFromAmount(amount float64, pointsPerUnit int64) float64 {
-	return amount * float64(pointsPerUnit)
+	return exchange.ToPointsAt(amount, pointsPerUnit)
 }
 
 func PaidLotDisplayAmount(pointsGranted float64, pointsPerUnit int64) float64 {
-	if pointsPerUnit <= 0 {
-		return 0
-	}
-	return pointsGranted / float64(pointsPerUnit)
+	return exchange.ToDisplayAt(pointsGranted, pointsPerUnit)
 }
 
 func UnitPriceDisplay(amountDisplay, pointsGranted float64) float64 {

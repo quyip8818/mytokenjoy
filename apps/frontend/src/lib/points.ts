@@ -5,13 +5,18 @@ export function pointsToDisplay(points: number): number {
 }
 
 export function displayToPoints(display: number): number {
-  // Round to 2 decimal places before converting to avoid floating-point drift
   const rounded = Math.round(display * 100) / 100
   return Math.round(rounded * DEFAULT_POINTS_PER_UNIT)
 }
 
+/** Format point amounts (budget / key limits). */
 export function formatDisplayCurrency(points: number): string {
-  return `¥${pointsToDisplay(points).toLocaleString(undefined, {
+  return formatMoney(pointsToDisplay(points))
+}
+
+/** Format amounts already in display currency (CallLog.cost / wallet / dashboard Spend). */
+export function formatMoney(amount: number): string {
+  return `¥${Number(amount).toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`

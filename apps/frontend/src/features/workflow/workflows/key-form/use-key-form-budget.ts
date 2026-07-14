@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { MemberBudgetSummary, PlatformKey, PlatformKeyScope } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
+import { formatDisplayCurrency } from '@/lib/points'
 
 export function formatBudgetContext(
   summary: MemberBudgetSummary | null,
   department?: string,
 ): string {
   if (!summary) return department ? `部门：${department}` : ''
-  const parts = [`剩余额度 ¥${summary.remaining.toLocaleString()}`]
+  const parts = [`剩余额度 ${formatDisplayCurrency(summary.remaining)}`]
   if (department) parts.unshift(department)
   return parts.join(' · ')
 }

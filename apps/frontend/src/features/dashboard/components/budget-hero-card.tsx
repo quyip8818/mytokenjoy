@@ -3,6 +3,7 @@ import { getBudgetProgressClass, getBudgetProgressTone } from '@/features/budget
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
+import { formatDisplayCurrency } from '@/lib/points'
 
 interface BudgetHeroCardProps {
   budget: number
@@ -54,11 +55,9 @@ export function BudgetHeroCard({ budget, consumed, loading }: BudgetHeroCardProp
         </Link>
       </div>
       <div className="mt-3 flex items-end gap-3">
-        <span className="text-2xl font-bold tabular-nums">
-          ¥{consumed.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-        </span>
+        <span className="text-2xl font-bold tabular-nums">{formatDisplayCurrency(consumed)}</span>
         <span className="mb-0.5 text-sm text-muted-foreground">
-          / ¥{budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          / {formatDisplayCurrency(budget)}
         </span>
       </div>
       <div className="mt-3 flex items-center gap-3">

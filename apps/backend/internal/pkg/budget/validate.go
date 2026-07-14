@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 )
 
 func FindParentNode(nodes []types.BudgetNode, childID string) *types.BudgetNode {
@@ -46,7 +47,8 @@ func ValidateBudgetNodeUpdate(
 	totalAllocated := childrenSum + newReservedPool + projectSum + memberSum
 	if newBudget < totalAllocated {
 		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门¥%.0f + 项目¥%.0f + 成员¥%.0f + 预留池¥%.0f = ¥%.0f）",
-			childrenSum/1000, projectSum/1000, memberSum/1000, newReservedPool/1000, totalAllocated/1000)
+			exchange.ToDisplay(childrenSum), exchange.ToDisplay(projectSum), exchange.ToDisplay(memberSum),
+			exchange.ToDisplay(newReservedPool), exchange.ToDisplay(totalAllocated))
 		return &msg
 	}
 	parent := FindParentNode(tree, nodeID)
@@ -66,7 +68,7 @@ func ValidateBudgetNodeUpdate(
 			if remaining < 0 {
 				remaining = 0
 			}
-			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 ¥%.0f", remaining/1000)
+			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 ¥%.0f", exchange.ToDisplay(remaining))
 			return &msg
 		}
 	}

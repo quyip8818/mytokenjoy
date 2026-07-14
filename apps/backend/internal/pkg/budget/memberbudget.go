@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -127,7 +128,7 @@ func ValidateMemberBudgetUpdate(
 
 	allocated := GetAllocatedKeyBudget(platformKeys, memberID)
 	if personalBudget < allocated {
-		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（¥%s）", formatMoney(allocated))
+		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（¥%.0f）", exchange.ToDisplay(allocated))
 		return &msg
 	}
 
@@ -149,7 +150,7 @@ func ValidateMemberBudgetUpdate(
 		if remaining < 0 {
 			remaining = 0
 		}
-		msg := fmt.Sprintf("超出部门可分配成员额度，当前剩余约 ¥%s", formatMoney(remaining))
+		msg := fmt.Sprintf("超出部门可分配成员额度，当前剩余约 ¥%.0f", exchange.ToDisplay(remaining))
 		return &msg
 	}
 	return nil
@@ -171,8 +172,4 @@ func ApplyMemberBudgetUpdate(
 		}, updatedMembers
 	}
 	return BuildMemberBudget(*member, platformKeys), updatedMembers
-}
-
-func formatMoney(value float64) string {
-	return fmt.Sprintf("%.0f", value)
 }

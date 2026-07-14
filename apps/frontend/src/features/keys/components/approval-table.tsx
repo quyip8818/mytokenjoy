@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { ApprovalStatusBadge } from './status-badges'
+import { formatDisplayCurrency } from '@/lib/points'
 
 interface ApprovalTableProps {
   approvals: KeyApproval[]
@@ -59,7 +60,7 @@ export function ApprovalTable({
             <TableCell className="text-muted-foreground">{approval.department}</TableCell>
             <TableCell className="max-w-48 truncate text-sm">{approval.reason}</TableCell>
             <TableCell className="text-right tabular-nums">
-              {approval.requestedBudget.toLocaleString()}
+              {formatDisplayCurrency(approval.requestedBudget)}
             </TableCell>
             <TableCell>
               <ApprovalStatusBadge status={approval.status} />
