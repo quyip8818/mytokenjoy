@@ -19,7 +19,7 @@ var _ store.GatewayPrecheckRepository = (*gatewayPrecheckRepo)(nil)
 
 const loadPrecheckContextSQL = `
 WITH pk_ctx AS (
-	SELECT pk.id, pk.company_id, pk.status, pk.gateway_soft_remain, pk.gateway_soft_version
+	SELECT pk.id, pk.company_id, pk.status, pk.expires_at, pk.gateway_soft_remain, pk.gateway_soft_version
 	FROM platform_keys pk
 	WHERE pk.key_hash = $1
 ),
@@ -43,6 +43,7 @@ SELECT
 	c.wallet_remain,
 	pk_ctx.id AS platform_key_id,
 	pk_ctx.status AS key_status,
+	pk_ctx.expires_at AS key_expires_at,
 	COALESCE(a.has_allowlist, FALSE) AS has_allowlist,
 	COALESCE(a.allowlist_types, '{}') AS allowlist_types,
 	pk_ctx.gateway_soft_remain,
@@ -62,6 +63,7 @@ func (r *gatewayPrecheckRepo) LoadPrecheckContext(ctx context.Context, keyHash s
 		&out.WalletRemain,
 		&out.PlatformKeyID,
 		&out.KeyStatus,
+		&out.KeyExpiresAt,
 		&out.HasAllowlist,
 		&out.AllowlistTypes,
 		&out.GatewaySoftRemain,

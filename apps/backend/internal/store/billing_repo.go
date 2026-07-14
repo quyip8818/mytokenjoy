@@ -84,6 +84,12 @@ type WalletAggregate struct {
 	OverdraftPoints float64
 }
 
+type Currency struct {
+	Code          string
+	PointsPerUnit int64
+	Enabled       bool
+}
+
 type BillingRepository interface {
 	CreateRechargeOrder(ctx context.Context, order RechargeOrder) error
 	GetRechargeOrder(ctx context.Context, id string) (*RechargeOrder, error)
@@ -94,4 +100,5 @@ type BillingRepository interface {
 	GetLotByID(ctx context.Context, lotID string) (*RechargeLot, error)
 	ExpandOverdraftLot(ctx context.Context, companyID int64, billingCurrency string, pointsDelta float64) (*RechargeLot, error)
 	AggregateWallet(ctx context.Context, companyID int64) (WalletAggregate, error)
+	GetCurrency(ctx context.Context, code string) (*Currency, error)
 }

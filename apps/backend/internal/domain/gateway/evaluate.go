@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -14,6 +15,10 @@ var ErrBudgetExhausted = errors.New("budget exhausted")
 const minEstimatePoint = 0.01 * float64(common.DefaultPointsPerUnit)
 
 func Evaluate(pc PrecheckContext, model string, opts PrecheckOpts) error {
+	return EvaluateAt(pc, model, opts, time.Now())
+}
+
+func EvaluateAt(pc PrecheckContext, model string, opts PrecheckOpts, now time.Time) error {
 	if !opts.SkipModelCheck && model == "" {
 		return fmt.Errorf("model field is required")
 	}
@@ -25,6 +30,9 @@ func Evaluate(pc PrecheckContext, model string, opts PrecheckOpts) error {
 	}
 	if pc.Routing.KeyStatus != "active" {
 		return fmt.Errorf("platform key inactive")
+	}
+	if pc.Routing.KeyExpiresAt != nil && !pc.Routing.KeyExpiresAt.After(now) {
+		return fmt.Errorf("platform key expired")
 	}
 	if !opts.SkipModelCheck && !opts.SkipModelAllowlist {
 		if err := checkPlatformKey(pc.Routing, model); err != nil {

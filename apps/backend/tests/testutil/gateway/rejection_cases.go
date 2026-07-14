@@ -4,6 +4,7 @@ package gatewayfix
 
 import (
 	"net/http"
+	"time"
 
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -73,6 +74,14 @@ func RejectionCases() []RejectionCase {
 			MutatePC: func(pc *domaingateway.PrecheckContext) {
 				zero := 0.0
 				pc.Budget.SoftRemain = &zero
+			},
+			Model: "gpt-4o",
+		},
+		{
+			Name: "expired key",
+			MutatePC: func(pc *domaingateway.PrecheckContext) {
+				expired := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+				pc.Routing.KeyExpiresAt = &expired
 			},
 			Model: "gpt-4o",
 		},

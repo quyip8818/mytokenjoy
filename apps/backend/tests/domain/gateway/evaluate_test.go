@@ -2,6 +2,7 @@ package gateway_test
 
 import (
 	"testing"
+	"time"
 
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
@@ -16,6 +17,7 @@ func precheckOpts(skipModel, skipAllowlist bool) domaingateway.PrecheckOpts {
 
 func TestEvaluateRejects(t *testing.T) {
 	t.Parallel()
+	now := time.Now()
 
 	for _, tc := range gatewaytf.RejectionCases() {
 		t.Run(tc.Name, func(t *testing.T) {
@@ -24,10 +26,21 @@ func TestEvaluateRejects(t *testing.T) {
 			if tc.MutatePC != nil {
 				tc.MutatePC(&pc)
 			}
-			if err := domaingateway.Evaluate(pc, tc.Model, precheckOpts(false, false)); err == nil {
+			if err := domaingateway.EvaluateAt(pc, tc.Model, precheckOpts(false, false), now); err == nil {
 				t.Fatalf("expected rejection for %s", tc.Name)
 			}
 		})
+	}
+}
+
+func TestEvaluateAllowsFutureExpiry(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	pc := gatewaytf.BasePrecheckContext()
+	future := now.Add(time.Hour)
+	pc.Routing.KeyExpiresAt = &future
+	if err := domaingateway.EvaluateAt(pc, "gpt-4o", precheckOpts(false, false), now); err != nil {
+		t.Fatalf("expected pass for future expiry, got %v", err)
 	}
 }
 

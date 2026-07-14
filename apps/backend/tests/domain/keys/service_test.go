@@ -383,3 +383,50 @@ func TestRevokePlatformKey(t *testing.T) {
 		}
 	}
 }
+
+func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
+	t.Parallel()
+	svc, st := newKeysService(t)
+	ctx := testutil.Ctx()
+	created, err := svc.CreateProviderKey(ctx, types.CreateProviderKeyInput{
+		Provider: "openai", Name: "rot-test", Key: "sk-rot-enabled-key",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !created.RotateEnabled {
+		t.Fatal("expected newly created provider keys to allow rotation")
+	}
+	rotated, err := svc.RotateProviderKey(ctx, created.ID, "sk-rotated-new-key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rotated.LastUsed != nil {
+		t.Fatalf("rotate must not stamp last_used, got %v", *rotated.LastUsed)
+	}
+	if rotated.KeyPrefix == created.KeyPrefix {
+		t.Fatal("expected key prefix to change after rotate")
+	}
+
+	keys, err := st.Keys().ProviderKeys(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range keys {
+		if keys[i].ID == created.ID {
+			keys[i].RotateEnabled = false
+			if err := st.Keys().SetProviderKeys(ctx, keys); err != nil {
+				t.Fatal(err)
+			}
+			break
+		}
+	}
+	_, err = svc.RotateProviderKey(ctx, created.ID, "sk-should-fail")
+	if err == nil {
+		t.Fatal("expected rotate to fail when rotateEnabled=false")
+	}
+	var de *domain.DomainError
+	if !errors.As(err, &de) || de.Status != domain.StatusForbidden {
+		t.Fatalf("expected Forbidden, got %v", err)
+	}
+}

@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS members (
     source          TEXT NOT NULL DEFAULT '',
     external_id     TEXT,
     password_hash   TEXT,
-    personal_budget NUMERIC(18, 6) NOT NULL DEFAULT 5000,
+    personal_budget NUMERIC(18, 6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),

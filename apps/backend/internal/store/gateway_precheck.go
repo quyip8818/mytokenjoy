@@ -14,6 +14,7 @@ type PrecheckContextRow struct {
 
 	PlatformKeyID string
 	KeyStatus     string
+	KeyExpiresAt  *time.Time
 
 	HasAllowlist   bool
 	AllowlistTypes []string

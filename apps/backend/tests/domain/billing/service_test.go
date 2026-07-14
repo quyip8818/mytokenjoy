@@ -154,3 +154,30 @@ func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 		t.Fatal("expected error for duplicate idempotency key")
 	}
 }
+
+func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
+	t.Parallel()
+	client := &mock.StubAdminClient{}
+	svc, st, ctx := newBillingService(t, client)
+	cur, err := st.Billing().GetCurrency(ctx, "CNY")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cur == nil || !cur.Enabled || cur.PointsPerUnit <= 0 {
+		t.Fatalf("expected seeded CNY currency, got %+v", cur)
+	}
+	order, err := svc.CreateSelfRecharge(ctx, 15, "ppu-key-1", "m-admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if order.Currency != "CNY" {
+		t.Fatalf("currency: got %q want CNY", order.Currency)
+	}
+	if order.PointsPerUnit != cur.PointsPerUnit {
+		t.Fatalf("points_per_unit: got %d want %d (from currencies)", order.PointsPerUnit, cur.PointsPerUnit)
+	}
+	wantGranted := domainbilling.PointsGrantedFromAmount(15, cur.PointsPerUnit)
+	if order.PointsGranted != wantGranted {
+		t.Fatalf("points_granted: got %v want %v", order.PointsGranted, wantGranted)
+	}
+}

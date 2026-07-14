@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"time"
+
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -14,6 +16,7 @@ type WalletState struct {
 type RoutingState struct {
 	PlatformKeyID  string
 	KeyStatus      string
+	KeyExpiresAt   *time.Time
 	HasAllowlist   bool
 	AllowlistTypes []string
 }
@@ -47,6 +50,7 @@ func PrecheckContextFromStore(row *store.PrecheckContextRow) PrecheckContext {
 		Routing: RoutingState{
 			PlatformKeyID:  row.PlatformKeyID,
 			KeyStatus:      row.KeyStatus,
+			KeyExpiresAt:   row.KeyExpiresAt,
 			HasAllowlist:   row.HasAllowlist,
 			AllowlistTypes: allowlist,
 		},

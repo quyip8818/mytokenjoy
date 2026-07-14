@@ -89,12 +89,15 @@ func (s *service) PlatformAdjust(ctx context.Context, companyID int64, points fl
 
 func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error) {
 	companyID := company.CompanyID(ctx)
+	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
+	if err != nil {
+		return store.RechargeOrder{}, err
+	}
 	now := time.Now().UTC()
 	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
 	key := idempotencyKey
-	ppu := DefaultPointsPerUnit()
 	order := store.RechargeOrder{
-		ID: orderID, CompanyID: companyID, Amount: amount, Currency: "CNY",
+		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
 		PointsPerUnit: ppu, PointsGranted: PointsGrantedFromAmount(amount, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending, CreatedBy: memberID,

@@ -35,7 +35,7 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 		KeyPrefix:     prefix,
 		Status:        "active",
 		CreatedAt:     s.cfg.SeedReferenceDate(),
-		RotateEnabled: false,
+		RotateEnabled: true,
 		SecretKey:     input.Key,
 	}
 	keys, err := s.store.Keys().ProviderKeys(ctx)
@@ -105,14 +105,15 @@ func (s *service) RotateProviderKey(ctx context.Context, id string, newKey strin
 	}
 	for i := range keys {
 		if keys[i].ID == id {
+			if !keys[i].RotateEnabled {
+				return types.ProviderKey{}, domain.Forbidden("key rotation is disabled")
+			}
 			prefix := newKey
 			if len(prefix) > 12 {
 				prefix = prefix[:12] + "..."
 			}
 			keys[i].SecretKey = newKey
 			keys[i].KeyPrefix = prefix
-			lastUsed := time.Now().Format("2006-01-02 15:04")
-			keys[i].LastUsed = &lastUsed
 			if err := s.store.Keys().SetProviderKeys(ctx, keys); err != nil {
 				return types.ProviderKey{}, err
 			}

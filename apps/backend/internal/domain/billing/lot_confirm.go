@@ -13,22 +13,15 @@ import (
 
 func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy string) error {
 	companyID := company.CompanyID(ctx)
-	co, err := s.store.Company().GetByID(ctx, companyID)
+	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return err
 	}
-	if co == nil {
-		return domain.NotFound("company not found")
-	}
 	now := time.Now().UTC()
-	currency := co.BillingCurrency
-	if currency == "" {
-		currency = "CNY"
-	}
 	orderID := fmt.Sprintf("gift-%d-%d", companyID, now.UnixNano())
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: currency,
-		PointsPerUnit: DefaultPointsPerUnit(), PointsGranted: points,
+		PointsPerUnit: ppu, PointsGranted: points,
 		Source: store.RechargeSourceGift, LotKind: store.LotKindGift,
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
@@ -42,22 +35,15 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 
 func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay float64, createdBy string) error {
 	companyID := company.CompanyID(ctx)
-	co, err := s.store.Company().GetByID(ctx, companyID)
+	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return err
 	}
-	if co == nil {
-		return domain.NotFound("company not found")
-	}
 	now := time.Now().UTC()
-	currency := co.BillingCurrency
-	if currency == "" {
-		currency = "CNY"
-	}
 	orderID := fmt.Sprintf("adj-%d-%d", companyID, now.UnixNano())
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amountDisplay, Currency: currency,
-		PointsPerUnit: DefaultPointsPerUnit(), PointsGranted: points,
+		PointsPerUnit: ppu, PointsGranted: points,
 		Source: store.RechargeSourceAdjust, LotKind: store.LotKindAdjust,
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
@@ -77,21 +63,25 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	if co == nil {
 		return domain.NotFound("company not found")
 	}
+	currency := order.Currency
+	if currency == "" {
+		currency = resolveBillingCurrency(co)
+	}
 	ppu := order.PointsPerUnit
 	if ppu <= 0 {
-		ppu = DefaultPointsPerUnit()
+		ppu, err = s.lookupPointsPerUnit(ctx, currency)
+		if err != nil {
+			return err
+		}
 	}
 	if order.PointsGranted <= 0 {
 		order.PointsGranted = PointsGrantedFromAmount(order.Amount, ppu)
 	}
-	order.Currency = co.BillingCurrency
-	if order.Currency == "" {
-		order.Currency = "CNY"
-	}
+	order.Currency = currency
 	order.LotKind = store.LotKindPaid
 	order.Status = store.RechargeStatusConfirmed
 	order.PointsPerUnit = ppu
-	lot := BuildPaidLot(order, co.BillingCurrency, ppu)
+	lot := BuildPaidLot(order, currency, ppu)
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
 		return err
 	}
@@ -100,20 +90,12 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 
 func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, source, createdBy string, idempotencyKey *string) error {
 	companyID := company.CompanyID(ctx)
-	co, err := s.store.Company().GetByID(ctx, companyID)
+	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return err
 	}
-	if co == nil {
-		return domain.NotFound("company not found")
-	}
 	now := time.Now().UTC()
-	ppu := DefaultPointsPerUnit()
 	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
-	currency := co.BillingCurrency
-	if currency == "" {
-		currency = "CNY"
-	}
 	points := PointsGrantedFromAmount(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,

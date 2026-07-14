@@ -53,7 +53,7 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 	if row == nil {
 		return fmt.Errorf("platform key not found")
 	}
-	if err := Evaluate(PrecheckContextFromStore(row), model, opts); err != nil {
+	if err := EvaluateAt(PrecheckContextFromStore(row), model, opts, p.clock.Now()); err != nil {
 		return err
 	}
 	return p.softBudgetCheck(ctx, row.CompanyID, keyHash, row.GatewaySoftVersion)
