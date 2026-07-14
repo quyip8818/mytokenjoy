@@ -69,8 +69,14 @@ func NewWorker(
 
 func (w *Worker) Start(ctx context.Context) {
 	if !w.cfg.IngestEnabled() {
+		w.logger.Warn("ingest worker not started: LOG_DATABASE_URL empty")
 		return
 	}
+	w.logger.Info("ingest worker started",
+		"poll_interval", w.pollInterval.String(),
+		"reconcile_every", w.reconcileEvery.String(),
+		"job_batch_size", w.cfg.JobBatchSize(),
+	)
 	go w.loop(ctx)
 }
 
@@ -107,6 +113,17 @@ func (w *Worker) ProcessPending(ctx context.Context) error {
 			source = types.SourceWebhook
 		}
 		ingestErr := w.ingest.IngestByLogID(ctx, job.LogID, source)
+		if ingestErr != nil {
+			disposition := domainusage.OutcomeFor(ingestErr).Retry(job.Attempts)
+			w.logger.Warn("ingest job failed",
+				"log_id", job.LogID,
+				"job_id", job.ID,
+				"source", source,
+				"attempts", job.Attempts,
+				"disposition", disposition.String(),
+				"error", ingestErr,
+			)
+		}
 		if handleErr := w.queue.ApplyRetry(ctx, job, ingestErr); handleErr != nil {
 			return handleErr
 		}

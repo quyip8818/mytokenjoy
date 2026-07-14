@@ -225,7 +225,7 @@ flowchart LR
 
 **Bootstrap：** `pnpm infra` → `pnpm bootstrap`（或 `pnpm docker:reset`，已内含 bootstrap）→ Webhook secret 对齐 → Channel `group=platform_shared`。
 
-**NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。
+**NewAPIKey 创建（SaaS）：** `user_id` = `newapi_wallet_user_id`；`group` = `platform_shared`；`remain_quota` = min(分配额, 钱包可分配)。**现状缺口与修复方案**见 [Backend-NewAPI-Token归属.md](./Backend-NewAPI-Token归属.md)。
 
 **安全：** NewAPI 不对公网；Admin Token 仅存 Backend 环境变量。
 

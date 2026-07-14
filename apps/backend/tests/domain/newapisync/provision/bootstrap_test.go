@@ -10,6 +10,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -209,4 +210,44 @@ func TestBootstrapSkipsWhenAllReady(t *testing.T) {
 		t.Fatalf("expected no CreateToken calls on second bootstrap, before=%d after=%d", callsAfterFirst, stub.CreateTokenCalls)
 	}
 	_ = st
+}
+
+func TestBootstrapHealsZeroWalletUserID(t *testing.T) {
+	t.Parallel()
+	var nextTokenID int64 = 900
+	stub := &mock.StubAdminClient{
+		CreateUserFn: func(_ context.Context, _ newapi.CreateUserRequest) (newapi.User, error) {
+			return newapi.User{ID: 777}, nil
+		},
+		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+			nextTokenID++
+			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
+		},
+		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
+			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
+		},
+	}
+	sync, st := newapisynctf.NewLocalTestService(t, stub)
+	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
+	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+		t.Fatal(err)
+	}
+	pool := postgres.MainPool(st)
+	if _, err := pool.Exec(ctx, `UPDATE companies SET newapi_wallet_user_id = 0 WHERE id = $1`, contract.LocalCompanyID); err != nil {
+		t.Fatal(err)
+	}
+	createCallsBefore := stub.CreateUserCalls
+	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+		t.Fatal(err)
+	}
+	if stub.CreateUserCalls <= createCallsBefore {
+		t.Fatalf("expected CreateUser on heal, before=%d after=%d", createCallsBefore, stub.CreateUserCalls)
+	}
+	co, err := st.Company().GetByID(ctx, contract.LocalCompanyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if co.NewAPIWalletUserID == nil || *co.NewAPIWalletUserID != 777 {
+		t.Fatalf("expected wallet user 777 after heal, got %v", co.NewAPIWalletUserID)
+	}
 }

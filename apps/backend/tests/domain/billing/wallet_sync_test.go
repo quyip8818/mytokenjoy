@@ -38,6 +38,30 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenMissingWallet(t *test
 	}
 }
 
+func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenWalletIDZero(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	client := &mock.StubAdminClient{}
+	reader := domainusage.NewReader(st.Usage(), st.Ledger())
+	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
+
+	const companyID int64 = 888_002
+	ctx := context.Background()
+	now := time.Now().UTC()
+	zero := int64(0)
+	if err := st.Company().Create(ctx, store.Company{
+		ID: companyID, Slug: "zero-wallet", Name: "Zero Wallet", Status: store.CompanyStatusActive,
+		NewAPIWalletUserID: &zero, BillingCurrency: "CNY", CreatedAt: now, UpdatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	err := svc.SyncCompanyWallet(company.WithContext(ctx, company.Context{CompanyID: companyID}), companyID)
+	if !errors.Is(err, domainbilling.ErrWalletNotConfigured) {
+		t.Fatalf("expected ErrWalletNotConfigured, got %v", err)
+	}
+}
+
 func TestSyncCompanyWalletPropagatesStoreErrors(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))

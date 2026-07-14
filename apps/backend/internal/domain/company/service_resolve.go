@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *service) ResolveFromMember(ctx context.Context, memberID string) (Context, error) {
@@ -20,12 +19,7 @@ func (s *service) ResolveFromMember(ctx context.Context, memberID string) (Conte
 		}
 		for _, member := range members {
 			if member.ID == memberID {
-				return Context{
-					CompanyID:          company.ID,
-					Slug:               company.Slug,
-					NewAPIWalletUserID: newAPIWalletUserIDValue(&company),
-					Status:             company.Status,
-				}, nil
+				return ContextFromStore(company), nil
 			}
 		}
 	}
@@ -40,12 +34,7 @@ func (s *service) ResolveCompanyContext(ctx context.Context, companyID int64) (C
 	if co == nil {
 		return Context{}, domain.NotFound("company not found")
 	}
-	return Context{
-		CompanyID:          co.ID,
-		Slug:               co.Slug,
-		NewAPIWalletUserID: newAPIWalletUserIDValue(co),
-		Status:             co.Status,
-	}, nil
+	return ContextFromStore(*co), nil
 }
 
 func (s *service) ResolveCompanyContextBySlug(ctx context.Context, slug string) (Context, error) {
@@ -59,17 +48,5 @@ func (s *service) ResolveCompanyContextBySlug(ctx context.Context, slug string) 
 	if co == nil {
 		return Context{}, domain.NotFound("company not found")
 	}
-	return Context{
-		CompanyID:          co.ID,
-		Slug:               co.Slug,
-		NewAPIWalletUserID: newAPIWalletUserIDValue(co),
-		Status:             co.Status,
-	}, nil
-}
-
-func newAPIWalletUserIDValue(t *store.Company) int64 {
-	if t.NewAPIWalletUserID != nil {
-		return *t.NewAPIWalletUserID
-	}
-	return 0
+	return ContextFromStore(*co), nil
 }

@@ -34,6 +34,9 @@ func NewIngestService(
 	if enqueuer == nil {
 		enqueuer = noopIngestEnqueuer{}
 	}
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, logger: logger,
 		enqueuer: enqueuer,
@@ -58,7 +61,6 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		return err
 	}
 	if mapping == nil {
-		s.logger.Warn("ingest rejected: mapping missing", "token_id", raw.TokenID, "log_id", raw.ID)
 		return domain.NotFound(fmt.Sprintf("mapping not found for token %d", raw.TokenID))
 	}
 	ctx, err = s.companyContextFromMapping(ctx, mapping)
@@ -84,6 +86,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	}
 	entry.PeriodKey = occurrence.String()
 
+	companyID := company.CompanyID(ctx)
 	return s.store.WithTx(ctx, func(st store.Store) error {
 		if err := st.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
@@ -93,7 +96,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		} else if exists {
 			return nil
 		}
-		segs, err := billinglot.ConsumeLots(ctx, st, company.CompanyID(ctx), entry.Amount)
+		segs, err := billinglot.ConsumeLots(ctx, st, companyID, entry.Amount)
 		if err != nil {
 			return err
 		}
@@ -109,27 +112,19 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if !ok {
 			return fmt.Errorf("ingest: transaction store required")
 		}
-		if err := s.enqueuer.EnqueueAfterIngest(ctx, tx, company.CompanyID(ctx)); err != nil {
-			return err
-		}
-		return nil
+		return s.enqueuer.EnqueueAfterIngest(ctx, tx, companyID)
 	})
 }
 
 func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *store.PlatformKeyMapping) (context.Context, error) {
-	companyCtx := company.Context{CompanyID: mapping.CompanyID}
 	co, err := s.store.Company().GetByID(ctx, mapping.CompanyID)
 	if err != nil {
 		return nil, err
 	}
-	if co != nil {
-		companyCtx.Slug = co.Slug
-		companyCtx.Status = co.Status
-		if co.NewAPIWalletUserID != nil {
-			companyCtx.NewAPIWalletUserID = *co.NewAPIWalletUserID
-		}
+	if co == nil {
+		return company.WithContext(ctx, company.Context{CompanyID: mapping.CompanyID}), nil
 	}
-	return company.WithContext(ctx, companyCtx), nil
+	return company.WithContext(ctx, company.ContextFromStore(*co)), nil
 }
 
 var _ Ingestor = (*IngestService)(nil)

@@ -16,7 +16,7 @@ func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository
 		if co.Status != store.CompanyStatusActive {
 			continue
 		}
-		entryCtx := WithContext(ctx, contextFromStore(co))
+		entryCtx := WithContext(ctx, ContextFromStore(co))
 		if err := fn(entryCtx, co); err != nil {
 			return err
 		}
@@ -24,14 +24,15 @@ func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository
 	return nil
 }
 
-func contextFromStore(co store.Company) Context {
+// ContextFromStore builds a request Context from a companies row.
+func ContextFromStore(co store.Company) Context {
 	info := Context{
 		CompanyID: co.ID,
 		Slug:      co.Slug,
 		Status:    co.Status,
 	}
-	if co.NewAPIWalletUserID != nil {
-		info.NewAPIWalletUserID = *co.NewAPIWalletUserID
+	if id, ok := store.ConfiguredNewAPIWalletUserID(&co); ok {
+		info.NewAPIWalletUserID = id
 	}
 	return info
 }

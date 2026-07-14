@@ -56,5 +56,4 @@ type UserResult struct {
 type TopUpInput struct {
 	UserID int64
 	Quota  int64
-	Remark string
 }

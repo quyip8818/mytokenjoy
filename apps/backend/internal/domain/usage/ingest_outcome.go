@@ -70,6 +70,19 @@ const (
 	RetryScheduleBackoff
 )
 
+func (d RetryDisposition) String() string {
+	switch d {
+	case RetryDone:
+		return "done"
+	case RetryDead:
+		return "dead"
+	case RetryScheduleBackoff:
+		return "backoff"
+	default:
+		return "unknown"
+	}
+}
+
 func (o IngestOutcome) ReconcileAdvancesCursor() bool {
 	switch o.kind {
 	case IngestOK, IngestBusiness, IngestLogNotFound:

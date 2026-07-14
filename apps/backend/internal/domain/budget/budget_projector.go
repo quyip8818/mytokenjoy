@@ -39,7 +39,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	if co == nil {
 		return false, nil
 	}
-	ctx = company.WithContext(ctx, companyFromStore(*co))
+	ctx = company.WithContext(ctx, company.ContextFromStore(*co))
 
 	if err := schedule.EnsureMonthRebalance(ctx, p.cfg, p.store, p.enqueuer, companyID); err != nil {
 		return false, err
@@ -184,16 +184,4 @@ func splitRebalanceKey(key string) (axisKind, axisID string, ok bool) {
 		}
 	}
 	return "", "", false
-}
-
-func companyFromStore(co store.Company) company.Context {
-	info := company.Context{
-		CompanyID: co.ID,
-		Slug:      co.Slug,
-		Status:    co.Status,
-	}
-	if co.NewAPIWalletUserID != nil {
-		info.NewAPIWalletUserID = *co.NewAPIWalletUserID
-	}
-	return info
 }

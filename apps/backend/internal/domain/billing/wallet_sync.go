@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error {
@@ -20,7 +21,8 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if co == nil {
 		return domain.NotFound("company not found")
 	}
-	if co.NewAPIWalletUserID == nil {
+	walletUserID, ok := store.ConfiguredNewAPIWalletUserID(co)
+	if !ok {
 		return ErrWalletNotConfigured
 	}
 	if s.client == nil {
@@ -31,7 +33,7 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 		return err
 	}
 	target := newapiunits.ToNewAPIUnits(co.WalletRemain, models, nil)
-	current, err := s.wallet.AvailableNewAPIUnits(ctx, *co.NewAPIWalletUserID)
+	current, err := s.wallet.AvailableNewAPIUnits(ctx, walletUserID)
 	if err != nil {
 		return err
 	}
@@ -39,17 +41,9 @@ func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error 
 	if delta == 0 {
 		return nil
 	}
-	if delta > 0 {
-		return s.client.TopUp(ctx, adminport.TopUpInput{
-			UserID: *co.NewAPIWalletUserID,
-			Quota:  delta,
-			Remark: "wallet_sync",
-		})
-	}
 	return s.client.TopUp(ctx, adminport.TopUpInput{
-		UserID: *co.NewAPIWalletUserID,
+		UserID: walletUserID,
 		Quota:  delta,
-		Remark: "wallet_sync_decrease",
 	})
 }
 
@@ -66,10 +60,11 @@ func (s *service) ReconcileWalletDrift(ctx context.Context) error {
 		return err
 	}
 	for _, co := range companies {
-		if co.NewAPIWalletUserID == nil {
+		walletUserID, ok := store.ConfiguredNewAPIWalletUserID(&co)
+		if !ok {
 			continue
 		}
-		quota, err := s.wallet.AvailableNewAPIUnits(ctx, *co.NewAPIWalletUserID)
+		quota, err := s.wallet.AvailableNewAPIUnits(ctx, walletUserID)
 		if err != nil {
 			continue
 		}

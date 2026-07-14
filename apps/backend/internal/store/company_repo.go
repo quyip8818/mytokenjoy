@@ -26,6 +26,14 @@ type Company struct {
 	UpdatedAt          time.Time
 }
 
+// ConfiguredNewAPIWalletUserID returns the NewAPI wallet user id when it is positive.
+func ConfiguredNewAPIWalletUserID(co *Company) (int64, bool) {
+	if co == nil || co.NewAPIWalletUserID == nil || *co.NewAPIWalletUserID <= 0 {
+		return 0, false
+	}
+	return *co.NewAPIWalletUserID, true
+}
+
 type CompanyRepository interface {
 	GetByID(ctx context.Context, id int64) (*Company, error)
 	GetBySlug(ctx context.Context, slug string) (*Company, error)

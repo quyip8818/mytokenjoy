@@ -7,6 +7,21 @@ import (
 	"strings"
 )
 
+// NewAPI uses -1 for never-expire; 0 means already expired.
+const tokenExpiredNever int64 = -1
+
+type tokenPutBody struct {
+	ID                 int64  `json:"id"`
+	Name               string `json:"name"`
+	Status             int    `json:"status"`
+	RemainQuota        int64  `json:"remain_quota"`
+	UnlimitedQuota     bool   `json:"unlimited_quota"`
+	ModelLimitsEnabled bool   `json:"model_limits_enabled"`
+	ModelLimits        string `json:"model_limits"`
+	Group              string `json:"group"`
+	ExpiredTime        int64  `json:"expired_time"`
+}
+
 func (c *Client) CreateToken(ctx context.Context, req CreateTokenRequest) (Token, error) {
 	if err := c.do(ctx, "POST", "/api/token/", req, nil); err != nil {
 		return Token{}, err
@@ -21,51 +36,58 @@ func (c *Client) CreateToken(ctx context.Context, req CreateTokenRequest) (Token
 	return token, nil
 }
 
-type tokenListPage struct {
-	Page     int     `json:"page"`
-	PageSize int     `json:"page_size"`
-	Total    int     `json:"total"`
-	Items    []Token `json:"items"`
-}
-
 func (c *Client) findTokenByName(ctx context.Context, name string) (Token, error) {
-	var best Token
-	var found bool
-	for page := 0; page < 20; page++ {
-		var list tokenListPage
-		path := "/api/token/?p=" + strconv.Itoa(page)
-		if err := c.do(ctx, "GET", path, nil, &list); err != nil {
-			return Token{}, err
-		}
-		for _, item := range list.Items {
-			if item.Name == name && (!found || item.ID > best.ID) {
-				best = item
-				found = true
-			}
-		}
-		if len(list.Items) == 0 {
-			break
-		}
-		pageSize := list.PageSize
-		if pageSize <= 0 {
-			pageSize = len(list.Items)
-		}
-		if list.Total > 0 && (page+1)*pageSize >= list.Total {
-			break
-		}
+	token, err := findLatestByName(
+		ctx, c, name, tokenListFirstPage,
+		func(page int) string { return "/api/token/?p=" + strconv.Itoa(page) },
+		func(t Token) string { return t.Name },
+		func(t Token) int64 { return t.ID },
+	)
+	if err != nil {
+		return Token{}, fmt.Errorf("newapi token not found after create: %w", err)
 	}
-	if !found {
-		return Token{}, fmt.Errorf("newapi token not found after create: %s", name)
-	}
-	return best, nil
+	return token, nil
 }
 
 func (c *Client) UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token, error) {
+	// NewAPI UpdateToken replaces the whole row; omitted JSON fields bind as zero
+	// (expired_time=0 → immediately expired; empty name/group wipe platform metadata).
+	cur, err := c.GetToken(ctx, req.ID)
+	if err != nil {
+		return Token{}, err
+	}
+	payload := mergeTokenPut(cur, req)
 	var token Token
-	if err := c.do(ctx, "PUT", "/api/token/", req, &token); err != nil {
+	if err := c.do(ctx, "PUT", "/api/token/", payload, &token); err != nil {
 		return Token{}, err
 	}
 	return token, nil
+}
+
+func mergeTokenPut(cur Token, req UpdateTokenRequest) tokenPutBody {
+	return tokenPutBody{
+		ID:                 req.ID,
+		Name:               coalesceString(req.Name, cur.Name),
+		Status:             coalescePtr(req.Status, cur.Status),
+		RemainQuota:        coalescePtr(req.RemainQuota, cur.RemainQuota),
+		UnlimitedQuota:     coalescePtr(req.UnlimitedQuota, cur.UnlimitedQuota),
+		ModelLimitsEnabled: coalescePtr(req.ModelLimitsEnabled, cur.ModelLimitsEnabled),
+		ModelLimits:        coalesceString(req.ModelLimits, cur.ModelLimits),
+		Group:              coalesceString(req.Group, cur.Group),
+		ExpiredTime:        expiredTimeForPut(req.ExpiredTime, cur.ExpiredTime),
+	}
+}
+
+// expiredTimeForPut preserves current expiry on partial updates. Upstream treats 0 as
+// already-expired; heal legacy zero to never-expire when the caller did not override.
+func expiredTimeForPut(override *int64, current int64) int64 {
+	if override != nil {
+		return *override
+	}
+	if current == 0 {
+		return tokenExpiredNever
+	}
+	return current
 }
 
 func (c *Client) GetToken(ctx context.Context, tokenID int64) (Token, error) {
@@ -81,7 +103,6 @@ type tokenKeyResponse struct {
 	Key string `json:"key"`
 }
 
-// GetTokenKey returns the full platform key secret without rotating it.
 func (c *Client) GetTokenKey(ctx context.Context, tokenID int64) (string, error) {
 	var out tokenKeyResponse
 	path := "/api/token/" + strconv.FormatInt(tokenID, 10) + "/key"

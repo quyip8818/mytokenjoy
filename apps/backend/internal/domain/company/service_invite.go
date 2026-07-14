@@ -53,12 +53,7 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	if company == nil {
 		return types.Member{}, domain.NotFound("company not found")
 	}
-	companyCtx := WithContext(ctx, Context{
-		CompanyID:          company.ID,
-		Slug:               company.Slug,
-		NewAPIWalletUserID: newAPIWalletUserIDValue(company),
-		Status:             company.Status,
-	})
+	companyCtx := WithContext(ctx, ContextFromStore(*company))
 	nodes, err := s.store.Org().Nodes().Tree(companyCtx)
 	if err != nil {
 		return types.Member{}, err

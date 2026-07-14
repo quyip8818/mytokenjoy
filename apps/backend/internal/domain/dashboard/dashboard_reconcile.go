@@ -44,7 +44,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 	if co == nil {
 		return nil
 	}
-	ctx = company.WithContext(ctx, companyContextFromStore(*co))
+	ctx = company.WithContext(ctx, company.ContextFromStore(*co))
 
 	since := reconcileWindowStart(clock.NowUTC(s.cfg.Clock()))
 	entries, err := s.store.Ledger().ListCallSettledSince(ctx, since)

@@ -67,6 +67,9 @@ func (r *companyRepo) UpdatePackageID(ctx context.Context, id int64, packageID *
 }
 
 func (r *companyRepo) UpdateNewAPIWalletUserID(ctx context.Context, id int64, walletUserID int64) error {
+	if walletUserID <= 0 {
+		return fmt.Errorf("newapi wallet user id must be positive")
+	}
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET newapi_wallet_user_id = $2, updated_at = NOW() WHERE id = $1
 	`, id, walletUserID)

@@ -122,11 +122,12 @@ func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
 	if err != nil {
 		return err
 	}
-	if co == nil || co.NewAPIWalletUserID == nil {
+	walletUserID, ok := store.ConfiguredNewAPIWalletUserID(co)
+	if !ok {
 		return nil
 	}
 	companyCtx := company.WithContext(ctx, company.Context{
-		CompanyID: companyID, NewAPIWalletUserID: *co.NewAPIWalletUserID, Status: co.Status,
+		CompanyID: companyID, NewAPIWalletUserID: walletUserID, Status: co.Status,
 	})
 	return s.enqueuer.InsertRebalanceCompany(companyCtx, companyID)
 }

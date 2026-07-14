@@ -23,16 +23,16 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID int64) error {
 	}
 	ctx = company.WithDefaultCompany(ctx, companyID)
 
+	if err := bootstrapDemoWalletUser(ctx, d, companyID); err != nil {
+		slog.Default().Warn("bootstrap demo wallet user failed", "error", err)
+	}
+
 	unready, err := UnreadyPlatformKeyIDs(ctx, d)
 	if err != nil {
 		return err
 	}
 	if len(unready) == 0 {
 		return nil
-	}
-
-	if err := bootstrapDemoWalletUser(ctx, d, companyID); err != nil {
-		slog.Default().Warn("bootstrap demo wallet user failed", "error", err)
 	}
 
 	platformKeys, err := d.Store.Keys().PlatformKeys(ctx)
@@ -95,7 +95,10 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID int
 	if err != nil {
 		return err
 	}
-	if co == nil || co.NewAPIWalletUserID != nil {
+	if co == nil {
+		return nil
+	}
+	if _, ok := store.ConfiguredNewAPIWalletUserID(co); ok {
 		return nil
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
@@ -106,6 +109,9 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID int
 	})
 	if err != nil {
 		return fmt.Errorf("create demo newapi wallet user: %w", err)
+	}
+	if user.ID <= 0 {
+		return fmt.Errorf("create demo newapi wallet user: missing id")
 	}
 	if err := d.Store.Company().UpdateNewAPIWalletUserID(ctx, companyID, user.ID); err != nil {
 		return err

@@ -2,6 +2,7 @@ package newapi
 
 type Token struct {
 	ID                 int64  `json:"id"`
+	UserID             int64  `json:"user_id"`
 	Name               string `json:"name"`
 	Key                string `json:"key"`
 	Status             int    `json:"status"`
@@ -11,6 +12,7 @@ type Token struct {
 	ModelLimitsEnabled bool   `json:"model_limits_enabled"`
 	ModelLimits        string `json:"model_limits"`
 	Group              string `json:"group"`
+	ExpiredTime        int64  `json:"expired_time"`
 }
 
 type CreateTokenRequest struct {
@@ -33,13 +35,18 @@ type UpdateTokenRequest struct {
 	ModelLimitsEnabled *bool  `json:"model_limits_enabled,omitempty"`
 	ModelLimits        string `json:"model_limits,omitempty"`
 	Group              string `json:"group,omitempty"`
+	// ExpiredTime is optional; when nil, UpdateToken preserves the existing value
+	// (NewAPI PUT replaces the whole token and zero means already-expired).
+	ExpiredTime *int64 `json:"-"`
 }
 
 type Channel struct {
-	ID   int    `json:"id"`
-	Type int    `json:"type"`
-	Name string `json:"name"`
-	Key  string `json:"key"`
+	ID     int    `json:"id"`
+	Type   int    `json:"type"`
+	Name   string `json:"name"`
+	Key    string `json:"key"`
+	Status int    `json:"status"`
+	Group  string `json:"group"`
 }
 
 type UpsertChannelRequest struct {

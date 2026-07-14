@@ -74,6 +74,10 @@ func (h *Handler) HandleNewAPILog(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "invalid log_id")
 		return
 	}
+	if !h.cfg.IngestEnabled() {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "ingest not enabled")
+		return
+	}
 
 	if err := h.enqueue.Enqueue(r.Context(), payload.LogID, types.SourceWebhook); err != nil {
 		h.logger.Error("enqueue ingest job", "log_id", payload.LogID, "error", err)

@@ -41,7 +41,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	if co == nil {
 		return false, nil
 	}
-	ctx = company.WithContext(ctx, companyContextFromStore(*co))
+	ctx = company.WithContext(ctx, company.ContextFromStore(*co))
 
 	var count int
 	err = p.store.WithTx(ctx, func(tx store.Store) error {
@@ -90,16 +90,4 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 
 func upsertDashboardBucket(ctx context.Context, usage store.UsageRepository, entry types.UsageLedgerEntry) error {
 	return usage.UpsertBucket(ctx, bucketFromLedgerEntry(entry))
-}
-
-func companyContextFromStore(co store.Company) company.Context {
-	info := company.Context{
-		CompanyID: co.ID,
-		Slug:      co.Slug,
-		Status:    co.Status,
-	}
-	if co.NewAPIWalletUserID != nil {
-		info.NewAPIWalletUserID = *co.NewAPIWalletUserID
-	}
-	return info
 }

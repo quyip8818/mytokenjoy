@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) (int64, error) {
@@ -20,10 +21,14 @@ func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if co == nil || co.NewAPIWalletUserID == nil {
+	if co == nil {
 		return 0, nil
 	}
-	return *co.NewAPIWalletUserID, nil
+	id, ok := store.ConfiguredNewAPIWalletUserID(co)
+	if !ok {
+		return 0, nil
+	}
+	return id, nil
 }
 
 func capRemainUnits(ctx context.Context, d syncdeps.Deps, remainPoint float64, models []types.ModelInfo, effectiveIDs []int64) (int64, error) {

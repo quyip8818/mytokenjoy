@@ -44,37 +44,78 @@ type NewAPIMock struct {
 	Server     *httptest.Server
 	mu         sync.Mutex
 	quotas     map[int64]int64
+	users      map[string]int64 // username -> id
 	nextUserID int64
 }
 
 func StartNewAPIMock(t *testing.T) *NewAPIMock {
 	t.Helper()
-	m := &NewAPIMock{quotas: make(map[int64]int64), nextUserID: 200}
+	m := &NewAPIMock{
+		quotas:     make(map[int64]int64),
+		users:      make(map[string]int64),
+		nextUserID: 200,
+	}
 	m.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/user/":
+			var body struct {
+				Username string `json:"username"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			m.mu.Lock()
 			m.nextUserID++
 			userID := m.nextUserID
 			m.quotas[userID] = 0
+			if body.Username != "" {
+				m.users[body.Username] = userID
+			}
+			m.mu.Unlock()
+			// Match upstream CreateUser: success with empty data.
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"success": true,
+				"message": "",
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/user/search":
+			keyword := r.URL.Query().Get("keyword")
+			m.mu.Lock()
+			items := make([]map[string]any, 0)
+			for username, id := range m.users {
+				if keyword == "" || username == keyword {
+					items = append(items, map[string]any{
+						"id": id, "username": username, "quota": m.quotas[id],
+					})
+				}
+			}
 			m.mu.Unlock()
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"success": true,
-				"data":    map[string]any{"id": userID, "username": "wallet", "quota": int64(0)},
+				"data":    map[string]any{"page": 1, "page_size": 10, "total": len(items), "items": items},
 			})
-		case r.Method == http.MethodPost && r.URL.Path == "/api/topup":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/user/manage":
 			var body struct {
-				UserID int64 `json:"user_id"`
-				Quota  int64 `json:"quota"`
+				ID     int64  `json:"id"`
+				Action string `json:"action"`
+				Value  int64  `json:"value"`
+				Mode   string `json:"mode"`
 			}
 			_ = json.NewDecoder(r.Body).Decode(&body)
 			m.mu.Lock()
-			m.quotas[body.UserID] += body.Quota
+			if body.Action == "add_quota" {
+				if body.Mode == "subtract" {
+					m.quotas[body.ID] -= body.Value
+				} else {
+					m.quotas[body.ID] += body.Value
+				}
+			}
 			m.mu.Unlock()
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": true})
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/user/"):
 			idStr := strings.TrimPrefix(r.URL.Path, "/api/user/")
+			if idStr == "" || idStr == "search" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 			var userID int64
 			_, _ = fmt.Sscanf(idStr, "%d", &userID)
 			m.mu.Lock()
@@ -86,7 +127,7 @@ func StartNewAPIMock(t *testing.T) *NewAPIMock {
 			})
 		default:
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("{}"))
+			_, _ = w.Write([]byte(`{"success":true}`))
 		}
 	}))
 	t.Cleanup(m.Server.Close)

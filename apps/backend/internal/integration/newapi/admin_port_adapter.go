@@ -2,6 +2,7 @@ package newapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
@@ -91,6 +92,9 @@ func (a AdminPortAdapter) CreateUser(ctx context.Context, req adminport.CreateUs
 	if err != nil {
 		return adminport.UserResult{}, err
 	}
+	if user.ID <= 0 {
+		return adminport.UserResult{}, fmt.Errorf("create user succeeded but id missing")
+	}
 	return adminport.UserResult{ID: user.ID}, nil
 }
 
@@ -98,7 +102,6 @@ func (a AdminPortAdapter) TopUp(ctx context.Context, req adminport.TopUpInput) e
 	return a.client.TopUp(ctx, TopUpRequest{
 		UserID: req.UserID,
 		Quota:  req.Quota,
-		Remark: req.Remark,
 	})
 }
 
