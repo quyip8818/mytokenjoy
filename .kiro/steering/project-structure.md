@@ -1,0 +1,31 @@
+# 文件分配规则
+
+## 测试
+- Frontend：`apps/frontend/tests/`（镜像 src/ 路径）
+- Backend：`apps/backend/tests/`（镜像 internal/ 路径，外部测试包）
+- 禁止在 src/、internal/、组件旁边放测试文件
+
+## 文档
+- 所有文档放 `docs/`（子目录：adr/、plan/、reviews/、todos/）
+- 禁止在 apps/ 或项目根新建 .md（CLAUDE.md、DESIGN.md 除外）
+
+## 后端
+- 禁止在 internal/ 业务包内放 _test.go
+- 禁止在 cmd/ 放业务逻辑
+- 禁止跨 domain 直接引用另一个 domain 内部类型
+
+## 前端文件放置
+| 代码类型 | 位置 | 条件 |
+|---------|------|------|
+| 页面入口 | `routes/{domain}/{page}.tsx` | 仅组合，逻辑在 hooks/ |
+| 页面逻辑 | `routes/{domain}/hooks/use-{page}-page.ts` | |
+| 页面专属 UI | `routes/{domain}/components/` | 仅 1 个页面使用 |
+| 共享领域 UI | `components/{domain}/` | 2+ 页面或 workflow 使用 |
+| 原子组件 | `components/ui/` | 无业务语义 |
+| HTTP 客户端 | `api/{domain}.ts` | |
+| 纯工具函数 | `lib/` | 无 React 依赖 |
+
+- components/ui/ 禁止放带业务语义的文件
+- 禁止直接 import API 函数——通过 useApis()/useInjectedApis()
+- 共享合约/类型放 packages/contracts/
+- 脚本放 scripts/（根目录）
