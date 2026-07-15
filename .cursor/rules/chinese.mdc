@@ -1,0 +1,8 @@
+---
+description: 语言规范
+globs: "**/*"
+alwaysApply: true
+---
+
+- 所有回复使用简体中文
+- 所有设计文档使用中文

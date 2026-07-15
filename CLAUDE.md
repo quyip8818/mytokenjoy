@@ -160,3 +160,12 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 - `PLATFORM_SHARED_NEW_API_GROUP` — SaaS shared NewAPI group (default `platform_shared`)
 - `SESSION_SECRET` — JWT session signing key
 - `SUPPORT_SAAS=true` — Multi-tenant SaaS mode
+
+## File Placement Rules
+
+- Tests: `apps/frontend/tests/` and `apps/backend/tests/` only. Never in src/, internal/, or alongside source files.
+- Docs: All in `docs/`. Never create new .md in apps/ or project root (CLAUDE.md, DESIGN.md are exceptions).
+- Backend: No `_test.go` in internal/ packages. No business logic in cmd/. No cross-domain direct imports.
+- Frontend: `components/ui/` has no business-named files. Never import API functions directly — use `useApis()`/`useInjectedApis()`.
+- Shared contracts: `packages/contracts/`. Scripts: `scripts/` (root).
+- 所有回复使用简体中文，所有设计文档使用中文。
