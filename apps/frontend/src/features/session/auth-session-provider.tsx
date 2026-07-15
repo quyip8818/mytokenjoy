@@ -124,7 +124,11 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
   }, [query, refreshSession])
 
   const billingExchange = useMemo(
-    () => createBillingExchange(query.data?.pointsPerUnit || undefined, query.data?.billingCurrency ?? 'CNY'),
+    () =>
+      createBillingExchange(
+        query.data?.pointsPerUnit || undefined,
+        query.data?.billingCurrency ?? 'CNY',
+      ),
     [query.data?.billingCurrency, query.data?.pointsPerUnit],
   )
 

@@ -1,7 +1,7 @@
 # Backend · 投影与入账副作用（终态）
 
 > **定位**：最优终态——加减在 Ingest；无 budget 投影游标；温路径少 job；冷路径稀矫正。  
-> **实现**：[Backend-budget_consumed迁回Ingest.md](./Backend-budget_consumed迁回Ingest.md) · [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md)
+> **实现**：[Backend-预算累计架构.md](./Backend-预算累计架构.md) · [Backend-离线任务.md](./Backend-离线任务.md) · [Backend-预算.md](./Backend-预算.md)
 
 ---
 

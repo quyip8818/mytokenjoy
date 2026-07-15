@@ -8,8 +8,8 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -218,9 +218,10 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 				summaries, err = s.absoluteRecompute(ctx, st, entry.PlatformKeyID)
 				if err != nil {
 					// Don't fail the ingest — log and treat as Unknown for overrun gate.
+					// Use empty (non-nil) slice to signal Unknown state to ShouldEnqueueOverrun.
 					s.logger.Warn("combined key absolute recompute failed",
 						"platform_key_id", entry.PlatformKeyID, "error", err)
-					summaries = nil
+					summaries = []store.CombinedKeySummary{}
 				}
 			}
 		}

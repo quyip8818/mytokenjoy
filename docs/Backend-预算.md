@@ -100,7 +100,7 @@ flowchart TB
 | **展示投影** | `usage_buckets` | `dashboard.Projector`（稀） | hour/day 看板 |
 | **冷矫正** | 同上累计表 | `budget_reconcile` 窗口 `SetConsumed` | 修漂移 |
 
-终态：**无** `budget_projection` / 游标 budget Projector。细节：[Backend-Projector.md](./Backend-Projector.md) · [Backend-budget_consumed迁回Ingest.md](./Backend-budget_consumed迁回Ingest.md)。
+终态：**无** `budget_projection` / 游标 budget Projector。细节：[Backend-Projector.md](./Backend-Projector.md) · [Backend-预算累计架构.md](./Backend-预算累计架构.md)。
 
 ```mermaid
 flowchart LR

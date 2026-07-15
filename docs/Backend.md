@@ -16,7 +16,7 @@
 | [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) | 退款/冲正实现说明（未实现，仅设计） |
 | [Backend-预算.md](./Backend-预算.md)         | 双轴、异步投影、Rebalance、Overrun、Platform Key 三 scope 执法链 |
 | [Backend-Projector.md](./Backend-Projector.md) | 投影 / 副作用：debounce、轻则直做、先判再 fanout |
-| [Backend-budget_consumed迁回Ingest.md](./Backend-budget_consumed迁回Ingest.md) | consumed / combined 迁回 Ingest（方向） |
+| [Backend-预算累计架构.md](./Backend-预算累计架构.md) | 预算累计与 Gateway 预检架构（当前实现） |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | 入账全链路：Backend↔NewAPI 通信、日志共享、对齐与优化 |
 | [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) | 业务时钟、开账/发生双轨 period、护栏 |
 | [工程收口.md](./工程收口.md) | 后端、前端、NewAPI 待收口项（按优先级） |

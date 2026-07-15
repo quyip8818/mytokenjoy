@@ -263,7 +263,7 @@ flowchart TB
 **Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、入队 `budget_projection` + `dashboard_project` + `wallet_sync`。  
 `budget_consumed` / `combined_key_remain` / `usage_buckets` 由异步投影写入（见 [Backend-离线任务.md](./Backend-离线任务.md)）。  
 副作用选型（轻则直做 / 先判再 fanout / debounce）：[Backend-Projector.md](./Backend-Projector.md)。  
-目标迁回 Ingest：[Backend-budget_consumed迁回Ingest.md](./Backend-budget_consumed迁回Ingest.md)。
+目标迁回 Ingest：[Backend-预算累计架构.md](./Backend-预算累计架构.md)。
 
 ### 6.1 预算投影（`budget.Projector`，异步）
 

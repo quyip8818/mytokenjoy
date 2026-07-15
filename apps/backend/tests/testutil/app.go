@@ -32,6 +32,7 @@ func NewTestAppWithOptions(t *testing.T, mutate func(*config.Config), opts ...ap
 	if err != nil {
 		t.Fatalf("create app: %v", err)
 	}
+	t.Cleanup(func() { application.Close() })
 	return application
 }
 

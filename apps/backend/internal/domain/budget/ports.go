@@ -11,7 +11,7 @@ type JobEnqueuer interface {
 
 type noopJobEnqueuer struct{}
 
-func (noopJobEnqueuer) InsertOverrun(context.Context, int64, []byte) error  { return nil }
+func (noopJobEnqueuer) InsertOverrun(context.Context, int64, []byte) error           { return nil }
 func (noopJobEnqueuer) InsertRebalance(context.Context, int64, string, string) error { return nil }
 func (noopJobEnqueuer) InsertBudgetReconcile(context.Context, int64) error           { return nil }
 

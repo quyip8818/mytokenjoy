@@ -12,7 +12,7 @@ func TestIndexMembersByRole(t *testing.T) {
 		{ID: "m-1", Status: "active", Roles: []string{"super_admin", "org_admin"}},
 		{ID: "m-2", Status: "active", Roles: []string{"org_admin"}},
 		{ID: "m-3", Status: "inactive", Roles: []string{"super_admin"}}, // inactive → excluded
-		{ID: "m-4", Status: "active", Roles: []string{}},               // no roles
+		{ID: "m-4", Status: "active", Roles: []string{}},                // no roles
 	}
 	result := indexMembersByRole(members)
 

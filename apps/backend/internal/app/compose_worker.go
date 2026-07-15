@@ -41,8 +41,10 @@ func logPoolFromStore(st store.Store) *pgxpool.Pool {
 }
 
 type backgroundWorkers struct {
-	ingest *ingest.Worker
-	river  *riverinfra.Client
+	ingest  *ingest.Worker
+	river   *riverinfra.Client
+	logPool *pgxpool.Pool
+	logger  *slog.Logger
 }
 
 func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder, orgAdmin *OrgRiverAdminHolder) (*backgroundWorkers, error) {
@@ -100,19 +102,11 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		logger,
 	)
 
-	// Wire LISTEN/NOTIFY for low-latency ingest wake-up.
-	if logPool := logPoolFromStore(st); logPool != nil {
-		listener, err := postgres.NewPGListener(context.Background(), logPool)
-		if err == nil {
-			ingestWorker.SetListener(listener)
-		} else {
-			logger.Warn("failed to create ingest LISTEN connection", "error", err)
-		}
-	}
-
 	return &backgroundWorkers{
-		ingest: ingestWorker,
-		river:  riverClient,
+		ingest:  ingestWorker,
+		river:   riverClient,
+		logPool: logPoolFromStore(st),
+		logger:  logger,
 	}, nil
 }
 
@@ -121,6 +115,15 @@ func (b *backgroundWorkers) start(ctx context.Context, cfg config.Config) {
 		return
 	}
 	if b.ingest != nil && cfg.IngestEnabled() {
+		// Wire LISTEN/NOTIFY for low-latency ingest wake-up.
+		if b.logPool != nil {
+			listener, err := postgres.NewPGListener(context.Background(), b.logPool)
+			if err == nil {
+				b.ingest.SetListener(listener)
+			} else if b.logger != nil {
+				b.logger.Warn("failed to create ingest LISTEN connection", "error", err)
+			}
+		}
 		b.ingest.Start(ctx)
 	}
 	if b.river != nil && cfg.RiverEnabled {
