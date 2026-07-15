@@ -2,30 +2,40 @@
 
 ## 测试
 - Frontend：`apps/frontend/tests/`（镜像 src/ 路径）
-- Backend：`apps/backend/tests/`（镜像 internal/ 路径，外部测试包）
-- 禁止在 src/、internal/、组件旁边放测试文件
+- Backend 单元测试：允许 internal/ 内 `_test.go`（同包测试，纯逻辑）
+- Backend 集成测试：`apps/backend/tests/`（外部测试包，需真实 DB/外部服务）
+- 禁止在前端 src/ 内放测试文件
 
 ## 文档
 - 所有文档放 `docs/`（子目录：adr/、plan/、reviews/、todos/）
-- 禁止在 apps/ 或项目根新建 .md（CLAUDE.md、DESIGN.md 除外）
+- 禁止在 apps/ 或项目根新建 .md（各 app README.md、CLAUDE.md、DESIGN.md 除外）
 
 ## 后端
-- 禁止在 internal/ 业务包内放 _test.go
-- 禁止在 cmd/ 放业务逻辑
+- 禁止在 cmd/ 放业务逻辑（仅 main 入口 + 启动编排）
 - 禁止跨 domain 直接引用另一个 domain 内部类型
+- 共享内核例外：`domain/types`、`domain/grants` 可被自由引用
+- 跨域协作通过 ports/interfaces 解耦
 
 ## 前端文件放置
+
 | 代码类型 | 位置 | 条件 |
 |---------|------|------|
-| 页面入口 | `routes/{domain}/{page}.tsx` | 仅组合，逻辑在 hooks/ |
-| 页面逻辑 | `routes/{domain}/hooks/use-{page}-page.ts` | |
-| 页面专属 UI | `routes/{domain}/components/` | 仅 1 个页面使用 |
-| 共享领域 UI | `components/{domain}/` | 2+ 页面或 workflow 使用 |
+| 页面入口 | `routes/{domain}/{page}.tsx` | 仅组合，从 features/ 导入 |
+| 领域特性包 | `features/{domain}/` | 含 hooks/、components/、lib/、index.ts |
+| 横切特性包 | `features/{concern}/` | session、query、workflow 等基础设施 |
 | 原子组件 | `components/ui/` | 无业务语义 |
+| 布局组件 | `components/layout/` | app-level 布局壳 |
 | HTTP 客户端 | `api/{domain}.ts` | |
 | 纯工具函数 | `lib/` | 无 React 依赖 |
 
+### features/ 约束
+- 必须有 index.ts barrel export
+- 外部只能 `import from '@/features/{name}'`，禁止 deep import
+- features 之间只通过对方 index.ts 引用
+- 页面 hook 命名：`use-{page}-page.ts`
+
+### 其他
 - components/ui/ 禁止放带业务语义的文件
 - 禁止直接 import API 函数——通过 useApis()/useInjectedApis()
 - 共享合约/类型放 packages/contracts/
-- 脚本放 scripts/（根目录）
+- 全局脚本放 scripts/（根目录）；app 专属构建脚本允许在 apps/{app}/scripts/
