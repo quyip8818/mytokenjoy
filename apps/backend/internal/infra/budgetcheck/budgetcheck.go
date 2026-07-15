@@ -1,5 +1,5 @@
-// Package budgetcheck is the optional Gateway soft-block Redis cache.
-// PG gateway_soft_* is authoritative; Redis only enhances when version >= PG.
+// Package budgetcheck is the optional combined key budget Redis cache.
+// PG combined_key_remain is authoritative; Redis only enhances when version >= PG.
 package budgetcheck
 
 import (
@@ -12,7 +12,7 @@ import (
 )
 
 type Entry struct {
-	SoftRemain float64   `json:"softRemain"`
+	Remain float64   `json:"remain"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 	Version    int64     `json:"version"`
 }
@@ -27,7 +27,7 @@ func BlocksWithVersion(entry Entry, pgVersion int64) bool {
 	if pgVersion <= 0 || entry.Version < pgVersion {
 		return false
 	}
-	return entry.SoftRemain <= 0
+	return entry.Remain <= 0
 }
 
 func Key(companyID int64, keyHash string) string {
@@ -39,14 +39,14 @@ func RefreshSummaries(
 	cache Store,
 	logger *slog.Logger,
 	companyID int64,
-	summaries []store.GatewaySoftSummary,
+	summaries []store.CombinedKeySummary,
 ) {
 	if cache == nil || !cache.Enabled() || len(summaries) == 0 {
 		return
 	}
 	for _, summary := range summaries {
 		entry := Entry{
-			SoftRemain: summary.SoftRemain,
+			Remain: summary.Remain,
 			UpdatedAt:  summary.UpdatedAt,
 			Version:    summary.Version,
 		}

@@ -39,14 +39,14 @@ func EvaluateAt(pc PrecheckContext, model string, opts PrecheckOpts, now time.Ti
 			return err
 		}
 	}
-	return checkSoftBudget(pc.Budget)
+	return checkBudgetRemain(pc.Budget)
 }
 
-func checkSoftBudget(budget BudgetState) error {
-	if budget.SoftRemain == nil {
+func checkBudgetRemain(budget BudgetState) error {
+	if budget.Remain == nil {
 		return nil
 	}
-	if *budget.SoftRemain <= 0 {
+	if *budget.Remain <= 0 {
 		return ErrBudgetExhausted
 	}
 	return nil

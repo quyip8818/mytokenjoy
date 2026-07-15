@@ -70,10 +70,10 @@ func RejectionCases() []RejectionCase {
 			WantHTTP: http.StatusForbidden,
 		},
 		{
-			Name: "exhausted soft remain",
+			Name: "exhausted combined key remain",
 			MutatePC: func(pc *domaingateway.PrecheckContext) {
 				zero := 0.0
-				pc.Budget.SoftRemain = &zero
+				pc.Budget.Remain = &zero
 			},
 			Model: "gpt-4o",
 		},

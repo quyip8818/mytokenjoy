@@ -13,13 +13,13 @@ func platformKey1Hash() string {
 	return store.HashPlatformKey("pending:" + contract.IDPlatformKey1)
 }
 
-func TestGatewaySoftSummaryUpdateBatch(t *testing.T) {
+func TestCombinedKeySummaryUpdateBatch(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	summaries, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
-		{PlatformKeyID: contract.IDPlatformKey1, SoftRemain: 123.45},
+	summaries, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
+		{PlatformKeyID: contract.IDPlatformKey1, Remain: 123.45},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -27,15 +27,15 @@ func TestGatewaySoftSummaryUpdateBatch(t *testing.T) {
 	if len(summaries) != 1 {
 		t.Fatalf("expected 1 summary, got %d", len(summaries))
 	}
-	if summaries[0].SoftRemain != 123.45 {
-		t.Fatalf("remain = %v, want 123.45", summaries[0].SoftRemain)
+	if summaries[0].Remain != 123.45 {
+		t.Fatalf("remain = %v, want 123.45", summaries[0].Remain)
 	}
 	if summaries[0].Version != 1 {
 		t.Fatalf("version = %d, want 1", summaries[0].Version)
 	}
 
-	summaries, err = st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
-		{PlatformKeyID: contract.IDPlatformKey1, SoftRemain: 100},
+	summaries, err = st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
+		{PlatformKeyID: contract.IDPlatformKey1, Remain: 100},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -45,18 +45,18 @@ func TestGatewaySoftSummaryUpdateBatch(t *testing.T) {
 	}
 }
 
-func TestGatewaySoftSummaryDecrementBatch(t *testing.T) {
+func TestCombinedKeySummaryDecrementBatch(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
-		{PlatformKeyID: contract.IDPlatformKey1, SoftRemain: 100},
+	if _, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
+		{PlatformKeyID: contract.IDPlatformKey1, Remain: 100},
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.GatewaySoftSummaries().DecrementBatch(ctx, map[string]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[string]float64{
 		contract.IDPlatformKey1: 12.5,
 		"missing-key":           1,
 	})
@@ -66,26 +66,26 @@ func TestGatewaySoftSummaryDecrementBatch(t *testing.T) {
 	if len(summaries) != 1 {
 		t.Fatalf("expected 1 updated summary, got %d", len(summaries))
 	}
-	if summaries[0].SoftRemain != 87.5 {
-		t.Fatalf("remain = %v, want 87.5", summaries[0].SoftRemain)
+	if summaries[0].Remain != 87.5 {
+		t.Fatalf("remain = %v, want 87.5", summaries[0].Remain)
 	}
 	if summaries[0].Version != 2 {
 		t.Fatalf("version = %d, want 2", summaries[0].Version)
 	}
 }
 
-func TestGatewaySoftSummaryDecrementBatchFloorsAtZero(t *testing.T) {
+func TestCombinedKeySummaryDecrementBatchFloorsAtZero(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
-		{PlatformKeyID: contract.IDPlatformKey1, SoftRemain: 5},
+	if _, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
+		{PlatformKeyID: contract.IDPlatformKey1, Remain: 5},
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.GatewaySoftSummaries().DecrementBatch(ctx, map[string]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[string]float64{
 		contract.IDPlatformKey1: 12,
 	})
 	if err != nil {
@@ -94,17 +94,17 @@ func TestGatewaySoftSummaryDecrementBatchFloorsAtZero(t *testing.T) {
 	if len(summaries) != 1 {
 		t.Fatalf("expected 1 updated summary, got %d", len(summaries))
 	}
-	if summaries[0].SoftRemain != 0 {
-		t.Fatalf("remain = %v, want 0", summaries[0].SoftRemain)
+	if summaries[0].Remain != 0 {
+		t.Fatalf("remain = %v, want 0", summaries[0].Remain)
 	}
 }
 
-func TestGatewaySoftSummaryDecrementBatchSkipsNullRemain(t *testing.T) {
+func TestCombinedKeySummaryDecrementBatchSkipsNullRemain(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	summaries, err := st.GatewaySoftSummaries().DecrementBatch(ctx, map[string]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[string]float64{
 		contract.IDPlatformKey1: 1,
 	})
 	if err != nil {
@@ -113,7 +113,7 @@ func TestGatewaySoftSummaryDecrementBatchSkipsNullRemain(t *testing.T) {
 	if len(summaries) != 0 {
 		t.Fatalf("expected no updates for NULL soft remain, got %d", len(summaries))
 	}
-	remain, _ := budgetfix.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
+	remain, _ := budgetfix.CombinedKeyRemain(t, st, contract.IDPlatformKey1)
 	if remain != nil {
 		t.Fatalf("expected soft remain to stay NULL, got %v", remain)
 	}
@@ -124,7 +124,7 @@ func TestLoadPrecheckContextReturnsSoftSummary(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	budgetfix.SetGatewaySoftRemain(t, st, contract.IDPlatformKey1, 42)
+	budgetfix.SetCombinedKeyRemain(t, st, contract.IDPlatformKey1, 42)
 	row, err := st.GatewayPrecheck().LoadPrecheckContext(ctx, platformKey1Hash())
 	if err != nil {
 		t.Fatal(err)
@@ -132,11 +132,11 @@ func TestLoadPrecheckContextReturnsSoftSummary(t *testing.T) {
 	if row == nil {
 		t.Fatal("expected precheck row")
 	}
-	if row.GatewaySoftRemain == nil || *row.GatewaySoftRemain != 42 {
-		t.Fatalf("soft remain = %v, want 42", row.GatewaySoftRemain)
+	if row.CombinedKeyRemain == nil || *row.CombinedKeyRemain != 42 {
+		t.Fatalf("soft remain = %v, want 42", row.CombinedKeyRemain)
 	}
-	if row.GatewaySoftVersion != 1 {
-		t.Fatalf("version = %d, want 1", row.GatewaySoftVersion)
+	if row.CombinedKeyRemainVersion != 1 {
+		t.Fatalf("version = %d, want 1", row.CombinedKeyRemainVersion)
 	}
 }
 
@@ -152,20 +152,20 @@ func TestLoadPrecheckContextNullSoftSummary(t *testing.T) {
 	if row == nil {
 		t.Fatal("expected precheck row")
 	}
-	if row.GatewaySoftRemain != nil {
-		t.Fatalf("expected NULL soft remain, got %v", row.GatewaySoftRemain)
+	if row.CombinedKeyRemain != nil {
+		t.Fatalf("expected NULL soft remain, got %v", row.CombinedKeyRemain)
 	}
-	if row.GatewaySoftVersion != 0 {
-		t.Fatalf("version = %d, want 0", row.GatewaySoftVersion)
+	if row.CombinedKeyRemainVersion != 0 {
+		t.Fatalf("version = %d, want 0", row.CombinedKeyRemainVersion)
 	}
 }
 
-func TestSetPlatformKeysPreservesGatewaySoftSummary(t *testing.T) {
+func TestSetPlatformKeysPreservesCombinedKeySummary(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	budgetfix.SetGatewaySoftRemain(t, st, contract.IDPlatformKey1, 99)
+	budgetfix.SetCombinedKeyRemain(t, st, contract.IDPlatformKey1, 99)
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -173,7 +173,7 @@ func TestSetPlatformKeysPreservesGatewaySoftSummary(t *testing.T) {
 	if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 		t.Fatal(err)
 	}
-	remain, version := budgetfix.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
+	remain, version := budgetfix.CombinedKeyRemain(t, st, contract.IDPlatformKey1)
 	if remain == nil || *remain != 99 {
 		t.Fatalf("soft remain = %v, want 99", remain)
 	}

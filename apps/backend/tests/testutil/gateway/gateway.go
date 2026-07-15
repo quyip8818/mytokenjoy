@@ -65,7 +65,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	return GatewayScenario{Gateway: gw, Store: st, Cfg: cfg, FullKey: fullKey}
 }
 
-func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.GatewaySoftCache) *domaingateway.PrecheckService {
+func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.CombinedKeyCache) *domaingateway.PrecheckService {
 	return domaingateway.NewPrecheckService(st.GatewayPrecheck(), cfg.Clock(), cache)
 }
 

@@ -21,7 +21,7 @@ type Projector struct {
 	enqueuer     JobEnqueuer
 	batchSize    int
 	logger       *slog.Logger
-	gatewayCache GatewaySoftCache
+	combinedKeyCache CombinedKeyCache
 	notifier     types.Notifier
 	// alertsSent tracks (ruleID:threshold:periodKey) to avoid repeat notifications.
 	alertsSent map[string]struct{}
@@ -51,7 +51,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 	}
 
 	var entries []types.UsageLedgerEntry
-	var summaries []store.GatewaySoftSummary
+	var summaries []store.CombinedKeySummary
 	var effects batchEffects
 	err = p.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
@@ -85,10 +85,10 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 		}
 		effects = collectBatchEffects(batch)
 
-		// Incremental path: decrement gateway_soft_remain by batch increments.
-		// Absolute recompute only for keys that were not updated (e.g. soft remain still NULL).
+		// Incremental path: decrement combined_key_remain by batch increments.
+		// Absolute recompute only for keys that were not updated (e.g. combined_key_remain still NULL).
 		if len(effects.keyIncrements) > 0 {
-			summaries, err = tx.GatewaySoftSummaries().DecrementBatch(ctx, effects.keyIncrements)
+			summaries, err = tx.CombinedKeySummaries().DecrementBatch(ctx, effects.keyIncrements)
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 					return err
 				}
 				if len(updates) > 0 {
-					fallback, err := tx.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+					fallback, err := tx.CombinedKeySummaries().UpdateBatch(ctx, updates)
 					if err != nil {
 						return err
 					}
@@ -130,7 +130,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 		return false, nil
 	}
 
-	RefreshGatewaySoftSummaries(ctx, p.gatewayCache, p.logger, companyID, summaries)
+	RefreshCombinedKeySummaries(ctx, p.combinedKeyCache, p.logger, companyID, summaries)
 	if err := p.enqueueBatchEffects(ctx, companyID, effects); err != nil {
 		return false, err
 	}

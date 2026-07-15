@@ -19,9 +19,9 @@ type PrecheckContextRow struct {
 	HasAllowlist   bool
 	AllowlistTypes []string
 
-	GatewaySoftRemain  *float64
-	GatewaySoftAt      *time.Time
-	GatewaySoftVersion int64
+	CombinedKeyRemain  *float64
+	CombinedKeyRemainAt      *time.Time
+	CombinedKeyRemainVersion int64
 }
 
 type GatewayPrecheckRepository interface {

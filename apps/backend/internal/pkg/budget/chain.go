@@ -33,7 +33,9 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 		val  float64
 		name string
 	}
-	candidates := []candidate{{in.WalletRemain, LimitingWallet}}
+	// wallet_remain is checked independently in the precheck path (real-time from PG).
+	// This chain only evaluates budget-control constraints: key, member, project.
+	var candidates []candidate
 
 	if in.KeyBudget > 0 {
 		candidates = append(candidates, candidate{
@@ -67,16 +69,14 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 	}
 
 	if len(candidates) == 0 {
-		return 0, LimitingWallet
+		// No budget constraints configured — uncapped by management rules.
+		return math.MaxFloat64, ""
 	}
 	best := candidates[0]
 	for _, c := range candidates[1:] {
 		if c.val < best.val {
 			best = c
 		}
-	}
-	if math.IsInf(best.val, 1) {
-		return in.WalletRemain, LimitingWallet
 	}
 	return best.val, best.name
 }

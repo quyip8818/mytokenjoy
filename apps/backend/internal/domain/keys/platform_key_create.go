@@ -105,7 +105,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	if err := domainbudget.RefreshPlatformKeySoft(ctx, s.store, created.ID, s.cfg.Clock(), nil); err != nil {
+	if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, created.ID, s.cfg.Clock(), nil); err != nil {
 		return types.PlatformKey{}, err
 	}
 	return result, nil

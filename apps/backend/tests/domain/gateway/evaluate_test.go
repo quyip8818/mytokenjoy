@@ -44,18 +44,18 @@ func TestEvaluateAllowsFutureExpiry(t *testing.T) {
 	}
 }
 
-func TestEvaluateAllowsNullSoftRemain(t *testing.T) {
+func TestEvaluateAllowsNullRemain(t *testing.T) {
 	t.Parallel()
 	if err := domaingateway.Evaluate(gatewaytf.BasePrecheckContext(), "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass with NULL soft remain, got %v", err)
 	}
 }
 
-func TestEvaluateAllowsPositiveSoftRemain(t *testing.T) {
+func TestEvaluateAllowsPositiveRemain(t *testing.T) {
 	t.Parallel()
 	pc := gatewaytf.BasePrecheckContext()
 	pos := 10.0
-	pc.Budget.SoftRemain = &pos
+	pc.Budget.Remain = &pos
 	if err := domaingateway.Evaluate(pc, "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass, got %v", err)
 	}
@@ -65,12 +65,12 @@ func TestEvaluateModelsListingSkipsAllowlistNotBudget(t *testing.T) {
 	t.Parallel()
 	pc := gatewaytf.BasePrecheckContext()
 	zero := 0.0
-	pc.Budget.SoftRemain = &zero
+	pc.Budget.Remain = &zero
 	if err := domaingateway.Evaluate(pc, "", precheckOpts(true, false)); err == nil {
 		t.Fatal("expected budget exhausted for /v1/models path")
 	}
 	pos := 10.0
-	pc.Budget.SoftRemain = &pos
+	pc.Budget.Remain = &pos
 	if err := domaingateway.Evaluate(pc, "", precheckOpts(true, false)); err != nil {
 		t.Fatalf("expected pass without model check, got %v", err)
 	}

@@ -24,16 +24,16 @@ func WithProjectorNotifier(n types.Notifier) AsyncOption {
 	}
 }
 
-func NewAsync(cfg config.Config, st store.Store, enqueuer JobEnqueuer, cache GatewaySoftCache, logger *slog.Logger, opts ...AsyncOption) *Async {
+func NewAsync(cfg config.Config, st store.Store, enqueuer JobEnqueuer, cache CombinedKeyCache, logger *slog.Logger, opts ...AsyncOption) *Async {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}
 	if cache == nil {
-		cache = NoopGatewaySoftCache
+		cache = NoopCombinedKeyCache
 	}
 	a := &Async{
-		Projector: &Projector{cfg: cfg, store: st, enqueuer: enqueuer, batchSize: defaultProjectorBatchSize, logger: logger, gatewayCache: cache},
-		Reconcile: &ReconcileService{cfg: cfg, store: st, enqueuer: enqueuer, logger: logger, gatewayCache: cache},
+		Projector: &Projector{cfg: cfg, store: st, enqueuer: enqueuer, batchSize: defaultProjectorBatchSize, logger: logger, combinedKeyCache: cache},
+		Reconcile: &ReconcileService{cfg: cfg, store: st, enqueuer: enqueuer, logger: logger, combinedKeyCache: cache},
 	}
 	for _, opt := range opts {
 		opt(a)

@@ -187,7 +187,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	if created.FullKey == nil || *created.FullKey != "sk-test-key" {
 		t.Fatalf("expected platform key full key, got %+v", created.FullKey)
 	}
-	remain, _ := budgetfix.GatewaySoftRemain(t, st, created.ID)
+	remain, _ := budgetfix.CombinedKeyRemain(t, st, created.ID)
 	if remain == nil {
 		t.Fatal("expected gateway soft remain after key create")
 	}
@@ -286,14 +286,14 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 	svc, st, _ := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
-	versionBefore := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1)
+	versionBefore := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1)
 	newBudget := budgetfix.DisplayPoints(4000)
 	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Budget: &newBudget,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	versionAfter := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1)
+	versionAfter := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1)
 	if versionAfter <= versionBefore {
 		t.Fatalf("expected gateway soft version increase, before=%d after=%d", versionBefore, versionAfter)
 	}

@@ -386,9 +386,9 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    gateway_soft_remain  NUMERIC(18, 6),
-    gateway_soft_at      TIMESTAMPTZ,
-    gateway_soft_version BIGINT NOT NULL DEFAULT 0,
+    combined_key_remain  NUMERIC(18, 6),
+    combined_key_remain_at      TIMESTAMPTZ,
+    combined_key_remain_version BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, id),
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE RESTRICT,
     FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE RESTRICT,
@@ -402,14 +402,14 @@ CREATE INDEX IF NOT EXISTS idx_platform_keys_member ON platform_keys (company_id
 CREATE INDEX IF NOT EXISTS idx_platform_keys_project ON platform_keys (company_id, project_id) WHERE project_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_platform_keys_active ON platform_keys (company_id, status) WHERE status = 'active';
 
-CREATE INDEX IF NOT EXISTS idx_platform_keys_soft_stale
-    ON platform_keys (company_id, gateway_soft_at)
-    WHERE status = 'active' AND gateway_soft_remain IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_platform_keys_combined_key_stale
+    ON platform_keys (company_id, combined_key_remain_at)
+    WHERE status = 'active' AND combined_key_remain IS NOT NULL;
 
-COMMENT ON COLUMN platform_keys.gateway_soft_remain IS
-    'Projector/Reconcile maintained minimum budget remain; projection, not SSOT';
-COMMENT ON COLUMN platform_keys.gateway_soft_version IS
-    'Monotonic soft-summary version shared with the optional Redis cache';
+COMMENT ON COLUMN platform_keys.combined_key_remain IS
+    'Combined budget remain = min(key_budget, member_cap, project_cap) - consumed; maintained by Projector';
+COMMENT ON COLUMN platform_keys.combined_key_remain_version IS
+    'Monotonic version for combined_key_remain, shared with optional Redis cache';
 
 CREATE TABLE IF NOT EXISTS key_approvals (
     id              TEXT NOT NULL,

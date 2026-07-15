@@ -40,15 +40,15 @@ func TestGatewayChainRemain(t *testing.T) {
 			limit: pkgbudget.LimitingProjectMember,
 		},
 		{
-			name:  "wallet caps chain",
+			name:  "wallet no longer caps chain",
 			scope: types.PlatformKeyScopeProject,
 			in: pkgbudget.ChainInputs{
 				KeyBudget: 1000, KeyConsumed: 0,
 				WalletRemain: 10,
 				ProjectCap:   5000, ProjectConsumed: 0,
 			},
-			want:  10,
-			limit: pkgbudget.LimitingWallet,
+			want:  1000,
+			limit: pkgbudget.LimitingPlatformKey,
 		},
 	}
 	for _, tt := range tests {

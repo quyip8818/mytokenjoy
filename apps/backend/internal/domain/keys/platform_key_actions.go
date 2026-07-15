@@ -37,7 +37,7 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 		return types.PlatformKey{}, err
 	}
 	if enabled {
-		if err := domainbudget.RefreshPlatformKeySoft(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
+		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
 			return types.PlatformKey{}, err
 		}
 	}

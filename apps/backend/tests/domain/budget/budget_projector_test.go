@@ -39,7 +39,7 @@ func TestBudgetProjectorDedupesOverrunByPlatformKey(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	recorder := &recordingBudgetEnqueuer{inner: riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st)}
-	projector := budget.NewAsync(cfg, st, recorder, budget.NoopGatewaySoftCache, logger).Projector
+	projector := budget.NewAsync(cfg, st, recorder, budget.NoopCombinedKeyCache, logger).Projector
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}

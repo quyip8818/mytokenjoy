@@ -17,7 +17,7 @@ type ReconcileService struct {
 	store        store.Store
 	enqueuer     JobEnqueuer
 	logger       *slog.Logger
-	gatewayCache GatewaySoftCache
+	combinedKeyCache CombinedKeyCache
 }
 
 func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) error {
@@ -41,7 +41,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		return err
 	}
 
-	var summaries []store.GatewaySoftSummary
+	var summaries []store.CombinedKeySummary
 	repaired := false
 	repairedAxes := make(map[AxisKey]struct{})
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
@@ -88,7 +88,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 			return err
 		}
 		if len(updates) > 0 {
-			summaries, err = tx.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+			summaries, err = tx.CombinedKeySummaries().UpdateBatch(ctx, updates)
 			if err != nil {
 				return err
 			}
@@ -102,7 +102,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		return nil
 	}
 
-	RefreshGatewaySoftSummaries(ctx, s.gatewayCache, s.logger, companyID, summaries)
+	RefreshCombinedKeySummaries(ctx, s.combinedKeyCache, s.logger, companyID, summaries)
 	return s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
 }
 

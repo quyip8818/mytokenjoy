@@ -14,21 +14,21 @@ func gatewaySoftKey(companyID int64, keyHash string) string {
 	return fmt.Sprintf("gateway:budget_check:%d:%s", companyID, keyHash)
 }
 
-// FakeBudgetCheck is an in-memory GatewaySoftCache for soft-block tests.
+// FakeBudgetCheck is an in-memory CombinedKeyCache for combined key budget tests.
 type FakeBudgetCheck struct {
 	mu      sync.Mutex
-	entries map[string]domainbudget.GatewaySoftEntry
+	entries map[string]domainbudget.CombinedKeyEntry
 	gets    int
 	enabled bool
 }
 
 func NewFakeBudgetCheck() *FakeBudgetCheck {
-	return &FakeBudgetCheck{entries: map[string]domainbudget.GatewaySoftEntry{}, enabled: true}
+	return &FakeBudgetCheck{entries: map[string]domainbudget.CombinedKeyEntry{}, enabled: true}
 }
 
 func (f *FakeBudgetCheck) Enabled() bool { return f.enabled }
 
-func (f *FakeBudgetCheck) Get(_ context.Context, companyID int64, keyHash string) (domainbudget.GatewaySoftEntry, bool, error) {
+func (f *FakeBudgetCheck) Get(_ context.Context, companyID int64, keyHash string) (domainbudget.CombinedKeyEntry, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.gets++
@@ -36,7 +36,7 @@ func (f *FakeBudgetCheck) Get(_ context.Context, companyID int64, keyHash string
 	return entry, ok, nil
 }
 
-func (f *FakeBudgetCheck) Set(_ context.Context, companyID int64, keyHash string, entry domainbudget.GatewaySoftEntry) error {
+func (f *FakeBudgetCheck) Set(_ context.Context, companyID int64, keyHash string, entry domainbudget.CombinedKeyEntry) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.entries[gatewaySoftKey(companyID, keyHash)] = entry
@@ -50,4 +50,4 @@ func (f *FakeBudgetCheck) Gets() int {
 	return f.gets
 }
 
-var _ domainbudget.GatewaySoftCache = (*FakeBudgetCheck)(nil)
+var _ domainbudget.CombinedKeyCache = (*FakeBudgetCheck)(nil)

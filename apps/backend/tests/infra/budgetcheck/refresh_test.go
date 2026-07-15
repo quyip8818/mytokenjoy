@@ -15,22 +15,22 @@ type recordingCache struct {
 
 func (r *recordingCache) Enabled() bool { return true }
 
-func (r *recordingCache) Get(context.Context, int64, string) (domainbudget.GatewaySoftEntry, bool, error) {
-	return domainbudget.GatewaySoftEntry{}, false, nil
+func (r *recordingCache) Get(context.Context, int64, string) (domainbudget.CombinedKeyEntry, bool, error) {
+	return domainbudget.CombinedKeyEntry{}, false, nil
 }
 
-func (r *recordingCache) Set(context.Context, int64, string, domainbudget.GatewaySoftEntry) error {
+func (r *recordingCache) Set(context.Context, int64, string, domainbudget.CombinedKeyEntry) error {
 	r.sets++
 	return nil
 }
 
 func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 	cache := &recordingCache{}
-	domainbudget.RefreshGatewaySoftSummaries(context.Background(), cache, nil, 1, []store.GatewaySoftSummary{
+	domainbudget.RefreshCombinedKeySummaries(context.Background(), cache, nil, 1, []store.CombinedKeySummary{
 		{
 			PlatformKeyID: "pk-1",
 			KeyHash:       "hash-1",
-			SoftRemain:    12.5,
+			Remain:    12.5,
 			UpdatedAt:     time.Unix(1, 0).UTC(),
 			Version:       3,
 		},
@@ -40,15 +40,15 @@ func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 	}
 }
 
-func TestBlocksGatewaySoft(t *testing.T) {
-	entry := domainbudget.GatewaySoftEntry{SoftRemain: 0, Version: 2}
-	if !domainbudget.BlocksGatewaySoft(entry, 2) {
+func TestBlocksCombinedKey(t *testing.T) {
+	entry := domainbudget.CombinedKeyEntry{Remain: 0, Version: 2}
+	if !domainbudget.BlocksCombinedKey(entry, 2) {
 		t.Fatal("expected block when versions match and remain <= 0")
 	}
-	if domainbudget.BlocksGatewaySoft(entry, 3) {
+	if domainbudget.BlocksCombinedKey(entry, 3) {
 		t.Fatal("expected allow when redis version is stale")
 	}
-	if domainbudget.BlocksGatewaySoft(domainbudget.GatewaySoftEntry{SoftRemain: 0, Version: 1}, 0) {
+	if domainbudget.BlocksCombinedKey(domainbudget.CombinedKeyEntry{Remain: 0, Version: 1}, 0) {
 		t.Fatal("expected allow when pg version is unset")
 	}
 }

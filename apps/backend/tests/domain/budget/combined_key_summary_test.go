@@ -15,7 +15,7 @@ import (
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
-func TestBudgetProjectorWritesGatewaySoftSummary(t *testing.T) {
+func TestBudgetProjectorWritesCombinedKeySummary(t *testing.T) {
 	t.Parallel()
 	stub := defaultBudgetIngestStub()
 	cfg, st, ingest, _ := newBudgetIngestFixture(t, stub)
@@ -28,12 +28,12 @@ func TestBudgetProjectorWritesGatewaySoftSummary(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	projector := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopGatewaySoftCache, logger).Projector
+	projector := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopCombinedKeyCache, logger).Projector
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 
-	remain, version := budgetfix.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
+	remain, version := budgetfix.CombinedKeyRemain(t, st, contract.IDPlatformKey1)
 	if remain == nil || *remain <= 0 {
 		t.Fatalf("expected positive gateway soft remain, got %v", remain)
 	}
@@ -55,11 +55,11 @@ func TestBudgetProjectorVersionMonotonicPerBatch(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	projector := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopGatewaySoftCache, logger).Projector
+	projector := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopCombinedKeyCache, logger).Projector
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
-	if got := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1); got != 1 {
+	if got := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1); got != 1 {
 		t.Fatalf("expected version 1 after first batch, got %d", got)
 	}
 
@@ -70,7 +70,7 @@ func TestBudgetProjectorVersionMonotonicPerBatch(t *testing.T) {
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
-	if got := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1); got != 2 {
+	if got := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1); got != 2 {
 		t.Fatalf("expected version 2 after second batch, got %d", got)
 	}
 }
@@ -91,7 +91,7 @@ func TestComputeGatewaySummaryUpdatesSkipsMissingMapping(t *testing.T) {
 	}
 }
 
-func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
+func TestBudgetReconcileRefreshesCombinedKeySummary(t *testing.T) {
 	t.Parallel()
 	stub := defaultBudgetIngestStub()
 	cfg, st, ingest, _ := newBudgetIngestFixture(t, stub)
@@ -104,7 +104,7 @@ func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	budgetAsync := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopGatewaySoftCache, logger)
+	budgetAsync := budget.NewAsync(cfg, st, riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st), budget.NoopCombinedKeyCache, logger)
 	if _, err := budgetAsync.Projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestBudgetReconcileRefreshesGatewaySoftSummary(t *testing.T) {
 	if budget.ConsumedDrift(wantPlatformKey, got) {
 		t.Fatalf("expected repaired consumed %v, got %v", wantPlatformKey, got)
 	}
-	if version := budgetfix.GatewaySoftVersion(t, st, contract.IDPlatformKey1); version < 2 {
+	if version := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1); version < 2 {
 		t.Fatalf("expected summary version to increase after reconcile, got %d", version)
 	}
 }

@@ -29,7 +29,7 @@ func TestBudgetReconcileRepairsDriftAndEnqueuesRebalance(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	recorder := &recordingBudgetEnqueuer{inner: riverfix.NewBudgetInsertOnlyEnqueuer(t, cfg, st)}
-	budgetAsync := budget.NewAsync(cfg, st, recorder, budget.NoopGatewaySoftCache, logger)
+	budgetAsync := budget.NewAsync(cfg, st, recorder, budget.NoopCombinedKeyCache, logger)
 	if _, err := budgetAsync.Projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}

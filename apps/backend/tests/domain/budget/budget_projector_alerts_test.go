@@ -45,7 +45,7 @@ func TestBudgetProjectorFiresHighestCrossedAlertThreshold(t *testing.T) {
 	projector := budget.NewAsync(
 		cfg, st,
 		riverTF.NewBudgetInsertOnlyEnqueuer(t, cfg, st),
-		budget.NoopGatewaySoftCache,
+		budget.NoopCombinedKeyCache,
 		logger,
 		budget.WithProjectorNotifier(notifier),
 	).Projector
@@ -128,7 +128,7 @@ func TestBudgetProjectorSkipsDisabledAlertRules(t *testing.T) {
 	projector := budget.NewAsync(
 		cfg, st,
 		riverTF.NewBudgetInsertOnlyEnqueuer(t, cfg, st),
-		budget.NoopGatewaySoftCache,
+		budget.NoopCombinedKeyCache,
 		logger,
 		budget.WithProjectorNotifier(notifier),
 	).Projector

@@ -62,7 +62,7 @@ func (s *service) persistPlatformKeyWithNewAPISync(
 		return types.PlatformKey{}, err
 	}
 	if updated.Budget != previous.Budget {
-		if err := domainbudget.RefreshPlatformKeySoft(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
+		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
 			return types.PlatformKey{}, err
 		}
 	}

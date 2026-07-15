@@ -19,7 +19,7 @@ var _ store.GatewayPrecheckRepository = (*gatewayPrecheckRepo)(nil)
 
 const loadPrecheckContextSQL = `
 WITH pk_ctx AS (
-	SELECT pk.id, pk.company_id, pk.status, pk.expires_at, pk.gateway_soft_remain, pk.gateway_soft_version
+	SELECT pk.id, pk.company_id, pk.status, pk.expires_at, pk.combined_key_remain, pk.combined_key_remain_version
 	FROM platform_keys pk
 	WHERE pk.key_hash = $1
 ),
@@ -46,8 +46,8 @@ SELECT
 	pk_ctx.expires_at AS key_expires_at,
 	COALESCE(a.has_allowlist, FALSE) AS has_allowlist,
 	COALESCE(a.allowlist_types, '{}') AS allowlist_types,
-	pk_ctx.gateway_soft_remain,
-	pk_ctx.gateway_soft_version
+	pk_ctx.combined_key_remain,
+	pk_ctx.combined_key_remain_version
 FROM pk_ctx
 JOIN companies c ON c.id = pk_ctx.company_id
 LEFT JOIN allowlist a ON a.platform_key_id = pk_ctx.id
@@ -66,8 +66,8 @@ func (r *gatewayPrecheckRepo) LoadPrecheckContext(ctx context.Context, keyHash s
 		&out.KeyExpiresAt,
 		&out.HasAllowlist,
 		&out.AllowlistTypes,
-		&out.GatewaySoftRemain,
-		&out.GatewaySoftVersion,
+		&out.CombinedKeyRemain,
+		&out.CombinedKeyRemainVersion,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil

@@ -66,7 +66,7 @@ type Config struct {
 	PlatformSessionSecret string `env:"PLATFORM_SESSION_SECRET"`
 	AuthzCacheSize        int    `env:"AUTHZ_CACHE_SIZE" envDefault:"4096"`
 
-	// GatewayBudgetCheck (optional soft-block). Empty RedisURL => no-op (default).
+	// CombinedKeyBudgetCheck (optional Redis cache). Empty RedisURL => no-op (default).
 	RedisURL                 string `env:"REDIS_URL"`
 	GatewayBudgetCheckTTLSec int    `env:"GATEWAY_BUDGET_CHECK_TTL_SEC" envDefault:"600"`
 }

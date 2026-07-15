@@ -10,10 +10,10 @@ type domainStoreAdapter struct {
 	store Store
 }
 
-// WrapStore adapts infra budgetcheck.Store to domain/budget.GatewaySoftCache.
-func WrapStore(store Store) domainbudget.GatewaySoftCache {
+// WrapStore adapts infra budgetcheck.Store to domain/budget.CombinedKeyCache.
+func WrapStore(store Store) domainbudget.CombinedKeyCache {
 	if store == nil {
-		return domainbudget.NoopGatewaySoftCache
+		return domainbudget.NoopCombinedKeyCache
 	}
 	return domainStoreAdapter{store: store}
 }
@@ -22,24 +22,24 @@ func (a domainStoreAdapter) Enabled() bool {
 	return a.store.Enabled()
 }
 
-func (a domainStoreAdapter) Get(ctx context.Context, companyID int64, keyHash string) (domainbudget.GatewaySoftEntry, bool, error) {
+func (a domainStoreAdapter) Get(ctx context.Context, companyID int64, keyHash string) (domainbudget.CombinedKeyEntry, bool, error) {
 	entry, ok, err := a.store.Get(ctx, companyID, keyHash)
 	if err != nil || !ok {
-		return domainbudget.GatewaySoftEntry{}, ok, err
+		return domainbudget.CombinedKeyEntry{}, ok, err
 	}
-	return domainbudget.GatewaySoftEntry{
-		SoftRemain: entry.SoftRemain,
+	return domainbudget.CombinedKeyEntry{
+		Remain: entry.Remain,
 		UpdatedAt:  entry.UpdatedAt,
 		Version:    entry.Version,
 	}, ok, nil
 }
 
-func (a domainStoreAdapter) Set(ctx context.Context, companyID int64, keyHash string, entry domainbudget.GatewaySoftEntry) error {
+func (a domainStoreAdapter) Set(ctx context.Context, companyID int64, keyHash string, entry domainbudget.CombinedKeyEntry) error {
 	return a.store.Set(ctx, companyID, keyHash, Entry{
-		SoftRemain: entry.SoftRemain,
+		Remain: entry.Remain,
 		UpdatedAt:  entry.UpdatedAt,
 		Version:    entry.Version,
 	})
 }
 
-var _ domainbudget.GatewaySoftCache = domainStoreAdapter{}
+var _ domainbudget.CombinedKeyCache = domainStoreAdapter{}

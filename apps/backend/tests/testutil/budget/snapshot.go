@@ -70,36 +70,36 @@ func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, co
 	}
 }
 
-func SetGatewaySoftRemain(t *testing.T, st store.Store, keyID string, remain float64) {
+func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID string, remain float64) {
 	t.Helper()
 	ctx := ctx()
-	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
-		{PlatformKeyID: keyID, SoftRemain: remain},
+	if _, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
+		{PlatformKeyID: keyID, Remain: remain},
 	}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func GatewaySoftRemain(t *testing.T, st store.Store, keyID string) (remain *float64, version int64) {
+func CombinedKeyRemain(t *testing.T, st store.Store, keyID string) (remain *float64, version int64) {
 	t.Helper()
 	ctx := ctx()
-	items, err := st.GatewaySoftSummaries().ListByPlatformKeyIDs(ctx, []string{keyID})
+	items, err := st.CombinedKeySummaries().ListByPlatformKeyIDs(ctx, []string{keyID})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(items) == 0 {
-		t.Fatalf("gateway soft summary not found for key %s", keyID)
+		t.Fatalf("combined key summary not found for key %s", keyID)
 	}
 	item := items[0]
-	if item.SoftRemain != 0 || item.Version > 0 {
-		r := item.SoftRemain
+	if item.Remain != 0 || item.Version > 0 {
+		r := item.Remain
 		return &r, item.Version
 	}
 	return nil, item.Version
 }
 
-func GatewaySoftVersion(t *testing.T, st store.Store, keyID string) int64 {
+func CombinedKeyRemainVersion(t *testing.T, st store.Store, keyID string) int64 {
 	t.Helper()
-	_, version := GatewaySoftRemain(t, st, keyID)
+	_, version := CombinedKeyRemain(t, st, keyID)
 	return version
 }

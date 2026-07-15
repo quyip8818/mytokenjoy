@@ -134,7 +134,7 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 	if err := s.store.PlatformKeyMappings().UpdateMappingNewAPIKeyRemainQuota(ctx, mapping.PlatformKeyID, updated.RemainQuota); err != nil {
 		return err
 	}
-	return RefreshPlatformKeySoft(ctx, s.store, mapping.PlatformKeyID, s.cfg.Clock(), nil)
+	return RefreshPlatformKeyCombined(ctx, s.store, mapping.PlatformKeyID, s.cfg.Clock(), nil)
 }
 
 func (s *RebalanceService) newAPIWalletUserID(ctx context.Context, companyID int64) (int64, error) {

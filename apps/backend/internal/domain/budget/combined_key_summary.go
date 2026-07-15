@@ -2,20 +2,21 @@ package budget
 
 import (
 	"context"
+	"math"
 
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-// ComputeGatewaySummaryUpdates loads budget context once and returns soft-summary
+// ComputeGatewaySummaryUpdates loads budget context once and returns combined key summary
 // updates for touched platform keys.
 func ComputeGatewaySummaryUpdates(
 	ctx context.Context,
 	st store.Store,
 	keyIDs map[string]struct{},
 	clk clock.Clock,
-) ([]store.GatewaySoftSummaryUpdate, error) {
+) ([]store.CombinedKeySummaryUpdate, error) {
 	if len(keyIDs) == 0 {
 		return nil, nil
 	}
@@ -33,7 +34,7 @@ func ComputeGatewaySummaryUpdates(
 		return nil, err
 	}
 
-	updates := make([]store.GatewaySoftSummaryUpdate, 0, len(mappings))
+	updates := make([]store.CombinedKeySummaryUpdate, 0, len(mappings))
 	for _, mapping := range mappings {
 		if mapping.DepartmentID == "" {
 			continue
@@ -48,16 +49,19 @@ func ComputeGatewaySummaryUpdates(
 		if err != nil {
 			continue
 		}
-		updates = append(updates, store.GatewaySoftSummaryUpdate{
+		if remain >= math.MaxFloat64 {
+			continue // No budget constraints — leave combined_key_remain as NULL (allow).
+		}
+		updates = append(updates, store.CombinedKeySummaryUpdate{
 			PlatformKeyID: mapping.PlatformKeyID,
-			SoftRemain:    remain,
+			Remain:    remain,
 		})
 	}
 	return updates, nil
 }
 
-// RefreshPlatformKeySoft recomputes and persists gateway_soft_* for one platform key.
-func RefreshPlatformKeySoft(ctx context.Context, st store.Store, keyID string, clk clock.Clock, cache GatewaySoftCache) error {
+// RefreshPlatformKeyCombined recomputes and persists combined_key_remain for one platform key.
+func RefreshPlatformKeyCombined(ctx context.Context, st store.Store, keyID string, clk clock.Clock, cache CombinedKeyCache) error {
 	updates, err := ComputeGatewaySummaryUpdates(ctx, st, map[string]struct{}{keyID: {}}, clk)
 	if err != nil {
 		return err
@@ -65,16 +69,16 @@ func RefreshPlatformKeySoft(ctx context.Context, st store.Store, keyID string, c
 	if len(updates) == 0 {
 		return nil
 	}
-	summaries, err := st.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+	summaries, err := st.CombinedKeySummaries().UpdateBatch(ctx, updates)
 	if err != nil {
 		return err
 	}
 	coID := store.CompanyID(ctx)
-	RefreshGatewaySoftSummaries(ctx, cache, nil, coID, summaries)
+	RefreshCombinedKeySummaries(ctx, cache, nil, coID, summaries)
 	return nil
 }
 
-// AffectedPlatformKeyIDs resolves platform keys whose gateway soft summary may
+// AffectedPlatformKeyIDs resolves platform keys whose combined key summary may
 // change after consumed drift repair on the given axis keys.
 func AffectedPlatformKeyIDs(ctx context.Context, st store.Store, repaired map[AxisKey]struct{}) (map[string]struct{}, error) {
 	out := make(map[string]struct{})

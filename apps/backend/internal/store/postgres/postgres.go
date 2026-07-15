@@ -18,7 +18,7 @@ type Store struct {
 	logTables            logTables
 	mappings             *platformKeyMappingRepo
 	gatewayPrecheck      *gatewayPrecheckRepo
-	gatewaySoftSummaries *gatewaySoftSummaryRepo
+	combinedKeySummaries *combinedKeySummaryRepo
 	logs                 store.LogStore
 	domain               domainRepos
 	tokenJoyCompanyID    int64
@@ -96,7 +96,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 	}
 	s.mappings = newPlatformKeyMappingRepo(pool)
 	s.gatewayPrecheck = newGatewayPrecheckRepo(pool)
-	s.gatewaySoftSummaries = newGatewaySoftSummaryRepo(pool)
+	s.combinedKeySummaries = newCombinedKeySummaryRepo(pool)
 	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID, s.credentialKey)
 	return s, nil
 }
@@ -166,8 +166,8 @@ func (s *Store) DashboardProjectionProgress() store.ProjectionProgressRepository
 
 func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }
 func (s *Store) GatewayPrecheck() store.GatewayPrecheckRepository        { return s.gatewayPrecheck }
-func (s *Store) GatewaySoftSummaries() store.GatewaySoftSummaryRepository {
-	return s.gatewaySoftSummaries
+func (s *Store) CombinedKeySummaries() store.CombinedKeySummaryRepository {
+	return s.combinedKeySummaries
 }
 func (s *Store) Logs() store.LogStore { return s.logs }
 
