@@ -25,9 +25,23 @@ func (p OccurrencePeriod) String() string { return p.key }
 func (p OpenBudgetPeriod) IsZero() bool { return p.key == "" }
 func (p OccurrencePeriod) IsZero() bool { return p.key == "" }
 
+// TestOpenBudgetPeriod creates an OpenBudgetPeriod with a given key for testing.
+func TestOpenBudgetPeriod(key string) OpenBudgetPeriod { return OpenBudgetPeriod{key: key} }
+
 // OpenDepartmentPeriod resolves the open-budget period for a department from the business clock.
 func OpenDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, clk clock.Clock) (OpenBudgetPeriod, error) {
 	key, err := departmentPeriodKey(ctx, nodes, departmentID, clock.NowUTC(clk))
+	if err != nil {
+		return OpenBudgetPeriod{}, err
+	}
+	return OpenBudgetPeriod{key: key}, nil
+}
+
+// OpenDepartmentPeriodAt resolves the open-budget period for a department at an
+// explicit point in time. Used by reconcile to reproduce the period that was active
+// when an entry was originally ingested.
+func OpenDepartmentPeriodAt(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, at time.Time) (OpenBudgetPeriod, error) {
+	key, err := departmentPeriodKey(ctx, nodes, departmentID, at)
 	if err != nil {
 		return OpenBudgetPeriod{}, err
 	}

@@ -16,7 +16,6 @@ type DueWork struct {
 	CompanyID               int64
 	NeedsOrgSync            bool
 	NeedsMonthRebalance     bool
-	NeedsBudgetProject      bool
 	NeedsBudgetReconcile    bool
 	NeedsDashboardProject   bool
 	NeedsDashboardReconcile bool
@@ -72,14 +71,8 @@ func (s *Service) tenantDue(ctx context.Context, companyID int64, now time.Time)
 		work.NeedsMonthRebalance = true
 	}
 
-	budgetLag, err := s.projectionLag(ctx, store.BudgetProjectionStream)
-	if err != nil {
-		return work, false, err
-	}
-	if budgetLag {
-		work.NeedsBudgetProject = true
-	}
-	if budgetReconcileDue(tbs, budgetLag, now) {
+	// Budget reconcile: no longer depends on projection lag.
+	if budgetReconcileDue(tbs, now) {
 		work.NeedsBudgetReconcile = true
 	}
 
@@ -94,7 +87,7 @@ func (s *Service) tenantDue(ctx context.Context, companyID int64, now time.Time)
 		work.NeedsDashboardReconcile = true
 	}
 
-	ok := work.NeedsOrgSync || work.NeedsMonthRebalance || work.NeedsBudgetProject ||
+	ok := work.NeedsOrgSync || work.NeedsMonthRebalance ||
 		work.NeedsBudgetReconcile || work.NeedsDashboardProject || work.NeedsDashboardReconcile
 	return work, ok, nil
 }
@@ -131,10 +124,7 @@ func monthDue(tbs *store.TenantBackgroundState, currentMonth string) bool {
 	return tbs.LastRebalancedPeriod != currentMonth
 }
 
-func budgetReconcileDue(tbs *store.TenantBackgroundState, lag bool, now time.Time) bool {
-	if lag {
-		return false
-	}
+func budgetReconcileDue(tbs *store.TenantBackgroundState, now time.Time) bool {
 	if tbs == nil || tbs.LastBudgetReconcileAt == nil {
 		return true
 	}
@@ -155,8 +145,6 @@ func (s *Service) projectionLag(ctx context.Context, stream string) (bool, error
 	var progress *store.ProjectionProgress
 	var err error
 	switch stream {
-	case store.BudgetProjectionStream:
-		progress, err = s.store.BudgetProjectionProgress().Get(ctx, stream)
 	case store.DashboardProjectionStream:
 		progress, err = s.store.DashboardProjectionProgress().Get(ctx, stream)
 	default:

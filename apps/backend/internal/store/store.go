@@ -48,7 +48,6 @@ type Store interface {
 	Ledger() LedgerRepository
 	PlatformKeyMappings() PlatformKeyMappingRepository
 	BudgetConsumed() BudgetConsumedRepository
-	BudgetProjectionProgress() ProjectionProgressRepository
 	DashboardProjectionProgress() ProjectionProgressRepository
 	GatewayPrecheck() GatewayPrecheckRepository
 	CombinedKeySummaries() CombinedKeySummaryRepository

@@ -95,6 +95,33 @@ func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind, ax
 	return err
 }
 
+func (r *budgetConsumedRepo) IncrementConsumedBatch(ctx context.Context, deltas []store.ConsumedDelta) error {
+	if len(deltas) == 0 {
+		return nil
+	}
+	companyID := store.CompanyID(ctx)
+	axisKinds := make([]string, len(deltas))
+	axisIDs := make([]string, len(deltas))
+	periodKeys := make([]string, len(deltas))
+	amounts := make([]float64, len(deltas))
+	for i, d := range deltas {
+		axisKinds[i] = d.AxisKind
+		axisIDs[i] = d.AxisID
+		periodKeys[i] = d.PeriodKey
+		amounts[i] = d.Amount
+	}
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+		SELECT $1, axis_kind, axis_id, period_key, amount, NOW()
+		FROM UNNEST($2::text[], $3::text[], $4::text[], $5::numeric[])
+			AS input(axis_kind, axis_id, period_key, amount)
+		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
+			consumed = budget_consumed.consumed + EXCLUDED.consumed,
+			updated_at = NOW()
+	`, companyID, axisKinds, axisIDs, periodKeys, amounts)
+	return err
+}
+
 func (r *budgetConsumedRepo) SetConsumed(ctx context.Context, axisKind, axisID, periodKey string, consumed float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `

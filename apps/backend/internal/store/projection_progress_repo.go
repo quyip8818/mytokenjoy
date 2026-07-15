@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	BudgetProjectionStream    = "ledger_consumed"
 	DashboardProjectionStream = "dashboard_buckets"
 )
 

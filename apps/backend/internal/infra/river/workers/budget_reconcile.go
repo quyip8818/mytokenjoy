@@ -11,24 +11,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-type BudgetProjectionWorker struct {
-	river.WorkerDefaults[jobs.BudgetProjectionArgs]
-	projector *domainbudget.Projector
-}
-
-func NewBudgetProjectionWorker(projector *domainbudget.Projector) *BudgetProjectionWorker {
-	return &BudgetProjectionWorker{projector: projector}
-}
-
-func (w *BudgetProjectionWorker) Work(ctx context.Context, job *river.Job[jobs.BudgetProjectionArgs]) error {
-	if w.projector == nil {
-		return nil
-	}
-	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)
-	_, err := w.projector.RunBatch(entryCtx, job.Args.CompanyID)
-	return err
-}
-
 type BudgetReconcileWorker struct {
 	river.WorkerDefaults[jobs.BudgetReconcileArgs]
 	reconcile *domainbudget.ReconcileService

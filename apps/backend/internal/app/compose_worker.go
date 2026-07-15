@@ -1,5 +1,5 @@
 // compose_worker.go — River + Ingest background workers.
-// Budget/Dashboard Projector + Reconcile are constructed here only (not in HTTP domain services).
+// Budget Reconcile + Dashboard Projector/Reconcile are constructed here only (not in HTTP domain services).
 package app
 
 import (
@@ -53,7 +53,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 
 	budgetEnqueuer := NewBudgetEnqueuer(holder)
 	budgetCache := budgetcheck.WrapStore(reg.Infra.budgetCheck)
-	budgetAsync := domainbudget.NewAsync(cfg, st, budgetEnqueuer, budgetCache, logger, domainbudget.WithProjectorNotifier(reg.Infra.notifier))
+	budgetReconcile := domainbudget.NewReconcileService(cfg, st, budgetEnqueuer, budgetCache, logger)
 	dashboardProjector := domaindashboard.NewProjector(cfg, st, NewDashboardEnqueuer(holder), logger)
 	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, NewDashboardEnqueuer(holder), logger)
 	sched := scheduler.NewService(cfg, st)
@@ -67,8 +67,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		Rebalance:            reg.Rebalance,
 		NewAPISync:           reg.Infra.newAPISync,
 		OrgSync:              reg.OrgSync,
-		BudgetProjector:      budgetAsync.Projector,
-		BudgetReconcile:      budgetAsync.Reconcile,
+		BudgetReconcile:      budgetReconcile,
 		DashboardProjector:   dashboardProjector,
 		DashboardReconcile:   dashboardReconcile,
 		Scheduler:            sched,

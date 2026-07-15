@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/riverqueue/river"
-	"github.com/riverqueue/river/rivertype"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
@@ -38,29 +37,6 @@ func (OverrunArgs) InsertOpts() river.InsertOpts {
 		Queue: config.RiverQueueDefault,
 		UniqueOpts: river.UniqueOpts{
 			ByArgs: true,
-		},
-	}
-}
-
-type BudgetProjectionArgs struct {
-	CompanyID int64 `json:"company_id" river:"unique"`
-}
-
-func (BudgetProjectionArgs) Kind() string { return KindBudgetProjection }
-
-func (BudgetProjectionArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{
-		Queue: config.RiverQueueDefault,
-		UniqueOpts: river.UniqueOpts{
-			ByArgs:   true,
-			ByPeriod: time.Second,
-			ByState: []rivertype.JobState{
-				rivertype.JobStateAvailable,
-				rivertype.JobStatePending,
-				rivertype.JobStateRunning,
-				rivertype.JobStateRetryable,
-				rivertype.JobStateScheduled,
-			},
 		},
 	}
 }

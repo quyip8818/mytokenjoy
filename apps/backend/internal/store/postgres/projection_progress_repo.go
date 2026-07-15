@@ -14,10 +14,6 @@ type projectionProgressRepo struct {
 	table string
 }
 
-func newBudgetProjectionProgressRepo(db dbQuerier) store.ProjectionProgressRepository {
-	return &projectionProgressRepo{db: db, table: "budget_projection_progress"}
-}
-
 func newDashboardProjectionProgressRepo(db dbQuerier) store.ProjectionProgressRepository {
 	return &projectionProgressRepo{db: db, table: "dashboard_projection_progress"}
 }

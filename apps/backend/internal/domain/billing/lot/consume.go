@@ -22,7 +22,8 @@ type ConsumeResult struct {
 	OverdraftDelta float64
 }
 
-// ConsumeLots is the sole write path for ingest lot consumption + wallet_remain.
+// ConsumeLots locks the company row and consumes lots. Use when the caller has
+// NOT yet acquired the company lock within the current transaction.
 func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoint float64) (ConsumeResult, error) {
 	co, err := st.Company().LockForUpdate(ctx, companyID)
 	if err != nil {
@@ -31,6 +32,20 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 	if co == nil {
 		return ConsumeResult{}, fmt.Errorf("company not found: %d", companyID)
 	}
+	return consumeLotsWithCompany(ctx, st, co, amountPoint)
+}
+
+// ConsumeLotsLocked consumes lots assuming the company row is already locked
+// (i.e. the caller already called Company().LockForUpdate within this tx).
+func ConsumeLotsLocked(ctx context.Context, st store.Store, co *store.Company, amountPoint float64) (ConsumeResult, error) {
+	if co == nil {
+		return ConsumeResult{}, fmt.Errorf("company must not be nil")
+	}
+	return consumeLotsWithCompany(ctx, st, co, amountPoint)
+}
+
+func consumeLotsWithCompany(ctx context.Context, st store.Store, co *store.Company, amountPoint float64) (ConsumeResult, error) {
+	companyID := co.ID
 	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, co.FIFOHeadLotID)
 	if err != nil {
 		return ConsumeResult{}, err

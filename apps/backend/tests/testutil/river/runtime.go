@@ -60,7 +60,7 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 	}
 	pool := postgres.MainPool(st)
 	budgetEnqueuer := budgetEnqueuerFromHolder(holder)
-	budgetAsync := budget.NewAsync(cfg, st, budgetEnqueuer, budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
+	budgetReconcile := budget.NewReconcileService(cfg, st, budgetEnqueuer, budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
 	dashboardEnqueuer := app.NewDashboardEnqueuer(holder)
 	sched := scheduler.NewService(cfg, st)
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
@@ -72,8 +72,7 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 		Rebalance:          reg.Rebalance,
 		NewAPISync:         reg.MustNewAPISync(),
 		OrgSync:            reg.OrgSync,
-		BudgetProjector:    budgetAsync.Projector,
-		BudgetReconcile:    budgetAsync.Reconcile,
+		BudgetReconcile:    budgetReconcile,
 		DashboardProjector: domaindashboard.NewProjector(cfg, st, dashboardEnqueuer, logger),
 		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, dashboardEnqueuer, logger),
 		Scheduler:          sched,
@@ -157,10 +156,6 @@ func PendingOverrunCount(st store.Store, companyID int64) int {
 
 func PendingWalletSyncCount(st store.Store, companyID int64) int {
 	return PendingJobCount(st, jobs.KindWalletSync, companyID)
-}
-
-func PendingBudgetProjectCount(st store.Store, companyID int64) int {
-	return PendingJobCount(st, jobs.KindBudgetProjection, companyID)
 }
 
 func PendingDashboardProjectCount(st store.Store, companyID int64) int {

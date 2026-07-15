@@ -57,11 +57,6 @@ func (b *BulkEnqueuer) enqueueTenant(ctx context.Context, st store.Store, item D
 			return fmt.Errorf("rebalance company %d: %w", item.CompanyID, err)
 		}
 	}
-	if item.NeedsBudgetProject {
-		if err := jobs.InsertBudgetProjection(ctx, b.enqueuer, nil, item.CompanyID); err != nil {
-			return fmt.Errorf("budget_projection company %d: %w", item.CompanyID, err)
-		}
-	}
 	if item.NeedsBudgetReconcile {
 		if err := jobs.InsertBudgetReconcile(ctx, b.enqueuer, nil, item.CompanyID); err != nil {
 			return fmt.Errorf("budget_reconcile company %d: %w", item.CompanyID, err)

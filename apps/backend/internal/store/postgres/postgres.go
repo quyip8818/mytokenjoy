@@ -160,10 +160,6 @@ func (s *Store) BudgetConsumed() store.BudgetConsumedRepository {
 	return newBudgetConsumedRepo(s.pool)
 }
 
-func (s *Store) BudgetProjectionProgress() store.ProjectionProgressRepository {
-	return newBudgetProjectionProgressRepo(s.pool)
-}
-
 func (s *Store) DashboardProjectionProgress() store.ProjectionProgressRepository {
 	return newDashboardProjectionProgressRepo(s.pool)
 }

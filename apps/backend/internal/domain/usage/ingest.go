@@ -2,11 +2,13 @@ package usage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -15,12 +17,13 @@ import (
 )
 
 type IngestService struct {
-	cfg      config.Config
-	store    store.Store
-	logStore store.LogStore
-	logger   *slog.Logger
-	enqueuer IngestJobEnqueuer
-	notifier types.Notifier
+	cfg            config.Config
+	store          store.Store
+	logStore       store.LogStore
+	logger         *slog.Logger
+	enqueuer       IngestJobEnqueuer
+	notifier       types.Notifier
+	alertPublisher domainbudget.AlertPublisher
 }
 
 func NewIngestService(
@@ -30,6 +33,7 @@ func NewIngestService(
 	logger *slog.Logger,
 	enqueuer IngestJobEnqueuer,
 	notifier types.Notifier,
+	alertPublisher domainbudget.AlertPublisher,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
@@ -40,15 +44,29 @@ func NewIngestService(
 	if logger == nil {
 		logger = slog.Default()
 	}
+	if alertPublisher == nil {
+		alertPublisher = domainbudget.NoopAlertPublisher
+	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, logger: logger,
-		enqueuer: enqueuer, notifier: notifier,
+		enqueuer: enqueuer, notifier: notifier, alertPublisher: alertPublisher,
 	}
 }
 
 type noopIngestEnqueuer struct{}
 
-func (noopIngestEnqueuer) EnqueueAfterIngest(context.Context, store.Tx, int64) error { return nil }
+func (noopIngestEnqueuer) EnqueueAfterIngest(context.Context, store.Tx, int64, *IngestEffects) error {
+	return nil
+}
+
+// IngestEffects captures the side-effects produced during the ingest transaction
+// so post-commit logic (alerts, cache refresh) can act on them without re-querying.
+type IngestEffects struct {
+	TouchedDepartments map[string]struct{}
+	Summaries          []store.CombinedKeySummary
+	PlatformKeyID      string
+	OverrunPayload     json.RawMessage // pre-built overrun job payload
+}
 
 func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source string) error {
 	raw, err := s.logStore.GetConsumeLogByID(ctx, logID)
@@ -130,17 +148,32 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 
 	companyID := company.CompanyID(ctx)
 	var consumeResult billinglot.ConsumeResult
+	var effects IngestEffects
 	err = s.store.WithTx(ctx, func(st store.Store) error {
+		// 1. Lock company row — serializes all ingest + reconcile for this company.
+		co, lockErr := st.Company().LockForUpdate(ctx, companyID)
+		if lockErr != nil {
+			return lockErr
+		}
+		if co == nil {
+			return fmt.Errorf("ingest: company %d not found", companyID)
+		}
+
+		// 2. Idempotency check AFTER lock — guarantees zero side-effects on duplicate.
 		if exists, err := st.Ledger().ExistsIdempotency(ctx, entry.IdempotencyKey); err != nil {
 			return err
 		} else if exists {
 			return nil
 		}
-		result, err := billinglot.ConsumeLots(ctx, st, companyID, entry.Amount)
+
+		// 3. Consume lots (company already locked).
+		result, err := billinglot.ConsumeLotsLocked(ctx, st, co, entry.Amount)
 		if err != nil {
 			return err
 		}
 		consumeResult = result
+
+		// 4. Insert ledger segments.
 		ledgerEntries := billinglot.LedgerSegmentsFromEntry(entry, result.Segments)
 		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
 		if err != nil {
@@ -149,17 +182,73 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if inserted == 0 {
 			return fmt.Errorf("ingest: ledger insert returned zero rows")
 		}
+
+		// 5. Write budget_consumed — batch UPSERT for open-budget period axes.
+		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), entry.DepartmentID, s.cfg.Clock())
+		if err != nil {
+			return err
+		}
+		deltas, err := domainbudget.ConsumptionDeltas(ctx, nil, entry, open)
+		if err != nil {
+			return err
+		}
+		storeDeltas := make([]store.ConsumedDelta, len(deltas))
+		for i, d := range deltas {
+			storeDeltas[i] = store.ConsumedDelta{
+				AxisKind:  d.Kind,
+				AxisID:    d.AxisID,
+				PeriodKey: d.PeriodKey,
+				Amount:    d.Amount,
+			}
+		}
+		if err := st.BudgetConsumed().IncrementConsumedBatch(ctx, storeDeltas); err != nil {
+			return err
+		}
+
+		// 6. Decrement combined_key_remain.
+		var summaries []store.CombinedKeySummary
+		if entry.PlatformKeyID != "" {
+			decrements := map[string]float64{entry.PlatformKeyID: entry.Amount}
+			summaries, err = st.CombinedKeySummaries().DecrementBatch(ctx, decrements)
+			if err != nil {
+				return err
+			}
+			// Handle NULL / missing key — absolute recompute if key was not decremented.
+			if len(summaries) == 0 {
+				summaries, err = s.absoluteRecompute(ctx, st, entry.PlatformKeyID)
+				if err != nil {
+					// Don't fail the ingest — log and treat as Unknown for overrun gate.
+					s.logger.Warn("combined key absolute recompute failed",
+						"platform_key_id", entry.PlatformKeyID, "error", err)
+					summaries = nil
+				}
+			}
+		}
+		effects.Summaries = summaries
+		effects.TouchedDepartments = map[string]struct{}{entry.DepartmentID: {}}
+		effects.PlatformKeyID = entry.PlatformKeyID
+		effects.OverrunPayload = overrunPayloadFromEntry(entry, open.String())
+
+		// 7. Enqueue side-effect jobs (dashboard, wallet, conditional overrun).
 		tx, ok := st.(store.Tx)
 		if !ok {
 			return fmt.Errorf("ingest: transaction store required")
 		}
-		return s.enqueuer.EnqueueAfterIngest(ctx, tx, companyID)
+		return s.enqueuer.EnqueueAfterIngest(ctx, tx, companyID, &effects)
 	})
 	if err != nil {
 		return err
 	}
 
-	// Notify outside the transaction to avoid blocking commit on notification failures.
+	// --- Post-commit (best-effort) ---
+
+	// Refresh Redis combined key cache.
+	domainbudget.RefreshCombinedKeySummaries(ctx, nil, s.logger, companyID, effects.Summaries)
+
+	// Check budget alert thresholds for touched departments.
+	domainbudget.CheckBudgetAlerts(ctx, s.store, companyID, effects.TouchedDepartments, s.alertPublisher, s.logger)
+
+	// Notify overdraft expansion.
 	if consumeResult.OverdraftUsed && s.notifier != nil {
 		_ = s.notifier.Send(ctx, types.Notification{
 			EventType: types.NotificationEventOverdraftExpanded,
@@ -171,6 +260,70 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		})
 	}
 	return nil
+}
+
+// absoluteRecompute handles the rare case where DecrementBatch did not update a key
+// (combined_key_remain was NULL). It locks the platform_keys row, recomputes the
+// combined remain from budget context, and writes the absolute value.
+func (s *IngestService) absoluteRecompute(ctx context.Context, st store.Store, platformKeyID string) ([]store.CombinedKeySummary, error) {
+	keyIDs := []string{platformKeyID}
+	if err := st.CombinedKeySummaries().LockPlatformKeysForUpdate(ctx, keyIDs); err != nil {
+		return nil, err
+	}
+	keySet := make(map[string]struct{}, 1)
+	keySet[platformKeyID] = struct{}{}
+	updates, err := domainbudget.ComputeGatewaySummaryUpdates(ctx, st, keySet, s.cfg.Clock())
+	if err != nil {
+		return nil, err
+	}
+	if len(updates) == 0 {
+		// Unconstrained — no budget limits, leave NULL.
+		return nil, nil
+	}
+	return st.CombinedKeySummaries().UpdateBatch(ctx, updates)
+}
+
+// overrunPayloadFromEntry creates the overrun job payload matching the existing OverrunService schema.
+func overrunPayloadFromEntry(entry types.UsageLedgerEntry, periodKey string) json.RawMessage {
+	payload := map[string]any{
+		"departmentId":  entry.DepartmentID,
+		"platformKeyId": entry.PlatformKeyID,
+		"periodKey":     periodKey,
+	}
+	if entry.MemberID != nil {
+		payload["memberId"] = *entry.MemberID
+	}
+	if entry.ProjectID != nil {
+		payload["projectId"] = *entry.ProjectID
+	}
+	raw, _ := json.Marshal(payload)
+	return raw
+}
+
+// ShouldEnqueueOverrun decides whether an overrun job is needed based on combined remain.
+func ShouldEnqueueOverrun(summaries []store.CombinedKeySummary, platformKeyID string) bool {
+	if platformKeyID == "" {
+		return false
+	}
+	// If absolute recompute returned nil (Unconstrained), skip overrun.
+	if summaries == nil {
+		return false
+	}
+	for _, s := range summaries {
+		if s.PlatformKeyID == platformKeyID {
+			return s.Remain <= 0
+		}
+	}
+	// Key not in summaries = Unknown state → enqueue overrun for safety.
+	return true
+}
+
+// OverrunPayloadFromEffects returns the pre-built overrun payload, or nil if not applicable.
+func OverrunPayloadFromEffects(effects *IngestEffects) json.RawMessage {
+	if effects == nil || len(effects.OverrunPayload) == 0 {
+		return nil
+	}
+	return effects.OverrunPayload
 }
 
 func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *store.PlatformKeyMapping) (context.Context, error) {

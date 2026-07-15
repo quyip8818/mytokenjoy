@@ -45,11 +45,6 @@ func InsertOrgSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64
 	return insert(ctx, e, tx, args, opts)
 }
 
-func InsertBudgetProjection(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
-	args := BudgetProjectionArgs{CompanyID: companyID}
-	return insert(ctx, e, tx, args, nil)
-}
-
 func InsertBudgetReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
 	args := BudgetReconcileArgs{CompanyID: companyID}
 	return insert(ctx, e, tx, args, nil)

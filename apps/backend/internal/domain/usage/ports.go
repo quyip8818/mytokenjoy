@@ -7,5 +7,5 @@ import (
 )
 
 type IngestJobEnqueuer interface {
-	EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64) error
+	EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64, effects *IngestEffects) error
 }

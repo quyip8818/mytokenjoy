@@ -16,14 +16,30 @@ func NewUsageIngestEnqueuer(enqueuer jobs.Enqueuer) domainusage.IngestJobEnqueue
 	return usageIngestEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
 }
 
-func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64) error {
-	if err := jobs.InsertBudgetProjection(ctx, u.enqueuer, tx, companyID); err != nil {
-		return err
-	}
+func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64, effects *domainusage.IngestEffects) error {
 	if err := jobs.InsertDashboardProject(ctx, u.enqueuer, tx, companyID); err != nil {
 		return err
 	}
-	return jobs.InsertWalletSync(ctx, u.enqueuer, tx, companyID)
+	if err := jobs.InsertWalletSync(ctx, u.enqueuer, tx, companyID); err != nil {
+		return err
+	}
+	// Conditional overrun: only enqueue when remain is known <= 0 or unknown.
+	if effects != nil && domainusage.ShouldEnqueueOverrun(effects.Summaries, platformKeyIDFromEffects(effects)) {
+		payload := domainusage.OverrunPayloadFromEffects(effects)
+		if payload != nil {
+			if err := jobs.InsertOverrun(ctx, u.enqueuer, tx, companyID, payload); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func platformKeyIDFromEffects(effects *domainusage.IngestEffects) string {
+	if effects == nil {
+		return ""
+	}
+	return effects.PlatformKeyID
 }
 
 var _ domainusage.IngestJobEnqueuer = usageIngestEnqueuer{}

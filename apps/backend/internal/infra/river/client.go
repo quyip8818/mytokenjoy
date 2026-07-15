@@ -37,7 +37,6 @@ type Deps struct {
 	Rebalance            domainbudget.Rebalancer
 	NewAPISync           newapisync.OutboxHandler
 	OrgSync              domainorg.SyncService
-	BudgetProjector      *domainbudget.Projector
 	BudgetReconcile      *domainbudget.ReconcileService
 	DashboardProjector   *domaindashboard.Projector
 	DashboardReconcile   *domaindashboard.ReconcileService
@@ -76,7 +75,6 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewOverrunWorker(deps.Overrun))
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))
 	river.AddWorker(workersBundle, workers.NewOrgSyncWorker(deps.OrgSync))
-	river.AddWorker(workersBundle, workers.NewBudgetProjectionWorker(deps.BudgetProjector))
 	river.AddWorker(workersBundle, workers.NewBudgetReconcileWorker(deps.BudgetReconcile, deps.Store))
 	river.AddWorker(workersBundle, workers.NewDashboardProjectWorker(deps.DashboardProjector))
 	river.AddWorker(workersBundle, workers.NewDashboardReconcileWorker(deps.DashboardReconcile, deps.Store))

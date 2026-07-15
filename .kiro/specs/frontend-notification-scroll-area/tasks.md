@@ -24,7 +24,7 @@
   - _Preservation: Preserve the notification consumer, Popover composition, children, empty state, notification actions, query invalidation, and unrelated frontend behavior described in the design._
   - _Requirements: 2.1, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [-] 3. Perform implementation and scope checks by inspection
+- [x] 3. Perform implementation and scope checks by inspection
   - Confirm `apps/frontend/package.json` declares `@radix-ui/react-scroll-area` and `pnpm-lock.yaml` contains the corresponding package-manager-generated importer/package resolution; do not manually alter the lockfile during this check.
   - Confirm `scroll-area.tsx` exports `ScrollArea` and `ScrollBar`, uses the installed Radix primitives `Root`, `Viewport`, `Scrollbar`, and `Thumb`, forwards `className`/Root props, preserves `children`, applies `data-slot` markers, and keeps the consumer height on the Root.
   - Confirm `apps/frontend/src/components/layout/notification-inbox.tsx` is unchanged, including its alias import, `className="h-80"`, notification children, empty state, read actions, and Popover composition.
@@ -33,7 +33,7 @@
   - Do not run tests, `tsc`, builds, lint, or a dev server; this task is limited to source, dependency, and scope inspection.
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [~] 4. Checkpoint — confirm the final change set is within scope
+- [x] 4. Checkpoint — confirm the final change set is within scope
   - Confirm the intended change set contains only `apps/frontend/package.json`, the package-manager-generated `pnpm-lock.yaml`, and the new `apps/frontend/src/components/ui/scroll-area.tsx`.
   - Confirm `notification-inbox.tsx`, `docs/Frontend.md`, aliases, Tailwind/CSS configuration, notification APIs, query definitions, and unrelated components were not modified.
   - Confirm no test files were created and no prohibited test, TypeScript, build, lint, or dev-server command was run.

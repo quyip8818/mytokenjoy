@@ -150,3 +150,18 @@ func (r *combinedKeySummaryRepo) ListByPlatformKeyIDs(ctx context.Context, keyID
 	}
 	return out, rows.Err()
 }
+
+func (r *combinedKeySummaryRepo) LockPlatformKeysForUpdate(ctx context.Context, keyIDs []string) error {
+	if len(keyIDs) == 0 {
+		return nil
+	}
+	companyID := store.CompanyID(ctx)
+	// Lock rows in stable order to prevent deadlocks.
+	_, err := r.db.Exec(ctx, `
+		SELECT 1 FROM platform_keys
+		WHERE company_id = $1 AND id = ANY($2)
+		ORDER BY id
+		FOR UPDATE
+	`, companyID, keyIDs)
+	return err
+}
