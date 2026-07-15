@@ -117,15 +117,16 @@ flowchart LR
 2. Worker：`ingest_jobs` 消费入账（含 webhook 快路径与失败重试）+ `reconcile_cursors` 全局水位补洞（均走 `IngestByLogID`）
 3. `FindMappingByNewAPIKeyID` → `company_id`、部门/成员/组归因
 4. `BuildCallSettledEntry` → `idempotency_key = newapi:{log_id}`
-5. `store.WithTx`：ledger `INSERT ON CONFLICT` → FIFO 扣 lot → 同事务入队 `budget_projection` + `wallet_sync`
+5. `store.WithTx`：ledger `INSERT ON CONFLICT` → FIFO 扣 lot → 同事务入队 `budget_projection` + `dashboard_project` + `wallet_sync`
 
-**Ingest 不同步写 consumed / buckets**；`rebalance` / `overrun` 由 `budget.Projector` 批末入队。
+**Ingest 不同步写 consumed / buckets**；`rebalance` / `overrun` 由 `budget.Projector` 批末入队（方向：轻则直做、可先判再 fanout——[Backend-Projector.md](./Backend-Projector.md)）。  
+目标：`budget_consumed` / `combined_key_remain` 迁回 Ingest——[Backend-budget_consumed迁回Ingest.md](./Backend-budget_consumed迁回Ingest.md)。
 
 ### 2.2 `budget.Projector` 投影顺序
 
 消耗追踪统一在 `budget_consumed` 表，通过 `axis_kind` 区分。各业务表上**没有** `consumed` 列。
 
-**三轴：** `platform_key` · `member` · `project`（**不写** `org_node`）。部门花费读 `usage_ledger` 按 `department_id` 聚合；`usage_ledger.platform_key_scope` 持久化 scope 供写轴。`project_member` 仅写 `platform_key` + `project`；sub 已用 = Σ 该人 project_member Key 的 `platform_key` consumed。Gateway：`GatewayChainRemain`（`pkg/budget/chain.go`）；`gateway_soft_remain IS NULL` 放行；Key 创建 / 启用同步写 soft。
+**三轴：** `platform_key` · `member` · `project`（**不写** `org_node`）。部门花费读 `usage_ledger` 按 `department_id` 聚合；`usage_ledger.platform_key_scope` 持久化 scope 供写轴。`project_member` 仅写 `platform_key` + `project`；sub 已用 = Σ 该人 project_member Key 的 `platform_key` consumed。Gateway 预检读 `combined_key_remain`（`budgetcheck` 缓存）。
 
 | 步骤 | 写入 | 说明 |
 | ---- | ---- | ---- |
@@ -133,19 +134,18 @@ flowchart LR
 | 2 | `budget_consumed` · `project` += cost | `project` / `project_member` scope |
 | 3 | `budget_consumed` · `member` += cost | 仅 `member` scope |
 | — | 无 org_node 轴 | 部门报表：`usage_ledger` 聚合 |
-| 批末 | `gateway_soft_*` + rebalance / overrun 入队 | `budget_projector.go` |
+| 同批 | `combined_key_remain` DecrementBatch | 预检热读 |
+| 批末 | rebalance / overrun **入队**；轻量告警可直做 | 见 [Backend-Projector.md](./Backend-Projector.md) |
 
-投影 lag 与性能优化项见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md)（§10 Lag；`wallet_remain` 无 lag）。
+投影 lag 见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md)。父节点 **limit** 来自 `org_nodes.budget`；部门 **consumed 展示**读 ledger 聚合。
 
-父节点 **limit** 来自 `org_nodes.budget`；部门 **consumed 展示**读 `usage_ledger` 聚合，不读 `budget_consumed.org_node`。
-
-看板 hour/day 桶由 `dashboard.Projector` 写 `usage_buckets`（Periodic fanout + 自续）。
+看板 hour/day 桶由 `dashboard.Projector` 写 `usage_buckets`。
 
 ### 2.3 读路径分离
 
 | 场景                      | 读什么                                              | 为何                                          |
 | ------------------------- | --------------------------------------------------- | --------------------------------------------- |
-| Gateway 预检              | `gateway_soft_remain` + limit（`LoadPrecheckContext`） | NULL 放行；≤0 403；PG 权威 |
+| Gateway 预检              | `combined_key_remain` + limit（`LoadPrecheckContext`） | ≤0 403；经 budgetcheck 缓存 |
 | 看板 cost / consumed 趋势 | `usage_buckets` SUM                                 | Dashboard 投影                                |
 | 预算树展示 limit          | `org_nodes.budget` 等配置                           | 部门 consumed 不读 `budget_consumed`          |
 | 部门本月花费              | `usage_ledger` 按 `department_id` 聚合              | 替代 org_node consumed 轴                     |
