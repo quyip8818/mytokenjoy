@@ -16,13 +16,13 @@ import (
 const defaultProjectorBatchSize = 500
 
 type Projector struct {
-	cfg          config.Config
-	store        store.Store
-	enqueuer     JobEnqueuer
-	batchSize    int
-	logger       *slog.Logger
+	cfg              config.Config
+	store            store.Store
+	enqueuer         JobEnqueuer
+	batchSize        int
+	logger           *slog.Logger
 	combinedKeyCache CombinedKeyCache
-	notifier     types.Notifier
+	notifier         types.Notifier
 	// alertsSent tracks (ruleID:threshold:periodKey) to avoid repeat notifications.
 	alertsSent map[string]struct{}
 }

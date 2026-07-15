@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import {
   Activity,
   BarChart3,
+  Bell,
   Building2,
   CheckCircle2,
   Cpu,
@@ -228,6 +229,14 @@ const MEMBER_ROUTE_DEFINITIONS_INTERNAL = [
     icon: FileText,
     audience: 'member',
     lazy: () => import('@/routes/member/call-logs'),
+  },
+  {
+    key: 'memberNotifications',
+    path: '/me/notifications',
+    label: '通知偏好',
+    icon: Bell,
+    audience: 'member',
+    lazy: () => import('@/routes/member/notifications'),
   },
 ] as const satisfies readonly RouteDefinition[]
 

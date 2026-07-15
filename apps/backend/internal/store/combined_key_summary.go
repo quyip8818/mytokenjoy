@@ -8,14 +8,14 @@ import (
 type CombinedKeySummary struct {
 	PlatformKeyID string
 	KeyHash       string
-	Remain    float64
+	Remain        float64
 	UpdatedAt     time.Time
 	Version       int64
 }
 
 type CombinedKeySummaryUpdate struct {
 	PlatformKeyID string
-	Remain    float64
+	Remain        float64
 }
 
 type CombinedKeySummaryRepository interface {

@@ -10,9 +10,9 @@ import (
 
 // CombinedKeyEntry is the optional Redis cache row for combined key budget checks.
 type CombinedKeyEntry struct {
-	Remain float64
-	UpdatedAt  time.Time
-	Version    int64
+	Remain    float64
+	UpdatedAt time.Time
+	Version   int64
 }
 
 // CombinedKeyCache is the domain port for combined key budget cache (PG remains authoritative).
@@ -43,9 +43,9 @@ func RefreshCombinedKeySummaries(
 	}
 	for _, summary := range summaries {
 		entry := CombinedKeyEntry{
-			Remain: summary.Remain,
-			UpdatedAt:  summary.UpdatedAt,
-			Version:    summary.Version,
+			Remain:    summary.Remain,
+			UpdatedAt: summary.UpdatedAt,
+			Version:   summary.Version,
 		}
 		if err := cache.Set(ctx, companyID, summary.KeyHash, entry); err != nil && logger != nil {
 			logger.Warn("gateway budget check set failed", "key_id", summary.PlatformKeyID, "error", err)

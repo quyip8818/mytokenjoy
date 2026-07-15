@@ -42,14 +42,21 @@ const (
 
 	NotificationChannelLog     = "log"
 	NotificationChannelWebhook = "webhook"
+	NotificationChannelEmail   = "email"
+	NotificationChannelSMS     = "sms"
+	NotificationChannelInApp   = "in_app"
 
-	NotificationStatusSent   = "sent"
-	NotificationStatusFailed = "failed"
+	NotificationStatusPending = "pending"
+	NotificationStatusSent    = "sent"
+	NotificationStatusFailed  = "failed"
+	NotificationStatusRead    = "read"
 
 	NotificationEventSyncThreshold      = "sync_threshold_exceeded"
 	NotificationEventOverrunBlocked     = "overrun_blocked"
 	NotificationEventOverdraftExpanded  = "overdraft_expanded"
 	NotificationEventBudgetAlertReached = "budget_alert_reached"
+	NotificationEventKeyExpired         = "key_expired"
+	NotificationEventKeyExpiringSoon    = "key_expiring_soon"
 )
 
 type UsageBucketRow struct {
@@ -145,13 +152,38 @@ type NotificationLogEntry struct {
 	Channel   string
 	EventType string
 	Recipient string
+	UserID    string
+	Title     string
+	Body      string
 	Payload   []byte
 	Status    string
 	Error     string
+	CreatedAt time.Time
+	ReadAt    *time.Time
 }
 
 type Notification struct {
 	EventType string
 	Recipient string
 	Payload   map[string]any
+}
+
+type NotificationPreferenceEntry struct {
+	Category string
+	Channel  string
+	Enabled  bool
+}
+
+type NotificationLogFilter struct {
+	Channel   string
+	Status    string
+	EventType string
+	Limit     int
+	Offset    int
+}
+
+type NotificationStatRow struct {
+	Channel string
+	Status  string
+	Count   int
 }

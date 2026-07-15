@@ -73,6 +73,10 @@ func (s *txStore) Notification() store.NotificationRepository {
 	return s.notification
 }
 
+func (s *txStore) NotificationPreference() store.NotificationPreferenceRepository {
+	return &notificationPreferenceRepo{db: s.tx}
+}
+
 func (s *txStore) Company() store.CompanyRepository {
 	return s.company
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/river/periodic"
 	"github.com/tokenjoy/backend/internal/infra/river/workers"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
@@ -29,20 +30,21 @@ type Client struct {
 }
 
 type Deps struct {
-	Cfg                config.Config
-	Store              store.Store
-	Billing            domainbilling.Service
-	Overrun            domainbudget.OverrunProcessor
-	Rebalance          domainbudget.Rebalancer
-	NewAPISync         newapisync.OutboxHandler
-	OrgSync            domainorg.SyncService
-	BudgetProjector    *domainbudget.Projector
-	BudgetReconcile    *domainbudget.ReconcileService
-	DashboardProjector *domaindashboard.Projector
-	DashboardReconcile *domaindashboard.ReconcileService
-	Scheduler          *scheduler.Service
-	BulkEnqueuer       *scheduler.BulkEnqueuer
-	DisablePeriodic    bool // tests: skip tenant_watchdog periodic registration
+	Cfg                  config.Config
+	Store                store.Store
+	Billing              domainbilling.Service
+	Overrun              domainbudget.OverrunProcessor
+	Rebalance            domainbudget.Rebalancer
+	NewAPISync           newapisync.OutboxHandler
+	OrgSync              domainorg.SyncService
+	BudgetProjector      *domainbudget.Projector
+	BudgetReconcile      *domainbudget.ReconcileService
+	DashboardProjector   *domaindashboard.Projector
+	DashboardReconcile   *domaindashboard.ReconcileService
+	Scheduler            *scheduler.Service
+	BulkEnqueuer         *scheduler.BulkEnqueuer
+	NotificationRegistry *notification.Registry
+	DisablePeriodic      bool // tests: skip tenant_watchdog periodic registration
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
@@ -79,6 +81,9 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewDashboardProjectWorker(deps.DashboardProjector))
 	river.AddWorker(workersBundle, workers.NewDashboardReconcileWorker(deps.DashboardReconcile, deps.Store))
 	river.AddWorker(workersBundle, workers.NewWatchdogWorker(deps.Scheduler, deps.BulkEnqueuer, deps.Store, deps.Cfg))
+	if deps.NotificationRegistry != nil {
+		river.AddWorker(workersBundle, workers.NewNotificationDeliveryWorker(deps.NotificationRegistry))
+	}
 	return workersBundle
 }
 

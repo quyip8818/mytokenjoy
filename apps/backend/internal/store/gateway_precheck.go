@@ -19,7 +19,7 @@ type PrecheckContextRow struct {
 	HasAllowlist   bool
 	AllowlistTypes []string
 
-	CombinedKeyRemain  *float64
+	CombinedKeyRemain        *float64
 	CombinedKeyRemainAt      *time.Time
 	CombinedKeyRemainVersion int64
 }

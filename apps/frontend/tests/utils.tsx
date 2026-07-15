@@ -76,6 +76,7 @@ function mergeApis(base: AppApis, overrides: ApiNamespaceOverrides): AppApis {
     platformKeyApi: withOverrides(base, 'platformKeyApi', overrides.platformKeyApi),
     approvalApi: withOverrides(base, 'approvalApi', overrides.approvalApi),
     meApi: withOverrides(base, 'meApi', overrides.meApi),
+    notificationApi: withOverrides(base, 'notificationApi', overrides.notificationApi),
     sessionApi: withOverrides(base, 'sessionApi', overrides.sessionApi),
   }
 }

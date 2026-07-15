@@ -20,4 +20,17 @@ type UsageRepository interface {
 
 type NotificationRepository interface {
 	Append(ctx context.Context, entry types.NotificationLogEntry) error
+	List(ctx context.Context, userID string, limit, offset int) ([]types.NotificationLogEntry, error)
+	GetUnreadCount(ctx context.Context, userID string) (int, error)
+	MarkRead(ctx context.Context, id string) error
+	MarkAllRead(ctx context.Context, userID string) error
+	// Admin queries
+	ListLog(ctx context.Context, filter types.NotificationLogFilter) ([]types.NotificationLogEntry, error)
+	Stats(ctx context.Context) ([]types.NotificationStatRow, error)
+}
+
+type NotificationPreferenceRepository interface {
+	Get(ctx context.Context, userID string) ([]types.NotificationPreferenceEntry, error)
+	Upsert(ctx context.Context, userID string, entries []types.NotificationPreferenceEntry) error
+	Delete(ctx context.Context, userID string) error
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
 import { QueryProvider } from '@/features/query'
+import { NotificationProvider } from '@/features/notifications/notification-provider'
 import { AuthSessionProvider, SessionNavigationBridge } from '@/features/session'
 import { AuthUnauthorizedBridge } from '@/components/auth/auth-unauthorized-bridge'
 
@@ -12,7 +13,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <AuthSessionProvider>
           <AuthUnauthorizedBridge />
           <SessionNavigationBridge />
-          {children}
+          <NotificationProvider>{children}</NotificationProvider>
         </AuthSessionProvider>
       </QueryProvider>
     </ApiProvider>

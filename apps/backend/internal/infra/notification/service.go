@@ -2,114 +2,101 @@ package notification
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
-	"strings"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+// Service is the notification dispatcher. It resolves user preferences,
+// selects channels, renders messages, and dispatches delivery.
 type Service struct {
-	cfg        config.Config
-	store      store.Store
-	logger     *slog.Logger
-	httpClient *http.Client
+	cfg              config.Config
+	store            store.Store
+	logger           *slog.Logger
+	registry         *Registry
+	renderer         *Renderer
+	hub              *SSEHub
+	enqueuer         jobs.Enqueuer
+	resolver         *RecipientResolver
+	smsRateLimiter   *RateLimiter
+	emailRateLimiter *RateLimiter
 }
 
+// NewService creates a notification service with the channel registry auto-populated from config.
 func NewService(cfg config.Config, st store.Store, logger *slog.Logger) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
+
+	hub := NewSSEHub()
+	registry := NewRegistry(logger)
+	resolver := NewRecipientResolver(st)
+
+	// Always register log and in_app channels
+	registry.Register(NewLogChannel(logger))
+	registry.Register(NewInAppChannel(st, logger, hub))
+
+	// Conditionally register webhook channel
+	registry.Register(NewWebhookChannel(cfg.NotifyWebhookURL, logger))
+
+	// Conditionally register email channel
+	registry.Register(NewEmailChannel(EmailConfig{
+		Host: cfg.SMTPHost,
+		Port: cfg.SMTPPort,
+		User: cfg.SMTPUser,
+		Pass: cfg.SMTPPass,
+		From: cfg.SMTPFrom,
+	}, resolver, logger))
+
+	// Conditionally register SMS channel
+	registry.Register(NewSMSChannel(SMSConfig{
+		AccountSID: cfg.TwilioAccountSID,
+		AuthToken:  cfg.TwilioAuthToken,
+		FromNumber: cfg.TwilioFromNumber,
+	}, resolver, logger))
+
 	return &Service{
-		cfg:        cfg,
-		store:      st,
-		logger:     logger,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		cfg:              cfg,
+		store:            st,
+		logger:           logger,
+		registry:         registry,
+		renderer:         NewRenderer(),
+		hub:              hub,
+		enqueuer:         nil, // set via SetEnqueuer after river client is created
+		resolver:         resolver,
+		smsRateLimiter:   DefaultSMSRateLimiter(),
+		emailRateLimiter: DefaultEmailRateLimiter(),
 	}
 }
+
+// Hub returns the SSE hub for real-time notification push.
+func (s *Service) Hub() *SSEHub { return s.hub }
+
+// Registry returns the channel registry (for capabilities queries).
+func (s *Service) Registry() *Registry { return s.registry }
+
+// SetEnqueuer sets the job enqueuer for async delivery (called after river client init).
+func (s *Service) SetEnqueuer(e jobs.Enqueuer) { s.enqueuer = e }
+
+// --- types.Notifier interface (backward-compatible) ---
 
 var _ types.Notifier = (*Service)(nil)
 
+// Send implements types.Notifier for backward compatibility with existing callers.
+// It converts the simple Notification into a domain Event and dispatches.
 func (s *Service) Send(ctx context.Context, notification types.Notification) error {
-	payload, err := json.Marshal(notification.Payload)
-	if err != nil {
-		return err
+	event := domainnotification.Event{
+		EventType:   notification.EventType,
+		RecipientID: notification.Recipient,
+		CompanyID:   store.CompanyID(ctx),
+		Payload:     notification.Payload,
+		Metadata: domainnotification.EventMetadata{
+			Priority: domainnotification.PriorityNormal,
+		},
 	}
-	entry := types.NotificationLogEntry{
-		ID:        fmt.Sprintf("ntf-%d", time.Now().UnixNano()),
-		Channel:   types.NotificationChannelLog,
-		EventType: notification.EventType,
-		Recipient: notification.Recipient,
-		Payload:   payload,
-		Status:    types.NotificationStatusSent,
-	}
-	s.logger.Info(
-		"notification",
-		"event", notification.EventType,
-		"recipient", notification.Recipient,
-		"payload", string(payload),
-	)
-	if err := s.store.Notification().Append(ctx, entry); err != nil {
-		return err
-	}
-	if strings.TrimSpace(s.cfg.NotifyWebhookURL) == "" {
-		return nil
-	}
-	return s.sendWebhook(ctx, notification, payload)
-}
-
-func (s *Service) sendWebhook(ctx context.Context, notification types.Notification, payload []byte) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.NotifyWebhookURL, strings.NewReader(string(payload)))
-	if err != nil {
-		s.recordWebhookFailure(ctx, notification, payload, err)
-		return nil
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Event-Type", notification.EventType)
-	res, err := s.httpClient.Do(req)
-	if err != nil {
-		s.recordWebhookFailure(ctx, notification, payload, err)
-		return nil
-	}
-	defer res.Body.Close()
-	_, _ = io.Copy(io.Discard, res.Body)
-	if res.StatusCode >= 400 {
-		s.recordWebhookFailure(ctx, notification, payload, fmt.Errorf("webhook status %d", res.StatusCode))
-		return nil
-	}
-	webhookEntry := types.NotificationLogEntry{
-		ID:        fmt.Sprintf("ntf-%d", time.Now().UnixNano()),
-		Channel:   types.NotificationChannelWebhook,
-		EventType: notification.EventType,
-		Recipient: s.cfg.NotifyWebhookURL,
-		Payload:   payload,
-		Status:    types.NotificationStatusSent,
-	}
-	_ = s.store.Notification().Append(ctx, webhookEntry)
-	return nil
-}
-
-func (s *Service) recordWebhookFailure(
-	ctx context.Context,
-	notification types.Notification,
-	payload []byte,
-	sendErr error,
-) {
-	entry := types.NotificationLogEntry{
-		ID:        fmt.Sprintf("ntf-%d", time.Now().UnixNano()),
-		Channel:   types.NotificationChannelWebhook,
-		EventType: notification.EventType,
-		Recipient: s.cfg.NotifyWebhookURL,
-		Payload:   payload,
-		Status:    types.NotificationStatusFailed,
-		Error:     sendErr.Error(),
-	}
-	_ = s.store.Notification().Append(ctx, entry)
-	s.logger.Warn("notification webhook failed", "event", notification.EventType, "error", sendErr)
+	return s.Dispatch(ctx, event)
 }

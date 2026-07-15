@@ -37,6 +37,18 @@ type Config struct {
 
 	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
 
+	// SMTP / Email channel
+	SMTPHost string `env:"SMTP_HOST"`
+	SMTPPort int    `env:"SMTP_PORT" envDefault:"587"`
+	SMTPUser string `env:"SMTP_USER"`
+	SMTPPass string `env:"SMTP_PASS"`
+	SMTPFrom string `env:"SMTP_FROM"`
+
+	// SMS channel (Twilio)
+	TwilioAccountSID string `env:"TWILIO_ACCOUNT_SID"`
+	TwilioAuthToken  string `env:"TWILIO_AUTH_TOKEN"`
+	TwilioFromNumber string `env:"TWILIO_FROM_NUMBER"`
+
 	WorkerPollIntervalSec    int `env:"WORKER_POLL_INTERVAL_SEC" envDefault:"1"` // ingest pending poll only
 	WatchdogIntervalSec      int `env:"WATCHDOG_INTERVAL_SEC" envDefault:"604800"`
 	WatchdogBulkBatchSizeEnv int `env:"WATCHDOG_BULK_BATCH_SIZE" envDefault:"200"`

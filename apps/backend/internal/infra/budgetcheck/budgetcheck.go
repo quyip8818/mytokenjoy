@@ -12,9 +12,9 @@ import (
 )
 
 type Entry struct {
-	Remain float64   `json:"remain"`
-	UpdatedAt  time.Time `json:"updatedAt"`
-	Version    int64     `json:"version"`
+	Remain    float64   `json:"remain"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Version   int64     `json:"version"`
 }
 
 type Store interface {
@@ -46,9 +46,9 @@ func RefreshSummaries(
 	}
 	for _, summary := range summaries {
 		entry := Entry{
-			Remain: summary.Remain,
-			UpdatedAt:  summary.UpdatedAt,
-			Version:    summary.Version,
+			Remain:    summary.Remain,
+			UpdatedAt: summary.UpdatedAt,
+			Version:   summary.Version,
 		}
 		if err := cache.Set(ctx, companyID, summary.KeyHash, entry); err != nil && logger != nil {
 			logger.Warn("gateway budget check set failed", "key_id", summary.PlatformKeyID, "error", err)

@@ -600,13 +600,41 @@ CREATE TABLE IF NOT EXISTS notification_log (
     channel    TEXT NOT NULL,
     event_type TEXT NOT NULL,
     recipient  TEXT,
+    user_id    TEXT,
+    title      TEXT NOT NULL DEFAULT '',
+    body       TEXT NOT NULL DEFAULT '',
     payload    JSONB NOT NULL,
     status     TEXT NOT NULL DEFAULT 'sent',
     error      TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    read_at    TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
     ON notification_log (company_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notification_log_user
+    ON notification_log (company_id, user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notification_log_unread
+    ON notification_log (company_id, user_id) WHERE read_at IS NULL;
+
+-- Notification preferences: per-user per-category per-channel toggle
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    company_id BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    user_id    TEXT NOT NULL,
+    category   TEXT NOT NULL,
+    channel    TEXT NOT NULL,
+    enabled    BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_pref_unique
+    ON notification_preferences (company_id, user_id, category, channel);
+
+CREATE INDEX IF NOT EXISTS idx_notification_pref_user
+    ON notification_preferences (company_id, user_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_unique_name ON projects(company_id, name);

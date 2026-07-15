@@ -30,7 +30,7 @@ func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 		{
 			PlatformKeyID: "pk-1",
 			KeyHash:       "hash-1",
-			Remain:    12.5,
+			Remain:        12.5,
 			UpdatedAt:     time.Unix(1, 0).UTC(),
 			Version:       3,
 		},

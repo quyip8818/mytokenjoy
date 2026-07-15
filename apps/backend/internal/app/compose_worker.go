@@ -60,20 +60,21 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 
 	riverClient, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
-		Cfg:                cfg,
-		Store:              st,
-		Billing:            reg.BillingSvc,
-		Overrun:            reg.Overrun,
-		Rebalance:          reg.Rebalance,
-		NewAPISync:         reg.Infra.newAPISync,
-		OrgSync:            reg.OrgSync,
-		BudgetProjector:    budgetAsync.Projector,
-		BudgetReconcile:    budgetAsync.Reconcile,
-		DashboardProjector: dashboardProjector,
-		DashboardReconcile: dashboardReconcile,
-		Scheduler:          sched,
-		BulkEnqueuer:       bulk,
-		DisablePeriodic:    !cfg.RiverPeriodicEnabled,
+		Cfg:                  cfg,
+		Store:                st,
+		Billing:              reg.BillingSvc,
+		Overrun:              reg.Overrun,
+		Rebalance:            reg.Rebalance,
+		NewAPISync:           reg.Infra.newAPISync,
+		OrgSync:              reg.OrgSync,
+		BudgetProjector:      budgetAsync.Projector,
+		BudgetReconcile:      budgetAsync.Reconcile,
+		DashboardProjector:   dashboardProjector,
+		DashboardReconcile:   dashboardReconcile,
+		Scheduler:            sched,
+		BulkEnqueuer:         bulk,
+		NotificationRegistry: reg.Infra.notificationSvc.Registry(),
+		DisablePeriodic:      !cfg.RiverPeriodicEnabled,
 	}, logger)
 	if err != nil {
 		return nil, err
@@ -82,6 +83,10 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		holder.Set(riverClient.Enqueuer)
 		if orgAdmin != nil {
 			orgAdmin.Set(riverClient)
+		}
+		// Wire enqueuer into notification service for async delivery
+		if reg.Infra.notificationSvc != nil {
+			reg.Infra.notificationSvc.SetEnqueuer(riverClient.Enqueuer)
 		}
 	}
 

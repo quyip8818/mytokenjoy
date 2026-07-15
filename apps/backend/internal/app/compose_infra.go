@@ -19,16 +19,17 @@ import (
 )
 
 type infra struct {
-	store         store.Store
-	adminPort     adminport.Port
-	newAPISync    newapisync.Lifecycle
-	channelPolicy policy.ChannelPolicy
-	wallet        domaincompany.WalletService
-	companyGate   *domaincompany.Gate
-	notifier      types.Notifier
-	delayer       common.Delayer
-	enqueuer      jobs.Enqueuer
-	budgetCheck   budgetcheck.Store
+	store           store.Store
+	adminPort       adminport.Port
+	newAPISync      newapisync.Lifecycle
+	channelPolicy   policy.ChannelPolicy
+	wallet          domaincompany.WalletService
+	companyGate     *domaincompany.Gate
+	notifier        types.Notifier
+	notificationSvc *notification.Service
+	delayer         common.Delayer
+	enqueuer        jobs.Enqueuer
+	budgetCheck     budgetcheck.Store
 }
 
 func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminClientOverride newapi.AdminClient) (infra, error) {
@@ -45,16 +46,19 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 	adminPort := newapi.NewAdminPortAdapter(adminClient)
 	wallet := domaincompany.NewWalletService(cfg, adminPort)
 
+	notifySvc := notification.NewService(cfg, st, logger)
+
 	return infra{
-		store:         st,
-		adminPort:     adminPort,
-		channelPolicy: channelPolicy,
-		wallet:        wallet,
-		companyGate:   domaincompany.NewGate(cfg),
-		newAPISync:    newapisync.New(cfg, st, adminPort, wallet, channelPolicy, NewNewAPISyncEnqueuer(enqueuer)),
-		notifier:      notification.NewService(cfg, st, logger),
-		delayer:       common.NewDelayer(cfg.SimulateDelay),
-		enqueuer:      enqueuer,
-		budgetCheck:   budgetcheck.Open(context.Background(), cfg, logger),
+		store:           st,
+		adminPort:       adminPort,
+		channelPolicy:   channelPolicy,
+		wallet:          wallet,
+		companyGate:     domaincompany.NewGate(cfg),
+		newAPISync:      newapisync.New(cfg, st, adminPort, wallet, channelPolicy, NewNewAPISyncEnqueuer(enqueuer)),
+		notifier:        notifySvc,
+		notificationSvc: notifySvc,
+		delayer:         common.NewDelayer(cfg.SimulateDelay),
+		enqueuer:        enqueuer,
+		budgetCheck:     budgetcheck.Open(context.Background(), cfg, logger),
 	}, nil
 }

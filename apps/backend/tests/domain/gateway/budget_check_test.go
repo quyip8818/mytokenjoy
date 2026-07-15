@@ -29,11 +29,11 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name       string
-		remain float64
-		version    int64
-		pgVersion  int64
-		wantErr    bool
+		name      string
+		remain    float64
+		version   int64
+		pgVersion int64
+		wantErr   bool
 	}{
 		{name: "exhausted blocks", remain: -1, version: 1, pgVersion: 1, wantErr: true},
 		{name: "zero blocks", remain: 0, version: 1, pgVersion: 1, wantErr: true},
@@ -59,8 +59,8 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 			row = fx.LoadPrecheckRow(t)
 
 			_ = fake.Set(fx.Ctx, row.CompanyID, fx.KeyHash(), domainbudget.CombinedKeyEntry{
-				Remain: tc.remain,
-				Version:    tc.version,
+				Remain:  tc.remain,
+				Version: tc.version,
 			})
 
 			err := fx.Run("gpt-4o", false)

@@ -72,6 +72,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 	return ServiceRegistry{
 		Deps: httpdeps.Deps{
 			Config:               cfg,
+			Store:                i.store,
 			AuthzSvc:             authzSvc,
 			Credentials:          credSvc,
 			SessionToken:         memberToken,
@@ -94,6 +95,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			Gateway:              gateway,
 			DevBearerResolver:    devBearer,
 			DevReadinessChecker:  devReadiness,
+			NotificationSvc:      i.notificationSvc,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

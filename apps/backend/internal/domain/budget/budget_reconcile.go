@@ -13,10 +13,10 @@ import (
 )
 
 type ReconcileService struct {
-	cfg          config.Config
-	store        store.Store
-	enqueuer     JobEnqueuer
-	logger       *slog.Logger
+	cfg              config.Config
+	store            store.Store
+	enqueuer         JobEnqueuer
+	logger           *slog.Logger
 	combinedKeyCache CombinedKeyCache
 }
 

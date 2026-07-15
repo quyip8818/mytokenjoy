@@ -22,8 +22,8 @@ type RoutingState struct {
 }
 
 type BudgetState struct {
-	Remain *float64
-	Version    int64
+	Remain  *float64
+	Version int64
 }
 
 type PrecheckContext struct {
@@ -55,8 +55,8 @@ func PrecheckContextFromStore(row *store.PrecheckContextRow) PrecheckContext {
 			AllowlistTypes: allowlist,
 		},
 		Budget: BudgetState{
-			Remain: row.CombinedKeyRemain,
-			Version:    row.CombinedKeyRemainVersion,
+			Remain:  row.CombinedKeyRemain,
+			Version: row.CombinedKeyRemainVersion,
 		},
 	}
 }

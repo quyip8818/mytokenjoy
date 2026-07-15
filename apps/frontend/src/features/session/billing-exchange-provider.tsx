@@ -1,11 +1,6 @@
-import { createContext, useContext, type ReactNode } from 'react'
-import {
-  getActiveBillingExchange,
-  setActiveBillingExchange,
-  type BillingExchange,
-} from '@/lib/points'
-
-const BillingExchangeContext = createContext<BillingExchange | null>(null)
+import { type ReactNode } from 'react'
+import { setActiveBillingExchange, type BillingExchange } from '@/lib/points'
+import { BillingExchangeContext } from './billing-exchange-context'
 
 /** Syncs active module exchange during render (before children) and provides DI via context. */
 export function BillingExchangeProvider({
@@ -19,8 +14,4 @@ export function BillingExchangeProvider({
   return (
     <BillingExchangeContext.Provider value={exchange}>{children}</BillingExchangeContext.Provider>
   )
-}
-
-export function useBillingExchange(): BillingExchange {
-  return useContext(BillingExchangeContext) ?? getActiveBillingExchange()
 }

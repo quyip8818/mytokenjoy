@@ -20,11 +20,14 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/credentials"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
+	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Deps struct {
 	Config               config.Config
 	Logger               *slog.Logger
+	Store                store.Store
 	AuthzSvc             authz.Service
 	Credentials          credentials.Service
 	SessionToken         sessiontoken.Issuer
@@ -47,4 +50,5 @@ type Deps struct {
 	Gateway              domaingateway.GatewayService
 	DevBearerResolver    devapi.BearerResolver
 	DevReadinessChecker  devapi.ReadinessChecker
+	NotificationSvc      *notification.Service
 }

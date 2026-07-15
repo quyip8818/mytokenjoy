@@ -34,7 +34,7 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 	}
 }
 
-func TestWebhookFailureDoesNotReturnError(t *testing.T) {
+func TestWebhookNotTriggeredByFallbackChain(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, func(c *config.Config) {
 		c.NotifyWebhookURL = "http://127.0.0.1:1/unreachable"
@@ -44,12 +44,20 @@ func TestWebhookFailureDoesNotReturnError(t *testing.T) {
 
 	err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventOverrunBlocked,
+		Recipient: "ops",
 		Payload:   map[string]any{"scope": "member"},
 	})
 	if err != nil {
-		t.Fatalf("expected nil error on webhook failure, got %v", err)
+		t.Fatalf("expected nil error, got %v", err)
 	}
-	if len(testutil.NotificationLogs(st)) < 2 {
-		t.Fatalf("expected log + failed webhook entries")
+
+	// New dispatch behavior: normal priority only uses in_app channel.
+	// Webhook is registered but not in the fallback chain, so it's never called.
+	logs := testutil.NotificationLogs(st)
+	if len(logs) != 1 {
+		t.Fatalf("expected 1 notification log (in_app), got %d", len(logs))
+	}
+	if logs[0].Channel != types.NotificationChannelInApp {
+		t.Fatalf("expected channel in_app, got %s", logs[0].Channel)
 	}
 }

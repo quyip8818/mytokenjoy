@@ -57,6 +57,7 @@ type Store interface {
 	RiverJob() RiverJobRepository
 	Usage() UsageRepository
 	Notification() NotificationRepository
+	NotificationPreference() NotificationPreferenceRepository
 	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error
 }

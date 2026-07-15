@@ -137,6 +137,10 @@ func (s *Store) Notification() store.NotificationRepository {
 	return &notificationRepo{db: s.pool}
 }
 
+func (s *Store) NotificationPreference() store.NotificationPreferenceRepository {
+	return &notificationPreferenceRepo{db: s.pool}
+}
+
 func (s *Store) Close() {
 	if s.logPool != nil {
 		s.logPool.Close()

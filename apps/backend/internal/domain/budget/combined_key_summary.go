@@ -54,7 +54,7 @@ func ComputeGatewaySummaryUpdates(
 		}
 		updates = append(updates, store.CombinedKeySummaryUpdate{
 			PlatformKeyID: mapping.PlatformKeyID,
-			Remain:    remain,
+			Remain:        remain,
 		})
 	}
 	return updates, nil

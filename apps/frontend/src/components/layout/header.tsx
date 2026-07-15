@@ -2,6 +2,7 @@ import { useLocation } from 'react-router'
 import { ROUTE_TITLES } from '@/config/nav'
 import { useSession } from '@/features/session/use-session'
 import { HeaderDevBackendToolbar } from './header-dev-backend-chrome'
+import { NotificationInbox } from './notification-inbox'
 
 function HeaderUserChip() {
   const { member } = useSession()
@@ -26,6 +27,7 @@ export function Header() {
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-8">
       <h1 className="truncate text-sm font-medium text-foreground">{title}</h1>
       <div className="flex items-center gap-3">
+        <NotificationInbox />
         <HeaderUserChip />
         <HeaderDevBackendToolbar />
       </div>

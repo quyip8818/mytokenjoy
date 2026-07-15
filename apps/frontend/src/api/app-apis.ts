@@ -7,6 +7,7 @@ import { devApi } from './dev'
 import { approvalApi, platformKeyApi, providerKeyApi } from './keys'
 import { meApi } from './member'
 import { modelApi, routingApi } from './models'
+import { notificationApi } from './notification'
 import { dataSourceApi, departmentApi, memberApi, roleApi, syncApi } from './org'
 import { sessionApi } from './session'
 
@@ -28,6 +29,7 @@ export interface AppApis {
   platformKeyApi: typeof platformKeyApi
   approvalApi: typeof approvalApi
   meApi: typeof meApi
+  notificationApi: typeof notificationApi
   sessionApi: typeof sessionApi
 }
 
@@ -49,5 +51,6 @@ export const defaultApis: AppApis = {
   platformKeyApi,
   approvalApi,
   meApi,
+  notificationApi,
   sessionApi,
 }

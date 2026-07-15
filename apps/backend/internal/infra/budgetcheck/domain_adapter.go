@@ -28,17 +28,17 @@ func (a domainStoreAdapter) Get(ctx context.Context, companyID int64, keyHash st
 		return domainbudget.CombinedKeyEntry{}, ok, err
 	}
 	return domainbudget.CombinedKeyEntry{
-		Remain: entry.Remain,
-		UpdatedAt:  entry.UpdatedAt,
-		Version:    entry.Version,
+		Remain:    entry.Remain,
+		UpdatedAt: entry.UpdatedAt,
+		Version:   entry.Version,
 	}, ok, nil
 }
 
 func (a domainStoreAdapter) Set(ctx context.Context, companyID int64, keyHash string, entry domainbudget.CombinedKeyEntry) error {
 	return a.store.Set(ctx, companyID, keyHash, Entry{
-		Remain: entry.Remain,
-		UpdatedAt:  entry.UpdatedAt,
-		Version:    entry.Version,
+		Remain:    entry.Remain,
+		UpdatedAt: entry.UpdatedAt,
+		Version:   entry.Version,
 	})
 }
 

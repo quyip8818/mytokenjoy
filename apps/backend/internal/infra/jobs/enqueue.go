@@ -70,6 +70,10 @@ func InsertTenantWatchdog(ctx context.Context, e Enqueuer, tx store.Tx) error {
 	return insert(ctx, e, tx, args, nil)
 }
 
+func InsertNotificationDelivery(ctx context.Context, e Enqueuer, args NotificationDeliveryArgs) error {
+	return insert(ctx, e, nil, args, nil)
+}
+
 func insert(ctx context.Context, e Enqueuer, tx store.Tx, args river.JobArgs, opts *river.InsertOpts) error {
 	if tx != nil {
 		return e.InsertInTx(ctx, tx, args, opts)
