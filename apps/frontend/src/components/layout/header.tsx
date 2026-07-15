@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router'
 import { ROUTE_TITLES } from '@/config/nav'
-import { useSession } from '@/features/session/use-session'
+import { useSession } from '@/features/session'
 import { HeaderDevBackendToolbar } from './header-dev-backend-chrome'
 import { NotificationInbox } from './notification-inbox'
 

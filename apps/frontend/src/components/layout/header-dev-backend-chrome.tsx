@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { LOGIN_PATH } from '@/config/auth'
 import { Button } from '@/components/ui/button'
-import { SimulateConsumeDialog } from '@/features/dev/components/simulate-consume-dialog'
+import { SimulateConsumeDialog } from '@/features/dev'
 
 function HeaderDevBackendToolbarContent() {
   const [simulateOpen, setSimulateOpen] = useState(false)

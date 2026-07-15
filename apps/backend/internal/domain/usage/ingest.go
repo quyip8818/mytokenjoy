@@ -8,8 +8,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -17,13 +15,14 @@ import (
 )
 
 type IngestService struct {
-	cfg            config.Config
-	store          store.Store
-	logStore       store.LogStore
-	logger         *slog.Logger
-	enqueuer       IngestJobEnqueuer
-	notifier       types.Notifier
-	alertPublisher domainbudget.AlertPublisher
+	cfg         config.Config
+	store       store.Store
+	logStore    store.LogStore
+	logger      *slog.Logger
+	enqueuer    IngestJobEnqueuer
+	notifier    types.Notifier
+	budgetOps   BudgetOps
+	lotConsumer LotConsumer
 }
 
 func NewIngestService(
@@ -33,7 +32,8 @@ func NewIngestService(
 	logger *slog.Logger,
 	enqueuer IngestJobEnqueuer,
 	notifier types.Notifier,
-	alertPublisher domainbudget.AlertPublisher,
+	budgetOps BudgetOps,
+	lotConsumer LotConsumer,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
@@ -44,12 +44,10 @@ func NewIngestService(
 	if logger == nil {
 		logger = slog.Default()
 	}
-	if alertPublisher == nil {
-		alertPublisher = domainbudget.NoopAlertPublisher
-	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, logger: logger,
-		enqueuer: enqueuer, notifier: notifier, alertPublisher: alertPublisher,
+		enqueuer: enqueuer, notifier: notifier,
+		budgetOps: budgetOps, lotConsumer: lotConsumer,
 	}
 }
 
@@ -147,7 +145,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	entry.PeriodKey = occurrence.String()
 
 	companyID := company.CompanyID(ctx)
-	var consumeResult billinglot.ConsumeResult
+	var consumeResult LotConsumeResult
 	var effects IngestEffects
 	err = s.store.WithTx(ctx, func(st store.Store) error {
 		// 1. Lock company row — serializes all ingest + reconcile for this company.
@@ -167,14 +165,14 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		}
 
 		// 3. Consume lots (company already locked).
-		result, err := billinglot.ConsumeLotsLocked(ctx, st, co, entry.Amount)
+		result, err := s.lotConsumer.ConsumeLotsLocked(ctx, st, co, entry.Amount)
 		if err != nil {
 			return err
 		}
 		consumeResult = result
 
 		// 4. Insert ledger segments.
-		ledgerEntries := billinglot.LedgerSegmentsFromEntry(entry, result.Segments)
+		ledgerEntries := s.lotConsumer.LedgerSegmentsFromEntry(entry, result.Segments)
 		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
 		if err != nil {
 			return err
@@ -188,7 +186,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		if err != nil {
 			return err
 		}
-		deltas, err := domainbudget.ConsumptionDeltas(ctx, nil, entry, open)
+		deltas, err := s.budgetOps.ConsumptionDeltas(ctx, entry, open)
 		if err != nil {
 			return err
 		}
@@ -244,10 +242,10 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	// --- Post-commit (best-effort) ---
 
 	// Refresh Redis combined key cache.
-	domainbudget.RefreshCombinedKeySummaries(ctx, nil, s.logger, companyID, effects.Summaries)
+	s.budgetOps.RefreshCombinedKeySummaries(ctx, companyID, effects.Summaries)
 
 	// Check budget alert thresholds for touched departments.
-	domainbudget.CheckBudgetAlerts(ctx, s.store, companyID, effects.TouchedDepartments, s.alertPublisher, s.logger)
+	s.budgetOps.CheckBudgetAlerts(ctx, s.store, companyID, effects.TouchedDepartments)
 
 	// Notify overdraft expansion.
 	if consumeResult.OverdraftUsed && s.notifier != nil {
@@ -273,7 +271,7 @@ func (s *IngestService) absoluteRecompute(ctx context.Context, st store.Store, p
 	}
 	keySet := make(map[string]struct{}, 1)
 	keySet[platformKeyID] = struct{}{}
-	updates, err := domainbudget.ComputeGatewaySummaryUpdates(ctx, st, keySet, s.cfg.Clock())
+	updates, err := s.budgetOps.ComputeGatewaySummaryUpdates(ctx, st, keySet, s.cfg.Clock())
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,7 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import type { usePlatformKeysPage } from '@/features/keys'
-import { useModelLabels } from '@/features/models/hooks/use-model-labels'
+import { useModelLabels } from '@/features/models'
 import { PlatformKeyTable } from './platform-key-table'
 import { PlatformKeysDeptTree } from './platform-keys-dept-tree'
 import { PlatformKeysToolbar } from './platform-keys-toolbar'

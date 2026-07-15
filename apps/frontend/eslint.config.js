@@ -26,6 +26,24 @@ export default defineConfig([
           allowExportNames: ['badgeVariants', 'buttonVariants', 'tabsListVariants'],
         },
       ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/*/*'],
+              message:
+                "禁止 deep import features，请通过 barrel export 引用：import { x } from '@/features/{name}'",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
   {

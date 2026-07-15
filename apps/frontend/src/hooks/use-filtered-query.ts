@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { QueryKey } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
-import { useInjectedQuery } from '@/features/query/use-injected-query'
+import { useInjectedQuery } from '@/features/query'
 
 export function useFilteredQuery<T, F>({
   injectedApis,

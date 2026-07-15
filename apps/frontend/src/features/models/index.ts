@@ -1,6 +1,7 @@
 export { modelsKeys } from './query-keys'
 export { useModelListPage } from './hooks/use-model-list-page'
 export { useModelRoutingPage } from './hooks/use-model-routing-page'
+export { useModelLabels } from './hooks/use-model-labels'
 export { ModelListTable } from './components/model-list-table'
 export { RoutingRulesTable } from './components/routing-rules-table'
 export { ModelListPageShell } from './components/model-list-page-shell'

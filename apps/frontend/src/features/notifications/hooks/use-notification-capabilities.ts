@@ -1,4 +1,4 @@
-import { useInjectedQuery } from '@/features/query/use-injected-query'
+import { useInjectedQuery } from '@/features/query'
 import type { NotificationCapabilities } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 

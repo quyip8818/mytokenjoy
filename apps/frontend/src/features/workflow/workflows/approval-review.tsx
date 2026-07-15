@@ -8,7 +8,7 @@ import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
-import { useModelLabels } from '@/features/models/hooks/use-model-labels'
+import { useModelLabels } from '@/features/models'
 import { formatDisplayCurrency } from '@/lib/points'
 
 export function ApprovalReviewWorkflow({

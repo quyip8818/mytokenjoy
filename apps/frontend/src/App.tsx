@@ -13,7 +13,7 @@ import { HomeRedirect } from '@/components/layout/home-redirect'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MemberLayout } from '@/components/layout/member-layout'
 import { RouteFallback } from '@/components/layout/route-fallback'
-import { SessionGate } from '@/features/session/session-gate'
+import { SessionGate } from '@/features/session'
 
 const LoginPage = lazy(() => import('@/routes/auth/login'))
 

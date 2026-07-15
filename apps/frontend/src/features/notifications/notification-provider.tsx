@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useSession } from '@/features/session/use-session'
+import { useSession } from '@/features/session'
 import { useNotificationConnection } from './hooks/use-notification-connection'
 
 /**

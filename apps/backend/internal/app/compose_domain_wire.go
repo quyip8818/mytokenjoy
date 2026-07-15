@@ -15,6 +15,7 @@ import (
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
@@ -73,7 +74,10 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
 	alertPub := NewBudgetAlertPublisher(i.notificationSvc)
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, NewUsageIngestEnqueuer(enqueuer), i.notifier, alertPub)
+	cache := budgetcheck.WrapStore(i.budgetCheck)
+	budgetOps := NewUsageBudgetOps(cache, alertPub, logger)
+	lotConsumer := NewUsageLotConsumer()
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer)
 }
 
 func wireReader(i infra) domainusage.Reader {

@@ -12,9 +12,10 @@
 
 ## 后端
 - 禁止在 cmd/ 放业务逻辑（仅 main 入口 + 启动编排）
-- 禁止跨 domain 直接引用另一个 domain 内部类型
-- 共享内核例外：`domain/types`、`domain/grants` 可被自由引用
-- 跨域协作通过 ports/interfaces 解耦
+- 禁止跨 domain 直接引用另一个 domain 的内部实现（具体 struct、私有逻辑）
+- 允许依赖另一个 domain 暴露的 exported interface、value types 和纯函数（方向性服务契约）
+- 共享内核例外：`domain/types`、`domain/grants`、`domain/company`、`domain/newapisync` 可被自由引用
+- 跨域协作通过 ports/interfaces 解耦（当需要调用对方的具体实现时）
 
 ## 前端文件放置
 
@@ -32,6 +33,7 @@
 - 必须有 index.ts barrel export
 - 外部只能 `import from '@/features/{name}'`，禁止 deep import
 - features 之间只通过对方 index.ts 引用
+- 例外：`features/query/query-keys.ts` 允许引用各 feature 的 `query-keys.ts`
 - 页面 hook 命名：`use-{page}-page.ts`
 
 ### 其他

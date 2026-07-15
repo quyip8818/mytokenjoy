@@ -3,7 +3,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { Paginated } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { AUDIT_PAGE_SIZE } from '../lib/constants'
-import { useInjectedQuery } from '@/features/query/use-injected-query'
+import { useInjectedQuery } from '@/features/query'
 
 export interface UseAuditListPageConfig<TFilter, TItem, TQuery> {
   initialFilter: TFilter

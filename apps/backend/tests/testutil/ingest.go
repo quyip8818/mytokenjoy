@@ -15,5 +15,7 @@ import (
 func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *usage.IngestService {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	return usage.NewIngestService(cfg, st, st.Logs(), logger, app.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}), nil, nil)
+	budgetOps := app.NewUsageBudgetOps(nil, nil, logger)
+	lotConsumer := app.NewUsageLotConsumer()
+	return usage.NewIngestService(cfg, st, st.Logs(), logger, app.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}), nil, budgetOps, lotConsumer)
 }

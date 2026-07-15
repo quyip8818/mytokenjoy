@@ -164,18 +164,21 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 ## File Placement Rules
 
 ### 测试
-- Frontend：`apps/frontend/tests/`（镜像 src/ 路径），禁止在 src/ 内放测试文件
+- Frontend：`apps/frontend/tests/`（镜像 src/ 路径）
 - Backend 单元测试：允许 internal/ 内 `_test.go`（同包测试，纯逻辑）
 - Backend 集成测试：`apps/backend/tests/`（外部测试包，需真实 DB/外部服务）
+- 禁止在前端 src/ 内放测试文件
 
 ### 文档
-- All in `docs/`. Never create new .md in apps/ or project root (各 app README.md、CLAUDE.md、DESIGN.md are exceptions).
+- 所有文档放 `docs/`（子目录：adr/、plan/、reviews/、todos/）
+- 禁止在 apps/ 或项目根新建 .md（各 app README.md、CLAUDE.md、DESIGN.md 除外）
 
 ### 后端
 - 禁止在 cmd/ 放业务逻辑（仅 main 入口 + 启动编排）
-- 禁止跨 domain 直接引用另一个 domain 内部类型
-- 共享内核例外：`domain/types`、`domain/grants` 可被自由引用
-- 跨域协作通过 ports/interfaces 解耦
+- 禁止跨 domain 直接引用另一个 domain 的内部实现（具体 struct、私有逻辑）
+- 允许依赖另一个 domain 暴露的 exported interface、value types 和纯函数（方向性服务契约）
+- 共享内核例外：`domain/types`、`domain/grants`、`domain/company`、`domain/newapisync` 可被自由引用
+- 跨域协作通过 ports/interfaces 解耦（当需要调用对方的具体实现时）
 
 ### 前端
 - 页面入口：`routes/{domain}/{page}.tsx`（仅组合，从 features/ 导入）
@@ -187,9 +190,11 @@ Docker-based LLM API gateway upstream (NewAPI). Configured via `.env`. Backend H
 - 纯工具函数：`lib/`（无 React 依赖）
 - features/ 必须有 index.ts barrel export；外部禁止 deep import，只能 `import from '@/features/{name}'`
 - features 之间只通过对方 index.ts 引用
+- 例外：`features/query/query-keys.ts` 允许引用各 feature 的 `query-keys.ts`
+- 页面 hook 命名：`use-{page}-page.ts`
 - `components/ui/` 禁止放带业务语义的文件
-- Never import API functions directly — use `useApis()`/`useInjectedApis()`
-- Shared contracts: `packages/contracts/`
+- 禁止直接 import API 函数——通过 useApis()/useInjectedApis()
+- 共享合约/类型放 packages/contracts/
 - 全局脚本放 scripts/（根目录）；app 专属构建脚本允许在 apps/{app}/scripts/
 
 ### 语言

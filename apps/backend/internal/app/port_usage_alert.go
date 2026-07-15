@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/notification"
 )
 
-// budgetAlertPublisher adapts domain/budget.AlertPublisher to infra/notification.Service.
+// budgetAlertPublisher adapts budget.AlertPublisher to infra/notification.Service.
 type budgetAlertPublisher struct {
 	svc *notification.Service
 }
@@ -45,7 +45,6 @@ func (p *budgetAlertPublisher) PublishBudgetAlerts(ctx context.Context, alerts [
 		}
 		// DispatchAsync enqueues via River — failures are non-fatal.
 		if err := p.svc.DispatchAsync(ctx, event); err != nil {
-			// Best-effort: log but don't fail the batch.
 			continue
 		}
 	}

@@ -11,8 +11,8 @@
 | 公司 / 组织 / 模型 catalog / platform_keys 行       | ✅ `apply/`   | —                                                                                                                                               |
 | `platform_key_mappings` + `key_hash` 落地           | ❌            | 本地：`dev-bootstrap`（`provision.Bootstrap`）；生产：用户 Create → `SyncPlatformKeyCreate`                                                     |
 | NewAPI Token `group` / `model_limits` / secret      | ❌            | `TrySyncCreate` / `SyncUpdatePlatformKey`；River 仅重试 outbox（`create_key`、`update_model_limits` 等）                                        |
-| `companies.newapi_wallet_user_id`（demo 公司 id=2） | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004) 与 [Backend-NewAPI-Provision架构.md](../../../docs/Backend-NewAPI-Provision架构.md) |
-| NewAPI `UserUsableGroups`                           | ❌            | `EnsureGroup`（Create 路径）+ 本地脚本保险，见 [Backend-NewAPI集成修复.md](../../../docs/Backend-NewAPI集成修复.md)                             |
+| `companies.newapi_wallet_user_id`（demo 公司 id=2） | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004) 与 [Backend-NewAPI-Provision架构.md](../Backend-NewAPI-Provision架构.md) |
+| NewAPI `UserUsableGroups`                           | ❌            | `EnsureGroup`（Create 路径）+ 本地脚本保险，见 [Backend-NewAPI集成修复.md](../Backend-NewAPI集成修复.md)                             |
 
 **Reseed 规则：** 修改 seed JSON（白名单、model id 等）后须 **`pnpm docker:reset`**（清卷）；非空库不会自动覆盖 seed。仅 `make dev-bootstrap` 只补 NewAPI sync，不 reseed。
 
@@ -100,7 +100,7 @@
 | dept-5 | 101, 104         |
 | dept-4 | 101, 103, 104    |
 
-NewAPI `group` 由集成层计算（`dept-` + 部门 id），**不是** seed 字段；见 [Backend-NewAPI集成修复.md](../../../docs/Backend-NewAPI集成修复.md)。
+NewAPI `group` 由集成层计算（`dept-` + 部门 id），**不是** seed 字段；见 [Backend-NewAPI集成修复.md](../Backend-NewAPI集成修复.md)。
 
 ---
 
