@@ -48,6 +48,7 @@ type IngestJob struct {
 
 type LogStore interface {
 	GetConsumeLogByID(ctx context.Context, logID int64) (*RawConsumeLog, error)
+	GetConsumeLogsByIDs(ctx context.Context, logIDs []int64) ([]RawConsumeLog, error)
 	ListConsumeLogIDsAfter(ctx context.Context, afterID int64, limit int) ([]int64, error)
 	GetReconcileCursor(ctx context.Context, stream string) (int64, error)
 	SetReconcileCursor(ctx context.Context, stream string, logID int64) error
@@ -82,6 +83,10 @@ func IngestJobClaimLease() time.Duration {
 type noopLogStore struct{}
 
 func (noopLogStore) GetConsumeLogByID(context.Context, int64) (*RawConsumeLog, error) {
+	return nil, errors.New("log store not configured")
+}
+
+func (noopLogStore) GetConsumeLogsByIDs(context.Context, []int64) ([]RawConsumeLog, error) {
 	return nil, errors.New("log store not configured")
 }
 

@@ -15,18 +15,25 @@ type Segment struct {
 	BillingCurrency string
 }
 
+// ConsumeResult holds the outcome of lot consumption including overdraft info.
+type ConsumeResult struct {
+	Segments       []Segment
+	OverdraftUsed  bool
+	OverdraftDelta float64
+}
+
 // ConsumeLots is the sole write path for ingest lot consumption + wallet_remain.
-func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoint float64) ([]Segment, error) {
+func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoint float64) (ConsumeResult, error) {
 	co, err := st.Company().LockForUpdate(ctx, companyID)
 	if err != nil {
-		return nil, err
+		return ConsumeResult{}, err
 	}
 	if co == nil {
-		return nil, fmt.Errorf("company not found: %d", companyID)
+		return ConsumeResult{}, fmt.Errorf("company not found: %d", companyID)
 	}
 	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, co.FIFOHeadLotID)
 	if err != nil {
-		return nil, err
+		return ConsumeResult{}, err
 	}
 	remaining := amountPoint
 	var segments []Segment
@@ -52,7 +59,7 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 			nextHead = &head
 		}
 		if err := st.Billing().UpdateLotRemaining(ctx, lotRow); err != nil {
-			return nil, err
+			return ConsumeResult{}, err
 		}
 		remaining -= take
 	}
@@ -61,7 +68,7 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 		overdraftAdded = remaining
 		od, err := st.Billing().ExpandOverdraftLot(ctx, companyID, currency, remaining)
 		if err != nil {
-			return nil, err
+			return ConsumeResult{}, err
 		}
 		segments = append(segments, Segment{
 			LotID: od.ID, Points: remaining, DisplayAmount: 0, BillingCurrency: od.BillingCurrency,
@@ -71,7 +78,7 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 			od.PointsRemaining = 0
 		}
 		if err := st.Billing().UpdateLotRemaining(ctx, *od); err != nil {
-			return nil, err
+			return ConsumeResult{}, err
 		}
 		remaining = 0
 	}
@@ -80,12 +87,16 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 		newRemain = 0
 	}
 	if err := st.Company().SetWalletRemain(ctx, companyID, newRemain, nextHead); err != nil {
-		return nil, err
+		return ConsumeResult{}, err
 	}
 	if remaining > 0 {
-		return nil, fmt.Errorf("insufficient lot balance")
+		return ConsumeResult{}, fmt.Errorf("insufficient lot balance")
 	}
-	return segments, nil
+	return ConsumeResult{
+		Segments:       segments,
+		OverdraftUsed:  overdraftAdded > 0,
+		OverdraftDelta: overdraftAdded,
+	}, nil
 }
 
 // CreditFromLot is the sole write path for recharge lot insert + wallet_remain delta.

@@ -173,6 +173,9 @@ func (s *Store) Logs() store.LogStore { return s.logs }
 
 func (s *Store) Pool() *pgxpool.Pool { return s.pool }
 
+// LogPool returns the pool used for the ingest log database (for LISTEN/NOTIFY).
+func (s *Store) LogPool() *pgxpool.Pool { return s.logPool }
+
 func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
 	empty, err := isDatabaseEmpty(ctx, s.pool)
 	if err != nil {

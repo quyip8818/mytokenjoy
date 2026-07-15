@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -14,7 +15,15 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-const ingestReconcileLockName = "ingest_reconcile"
+const (
+	ingestReconcileLockName    = "ingest_reconcile"
+	ingestListenFallbackPoll   = 5 * time.Second
+	ingestCompanyGroupPoolSize = 8
+)
+
+type companyResolver interface {
+	CompanyIDsByLogID(ctx context.Context, logIDs []int64) (map[int64]int64, error)
+}
 
 type Worker struct {
 	cfg            config.Config
@@ -28,6 +37,7 @@ type Worker struct {
 	holderID       string
 	pollInterval   time.Duration
 	reconcileEvery time.Duration
+	listener       store.PGListener
 }
 
 func NewWorker(
@@ -67,6 +77,12 @@ func NewWorker(
 	}
 }
 
+// SetListener attaches a PGListener for LISTEN/NOTIFY driven processing.
+// When set, the worker wakes immediately on notifications instead of only polling.
+func (w *Worker) SetListener(l store.PGListener) {
+	w.listener = l
+}
+
 func (w *Worker) Start(ctx context.Context) {
 	if !w.cfg.IngestEnabled() {
 		w.logger.Warn("ingest worker not started: LOG_DATABASE_URL empty")
@@ -82,15 +98,54 @@ func (w *Worker) Start(ctx context.Context) {
 
 func (w *Worker) loop(ctx context.Context) {
 	w.logStep("ingest_reconcile_startup", w.ProcessReconcile(ctx))
-	ticker := time.NewTicker(w.pollInterval)
+
+	notify := make(chan struct{}, 1)
+	listenOK := false
+	if w.listener != nil {
+		if err := w.listener.Listen(ctx, store.IngestPendingChannel); err != nil {
+			w.logger.Warn("LISTEN setup failed, falling back to poll only", "error", err)
+		} else {
+			listenOK = true
+			go func() {
+				for {
+					if err := w.listener.WaitForNotification(ctx); err != nil {
+						if ctx.Err() != nil {
+							return
+						}
+						w.logger.Warn("LISTEN notification error", "error", err)
+						time.Sleep(time.Second)
+						continue
+					}
+					select {
+					case notify <- struct{}{}:
+					default:
+					}
+				}
+			}()
+		}
+		defer func() { _ = w.listener.Close(context.Background()) }()
+	}
+
+	pollEvery := w.pollInterval
+	if listenOK {
+		pollEvery = ingestListenFallbackPoll
+	}
+	w.logger.Info("ingest worker poll configured",
+		"poll_every", pollEvery.String(),
+		"listen_enabled", listenOK,
+	)
+
+	pollTicker := time.NewTicker(pollEvery)
 	reconcileTicker := time.NewTicker(w.reconcileEvery)
-	defer ticker.Stop()
+	defer pollTicker.Stop()
 	defer reconcileTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-notify:
+			w.logStep("ingest_pending", w.ProcessPending(ctx))
+		case <-pollTicker.C:
 			w.logStep("ingest_pending", w.ProcessPending(ctx))
 			w.logStep("wallet_reconcile", w.processWalletReconcile(ctx))
 		case <-reconcileTicker.C:
@@ -107,29 +162,74 @@ func (w *Worker) ProcessPending(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	for _, job := range jobs {
-		source := job.Source
-		if source == "" {
-			source = types.SourceWebhook
-		}
-		ingestErr := w.ingest.IngestByLogID(ctx, job.LogID, source)
-		if ingestErr != nil {
-			disposition := domainusage.OutcomeFor(ingestErr).Retry(job.Attempts)
-			w.logger.Warn("ingest job failed",
-				"log_id", job.LogID,
-				"job_id", job.ID,
-				"source", source,
-				"attempts", job.Attempts,
-				"disposition", disposition.String(),
-				"error", ingestErr,
-			)
-		}
-		if handleErr := w.queue.ApplyRetry(ctx, job, ingestErr); handleErr != nil {
+	if len(jobs) == 0 {
+		return nil
+	}
+
+	groups := w.pendingJobGroups(ctx, jobs)
+
+	type jobResult struct {
+		job       store.IngestJob
+		ingestErr error
+	}
+	results := make(chan jobResult, len(jobs))
+	sem := make(chan struct{}, ingestCompanyGroupPoolSize)
+	var wg sync.WaitGroup
+
+	for _, group := range groups {
+		sem <- struct{}{}
+		wg.Add(1)
+		go func(batch []store.IngestJob) {
+			defer func() { <-sem; wg.Done() }()
+			for _, j := range batch {
+				source := j.Source
+				if source == "" {
+					source = types.SourceWebhook
+				}
+				ingestErr := w.ingest.IngestByLogID(ctx, j.LogID, source)
+				if ingestErr != nil {
+					disposition := domainusage.OutcomeFor(ingestErr).Retry(j.Attempts)
+					w.logger.Warn("ingest job failed",
+						"log_id", j.LogID,
+						"job_id", j.ID,
+						"source", source,
+						"attempts", j.Attempts,
+						"disposition", disposition.String(),
+						"error", ingestErr,
+					)
+				}
+				results <- jobResult{job: j, ingestErr: ingestErr}
+			}
+		}(group)
+	}
+
+	wg.Wait()
+	close(results)
+
+	for r := range results {
+		if handleErr := w.queue.ApplyRetry(ctx, r.job, r.ingestErr); handleErr != nil {
 			return handleErr
 		}
 	}
 	w.refreshMetrics(ctx)
 	return nil
+}
+
+func (w *Worker) pendingJobGroups(ctx context.Context, jobs []store.IngestJob) [][]store.IngestJob {
+	resolver, ok := w.ingest.(companyResolver)
+	if !ok {
+		return [][]store.IngestJob{jobs}
+	}
+	logIDs := make([]int64, len(jobs))
+	for i, job := range jobs {
+		logIDs[i] = job.LogID
+	}
+	companyByLogID, err := resolver.CompanyIDsByLogID(ctx, logIDs)
+	if err != nil {
+		w.logger.Warn("resolve ingest job companies failed; processing serial within batch", "error", err)
+		return [][]store.IngestJob{jobs}
+	}
+	return groupJobsByCompany(jobs, companyByLogID)
 }
 
 func (w *Worker) ProcessReconcile(ctx context.Context) error {

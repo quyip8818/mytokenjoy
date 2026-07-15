@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -19,6 +20,7 @@ type IngestService struct {
 	logStore store.LogStore
 	logger   *slog.Logger
 	enqueuer IngestJobEnqueuer
+	notifier types.Notifier
 }
 
 func NewIngestService(
@@ -27,6 +29,7 @@ func NewIngestService(
 	logStore store.LogStore,
 	logger *slog.Logger,
 	enqueuer IngestJobEnqueuer,
+	notifier types.Notifier,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
@@ -39,7 +42,7 @@ func NewIngestService(
 	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, logger: logger,
-		enqueuer: enqueuer,
+		enqueuer: enqueuer, notifier: notifier,
 	}
 }
 
@@ -53,6 +56,45 @@ func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source s
 		return err
 	}
 	return s.IngestRaw(ctx, *raw, source)
+}
+
+// CompanyIDsByLogID resolves company IDs for a batch of consume log IDs (best-effort).
+// Missing logs or mappings are omitted from the result map.
+func (s *IngestService) CompanyIDsByLogID(ctx context.Context, logIDs []int64) (map[int64]int64, error) {
+	if len(logIDs) == 0 {
+		return nil, nil
+	}
+	logs, err := s.logStore.GetConsumeLogsByIDs(ctx, logIDs)
+	if err != nil {
+		return nil, err
+	}
+	tokenIDs := make([]int64, 0, len(logs))
+	seenToken := make(map[int64]struct{}, len(logs))
+	for _, raw := range logs {
+		if _, ok := seenToken[raw.TokenID]; ok {
+			continue
+		}
+		seenToken[raw.TokenID] = struct{}{}
+		tokenIDs = append(tokenIDs, raw.TokenID)
+	}
+	mappings, err := s.store.PlatformKeyMappings().ListMappingsByNewAPIKeyIDs(ctx, tokenIDs)
+	if err != nil {
+		return nil, err
+	}
+	companyByToken := make(map[int64]int64, len(mappings))
+	for _, m := range mappings {
+		if m.NewAPIKeyID == nil {
+			continue
+		}
+		companyByToken[*m.NewAPIKeyID] = m.CompanyID
+	}
+	out := make(map[int64]int64, len(logs))
+	for _, raw := range logs {
+		if companyID, ok := companyByToken[raw.TokenID]; ok {
+			out[raw.ID] = companyID
+		}
+	}
+	return out, nil
 }
 
 func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, source string) error {
@@ -87,20 +129,19 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	entry.PeriodKey = occurrence.String()
 
 	companyID := company.CompanyID(ctx)
-	return s.store.WithTx(ctx, func(st store.Store) error {
-		if err := st.Budget().AcquireBudgetLock(ctx); err != nil {
-			return err
-		}
+	var consumeResult billinglot.ConsumeResult
+	err = s.store.WithTx(ctx, func(st store.Store) error {
 		if exists, err := st.Ledger().ExistsIdempotency(ctx, entry.IdempotencyKey); err != nil {
 			return err
 		} else if exists {
 			return nil
 		}
-		segs, err := billinglot.ConsumeLots(ctx, st, companyID, entry.Amount)
+		result, err := billinglot.ConsumeLots(ctx, st, companyID, entry.Amount)
 		if err != nil {
 			return err
 		}
-		ledgerEntries := billinglot.LedgerSegmentsFromEntry(entry, segs)
+		consumeResult = result
+		ledgerEntries := billinglot.LedgerSegmentsFromEntry(entry, result.Segments)
 		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
 		if err != nil {
 			return err
@@ -114,6 +155,22 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		}
 		return s.enqueuer.EnqueueAfterIngest(ctx, tx, companyID)
 	})
+	if err != nil {
+		return err
+	}
+
+	// Notify outside the transaction to avoid blocking commit on notification failures.
+	if consumeResult.OverdraftUsed && s.notifier != nil {
+		_ = s.notifier.Send(ctx, types.Notification{
+			EventType: types.NotificationEventOverdraftExpanded,
+			Recipient: fmt.Sprintf("company:%d", companyID),
+			Payload: map[string]any{
+				"companyId":      companyID,
+				"overdraftDelta": consumeResult.OverdraftDelta,
+			},
+		})
+	}
+	return nil
 }
 
 func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *store.PlatformKeyMapping) (context.Context, error) {

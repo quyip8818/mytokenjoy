@@ -46,8 +46,10 @@ const (
 	NotificationStatusSent   = "sent"
 	NotificationStatusFailed = "failed"
 
-	NotificationEventSyncThreshold  = "sync_threshold_exceeded"
-	NotificationEventOverrunBlocked = "overrun_blocked"
+	NotificationEventSyncThreshold      = "sync_threshold_exceeded"
+	NotificationEventOverrunBlocked     = "overrun_blocked"
+	NotificationEventOverdraftExpanded  = "overdraft_expanded"
+	NotificationEventBudgetAlertReached = "budget_alert_reached"
 )
 
 type UsageBucketRow struct {

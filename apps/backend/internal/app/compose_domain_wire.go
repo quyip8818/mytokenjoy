@@ -72,7 +72,7 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, NewUsageIngestEnqueuer(enqueuer))
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, NewUsageIngestEnqueuer(enqueuer), i.notifier)
 }
 
 func wireReader(i infra) domainusage.Reader {

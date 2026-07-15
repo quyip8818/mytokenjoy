@@ -1,0 +1,74 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['apps/frontend/**/*.{ts,tsx}']
+---
+
+# Frontend Structure Conventions
+
+Follow [docs/Frontend.md](../docs/Frontend.md) (especially §2 shared components). Summary:
+
+## Where code goes
+
+| Code | Location | Condition |
+|------|----------|-----------|
+| Route page entry | `routes/{domain}/{page}.tsx` | One file per `APP_ROUTES` entry |
+| Page logic | `routes/{domain}/hooks/use-{page}-page.ts` | State, effects, orchestration |
+| Page-only UI | `routes/{domain}/components/` | Exactly 1 route page; no workflow reuse |
+| Shared domain UI | `components/{domain}/` | 2+ route pages OR 1 page + `features/workflow` |
+| Cross-domain layout/auth | `components/layout/`, `components/auth/` | No single-page blocks |
+| Primitives | `components/ui/` | No business semantics — no domain words in filename |
+| Generic enum/filter select | `components/ui/options-select.tsx` | Map from `lib/labels.ts`; no hardcoded options in pages |
+| Workflow adapter | `features/workflow/workflows/` or `defineDelegateWorkflow` in `definitions/` | Open via `useWorkflow().open()` |
+| HTTP | `api/{domain}.ts` | One namespace per backend resource |
+| DTO types | `api/types/{domain}.ts` | Same domain as API |
+| Pure helpers | `lib/` | No React; unit-testable |
+| Audit query builders | `lib/audit-query.ts` | Shared filter → API query mapping |
+| Audit CSV export | `lib/audit-export.ts` | Call/operation log → CSV rows |
+| Tests | `tests/` | Mirror `src/` subpaths; `@tests/` for fixtures/utils |
+
+## Component placement decision
+
+1. Business semantics? If no → `components/ui/`
+2. Cross-domain layout/auth? → `components/layout/` or `auth/`
+3. Count consumers: route pages + workflow imports
+4. One route page only, no workflow → `routes/{domain}/components/`
+5. Two+ route pages, or workflow reuses UI → `components/{domain}/`
+6. Promote: second route page imports from `routes/*/components/` → move to `components/{domain}/`
+7. Demote: `components/{domain}/` only used by one page with no workflow → `routes/{domain}/components/`
+
+Workflow pattern: reusable form in `components/{domain}/` (e.g. `CredentialForm`); register via `defineDelegateWorkflow` or thin wrapper in `features/workflow/workflows/`.
+
+## Session & permissions
+
+- `useSession()` from `features/session` — `memberId`, permissions, loading
+- `usePermissions()` reads `useSession()`; do not bypass session in page/workflow hooks
+- Dev login: `/login` writes `tokenjoy_session_member` cookie; production uses Bearer token
+
+## Routes (single source of truth)
+
+- Hand-write **`ROUTE_DEFINITIONS`** in `config/routes.ts` only (path, label, icon, permissions, lazy, navGroup)
+- `ROUTES`, `ROUTE_META`, `APP_ROUTES`, `NAV_GROUP_LAYOUT` are derived — never edit separately
+- New route checklist:
+  1. Add one entry to `ROUTE_DEFINITIONS` (include `navGroup`)
+  2. Create `routes/{domain}/{page}.tsx` + `hooks/use-*-page.ts`
+
+1. List all importers (route pages + workflow)
+2. Pick directory per table above
+3. Never put domain-named files in `components/ui/` (`budget-*`, `org-*`, etc.)
+4. Update §2 shared component inventory in [Frontend.md](../docs/Frontend.md) when adding shared components
+
+## Page template
+
+`{page}.tsx` — compose only; call `use{Name}Page()` from `hooks/use-*-page.ts`.
+
+Page hooks:
+- Use `useInjectedApis(injectedApis?)` in page hooks that accept test overrides; use `useApis()` elsewhere
+- Use `useAsyncResource` for data; expose `error` + `refresh`
+- Audit list pages: prefer `use-audit-list-page` (wraps `useFilteredResource`)
+- Return a flat view model; no JSX
+
+## New component checklist
+
+- Page hooks with test overrides: `useInjectedApis(injectedApis?)`; otherwise `useApis()` in hooks, workflows, and shared components
+- Do not `import { xxxApi }` in business code
+- Tests: `createMockApis()` + `renderHookWithProviders(..., { apis })` from `@tests/utils`

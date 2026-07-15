@@ -50,6 +50,35 @@ func (r *logRepo) GetConsumeLogByID(ctx context.Context, logID int64) (*store.Ra
 	return &raw, nil
 }
 
+func (r *logRepo) GetConsumeLogsByIDs(ctx context.Context, logIDs []int64) ([]store.RawConsumeLog, error) {
+	if len(logIDs) == 0 {
+		return nil, nil
+	}
+	query := fmt.Sprintf(`
+		SELECT id, token_id, quota, model_name, created_at, prompt_tokens, completion_tokens, use_time, content
+		FROM %s
+		WHERE id = ANY($1) AND type = $2 AND token_id > 0
+	`, r.tables.logs)
+	rows, err := r.db.Query(ctx, query, logIDs, store.NewAPILogTypeConsume)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]store.RawConsumeLog, 0, len(logIDs))
+	for rows.Next() {
+		var raw store.RawConsumeLog
+		if err := rows.Scan(
+			&raw.ID, &raw.TokenID, &raw.Quota, &raw.ModelName, &raw.CreatedAt,
+			&raw.PromptTokens, &raw.CompletionTokens, &raw.UseTime, &raw.Content,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, raw)
+	}
+	return out, rows.Err()
+}
+
 func (r *logRepo) ListConsumeLogIDsAfter(ctx context.Context, afterID int64, limit int) ([]int64, error) {
 	query := fmt.Sprintf(`
 		SELECT id
@@ -111,7 +140,12 @@ func (r *logRepo) EnqueuePending(ctx context.Context, logID int64, source string
 			updated_at = NOW()
 	`, r.tables.ingestJobs, r.tables.ingestJobs, r.tables.ingestJobs, r.tables.ingestJobs, r.tables.ingestJobs)
 	_, err := r.db.Exec(ctx, query, id, logID, source, store.IngestJobStatusPending, store.IngestJobStatusDead)
-	return err
+	if err != nil {
+		return err
+	}
+	// Notify the ingest worker that new work is available (best-effort).
+	_, _ = r.db.Exec(ctx, "SELECT pg_notify($1, '')", store.IngestPendingChannel)
+	return nil
 }
 
 func (r *logRepo) UpsertJob(ctx context.Context, job store.IngestJob) error {

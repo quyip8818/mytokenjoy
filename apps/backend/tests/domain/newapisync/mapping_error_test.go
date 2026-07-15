@@ -31,6 +31,9 @@ func (e errMappings) GetMappingByKeyHash(context.Context, string) (*store.Platfo
 func (e errMappings) FindMappingByNewAPIKeyID(context.Context, int64) (*store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
+func (e errMappings) ListMappingsByNewAPIKeyIDs(context.Context, []int64) ([]store.PlatformKeyMapping, error) {
+	return nil, e.err
+}
 func (e errMappings) ListMappingsByMemberID(context.Context, string) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }

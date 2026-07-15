@@ -22,10 +22,15 @@ type Projector struct {
 	batchSize    int
 	logger       *slog.Logger
 	gatewayCache GatewaySoftCache
+	notifier     types.Notifier
+	// alertsSent tracks (ruleID:threshold:periodKey) to avoid repeat notifications.
+	alertsSent map[string]struct{}
 }
 
 type batchEffects struct {
 	touchedKeys     map[string]struct{}
+	touchedDepts    map[string]struct{}
+	keyIncrements   map[string]float64
 	overrunByKey    map[string]overrunPayload
 	deptOnlyOverrun *overrunPayload
 	rebalanceAxes   map[string]struct{}
@@ -79,14 +84,36 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 			}
 		}
 		effects = collectBatchEffects(batch)
-		updates, err := ComputeGatewaySummaryUpdates(ctx, tx, effects.touchedKeys, p.cfg.Clock())
-		if err != nil {
-			return err
-		}
-		if len(updates) > 0 {
-			summaries, err = tx.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+
+		// Incremental path: decrement gateway_soft_remain by batch increments.
+		// Absolute recompute only for keys that were not updated (e.g. soft remain still NULL).
+		if len(effects.keyIncrements) > 0 {
+			summaries, err = tx.GatewaySoftSummaries().DecrementBatch(ctx, effects.keyIncrements)
 			if err != nil {
 				return err
+			}
+			updated := make(map[string]struct{}, len(summaries))
+			for _, item := range summaries {
+				updated[item.PlatformKeyID] = struct{}{}
+			}
+			missing := make(map[string]struct{})
+			for id := range effects.keyIncrements {
+				if _, ok := updated[id]; !ok {
+					missing[id] = struct{}{}
+				}
+			}
+			if len(missing) > 0 {
+				updates, err := ComputeGatewaySummaryUpdates(ctx, tx, missing, p.cfg.Clock())
+				if err != nil {
+					return err
+				}
+				if len(updates) > 0 {
+					fallback, err := tx.GatewaySoftSummaries().UpdateBatch(ctx, updates)
+					if err != nil {
+						return err
+					}
+					summaries = append(summaries, fallback...)
+				}
 			}
 		}
 		last := batch[len(batch)-1]
@@ -108,6 +135,9 @@ func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error)
 		return false, err
 	}
 
+	// Check percentage alert thresholds for touched departments.
+	p.checkAlertThresholds(ctx, effects)
+
 	hasMore := len(entries) >= p.batchSize
 	if hasMore {
 		if err := p.enqueuer.InsertBudgetProjection(ctx, companyID); err != nil {
@@ -121,9 +151,14 @@ func collectBatchEffects(entries []types.UsageLedgerEntry) batchEffects {
 	effects := batchEffects{
 		rebalanceAxes: make(map[string]struct{}),
 		touchedKeys:   make(map[string]struct{}),
+		touchedDepts:  make(map[string]struct{}),
+		keyIncrements: make(map[string]float64),
 		overrunByKey:  make(map[string]overrunPayload),
 	}
 	for _, entry := range entries {
+		if entry.DepartmentID != "" {
+			effects.touchedDepts[entry.DepartmentID] = struct{}{}
+		}
 		if entry.MemberID != nil && entry.PlatformKeyScope == types.PlatformKeyScopeMember {
 			effects.rebalanceAxes[store.RebalanceAxisMember+":"+*entry.MemberID] = struct{}{}
 		}
@@ -138,6 +173,7 @@ func collectBatchEffects(entries []types.UsageLedgerEntry) batchEffects {
 		}
 		if entry.PlatformKeyID != "" {
 			effects.touchedKeys[entry.PlatformKeyID] = struct{}{}
+			effects.keyIncrements[entry.PlatformKeyID] += entry.Amount
 			effects.overrunByKey[entry.PlatformKeyID] = payload
 			continue
 		}

@@ -93,6 +93,13 @@ func (r *platformKeyMappingRepo) FindMappingByNewAPIKeyID(ctx context.Context, k
 	return &m, nil
 }
 
+func (r *platformKeyMappingRepo) ListMappingsByNewAPIKeyIDs(ctx context.Context, keyIDs []int64) ([]store.PlatformKeyMapping, error) {
+	if len(keyIDs) == 0 {
+		return nil, nil
+	}
+	return r.listMappings(ctx, "pkm.newapi_key_id = ANY($1)", keyIDs)
+}
+
 func (r *platformKeyMappingRepo) listMappings(ctx context.Context, where string, args ...any) ([]store.PlatformKeyMapping, error) {
 	query := mappingSelect
 	if where != "" {

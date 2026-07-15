@@ -35,6 +35,7 @@ type PlatformKeyMappingRepository interface {
 	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*PlatformKeyMapping, error)
 	GetMappingByKeyHash(ctx context.Context, keyHash string) (*PlatformKeyMapping, error)
 	FindMappingByNewAPIKeyID(ctx context.Context, keyID int64) (*PlatformKeyMapping, error)
+	ListMappingsByNewAPIKeyIDs(ctx context.Context, keyIDs []int64) ([]PlatformKeyMapping, error)
 	ListMappingsByMemberID(ctx context.Context, memberID string) ([]PlatformKeyMapping, error)
 	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]PlatformKeyMapping, error)
 	ListMappingsByProjectID(ctx context.Context, projectID string) ([]PlatformKeyMapping, error)

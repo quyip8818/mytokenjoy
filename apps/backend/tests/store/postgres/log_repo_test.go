@@ -179,6 +179,31 @@ func TestGetConsumeLogByIDNotFound(t *testing.T) {
 	}
 }
 
+func TestGetConsumeLogsByIDs(t *testing.T) {
+	t.Parallel()
+	st := newIngestStore(t)
+	ctx := testutil.Ctx()
+
+	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(40, 1))
+	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(41, 2))
+	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 42, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
+
+	logs, err := st.Logs().GetConsumeLogsByIDs(ctx, []int64{40, 41, 42, 99})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 2 {
+		t.Fatalf("expected 2 logs (skip token_id=0 and missing), got %d", len(logs))
+	}
+	got := map[int64]bool{}
+	for _, raw := range logs {
+		got[raw.ID] = true
+	}
+	if !got[40] || !got[41] {
+		t.Fatalf("unexpected logs: %+v", logs)
+	}
+}
+
 func TestListConsumeLogIDsAfterFiltersAndOrders(t *testing.T) {
 	t.Parallel()
 	st := newIngestStore(t)

@@ -20,5 +20,6 @@ type GatewaySoftSummaryUpdate struct {
 
 type GatewaySoftSummaryRepository interface {
 	UpdateBatch(ctx context.Context, updates []GatewaySoftSummaryUpdate) ([]GatewaySoftSummary, error)
+	DecrementBatch(ctx context.Context, decrements map[string]float64) ([]GatewaySoftSummary, error)
 	ListByPlatformKeyIDs(ctx context.Context, keyIDs []string) ([]GatewaySoftSummary, error)
 }

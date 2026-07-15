@@ -109,12 +109,18 @@ func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
 	}
 
 	consume := grant / 4
-	segments, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, consume)
+	result, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, consume)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(segments) == 0 {
+	if len(result.Segments) == 0 {
 		t.Fatal("expected lot segments")
+	}
+	if result.OverdraftUsed {
+		t.Fatal("expected no overdraft for partial consume within paid balance")
+	}
+	if result.OverdraftDelta != 0 {
+		t.Fatalf("overdraft delta: got %v want 0", result.OverdraftDelta)
 	}
 
 	afterConsume, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
@@ -202,10 +208,11 @@ func TestConsumeLotsDepletesOlderLotFirst(t *testing.T) {
 	}
 
 	consume := lotA.PointsGranted / 4
-	segments, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
+	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
 	if err != nil {
 		t.Fatal(err)
 	}
+	segments := result.Segments
 	if len(segments) != 1 {
 		t.Fatalf("expected single segment, got %d", len(segments))
 	}
@@ -256,10 +263,11 @@ func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 
 	// Drain lot A completely, then take 10 from lot B.
 	consume := lotA.PointsGranted + 10
-	segments, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
+	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
 	if err != nil {
 		t.Fatal(err)
 	}
+	segments := result.Segments
 	if len(segments) != 2 {
 		t.Fatalf("expected two segments, got %d", len(segments))
 	}
@@ -272,5 +280,57 @@ func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 	}
 	if segments[1].Points != 10 {
 		t.Fatalf("second segment points: got %v want 10", segments[1].Points)
+	}
+	if result.OverdraftUsed {
+		t.Fatal("expected no overdraft when paid lots cover the consume")
+	}
+}
+
+func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9105
+	_, st := testutil.NewTestStore(t)
+	ctx := newLotTestCompany(t, st, companyID)
+	now := time.Now().UTC()
+
+	order := paidRechargeOrder(companyID, "rch-overdraft", 10, now)
+	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultPointsPerUnit())
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+		t.Fatal(err)
+	}
+
+	extra := domainbilling.PointsGrantedFromAmount(3, domainbilling.DefaultPointsPerUnit())
+	consume := lot.PointsGranted + extra
+	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.OverdraftUsed {
+		t.Fatal("expected overdraft when consume exceeds paid lots")
+	}
+	if result.OverdraftDelta != extra {
+		t.Fatalf("overdraft delta: got %v want %v", result.OverdraftDelta, extra)
+	}
+	if len(result.Segments) < 2 {
+		t.Fatalf("expected paid + overdraft segments, got %d", len(result.Segments))
+	}
+	last := result.Segments[len(result.Segments)-1]
+	if last.Points != extra {
+		t.Fatalf("overdraft segment points: got %v want %v", last.Points, extra)
+	}
+	od, err := st.Billing().GetLotByID(ctx, last.LotID)
+	if err != nil || od == nil {
+		t.Fatal("expected overdraft lot")
+	}
+	if od.LotKind != store.LotKindOverdraft {
+		t.Fatalf("lot kind: got %q want %q", od.LotKind, store.LotKindOverdraft)
+	}
+
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company")
+	}
+	if co.WalletRemain != 0 {
+		t.Fatalf("wallet_remain after overdraft: got %v want 0", co.WalletRemain)
 	}
 }

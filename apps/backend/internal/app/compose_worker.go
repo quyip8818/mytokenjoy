@@ -17,6 +17,7 @@ import (
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
 func postgresPool(st store.Store) *pgxpool.Pool {
@@ -25,6 +26,16 @@ func postgresPool(st store.Store) *pgxpool.Pool {
 	}
 	if p, ok := st.(poolStore); ok {
 		return p.Pool()
+	}
+	return nil
+}
+
+func logPoolFromStore(st store.Store) *pgxpool.Pool {
+	type logPoolStore interface {
+		LogPool() *pgxpool.Pool
+	}
+	if p, ok := st.(logPoolStore); ok {
+		return p.LogPool()
 	}
 	return nil
 }
@@ -42,7 +53,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 
 	budgetEnqueuer := NewBudgetEnqueuer(holder)
 	budgetCache := budgetcheck.WrapStore(reg.Infra.budgetCheck)
-	budgetAsync := domainbudget.NewAsync(cfg, st, budgetEnqueuer, budgetCache, logger)
+	budgetAsync := domainbudget.NewAsync(cfg, st, budgetEnqueuer, budgetCache, logger, domainbudget.WithProjectorNotifier(reg.Infra.notifier))
 	dashboardProjector := domaindashboard.NewProjector(cfg, st, NewDashboardEnqueuer(holder), logger)
 	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, NewDashboardEnqueuer(holder), logger)
 	sched := scheduler.NewService(cfg, st)
@@ -84,6 +95,16 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		reg.BillingSvc,
 		logger,
 	)
+
+	// Wire LISTEN/NOTIFY for low-latency ingest wake-up.
+	if logPool := logPoolFromStore(st); logPool != nil {
+		listener, err := postgres.NewPGListener(context.Background(), logPool)
+		if err == nil {
+			ingestWorker.SetListener(listener)
+		} else {
+			logger.Warn("failed to create ingest LISTEN connection", "error", err)
+		}
+	}
 
 	return &backgroundWorkers{
 		ingest: ingestWorker,

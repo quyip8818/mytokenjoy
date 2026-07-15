@@ -45,6 +45,80 @@ func TestGatewaySoftSummaryUpdateBatch(t *testing.T) {
 	}
 }
 
+func TestGatewaySoftSummaryDecrementBatch(t *testing.T) {
+	t.Parallel()
+	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	ctx := testutil.Ctx()
+
+	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
+		{PlatformKeyID: contract.IDPlatformKey1, SoftRemain: 100},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	summaries, err := st.GatewaySoftSummaries().DecrementBatch(ctx, map[string]float64{
+		contract.IDPlatformKey1: 12.5,
+		"missing-key":           1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("expected 1 updated summary, got %d", len(summaries))
+	}
+	if summaries[0].SoftRemain != 87.5 {
+		t.Fatalf("remain = %v, want 87.5", summaries[0].SoftRemain)
+	}
+	if summaries[0].Version != 2 {
+		t.Fatalf("version = %d, want 2", summaries[0].Version)
+	}
+}
+
+func TestGatewaySoftSummaryDecrementBatchFloorsAtZero(t *testing.T) {
+	t.Parallel()
+	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	ctx := testutil.Ctx()
+
+	if _, err := st.GatewaySoftSummaries().UpdateBatch(ctx, []store.GatewaySoftSummaryUpdate{
+		{PlatformKeyID: contract.IDPlatformKey1, SoftRemain: 5},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	summaries, err := st.GatewaySoftSummaries().DecrementBatch(ctx, map[string]float64{
+		contract.IDPlatformKey1: 12,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("expected 1 updated summary, got %d", len(summaries))
+	}
+	if summaries[0].SoftRemain != 0 {
+		t.Fatalf("remain = %v, want 0", summaries[0].SoftRemain)
+	}
+}
+
+func TestGatewaySoftSummaryDecrementBatchSkipsNullRemain(t *testing.T) {
+	t.Parallel()
+	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	ctx := testutil.Ctx()
+
+	summaries, err := st.GatewaySoftSummaries().DecrementBatch(ctx, map[string]float64{
+		contract.IDPlatformKey1: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 0 {
+		t.Fatalf("expected no updates for NULL soft remain, got %d", len(summaries))
+	}
+	remain, _ := budgetfix.GatewaySoftRemain(t, st, contract.IDPlatformKey1)
+	if remain != nil {
+		t.Fatalf("expected soft remain to stay NULL, got %v", remain)
+	}
+}
+
 func TestLoadPrecheckContextReturnsSoftSummary(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
