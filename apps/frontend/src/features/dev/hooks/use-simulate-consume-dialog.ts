@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
 import type { PlatformKey } from '@/api/types'
@@ -59,6 +59,13 @@ export function useSimulateConsumeDialog(
   const [outputTokensText, setOutputTokensText] = useState(String(DEFAULT_OUTPUT_TOKENS))
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // 关闭 dialog 时清除错误状态
+  useEffect(() => {
+    if (!open) {
+      setSubmitError(null)
+    }
+  }, [open])
 
   const {
     data: platformKeys = [],

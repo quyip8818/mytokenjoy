@@ -51,5 +51,10 @@ func RunDevBootstrap(ctx context.Context, cfg config.Config, logger *slog.Logger
 	if err := sync.Bootstrap(bootstrapCtx, cfg.LocalCompanyID); err != nil {
 		return fmt.Errorf("bootstrap platform keys: %w", err)
 	}
+
+	// Sync wallet_remain → NewAPI user quota so the user has non-zero quota after seed recharge.
+	if err := registry.BillingSvc.SyncCompanyWallet(bootstrapCtx, cfg.LocalCompanyID); err != nil {
+		logger.Warn("dev bootstrap: wallet sync failed (non-fatal)", "error", err)
+	}
 	return nil
 }

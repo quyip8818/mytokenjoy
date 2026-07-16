@@ -103,7 +103,7 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
           </p>
 
           {dialog.error ? (
-            <pre className="bg-destructive/10 text-destructive max-h-40 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap">
+            <pre className="bg-destructive/10 text-destructive max-h-40 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap break-all">
               {dialog.error}
             </pre>
           ) : null}
