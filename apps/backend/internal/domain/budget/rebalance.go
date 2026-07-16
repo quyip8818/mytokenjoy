@@ -7,6 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
@@ -39,6 +40,14 @@ func NewRebalanceService(cfg config.Config, st RebalanceStore, client adminport.
 	return &RebalanceService{cfg: cfg, store: st, client: client}
 }
 
+// rebalanceContext holds preloaded data shared across all mappings in a single ProcessAxis call.
+type rebalanceContext struct {
+	budgetCtx   pkgbudget.BudgetContext
+	departments []types.Department
+	rules       []types.RoutingRule
+	models      []types.ModelInfo
+}
+
 func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID string) error {
 	if s.client == nil {
 		return fmt.Errorf("newapi admin client required")
@@ -62,23 +71,59 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 	if err != nil {
 		return err
 	}
-	for _, mapping := range mappings {
-		if mapping.NewAPIKeyID == nil || mapping.SyncStatus != store.MappingSyncStatusSynced {
-			continue
+
+	// Filter to actionable mappings first.
+	active := mappings[:0]
+	for _, m := range mappings {
+		if m.NewAPIKeyID != nil && m.SyncStatus == store.MappingSyncStatusSynced {
+			active = append(active, m)
 		}
-		if err := s.rebalanceKey(ctx, mapping); err != nil {
+	}
+	if len(active) == 0 {
+		return nil
+	}
+
+	// Preload shared data once for all mappings.
+	rctx, err := s.loadRebalanceContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, mapping := range active {
+		if err := s.rebalanceKey(ctx, mapping, rctx); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.PlatformKeyMapping) error {
+func (s *RebalanceService) loadRebalanceContext(ctx context.Context) (*rebalanceContext, error) {
 	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	key, ok := budgetCtx.FindPlatformKey(mapping.PlatformKeyID)
+	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	if err != nil {
+		return nil, err
+	}
+	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	if err != nil {
+		return nil, err
+	}
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &rebalanceContext{
+		budgetCtx:   budgetCtx,
+		departments: departments,
+		rules:       rules,
+		models:      models,
+	}, nil
+}
+
+func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.PlatformKeyMapping, rctx *rebalanceContext) error {
+	key, ok := rctx.budgetCtx.FindPlatformKey(mapping.PlatformKeyID)
 	if !ok || key.Status != "active" {
 		return nil
 	}
@@ -87,33 +132,21 @@ func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.Platf
 		return err
 	}
 
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
-	if err != nil {
-		return err
-	}
-	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
-	if err != nil {
-		return err
-	}
-	models, err := s.store.Models().Models(ctx)
-	if err != nil {
-		return err
-	}
-	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
+	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, rctx.departments, rctx.rules, rctx.models)
 	effectiveIDs := newapiunits.EffectiveWhitelistIDs(key.ModelWhitelist, deptAllowed)
 	open, err := pkgbudget.OpenDepartmentPeriod(ctx, s.store.Org().Nodes(), mapping.DepartmentID, s.cfg.Clock())
 	if err != nil {
 		return err
 	}
 	remainPoint, err := pkgbudget.ComputeRemainForMapping(
-		ctx, budgetCtx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Company(), mapping, open.String(),
+		ctx, rctx.budgetCtx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Company(), mapping, open.String(),
 	)
 	if err != nil {
 		return err
 	}
 	allocated := newapiunits.ToNewAPIUnits(
 		remainPoint,
-		models,
+		rctx.models,
 		effectiveIDs,
 	)
 	if allocated == token.RemainQuota {

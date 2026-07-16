@@ -64,9 +64,11 @@ func (w *IngestReconcileWorker) Work(ctx context.Context, _ *river.Job[jobs.Inge
 			if err := jobs.InsertIngest(ctx, w.enqueuer, id, "reconcile"); err != nil {
 				w.logger.Warn("reconcile: enqueue ingest job failed", "log_id", id, "error", err)
 			}
-			if err := w.logStore.SetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume, id); err != nil {
-				return err
-			}
+		}
+		// Advance cursor once per batch to the last processed ID.
+		lastID := ids[len(ids)-1]
+		if err := w.logStore.SetReconcileCursor(ctx, store.ReconcileStreamNewAPIConsume, lastID); err != nil {
+			return err
 		}
 		if len(ids) < w.batchSize {
 			return nil

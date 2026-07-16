@@ -1,4 +1,4 @@
-.PHONY: install-air start build run test test-unit test-unit-nocache test-fast lint lint-clock format scaffold-domain clean dev-bootstrap
+.PHONY: install-air start build run test test-unit test-unit-nocache test-fast test-integration lint lint-clock format scaffold-domain clean dev-bootstrap
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
@@ -43,6 +43,10 @@ test-unit:
 test-unit-nocache:
 	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
 	go test -tags=testhook -p $(TEST_PKG_PARALLEL) -parallel $(TEST_PARALLEL) -count=1 $$(go list -tags=testhook ./tests/... | grep -v '/tests/testutil')
+
+test-integration:
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL required; run: pnpm start:postgres"; exit 1)
+	go test -tags="testhook,integration" -race -timeout 180s -p 1 ./tests/integration/stress/...
 
 test-fast:
 	go test -tags=testhook ./tests/pkg/...

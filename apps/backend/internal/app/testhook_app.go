@@ -24,15 +24,14 @@ func (a *App) RunIngestOnce(ctx context.Context) error {
 	// Start River if not already started (idempotent — returns nil if already running).
 	_ = a.Workers.river.Start(ctx)
 
+	// Brief settle time to allow newly inserted jobs to become visible.
+	time.Sleep(100 * time.Millisecond)
+
 	// Wait for pending jobs to drain.
 	deadline := time.Now().Add(5 * time.Second)
-	var sawPending bool
 	for time.Now().Before(deadline) {
 		n := countPendingRiverJobs(ctx, pool)
-		if n > 0 {
-			sawPending = true
-		}
-		if sawPending && n == 0 {
+		if n == 0 {
 			return nil
 		}
 		time.Sleep(50 * time.Millisecond)

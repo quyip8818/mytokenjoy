@@ -53,28 +53,19 @@ type Store interface {
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 
-// companyCacheInvalidator allows invalidating gateway precheck cache on company status change.
-type companyCacheInvalidator interface {
-	InvalidateCompany(companyID int64)
-}
-
-type noopCompanyCacheInvalidator struct{}
-
-func (noopCompanyCacheInvalidator) InvalidateCompany(int64) {}
-
 type service struct {
 	cfg              config.Config
 	store            Store
 	client           adminport.Port
 	grants           grants.Normalizer
-	cacheInvalidator companyCacheInvalidator
+	cacheInvalidator types.PrecheckCacheInvalidator
 }
 
 // CompanyServiceOption configures optional dependencies.
 type CompanyServiceOption func(*service)
 
 // WithCompanyCacheInvalidator sets the gateway precheck cache invalidator.
-func WithCompanyCacheInvalidator(inv companyCacheInvalidator) CompanyServiceOption {
+func WithCompanyCacheInvalidator(inv types.PrecheckCacheInvalidator) CompanyServiceOption {
 	return func(s *service) {
 		if inv != nil {
 			s.cacheInvalidator = inv
@@ -83,7 +74,7 @@ func WithCompanyCacheInvalidator(inv companyCacheInvalidator) CompanyServiceOpti
 }
 
 func NewService(cfg config.Config, st Store, client adminport.Port, grants grants.Normalizer, opts ...CompanyServiceOption) Service {
-	s := &service{cfg: cfg, store: st, client: client, grants: grants, cacheInvalidator: noopCompanyCacheInvalidator{}}
+	s := &service{cfg: cfg, store: st, client: client, grants: grants, cacheInvalidator: types.NoopPrecheckCacheInvalidator{}}
 	for _, opt := range opts {
 		opt(s)
 	}

@@ -52,12 +52,7 @@ type service struct {
 	store            Store
 	delayer          common.Delayer
 	newAPISync       newapisync.KeysNewAPISync
-	cacheInvalidator keyCacheInvalidator
-}
-
-// keyCacheInvalidator is the gateway precheck cache invalidation interface.
-type keyCacheInvalidator interface {
-	InvalidateByKeyID(platformKeyID string)
+	cacheInvalidator types.PrecheckCacheInvalidator
 }
 
 func NewService(cfg config.Config, st Store, newAPISync newapisync.KeysNewAPISync, delayer common.Delayer, opts ...ServiceOption) Service {
@@ -66,7 +61,7 @@ func NewService(cfg config.Config, st Store, newAPISync newapisync.KeysNewAPISyn
 		store:            st,
 		delayer:          delayer,
 		newAPISync:       newAPISync,
-		cacheInvalidator: noopKeyCacheInvalidator{},
+		cacheInvalidator: types.NoopPrecheckCacheInvalidator{},
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -78,17 +73,13 @@ func NewService(cfg config.Config, st Store, newAPISync newapisync.KeysNewAPISyn
 type ServiceOption func(*service)
 
 // WithCacheInvalidator sets the gateway precheck cache invalidator.
-func WithCacheInvalidator(inv keyCacheInvalidator) ServiceOption {
+func WithCacheInvalidator(inv types.PrecheckCacheInvalidator) ServiceOption {
 	return func(s *service) {
 		if inv != nil {
 			s.cacheInvalidator = inv
 		}
 	}
 }
-
-type noopKeyCacheInvalidator struct{}
-
-func (noopKeyCacheInvalidator) InvalidateByKeyID(string) {}
 
 func (s *service) ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error) {
 	return s.store.Keys().ProviderKeys(ctx)
