@@ -32,13 +32,13 @@ type cacheEntry struct {
 // PrecheckCache is a process-local LRU cache with TTL for key validity data.
 // Budget remain checks bypass this cache and go directly to Redis.
 type PrecheckCache struct {
-	mu       sync.Mutex
-	entries  map[string]*list.Element // keyHash → list element
-	byKeyID  map[string]string        // platformKeyID → keyHash (reverse index)
-	order    *list.List               // front = most recently used
-	loader   store.GatewayPrecheckRepository
-	maxSize  int
-	ttl      time.Duration
+	mu      sync.Mutex
+	entries map[string]*list.Element // keyHash → list element
+	byKeyID map[string]string        // platformKeyID → keyHash (reverse index)
+	order   *list.List               // front = most recently used
+	loader  store.GatewayPrecheckRepository
+	maxSize int
+	ttl     time.Duration
 }
 
 type lruEntry struct {

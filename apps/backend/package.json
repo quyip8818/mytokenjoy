@@ -11,6 +11,7 @@
     "lint": "make lint",
     "format": "make format",
     "test": "make test-unit",
-    "test:nocache": "make test-unit-nocache"
+    "test:nocache": "make test-unit-nocache",
+    "test:integration": "make test-integration"
   }
 }

@@ -1,3 +1,5 @@
+//go:build testhook && integration
+
 package worker_test
 
 import (

@@ -1,3 +1,5 @@
+//go:build integration
+
 package feishu_test
 
 import (

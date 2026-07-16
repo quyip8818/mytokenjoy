@@ -25,7 +25,11 @@ func UsageBucketRows(st store.Store) []types.UsageBucketRow {
 }
 
 func NotificationLogs(st store.Store) []types.NotificationLogEntry {
-	logs, err := postgres.ListNotificationLogs(Ctx(), postgres.MainPool(st), contract.DefaultCompanyID)
+	return NotificationLogsForCompany(st, contract.DefaultCompanyID)
+}
+
+func NotificationLogsForCompany(st store.Store, companyID int64) []types.NotificationLogEntry {
+	logs, err := postgres.ListNotificationLogs(CtxForCompany(companyID), postgres.MainPool(st), companyID)
 	if err != nil {
 		return nil
 	}

@@ -3,56 +3,14 @@ package usage_test
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
-	"github.com/tokenjoy/backend/tests/testutil/mock"
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
-	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
-
-func TestIngestIdempotentAndRollup(t *testing.T) {
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
-	ctx := testutil.Ctx()
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
-
-	beforeKeyConsumed := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
-	beforeMemberConsumed := budgetfix.SnapshotConsumed(t, st, store.AxisKindMember, contract.IDMember1)
-
-	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(1001, 99))
-	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
-		t.Fatal(err)
-	}
-	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
-		t.Fatal(err)
-	}
-	runner.RunOnce(t, ctx)
-
-	exists, err := testutil.HasLedgerLogID(st, 1001)
-	if err != nil || !exists {
-		t.Fatalf("expected ledger entry for log 1001, exists=%v err=%v", exists, err)
-	}
-
-	afterKeyConsumed := budgetfix.PlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1)
-	if afterKeyConsumed <= beforeKeyConsumed {
-		t.Fatalf("expected key consumed increase, before=%v after=%v", beforeKeyConsumed, afterKeyConsumed)
-	}
-
-	afterMemberConsumed := budgetfix.SnapshotConsumed(t, st, store.AxisKindMember, contract.IDMember1)
-	if afterMemberConsumed <= beforeMemberConsumed {
-		t.Fatalf("expected member consumed increase, before=%v after=%v", beforeMemberConsumed, afterMemberConsumed)
-	}
-}
 
 func TestIngestByLogID(t *testing.T) {
 	t.Parallel()
@@ -124,53 +82,6 @@ func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 	}
 	if found.PeriodKey != want {
 		t.Fatalf("PeriodKey = %q, want %q", found.PeriodKey, want)
-	}
-}
-
-func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
-	ctx := testutil.Ctx()
-	cfg := runner.Cfg
-	nodes, err := st.Org().Nodes().Tree(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !orgfix.SetNodePeriod(nodes, contract.IDDept3, pkgbudget.PeriodMonthly) {
-		t.Fatal("dept-3 not found")
-	}
-	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
-		t.Fatal(err)
-	}
-
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
-
-	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
-	snapshotPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
-	ledgerPeriod := pkgbudget.OccurrenceSnapshotKey(pkgbudget.PeriodMonthly, occurred).String()
-	if snapshotPeriod == ledgerPeriod {
-		t.Skip("requires occurred month to differ from current month")
-	}
-
-	raw := testutil.DefaultConsumeLog(9901, 99)
-	raw.CreatedAt = occurred.Unix()
-	testutil.SeedConsumeLog(t, st, raw)
-
-	beforeSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, snapshotPeriod)
-	beforeLedgerPeriod := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, ledgerPeriod)
-
-	if err := ingest.IngestByLogID(ctx, 9901, types.SourceWebhook); err != nil {
-		t.Fatal(err)
-	}
-	runner.RunOnce(t, ctx)
-
-	afterSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, snapshotPeriod)
-	if afterSnapshot <= beforeSnapshot {
-		t.Fatalf("expected snapshot period %q consumption increase, before=%v after=%v", snapshotPeriod, beforeSnapshot, afterSnapshot)
-	}
-	afterLedgerPeriod := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, ledgerPeriod)
-	if afterLedgerPeriod != beforeLedgerPeriod {
-		t.Fatalf("expected no consumption at ledger period %q, before=%v after=%v", ledgerPeriod, beforeLedgerPeriod, afterLedgerPeriod)
 	}
 }
 

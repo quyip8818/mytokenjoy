@@ -1,4 +1,4 @@
-package worker_test
+package org_test
 
 import (
 	"testing"

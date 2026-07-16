@@ -16,6 +16,7 @@
     "lint": "pnpm -r --parallel lint",
     "format": "prettier --write apps && pnpm -F @tokenjoy/backend format",
     "test": "bash scripts/dev.sh test",
+    "test:integration": "pnpm -F @tokenjoy/backend test:integration",
     "test:e2e": "pnpm -F @tokenjoy/frontend test:e2e",
     "generate:permissions": "pnpm -F @tokenjoy/contracts generate"
   },
