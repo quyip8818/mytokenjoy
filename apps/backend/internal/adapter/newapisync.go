@@ -1,4 +1,4 @@
-package app
+package adapter
 
 import (
 	"context"
@@ -11,8 +11,9 @@ type newAPISyncJobEnqueuer struct {
 	enqueuer jobs.Enqueuer
 }
 
+// NewNewAPISyncEnqueuer adapts infra/jobs.Enqueuer to ports.SyncJobEnqueuer.
 func NewNewAPISyncEnqueuer(enqueuer jobs.Enqueuer) ports.SyncJobEnqueuer {
-	return newAPISyncJobEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
+	return newAPISyncJobEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
 func (n newAPISyncJobEnqueuer) InsertNewAPISync(ctx context.Context, job ports.SyncJob) error {

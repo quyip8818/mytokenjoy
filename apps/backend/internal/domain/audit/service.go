@@ -18,13 +18,19 @@ type Service interface {
 	CallsSummary(ctx context.Context, params types.AuditCallsQueryParams) (types.CallsSummary, error)
 }
 
+// Store is the narrow store surface the audit domain needs.
+type Store interface {
+	Audit() store.AuditRepository
+	Ledger() store.LedgerRepository
+}
+
 type service struct {
 	cfg    config.Config
-	store  store.Store
+	store  Store
 	reader domainusage.ReadModel
 }
 
-func NewService(cfg config.Config, st store.Store, reader domainusage.ReadModel) Service {
+func NewService(cfg config.Config, st Store, reader domainusage.ReadModel) Service {
 	return &service{cfg: cfg, store: st, reader: reader}
 }
 

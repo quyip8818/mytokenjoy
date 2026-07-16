@@ -24,15 +24,21 @@ type Service interface {
 	DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DepartmentUsage, error)
 }
 
+// Store is the narrow store surface the dashboard service needs.
+type Store interface {
+	Org() store.OrgRepository
+	Models() store.ModelsRepository
+}
+
 type service struct {
 	cfg         config.Config
-	store       store.Store
+	store       Store
 	reader      domainusage.Reader
 	clock       clock.Clock
 	scopeConfig domainusage.DashboardScopeConfig
 }
 
-func NewService(cfg config.Config, st store.Store, reader domainusage.Reader, scopeConfig domainusage.DashboardScopeConfig) Service {
+func NewService(cfg config.Config, st Store, reader domainusage.Reader, scopeConfig domainusage.DashboardScopeConfig) Service {
 	return &service{
 		cfg:         cfg,
 		store:       st,

@@ -40,15 +40,25 @@ type Service interface {
 	GetProjectMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error)
 }
 
+// Store is the narrow store surface the budget service needs.
+type Store interface {
+	Budget() store.BudgetRepository
+	BudgetConsumed() store.BudgetConsumedRepository
+	Org() store.OrgRepository
+	Keys() store.KeysRepository
+	PlatformKeyMappings() store.PlatformKeyMappingRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type service struct {
 	cfg      config.Config
-	store    store.Store
+	store    Store
 	delayer  common.Delayer
 	logger   *slog.Logger
 	enqueuer JobEnqueuer
 }
 
-func NewService(cfg config.Config, st store.Store, delayer common.Delayer, enqueuer JobEnqueuer) Service {
+func NewService(cfg config.Config, st Store, delayer common.Delayer, enqueuer JobEnqueuer) Service {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/adapter"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -24,7 +24,7 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
-		app.NewBillingEnqueuer(enqueuer),
+		adapter.NewBillingEnqueuer(enqueuer),
 	)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
@@ -105,7 +105,7 @@ func TestPlatformRechargeEnqueuesWalletSyncWhenConfigured(t *testing.T) {
 	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
-		app.NewBillingEnqueuer(enqueuer),
+		adapter.NewBillingEnqueuer(enqueuer),
 	)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {

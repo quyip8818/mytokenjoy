@@ -16,7 +16,13 @@ func resolveBillingCurrency(co *store.Company) string {
 	return common.ResolveBillingCurrency(co.BillingCurrency)
 }
 
-func lookupCurrencyPPU(ctx context.Context, st store.Store, currency string) (int64, error) {
+// CurrencyStore is the narrow store surface for currency lookups.
+type CurrencyStore interface {
+	Billing() store.BillingRepository
+	Company() store.CompanyRepository
+}
+
+func lookupCurrencyPPU(ctx context.Context, st CurrencyStore, currency string) (int64, error) {
 	cur, err := st.Billing().GetCurrency(ctx, currency)
 	if err != nil {
 		return 0, err
@@ -42,7 +48,7 @@ func (s *service) resolveChargeRate(ctx context.Context, companyID int64) (curre
 }
 
 // ResolveCompanyChargeRate returns the company's billing currency and points_per_unit.
-func ResolveCompanyChargeRate(ctx context.Context, st store.Store, companyID int64) (currency string, ppu int64, err error) {
+func ResolveCompanyChargeRate(ctx context.Context, st CurrencyStore, companyID int64) (currency string, ppu int64, err error) {
 	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return "", 0, err

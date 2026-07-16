@@ -59,7 +59,13 @@ func RoutingRulesFromNodes(nodes []types.OrgNode, allowlists map[string][]int64)
 	return rules
 }
 
-func PersistRoutingRules(ctx context.Context, st store.Store, nodes []types.OrgNode, rules []types.RoutingRule) error {
+// RoutingPersistStore is the minimal store surface PersistRoutingRules needs.
+type RoutingPersistStore interface {
+	Models() store.ModelsRepository
+	Org() store.OrgRepository
+}
+
+func PersistRoutingRules(ctx context.Context, st RoutingPersistStore, nodes []types.OrgNode, rules []types.RoutingRule) error {
 	ruleByNode := make(map[string]types.RoutingRule, len(rules))
 	for _, rule := range rules {
 		ruleByNode[rule.NodeID] = rule

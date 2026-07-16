@@ -9,11 +9,22 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+// SummaryStore is the narrow store surface for combined key summary computation.
+type SummaryStore interface {
+	BudgetConsumed() store.BudgetConsumedRepository
+	Org() store.OrgRepository
+	Budget() store.BudgetRepository
+	Keys() store.KeysRepository
+	PlatformKeyMappings() store.PlatformKeyMappingRepository
+	Company() store.CompanyRepository
+	CombinedKeySummaries() store.CombinedKeySummaryRepository
+}
+
 // ComputeGatewaySummaryUpdates loads budget context once and returns combined key summary
 // updates for touched platform keys.
 func ComputeGatewaySummaryUpdates(
 	ctx context.Context,
-	st store.Store,
+	st SummaryStore,
 	keyIDs map[string]struct{},
 	clk clock.Clock,
 ) ([]store.CombinedKeySummaryUpdate, error) {
@@ -61,7 +72,7 @@ func ComputeGatewaySummaryUpdates(
 }
 
 // RefreshPlatformKeyCombined recomputes and persists combined_key_remain for one platform key.
-func RefreshPlatformKeyCombined(ctx context.Context, st store.Store, keyID string, clk clock.Clock, cache CombinedKeyCache) error {
+func RefreshPlatformKeyCombined(ctx context.Context, st SummaryStore, keyID string, clk clock.Clock, cache CombinedKeyCache) error {
 	updates, err := ComputeGatewaySummaryUpdates(ctx, st, map[string]struct{}{keyID: {}}, clk)
 	if err != nil {
 		return err
@@ -80,7 +91,7 @@ func RefreshPlatformKeyCombined(ctx context.Context, st store.Store, keyID strin
 
 // AffectedPlatformKeyIDs resolves platform keys whose combined key summary may
 // change after consumed drift repair on the given axis keys.
-func AffectedPlatformKeyIDs(ctx context.Context, st store.Store, repaired map[AxisKey]struct{}) (map[string]struct{}, error) {
+func AffectedPlatformKeyIDs(ctx context.Context, st SummaryStore, repaired map[AxisKey]struct{}) (map[string]struct{}, error) {
 	out := make(map[string]struct{})
 	for key := range repaired {
 		var mappings []store.PlatformKeyMapping

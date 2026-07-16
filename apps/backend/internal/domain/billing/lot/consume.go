@@ -24,7 +24,7 @@ type ConsumeResult struct {
 
 // ConsumeLots locks the company row and consumes lots. Use when the caller has
 // NOT yet acquired the company lock within the current transaction.
-func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoint float64) (ConsumeResult, error) {
+func ConsumeLots(ctx context.Context, st CreditStore, companyID int64, amountPoint float64) (ConsumeResult, error) {
 	co, err := st.Company().LockForUpdate(ctx, companyID)
 	if err != nil {
 		return ConsumeResult{}, err
@@ -35,16 +35,22 @@ func ConsumeLots(ctx context.Context, st store.Store, companyID int64, amountPoi
 	return consumeLotsWithCompany(ctx, st, co, amountPoint)
 }
 
+// LotStore is the minimal store surface for lot consumption operations.
+type LotStore interface {
+	Billing() store.BillingRepository
+	Company() store.CompanyRepository
+}
+
 // ConsumeLotsLocked consumes lots assuming the company row is already locked
 // (i.e. the caller already called Company().LockForUpdate within this tx).
-func ConsumeLotsLocked(ctx context.Context, st store.Store, co *store.Company, amountPoint float64) (ConsumeResult, error) {
+func ConsumeLotsLocked(ctx context.Context, st LotStore, co *store.Company, amountPoint float64) (ConsumeResult, error) {
 	if co == nil {
 		return ConsumeResult{}, fmt.Errorf("company must not be nil")
 	}
 	return consumeLotsWithCompany(ctx, st, co, amountPoint)
 }
 
-func consumeLotsWithCompany(ctx context.Context, st store.Store, co *store.Company, amountPoint float64) (ConsumeResult, error) {
+func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company, amountPoint float64) (ConsumeResult, error) {
 	companyID := co.ID
 	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, co.FIFOHeadLotID)
 	if err != nil {
@@ -114,10 +120,17 @@ func consumeLotsWithCompany(ctx context.Context, st store.Store, co *store.Compa
 	}, nil
 }
 
+// CreditStore is the minimal store surface for lot credit operations.
+type CreditStore interface {
+	Billing() store.BillingRepository
+	Company() store.CompanyRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 // CreditFromLot is the sole write path for recharge lot insert + wallet_remain delta.
 func CreditFromLot(
 	ctx context.Context,
-	st store.Store,
+	st CreditStore,
 	order store.RechargeOrder,
 	lotRow store.RechargeLot,
 	deltaPoint float64,

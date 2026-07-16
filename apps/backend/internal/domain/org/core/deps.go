@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -13,9 +14,19 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+// Store is the narrow store surface the org domain needs.
+type Store interface {
+	Org() store.OrgRepository
+	Company() store.CompanyRepository
+	SchedulerLock() store.SchedulerLockRepository
+	TenantBackgroundState() store.TenantBackgroundStateRepository
+	RiverJob() store.RiverJobRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type Deps struct {
 	Cfg         config.Config
-	Store       store.Store
+	Store       Store
 	Factory     datasource.Factory
 	ModelLimits newapisync.ModelLimitsLifecycle
 	Notifier    types.Notifier
@@ -27,7 +38,7 @@ type Deps struct {
 
 func NewDeps(
 	cfg config.Config,
-	st store.Store,
+	st Store,
 	factory datasource.Factory,
 	modelLimits newapisync.ModelLimitsLifecycle,
 	notifier types.Notifier,

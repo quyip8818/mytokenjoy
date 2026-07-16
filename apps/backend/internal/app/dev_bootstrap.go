@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -33,7 +34,7 @@ func RunDevBootstrap(ctx context.Context, cfg config.Config, logger *slog.Logger
 	var o options
 	o.skipWorker = true
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	orgAdmin := NewOrgRiverAdminHolder(nil)
+	orgAdmin := adapter.NewOrgRiverAdminHolder(nil)
 	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return fmt.Errorf("assemble registry: %w", err)

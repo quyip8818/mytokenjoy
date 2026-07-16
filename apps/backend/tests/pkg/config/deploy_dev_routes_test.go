@@ -17,7 +17,7 @@ func TestAllowsDevHTTPRoutesOnlyLocal(t *testing.T) {
 		{config.DeployEnvProduction, false},
 	}
 	for _, tc := range cases {
-		cfg := config.Config{DeployEnv: tc.env}
+		cfg := config.Config{DeployConfig: config.DeployConfig{DeployEnv: tc.env}}
 		if got := cfg.AllowsDevHTTPRoutes(); got != tc.want {
 			t.Fatalf("DeployEnv=%q AllowsDevHTTPRoutes()=%v want %v", tc.env, got, tc.want)
 		}

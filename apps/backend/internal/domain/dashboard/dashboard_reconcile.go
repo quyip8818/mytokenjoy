@@ -15,14 +15,21 @@ import (
 
 const reconcileEpsilon = 0.000001
 
+// ReconcileStore is the narrow store surface the dashboard reconcile service needs.
+type ReconcileStore interface {
+	Company() store.CompanyRepository
+	Ledger() store.LedgerRepository
+	Usage() store.UsageRepository
+}
+
 type ReconcileService struct {
 	cfg      config.Config
-	store    store.Store
+	store    ReconcileStore
 	enqueuer JobEnqueuer
 	logger   *slog.Logger
 }
 
-func NewReconcileService(cfg config.Config, st store.Store, enqueuer JobEnqueuer, logger *slog.Logger) *ReconcileService {
+func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnqueuer, logger *slog.Logger) *ReconcileService {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}

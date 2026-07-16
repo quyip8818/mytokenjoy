@@ -3,7 +3,7 @@ package keys_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -22,7 +22,7 @@ import (
 
 func testSyncEnqueuer(t *testing.T, cfg config.Config, st store.Store) ports.SyncJobEnqueuer {
 	t.Helper()
-	return app.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st))
+	return adapter.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st))
 }
 
 func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {

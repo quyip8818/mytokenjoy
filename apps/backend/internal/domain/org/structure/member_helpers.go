@@ -41,7 +41,12 @@ func mapMemberUniqueError(err error) error {
 	return err
 }
 
-func persistRecalculatedMemberCounts(ctx context.Context, st store.Store, members []types.Member) error {
+// orgStore is the minimal interface for org node persistence.
+type orgStore interface {
+	Org() store.OrgRepository
+}
+
+func persistRecalculatedMemberCounts(ctx context.Context, st orgStore, members []types.Member) error {
 	nodes, err := st.Org().Nodes().Tree(ctx)
 	if err != nil {
 		return err

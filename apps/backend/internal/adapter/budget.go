@@ -1,4 +1,4 @@
-package app
+package adapter
 
 import (
 	"context"
@@ -13,7 +13,7 @@ type budgetJobEnqueuer struct {
 
 // NewBudgetEnqueuer adapts infra/jobs.Enqueuer to domain/budget.JobEnqueuer.
 func NewBudgetEnqueuer(enqueuer jobs.Enqueuer) domainbudget.JobEnqueuer {
-	return budgetJobEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
+	return budgetJobEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
 func (b budgetJobEnqueuer) InsertOverrun(ctx context.Context, companyID int64, payload []byte) error {

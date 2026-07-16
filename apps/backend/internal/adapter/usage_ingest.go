@@ -1,4 +1,4 @@
-package app
+package adapter
 
 import (
 	"context"
@@ -12,8 +12,9 @@ type usageIngestEnqueuer struct {
 	enqueuer jobs.Enqueuer
 }
 
+// NewUsageIngestEnqueuer adapts infra/jobs.Enqueuer to domain/usage.IngestJobEnqueuer.
 func NewUsageIngestEnqueuer(enqueuer jobs.Enqueuer) domainusage.IngestJobEnqueuer {
-	return usageIngestEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
+	return usageIngestEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
 func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64, effects *domainusage.IngestEffects) error {

@@ -12,15 +12,21 @@ import (
 
 const defaultDashboardBatchSize = 500
 
+// ProjectorStore is the narrow store surface the dashboard projector needs.
+type ProjectorStore interface {
+	Company() store.CompanyRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type Projector struct {
 	cfg       config.Config
-	store     store.Store
+	store     ProjectorStore
 	enqueuer  JobEnqueuer
 	batchSize int
 	logger    *slog.Logger
 }
 
-func NewProjector(cfg config.Config, st store.Store, enqueuer JobEnqueuer, logger *slog.Logger) *Projector {
+func NewProjector(cfg config.Config, st ProjectorStore, enqueuer JobEnqueuer, logger *slog.Logger) *Projector {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}

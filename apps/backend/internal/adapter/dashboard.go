@@ -1,4 +1,4 @@
-package app
+package adapter
 
 import (
 	"context"
@@ -11,8 +11,9 @@ type dashboardJobEnqueuer struct {
 	enqueuer jobs.Enqueuer
 }
 
+// NewDashboardEnqueuer adapts infra/jobs.Enqueuer to domain/dashboard.JobEnqueuer.
 func NewDashboardEnqueuer(enqueuer jobs.Enqueuer) domaindashboard.JobEnqueuer {
-	return dashboardJobEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
+	return dashboardJobEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
 func (d dashboardJobEnqueuer) InsertDashboardProject(ctx context.Context, companyID int64) error {

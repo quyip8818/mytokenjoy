@@ -18,13 +18,25 @@ type Rebalancer interface {
 	ProcessAxis(ctx context.Context, axisKind, axisID string) error
 }
 
+// RebalanceStore is the narrow store surface the rebalance processor needs.
+type RebalanceStore interface {
+	BudgetConsumed() store.BudgetConsumedRepository
+	Org() store.OrgRepository
+	Budget() store.BudgetRepository
+	Keys() store.KeysRepository
+	PlatformKeyMappings() store.PlatformKeyMappingRepository
+	Company() store.CompanyRepository
+	Models() store.ModelsRepository
+	CombinedKeySummaries() store.CombinedKeySummaryRepository
+}
+
 type RebalanceService struct {
 	cfg    config.Config
-	store  store.Store
+	store  RebalanceStore
 	client adminport.Port
 }
 
-func NewRebalanceService(cfg config.Config, st store.Store, client adminport.Port) *RebalanceService {
+func NewRebalanceService(cfg config.Config, st RebalanceStore, client adminport.Port) *RebalanceService {
 	return &RebalanceService{cfg: cfg, store: st, client: client}
 }
 

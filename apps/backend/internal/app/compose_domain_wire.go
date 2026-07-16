@@ -3,6 +3,7 @@ package app
 import (
 	"log/slog"
 
+	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
@@ -27,13 +28,13 @@ func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 	}
 }
 
-func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *OrgRiverAdminHolder) domainorg.Service {
+func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *adapter.OrgRiverAdminHolder) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger, grants, NewOrgEnqueuer(enqueuer, orgAdmin))
+	return domainorg.NewService(cfg, i.store, factory, i.newAPISync, i.notifier, i.delayer, logger, grants, adapter.NewOrgEnqueuer(enqueuer, orgAdmin))
 }
 
 func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {
-	return domainbudget.NewService(cfg, i.store, i.delayer, NewBudgetEnqueuer(enqueuer))
+	return domainbudget.NewService(cfg, i.store, i.delayer, adapter.NewBudgetEnqueuer(enqueuer))
 }
 
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
@@ -65,7 +66,7 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader, enqueuer jobs.Enqueuer) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, NewBillingEnqueuer(enqueuer))
+	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, adapter.NewBillingEnqueuer(enqueuer))
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
@@ -73,11 +74,11 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys doma
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
-	alertPub := NewBudgetAlertPublisher(i.notificationSvc)
+	alertPub := adapter.NewBudgetAlertPublisher(i.notificationSvc)
 	cache := budgetcheck.WrapStore(i.budgetCheck)
-	budgetOps := NewUsageBudgetOps(cache, alertPub, logger)
-	lotConsumer := NewUsageLotConsumer()
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer)
+	budgetOps := adapter.NewUsageBudgetOps(cache, alertPub, logger)
+	lotConsumer := adapter.NewUsageLotConsumer()
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, adapter.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer)
 }
 
 func wireReader(i infra) domainusage.Reader {

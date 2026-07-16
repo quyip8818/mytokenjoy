@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/adapter"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -24,7 +24,7 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)
 	}
-	newAPISync := newapisync.New(cfg, st, nil, nil, policy.NewChannelPolicy(cfg), app.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
+	newAPISync := newapisync.New(cfg, st, nil, nil, policy.NewChannelPolicy(cfg), adapter.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
 	keysSvc := domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	return domainmemberanalytics.NewService(cfg, keysSvc, reader), ctx

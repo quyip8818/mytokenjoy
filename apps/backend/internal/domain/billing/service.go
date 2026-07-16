@@ -24,9 +24,18 @@ type Service interface {
 	ReconcileWalletDrift(ctx context.Context) error
 }
 
+// Store is the narrow store surface the billing domain needs.
+type Store interface {
+	Billing() store.BillingRepository
+	Company() store.CompanyRepository
+	Models() store.ModelsRepository
+	Audit() store.AuditRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type service struct {
 	cfg      config.Config
-	store    store.Store
+	store    Store
 	reader   domainusage.Reader
 	client   adminport.Port
 	wallet   company.WalletService
@@ -35,7 +44,7 @@ type service struct {
 
 func NewService(
 	cfg config.Config,
-	st store.Store,
+	st Store,
 	reader domainusage.Reader,
 	client adminport.Port,
 	wallet company.WalletService,

@@ -1,4 +1,4 @@
-package app
+package adapter
 
 import (
 	"context"
@@ -13,7 +13,7 @@ type budgetAlertPublisher struct {
 	svc *notification.Service
 }
 
-// NewBudgetAlertPublisher creates an AlertPublisher backed by the notification server.
+// NewBudgetAlertPublisher creates an AlertPublisher backed by the notification service.
 func NewBudgetAlertPublisher(svc *notification.Service) domainbudget.AlertPublisher {
 	if svc == nil {
 		return domainbudget.NoopAlertPublisher

@@ -128,26 +128,38 @@ func defaultTestDatabaseURL() string {
 
 func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
-		DeployEnv:         config.DeployEnvLocal,
-		BootstrapMode:     config.BootstrapNone,
-		DatabaseURL:       defaultTestDatabaseURL(),
-		ClockAnchor:       defaultClockAnchor,
-		SimulateDelay:     false,
-		CompanyName:       "Demo Company",
-		TokenJoyCompanyID: contract.TokenJoyCompanyID,
-		LocalCompanyID:    contract.LocalCompanyID,
-		NewAPIEnabled:     true,
-		NewAPIBaseURL:     "http://newapi.test",
-		NewAPIAdminToken:  "token",
+		DeployConfig: config.DeployConfig{
+			DeployEnv:     config.DeployEnvLocal,
+			BootstrapMode: config.BootstrapNone,
+			ClockAnchor:   defaultClockAnchor,
+			SimulateDelay: false,
+		},
+		DatabaseConfig: config.DatabaseConfig{
+			DatabaseURL: defaultTestDatabaseURL(),
+			StoreBootstrap: config.StoreBootstrap{
+				TestPartitionMonths: 12,
+			},
+		},
+		NewAPIConfig: config.NewAPIConfig{
+			NewAPIEnabled:    true,
+			NewAPIBaseURL:    "http://newapi.test",
+			NewAPIAdminToken: "token",
+		},
+		DataSourceConfig: config.DataSourceConfig{
+			DataSourceCredentialKey: DefaultTestCredentialKey,
+		},
 		RiverConfig: config.RiverConfig{
 			RiverEnabled: true,
 		},
-		SessionSecret:           TestSessionSecret,
-		PlatformSessionSecret:   TestSessionSecret,
-		SessionTTLSec:           86400,
-		DataSourceCredentialKey: DefaultTestCredentialKey,
-		StoreBootstrap: config.StoreBootstrap{
-			TestPartitionMonths: 12,
+		PlatformConfig: config.PlatformConfig{
+			CompanyName:       "Demo Company",
+			TokenJoyCompanyID: contract.TokenJoyCompanyID,
+			LocalCompanyID:    contract.LocalCompanyID,
+		},
+		IdentityConfig: config.IdentityConfig{
+			SessionSecret:         TestSessionSecret,
+			PlatformSessionSecret: TestSessionSecret,
+			SessionTTLSec:         86400,
 		},
 	}
 	for _, opt := range opts {

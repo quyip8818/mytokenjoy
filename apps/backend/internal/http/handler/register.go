@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/config"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
 	"github.com/tokenjoy/backend/internal/http/handler/auth"
@@ -20,7 +21,7 @@ import (
 )
 
 type Registry struct {
-	cfg            httpdeps.Deps
+	config         config.Config
 	session        *sessionhandler.Handler
 	auth           *auth.Handler
 	platform       *platform.Handler
@@ -40,7 +41,7 @@ type Registry struct {
 func NewRegistry(deps httpdeps.Deps) Registry {
 	p := deps.Protected()
 	return Registry{
-		cfg:            deps,
+		config:         deps.Config,
 		session:        sessionhandler.NewHandler(p),
 		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc),
 		platform:       platform.NewHandler(deps.Platform()),
@@ -65,7 +66,7 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 		reg.internalIngest.RegisterRoutes(r)
 	})
 	reg.billing.RegisterRoutes(r)
-	if reg.cfg.Config.SupportSaas {
+	if reg.config.SupportSaas {
 		r.Route("/platform", reg.platform.RegisterRoutes)
 	}
 	r.Route("/org", reg.org.RegisterRoutes)
@@ -77,7 +78,7 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	r.Route("/me", reg.me.RegisterRoutes)
 	r.Route("/notifications", reg.notification.RegisterRoutes)
 	// /api/dev/* — local development only; see config.AllowsDevHTTPRoutes.
-	if reg.cfg.Config.AllowsDevHTTPRoutes() {
+	if reg.config.AllowsDevHTTPRoutes() {
 		r.Route("/dev", reg.dev.RegisterRoutes)
 	}
 }

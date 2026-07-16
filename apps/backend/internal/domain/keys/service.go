@@ -34,14 +34,27 @@ type Service interface {
 	RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error
 }
 
+// Store is the narrow store surface the keys domain needs.
+type Store interface {
+	Keys() store.KeysRepository
+	BudgetConsumed() store.BudgetConsumedRepository
+	Org() store.OrgRepository
+	Budget() store.BudgetRepository
+	Models() store.ModelsRepository
+	PlatformKeyMappings() store.PlatformKeyMappingRepository
+	Company() store.CompanyRepository
+	CombinedKeySummaries() store.CombinedKeySummaryRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type service struct {
 	cfg        config.Config
-	store      store.Store
+	store      Store
 	delayer    common.Delayer
 	newAPISync newapisync.KeysNewAPISync
 }
 
-func NewService(cfg config.Config, st store.Store, newAPISync newapisync.KeysNewAPISync, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st Store, newAPISync newapisync.KeysNewAPISync, delayer common.Delayer) Service {
 	return &service{
 		cfg:        cfg,
 		store:      st,

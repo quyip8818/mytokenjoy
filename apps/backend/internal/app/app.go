@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
@@ -69,7 +70,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}
 
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	orgAdmin := NewOrgRiverAdminHolder(nil)
+	orgAdmin := adapter.NewOrgRiverAdminHolder(nil)
 	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return nil, err

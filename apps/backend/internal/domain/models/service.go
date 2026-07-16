@@ -27,15 +27,21 @@ type Service interface {
 	UpdateRoutingRule(ctx context.Context, id string, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
 }
 
+// Store is the narrow store surface the models domain needs.
+type Store interface {
+	Models() store.ModelsRepository
+	Org() store.OrgRepository
+}
+
 type service struct {
 	cfg         config.Config
-	store       store.Store
+	store       Store
 	delayer     common.Delayer
 	client      adminport.Port
 	modelLimits newapisync.ModelLimitsLifecycle
 }
 
-func NewService(cfg config.Config, st store.Store, client adminport.Port, modelLimits newapisync.ModelLimitsLifecycle, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st Store, client adminport.Port, modelLimits newapisync.ModelLimitsLifecycle, delayer common.Delayer) Service {
 	return &service{
 		cfg:         cfg,
 		store:       st,

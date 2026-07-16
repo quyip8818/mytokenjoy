@@ -43,14 +43,24 @@ type AcceptInviteRequest struct {
 	Password   string
 }
 
+// Store is the narrow store surface the company domain needs.
+type Store interface {
+	Company() store.CompanyRepository
+	Org() store.OrgRepository
+	Invite() store.InviteRepository
+	TenantBackgroundState() store.TenantBackgroundStateRepository
+	Audit() store.AuditRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type service struct {
 	cfg    config.Config
-	store  store.Store
+	store  Store
 	client adminport.Port
 	grants grants.Normalizer
 }
 
-func NewService(cfg config.Config, st store.Store, client adminport.Port, grants grants.Normalizer) Service {
+func NewService(cfg config.Config, st Store, client adminport.Port, grants grants.Normalizer) Service {
 	return &service{cfg: cfg, store: st, client: client, grants: grants}
 }
 

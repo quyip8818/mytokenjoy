@@ -15,14 +15,21 @@ type Service interface {
 	RevisionReader
 }
 
+// Store is the narrow store surface the authz service needs.
+type Store interface {
+	Company() store.CompanyRepository
+	Org() store.OrgRepository
+	Billing() store.BillingRepository
+}
+
 type service struct {
-	store store.Store
+	store Store
 	cache *LRUCache
 }
 
 var _ RevisionReader = (*service)(nil)
 
-func NewService(cfg config.Config, st store.Store) Service {
+func NewService(cfg config.Config, st Store) Service {
 	return &service{
 		store: st,
 		cache: NewLRUCache(cfg.AuthzCacheSize),

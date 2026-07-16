@@ -9,7 +9,12 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func AppendPlatformOperationLog(ctx context.Context, st store.Store, companyID int64, action, operatorID, target, detail string) error {
+// AuditAppender is the minimal store surface for appending operation logs.
+type AuditAppender interface {
+	Audit() store.AuditRepository
+}
+
+func AppendPlatformOperationLog(ctx context.Context, st AuditAppender, companyID int64, action, operatorID, target, detail string) error {
 	companyCtx := WithContext(ctx, Context{CompanyID: companyID})
 	return st.Audit().AppendOperationLog(companyCtx, types.OperationLog{
 		ID:         fmt.Sprintf("op-%d", time.Now().UnixNano()),

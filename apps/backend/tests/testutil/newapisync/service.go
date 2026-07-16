@@ -5,7 +5,7 @@ package newapisync
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -78,7 +78,7 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 		newapi.NewAdminPortAdapter(stub),
 		wallet,
 		policy.NewChannelPolicy(cfg),
-		app.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
+		adapter.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
 	)
 	return sync, cfg, st
 }

@@ -19,15 +19,28 @@ import (
 // reconcile run. If exceeded the job fails and retries (avoids unbounded memory).
 const reconcileMaxLedgerEntries = 50000
 
+// ReconcileStore is the narrow store surface the budget reconcile service needs.
+type ReconcileStore interface {
+	Company() store.CompanyRepository
+	BudgetConsumed() store.BudgetConsumedRepository
+	Budget() store.BudgetRepository
+	Org() store.OrgRepository
+	Keys() store.KeysRepository
+	Ledger() store.LedgerRepository
+	PlatformKeyMappings() store.PlatformKeyMappingRepository
+	CombinedKeySummaries() store.CombinedKeySummaryRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type ReconcileService struct {
 	cfg              config.Config
-	store            store.Store
+	store            ReconcileStore
 	enqueuer         JobEnqueuer
 	logger           *slog.Logger
 	combinedKeyCache CombinedKeyCache
 }
 
-func NewReconcileService(cfg config.Config, st store.Store, enqueuer JobEnqueuer, cache CombinedKeyCache, logger *slog.Logger) *ReconcileService {
+func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnqueuer, cache CombinedKeyCache, logger *slog.Logger) *ReconcileService {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}

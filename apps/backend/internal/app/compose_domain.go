@@ -3,6 +3,7 @@ package app
 import (
 	"log/slog"
 
+	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
@@ -39,7 +40,7 @@ func wireIngestQueue(i infra) domainusage.Queue {
 	return domainusage.NewQueue(i.store.Logs())
 }
 
-func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, orgAdmin *OrgRiverAdminHolder) domainServices {
+func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, orgAdmin *adapter.OrgRiverAdminHolder) domainServices {
 	reader := wireReader(i)
 	ingestQueue := wireIngestQueue(i)
 	keysSvc := wireKeys(cfg, i)

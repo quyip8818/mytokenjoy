@@ -19,9 +19,18 @@ type overrunPayload struct {
 	PlatformKeyID string  `json:"platformKeyId"`
 }
 
+// OverrunStore is the narrow store surface the overrun processor needs.
+type OverrunStore interface {
+	Budget() store.BudgetRepository
+	BudgetConsumed() store.BudgetConsumedRepository
+	Org() store.OrgRepository
+	Keys() store.KeysRepository
+	WithTx(ctx context.Context, fn func(store.Store) error) error
+}
+
 type OverrunService struct {
 	cfg        config.Config
-	store      store.Store
+	store      OverrunStore
 	keyControl newapisync.OverrunKeyControl
 	notifier   types.Notifier
 	logger     *slog.Logger
@@ -29,7 +38,7 @@ type OverrunService struct {
 
 func NewOverrunService(
 	cfg config.Config,
-	st store.Store,
+	st OverrunStore,
 	keyControl newapisync.OverrunKeyControl,
 	notifier types.Notifier,
 	logger *slog.Logger,

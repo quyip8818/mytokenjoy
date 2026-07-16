@@ -28,7 +28,7 @@ func (s *stubQuotaClient) GetUserQuota(_ context.Context, _ int64) (int64, error
 func TestWalletServiceAvailableNewAPIUnits(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 50000}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 60}}
 	svc := company.NewWalletService(cfg, client)
 
 	quota, err := svc.AvailableNewAPIUnits(context.Background(), 1)
@@ -43,7 +43,7 @@ func TestWalletServiceAvailableNewAPIUnits(t *testing.T) {
 func TestWalletServiceCachesResult(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 10000}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 60}}
 	svc := company.NewWalletService(cfg, client)
 
 	svc.AvailableNewAPIUnits(context.Background(), 1)
@@ -57,7 +57,7 @@ func TestWalletServiceCachesResult(t *testing.T) {
 func TestWalletServiceInvalidWalletID(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 10000}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 60}}
 	svc := company.NewWalletService(cfg, client)
 
 	_, err := svc.AvailableNewAPIUnits(context.Background(), 0)
@@ -85,7 +85,7 @@ func TestWalletServiceNilClient(t *testing.T) {
 func TestWalletServiceClientError(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{err: errors.New("network failure")}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 60}}
 	svc := company.NewWalletService(cfg, client)
 
 	_, err := svc.AvailableNewAPIUnits(context.Background(), 1)
@@ -97,7 +97,7 @@ func TestWalletServiceClientError(t *testing.T) {
 func TestWalletServiceFreshBypassesCache(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 10000}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 60}}
 	svc := company.NewWalletService(cfg, client)
 
 	if _, err := svc.AvailableNewAPIUnits(context.Background(), 1); err != nil {
@@ -121,7 +121,7 @@ func TestWalletServiceFreshBypassesCache(t *testing.T) {
 func TestWalletServiceInvalidate(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 10000}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 60}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 60}}
 	svc := company.NewWalletService(cfg, client)
 
 	svc.AvailableNewAPIUnits(context.Background(), 1)
@@ -136,7 +136,7 @@ func TestWalletServiceInvalidate(t *testing.T) {
 func TestWalletServiceCacheExpires(t *testing.T) {
 	t.Parallel()
 	client := &stubQuotaClient{quota: 5000}
-	cfg := config.Config{CompanyWalletCacheTTLSec: 0}
+	cfg := config.Config{PlatformConfig: config.PlatformConfig{CompanyWalletCacheTTLSec: 0}}
 	svc := company.NewWalletService(cfg, client)
 
 	svc.AvailableNewAPIUnits(context.Background(), 1)

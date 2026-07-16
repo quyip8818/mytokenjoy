@@ -1,4 +1,4 @@
-package app
+package adapter
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type billingJobEnqueuer struct {
 
 // NewBillingEnqueuer adapts infra/jobs.Enqueuer to domain/billing.JobEnqueuer.
 func NewBillingEnqueuer(enqueuer jobs.Enqueuer) domainbilling.JobEnqueuer {
-	return billingJobEnqueuer{enqueuer: jobsOrNoop(enqueuer)}
+	return billingJobEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
 func (b billingJobEnqueuer) InsertWalletSync(ctx context.Context, companyID int64) error {

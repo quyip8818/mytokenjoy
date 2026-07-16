@@ -28,7 +28,7 @@ func TestChannelPolicySaaSShared(t *testing.T) {
 func TestNewChannelPolicy(t *testing.T) {
 	t.Parallel()
 	t.Run("saas mode returns shared policy", func(t *testing.T) {
-		cfg := config.Config{SupportSaas: true, PlatformSharedNewAPIGroup: "my-shared"}
+		cfg := config.Config{PlatformConfig: config.PlatformConfig{SupportSaas: true, PlatformSharedNewAPIGroup: "my-shared"}}
 		p := policy.NewChannelPolicy(cfg)
 		group := p.ResolveNewAPIGroup(nil, "any-dept")
 		if group != "my-shared" {
@@ -37,7 +37,7 @@ func TestNewChannelPolicy(t *testing.T) {
 	})
 
 	t.Run("local mode returns local policy", func(t *testing.T) {
-		cfg := config.Config{SupportSaas: false}
+		cfg := config.Config{PlatformConfig: config.PlatformConfig{SupportSaas: false}}
 		p := policy.NewChannelPolicy(cfg)
 		group := p.ResolveNewAPIGroup(nil, "dept-abc")
 		if group == "" {

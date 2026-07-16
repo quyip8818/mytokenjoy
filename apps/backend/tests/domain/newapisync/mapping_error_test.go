@@ -77,7 +77,7 @@ func TestSyncRevokePlatformKey_MappingLookupError(t *testing.T) {
 	t.Parallel()
 	want := fmt.Errorf("mapping db down")
 	d := syncdeps.Deps{
-		Cfg:      config.Config{NewAPIEnabled: true},
+		Cfg:      config.Config{NewAPIConfig: config.NewAPIConfig{NewAPIEnabled: true}},
 		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
 		Mappings: errMappings{err: want},
 	}
@@ -90,7 +90,7 @@ func TestSyncRevokePlatformKey_MappingLookupError(t *testing.T) {
 func TestSyncRevokePlatformKey_MissingMappingNoop(t *testing.T) {
 	t.Parallel()
 	d := syncdeps.Deps{
-		Cfg:      config.Config{NewAPIEnabled: true},
+		Cfg:      config.Config{NewAPIConfig: config.NewAPIConfig{NewAPIEnabled: true}},
 		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
 		Mappings: errMappings{err: nil},
 	}

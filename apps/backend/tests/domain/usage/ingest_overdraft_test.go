@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/app"
+	"github.com/tokenjoy/backend/internal/adapter"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/usage"
@@ -34,11 +34,11 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 
 	notifier := &testutil.RecordingNotifier{}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	budgetOps := app.NewUsageBudgetOps(nil, nil, logger)
-	lotConsumer := app.NewUsageLotConsumer()
+	budgetOps := adapter.NewUsageBudgetOps(nil, nil, logger)
+	lotConsumer := adapter.NewUsageLotConsumer()
 	ingest := usage.NewIngestService(
 		cfg, st, st.Logs(), logger,
-		app.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}),
+		adapter.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}),
 		notifier,
 		budgetOps, lotConsumer,
 	)
