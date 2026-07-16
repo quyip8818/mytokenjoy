@@ -326,28 +326,30 @@ flowchart LR
 
 ## 8. Rebalance
 
-在入账、充值、Key 变更后，将组织侧「还能花多少」换算为 NewAPI `remain_quota` 并 `UpdateToken`。
+在 Key 变更、月切、budget reconcile 后，将组织侧「还能花多少」换算为 NewAPI `remain_quota` 并 `UpdateToken`。
 
 ```mermaid
 flowchart LR
   EVT[触发事件] --> RJ[river_job rebalance]
   AJ --> RB[RebalanceService]
-  RB --> MIN[多候选取 min]
-  MIN --> NA[UpdateToken]
+  RB --> CALC[ComputeRemainForMapping → ToNewAPIUnits]
+  CALC --> NA[UpdateToken]
 ```
 
 | `axis_kind` | 触发 |
 | --- | --- |
-| member | 入账带成员（`member` scope） |
-| project | 入账命中项目 |
-| platform_key | Key 创建 / 变更 / 入账 |
-| company | 充值完成 |
+| member | approval 通过、入账带成员（`member` scope） |
+| project | project 删除、入账命中项目 |
+| platform_key | Key 创建 / 变更 |
+| company | 月切（`EnsureMonthRebalance`）、budget reconcile、newapisync 完成 |
+
+**充值不触发 rebalance**（充值只涨钱包，不影响月度限额；Gateway 独立检查 `wallet_remain`）。
 
 （**已移除** `org_node` rebalance 触发；部门触顶仅 notify。）
 
 去重：`dedupe_key = axis_kind:axis_id`。
 
-**候选最小值（point）：** `GatewayChainRemain` 按 key `scope` 计算 remain → 换 NewAPI 单位（`ToNewAPIUnits` 饱和），并以 `wallet_remain` 作企业硬顶；多 key 累加用 `AddSat`/`SubFloor0`，避免 int64 绕回。不再按部门 org_node consumed 封顶。
+**计算逻辑：** `ComputeRemainForMapping` 按 key scope 计算月度限额剩余（point），经 `ToNewAPIUnits` 换为 NewAPI 通道配额。不与 wallet 做 min；wallet 约束由 Gateway precheck 独立保障。
 
 ---
 
@@ -397,10 +399,9 @@ sequenceDiagram
   B->>DB: lot + wallet_remain
   B->>DB: wallet_sync 入队
   B->>NA: TopUp / SetUserQuota
-  B->>DB: company 轴 rebalance 入队
 ```
 
-充值不改 `org_nodes.budget`；钱包闭合见 [Backend-计费模式.md](./Backend-计费模式.md)。
+充值不改 `org_nodes.budget`；**不触发 rebalance**（月度限额不变，wallet 约束由 Gateway 独立保障）。钱包闭合见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ---
 
@@ -412,8 +413,8 @@ sequenceDiagram
 | 成员可分给 Key | personal_budget − Σ已分配 Key budget |
 | 成员本账期已用 | `budget_consumed` member 轴 |
 | 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key budget |
-| NewAPIKey 可用上限 | 上列候选取 min → 换 NewAPI 单位 |
-| 企业硬顶 | Σ NewAPIKey remain ≤ wallet_remain 对应通道配额 |
+| NewAPIKey 可用上限 | `ComputeRemainForMapping` → `ToNewAPIUnits`（纯月度限额剩余，不含 wallet） |
+| 企业硬顶 | Gateway precheck 独立检查 `wallet_remain`；与 per-key `RemainQuota` 解耦 |
 
 ---
 

@@ -116,21 +116,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 }
 
 func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
-	if err := s.enqueuer.InsertWalletSync(ctx, companyID); err != nil {
-		return err
-	}
-	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil {
-		return err
-	}
-	walletUserID, ok := store.ConfiguredNewAPIWalletUserID(co)
-	if !ok {
-		return nil
-	}
-	companyCtx := company.WithContext(ctx, company.Context{
-		CompanyID: companyID, NewAPIWalletUserID: walletUserID, Status: co.Status,
-	})
-	return s.enqueuer.InsertRebalanceCompany(companyCtx, companyID)
+	return s.enqueuer.InsertWalletSync(ctx, companyID)
 }
 
 func (s *service) ConfirmPayment(ctx context.Context, orderID string) error {

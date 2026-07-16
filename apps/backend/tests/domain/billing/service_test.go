@@ -81,20 +81,6 @@ func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 	}
 }
 
-func TestPlatformRechargeEnqueuesRebalance(t *testing.T) {
-	t.Parallel()
-	client := &mock.StubAdminClient{
-		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
-	}
-	svc, st, ctx := newBillingService(t, client)
-	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 50, "platform-op-1"); err != nil {
-		t.Fatal(err)
-	}
-	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected rebalance outbox entry after platform recharge")
-	}
-}
-
 func TestPlatformRechargeEnqueuesWalletSyncWhenConfigured(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))

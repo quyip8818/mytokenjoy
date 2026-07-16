@@ -50,10 +50,7 @@ func (e errMappings) ListActiveMappingsByCompany(context.Context, int64) ([]stor
 	return nil, e.err
 }
 func (e errMappings) UpsertMapping(context.Context, store.PlatformKeyMapping) error { return e.err }
-func (e errMappings) UpdateMappingSync(context.Context, string, int64, string, *int64, time.Time) error {
-	return e.err
-}
-func (e errMappings) UpdateMappingNewAPIKeyRemainQuota(context.Context, string, int64) error {
+func (e errMappings) UpdateMappingSync(context.Context, string, int64, string, time.Time) error {
 	return e.err
 }
 

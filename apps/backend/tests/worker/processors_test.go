@@ -24,12 +24,11 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)
-	remainQuota := int64(1000)
 	if err := fix.st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		CompanyID: contract.DefaultCompanyID, PlatformKeyID: contract.IDPlatformKey1,
 		NewAPIKeyID: &tokenID, MemberID: testutil.StrPtr(contract.IDMember1),
 		DepartmentID: contract.IDDept3, SyncStatus: store.MappingSyncStatusSynced,
-		NewAPIGroup: "dept-dept-3", NewAPIKeyRemainQuota: &remainQuota,
+		NewAPIGroup: "dept-dept-3",
 	}); err != nil {
 		t.Fatal(err)
 	}

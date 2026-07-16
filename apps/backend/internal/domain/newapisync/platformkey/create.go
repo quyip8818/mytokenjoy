@@ -112,10 +112,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 	if err != nil {
 		return "", err
 	}
-	remainUnits, err := capRemainUnits(ctx, d, remainPoint, models, effectiveIDs)
-	if err != nil {
-		return "", err
-	}
+	remainUnitsVal := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
 
 	group := d.ChannelPolicy.ResolveNewAPIGroup(ctx, departmentID)
 	if err := d.Client.EnsureGroup(ctx, group, policy.GroupDisplayName(departmentID)); err != nil {
@@ -132,7 +129,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
 		Name:               TokenName(key.ID),
-		RemainQuota:        remainUnits,
+		RemainQuota:        remainUnitsVal,
 		UnlimitedQuota:     false,
 		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
 		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
@@ -148,8 +145,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 		return "", err
 	}
 	now := time.Now()
-	remain := token.RemainQuota
-	if err := d.Mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, &remain, now); err != nil {
+	if err := d.Mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, now); err != nil {
 		deleteRemoteTokenBestEffort(ctx, d, key.ID, token.ID)
 		return "", err
 	}

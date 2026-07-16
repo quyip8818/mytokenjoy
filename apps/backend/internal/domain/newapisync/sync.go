@@ -22,7 +22,7 @@ type NewAPISync struct {
 	deps syncdeps.Deps
 }
 
-func New(cfg config.Config, st store.Store, client adminport.Port, wallet company.WalletService, channelPolicy policy.ChannelPolicy, enqueuer ports.SyncJobEnqueuer) *NewAPISync {
+func New(cfg config.Config, st store.Store, client adminport.Port, channelPolicy policy.ChannelPolicy, enqueuer ports.SyncJobEnqueuer) *NewAPISync {
 	if enqueuer == nil {
 		enqueuer = ports.NoopSyncJobEnqueuer
 	}
@@ -33,7 +33,6 @@ func New(cfg config.Config, st store.Store, client adminport.Port, wallet compan
 			Client:        client,
 			Mappings:      st.PlatformKeyMappings(),
 			Enqueuer:      enqueuer,
-			Wallet:        wallet,
 			ChannelPolicy: channelPolicy,
 		},
 	}

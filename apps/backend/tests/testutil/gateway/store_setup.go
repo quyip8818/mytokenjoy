@@ -27,9 +27,6 @@ func normalizeGatewayOpts(opts GatewayScenarioOpts) GatewayScenarioOpts {
 	if opts.NewAPIWalletUserID == 0 {
 		opts.NewAPIWalletUserID = 99
 	}
-	if opts.RemainQuota == 0 {
-		opts.RemainQuota = 10000
-	}
 	if opts.CompanyStatus == "" {
 		opts.CompanyStatus = store.CompanyStatusActive
 	}
@@ -151,16 +148,14 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 	setup.memberID = memberID
 
 	tokenID := int64(42)
-	remain := opts.RemainQuota
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
-		CompanyID:            opts.CompanyID,
-		PlatformKeyID:        setup.platformKeyID,
-		NewAPIKeyID:          &tokenID,
-		MemberID:             testutil.StrPtr(memberID),
-		DepartmentID:         opts.DepartmentID,
-		SyncStatus:           store.MappingSyncStatusSynced,
-		NewAPIGroup:          newapiunits.NewAPIGroupForDepartment(opts.DepartmentID),
-		NewAPIKeyRemainQuota: &remain,
+		CompanyID:     opts.CompanyID,
+		PlatformKeyID: setup.platformKeyID,
+		NewAPIKeyID:   &tokenID,
+		MemberID:      testutil.StrPtr(memberID),
+		DepartmentID:  opts.DepartmentID,
+		SyncStatus:    store.MappingSyncStatusSynced,
+		NewAPIGroup:   newapiunits.NewAPIGroupForDepartment(opts.DepartmentID),
 	}); err != nil {
 		t.Fatal(err)
 	}

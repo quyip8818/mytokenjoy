@@ -155,7 +155,7 @@ flowchart TB
   ING --> LOT
   ING --> LED[(usage_ledger)]
   LED --> Proj[异步 budget/dashboard 投影]
-  LOT --> Sync[wallet_sync / rebalance]
+  LOT --> Sync[wallet_sync]
 ```
 
 入账同事务：**lot + ledger + wallet_remain**。  
@@ -175,7 +175,7 @@ sequenceDiagram
   Note over B: points = amount × PPU
   B->>PG: BuildPaidLot 锁定单价/币种
   B->>PG: wallet_remain += points
-  B-->>B: enqueue wallet_sync + rebalance
+  B-->>B: enqueue wallet_sync
 ```
 
 | 场景 | `lot_kind` | 展示币 |

@@ -19,16 +19,14 @@ func TestRebalanceBidirectional(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)
-	remainQuota := int64(1000)
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
-		CompanyID:            contract.DefaultCompanyID,
-		PlatformKeyID:        contract.IDPlatformKey1,
-		NewAPIKeyID:          &tokenID,
-		MemberID:             testutil.StrPtr(contract.IDMember1),
-		DepartmentID:         contract.IDDept3,
-		SyncStatus:           store.MappingSyncStatusSynced,
-		NewAPIGroup:          "dept-dept-3",
-		NewAPIKeyRemainQuota: &remainQuota,
+		CompanyID:     contract.DefaultCompanyID,
+		PlatformKeyID: contract.IDPlatformKey1,
+		NewAPIKeyID:   &tokenID,
+		MemberID:      testutil.StrPtr(contract.IDMember1),
+		DepartmentID:  contract.IDDept3,
+		SyncStatus:    store.MappingSyncStatusSynced,
+		NewAPIGroup:   "dept-dept-3",
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -31,28 +31,6 @@ func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) (int64, error) {
 	return id, nil
 }
 
-func capRemainUnits(ctx context.Context, d syncdeps.Deps, remainPoint float64, models []types.ModelInfo, effectiveIDs []int64) (int64, error) {
-	allocated := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
-	if d.Wallet == nil {
-		return allocated, nil
-	}
-	walletID, err := newAPIWalletUserID(ctx, d)
-	if err != nil {
-		return 0, err
-	}
-	if walletID <= 0 {
-		return allocated, nil
-	}
-	walletUnits, err := d.Wallet.FreshNewAPIUnits(ctx, walletID)
-	if err != nil {
-		return 0, err
-	}
-	if allocated < walletUnits {
-		return allocated, nil
-	}
-	return walletUnits, nil
-}
-
 func newAPIPlatformKeyPrefix(fullKey string) string {
 	prefix := fullKey
 	if len(prefix) > 12 {

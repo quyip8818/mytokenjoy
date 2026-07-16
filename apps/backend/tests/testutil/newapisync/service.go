@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/company"
 	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -21,7 +20,6 @@ import (
 
 type TestServiceOpts struct {
 	Stub           *mock.StubAdminClient
-	Wallet         company.WalletService
 	SkipWalletSeed bool
 }
 
@@ -68,15 +66,10 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 	if !opts.SkipWalletSeed {
 		EnsureWalletUserID(t, st, contract.DefaultCompanyID, TestWalletUserID)
 	}
-	wallet := opts.Wallet
-	if wallet == nil {
-		wallet = company.NewWalletService(cfg, stub)
-	}
 	sync := domainnewapisync.New(
 		cfg,
 		st,
 		newapi.NewAdminPortAdapter(stub),
-		wallet,
 		policy.NewChannelPolicy(cfg),
 		adapter.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
 	)

@@ -51,17 +51,6 @@ func TestPrecheckPassesWhenNewAPIUnavailable(t *testing.T) {
 	}
 }
 
-func TestPrecheckIgnoresNewAPIKeyRemainQuota(t *testing.T) {
-	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{
-		Budget:      1000,
-		RemainQuota: 0,
-	})
-	if err := fx.Run("gpt-4o", false); err != nil {
-		t.Fatalf("expected precheck to pass when NewAPIKeyRemainQuota is zero, got %v", err)
-	}
-}
-
 func TestPrecheckAllowsModelsListingWithoutModelField(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})

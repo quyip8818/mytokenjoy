@@ -526,7 +526,6 @@ CREATE TABLE IF NOT EXISTS platform_key_mappings (
     newapi_group            TEXT NOT NULL,
     sync_status             TEXT NOT NULL DEFAULT 'pending',
     synced_at               TIMESTAMPTZ,
-    newapi_key_remain_quota BIGINT,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, platform_key_id),

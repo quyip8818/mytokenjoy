@@ -19,16 +19,15 @@ func HashPlatformKey(raw string) string {
 }
 
 type PlatformKeyMapping struct {
-	CompanyID            int64
-	PlatformKeyID        string
-	NewAPIKeyID          *int64
-	MemberID             *string
-	DepartmentID         string
-	ProjectID            *string
-	NewAPIGroup          string
-	SyncStatus           string
-	SyncedAt             *time.Time
-	NewAPIKeyRemainQuota *int64
+	CompanyID     int64
+	PlatformKeyID string
+	NewAPIKeyID   *int64
+	MemberID      *string
+	DepartmentID  string
+	ProjectID     *string
+	NewAPIGroup   string
+	SyncStatus    string
+	SyncedAt      *time.Time
 }
 
 type PlatformKeyMappingRepository interface {
@@ -42,6 +41,5 @@ type PlatformKeyMappingRepository interface {
 	ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []string) ([]PlatformKeyMapping, error)
 	ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]PlatformKeyMapping, error)
 	UpsertMapping(ctx context.Context, mapping PlatformKeyMapping) error
-	UpdateMappingSync(ctx context.Context, platformKeyID string, keyID int64, status string, remainQuota *int64, syncedAt time.Time) error
-	UpdateMappingNewAPIKeyRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error
+	UpdateMappingSync(ctx context.Context, platformKeyID string, keyID int64, status string, syncedAt time.Time) error
 }

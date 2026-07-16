@@ -1,5 +1,7 @@
 # Rebalance 简化方案
 
+> **状态：已实施**（2026-07-16）
+
 ## 背景
 
 当前 `rebalanceKey()` 在计算每个 key 的 `newRemain` 时，除了基于月度限额计算 `allocated`，还会额外用 `walletAvailable()` 做一次 `min` 约束：
@@ -135,3 +137,22 @@ type JobEnqueuer interface {
 ## 风险评估
 
 **低风险**。Gateway 已有独立的 wallet remain 硬约束，移除 per-key wallet min 不会导致超额消费。唯一的行为差异是：当钱包余额不足时，以前某些 key 的 `RemainQuota`（NewAPI 侧）会被压低，现在不会了——但 Gateway precheck 仍然会拦截。
+
+
+## 实施结果（2026-07-16）
+
+方案已完整落地，额外清理超出原计划范围：
+
+| 变更 | 说明 |
+|------|------|
+| `walletAvailable()` / `newAPIWalletUserID()` | 已删除 |
+| `afterRecharge()` → Rebalance | 已移除，只保留 `InsertWalletSync` |
+| `billing.JobEnqueuer.InsertRebalanceCompany` | 接口和实现已删除 |
+| `NewAPIKeyRemainQuota` 字段 | 从 struct、接口、PG repo、schema.sql **彻底删除** |
+| `UpdateMappingNewAPIKeyRemainQuota` 方法 | 已删除 |
+| `newapisync` `capRemainUnits()` | 已删除，内联为 `newapiunits.ToNewAPIUnits` |
+| `syncdeps.Deps.Wallet` 字段 | 已删除（newapisync 不再依赖 wallet service） |
+| `newapisync.New()` 签名 | 去掉 `wallet` 参数 |
+| `platform_key_mappings.newapi_key_remain_quota` 列 | schema.sql 已移除 |
+
+净删约 250 行，新增约 45 行。`go build ./...` 和 `go vet` 通过。

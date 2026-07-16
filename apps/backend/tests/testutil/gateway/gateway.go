@@ -24,7 +24,6 @@ type GatewayScenarioOpts struct {
 	DepartmentID       string
 	Budget             float64
 	Consumed           float64
-	RemainQuota        int64
 	CompanyStatus      string
 	ProxyBackendURL    string
 	DeployEnv          string

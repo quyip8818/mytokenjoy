@@ -24,7 +24,7 @@ var _ store.PlatformKeyMappingRepository = (*platformKeyMappingRepo)(nil)
 const mappingSelect = `
 	SELECT pkm.company_id, pkm.platform_key_id, pkm.newapi_key_id,
 	       pk.member_id, m.department_id, pk.project_id,
-	       pkm.newapi_group, pkm.sync_status, pkm.synced_at, pkm.newapi_key_remain_quota
+	       pkm.newapi_group, pkm.sync_status, pkm.synced_at
 	FROM platform_key_mappings pkm
 	JOIN platform_keys pk ON pk.company_id = pkm.company_id AND pk.id = pkm.platform_key_id
 	LEFT JOIN members m ON m.company_id = pk.company_id AND m.id = pk.member_id
@@ -33,11 +33,11 @@ const mappingSelect = `
 func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	var m store.PlatformKeyMapping
 	var memberID, projectID, departmentID *string
-	var keyID, remainQuota *int64
+	var keyID *int64
 	var syncedAt *time.Time
 	err := row.Scan(
 		&m.CompanyID, &m.PlatformKeyID, &keyID, &memberID, &departmentID, &projectID,
-		&m.NewAPIGroup, &m.SyncStatus, &syncedAt, &remainQuota,
+		&m.NewAPIGroup, &m.SyncStatus, &syncedAt,
 	)
 	if err != nil {
 		return store.PlatformKeyMapping{}, err
@@ -52,7 +52,6 @@ func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	}
 	m.ProjectID = projectID
 	m.SyncedAt = syncedAt
-	m.NewAPIKeyRemainQuota = remainQuota
 	return m, nil
 }
 
@@ -156,17 +155,16 @@ func (r *platformKeyMappingRepo) UpsertMapping(ctx context.Context, mapping stor
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO platform_key_mappings (
 			company_id, platform_key_id, newapi_key_id,
-			newapi_group, sync_status, synced_at, newapi_key_remain_quota, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+			newapi_group, sync_status, synced_at, updated_at
+		) VALUES ($1,$2,$3,$4,$5,$6,NOW())
 		ON CONFLICT (company_id, platform_key_id) DO UPDATE SET
 			newapi_key_id = EXCLUDED.newapi_key_id,
 			newapi_group = EXCLUDED.newapi_group,
 			sync_status = EXCLUDED.sync_status,
 			synced_at = EXCLUDED.synced_at,
-			newapi_key_remain_quota = EXCLUDED.newapi_key_remain_quota,
 			updated_at = NOW()
 	`, companyID, mapping.PlatformKeyID, mapping.NewAPIKeyID,
-		mapping.NewAPIGroup, mapping.SyncStatus, mapping.SyncedAt, mapping.NewAPIKeyRemainQuota)
+		mapping.NewAPIGroup, mapping.SyncStatus, mapping.SyncedAt)
 	return err
 }
 
@@ -175,24 +173,14 @@ func (r *platformKeyMappingRepo) UpdateMappingSync(
 	platformKeyID string,
 	keyID int64,
 	status string,
-	remainQuota *int64,
 	syncedAt time.Time,
 ) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		UPDATE platform_key_mappings
-		SET newapi_key_id = $3, sync_status = $4, newapi_key_remain_quota = $5,
-		    synced_at = $6, updated_at = NOW()
+		SET newapi_key_id = $3, sync_status = $4,
+		    synced_at = $5, updated_at = NOW()
 		WHERE company_id = $1 AND platform_key_id = $2
-	`, companyID, platformKeyID, keyID, status, remainQuota, syncedAt)
-	return err
-}
-
-func (r *platformKeyMappingRepo) UpdateMappingNewAPIKeyRemainQuota(ctx context.Context, platformKeyID string, remainQuota int64) error {
-	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		UPDATE platform_key_mappings SET newapi_key_remain_quota = $3, updated_at = NOW()
-		WHERE company_id = $1 AND platform_key_id = $2
-	`, companyID, platformKeyID, remainQuota)
+	`, companyID, platformKeyID, keyID, status, syncedAt)
 	return err
 }

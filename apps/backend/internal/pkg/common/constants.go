@@ -27,6 +27,8 @@ const QuotaPerUnit = 500000
 const WalletSyncDriftEpsilon = 0.01 * float64(DefaultPointsPerUnit)
 
 // WalletSyncDebounceSecs delays wallet_sync execution after ingest/recharge bursts.
-const WalletSyncDebounceSecs = 5
+// NewAPI user quota is a redundant backstop when all traffic goes through Gateway;
+// a longer window reduces unnecessary NewAPI API calls.
+const WalletSyncDebounceSecs = 60
 
 const NewAPIGroupPrefix = "dept-"
