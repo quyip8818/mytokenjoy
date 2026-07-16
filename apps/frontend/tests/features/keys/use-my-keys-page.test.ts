@@ -9,7 +9,9 @@ describe('useMyKeysPage', () => {
   it('loads member keys and budget summary on mount', async () => {
     const apis = createMockApis({
       platformKeyApi: {
-        list: vi.fn().mockResolvedValue({ items: mockPlatformKeys, total: mockPlatformKeys.length }),
+        list: vi
+          .fn()
+          .mockResolvedValue({ items: mockPlatformKeys, total: mockPlatformKeys.length }),
         getBudgetSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
       },
     })

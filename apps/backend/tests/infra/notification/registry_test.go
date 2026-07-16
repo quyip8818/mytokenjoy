@@ -17,7 +17,7 @@ type mockChannel struct {
 }
 
 func (c *mockChannel) Name() string       { return c.name }
-func (c *mockChannel) IsConfigured() bool  { return c.configured }
+func (c *mockChannel) IsConfigured() bool { return c.configured }
 func (c *mockChannel) Send(_ context.Context, recipientID string, _ domainnotification.RenderedMessage) error {
 	c.sent = append(c.sent, recipientID)
 	return nil

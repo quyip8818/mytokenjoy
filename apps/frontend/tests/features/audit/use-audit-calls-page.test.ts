@@ -31,7 +31,11 @@ describe('useAuditCallsPage', () => {
     })
 
     expect(apis.auditApi.getCalls).toHaveBeenCalled()
-    expect(result.current.modelOptions).toEqual({ 'gpt-4': 'GPT-4', 'gpt-4o': 'GPT-4o', 'claude-3': 'Claude 3' })
+    expect(result.current.modelOptions).toEqual({
+      'gpt-4': 'GPT-4',
+      'gpt-4o': 'GPT-4o',
+      'claude-3': 'Claude 3',
+    })
     expect(result.current.memberOptions).toEqual({ m1: '张三', m2: '李四' })
     expect(result.current.contentRetentionEnabled).toBe(true)
   })
@@ -62,9 +66,9 @@ describe('useAuditCallsPage', () => {
   it('applies status filter and resets page', async () => {
     const apis = createMockApis({
       auditApi: createAuditApiMock({
-        getCalls: vi.fn().mockResolvedValue(
-          createPaginatedResponse([], { pageSize: AUDIT_PAGE_SIZE }),
-        ),
+        getCalls: vi
+          .fn()
+          .mockResolvedValue(createPaginatedResponse([], { pageSize: AUDIT_PAGE_SIZE })),
       }),
     })
 
@@ -92,9 +96,9 @@ describe('useAuditCallsPage', () => {
   it('applies model filter', async () => {
     const apis = createMockApis({
       auditApi: createAuditApiMock({
-        getCalls: vi.fn().mockResolvedValue(
-          createPaginatedResponse([], { pageSize: AUDIT_PAGE_SIZE }),
-        ),
+        getCalls: vi
+          .fn()
+          .mockResolvedValue(createPaginatedResponse([], { pageSize: AUDIT_PAGE_SIZE })),
       }),
     })
 
@@ -116,9 +120,11 @@ describe('useAuditCallsPage', () => {
   it('requests the selected page', async () => {
     const apis = createMockApis({
       auditApi: createAuditApiMock({
-        getCalls: vi.fn().mockResolvedValue(
-          createPaginatedResponse(mockCallLogs, { total: 25, pageSize: AUDIT_PAGE_SIZE }),
-        ),
+        getCalls: vi
+          .fn()
+          .mockResolvedValue(
+            createPaginatedResponse(mockCallLogs, { total: 25, pageSize: AUDIT_PAGE_SIZE }),
+          ),
       }),
     })
 

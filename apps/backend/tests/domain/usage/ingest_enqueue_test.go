@@ -57,4 +57,3 @@ func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 		t.Fatal("expected no wallet_sync job after rollback")
 	}
 }
-

@@ -9,7 +9,7 @@ import (
 const channelAddModeSingle = "single"
 
 type addChannelRequest struct {
-	Mode    string           `json:"mode"`
+	Mode    string            `json:"mode"`
 	Channel UpsertChannelBody `json:"channel"`
 }
 

@@ -65,4 +65,3 @@ func TestIngestOverrunNotifiesDepartmentWithoutDisablingKeys(t *testing.T) {
 		t.Fatalf("expected plk-1 to remain active after department ledger overrun, status=%q", plk1.Status)
 	}
 }
-

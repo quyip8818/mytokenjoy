@@ -146,4 +146,3 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 		t.Fatalf("unexpected latency %v", entry.CallDetail.LatencyMs)
 	}
 }
-

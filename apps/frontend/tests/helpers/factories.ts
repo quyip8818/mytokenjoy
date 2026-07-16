@@ -48,9 +48,7 @@ export function createDashboardApiMock(
 /**
  * 创建 auditApi mock，所有方法默认返回空数据
  */
-export function createAuditApiMock(
-  overrides?: Partial<AppApis['auditApi']>,
-): AppApis['auditApi'] {
+export function createAuditApiMock(overrides?: Partial<AppApis['auditApi']>): AppApis['auditApi'] {
   return {
     getOperations: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
     getOperationsTimeline: vi.fn().mockResolvedValue([]),

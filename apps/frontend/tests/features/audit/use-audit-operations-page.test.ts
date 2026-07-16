@@ -33,9 +33,9 @@ describe('useAuditOperationsPage', () => {
   it('loads operation logs with pagination params', async () => {
     const apis = createMockApis({
       auditApi: createAuditApiMock({
-        getOperations: vi.fn().mockResolvedValue(
-          createPaginatedResponse([], { pageSize: AUDIT_PAGE_SIZE }),
-        ),
+        getOperations: vi
+          .fn()
+          .mockResolvedValue(createPaginatedResponse([], { pageSize: AUDIT_PAGE_SIZE })),
       }),
     })
 
@@ -51,9 +51,9 @@ describe('useAuditOperationsPage', () => {
   it('requests the selected page', async () => {
     const apis = createMockApis({
       auditApi: createAuditApiMock({
-        getOperations: vi.fn().mockResolvedValue(
-          createPaginatedResponse([], { total: 40, pageSize: AUDIT_PAGE_SIZE }),
-        ),
+        getOperations: vi
+          .fn()
+          .mockResolvedValue(createPaginatedResponse([], { total: 40, pageSize: AUDIT_PAGE_SIZE })),
       }),
     })
 
