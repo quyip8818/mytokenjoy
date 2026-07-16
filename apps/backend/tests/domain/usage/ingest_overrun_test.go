@@ -10,12 +10,13 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestIngestOverrunNotifiesDepartmentWithoutDisablingKeys(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := workerfix.NewRuntime(t, stub)
+	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
@@ -24,7 +25,7 @@ func TestIngestOverrunNotifiesDepartmentWithoutDisablingKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !setDeptBudget(nodes, contract.IDDept3, 1) {
+	if !orgfix.SetNodeBudget(nodes, contract.IDDept3, 1) {
 		t.Fatal("dept-3 not found")
 	}
 	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
@@ -43,7 +44,7 @@ func TestIngestOverrunNotifiesDepartmentWithoutDisablingKeys(t *testing.T) {
 	if err := ingest.IngestByLogID(testutil.Ctx(), 3001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(ctx)
+	runner.RunOnce(t, ctx)
 
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -65,15 +66,3 @@ func TestIngestOverrunNotifiesDepartmentWithoutDisablingKeys(t *testing.T) {
 	}
 }
 
-func setDeptBudget(nodes []types.OrgNode, id string, budget float64) bool {
-	for i := range nodes {
-		if nodes[i].ID == id {
-			nodes[i].Budget = budget
-			return true
-		}
-		if len(nodes[i].Children) > 0 && setDeptBudget(nodes[i].Children, id, budget) {
-			return true
-		}
-	}
-	return false
-}

@@ -16,12 +16,13 @@ import (
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestIngestIdempotentAndRollup(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := workerfix.NewRuntime(t, stub)
+	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
@@ -35,7 +36,7 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(ctx)
+	runner.RunOnce(t, ctx)
 
 	exists, err := testutil.HasLedgerLogID(st, 1001)
 	if err != nil || !exists {
@@ -55,15 +56,13 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 
 func TestIngestByLogID(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
+	fix := newIngestFixture(t)
 
-	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(2002, 99))
-	if err := ingest.IngestByLogID(testutil.Ctx(), 2002, types.SourceWebhook); err != nil {
+	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(2002, 99))
+	if err := fix.Ingest.IngestByLogID(testutil.Ctx(), 2002, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	ingested, err := testutil.HasLedgerLogID(st, 2002)
+	ingested, err := testutil.HasLedgerLogID(fix.Store, 2002)
 	if err != nil || !ingested {
 		t.Fatalf("expected log 2002 in ledger, err=%v ingested=%v", err, ingested)
 	}
@@ -71,34 +70,30 @@ func TestIngestByLogID(t *testing.T) {
 
 func TestIngestDoesNotWriteUsageBucketDirectly(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts(), 100_000)
-	beforeBuckets := testutil.UsageBucketCount(st)
+	fix := newIngestFixture(t, withBudgetAmount(100_000))
+	beforeBuckets := testutil.UsageBucketCount(fix.Store)
 
-	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{
+	testutil.SeedConsumeLog(t, fix.Store, store.RawConsumeLog{
 		ID: 4001, TokenID: 99, Quota: 100000, ModelName: "gpt-4o", CreatedAt: 1717200000,
 	})
-	if err := ingest.IngestByLogID(testutil.Ctx(), 4001, types.SourceWebhook); err != nil {
+	if err := fix.Ingest.IngestByLogID(testutil.Ctx(), 4001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 
-	if testutil.UsageBucketCount(st) != beforeBuckets {
-		t.Fatalf("expected ingest to skip usage_buckets, before=%d after=%d", beforeBuckets, testutil.UsageBucketCount(st))
+	if testutil.UsageBucketCount(fix.Store) != beforeBuckets {
+		t.Fatalf("expected ingest to skip usage_buckets, before=%d after=%d", beforeBuckets, testutil.UsageBucketCount(fix.Store))
 	}
 }
 
 func TestIngestRaw(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
+	fix := newIngestFixture(t)
 
 	raw := testutil.DefaultConsumeLog(3003, 99)
-	if err := ingest.IngestRaw(testutil.Ctx(), raw, types.SourceReconcile); err != nil {
+	if err := fix.Ingest.IngestRaw(testutil.Ctx(), raw, types.SourceReconcile); err != nil {
 		t.Fatal(err)
 	}
-	ingested, err := testutil.HasLedgerLogID(st, 3003)
+	ingested, err := testutil.HasLedgerLogID(fix.Store, 3003)
 	if err != nil || !ingested {
 		t.Fatalf("expected log 3003 in ledger, err=%v ingested=%v", err, ingested)
 	}
@@ -106,16 +101,14 @@ func TestIngestRaw(t *testing.T) {
 
 func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
+	fix := newIngestFixture(t)
 	raw := testutil.DefaultConsumeLog(8801, 99)
-	testutil.SeedConsumeLog(t, st, raw)
-	if err := ingest.IngestByLogID(testutil.Ctx(), 8801, types.SourceWebhook); err != nil {
+	testutil.SeedConsumeLog(t, fix.Store, raw)
+	if err := fix.Ingest.IngestByLogID(testutil.Ctx(), 8801, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 	want := contract.DemoBudgetPeriod
-	entries, _, err := st.Ledger().ListCallSettledPage(testutil.Ctx(), store.LedgerCallFilter{Page: 1, PageSize: 100})
+	entries, _, err := fix.Store.Ledger().ListCallSettledPage(testutil.Ctx(), store.LedgerCallFilter{Page: 1, PageSize: 100})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,14 +129,14 @@ func TestIngestStoresLedgerPeriodKey(t *testing.T) {
 
 func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := workerfix.NewRuntime(t, stub)
+	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 	cfg := runner.Cfg
 	nodes, err := st.Org().Nodes().Tree(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !setOrgNodePeriodMonthly(nodes, contract.IDDept3) {
+	if !orgfix.SetNodePeriod(nodes, contract.IDDept3, pkgbudget.PeriodMonthly) {
 		t.Fatal("dept-3 not found")
 	}
 	if err := st.Org().Nodes().SetTree(ctx, nodes); err != nil {
@@ -169,7 +162,7 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 9901, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(ctx)
+	runner.RunOnce(t, ctx)
 
 	afterSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, snapshotPeriod)
 	if afterSnapshot <= beforeSnapshot {
@@ -181,25 +174,11 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	}
 }
 
-func setOrgNodePeriodMonthly(nodes []types.OrgNode, id string) bool {
-	for i := range nodes {
-		if nodes[i].ID == id {
-			nodes[i].Period = pkgbudget.PeriodMonthly
-			return true
-		}
-		if len(nodes[i].Children) > 0 && setOrgNodePeriodMonthly(nodes[i].Children, id) {
-			return true
-		}
-	}
-	return false
-}
-
 func TestIngestByLogIDNotFound(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
+	fix := newIngestFixture(t, withoutMapping())
 
-	err := ingest.IngestByLogID(testutil.Ctx(), 9999, types.SourceWebhook)
+	err := fix.Ingest.IngestByLogID(testutil.Ctx(), 9999, types.SourceWebhook)
 	if err == nil {
 		t.Fatal("expected error for missing consume log")
 	}
@@ -210,11 +189,10 @@ func TestIngestByLogIDNotFound(t *testing.T) {
 
 func TestIngestByLogIDMappingMissing(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(5005, 42))
+	fix := newIngestFixture(t, withoutMapping())
+	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(5005, 42))
 
-	err := ingest.IngestByLogID(testutil.Ctx(), 5005, types.SourceWebhook)
+	err := fix.Ingest.IngestByLogID(testutil.Ctx(), 5005, types.SourceWebhook)
 	if err == nil {
 		t.Fatal("expected mapping missing error")
 	}

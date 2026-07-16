@@ -5,20 +5,17 @@ import (
 
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 )
 
 func TestCompanyIDsByLogID(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
+	fix := newIngestFixture(t)
 
-	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(7801, 99))
-	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(7802, 99))
-	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(7803, 55))
+	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(7801, 99))
+	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(7802, 99))
+	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(7803, 55))
 
-	got, err := ingest.CompanyIDsByLogID(testutil.Ctx(), []int64{7801, 7802, 7803, 7804})
+	got, err := fix.Ingest.CompanyIDsByLogID(testutil.Ctx(), []int64{7801, 7802, 7803, 7804})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,9 +35,8 @@ func TestCompanyIDsByLogID(t *testing.T) {
 
 func TestCompanyIDsByLogIDEmpty(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	got, err := ingest.CompanyIDsByLogID(testutil.Ctx(), nil)
+	fix := newIngestFixture(t, withoutMapping())
+	got, err := fix.Ingest.CompanyIDsByLogID(testutil.Ctx(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

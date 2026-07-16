@@ -6,29 +6,16 @@ import { MemoryRouter } from 'react-router'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
-import type { Member } from '@/api/types'
 import type { SessionContext } from '@/api/types'
 import type { PermissionKey } from '@/lib/permission-keys'
 import { ALL_PERMISSIONS } from '@/lib/permissions'
 import { WorkflowProvider } from '@/features/workflow'
 import { QueryProvider, createTestQueryClient } from '@/features/query'
 import { mockDepartments } from '@tests/fixtures/departments'
+import { mockMember } from '@tests/fixtures/members'
 import { TestSessionProvider } from '@tests/test-session-provider'
 
 export { mockDepartments }
-
-const mockMember: Member = {
-  id: 'm-admin',
-  companyId: 1,
-  name: '管理员',
-  phone: '13800000000',
-  email: 'admin@test.com',
-  departmentId: 'd1',
-  departmentName: '总部',
-  status: 'active',
-  roles: ['超级管理员'],
-  source: 'manual',
-}
 
 export function createMockSession(
   permissions: PermissionKey[] = ALL_PERMISSIONS,

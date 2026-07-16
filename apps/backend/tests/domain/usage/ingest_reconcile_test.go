@@ -1,20 +1,19 @@
-package worker_test
+package usage_test
 
 import (
 	"testing"
 	"time"
 
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestReconcileMultipleLogs(t *testing.T) {
-	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	runner, st := riverfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(88)
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
@@ -40,7 +39,7 @@ func TestReconcileMultipleLogs(t *testing.T) {
 }
 
 func TestReconcileLogs(t *testing.T) {
-	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	runner, st := riverfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 
 	tokenID := int64(88)
@@ -67,7 +66,7 @@ func TestReconcileLogs(t *testing.T) {
 }
 
 func TestReconcileBusinessFailAdvancesCursor(t *testing.T) {
-	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	runner, st := riverfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	const logID = int64(701)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(logID, 33))
@@ -88,7 +87,7 @@ func TestReconcileBusinessFailAdvancesCursor(t *testing.T) {
 }
 
 func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
-	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	runner, st := riverfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{ID: 901, TokenID: 0, Quota: 1, ModelName: "m", CreatedAt: 1})
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(902, 44))
@@ -110,7 +109,7 @@ func TestReconcileSkipsZeroTokenLogs(t *testing.T) {
 }
 
 func TestReconcileIngestWithoutAdminSync(t *testing.T) {
-	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	runner, st := riverfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	tokenID := int64(66)
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
@@ -128,7 +127,7 @@ func TestReconcileIngestWithoutAdminSync(t *testing.T) {
 }
 
 func TestIngestJobMaxAttemptsMarksDead(t *testing.T) {
-	runner, st, _ := workerfix.NewIngestOnlyRunner(t)
+	runner, st := riverfix.NewIngestOnlyRunner(t)
 	ctx := testutil.Ctx()
 	const logID = int64(602)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(logID, 88))

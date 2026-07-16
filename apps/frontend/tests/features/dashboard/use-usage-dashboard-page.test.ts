@@ -3,11 +3,12 @@ import { waitFor } from '@testing-library/react'
 import { useUsageDashboardPage } from '@/features/dashboard/hooks/use-usage-dashboard-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
+import { createDashboardApiMock } from '@tests/helpers/factories'
 
 describe('useUsageDashboardPage', () => {
   it('loads department and model usage on mount', async () => {
     const apis = createMockApis({
-      dashboardApi: {
+      dashboardApi: createDashboardApiMock({
         getDepartmentUsage: vi.fn().mockResolvedValue([
           {
             departmentId: 'd1',
@@ -29,7 +30,7 @@ describe('useUsageDashboardPage', () => {
             provider: 'openai',
           },
         ]),
-      },
+      }),
     })
 
     const { result } = renderHookWithProviders(
@@ -48,10 +49,7 @@ describe('useUsageDashboardPage', () => {
 
   it('passes period params when deptId changes', async () => {
     const apis = createMockApis({
-      dashboardApi: {
-        getDepartmentUsage: vi.fn().mockResolvedValue([]),
-        getModelUsage: vi.fn().mockResolvedValue([]),
-      },
+      dashboardApi: createDashboardApiMock(),
     })
 
     const { result } = renderHookWithProviders(

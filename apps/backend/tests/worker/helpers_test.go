@@ -19,7 +19,6 @@ type workerFixture struct {
 	newAPISync   *newapisync.NewAPISync
 	ingestWorker *ingest.Worker
 	ctx          context.Context
-	started      bool
 }
 
 func newWorkerFixture(t *testing.T, stub *mock.StubAdminClient) workerFixture {
@@ -44,11 +43,5 @@ func newWorkerFixture(t *testing.T, stub *mock.StubAdminClient) workerFixture {
 
 func (f workerFixture) runRiver(t *testing.T) {
 	t.Helper()
-	riverfix.TestMu.Lock()
-	defer riverfix.TestMu.Unlock()
-	if !f.started {
-		f.rt.Start(t, f.ctx)
-		f.started = true
-	}
-	f.rt.WorkOnce(t, f.ctx)
+	f.rt.RunOnce(t, f.ctx)
 }

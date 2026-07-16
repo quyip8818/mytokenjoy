@@ -14,13 +14,17 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
+	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
@@ -30,6 +34,7 @@ type TestRuntime struct {
 	Registry app.ServiceRegistry
 	Cfg      config.Config
 	st       store.Store
+	started  bool
 }
 
 func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.Store) {
@@ -38,6 +43,31 @@ func NewRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.S
 
 func NewRuntimeWithOrgSync(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.SyncService) (*TestRuntime, store.Store) {
 	return newRuntime(t, stub, orgSync)
+}
+
+// NewIngestRuntime creates a full River runtime with budget rebalance pre-seeded,
+// registers a cleanup, and returns the runtime, store, and IngestService.
+// This is the standard entry point for ingest integration tests.
+func NewIngestRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.Store, *domainusage.IngestService) {
+	t.Helper()
+	rt, st := NewRuntime(t, stub)
+	budgetfix.EnsureMonthRebalanceCurrent(t, testutil.Ctx(), rt.Cfg, st, contract.DefaultCompanyID)
+	t.Cleanup(func() { rt.Stop(t, context.Background()) })
+	return rt, st, rt.Registry.MustIngestService()
+}
+
+// NewIngestOnlyRunner creates a lightweight ingest worker without River for
+// reconcile and pending-job tests that don't need full job queue infrastructure.
+func NewIngestOnlyRunner(t *testing.T) (*ingest.Worker, store.Store) {
+	t.Helper()
+	cfg, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	reg, _, err := app.BuildRegistry(cfg, logger, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := reg.IngestWorker(cfg, logger)
+	return w, st
 }
 
 func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.SyncService) (*TestRuntime, store.Store) {
@@ -96,6 +126,19 @@ func (r *TestRuntime) Start(t *testing.T, ctx context.Context) {
 func (r *TestRuntime) Stop(t *testing.T, ctx context.Context) {
 	t.Helper()
 	_ = r.Client.Stop(ctx)
+}
+
+// RunOnce acquires the test mutex, lazily starts the River client, and drains
+// all pending jobs. This is the standard way to execute enqueued jobs in tests.
+func (r *TestRuntime) RunOnce(t *testing.T, ctx context.Context) {
+	t.Helper()
+	TestMu.Lock()
+	defer TestMu.Unlock()
+	if !r.started {
+		r.Start(t, ctx)
+		r.started = true
+	}
+	r.WorkOnce(t, ctx)
 }
 
 func (r *TestRuntime) WorkOnce(t *testing.T, ctx context.Context) {

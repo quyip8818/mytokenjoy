@@ -14,8 +14,15 @@ import (
 
 func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *usage.IngestService {
 	t.Helper()
+	return NewIngestServiceWithEnqueuer(t, cfg, st, jobs.NoopEnqueuer{})
+}
+
+// NewIngestServiceWithEnqueuer creates an IngestService with a custom enqueuer.
+// Use this when testing enqueue failure or side-effect behavior.
+func NewIngestServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enqueuer jobs.Enqueuer) *usage.IngestService {
+	t.Helper()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	budgetOps := app.NewUsageBudgetOps(nil, nil, logger)
 	lotConsumer := app.NewUsageLotConsumer()
-	return usage.NewIngestService(cfg, st, st.Logs(), logger, app.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}), nil, budgetOps, lotConsumer)
+	return usage.NewIngestService(cfg, st, st.Logs(), logger, app.NewUsageIngestEnqueuer(enqueuer), nil, budgetOps, lotConsumer)
 }

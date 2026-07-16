@@ -12,13 +12,13 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestDashboardProjectorUpsertBucketFromLedger(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := workerfix.NewRuntime(t, stub)
+	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 

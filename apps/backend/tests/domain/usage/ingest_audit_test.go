@@ -3,8 +3,6 @@ package usage_test
 import (
 	"testing"
 
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
@@ -13,20 +11,17 @@ import (
 
 func TestIngestVisibleInAuditCalls(t *testing.T) {
 	t.Parallel()
-	cfg, st := newIngestStore(t)
-	ingest := testutil.NewIngestService(t, cfg, st)
-	callLogQuerier := domainusage.NewCallLogQuerier(st.Ledger())
+	fix := newIngestFixture(t)
+	callLogQuerier := domainusage.NewCallLogQuerier(fix.Store.Ledger())
 	ctx := testutil.Ctx()
-
-	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	const logID int64 = 9100
 	const input = "audit e2e snippet"
-	testutil.SeedConsumeLog(t, st, store.RawConsumeLog{
+	testutil.SeedConsumeLog(t, fix.Store, store.RawConsumeLog{
 		ID: logID, TokenID: 99, Quota: 500000, ModelName: "gpt-4o", CreatedAt: 1717200000,
 		PromptTokens: 100, CompletionTokens: 50, UseTime: 250, Content: input,
 	})
-	if err := ingest.IngestByLogID(ctx, logID, types.SourceWebhook); err != nil {
+	if err := fix.Ingest.IngestByLogID(ctx, logID, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
 

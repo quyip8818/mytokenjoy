@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
+	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 )
 
 func TestNewAPIIdempotencyKeyAndParse(t *testing.T) {
@@ -91,8 +92,8 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 		t.Fatal(err)
 	}
 	memberID := contract.IDMember1
-	member := findMember(members, contract.IDMember1)
-	key := findPlatformKey(keys, contract.IDPlatformKey1)
+	member := orgfix.FindMember(members, contract.IDMember1)
+	key := orgfix.FindPlatformKey(keys, contract.IDPlatformKey1)
 	entry, err := domainusage.BuildCallSettledEntry(domainusage.EntryBuildInput{
 		Raw: store.RawConsumeLog{
 			ID: 9001, TokenID: 99, Quota: 100, ModelName: "gpt-4o", CreatedAt: 1,
@@ -146,20 +147,3 @@ func TestBuildCallSettledEntryPreviewSnippetRespectsRetention(t *testing.T) {
 	}
 }
 
-func findMember(members []types.Member, id string) *types.Member {
-	for i := range members {
-		if members[i].ID == id {
-			return &members[i]
-		}
-	}
-	return nil
-}
-
-func findPlatformKey(keys []types.PlatformKey, id string) *types.PlatformKey {
-	for i := range keys {
-		if keys[i].ID == id {
-			return &keys[i]
-		}
-	}
-	return nil
-}

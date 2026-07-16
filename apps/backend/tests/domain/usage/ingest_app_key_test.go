@@ -10,12 +10,12 @@ import (
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
-	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
+	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
-	runner, st, ingest := workerfix.NewRuntime(t, stub)
+	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 
 	fullKey := "sk-app-key-test"
@@ -44,7 +44,7 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 98002, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(ctx)
+	runner.RunOnce(t, ctx)
 
 	after := budgetfix.PlatformKeySnapshotConsumed(t, st, "plk-3")
 	if after <= before {
