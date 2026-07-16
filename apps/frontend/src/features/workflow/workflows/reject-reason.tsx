@@ -6,7 +6,7 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { useWorkflow } from '../use-workflow'
+import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
 
 export function RejectReasonWorkflow({

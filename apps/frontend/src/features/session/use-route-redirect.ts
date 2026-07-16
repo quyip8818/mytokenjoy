@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { getDefaultHomePath } from '@/lib/permissions'
-import { useRouteAccess } from '@/hooks/use-route-access'
+import { useRouteAccess } from './use-route-access'
 
 export interface RouteRedirectContext {
   permissions: readonly string[]

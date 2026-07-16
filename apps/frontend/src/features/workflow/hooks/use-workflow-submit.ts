@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { QueryKey } from '@tanstack/react-query'
 import { useInjectedMutation } from '@/features/query'
-import { workflowErrorMessage } from './lib/error-message'
+import { workflowErrorMessage } from '../lib/error-message'
 import { useWorkflow } from './use-workflow'
 
 interface UseWorkflowSubmitOptions {

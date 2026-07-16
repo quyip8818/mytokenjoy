@@ -1,4 +1,4 @@
-import { useSession } from '@/features/session'
+import { useSession } from './use-session'
 import { hasPermission, canWriteSession, type PermissionKey } from '@/lib/permissions'
 
 export function usePermissions() {

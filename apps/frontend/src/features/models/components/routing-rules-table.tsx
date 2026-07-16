@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { PermissionGate } from '@/components/auth/permission-gate'
+import { PermissionGate } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
 import { modelRefLabel } from '@/features/models'
 

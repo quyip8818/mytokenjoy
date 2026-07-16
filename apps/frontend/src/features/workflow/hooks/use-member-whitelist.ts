@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
-import type { WorkflowComponentProps } from './types'
+import type { WorkflowComponentProps } from '../types'
 
 export function useMemberWhitelist() {
   const apis = useInjectedApis()

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useWorkflow } from '../use-workflow'
+import { useWorkflow } from '../hooks/use-workflow'
 import { WorkflowPanelLayer } from './workflow-panel-layer'
 import { WorkflowUnsavedDialog } from './workflow-unsaved-dialog'
 import type { WorkflowId, WorkflowPayload } from '../types'

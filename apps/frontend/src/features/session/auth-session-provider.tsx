@@ -3,7 +3,7 @@ import { useLocation } from 'react-router'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
-import { setAuthzRevisionHandler, setForbiddenHandler } from '@/api/client'
+import { apiEvents } from '@/api/api-events'
 import { LOGIN_PATH } from '@/config/auth'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { createBillingExchange } from '@/lib/points'
@@ -67,17 +67,16 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
   }, [query.data?.authzRevision])
 
   useEffect(() => {
-    setAuthzRevisionHandler((revision) => {
+    return apiEvents.on('authzRevision', (revision) => {
       if (revision > authzRevisionRef.current) {
         authzRevisionRef.current = revision
         debouncedRefreshSession()
       }
     })
-    return () => setAuthzRevisionHandler(null)
   }, [debouncedRefreshSession])
 
   useEffect(() => {
-    setForbiddenHandler((path) => {
+    return apiEvents.on('forbidden', (path) => {
       if (forbiddenRetriedRef.current.has(path)) {
         toast.error('You do not have permission to perform this action')
         return
@@ -85,7 +84,6 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
       forbiddenRetriedRef.current.add(path)
       void refreshSession()
     })
-    return () => setForbiddenHandler(null)
   }, [refreshSession])
 
   useEffect(() => {

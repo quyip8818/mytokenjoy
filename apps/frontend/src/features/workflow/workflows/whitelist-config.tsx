@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useWorkflow } from '../use-workflow'
+import { useWorkflow } from '../hooks/use-workflow'
 import { findParentDeptId } from '@/features/org'
 import { modelRefLabel } from '@/features/models'
 

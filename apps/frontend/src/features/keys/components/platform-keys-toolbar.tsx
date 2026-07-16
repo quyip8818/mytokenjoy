@@ -1,7 +1,7 @@
 import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PermissionGate } from '@/components/auth/permission-gate'
+import { PermissionGate } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import type { PlatformKeyTab } from '@/features/keys'

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useInjectedApis } from '@/api/use-apis'
 import { useInjectedQuery } from '@/features/query'
-import { useNotificationCapabilities } from '@/features/notifications'
+import { useNotificationCapabilities } from './use-notification-capabilities'
 import type { AppApis } from '@/api/app-apis'
 import type { NotificationPreferenceEntry } from '@/api/types'
 

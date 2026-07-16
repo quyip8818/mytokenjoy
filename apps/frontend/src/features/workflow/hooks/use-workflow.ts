@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { useStore } from 'zustand'
-import { WorkflowStoreContext } from './workflow-store-context'
-import type { WorkflowStoreState } from './workflow-store'
+import { WorkflowStoreContext } from '../workflow-store-context'
+import type { WorkflowStoreState } from '../workflow-store'
 import type { StoreApi } from 'zustand/vanilla'
 
 function useWorkflowStoreApi(): StoreApi<WorkflowStoreState> {

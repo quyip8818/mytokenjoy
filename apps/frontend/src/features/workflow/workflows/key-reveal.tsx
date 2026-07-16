@@ -4,7 +4,7 @@ import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'
 import { Button } from '@/components/ui/button'
-import { useWorkflow } from '../use-workflow'
+import { useWorkflow } from '../hooks/use-workflow'
 
 export function KeyRevealWorkflow({ entry, onClose }: WorkflowComponentProps<'key-reveal'>) {
   const { closeAll } = useWorkflow()

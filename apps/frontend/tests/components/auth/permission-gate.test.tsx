@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { PermissionGate } from '@/components/auth/permission-gate'
+import { PermissionGate } from '@/features/session'
 import { PERMISSION } from '@/lib/permission-keys'
 import { renderWithProviders } from '@tests/utils'
 

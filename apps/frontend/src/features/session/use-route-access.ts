@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router'
-import { useSession } from '@/features/session'
+import { useSession } from './use-session'
 import { canAccessCurrentRoute } from '@/lib/route-access'
 
 export function useRouteAccess() {

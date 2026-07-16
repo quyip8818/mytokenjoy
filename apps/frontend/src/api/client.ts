@@ -1,5 +1,6 @@
 import { API_BASE_PATH } from '@/config/app'
 import { AUTHZ_REVISION_HEADER } from '@/features/session'
+import { apiEvents } from './api-events'
 
 export class ApiError extends Error {
   status: number
@@ -11,22 +12,6 @@ export class ApiError extends Error {
     this.status = status
     this.retryAfter = retryAfter
   }
-}
-
-let unauthorizedHandler: (() => void) | null = null
-let forbiddenHandler: ((path: string) => void) | null = null
-let authzRevisionHandler: ((revision: number) => void) | null = null
-
-export function setUnauthorizedHandler(handler: (() => void) | null): void {
-  unauthorizedHandler = handler
-}
-
-export function setForbiddenHandler(handler: ((path: string) => void) | null): void {
-  forbiddenHandler = handler
-}
-
-export function setAuthzRevisionHandler(handler: ((revision: number) => void) | null): void {
-  authzRevisionHandler = handler
 }
 
 const NON_JSON_RESPONSE_MESSAGE =
@@ -59,7 +44,7 @@ function notifyAuthzRevision(res: Response): void {
   if (!revisionHeader) return
   const revision = Number(revisionHeader)
   if (Number.isFinite(revision)) {
-    authzRevisionHandler?.(revision)
+    apiEvents.emit('authzRevision', revision)
   }
 }
 
@@ -87,10 +72,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       }
     }
     if (res.status === 401) {
-      unauthorizedHandler?.()
+      apiEvents.emit('unauthorized')
     }
     if (res.status === 403 && path !== '/session') {
-      forbiddenHandler?.(path)
+      apiEvents.emit('forbidden', path)
     }
     throw new ApiError(
       res.status,

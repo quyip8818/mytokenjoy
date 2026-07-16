@@ -5,6 +5,10 @@ export { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 
 export const ALL_PERMISSIONS: PermissionKey[] = Object.values(PERMISSION)
 
+/**
+ * Returns true if the user holds ANY of the required permissions (OR semantics).
+ * Pass a single key or array of keys.
+ */
 export function hasPermission(
   permissions: readonly string[],
   required: PermissionKey | PermissionKey[],

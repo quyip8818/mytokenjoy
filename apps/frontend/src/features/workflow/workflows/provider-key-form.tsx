@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useWorkflow } from '../use-workflow'
+import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
 import { PROVIDER_LABELS } from '@/lib/provider-labels'
 

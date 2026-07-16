@@ -4,7 +4,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups, type NavItem } from '@/config/nav'
 import { useApprovalPendingCountQuery } from '@/features/org'
-import { usePermissions } from '@/hooks/use-permissions'
+import { usePermissions } from '@/features/session'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {

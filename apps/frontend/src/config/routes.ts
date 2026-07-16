@@ -31,6 +31,10 @@ export interface RouteDefinition {
   icon: LucideIcon
   audience: 'admin' | 'member'
   lazy: () => Promise<LazyPageModule>
+  /**
+   * Route is accessible if the user holds ANY of the listed permissions (OR semantics).
+   * An empty or absent array means no permission is required.
+   */
   requiredPermissions?: readonly PermissionKey[]
   badgeKey?: 'approvalPending'
   navGroup?: string

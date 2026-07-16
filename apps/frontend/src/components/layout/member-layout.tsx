@@ -5,6 +5,7 @@ import { WorkflowPanelStack } from '@/features/workflow'
 import { MEMBER_ROUTE_DEFINITIONS } from '@/config/routes'
 import { cn } from '@/lib/utils'
 import { Toaster } from '@/components/ui/sonner'
+import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
 
 export function MemberLayout() {
   const { member } = useSession()
@@ -56,7 +57,9 @@ export function MemberLayout() {
         </aside>
         <div className="flex flex-1 flex-col overflow-hidden">
           <main className="flex-1 overflow-auto p-8">
-            <Outlet />
+            <AppErrorBoundary>
+              <Outlet />
+            </AppErrorBoundary>
           </main>
         </div>
       </div>

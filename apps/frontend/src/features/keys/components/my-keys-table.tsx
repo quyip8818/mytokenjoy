@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { PermissionGate } from '@/components/auth/permission-gate'
+import { PermissionGate } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
 
 interface MyKeysTableProps {

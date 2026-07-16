@@ -1,4 +1,4 @@
-import { useRouteRedirect } from '@/hooks/use-route-redirect'
+import { useRouteRedirect } from './use-route-redirect'
 
 export function SessionNavigationBridge() {
   useRouteRedirect()
