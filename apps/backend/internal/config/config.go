@@ -29,6 +29,8 @@ type DatabaseConfig struct {
 	DatabaseURL       string `env:"DATABASE_URL"`
 	LogDatabaseURL    string `env:"LOG_DATABASE_URL"`
 	LogSchemaIsolated bool
+	DBMaxConnsEnv     int32 `env:"DB_MAX_CONNS" envDefault:"50"`
+	DBMinConnsEnv     int32 `env:"DB_MIN_CONNS" envDefault:"5"`
 
 	StoreBootstrap StoreBootstrap
 }
@@ -181,4 +183,18 @@ func (c Config) CORSOriginList() []string {
 		}
 	}
 	return origins
+}
+
+func (c Config) DBPoolMaxConns() int32 {
+	if c.DBMaxConnsEnv > 0 {
+		return c.DBMaxConnsEnv
+	}
+	return 50
+}
+
+func (c Config) DBPoolMinConns() int32 {
+	if c.DBMinConnsEnv > 0 {
+		return c.DBMinConnsEnv
+	}
+	return 5
 }

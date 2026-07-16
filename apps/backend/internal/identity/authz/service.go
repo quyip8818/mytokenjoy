@@ -2,6 +2,8 @@ package authz
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
@@ -23,16 +25,18 @@ type Store interface {
 }
 
 type service struct {
-	store Store
-	cache *LRUCache
+	store    Store
+	cache    *LRUCache
+	revCache *revisionCache
 }
 
 var _ RevisionReader = (*service)(nil)
 
 func NewService(cfg config.Config, st Store) Service {
 	return &service{
-		store: st,
-		cache: NewLRUCache(cfg.AuthzCacheSize),
+		store:    st,
+		cache:    NewLRUCache(cfg.AuthzCacheSize),
+		revCache: newRevisionCache(5 * time.Second),
 	}
 }
 
@@ -41,7 +45,7 @@ func (s *service) GetAuthzRevision(ctx context.Context, companyID int64) (int64,
 }
 
 func (s *service) GetSessionContext(ctx context.Context, companyID int64, memberID string) (types.SessionContext, error) {
-	revision, err := s.store.Company().GetAuthzRevision(ctx, companyID)
+	revision, err := s.revCache.get(ctx, companyID, s.store.Company())
 	if err != nil {
 		return types.SessionContext{}, err
 	}
@@ -82,4 +86,44 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 		BillingCurrency: currency,
 		PointsPerUnit:   ppu,
 	}, nil
+}
+
+// revisionCache caches authz_revision per company with a short TTL.
+// Reduces per-request DB round trips from 1 to ~0 (amortized over TTL window).
+type revisionCache struct {
+	mu      sync.Mutex
+	ttl     time.Duration
+	entries map[int64]revisionEntry
+}
+
+type revisionEntry struct {
+	revision  int64
+	expiresAt time.Time
+}
+
+func newRevisionCache(ttl time.Duration) *revisionCache {
+	return &revisionCache{
+		ttl:     ttl,
+		entries: make(map[int64]revisionEntry),
+	}
+}
+
+func (rc *revisionCache) get(ctx context.Context, companyID int64, repo store.CompanyRepository) (int64, error) {
+	now := time.Now()
+	rc.mu.Lock()
+	if entry, ok := rc.entries[companyID]; ok && now.Before(entry.expiresAt) {
+		rc.mu.Unlock()
+		return entry.revision, nil
+	}
+	rc.mu.Unlock()
+
+	revision, err := repo.GetAuthzRevision(ctx, companyID)
+	if err != nil {
+		return 0, err
+	}
+
+	rc.mu.Lock()
+	rc.entries[companyID] = revisionEntry{revision: revision, expiresAt: now.Add(rc.ttl)}
+	rc.mu.Unlock()
+	return revision, nil
 }

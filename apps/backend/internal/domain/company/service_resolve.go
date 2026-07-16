@@ -7,23 +7,17 @@ import (
 )
 
 func (s *service) ResolveFromMember(ctx context.Context, memberID string) (Context, error) {
-	companies, err := s.store.Company().List(ctx)
+	if memberID == "" {
+		return Context{}, domain.BadRequest("member id required")
+	}
+	companyID, err := s.store.Org().FindMemberCompanyID(ctx, memberID)
 	if err != nil {
 		return Context{}, err
 	}
-	for _, company := range companies {
-		companyCtx := WithContext(ctx, Context{CompanyID: company.ID})
-		members, err := s.store.Org().Members(companyCtx)
-		if err != nil {
-			return Context{}, err
-		}
-		for _, member := range members {
-			if member.ID == memberID {
-				return ContextFromStore(company), nil
-			}
-		}
+	if companyID == 0 {
+		return Context{}, domain.NotFound("member not found")
 	}
-	return Context{}, domain.NotFound("member not found")
+	return s.ResolveCompanyContext(ctx, companyID)
 }
 
 func (s *service) ResolveCompanyContext(ctx context.Context, companyID int64) (Context, error) {

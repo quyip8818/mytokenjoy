@@ -25,6 +25,7 @@ type OrgRepository interface {
 	FieldMappings(ctx context.Context) ([]types.FieldMapping, error)
 	SetFieldMappings(ctx context.Context, mappings []types.FieldMapping) error
 	Nodes() OrgNodeRepository
+	FindMemberCompanyID(ctx context.Context, memberID string) (int64, error)
 	Members(ctx context.Context) ([]types.Member, error)
 	MemberByID(ctx context.Context, memberID string) (*types.Member, error)
 	MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error)

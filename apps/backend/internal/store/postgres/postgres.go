@@ -34,7 +34,13 @@ type domainRepos struct {
 }
 
 func New(ctx context.Context, cfg config.Config) (store.Store, error) {
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse database url: %w", err)
+	}
+	poolCfg.MaxConns = cfg.DBPoolMaxConns()
+	poolCfg.MinConns = cfg.DBPoolMinConns()
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect postgres: %w", err)
 	}
@@ -66,7 +72,14 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 	}
 	if cfg.IngestEnabled() {
 		tables := logTablesFor(cfg)
-		logPool, err := pgxpool.New(ctx, cfg.LogDatabaseURL)
+		logPoolCfg, err := pgxpool.ParseConfig(cfg.LogDatabaseURL)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("parse log database url: %w", err)
+		}
+		logPoolCfg.MaxConns = cfg.DBPoolMaxConns()
+		logPoolCfg.MinConns = cfg.DBPoolMinConns()
+		logPool, err := pgxpool.NewWithConfig(ctx, logPoolCfg)
 		if err != nil {
 			pool.Close()
 			return nil, fmt.Errorf("connect logs postgres: %w", err)

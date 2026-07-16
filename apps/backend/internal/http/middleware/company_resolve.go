@@ -29,9 +29,22 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer se
 				return
 			}
 
-			companyID := cfg.LocalCompanyID
+			// In single-tenant (non-SaaS) mode, use LocalCompanyID as the implicit
+			// tenant for all requests. In SaaS mode, require the JWT to carry the
+			// company binding — no fallback.
+			var companyID int64
 			if claims, ok := httpx.ResolveMemberClaims(r, tokenIssuer); ok && claims.CompanyID > 0 {
 				companyID = claims.CompanyID
+			} else if !cfg.SupportSaas {
+				companyID = cfg.LocalCompanyID
+			}
+
+			if companyID == 0 {
+				// No tenant context resolved. Let request proceed without company
+				// context — RequireSession middleware will reject unauthenticated
+				// requests downstream. Public routes (health, login) don't need it.
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			companyCtx, err := companySvc.ResolveCompanyContext(r.Context(), companyID)

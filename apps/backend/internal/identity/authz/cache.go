@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"container/list"
 	"sync"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -18,11 +19,17 @@ type cacheValue struct {
 	readOnly    bool
 }
 
+type lruEntry struct {
+	key   cacheKey
+	value cacheValue
+}
+
+// LRUCache is a thread-safe O(1) LRU cache backed by a doubly-linked list + map.
 type LRUCache struct {
 	mu      sync.Mutex
 	maxSize int
-	order   []cacheKey
-	data    map[cacheKey]cacheValue
+	ll      *list.List
+	items   map[cacheKey]*list.Element
 }
 
 func NewLRUCache(maxSize int) *LRUCache {
@@ -31,7 +38,8 @@ func NewLRUCache(maxSize int) *LRUCache {
 	}
 	return &LRUCache{
 		maxSize: maxSize,
-		data:    make(map[cacheKey]cacheValue),
+		ll:      list.New(),
+		items:   make(map[cacheKey]*list.Element, maxSize),
 	}
 }
 
@@ -39,37 +47,42 @@ func (c *LRUCache) Get(companyID int64, memberID string, revision int64) (types.
 	key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	value, ok := c.data[key]
+	elem, ok := c.items[key]
 	if !ok {
 		return types.Member{}, nil, false, false
 	}
-	c.touch(key)
-	return value.member, append([]string(nil), value.permissions...), value.readOnly, true
+	c.ll.MoveToFront(elem)
+	entry := elem.Value.(*lruEntry)
+	return entry.value.member, append([]string(nil), entry.value.permissions...), entry.value.readOnly, true
 }
 
 func (c *LRUCache) Put(companyID int64, memberID string, revision int64, member types.Member, permissions []string, readOnly bool) {
 	key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if _, ok := c.data[key]; !ok && len(c.data) >= c.maxSize && len(c.order) > 0 {
-		oldest := c.order[0]
-		c.order = c.order[1:]
-		delete(c.data, oldest)
+	if elem, ok := c.items[key]; ok {
+		c.ll.MoveToFront(elem)
+		elem.Value.(*lruEntry).value = cacheValue{
+			member:      member,
+			permissions: append([]string(nil), permissions...),
+			readOnly:    readOnly,
+		}
+		return
 	}
-	c.data[key] = cacheValue{
-		member:      member,
-		permissions: append([]string(nil), permissions...),
-		readOnly:    readOnly,
-	}
-	c.touch(key)
-}
-
-func (c *LRUCache) touch(key cacheKey) {
-	for i, existing := range c.order {
-		if existing == key {
-			c.order = append(c.order[:i], c.order[i+1:]...)
-			break
+	if c.ll.Len() >= c.maxSize {
+		oldest := c.ll.Back()
+		if oldest != nil {
+			c.ll.Remove(oldest)
+			delete(c.items, oldest.Value.(*lruEntry).key)
 		}
 	}
-	c.order = append(c.order, key)
+	entry := &lruEntry{
+		key: key,
+		value: cacheValue{
+			member:      member,
+			permissions: append([]string(nil), permissions...),
+			readOnly:    readOnly,
+		},
+	}
+	c.items[key] = c.ll.PushFront(entry)
 }

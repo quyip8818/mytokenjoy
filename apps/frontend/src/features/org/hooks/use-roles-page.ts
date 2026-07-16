@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ApiError } from '@/api/client'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { Member, Role } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
+import { withErrorToast } from '@/lib/api-error-toast'
 
 export function useRolesPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
@@ -79,7 +79,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   }
 
   const handleFormSubmit = async (data: { name: string; permissions: string[] }) => {
-    try {
+    await withErrorToast(async () => {
       if (editingRole) {
         await apis.roleApi.update(editingRole.id, data)
       } else {
@@ -88,14 +88,12 @@ export function useRolesPage(injectedApis?: AppApis) {
       setFormOpen(false)
       await invalidateOrg()
       toast.success(editingRole ? `角色「${data.name}」已更新` : `角色「${data.name}」已创建`)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '操作失败，请重试')
-    }
+    }, '操作失败，请重试')
   }
 
   const handleConfirmDelete = async () => {
     if (!deleteConfirm) return
-    try {
+    await withErrorToast(async () => {
       await apis.roleApi.delete(deleteConfirm.id)
       if (resolvedSelectedRoleId === deleteConfirm.id) {
         setSelectedRoleId(null)
@@ -103,9 +101,7 @@ export function useRolesPage(injectedApis?: AppApis) {
       setDeleteConfirm(null)
       await invalidateOrg()
       toast.success('角色已删除')
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '删除失败，请重试')
-    }
+    }, '删除失败，请重试')
   }
 
   const handleRemoveMember = (member: Member) => {
@@ -119,25 +115,21 @@ export function useRolesPage(injectedApis?: AppApis) {
 
   const handleConfirmRemove = async () => {
     if (!removeConfirm) return
-    try {
+    await withErrorToast(async () => {
       await apis.roleApi.removeMember(removeConfirm.role.id, removeConfirm.member.id)
       setRemoveConfirm(null)
       await invalidateOrg()
       toast.success('成员已从角色中移除')
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '移除失败，请重试')
-    }
+    }, '移除失败，请重试')
   }
 
   const handleAddMember = async (memberId: string) => {
     if (!resolvedSelectedRoleId) return
-    try {
+    await withErrorToast(async () => {
       await apis.roleApi.addMember(resolvedSelectedRoleId, memberId)
       await invalidateOrg()
       toast.success('成员已添加到角色')
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '添加失败，请重试')
-    }
+    }, '添加失败，请重试')
   }
 
   const searchMembers = async (keyword: string) => {

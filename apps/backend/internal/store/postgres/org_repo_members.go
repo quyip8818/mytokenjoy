@@ -25,6 +25,15 @@ const memberListSelect = `
 	LEFT JOIN roles r ON r.company_id = mr.company_id AND r.id = mr.role_id
 `
 
+func (r *pgOrgRepo) FindMemberCompanyID(ctx context.Context, memberID string) (int64, error) {
+	var companyID int64
+	err := r.db.QueryRow(ctx, `SELECT company_id FROM members WHERE id = $1 LIMIT 1`, memberID).Scan(&companyID)
+	if err == pgx.ErrNoRows {
+		return 0, nil
+	}
+	return companyID, err
+}
+
 func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, memberListSelect+`

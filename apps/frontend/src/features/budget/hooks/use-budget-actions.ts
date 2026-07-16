@@ -2,8 +2,7 @@ import { useCallback } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { PlatformKeyScope, ProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
-import { ApiError } from '@/api/client'
-import { toast } from 'sonner'
+import { withErrorToast } from '@/lib/api-error-toast'
 import { queryKeys } from '@/features/query'
 import { useWorkflowRefresh } from '@/features/workflow'
 
@@ -22,75 +21,47 @@ export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: Us
   })
 
   const updateDepartment = useCallback(
-    async (departmentId: string, data: { budget: number; reservedPool?: number }) => {
-      try {
+    (departmentId: string, data: { budget: number; reservedPool?: number }) =>
+      withErrorToast(async () => {
         await apis.budgetApi.updateDepartment(departmentId, data)
         await refresh()
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : '更新部门预算失败')
-        throw err
-      }
-    },
+      }, '更新部门预算失败'),
     [apis, refresh],
   )
 
   const resolveApproval = useCallback(
-    async (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) => {
-      try {
+    (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) =>
+      withErrorToast(async () => {
         await apis.budgetApi.resolveApproval(id, data)
         await refreshApprovals()
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : '审批操作失败')
-        throw err
-      }
-    },
+      }, '审批操作失败'),
     [apis, refreshApprovals],
   )
 
   const createProject = useCallback(
-    async (data: {
-      name: string
-      budget: number
-      memberIds: string[]
-      ownerDepartmentId: string
-    }) => {
-      try {
+    (data: { name: string; budget: number; memberIds: string[]; ownerDepartmentId: string }) =>
+      withErrorToast(async () => {
         await apis.budgetApi.createProject(data)
         await refresh()
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : '创建项目失败')
-        throw err
-      }
-    },
+      }, '创建项目失败'),
     [apis, refresh],
   )
 
   const updateProject = useCallback(
-    async (
-      groupId: string,
-      data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> },
-    ) => {
-      try {
+    (groupId: string, data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> }) =>
+      withErrorToast(async () => {
         await apis.budgetApi.updateProject(groupId, data)
         await refresh()
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : '更新项目失败')
-        throw err
-      }
-    },
+      }, '更新项目失败'),
     [apis, refresh],
   )
 
   const deleteProject = useCallback(
-    async (groupId: string) => {
-      try {
+    (groupId: string) =>
+      withErrorToast(async () => {
         await apis.budgetApi.deleteProject(groupId)
         await refresh()
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : '删除项目失败')
-        throw err
-      }
-    },
+      }, '删除项目失败'),
     [apis, refresh],
   )
 
@@ -114,18 +85,16 @@ export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: Us
   )
 
   const updateMemberBudget = useCallback(
-    async (memberId: string, data: UpdateMemberBudgetInput) => {
-      const result = await apis.budgetApi.updateMemberBudget(memberId, data)
-      return result
-    },
+    (memberId: string, data: UpdateMemberBudgetInput) => apis.budgetApi.updateMemberBudget(memberId, data),
     [apis],
   )
 
   const applyAverageBudget = useCallback(
-    async (departmentId: string, data: { personalBudget: number; recursive: boolean }) => {
-      await apis.budgetApi.applyAverageBudget(departmentId, data)
-      await refresh()
-    },
+    (departmentId: string, data: { personalBudget: number; recursive: boolean }) =>
+      withErrorToast(async () => {
+        await apis.budgetApi.applyAverageBudget(departmentId, data)
+        await refresh()
+      }, '应用均分额度失败'),
     [apis, refresh],
   )
 
@@ -133,12 +102,7 @@ export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: Us
 
   const getMembers = useCallback(
     async (departmentId: string) => {
-      const result = await apis.memberApi.list({
-        departmentId,
-        directOnly: true,
-        page: 1,
-        pageSize: 200,
-      })
+      const result = await apis.memberApi.list({ departmentId, directOnly: true, page: 1, pageSize: 200 })
       return result?.items ?? []
     },
     [apis],
