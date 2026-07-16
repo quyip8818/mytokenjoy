@@ -21,8 +21,8 @@ func IsInQuietHours(qh *domainnotification.QuietHours) bool {
 	now := time.Now().In(loc)
 	currentMinutes := now.Hour()*60 + now.Minute()
 
-	startMinutes := parseTimeMinutes(qh.Start)
-	endMinutes := parseTimeMinutes(qh.End)
+	startMinutes := ParseTimeMinutes(qh.Start)
+	endMinutes := ParseTimeMinutes(qh.End)
 
 	if startMinutes < 0 || endMinutes < 0 {
 		return false
@@ -36,9 +36,9 @@ func IsInQuietHours(qh *domainnotification.QuietHours) bool {
 	return currentMinutes >= startMinutes || currentMinutes < endMinutes
 }
 
-// parseTimeMinutes parses "HH:mm" into total minutes since midnight.
+// ParseTimeMinutes parses "HH:mm" into total minutes since midnight.
 // Returns -1 on failure.
-func parseTimeMinutes(s string) int {
+func ParseTimeMinutes(s string) int {
 	if len(s) != 5 || s[2] != ':' {
 		return -1
 	}

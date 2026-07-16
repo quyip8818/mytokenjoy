@@ -8,9 +8,9 @@ import (
 )
 
 // NewAPI uses -1 for never-expire; 0 means already expired.
-const tokenExpiredNever int64 = -1
+const TokenExpiredNever int64 = -1
 
-type tokenPutBody struct {
+type TokenPutBody struct {
 	ID                 int64  `json:"id"`
 	Name               string `json:"name"`
 	Status             int    `json:"status"`
@@ -56,7 +56,7 @@ func (c *Client) UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token
 	if err != nil {
 		return Token{}, err
 	}
-	payload := mergeTokenPut(cur, req)
+	payload := MergeTokenPut(cur, req)
 	var token Token
 	if err := c.do(ctx, "PUT", "/api/token/", payload, &token); err != nil {
 		return Token{}, err
@@ -64,8 +64,8 @@ func (c *Client) UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token
 	return token, nil
 }
 
-func mergeTokenPut(cur Token, req UpdateTokenRequest) tokenPutBody {
-	return tokenPutBody{
+func MergeTokenPut(cur Token, req UpdateTokenRequest) TokenPutBody {
+	return TokenPutBody{
 		ID:                 req.ID,
 		Name:               coalesceString(req.Name, cur.Name),
 		Status:             coalescePtr(req.Status, cur.Status),
@@ -85,7 +85,7 @@ func expiredTimeForPut(override *int64, current int64) int64 {
 		return *override
 	}
 	if current == 0 {
-		return tokenExpiredNever
+		return TokenExpiredNever
 	}
 	return current
 }

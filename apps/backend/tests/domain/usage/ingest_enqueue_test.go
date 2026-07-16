@@ -21,7 +21,7 @@ import (
 	workerfix "github.com/tokenjoy/backend/tests/testutil/worker"
 )
 
-func TestIngestEnqueuesBudgetDashboardProjectAndWalletSync(t *testing.T) {
+func TestIngestEnqueuesDashboardProjectAndWalletSync(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	_, st, ingest := workerfix.NewRuntime(t, stub)
 
@@ -32,9 +32,6 @@ func TestIngestEnqueuesBudgetDashboardProjectAndWalletSync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if riverfix.PendingBudgetProjectCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected budget_projection job after ingest")
-	}
 	if riverfix.PendingDashboardProjectCount(st, contract.DefaultCompanyID) == 0 {
 		t.Fatal("expected dashboard_project job after ingest")
 	}
@@ -80,9 +77,6 @@ func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 	}
 	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no wallet_sync job after rollback")
-	}
-	if riverfix.PendingBudgetProjectCount(st, contract.DefaultCompanyID) != 0 {
-		t.Fatal("expected no budget_projection job after rollback")
 	}
 }
 

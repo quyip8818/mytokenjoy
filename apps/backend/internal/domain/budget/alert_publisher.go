@@ -105,7 +105,7 @@ func checkBudgetAlertsImpl(
 		}
 		return
 	}
-	membersByRoleName := indexMembersByRole(members)
+	membersByRoleName := IndexMembersByRole(members)
 
 	var alerts []BudgetAlertEvent
 
@@ -139,7 +139,7 @@ func checkBudgetAlertsImpl(
 				threshold := rule.Thresholds[i]
 				if pct >= threshold {
 					// Expand NotifyRoleIDs to real member IDs.
-					recipients := resolveRoleRecipients(rule.NotifyRoleIDs, roleNameByID, membersByRoleName)
+					recipients := ResolveRoleRecipients(rule.NotifyRoleIDs, roleNameByID, membersByRoleName)
 					for _, memberID := range recipients {
 						alerts = append(alerts, BudgetAlertEvent{
 							CompanyID:    companyID,
@@ -171,7 +171,7 @@ func checkBudgetAlertsImpl(
 	}
 }
 
-func indexMembersByRole(members []types.Member) map[string][]string {
+func IndexMembersByRole(members []types.Member) map[string][]string {
 	out := make(map[string][]string)
 	for _, m := range members {
 		if m.Status != "active" {
@@ -184,7 +184,7 @@ func indexMembersByRole(members []types.Member) map[string][]string {
 	return out
 }
 
-func resolveRoleRecipients(roleIDs []string, roleNameByID map[string]string, membersByRoleName map[string][]string) []string {
+func ResolveRoleRecipients(roleIDs []string, roleNameByID map[string]string, membersByRoleName map[string][]string) []string {
 	seen := make(map[string]struct{})
 	var out []string
 	for _, roleID := range roleIDs {

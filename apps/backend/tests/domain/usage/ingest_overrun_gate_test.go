@@ -1,10 +1,11 @@
-package usage
+package usage_test
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -61,7 +62,7 @@ func TestShouldEnqueueOverrun(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ShouldEnqueueOverrun(tc.summaries, tc.platformKeyID)
+			got := usage.ShouldEnqueueOverrun(tc.summaries, tc.platformKeyID)
 			if got != tc.want {
 				t.Errorf("ShouldEnqueueOverrun() = %v, want %v", got, tc.want)
 			}
@@ -73,22 +74,22 @@ func TestOverrunPayloadFromEffects(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil effects → nil", func(t *testing.T) {
-		if got := OverrunPayloadFromEffects(nil); got != nil {
+		if got := usage.OverrunPayloadFromEffects(nil); got != nil {
 			t.Errorf("expected nil, got %s", got)
 		}
 	})
 
 	t.Run("empty payload → nil", func(t *testing.T) {
-		effects := &IngestEffects{OverrunPayload: nil}
-		if got := OverrunPayloadFromEffects(effects); got != nil {
+		effects := &usage.IngestEffects{OverrunPayload: nil}
+		if got := usage.OverrunPayloadFromEffects(effects); got != nil {
 			t.Errorf("expected nil, got %s", got)
 		}
 	})
 
 	t.Run("valid payload → returned", func(t *testing.T) {
 		payload := json.RawMessage(`{"departmentId":"dept-1"}`)
-		effects := &IngestEffects{OverrunPayload: payload}
-		got := OverrunPayloadFromEffects(effects)
+		effects := &usage.IngestEffects{OverrunPayload: payload}
+		got := usage.OverrunPayloadFromEffects(effects)
 		if string(got) != `{"departmentId":"dept-1"}` {
 			t.Errorf("got %s", got)
 		}
@@ -105,7 +106,7 @@ func TestOverrunPayloadFromEntry(t *testing.T) {
 		MemberID:      &memberID,
 		ProjectID:     &projectID,
 	}
-	raw := overrunPayloadFromEntry(entry, "2026-07")
+	raw := usage.OverrunPayloadFromEntry(entry, "2026-07")
 	var payload map[string]any
 	if err := json.Unmarshal(raw, &payload); err != nil {
 		t.Fatal(err)

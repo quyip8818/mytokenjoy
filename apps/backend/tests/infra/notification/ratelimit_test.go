@@ -1,13 +1,15 @@
-package notification
+package notification_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/tokenjoy/backend/internal/infra/notification"
 )
 
 func TestRateLimiterAllowWithinLimit(t *testing.T) {
 	t.Parallel()
-	rl := NewRateLimiter(3, time.Hour)
+	rl := notification.NewRateLimiter(3, time.Hour)
 
 	for i := 0; i < 3; i++ {
 		if !rl.Allow("user1:sms") {
@@ -18,7 +20,7 @@ func TestRateLimiterAllowWithinLimit(t *testing.T) {
 
 func TestRateLimiterBlocksOverLimit(t *testing.T) {
 	t.Parallel()
-	rl := NewRateLimiter(2, time.Hour)
+	rl := notification.NewRateLimiter(2, time.Hour)
 
 	rl.Allow("user1:sms") // 1
 	rl.Allow("user1:sms") // 2
@@ -30,7 +32,7 @@ func TestRateLimiterBlocksOverLimit(t *testing.T) {
 
 func TestRateLimiterIndependentKeys(t *testing.T) {
 	t.Parallel()
-	rl := NewRateLimiter(1, time.Hour)
+	rl := notification.NewRateLimiter(1, time.Hour)
 
 	if !rl.Allow("user1:sms") {
 		t.Fatal("user1 should be allowed")
@@ -46,7 +48,7 @@ func TestRateLimiterIndependentKeys(t *testing.T) {
 func TestRateLimiterWindowResets(t *testing.T) {
 	t.Parallel()
 	// Use a very short window
-	rl := NewRateLimiter(1, 10*time.Millisecond)
+	rl := notification.NewRateLimiter(1, 10*time.Millisecond)
 
 	rl.Allow("k")
 	if rl.Allow("k") {
@@ -62,7 +64,7 @@ func TestRateLimiterWindowResets(t *testing.T) {
 
 func TestRateLimiterReset(t *testing.T) {
 	t.Parallel()
-	rl := NewRateLimiter(1, time.Hour)
+	rl := notification.NewRateLimiter(1, time.Hour)
 	rl.Allow("k")
 
 	rl.Reset()

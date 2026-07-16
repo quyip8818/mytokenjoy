@@ -9,11 +9,11 @@ import (
 const channelAddModeSingle = "single"
 
 type addChannelRequest struct {
-	Mode    string            `json:"mode"`
-	Channel upsertChannelBody `json:"channel"`
+	Mode    string           `json:"mode"`
+	Channel UpsertChannelBody `json:"channel"`
 }
 
-type upsertChannelBody struct {
+type UpsertChannelBody struct {
 	ID     int    `json:"id,omitempty"`
 	Type   int    `json:"type"`
 	Name   string `json:"name"`
@@ -32,7 +32,7 @@ func (c *Client) UpsertChannel(ctx context.Context, req UpsertChannelRequest) (C
 func (c *Client) createChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error) {
 	payload := addChannelRequest{
 		Mode: channelAddModeSingle,
-		Channel: upsertChannelBody{
+		Channel: UpsertChannelBody{
 			Type:   req.Type,
 			Name:   req.Name,
 			Key:    req.Key,
@@ -59,7 +59,7 @@ func (c *Client) updateChannel(ctx context.Context, req UpsertChannelRequest) (C
 	if err != nil {
 		return Channel{}, err
 	}
-	body := mergeChannelPut(cur, req)
+	body := MergeChannelPut(cur, req)
 	var out Channel
 	if err := c.do(ctx, "PUT", "/api/channel/", body, &out); err != nil {
 		return Channel{}, err
@@ -70,8 +70,8 @@ func (c *Client) updateChannel(ctx context.Context, req UpsertChannelRequest) (C
 	return out, nil
 }
 
-func mergeChannelPut(cur Channel, req UpsertChannelRequest) upsertChannelBody {
-	return upsertChannelBody{
+func MergeChannelPut(cur Channel, req UpsertChannelRequest) UpsertChannelBody {
+	return UpsertChannelBody{
 		ID:     req.ID,
 		Type:   coalesceNonZeroInt(req.Type, cur.Type),
 		Name:   coalesceString(req.Name, cur.Name),

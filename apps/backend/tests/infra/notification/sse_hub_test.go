@@ -1,18 +1,20 @@
-package notification
+package notification_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/tokenjoy/backend/internal/infra/notification"
 )
 
 func TestSSEHubSubscribeAndPublish(t *testing.T) {
 	t.Parallel()
-	hub := NewSSEHub()
+	hub := notification.NewSSEHub()
 
 	ch, unsub := hub.Subscribe("user-1")
 	defer unsub()
 
-	event := SSEEvent{ID: "n1", EventType: "test", Title: "Hello", Body: "World"}
+	event := notification.SSEEvent{ID: "n1", EventType: "test", Title: "Hello", Body: "World"}
 	hub.Publish("user-1", event)
 
 	select {
@@ -27,12 +29,12 @@ func TestSSEHubSubscribeAndPublish(t *testing.T) {
 
 func TestSSEHubPublishToWrongUser(t *testing.T) {
 	t.Parallel()
-	hub := NewSSEHub()
+	hub := notification.NewSSEHub()
 
 	ch, unsub := hub.Subscribe("user-1")
 	defer unsub()
 
-	hub.Publish("user-2", SSEEvent{ID: "n2", Title: "Not for you"})
+	hub.Publish("user-2", notification.SSEEvent{ID: "n2", Title: "Not for you"})
 
 	select {
 	case <-ch:
@@ -44,7 +46,7 @@ func TestSSEHubPublishToWrongUser(t *testing.T) {
 
 func TestSSEHubUnsubscribe(t *testing.T) {
 	t.Parallel()
-	hub := NewSSEHub()
+	hub := notification.NewSSEHub()
 
 	_, unsub := hub.Subscribe("user-1")
 	if hub.ActiveSubscribers("user-1") != 1 {
@@ -59,14 +61,14 @@ func TestSSEHubUnsubscribe(t *testing.T) {
 
 func TestSSEHubMultipleSubscribers(t *testing.T) {
 	t.Parallel()
-	hub := NewSSEHub()
+	hub := notification.NewSSEHub()
 
 	ch1, unsub1 := hub.Subscribe("user-1")
 	ch2, unsub2 := hub.Subscribe("user-1")
 	defer unsub1()
 	defer unsub2()
 
-	hub.Publish("user-1", SSEEvent{ID: "n3", Title: "Broadcast"})
+	hub.Publish("user-1", notification.SSEEvent{ID: "n3", Title: "Broadcast"})
 
 	select {
 	case got := <-ch1:
@@ -89,7 +91,7 @@ func TestSSEHubMultipleSubscribers(t *testing.T) {
 
 func TestSSEHubDropsSlowSubscriber(t *testing.T) {
 	t.Parallel()
-	hub := NewSSEHub()
+	hub := notification.NewSSEHub()
 
 	// Subscribe but never consume
 	_, unsub := hub.Subscribe("user-1")
@@ -97,7 +99,7 @@ func TestSSEHubDropsSlowSubscriber(t *testing.T) {
 
 	// Fill the buffer (16) and one more — should not block
 	for i := 0; i < 20; i++ {
-		hub.Publish("user-1", SSEEvent{ID: "overflow", Title: "spam"})
+		hub.Publish("user-1", notification.SSEEvent{ID: "overflow", Title: "spam"})
 	}
 	// If we reach here without hanging, the test passes
 }

@@ -8,9 +8,9 @@ import (
 
 const producerJobCountsMsg = "Producer job counts"
 
-// quietLogger drops River producer heartbeat lines (queue counters) while
+// QuietLogger drops River producer heartbeat lines (queue counters) while
 // keeping Warn/Error and real job failure logs. Stuck-count heartbeats are kept.
-func quietLogger(logger *slog.Logger) *slog.Logger {
+func QuietLogger(logger *slog.Logger) *slog.Logger {
 	if logger == nil {
 		logger = slog.Default()
 	}

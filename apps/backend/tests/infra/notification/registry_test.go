@@ -1,4 +1,4 @@
-package notification
+package notification_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 )
 
 type mockChannel struct {
@@ -16,7 +17,7 @@ type mockChannel struct {
 }
 
 func (c *mockChannel) Name() string       { return c.name }
-func (c *mockChannel) IsConfigured() bool { return c.configured }
+func (c *mockChannel) IsConfigured() bool  { return c.configured }
 func (c *mockChannel) Send(_ context.Context, recipientID string, _ domainnotification.RenderedMessage) error {
 	c.sent = append(c.sent, recipientID)
 	return nil
@@ -28,7 +29,7 @@ func testLogger() *slog.Logger {
 
 func TestRegistryRegisterAndGet(t *testing.T) {
 	t.Parallel()
-	r := NewRegistry(testLogger())
+	r := notification.NewRegistry(testLogger())
 
 	ch := &mockChannel{name: "test_ch", configured: true}
 	r.Register(ch)
@@ -44,7 +45,7 @@ func TestRegistryRegisterAndGet(t *testing.T) {
 
 func TestRegistryConfigured(t *testing.T) {
 	t.Parallel()
-	r := NewRegistry(testLogger())
+	r := notification.NewRegistry(testLogger())
 
 	r.Register(&mockChannel{name: "a", configured: true})
 	r.Register(&mockChannel{name: "b", configured: false})
@@ -72,7 +73,7 @@ func TestRegistryConfigured(t *testing.T) {
 
 func TestRegistryGetMissing(t *testing.T) {
 	t.Parallel()
-	r := NewRegistry(testLogger())
+	r := notification.NewRegistry(testLogger())
 
 	_, ok := r.Get("nonexistent")
 	if ok {

@@ -1,28 +1,30 @@
-package budget
+package budget_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/tokenjoy/backend/internal/domain/budget"
 )
 
 func TestReconcileWindowStart(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
-	since := reconcileWindowStart(now)
+	since := budget.ReconcileWindowStart(now)
 	expected := time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC)
 	if !since.Equal(expected) {
-		t.Errorf("reconcileWindowStart(%v) = %v, want %v", now, since, expected)
+		t.Errorf("ReconcileWindowStart(%v) = %v, want %v", now, since, expected)
 	}
 }
 
 func TestCollectPeriodKeys(t *testing.T) {
 	t.Parallel()
-	expected := map[AxisKey]float64{
+	expected := map[budget.AxisKey]float64{
 		{Kind: "platform_key", AxisID: "pk-1", PeriodKey: "2026-07"}: 100,
 		{Kind: "member", AxisID: "m-1", PeriodKey: "2026-07"}:        50,
 		{Kind: "platform_key", AxisID: "pk-2", PeriodKey: "2026-06"}: 200,
 	}
-	keys := collectPeriodKeys(expected)
+	keys := budget.CollectPeriodKeys(expected)
 	if len(keys) != 2 {
 		t.Fatalf("expected 2 unique period keys, got %d: %v", len(keys), keys)
 	}
@@ -45,7 +47,7 @@ func TestSortedKeys(t *testing.T) {
 		"alpha":   {},
 		"bravo":   {},
 	}
-	got := sortedKeys(m)
+	got := budget.SortedKeys(m)
 	want := []string{"alpha", "bravo", "charlie"}
 	if len(got) != len(want) {
 		t.Fatalf("len = %d, want %d", len(got), len(want))
@@ -74,7 +76,7 @@ func TestConsumedDrift(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ConsumedDrift(tc.expected, tc.actual)
+			got := budget.ConsumedDrift(tc.expected, tc.actual)
 			if got != tc.drift {
 				t.Errorf("ConsumedDrift(%v, %v) = %v, want %v", tc.expected, tc.actual, got, tc.drift)
 			}

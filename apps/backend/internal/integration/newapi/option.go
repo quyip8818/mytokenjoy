@@ -28,7 +28,7 @@ func (c *Client) EnsureGroup(ctx context.Context, group, displayName string) err
 		byKey[item.Key] = item.Value
 	}
 	for _, optKey := range []string{"UserUsableGroups", "GroupRatio"} {
-		merged, skip, err := mergeGroupOption(byKey[optKey], optKey, group, displayName)
+		merged, skip, err := MergeGroupOption(byKey[optKey], optKey, group, displayName)
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,7 @@ func (c *Client) EnsureGroup(ctx context.Context, group, displayName string) err
 	return nil
 }
 
-func mergeGroupOption(raw, optKey, group, displayName string) (merged string, skip bool, err error) {
+func MergeGroupOption(raw, optKey, group, displayName string) (merged string, skip bool, err error) {
 	data := map[string]any{}
 	if raw != "" {
 		if err := json.Unmarshal([]byte(raw), &data); err != nil {

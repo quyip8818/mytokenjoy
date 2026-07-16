@@ -229,7 +229,7 @@ func (w *Worker) pendingJobGroups(ctx context.Context, jobs []store.IngestJob) [
 		w.logger.Warn("resolve ingest job companies failed; processing serial within batch", "error", err)
 		return [][]store.IngestJob{jobs}
 	}
-	return groupJobsByCompany(jobs, companyByLogID)
+	return GroupJobsByCompany(jobs, companyByLogID)
 }
 
 func (w *Worker) ProcessReconcile(ctx context.Context) error {

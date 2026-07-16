@@ -2,9 +2,9 @@ package ingest
 
 import "github.com/tokenjoy/backend/internal/store"
 
-// groupJobsByCompany groups jobs by resolved company ID.
+// GroupJobsByCompany groups jobs by resolved company ID.
 // Jobs without a known company each become their own group so they can fail fast in parallel.
-func groupJobsByCompany(jobs []store.IngestJob, companyByLogID map[int64]int64) [][]store.IngestJob {
+func GroupJobsByCompany(jobs []store.IngestJob, companyByLogID map[int64]int64) [][]store.IngestJob {
 	if len(jobs) == 0 {
 		return nil
 	}

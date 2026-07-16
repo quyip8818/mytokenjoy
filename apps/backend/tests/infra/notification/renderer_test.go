@@ -1,14 +1,15 @@
-package notification
+package notification_test
 
 import (
 	"testing"
 
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
+	"github.com/tokenjoy/backend/internal/infra/notification"
 )
 
 func TestRendererExtractsTitleFromPayload(t *testing.T) {
 	t.Parallel()
-	r := NewRenderer()
+	r := notification.NewRenderer()
 
 	event := domainnotification.Event{
 		EventType: "budget_alert_reached",
@@ -29,7 +30,7 @@ func TestRendererExtractsTitleFromPayload(t *testing.T) {
 
 func TestRendererUsesDefaultTitle(t *testing.T) {
 	t.Parallel()
-	r := NewRenderer()
+	r := notification.NewRenderer()
 
 	event := domainnotification.Event{
 		EventType: domainnotification.EventBudgetAlertReached,
@@ -44,7 +45,7 @@ func TestRendererUsesDefaultTitle(t *testing.T) {
 
 func TestRendererEnrichesPayloadWithEventType(t *testing.T) {
 	t.Parallel()
-	r := NewRenderer()
+	r := notification.NewRenderer()
 
 	event := domainnotification.Event{
 		EventType: "key_expired",
@@ -62,7 +63,7 @@ func TestRendererEnrichesPayloadWithEventType(t *testing.T) {
 
 func TestRendererFallsBackToMessageField(t *testing.T) {
 	t.Parallel()
-	r := NewRenderer()
+	r := notification.NewRenderer()
 
 	event := domainnotification.Event{
 		EventType: domainnotification.EventOverrunBlocked,

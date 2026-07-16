@@ -8,9 +8,8 @@ alwaysApply: true
 
 ## 测试
 - Frontend：`apps/frontend/tests/`（镜像 src/ 路径）
-- Backend 单元测试：允许 internal/ 内 `_test.go`（同包测试，纯逻辑）
-- Backend 集成测试：`apps/backend/tests/`（外部测试包，需真实 DB/外部服务）
-- 禁止在前端 src/ 内放测试文件
+- Backend：`apps/backend/tests/`（镜像 internal/ 路径，外部测试包）
+- 禁止在 src/、internal/、组件旁边放测试文件
 
 ## 文档
 - 所有文档放 `docs/`（子目录：adr/、plan/、reviews/、todos/）

@@ -34,10 +34,13 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 
 	notifier := &testutil.RecordingNotifier{}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	budgetOps := app.NewUsageBudgetOps(nil, nil, logger)
+	lotConsumer := app.NewUsageLotConsumer()
 	ingest := usage.NewIngestService(
 		cfg, st, st.Logs(), logger,
 		app.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}),
 		notifier,
+		budgetOps, lotConsumer,
 	)
 
 	const logID int64 = 7101

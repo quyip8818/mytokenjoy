@@ -226,7 +226,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		effects.Summaries = summaries
 		effects.TouchedDepartments = map[string]struct{}{entry.DepartmentID: {}}
 		effects.PlatformKeyID = entry.PlatformKeyID
-		effects.OverrunPayload = overrunPayloadFromEntry(entry, open.String())
+		effects.OverrunPayload = OverrunPayloadFromEntry(entry, open.String())
 
 		// 7. Enqueue side-effect jobs (dashboard, wallet, conditional overrun).
 		tx, ok := st.(store.Tx)
@@ -282,8 +282,8 @@ func (s *IngestService) absoluteRecompute(ctx context.Context, st store.Store, p
 	return st.CombinedKeySummaries().UpdateBatch(ctx, updates)
 }
 
-// overrunPayloadFromEntry creates the overrun job payload matching the existing OverrunService schema.
-func overrunPayloadFromEntry(entry types.UsageLedgerEntry, periodKey string) json.RawMessage {
+// OverrunPayloadFromEntry creates the overrun job payload matching the existing OverrunService schema.
+func OverrunPayloadFromEntry(entry types.UsageLedgerEntry, periodKey string) json.RawMessage {
 	payload := map[string]any{
 		"departmentId":  entry.DepartmentID,
 		"platformKeyId": entry.PlatformKeyID,

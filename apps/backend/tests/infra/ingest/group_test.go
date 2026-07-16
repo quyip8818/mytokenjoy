@@ -1,9 +1,10 @@
-package ingest
+package ingest_test
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -20,7 +21,7 @@ func TestGroupJobsByCompany(t *testing.T) {
 		2: 20,
 		3: 10,
 	}
-	got := groupJobsByCompany(jobs, companyByLogID)
+	got := ingest.GroupJobsByCompany(jobs, companyByLogID)
 	want := [][]store.IngestJob{
 		{{ID: "a", LogID: 1}, {ID: "c", LogID: 3}},
 		{{ID: "b", LogID: 2}},
@@ -33,7 +34,7 @@ func TestGroupJobsByCompany(t *testing.T) {
 
 func TestGroupJobsByCompanyEmpty(t *testing.T) {
 	t.Parallel()
-	if got := groupJobsByCompany(nil, nil); got != nil {
+	if got := ingest.GroupJobsByCompany(nil, nil); got != nil {
 		t.Fatalf("expected nil, got %#v", got)
 	}
 }

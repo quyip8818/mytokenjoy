@@ -1,4 +1,4 @@
-package workers
+package workers_test
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/infra/river/workers"
 )
 
 func TestIsNonRetryableNewAPIError(t *testing.T) {
@@ -23,7 +24,7 @@ func TestIsNonRetryableNewAPIError(t *testing.T) {
 		{domain.ServiceUnavailable("newapi disabled"), true},
 	}
 	for _, tc := range cases {
-		if got := IsNonRetryableNewAPIError(tc.err); got != tc.want {
+		if got := workers.IsNonRetryableNewAPIError(tc.err); got != tc.want {
 			t.Fatalf("IsNonRetryableNewAPIError(%v)=%v want %v", tc.err, got, tc.want)
 		}
 	}

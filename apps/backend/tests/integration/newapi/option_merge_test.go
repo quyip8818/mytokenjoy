@@ -1,14 +1,16 @@
-package newapi
+package newapi_test
 
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
 func TestMergeGroupOptionAddsUserUsableGroups(t *testing.T) {
 	t.Parallel()
 	raw := `{"default":"Default","vip":"VIP"}`
-	merged, skip, err := mergeGroupOption(raw, "UserUsableGroups", "dept-dept-3", "后端组")
+	merged, skip, err := newapi.MergeGroupOption(raw, "UserUsableGroups", "dept-dept-3", "后端组")
 	if err != nil || skip {
 		t.Fatalf("unexpected skip=%v err=%v", skip, err)
 	}
@@ -24,7 +26,7 @@ func TestMergeGroupOptionAddsUserUsableGroups(t *testing.T) {
 func TestMergeGroupOptionSkipsExisting(t *testing.T) {
 	t.Parallel()
 	raw := `{"dept-dept-3":"后端组"}`
-	_, skip, err := mergeGroupOption(raw, "UserUsableGroups", "dept-dept-3", "后端组")
+	_, skip, err := newapi.MergeGroupOption(raw, "UserUsableGroups", "dept-dept-3", "后端组")
 	if err != nil || !skip {
 		t.Fatalf("expected skip, got skip=%v err=%v", skip, err)
 	}

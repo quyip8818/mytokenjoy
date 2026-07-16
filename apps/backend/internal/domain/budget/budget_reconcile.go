@@ -62,7 +62,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		}
 
 		// 3. Read window ledger INSIDE the lock.
-		since := reconcileWindowStart(clock.NowUTC(s.cfg.Clock()))
+		since := ReconcileWindowStart(clock.NowUTC(s.cfg.Clock()))
 		entries, err := tx.Ledger().ListCallSettledSince(ctx, since)
 		if err != nil {
 			return err
@@ -81,7 +81,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		}
 
 		// 5. Load actual consumed for the period keys present in expected.
-		periodKeys := collectPeriodKeys(expected)
+		periodKeys := CollectPeriodKeys(expected)
 		consumedRepo := tx.BudgetConsumed()
 
 		// Build actual map from all axis kinds.
@@ -160,7 +160,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) erro
 		}
 		if len(affectedKeys) > 0 {
 			// Lock platform_keys in stable order before absolute recompute.
-			sortedKeyIDs := sortedKeys(affectedKeys)
+			sortedKeyIDs := SortedKeys(affectedKeys)
 			if err := tx.CombinedKeySummaries().LockPlatformKeysForUpdate(ctx, sortedKeyIDs); err != nil {
 				return err
 			}
@@ -212,7 +212,7 @@ func expectedConsumedByEntryTime(ctx context.Context, nodes store.OrgNodeReposit
 	return acc, nil
 }
 
-func collectPeriodKeys(expected map[AxisKey]float64) []string {
+func CollectPeriodKeys(expected map[AxisKey]float64) []string {
 	set := make(map[string]struct{})
 	for key := range expected {
 		set[key.PeriodKey] = struct{}{}
@@ -224,7 +224,7 @@ func collectPeriodKeys(expected map[AxisKey]float64) []string {
 	return out
 }
 
-func sortedKeys(m map[string]struct{}) []string {
+func SortedKeys(m map[string]struct{}) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
 		out = append(out, k)
@@ -233,6 +233,6 @@ func sortedKeys(m map[string]struct{}) []string {
 	return out
 }
 
-func reconcileWindowStart(now time.Time) time.Time {
+func ReconcileWindowStart(now time.Time) time.Time {
 	return now.AddDate(0, -2, 0)
 }

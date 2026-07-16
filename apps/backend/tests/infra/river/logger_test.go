@@ -1,17 +1,19 @@
-package riverinfra
+package riverinfra_test
 
 import (
 	"bytes"
 	"log/slog"
 	"strings"
 	"testing"
+
+	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 )
 
 func TestQuietLoggerDropsProducerHeartbeat(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	base := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	logger := quietLogger(base)
+	logger := riverinfra.QuietLogger(base)
 
 	logger.Info("producer: Producer job counts",
 		slog.Uint64("num_completed_jobs", 3),
