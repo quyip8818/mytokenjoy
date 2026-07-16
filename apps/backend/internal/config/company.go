@@ -3,7 +3,6 @@ package config
 import "strings"
 
 const (
-	DefaultCompanySlug     = "default"
 	SaaSDefaultCompanyName = "Test Company"
 )
 

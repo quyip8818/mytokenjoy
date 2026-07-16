@@ -38,7 +38,7 @@ func TestLoadSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot := seed.Load(cfg)
-	if snapshot.Company.ID != contract.DefaultCompanyID || snapshot.Company.Slug != "default" {
+	if snapshot.Company.ID != contract.DefaultCompanyID {
 		t.Fatalf("expected default company, got %+v", snapshot.Company)
 	}
 	if len(snapshot.OrgNodes) == 0 {

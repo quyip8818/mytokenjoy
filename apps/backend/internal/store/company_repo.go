@@ -12,7 +12,6 @@ const (
 
 type Company struct {
 	ID                 int64
-	Slug               string
 	Name               string
 	Status             string
 	RootDeptID         *string
@@ -36,7 +35,6 @@ func ConfiguredNewAPIWalletUserID(co *Company) (int64, bool) {
 
 type CompanyRepository interface {
 	GetByID(ctx context.Context, id int64) (*Company, error)
-	GetBySlug(ctx context.Context, slug string) (*Company, error)
 	Create(ctx context.Context, company Company) error
 	UpdateStatus(ctx context.Context, id int64, status string) error
 	UpdatePackageID(ctx context.Context, id int64, packageID *string) error

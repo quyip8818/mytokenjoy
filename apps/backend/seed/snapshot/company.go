@@ -9,7 +9,6 @@ import (
 func defaultCompany(cfg config.Config) store.Company {
 	return store.Company{
 		ID:     contract.DefaultCompanyID,
-		Slug:   config.DefaultCompanySlug,
 		Name:   cfg.ResolvedCompanyName(),
 		Status: store.CompanyStatusActive,
 	}

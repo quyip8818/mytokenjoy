@@ -63,7 +63,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 type createCompanyBody struct {
-	Slug            string  `json:"slug"`
 	Name            string  `json:"name"`
 	SuperAdminEmail string  `json:"superAdminEmail"`
 	PackageID       *string `json:"packageId"`
@@ -76,7 +75,7 @@ func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := h.p.CompanySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
-		Slug: body.Slug, Name: body.Name, SuperAdminEmail: body.SuperAdminEmail, PackageID: body.PackageID,
+		Name: body.Name, SuperAdminEmail: body.SuperAdminEmail, PackageID: body.PackageID,
 	})
 	httputil.WriteJSON(w, http.StatusCreated, result, err)
 }

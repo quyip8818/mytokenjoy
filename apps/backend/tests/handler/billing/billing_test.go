@@ -24,7 +24,7 @@ func TestBillingWalletAfterPlatformRecharge(t *testing.T) {
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"billing-co", "Billing Co", "billing@example.com", "Billing Admin", "securepass123")
+		"Billing Co", "billing@example.com", "Billing Admin", "securepass123")
 
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 
@@ -57,7 +57,7 @@ func TestBillingSelfRechargeConfirmFlow(t *testing.T) {
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"self-rch", "Self Rch", "self-rch@example.com", "Self Admin", "securepass123")
+		"Self Rch", "self-rch@example.com", "Self Admin", "securepass123")
 
 	body, _ := json.Marshal(map[string]any{
 		"amount": 50.0, "idempotencyKey": "self-recharge-1",
@@ -101,7 +101,7 @@ func TestBillingSelfRechargeIdempotencyKey(t *testing.T) {
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"idem-co", "Idem Co", "idem@example.com", "Idem Admin", "securepass123")
+		"Idem Co", "idem@example.com", "Idem Admin", "securepass123")
 
 	payload, _ := json.Marshal(map[string]any{"amount": 10.0, "idempotencyKey": "unique-key-42"})
 	req := httptest.NewRequest(http.MethodPost, "/api/billing/recharge", bytes.NewReader(payload))
@@ -127,7 +127,7 @@ func TestBillingWalletUsesNewAPIQuota(t *testing.T) {
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"quota-co", "Quota Co", "quota@example.com", "Quota Admin", "securepass123")
+		"Quota Co", "quota@example.com", "Quota Admin", "securepass123")
 
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 200)
 

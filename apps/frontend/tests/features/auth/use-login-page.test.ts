@@ -24,32 +24,32 @@ describe('useLoginPage', () => {
     expect(typeof result.current.handleSubmit).toBe('function')
     expect(typeof result.current.setEmail).toBe('function')
     expect(typeof result.current.setPassword).toBe('function')
-    expect(typeof result.current.setCompanySlug).toBe('function')
+    expect(typeof result.current.setCompanyId).toBe('function')
     expect(result.current.submitting).toBe(false)
     expect(result.current.error).toBeNull()
   })
 
-  it('prefills company slug from query string', () => {
+  it('prefills company id from query string', () => {
     const { result } = renderHookWithProviders(() => useLoginPage(), {
-      initialEntries: ['/login?company=acme-corp'],
+      initialEntries: ['/login?companyid=100'],
     })
 
-    expect(result.current.companySlug).toBe('acme-corp')
+    expect(result.current.companyId).toBe('100')
   })
 
-  it('sends companySlug on login when provided', async () => {
+  it('sends companyId on login when provided', async () => {
     login.mockResolvedValue({ memberId: 'm-1' })
     refreshSession.mockResolvedValue(undefined)
 
     const { result } = renderHookWithProviders(() => useLoginPage(), {
-      initialEntries: ['/login?company=acme-corp'],
+      initialEntries: ['/login?companyid=100'],
     })
 
     await result.current.handleSubmit({ preventDefault: () => undefined } as React.FormEvent)
 
     expect(login).toHaveBeenCalledWith(
       expect.objectContaining({
-        companySlug: 'acme-corp',
+        companyId: 100,
       }),
     )
   })

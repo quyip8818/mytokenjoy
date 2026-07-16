@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/saas"
 )
 
-func TestSaaSLoginRequiresCompanySlug(t *testing.T) {
+func TestSaaSLoginRequiresCompanyID(t *testing.T) {
 	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testutil.NewTestApp(t, func(cfg *config.Config) {
@@ -32,7 +32,7 @@ func TestSaaSLoginRequiresCompanySlug(t *testing.T) {
 	}
 }
 
-func TestSaaSLoginWithCompanySlug(t *testing.T) {
+func TestSaaSLoginWithCompanyID(t *testing.T) {
 	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testutil.NewTestApp(t, func(cfg *config.Config) {
@@ -41,13 +41,13 @@ func TestSaaSLoginWithCompanySlug(t *testing.T) {
 	})
 	platformCookie := saas.LoginPlatform(t, app.Router)
 	created := saas.CreateCompanyHTTP(t, app.Router, platformCookie,
-		"login-co", "Login Co", "login@example.com")
+		"Login Co", "login@example.com")
 	saas.AcceptInviteHTTP(t, app.Router, created.InviteCode, "Login Admin", "securepass123")
 
-	body, _ := json.Marshal(map[string]string{
-		"email":       "login@example.com",
-		"password":    "securepass123",
-		"companySlug": "login-co",
+	body, _ := json.Marshal(map[string]any{
+		"email":     "login@example.com",
+		"password":  "securepass123",
+		"companyId": created.Company.ID,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -66,7 +66,7 @@ func TestAcceptInviteAssignsInviteRole(t *testing.T) {
 	})
 	platformCookie := saas.LoginPlatform(t, app.Router)
 	created := saas.CreateCompanyHTTP(t, app.Router, platformCookie,
-		"role-co", "Role Co", "role@example.com")
+		"Role Co", "role@example.com")
 	member, _ := saas.AcceptInviteHTTP(t, app.Router, created.InviteCode, "Role Admin", "securepass123")
 	if len(member.Roles) != 1 || member.Roles[0] != permission.RoleSuperAdmin {
 		t.Fatalf("expected super admin role, got %v", member.Roles)

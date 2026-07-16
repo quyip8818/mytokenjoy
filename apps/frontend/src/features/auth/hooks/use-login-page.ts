@@ -15,10 +15,10 @@ export function useLoginPage() {
   const { refreshSession } = useSession()
   const [email, setEmail] = useState(import.meta.env.DEV ? DEMO_EMAIL : '')
   const [password, setPassword] = useState(import.meta.env.DEV ? DEMO_PASSWORD : '')
-  const [companySlug, setCompanySlug] = useState(
+  const [companyId, setCompanyId] = useState(
     () =>
-      searchParams.get('company')?.trim() ||
-      import.meta.env.VITE_DEFAULT_COMPANY_SLUG?.trim() ||
+      searchParams.get('companyid')?.trim() ||
+      import.meta.env.VITE_DEFAULT_COMPANY_ID?.trim() ||
       '',
   )
   const [error, setError] = useState<string | null>(null)
@@ -29,11 +29,11 @@ export function useLoginPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const slug = companySlug.trim()
+      const id = companyId.trim()
       await authApi.login({
         email,
         password,
-        ...(slug ? { companySlug: slug } : {}),
+        ...(id ? { companyId: Number(id) } : {}),
       })
       await refreshSession()
       navigate(ROUTES.home, { replace: true })
@@ -50,8 +50,8 @@ export function useLoginPage() {
     setEmail,
     password,
     setPassword,
-    companySlug,
-    setCompanySlug,
+    companyId,
+    setCompanyId,
     supportSaas,
     error,
     submitting,

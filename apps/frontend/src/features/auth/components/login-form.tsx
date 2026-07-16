@@ -10,8 +10,8 @@ export function LoginForm({
   setEmail,
   password,
   setPassword,
-  companySlug,
-  setCompanySlug,
+  companyId,
+  setCompanyId,
   supportSaas,
   error,
   submitting,
@@ -43,14 +43,15 @@ export function LoginForm({
         </div>
         {supportSaas ? (
           <div className="space-y-2">
-            <Label htmlFor="company-slug">Company slug</Label>
+            <Label htmlFor="company-id">Company ID</Label>
             <Input
-              id="company-slug"
+              id="company-id"
               type="text"
+              inputMode="numeric"
               autoComplete="organization"
-              value={companySlug}
-              onChange={(e) => setCompanySlug(e.target.value)}
-              placeholder="your-company"
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              placeholder="123"
               required
             />
           </div>

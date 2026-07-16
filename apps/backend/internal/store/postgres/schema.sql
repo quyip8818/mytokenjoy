@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS currencies (
 -- Global: companies
 CREATE TABLE IF NOT EXISTS companies (
     id                        BIGINT PRIMARY KEY,
-    slug                      TEXT NOT NULL UNIQUE,
     name                      TEXT NOT NULL,
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              TEXT,

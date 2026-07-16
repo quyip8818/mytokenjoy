@@ -25,7 +25,7 @@ func TestOnboardingPlatformCreateAcceptInviteSession(t *testing.T) {
 	platformCookie := saas.LoginPlatform(t, router)
 
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
-		"onboard-co", "Onboard Co", "founder@onboard.example")
+		"Onboard Co", "founder@onboard.example")
 	member, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteCode,
 		"Founder", "securepass123")
 
@@ -55,7 +55,7 @@ func TestOnboardingRejectSecondAcceptInvite(t *testing.T) {
 	platformCookie := saas.LoginPlatform(t, router)
 
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
-		"once-co", "Once Co", "once@example.com")
+		"Once Co", "once@example.com")
 	_, _ = saas.AcceptInviteHTTP(t, router, created.InviteCode, "Admin", "securepass123")
 
 	body, _ := json.Marshal(map[string]string{
@@ -75,7 +75,7 @@ func TestAcceptInviteHTTPRejectsShortPassword(t *testing.T) {
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
-		"short-pw-co", "Short PW", "short@example.com")
+		"Short PW", "short@example.com")
 
 	body, _ := json.Marshal(map[string]string{
 		"inviteCode": created.InviteCode, "name": "Admin", "password": "short",
@@ -99,7 +99,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"dual-axis", "Dual Axis", "dual@example.com", "Dual Admin", "securepass123")
+		"Dual Axis", "dual@example.com", "Dual Admin", "securepass123")
 
 	walletID := int64(0)
 	if provisioned.Company.NewAPIWalletUserID != nil {

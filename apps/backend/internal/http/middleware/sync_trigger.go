@@ -3,6 +3,7 @@ package middleware
 import (
 	"crypto/subtle"
 	"net/http"
+	"strconv"
 
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -11,7 +12,7 @@ import (
 )
 
 const SyncTriggerAPIKeyHeader = "X-Sync-API-Key"
-const CompanySlugHeader = "X-Company-Slug"
+const CompanyIDHeader = "X-Company-ID"
 
 func AllowSyncTrigger(p httpdeps.Protected, companySvc domaincompany.Service) func(http.Handler) http.Handler {
 	sessionChain := RequireSession(p)
@@ -23,12 +24,17 @@ func AllowSyncTrigger(p httpdeps.Protected, companySvc domaincompany.Service) fu
 			headerKey := r.Header.Get(SyncTriggerAPIKeyHeader)
 			if p.Cfg.SyncTriggerAPIKey != "" && headerKey != "" &&
 				subtle.ConstantTimeCompare([]byte(headerKey), []byte(p.Cfg.SyncTriggerAPIKey)) == 1 {
-				slug := r.Header.Get(CompanySlugHeader)
-				if slug == "" {
-					httputil.WriteStatus(w, http.StatusBadRequest, "company slug required")
+				companyIDStr := r.Header.Get(CompanyIDHeader)
+				if companyIDStr == "" {
+					httputil.WriteStatus(w, http.StatusBadRequest, "company id required")
 					return
 				}
-				companyCtx, err := companySvc.ResolveCompanyContextBySlug(r.Context(), slug)
+				companyID, err := strconv.ParseInt(companyIDStr, 10, 64)
+				if err != nil {
+					httputil.WriteStatus(w, http.StatusBadRequest, "invalid company id")
+					return
+				}
+				companyCtx, err := companySvc.ResolveCompanyContext(r.Context(), companyID)
 				if err != nil {
 					httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 					return

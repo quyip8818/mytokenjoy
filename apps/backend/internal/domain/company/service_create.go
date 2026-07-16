@@ -31,7 +31,6 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		company := store.Company{
 			ID:        nextID,
-			Slug:      req.Slug,
 			Name:      req.Name,
 			Status:    store.CompanyStatusActive,
 			PackageID: req.PackageID,
@@ -44,7 +43,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if err := tx.TenantBackgroundState().EnsureRow(ctx, company.ID); err != nil {
 			return err
 		}
-		companyCtx := WithContext(ctx, Context{CompanyID: company.ID, Slug: company.Slug, Status: company.Status})
+		companyCtx := WithContext(ctx, Context{CompanyID: company.ID, Status: company.Status})
 		if s.client == nil {
 			return fmt.Errorf("newapi admin client required")
 		}
@@ -103,7 +102,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	if err != nil {
 		return CreateCompanyResult{}, err
 	}
-	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", "platform", result.Company.Slug,
+	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", "platform", fmt.Sprintf("%d", result.Company.ID),
 		fmt.Sprintf("created company %d invite for %s", result.Company.ID, req.SuperAdminEmail))
 	return result, nil
 }

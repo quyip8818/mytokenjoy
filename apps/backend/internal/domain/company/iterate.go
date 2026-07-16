@@ -28,7 +28,6 @@ func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository
 func ContextFromStore(co store.Company) Context {
 	info := Context{
 		CompanyID: co.ID,
-		Slug:      co.Slug,
 		Status:    co.Status,
 	}
 	if id, ok := store.ConfiguredNewAPIWalletUserID(&co); ok {

@@ -16,20 +16,20 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 		return err
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO companies (id, slug, name, status)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO companies (id, name, status)
+		VALUES ($1, $2, $3)
 		ON CONFLICT (id) DO NOTHING
-	`, cfg.TokenJoyCompanyID, "tokenjoy", "TokenJoy", store.CompanyStatusActive); err != nil {
+	`, cfg.TokenJoyCompanyID, "TokenJoy", store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("bootstrap tokenjoy company: %w", err)
 	}
 
 	companyID := cfg.LocalCompanyID
 	name := cfg.ResolvedCompanyName()
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO companies (id, slug, name, status)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO companies (id, name, status)
+		VALUES ($1, $2, $3)
 		ON CONFLICT (id) DO NOTHING
-	`, companyID, config.DefaultCompanySlug, name, store.CompanyStatusActive); err != nil {
+	`, companyID, name, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("bootstrap company: %w", err)
 	}
 	return validateCompanyIDsForMode(ctx, pool, cfg)

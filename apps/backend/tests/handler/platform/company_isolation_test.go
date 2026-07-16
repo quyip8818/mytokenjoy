@@ -18,9 +18,9 @@ func provisionTwoCompanies(t *testing.T) (http.Handler, saas.ProvisionedCompany,
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 	coA := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"iso-a", "Iso A", "admin-a@iso.example", "Admin A", "securepass123")
+		"Iso A", "admin-a@iso.example", "Admin A", "securepass123")
 	coB := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"iso-b", "Iso B", "admin-b@iso.example", "Admin B", "securepass456")
+		"Iso B", "admin-b@iso.example", "Admin B", "securepass456")
 	return router, coA, coB
 }
 

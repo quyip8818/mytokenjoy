@@ -41,9 +41,6 @@ type stubCompanyRepo struct {
 func (s *stubCompanyRepo) GetByID(context.Context, int64) (*store.Company, error) {
 	panic("stubCompanyRepo: GetByID")
 }
-func (s *stubCompanyRepo) GetBySlug(context.Context, string) (*store.Company, error) {
-	panic("stubCompanyRepo: GetBySlug")
-}
 func (s *stubCompanyRepo) Create(context.Context, store.Company) error {
 	panic("stubCompanyRepo: Create")
 }

@@ -23,16 +23,16 @@ func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 
 func insertSeedCompany(ctx context.Context, exec TableWriter, snap store.Snapshot) error {
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO companies (id, slug, name, status) VALUES ($1, $2, $3, $4)
+		INSERT INTO companies (id, name, status) VALUES ($1, $2, $3)
 		ON CONFLICT (id) DO NOTHING
-	`, contract.TokenJoyCompanyID, "tokenjoy", "TokenJoy", store.CompanyStatusActive); err != nil {
+	`, contract.TokenJoyCompanyID, "TokenJoy", store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("seed tokenjoy company: %w", err)
 	}
 	t := snap.Company
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO companies (id, slug, name, status) VALUES ($1, $2, $3, $4)
+		INSERT INTO companies (id, name, status) VALUES ($1, $2, $3)
 		ON CONFLICT (id) DO NOTHING
-	`, t.ID, t.Slug, t.Name, t.Status); err != nil {
+	`, t.ID, t.Name, t.Status); err != nil {
 		return fmt.Errorf("seed company: %w", err)
 	}
 	return insertSeedTenantBackgroundState(ctx, exec, contract.TokenJoyCompanyID, t.ID)

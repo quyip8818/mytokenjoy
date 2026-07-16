@@ -46,7 +46,7 @@ func TestPlatformCreateCompanyAndRecharge(t *testing.T) {
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 
-	created := saas.CreateCompanyHTTP(t, router, platformCookie, "acme", "Acme Corp", "ceo@acme.example")
+	created := saas.CreateCompanyHTTP(t, router, platformCookie, "Acme Corp", "ceo@acme.example")
 	saas.PlatformRechargeHTTP(t, router, platformCookie, created.Company.ID, 100)
 }
 
@@ -55,7 +55,7 @@ func TestPlatformListCompaniesIncludesCreated(t *testing.T) {
 	mock := saas.StartNewAPIMock(t)
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
-	saas.CreateCompanyHTTP(t, router, platformCookie, "listed-co", "Listed Co", "admin@listed.example")
+	created := saas.CreateCompanyHTTP(t, router, platformCookie, "Listed Co", "admin@listed.example")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
 	req.Header.Set("Cookie", platformCookie)
@@ -70,7 +70,7 @@ func TestPlatformListCompaniesIncludesCreated(t *testing.T) {
 	}
 	found := false
 	for _, c := range companies {
-		if c.Slug == "listed-co" {
+		if c.ID == created.Company.ID {
 			found = true
 			break
 		}
@@ -119,9 +119,9 @@ func TestCompanyIsolationUsesSessionCompany(t *testing.T) {
 	platformCookie := saas.LoginPlatform(t, router)
 
 	coA := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"company-a", "Company A", "admin-a@example.com", "Admin A", "securepass123")
+		"Company A", "admin-a@example.com", "Admin A", "securepass123")
 	coB := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"company-b", "Company B", "admin-b@example.com", "Admin B", "securepass456")
+		"Company B", "admin-b@example.com", "Admin B", "securepass456")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/org/members", nil)
 	req.Header.Set("Cookie", coA.MemberCookie)
@@ -151,7 +151,7 @@ func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 	router := saas.NewRouter(t, mock)
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"suspend-co", "Suspend Co", "suspend@example.com", "Suspend Admin", "securepass123")
+		"Suspend Co", "suspend@example.com", "Suspend Admin", "securepass123")
 
 	saas.UpdateCompanyStatusHTTP(t, router, platformCookie, provisioned.Company.ID, store.CompanyStatusSuspended)
 

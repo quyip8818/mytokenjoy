@@ -31,7 +31,6 @@ func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
 	beforeCount := len(before)
 
 	_, err = svc.CreateCompany(ctx, company.CreateCompanyRequest{
-		Slug:            "rollback-co",
 		Name:            "Rollback Co",
 		SuperAdminEmail: "admin@rollback.example",
 	})
@@ -58,7 +57,6 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
-		Slug:            "new-co",
 		Name:            "New Co",
 		SuperAdminEmail: "admin@newco.example",
 	})
@@ -117,7 +115,6 @@ func TestCreateCompanyAllocatesSaaSMinCompanyID(t *testing.T) {
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
-		Slug:            "saas-id-min",
 		Name:            "SaaS ID Min",
 		SuperAdminEmail: "admin@saas-id-min.example",
 	})
@@ -138,7 +135,6 @@ func TestCreateCompanyAllocatesNonSaasCompanyID(t *testing.T) {
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
-		Slug:            "non-saas-id",
 		Name:            "Non SaaS ID",
 		SuperAdminEmail: "admin@non-saas-id.example",
 	})

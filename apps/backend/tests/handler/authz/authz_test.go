@@ -72,7 +72,7 @@ func TestSyncTriggerWithAPIKey(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/org/sync/trigger", nil)
 	req.Header.Set(httpmiddleware.SyncTriggerAPIKeyHeader, "test-sync-key")
-	req.Header.Set(httpmiddleware.CompanySlugHeader, config.DefaultCompanySlug)
+	req.Header.Set(httpmiddleware.CompanyIDHeader, "2")
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -80,7 +80,7 @@ func TestSyncTriggerWithAPIKey(t *testing.T) {
 	}
 }
 
-func TestSyncTriggerAPIKeyRequiresCompanySlug(t *testing.T) {
+func TestSyncTriggerAPIKeyRequiresCompanyID(t *testing.T) {
 	t.Parallel()
 	app := testhttp.NewApp(t, func(cfg *config.Config) {
 		cfg.SyncTriggerAPIKey = "test-sync-key"

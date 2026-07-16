@@ -186,10 +186,10 @@ func LoginPlatform(t *testing.T, router http.Handler) string {
 	return ""
 }
 
-func CreateCompanyHTTP(t *testing.T, router http.Handler, platformCookie, slug, name, superAdminEmail string) CreateCompanyHTTPResult {
+func CreateCompanyHTTP(t *testing.T, router http.Handler, platformCookie, name, superAdminEmail string) CreateCompanyHTTPResult {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{
-		"slug": slug, "name": name, "superAdminEmail": superAdminEmail,
+		"name": name, "superAdminEmail": superAdminEmail,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/platform/companies", bytes.NewReader(body))
 	req.Header.Set("Cookie", platformCookie)
@@ -243,9 +243,9 @@ type ProvisionedCompany struct {
 	MemberCookie string
 }
 
-func ProvisionCompanyHTTP(t *testing.T, router http.Handler, platformCookie, slug, name, adminEmail, adminName, password string) ProvisionedCompany {
+func ProvisionCompanyHTTP(t *testing.T, router http.Handler, platformCookie, name, adminEmail, adminName, password string) ProvisionedCompany {
 	t.Helper()
-	created := CreateCompanyHTTP(t, router, platformCookie, slug, name, adminEmail)
+	created := CreateCompanyHTTP(t, router, platformCookie, name, adminEmail)
 	member, cookie := AcceptInviteHTTP(t, router, created.InviteCode, adminName, password)
 	return ProvisionedCompany{
 		Company: created.Company, InviteCode: created.InviteCode,

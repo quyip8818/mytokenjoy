@@ -30,17 +30,3 @@ func (s *service) ResolveCompanyContext(ctx context.Context, companyID int64) (C
 	}
 	return ContextFromStore(*co), nil
 }
-
-func (s *service) ResolveCompanyContextBySlug(ctx context.Context, slug string) (Context, error) {
-	if slug == "" {
-		return Context{}, domain.BadRequest("company slug required")
-	}
-	co, err := s.store.Company().GetBySlug(ctx, slug)
-	if err != nil {
-		return Context{}, err
-	}
-	if co == nil {
-		return Context{}, domain.NotFound("company not found")
-	}
-	return ContextFromStore(*co), nil
-}

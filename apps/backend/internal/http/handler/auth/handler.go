@@ -32,9 +32,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	CompanySlug string `json:"companySlug"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	CompanyID int64  `json:"companyId"`
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -45,11 +45,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	companyID := int64(0)
 	if h.pub.Cfg.SupportSaas {
-		if body.CompanySlug == "" {
-			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company slug required"))
+		if body.CompanyID == 0 {
+			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company id required"))
 			return
 		}
-		companyCtx, err := h.companySvc.ResolveCompanyContextBySlug(r.Context(), body.CompanySlug)
+		companyCtx, err := h.companySvc.ResolveCompanyContext(r.Context(), body.CompanyID)
 		if err != nil {
 			httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 			return
