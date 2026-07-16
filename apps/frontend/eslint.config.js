@@ -47,6 +47,12 @@ export default defineConfig([
     },
   },
   {
+    files: ['tests/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+  {
     files: ['**/member-table.tsx'],
     rules: {
       'react-hooks/incompatible-library': 'off',
