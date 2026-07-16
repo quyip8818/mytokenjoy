@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS currencies (
 CREATE TABLE IF NOT EXISTS companies (
     id                        BIGINT PRIMARY KEY,
     name                      TEXT NOT NULL,
+    type                      TEXT NOT NULL DEFAULT 'selfhosted'
+                              CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              TEXT,
     newapi_wallet_user_id     BIGINT,

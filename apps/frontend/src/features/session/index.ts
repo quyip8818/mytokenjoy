@@ -1,4 +1,4 @@
-export type { AppSession } from './types'
+export type { AppSession, CompanyType } from './types'
 export { useSession } from './use-session'
 export { usePermissions } from './use-permissions'
 export { useRouteAccess } from './use-route-access'

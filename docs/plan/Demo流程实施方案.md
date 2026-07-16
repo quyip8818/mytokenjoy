@@ -211,13 +211,23 @@ Demo 环境与正式环境功能一致，但有以下标识：
 
 > **为什么不做恢复**：Demo 目的是降低试用门槛，快速体验。丢了重建一个即可，数据不珍贵。正式使用时走注册流程。
 
-### 3.2 Company ID 段
+### 3.2 Company 类型
 
-| ID 范围 | 用途 |
-| --- | --- |
-| `1 ~ 99` | 开发/测试（seed company_id=1） |
-| `100 ~ 99_999` | Demo 租户 |
-| `100_000+` | 正式企业（placeholder，后续实现） |
+`companies` 表新增 `type` 列（枚举），详见 [Company 租户模型设计](./Company租户模型设计.md)：
+
+| 值 | 含义 | 部署形态 | 生命周期 |
+| --- | --- | --- | --- |
+| `standard` | SaaS 正式付费客户 | SaaS | 永久 |
+| `trial` | SaaS 注册试用（有账号，限时） | SaaS | 到期降级/冻结 |
+| `demo` | 匿名体验（无账号） | SaaS | 30 天无活动清理 |
+| `selfhosted` | 私有化部署企业 | 私有化（`SupportSaas=false`） | 永久，单实例唯一 |
+| `testing` | 开发/CI 测试 | 开发环境 | 不清理 |
+
+本次实现 `demo`。`standard` / `trial` 为 placeholder，`selfhosted` / `testing` 对应现有 company。
+
+Company ID 分配方式：复用现有 `CreateCompany` 的应用层 ID 分配逻辑。
+
+Demo 数量上限通过 `SELECT COUNT(*) FROM companies WHERE type = 'demo'` 检查。
 
 ### 3.3 后端 API
 
@@ -242,13 +252,12 @@ interface DemoCreateResponse {
 ```
 
 逻辑：
-1. 检查 `DEMO_ENABLED`；检查 Demo 租户总数 < `DEMO_MAX_TENANTS`
-2. 分配 company_id（Demo 段 100~99999）
-3. 创建 Company（`is_demo=true`）
-4. `mode=seed`：灌入完整 seed（组织 + 预算 + 模型 + 调用记录）
-5. `mode=csv`：解析 CSV → 创建部门树 + 成员 + 灌入基础配置（模型列表）
-6. 取超管 → 签发 JWT → Set-Cookie
-7. 返回
+1. 检查 `DEMO_ENABLED`；检查 Demo 租户总数 < `DEMO_MAX_TENANTS`（`SELECT COUNT(*) WHERE type = 'demo'`，加 advisory lock 防并发超发）
+2. 创建 Company（`type='demo'`）
+3. `mode=seed`：灌入完整 seed（组织 + 预算 + 模型 + 调用记录）
+4. `mode=csv`：解析 CSV → 创建部门树 + 成员 + 灌入基础配置（模型列表）
+5. 取超管 → 签发 JWT → Set-Cookie
+6. 返回
 
 **错误响应**：
 - Demo 未启用 → `404`
@@ -260,7 +269,7 @@ interface DemoCreateResponse {
 
 逻辑：
 1. 从 Session 取 company_id
-2. 验证 `is_demo=true`（防止误删正式企业）
+2. 验证 `type='demo'`（防止误删正式企业）
 3. CASCADE DELETE 该 company 全部数据
 4. 清除 Session Cookie
 5. 返回 204
@@ -296,31 +305,34 @@ River periodic job，每日执行：
 
 ```go
 func CleanExpiredDemos(ctx context.Context, st store.Store) {
-    // DELETE FROM companies
-    // WHERE is_demo = true
-    //   AND id BETWEEN 100 AND 99999
-    //   AND last_active_at < NOW() - INTERVAL '30 days'
-    // CASCADE
+    // 分批删除，每批最多 10 个，避免长事务锁表
+    // 通过 members 表的最近登录时间判断活跃度：
+    // SELECT c.id FROM companies c
+    // WHERE c.type = 'demo'
+    //   AND NOT EXISTS (
+    //     SELECT 1 FROM members m
+    //     WHERE m.company_id = c.id
+    //       AND m.last_login_at > NOW() - INTERVAL '30 days'
+    //   )
+    // LIMIT 10
+    // 逐个 CASCADE DELETE
 }
 ```
 
-`last_active_at` 专用字段，仅在以下时机更新：
-- Demo 创建时
-- `GET /session` 请求时（检测到 `is_demo=true`，在 session handler 中顺带 UPDATE）
+清理判断依据：Demo company 下所有成员的最近登录时间均超过 30 天，则认为该 Demo 已废弃。不需要在 companies 表维护额外的活跃字段。
 
-选择在 `GET /session` 中更新而非 middleware：
+选择在 session 逻辑中更新而非 middleware：
 - 每次页面加载/刷新才触发一次，频率合理（不是每个 API 请求都写 DB）
-- 不需要改全局 middleware，逻辑集中在 session handler
-- 不需要异步 goroutine，直接 best-effort UPDATE 即可（失败不影响响应）
-
-不会被 migration 或其他 company 更新误触。
+- 不需要改全局 middleware
+- UPDATE 失败不影响响应
 
 ### 3.6 Gateway（Demo 下）
 
-Demo 租户的 Gateway 调用走 `dev-mock-llm`：
-- 后端根据 `company.is_demo` 判断
-- 代理目标切换为 `DEMO_MOCK_LLM_URL`（默认 `http://127.0.0.1:8765`）
-- 返回模拟 response，正常走 ingest 写 ledger（看板能看到数据）
+Demo 租户的 Gateway 调用走 Mock LLM：
+- Gateway precheck 阶段通过 platform key 查到 company，若 `type='demo'`，precheck 在响应中标记 `isDemoCompany`
+- Gateway `Director` 根据该标记将请求 rewrite 到 `DEMO_MOCK_LLM_URL`（默认 `http://127.0.0.1:8765`），而非正式 NewAPI
+- Mock LLM 返回模拟 response，正常走 ingest 写 ledger（看板能看到数据）
+- Demo seed 灌入初始钱包余额（50000 points），确保扣费有余量；csv 模式灌入 10000 points
 
 ### 3.7 Demo 下功能限制
 
@@ -370,7 +382,7 @@ api/demo.ts                       — demoApi（create/delete/template）
 在 `AdminLayout` 中：
 
 ```tsx
-{session.isDemo && <DemoBanner />}
+{session.companyType === 'demo' && <DemoBanner />}
 ```
 
 ### 4.4 右上角菜单
@@ -378,7 +390,7 @@ api/demo.ts                       — demoApi（create/delete/template）
 在 Header 用户菜单中：
 
 ```tsx
-{session.isDemo && (
+{session.companyType === 'demo' && (
   <DropdownMenuItem variant="destructive" onClick={openDeleteDialog}>
     删除 Demo
   </DropdownMenuItem>
@@ -401,15 +413,18 @@ api/demo.ts                       — demoApi（create/delete/template）
 
 ## 5. 数据库变更
 
-```sql
--- companies 表新增列
-ALTER TABLE companies ADD COLUMN is_demo BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE companies ADD COLUMN last_active_at TIMESTAMPTZ;  -- Demo 专用活跃标记
+直接修改 `schema.sql` 中 companies 表定义（无历史数据，无需 migration）：
 
--- 清理用索引
-CREATE INDEX idx_companies_demo_cleanup
-    ON companies(last_active_at)
-    WHERE is_demo = TRUE;
+```sql
+-- companies 表加入 type 列
+CREATE TABLE IF NOT EXISTS companies (
+    id                        BIGINT PRIMARY KEY,
+    name                      TEXT NOT NULL,
+    type                      TEXT NOT NULL DEFAULT 'selfhosted'
+                              CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
+    status                    TEXT NOT NULL DEFAULT 'active',
+    -- ... 其余现有列不变
+);
 ```
 
 无需额外映射表。Demo 身份完全由 JWT Cookie 中的 company_id 承载。
@@ -437,13 +452,13 @@ CREATE INDEX idx_companies_demo_cleanup
 `GET /session` 增加字段：
 
 ```typescript
-interface SessionContext {
+interface AppSession {
   // ... 现有字段
-  isDemo: boolean          // 当前企业是否为 Demo
+  companyType: 'standard' | 'trial' | 'demo' | 'selfhosted' | 'testing'
 }
 ```
 
-后端从 `companies.is_demo` 读取。
+后端 `AuthzSvc.GetSessionContext` 从 `companies.type` 读取，加入 session 响应。前端通过 `session.companyType === 'demo'` 判断。
 
 ---
 
@@ -451,9 +466,9 @@ interface SessionContext {
 
 | 风险 | 缓解 |
 | --- | --- |
-| Demo 被批量创建 | IP 限流（5 次/小时/IP）；`DEMO_MAX_TENANTS` 上限 |
-| Demo DELETE 误操作 | 二次确认弹窗 + 只允许 `is_demo=true` 的 company |
-| Demo 中上传恶意 CSV | 限制文件大小（1MB）；行数上限（500）；严格列解析；错误逐行报告 |
+| Demo 被批量创建 | IP 限流（5 次/小时/IP）；`DEMO_MAX_TENANTS` 上限；创建时 advisory lock 防并发超发 |
+| Demo DELETE 误操作 | 二次确认弹窗 + 只允许 `type='demo'` 的 company |
+| Demo 中上传恶意 CSV | 限制文件大小（1MB）；行数上限（500）；严格列解析；错误逐行报告；后端 request body limit 2MB |
 | Demo 数据泄露 | Demo 数据全为模拟/用户自传；无真实企业数据 |
 | Cookie 伪造访问他人 Demo | JWT 签名校验；company_id 在 JWT claims 中 |
 
@@ -463,16 +478,17 @@ interface SessionContext {
 
 ### 9.1 后端
 
-- [ ] DB Migration：`companies.is_demo` + `last_active_at` 列
-- [ ] `POST /auth/demo/create` handler（seed + csv 两种 mode）
+- [ ] `schema.sql` 修改：companies 表加 `type` 列
+- [ ] 独立 `demo` handler 包（`internal/http/handler/demo/`）
+- [ ] `POST /auth/demo/create` handler（seed + csv 两种 mode，advisory lock 防并发超发）
 - [ ] `DELETE /auth/demo` handler
 - [ ] `GET /auth/demo/csv-template` — 返回模板文件
 - [ ] CSV 解析逻辑（部门层级自动创建 + 成员插入 + 中文角色映射）
 - [ ] Demo seed 函数（复用现有 snapshot，精简）
-- [ ] Gateway 对 `is_demo` 租户路由到 mock LLM
-- [ ] Session handler 增加 `isDemo` 字段
-- [ ] Demo 清理 River job（每日，基于 `last_active_at`）
-- [ ] `DEMO_ENABLED` 配置守卫（未启用时 404）
+- [ ] Gateway precheck 识别 Demo 租户 → Director rewrite 到 mock LLM
+- [ ] `AuthzSvc.GetSessionContext` 增加 `companyType` 字段
+- [ ] Demo 清理 River job（每日，分批删除，基于成员最近登录时间）
+- [ ] `DEMO_ENABLED` 配置守卫（未启用时不注册路由）
 - [ ] Demo 创建 IP 限流中间件
 
 ### 9.2 前端
@@ -486,7 +502,7 @@ interface SessionContext {
 - [ ] Header 菜单增加"删除 Demo"
 - [ ] 删除确认 Dialog
 - [ ] `/login` 页增加 "免费试用" 按钮
-- [ ] `SessionContext` 类型增加 `isDemo`
+- [ ] `AppSession` 类型增加 `companyType`
 - [ ] Demo 下功能限制 UI（充值禁用、邀请 Toast、数据源灰色）
 
 ### 9.3 其他

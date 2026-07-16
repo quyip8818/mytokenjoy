@@ -23,8 +23,9 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			nextID = t.ID + 1
 		}
 	}
-	if s.cfg.SupportSaas && nextID < SaaSMinCompanyID {
-		nextID = SaaSMinCompanyID
+	companyType := req.Type
+	if companyType == "" {
+		companyType = store.CompanyTypeStandard
 	}
 	now := time.Now().UTC()
 	var result CreateCompanyResult
@@ -32,6 +33,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		company := store.Company{
 			ID:        nextID,
 			Name:      req.Name,
+			Type:      companyType,
 			Status:    store.CompanyStatusActive,
 			PackageID: req.PackageID,
 			CreatedAt: now,

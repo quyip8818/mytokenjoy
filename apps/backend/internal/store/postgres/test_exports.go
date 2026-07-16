@@ -9,10 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/companyids"
 )
-
-const SaaSMinCompanyIDForTest int64 = companyids.SaaSMinCompanyID
 
 func EnsureBootstrapCompanyForTest(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
 	return ensureBootstrapCompany(ctx, pool, cfg)

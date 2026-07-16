@@ -7,6 +7,7 @@ type contextKey struct{}
 type Info struct {
 	CompanyID          int64
 	NewAPIWalletUserID int64
+	Type               string
 	Status             string
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-// ForEachActiveCompany runs fn for every active company with a company-scoped context.
+// ForEachActiveCompany runs fn for every active, non-testing company with a company-scoped context.
 func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository, fn func(context.Context, store.Company) error) error {
 	list, err := companies.List(ctx)
 	if err != nil {
@@ -14,6 +14,9 @@ func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository
 	}
 	for _, co := range list {
 		if co.Status != store.CompanyStatusActive {
+			continue
+		}
+		if co.Type == store.CompanyTypeTesting {
 			continue
 		}
 		entryCtx := WithContext(ctx, ContextFromStore(co))
@@ -28,6 +31,7 @@ func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository
 func ContextFromStore(co store.Company) Context {
 	info := Context{
 		CompanyID: co.ID,
+		Type:      co.Type,
 		Status:    co.Status,
 	}
 	if id, ok := store.ConfiguredNewAPIWalletUserID(&co); ok {

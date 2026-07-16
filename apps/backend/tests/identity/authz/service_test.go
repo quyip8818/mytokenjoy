@@ -37,6 +37,9 @@ func TestGetSessionContextSuccess(t *testing.T) {
 	if ctx.PointsPerUnit <= 0 {
 		t.Fatal("expected pointsPerUnit > 0")
 	}
+	if ctx.CompanyType == "" {
+		t.Fatal("expected companyType to be populated")
+	}
 }
 
 func TestGetSessionContextNotFound(t *testing.T) {

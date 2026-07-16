@@ -8,11 +8,18 @@ import (
 const (
 	CompanyStatusActive    = "active"
 	CompanyStatusSuspended = "suspended"
+
+	CompanyTypeStandard   = "standard"
+	CompanyTypeTrial      = "trial"
+	CompanyTypeDemo       = "demo"
+	CompanyTypeSelfhosted = "selfhosted"
+	CompanyTypeTesting    = "testing"
 )
 
 type Company struct {
 	ID                 int64
 	Name               string
+	Type               string
 	Status             string
 	RootDeptID         *string
 	NewAPIWalletUserID *int64

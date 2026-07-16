@@ -108,26 +108,8 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 	}
 }
 
-func TestCreateCompanyAllocatesSaaSMinCompanyID(t *testing.T) {
-	cfg, st := testutil.NewTestStore(t, testutil.WithSupportSaas(true))
-	client := &mock.StubAdminClient{User: newapi.User{ID: 502, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
-	ctx := context.Background()
-
-	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
-		Name:            "SaaS ID Min",
-		SuperAdminEmail: "admin@saas-id-min.example",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Company.ID != company.SaaSMinCompanyID {
-		t.Fatalf("expected company id=%d, got %d", company.SaaSMinCompanyID, result.Company.ID)
-	}
-}
-
-func TestCreateCompanyAllocatesNonSaasCompanyID(t *testing.T) {
-	const nonSaasNextCompanyID int64 = 3
+func TestCreateCompanyAllocatesNextID(t *testing.T) {
+	const nextCompanyID int64 = 3
 
 	cfg, st := testutil.NewTestStore(t)
 	client := &mock.StubAdminClient{User: newapi.User{ID: 503, Quota: 0}}
@@ -135,13 +117,60 @@ func TestCreateCompanyAllocatesNonSaasCompanyID(t *testing.T) {
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
-		Name:            "Non SaaS ID",
-		SuperAdminEmail: "admin@non-saas-id.example",
+		Name:            "Next ID",
+		SuperAdminEmail: "admin@next-id.example",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Company.ID != nonSaasNextCompanyID {
-		t.Fatalf("expected company id=%d, got %d", nonSaasNextCompanyID, result.Company.ID)
+	if result.Company.ID != nextCompanyID {
+		t.Fatalf("expected company id=%d, got %d", nextCompanyID, result.Company.ID)
+	}
+}
+
+func TestCreateCompanyDefaultsToStandardType(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t)
+	client := &mock.StubAdminClient{User: newapi.User{ID: 601, Quota: 0}}
+	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	ctx := context.Background()
+
+	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
+		Name:            "Default Type Co",
+		SuperAdminEmail: "admin@default-type.example",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := st.Company().GetByID(ctx, result.Company.ID)
+	if err != nil || stored == nil {
+		t.Fatal("expected company")
+	}
+	if stored.Type != "standard" {
+		t.Fatalf("expected type=standard, got %s", stored.Type)
+	}
+}
+
+func TestCreateCompanyRespectsExplicitType(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t)
+	client := &mock.StubAdminClient{User: newapi.User{ID: 602, Quota: 0}}
+	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	ctx := context.Background()
+
+	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
+		Name:            "Demo Co",
+		Type:            "demo",
+		SuperAdminEmail: "admin@demo.example",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := st.Company().GetByID(ctx, result.Company.ID)
+	if err != nil || stored == nil {
+		t.Fatal("expected company")
+	}
+	if stored.Type != "demo" {
+		t.Fatalf("expected type=demo, got %s", stored.Type)
 	}
 }

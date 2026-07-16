@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -55,9 +56,13 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 		return types.SessionContext{}, err
 	}
 
+	// Read company type from request context (injected by CompanyResolve middleware).
+	companyType := companyTypeFromContext(ctx, companyID, s.store)
+
 	if member, perms, readOnly, ok := s.cache.Get(companyID, memberID, revision); ok {
 		return types.SessionContext{
 			CompanyID:       companyID,
+			CompanyType:     companyType,
 			AuthzRevision:   revision,
 			Member:          member,
 			Permissions:     perms,
@@ -79,6 +84,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 	s.cache.Put(companyID, memberID, revision, authz.Member, permissions, readOnly)
 	return types.SessionContext{
 		CompanyID:       companyID,
+		CompanyType:     companyType,
 		AuthzRevision:   revision,
 		Member:          authz.Member,
 		Permissions:     permissions,
@@ -86,6 +92,20 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 		BillingCurrency: currency,
 		PointsPerUnit:   ppu,
 	}, nil
+}
+
+// companyTypeFromContext tries to get company type from the request context first
+// (already resolved by CompanyResolve middleware), falling back to a DB lookup only if needed.
+func companyTypeFromContext(ctx context.Context, companyID int64, st Store) string {
+	if info, ok := ctxcompany.From(ctx); ok && info.CompanyID == companyID && info.Type != "" {
+		return info.Type
+	}
+	// Fallback: context not available (e.g. tests). One extra query is acceptable here.
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		return ""
+	}
+	return co.Type
 }
 
 // revisionCache caches authz_revision per company with a short TTL.

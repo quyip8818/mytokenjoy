@@ -26,6 +26,7 @@ type UpdateCompanyPatch struct {
 
 type CreateCompanyRequest struct {
 	Name            string
+	Type            string
 	SuperAdminEmail string
 	PackageID       *string
 }
