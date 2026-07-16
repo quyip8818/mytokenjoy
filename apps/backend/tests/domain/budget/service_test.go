@@ -225,7 +225,6 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	t.Run("create", func(t *testing.T) {
-		t.Parallel()
 		_, err := svc.CreateProject(ctx, types.Project{
 			Name:              "Invalid Sub Budgets",
 			Budget:            5_000,
@@ -240,7 +239,6 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		t.Parallel()
 		created, err := svc.CreateProject(ctx, types.Project{
 			Name:              "Over Cap Project",
 			Budget:            10_000,

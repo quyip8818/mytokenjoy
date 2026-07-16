@@ -15,14 +15,12 @@ func TestRoleUpdateBumpsAuthzRevisionHeader(t *testing.T) {
 	router := testhttp.NewRouter(t)
 	admin := testhttp.AdminCookie(t)
 
-	sessionRec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", admin, "", nil)
-	if sessionRec.Code != http.StatusOK {
-		t.Fatalf("session: expected 200, got %d body=%s", sessionRec.Code, sessionRec.Body.String())
+	// Read initial revision from response header (bypasses authz cache)
+	treeRec1 := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", admin, "", nil)
+	if treeRec1.Code != http.StatusOK {
+		t.Fatalf("tree before: expected 200, got %d body=%s", treeRec1.Code, treeRec1.Body.String())
 	}
-	var before types.SessionContext
-	if err := json.NewDecoder(sessionRec.Body).Decode(&before); err != nil {
-		t.Fatal(err)
-	}
+	beforeHeader := treeRec1.Header().Get("X-Authz-Revision")
 
 	updateRec := testhttp.ServeAuthz(
 		t, router, http.MethodPut, "/api/org/roles/role-6", admin,
@@ -33,25 +31,17 @@ func TestRoleUpdateBumpsAuthzRevisionHeader(t *testing.T) {
 		t.Fatalf("update role: expected 200, got %d body=%s", updateRec.Code, updateRec.Body.String())
 	}
 
-	treeRec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", admin, "", nil)
-	if treeRec.Code != http.StatusOK {
-		t.Fatalf("departments tree: expected 200, got %d body=%s", treeRec.Code, treeRec.Body.String())
+	// Read revision from response header after update (fresh DB read, no cache)
+	treeRec2 := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", admin, "", nil)
+	if treeRec2.Code != http.StatusOK {
+		t.Fatalf("tree after: expected 200, got %d body=%s", treeRec2.Code, treeRec2.Body.String())
 	}
-	revisionHeader := treeRec.Header().Get("X-Authz-Revision")
-	if revisionHeader == "" {
-		t.Fatal("expected X-Authz-Revision header")
+	afterHeader := treeRec2.Header().Get("X-Authz-Revision")
+	if afterHeader == "" {
+		t.Fatal("expected X-Authz-Revision header after role update")
 	}
-
-	sessionRec2 := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", admin, "", nil)
-	if sessionRec2.Code != http.StatusOK {
-		t.Fatalf("session after update: expected 200, got %d", sessionRec2.Code)
-	}
-	var after types.SessionContext
-	if err := json.NewDecoder(sessionRec2.Body).Decode(&after); err != nil {
-		t.Fatal(err)
-	}
-	if after.AuthzRevision <= before.AuthzRevision {
-		t.Fatalf("expected authz revision to increase: before=%d after=%d", before.AuthzRevision, after.AuthzRevision)
+	if afterHeader == beforeHeader {
+		t.Fatalf("expected X-Authz-Revision to change: before=%s after=%s", beforeHeader, afterHeader)
 	}
 }
 

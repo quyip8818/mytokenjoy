@@ -101,7 +101,7 @@ func TestIngestByLogIDNotFound(t *testing.T) {
 func TestIngestByLogIDMappingMissing(t *testing.T) {
 	t.Parallel()
 	fix := newIngestFixture(t, withoutMapping())
-	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(5005, 42))
+	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(5005, 999999))
 
 	err := fix.Ingest.IngestByLogID(testutil.Ctx(), 5005, types.SourceWebhook)
 	if err == nil {

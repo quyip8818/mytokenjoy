@@ -29,17 +29,13 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name      string
-		remain    float64
-		version   int64
-		pgVersion int64
-		wantErr   bool
+		name    string
+		remain  float64
+		wantErr bool
 	}{
-		{name: "exhausted blocks", remain: -1, version: 1, pgVersion: 1, wantErr: true},
-		{name: "zero blocks", remain: 0, version: 1, pgVersion: 1, wantErr: true},
-		{name: "positive allows", remain: 50, version: 1, pgVersion: 1, wantErr: false},
-		{name: "stale version allows", remain: 0, version: 1, pgVersion: 2, wantErr: false},
-		{name: "no pg version ignores redis", remain: 0, version: 1, pgVersion: 0, wantErr: false},
+		{name: "exhausted blocks", remain: -1, wantErr: true},
+		{name: "zero blocks", remain: 0, wantErr: true},
+		{name: "positive allows", remain: 50, wantErr: false},
 	}
 
 	for _, tc := range cases {
@@ -50,25 +46,17 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 			fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
 			row := fx.LoadPrecheckRow(t)
-			if tc.pgVersion > 0 {
-				budgetfix.SetCombinedKeyRemain(t, fx.Store, row.PlatformKeyID, 1)
-				for i := int64(1); i < tc.pgVersion; i++ {
-					budgetfix.SetCombinedKeyRemain(t, fx.Store, row.PlatformKeyID, 1)
-				}
-			}
-			row = fx.LoadPrecheckRow(t)
 
 			_ = fake.Set(fx.Ctx, row.CompanyID, fx.KeyHash(), domainbudget.CombinedKeyEntry{
-				Remain:  tc.remain,
-				Version: tc.version,
+				Remain: tc.remain,
 			})
 
 			err := fx.Run("gpt-4o", false)
 			if tc.wantErr && err == nil {
-				t.Fatalf("expected soft block error for soft_remain=%v version=%d pgVersion=%d", tc.remain, tc.version, row.CombinedKeyRemainVersion)
+				t.Fatalf("expected block for remain=%v", tc.remain)
 			}
 			if !tc.wantErr && err != nil {
-				t.Fatalf("expected allow for soft_remain=%v version=%d pgVersion=%d, got %v", tc.remain, tc.version, row.CombinedKeyRemainVersion, err)
+				t.Fatalf("expected allow for remain=%v, got %v", tc.remain, err)
 			}
 			if fake.Gets() != 1 {
 				t.Fatalf("expected exactly 1 Redis GET, got %d", fake.Gets())

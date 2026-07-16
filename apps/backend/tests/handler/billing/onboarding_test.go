@@ -121,18 +121,19 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		t.Fatalf("expected 403 with empty wallet, got %d", rec.Code)
 	}
 
-	// Recharge wallet: gateway no longer blocks on zero dept budget when wallet is ready
+	// Recharge wallet: budget=0 means unconstrained, gateway allows
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,
 		DepartmentID:       rootDept,
 		Budget:             0,
+		FullKey:            "sk-onboard-zero-budget",
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 with wallet ready (budget not checked at gateway), got %d", rec.Code)
+		t.Fatalf("expected 200 with wallet ready and no budget constraint, got %d body=%s", rec.Code, rec.Body.String())
 	}
 
 	// Both wallet and budget configured -> 200
@@ -142,6 +143,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		NewAPIWalletUserID: walletID,
 		DepartmentID:       rootDept,
 		Budget:             1000,
+		FullKey:            "sk-onboard-budget-ready",
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))

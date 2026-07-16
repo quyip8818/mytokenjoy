@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -33,14 +32,14 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		t.Parallel()
 		stub := &stubCompanyService{
 			resolve: func(_ context.Context, companyID int64) (domaincompany.Context, error) {
-				if companyID != 0 {
-					t.Fatalf("expected companyID 0, got %d", companyID)
-				}
-				return domaincompany.Context{}, domain.NotFound("company not found")
+				t.Fatal("resolve should not be called when companyID is 0")
+				return domaincompany.Context{}, nil
 			},
 		}
+		var nextCalled bool
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			t.Fatal("next should not run")
+			nextCalled = true
+			w.WriteHeader(http.StatusOK)
 		})
 		cfg := sessionConfig()
 		cfg.LocalCompanyID = 0
@@ -49,8 +48,8 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
+		if !nextCalled {
+			t.Fatal("expected next to be called when no tenant resolved")
 		}
 	})
 

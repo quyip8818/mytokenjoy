@@ -4,6 +4,7 @@ package worker_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 type recordingOrgSync struct {
-	scheduledCalls int
+	scheduledCalls atomic.Int32
 }
 
 func (r *recordingOrgSync) GetSyncConfig(context.Context) (types.SyncConfig, error) {
@@ -30,7 +31,7 @@ func (r *recordingOrgSync) TriggerSync(context.Context) (types.ImportResult, err
 }
 
 func (r *recordingOrgSync) RunScheduledSync(context.Context) error {
-	r.scheduledCalls++
+	r.scheduledCalls.Add(1)
 	return nil
 }
 
@@ -53,10 +54,10 @@ func TestOrgSyncWorkerRunsTenantJob(t *testing.T) {
 	rt.Start(t, ctx)
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		if recording.scheduledCalls == 1 {
+		if recording.scheduledCalls.Load() == 1 {
 			return
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	t.Fatalf("expected RunScheduledSync once, got %d", recording.scheduledCalls)
+	t.Fatalf("expected RunScheduledSync once, got %d", recording.scheduledCalls.Load())
 }

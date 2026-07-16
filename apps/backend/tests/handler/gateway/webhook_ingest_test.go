@@ -53,7 +53,6 @@ func drainIngestQueue(t *testing.T, application *app.App) {
 }
 
 func TestWebhookIngestSuccess(t *testing.T) {
-	t.Parallel()
 	application := newWebhookApp(t, nil)
 	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 
@@ -85,7 +84,6 @@ func TestWebhookIngestSuccess(t *testing.T) {
 }
 
 func TestWebhookIngestIdempotent(t *testing.T) {
-	t.Parallel()
 	application := newWebhookApp(t, nil)
 	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, application.Store, testutil.DefaultConsumeLog(93001, 99))
@@ -103,7 +101,6 @@ func TestWebhookIngestIdempotent(t *testing.T) {
 }
 
 func TestWebhookIngestWritesLedgerFields(t *testing.T) {
-	t.Parallel()
 	application := newWebhookApp(t, nil)
 	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 
@@ -122,20 +119,19 @@ func TestWebhookIngestWritesLedgerFields(t *testing.T) {
 }
 
 func TestWebhookLogNotFoundEnqueuesRiverJob(t *testing.T) {
-	t.Parallel()
 	application := newWebhookApp(t, nil)
+	before := pendingIngestRiverJobs(t, application)
 	rec := postWebhook(t, application, 99999)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 	// Should have enqueued a River ingest job even though the log doesn't exist.
-	if n := pendingIngestRiverJobs(t, application); n == 0 {
-		t.Fatal("expected pending river ingest job")
+	if n := pendingIngestRiverJobs(t, application); n <= before {
+		t.Fatalf("expected pending river ingest job to increase: before=%d after=%d", before, n)
 	}
 }
 
 func TestIngestMetricsEndpoint(t *testing.T) {
-	t.Parallel()
 	application := newWebhookApp(t, nil)
 	newapisynctf.PrepareIngestFixture(t, application.Store, newapisynctf.DefaultMappingOpts())
 	testutil.SeedConsumeLog(t, application.Store, testutil.DefaultConsumeLog(98100, 99))
