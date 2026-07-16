@@ -2,30 +2,25 @@ package worker_test
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"testing"
 
 	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 type workerFixture struct {
-	rt           *riverfix.TestRuntime
-	st           store.Store
-	newAPISync   *newapisync.NewAPISync
-	ingestWorker *ingest.Worker
-	ctx          context.Context
+	rt         *riverfix.TestRuntime
+	st         store.Store
+	newAPISync *newapisync.NewAPISync
+	ctx        context.Context
 }
 
 func newWorkerFixture(t *testing.T, stub *mock.StubAdminClient) workerFixture {
 	t.Helper()
 	rt, st := riverfix.NewRuntime(t, stub)
 	nas := rt.Registry.MustNewAPISync()
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	ctx := context.Background()
 	t.Cleanup(func() {
 		if rt != nil {
@@ -33,11 +28,10 @@ func newWorkerFixture(t *testing.T, stub *mock.StubAdminClient) workerFixture {
 		}
 	})
 	return workerFixture{
-		rt:           rt,
-		st:           st,
-		newAPISync:   nas,
-		ingestWorker: rt.Registry.IngestWorker(rt.Registry.Config, logger),
-		ctx:          ctx,
+		rt:         rt,
+		st:         st,
+		newAPISync: nas,
+		ctx:        ctx,
 	}
 }
 

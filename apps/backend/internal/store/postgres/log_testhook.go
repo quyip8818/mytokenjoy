@@ -60,26 +60,6 @@ func InsertConsumeLog(ctx context.Context, st store.Store, raw store.RawConsumeL
 	return err
 }
 
-func GetIngestJobByLogID(ctx context.Context, st store.Store, logID int64) (store.IngestJob, bool, error) {
-	tables := logTablesFromStore(st)
-	pool := LogPool(st)
-	query := fmt.Sprintf(`
-		SELECT id, log_id, source, error, status, attempts, next_retry, created_at, updated_at
-		FROM %s
-		WHERE log_id = $1
-	`, tables.ingestJobs)
-	row := pool.QueryRow(ctx, query, logID)
-	var job store.IngestJob
-	err := row.Scan(&job.ID, &job.LogID, &job.Source, &job.Error, &job.Status, &job.Attempts, &job.NextRetry, &job.CreatedAt, &job.UpdatedAt)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return store.IngestJob{}, false, nil
-	}
-	if err != nil {
-		return store.IngestJob{}, false, err
-	}
-	return job, true, nil
-}
-
 func GetRiverJobByID(ctx context.Context, pool *pgxpool.Pool, id int64) (store.RiverJobView, bool, error) {
 	row := pool.QueryRow(ctx, `
 		SELECT id::text, kind, args, state::text,

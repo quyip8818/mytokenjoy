@@ -8,9 +8,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
 type newAPILogWebhookRequest struct {
@@ -18,32 +18,32 @@ type newAPILogWebhookRequest struct {
 }
 
 type Handler struct {
-	cfg     config.Config
-	enqueue domainusage.Enqueuer
-	metrics ingestmetrics.Recorder
-	logger  *slog.Logger
+	cfg      config.Config
+	enqueuer jobs.Enqueuer
+	metrics  ingestmetrics.Recorder
+	logger   *slog.Logger
 }
 
 func NewHandler(
 	cfg config.Config,
-	enqueue domainusage.Enqueuer,
+	enqueuer jobs.Enqueuer,
 	metrics ingestmetrics.Recorder,
 	logger *slog.Logger,
 ) *Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	if enqueue == nil {
-		enqueue = domainusage.NewQueue(nil)
+	if enqueuer == nil {
+		enqueuer = jobs.NoopEnqueuer{}
 	}
 	if metrics == nil {
 		metrics = ingestmetrics.NoopCollector()
 	}
 	return &Handler{
-		cfg:     cfg,
-		enqueue: enqueue,
-		metrics: metrics,
-		logger:  logger,
+		cfg:      cfg,
+		enqueuer: enqueuer,
+		metrics:  metrics,
+		logger:   logger,
 	}
 }
 
@@ -79,7 +79,7 @@ func (h *Handler) HandleNewAPILog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.enqueue.Enqueue(r.Context(), payload.LogID, types.SourceWebhook); err != nil {
+	if err := jobs.InsertIngest(r.Context(), h.enqueuer, payload.LogID, types.SourceWebhook); err != nil {
 		h.logger.Error("enqueue ingest job", "log_id", payload.LogID, "error", err)
 		httputil.WriteStatus(w, http.StatusInternalServerError, "enqueue failed")
 		return

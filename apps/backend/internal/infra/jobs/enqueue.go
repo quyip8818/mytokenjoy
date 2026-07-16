@@ -69,6 +69,12 @@ func InsertNotificationDelivery(ctx context.Context, e Enqueuer, args Notificati
 	return insert(ctx, e, nil, args, nil)
 }
 
+// InsertIngest enqueues a consume-log ingest job.
+func InsertIngest(ctx context.Context, e Enqueuer, logID int64, source string) error {
+	args := IngestArgs{LogID: logID, Source: source}
+	return insert(ctx, e, nil, args, nil)
+}
+
 func insert(ctx context.Context, e Enqueuer, tx store.Tx, args river.JobArgs, opts *river.InsertOpts) error {
 	if tx != nil {
 		return e.InsertInTx(ctx, tx, args, opts)

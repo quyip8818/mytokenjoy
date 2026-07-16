@@ -20,6 +20,7 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/credentials"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
@@ -41,7 +42,7 @@ type Deps struct {
 	AuditSvc             domainaudit.Service
 	ReadModel            domainusage.ReadModel
 	IngestSvc            domainusage.Ingestor
-	IngestQueue          domainusage.Queue
+	IngestEnqueuer       jobs.Enqueuer
 	IngestMetrics        ingestmetrics.Recorder
 	CompanySvc           domaincompany.Service
 	BillingSvc           domainbilling.Service

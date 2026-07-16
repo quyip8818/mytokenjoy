@@ -1,4 +1,4 @@
-// compose_worker.go — River + Ingest background workers.
+// compose_worker.go — River background workers.
 // Budget Reconcile + Dashboard Projector/Reconcile are constructed here only (not in HTTP domain services).
 package app
 
@@ -13,12 +13,10 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
-	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
 func postgresPool(st store.Store) *pgxpool.Pool {
@@ -31,21 +29,9 @@ func postgresPool(st store.Store) *pgxpool.Pool {
 	return nil
 }
 
-func logPoolFromStore(st store.Store) *pgxpool.Pool {
-	type logPoolStore interface {
-		LogPool() *pgxpool.Pool
-	}
-	if p, ok := st.(logPoolStore); ok {
-		return p.LogPool()
-	}
-	return nil
-}
-
 type backgroundWorkers struct {
-	ingest  *ingest.Worker
-	river   *riverinfra.Client
-	logPool *pgxpool.Pool
-	logger  *slog.Logger
+	river  *riverinfra.Client
+	logger *slog.Logger
 }
 
 func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder, orgAdmin *adapter.OrgRiverAdminHolder) (*backgroundWorkers, error) {
@@ -65,6 +51,10 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 	riverClient, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Cfg:                  cfg,
 		Store:                st,
+		LogStore:             st.Logs(),
+		Ingest:               reg.IngestSvc,
+		Enqueuer:             holder,
+		Logger:               logger,
 		Billing:              reg.BillingSvc,
 		Overrun:              reg.Overrun,
 		Rebalance:            reg.Rebalance,
@@ -86,46 +76,20 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		if orgAdmin != nil {
 			orgAdmin.Set(riverClient)
 		}
-		// Wire enqueuer into notification service for async delivery
 		if reg.Infra.notificationSvc != nil {
 			reg.Infra.notificationSvc.SetEnqueuer(riverClient.Enqueuer)
 		}
 	}
 
-	ingestWorker := ingest.NewWorker(
-		cfg,
-		st.Logs(),
-		reg.IngestSvc,
-		reg.IngestQueue,
-		reg.IngestMetrics,
-		st.SchedulerLock(),
-		reg.BillingSvc,
-		logger,
-	)
-
 	return &backgroundWorkers{
-		ingest:  ingestWorker,
-		river:   riverClient,
-		logPool: logPoolFromStore(st),
-		logger:  logger,
+		river:  riverClient,
+		logger: logger,
 	}, nil
 }
 
 func (b *backgroundWorkers) start(ctx context.Context, cfg config.Config) {
 	if b == nil {
 		return
-	}
-	if b.ingest != nil && cfg.IngestEnabled() {
-		// Wire LISTEN/NOTIFY for low-latency ingest wake-up.
-		if b.logPool != nil {
-			listener, err := postgres.NewPGListener(context.Background(), b.logPool)
-			if err == nil {
-				b.ingest.SetListener(listener)
-			} else if b.logger != nil {
-				b.logger.Warn("failed to create ingest LISTEN connection", "error", err)
-			}
-		}
-		b.ingest.Start(ctx)
 	}
 	if b.river != nil && cfg.RiverEnabled {
 		go func() {
@@ -144,5 +108,3 @@ func (b *backgroundWorkers) stop(ctx context.Context) {
 		_ = b.river.Stop(ctx)
 	}
 }
-
-var _ = (*pgxpool.Pool)(nil)

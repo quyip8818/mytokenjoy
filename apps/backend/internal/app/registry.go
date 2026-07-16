@@ -11,8 +11,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
-	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
+	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
 type ServiceRegistry struct {
@@ -29,19 +29,6 @@ func (r ServiceRegistry) HTTPDeps(logger *slog.Logger) httpdeps.Deps {
 	return d
 }
 
-func (r ServiceRegistry) IngestWorker(cfg config.Config, logger *slog.Logger) *ingest.Worker {
-	return ingest.NewWorker(
-		cfg,
-		r.Infra.store.Logs(),
-		r.IngestSvc,
-		r.IngestQueue,
-		r.IngestMetrics,
-		r.Infra.store.SchedulerLock(),
-		r.BillingSvc,
-		logger,
-	)
-}
-
 func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 	if cfg.IngestEnabled() {
 		return ingestmetrics.NewCollector()
@@ -49,7 +36,7 @@ func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 	return ingestmetrics.NoopCollector()
 }
 
-func buildServiceRegistry(cfg config.Config, i infra, services domainServices, logger *slog.Logger) ServiceRegistry {
+func buildServiceRegistry(cfg config.Config, i infra, services domainServices, logger *slog.Logger, holder *jobs.Holder) ServiceRegistry {
 	var gateway domaingateway.GatewayService
 	if cfg.GatewayEnabled && cfg.NewAPIEnabled {
 		gw, err := wireGatewayService(cfg, i, logger)
@@ -85,7 +72,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices, l
 			AuditSvc:             services.audit,
 			ReadModel:            services.readModel,
 			IngestSvc:            services.ingest,
-			IngestQueue:          services.ingestQueue,
+			IngestEnqueuer:       holder,
 			IngestMetrics:        metrics,
 			CompanySvc:           services.company,
 			BillingSvc:           services.billing,

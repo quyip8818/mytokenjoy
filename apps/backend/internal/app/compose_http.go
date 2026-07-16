@@ -29,7 +29,7 @@ func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials
 }
 
 func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {
-	return domaingateway.NewPrecheckService(i.store.GatewayPrecheck(), cfg.Clock(), budgetcheck.WrapStore(i.budgetCheck))
+	return domaingateway.NewPrecheckService(i.precheckCache, cfg.Clock(), budgetcheck.WrapStore(i.budgetCheck))
 }
 
 func wireGatewayService(cfg config.Config, i infra, logger *slog.Logger) (domaingateway.GatewayService, error) {

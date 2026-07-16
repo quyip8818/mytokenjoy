@@ -46,7 +46,7 @@ func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
 }
 
 func wireKeys(cfg config.Config, i infra) domainkeys.Service {
-	return domainkeys.NewService(cfg, i.store, i.newAPISync, i.delayer)
+	return domainkeys.NewService(cfg, i.store, i.newAPISync, i.delayer, domainkeys.WithCacheInvalidator(i.precheckCache))
 }
 
 func wireModels(cfg config.Config, i infra) domainmodels.Service {
@@ -62,7 +62,7 @@ func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudi
 }
 
 func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) domaincompany.Service {
-	return domaincompany.NewService(cfg, i.store, i.adminPort, grants)
+	return domaincompany.NewService(cfg, i.store, i.adminPort, grants, domaincompany.WithCompanyCacheInvalidator(i.precheckCache))
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader, enqueuer jobs.Enqueuer) domainbilling.Service {

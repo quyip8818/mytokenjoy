@@ -15,6 +15,7 @@ import (
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/infra/river/periodic"
@@ -32,6 +33,10 @@ type Client struct {
 type Deps struct {
 	Cfg                  config.Config
 	Store                store.Store
+	LogStore             store.LogStore
+	Ingest               domainusage.Ingestor
+	Enqueuer             jobs.Enqueuer
+	Logger               *slog.Logger
 	Billing              domainbilling.Service
 	Overrun              domainbudget.OverrunProcessor
 	Rebalance            domainbudget.Rebalancer
@@ -70,6 +75,8 @@ func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Lo
 
 func registerWorkers(deps Deps) *river.Workers {
 	workersBundle := river.NewWorkers()
+	river.AddWorker(workersBundle, workers.NewIngestWorker(deps.Ingest, deps.Logger))
+	river.AddWorker(workersBundle, workers.NewIngestReconcileWorker(deps.LogStore, deps.Ingest, deps.Enqueuer, deps.Cfg.ReconcileBatchSize(), deps.Cfg.ReconcileMaxRounds(), deps.Logger))
 	river.AddWorker(workersBundle, workers.NewWalletSyncWorker(deps.Billing))
 	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.Store, deps.Cfg))
 	river.AddWorker(workersBundle, workers.NewOverrunWorker(deps.Overrun))

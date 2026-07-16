@@ -29,24 +29,32 @@ func PrecheckForRequest(path, model string, allowDev bool) PrecheckOpts {
 }
 
 type PrecheckService struct {
-	loader      store.GatewayPrecheckRepository
+	cache       *PrecheckCache
 	clock       clock.Clock
 	budgetCheck domainbudget.CombinedKeyCache
 }
 
-func NewPrecheckService(loader store.GatewayPrecheckRepository, clk clock.Clock, budgetCheck domainbudget.CombinedKeyCache) *PrecheckService {
+// NewPrecheckService creates a precheck service.
+// Use NewPrecheckCache to create the cache from a GatewayPrecheckRepository.
+func NewPrecheckService(cache *PrecheckCache, clk clock.Clock, budgetCheck domainbudget.CombinedKeyCache) *PrecheckService {
 	if budgetCheck == nil {
 		budgetCheck = domainbudget.NoopCombinedKeyCache
 	}
 	return &PrecheckService{
-		loader:      loader,
+		cache:       cache,
 		clock:       clock.OrDefault(clk),
 		budgetCheck: budgetCheck,
 	}
 }
 
+// NewPrecheckServiceLegacy creates a precheck service with a raw loader (no cache).
+// Used in tests that don't need caching.
+func NewPrecheckServiceLegacy(loader store.GatewayPrecheckRepository, clk clock.Clock, budgetCheck domainbudget.CombinedKeyCache) *PrecheckService {
+	return NewPrecheckService(NewPrecheckCache(loader), clk, budgetCheck)
+}
+
 func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) error {
-	row, err := p.loader.LoadPrecheckContext(ctx, keyHash)
+	row, err := p.cache.Get(ctx, keyHash)
 	if err != nil {
 		return err
 	}
@@ -56,21 +64,29 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 	if err := EvaluateAt(PrecheckContextFromStore(row), model, opts, p.clock.Now()); err != nil {
 		return err
 	}
-	return p.budgetRemainCheck(ctx, row.CompanyID, keyHash, row.CombinedKeyRemainVersion)
+	return p.budgetRemainCheck(ctx, row.CompanyID, keyHash)
 }
 
-func (p *PrecheckService) budgetRemainCheck(ctx context.Context, companyID int64, keyHash string, pgVersion int64) error {
+// budgetRemainCheck queries Redis directly for the remain value.
+// No PG version comparison — Ingest SET always overwrites Redis with the precise value,
+// and Rebalance refreshes after budget changes. Fail-open on cache miss or Redis error.
+func (p *PrecheckService) budgetRemainCheck(ctx context.Context, companyID int64, keyHash string) error {
 	if !p.budgetCheck.Enabled() {
 		return nil
 	}
 	entry, ok, err := p.budgetCheck.Get(ctx, companyID, keyHash)
 	if err != nil || !ok {
-		return nil
+		return nil // fail-open
 	}
-	if domainbudget.BlocksCombinedKey(entry, pgVersion) {
+	if entry.Remain <= 0 {
 		return ErrBudgetExhausted
 	}
 	return nil
+}
+
+// Cache returns the underlying PrecheckCache for invalidation by other services.
+func (p *PrecheckService) Cache() *PrecheckCache {
+	return p.cache
 }
 
 var _ Prechecker = (*PrecheckService)(nil)

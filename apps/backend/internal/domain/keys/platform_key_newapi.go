@@ -66,6 +66,7 @@ func (s *service) persistPlatformKeyWithNewAPISync(
 			return types.PlatformKey{}, err
 		}
 	}
+	s.cacheInvalidator.InvalidateByKeyID(id)
 	return s.enrichPlatformKeyResponse(ctx, updated)
 }
 

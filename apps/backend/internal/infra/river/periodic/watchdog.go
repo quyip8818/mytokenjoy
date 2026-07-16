@@ -10,7 +10,7 @@ func BuildWatchdogJobs(cfg config.Config) []*river.PeriodicJob {
 	if !cfg.RiverEnabled || !cfg.RiverPeriodicEnabled {
 		return nil
 	}
-	return []*river.PeriodicJob{
+	periodicJobs := []*river.PeriodicJob{
 		river.NewPeriodicJob(
 			river.PeriodicInterval(cfg.WatchdogInterval()),
 			func() (river.JobArgs, *river.InsertOpts) {
@@ -19,4 +19,14 @@ func BuildWatchdogJobs(cfg config.Config) []*river.PeriodicJob {
 			nil,
 		),
 	}
+	if cfg.IngestEnabled() {
+		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
+			river.PeriodicInterval(cfg.IngestReconcileInterval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.IngestReconcileArgs{}, nil
+			},
+			nil,
+		))
+	}
+	return periodicJobs
 }

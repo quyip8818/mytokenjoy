@@ -17,7 +17,6 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
-	"github.com/tokenjoy/backend/internal/infra/ingest"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
@@ -55,20 +54,6 @@ func NewIngestRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, s
 	budgetfix.EnsureMonthRebalanceCurrent(t, testutil.Ctx(), rt.Cfg, st, contract.DefaultCompanyID)
 	t.Cleanup(func() { rt.Stop(t, context.Background()) })
 	return rt, st, rt.Registry.MustIngestService()
-}
-
-// NewIngestOnlyRunner creates a lightweight ingest worker without River for
-// reconcile and pending-job tests that don't need full job queue infrastructure.
-func NewIngestOnlyRunner(t *testing.T) (*ingest.Worker, store.Store) {
-	t.Helper()
-	cfg, st := testutil.NewTestStore(t, testutil.WithIngestEnabled(true))
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	reg, _, err := app.BuildRegistry(cfg, logger, st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	w := reg.IngestWorker(cfg, logger)
-	return w, st
 }
 
 func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.SyncService) (*TestRuntime, store.Store) {

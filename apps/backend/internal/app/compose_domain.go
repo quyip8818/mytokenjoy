@@ -28,7 +28,6 @@ type domainServices struct {
 	audit           domainaudit.Service
 	readModel       domainusage.ReadModel
 	ingest          domainusage.Ingestor
-	ingestQueue     domainusage.Queue
 	overrun         domainbudget.OverrunProcessor
 	rebalance       domainbudget.Rebalancer
 	company         domaincompany.Service
@@ -36,13 +35,8 @@ type domainServices struct {
 	memberAnalytics domainmemberanalytics.Service
 }
 
-func wireIngestQueue(i infra) domainusage.Queue {
-	return domainusage.NewQueue(i.store.Logs())
-}
-
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, orgAdmin *adapter.OrgRiverAdminHolder) domainServices {
 	reader := wireReader(i)
-	ingestQueue := wireIngestQueue(i)
 	keysSvc := wireKeys(cfg, i)
 	grants := permission.NewGrantNormalizer()
 	return domainServices{
@@ -54,7 +48,6 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueu
 		audit:           wireAudit(cfg, i, reader),
 		readModel:       reader,
 		ingest:          wireIngestService(cfg, i, logger, enqueuer),
-		ingestQueue:     ingestQueue,
 		overrun:         wireOverrunService(cfg, i, logger),
 		rebalance:       wireRebalance(cfg, i),
 		company:         wireCompany(cfg, i, grants),

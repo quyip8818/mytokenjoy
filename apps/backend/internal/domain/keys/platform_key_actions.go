@@ -36,6 +36,7 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return types.PlatformKey{}, err
 	}
+	s.cacheInvalidator.InvalidateByKeyID(id)
 	if enabled {
 		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
 			return types.PlatformKey{}, err
@@ -75,7 +76,11 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 		return err
 	}
 	platformKeys[idx].Status = "revoked"
-	return s.store.Keys().SetPlatformKeys(ctx, platformKeys)
+	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+		return err
+	}
+	s.cacheInvalidator.InvalidateByKeyID(id)
+	return nil
 }
 
 func (s *service) DeletePlatformKey(ctx context.Context, id string) error {
@@ -84,5 +89,9 @@ func (s *service) DeletePlatformKey(ctx context.Context, id string) error {
 		return err
 	}
 	platformKeys = append(platformKeys[:idx], platformKeys[idx+1:]...)
-	return s.store.Keys().SetPlatformKeys(ctx, platformKeys)
+	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+		return err
+	}
+	s.cacheInvalidator.InvalidateByKeyID(id)
+	return nil
 }

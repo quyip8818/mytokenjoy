@@ -2,14 +2,13 @@ package usage
 
 import (
 	"errors"
-	"math"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+// IngestErrorKind classifies ingest errors for retry decisions.
 type IngestErrorKind int
 
 const (
@@ -20,6 +19,7 @@ const (
 	IngestRetryable
 )
 
+// ClassifyIngestError determines the error kind for River retry/cancel decisions.
 func ClassifyIngestError(err error) IngestErrorKind {
 	if err == nil {
 		return IngestOK
@@ -45,79 +45,12 @@ func ClassifyIngestError(err error) IngestErrorKind {
 	return IngestRetryable
 }
 
+// IsRecoverableIngestError reports whether a business error is recoverable
+// (e.g. mapping not found yet — may appear after replication lag).
 func IsRecoverableIngestError(err error) bool {
 	var domainErr *domain.DomainError
 	if !errors.As(err, &domainErr) {
 		return false
 	}
 	return domainErr.Status == domain.StatusNotFound
-}
-
-type IngestOutcome struct {
-	kind IngestErrorKind
-	err  error
-}
-
-func OutcomeFor(err error) IngestOutcome {
-	return IngestOutcome{kind: ClassifyIngestError(err), err: err}
-}
-
-type RetryDisposition int
-
-const (
-	RetryDone RetryDisposition = iota
-	RetryDead
-	RetryScheduleBackoff
-)
-
-func (d RetryDisposition) String() string {
-	switch d {
-	case RetryDone:
-		return "done"
-	case RetryDead:
-		return "dead"
-	case RetryScheduleBackoff:
-		return "backoff"
-	default:
-		return "unknown"
-	}
-}
-
-func (o IngestOutcome) ReconcileAdvancesCursor() bool {
-	switch o.kind {
-	case IngestOK, IngestBusiness, IngestLogNotFound:
-		return true
-	default:
-		return false
-	}
-}
-
-func (o IngestOutcome) ShouldRecordFailure() bool {
-	return o.kind == IngestBusiness
-}
-
-func (o IngestOutcome) Retry(attempts int) RetryDisposition {
-	switch o.kind {
-	case IngestOK:
-		return RetryDone
-	case IngestBusiness:
-		if IsRecoverableIngestError(o.err) {
-			return retryBackoffOrDead(attempts)
-		}
-		return RetryDead
-	default:
-		return retryBackoffOrDead(attempts)
-	}
-}
-
-func retryBackoffOrDead(attempts int) RetryDisposition {
-	if attempts+1 >= store.IngestJobMaxAttempts {
-		return RetryDead
-	}
-	return RetryScheduleBackoff
-}
-
-func IngestBackoff(attempts int) time.Duration {
-	seconds := math.Min(300, math.Pow(2, float64(attempts)))
-	return time.Duration(seconds) * time.Second
 }

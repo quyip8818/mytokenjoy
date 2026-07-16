@@ -13,7 +13,6 @@ const StreamNewAPIConsume = store.ReconcileStreamNewAPIConsume
 type Snapshot struct {
 	WebhookAcceptedTotal int64 `json:"ingest_webhook_accepted_total"`
 	ReconcileGaps        int64 `json:"ingest_reconcile_gaps"`
-	JobsPending          int   `json:"ingest_jobs_pending"`
 	LagSeconds           int64 `json:"ingest_lag_seconds"`
 }
 
@@ -27,7 +26,6 @@ type collector struct {
 	mu                   sync.RWMutex
 	webhookAcceptedTotal atomic.Int64
 	reconcileGaps        int64
-	jobsPending          int
 	lagSeconds           int64
 }
 
@@ -48,17 +46,12 @@ func (c *collector) Refresh(ctx context.Context, logStore store.LogStore) error 
 	if err != nil {
 		return err
 	}
-	pending, err := logStore.CountPendingIngestJobs(ctx)
-	if err != nil {
-		return err
-	}
 	lag, err := logStore.IngestLagSeconds(ctx, cursor)
 	if err != nil {
 		return err
 	}
 	c.mu.Lock()
 	c.reconcileGaps = gaps
-	c.jobsPending = pending
 	c.lagSeconds = lag
 	c.mu.Unlock()
 	return nil
@@ -70,7 +63,6 @@ func (c *collector) Snapshot() Snapshot {
 	return Snapshot{
 		WebhookAcceptedTotal: c.webhookAcceptedTotal.Load(),
 		ReconcileGaps:        c.reconcileGaps,
-		JobsPending:          c.jobsPending,
 		LagSeconds:           c.lagSeconds,
 	}
 }

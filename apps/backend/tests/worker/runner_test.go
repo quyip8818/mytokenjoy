@@ -3,16 +3,13 @@ package worker_test
 import (
 	"strings"
 	"testing"
-	"time"
 
-	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -88,43 +85,5 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 	}
 	if riverfix.ListPendingNewAPISync(t, fix.st, outbox.KindCreateKey, 100) != 0 {
 		t.Fatal("expected newapi sync outbox done after RunOnce")
-	}
-}
-
-type errTest string
-
-func (e errTest) Error() string { return string(e) }
-
-func TestIngestJobMappingLateRecovery(t *testing.T) {
-	stub := &mock.StubAdminClient{}
-	fix := newWorkerFixture(t, stub)
-	ctx := testutil.Ctx()
-
-	const logID = int64(601)
-	const tokenID = int64(77)
-	testutil.SeedConsumeLog(t, fix.st, testutil.DefaultConsumeLog(logID, tokenID))
-
-	if err := fix.st.Logs().UpsertJob(ctx, store.IngestJobFromError(logID, types.SourceWebhook, errTest("mapping not found"))); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := fix.ingestWorker.RunPendingOnce(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err := fix.st.Logs().MarkJobRetry(ctx, store.IngestJobID(logID), -time.Second, "mapping not found"); err != nil {
-		t.Fatal(err)
-	}
-
-	opts := newapisynctf.DefaultMappingOpts()
-	opts.NewAPIKeyID = tokenID
-	newapisynctf.PrepareIngestFixture(t, fix.st, opts)
-
-	if err := fix.ingestWorker.RunPendingOnce(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	ingested, err := testutil.HasLedgerLogID(fix.st, logID)
-	if err != nil || !ingested {
-		t.Fatalf("expected ledger entry after mapping recovery, err=%v ingested=%v", err, ingested)
 	}
 }

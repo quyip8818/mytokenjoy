@@ -20,7 +20,7 @@ func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o 
 	if err != nil {
 		return ServiceRegistry{}, err
 	}
-	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger, holder, orgAdmin), logger)
+	registry := buildServiceRegistry(cfg, infraDeps, buildDomainServices(cfg, infraDeps, logger, holder, orgAdmin), logger, holder)
 	if o.orgSync != nil {
 		registry.OrgSync = o.orgSync
 	}

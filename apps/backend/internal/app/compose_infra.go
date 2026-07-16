@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -33,6 +34,7 @@ type infra struct {
 	enqueuer        jobs.Enqueuer
 	budgetCheck     budgetcheck.Store
 	rateLimiter     ratelimit.Limiter
+	precheckCache   *domaingateway.PrecheckCache
 }
 
 func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminClientOverride newapi.AdminClient) (infra, error) {
@@ -64,5 +66,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		enqueuer:        enqueuer,
 		budgetCheck:     budgetcheck.Open(context.Background(), cfg, logger),
 		rateLimiter:     ratelimit.Open(context.Background(), cfg.RedisURL, logger),
+		precheckCache:   domaingateway.NewPrecheckCache(st.GatewayPrecheck()),
 	}, nil
 }
