@@ -12,7 +12,11 @@ interface UseBudgetActionsOptions {
   refreshApprovals: () => Promise<void>
 }
 
-export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: UseBudgetActionsOptions) {
+export function useBudgetActions({
+  injectedApis,
+  refresh,
+  refreshApprovals,
+}: UseBudgetActionsOptions) {
   const apis = useInjectedApis(injectedApis)
 
   const { openWithRefresh } = useWorkflowRefresh({
@@ -48,7 +52,10 @@ export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: Us
   )
 
   const updateProject = useCallback(
-    (groupId: string, data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> }) =>
+    (
+      groupId: string,
+      data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> },
+    ) =>
       withErrorToast(async () => {
         await apis.budgetApi.updateProject(groupId, data)
         await refresh()
@@ -85,7 +92,8 @@ export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: Us
   )
 
   const updateMemberBudget = useCallback(
-    (memberId: string, data: UpdateMemberBudgetInput) => apis.budgetApi.updateMemberBudget(memberId, data),
+    (memberId: string, data: UpdateMemberBudgetInput) =>
+      apis.budgetApi.updateMemberBudget(memberId, data),
     [apis],
   )
 
@@ -102,7 +110,12 @@ export function useBudgetActions({ injectedApis, refresh, refreshApprovals }: Us
 
   const getMembers = useCallback(
     async (departmentId: string) => {
-      const result = await apis.memberApi.list({ departmentId, directOnly: true, page: 1, pageSize: 200 })
+      const result = await apis.memberApi.list({
+        departmentId,
+        directOnly: true,
+        page: 1,
+        pageSize: 200,
+      })
       return result?.items ?? []
     },
     [apis],

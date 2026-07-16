@@ -11,8 +11,10 @@ import (
 
 // HTTPConfig holds HTTP server settings.
 type HTTPConfig struct {
-	Port        string `env:"PORT" envDefault:"8080"`
-	CORSOrigins string `env:"CORS_ORIGINS" envDefault:"http://localhost:5173"`
+	Port              string `env:"PORT" envDefault:"8080"`
+	CORSOrigins       string `env:"CORS_ORIGINS" envDefault:"http://localhost:5173"`
+	RequestTimeoutSec int    `env:"REQUEST_TIMEOUT_SEC" envDefault:"30"`
+	AccessLogSlowMs   int    `env:"ACCESS_LOG_SLOW_THRESHOLD_MS" envDefault:"5000"`
 }
 
 // DeployConfig holds deployment and environment settings.
@@ -113,6 +115,18 @@ type CacheConfig struct {
 	GatewayBudgetCheckTTLSec int    `env:"GATEWAY_BUDGET_CHECK_TTL_SEC" envDefault:"600"`
 }
 
+// RateLimitConfig holds rate limiting settings.
+type RateLimitConfig struct {
+	RateLimitEnabled        bool `env:"RATE_LIMIT_ENABLED" envDefault:"true"`
+	RateLimitDryRun         bool `env:"RATE_LIMIT_DRY_RUN" envDefault:"false"`
+	RateLimitV1Rate         int  `env:"RATE_LIMIT_V1_RATE" envDefault:"30"`
+	RateLimitV1Burst        int  `env:"RATE_LIMIT_V1_BURST" envDefault:"60"`
+	RateLimitTenantRate     int  `env:"RATE_LIMIT_TENANT_RATE" envDefault:"100"`
+	RateLimitTenantBurst    int  `env:"RATE_LIMIT_TENANT_BURST" envDefault:"200"`
+	RateLimitLoginMax       int  `env:"RATE_LIMIT_LOGIN_MAX" envDefault:"5"`
+	RateLimitLoginWindowSec int  `env:"RATE_LIMIT_LOGIN_WINDOW_SEC" envDefault:"60"`
+}
+
 // Config is the root application configuration.
 // Sub-structs are embedded so field access remains flat (e.g. cfg.Port, cfg.DatabaseURL).
 type Config struct {
@@ -128,6 +142,7 @@ type Config struct {
 	PlatformConfig
 	IdentityConfig
 	CacheConfig
+	RateLimitConfig
 }
 
 func (c Config) GatewayBudgetCheckEnabled() bool {

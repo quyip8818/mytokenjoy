@@ -33,7 +33,7 @@ func (c *CountingGatewayPrecheck) Calls() int32 {
 func BuildGatewayWithPrecheckLoader(t *testing.T, scenario GatewayScenario, loader store.GatewayPrecheckRepository) domaingateway.GatewayService {
 	t.Helper()
 	precheck := domaingateway.NewPrecheckService(loader, scenario.Cfg.Clock(), nil)
-	gw, err := domaingateway.NewGatewayService(scenario.Cfg, precheck)
+	gw, err := domaingateway.NewGatewayService(scenario.Cfg, precheck, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

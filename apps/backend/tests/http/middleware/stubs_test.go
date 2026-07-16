@@ -4,6 +4,9 @@ package middleware_test
 
 import (
 	"context"
+	"io"
+	"log/slog"
+	"net/http"
 
 	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
@@ -73,4 +76,15 @@ func (s *stubCompanyRepo) ApplyWalletDelta(context.Context, int64, float64, *str
 }
 func (s *stubCompanyRepo) SetWalletRemain(context.Context, int64, float64, *string) error {
 	panic("stubCompanyRepo: SetWalletRemain")
+}
+
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+func injectCompanyCtx(companyID int64, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := domaincompany.WithContext(r.Context(), domaincompany.Context{CompanyID: companyID})
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

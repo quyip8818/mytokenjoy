@@ -14,6 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -31,6 +32,7 @@ type infra struct {
 	delayer         common.Delayer
 	enqueuer        jobs.Enqueuer
 	budgetCheck     budgetcheck.Store
+	rateLimiter     ratelimit.Limiter
 }
 
 func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminClientOverride newapi.AdminClient) (infra, error) {
@@ -61,5 +63,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		delayer:         common.NewDelayer(cfg.SimulateDelay),
 		enqueuer:        enqueuer,
 		budgetCheck:     budgetcheck.Open(context.Background(), cfg, logger),
+		rateLimiter:     ratelimit.Open(context.Background(), cfg.RedisURL, logger),
 	}, nil
 }

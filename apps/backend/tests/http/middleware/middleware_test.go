@@ -17,6 +17,7 @@ import (
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -222,6 +223,169 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 		if rec.Code != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("M8 security headers present", func(t *testing.T) {
+		t.Parallel()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		handler := httpmiddleware.SecurityHeaders(true)(next)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+			t.Fatalf("X-Content-Type-Options: got %q want nosniff", got)
+		}
+		if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+			t.Fatalf("X-Frame-Options: got %q want DENY", got)
+		}
+		if got := rec.Header().Get("Strict-Transport-Security"); got == "" {
+			t.Fatal("expected HSTS header when secureCookie=true")
+		}
+	})
+
+	t.Run("M8b security headers no HSTS when not secure", func(t *testing.T) {
+		t.Parallel()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		handler := httpmiddleware.SecurityHeaders(false)(next)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if got := rec.Header().Get("Strict-Transport-Security"); got != "" {
+			t.Fatalf("expected no HSTS when secureCookie=false, got %q", got)
+		}
+	})
+
+	t.Run("M9 request timeout sets context deadline", func(t *testing.T) {
+		t.Parallel()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			deadline, ok := r.Context().Deadline()
+			if !ok {
+				t.Fatal("expected context deadline to be set")
+			}
+			if deadline.IsZero() {
+				t.Fatal("deadline should not be zero")
+			}
+			w.WriteHeader(http.StatusOK)
+		})
+		handler := httpmiddleware.RequestTimeout(5)(next)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("M10 rate limit tenant allows when under limit", func(t *testing.T) {
+		t.Parallel()
+		limiter := ratelimit.NewMemoryLimiter()
+		defer limiter.Close()
+		called := false
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			w.WriteHeader(http.StatusOK)
+		})
+		handler := injectCompanyCtx(1, httpmiddleware.RateLimitTenant(limiter, 100, 200, false, testLogger())(next))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/budget/tree", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if !called {
+			t.Fatal("expected next handler to be called")
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+		if rec.Header().Get("X-RateLimit-Limit") == "" {
+			t.Fatal("expected X-RateLimit-Limit header")
+		}
+	})
+
+	t.Run("M10b rate limit tenant rejects when exhausted", func(t *testing.T) {
+		t.Parallel()
+		limiter := ratelimit.NewMemoryLimiter()
+		defer limiter.Close()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		handler := injectCompanyCtx(1, httpmiddleware.RateLimitTenant(limiter, 1, 1, false, testLogger())(next))
+
+		// First request — allowed (uses the 1 token).
+		req := httptest.NewRequest(http.MethodGet, "/api/x", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("first request: expected 200, got %d", rec.Code)
+		}
+
+		// Second request — rejected.
+		req2 := httptest.NewRequest(http.MethodGet, "/api/x", nil)
+		rec2 := httptest.NewRecorder()
+		handler.ServeHTTP(rec2, req2)
+		if rec2.Code != http.StatusTooManyRequests {
+			t.Fatalf("second request: expected 429, got %d body=%s", rec2.Code, rec2.Body.String())
+		}
+	})
+
+	t.Run("M11 rate limit login paths blocks after max", func(t *testing.T) {
+		t.Parallel()
+		memLimiter := ratelimit.NewMemoryLimiter()
+		defer memLimiter.Close()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		paths := []string{"/api/auth/login"}
+		handler := httpmiddleware.RateLimitLoginPaths(paths, nil, memLimiter, 2, 60, false, testLogger())(next)
+
+		// First 2 requests pass.
+		for i := 0; i < 2; i++ {
+			req := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("request %d: expected 200, got %d", i+1, rec.Code)
+			}
+		}
+		// 3rd request blocked.
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusTooManyRequests {
+			t.Fatalf("3rd request: expected 429, got %d", rec.Code)
+		}
+	})
+
+	t.Run("M11b rate limit login paths ignores non-login", func(t *testing.T) {
+		t.Parallel()
+		memLimiter := ratelimit.NewMemoryLimiter()
+		defer memLimiter.Close()
+		called := false
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			w.WriteHeader(http.StatusOK)
+		})
+		paths := []string{"/api/auth/login"}
+		handler := httpmiddleware.RateLimitLoginPaths(paths, nil, memLimiter, 1, 60, false, testLogger())(next)
+
+		// Non-login path — should pass without rate limiting.
+		req := httptest.NewRequest(http.MethodPost, "/api/budget/tree", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if !called {
+			t.Fatal("expected next handler for non-login path")
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
 		}
 	})
 }

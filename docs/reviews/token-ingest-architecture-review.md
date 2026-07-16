@@ -138,21 +138,48 @@
 
 ### 4.1 减轻 Ingest 事务权重（高优先级）
 
-#### 方案 A：拆分为 "Record + Settle" 两阶段
+> **注意**：`budget_consumed` 和 `combined_key_remain` 不适合移到 post-commit。  
+> 虽然网关侧读取本身有延迟，但 ingest worker 同公司 job 串行执行时，后一笔  
+> 依赖前一笔的 budget 写入来判断"已消耗总量"。移出事务会导致同一批次内  
+> 多笔 job 之间看不到彼此的消耗，叠加造成超额放行。
 
+#### 方案 A：减少事务内 Lot 消耗 SQL 次数
+
+当前逐 lot `UpdateLotRemaining`（N 个活跃 lot = N 条 UPDATE），改为：
+```sql
+-- 单条批量 UPDATE，一次扫完 FIFO 队列
+WITH consumption AS (
+    SELECT id, LEAST(points_remaining, $remaining) AS take
+    FROM recharge_lots
+    WHERE company_id = $1 AND status = 'active'
+    ORDER BY created_at
+)
+UPDATE recharge_lots SET points_remaining = points_remaining - take ...
 ```
-阶段 1 (快)：锁 → 幂等检查 → lot 消耗 → ledger insert → 解锁
-阶段 2 (异步)：budget_consumed UPSERT + combined_key decrement + River fanout
-```
 
-**优点**：锁持有时间从 10+ SQL 降至 4~5 SQL  
-**代价**：阶段 2 失败需补偿；budget_consumed 短暂不一致（但已有 reconcile 兜底）
+**收益**：N 条 SQL → 1~2 条，锁持有时间减半  
+**代价**：SQL 稍复杂，需处理跨 lot 分段逻辑
 
-#### 方案 B：Lot 消耗预扣 + 异步确认
+#### 方案 B：仅将 Fanout Job Insert 移到 post-commit
+
+安全可移出的：
+- `InsertDashboardProject` — 纯投影聚合，延迟无业务影响
+- `InsertOverrun` — 通知类，延迟秒级无影响
+
+必须留在事务内的：
+- `InsertWalletSync` — 需保证 lot 消耗与 wallet 同步原子性
+- `budget_consumed` — 同公司串行一致性需要
+- `combined_key_remain` — 同上
+
+**收益**：事务内减少 1~2 条 River INSERT  
+**风险**：极低，post-commit 失败时 periodic reconcile 兜底
+
+#### 方案 C：Lot 消耗预扣 + 异步确认
 
 将 wallet_remain 视为 "预扣余额"，先 `DecrementWalletRemain`（原子），然后异步写 lot 明细。
 
-**适用场景**：如果 lot FIFO 逻辑不需要实时精确到每笔 lot 分段。
+**适用场景**：如果 lot FIFO 逻辑不需要实时精确到每笔 lot 分段。  
+**风险**：lot 分段账目短暂不准，需强力 reconcile 补偿。
 
 ### 4.2 合并自建 Queue 到 River（中优先级）
 
@@ -245,7 +272,8 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 
 | 优化项 | 收益 | 实施难度 | 建议优先级 |
 |--------|------|----------|------------|
-| 减轻 Ingest 事务 (budget/combined 移到 post-commit) | 高 | 低 | P0 |
+| Lot 消耗批量化 CTE (减少事务内 SQL) | 高 | 中 | P0 |
+| DashboardProject/Overrun 移到 post-commit | 中 | 低 | P0 |
 | 合并 ingest queue 到 River | 中 | 中 | P1 |
 | Wallet Sync 去重窗口扩大 | 中 | 低 | P1 |
 | Dashboard inline 写入 | 中 | 低 | P1 |
@@ -255,53 +283,73 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 
 ---
 
-## 6. P0 优化详细方案：事务减重
+## 6. P0 优化详细方案：Lot 消耗批量化
 
 ### 当前事务边界
 
 ```go
 s.store.WithTx(ctx, func(st store.Store) error {
-    // 1. LockForUpdate         ← 必须
-    // 2. ExistsIdempotency     ← 必须
-    // 3. ConsumeLotsLocked     ← 必须 (N SQL)
-    // 4. InsertSegments        ← 必须
-    // 5. IncrementConsumedBatch ← 可延迟
-    // 6. DecrementBatch         ← 可延迟
-    // 7. EnqueueAfterIngest     ← 可延迟(部分)
+    // 1. LockForUpdate              ← 必须，1 SQL
+    // 2. ExistsIdempotency          ← 必须，1 SQL
+    // 3. ConsumeLotsLocked          ← 必须，但当前 N+2 SQL (ListFIFO + N×Update + SetWalletRemain)
+    // 4. InsertSegments             ← 必须，1 SQL
+    // 5. IncrementConsumedBatch     ← 必须（同公司串行一致性），1 SQL
+    // 6. DecrementBatch             ← 必须（同上），1 SQL
+    // 7. EnqueueAfterIngest         ← 部分可移出，2~3 SQL
 })
 ```
 
-### 建议事务边界
+### 优化目标：将步骤 3 从 N+2 SQL 压缩到 2~3 SQL
+
+```sql
+-- 1. 单条 CTE 完成 FIFO 消耗 + lot 状态更新
+WITH ordered_lots AS (
+    SELECT id, points_remaining,
+           SUM(points_remaining) OVER (ORDER BY created_at) AS cumulative
+    FROM recharge_lots
+    WHERE company_id = $1 AND status = 'active'
+      AND (fifo_head IS NULL OR id >= fifo_head)
+),
+consumption AS (
+    SELECT id,
+           LEAST(points_remaining, GREATEST($2 - (cumulative - points_remaining), 0)) AS take
+    FROM ordered_lots
+    WHERE cumulative - points_remaining < $2
+)
+UPDATE recharge_lots r
+SET points_remaining = r.points_remaining - c.take,
+    status = CASE WHEN r.points_remaining - c.take <= 0 THEN 'exhausted' ELSE r.status END,
+    updated_at = NOW()
+FROM consumption c
+WHERE r.id = c.id
+RETURNING r.id, c.take, r.billing_currency, r.unit_price_display;
+
+-- 2. 如有 remaining > 0 → ExpandOverdraftLot (1 SQL)
+-- 3. SetWalletRemain (1 SQL)
+```
+
+**收益**：N 个活跃 lot 的情况下，从 N+2 SQL 降至 2~3 SQL，显著减少锁持有时间  
+**代价**：SQL 复杂度增加，需充分测试边界情况（单 lot 不足、全部用完进 overdraft）
+
+### 同时：将 DashboardProject / Overrun 移到 post-commit
 
 ```go
-// 核心事务（4~6 SQL）
 s.store.WithTx(ctx, func(st store.Store) error {
     // 1. LockForUpdate
     // 2. ExistsIdempotency
-    // 3. ConsumeLotsLocked
+    // 3. ConsumeLotsLocked (批量化 CTE)
     // 4. InsertSegments
-    // 5. InsertWalletSync (仍需事务保证)
+    // 5. IncrementConsumedBatch    ← 保留事务内
+    // 6. DecrementBatch            ← 保留事务内
+    // 7. InsertWalletSync          ← 保留事务内
 })
 
-// Post-commit 异步（已有 reconcile 兜底）
-go func() {
-    _ = st.BudgetConsumed().IncrementConsumedBatch(ctx, storeDeltas)
-    _ = st.CombinedKeySummaries().DecrementBatch(ctx, decrements)
-    _ = enqueuer.InsertDashboardProject(ctx, companyID)
-    _ = enqueuer.InsertOverrun(ctx, companyID, payload)
-}()
+// Post-commit（安全，有 reconcile 兜底）
+enqueuer.InsertDashboardProject(ctx, companyID)  // 纯投影
+enqueuer.InsertOverrun(ctx, companyID, payload)  // 通知类
 ```
 
-**安全性论证**：
-- `budget_consumed` 漂移由 `BudgetReconcile` 每 24h 修正
-- `combined_key_remain` 漂移导致的最坏后果是短暂允许超额（或短暂误拒），网关层本就是 best-effort
-- `DashboardProject` 本来就是异步 1h 去重
-- `Overrun` 通知延迟几秒无业务影响
-
-**风险控制**：
-- Post-commit 失败时记录 error log
-- 定期 reconcile 保证最终一致
-- 添加 metric: `ingest_postcommit_failures_total`
+**总收益**：事务内 SQL 从 ~10 条降至 ~7 条，其中最重的 lot 消耗从 O(N) 降至 O(1)
 
 ---
 

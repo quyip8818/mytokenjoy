@@ -49,10 +49,10 @@ func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 	return ingestmetrics.NoopCollector()
 }
 
-func buildServiceRegistry(cfg config.Config, i infra, services domainServices) ServiceRegistry {
+func buildServiceRegistry(cfg config.Config, i infra, services domainServices, logger *slog.Logger) ServiceRegistry {
 	var gateway domaingateway.GatewayService
 	if cfg.GatewayEnabled && cfg.NewAPIEnabled {
-		gw, err := wireGatewayService(cfg, i)
+		gw, err := wireGatewayService(cfg, i, logger)
 		if err != nil {
 			panic(fmt.Errorf("wire gateway service: %w", err))
 		}
@@ -96,6 +96,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices) S
 			DevBearerResolver:    devBearer,
 			DevReadinessChecker:  devReadiness,
 			NotificationSvc:      i.notificationSvc,
+			RateLimiter:          i.rateLimiter,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

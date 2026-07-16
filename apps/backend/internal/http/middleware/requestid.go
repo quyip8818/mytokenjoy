@@ -9,6 +9,7 @@ import (
 
 type requestIDKey struct{}
 
+// RequestID generates or propagates a request ID via X-Request-Id header.
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get("X-Request-Id")
@@ -19,6 +20,12 @@ func RequestID(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), requestIDKey{}, id)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// RequestIDFromContext retrieves the request ID stored in context.
+func RequestIDFromContext(ctx context.Context) string {
+	id, _ := ctx.Value(requestIDKey{}).(string)
+	return id
 }
 
 func newRequestID() string {

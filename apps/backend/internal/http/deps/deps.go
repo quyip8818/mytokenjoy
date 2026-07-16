@@ -21,6 +21,7 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -51,4 +52,5 @@ type Deps struct {
 	DevBearerResolver    devapi.BearerResolver
 	DevReadinessChecker  devapi.ReadinessChecker
 	NotificationSvc      *notification.Service
+	RateLimiter          ratelimit.Limiter
 }

@@ -2,15 +2,20 @@ package gateway
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -25,15 +30,34 @@ type gatewayService struct {
 	precheck      Prechecker
 	proxy         *httputil.ReverseProxy
 	allowDevModel bool
+	rateLimiter   ratelimit.Limiter
+	rlRate        int
+	rlBurst       int
+	rlDryRun      bool
+	logger        *slog.Logger
 }
 
-func NewGatewayService(cfg config.Config, precheck Prechecker) (GatewayService, error) {
+func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit.Limiter, logger *slog.Logger) (GatewayService, error) {
 	target, err := url.Parse(cfg.NewAPIBaseURL)
 	if err != nil {
 		return nil, err
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
-	proxy.Transport = &http.Transport{DisableCompression: true}
+	proxy.Transport = &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSClientConfig:       &tls.Config{MinVersion: tls.VersionTLS12},
+		TLSHandshakeTimeout:   5 * time.Second,
+		DisableCompression:    true,
+		MaxIdleConns:          200,
+		MaxIdleConnsPerHost:   100,
+		IdleConnTimeout:       90 * time.Second,
+		ResponseHeaderTimeout: 120 * time.Second,
+		ForceAttemptHTTP2:     true,
+	}
+	proxy.FlushInterval = -1 // Stream responses (SSE) in real-time.
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
@@ -43,6 +67,11 @@ func NewGatewayService(cfg config.Config, precheck Prechecker) (GatewayService, 
 		precheck:      precheck,
 		proxy:         proxy,
 		allowDevModel: cfg.AllowsDevHTTPRoutes(),
+		rateLimiter:   limiter,
+		rlRate:        cfg.RateLimitV1Rate,
+		rlBurst:       cfg.RateLimitV1Burst,
+		rlDryRun:      cfg.RateLimitDryRun,
+		logger:        logger,
 	}, nil
 }
 
@@ -54,6 +83,11 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	platformKeySecret, ok := parseBearerSecret(r.Header.Get("Authorization"))
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Rate limit per API key (before precheck to save DB call on rejected requests).
+	keyHash := store.HashPlatformKey(platformKeySecret)
+	if !g.checkRateLimit(keyHash, w, r) {
 		return
 	}
 	if r.Body != nil {
@@ -76,12 +110,44 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	opts := PrecheckForRequest(r.URL.Path, model, g.allowDevModel)
-	if err := g.precheck.Run(r.Context(), store.HashPlatformKey(platformKeySecret), model, opts); err != nil {
+	if err := g.precheck.Run(r.Context(), keyHash, model, opts); err != nil {
 		logGatewayRejection(r.URL.Path, model, err.Error())
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}
 	g.proxy.ServeHTTP(w, r)
+}
+
+// checkRateLimit applies per-key rate limiting. Returns true if the request is allowed.
+func (g *gatewayService) checkRateLimit(keyHash string, w http.ResponseWriter, r *http.Request) bool {
+	if g.rateLimiter == nil || !g.rlEnabled() {
+		return true
+	}
+	key := fmt.Sprintf("rl:v1:%s", keyHash)
+	result, err := g.rateLimiter.AllowTokenBucket(r.Context(), key, g.rlRate, g.rlBurst)
+	if err != nil {
+		// Fail-open on Redis error.
+		if g.logger != nil {
+			g.logger.Warn("rate_limit: v1 redis error, fail-open", "error", err, "key_prefix", keyHash[:8])
+		}
+		return true
+	}
+	ratelimit.WriteHeaders(w, result)
+	if !result.Allowed {
+		if g.rlDryRun {
+			if g.logger != nil {
+				g.logger.Warn("rate_limit: v1 would reject (dry-run)", "key_prefix", keyHash[:8])
+			}
+			return true
+		}
+		ratelimit.WriteRejection(w, result)
+		return false
+	}
+	return true
+}
+
+func (g *gatewayService) rlEnabled() bool {
+	return g.rlRate > 0 && g.rlBurst > 0
 }
 
 func logGatewayRejection(path, model, reason string) {
