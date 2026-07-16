@@ -82,7 +82,7 @@ type IngestConfig struct {
 
 // WatchdogConfig holds watchdog/scheduler settings.
 type WatchdogConfig struct {
-	WatchdogIntervalSec      int `env:"WATCHDOG_INTERVAL_SEC" envDefault:"604800"`
+	WatchdogIntervalSec      int `env:"WATCHDOG_INTERVAL_SEC" envDefault:"3600"`
 	WatchdogBulkBatchSizeEnv int `env:"WATCHDOG_BULK_BATCH_SIZE" envDefault:"200"`
 	WatchdogStartupDelaySec  int `env:"WATCHDOG_STARTUP_DELAY_SEC" envDefault:"5"`
 }

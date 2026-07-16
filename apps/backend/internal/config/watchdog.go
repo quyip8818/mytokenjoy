@@ -4,7 +4,7 @@ import "time"
 
 func (c Config) WatchdogInterval() time.Duration {
 	if c.WatchdogIntervalSec <= 0 {
-		return 7 * 24 * time.Hour
+		return 1 * time.Hour
 	}
 	return time.Duration(c.WatchdogIntervalSec) * time.Second
 }

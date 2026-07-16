@@ -86,7 +86,6 @@ sequenceDiagram
             I->>PG: ComputeGatewaySummaryUpdates
             I->>PG: UpdateBatch (absolute remain)
         end
-        I->>R: INSERT dashboard_project job
         I->>R: INSERT wallet_sync job
         opt remain ≤ 0 或 Unknown
             I->>R: INSERT overrun job
@@ -244,7 +243,7 @@ sequenceDiagram
 | `combined_key_remain` | Reconcile (UpdateBatch) | 冷路径修复 |
 | `combined_key_remain` | Rebalance | 充值/月切后 |
 | `notification_log` | notification server | 异步投递 |
-| `usage_buckets` | dashboard projector | 异步投影 |
+| `usage_buckets` | dashboard projector | 异步投影（看门狗每小时触发） |
 
 ---
 

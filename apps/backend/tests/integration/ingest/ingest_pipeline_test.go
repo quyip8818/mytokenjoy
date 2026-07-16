@@ -147,10 +147,9 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	}
 }
 
-// TestIngestEnqueuesDashboardProjectAndWalletSync verifies that after a successful
-// ingest, the expected background jobs (dashboard_project, wallet_sync) are enqueued
-// and that overrun/rebalance are NOT enqueued directly from ingest.
-func TestIngestEnqueuesDashboardProjectAndWalletSync(t *testing.T) {
+// TestIngestEnqueuesWalletSyncOnly verifies that after a successful ingest,
+// wallet_sync is enqueued but dashboard_project is NOT (driven by hourly watchdog instead).
+func TestIngestEnqueuesWalletSyncOnly(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	_, st, ingest := riverfix.NewIngestRuntime(t, stub)
 
@@ -161,8 +160,8 @@ func TestIngestEnqueuesDashboardProjectAndWalletSync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if riverfix.PendingDashboardProjectCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected dashboard_project job after ingest")
+	if riverfix.PendingDashboardProjectCount(st, contract.DefaultCompanyID) != 0 {
+		t.Fatal("expected no dashboard_project job from ingest (now driven by watchdog)")
 	}
 	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected no rebalance jobs directly from ingest")

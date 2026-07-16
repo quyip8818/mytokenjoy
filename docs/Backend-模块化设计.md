@@ -91,13 +91,13 @@ internal/app/
 
 | 实例 | 构造点 | 消费方 |
 | --- | --- | --- |
-| `budget.Async`（Projector + Reconcile） | `compose_worker.go` | `river.Client` |
+| `budget.Async`（Reconcile） | `compose_worker.go` | `river.Client` |
 | `dashboard.Projector` / `ReconcileService` | `compose_worker.go` | `river.Client` |
 | HTTP 域 `Service`（含 `budget.Service`） | `compose_domain_wire.go` | `httpdeps.Deps` |
 | `jobs.Holder` | `app.New` | Noop → River 启动后 `holder.Set` |
 | `scheduler.Service` / `BulkEnqueuer` | `compose_worker.go` | `tenant_watchdog` worker |
 
-HTTP 域服务**不**持有 Projector；入账快路径经 `usage.IngestJobEnqueuer` 在事务内 `InsertInTx`。
+HTTP 域服务**不**持有 Projector；入账快路径经 `usage.IngestJobEnqueuer` 在事务内 `InsertInTx`（仅 `wallet_sync`）。
 
 ### 2.3 装配链路
 

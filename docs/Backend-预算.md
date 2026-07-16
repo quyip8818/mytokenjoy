@@ -97,10 +97,10 @@ flowchart TB
 | --- | --- | --- | --- |
 | **事实** | `usage_ledger` | `usage.IngestService` | 审计、minute 看板 |
 | **累计（热）** | `budget_consumed`、`combined_key_remain` | **Ingest 同事务** | 预算树、Overrun 判定、Gateway 预检 |
-| **展示投影** | `usage_buckets` | `dashboard.Projector`（稀） | hour/day 看板 |
+| **展示投影** | `usage_buckets` | `dashboard.Projector`（看门狗小时级触发） | hour/day 看板 |
 | **冷矫正** | 同上累计表 | `budget_reconcile` 窗口 `SetConsumed` | 修漂移 |
 
-终态：**无** `budget_projection` / 游标 budget Projector。细节：[Backend-Projector.md](./Backend-Projector.md) · [Backend-预算累计架构.md](./Backend-预算累计架构.md)。
+终态：**无** `budget_projection` / 游标 budget Projector。细节：[Backend-预算累计架构.md](./Backend-预算累计架构.md)。
 
 ```mermaid
 flowchart LR
@@ -120,8 +120,8 @@ flowchart LR
 
 1. NewAPI settle → 共享 `logs` → webhook / reconcile → `IngestByLogID`
 2. 归因 + `BuildCallSettledEntry`（幂等键 `newapi:{log_id}`）
-3. `store.WithTx`：ledger → FIFO lot → **`ApplyIncrement(budget_consumed)`** → **`DecrementBatch(combined_key_remain)`** → 入队 `dashboard_project` + `wallet_sync`
-4. 可选：轻量预判后才 `InsertOverrun`；**不**入队 `budget_projection`
+3. `store.WithTx`：ledger → FIFO lot → **`ApplyIncrement(budget_consumed)`** → **`DecrementBatch(combined_key_remain)`** → 入队 `wallet_sync`
+4. 可选：轻量预判后才 `InsertOverrun`；**不**入队 `budget_projection`、`dashboard_project`（由看门狗驱动）
 5. rebalance / 重 overrun：async；多数 Ingest 零 budget job
 
 ### 2.2 `budget_consumed` 三轴（Ingest 内）
@@ -137,9 +137,9 @@ flowchart LR
 | 3 | `member` += cost | 仅 `member` scope |
 | — | 无 org_node 轴 | 部门报表用 ledger |
 | 同事务 | `combined_key_remain` | 预检热读 |
-| 提交后 | 告警可直做；overrun/rebalance 按需 | [Backend-Projector.md](./Backend-Projector.md) §3 |
+| 提交后 | 告警可直做；overrun/rebalance 按需 | 见 [Backend-离线任务.md](./Backend-离线任务.md) §5 |
 
-父节点 **limit**：`org_nodes.budget`。看板桶：`dashboard.Projector`。
+父节点 **limit**：`org_nodes.budget`。看板桶：`dashboard.Projector`（看门狗每小时触发）。
 
 ### 2.3 读路径分离
 
@@ -233,9 +233,9 @@ sequenceDiagram
   NA-->>NA: 200 accepted
   W->>Q: ClaimPending
   W->>ING: IngestByLogID
-  ING->>ING: 账本 + lot + 入队 budget_projection
-  Note over ING: Projector 异步写 consumed
-  ING->>W: rebalance / overrun（批末）
+  ING->>ING: 账本 + lot + consumed + combined_key
+  Note over ING: consumed 在 Ingest 同事务写入
+  ING->>W: rebalance / overrun（按需）
   W->>NA: UpdateToken
   W->>W: 超限则 Disable Key
 ```
@@ -270,9 +270,8 @@ flowchart TB
   CFG[配置表 limit]
 
   ING[入账] --> UL
-  ING -->|budget_projection| BS
-  BS --> GS
-  PER[dashboard_project] --> UB
+  ING -->|同事务| BS
+  WD[看门狗 1h] --> DP[dashboard_project] --> UB
   CFG --> GW[预检]
   GS --> GW
   BS --> UI[预算树 / Key 列表]
@@ -284,7 +283,7 @@ flowchart TB
 | --- | --- |
 | `usage_ledger` | 消耗 SSOT；幂等 `newapi:{log_id}` |
 | `budget_consumed` | 三轴 `platform_key` · `member` · `project`；部门报表读 `usage_ledger` 聚合 |
-| `platform_keys.gateway_soft_*` | Gateway 预检软剩余（Projector 批末刷新） |
+| `platform_keys.gateway_soft_*` | Gateway 预检软剩余（Reconcile 刷新） |
 | `usage_buckets` | 按小时聚合，供趋势图 |
 | 组织树 / 成员 / Key / 组 | 仅存 limit |
 
@@ -316,11 +315,11 @@ flowchart LR
 ```
 
 1. 结算日志 → Webhook 或补偿 → 按 mapping 归因  
-2. 单事务：账本 → lot → **consumed + combined_key** → 稀唤醒 dashboard / wallet  
-3. overrun / rebalance：**按需**异步（多数跳过）；见 [Backend-Projector.md](./Backend-Projector.md)  
+2. 单事务：账本 → lot → **consumed + combined_key** → 入队 wallet_sync  
+3. overrun / rebalance：**按需**异步（多数跳过）；见 [Backend-离线任务.md](./Backend-离线任务.md)  
 4. 失败走 `ingest_jobs` 重试  
 
-`usage_buckets` 由 `dashboard.Projector` 独立维护。账期见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
+`usage_buckets` 由 `dashboard.Projector` 独立维护（看门狗每小时检测 lag 触发）。账期见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
 ---
 
@@ -424,7 +423,7 @@ sequenceDiagram
 | --- | --- |
 | 预算树、组、成员额度、预警策略 | `domain/budget` |
 | 入账与 ledger | `domain/usage` |
-| 预算 / consumed 投影 | `domain/budget`（`budget_projector.go`） |
+| 预算 / consumed 写入 | `domain/budget`（Ingest 同事务 `ApplyIncrement`） |
 | 看板 buckets 投影 | `domain/dashboard` |
 | Rebalance | `domain/budget/rebalance`（`adminport.Port` 更新 token） |
 | NewAPI Admin 边界 | `domain/adminport` + `integration/newapi/admin_port_adapter.go` |

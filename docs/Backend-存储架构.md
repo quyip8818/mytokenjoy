@@ -154,10 +154,9 @@ flowchart LR
 | `rebalance` | `RebalanceWorker` | `default`（`UniqueOpts ByArgs` per axis） |
 | `overrun` | `OverrunWorker` | `default`（`ByArgs` per company） |
 | `wallet_sync` | `WalletSyncWorker` | `default`（`InsertTx`；Unique **5s**） |
-| `budget_projection` | `BudgetProjectionWorker` | `critical`（`InsertTx`；Unique 1s，**ByState 无 completed**） |
 | `org_sync` | `OrgSyncWorker` | `default`（Periodic 单 job → `SyncService.RunScheduledSyncAll`） |
-| `budget_reconcile` | `BudgetReconcileWorker` | `low`（Periodic fanout 一次扫全 tenant） |
-| `dashboard_project` / `dashboard_reconcile` | Dashboard Workers | `low`（Periodic fanout 一次扫全 tenant） |
+| `budget_reconcile` | `BudgetReconcileWorker` | `low`（看门狗检测 staleWindow 后入队） |
+| `dashboard_project` / `dashboard_reconcile` | Dashboard Workers | `low`（看门狗每小时检测 lag 后入队） |
 
 配套表：`river_leader`（Periodic leader）、`river_queue`；**保留** `scheduler_locks`（仅 Ingest reconcile）。
 
@@ -165,7 +164,7 @@ flowchart LR
 
 ## 5. 用量与入账
 
-Ingest 只写 ledger + River `InsertTx`；看板 / consumed 由异步投影写入。见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
+Ingest 同事务写 ledger + lot + `budget_consumed` + `combined_key_remain`；看板 `usage_buckets` 由 `dashboard.Projector` 异步维护（看门狗每小时触发）。见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
 
 ```mermaid
 flowchart LR
@@ -173,9 +172,8 @@ flowchart LR
   Q --> ING[Ingest]
   RC[reconcile] --> NLG[(newapi.logs)] --> ING
   ING --> UL[(usage_ledger)]
-  ING -->|InsertTx| RJ[river_job budget_projection]
-  RJ --> BC[(budget_consumed)]
-  PER[Periodic] --> UB[(usage_buckets)]
+  ING -->|同事务| BC[(budget_consumed)]
+  WD[看门狗 1h] --> UB[(usage_buckets)]
   BC --> DASH[控制台预算]
   UB --> DASH2[看板趋势]
 ```
@@ -183,8 +181,8 @@ flowchart LR
 | 表 | 角色 |
 | --- | --- |
 | `usage_ledger` | 消耗 SSOT |
-| `usage_buckets` | 看板 hour/day（Dashboard 投影写） |
-| `budget_consumed` | 三轴 consumed（BudgetProjector 写；部门报表改 ledger 聚合） |
+| `usage_buckets` | 看板 hour/day（Dashboard Projector 写，看门狗触发） |
+| `budget_consumed` | 三轴 consumed（Ingest 同事务 `ApplyIncrement`；部门报表改 ledger 聚合） |
 | `river_job` | 离线执行意图 |
 | `ingest_jobs` | 入账失败重试（**日志库**） |
 
@@ -196,7 +194,7 @@ flowchart LR
 
 ### 主库
 
-主库约 37 张表；预算 consumed 在 `budget_consumed` + `budget_projection_progress`；离线队列为 River 表（`river_job` 等）。
+主库约 37 张表；预算 consumed 在 `budget_consumed`；Dashboard 投影游标在 `dashboard_projection_progress`；离线队列为 River 表（`river_job` 等）。
 
 | 域     | 表                                                                                                                                                                      |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -269,7 +267,7 @@ flowchart LR
     W[wallet display currency]
   end
 
-  ING[Ingest + Projector] --> BS & UL & LOT
+  ING[Ingest] --> BS & UL & LOT
   BS --> C
   assign --> R
   BS --> R
@@ -285,7 +283,7 @@ flowchart LR
 
 † `member_budget`，见 [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) §3。‡ **三轴** `platform_key` · `member` · `project`；部门花费读 `usage_ledger` 聚合。
 
-组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_consumed` 是 consumed 的存储 SSOT。Gateway 热路径读 `platform_keys.gateway_soft_remain`（Projector 批末刷新）。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
+组织轴 **consumed 不以列形式存在**于 `org_nodes` / `platform_keys`；`budget_consumed` 是 consumed 的存储 SSOT。Gateway 热路径读 `platform_keys.gateway_soft_remain`（Reconcile 刷新）。单笔事实在 `usage_ledger.amount`（point）+ 锁定的 `display_amount`（展示币）。计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 ### 8.3 字段对照（代码名 → 统一词）
 

@@ -234,10 +234,10 @@ flowchart LR
 | 写入目标 | 用哪个月 | 含义 |
 | --- | --- | --- |
 | `usage_ledger.period_key` | **发生时间** `OccurredAt` | 审计「这笔调用发生在哪个月」 |
-| `budget_consumed`（Projector） | **当前开账月** `Clock` | 门禁与预算树「扣在哪本打开的账上」 |
+| `budget_consumed`（Ingest 同事务） | **当前开账月** `Clock` | 门禁与预算树「扣在哪本打开的账上」 |
 | `usage_buckets` | 发生时间 | 看板趋势跟真实发生时刻 |
 
-Ingest **只写 ledger + lot + 入队**；`budget_consumed` / `combined_key_remain` 由 River `budget_projection` → `budget.Projector` 异步写入。开账轨与发生轨细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。副作用（overrun/rebalance）约定见 [Backend-Projector.md](./Backend-Projector.md)。
+Ingest **同事务**写 ledger + lot + `budget_consumed` + `combined_key_remain`。`usage_buckets` 由 `dashboard.Projector` 异步维护（看门狗每小时检测 lag 触发）。开账轨与发生轨细节见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。副作用（overrun/rebalance）约定见 [Backend-离线任务.md](./Backend-离线任务.md)。
 
 ---
 
@@ -256,16 +256,15 @@ flowchart TB
   G -->|已存在| Z[静默成功]
   G -->|新账| H[AllocateConsumptionLots FIFO]
   H --> I[InsertSegments]
-  I --> J[InsertTx budget_projection + wallet_sync]
+  I --> J[InsertTx wallet_sync]
   J --> Z2[返回成功]
 ```
 
-**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、入队 `budget_projection` + `dashboard_project` + `wallet_sync`。  
-`budget_consumed` / `combined_key_remain` / `usage_buckets` 由异步投影写入（见 [Backend-离线任务.md](./Backend-离线任务.md)）。  
-副作用选型（轻则直做 / 先判再 fanout / debounce）：[Backend-Projector.md](./Backend-Projector.md)。  
+**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、`budget_consumed` + `combined_key_remain` 原子写入、入队 `wallet_sync`。  
+`usage_buckets` 由看门狗每小时触发 `dashboard.Projector` 异步维护（见 [Backend-离线任务.md](./Backend-离线任务.md)）。  
 目标迁回 Ingest：[Backend-预算累计架构.md](./Backend-预算累计架构.md)。
 
-### 6.1 预算投影（`budget.Projector`，异步）
+### 6.1 预算累计（Ingest 同事务）
 
 | 步骤 | 目标 | 作用 |
 | --- | --- | --- |
@@ -273,12 +272,12 @@ flowchart TB
 | 2 | `budget_consumed` · project | 若挂项目（`project` / `project_member` scope） |
 | 3 | `budget_consumed` · member | 仅 `member` scope（`project` / `project_member` **不写**） |
 | — | **无 org_node 轴** | 部门报表：`usage_ledger` 按 `department_id` 聚合 |
-| 同批 | `combined_key_remain` | Gateway 预检热读 |
-| 批末 | rebalance / overrun **入队**；轻量告警可直做 | 部门触顶仅 notify；见 [Backend-Projector.md](./Backend-Projector.md) |
+| 同事务 | `combined_key_remain` | Gateway 预检热读 |
+| 提交后 | overrun **按需入队**；轻量告警可直做 | 见 [Backend-离线任务.md](./Backend-离线任务.md) |
 
 入账按 Platform Key `scope` 选择性写轴，见 [Backend-预算.md](./Backend-预算.md) §2.2。
 
-看板 `usage_buckets` 由 `dashboard.Projector` 独立维护。
+看板 `usage_buckets` 由 `dashboard.Projector` 独立维护（看门狗每小时检测 lag 后触发）。
 
 **事实 SSOT** 是 `usage_ledger`；`budget_consumed` / buckets / combined_key 均为可重建投影。
 
@@ -296,14 +295,13 @@ flowchart TB
 
 ### 6.3 入账后副作用
 
-见 [Backend-Projector.md](./Backend-Projector.md)、[Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。入队统一为 River `Insert` / `InsertInTx` → `river_job`。
+见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。入队统一为 River `Insert` / `InsertInTx` → `river_job`。
 
 | 副作用 | 条件 | River kind |
 | --- | --- | --- |
-| `budget_projection` | 入账成功 | 与 ledger 同事务；Unique ~1s |
-| `dashboard_project` | 入账成功 | 同事务；Unique ~1h |
 | `wallet_sync` | **始终** | 同事务；Unique 5s |
-| rebalance / overrun | **不在 Ingest 执行** | Projector 批末入队；方向允许轻量预判后跳过 |
+| rebalance / overrun | **不在 Ingest 执行** | 按需入队；方向允许轻量预判后跳过 |
+| `dashboard_project` | **不在 Ingest 入队** | 看门狗每小时检测 lag 后入队 |
 
 `NEW_API_ENABLED=false` 时：ledger **照常**；rebalance / overrun **不入队**；`wallet_sync` 可入队但无 NewAPI 消费意义。
 
