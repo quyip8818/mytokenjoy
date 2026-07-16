@@ -116,7 +116,6 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID int
 	if err := d.Store.Company().UpdateNewAPIWalletUserID(ctx, companyID, user.ID); err != nil {
 		return err
 	}
-	slog.Default().Info("bootstrap demo newapi wallet user", "company_id", companyID, "newapi_user_id", user.ID)
 	return nil
 }
 

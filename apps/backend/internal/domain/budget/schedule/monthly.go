@@ -2,7 +2,6 @@ package schedule
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -24,5 +23,5 @@ func EnsureMonthRebalance(ctx context.Context, cfg config.Config, st store.Store
 	if tbs != nil && tbs.LastRebalancedPeriod == current {
 		return nil
 	}
-	return enqueuer.InsertRebalance(entryCtx, companyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", companyID))
+	return enqueuer.InsertRebalance(entryCtx, companyID, store.RebalanceAxisCompany, store.CompanyAxisID(companyID))
 }

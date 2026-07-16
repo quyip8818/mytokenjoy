@@ -20,7 +20,8 @@ func (RebalanceArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{
 		Queue: config.RiverQueueDefault,
 		UniqueOpts: river.UniqueOpts{
-			ByArgs: true,
+			ByArgs:   true,
+			ByPeriod: 30 * time.Second,
 		},
 	}
 }

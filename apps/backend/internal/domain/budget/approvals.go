@@ -123,7 +123,6 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, result.ApplicantID); err != nil {
 			return types.BudgetApproval{}, err
 		}
-		s.logger.Info("budget.approval.approved", "approval_id", id, "applicant_id", result.ApplicantID, "amount", result.Amount)
 	} else {
 		// Rejection path: read approvals to validate, then update status
 		items, err := s.store.Budget().BudgetApprovals(ctx)
@@ -151,7 +150,6 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		items[idx].ResolvedAt = &resolved
 		items[idx].RejectReason = input.RejectReason
 		result = items[idx]
-		s.logger.Info("budget.approval.rejected", "approval_id", id, "applicant_id", result.ApplicantID)
 	}
 
 	return result, nil

@@ -70,7 +70,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		return nil
 	})
 	if err == nil {
-		s.logger.Info("budget.node.updated", "node_id", id, "budget", budget)
+		s.enqueueCompanyRebalance(ctx, "budget.node")
 	}
 	return result, err
 }
@@ -102,7 +102,7 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 		return nil
 	})
 	if err == nil {
-		s.logger.Info("budget.member.updated", "member_id", memberID, "personal_budget", personalBudget)
+		s.enqueueMemberRebalance(ctx, memberID, "budget.member")
 	}
 	return result, err
 }
@@ -111,7 +111,7 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 	if personalBudget < 0 {
 		return domain.Validation("额度不能为负数")
 	}
-	return s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -210,11 +210,29 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, persona
 
 		// If some child depts were skipped due to budget, include a warning in the response
 		// (handled via error message that frontend can display)
-		if recursive && len(insufficientDepts) > 0 {
-			s.logger.Info("budget.avg.partial", "dept_id", deptID, "skipped_depts", insufficientDepts)
-		}
 		return nil
 	})
+	if err == nil {
+		s.enqueueCompanyRebalance(ctx, "budget.avg")
+	}
+	return err
+}
+
+// enqueueCompanyRebalance triggers a full-company rebalance so NewAPI token remain_quota
+// reflects the updated budget. Best-effort: failure is logged but does not fail the caller.
+func (s *service) enqueueCompanyRebalance(ctx context.Context, source string) {
+	companyID := store.CompanyID(ctx)
+	if err := s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, store.CompanyAxisID(companyID)); err != nil {
+		s.logger.Warn(source+".rebalance_enqueue_failed", "error", err)
+	}
+}
+
+// enqueueMemberRebalance triggers a member-scoped rebalance so the member's token remain_quota
+// reflects the updated personal budget.
+func (s *service) enqueueMemberRebalance(ctx context.Context, memberID, source string) {
+	if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); err != nil {
+		s.logger.Warn(source+".rebalance_enqueue_failed", "member_id", memberID, "error", err)
+	}
 }
 
 func findOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
