@@ -53,14 +53,12 @@ func GroupDisplayName(departmentID string) string {
 	return departmentID
 }
 
-// ResolveProviderChannelGroup picks the NewAPI group for the single provider channel.
+// ResolveProviderChannelGroup picks the NewAPI group for the provider channel.
+// In local (non-SaaS) mode, returns empty so all department tokens can access the shared channel.
+// In SaaS mode, returns the platform-wide shared group.
 func ResolveProviderChannelGroup(cfg config.Config) string {
 	if cfg.SupportSaas {
 		return cfg.PlatformSharedNewAPIGroup
 	}
-	deptID := cfg.DefaultProviderDeptID
-	if deptID == "" {
-		deptID = "dept-3"
-	}
-	return newapiunits.NewAPIGroupForDepartment(deptID)
+	return ""
 }

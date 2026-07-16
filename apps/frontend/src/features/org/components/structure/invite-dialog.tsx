@@ -1,14 +1,7 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
 
 interface InviteDialogProps {
   open: boolean
@@ -20,7 +13,12 @@ export function InviteDialog({ open, onOpenChange, onInvite }: InviteDialogProps
   const [value, setValue] = useState('')
   const [sending, setSending] = useState(false)
 
-  const handleSubmit = async () => {
+  function handleOpenChange(v: boolean) {
+    if (!v) setValue('')
+    onOpenChange(v)
+  }
+
+  async function handleSubmit() {
     if (!value.trim()) return
     setSending(true)
     try {
@@ -33,35 +31,27 @@ export function InviteDialog({ open, onOpenChange, onInvite }: InviteDialogProps
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>邀请成员</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">
-            输入邮箱或手机号，系统将发送激活邀请
-          </Label>
-          <Input
-            type="text"
-            placeholder="邮箱或手机号"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSubmit()
-            }}
-            autoFocus
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-          <Button onClick={handleSubmit} disabled={!value.trim() || sending}>
-            {sending ? '发送中...' : '发送邀请'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="邀请成员"
+      submitLabel="发送邀请"
+      submitDisabled={!value.trim()}
+      busy={sending}
+      onSubmit={handleSubmit}
+      className="sm:max-w-sm"
+    >
+      <Label className="text-sm text-muted-foreground">输入邮箱或手机号，系统将发送激活邀请</Label>
+      <Input
+        type="text"
+        placeholder="邮箱或手机号"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void handleSubmit()
+        }}
+        autoFocus
+      />
+    </FormDialog>
   )
 }

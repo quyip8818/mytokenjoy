@@ -2,14 +2,7 @@ import { useState, useMemo } from 'react'
 import type { BudgetNode, Department, Member } from '@/api/types'
 import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
 import { BudgetOrgMemberPicker } from './budget-org-member-picker'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -103,74 +96,58 @@ export function ProjectDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>创建项目</DialogTitle>
-        </DialogHeader>
+    <FormDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="创建项目"
+      error={error}
+      busy={saving}
+      submitLabel="创建"
+      onSubmit={handleCreate}
+    >
+      <div className="grid gap-1.5">
+        <Label htmlFor="proj-name" className="text-xs font-medium">
+          项目名称
+        </Label>
+        <Input
+          id="proj-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="输入项目名称"
+          className="h-8 text-sm"
+        />
+      </div>
 
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor="proj-name" className="text-xs font-medium">
-              项目名称
-            </Label>
-            <Input
-              id="proj-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="输入项目名称"
-              className="h-8 text-sm"
-            />
-          </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="proj-budget" className="text-xs font-medium">
+          项目额度（元）
+        </Label>
+        <Input
+          id="proj-budget"
+          type="number"
+          min={0}
+          value={budget}
+          onChange={(event) => setBudget(event.target.value)}
+          placeholder="输入额度"
+          className="h-8 text-sm tabular-nums"
+        />
+        <p className="text-xs text-muted-foreground">
+          可用额度：{formatDisplayCurrency(available)}
+        </p>
+      </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="proj-budget" className="text-xs font-medium">
-              项目额度（元）
-            </Label>
-            <Input
-              id="proj-budget"
-              type="number"
-              min={0}
-              value={budget}
-              onChange={(event) => setBudget(event.target.value)}
-              placeholder="输入额度"
-              className="h-8 text-sm tabular-nums"
-            />
-            <p className="text-xs text-muted-foreground">
-              可用额度：{formatDisplayCurrency(available)}
-            </p>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label className="text-xs font-medium">关联成员</Label>
-            <BudgetOrgMemberPicker
-              selectedIds={memberIds}
-              onChange={setMemberIds}
-              defaultExpandDepartmentId={department.id}
-              getDepartmentTree={getDepartmentTree}
-              getMembers={getMembers}
-              getAllDeptMembers={getAllDeptMembers}
-              searchMembers={searchMembers}
-            />
-          </div>
-        </div>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenChange(false)}
-            disabled={saving}
-          >
-            取消
-          </Button>
-          <Button size="sm" onClick={handleCreate} disabled={saving}>
-            {saving ? '创建中…' : '创建'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <div className="grid gap-1.5">
+        <Label className="text-xs font-medium">关联成员</Label>
+        <BudgetOrgMemberPicker
+          selectedIds={memberIds}
+          onChange={setMemberIds}
+          defaultExpandDepartmentId={department.id}
+          getDepartmentTree={getDepartmentTree}
+          getMembers={getMembers}
+          getAllDeptMembers={getAllDeptMembers}
+          searchMembers={searchMembers}
+        />
+      </div>
+    </FormDialog>
   )
 }

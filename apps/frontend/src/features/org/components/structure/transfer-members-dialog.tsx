@@ -1,11 +1,4 @@
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { FormDialog } from '@/components/ui/form-dialog'
 import {
   Select,
   SelectContent,
@@ -34,31 +27,31 @@ export function TransferMembersDialog({
   onCancel,
 }: TransferMembersDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>批量转移部门</DialogTitle>
-        </DialogHeader>
-        <Select value={transferDeptId} onValueChange={(v) => onDeptChange(v ?? '')}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="请选择目标部门" />
-          </SelectTrigger>
-          <SelectContent>
-            {flatDepts.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {'　'.repeat(d.level)}
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            取消
-          </Button>
-          <Button onClick={onConfirm}>确定转移</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onCancel()
+        onOpenChange(v)
+      }}
+      title="批量转移部门"
+      submitLabel="确定转移"
+      submitDisabled={!transferDeptId}
+      onSubmit={onConfirm}
+      className="sm:max-w-sm"
+    >
+      <Select value={transferDeptId} onValueChange={(v) => onDeptChange(v ?? '')}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="请选择目标部门" />
+        </SelectTrigger>
+        <SelectContent>
+          {flatDepts.map((d) => (
+            <SelectItem key={d.id} value={d.id}>
+              {'　'.repeat(d.level)}
+              {d.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormDialog>
   )
 }

@@ -2,14 +2,7 @@ import { useState } from 'react'
 import type { BudgetNode, ProjectView } from '@/api/types'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
 import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
 
@@ -44,7 +37,6 @@ export function BudgetAllocationDialog({
       setDrafts({})
       setError(null)
     } else {
-      // Initialize drafts with current values
       const initial: Record<string, string> = {}
       for (const child of children) {
         initial[child.id] = String(pointsToDisplay(child.budget))
@@ -54,9 +46,9 @@ export function BudgetAllocationDialog({
     }
     onOpenChange(value)
   }
+
   async function handleSave() {
     setError(null)
-    // Validate all drafts
     const updates: { id: string; budget: number }[] = []
     for (const child of children) {
       const raw = drafts[child.id] ?? String(pointsToDisplay(child.budget))
@@ -71,7 +63,6 @@ export function BudgetAllocationDialog({
       }
     }
 
-    // Check total doesn't exceed parent
     const newChildSum = children.reduce((sum, child) => {
       const raw = drafts[child.id] ?? String(pointsToDisplay(child.budget))
       return sum + displayToPoints(parseFloat(raw))
@@ -100,50 +91,36 @@ export function BudgetAllocationDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>编辑子节点分配</DialogTitle>
-        </DialogHeader>
-
-        <div className="grid gap-3 py-2">
-          {children.map((child) => (
-            <div key={child.id} className="flex items-center gap-3">
-              <span className="w-20 truncate text-sm font-medium">{child.name}</span>
-              <Input
-                type="number"
-                min={0}
-                value={drafts[child.id] ?? String(pointsToDisplay(child.budget))}
-                onChange={(e) => {
-                  setDrafts((prev) => ({ ...prev, [child.id]: e.target.value }))
-                  setError(null)
-                }}
-                className="h-8 flex-1 tabular-nums"
-                placeholder="元"
-              />
-              <span className="w-20 text-right text-xs tabular-nums text-muted-foreground">
-                已消耗 {formatDisplayCurrency(child.consumed)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenChange(false)}
-            disabled={saving}
-          >
-            取消
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
-            {saving ? '保存中…' : '保存'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="编辑子节点分配"
+      error={error}
+      busy={saving}
+      submitLabel="保存"
+      onSubmit={handleSave}
+    >
+      <div className="grid gap-3">
+        {children.map((child) => (
+          <div key={child.id} className="flex items-center gap-3">
+            <span className="w-20 truncate text-sm font-medium">{child.name}</span>
+            <Input
+              type="number"
+              min={0}
+              value={drafts[child.id] ?? String(pointsToDisplay(child.budget))}
+              onChange={(e) => {
+                setDrafts((prev) => ({ ...prev, [child.id]: e.target.value }))
+                setError(null)
+              }}
+              className="h-8 flex-1 tabular-nums"
+              placeholder="元"
+            />
+            <span className="w-20 text-right text-xs tabular-nums text-muted-foreground">
+              已消耗 {formatDisplayCurrency(child.consumed)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </FormDialog>
   )
 }

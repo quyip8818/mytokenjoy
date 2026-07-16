@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import type { BudgetNode, ProjectView, Role } from '@/api/types'
 import type { AlertRuleView } from '@/features/budget'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { FormDialog } from '@/components/ui/form-dialog'
 import { useAlertRuleForm } from '../hooks/use-alert-rule-form'
 import { AlertRuleFormFields } from './alert-rule-form-fields'
 
@@ -31,37 +24,30 @@ export function AlertRuleDialog({
   roles,
   onSave,
 }: AlertRuleDialogProps) {
+  if (!open) return null
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {open && (
-        <AlertRuleDialogContent
-          rule={rule}
-          tree={tree}
-          projects={projects}
-          roles={roles}
-          onOpenChange={onOpenChange}
-          onSave={onSave}
-        />
-      )}
-    </Dialog>
+    <AlertRuleDialogInner
+      open={open}
+      onOpenChange={onOpenChange}
+      rule={rule}
+      tree={tree}
+      projects={projects}
+      roles={roles}
+      onSave={onSave}
+    />
   )
 }
 
-function AlertRuleDialogContent({
+function AlertRuleDialogInner({
+  open,
+  onOpenChange,
   rule,
   tree,
   projects,
   roles,
-  onOpenChange,
   onSave,
-}: {
-  rule: AlertRuleView | null
-  tree: BudgetNode[]
-  projects: ProjectView[]
-  roles: Role[]
-  onOpenChange: (open: boolean) => void
-  onSave: (view: AlertRuleView, existingId?: string) => Promise<void>
-}) {
+}: AlertRuleDialogProps) {
   const form = useAlertRuleForm(rule)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,23 +72,17 @@ function AlertRuleDialogContent({
   }
 
   return (
-    <DialogContent className="sm:max-w-lg">
-      <DialogHeader>
-        <DialogTitle>{rule ? '编辑预警规则' : '创建预警规则'}</DialogTitle>
-      </DialogHeader>
-
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={rule ? '编辑预警规则' : '创建预警规则'}
+      error={error}
+      busy={saving}
+      submitLabel={rule ? '保存' : '创建'}
+      onSubmit={handleSave}
+      className="sm:max-w-lg"
+    >
       <AlertRuleFormFields tree={tree} projects={projects} roles={roles} form={form} />
-
-      {error && <p className="text-xs text-red-600">{error}</p>}
-
-      <DialogFooter>
-        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
-          取消
-        </Button>
-        <Button size="sm" onClick={handleSave} disabled={saving}>
-          {saving ? '保存中…' : rule ? '保存' : '创建'}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+    </FormDialog>
   )
 }

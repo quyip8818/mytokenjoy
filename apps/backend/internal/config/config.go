@@ -94,7 +94,6 @@ type PlatformConfig struct {
 	TokenJoyCompanyID         int64  `env:"TOKENJOY_COMPANY_ID" envDefault:"1"`
 	LocalCompanyID            int64  `env:"LOCAL_COMPANY_ID" envDefault:"2"`
 	PlatformSharedNewAPIGroup string `env:"PLATFORM_SHARED_NEW_API_GROUP" envDefault:"platform_shared"`
-	DefaultProviderDeptID     string `env:"DEFAULT_PROVIDER_DEPT_ID" envDefault:"dept-3"`
 	CompanyWalletCacheTTLSec  int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
 
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
