@@ -42,7 +42,7 @@ export function ModelEditWorkflow({
   const [endpointModelName, setEndpointModelName] = useState(model.endpointModelName ?? '')
   const [completionMode, setCompletionMode] = useState(model.capabilities?.[0] ?? 'chat')
   const [maxContext, setMaxContext] = useState(String(model.maxContext || 1000000))
-  const [maxTokens, setMaxTokens] = useState(String(model.maxTokens || 4096))
+  const [maxTokens, setMaxTokens] = useState(model.maxTokens ? String(model.maxTokens) : '')
   const [inputPrice, setInputPrice] = useState(String(model.inputPrice))
   const [outputPrice, setOutputPrice] = useState(String(model.outputPrice))
   const [submitting, setSubmitting] = useState(false)

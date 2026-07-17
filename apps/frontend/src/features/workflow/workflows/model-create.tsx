@@ -39,7 +39,7 @@ export function ModelCreateWorkflow({
   const [endpointModelName, setEndpointModelName] = useState('')
   const [completionMode, setCompletionMode] = useState('chat')
   const [maxContext, setMaxContext] = useState('1000000')
-  const [maxTokens, setMaxTokens] = useState('4096')
+  const [maxTokens, setMaxTokens] = useState('')
   const [inputPrice, setInputPrice] = useState('10')
   const [outputPrice, setOutputPrice] = useState('30')
   const [submitting, setSubmitting] = useState(false)
