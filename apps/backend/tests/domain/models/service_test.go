@@ -271,3 +271,112 @@ func TestDeleteModel(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateModelWithNewFields(t *testing.T) {
+	t.Parallel()
+	svc := newModelsService(t)
+	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
+		Type:              "new-fields-model",
+		Name:              "New Fields Model",
+		BaseURL:           "https://api.example.com/v1",
+		ApiKey:            "sk-test-key-123",
+		EndpointModelName: "chatgpt4.0",
+		InputPrice:        1.0,
+		OutputPrice:       2.0,
+		MaxContext:        1000000,
+		MaxTokens:         8192,
+		Capabilities:      []string{"chat", "vision"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Name != "New Fields Model" {
+		t.Fatalf("expected name 'New Fields Model', got %q", created.Name)
+	}
+	if created.ApiKey == nil || *created.ApiKey != "sk-test-key-123" {
+		t.Fatalf("expected apiKey 'sk-test-key-123', got %v", created.ApiKey)
+	}
+	if created.EndpointModelName == nil || *created.EndpointModelName != "chatgpt4.0" {
+		t.Fatalf("expected endpointModelName 'chatgpt4.0', got %v", created.EndpointModelName)
+	}
+	if created.MaxContext != 1000000 {
+		t.Fatalf("expected maxContext 1000000, got %d", created.MaxContext)
+	}
+	if created.MaxTokens != 8192 {
+		t.Fatalf("expected maxTokens 8192, got %d", created.MaxTokens)
+	}
+	if len(created.Capabilities) != 2 {
+		t.Fatalf("expected 2 capabilities, got %v", created.Capabilities)
+	}
+}
+
+func TestUpdateModelNewFields(t *testing.T) {
+	t.Parallel()
+	svc := newModelsService(t)
+	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
+		Type: "update-new-fields", BaseURL: "https://api.test.com", InputPrice: 1.0, OutputPrice: 2.0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	newKey := "sk-updated-key"
+	newEndpointModel := "gpt-4-turbo"
+	newMaxTokens := 16384
+	updated, err := svc.UpdateModel(testutil.Ctx(), strconv.FormatInt(created.ModelID, 10), types.UpdateModelInput{
+		ApiKey:            &newKey,
+		EndpointModelName: &newEndpointModel,
+		MaxTokens:         &newMaxTokens,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.ApiKey == nil || *updated.ApiKey != newKey {
+		t.Fatalf("expected apiKey %q, got %v", newKey, updated.ApiKey)
+	}
+	if updated.EndpointModelName == nil || *updated.EndpointModelName != newEndpointModel {
+		t.Fatalf("expected endpointModelName %q, got %v", newEndpointModel, updated.EndpointModelName)
+	}
+	if updated.MaxTokens != newMaxTokens {
+		t.Fatalf("expected maxTokens %d, got %d", newMaxTokens, updated.MaxTokens)
+	}
+}
+
+func TestToggleGlobalModelTwice(t *testing.T) {
+	t.Parallel()
+	svc := newModelsService(t)
+	models, err := svc.ListModels(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var global *types.ModelInfo
+	for i := range models {
+		if models[i].Provider != types.ProviderCustom {
+			global = &models[i]
+			break
+		}
+	}
+	if global == nil {
+		t.Fatal("expected builtin model")
+	}
+	// First toggle: creates override
+	if err := svc.ToggleModel(testutil.Ctx(), strconv.FormatInt(global.ModelID, 10), false); err != nil {
+		t.Fatalf("first toggle failed: %v", err)
+	}
+	// Second toggle: updates existing override
+	if err := svc.ToggleModel(testutil.Ctx(), strconv.FormatInt(global.ModelID, 10), true); err != nil {
+		t.Fatalf("second toggle failed: %v", err)
+	}
+	after, err := svc.ListModels(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range after {
+		if m.Provider == global.Provider && m.Type == global.Type {
+			if !m.Enabled {
+				t.Fatal("expected model enabled after second toggle")
+			}
+			return
+		}
+	}
+	t.Fatal("model not found after double toggle")
+}

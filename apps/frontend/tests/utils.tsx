@@ -97,12 +97,14 @@ export interface TestWrapperOptions {
   apis?: AppApis
   permissions?: PermissionKey[]
   readOnly?: boolean
+  companyType?: 'selfhosted' | 'standard' | 'trial' | 'demo' | 'testing'
   initialEntries?: string[]
 }
 
 export function createTestWrapper(options: TestWrapperOptions = {}) {
   const permissions = options.permissions ?? ALL_PERMISSIONS
   const readOnly = options.readOnly ?? false
+  const companyType = options.companyType ?? 'selfhosted'
   const apis =
     options.apis ??
     createMockApis({
@@ -117,7 +119,7 @@ export function createTestWrapper(options: TestWrapperOptions = {}) {
       <MemoryRouter initialEntries={options.initialEntries ?? [ROUTES.orgStructure]}>
         <QueryProvider client={queryClient}>
           <ApiProvider apis={apis}>
-            <TestSessionProvider permissions={permissions} readOnly={readOnly}>
+            <TestSessionProvider permissions={permissions} readOnly={readOnly} companyType={companyType}>
               <WorkflowProvider>{children}</WorkflowProvider>
             </TestSessionProvider>
           </ApiProvider>

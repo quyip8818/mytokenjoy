@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { Department, RoutingRule } from '@/api/types'
+import { act } from '@testing-library/react'
+import type { Department, ModelInfo, RoutingRule } from '@/api/types'
 import { useModelRoutingPage } from '@/features/models/hooks/use-model-routing-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
+import { mockModels } from '@tests/fixtures/models'
 
 const departments: Department[] = [
   {
@@ -24,7 +26,16 @@ const departments: Department[] = [
 
 const rules: RoutingRule[] = [
   {
-    id: 'rule-2',
+    id: 'dept-1',
+    nodeId: 'dept-1',
+    nodeName: '总公司',
+    inherited: false,
+    allowedModelIds: [1, 2],
+    defaultModelId: 1,
+    fallbackModelId: null,
+  },
+  {
+    id: 'dept-2',
     nodeId: 'dept-2',
     nodeName: '技术部',
     inherited: false,
@@ -33,7 +44,7 @@ const rules: RoutingRule[] = [
     fallbackModelId: null,
   },
   {
-    id: 'rule-3',
+    id: 'dept-3',
     nodeId: 'dept-3',
     nodeName: '后端组',
     inherited: true,
@@ -43,27 +54,24 @@ const rules: RoutingRule[] = [
   },
 ]
 
+function createRoutingApis() {
+  return createMockApis({
+    routingApi: {
+      getRules: vi.fn().mockResolvedValue(rules),
+      updateRule: vi.fn().mockResolvedValue(rules[0]),
+    },
+    departmentApi: {
+      getTree: vi.fn().mockResolvedValue(departments),
+    },
+    modelApi: {
+      list: vi.fn().mockResolvedValue(mockModels),
+    },
+  })
+}
+
 describe('useModelRoutingPage', () => {
-  it('loads routing rules and departments on mount', async () => {
-    const rules = [
-      {
-        id: 'rule-1',
-        nodeId: 'd1',
-        nodeName: 'Dept',
-        inherited: false,
-        allowedModelIds: [10],
-        defaultModelId: 10,
-        fallbackModelId: null,
-      },
-    ]
-    const apis = createMockApis({
-      routingApi: {
-        getRules: vi.fn().mockResolvedValue(rules),
-      },
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue(departments),
-      },
-    })
+  it('loads rules, departments, and models on mount', async () => {
+    const apis = createRoutingApis()
 
     const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
 
@@ -71,24 +79,73 @@ describe('useModelRoutingPage', () => {
 
     expect(apis.routingApi.getRules).toHaveBeenCalled()
     expect(apis.departmentApi.getTree).toHaveBeenCalled()
+    expect(apis.modelApi.list).toHaveBeenCalled()
     expect(result.current.rules).toEqual(rules)
+    expect(result.current.departments).toEqual(departments)
+    expect(result.current.models.length).toBeGreaterThan(0)
   })
 
-  it('derives parent model count from department tree', async () => {
-    const apis = createMockApis({
-      routingApi: {
-        getRules: vi.fn().mockResolvedValue(rules),
-      },
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue(departments),
-      },
-    })
+  it('selects first department by default', async () => {
+    const apis = createRoutingApis()
 
     const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
 
     await waitForLoaded(result, 'loading')
 
-    const childRule = rules[1]
-    expect(result.current.getParentCount(childRule)).toBe(2)
+    expect(result.current.selectedNodeId).toBe('dept-1')
+    expect(result.current.selectedDepartment?.name).toBe('总公司')
+  })
+
+  it('finds selected rule for node', async () => {
+    const apis = createRoutingApis()
+
+    const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
+
+    await waitForLoaded(result, 'loading')
+
+    act(() => {
+      result.current.setSelectedNodeId('dept-2')
+    })
+
+    expect(result.current.selectedRule?.nodeId).toBe('dept-2')
+    expect(result.current.selectedDepartment?.name).toBe('技术部')
+  })
+
+  it('resolves parent rule', async () => {
+    const apis = createRoutingApis()
+
+    const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
+
+    await waitForLoaded(result, 'loading')
+
+    act(() => {
+      result.current.setSelectedNodeId('dept-2')
+    })
+
+    expect(result.current.parentRule?.nodeId).toBe('dept-1')
+  })
+
+  it('handleSave calls routingApi.updateRule', async () => {
+    const apis = createRoutingApis()
+
+    const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
+
+    await waitForLoaded(result, 'loading')
+
+    await act(async () => {
+      await result.current.handleSave({
+        inherited: false,
+        allowedModelIds: [1, 2],
+        defaultModelId: 1,
+        fallbackModelId: null,
+      })
+    })
+
+    expect(apis.routingApi.updateRule).toHaveBeenCalledWith('dept-1', {
+      inherited: false,
+      allowedModelIds: [1, 2],
+      defaultModelId: 1,
+      fallbackModelId: null,
+    })
   })
 })
