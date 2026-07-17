@@ -135,7 +135,7 @@ func TestToggleModel(t *testing.T) {
 	}
 }
 
-func TestToggleGlobalModelRejected(t *testing.T) {
+func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
 	models, err := svc.ListModels(testutil.Ctx())
@@ -155,9 +155,27 @@ func TestToggleGlobalModelRejected(t *testing.T) {
 	if global == nil {
 		t.Fatal("expected builtin model")
 	}
-	err = svc.ToggleModel(testutil.Ctx(), strconv.FormatInt(global.ModelID, 10), !global.Enabled)
-	if err == nil {
-		t.Fatal("expected global model toggle to be rejected")
+	wantEnabled := !global.Enabled
+	err = svc.ToggleModel(testutil.Ctx(), strconv.FormatInt(global.ModelID, 10), wantEnabled)
+	if err != nil {
+		t.Fatalf("toggle global model should succeed via tenant override: %v", err)
+	}
+	after, err := svc.ListModels(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, m := range after {
+		if m.Provider == global.Provider && m.Type == global.Type {
+			if m.Enabled != wantEnabled {
+				t.Fatalf("expected enabled=%v after toggle, got %v", wantEnabled, m.Enabled)
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("model not found in list after toggle")
 	}
 }
 

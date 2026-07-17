@@ -152,12 +152,35 @@ func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) erro
 	if err != nil {
 		return domain.Validation("invalid model id")
 	}
-	existing, err := s.requireTenantModel(ctx, modelID)
+	model, err := s.store.Models().ModelByID(ctx, modelID)
 	if err != nil {
 		return err
 	}
-	existing.Enabled = enabled
-	if err := s.store.Models().UpdateModel(ctx, *existing); err != nil {
+	if model == nil {
+		return domain.NotFound("Not found")
+	}
+
+	// Global (builtin) model: create a tenant-level override copy with the desired enabled state.
+	// DedupeEffective will pick the tenant copy over the global one.
+	if model.CompanyID == s.cfg.TokenJoyCompanyID {
+		override := *model
+		override.Enabled = enabled
+		if _, err := s.store.Models().InsertModel(ctx, override); err != nil {
+			// If tenant override already exists (duplicate provider+type), update it instead.
+			existing, findErr := s.store.Models().ModelByProviderType(ctx, model.Provider, model.Type)
+			if findErr != nil || existing == nil {
+				return mapModelPersistError(err)
+			}
+			existing.Enabled = enabled
+			if updateErr := s.store.Models().UpdateModel(ctx, *existing); updateErr != nil {
+				return mapModelPersistError(updateErr)
+			}
+		}
+		return nil
+	}
+
+	model.Enabled = enabled
+	if err := s.store.Models().UpdateModel(ctx, *model); err != nil {
 		return mapModelPersistError(err)
 	}
 	return nil
