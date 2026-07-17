@@ -7,7 +7,9 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Eye, EyeOff } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -39,6 +41,7 @@ export function ModelEditWorkflow({
   const [description, setDescription] = useState(model.description)
   const [endpoint, setEndpoint] = useState(model.endpoint ?? '')
   const [apiKey, setApiKey] = useState(model.apiKey ?? '')
+  const [apiKeyVisible, setApiKeyVisible] = useState(false)
   const [endpointModelName, setEndpointModelName] = useState(model.endpointModelName ?? '')
   const [completionMode, setCompletionMode] = useState(model.capabilities?.[0] ?? 'chat')
   const [maxContext, setMaxContext] = useState(String(model.maxContext || 1000000))
@@ -112,12 +115,25 @@ export function ModelEditWorkflow({
           <>
             <div className="space-y-1.5">
               <Label>API Key</Label>
-              <Input
-                value={apiKey}
-                onChange={(e) => { setApiKey(e.target.value); markDirty() }}
-                placeholder="在此输入您的 API Key"
-                type="password"
-              />
+              <div className="relative">
+                <Input
+                  value={apiKey}
+                  onChange={(e) => { setApiKey(e.target.value); markDirty() }}
+                  placeholder="在此输入您的 API Key"
+                  type={apiKeyVisible ? 'text' : 'password'}
+                  className="pr-9"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => setApiKeyVisible(!apiKeyVisible)}
+                  aria-label={apiKeyVisible ? '隐藏 API Key' : '显示 API Key'}
+                >
+                  {apiKeyVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                </Button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>

@@ -6,6 +6,8 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Eye, EyeOff } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -35,6 +37,7 @@ export function ModelCreateWorkflow({
   const [modelName, setModelName] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [apiKey, setApiKey] = useState('')
+  const [apiKeyVisible, setApiKeyVisible] = useState(false)
   const [baseUrl, setBaseUrl] = useState('')
   const [endpointModelName, setEndpointModelName] = useState('')
   const [completionMode, setCompletionMode] = useState('chat')
@@ -108,12 +111,25 @@ export function ModelCreateWorkflow({
         </div>
         <div className="space-y-1.5">
           <Label>API Key</Label>
-          <Input
-            value={apiKey}
-            onChange={(e) => { setApiKey(e.target.value); markDirty() }}
-            placeholder="在此输入您的 API Key"
-            type="password"
-          />
+          <div className="relative">
+            <Input
+              value={apiKey}
+              onChange={(e) => { setApiKey(e.target.value); markDirty() }}
+              placeholder="在此输入您的 API Key"
+              type={apiKeyVisible ? 'text' : 'password'}
+              className="pr-9"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setApiKeyVisible(!apiKeyVisible)}
+              aria-label={apiKeyVisible ? '隐藏 API Key' : '显示 API Key'}
+            >
+              {apiKeyVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+            </Button>
+          </div>
         </div>
         <div className="space-y-1.5">
           <Label>
