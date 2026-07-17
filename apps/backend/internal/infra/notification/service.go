@@ -52,11 +52,13 @@ func NewService(cfg config.Config, st store.Store, logger *slog.Logger) *Service
 		From: cfg.SMTPFrom,
 	}, resolver, logger))
 
-	// Conditionally register SMS channel
+	// Conditionally register SMS channel (Aliyun)
 	registry.Register(NewSMSChannel(SMSConfig{
-		AccountSID: cfg.TwilioAccountSID,
-		AuthToken:  cfg.TwilioAuthToken,
-		FromNumber: cfg.TwilioFromNumber,
+		AccessKeyID:     cfg.AliyunSMSAccessKeyID,
+		AccessKeySecret: cfg.AliyunSMSAccessKeySecret,
+		SignName:        cfg.AliyunSMSSignName,
+		TemplateCode:    cfg.AliyunSMSTemplateCode,
+		Endpoint:        cfg.AliyunSMSEndpoint,
 	}, resolver, logger))
 
 	return &Service{

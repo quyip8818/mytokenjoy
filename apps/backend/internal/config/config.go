@@ -65,10 +65,12 @@ type NotificationConfig struct {
 	SMTPPass string `env:"SMTP_PASS"`
 	SMTPFrom string `env:"SMTP_FROM"`
 
-	// SMS channel (Twilio)
-	TwilioAccountSID string `env:"TWILIO_ACCOUNT_SID"`
-	TwilioAuthToken  string `env:"TWILIO_AUTH_TOKEN"`
-	TwilioFromNumber string `env:"TWILIO_FROM_NUMBER"`
+	// SMS channel (Aliyun / 阿里云)
+	AliyunSMSAccessKeyID     string `env:"ALIYUN_SMS_ACCESS_KEY_ID"`
+	AliyunSMSAccessKeySecret string `env:"ALIYUN_SMS_ACCESS_KEY_SECRET"`
+	AliyunSMSSignName        string `env:"ALIYUN_SMS_SIGN_NAME"`
+	AliyunSMSTemplateCode    string `env:"ALIYUN_SMS_TEMPLATE_CODE"`
+	AliyunSMSEndpoint        string `env:"ALIYUN_SMS_ENDPOINT" envDefault:"dysmsapi.aliyuncs.com"`
 }
 
 // IngestConfig holds ingest worker and reconciliation settings.
