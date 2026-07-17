@@ -142,6 +142,7 @@ type Config struct {
 	IdentityConfig
 	CacheConfig
 	RateLimitConfig
+	TrialConfig
 }
 
 func (c Config) GatewayBudgetCheckEnabled() bool {

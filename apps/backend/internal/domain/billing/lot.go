@@ -75,6 +75,25 @@ func BuildGiftLot(order store.RechargeOrder, billingCurrency string) store.Recha
 	}
 }
 
+// BuildMockLot creates a mock lot for simulated funds.
+// Mock lots are consumed normally during trial period but expired on upgrade.
+func BuildMockLot(order store.RechargeOrder, billingCurrency string) store.RechargeLot {
+	return store.RechargeLot{
+		ID:               order.ID,
+		CompanyID:        order.CompanyID,
+		RechargeOrderID:  order.ID,
+		BillingCurrency:  billingCurrency,
+		LotKind:          store.LotKindMock,
+		AmountDisplay:    0,
+		PointsGranted:    order.PointsGranted,
+		PointsRemaining:  order.PointsGranted,
+		UnitPriceDisplay: 0,
+		Status:           store.LotStatusActive,
+		CreatedAt:        order.CreatedAt,
+		UpdatedAt:        order.UpdatedAt,
+	}
+}
+
 func DefaultPointsPerUnit() int64 {
 	return common.DefaultPointsPerUnit
 }

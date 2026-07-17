@@ -65,11 +65,11 @@ CREATE TABLE IF NOT EXISTS company_recharge_orders (
     created_by       TEXT NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CHECK (lot_kind IN ('paid', 'gift', 'adjust', 'overdraft')),
+    CHECK (lot_kind IN ('paid', 'gift', 'adjust', 'overdraft', 'mock')),
     CHECK (points_granted > 0),
     CHECK (
         (lot_kind = 'paid' AND amount > 0)
-        OR (lot_kind IN ('gift', 'overdraft') AND amount = 0)
+        OR (lot_kind IN ('gift', 'overdraft', 'mock') AND amount = 0)
         OR (lot_kind = 'adjust')
     )
 );
@@ -87,12 +87,12 @@ CREATE TABLE IF NOT EXISTS company_recharge_lots (
     status             TEXT NOT NULL DEFAULT 'active',
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CHECK (lot_kind IN ('paid', 'gift', 'adjust', 'overdraft')),
+    CHECK (lot_kind IN ('paid', 'gift', 'adjust', 'overdraft', 'mock')),
     CHECK (points_granted > 0),
     CHECK (points_remaining >= 0 AND points_remaining <= points_granted),
     CHECK (unit_price_display >= 0),
     CHECK (
-        (lot_kind IN ('gift', 'overdraft') AND amount_display = 0 AND unit_price_display = 0)
+        (lot_kind IN ('gift', 'overdraft', 'mock') AND amount_display = 0 AND unit_price_display = 0)
         OR (lot_kind = 'paid' AND amount_display > 0 AND unit_price_display > 0)
         OR (lot_kind = 'adjust' AND amount_display >= 0 AND unit_price_display >= 0)
     )

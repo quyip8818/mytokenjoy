@@ -1,0 +1,251 @@
+package billing_test
+
+import (
+	"testing"
+	"time"
+
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
+	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/tests/testutil"
+)
+
+func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9201
+	_, st := testutil.NewTestStore(t)
+	ctx := newLotTestCompany(t, st, companyID)
+
+	trialPoints := float64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify wallet_remain is credited.
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company after trial credit")
+	}
+	if co.WalletRemain != trialPoints {
+		t.Fatalf("wallet_remain: got %v want %v", co.WalletRemain, trialPoints)
+	}
+
+	// Verify lot exists with correct kind.
+	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lots) != 1 {
+		t.Fatalf("expected 1 active lot, got %d", len(lots))
+	}
+	if lots[0].LotKind != store.LotKindMock {
+		t.Fatalf("lot kind: got %q want %q", lots[0].LotKind, store.LotKindMock)
+	}
+	if lots[0].PointsGranted != trialPoints {
+		t.Fatalf("points granted: got %v want %v", lots[0].PointsGranted, trialPoints)
+	}
+	if lots[0].AmountDisplay != 0 {
+		t.Fatalf("amount display should be 0 for trial lot, got %v", lots[0].AmountDisplay)
+	}
+}
+
+func TestSeedTrialCreditRejectsZeroPoints(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9202
+	_, st := testutil.NewTestStore(t)
+	_ = newLotTestCompany(t, st, companyID)
+	ctx := testutil.CtxForCompany(companyID)
+
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 0); err == nil {
+		t.Fatal("expected error for zero trial points")
+	}
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, -100); err == nil {
+		t.Fatal("expected error for negative trial points")
+	}
+}
+
+func TestExpireMockLotsZerosWalletRemain(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9203
+	_, st := testutil.NewTestStore(t)
+	ctx := newLotTestCompany(t, st, companyID)
+
+	// Seed trial credit.
+	trialPoints := float64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify wallet is credited.
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company")
+	}
+	if co.WalletRemain != trialPoints {
+		t.Fatalf("before expire: wallet_remain got %v want %v", co.WalletRemain, trialPoints)
+	}
+
+	// Expire trial lots (simulates upgrade).
+	if err := domainbilling.ExpireMockLots(ctx, st, companyID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wallet should be zero — no real lots remain.
+	co, err = st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company after expire")
+	}
+	if co.WalletRemain != 0 {
+		t.Fatalf("after expire: wallet_remain got %v want 0", co.WalletRemain)
+	}
+
+	// Lot should be expired.
+	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lots) != 0 {
+		t.Fatalf("expected 0 active lots after expire, got %d", len(lots))
+	}
+}
+
+func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9204
+	_, st := testutil.NewTestStore(t)
+	ctx := newLotTestCompany(t, st, companyID)
+
+	// 1. Seed trial credit.
+	trialPoints := float64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+		t.Fatal(err)
+	}
+
+	// 2. Add a paid lot (simulates real recharge before upgrade).
+	ppu := domainbilling.DefaultPointsPerUnit()
+	paidAmount := float64(50)
+	paidPoints := domainbilling.PointsGrantedFromAmount(paidAmount, ppu)
+	now := time.Now().UTC()
+	paidOrder := store.RechargeOrder{
+		ID: "rch-paid-9204", CompanyID: companyID, Amount: paidAmount,
+		Currency: common.DefaultBillingCurrency, PointsPerUnit: ppu, PointsGranted: paidPoints,
+		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
+		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-9204",
+		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
+		CreatedBy: "m-admin", CreatedAt: now, UpdatedAt: now,
+	}
+	paidLot := domainbilling.BuildPaidLot(paidOrder, common.DefaultBillingCurrency, ppu)
+	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.PointsGranted); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wallet should have trial + paid.
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company")
+	}
+	expectedBefore := trialPoints + paidPoints
+	if co.WalletRemain != expectedBefore {
+		t.Fatalf("before expire: wallet_remain got %v want %v", co.WalletRemain, expectedBefore)
+	}
+
+	// 3. Expire trial lots.
+	if err := domainbilling.ExpireMockLots(ctx, st, companyID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wallet should only have paid lot balance.
+	co, err = st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company after expire")
+	}
+	if co.WalletRemain != paidPoints {
+		t.Fatalf("after expire: wallet_remain got %v want %v (paid lot only)", co.WalletRemain, paidPoints)
+	}
+
+	// Only paid lot should be active.
+	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lots) != 1 {
+		t.Fatalf("expected 1 active lot (paid), got %d", len(lots))
+	}
+	if lots[0].LotKind != store.LotKindPaid {
+		t.Fatalf("remaining lot kind: got %q want %q", lots[0].LotKind, store.LotKindPaid)
+	}
+}
+
+func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9205
+	_, st := testutil.NewTestStore(t)
+	ctx := newLotTestCompany(t, st, companyID)
+
+	// Seed trial credit.
+	trialPoints := float64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+		t.Fatal(err)
+	}
+
+	// Consume part of the trial lot.
+	consumed := float64(3000)
+	_, err := billinglot.ConsumeLots(ctx, st, companyID, consumed)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify partial consumption.
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company")
+	}
+	if co.WalletRemain != trialPoints-consumed {
+		t.Fatalf("after consume: wallet_remain got %v want %v", co.WalletRemain, trialPoints-consumed)
+	}
+
+	// Expire trial lots.
+	if err := domainbilling.ExpireMockLots(ctx, st, companyID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wallet should be zero — trial lot (even partially consumed) is expired.
+	co, err = st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company after expire")
+	}
+	if co.WalletRemain != 0 {
+		t.Fatalf("after expire: wallet_remain got %v want 0", co.WalletRemain)
+	}
+}
+
+func TestExpireMockLotsIdempotent(t *testing.T) {
+	t.Parallel()
+	const companyID int64 = 9206
+	_, st := testutil.NewTestStore(t)
+	ctx := newLotTestCompany(t, st, companyID)
+
+	trialPoints := float64(5000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+		t.Fatal(err)
+	}
+
+	// First expire.
+	if err := domainbilling.ExpireMockLots(ctx, st, companyID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Second expire should be a no-op, not error.
+	if err := domainbilling.ExpireMockLots(ctx, st, companyID); err != nil {
+		t.Fatalf("second expire should not error: %v", err)
+	}
+
+	co, err := st.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		t.Fatal("expected company")
+	}
+	if co.WalletRemain != 0 {
+		t.Fatalf("wallet_remain should stay 0 after double expire, got %v", co.WalletRemain)
+	}
+}

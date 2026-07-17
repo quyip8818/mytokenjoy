@@ -40,7 +40,8 @@ func (f PrecheckFixture) KeyHash() string {
 }
 
 func (f PrecheckFixture) Run(model string, skipModelCheck bool) error {
-	return f.Precheck.Run(f.Ctx, f.KeyHash(), model, domaingateway.PrecheckOpts{SkipModelCheck: skipModelCheck})
+	_, err := f.Precheck.Run(f.Ctx, f.KeyHash(), model, domaingateway.PrecheckOpts{SkipModelCheck: skipModelCheck})
+	return err
 }
 
 func (f PrecheckFixture) LoadPrecheckRow(t *testing.T) *store.PrecheckContextRow {

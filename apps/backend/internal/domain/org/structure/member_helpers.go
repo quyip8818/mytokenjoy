@@ -3,6 +3,7 @@ package structure
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -10,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -53,4 +55,26 @@ func persistRecalculatedMemberCounts(ctx context.Context, st orgStore, members [
 	}
 	nodes = core.RecalcDepartmentMemberCounts(nodes, members)
 	return st.Org().Nodes().SetTree(ctx, nodes)
+}
+
+// checkTrialMemberLimit enforces the trial member limit.
+// Only applies when the company is type "trial" and a limit is configured.
+func (s *LocalService) checkTrialMemberLimit(ctx context.Context, members []types.Member) error {
+	return s.checkTrialMemberLimitBatch(ctx, members, 1)
+}
+
+// checkTrialMemberLimitBatch checks if adding `count` members would exceed the trial limit.
+func (s *LocalService) checkTrialMemberLimitBatch(ctx context.Context, members []types.Member, count int) error {
+	limit := s.d.Cfg.TrialMemberLimit
+	if limit <= 0 {
+		return nil // no limit configured
+	}
+	info, ok := ctxcompany.From(ctx)
+	if !ok || info.Type != store.CompanyTypeTrial {
+		return nil // not a trial company, no limit
+	}
+	if len(members)+count > limit {
+		return domain.Forbidden(fmt.Sprintf("试用环境成员上限为 %d 人，升级后可扩容", limit))
+	}
+	return nil
 }

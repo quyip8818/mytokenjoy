@@ -46,6 +46,9 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
 	}
+	if err := s.checkTrialMemberLimitBatch(ctx, members, len(rows)); err != nil {
+		return types.MemberBatchImportResult{}, err
+	}
 	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.MemberBatchImportResult{}, err

@@ -20,6 +20,7 @@ const (
 	LotKindGift      = "gift"
 	LotKindAdjust    = "adjust"
 	LotKindOverdraft = "overdraft"
+	LotKindMock      = "mock"
 
 	LotStatusActive    = "active"
 	LotStatusExhausted = "exhausted"
@@ -99,6 +100,8 @@ type BillingRepository interface {
 	UpdateLotRemaining(ctx context.Context, lot RechargeLot) error
 	GetLotByID(ctx context.Context, lotID string) (*RechargeLot, error)
 	ExpandOverdraftLot(ctx context.Context, companyID int64, billingCurrency string, pointsDelta float64) (*RechargeLot, error)
+	ExpireMockLots(ctx context.Context, companyID int64) (int64, error)
+	SumActiveLotsRemaining(ctx context.Context, companyID int64) (float64, error)
 	AggregateWallet(ctx context.Context, companyID int64) (WalletAggregate, error)
 	GetCurrency(ctx context.Context, code string) (*Currency, error)
 }

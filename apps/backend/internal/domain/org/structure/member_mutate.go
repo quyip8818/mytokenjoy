@@ -43,6 +43,9 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		if err != nil {
 			return err
 		}
+		if err := s.checkTrialMemberLimit(ctx, members); err != nil {
+			return err
+		}
 		members = append(members, member)
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err

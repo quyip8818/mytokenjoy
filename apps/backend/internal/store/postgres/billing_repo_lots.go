@@ -116,3 +116,25 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 	}
 	return &lot, nil
 }
+
+func (r *billingRepo) ExpireMockLots(ctx context.Context, companyID int64) (int64, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE company_recharge_lots
+		SET status = 'expired', updated_at = NOW()
+		WHERE company_id = $1 AND lot_kind = $2 AND status = $3
+	`, companyID, store.LotKindMock, store.LotStatusActive)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
+func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID int64) (float64, error) {
+	var remain float64
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(points_remaining), 0)
+		FROM company_recharge_lots
+		WHERE company_id = $1 AND status = $2
+	`, companyID, store.LotStatusActive).Scan(&remain)
+	return remain, err
+}

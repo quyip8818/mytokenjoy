@@ -254,12 +254,12 @@ func TestBenchmarkGatewayPrecheck(t *testing.T) {
 	keyHash := keyHashForPlatformKey(t, env.Store)
 
 	// Warm up
-	_ = env.Precheck.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
+	_, _ = env.Precheck.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
 
 	const iterations = 500
 	start := time.Now()
 	for i := 0; i < iterations; i++ {
-		_ = env.Precheck.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
+		_, _ = env.Precheck.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
 	}
 	elapsed := time.Since(start)
 

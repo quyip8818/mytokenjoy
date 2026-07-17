@@ -5,12 +5,15 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/domain"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Handler struct {
@@ -50,6 +53,10 @@ type rechargeBody struct {
 }
 
 func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
+	if isTrialCompany(r) {
+		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
+		return
+	}
 	var body rechargeBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
@@ -64,6 +71,16 @@ func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
+	if isTrialCompany(r) {
+		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
+		return
+	}
 	err := h.billingSvc.ConfirmPayment(r.Context(), chi.URLParam(r, "id"))
 	httputil.WriteVoid(w, err)
+}
+
+// isTrialCompany checks if the current request belongs to a trial tenant.
+func isTrialCompany(r *http.Request) bool {
+	info, ok := ctxcompany.From(r.Context())
+	return ok && info.Type == store.CompanyTypeTrial
 }

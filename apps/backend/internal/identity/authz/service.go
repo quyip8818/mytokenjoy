@@ -100,7 +100,7 @@ func companyTypeFromContext(ctx context.Context, companyID int64, st Store) stri
 	if info, ok := ctxcompany.From(ctx); ok && info.CompanyID == companyID && info.Type != "" {
 		return info.Type
 	}
-	// Fallback: context not available (e.g. tests). One extra query is acceptable here.
+	// Fallback: context not available (e.g. tests).
 	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil || co == nil {
 		return ""

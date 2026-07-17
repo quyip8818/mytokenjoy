@@ -39,6 +39,7 @@ allowlist AS (
 )
 SELECT
 	c.id AS company_id,
+	c.type AS company_type,
 	c.status AS company_status,
 	c.wallet_remain,
 	pk_ctx.id AS platform_key_id,
@@ -59,6 +60,7 @@ func (r *gatewayPrecheckRepo) LoadPrecheckContext(ctx context.Context, keyHash s
 	var out store.PrecheckContextRow
 	err := row.Scan(
 		&out.CompanyID,
+		&out.CompanyType,
 		&out.CompanyStatus,
 		&out.WalletRemain,
 		&out.PlatformKeyID,

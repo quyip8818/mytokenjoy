@@ -247,7 +247,7 @@ func assertGatewayBlocked(t *testing.T, env *stressEnv, keyHash string) {
 	t.Helper()
 	// Use a fresh precheck (no cache) to check current PG state
 	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), env.Cfg.Clock(), nil)
-	err := fresh.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
+	_, err := fresh.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
 	if err == nil {
 		t.Error("expected gateway precheck to block, but it passed")
 	}
@@ -257,7 +257,7 @@ func assertGatewayAllowed(t *testing.T, env *stressEnv, keyHash string) {
 	t.Helper()
 	// Use a fresh precheck (no cache) to check current PG state
 	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), env.Cfg.Clock(), nil)
-	err := fresh.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
+	_, err := fresh.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
 	if err != nil {
 		t.Errorf("expected gateway precheck to pass, got: %v", err)
 	}

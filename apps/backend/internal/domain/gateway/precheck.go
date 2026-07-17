@@ -10,8 +10,13 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+// PrecheckResult carries metadata from a successful precheck (e.g. company type for routing decisions).
+type PrecheckResult struct {
+	CompanyType string
+}
+
 type Prechecker interface {
-	Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) error
+	Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) (PrecheckResult, error)
 }
 
 // PrecheckOpts controls optional gateway precheck skips.
@@ -53,18 +58,21 @@ func NewPrecheckServiceLegacy(loader store.GatewayPrecheckRepository, clk clock.
 	return NewPrecheckService(NewPrecheckCache(loader), clk, budgetCheck)
 }
 
-func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) error {
+func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) (PrecheckResult, error) {
 	row, err := p.cache.Get(ctx, keyHash)
 	if err != nil {
-		return err
+		return PrecheckResult{}, err
 	}
 	if row == nil {
-		return fmt.Errorf("platform key not found")
+		return PrecheckResult{}, fmt.Errorf("platform key not found")
 	}
 	if err := EvaluateAt(PrecheckContextFromStore(row), model, opts, p.clock.Now()); err != nil {
-		return err
+		return PrecheckResult{}, err
 	}
-	return p.budgetRemainCheck(ctx, row.CompanyID, keyHash)
+	if err := p.budgetRemainCheck(ctx, row.CompanyID, keyHash); err != nil {
+		return PrecheckResult{}, err
+	}
+	return PrecheckResult{CompanyType: row.CompanyType}, nil
 }
 
 // budgetRemainCheck queries Redis directly for the remain value.

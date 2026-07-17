@@ -9,14 +9,15 @@ cmd="${1:-}"
 shift || true
 
 case "${cmd}" in
-  start) exec bash "${DEV}/start-full.sh" ;;
+  local) exec bash "${DEV}/start-local.sh" ;;
+  saas) exec bash "${DEV}/start-saas.sh" ;;
   lite) exec bash "${DEV}/start-lite.sh" ;;
   reset|docker-reset) exec bash "${DEV}/reset.sh" ;;
   infra) exec bash "${DEV}/infra.sh" "$@" ;;
   test) exec bash "${DEV}/test.sh" "$@" ;;
   frontend-wait) exec bash "${DEV}/frontend-wait.sh" "${1:-full}" ;;
   "")
-    echo "usage: scripts/dev.sh <start|lite|reset|infra|test|frontend-wait> [args...]" >&2
+    echo "usage: scripts/dev.sh <local|saas|lite|reset|infra|test|frontend-wait> [args...]" >&2
     exit 1
     ;;
   *)
