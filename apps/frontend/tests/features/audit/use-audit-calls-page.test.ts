@@ -32,9 +32,9 @@ describe('useAuditCallsPage', () => {
 
     expect(apis.auditApi.getCalls).toHaveBeenCalled()
     expect(result.current.modelOptions).toEqual({
-      'gpt-4': 'GPT-4',
-      'gpt-4o': 'GPT-4o',
-      'claude-3': 'Claude 3',
+      'deepseek-v4': 'DeepSeek V4',
+      'qwen-3.5-plus': 'Qwen 3.5 Plus',
+      'claude-sonnet-5': 'Claude Sonnet 5',
     })
     expect(result.current.memberOptions).toEqual({ m1: '张三', m2: '李四' })
     expect(result.current.contentRetentionEnabled).toBe(true)

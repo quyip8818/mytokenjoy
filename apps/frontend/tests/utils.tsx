@@ -119,7 +119,11 @@ export function createTestWrapper(options: TestWrapperOptions = {}) {
       <MemoryRouter initialEntries={options.initialEntries ?? [ROUTES.orgStructure]}>
         <QueryProvider client={queryClient}>
           <ApiProvider apis={apis}>
-            <TestSessionProvider permissions={permissions} readOnly={readOnly} companyType={companyType}>
+            <TestSessionProvider
+              permissions={permissions}
+              readOnly={readOnly}
+              companyType={companyType}
+            >
               <WorkflowProvider>{children}</WorkflowProvider>
             </TestSessionProvider>
           </ApiProvider>

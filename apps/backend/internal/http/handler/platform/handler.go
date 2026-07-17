@@ -63,9 +63,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 type createCompanyBody struct {
-	Name            string  `json:"name"`
-	SuperAdminEmail string  `json:"superAdminEmail"`
-	PackageID       *string `json:"packageId"`
+	Name            string `json:"name"`
+	SuperAdminEmail string `json:"superAdminEmail"`
 }
 
 func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +74,7 @@ func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := h.p.CompanySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
-		Name: body.Name, SuperAdminEmail: body.SuperAdminEmail, PackageID: body.PackageID,
+		Name: body.Name, SuperAdminEmail: body.SuperAdminEmail,
 	})
 	httputil.WriteJSON(w, http.StatusCreated, result, err)
 }
@@ -86,8 +85,7 @@ func (h *Handler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateCompanyBody struct {
-	Status    *string `json:"status"`
-	PackageID *string `json:"packageId"`
+	Status *string `json:"status"`
 }
 
 func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
@@ -101,10 +99,9 @@ func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	if body.Status != nil || body.PackageID != nil {
+	if body.Status != nil {
 		err = h.p.CompanySvc.UpdateCompany(r.Context(), id, domaincompany.UpdateCompanyPatch{
-			Status:    body.Status,
-			PackageID: body.PackageID,
+			Status: body.Status,
 		})
 	}
 	httputil.WriteVoid(w, err)

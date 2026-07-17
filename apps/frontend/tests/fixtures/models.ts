@@ -3,7 +3,13 @@ import type { ModelInfo, ModelRef } from '@/api/types'
 export const mockModelRefs: ModelRef[] = [
   { modelId: 1, type: 'deepseek-v4', name: 'DeepSeek V4', provider: 'deepseek', enabled: true },
   { modelId: 2, type: 'qwen-3.5-plus', name: 'Qwen 3.5 Plus', provider: 'qwen', enabled: true },
-  { modelId: 3, type: 'claude-sonnet-5', name: 'Claude Sonnet 5', provider: 'anthropic', enabled: true },
+  {
+    modelId: 3,
+    type: 'claude-sonnet-5',
+    name: 'Claude Sonnet 5',
+    provider: 'anthropic',
+    enabled: true,
+  },
 ]
 
 export const mockModels: ModelInfo[] = [

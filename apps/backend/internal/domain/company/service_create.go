@@ -35,7 +35,6 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			Name:      req.Name,
 			Type:      companyType,
 			Status:    store.CompanyStatusActive,
-			PackageID: req.PackageID,
 			CreatedAt: now,
 			UpdatedAt: now,
 		}

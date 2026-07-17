@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { act } from '@testing-library/react'
-import type { Department, ModelInfo, RoutingRule } from '@/api/types'
+import type { Department, RoutingRule } from '@/api/types'
 import { useModelRoutingPage } from '@/features/models/hooks/use-model-routing-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'

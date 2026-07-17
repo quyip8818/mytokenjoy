@@ -56,7 +56,10 @@ export function BudgetAlertsToolbar({
       </div>
 
       <div className="flex items-center gap-3">
-        <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v as AlertStatusFilter)}>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => onStatusFilterChange(v as AlertStatusFilter)}
+        >
           <SelectTrigger className="h-8 w-28 text-sm">
             <SelectValue />
           </SelectTrigger>

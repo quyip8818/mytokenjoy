@@ -8,23 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
-
-const COMPLETION_MODES = [
-  { value: 'chat', label: '对话' },
-  { value: 'embedding', label: '嵌入' },
-  { value: 'rerank', label: 'Rerank' },
-  { value: 'speech2text', label: '语音转文字' },
-  { value: 'tts', label: '文字转语音' },
-] as const
 
 export function ModelCreateWorkflow({
   entry,
@@ -40,7 +25,6 @@ export function ModelCreateWorkflow({
   const [apiKeyVisible, setApiKeyVisible] = useState(false)
   const [baseUrl, setBaseUrl] = useState('')
   const [endpointModelName, setEndpointModelName] = useState('')
-  const [completionMode, setCompletionMode] = useState('chat')
   const [maxContext, setMaxContext] = useState('1000000')
   const [maxTokens, setMaxTokens] = useState('')
   const [inputPrice, setInputPrice] = useState('10')
@@ -63,7 +47,7 @@ export function ModelCreateWorkflow({
         outputPrice: Number(outputPrice),
         maxContext: Number(maxContext),
         maxTokens: Number(maxTokens) || undefined,
-        capabilities: [completionMode],
+        capabilities: ['chat'],
       })
       toast.success('模型已添加')
       onSuccess?.(created.modelId)
@@ -97,7 +81,10 @@ export function ModelCreateWorkflow({
           </Label>
           <Input
             value={modelName}
-            onChange={(e) => { setModelName(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setModelName(e.target.value)
+              markDirty()
+            }}
             placeholder="输入模型全称"
           />
         </div>
@@ -105,16 +92,24 @@ export function ModelCreateWorkflow({
           <Label>模型显示名称</Label>
           <Input
             value={displayName}
-            onChange={(e) => { setDisplayName(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setDisplayName(e.target.value)
+              markDirty()
+            }}
             placeholder="模型在界面的显示名称"
           />
         </div>
         <div className="space-y-1.5">
-          <Label>API Key <span className="text-destructive">*</span></Label>
+          <Label>
+            API Key <span className="text-destructive">*</span>
+          </Label>
           <div className="relative">
             <Input
               value={apiKey}
-              onChange={(e) => { setApiKey(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setApiKey(e.target.value)
+                markDirty()
+              }}
               placeholder="在此输入您的 API Key"
               type={apiKeyVisible ? 'text' : 'password'}
               className="pr-9"
@@ -137,7 +132,10 @@ export function ModelCreateWorkflow({
           </Label>
           <Input
             value={baseUrl}
-            onChange={(e) => { setBaseUrl(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setBaseUrl(e.target.value)
+              markDirty()
+            }}
             placeholder="Base URL, e.g. https://api.openai.com/v1"
           />
         </div>
@@ -145,15 +143,23 @@ export function ModelCreateWorkflow({
           <Label>API endpoint中的模型名称</Label>
           <Input
             value={endpointModelName}
-            onChange={(e) => { setEndpointModelName(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setEndpointModelName(e.target.value)
+              markDirty()
+            }}
             placeholder="endpoint model name, e.g. chatgpt4.0"
           />
         </div>
-        {/* Completion mode hidden for now */}
-        {false && (
+        {/* Completion mode hidden for now
         <div className="space-y-1.5">
           <Label>Completion mode</Label>
-          <Select value={completionMode} onValueChange={(v) => { setCompletionMode(v); markDirty() }}>
+          <Select
+            value={completionMode}
+            onValueChange={(v) => {
+              setCompletionMode(v)
+              markDirty()
+            }}
+          >
             <SelectTrigger className="h-9">
               <SelectValue />
             </SelectTrigger>
@@ -166,7 +172,7 @@ export function ModelCreateWorkflow({
             </SelectContent>
           </Select>
         </div>
-        )}
+        */}
         <div className="space-y-1.5">
           <Label>
             模型上下文长度 <span className="text-destructive">*</span>
@@ -175,7 +181,10 @@ export function ModelCreateWorkflow({
             type="number"
             min={1}
             value={maxContext}
-            onChange={(e) => { setMaxContext(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setMaxContext(e.target.value)
+              markDirty()
+            }}
             placeholder="4096"
           />
         </div>
@@ -185,7 +194,10 @@ export function ModelCreateWorkflow({
             type="number"
             min={0}
             value={maxTokens}
-            onChange={(e) => { setMaxTokens(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setMaxTokens(e.target.value)
+              markDirty()
+            }}
             placeholder="4096"
           />
         </div>
@@ -195,7 +207,10 @@ export function ModelCreateWorkflow({
             <Input
               type="number"
               value={inputPrice}
-              onChange={(e) => { setInputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setInputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
           <div className="space-y-1.5">
@@ -203,7 +218,10 @@ export function ModelCreateWorkflow({
             <Input
               type="number"
               value={outputPrice}
-              onChange={(e) => { setOutputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setOutputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
         </div>

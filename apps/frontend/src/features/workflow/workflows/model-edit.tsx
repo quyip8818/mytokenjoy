@@ -10,23 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Eye, EyeOff } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
-
-const COMPLETION_MODES = [
-  { value: 'chat', label: '对话' },
-  { value: 'embedding', label: '嵌入' },
-  { value: 'rerank', label: 'Rerank' },
-  { value: 'speech2text', label: '语音转文字' },
-  { value: 'tts', label: '文字转语音' },
-] as const
 
 export function ModelEditWorkflow({
   entry,
@@ -43,14 +28,14 @@ export function ModelEditWorkflow({
   const [apiKey, setApiKey] = useState(model.apiKey ?? '')
   const [apiKeyVisible, setApiKeyVisible] = useState(false)
   const [endpointModelName, setEndpointModelName] = useState(model.endpointModelName ?? '')
-  const [completionMode, setCompletionMode] = useState(model.capabilities?.[0] ?? 'chat')
   const [maxContext, setMaxContext] = useState(String(model.maxContext || 1000000))
   const [maxTokens, setMaxTokens] = useState(model.maxTokens ? String(model.maxTokens) : '')
   const [inputPrice, setInputPrice] = useState(String(model.inputPrice))
   const [outputPrice, setOutputPrice] = useState(String(model.outputPrice))
   const [submitting, setSubmitting] = useState(false)
 
-  const canSubmit = displayName.trim() && (!isCustomModel(model) || (endpoint.trim() && apiKey.trim()))
+  const canSubmit =
+    displayName.trim() && (!isCustomModel(model) || (endpoint.trim() && apiKey.trim()))
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -66,7 +51,7 @@ export function ModelEditWorkflow({
         outputPrice: Number(outputPrice),
         maxContext: Number(maxContext),
         maxTokens: Number(maxTokens) || undefined,
-        capabilities: [completionMode],
+        capabilities: model.capabilities ?? ['chat'],
       })
       toast.success('模型信息已更新')
       onSuccess?.(model.modelId)
@@ -100,25 +85,36 @@ export function ModelEditWorkflow({
           </Label>
           <Input
             value={displayName}
-            onChange={(e) => { setDisplayName(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setDisplayName(e.target.value)
+              markDirty()
+            }}
           />
         </div>
         <div className="space-y-1.5">
           <Label>描述</Label>
           <Textarea
             value={description}
-            onChange={(e) => { setDescription(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setDescription(e.target.value)
+              markDirty()
+            }}
             rows={3}
           />
         </div>
         {isCustomModel(model) && (
           <>
             <div className="space-y-1.5">
-              <Label>API Key <span className="text-destructive">*</span></Label>
+              <Label>
+                API Key <span className="text-destructive">*</span>
+              </Label>
               <div className="relative">
                 <Input
                   value={apiKey}
-                  onChange={(e) => { setApiKey(e.target.value); markDirty() }}
+                  onChange={(e) => {
+                    setApiKey(e.target.value)
+                    markDirty()
+                  }}
                   placeholder="在此输入您的 API Key"
                   type={apiKeyVisible ? 'text' : 'password'}
                   className="pr-9"
@@ -141,7 +137,10 @@ export function ModelEditWorkflow({
               </Label>
               <Input
                 value={endpoint}
-                onChange={(e) => { setEndpoint(e.target.value); markDirty() }}
+                onChange={(e) => {
+                  setEndpoint(e.target.value)
+                  markDirty()
+                }}
                 placeholder="https://api.example.com/v1"
               />
             </div>
@@ -149,17 +148,25 @@ export function ModelEditWorkflow({
               <Label>API endpoint中的模型名称</Label>
               <Input
                 value={endpointModelName}
-                onChange={(e) => { setEndpointModelName(e.target.value); markDirty() }}
+                onChange={(e) => {
+                  setEndpointModelName(e.target.value)
+                  markDirty()
+                }}
                 placeholder="endpoint model name"
               />
             </div>
           </>
         )}
-        {/* Completion mode hidden for now */}
-        {false && (
+        {/* Completion mode hidden for now
         <div className="space-y-1.5">
           <Label>Completion mode</Label>
-          <Select value={completionMode} onValueChange={(v) => { setCompletionMode(v); markDirty() }}>
+          <Select
+            value={completionMode}
+            onValueChange={(v) => {
+              setCompletionMode(v)
+              markDirty()
+            }}
+          >
             <SelectTrigger className="h-9">
               <SelectValue />
             </SelectTrigger>
@@ -172,7 +179,7 @@ export function ModelEditWorkflow({
             </SelectContent>
           </Select>
         </div>
-        )}
+        */}
         <div className="space-y-1.5">
           <Label>
             模型上下文长度 <span className="text-destructive">*</span>
@@ -181,7 +188,10 @@ export function ModelEditWorkflow({
             type="number"
             min={1}
             value={maxContext}
-            onChange={(e) => { setMaxContext(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setMaxContext(e.target.value)
+              markDirty()
+            }}
           />
         </div>
         <div className="space-y-1.5">
@@ -190,7 +200,10 @@ export function ModelEditWorkflow({
             type="number"
             min={0}
             value={maxTokens}
-            onChange={(e) => { setMaxTokens(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setMaxTokens(e.target.value)
+              markDirty()
+            }}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -199,7 +212,10 @@ export function ModelEditWorkflow({
             <Input
               type="number"
               value={inputPrice}
-              onChange={(e) => { setInputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setInputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
           <div className="space-y-1.5">
@@ -207,7 +223,10 @@ export function ModelEditWorkflow({
             <Input
               type="number"
               value={outputPrice}
-              onChange={(e) => { setOutputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setOutputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
         </div>

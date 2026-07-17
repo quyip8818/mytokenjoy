@@ -40,9 +40,7 @@ export function ModelListPageShell({
       empty={listEmpty(loading, models, {
         icon: Box,
         title: '暂无模型',
-        description: isSelfHosted
-          ? '添加自定义模型以扩展可用模型列表'
-          : '当前没有可用的内置模型',
+        description: isSelfHosted ? '添加自定义模型以扩展可用模型列表' : '当前没有可用的内置模型',
         actionLabel: isSelfHosted && canManage ? '添加模型' : undefined,
         onAction: isSelfHosted && canManage ? openCreate : undefined,
       })}
@@ -65,9 +63,7 @@ export function ModelListPageShell({
     return (
       <PageShell>
         <Card className="min-h-[360px] border-border shadow-xs">
-          <CardContent className="px-5 pt-4 pb-4">
-            {tableContent}
-          </CardContent>
+          <CardContent className="px-5 pt-4 pb-4">{tableContent}</CardContent>
         </Card>
       </PageShell>
     )

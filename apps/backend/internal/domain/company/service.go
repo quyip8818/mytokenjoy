@@ -20,15 +20,13 @@ type Service interface {
 }
 
 type UpdateCompanyPatch struct {
-	Status    *string
-	PackageID *string
+	Status *string
 }
 
 type CreateCompanyRequest struct {
 	Name            string
 	Type            string
 	SuperAdminEmail string
-	PackageID       *string
 }
 
 type CreateCompanyResult struct {
@@ -91,11 +89,6 @@ func (s *service) UpdateCompany(ctx context.Context, id int64, patch UpdateCompa
 			return err
 		}
 		s.cacheInvalidator.InvalidateCompany(id)
-	}
-	if patch.PackageID != nil {
-		if err := s.store.Company().UpdatePackageID(ctx, id, patch.PackageID); err != nil {
-			return err
-		}
 	}
 	return nil
 }

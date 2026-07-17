@@ -23,7 +23,6 @@ type Company struct {
 	Status             string
 	RootDeptID         *string
 	NewAPIWalletUserID *int64
-	PackageID          *string
 	AuthzRevision      int64
 	BillingCurrency    string
 	FIFOHeadLotID      *string
@@ -44,7 +43,6 @@ type CompanyRepository interface {
 	GetByID(ctx context.Context, id int64) (*Company, error)
 	Create(ctx context.Context, company Company) error
 	UpdateStatus(ctx context.Context, id int64, status string) error
-	UpdatePackageID(ctx context.Context, id int64, packageID *string) error
 	UpdateNewAPIWalletUserID(ctx context.Context, id int64, walletUserID int64) error
 	UpdateRootDeptID(ctx context.Context, id int64, rootDeptID string) error
 	GetAuthzRevision(ctx context.Context, id int64) (int64, error)

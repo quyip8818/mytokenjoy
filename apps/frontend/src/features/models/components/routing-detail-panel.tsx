@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { Department, ModelInfo, RoutingRule } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -40,20 +40,21 @@ export function RoutingDetailPanel({
 }: RoutingDetailPanelProps) {
   const [inherited, setInherited] = useState(rule.inherited)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set(rule.allowedModelIds))
-  const [defaultModelId, setDefaultModelId] = useState<number | null>(
-    rule.defaultModelId ?? null,
-  )
+  const [defaultModelId, setDefaultModelId] = useState<number | null>(rule.defaultModelId ?? null)
   const [fallbackModelId, setFallbackModelId] = useState<number | null>(
     rule.fallbackModelId ?? null,
   )
 
-  // Reset state when rule changes (switching nodes)
-  useEffect(() => {
+  // Reset state when rule changes (switching nodes) — using the React-recommended
+  // "adjusting state during render" pattern instead of useEffect.
+  const [prevRuleId, setPrevRuleId] = useState(rule.id)
+  if (rule.id !== prevRuleId) {
+    setPrevRuleId(rule.id)
     setInherited(rule.inherited)
     setSelectedIds(new Set(rule.allowedModelIds))
     setDefaultModelId(rule.defaultModelId ?? null)
     setFallbackModelId(rule.fallbackModelId ?? null)
-  }, [rule])
+  }
 
   // Group models by provider
   const groupedModels = useMemo(() => {
@@ -110,12 +111,7 @@ export function RoutingDetailPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">{department.name}</h3>
-        <Button
-          size="sm"
-          className="gap-1.5"
-          onClick={handleSave}
-          disabled={saving}
-        >
+        <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
           <Save className="size-3.5" />
           {saving ? '保存中...' : '保存'}
         </Button>
@@ -160,7 +156,8 @@ export function RoutingDetailPanel({
                     {group.label}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {group.models.filter((m) => selectedIds.has(m.modelId)).length}/{group.models.length}
+                    {group.models.filter((m) => selectedIds.has(m.modelId)).length}/
+                    {group.models.length}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

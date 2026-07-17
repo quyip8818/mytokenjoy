@@ -47,9 +47,6 @@ func (s *stubCompanyRepo) Create(context.Context, store.Company) error {
 func (s *stubCompanyRepo) UpdateStatus(context.Context, int64, string) error {
 	panic("stubCompanyRepo: UpdateStatus")
 }
-func (s *stubCompanyRepo) UpdatePackageID(context.Context, int64, *string) error {
-	panic("stubCompanyRepo: UpdatePackageID")
-}
 func (s *stubCompanyRepo) UpdateNewAPIWalletUserID(context.Context, int64, int64) error {
 	panic("stubCompanyRepo: UpdateNewAPIWalletUserID")
 }
