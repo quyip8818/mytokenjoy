@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -16,8 +17,8 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	bucket := time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC)
 	row := types.UsageBucketRow{
 		BucketStart:  bucket,
-		DepartmentID: "dept-usage-test",
-		MemberID:     "m-usage-test",
+		DepartmentID: uuid.MustParse("00000000-0000-7000-8000-00000000dd01"),
+		MemberID:     uuid.MustParse("00000000-0000-7000-8000-00000000ee01"),
 		Model:        "gpt-4o",
 		Cost:         1.5,
 		DisplayCost:  0.015,
@@ -60,7 +61,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	ctx := testutil.Ctx()
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
-		BucketStart: bucket, DepartmentID: "dept-series", MemberID: "m-1",
+		BucketStart: bucket, DepartmentID: uuid.MustParse("00000000-0000-7000-8000-00000000dd02"), MemberID: uuid.MustParse("00000000-0000-7000-8000-00000000ee02"),
 		Model: "gpt-4o", Cost: 5000, DisplayCost: 5, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)

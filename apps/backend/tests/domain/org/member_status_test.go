@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -18,7 +19,7 @@ func TestMemberStatusTransition_ActiveToInactive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// Active member goes inactive
-	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -37,9 +38,9 @@ func TestMemberStatusTransition_InactiveToActive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// First disable
-	svc.UpdateMemberStatus(ctx, []string{contract.IDMember1}, "inactive")
+	svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "inactive")
 	// Then re-enable
-	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1}, "active"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "active"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -61,12 +62,12 @@ func TestMemberDisableDisablesAllKeys(t *testing.T) {
 	keys, _ := st.Keys().PlatformKeys(ctx)
 	memberID := contract.IDMember1
 	keys = append(keys, types.PlatformKey{
-		ID: "plk-extra", Name: "Extra Key", Status: "active", MemberID: &memberID,
+		ID: uuid.MustParse("00000000-0000-7000-0000-00000000ff88"), Name: "Extra Key", Status: "active", MemberID: &memberID,
 	})
 	st.Keys().SetPlatformKeys(ctx, keys)
 
 	// Disable member
-	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -88,7 +89,7 @@ func TestMemberDeleteSetsInactive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// DeleteMembers is implemented as UpdateMemberStatus to "inactive"
-	if err := svc.DeleteMembers(ctx, []string{contract.IDMember1}, ""); err != nil {
+	if err := svc.DeleteMembers(ctx, []string{contract.IDMember1.String()}, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -110,7 +111,7 @@ func TestBatchStatusChangeMultipleMembers(t *testing.T) {
 	ids := make([]string, 0)
 	for _, m := range members {
 		if m.Status == "active" && len(ids) < 3 {
-			ids = append(ids, m.ID)
+			ids = append(ids, m.ID.String())
 		}
 	}
 	if len(ids) < 2 {
@@ -125,7 +126,7 @@ func TestBatchStatusChangeMultipleMembers(t *testing.T) {
 	members, _ = st.Org().Members(ctx)
 	for _, m := range members {
 		for _, id := range ids {
-			if m.ID == id && m.Status != "inactive" {
+			if m.ID.String() == id && m.Status != "inactive" {
 				t.Errorf("member %s should be inactive", m.ID)
 			}
 		}
@@ -165,7 +166,7 @@ func TestBatchInviteSetsStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := svc.BatchInvite(ctx, []string{member.ID})
+	result, err := svc.BatchInvite(ctx, []string{member.ID.String()})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,8 @@
 package filler
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
@@ -25,13 +27,6 @@ var leafDeptBudgets = []DeptBudget{
 	{DepartmentID: contract.IDDept8, DepartmentName: "行政部", Count: 7},
 }
 
-// Stable member UUIDs for non-contract anchor members.
-var (
-	idMember2 = uuid.MustParse("00000000-0000-7000-8000-000000000e07")
-	idMember4 = uuid.MustParse("00000000-0000-7000-8000-000000000e06")
-	idMember5 = uuid.MustParse("00000000-0000-7000-8000-000000000e09")
-)
-
 func anchorMembers() []types.Member {
 	return []types.Member{
 		{
@@ -45,7 +40,7 @@ func anchorMembers() []types.Member {
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{
-			ID: idMember2, CompanyID: contract.DefaultCompanyID, Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
+			ID: contract.IDMember2, CompanyID: contract.DefaultCompanyID, Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleOrgAdmin, permission.RoleBudgetApprover}, Source: "imported",
 		},
@@ -55,12 +50,12 @@ func anchorMembers() []types.Member {
 			Roles: []string{permission.RoleMember}, Source: "invited",
 		},
 		{
-			ID: idMember4, CompanyID: contract.DefaultCompanyID, Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
+			ID: contract.IDMember4, CompanyID: contract.DefaultCompanyID, Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
 			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "manual",
 		},
 		{
-			ID: idMember5, CompanyID: contract.DefaultCompanyID, Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
+			ID: contract.IDMember5, CompanyID: contract.DefaultCompanyID, Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
 			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "inactive",
 			Roles: []string{permission.RoleMember}, Source: "imported",
 		},
@@ -111,17 +106,7 @@ func anchorsInDept(members []types.Member, deptID uuid.UUID) []types.Member {
 
 // seedMemberID generates a stable UUID for generated members based on seq index.
 func seedMemberID(seq int) uuid.UUID {
-	// Use a deterministic UUID based on the sequence number.
-	return uuid.MustParse("00000000-0000-7000-8000-0000000e0" + padHex3(seq))
-}
-
-func padHex3(n int) string {
-	h := [3]byte{}
-	hex := "0123456789abcdef"
-	h[0] = hex[(n>>8)&0xf]
-	h[1] = hex[(n>>4)&0xf]
-	h[2] = hex[n&0xf]
-	return string(h[:])
+	return uuid.MustParse(fmt.Sprintf("00000000-0000-7000-8000-0000000e0%03x", seq))
 }
 
 func buildGeneratedMember(seq int, departmentID uuid.UUID, departmentName string) types.Member {
@@ -165,8 +150,8 @@ func BuildMembers() []types.Member {
 var anchorPersonalBudgets = map[uuid.UUID]float64{
 	contract.IDMemberAdmin:   50000,
 	contract.IDMember1:       10000,
-	idMember2:                15000,
-	idMember4:                12000,
+	contract.IDMember2:       15000,
+	contract.IDMember4:       12000,
 	contract.IDMemberAuditor: 5000,
 	contract.IDMemberPure:    3000,
 }
@@ -191,7 +176,7 @@ func assignSpecialRoles(members []types.Member) {
 	}
 
 	for i := range members {
-		if members[i].DepartmentID == contract.IDDept6 && members[i].ID != idMember2 {
+		if members[i].DepartmentID == contract.IDDept6 && members[i].ID != contract.IDMember2 {
 			if !org.ContainsRole(members[i].Roles, permission.RoleBudgetApprover) {
 				members[i].Roles = append(members[i].Roles, permission.RoleBudgetApprover)
 				break

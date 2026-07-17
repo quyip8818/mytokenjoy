@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +17,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func memberUpdatedAt(t *testing.T, pool *pgxpool.Pool, memberID string) time.Time {
+func memberUpdatedAt(t *testing.T, pool *pgxpool.Pool, memberID uuid.UUID) time.Time {
 	t.Helper()
 	var ts time.Time
 	err := pool.QueryRow(context.Background(), `
@@ -40,7 +41,7 @@ func budgetNodeUpdatedAt(t *testing.T, pool *pgxpool.Pool, nodeID string) time.T
 	return ts
 }
 
-func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID int64) time.Time {
+func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID uuid.UUID) time.Time {
 	t.Helper()
 	var ts time.Time
 	err := pool.QueryRow(context.Background(), `
@@ -52,7 +53,7 @@ func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID int64) time.Time {
 	return ts
 }
 
-func findMemberName(members []types.Member, id string) string {
+func findMemberName(members []types.Member, id uuid.UUID) string {
 	for _, member := range members {
 		if member.ID == id {
 			return member.Name

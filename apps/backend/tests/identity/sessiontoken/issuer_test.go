@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 )
 
@@ -14,7 +15,9 @@ func TestIssuedJWTHasNoPermissionsClaim(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := issuer.Issue(1, "m-admin")
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000000001")
+	memberID := uuid.MustParse("00000000-0000-7000-0000-000000000e01")
+	token, err := issuer.Issue(companyID, memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,10 +38,10 @@ func TestIssuedJWTHasNoPermissionsClaim(t *testing.T) {
 			t.Fatalf("JWT must not contain %q claim", forbidden)
 		}
 	}
-	if claims["sub"] != "m-admin" {
-		t.Fatalf("expected sub m-admin, got %v", claims["sub"])
+	if claims["sub"] != memberID.String() {
+		t.Fatalf("expected sub %s, got %v", memberID, claims["sub"])
 	}
-	if claims["company_id"] != float64(1) {
-		t.Fatalf("expected company_id 1, got %v", claims["company_id"])
+	if claims["company_id"] != companyID.String() {
+		t.Fatalf("expected company_id %s, got %v", companyID, claims["company_id"])
 	}
 }

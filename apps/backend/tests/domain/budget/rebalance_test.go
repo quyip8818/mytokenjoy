@@ -19,11 +19,12 @@ func TestRebalanceBidirectional(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)
+	memberID := contract.IDMember1
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		CompanyID:     contract.DefaultCompanyID,
 		PlatformKeyID: contract.IDPlatformKey1,
 		NewAPIKeyID:   &tokenID,
-		MemberID:      testutil.StrPtr(contract.IDMember1),
+		MemberID:      &memberID,
 		DepartmentID:  contract.IDDept3,
 		SyncStatus:    store.MappingSyncStatusSynced,
 		NewAPIGroup:   "dept-dept-3",
@@ -31,7 +32,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
+	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1.String()); err != nil {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 1 {
@@ -55,7 +56,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		}
 	}
 
-	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
+	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1.String()); err != nil {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 1 {

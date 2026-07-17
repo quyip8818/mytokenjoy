@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -35,7 +36,7 @@ func TestEnqueueWalletSyncDebouncesAndSlides(t *testing.T) {
 	}
 }
 
-func walletSyncPendingCount(t *testing.T, st store.Store, companyID int64) int {
+func walletSyncPendingCount(t *testing.T, st store.Store, companyID uuid.UUID) int {
 	t.Helper()
 	pool := postgres.MainPool(st)
 	var count int
@@ -44,7 +45,7 @@ func walletSyncPendingCount(t *testing.T, st store.Store, companyID int64) int {
 		FROM river_job
 		WHERE kind = $1
 		  AND state IN ('available', 'retryable', 'scheduled', 'running')
-		  AND (args->>'company_id')::bigint = $2
+		  AND (args->>'company_id')::uuid = $2
 	`, jobs.KindWalletSync, companyID).Scan(&count)
 	if err != nil {
 		t.Fatalf("query wallet_sync jobs: %v", err)

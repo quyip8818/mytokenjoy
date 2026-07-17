@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -24,7 +25,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenMissingWallet(t *test
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
 
-	const companyID int64 = 888_001
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000888001")
 	ctx := context.Background()
 	now := time.Now().UTC()
 	if err := st.Company().Create(ctx, store.Company{
@@ -47,7 +48,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenWalletIDZero(t *testi
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
 
-	const companyID int64 = 888_002
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000888002")
 	ctx := context.Background()
 	now := time.Now().UTC()
 	zero := int64(0)
@@ -71,7 +72,7 @@ func TestSyncCompanyWalletPropagatesStoreErrors(t *testing.T) {
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
 
-	err := svc.SyncCompanyWallet(context.Background(), 9_999_999_999)
+	err := svc.SyncCompanyWallet(context.Background(), uuid.MustParse("00000000-0000-7000-0000-999999999999"))
 	if err == nil {
 		t.Fatal("expected error for missing company")
 	}

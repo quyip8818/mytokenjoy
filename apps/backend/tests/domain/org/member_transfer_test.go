@@ -20,7 +20,7 @@ func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.TransferMembers(ctx, []string{contract.IDMember1}, "dept-4"); err != nil {
+	if err := svc.TransferMembers(ctx, []string{contract.IDMember1.String()}, contract.IDDept4); err != nil {
 		t.Fatal(err)
 	}
 	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
@@ -39,7 +39,7 @@ func TestTransferMembersUpdatesPlatformKeyMapping(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	memberID := contract.IDMember1
-	targetDept := "dept-4"
+	targetDept := contract.IDDept4
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		PlatformKeyID: contract.IDPlatformKey1,
 		MemberID:      &memberID,
@@ -50,7 +50,7 @@ func TestTransferMembersUpdatesPlatformKeyMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.TransferMembers(testutil.Ctx(), []string{memberID}, targetDept); err != nil {
+	if err := svc.TransferMembers(testutil.Ctx(), []string{memberID.String()}, targetDept); err != nil {
 		t.Fatal(err)
 	}
 

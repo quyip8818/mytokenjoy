@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -18,7 +20,7 @@ func TestCompanyRoundTrip(t *testing.T) {
 	now := time.Now().UTC()
 
 	co := store.Company{
-		ID: 9001, Name: "Roundtrip Co",
+		ID: uuid.MustParse("00000000-0000-7000-0000-000000009001"), Name: "Roundtrip Co",
 		Type: store.CompanyTypeTesting, Status: store.CompanyStatusActive,
 		CreatedAt: now, UpdatedAt: now,
 	}
@@ -48,7 +50,7 @@ func TestCompanyInviteRoundTrip(t *testing.T) {
 	now := time.Now().UTC()
 
 	invite := store.CompanyInvite{
-		ID: "invite-rt-1", CompanyID: 1, Email: "rt@example.com",
+		ID: uuid.MustParse("00000000-0000-7000-0000-0000000000a1"), CompanyID: contract.DefaultCompanyID, Email: "rt@example.com",
 		Role: store.InviteRoleSuperAdmin, InviteCode: "roundtrip-invite-token",
 		ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}
@@ -78,19 +80,19 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	ppu := domainbilling.DefaultPointsPerUnit()
 
 	order := store.RechargeOrder{
-		ID: "rch-rt-1", CompanyID: 1, Amount: 99, Currency: common.DefaultBillingCurrency,
+		ID: uuid.MustParse("00000000-0000-7000-0000-0000000000b1"), CompanyID: contract.DefaultCompanyID, Amount: 99, Currency: common.DefaultBillingCurrency,
 		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(99, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending,
 		DisplayOrderID: "ORD20260101120000",
 		PaymentMethod:  store.PaymentMethodAlipay,
 		InvoiceStatus:  store.InvoiceStatusNone,
-		CreatedBy:      "m-admin", CreatedAt: now, UpdatedAt: now,
+		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := st.Billing().CreateRechargeOrder(ctx, order); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Billing().GetRechargeOrder(ctx, order.ID)
+	got, err := st.Billing().GetRechargeOrder(ctx, order.ID.String())
 	if err != nil || got == nil || got.Amount != 99 {
 		t.Fatalf("unexpected order: %+v err=%v", got, err)
 	}
@@ -103,11 +105,11 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
-	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)
+	got, err = st.Billing().GetRechargeOrder(ctx, order.ID.String())
 	if err != nil || got.Status != store.RechargeStatusConfirmed {
 		t.Fatalf("expected confirmed, got %+v", got)
 	}
-	orders, err := st.Billing().ListRechargeOrders(ctx, 1)
+	orders, err := st.Billing().ListRechargeOrders(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}

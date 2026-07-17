@@ -3,6 +3,7 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/seed"
@@ -58,13 +59,13 @@ func TestValidateMemberBudgetBelowAllocated(t *testing.T) {
 func TestValidateMemberBudgetExceedsDeptCapacity(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
-		{ID: "dept-3", Budget: 20000, ReservedPool: budgetfix.FloatPtr(2000)},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), Budget: 20000, ReservedPool: budgetfix.FloatPtr(2000)},
 	}
 	members := []types.Member{
-		{ID: "m-1", DepartmentID: "dept-3", PersonalBudget: 10000},
-		{ID: "m-2", DepartmentID: "dept-3", PersonalBudget: 5000},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), PersonalBudget: 10000},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000ee02"), DepartmentID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), PersonalBudget: 5000},
 	}
-	msg := budget.ValidateMemberBudgetUpdate(tree, members, nil, "m-2", 10000)
+	msg := budget.ValidateMemberBudgetUpdate(tree, members, nil, uuid.MustParse("00000000-0000-7000-0000-00000000ee02"), 10000)
 	if msg == nil {
 		t.Fatal("expected validation error when exceeding dept capacity")
 	}

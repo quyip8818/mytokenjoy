@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/permission"
@@ -41,15 +42,18 @@ func TestValidateSeriesPointLimit(t *testing.T) {
 
 func TestResolveScopeDepartmentsForbidden(t *testing.T) {
 	t.Parallel()
+	dept1 := uuid.MustParse("00000000-0000-7000-0000-00000000dd01")
+	dept8 := uuid.MustParse("00000000-0000-7000-0000-00000000dd08")
+	dept3 := uuid.MustParse("00000000-0000-7000-0000-00000000dd03")
 	departments := []types.Department{
-		{ID: "dept-1", Name: "Root", Children: []types.Department{
-			{ID: "dept-8", Name: "Admin"},
-			{ID: "dept-3", Name: "Backend"},
+		{ID: dept1, Name: "Root", Children: []types.Department{
+			{ID: dept8, Name: "Admin"},
+			{ID: dept3, Name: "Backend"},
 		}},
 	}
 	_, err := domainusage.ResolveScopeDepartments(departments, domainusage.SessionScope{
-		MemberID: "m-scoped", DepartmentID: "dept-8", Permissions: []string{permission.BudgetRead},
-	}, "dept-3", domainusage.DashboardScopeConfig{})
+		MemberID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: dept8, Permissions: []string{permission.BudgetRead},
+	}, dept3, domainusage.DashboardScopeConfig{})
 	if err == nil {
 		t.Fatal("expected forbidden for out-of-scope department")
 	}
@@ -57,19 +61,22 @@ func TestResolveScopeDepartmentsForbidden(t *testing.T) {
 
 func TestResolveScopeDepartmentsEmptyConfigScopesToSubtree(t *testing.T) {
 	t.Parallel()
+	dept1 := uuid.MustParse("00000000-0000-7000-0000-00000000dd01")
+	dept8 := uuid.MustParse("00000000-0000-7000-0000-00000000dd08")
+	dept3 := uuid.MustParse("00000000-0000-7000-0000-00000000dd03")
 	departments := []types.Department{
-		{ID: "dept-1", Name: "Root", Children: []types.Department{
-			{ID: "dept-8", Name: "Admin"},
-			{ID: "dept-3", Name: "Backend"},
+		{ID: dept1, Name: "Root", Children: []types.Department{
+			{ID: dept8, Name: "Admin"},
+			{ID: dept3, Name: "Backend"},
 		}},
 	}
 	got, err := domainusage.ResolveScopeDepartments(departments, domainusage.SessionScope{
-		MemberID: "m-scoped", DepartmentID: "dept-8", Permissions: []string{permission.DashboardCost},
-	}, "", domainusage.DashboardScopeConfig{})
+		MemberID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: dept8, Permissions: []string{permission.DashboardCost},
+	}, uuid.Nil, domainusage.DashboardScopeConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0] != "dept-8" {
+	if len(got) != 1 || got[0] != dept8 {
 		t.Fatalf("expected subtree scope [dept-8], got %v", got)
 	}
 }

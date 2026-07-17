@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
 var loc = time.UTC
 
-func makeRow(bucket time.Time, dept, member, model string, cost float64, calls int) types.UsageBucketRow {
+func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost float64, calls int) types.UsageBucketRow {
 	return types.UsageBucketRow{
 		BucketStart:  bucket,
 		DepartmentID: dept,
@@ -66,11 +67,13 @@ func TestSummaryTotals(t *testing.T) {
 	t.Parallel()
 	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC)
+	d1 := uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	m1 := uuid.MustParse("00000000-0000-7000-0000-000000000e01")
 
 	rows := []types.UsageBucketRow{
-		makeRow(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 10, 1),
-		makeRow(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 20, 2),
-		makeRow(time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 30, 3),
+		makeRow(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), d1, m1, "gpt-4", 10, 1),
+		makeRow(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), d1, m1, "gpt-4", 20, 2),
+		makeRow(time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC), d1, m1, "gpt-4", 30, 3),
 	}
 
 	totals := postgres.TestHookSummaryUsageTotals(rows, start, end)
@@ -118,19 +121,23 @@ func TestLimitByCost(t *testing.T) {
 
 func TestTopModelPerDepartment(t *testing.T) {
 	t.Parallel()
+	d1 := uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	d2 := uuid.MustParse("00000000-0000-7000-0000-000000000d02")
+	m1 := uuid.MustParse("00000000-0000-7000-0000-000000000e01")
+	m2 := uuid.MustParse("00000000-0000-7000-0000-000000000e02")
 	rows := []types.UsageBucketRow{
-		makeRow(time.Now(), "d1", "m1", "gpt-4", 50, 5),
-		makeRow(time.Now(), "d1", "m1", "gpt-3.5", 10, 10),
-		makeRow(time.Now(), "d2", "m2", "claude", 30, 3),
-		makeRow(time.Now(), "d2", "m2", "gpt-4", 20, 2),
+		makeRow(time.Now(), d1, m1, "gpt-4", 50, 5),
+		makeRow(time.Now(), d1, m1, "gpt-3.5", 10, 10),
+		makeRow(time.Now(), d2, m2, "claude", 30, 3),
+		makeRow(time.Now(), d2, m2, "gpt-4", 20, 2),
 	}
 
-	result := postgres.TestHookTopModelPerDepartment(rows, []string{"d1", "d2"})
-	if result["d1"] != "gpt-4" {
-		t.Errorf("d1 top model = %q, want 'gpt-4'", result["d1"])
+	result := postgres.TestHookTopModelPerDepartment(rows, []string{d1.String(), d2.String()})
+	if result[d1.String()] != "gpt-4" {
+		t.Errorf("d1 top model = %q, want 'gpt-4'", result[d1.String()])
 	}
-	if result["d2"] != "claude" {
-		t.Errorf("d2 top model = %q, want 'claude'", result["d2"])
+	if result[d2.String()] != "claude" {
+		t.Errorf("d2 top model = %q, want 'claude'", result[d2.String()])
 	}
 }
 
@@ -144,10 +151,14 @@ func TestTopModelPerDepartmentEmpty(t *testing.T) {
 
 func TestAggregateRows(t *testing.T) {
 	t.Parallel()
+	d1 := uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	d2 := uuid.MustParse("00000000-0000-7000-0000-000000000d02")
+	m1 := uuid.MustParse("00000000-0000-7000-0000-000000000e01")
+	m2 := uuid.MustParse("00000000-0000-7000-0000-000000000e02")
 	rows := []types.UsageBucketRow{
-		makeRow(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 10, 1),
-		makeRow(time.Date(2024, 1, 1, 14, 0, 0, 0, time.UTC), "d1", "m1", "gpt-4", 20, 2),
-		makeRow(time.Date(2024, 1, 2, 10, 0, 0, 0, time.UTC), "d2", "m2", "gpt-3.5", 30, 3),
+		makeRow(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), d1, m1, "gpt-4", 10, 1),
+		makeRow(time.Date(2024, 1, 1, 14, 0, 0, 0, time.UTC), d1, m1, "gpt-4", 20, 2),
+		makeRow(time.Date(2024, 1, 2, 10, 0, 0, 0, time.UTC), d2, m2, "gpt-3.5", 30, 3),
 	}
 
 	t.Run("aggregate by day no group", func(t *testing.T) {
@@ -174,16 +185,18 @@ func TestAggregateRows(t *testing.T) {
 
 func TestSortSeriesPoints(t *testing.T) {
 	t.Parallel()
+	d1 := uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	d2 := uuid.MustParse("00000000-0000-7000-0000-000000000d02")
 	points := []types.UsageSeriesPoint{
-		{Bucket: "2024-01-02", DepartmentID: "d1"},
-		{Bucket: "2024-01-01", DepartmentID: "d2"},
-		{Bucket: "2024-01-01", DepartmentID: "d1"},
+		{Bucket: "2024-01-02", DepartmentID: d1},
+		{Bucket: "2024-01-01", DepartmentID: d2},
+		{Bucket: "2024-01-01", DepartmentID: d1},
 	}
 	postgres.TestHookSortUsageSeriesPoints(points)
-	if points[0].Bucket != "2024-01-01" || points[0].DepartmentID != "d1" {
+	if points[0].Bucket != "2024-01-01" || points[0].DepartmentID != d1 {
 		t.Errorf("sort failed: first = %+v", points[0])
 	}
-	if points[1].Bucket != "2024-01-01" || points[1].DepartmentID != "d2" {
+	if points[1].Bucket != "2024-01-01" || points[1].DepartmentID != d2 {
 		t.Errorf("sort failed: second = %+v", points[1])
 	}
 }

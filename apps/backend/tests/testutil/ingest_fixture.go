@@ -26,7 +26,7 @@ func DefaultConsumeLogQuota() float64 {
 // do not immediately trigger overrun disable for the seeded demo budgets.
 func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBudgetFixture) {
 	t.Helper()
-	if fixture.DepartmentID == "" {
+	if fixture.DepartmentID == uuid.Nil {
 		t.Fatal("PrepareIngestBudgetHeadroom: departmentID required")
 	}
 	if fixture.Amount <= 0 {
@@ -34,7 +34,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 	}
 
 	ctx := Ctx()
-	if fixture.MemberID != "" {
+	if fixture.MemberID != uuid.Nil {
 		quota, memberFound, err := st.Org().MemberPersonalBudget(ctx, fixture.MemberID)
 		if err != nil {
 			t.Fatal(err)
@@ -44,7 +44,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 		}
 	}
 
-	if fixture.PlatformKeyID == "" {
+	if fixture.PlatformKeyID == uuid.Nil {
 		return
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)

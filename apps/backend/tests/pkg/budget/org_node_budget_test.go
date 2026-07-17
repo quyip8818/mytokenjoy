@@ -3,6 +3,7 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
@@ -11,22 +12,24 @@ import (
 
 func TestOrgNodeBudgetRowFromNode_DefaultPeriod(t *testing.T) {
 	t.Parallel()
+	deptA := uuid.MustParse("00000000-0000-7000-0000-00000000da01")
 	row := pkgbudget.OrgNodeBudgetRowFromNode(types.OrgNode{
-		ID: "dept-a", Budget: 100, Period: "",
+		ID: deptA, Budget: 100, Period: "",
 	})
 	if row.Period != pkgbudget.PeriodMonthly {
 		t.Fatalf("expected default period %q, got %q", pkgbudget.PeriodMonthly, row.Period)
 	}
-	if row.NodeID != "dept-a" || row.Budget != 100 {
+	if row.NodeID != deptA || row.Budget != 100 {
 		t.Fatalf("unexpected row: %+v", row)
 	}
 }
 
 func TestOrgNodeBudgetRowFromNode_PreservesFields(t *testing.T) {
 	t.Parallel()
+	deptB := uuid.MustParse("00000000-0000-7000-0000-00000000da02")
 	reserved := budgetfix.FloatPtr(500)
 	row := pkgbudget.OrgNodeBudgetRowFromNode(types.OrgNode{
-		ID: "dept-b", Budget: 2000, ReservedPool: reserved,
+		ID: deptB, Budget: 2000, ReservedPool: reserved,
 		Period: "2026-06", MemberAvgBudget: 300,
 	})
 	if row.ReservedPool == nil || *row.ReservedPool != 500 {
@@ -39,12 +42,15 @@ func TestOrgNodeBudgetRowFromNode_PreservesFields(t *testing.T) {
 
 func TestOrgNodeBudgetRowsFromNodes_FlattensTree(t *testing.T) {
 	t.Parallel()
+	rootID := uuid.MustParse("00000000-0000-7000-0000-00000000da10")
+	childA := uuid.MustParse("00000000-0000-7000-0000-00000000da11")
+	childB := uuid.MustParse("00000000-0000-7000-0000-00000000da12")
 	nodes := []types.OrgNode{
 		{
-			ID: "root", Budget: 1000, Period: pkgbudget.PeriodMonthly,
+			ID: rootID, Budget: 1000, Period: pkgbudget.PeriodMonthly,
 			Children: []types.OrgNode{
-				{ID: "child-a", Budget: 400},
-				{ID: "child-b", Budget: 600, ReservedPool: budgetfix.FloatPtr(50)},
+				{ID: childA, Budget: 400},
+				{ID: childB, Budget: 600, ReservedPool: budgetfix.FloatPtr(50)},
 			},
 		},
 	}
@@ -52,25 +58,26 @@ func TestOrgNodeBudgetRowsFromNodes_FlattensTree(t *testing.T) {
 	if len(rows) != 3 {
 		t.Fatalf("expected 3 rows, got %d", len(rows))
 	}
-	byID := make(map[string]store.OrgNodeBudgetRow, len(rows))
+	byID := make(map[uuid.UUID]store.OrgNodeBudgetRow, len(rows))
 	for _, row := range rows {
 		byID[row.NodeID] = row
 	}
-	if byID["root"].Budget != 1000 {
-		t.Fatalf("root budget mismatch: %+v", byID["root"])
+	if byID[rootID].Budget != 1000 {
+		t.Fatalf("root budget mismatch: %+v", byID[rootID])
 	}
-	if byID["child-b"].ReservedPool == nil || *byID["child-b"].ReservedPool != 50 {
-		t.Fatalf("child-b reserved mismatch: %+v", byID["child-b"])
+	if byID[childB].ReservedPool == nil || *byID[childB].ReservedPool != 50 {
+		t.Fatalf("child-b reserved mismatch: %+v", byID[childB])
 	}
 }
 
 func TestOrgNodeBudgetRowsFromNodes_MatchesSnapshotDept3(t *testing.T) {
 	t.Parallel()
+	dept3 := uuid.MustParse("00000000-0000-7000-0000-00000000da03")
 	wantBudget := budgetfix.DisplayPoints(20000)
 	wantReserved := budgetfix.DisplayPoints(1500)
 	rows := pkgbudget.OrgNodeBudgetRowsFromNodes([]types.OrgNode{
 		{
-			ID: "dept-3", Budget: wantBudget, ReservedPool: &wantReserved,
+			ID: dept3, Budget: wantBudget, ReservedPool: &wantReserved,
 			Period: pkgbudget.PeriodMonthly,
 		},
 	})

@@ -4,18 +4,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+)
+
+var (
+	sseUser1 = uuid.MustParse("00000000-0000-7000-0000-000000000001")
+	sseUser2 = uuid.MustParse("00000000-0000-7000-0000-000000000002")
 )
 
 func TestSSEHubSubscribeAndPublish(t *testing.T) {
 	t.Parallel()
 	hub := notification.NewSSEHub()
 
-	ch, unsub := hub.Subscribe("user-1")
+	ch, unsub := hub.Subscribe(sseUser1)
 	defer unsub()
 
 	event := notification.SSEEvent{ID: "n1", EventType: "test", Title: "Hello", Body: "World"}
-	hub.Publish("user-1", event)
+	hub.Publish(sseUser1, event)
 
 	select {
 	case got := <-ch:
@@ -31,10 +37,10 @@ func TestSSEHubPublishToWrongUser(t *testing.T) {
 	t.Parallel()
 	hub := notification.NewSSEHub()
 
-	ch, unsub := hub.Subscribe("user-1")
+	ch, unsub := hub.Subscribe(sseUser1)
 	defer unsub()
 
-	hub.Publish("user-2", notification.SSEEvent{ID: "n2", Title: "Not for you"})
+	hub.Publish(sseUser2, notification.SSEEvent{ID: "n2", Title: "Not for you"})
 
 	select {
 	case <-ch:
@@ -48,13 +54,13 @@ func TestSSEHubUnsubscribe(t *testing.T) {
 	t.Parallel()
 	hub := notification.NewSSEHub()
 
-	_, unsub := hub.Subscribe("user-1")
-	if hub.ActiveSubscribers("user-1") != 1 {
+	_, unsub := hub.Subscribe(sseUser1)
+	if hub.ActiveSubscribers(sseUser1) != 1 {
 		t.Fatal("expected 1 subscriber")
 	}
 
 	unsub()
-	if hub.ActiveSubscribers("user-1") != 0 {
+	if hub.ActiveSubscribers(sseUser1) != 0 {
 		t.Fatal("expected 0 subscribers after unsubscribe")
 	}
 }
@@ -63,12 +69,12 @@ func TestSSEHubMultipleSubscribers(t *testing.T) {
 	t.Parallel()
 	hub := notification.NewSSEHub()
 
-	ch1, unsub1 := hub.Subscribe("user-1")
-	ch2, unsub2 := hub.Subscribe("user-1")
+	ch1, unsub1 := hub.Subscribe(sseUser1)
+	ch2, unsub2 := hub.Subscribe(sseUser1)
 	defer unsub1()
 	defer unsub2()
 
-	hub.Publish("user-1", notification.SSEEvent{ID: "n3", Title: "Broadcast"})
+	hub.Publish(sseUser1, notification.SSEEvent{ID: "n3", Title: "Broadcast"})
 
 	select {
 	case got := <-ch1:
@@ -94,12 +100,12 @@ func TestSSEHubDropsSlowSubscriber(t *testing.T) {
 	hub := notification.NewSSEHub()
 
 	// Subscribe but never consume
-	_, unsub := hub.Subscribe("user-1")
+	_, unsub := hub.Subscribe(sseUser1)
 	defer unsub()
 
 	// Fill the buffer (16) and one more — should not block
 	for i := 0; i < 20; i++ {
-		hub.Publish("user-1", notification.SSEEvent{ID: "overflow", Title: "spam"})
+		hub.Publish(sseUser1, notification.SSEEvent{ID: "overflow", Title: "spam"})
 	}
 	// If we reach here without hanging, the test passes
 }

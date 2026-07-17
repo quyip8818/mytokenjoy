@@ -3,9 +3,11 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -15,12 +17,13 @@ func TestBatchInviteByIDs(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
+	pendingID := uuid.MustParse("00000000-0000-7000-0000-00000000ff99")
 	members, err := st.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i := range members {
-		if members[i].ID == "m-pending" {
+		if members[i].ID == pendingID {
 			continue
 		}
 		if members[i].Status == types.MemberStatusActive {
@@ -28,7 +31,7 @@ func TestBatchInviteByIDs(t *testing.T) {
 		}
 	}
 	members = append(members, types.Member{
-		ID: "m-pending", Name: "Pending User", DepartmentID: "dept-5",
+		ID: pendingID, Name: "Pending User", DepartmentID: contract.IDDept5,
 		Status: types.MemberStatusPending, Roles: []string{"普通成员"},
 	})
 	if err := st.Org().SetMembers(ctx, members); err != nil {

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -28,7 +29,7 @@ func TestCostSummaryFromBuckets(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 12.5, CallCount: 3})
-	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
+	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +49,7 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 	})
 	rows, err := svc.DailyCosts(ctx, types.CostQueryParams{
 		Period: string(types.CostPeriodCurrentMonth), Granularity: types.UsageGranularityWeek,
-	}, "", testutil.AdminDashboardScope())
+	}, uuid.Nil, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +100,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 18.5, CallCount: 2})
-	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", domainusage.SessionScope{
+	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, domainusage.SessionScope{
 		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
 	})
 	if err != nil {
@@ -126,7 +127,7 @@ func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 		Cost:        5,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 12.5, CallCount: 2})
-	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, "", testutil.AdminDashboardScope())
+	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +144,7 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 20, CallCount: 4})
-	depts, err := svc.DepartmentCosts(ctx, contract.IDDept2, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	depts, err := svc.DepartmentCosts(ctx, contract.IDDept2.String(), types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}

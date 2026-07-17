@@ -3,6 +3,7 @@ package authz_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/infra/permission"
@@ -11,10 +12,10 @@ import (
 func TestResolveMemberPermissionsSuperAdmin(t *testing.T) {
 	t.Parallel()
 	member := types.Member{
-		ID: "m-admin", Roles: []string{permission.RoleSuperAdmin},
+		ID: uuid.MustParse("00000000-0000-7000-0000-000000000e01"), Roles: []string{permission.RoleSuperAdmin},
 	}
 	roles := []types.Role{
-		{ID: "role-1", Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000a101"), Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
 	}
 
 	perms := authz.ResolveMemberPermissions(member, roles)

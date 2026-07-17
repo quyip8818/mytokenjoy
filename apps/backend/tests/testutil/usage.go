@@ -42,10 +42,10 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 	if opts.BucketStart.IsZero() {
 		opts.BucketStart = def.BucketStart
 	}
-	if opts.DepartmentID == "" {
+	if opts.DepartmentID == uuid.Nil {
 		opts.DepartmentID = def.DepartmentID
 	}
-	if opts.MemberID == "" {
+	if opts.MemberID == uuid.Nil {
 		opts.MemberID = def.MemberID
 	}
 	if opts.Model == "" {

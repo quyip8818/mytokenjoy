@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/budget/schedule"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -15,7 +16,7 @@ type monthTestEnqueuer struct {
 	rebalance int
 }
 
-func (r *monthTestEnqueuer) InsertRebalance(context.Context, int64, string, string) error {
+func (r *monthTestEnqueuer) InsertRebalance(_ context.Context, _ uuid.UUID, _, _ string) error {
 	r.rebalance++
 	return nil
 }

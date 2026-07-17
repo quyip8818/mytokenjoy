@@ -31,7 +31,7 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent
 	memberID := contract.IDMember1
 	now := time.Now().UTC()
 	entry := types.UsageLedgerEntry{
-		ID:               fmt.Sprintf("ledger-dept-overrun-%s-%d", deptID, int(ledgerSpent)),
+		ID:               uuid.Must(uuid.NewV7()),
 		CompanyID:        contract.DefaultCompanyID,
 		EventType:        types.EventTypeCallSettled,
 		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%d", deptID, int(ledgerSpent)),
@@ -49,7 +49,7 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent
 		Model:            "gpt-4o",
 		CallDetail: types.UsageCallDetail{
 			Caller:     "test",
-			CallerID:   memberID,
+			CallerID:   memberID.String(),
 			CallerType: types.CallerTypeMember,
 			Status:     types.CallStatusSuccess,
 		},

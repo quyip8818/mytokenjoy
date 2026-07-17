@@ -3,18 +3,30 @@ package modelcatalog_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+)
+
+var (
+	catModel1 = uuid.MustParse("00000000-0000-7000-0000-0000000000b1")
+	catModel2 = uuid.MustParse("00000000-0000-7000-0000-0000000000b2")
+	catModel3 = uuid.MustParse("00000000-0000-7000-0000-0000000000b3")
+	catModel4 = uuid.MustParse("00000000-0000-7000-0000-0000000000b4")
+	catModel9 = uuid.MustParse("00000000-0000-7000-0000-0000000000b9")
+
+	catCompany1 = uuid.MustParse("00000000-0000-7000-0000-000000000001")
+	catCompany2 = uuid.MustParse("00000000-0000-7000-0000-000000000002")
 )
 
 func TestDedupeEffectiveTenantOverridesGlobal(t *testing.T) {
 	t.Parallel()
 	items := []types.ModelInfo{
-		{ModelID: 1, Provider: "openai", Type: "gpt-4o", CompanyID: 1},
-		{ModelID: 2, Provider: "openai", Type: "gpt-4o", CompanyID: 2},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", CompanyID: catCompany1},
+		{ID: catModel2, Provider: "openai", Type: "gpt-4o", CompanyID: catCompany2},
 	}
 	out := modelcatalog.DedupeEffective(items)
-	if len(out) != 1 || out[0].ModelID != 2 {
+	if len(out) != 1 || out[0].ID != catModel2 {
 		t.Fatalf("expected tenant override, got %+v", out)
 	}
 }
@@ -22,8 +34,8 @@ func TestDedupeEffectiveTenantOverridesGlobal(t *testing.T) {
 func TestDedupeEffectiveDifferentProviderSameType(t *testing.T) {
 	t.Parallel()
 	items := []types.ModelInfo{
-		{ModelID: 1, Provider: "openai", Type: "gpt-4o", Enabled: true},
-		{ModelID: 2, Provider: types.ProviderCustom, Type: "gpt-4o", Enabled: true},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Enabled: true},
+		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Enabled: true},
 	}
 	out := modelcatalog.DedupeEffective(items)
 	if len(out) != 2 {
@@ -34,12 +46,12 @@ func TestDedupeEffectiveDifferentProviderSameType(t *testing.T) {
 func TestFilterEnabledIDs(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ModelID: 1, Type: "a", Enabled: true},
-		{ModelID: 2, Type: "b", Enabled: false},
-		{ModelID: 3, Type: "c", Enabled: true},
+		{ID: catModel1, Type: "a", Enabled: true},
+		{ID: catModel2, Type: "b", Enabled: false},
+		{ID: catModel3, Type: "c", Enabled: true},
 	}
-	out := modelcatalog.FilterEnabledIDs(catalog, []int64{1, 2, 3, 99})
-	if len(out) != 2 || out[0] != 1 || out[1] != 3 {
+	out := modelcatalog.FilterEnabledIDs(catalog, []uuid.UUID{catModel1, catModel2, catModel3, catModel9})
+	if len(out) != 2 || out[0] != catModel1 || out[1] != catModel3 {
 		t.Fatalf("unexpected %v", out)
 	}
 }
@@ -47,17 +59,17 @@ func TestFilterEnabledIDs(t *testing.T) {
 func TestIsCallTypeAllowed(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ModelID: 1, Provider: "openai", Type: "gpt-4o", Enabled: true},
-		{ModelID: 2, Provider: types.ProviderCustom, Type: "gpt-4o", Enabled: true},
-		{ModelID: 3, Provider: "openai", Type: "claude", Enabled: false},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Enabled: true},
+		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Enabled: true},
+		{ID: catModel3, Provider: "openai", Type: "claude", Enabled: false},
 	}
-	if !modelcatalog.IsCallTypeAllowed(catalog, []int64{2}, "gpt-4o") {
+	if !modelcatalog.IsCallTypeAllowed(catalog, []uuid.UUID{catModel2}, "gpt-4o") {
 		t.Fatal("expected allowed")
 	}
-	if modelcatalog.IsCallTypeAllowed(catalog, []int64{3}, "claude") {
+	if modelcatalog.IsCallTypeAllowed(catalog, []uuid.UUID{catModel3}, "claude") {
 		t.Fatal("expected disabled model blocked")
 	}
-	if modelcatalog.IsCallTypeAllowed(catalog, []int64{1}, "claude") {
+	if modelcatalog.IsCallTypeAllowed(catalog, []uuid.UUID{catModel1}, "claude") {
 		t.Fatal("expected not in allowlist")
 	}
 }
@@ -65,28 +77,28 @@ func TestIsCallTypeAllowed(t *testing.T) {
 func TestResolveIDForCallTypePrefersCustom(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ModelID: 1, Provider: "openai", Type: "gpt-4o", Enabled: true},
-		{ModelID: 2, Provider: types.ProviderCustom, Type: "gpt-4o", Enabled: true},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Enabled: true},
+		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Enabled: true},
 	}
-	id, ok := modelcatalog.ResolveIDForCallType(catalog, []int64{1, 2}, "gpt-4o")
-	if !ok || id == nil || *id != 2 {
-		t.Fatalf("expected custom model id 2, got %v ok=%v", id, ok)
+	id, ok := modelcatalog.ResolveIDForCallType(catalog, []uuid.UUID{catModel1, catModel2}, "gpt-4o")
+	if !ok || id == nil || *id != catModel2 {
+		t.Fatalf("expected custom model id catModel2, got %v ok=%v", id, ok)
 	}
 }
 
 func TestValidateWritableIDs(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ModelID: 1, Enabled: true},
-		{ModelID: 2, Enabled: false},
+		{ID: catModel1, Enabled: true},
+		{ID: catModel2, Enabled: false},
 	}
-	if err := modelcatalog.ValidateWritableIDs(catalog, []int64{1}); err != nil {
+	if err := modelcatalog.ValidateWritableIDs(catalog, []uuid.UUID{catModel1}); err != nil {
 		t.Fatal(err)
 	}
-	if err := modelcatalog.ValidateWritableIDs(catalog, []int64{2}); err != modelcatalog.ErrModelDisabled {
+	if err := modelcatalog.ValidateWritableIDs(catalog, []uuid.UUID{catModel2}); err != modelcatalog.ErrModelDisabled {
 		t.Fatalf("expected disabled error, got %v", err)
 	}
-	if err := modelcatalog.ValidateWritableIDs(catalog, []int64{9}); err != modelcatalog.ErrUnknownModelID {
+	if err := modelcatalog.ValidateWritableIDs(catalog, []uuid.UUID{catModel9}); err != modelcatalog.ErrUnknownModelID {
 		t.Fatalf("expected unknown error, got %v", err)
 	}
 }
@@ -94,11 +106,11 @@ func TestValidateWritableIDs(t *testing.T) {
 func TestCallTypesForIDs(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ModelID: 1, Type: "gpt-4o", Enabled: true},
-		{ModelID: 2, Type: "gpt-4o", Enabled: true},
-		{ModelID: 3, Type: "claude", Enabled: false},
+		{ID: catModel1, Type: "gpt-4o", Enabled: true},
+		{ID: catModel2, Type: "gpt-4o", Enabled: true},
+		{ID: catModel3, Type: "claude", Enabled: false},
 	}
-	out := modelcatalog.CallTypesForIDs(catalog, []int64{1, 2, 3})
+	out := modelcatalog.CallTypesForIDs(catalog, []uuid.UUID{catModel1, catModel2, catModel3})
 	if len(out) != 1 || out[0] != "gpt-4o" {
 		t.Fatalf("unexpected %v", out)
 	}

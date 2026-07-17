@@ -4,16 +4,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9201
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009201")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
@@ -52,7 +54,7 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 
 func TestSeedTrialCreditRejectsZeroPoints(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9202
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009202")
 	_, st := testutil.NewTestStore(t)
 	_ = newLotTestCompany(t, st, companyID)
 	ctx := testutil.CtxForCompany(companyID)
@@ -67,7 +69,7 @@ func TestSeedTrialCreditRejectsZeroPoints(t *testing.T) {
 
 func TestExpireMockLotsZerosWalletRemain(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9203
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009203")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
@@ -112,7 +114,7 @@ func TestExpireMockLotsZerosWalletRemain(t *testing.T) {
 
 func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9204
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009204")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
@@ -128,12 +130,12 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	paidPoints := domainbilling.PointsGrantedFromAmount(paidAmount, ppu)
 	now := time.Now().UTC()
 	paidOrder := store.RechargeOrder{
-		ID: "rch-paid-9204", CompanyID: companyID, Amount: paidAmount,
+		ID: uuid.MustParse("00000000-0000-7000-0000-000000009204"), CompanyID: companyID, Amount: paidAmount,
 		Currency: common.DefaultBillingCurrency, PointsPerUnit: ppu, PointsGranted: paidPoints,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-9204",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
-		CreatedBy: "m-admin", CreatedAt: now, UpdatedAt: now,
+		CreatedBy: contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	paidLot := domainbilling.BuildPaidLot(paidOrder, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.PointsGranted); err != nil {
@@ -179,7 +181,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 
 func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9205
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009205")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
@@ -222,7 +224,7 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 
 func TestExpireMockLotsIdempotent(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9206
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009206")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 

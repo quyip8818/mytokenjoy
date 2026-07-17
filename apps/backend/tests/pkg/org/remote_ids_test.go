@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
@@ -10,18 +11,31 @@ import (
 func TestLocalDeptID(t *testing.T) {
 	t.Parallel()
 	got := pkgorg.LocalDeptID(types.PlatformFeishu, "ou-abc")
-	want := "dept-feishu-ou-abc"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	if got == uuid.Nil {
+		t.Fatal("expected non-nil uuid")
+	}
+	// Deterministic: calling again with same input yields same result.
+	got2 := pkgorg.LocalDeptID(types.PlatformFeishu, "ou-abc")
+	if got != got2 {
+		t.Fatalf("expected deterministic id, got %s vs %s", got, got2)
+	}
+	// Different input yields different result.
+	got3 := pkgorg.LocalDeptID(types.PlatformFeishu, "ou-xyz")
+	if got == got3 {
+		t.Fatal("expected different ids for different inputs")
 	}
 }
 
 func TestLocalMemberID(t *testing.T) {
 	t.Parallel()
 	got := pkgorg.LocalMemberID(types.PlatformFeishu, "ou-user")
-	want := "m-feishu-ou-user"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	if got == uuid.Nil {
+		t.Fatal("expected non-nil uuid")
+	}
+	// Deterministic.
+	got2 := pkgorg.LocalMemberID(types.PlatformFeishu, "ou-user")
+	if got != got2 {
+		t.Fatalf("expected deterministic id, got %s vs %s", got, got2)
 	}
 }
 

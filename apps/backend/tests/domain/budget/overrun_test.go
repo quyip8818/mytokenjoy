@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/google/uuid"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 
@@ -95,7 +96,7 @@ func TestOverrunProjectAxis(t *testing.T) {
 		NewAPIKeyID:   &tokenID,
 		DepartmentID:  contract.IDDept3,
 		SyncStatus:    store.MappingSyncStatusSynced,
-		NewAPIGroup:   "group-" + groupID,
+		NewAPIGroup:   "group-" + groupID.String(),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +171,7 @@ func TestOverrunProjectMemberAxisWhenOverQuota(t *testing.T) {
 	for i := range projects {
 		if projects[i].ID == contract.IDProject1 {
 			if projects[i].MemberBudgets == nil {
-				projects[i].MemberBudgets = make(map[string]float64)
+				projects[i].MemberBudgets = make(map[uuid.UUID]float64)
 			}
 			projects[i].MemberBudgets[contract.IDMember1] = memberBudget
 			break
@@ -179,19 +180,19 @@ func TestOverrunProjectMemberAxisWhenOverQuota(t *testing.T) {
 	if err := st.Budget().SetProjects(ctx, projects); err != nil {
 		t.Fatal(err)
 	}
-	budgetfix.SetPlatformKeySnapshotConsumed(t, st, "plk-bg-1", memberBudget+0.01)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey6, memberBudget+0.01)
 
 	projectID := contract.IDProject1
 	memberID := contract.IDMember1
 	tokenID := int64(88)
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
-		PlatformKeyID: "plk-bg-1",
+		PlatformKeyID: contract.IDPlatformKey6,
 		NewAPIKeyID:   &tokenID,
 		MemberID:      &memberID,
 		ProjectID:     &projectID,
 		DepartmentID:  contract.IDDept3,
 		SyncStatus:    store.MappingSyncStatusSynced,
-		NewAPIGroup:   "group-" + projectID,
+		NewAPIGroup:   "group-" + projectID.String(),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +201,7 @@ func TestOverrunProjectMemberAxisWhenOverQuota(t *testing.T) {
 		"memberId":      contract.IDMember1,
 		"projectId":     contract.IDProject1,
 		"departmentId":  contract.IDDept3,
-		"platformKeyId": "plk-bg-1",
+		"platformKeyId": contract.IDPlatformKey6,
 	})
 	if err != nil {
 		t.Fatal(err)

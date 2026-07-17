@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/permission"
@@ -39,7 +40,7 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	var session struct {
-		CompanyID int64 `json:"companyId"`
+		CompanyID string `json:"companyId"`
 		Member    struct {
 			Email string `json:"email"`
 		} `json:"member"`
@@ -47,8 +48,8 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&session); err != nil {
 		t.Fatal(err)
 	}
-	if session.CompanyID != created.Company.ID {
-		t.Fatalf("expected company %d, got %d", created.Company.ID, session.CompanyID)
+	if session.CompanyID != created.Company.ID.String() {
+		t.Fatalf("expected company %s, got %s", created.Company.ID, session.CompanyID)
 	}
 	if session.Member.Email != "accept@example.com" {
 		t.Fatalf("expected invite email, got %s", session.Member.Email)
@@ -63,7 +64,7 @@ func TestAcceptInviteRejectsShortPassword(t *testing.T) {
 
 	now := time.Now().UTC()
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
-		ID: "invite-test-2", CompanyID: contract.DefaultCompanyID,
+		ID: uuid.MustParse("00000000-0000-7000-0000-0000000002a2"), CompanyID: contract.DefaultCompanyID,
 		Email: "short@newco.example", Role: store.InviteRoleSuperAdmin,
 		InviteCode: "short-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}); err != nil {
@@ -86,7 +87,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 
 	now := time.Now().UTC()
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
-		ID: "invite-expired", CompanyID: contract.DefaultCompanyID,
+		ID: uuid.MustParse("00000000-0000-7000-0000-0000000002a3"), CompanyID: contract.DefaultCompanyID,
 		Email: "expired@example.com", Role: store.InviteRoleSuperAdmin,
 		InviteCode: "expired-token", ExpiresAt: now.Add(-time.Hour), CreatedAt: now,
 	}); err != nil {
@@ -109,7 +110,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 
 	now := time.Now().UTC()
 	if err := st.Invite().CreateInvite(ctx, store.CompanyInvite{
-		ID: "invite-used", CompanyID: contract.DefaultCompanyID,
+		ID: uuid.MustParse("00000000-0000-7000-0000-0000000002a4"), CompanyID: contract.DefaultCompanyID,
 		Email: "used@example.com", Role: store.InviteRoleSuperAdmin,
 		InviteCode: "used-token", ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now,
 	}); err != nil {

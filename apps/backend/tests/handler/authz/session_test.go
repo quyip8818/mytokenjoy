@@ -9,6 +9,7 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -16,7 +17,7 @@ func TestSessionCookieReturnsMember(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
-	req.Header.Set("Cookie", testutil.SessionCookie(t, "m-pure"))
+	req.Header.Set("Cookie", testutil.SessionCookie(t, contract.IDMemberPure))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -26,8 +27,8 @@ func TestSessionCookieReturnsMember(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Member.ID != "m-pure" {
-		t.Fatalf("expected m-pure, got %s", payload.Member.ID)
+	if payload.Member.ID != contract.IDMemberPure {
+		t.Fatalf("expected %s, got %s", contract.IDMemberPure, payload.Member.ID)
 	}
 	if !payload.ReadOnly {
 		t.Fatal("expected read-only session for m-pure")

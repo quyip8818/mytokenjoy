@@ -26,7 +26,7 @@ type TestServiceOpts struct {
 
 const TestWalletUserID int64 = 501
 
-func EnsureWalletUserID(t *testing.T, st store.Store, companyID, walletUserID int64) {
+func EnsureWalletUserID(t *testing.T, st store.Store, companyID uuid.UUID, walletUserID int64) {
 	t.Helper()
 	if err := st.Company().UpdateNewAPIWalletUserID(
 		testutil.CtxForCompany(companyID),
@@ -88,23 +88,23 @@ type PendingPlatformKeyOpts struct {
 
 func SeedPendingPlatformKey(t *testing.T, st store.Store, opts PendingPlatformKeyOpts) types.PlatformKey {
 	t.Helper()
-	if opts.ID == "" {
-		opts.ID = "plk-test"
+	if opts.ID == uuid.Nil {
+		opts.ID = uuid.MustParse("00000000-0000-7000-0000-00000000f099")
 	}
 	if opts.Name == "" {
 		opts.Name = "test-key"
 	}
-	if opts.MemberID == "" {
+	if opts.MemberID == uuid.Nil {
 		opts.MemberID = contract.IDMember1
 	}
-	if opts.DepartmentID == "" {
+	if opts.DepartmentID == uuid.Nil {
 		opts.DepartmentID = contract.IDDept3
 	}
 	if opts.Budget == 0 {
 		opts.Budget = 1000
 	}
 	if len(opts.ModelWhitelist) == 0 {
-		opts.ModelWhitelist = []int64{contract.IDModel1}
+		opts.ModelWhitelist = []uuid.UUID{contract.IDModel1}
 	}
 
 	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)

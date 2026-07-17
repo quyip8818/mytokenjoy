@@ -3,23 +3,38 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
+var (
+	orgDept1  = uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	orgDept2  = uuid.MustParse("00000000-0000-7000-0000-000000000d02")
+	orgParent = uuid.MustParse("00000000-0000-7000-0000-000000000d10")
+	orgChild  = uuid.MustParse("00000000-0000-7000-0000-000000000d11")
+
+	orgM1 = uuid.MustParse("00000000-0000-7000-0000-000000000e01")
+	orgM2 = uuid.MustParse("00000000-0000-7000-0000-000000000e02")
+	orgM3 = uuid.MustParse("00000000-0000-7000-0000-000000000e03")
+	orgM4 = uuid.MustParse("00000000-0000-7000-0000-000000000e04")
+	orgM5 = uuid.MustParse("00000000-0000-7000-0000-000000000e05")
+	orgM6 = uuid.MustParse("00000000-0000-7000-0000-000000000e06")
+)
+
 func TestRecalcOrgNodeMemberCounts_ExcludesInactive(t *testing.T) {
 	nodes := []types.OrgNode{
-		{ID: "dept-1", Name: "Engineering", Children: nil},
-		{ID: "dept-2", Name: "Sales", Children: nil},
+		{ID: orgDept1, Name: "Engineering", Children: nil},
+		{ID: orgDept2, Name: "Sales", Children: nil},
 	}
 
 	members := []types.Member{
-		{ID: "m1", DepartmentID: "dept-1", Status: types.MemberStatusActive},
-		{ID: "m2", DepartmentID: "dept-1", Status: types.MemberStatusInactive},
-		{ID: "m3", DepartmentID: "dept-1", Status: types.MemberStatusInactive},
-		{ID: "m4", DepartmentID: "dept-2", Status: types.MemberStatusActive},
-		{ID: "m5", DepartmentID: "dept-2", Status: types.MemberStatusActive},
-		{ID: "m6", DepartmentID: "dept-2", Status: types.MemberStatusPending},
+		{ID: orgM1, DepartmentID: orgDept1, Status: types.MemberStatusActive},
+		{ID: orgM2, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
+		{ID: orgM3, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
+		{ID: orgM4, DepartmentID: orgDept2, Status: types.MemberStatusActive},
+		{ID: orgM5, DepartmentID: orgDept2, Status: types.MemberStatusActive},
+		{ID: orgM6, DepartmentID: orgDept2, Status: types.MemberStatusPending},
 	}
 
 	result := pkgorg.RecalcOrgNodeMemberCounts(nodes, members)
@@ -41,12 +56,12 @@ func TestRecalcOrgNodeMemberCounts_ExcludesInactive(t *testing.T) {
 
 func TestRecalcOrgNodeMemberCounts_AllInactiveGivesZero(t *testing.T) {
 	nodes := []types.OrgNode{
-		{ID: "dept-1", Name: "Empty Dept", Children: nil},
+		{ID: orgDept1, Name: "Empty Dept", Children: nil},
 	}
 
 	members := []types.Member{
-		{ID: "m1", DepartmentID: "dept-1", Status: types.MemberStatusInactive},
-		{ID: "m2", DepartmentID: "dept-1", Status: types.MemberStatusInactive},
+		{ID: orgM1, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
+		{ID: orgM2, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
 	}
 
 	result := pkgorg.RecalcOrgNodeMemberCounts(nodes, members)
@@ -59,18 +74,18 @@ func TestRecalcOrgNodeMemberCounts_AllInactiveGivesZero(t *testing.T) {
 func TestRecalcOrgNodeMemberCounts_NestedExcludesInactive(t *testing.T) {
 	nodes := []types.OrgNode{
 		{
-			ID:   "parent",
+			ID:   orgParent,
 			Name: "Parent",
 			Children: []types.OrgNode{
-				{ID: "child", Name: "Child", Children: nil},
+				{ID: orgChild, Name: "Child", Children: nil},
 			},
 		},
 	}
 
 	members := []types.Member{
-		{ID: "m1", DepartmentID: "child", Status: types.MemberStatusActive},
-		{ID: "m2", DepartmentID: "child", Status: types.MemberStatusInactive},
-		{ID: "m3", DepartmentID: "parent", Status: types.MemberStatusActive},
+		{ID: orgM1, DepartmentID: orgChild, Status: types.MemberStatusActive},
+		{ID: orgM2, DepartmentID: orgChild, Status: types.MemberStatusInactive},
+		{ID: orgM3, DepartmentID: orgParent, Status: types.MemberStatusActive},
 	}
 
 	result := pkgorg.RecalcOrgNodeMemberCounts(nodes, members)

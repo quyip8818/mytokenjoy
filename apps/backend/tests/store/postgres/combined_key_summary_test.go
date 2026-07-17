@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -10,7 +11,7 @@ import (
 )
 
 func platformKey1Hash() string {
-	return store.HashPlatformKey("pending:" + contract.IDPlatformKey1)
+	return store.HashPlatformKey("pending:" + contract.IDPlatformKey1.String())
 }
 
 func TestCombinedKeySummaryUpdateBatch(t *testing.T) {
@@ -56,9 +57,9 @@ func TestCombinedKeySummaryDecrementBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[string]float64{
-		contract.IDPlatformKey1: 12.5,
-		"missing-key":           1,
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
+		contract.IDPlatformKey1:                                12.5,
+		uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"): 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +86,7 @@ func TestCombinedKeySummaryDecrementBatchFloorsAtZero(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[string]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
 		contract.IDPlatformKey1: 12,
 	})
 	if err != nil {
@@ -104,7 +105,7 @@ func TestCombinedKeySummaryDecrementBatchSkipsNullRemain(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[string]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
 		contract.IDPlatformKey1: 1,
 	})
 	if err != nil {

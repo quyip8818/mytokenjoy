@@ -17,14 +17,14 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
 	ctx := testutil.Ctx()
 
-	created, err := svc.CreateDepartment(testutil.Ctx(), "Phase0 Team", "dept-2")
+	created, err := svc.CreateDepartment(testutil.Ctx(), "Phase0 Team", contract.IDDept2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if created.Name != "Phase0 Team" {
 		t.Fatalf("unexpected name %s", created.Name)
 	}
-	if created.ParentID == nil || *created.ParentID != "dept-2" {
+	if created.ParentID == nil || *created.ParentID != contract.IDDept2 {
 		t.Fatalf("expected parent dept-2, got %v", created.ParentID)
 	}
 
@@ -66,7 +66,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
 	ctx := testutil.Ctx()
 
-	created, err := svc.CreateDepartment(testutil.Ctx(), "Rename Me", "dept-6")
+	created, err := svc.CreateDepartment(testutil.Ctx(), "Rename Me", contract.IDDept6)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.ParentID == nil || *updated.ParentID != "dept-6" {
+	if updated.ParentID == nil || *updated.ParentID != contract.IDDept6 {
 		t.Fatalf("expected parent dept-6, got %v", updated.ParentID)
 	}
 	if updated.Name != "Renamed Team" {
@@ -108,7 +108,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 func TestDeleteDepartmentWithChildren422(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	err := svc.DeleteDepartment(testutil.Ctx(), "dept-2")
+	err := svc.DeleteDepartment(testutil.Ctx(), contract.IDDept2)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
 		t.Fatalf("expected 422, got %d", de.Status)
@@ -133,7 +133,7 @@ func TestDeleteLeafDepartment(t *testing.T) {
 	svc, st := newTestOrgServiceWithStore(t)
 	ctx := testutil.Ctx()
 
-	created, err := svc.CreateDepartment(testutil.Ctx(), "Disposable", "dept-2")
+	created, err := svc.CreateDepartment(testutil.Ctx(), "Disposable", contract.IDDept2)
 	if err != nil {
 		t.Fatal(err)
 	}

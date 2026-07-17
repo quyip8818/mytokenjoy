@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -32,7 +33,7 @@ func TestResolveApprovalApprove(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
 	ctx := testutil.Ctx()
-	updated, err := svc.ResolveApproval(ctx, "appr-1", types.ResolveBudgetApprovalInput{Status: "approved"})
+	updated, err := svc.ResolveApproval(ctx, contract.IDBudgetApproval1.String(), types.ResolveBudgetApprovalInput{Status: "approved"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +45,7 @@ func TestResolveApprovalApprove(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, item := range items {
-		if item.ID == "appr-1" && item.Status != "approved" {
+		if item.ID == contract.IDBudgetApproval1 && item.Status != "approved" {
 			t.Fatalf("expected appr-1 approved in list")
 		}
 	}
@@ -53,7 +54,7 @@ func TestResolveApprovalApprove(t *testing.T) {
 func TestResolveApprovalRejectRequiresReason(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	_, err := svc.ResolveApproval(testutil.Ctx(), "appr-2", types.ResolveBudgetApprovalInput{Status: "rejected"})
+	_, err := svc.ResolveApproval(testutil.Ctx(), contract.IDBudgetApproval2.String(), types.ResolveBudgetApprovalInput{Status: "rejected"})
 	if err == nil {
 		t.Fatal("expected validation error")
 	}

@@ -3,6 +3,8 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -25,7 +27,7 @@ type deptBudgetInputs struct {
 	members  []types.Member
 }
 
-func loadDeptBudgetInputs(t *testing.T, st store.Store, deptID string) deptBudgetInputs {
+func loadDeptBudgetInputs(t *testing.T, st store.Store, deptID uuid.UUID) deptBudgetInputs {
 	t.Helper()
 	ctx := testutil.Ctx()
 	nodes, err := st.Org().Nodes().Tree(ctx)
@@ -81,7 +83,7 @@ func prepareDept3NodeUpdateFixture(t *testing.T, st store.Store) {
 
 // chooseValidDeptBudget picks the smallest budget >= allocated obligations that passes
 // the same validation as domain UpdateNode, optionally bumped when parent headroom allows.
-func chooseValidDeptBudget(t *testing.T, st store.Store, deptID string, reserved float64) float64 {
+func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reserved float64) float64 {
 	t.Helper()
 	inputs := loadDeptBudgetInputs(t, st, deptID)
 	node := pkgbudget.FindBudgetNode(inputs.tree, deptID)

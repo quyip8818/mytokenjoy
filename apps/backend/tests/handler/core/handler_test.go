@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -179,7 +180,7 @@ func TestCoreGetEndpoints(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&tree); err != nil {
 			t.Fatal(err)
 		}
-		if len(tree) == 0 || tree[0].ID != "dept-1" {
+		if len(tree) == 0 || tree[0].ID != contract.IDDept1 {
 			t.Fatal("expected budget tree root dept-1")
 		}
 	})
@@ -260,7 +261,7 @@ func TestKeysPlatformCreateMissingMemberID(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body, _ := json.Marshal(map[string]any{
-		"name": "test", "scope": types.PlatformKeyScopeMember, "budget": 1000, "modelWhitelist": []int64{contract.IDModel1},
+		"name": "test", "scope": types.PlatformKeyScopeMember, "budget": 1000, "modelWhitelist": []uuid.UUID{contract.IDModel1},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/keys/platform", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

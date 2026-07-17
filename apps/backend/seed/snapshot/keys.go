@@ -11,17 +11,17 @@ import (
 
 func loadPlatformKeys() []types.PlatformKey {
 	type platformKeySeed struct {
-		ID             string      `json:"id"`
-		Name           string      `json:"name"`
-		KeyPrefix      string      `json:"keyPrefix"`
-		Scope          string      `json:"scope"`
-		MemberID       *string     `json:"memberId"`
-		ProjectID      *string     `json:"projectId"`
-		Status         string      `json:"status"`
-		Budget         float64     `json:"budget"`
-		ModelWhitelist []string    `json:"modelWhitelist"`
-		CreatedAt      string      `json:"createdAt"`
-		ExpiresAt      *string     `json:"expiresAt"`
+		ID             string   `json:"id"`
+		Name           string   `json:"name"`
+		KeyPrefix      string   `json:"keyPrefix"`
+		Scope          string   `json:"scope"`
+		MemberID       *string  `json:"memberId"`
+		ProjectID      *string  `json:"projectId"`
+		Status         string   `json:"status"`
+		Budget         float64  `json:"budget"`
+		ModelWhitelist []string `json:"modelWhitelist"`
+		CreatedAt      string   `json:"createdAt"`
+		ExpiresAt      *string  `json:"expiresAt"`
 	}
 	var raw []platformKeySeed
 	if err := json.Unmarshal(data.PlatformKeysJSON, &raw); err != nil {

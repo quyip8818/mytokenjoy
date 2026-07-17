@@ -4,17 +4,24 @@ import (
 	"math"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+)
+
+var (
+	qModel1 = uuid.MustParse("00000000-0000-7000-0000-0000000000b1")
+	qModel2 = uuid.MustParse("00000000-0000-7000-0000-0000000000b2")
+	qModel3 = uuid.MustParse("00000000-0000-7000-0000-0000000000b3")
 )
 
 func TestToNewAPIUnitsUsesHighestWhitelistPrice(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{ModelID: 1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
-		{ModelID: 2, Type: "expensive", InputPrice: 10, OutputPrice: 10, Enabled: true},
+		{ID: qModel1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
+		{ID: qModel2, Type: "expensive", InputPrice: 10, OutputPrice: 10, Enabled: true},
 	}
-	units := newapiunits.ToNewAPIUnits(20, models, []int64{1, 2})
+	units := newapiunits.ToNewAPIUnits(20, models, []uuid.UUID{qModel1, qModel2})
 	if units <= 0 {
 		t.Fatalf("expected positive units, got %d", units)
 	}
@@ -39,9 +46,9 @@ func TestCostFromQuota(t *testing.T) {
 func TestHighestModelPricePoint(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{ModelID: 1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
-		{ModelID: 2, Type: "mid", InputPrice: 5, OutputPrice: 5, Enabled: true},
-		{ModelID: 3, Type: "expensive", InputPrice: 10, OutputPrice: 10, Enabled: true},
+		{ID: qModel1, Type: "cheap", InputPrice: 1, OutputPrice: 1, Enabled: true},
+		{ID: qModel2, Type: "mid", InputPrice: 5, OutputPrice: 5, Enabled: true},
+		{ID: qModel3, Type: "expensive", InputPrice: 10, OutputPrice: 10, Enabled: true},
 	}
 
 	t.Run("all models", func(t *testing.T) {
@@ -52,7 +59,7 @@ func TestHighestModelPricePoint(t *testing.T) {
 	})
 
 	t.Run("whitelist subset", func(t *testing.T) {
-		price := newapiunits.HighestModelPricePoint(models, []int64{1, 2})
+		price := newapiunits.HighestModelPricePoint(models, []uuid.UUID{qModel1, qModel2})
 		if price != 10 {
 			t.Errorf("expected 10, got %v", price)
 		}
@@ -69,11 +76,11 @@ func TestHighestModelPricePoint(t *testing.T) {
 func TestFromNewAPIUnits(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{ModelID: 1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
+		{ID: qModel1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
 	}
 
 	t.Run("positive units", func(t *testing.T) {
-		cny := newapiunits.FromNewAPIUnits(500000, models, []int64{1})
+		cny := newapiunits.FromNewAPIUnits(500000, models, []uuid.UUID{qModel1})
 		if cny <= 0 {
 			t.Errorf("expected positive CNY, got %v", cny)
 		}
@@ -105,9 +112,9 @@ func TestToNewAPIUnitsZeroRemaining(t *testing.T) {
 func TestToNewAPIUnitsSaturatesOverflow(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{ModelID: 1, Type: "tiny", InputPrice: 1e-12, OutputPrice: 0, Enabled: true},
+		{ID: qModel1, Type: "tiny", InputPrice: 1e-12, OutputPrice: 0, Enabled: true},
 	}
-	units := newapiunits.ToNewAPIUnits(1e20, models, []int64{1})
+	units := newapiunits.ToNewAPIUnits(1e20, models, []uuid.UUID{qModel1})
 	if units != math.MaxInt64 {
 		t.Fatalf("expected MaxInt64, got %d", units)
 	}
@@ -195,19 +202,19 @@ func TestFormatModelLimits(t *testing.T) {
 func TestModelPricePoint(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{ModelID: 1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
-		{ModelID: 2, Type: "free", InputPrice: 0, OutputPrice: 0, Enabled: true},
+		{ID: qModel1, Type: "gpt-4", InputPrice: 10, OutputPrice: 10, Enabled: true},
+		{ID: qModel2, Type: "free", InputPrice: 0, OutputPrice: 0, Enabled: true},
 	}
 
 	t.Run("found model", func(t *testing.T) {
-		price := newapiunits.ModelPricePoint(models, []int64{1}, "gpt-4")
+		price := newapiunits.ModelPricePoint(models, []uuid.UUID{qModel1}, "gpt-4")
 		if price != 20 {
 			t.Errorf("expected 20, got %v", price)
 		}
 	})
 
 	t.Run("zero price returns default", func(t *testing.T) {
-		price := newapiunits.ModelPricePoint(models, []int64{2}, "free")
+		price := newapiunits.ModelPricePoint(models, []uuid.UUID{qModel2}, "free")
 		if price <= 0 {
 			t.Errorf("expected positive default, got %v", price)
 		}
@@ -224,21 +231,21 @@ func TestModelPricePoint(t *testing.T) {
 func TestEffectiveWhitelistIDs(t *testing.T) {
 	t.Parallel()
 	t.Run("empty key whitelist returns dept allowed", func(t *testing.T) {
-		result := newapiunits.EffectiveWhitelistIDs(nil, []int64{1, 2})
+		result := newapiunits.EffectiveWhitelistIDs(nil, []uuid.UUID{qModel1, qModel2})
 		if len(result) != 2 {
 			t.Fatalf("expected 2, got %d", len(result))
 		}
 	})
 
 	t.Run("intersection of key and dept", func(t *testing.T) {
-		result := newapiunits.EffectiveWhitelistIDs([]int64{1, 3}, []int64{1, 2})
-		if len(result) != 1 || result[0] != 1 {
-			t.Errorf("expected [1], got %v", result)
+		result := newapiunits.EffectiveWhitelistIDs([]uuid.UUID{qModel1, qModel3}, []uuid.UUID{qModel1, qModel2})
+		if len(result) != 1 || result[0] != qModel1 {
+			t.Errorf("expected [qModel1], got %v", result)
 		}
 	})
 
 	t.Run("no overlap returns empty", func(t *testing.T) {
-		result := newapiunits.EffectiveWhitelistIDs([]int64{3}, []int64{1})
+		result := newapiunits.EffectiveWhitelistIDs([]uuid.UUID{qModel3}, []uuid.UUID{qModel1})
 		if len(result) != 0 {
 			t.Errorf("expected empty, got %v", result)
 		}
@@ -247,11 +254,12 @@ func TestEffectiveWhitelistIDs(t *testing.T) {
 
 func TestNewAPIGroupForDepartment(t *testing.T) {
 	t.Parallel()
-	group := newapiunits.NewAPIGroupForDepartment("dept-123")
+	deptID := uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	group := newapiunits.NewAPIGroupForDepartment(deptID)
 	if group == "" {
 		t.Error("expected non-empty group")
 	}
-	if group == "dept-123" {
+	if group == deptID.String() {
 		t.Error("expected group to have prefix")
 	}
 }

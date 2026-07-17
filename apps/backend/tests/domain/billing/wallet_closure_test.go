@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -49,13 +50,13 @@ func TestWalletClosureFormula(t *testing.T) {
 	}
 	svc, st, ctx := newBillingServiceWithSync(t, client)
 
-	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, "platform-op-closure"); err != nil {
+	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, uuid.MustParse("00000000-0000-7000-0000-0000000000a1")); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.PlatformGift(ctx, contract.DefaultCompanyID, 5000, "platform-op-gift"); err != nil {
+	if err := svc.PlatformGift(ctx, contract.DefaultCompanyID, 5000, uuid.MustParse("00000000-0000-7000-0000-0000000000a2")); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.PlatformAdjust(ctx, contract.DefaultCompanyID, 2000, 2, "platform-op-adjust"); err != nil {
+	if err := svc.PlatformAdjust(ctx, contract.DefaultCompanyID, 2000, 2, uuid.MustParse("00000000-0000-7000-0000-0000000000a3")); err != nil {
 		t.Fatal(err)
 	}
 

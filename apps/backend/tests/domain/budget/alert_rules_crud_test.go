@@ -3,6 +3,7 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -17,13 +18,13 @@ func TestCreateAlertRuleWithMultipleThresholds(t *testing.T) {
 		NodeID:        contract.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
-		NotifyRoleIDs: []string{"role-1"},
+		NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-000000000001")},
 		Enabled:       true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rule.ID == "" {
+	if rule.ID == uuid.Nil {
 		t.Fatal("expected non-empty ID")
 	}
 	if len(rule.Thresholds) != 3 {
@@ -43,14 +44,14 @@ func TestDisabledAlertRuleDoesNotTrigger(t *testing.T) {
 		NodeID:        contract.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
-		NotifyRoleIDs: []string{"role-1"},
+		NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-000000000001")},
 		Enabled:       true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateAlert(ctx, rule.ID, types.AlertRule{Enabled: false})
+	updated, err := svc.UpdateAlert(ctx, rule.ID.String(), types.AlertRule{Enabled: false})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +85,7 @@ func TestUpdateAlertRuleThresholds(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateAlert(ctx, rule.ID, types.AlertRule{
+	updated, err := svc.UpdateAlert(ctx, rule.ID.String(), types.AlertRule{
 		Thresholds: []int{80, 90, 100},
 		Enabled:    true,
 	})
@@ -111,7 +112,7 @@ func TestDeleteAlertRule(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.DeleteAlert(ctx, rule.ID); err != nil {
+	if err := svc.DeleteAlert(ctx, rule.ID.String()); err != nil {
 		t.Fatal(err)
 	}
 

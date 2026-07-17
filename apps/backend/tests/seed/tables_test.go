@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -88,7 +89,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, budgetfix.DisplayPoints(20000), budgetfix.DisplayPoints(1500))
 }
 
-func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID string, wantBudget, wantReserved float64) {
+func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID uuid.UUID, wantBudget, wantReserved float64) {
 	t.Helper()
 	var budget float64
 	var reserved *float64

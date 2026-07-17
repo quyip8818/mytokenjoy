@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
@@ -26,9 +27,10 @@ func TestTrySyncCreateEnsuresGroupBeforeCreateToken(t *testing.T) {
 	sync, st := newSyncWithStub(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
+	plkEnsureGroup := uuid.MustParse("00000000-0000-7000-0000-00000000ff01")
 	key := types.PlatformKey{
-		ID: "plk-ensure-group", Name: "ensure-group", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
+		ID: plkEnsureGroup, Name: "ensure-group", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 1000, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -42,7 +44,7 @@ func TestTrySyncCreateEnsuresGroupBeforeCreateToken(t *testing.T) {
 	if err := sync.SyncCreatePlatformKey(ctx, key, contract.IDDept3); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sync.TrySyncCreate(ctx, "plk-ensure-group"); err != nil {
+	if _, err := sync.TrySyncCreate(ctx, plkEnsureGroup); err != nil {
 		t.Fatal(err)
 	}
 	wantGroup := newapiunits.NewAPIGroupForDepartment(contract.IDDept3)

@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -24,9 +25,9 @@ func TestRoleMembersRoundTrip(t *testing.T) {
 			break
 		}
 	}
-	if custom.ID == "" {
+	if custom.ID == uuid.Nil {
 		custom = types.Role{
-			ID: "role-pg-test", Name: "PG Test", Type: "custom",
+			ID: uuid.MustParse("00000000-0000-7000-0000-000000007001"), Name: "PG Test", Type: "custom",
 			Permissions: []string{"p-1"}, MemberCount: 0,
 		}
 		roles = append(roles, custom)
@@ -90,7 +91,7 @@ func TestMembersPersistByDepartment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	deptCount := map[string]int{}
+	deptCount := map[uuid.UUID]int{}
 	for _, member := range members {
 		deptCount[member.DepartmentID]++
 	}

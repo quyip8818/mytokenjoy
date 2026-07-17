@@ -44,34 +44,26 @@ func buildBudgetTree() []types.BudgetNode {
 	}
 }
 
-// m-4, m-6 etc are member IDs not in contract — generate stable UUIDs.
-var (
-	idMember4  = uuid.MustParse("00000000-0000-7000-8000-000000000e06")
-	idMember6  = uuid.MustParse("00000000-0000-7000-8000-000000000e08")
-	idMember15 = uuid.MustParse("00000000-0000-7000-8000-000000000e15")
-	idMember16 = uuid.MustParse("00000000-0000-7000-8000-000000000e16")
-)
-
 func buildProjects() []types.Project {
 	return []types.Project{
 		{
 			ID: contract.IDProject1, Name: "AI 创新项目组", Budget: seedPoints(15000),
 			Consumed:  contract.DemoProjectConsumed[contract.IDProject1],
-			MemberIDs: []uuid.UUID{contract.IDMember1, idMember4, idMember6},
+			MemberIDs: []uuid.UUID{contract.IDMember1, contract.IDMember4, contract.IDMember6},
 			MemberBudgets: map[uuid.UUID]float64{
 				contract.IDMember1: seedPoints(6000),
-				idMember4:          seedPoints(5000),
-				idMember6:          seedPoints(3000),
+				contract.IDMember4: seedPoints(5000),
+				contract.IDMember6: seedPoints(3000),
 			},
 			OwnerDepartmentID: contract.IDDept3,
 		},
 		{
 			ID: contract.IDProject4, Name: "内部效率工具", Budget: seedPoints(8000),
 			Consumed:  contract.DemoProjectConsumed[contract.IDProject4],
-			MemberIDs: []uuid.UUID{idMember15, idMember16},
+			MemberIDs: []uuid.UUID{contract.IDMember15, contract.IDMember16},
 			MemberBudgets: map[uuid.UUID]float64{
-				idMember15: seedPoints(4000),
-				idMember16: seedPoints(4000),
+				contract.IDMember15: seedPoints(4000),
+				contract.IDMember16: seedPoints(4000),
 			},
 			OwnerDepartmentID: contract.IDDept5,
 		},
@@ -85,23 +77,16 @@ func buildOverrunPolicy() types.OverrunPolicyConfig {
 	}
 }
 
-// Role UUIDs for alert notifications.
-var (
-	idRole1 = uuid.MustParse("00000000-0000-7000-8000-00000000a101")
-	idRole2 = uuid.MustParse("00000000-0000-7000-8000-00000000a102")
-	idRole6 = uuid.MustParse("00000000-0000-7000-8000-00000000a106")
-)
-
 func buildAlertRules() []types.AlertRule {
 	return []types.AlertRule{
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab001"), NodeID: contract.IDDept1, NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{idRole1}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab002"), NodeID: contract.IDDept2, NodeName: "技术部", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{idRole2}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab003"), NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{idRole2}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab004"), NodeID: contract.IDDept6, NodeName: "产品部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{idRole6}, Enabled: false},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab005"), NodeID: contract.IDDept4, NodeName: "前端组", Thresholds: []int{80, 90}, NotifyRoleIDs: []uuid.UUID{idRole2}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab006"), NodeID: contract.IDDept5, NodeName: "测试组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{idRole2}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab007"), NodeID: contract.IDDept7, NodeName: "市场部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{idRole6}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab008"), NodeID: contract.IDDept8, NodeName: "行政部", Thresholds: []int{100}, NotifyRoleIDs: []uuid.UUID{idRole1}, Enabled: false},
+		{ID: contract.IDAlertRule1, NodeID: contract.IDDept1, NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole1}, Enabled: true},
+		{ID: contract.IDAlertRule2, NodeID: contract.IDDept2, NodeName: "技术部", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
+		{ID: contract.IDAlertRule3, NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
+		{ID: contract.IDAlertRule4, NodeID: contract.IDDept6, NodeName: "产品部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole6}, Enabled: false},
+		{ID: contract.IDAlertRule5, NodeID: contract.IDDept4, NodeName: "前端组", Thresholds: []int{80, 90}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
+		{ID: contract.IDAlertRule6, NodeID: contract.IDDept5, NodeName: "测试组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
+		{ID: contract.IDAlertRule7, NodeID: contract.IDDept7, NodeName: "市场部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole6}, Enabled: true},
+		{ID: contract.IDAlertRule8, NodeID: contract.IDDept8, NodeName: "行政部", Thresholds: []int{100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole1}, Enabled: false},
 	}
 }
 
@@ -112,27 +97,27 @@ func buildBudgetApprovals() []types.BudgetApproval {
 	productMember := firstMemberInDepartment(contract.IDDept6)
 	return []types.BudgetApproval{
 		{
-			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a01"), ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
+			ID: contract.IDBudgetApproval1, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
 			Amount: 500, Reason: "本月额度用尽，需完成搜索优化任务",
 			Status: "pending", CreatedAt: "2026-06-28 14:30",
 		},
 		{
-			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a02"), ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
+			ID: contract.IDBudgetApproval2, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
 			Amount: 300, Reason: "RAG 管道调试需额外调用",
 			Status: "approved", CreatedAt: "2026-06-20 09:00", ResolvedAt: &resolved1,
 		},
 		{
-			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a03"), ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
+			ID: contract.IDBudgetApproval3, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
 			Amount: 200, Reason: "紧急修复线上搜索问题",
 			Status: "approved", CreatedAt: "2026-06-15 16:00", ResolvedAt: &resolved2,
 		},
 		{
-			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a04"), ApplicantID: idMember4, ApplicantName: "赵六", DepartmentName: "后端组",
+			ID: contract.IDBudgetAppr4, ApplicantID: contract.IDMember4, ApplicantName: "赵六", DepartmentName: "后端组",
 			Amount: 300, Reason: "调试 RAG 管道需额外调用",
 			Status: "pending", CreatedAt: "2026-06-29 09:15",
 		},
 		{
-			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a05"), ApplicantID: productMember.ID, ApplicantName: productMember.Name, DepartmentName: productMember.DepartmentName,
+			ID: contract.IDBudgetAppr5, ApplicantID: productMember.ID, ApplicantName: productMember.Name, DepartmentName: productMember.DepartmentName,
 			Amount: 200, Reason: "产品文档生成",
 			Status: "approved", CreatedAt: "2026-06-25 16:00", ResolvedAt: &resolved3,
 		},
@@ -145,5 +130,5 @@ func firstMemberInDepartment(departmentID uuid.UUID) types.Member {
 			return member
 		}
 	}
-	return types.Member{ID: uuid.MustParse("00000000-0000-7000-8000-000000000e45"), Name: "产品成员", DepartmentName: "产品部"}
+	return types.Member{ID: contract.IDMemberFallback, Name: "产品成员", DepartmentName: "产品部"}
 }

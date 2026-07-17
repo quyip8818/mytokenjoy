@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -27,7 +28,7 @@ func TestUpdateMemberMergeSemanticsPreservesUnchangedFields(t *testing.T) {
 			break
 		}
 	}
-	if original.ID == "" {
+	if original.ID == uuid.Nil {
 		t.Fatal("seed member1 not found")
 	}
 	// Sanity: member1 has roles, source, companyID set
@@ -37,12 +38,12 @@ func TestUpdateMemberMergeSemanticsPreservesUnchangedFields(t *testing.T) {
 	if original.Source == "" {
 		t.Fatal("expected seeded member to have source")
 	}
-	if original.CompanyID == 0 {
+	if original.CompanyID == uuid.Nil {
 		t.Fatal("expected seeded member to have companyID")
 	}
 
 	// Update only name and phone (partial update from frontend)
-	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.Member{
+	updated, err := svc.UpdateMember(ctx, contract.IDMember1.String(), types.Member{
 		Name:  "张三改名",
 		Phone: "13999999999",
 	})
@@ -82,7 +83,7 @@ func TestUpdateMemberRolesUpdatedWhenProvided(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	newRoles := []string{permission.RoleMember}
-	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.Member{
+	updated, err := svc.UpdateMember(ctx, contract.IDMember1.String(), types.Member{
 		Roles: newRoles,
 	})
 	if err != nil {

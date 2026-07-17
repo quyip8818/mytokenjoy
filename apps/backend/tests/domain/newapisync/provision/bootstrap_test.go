@@ -80,7 +80,7 @@ func TestBootstrapSyncsActiveSeedKey(t *testing.T) {
 		t.Fatalf("expected synced mapping for seed key, got %+v", mapping)
 	}
 	hash, ok, err := st.Keys().PlatformKeyHashByID(ctx, contract.IDPlatformKey1)
-	if err != nil || !ok || hash == store.HashPlatformKey("pending:"+contract.IDPlatformKey1) {
+	if err != nil || !ok || hash == store.HashPlatformKey("pending:"+contract.IDPlatformKey1.String()) {
 		t.Fatalf("expected non-pending key hash, ok=%v err=%v hash=%s", ok, err, hash)
 	}
 }
@@ -180,7 +180,7 @@ func TestReconcileMissingTokenRecreatesSync(t *testing.T) {
 		t.Fatalf("expected replaced newapi key id, got %v", mapping.NewAPIKeyID)
 	}
 	hash, ok, err := st.Keys().PlatformKeyHashByID(ctx, contract.IDPlatformKey1)
-	if err != nil || !ok || hash == store.HashPlatformKey("pending:"+contract.IDPlatformKey1) {
+	if err != nil || !ok || hash == store.HashPlatformKey("pending:"+contract.IDPlatformKey1.String()) {
 		t.Fatalf("expected non-pending key hash, ok=%v err=%v hash=%s", ok, err, hash)
 	}
 }

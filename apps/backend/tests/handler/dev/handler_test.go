@@ -10,7 +10,7 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
-const devBearerPath = "/api/dev/platform-keys/" + contract.IDPlatformKey1 + "/bearer"
+var devBearerPath = "/api/dev/platform-keys/" + contract.IDPlatformKey1.String() + "/bearer"
 
 func TestDevReadinessAvailableInLocal(t *testing.T) {
 	t.Parallel()

@@ -41,7 +41,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	if existingCount >= 3 {
 		_, err := svc.CreateMember(ctx, types.Member{
 			Name: "Over Limit", Phone: "13900009999", Email: "over@example.com",
-			DepartmentID: "dept-5",
+			DepartmentID: contract.IDDept5,
 		})
 		if err == nil {
 			t.Fatal("expected trial member limit error, got nil")
@@ -53,7 +53,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	for i := existingCount; i < 3; i++ {
 		_, err := svc.CreateMember(ctx, types.Member{
 			Name: "Fill", Phone: "", Email: "",
-			DepartmentID: "dept-5",
+			DepartmentID: contract.IDDept5,
 		})
 		if err != nil {
 			t.Fatalf("expected create to succeed (filling up), got %v", err)
@@ -63,7 +63,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	// Now the next one should fail
 	_, err = svc.CreateMember(ctx, types.Member{
 		Name: "Over Limit", Phone: "13900008888", Email: "overlimit@example.com",
-		DepartmentID: "dept-5",
+		DepartmentID: contract.IDDept5,
 	})
 	if err == nil {
 		t.Fatal("expected trial member limit error, got nil")
@@ -86,7 +86,7 @@ func TestTrialMemberLimitAllowsNonTrial(t *testing.T) {
 	// Should succeed even though limit is 1 and there are already members
 	_, err := svc.CreateMember(ctx, types.Member{
 		Name: "No Limit", Phone: "13900007777", Email: "nolimit@example.com",
-		DepartmentID: "dept-5",
+		DepartmentID: contract.IDDept5,
 	})
 	if err != nil {
 		t.Fatalf("non-trial should not be limited, got %v", err)

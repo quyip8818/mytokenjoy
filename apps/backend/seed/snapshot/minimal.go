@@ -28,7 +28,7 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		Company:        defaultCompany(cfg),
 		OrgIntegration: orgIntegration,
 		SyncLogs: []types.SyncLog{
-			{ID: uuid.MustParse("00000000-0000-7000-8000-0000000aa001"), Time: ref + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
+			{ID: contract.IDSyncLog1, Time: ref + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
 		},
 		ImportFailures:  nil,
 		OrgNodes:        buildMinimalOrgNodes(),
@@ -118,7 +118,7 @@ func minimalProjects() []types.Project {
 	return []types.Project{
 		{
 			ID: contract.IDProject1, Name: "AI 创新项目组", Budget: 30000, Consumed: 18500,
-			MemberIDs: []uuid.UUID{contract.IDMember1, uuid.MustParse("00000000-0000-7000-8000-000000000e06")}, OwnerDepartmentID: contract.IDDept3,
+			MemberIDs: []uuid.UUID{contract.IDMember1, contract.IDMember4}, OwnerDepartmentID: contract.IDDept3,
 		},
 	}
 }
@@ -126,7 +126,7 @@ func minimalProjects() []types.Project {
 func minimalBudgetApprovals() []types.BudgetApproval {
 	return []types.BudgetApproval{
 		{
-			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a01"), ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
+			ID: contract.IDBudgetApproval1, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
 			Amount: 500, Reason: "本月额度用尽，需完成搜索优化任务",
 			Status: "pending", CreatedAt: "2026-06-28 14:30",
 		},
@@ -135,7 +135,7 @@ func minimalBudgetApprovals() []types.BudgetApproval {
 
 func minimalAlertRules() []types.AlertRule {
 	return []types.AlertRule{
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab001"), NodeID: contract.IDDept1, NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-8000-00000000a101")}, Enabled: true},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab003"), NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-8000-00000000a102")}, Enabled: true},
+		{ID: contract.IDAlertRule1, NodeID: contract.IDDept1, NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole1}, Enabled: true},
+		{ID: contract.IDAlertRule3, NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
 	}
 }

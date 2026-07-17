@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
@@ -77,10 +78,12 @@ func TestOccurrenceSnapshotKey(t *testing.T) {
 func TestRootPeriodKey(t *testing.T) {
 	t.Parallel()
 	at := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
-	parent := "root"
+	rootID := uuid.MustParse("00000000-0000-7000-0000-00000000ff01")
+	childID := uuid.MustParse("00000000-0000-7000-0000-00000000ff02")
+	parentRef := rootID
 	nodes := []types.OrgNode{
-		{ID: "root", Period: budget.PeriodMonthly},
-		{ID: "child", ParentID: &parent, Period: "2026-06"},
+		{ID: rootID, Period: budget.PeriodMonthly},
+		{ID: childID, ParentID: &parentRef, Period: "2026-06"},
 	}
 	got := budget.RootPeriodKey(nodes, at)
 	if got != "2026-07" {

@@ -153,7 +153,7 @@ func TestOverrunProjectSendsNotification(t *testing.T) {
 		NewAPIKeyID:   &tokenID,
 		DepartmentID:  contract.IDDept3,
 		SyncStatus:    store.MappingSyncStatusSynced,
-		NewAPIGroup:   "group-" + groupID,
+		NewAPIGroup:   "group-" + groupID.String(),
 	}); err != nil {
 		t.Fatal(err)
 	}

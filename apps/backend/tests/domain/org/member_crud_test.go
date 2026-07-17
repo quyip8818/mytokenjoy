@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -18,16 +19,16 @@ func TestCreateMemberPersists(t *testing.T) {
 
 	member, err := svc.CreateMember(ctx, types.Member{
 		Name: "Phase0 User", Phone: "13900001111", Email: "phase0@example.com",
-		DepartmentID: "dept-5",
+		DepartmentID: contract.IDDept5,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if member.ID == "" {
+	if member.ID == uuid.Nil {
 		t.Fatal("expected member id")
 	}
 
-	page, err := svc.ListMembers(ctx, "dept-5", "", true, 1, 200)
+	page, err := svc.ListMembers(ctx, contract.IDDept5.String(), "", true, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +49,7 @@ func TestCreateMemberUnknownDepartment404(t *testing.T) {
 	svc := newTestOrgService(t)
 	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
 		Name: "Ghost", Phone: "13900002222", Email: "ghost@example.com",
-		DepartmentID: "missing-dept",
+		DepartmentID: uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"),
 	})
 	asDomainError(t, err)
 }
@@ -57,7 +58,7 @@ func TestDeleteMembersRejectsSelf(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
-	err := svc.DeleteMembers(ctx, []string{contract.IDMember1}, contract.IDMember1)
+	err := svc.DeleteMembers(ctx, []string{contract.IDMember1.String()}, contract.IDMember1.String())
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", de.Status)
@@ -70,7 +71,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.DeleteMembers(testutil.Ctx(), []string{contract.IDMember1}, ""); err != nil {
+	if err := svc.DeleteMembers(testutil.Ctx(), []string{contract.IDMember1.String()}, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -101,7 +102,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{contract.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{contract.IDMember1.String()}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -120,11 +121,11 @@ func TestListMembersDirectOnly(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	allPage, err := svc.ListMembers(ctx, "dept-2", "", false, 1, 200)
+	allPage, err := svc.ListMembers(ctx, contract.IDDept2.String(), "", false, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
-	directPage, err := svc.ListMembers(ctx, "dept-2", "", true, 1, 200)
+	directPage, err := svc.ListMembers(ctx, contract.IDDept2.String(), "", true, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}

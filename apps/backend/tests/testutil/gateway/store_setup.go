@@ -5,6 +5,7 @@ package gatewayfix
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -18,10 +19,10 @@ import (
 const defaultGatewayFullKey = "sk-test-gateway-key"
 
 func normalizeGatewayOpts(opts GatewayScenarioOpts) GatewayScenarioOpts {
-	if opts.CompanyID == 0 {
+	if opts.CompanyID == uuid.Nil {
 		opts.CompanyID = contract.DefaultCompanyID
 	}
-	if opts.DepartmentID == "" {
+	if opts.DepartmentID == uuid.Nil {
 		opts.DepartmentID = contract.IDDept3
 	}
 	if opts.NewAPIWalletUserID == 0 {
@@ -72,8 +73,8 @@ func applyGatewayBudgetState(t *testing.T, cfg config.Config, st store.Store, op
 
 type gatewayKeySetup struct {
 	fullKey       string
-	platformKeyID string
-	memberID      string
+	platformKeyID uuid.UUID
+	memberID      uuid.UUID
 }
 
 func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOpts) gatewayKeySetup {
@@ -101,7 +102,7 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 	if len(keys) == 0 {
 		m := memberID
 		keys = []types.PlatformKey{{
-			ID:        "plk-gateway-test",
+			ID:        uuid.MustParse("00000000-0000-7000-0000-00000000f099"),
 			Name:      "Gateway Test Key",
 			KeyPrefix: "sk-test",
 			Scope:     types.PlatformKeyScopeMember,
@@ -152,7 +153,7 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 		CompanyID:     opts.CompanyID,
 		PlatformKeyID: setup.platformKeyID,
 		NewAPIKeyID:   &tokenID,
-		MemberID:      testutil.StrPtr(memberID),
+		MemberID:      &memberID,
 		DepartmentID:  opts.DepartmentID,
 		SyncStatus:    store.MappingSyncStatusSynced,
 		NewAPIGroup:   newapiunits.NewAPIGroupForDepartment(opts.DepartmentID),

@@ -4,11 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/audit"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -18,7 +20,7 @@ func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := audit.NewService(cfg, st, reader)
 
-	const targetCompanyID int64 = 3
+	targetCompanyID := uuid.MustParse("00000000-0000-7000-0000-000000000003")
 	const action = "platform.company.recharge"
 
 	if err := st.Company().Create(context.Background(), store.Company{
@@ -26,7 +28,7 @@ func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := company.AppendPlatformOperationLog(context.Background(), st, targetCompanyID, action, "op-1", "company:3", "amount=10"); err != nil {
+	if err := company.AppendPlatformOperationLog(context.Background(), st, targetCompanyID, action, uuid.MustParse("00000000-0000-7000-0000-0000000000a1"), "company:3", "amount=10"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -39,12 +41,12 @@ func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 		t.Fatal("expected operation log under target company")
 	}
 
-	otherCtx := company.DefaultContext(1)
+	otherCtx := company.DefaultContext(contract.DefaultCompanyID)
 	other, err := svc.ListOperations(otherCtx, types.AuditOperationsQueryParams{Page: 1, PageSize: 100, Action: action})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if other.Total != 0 {
-		t.Fatalf("expected no platform recharge logs in company 1, got %d", other.Total)
+		t.Fatalf("expected no platform recharge logs in default company, got %d", other.Total)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 )
 
@@ -20,9 +21,9 @@ func TestReconcileWindowStart(t *testing.T) {
 func TestCollectPeriodKeys(t *testing.T) {
 	t.Parallel()
 	expected := map[budget.AxisKey]float64{
-		{Kind: "platform_key", AxisID: "pk-1", PeriodKey: "2026-07"}: 100,
-		{Kind: "member", AxisID: "m-1", PeriodKey: "2026-07"}:        50,
-		{Kind: "platform_key", AxisID: "pk-2", PeriodKey: "2026-06"}: 200,
+		{Kind: "platform_key", AxisID: uuid.MustParse("00000000-0000-7000-0000-000000000f01"), PeriodKey: "2026-07"}: 100,
+		{Kind: "member", AxisID: uuid.MustParse("00000000-0000-7000-0000-000000000e01"), PeriodKey: "2026-07"}:       50,
+		{Kind: "platform_key", AxisID: uuid.MustParse("00000000-0000-7000-0000-000000000f02"), PeriodKey: "2026-06"}: 200,
 	}
 	keys := budget.CollectPeriodKeys(expected)
 	if len(keys) != 2 {
@@ -42,19 +43,19 @@ func TestCollectPeriodKeys(t *testing.T) {
 
 func TestSortedKeys(t *testing.T) {
 	t.Parallel()
-	m := map[string]struct{}{
-		"charlie": {},
-		"alpha":   {},
-		"bravo":   {},
+	m := map[uuid.UUID]struct{}{
+		uuid.MustParse("00000000-0000-7000-0000-000000000c01"): {},
+		uuid.MustParse("00000000-0000-7000-0000-000000000a01"): {},
+		uuid.MustParse("00000000-0000-7000-0000-000000000b01"): {},
 	}
 	got := budget.SortedKeys(m)
-	want := []string{"alpha", "bravo", "charlie"}
-	if len(got) != len(want) {
-		t.Fatalf("len = %d, want %d", len(got), len(want))
+	if len(got) != 3 {
+		t.Fatalf("len = %d, want 3", len(got))
 	}
-	for i, v := range got {
-		if v != want[i] {
-			t.Errorf("got[%d] = %q, want %q", i, v, want[i])
+	// Verify sorted by string representation
+	for i := 1; i < len(got); i++ {
+		if got[i-1].String() >= got[i].String() {
+			t.Errorf("not sorted: got[%d]=%s >= got[%d]=%s", i-1, got[i-1], i, got[i])
 		}
 	}
 }

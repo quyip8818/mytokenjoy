@@ -20,7 +20,7 @@ func TestGetReservedPoolForMember(t *testing.T) {
 	if got := budget.GetReservedPoolForMember(tree, members, contract.IDMember1); got != budgetfix.DisplayPoints(1500) {
 		t.Fatalf("expected m-1 reserved pool %v, got %v", budgetfix.DisplayPoints(1500), got)
 	}
-	if got := budget.GetReservedPoolForMember(tree, members, "m-5"); got != 0 {
+	if got := budget.GetReservedPoolForMember(tree, members, contract.IDMember5); got != 0 {
 		t.Fatalf("expected m-5 reserved pool 0 (dept-4 has none), got %v", got)
 	}
 }

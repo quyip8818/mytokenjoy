@@ -62,7 +62,9 @@ func (noopCombinedKeyCache) Get(context.Context, uuid.UUID, string) (CombinedKey
 	return CombinedKeyEntry{}, false, nil
 }
 
-func (noopCombinedKeyCache) Set(context.Context, uuid.UUID, string, CombinedKeyEntry) error { return nil }
+func (noopCombinedKeyCache) Set(context.Context, uuid.UUID, string, CombinedKeyEntry) error {
+	return nil
+}
 
 // NoopCombinedKeyCache is the default when Redis is unavailable or disabled.
 var NoopCombinedKeyCache CombinedKeyCache = noopCombinedKeyCache{}

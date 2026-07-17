@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -141,7 +142,7 @@ func TestRetryImportFiltersByFailureIDs(t *testing.T) {
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	if err := env.Store.Org().SetImportFailures(ctx, []types.ImportFailure{
-		{ID: "fail-1", Name: "Retry Me", EmployeeID: "ou-retry", Reason: "network"},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000cc01"), Name: "Retry Me", EmployeeID: "ou-retry", Reason: "network"},
 	}); err != nil {
 		t.Fatal(err)
 	}

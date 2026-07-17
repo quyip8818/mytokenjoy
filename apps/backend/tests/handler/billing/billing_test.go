@@ -86,7 +86,7 @@ func TestBillingSelfRechargeConfirmFlow(t *testing.T) {
 		t.Fatalf("confirm: expected success, got %d body=%s", rec.Code, rec.Body.String())
 	}
 
-	stored, err := app.Store.Billing().GetRechargeOrder(testutil.CtxForCompany(provisioned.Company.ID), order.ID)
+	stored, err := app.Store.Billing().GetRechargeOrder(testutil.CtxForCompany(provisioned.Company.ID), order.ID.String())
 	if err != nil {
 		t.Fatal(err)
 	}

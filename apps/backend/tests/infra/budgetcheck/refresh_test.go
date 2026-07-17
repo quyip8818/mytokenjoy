@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -15,20 +16,20 @@ type recordingCache struct {
 
 func (r *recordingCache) Enabled() bool { return true }
 
-func (r *recordingCache) Get(context.Context, int64, string) (domainbudget.CombinedKeyEntry, bool, error) {
+func (r *recordingCache) Get(_ context.Context, _ uuid.UUID, _ string) (domainbudget.CombinedKeyEntry, bool, error) {
 	return domainbudget.CombinedKeyEntry{}, false, nil
 }
 
-func (r *recordingCache) Set(context.Context, int64, string, domainbudget.CombinedKeyEntry) error {
+func (r *recordingCache) Set(_ context.Context, _ uuid.UUID, _ string, _ domainbudget.CombinedKeyEntry) error {
 	r.sets++
 	return nil
 }
 
 func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 	cache := &recordingCache{}
-	domainbudget.RefreshCombinedKeySummaries(context.Background(), cache, nil, 1, []store.CombinedKeySummary{
+	domainbudget.RefreshCombinedKeySummaries(context.Background(), cache, nil, uuid.MustParse("00000000-0000-7000-0000-000000000001"), []store.CombinedKeySummary{
 		{
-			PlatformKeyID: "pk-1",
+			PlatformKeyID: uuid.MustParse("00000000-0000-7000-0000-00000000f001"),
 			KeyHash:       "hash-1",
 			Remain:        12.5,
 			UpdatedAt:     time.Unix(1, 0).UTC(),

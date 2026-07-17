@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
@@ -49,16 +50,16 @@ type recordingBudgetEnqueuer struct {
 	overruns   int
 }
 
-func (r *recordingBudgetEnqueuer) InsertOverrun(ctx context.Context, companyID int64, payload []byte) error {
+func (r *recordingBudgetEnqueuer) InsertOverrun(ctx context.Context, companyID uuid.UUID, payload []byte) error {
 	r.overruns++
 	return r.inner.InsertOverrun(ctx, companyID, payload)
 }
 
-func (r *recordingBudgetEnqueuer) InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error {
+func (r *recordingBudgetEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error {
 	r.rebalances++
 	return r.inner.InsertRebalance(ctx, companyID, axisKind, axisID)
 }
 
-func (r *recordingBudgetEnqueuer) InsertBudgetReconcile(ctx context.Context, companyID int64) error {
+func (r *recordingBudgetEnqueuer) InsertBudgetReconcile(ctx context.Context, companyID uuid.UUID) error {
 	return r.inner.InsertBudgetReconcile(ctx, companyID)
 }

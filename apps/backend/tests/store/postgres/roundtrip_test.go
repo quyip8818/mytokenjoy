@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
+
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -49,7 +51,7 @@ func TestKeysRoundTrip(t *testing.T) {
 	ctx := testutil.Ctx()
 	keys := []types.ProviderKey{
 		{
-			ID:        "pk-roundtrip",
+			ID:        uuid.MustParse("00000000-0000-7000-0000-00000000ff77"),
 			Provider:  "openai",
 			Name:      "RoundTrip Key",
 			KeyPrefix: "sk-rt",
@@ -67,7 +69,7 @@ func TestKeysRoundTrip(t *testing.T) {
 	}
 	found := false
 	for _, key := range got {
-		if key.ID == "pk-roundtrip" {
+		if key.ID == uuid.MustParse("00000000-0000-7000-0000-00000000ff77") {
 			found = true
 			if key.Name != "RoundTrip Key" || key.Provider != "openai" || key.SecretKey != "secret" {
 				t.Fatalf("unexpected key: %+v", key)
@@ -96,7 +98,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defaultModelID := inserted.ModelID
+	defaultModelID := inserted.ID
 	fallbackModelID := contract.IDModel1
 	rules := []types.RoutingRule{
 		{
@@ -105,7 +107,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 			NodeName:        "后端组",
 			DefaultModelID:  &defaultModelID,
 			FallbackModelID: &fallbackModelID,
-			AllowedModelIDs: []int64{inserted.ModelID, contract.IDModel1},
+			AllowedModelIDs: []uuid.UUID{inserted.ID, contract.IDModel1},
 			Inherited:       false,
 		},
 	}
@@ -154,7 +156,7 @@ func TestModelAllowlistReplaceRejectsUnknownModel(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, contract.IDDept3, []int64{999999})
+	err := st.Models().Allowlist().Replace(ctx, types.AllowlistOwnerOrgNode, contract.IDDept3, []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-0000000f4240")})
 	if err == nil {
 		t.Fatal("expected error for unknown model")
 	}

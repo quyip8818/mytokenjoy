@@ -3,6 +3,7 @@ package billing_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/seed/runtime"
 )
 
@@ -38,13 +39,13 @@ func TestListRechargeRecordsMapsPendingStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, record := range records {
-		if record.ID == "tu-4" {
+		if record.ID == uuid.MustParse("00000000-0000-7000-8000-000000000004") {
 			if record.Status != "pending" || record.PaidAmount != 0 {
 				t.Fatalf("expected pending unpaid record, got %+v", record)
 			}
 			return
 		}
-		if record.ID == "tu-1" && record.Status != "confirmed" {
+		if record.ID == uuid.MustParse("00000000-0000-7000-8000-000000000001") && record.Status != "confirmed" {
 			t.Fatalf("expected confirmed status, got %+v", record)
 		}
 	}

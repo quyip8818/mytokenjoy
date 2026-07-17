@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -19,7 +20,7 @@ import (
 func TestApprovalBudgetCheckInsufficient(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	check, err := svc.ApprovalBudgetCheck(testutil.Ctx(), contract.IDApproval1)
+	check, err := svc.ApprovalBudgetCheck(testutil.Ctx(), contract.IDApproval1.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,12 +37,12 @@ func TestApprovalBudgetCheckSufficient(t *testing.T) {
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "budget", Reason: "test", RequestedBudget: 1000,
-		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
+		RequestedModels: []uuid.UUID{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	check, err := svc.ApprovalBudgetCheck(testutil.Ctx(), created.ID)
+	check, err := svc.ApprovalBudgetCheck(testutil.Ctx(), created.ID.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +65,7 @@ func TestApproveKeySyncFailureRevertsApproval(t *testing.T) {
 	}
 	before := len(keysBefore)
 
-	err = svc.ApproveApproval(ctx, contract.IDApproval1, contract.IDMemberAdmin)
+	err = svc.ApproveApproval(ctx, contract.IDApproval1.String(), contract.IDMemberAdmin.String())
 	if err == nil {
 		t.Fatal("expected approve to fail when newapi create fails")
 	}
@@ -91,7 +92,7 @@ func TestApproveKeyTypeCreatesPlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := len(keysBefore)
-	if err := svc.ApproveApproval(testutil.Ctx(), contract.IDApproval1, contract.IDMemberAdmin); err != nil {
+	if err := svc.ApproveApproval(testutil.Ctx(), contract.IDApproval1.String(), contract.IDMemberAdmin.String()); err != nil {
 		t.Fatal(err)
 	}
 	approval := findApproval(st, contract.IDApproval1)
@@ -112,7 +113,7 @@ func TestApproveQuotaTypeAddsPersonalBudget(t *testing.T) {
 	svc, st := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "budget", Reason: "need more", RequestedBudget: 1000,
-		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
+		RequestedModels: []uuid.UUID{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +123,7 @@ func TestApproveQuotaTypeAddsPersonalBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := budget.GetPersonalBudget(membersBefore, contract.IDMember1)
-	if err := svc.ApproveApproval(testutil.Ctx(), created.ID, contract.IDMemberAdmin); err != nil {
+	if err := svc.ApproveApproval(testutil.Ctx(), created.ID.String(), contract.IDMemberAdmin.String()); err != nil {
 		t.Fatal(err)
 	}
 	membersAfter, err := st.Org().Members(testutil.Ctx())
@@ -140,12 +141,12 @@ func TestApproveInsufficientReserved(t *testing.T) {
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "budget", Reason: "too much", RequestedBudget: 2_000_000,
-		RequestedModels: []int64{contract.IDModel1}, MemberID: contract.IDMember1,
+		RequestedModels: []uuid.UUID{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = svc.ApproveApproval(testutil.Ctx(), created.ID, contract.IDMemberAdmin)
+	err = svc.ApproveApproval(testutil.Ctx(), created.ID.String(), contract.IDMemberAdmin.String())
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -153,7 +154,7 @@ func TestRejectApproval(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	reason := "not needed"
-	if err := svc.RejectApproval(testutil.Ctx(), contract.IDApproval2, contract.IDMemberAdmin, &reason); err != nil {
+	if err := svc.RejectApproval(testutil.Ctx(), contract.IDApproval2.String(), contract.IDMemberAdmin.String(), &reason); err != nil {
 		t.Fatal(err)
 	}
 	approval := findApproval(st, contract.IDApproval2)
@@ -168,7 +169,7 @@ func TestCreatePlatformKeyRequiresNewAPI(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 1000,
-		ModelWhitelist: []int64{contract.IDModel1},
+		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
 }
@@ -179,7 +180,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 1000,
-		ModelWhitelist: []int64{contract.IDModel1},
+		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +200,7 @@ func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "too-big", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 20_000_000,
-		ModelWhitelist: []int64{contract.IDModel1},
+		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -210,7 +211,7 @@ func TestCreatePlatformKeyInvalidWhitelist(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "bad-models", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 1000,
-		ModelWhitelist: []int64{999999},
+		ModelWhitelist: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-0000000f4240")},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -220,7 +221,7 @@ func TestCreateApprovalInvalidModels(t *testing.T) {
 	svc, _ := newKeysService(t)
 	_, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
 		Type: "budget", Reason: "bad models", RequestedBudget: 1000,
-		RequestedModels: []int64{999999}, MemberID: contract.IDMember1,
+		RequestedModels: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-0000000f4240")}, MemberID: contract.IDMember1,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -232,7 +233,7 @@ func TestCreateProjectKeyQuotaExceeded(t *testing.T) {
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "group-over", Scope: types.PlatformKeyScopeProject, ProjectID: &groupID, MemberID: &memberID, Budget: 20_000_000,
-		ModelWhitelist: []int64{contract.IDModel1},
+		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
@@ -241,7 +242,7 @@ func TestUpdatePlatformKeyQuota(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	quota := 20_000_000.0
-	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
+	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1.String(), types.UpdatePlatformKeyInput{
 		Budget: &quota,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -253,7 +254,7 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	budgetfix.SetProjectSnapshotConsumed(t, st, contract.IDProject1, 0)
 	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
-		PlatformKeyID: "plk-bg-1",
+		PlatformKeyID: uuid.MustParse("00000000-0000-7000-0000-00000000b901"),
 		NewAPIKeyID:   88,
 	})
 
@@ -266,7 +267,7 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 		{name: "allows within member sub cap", budget: budgetfix.DisplayPoints(5500)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			updated, err := svc.UpdatePlatformKey(ctx, "plk-bg-1", types.UpdatePlatformKeyInput{Budget: &tc.budget})
+			updated, err := svc.UpdatePlatformKey(ctx, "00000000-0000-7000-0000-00000000b901", types.UpdatePlatformKeyInput{Budget: &tc.budget})
 			if tc.wantErr != 0 {
 				testutil.AssertDomainStatus(t, err, tc.wantErr)
 				return
@@ -288,7 +289,7 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	versionBefore := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1)
 	newBudget := budgetfix.DisplayPoints(4000)
-	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
+	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1.String(), types.UpdatePlatformKeyInput{
 		Budget: &newBudget,
 	}); err != nil {
 		t.Fatal(err)
@@ -305,7 +306,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 500,
-		ModelWhitelist: []int64{contract.IDModel1},
+		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -315,7 +316,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := beforeSummary.Remaining
-	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID); err != nil {
+	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID.String()); err != nil {
 		t.Fatal(err)
 	}
 	afterSummary, err := svc.BudgetSummary(testutil.Ctx(), memberID)
@@ -332,7 +333,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 func TestRejectApprovalNotFound(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", contract.IDMemberAdmin, nil)
+	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", contract.IDMemberAdmin.String(), nil)
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
@@ -348,7 +349,7 @@ func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 1000)
-	budgetfix.SetPlatformKeySnapshotConsumed(t, st, "plk-1b", 234.5)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, uuid.MustParse("00000000-0000-7000-0000-00000000f01b"), 234.5)
 	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)
@@ -370,7 +371,7 @@ func TestRevokePlatformKey(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
+	if err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1.String()); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -397,7 +398,7 @@ func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
 	if !created.RotateEnabled {
 		t.Fatal("expected newly created provider keys to allow rotation")
 	}
-	rotated, err := svc.RotateProviderKey(ctx, created.ID, "sk-rotated-new-key")
+	rotated, err := svc.RotateProviderKey(ctx, created.ID.String(), "sk-rotated-new-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,7 +419,7 @@ func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
 			break
 		}
 	}
-	_, err = svc.RotateProviderKey(ctx, created.ID, "sk-should-fail")
+	_, err = svc.RotateProviderKey(ctx, created.ID.String(), "sk-should-fail")
 	if err == nil {
 		t.Fatal("expected rotate to fail when rotateEnabled=false")
 	}

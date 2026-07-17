@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -92,7 +93,7 @@ func TestAddRoleMember(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(ctx, role.ID, "m-3"); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID.String(), "m-3"); err != nil {
 		t.Fatal(err)
 	}
 	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
@@ -100,7 +101,7 @@ func TestAddRoleMember(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, m := range page.Items {
-		if m.ID != "m-3" {
+		if m.ID != contract.IDMember3 {
 			continue
 		}
 		found := false
@@ -126,10 +127,10 @@ func TestRemoveRoleMemberSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(ctx, role.ID, "m-3"); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID.String(), "m-3"); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RemoveRoleMember(ctx, role.ID, "m-3"); err != nil {
+	if err := svc.RemoveRoleMember(ctx, role.ID.String(), "m-3"); err != nil {
 		t.Fatal(err)
 	}
 	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
@@ -137,7 +138,7 @@ func TestRemoveRoleMemberSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, m := range page.Items {
-		if m.ID != "m-3" {
+		if m.ID != contract.IDMember3 {
 			continue
 		}
 		for _, r := range m.Roles {

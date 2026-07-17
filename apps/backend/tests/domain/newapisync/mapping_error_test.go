@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/platformkey"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
@@ -22,7 +23,7 @@ type errMappings struct {
 	err error
 }
 
-func (e errMappings) GetMappingByPlatformKeyID(context.Context, string) (*store.PlatformKeyMapping, error) {
+func (e errMappings) GetMappingByPlatformKeyID(context.Context, uuid.UUID) (*store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
 func (e errMappings) GetMappingByKeyHash(context.Context, string) (*store.PlatformKeyMapping, error) {
@@ -34,23 +35,23 @@ func (e errMappings) FindMappingByNewAPIKeyID(context.Context, int64) (*store.Pl
 func (e errMappings) ListMappingsByNewAPIKeyIDs(context.Context, []int64) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
-func (e errMappings) ListMappingsByMemberID(context.Context, string) ([]store.PlatformKeyMapping, error) {
+func (e errMappings) ListMappingsByMemberID(context.Context, uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
-func (e errMappings) ListMappingsByDepartmentID(context.Context, string) ([]store.PlatformKeyMapping, error) {
+func (e errMappings) ListMappingsByDepartmentID(context.Context, uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
-func (e errMappings) ListMappingsByProjectID(context.Context, string) ([]store.PlatformKeyMapping, error) {
+func (e errMappings) ListMappingsByProjectID(context.Context, uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
-func (e errMappings) ListMappingsByPlatformKeyIDs(context.Context, []string) ([]store.PlatformKeyMapping, error) {
+func (e errMappings) ListMappingsByPlatformKeyIDs(context.Context, []uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
-func (e errMappings) ListActiveMappingsByCompany(context.Context, int64) ([]store.PlatformKeyMapping, error) {
+func (e errMappings) ListActiveMappingsByCompany(context.Context, uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	return nil, e.err
 }
 func (e errMappings) UpsertMapping(context.Context, store.PlatformKeyMapping) error { return e.err }
-func (e errMappings) UpdateMappingSync(context.Context, string, int64, string, time.Time) error {
+func (e errMappings) UpdateMappingSync(context.Context, uuid.UUID, int64, string, time.Time) error {
 	return e.err
 }
 
@@ -64,7 +65,7 @@ func TestDisablePlatformKey_MappingLookupError(t *testing.T) {
 		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
 		Mappings: errMappings{err: want},
 	}
-	err := platformkey.DisablePlatformKey(testutil.Ctx(), d, "pk-x")
+	err := platformkey.DisablePlatformKey(testutil.Ctx(), d, uuid.MustParse("00000000-0000-7000-0000-00000000bb01"))
 	if !errors.Is(err, want) {
 		t.Fatalf("expected mapping error, got %v", err)
 	}
@@ -78,7 +79,7 @@ func TestSyncRevokePlatformKey_MappingLookupError(t *testing.T) {
 		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
 		Mappings: errMappings{err: want},
 	}
-	err := platformkey.SyncRevokePlatformKey(context.Background(), d, "pk-x")
+	err := platformkey.SyncRevokePlatformKey(context.Background(), d, uuid.MustParse("00000000-0000-7000-0000-00000000bb01"))
 	if !errors.Is(err, want) {
 		t.Fatalf("expected mapping error, got %v", err)
 	}
@@ -91,7 +92,7 @@ func TestSyncRevokePlatformKey_MissingMappingNoop(t *testing.T) {
 		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
 		Mappings: errMappings{err: nil},
 	}
-	if err := platformkey.SyncRevokePlatformKey(context.Background(), d, "pk-never-synced"); err != nil {
+	if err := platformkey.SyncRevokePlatformKey(context.Background(), d, uuid.MustParse("00000000-0000-7000-0000-00000000bb02")); err != nil {
 		t.Fatalf("expected noop, got %v", err)
 	}
 }

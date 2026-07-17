@@ -5,6 +5,7 @@ package newapisync
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -16,10 +17,10 @@ import (
 // over budget.
 func PrepareIngestFixture(t *testing.T, st store.Store, opts MappingOpts, amount ...float64) {
 	t.Helper()
-	if opts.PlatformKeyID == "" {
+	if opts.PlatformKeyID == uuid.Nil {
 		opts = DefaultMappingOpts()
 	}
-	if opts.DepartmentID == "" {
+	if opts.DepartmentID == uuid.Nil {
 		opts.DepartmentID = contract.IDDept3
 	}
 
@@ -37,7 +38,7 @@ func PrepareIngestFixture(t *testing.T, st store.Store, opts MappingOpts, amount
 	}
 	if !opts.NoMember {
 		fixture.MemberID = opts.MemberID
-		if fixture.MemberID == "" {
+		if fixture.MemberID == uuid.Nil {
 			fixture.MemberID = contract.IDMember1
 		}
 	}

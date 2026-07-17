@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
@@ -31,7 +30,7 @@ func TestRoutingUpdateHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(rule.AllowedModelIDs) != 1 || rule.AllowedModelIDs[0] != contract.IDModel1 {
-		t.Fatalf("expected allowedModelIds [%d], got %v", contract.IDModel1, rule.AllowedModelIDs)
+		t.Fatalf("expected allowedModelIds [%s], got %v", contract.IDModel1, rule.AllowedModelIDs)
 	}
 	if len(rule.AllowedModels) != 1 || rule.AllowedModels[0].Type != "gpt-4o" {
 		t.Fatalf("expected enriched gpt-4o, got %v", rule.AllowedModels)
@@ -109,7 +108,7 @@ func TestModelUpdateHTTP(t *testing.T) {
 	}
 
 	updateBody := []byte(`{"name":"Edited","description":"test desc","endpoint":"http://llm.new"}`)
-	updateReq := httptest.NewRequest(http.MethodPut, "/api/models/"+strconv.FormatInt(created.ModelID, 10), bytes.NewReader(updateBody))
+	updateReq := httptest.NewRequest(http.MethodPut, "/api/models/"+created.ID.String(), bytes.NewReader(updateBody))
 	updateReq.Header.Set("Content-Type", "application/json")
 	updateReq.Header.Set("Cookie", testhttp.AdminCookie(t))
 	updateRec := httptest.NewRecorder()
@@ -147,7 +146,7 @@ func TestModelToggleHTTP(t *testing.T) {
 	}
 
 	body := []byte(`{"enabled":false}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/models/"+strconv.FormatInt(created.ModelID, 10)+"/toggle", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/models/"+created.ID.String()+"/toggle", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

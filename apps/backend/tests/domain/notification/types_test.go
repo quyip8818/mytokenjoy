@@ -3,6 +3,7 @@ package notification_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/notification"
 )
 
@@ -41,7 +42,7 @@ func TestUserPreferencesIsChannelEnabled(t *testing.T) {
 	t.Parallel()
 
 	prefs := notification.UserPreferences{
-		UserID: "u1",
+		UserID: uuid.MustParse("00000000-0000-7000-0000-000000000001"),
 		Preferences: []notification.PreferenceEntry{
 			{Category: notification.CategoryBudgetAlert, Channel: notification.ChannelEmail, Enabled: false},
 			{Category: notification.CategoryBudgetAlert, Channel: notification.ChannelInApp, Enabled: true},
@@ -69,7 +70,7 @@ func TestUserPreferencesGlobalMute(t *testing.T) {
 	t.Parallel()
 
 	prefs := notification.UserPreferences{
-		UserID:     "u1",
+		UserID:     uuid.MustParse("00000000-0000-7000-0000-000000000001"),
 		GlobalMute: true,
 	}
 

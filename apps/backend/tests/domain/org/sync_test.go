@@ -2,9 +2,9 @@ package org_test
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain"
@@ -26,7 +26,7 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 		t.Fatal(err)
 	}
 	members = append(members, types.Member{
-		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
+		ID: uuid.MustParse("00000000-0000-7000-8000-00000000ee99"), Name: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &importedExternalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -100,7 +100,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		t.Fatal(err)
 	}
 	members = append(members, types.Member{
-		ID: "m-feishu-ou-gone", Name: "Gone User", DepartmentID: contract.IDDept3,
+		ID: uuid.MustParse("00000000-0000-7000-8000-00000000ee99"), Name: "Gone User", DepartmentID: contract.IDDept3,
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &externalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -129,7 +129,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, member := range members {
-		if member.ID == "m-feishu-ou-gone" && member.Status != "inactive" {
+		if member.ID == uuid.MustParse("00000000-0000-7000-8000-00000000ee99") && member.Status != "inactive" {
 			t.Fatalf("expected soft-deleted member, got status %s", member.Status)
 		}
 	}
@@ -201,7 +201,7 @@ func TestListSyncLogsPagination(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		if err := st.Org().AppendSyncLog(ctx, types.SyncLog{
-			ID: fmt.Sprintf("log-%d", i), Time: "2026-06-01 10:00",
+			ID: uuid.Must(uuid.NewV7()), Time: "2026-06-01 10:00",
 			Type: types.SyncTypeManual, Result: types.SyncResultSuccess, Detail: "ok",
 		}); err != nil {
 			t.Fatal(err)

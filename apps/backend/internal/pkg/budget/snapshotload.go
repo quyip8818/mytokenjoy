@@ -205,4 +205,3 @@ func LoadProjectsWithConsumed(
 	}
 	return projects, nil
 }
-

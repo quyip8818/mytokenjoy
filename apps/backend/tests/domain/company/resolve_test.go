@@ -3,6 +3,7 @@ package company_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/permission"
@@ -48,7 +49,7 @@ func TestResolveCompanyContext_MissingIsNotFound(t *testing.T) {
 	svc := domaincompany.NewService(cfg, st, newapi.NewAdminPortAdapter(&mock.StubAdminClient{}), permission.NewGrantNormalizer())
 	ctx := testutil.Ctx()
 
-	_, err := svc.ResolveCompanyContext(ctx, 999_999_999)
+	_, err := svc.ResolveCompanyContext(ctx, uuid.MustParse("00000000-0000-7000-0000-3b9ac9ff0000"))
 	if err == nil {
 		t.Fatal("expected error")
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/seed/contract"
@@ -46,7 +47,7 @@ func TestTamperedJWTRejected(t *testing.T) {
 func TestJWTCompanyMismatchRejected(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	cookie := testutil.SessionCookieForCompany(t, 999, contract.IDMemberAdmin)
+	cookie := testutil.SessionCookieForCompany(t, uuid.MustParse("00000000-0000-7000-0000-000000000999"), contract.IDMemberAdmin)
 	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", cookie, "", nil)
 	if rec.Code != http.StatusUnauthorized && rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 401 or 400, got %d body=%s", rec.Code, rec.Body.String())
@@ -73,7 +74,7 @@ func TestDisabledMemberSessionRejected(t *testing.T) {
 	disableRec := testhttp.ServeAuthz(
 		t, router, http.MethodPut, "/api/org/members/status",
 		testhttp.AdminCookie(t),
-		`{"ids":["`+contract.IDMemberPure+`"],"status":"inactive"}`,
+		`{"ids":["`+contract.IDMemberPure.String()+`"],"status":"inactive"}`,
 		nil,
 	)
 	if disableRec.Code != http.StatusNoContent && disableRec.Code != http.StatusOK {
@@ -105,7 +106,7 @@ func TestDashboardCostWithoutUsagePermission(t *testing.T) {
 	}
 	addRec := testhttp.ServeAuthz(
 		t, router, http.MethodPost, "/api/org/roles/"+role.ID+"/members", admin,
-		`{"memberId":"`+contract.IDMemberPure+`"}`,
+		`{"memberId":"`+contract.IDMemberPure.String()+`"}`,
 		nil,
 	)
 	if addRec.Code != http.StatusOK && addRec.Code != http.StatusNoContent {
@@ -131,7 +132,7 @@ func TestSelfApprovalWithoutKeysAdminRead(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	memberCookie := testutil.SessionCookie(t, contract.IDMemberPure)
-	approvalBody := `{"type":"budget","reason":"need more","requestedBudget":500,"memberId":"` + contract.IDMemberPure + `"}`
+	approvalBody := `{"type":"budget","reason":"need more","requestedBudget":500,"memberId":"` + contract.IDMemberPure.String() + `"}`
 	createRec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/keys/approvals", memberCookie, approvalBody, nil)
 	if createRec.Code != http.StatusOK {
 		t.Fatalf("expected approval create 200, got %d body=%s", createRec.Code, createRec.Body.String())

@@ -3,25 +3,30 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
 func TestIndexMembersByRole(t *testing.T) {
 	t.Parallel()
+	m1 := uuid.MustParse("00000000-0000-7000-0000-000000000001")
+	m2 := uuid.MustParse("00000000-0000-7000-0000-000000000002")
+	m3 := uuid.MustParse("00000000-0000-7000-0000-000000000003")
+	m4 := uuid.MustParse("00000000-0000-7000-0000-000000000004")
 	members := []types.Member{
-		{ID: "m-1", Status: "active", Roles: []string{"super_admin", "org_admin"}},
-		{ID: "m-2", Status: "active", Roles: []string{"org_admin"}},
-		{ID: "m-3", Status: "inactive", Roles: []string{"super_admin"}},
-		{ID: "m-4", Status: "active", Roles: []string{}},
+		{ID: m1, Status: "active", Roles: []string{"super_admin", "org_admin"}},
+		{ID: m2, Status: "active", Roles: []string{"org_admin"}},
+		{ID: m3, Status: "inactive", Roles: []string{"super_admin"}},
+		{ID: m4, Status: "active", Roles: []string{}},
 	}
 	result := budget.IndexMembersByRole(members)
 
-	if len(result["super_admin"]) != 1 || result["super_admin"][0] != "m-1" {
-		t.Errorf("super_admin = %v, want [m-1]", result["super_admin"])
+	if len(result["super_admin"]) != 1 || result["super_admin"][0] != m1.String() {
+		t.Errorf("super_admin = %v, want [%s]", result["super_admin"], m1)
 	}
 	if len(result["org_admin"]) != 2 {
-		t.Errorf("org_admin = %v, want [m-1, m-2]", result["org_admin"])
+		t.Errorf("org_admin = %v, want [%s, %s]", result["org_admin"], m1, m2)
 	}
 	if _, ok := result["member"]; ok {
 		t.Errorf("expected no 'member' key, got %v", result["member"])
@@ -30,10 +35,14 @@ func TestIndexMembersByRole(t *testing.T) {
 
 func TestResolveRoleRecipients(t *testing.T) {
 	t.Parallel()
-	roleNameByID := map[string]string{
-		"role-1": "super_admin",
-		"role-2": "org_admin",
-		"role-3": "member",
+	role1 := uuid.MustParse("00000000-0000-7000-0000-000000000a01")
+	role2 := uuid.MustParse("00000000-0000-7000-0000-000000000a02")
+	role3 := uuid.MustParse("00000000-0000-7000-0000-000000000a03")
+	role999 := uuid.MustParse("00000000-0000-7000-0000-000000000a99")
+	roleNameByID := map[uuid.UUID]string{
+		role1: "super_admin",
+		role2: "org_admin",
+		role3: "member",
 	}
 	membersByRoleName := map[string][]string{
 		"super_admin": {"m-1"},
@@ -43,14 +52,14 @@ func TestResolveRoleRecipients(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		roleIDs []string
+		roleIDs []uuid.UUID
 		want    int
 	}{
-		{"single role", []string{"role-1"}, 1},
-		{"overlapping roles deduplicate", []string{"role-1", "role-2"}, 2},
-		{"unknown role ID skipped", []string{"role-999"}, 0},
+		{"single role", []uuid.UUID{role1}, 1},
+		{"overlapping roles deduplicate", []uuid.UUID{role1, role2}, 2},
+		{"unknown role ID skipped", []uuid.UUID{role999}, 0},
 		{"empty", nil, 0},
-		{"all roles", []string{"role-1", "role-2", "role-3"}, 4},
+		{"all roles", []uuid.UUID{role1, role2, role3}, 4},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

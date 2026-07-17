@@ -3,6 +3,7 @@ package authz_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -45,7 +46,7 @@ func TestGetSessionContextSuccess(t *testing.T) {
 func TestGetSessionContextNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newAuthzService(t)
-	_, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, "missing")
+	_, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"))
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -54,7 +55,7 @@ func TestGetSessionContextNotFound(t *testing.T) {
 func TestGetSessionContextReadOnlyMember(t *testing.T) {
 	t.Parallel()
 	svc := newAuthzService(t)
-	ctx, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, "m-pure")
+	ctx, err := svc.GetSessionContext(testutil.Ctx(), contract.DefaultCompanyID, contract.IDMemberPure)
 	if err != nil {
 		t.Fatalf("GetSessionContext: %v", err)
 	}

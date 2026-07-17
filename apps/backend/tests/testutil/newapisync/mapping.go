@@ -33,19 +33,19 @@ func DefaultMappingOpts() MappingOpts {
 
 func UpsertMapping(t *testing.T, st store.Store, opts MappingOpts) {
 	t.Helper()
-	if opts.PlatformKeyID == "" {
+	if opts.PlatformKeyID == uuid.Nil {
 		opts = DefaultMappingOpts()
 	}
-	if opts.DepartmentID == "" {
+	if opts.DepartmentID == uuid.Nil {
 		opts.DepartmentID = contract.IDDept3
 	}
 	if opts.NewAPIGroup == "" {
 		opts.NewAPIGroup = newapiunits.NewAPIGroupForDepartment(opts.DepartmentID)
 	}
-	var memberID *string
+	var memberID *uuid.UUID
 	if !opts.NoMember {
 		m := opts.MemberID
-		if m == "" {
+		if m == uuid.Nil {
 			m = contract.IDMember1
 		}
 		memberID = &m

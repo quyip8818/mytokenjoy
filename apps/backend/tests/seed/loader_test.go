@@ -3,6 +3,7 @@ package seed_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/org"
@@ -18,7 +19,7 @@ func TestBuildMembersAnchorIDs(t *testing.T) {
 		t.Fatalf("expected at least 35 members, got %d", len(members))
 	}
 
-	for _, id := range []string{"m-admin", "m-1", "m-2"} {
+	for _, id := range []uuid.UUID{contract.IDMemberAdmin, contract.IDMember1, contract.IDMember2} {
 		if _, ok := org.FindMemberByID(members, id); !ok {
 			t.Fatalf("expected anchor member %s", id)
 		}
@@ -47,7 +48,7 @@ func TestLoadSnapshot(t *testing.T) {
 	if len(snapshot.Roles) != 6 {
 		t.Fatalf("expected 6 roles, got %d", len(snapshot.Roles))
 	}
-	if len(types.OrgNodesToBudgetTree(snapshot.OrgNodes)) == 0 || types.OrgNodesToBudgetTree(snapshot.OrgNodes)[0].ID != "dept-1" {
+	if len(types.OrgNodesToBudgetTree(snapshot.OrgNodes)) == 0 || types.OrgNodesToBudgetTree(snapshot.OrgNodes)[0].ID != contract.IDDept1 {
 		t.Fatal("expected budget tree root")
 	}
 	if len(snapshot.ProviderKeys) < 8 {
@@ -58,7 +59,7 @@ func TestLoadSnapshot(t *testing.T) {
 	}
 	foundPending := false
 	for _, approval := range snapshot.Approvals {
-		if approval.ID == "apv-1" {
+		if approval.ID == contract.IDApproval1 {
 			foundPending = true
 			break
 		}

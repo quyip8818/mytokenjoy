@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
@@ -42,7 +43,7 @@ func postWebhook(t *testing.T, application *app.App, logID int64) *httptest.Resp
 
 func pendingIngestRiverJobs(t *testing.T, application *app.App) int {
 	t.Helper()
-	return riverfix.PendingJobCount(application.Store, jobs.KindIngest, 0)
+	return riverfix.PendingJobCount(application.Store, jobs.KindIngest, uuid.Nil)
 }
 
 func drainIngestQueue(t *testing.T, application *app.App) {

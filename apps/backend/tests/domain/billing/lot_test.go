@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -13,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func newLotTestCompany(t *testing.T, st store.Store, companyID int64) context.Context {
+func newLotTestCompany(t *testing.T, st store.Store, companyID uuid.UUID) context.Context {
 	t.Helper()
 	ctx := testutil.CtxForCompany(companyID)
 	now := time.Now().UTC()
@@ -27,17 +28,17 @@ func newLotTestCompany(t *testing.T, st store.Store, companyID int64) context.Co
 	return ctx
 }
 
-func paidRechargeOrder(companyID int64, id string, amount float64, createdAt time.Time) store.RechargeOrder {
+func paidRechargeOrder(companyID uuid.UUID, id uuid.UUID, amount float64, createdAt time.Time) store.RechargeOrder {
 	ppu := domainbilling.DefaultPointsPerUnit()
 	return store.RechargeOrder{
 		ID: id, CompanyID: companyID, Amount: amount, Currency: common.DefaultBillingCurrency,
 		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(amount, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status:         store.RechargeStatusConfirmed,
-		DisplayOrderID: "ORD-" + id,
+		DisplayOrderID: "ORD-" + id.String(),
 		PaymentMethod:  store.PaymentMethodAlipay,
 		InvoiceStatus:  store.InvoiceStatusNone,
-		CreatedBy:      "m-admin", CreatedAt: createdAt, UpdatedAt: createdAt,
+		CreatedBy:      contract.IDMemberAdmin, CreatedAt: createdAt, UpdatedAt: createdAt,
 	}
 }
 
@@ -56,14 +57,14 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 
 	key := "idem-wallet-credit"
 	order := store.RechargeOrder{
-		ID: "rch-wallet-1", CompanyID: contract.DefaultCompanyID, Amount: 50, Currency: common.DefaultBillingCurrency,
+		ID: uuid.MustParse("00000000-0000-7000-0000-000000002001"), CompanyID: contract.DefaultCompanyID, Amount: 50, Currency: common.DefaultBillingCurrency,
 		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(50, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD20260101130000",
 		PaymentMethod:  store.PaymentMethodAlipay,
 		InvoiceStatus:  store.InvoiceStatusNone,
-		CreatedBy:      "m-admin", CreatedAt: now, UpdatedAt: now,
+		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
@@ -89,14 +90,14 @@ func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
 	grant := domainbilling.PointsGrantedFromAmount(10, ppu)
 
 	order := store.RechargeOrder{
-		ID: "rch-wallet-consume", CompanyID: contract.DefaultCompanyID, Amount: 10, Currency: common.DefaultBillingCurrency,
+		ID: uuid.MustParse("00000000-0000-7000-0000-000000002002"), CompanyID: contract.DefaultCompanyID, Amount: 10, Currency: common.DefaultBillingCurrency,
 		PointsPerUnit: ppu, PointsGranted: grant,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status:         store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD20260101140000",
 		PaymentMethod:  store.PaymentMethodAlipay,
 		InvoiceStatus:  store.InvoiceStatusNone,
-		CreatedBy:      "m-admin", CreatedAt: now, UpdatedAt: now,
+		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
@@ -134,12 +135,12 @@ func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
 
 func TestCreditFromLotSetsFIFOHeadOnFirstRecharge(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9101
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009101")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	now := time.Now().UTC()
 
-	order := paidRechargeOrder(companyID, "rch-fifo-first", 20, now)
+	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001001"), 20, now)
 	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultPointsPerUnit())
 	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)
@@ -156,19 +157,19 @@ func TestCreditFromLotSetsFIFOHeadOnFirstRecharge(t *testing.T) {
 
 func TestCreditFromLotPreservesFIFOHeadOnSecondRecharge(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9102
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009102")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	base := time.Now().UTC()
 	ppu := domainbilling.DefaultPointsPerUnit()
 
-	orderA := paidRechargeOrder(companyID, "rch-fifo-a", 30, base)
+	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001002"), 30, base)
 	lotA := domainbilling.BuildPaidLot(orderA, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
 
-	orderB := paidRechargeOrder(companyID, "rch-fifo-b", 40, base.Add(time.Second))
+	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001003"), 40, base.Add(time.Second))
 	lotB := domainbilling.BuildPaidLot(orderB, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.PointsGranted); err != nil {
 		t.Fatal(err)
@@ -188,19 +189,19 @@ func TestCreditFromLotPreservesFIFOHeadOnSecondRecharge(t *testing.T) {
 
 func TestConsumeLotsDepletesOlderLotFirst(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9103
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009103")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	base := time.Now().UTC()
 	ppu := domainbilling.DefaultPointsPerUnit()
 
-	orderA := paidRechargeOrder(companyID, "rch-consume-a", 100, base)
+	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001004"), 100, base)
 	lotA := domainbilling.BuildPaidLot(orderA, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
 
-	orderB := paidRechargeOrder(companyID, "rch-consume-b", 100, base.Add(time.Second))
+	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001005"), 100, base.Add(time.Second))
 	lotB := domainbilling.BuildPaidLot(orderB, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.PointsGranted); err != nil {
 		t.Fatal(err)
@@ -242,19 +243,19 @@ func TestConsumeLotsDepletesOlderLotFirst(t *testing.T) {
 
 func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9104
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009104")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	base := time.Now().UTC()
 	ppu := domainbilling.DefaultPointsPerUnit()
 
-	orderA := paidRechargeOrder(companyID, "rch-exhaust-a", 50, base)
+	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001006"), 50, base)
 	lotA := domainbilling.BuildPaidLot(orderA, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
 
-	orderB := paidRechargeOrder(companyID, "rch-exhaust-b", 80, base.Add(time.Second))
+	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001007"), 80, base.Add(time.Second))
 	lotB := domainbilling.BuildPaidLot(orderB, common.DefaultBillingCurrency, ppu)
 	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.PointsGranted); err != nil {
 		t.Fatal(err)
@@ -287,12 +288,12 @@ func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 
 func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
 	t.Parallel()
-	const companyID int64 = 9105
+	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009105")
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	now := time.Now().UTC()
 
-	order := paidRechargeOrder(companyID, "rch-overdraft", 10, now)
+	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001008"), 10, now)
 	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultPointsPerUnit())
 	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)

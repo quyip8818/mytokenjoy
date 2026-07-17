@@ -3,6 +3,7 @@ package keys_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
@@ -56,7 +57,7 @@ func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPI
 	return newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st)), st
 }
 
-func findApproval(st store.Store, id string) *types.KeyApproval {
+func findApproval(st store.Store, id uuid.UUID) *types.KeyApproval {
 	approvals, err := st.Keys().Approvals(testutil.Ctx())
 	if err != nil {
 		return nil

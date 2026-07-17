@@ -3,6 +3,7 @@ package keys_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -19,9 +20,10 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
+	plkTest := uuid.MustParse("00000000-0000-7000-0000-00000000aa01")
 	key := types.PlatformKey{
-		ID: "plk-test", Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
+		ID: plkTest, Name: "test-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 1000, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -48,9 +50,10 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
+	plkSync := uuid.MustParse("00000000-0000-7000-0000-00000000aa02")
 	key := types.PlatformKey{
-		ID: "plk-sync", Name: "sync-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
+		ID: plkSync, Name: "sync-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 1000, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -66,7 +69,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullKey, err := newAPISync.TrySyncCreate(testutil.Ctx(), "plk-sync")
+	fullKey, err := newAPISync.TrySyncCreate(testutil.Ctx(), plkSync)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +80,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 		t.Fatalf("expected one CreateToken call, got %d", stub.CreateTokenCalls)
 	}
 
-	mapping, err := st.PlatformKeyMappings().GetMappingByPlatformKeyID(ctx, "plk-sync")
+	mapping, err := st.PlatformKeyMappings().GetMappingByPlatformKeyID(ctx, plkSync)
 	if err != nil || mapping == nil {
 		t.Fatalf("expected platform key mapping, err=%v mapping=%v", err, mapping)
 	}
@@ -90,9 +93,9 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, k := range keys {
-		if k.ID == "plk-sync" {
+		if k.ID == plkSync {
 			byHash, err := st.Keys().PlatformKeyByHash(ctx, store.HashPlatformKey("sk-test-key"))
-			if err != nil || byHash == nil || byHash.ID != "plk-sync" {
+			if err != nil || byHash == nil || byHash.ID != plkSync {
 				t.Fatalf("expected key hash lookup, err=%v key=%v", err, byHash)
 			}
 			return
@@ -107,9 +110,10 @@ func TestRollbackFailedCreate(t *testing.T) {
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
+	plkRollback := uuid.MustParse("00000000-0000-7000-0000-00000000aa03")
 	key := types.PlatformKey{
-		ID: "plk-rollback", Name: "rollback", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 500, ModelWhitelist: []int64{contract.IDModel1},
+		ID: plkRollback, Name: "rollback", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 500, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -121,14 +125,14 @@ func TestRollbackFailedCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newAPISync.RollbackFailedCreate(ctx, "plk-rollback")
+	newAPISync.RollbackFailedCreate(ctx, plkRollback)
 
 	keys, err = st.Keys().PlatformKeys(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, k := range keys {
-		if k.ID == "plk-rollback" {
+		if k.ID == plkRollback {
 			t.Fatal("expected plk-rollback removed after rollback")
 		}
 	}

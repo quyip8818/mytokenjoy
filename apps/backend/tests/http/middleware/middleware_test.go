@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -31,8 +32,8 @@ func TestMiddlewareBehaviors(t *testing.T) {
 	t.Run("M1 company resolve missing tenant", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubCompanyService{
-			resolve: func(_ context.Context, companyID int64) (domaincompany.Context, error) {
-				t.Fatal("resolve should not be called when companyID is 0")
+			resolve: func(_ context.Context, companyID uuid.UUID) (domaincompany.Context, error) {
+				t.Fatal("resolve should not be called when companyID is nil")
 				return domaincompany.Context{}, nil
 			},
 		}
@@ -42,7 +43,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		})
 		cfg := sessionConfig()
-		cfg.LocalCompanyID = 0
+		cfg.LocalCompanyID = uuid.Nil
 		handler := httpmiddleware.CompanyResolve(cfg, stub, testutil.SessionIssuer(t))(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
@@ -56,7 +57,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 	t.Run("M1b company resolve infra error is 500", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubCompanyService{
-			resolve: func(context.Context, int64) (domaincompany.Context, error) {
+			resolve: func(context.Context, uuid.UUID) (domaincompany.Context, error) {
 				return domaincompany.Context{}, fmt.Errorf("db unavailable")
 			},
 		}
@@ -78,7 +79,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 	t.Run("M2 platform route skips company resolve", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubCompanyService{
-			resolve: func(context.Context, int64) (domaincompany.Context, error) {
+			resolve: func(context.Context, uuid.UUID) (domaincompany.Context, error) {
 				t.Fatal("company resolve should be skipped for platform routes")
 				return domaincompany.Context{}, nil
 			},
@@ -142,7 +143,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		injectSuspended := func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				ctx := domaincompany.WithContext(r.Context(), domaincompany.Context{
-					CompanyID: 1,
+					CompanyID: uuid.MustParse("00000000-0000-7000-0000-000000000001"),
 					Status:    "suspended",
 				})
 				next.ServeHTTP(w, r.WithContext(ctx))
@@ -294,7 +295,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			called = true
 			w.WriteHeader(http.StatusOK)
 		})
-		handler := injectCompanyCtx(1, httpmiddleware.RateLimitTenant(limiter, 100, 200, false, testLogger())(next))
+		handler := injectCompanyCtx(contract.DefaultCompanyID, httpmiddleware.RateLimitTenant(limiter, 100, 200, false, testLogger())(next))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/budget/tree", nil)
 		rec := httptest.NewRecorder()
@@ -317,7 +318,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
-		handler := injectCompanyCtx(1, httpmiddleware.RateLimitTenant(limiter, 1, 1, false, testLogger())(next))
+		handler := injectCompanyCtx(contract.DefaultCompanyID, httpmiddleware.RateLimitTenant(limiter, 1, 1, false, testLogger())(next))
 
 		// First request — allowed (uses the 1 token).
 		req := httptest.NewRequest(http.MethodGet, "/api/x", nil)

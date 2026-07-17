@@ -50,7 +50,7 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 		},
 	}
 	svc, _, ctx := newBillingService(t, client)
-	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, "platform-op-wallet"); err != nil {
+	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
 	view, err := svc.GetWallet(ctx)
@@ -104,7 +104,7 @@ func TestPlatformRechargeEnqueuesWalletSyncWhenConfigured(t *testing.T) {
 	ctx := company.WithContext(context.Background(), company.Context{
 		CompanyID: contract.DefaultCompanyID, NewAPIWalletUserID: walletID, Status: co.Status,
 	})
-	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 50, "platform-op-wallet-sync"); err != nil {
+	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 50, contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
 	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
@@ -118,14 +118,14 @@ func TestConfirmPaymentIdempotent(t *testing.T) {
 		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
 	}
 	svc, _, ctx := newBillingService(t, client)
-	order, err := svc.CreateSelfRecharge(ctx, 20, "idem-key-1", "m-admin")
+	order, err := svc.CreateSelfRecharge(ctx, 20, "idem-key-1", contract.IDMemberAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.ConfirmPayment(ctx, order.ID); err != nil {
+	if err := svc.ConfirmPayment(ctx, order.ID.String()); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.ConfirmPayment(ctx, order.ID); err != nil {
+	if err := svc.ConfirmPayment(ctx, order.ID.String()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -134,10 +134,10 @@ func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 	t.Parallel()
 	client := &mock.StubAdminClient{}
 	svc, _, ctx := newBillingService(t, client)
-	if _, err := svc.CreateSelfRecharge(ctx, 10, "dup-key", "m-admin"); err != nil {
+	if _, err := svc.CreateSelfRecharge(ctx, 10, "dup-key", contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.CreateSelfRecharge(ctx, 10, "dup-key", "m-admin"); err == nil {
+	if _, err := svc.CreateSelfRecharge(ctx, 10, "dup-key", contract.IDMemberAdmin); err == nil {
 		t.Fatal("expected error for duplicate idempotency key")
 	}
 }
@@ -153,7 +153,7 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	if cur == nil || !cur.Enabled || cur.PointsPerUnit <= 0 {
 		t.Fatalf("expected seeded CNY currency, got %+v", cur)
 	}
-	order, err := svc.CreateSelfRecharge(ctx, 15, "ppu-key-1", "m-admin")
+	order, err := svc.CreateSelfRecharge(ctx, 15, "ppu-key-1", contract.IDMemberAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}

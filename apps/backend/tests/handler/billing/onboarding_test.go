@@ -3,11 +3,11 @@ package billing_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
@@ -105,7 +105,10 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	if provisioned.Company.NewAPIWalletUserID != nil {
 		walletID = *provisioned.Company.NewAPIWalletUserID
 	}
-	rootDept := fmt.Sprintf("dept-root-%d", provisioned.Company.ID)
+	rootDept := uuid.Nil
+	if provisioned.Company.RootDeptID != nil {
+		rootDept = *provisioned.Company.RootDeptID
+	}
 
 	// No recharge: wallet 0 -> 403
 	fullKey := gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
@@ -137,7 +140,7 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	}
 
 	// Both wallet and budget configured -> 200
-	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept, 1000)
+	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept.String(), 1000)
 	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
 		CompanyID:          provisioned.Company.ID,
 		NewAPIWalletUserID: walletID,

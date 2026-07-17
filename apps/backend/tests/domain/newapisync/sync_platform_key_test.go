@@ -5,6 +5,7 @@ package newapisync_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -23,8 +24,8 @@ func TestSyncPlatformKeyCreateDoesNotEnqueueOutbox(t *testing.T) {
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
-		ID: "plk-no-outbox", Name: "no-outbox", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
+		ID: uuid.MustParse("00000000-0000-7000-0000-00000000cc01"), Name: "no-outbox", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 1000, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -55,8 +56,8 @@ func TestSyncPlatformKeyCreatePersistsHashAndMapping(t *testing.T) {
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
 	key := types.PlatformKey{
-		ID: "plk-shared", Name: "shared-create", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
+		ID: uuid.MustParse("00000000-0000-7000-0000-00000000cc02"), Name: "shared-create", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 1000, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)

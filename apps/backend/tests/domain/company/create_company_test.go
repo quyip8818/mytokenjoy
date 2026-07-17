@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -109,8 +110,6 @@ func TestCreateCompanyPersistsWalletAndInvite(t *testing.T) {
 }
 
 func TestCreateCompanyAllocatesNextID(t *testing.T) {
-	const nextCompanyID int64 = 3
-
 	cfg, st := testutil.NewTestStore(t)
 	client := &mock.StubAdminClient{User: newapi.User{ID: 503, Quota: 0}}
 	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
@@ -123,8 +122,8 @@ func TestCreateCompanyAllocatesNextID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Company.ID != nextCompanyID {
-		t.Fatalf("expected company id=%d, got %d", nextCompanyID, result.Company.ID)
+	if result.Company.ID == uuid.Nil {
+		t.Fatal("expected non-nil company id")
 	}
 }
 

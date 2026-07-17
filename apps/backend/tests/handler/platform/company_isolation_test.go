@@ -2,7 +2,6 @@ package platform_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +29,7 @@ func TestCompanyIsolationMembers(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/org/members", nil)
 	req.Header.Set("Cookie", coA.MemberCookie)
-	req.Header.Set("X-Company-Id", fmt.Sprintf("%d", coB.Company.ID))
+	req.Header.Set("X-Company-Id", coB.Company.ID.String())
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -62,13 +61,13 @@ func TestCompanyIsolationBudgetTree(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&tree); err != nil {
 		t.Fatal(err)
 	}
-	rootA := fmt.Sprintf("dept-root-%d", coA.Company.ID)
-	rootB := fmt.Sprintf("dept-root-%d", coB.Company.ID)
+	rootA := coA.Company.RootDeptID
+	rootB := coB.Company.RootDeptID
 	for _, node := range tree {
-		if node.ID == rootB {
+		if rootB != nil && node.ID == *rootB {
 			t.Fatal("company A session must not see company B budget root")
 		}
-		if node.ID != rootA && len(tree) == 1 {
+		if rootA != nil && node.ID != *rootA && len(tree) == 1 {
 			t.Fatalf("expected root %s, got %s", rootA, node.ID)
 		}
 	}

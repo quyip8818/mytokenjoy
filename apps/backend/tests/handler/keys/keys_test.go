@@ -74,7 +74,7 @@ func keysCases() []keysCase {
 		},
 		{
 			name: "platform list department filter",
-			path: "/api/keys/platform?departmentId=" + contract.IDDept3,
+			path: "/api/keys/platform?departmentId=" + contract.IDDept3.String(),
 			assert: func(t *testing.T, body []byte) {
 				t.Helper()
 				var payload struct {

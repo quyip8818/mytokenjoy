@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
@@ -78,7 +79,7 @@ func TestDashboardDefaultApp(t *testing.T) {
 		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{Cost: 4})
 		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{
 			BucketStart:  time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-			DepartmentID: contract.IDDept4, MemberID: "m-4", Cost: 6,
+			DepartmentID: contract.IDDept4, MemberID: contract.IDMember4, Cost: 6,
 		})
 		req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=day&start=2026-06-10&end=2026-06-11&groupBy=department", nil)
 		req.Header.Set("Cookie", adminCookie)
@@ -102,7 +103,7 @@ func TestDashboardDefaultApp(t *testing.T) {
 		paths := []string{
 			"/api/dashboard/cost/summary",
 			"/api/dashboard/cost/departments",
-			"/api/dashboard/cost/departments/" + contract.IDDept3 + "/members",
+			"/api/dashboard/cost/departments/" + contract.IDDept3.String() + "/members",
 			"/api/dashboard/cost/daily",
 			"/api/dashboard/cost/top?limit=5",
 			"/api/dashboard/usage/models",
@@ -147,8 +148,9 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 	app := newIngestDashboardApp(t)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
+	plkMinuteTest := uuid.MustParse("00000000-0000-7000-0000-00000000ff02")
 	if err := app.Store.Keys().SetPlatformKeys(ctx, []types.PlatformKey{{
-		ID:        "plk-minute-test",
+		ID:        plkMinuteTest,
 		Name:      "Minute Test Key",
 		KeyPrefix: "sk-minute",
 		Scope:     types.PlatformKeyScopeMember,
@@ -159,7 +161,7 @@ func TestUsageSeriesMinuteSuccessMetaHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	newapisynctf.PrepareIngestFixture(t, app.Store, newapisynctf.MappingOpts{
-		PlatformKeyID: "plk-minute-test", NewAPIKeyID: 42,
+		PlatformKeyID: plkMinuteTest, NewAPIKeyID: 42,
 	})
 	ingest := testutil.NewIngestService(t, testutil.TestConfig(testutil.WithIngestEnabled(true)), app.Store)
 	occurredAt := time.Date(2026, 6, 10, 9, 3, 0, 0, time.UTC)

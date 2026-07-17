@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -44,14 +45,14 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 	}
 
 	bucketStart := entry.OccurredAt.UTC().Truncate(time.Hour)
-	memberID := ""
+	var bucketMemberID uuid.UUID
 	if entry.MemberID != nil {
-		memberID = *entry.MemberID
+		bucketMemberID = *entry.MemberID
 	}
 	if err := st.Usage().SetBucket(ctx, types.UsageBucketRow{
 		BucketStart:  bucketStart,
 		DepartmentID: entry.DepartmentID,
-		MemberID:     memberID,
+		MemberID:     bucketMemberID,
 		Model:        entry.Model,
 		Cost:         0.01,
 		DisplayCost:  0,

@@ -65,7 +65,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if err := tx.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 			return err
 		}
-		if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(company.ID, s.grants)); err != nil {
+		if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(s.grants)); err != nil {
 			return err
 		}
 		if err := tx.Company().UpdateRootDeptID(ctx, company.ID, rootDeptID); err != nil {
@@ -100,7 +100,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	return result, nil
 }
 
-func defaultCompanyRoles(companyID uuid.UUID, normalizer grants.Normalizer) []types.Role {
+func defaultCompanyRoles(normalizer grants.Normalizer) []types.Role {
 	roles := []types.Role{
 		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
 		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},

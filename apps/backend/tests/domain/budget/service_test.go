@@ -3,6 +3,7 @@ package budget_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -19,7 +20,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	prepareDept3NodeUpdateFixture(t, st)
 	reserved := budgetfix.DisplayPoints(1500)
 	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
-	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, wantBudget, &reserved)
+	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3.String(), wantBudget, &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func TestUpdateNodeOversell(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
 	reserved := budgetfix.DisplayPoints(1500)
-	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.DisplayPoints(90000), &reserved)
+	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3.String(), budgetfix.DisplayPoints(90000), &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -107,7 +108,7 @@ func TestUpdateMemberBudgetSuccess(t *testing.T) {
 func TestListMemberBudgetsUnknownDept(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	_, err := svc.ListMemberBudgets(testutil.Ctx(), "dept-missing")
+	_, err := svc.ListMemberBudgets(testutil.Ctx(), uuid.MustParse("00000000-0000-7000-8000-ffffffffffff"))
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
@@ -122,7 +123,7 @@ func TestCreateProject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.ID == "" {
+	if created.ID == uuid.Nil {
 		t.Fatal("expected created project id")
 	}
 	projects, err := st.Budget().Projects(testutil.Ctx())
@@ -148,14 +149,14 @@ func TestUpdateProjectMemberIDsPreservesBudget(t *testing.T) {
 		Name:              "Patch Members",
 		Budget:            5000,
 		OwnerDepartmentID: contract.IDDept3,
-		MemberIDs:         []string{contract.IDMember1},
+		MemberIDs:         []uuid.UUID{contract.IDMember1},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	memberIDs := []string{contract.IDMember1, contract.IDMember3}
-	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
-		MemberIDs: &memberIDs,
+	memberIDStrs := []string{contract.IDMember1.String(), contract.IDMember3.String()}
+	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID.String(), types.UpdateProjectInput{
+		MemberIDs: &memberIDStrs,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -184,13 +185,13 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 		Name:              "Sub Budget Project",
 		Budget:            10000,
 		OwnerDepartmentID: contract.IDDept3,
-		MemberIDs:         []string{contract.IDMember1, contract.IDMember3},
+		MemberIDs:         []uuid.UUID{contract.IDMember1, contract.IDMember3},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	budgets := map[string]float64{contract.IDMember1: 3000, contract.IDMember3: 2000}
-	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
+	budgets := map[string]float64{contract.IDMember1.String(): 3000, contract.IDMember3.String(): 2000}
+	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID.String(), types.UpdateProjectInput{
 		MemberBudgets: &budgets,
 	})
 	if err != nil {
@@ -211,8 +212,8 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 			t.Fatalf("persisted member1 budget = %v, want 3000", project.MemberBudgets[contract.IDMember1])
 		}
 	}
-	_, err = svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
-		MemberBudgets: &map[string]float64{contract.IDMemberPure: 100},
+	_, err = svc.UpdateProject(testutil.Ctx(), created.ID.String(), types.UpdateProjectInput{
+		MemberBudgets: &map[string]float64{contract.IDMemberPure.String(): 100},
 	})
 	if err == nil {
 		t.Fatal("expected validation error for member not on roster")
@@ -229,8 +230,8 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 			Name:              "Invalid Sub Budgets",
 			Budget:            5_000,
 			OwnerDepartmentID: contract.IDDept3,
-			MemberIDs:         []string{contract.IDMember1, contract.IDMember3},
-			MemberBudgets: map[string]float64{
+			MemberIDs:         []uuid.UUID{contract.IDMember1, contract.IDMember3},
+			MemberBudgets: map[uuid.UUID]float64{
 				contract.IDMember1: 3_000,
 				contract.IDMember3: 3_000,
 			},
@@ -243,13 +244,13 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 			Name:              "Over Cap Project",
 			Budget:            10_000,
 			OwnerDepartmentID: contract.IDDept3,
-			MemberIDs:         []string{contract.IDMember1, contract.IDMember3},
+			MemberIDs:         []uuid.UUID{contract.IDMember1, contract.IDMember3},
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		over := map[string]float64{contract.IDMember1: 7_000, contract.IDMember3: 5_000}
-		_, err = svc.UpdateProject(ctx, created.ID, types.UpdateProjectInput{MemberBudgets: &over})
+		over := map[string]float64{contract.IDMember1.String(): 7_000, contract.IDMember3.String(): 5_000}
+		_, err = svc.UpdateProject(ctx, created.ID.String(), types.UpdateProjectInput{MemberBudgets: &over})
 		testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 	})
 }
@@ -257,7 +258,7 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 func TestDeleteProject(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	if err := svc.DeleteProject(testutil.Ctx(), contract.IDProject4); err != nil {
+	if err := svc.DeleteProject(testutil.Ctx(), contract.IDProject4.String()); err != nil {
 		t.Fatal(err)
 	}
 	projects, err := st.Budget().Projects(testutil.Ctx())
@@ -304,7 +305,7 @@ func TestOrgSyncSetTreeDoesNotOverwriteBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	reserved := budgetfix.DisplayPoints(1500)
 	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
-	if _, err := svc.UpdateNode(ctx, contract.IDDept3, wantBudget, &reserved); err != nil {
+	if _, err := svc.UpdateNode(ctx, contract.IDDept3.String(), wantBudget, &reserved); err != nil {
 		t.Fatal(err)
 	}
 	nodes, err := st.Org().Nodes().Tree(ctx)
