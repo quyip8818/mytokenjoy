@@ -47,7 +47,7 @@ export function ModelCreateWorkflow({
   const [outputPrice, setOutputPrice] = useState('30')
   const [submitting, setSubmitting] = useState(false)
 
-  const canSubmit = modelName.trim() && baseUrl.trim() && Number(maxContext) > 0
+  const canSubmit = modelName.trim() && baseUrl.trim() && apiKey.trim() && Number(maxContext) > 0
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -110,7 +110,7 @@ export function ModelCreateWorkflow({
           />
         </div>
         <div className="space-y-1.5">
-          <Label>API Key</Label>
+          <Label>API Key <span className="text-destructive">*</span></Label>
           <div className="relative">
             <Input
               value={apiKey}

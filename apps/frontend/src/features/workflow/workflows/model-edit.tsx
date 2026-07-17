@@ -50,7 +50,7 @@ export function ModelEditWorkflow({
   const [outputPrice, setOutputPrice] = useState(String(model.outputPrice))
   const [submitting, setSubmitting] = useState(false)
 
-  const canSubmit = displayName.trim() && (!isCustomModel(model) || endpoint.trim())
+  const canSubmit = displayName.trim() && (!isCustomModel(model) || (endpoint.trim() && apiKey.trim()))
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -114,7 +114,7 @@ export function ModelEditWorkflow({
         {isCustomModel(model) && (
           <>
             <div className="space-y-1.5">
-              <Label>API Key</Label>
+              <Label>API Key <span className="text-destructive">*</span></Label>
               <div className="relative">
                 <Input
                   value={apiKey}
