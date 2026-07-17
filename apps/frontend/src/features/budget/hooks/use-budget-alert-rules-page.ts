@@ -4,12 +4,19 @@ import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
 import { mapProjectsToViews } from '../lib/mappers'
 import { alertRuleToView, alertRuleFromView, type AlertRuleView } from '../lib/alerts'
+import type { AlertTypeFilter, AlertStatusFilter } from '../components/budget-alerts-toolbar'
+import type { AlertStats } from '../components/budget-alerts-stats'
 
 export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<AlertRuleView | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AlertRuleView | null>(null)
+
+  // Filter state
+  const [typeFilter, setTypeFilter] = useState<AlertTypeFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<AlertStatusFilter>('all')
+  const [search, setSearch] = useState('')
 
   const {
     data: rules = [],
@@ -62,6 +69,41 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
     [projectsData, nodeNameMap, tree],
   )
 
+  // Stats computation
+  const stats: AlertStats = useMemo(() => {
+    const totalTeams = nodeNameMap.size
+    const totalProjects = projectsData.length
+    const coveredTeams = new Set(
+      ruleViews.filter((r) => r.targetType === 'team').map((r) => r.targetId),
+    ).size
+    const coveredProjects = new Set(
+      ruleViews.filter((r) => r.targetType === 'project').map((r) => r.targetId),
+    ).size
+
+    return {
+      total: ruleViews.length,
+      enabled: ruleViews.filter((r) => r.enabled).length,
+      teamCoverage: { covered: coveredTeams, total: totalTeams },
+      projectCoverage: { covered: coveredProjects, total: totalProjects },
+    }
+  }, [ruleViews, nodeNameMap, projectsData])
+
+  // Filtered rules
+  const filteredRules = useMemo(() => {
+    let result = ruleViews
+    if (typeFilter !== 'all') {
+      result = result.filter((r) => r.targetType === typeFilter)
+    }
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (statusFilter === 'enabled' ? r.enabled : !r.enabled))
+    }
+    if (search.trim()) {
+      const keyword = search.trim().toLowerCase()
+      result = result.filter((r) => r.targetName.toLowerCase().includes(keyword))
+    }
+    return result
+  }, [ruleViews, typeFilter, statusFilter, search])
+
   const handleToggle = useCallback(
     async (rule: AlertRuleView) => {
       await apis.budgetApi.updateAlert(rule.id, { enabled: !rule.enabled })
@@ -101,10 +143,12 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
   )
 
   return {
-    rules: ruleViews,
+    rules: filteredRules,
+    allRules: ruleViews,
     projects,
     tree,
     roles,
+    stats,
     loading,
     error,
     refresh,
@@ -118,5 +162,11 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
     openCreate,
     openEdit,
     saveRule,
+    typeFilter,
+    setTypeFilter,
+    statusFilter,
+    setStatusFilter,
+    search,
+    setSearch,
   }
 }
