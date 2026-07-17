@@ -47,7 +47,7 @@ interface SidebarNavItemProps {
 
 function SidebarNavItem({ item, collapsed, badge }: SidebarNavItemProps) {
   const location = useLocation()
-  const isActive = location.pathname.startsWith(item.path)
+  const isActive = location.pathname === item.path
   const Icon = item.icon
 
   const className = cn(
