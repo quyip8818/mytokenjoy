@@ -37,6 +37,7 @@ type Snapshot struct {
 
 type Store interface {
 	Company() CompanyRepository
+	User() UserRepository
 	Invite() InviteRepository
 	Platform() PlatformRepository
 	Billing() BillingRepository

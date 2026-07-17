@@ -76,6 +76,10 @@ func (s *txStore) Company() store.CompanyRepository {
 	return s.company
 }
 
+func (s *txStore) User() store.UserRepository {
+	return newUserRepo(s.tx)
+}
+
 func (s *txStore) Invite() store.InviteRepository {
 	return s.invite
 }

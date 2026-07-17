@@ -28,9 +28,16 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		deptName = *path
 	}
 
+	// Resolve or create user for this member.
+	userID, err := s.resolveOrCreateUser(ctx, input.Phone, input.Email)
+	if err != nil {
+		return types.Member{}, err
+	}
+
 	member := types.Member{
-		ID:   generateID("m"),
-		Name: input.Name, Phone: input.Phone, Email: input.Email,
+		ID:     generateID("m"),
+		UserID: userID,
+		Name:   input.Name, Phone: input.Phone, Email: input.Email,
 		Username: input.Username, EmployeeID: input.EmployeeID,
 		JobTitle: input.JobTitle, HireDate: input.HireDate,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,

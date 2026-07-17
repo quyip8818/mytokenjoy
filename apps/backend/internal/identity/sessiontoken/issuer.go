@@ -11,12 +11,14 @@ import (
 
 type Claims struct {
 	CompanyID int64  `json:"company_id"`
+	UserID    string `json:"user_id,omitempty"`
 	Sid       string `json:"sid"`
 	jwt.RegisteredClaims
 }
 
 type Issuer interface {
 	Issue(companyID int64, memberID string) (string, error)
+	IssueWithUser(companyID int64, memberID string, userID string) (string, error)
 	Parse(token string) (Claims, error)
 	Secret() []byte
 }
@@ -44,9 +46,14 @@ func (i *issuer) Secret() []byte {
 }
 
 func (i *issuer) Issue(companyID int64, memberID string) (string, error) {
+	return i.IssueWithUser(companyID, memberID, "")
+}
+
+func (i *issuer) IssueWithUser(companyID int64, memberID string, userID string) (string, error) {
 	now := time.Now().UTC()
 	claims := Claims{
 		CompanyID: companyID,
+		UserID:    userID,
 		Sid:       newSessionID(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   memberID,

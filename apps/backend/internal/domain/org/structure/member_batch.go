@@ -71,8 +71,15 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 			})
 			continue
 		}
+		userID, uerr := s.resolveOrCreateUser(ctx, row.Phone, row.Email)
+		if uerr != nil {
+			failures = append(failures, types.MemberBatchImportFailure{
+				Row: index + 1, Reason: "Failed to create user",
+			})
+			continue
+		}
 		members = append(members, types.Member{
-			ID:   generateID("m-import"),
+			ID: generateID("m-import"), UserID: userID,
 			Name: row.Name, Phone: row.Phone, Email: row.Email,
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Status: types.MemberStatusActive, Roles: []string{grants.RoleMember}, Source: "imported",

@@ -190,8 +190,13 @@ func (s *Service) importFromProvider(
 				continue
 			}
 
+			userID, uerr := core.ResolveOrCreateUser(ctx, st, remote.Mobile, remote.Email)
+			if uerr != nil {
+				continue
+			}
 			members = append(members, types.Member{
 				ID:             memberID,
+				UserID:         userID,
 				Name:           remote.Name,
 				Phone:          remote.Mobile,
 				Email:          remote.Email,

@@ -68,7 +68,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return
 	}
-	token, err := h.pub.SessionToken.Issue(member.CompanyID, member.ID)
+	token, err := h.pub.SessionToken.IssueWithUser(member.CompanyID, member.ID, member.UserID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -101,7 +101,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 		return
 	}
-	token, err := h.pub.SessionToken.Issue(member.CompanyID, member.ID)
+	token, err := h.pub.SessionToken.IssueWithUser(member.CompanyID, member.ID, member.UserID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return

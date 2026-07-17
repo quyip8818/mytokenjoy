@@ -118,6 +118,10 @@ func (s *Store) Company() store.CompanyRepository {
 	return newCompanyRepo(s.pool)
 }
 
+func (s *Store) User() store.UserRepository {
+	return newUserRepo(s.pool)
+}
+
 func (s *Store) Invite() store.InviteRepository {
 	return newInviteRepo(s.pool)
 }

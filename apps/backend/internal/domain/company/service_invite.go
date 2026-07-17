@@ -53,6 +53,13 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	if company == nil {
 		return types.Member{}, domain.NotFound("company not found")
 	}
+
+	// Find or create user by email — then create member in same transaction.
+	user, err := s.store.User().GetByEmail(ctx, invite.Email)
+	if err != nil {
+		return types.Member{}, err
+	}
+
 	companyCtx := WithContext(ctx, ContextFromStore(*company))
 	nodes, err := s.store.Org().Nodes().Tree(companyCtx)
 	if err != nil {
@@ -66,36 +73,63 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		deptID = *company.RootDeptID
 	}
 	memberID := fmt.Sprintf("member-%d-%d", company.ID, time.Now().UnixNano())
-	member := types.Member{
-		ID:             memberID,
-		CompanyID:      company.ID,
-		Name:           req.Name,
-		Email:          invite.Email,
-		DepartmentID:   deptID,
-		Status:         "active",
-		Roles:          memberRolesFromInvite(invite.Role),
-		PersonalBudget: common.DefaultPersonalBudget,
-	}
-	members, err := s.store.Org().Members(companyCtx)
-	if err != nil {
-		return types.Member{}, err
-	}
-	members = append(members, member)
-	if err := s.store.Org().SetMembers(companyCtx, members); err != nil {
-		return types.Member{}, err
-	}
-	if err := s.store.Org().SetMemberPasswordHash(companyCtx, memberID, string(passwordHash)); err != nil {
-		return types.Member{}, err
-	}
-	for i := range nodes {
-		if nodes[i].ID == deptID {
-			nodes[i].ManagerID = &memberID
+
+	var member types.Member
+	err = s.store.WithTx(ctx, func(tx store.Store) error {
+		// Create or update user within the transaction.
+		if user == nil {
+			userID := fmt.Sprintf("u-%d", time.Now().UnixNano())
+			user = &store.User{
+				ID:           userID,
+				Email:        invite.Email,
+				PasswordHash: string(passwordHash),
+				Status:       "active",
+				CreatedAt:    time.Now().UTC(),
+				UpdatedAt:    time.Now().UTC(),
+			}
+			if err := tx.User().Create(ctx, *user); err != nil {
+				return fmt.Errorf("accept-invite create user (id=%s): %w", user.ID, err)
+			}
+		} else {
+			if err := tx.User().UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
+				return fmt.Errorf("accept-invite update password: %w", err)
+			}
 		}
-	}
-	if err := s.store.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
-		return types.Member{}, err
-	}
-	if err := s.store.Invite().MarkInviteAccepted(ctx, invite.ID, time.Now().UTC()); err != nil {
+
+		member = types.Member{
+			ID:             memberID,
+			CompanyID:      company.ID,
+			UserID:         user.ID,
+			Name:           req.Name,
+			Email:          invite.Email,
+			Phone:          user.Phone,
+			DepartmentID:   deptID,
+			Status:         "active",
+			Roles:          memberRolesFromInvite(invite.Role),
+			PersonalBudget: common.DefaultPersonalBudget,
+		}
+
+		txCompanyCtx := WithContext(ctx, ContextFromStore(*company))
+		members, err := tx.Org().Members(txCompanyCtx)
+		if err != nil {
+			return fmt.Errorf("accept-invite load members: %w", err)
+		}
+		members = append(members, member)
+		if err := tx.Org().SetMembers(txCompanyCtx, members); err != nil {
+			return fmt.Errorf("accept-invite SetMembers: %w", err)
+		}
+
+		for i := range nodes {
+			if nodes[i].ID == deptID {
+				nodes[i].ManagerID = &memberID
+			}
+		}
+		if err := tx.Org().Nodes().SetTree(txCompanyCtx, nodes); err != nil {
+			return fmt.Errorf("accept-invite SetTree: %w", err)
+		}
+		return tx.Invite().MarkInviteAccepted(ctx, invite.ID, time.Now().UTC())
+	})
+	if err != nil {
 		return types.Member{}, err
 	}
 	return member, nil

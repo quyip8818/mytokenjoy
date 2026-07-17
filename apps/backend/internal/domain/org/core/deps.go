@@ -17,6 +17,7 @@ import (
 // Store is the narrow store surface the org domain needs.
 type Store interface {
 	Org() store.OrgRepository
+	User() store.UserRepository
 	Company() store.CompanyRepository
 	SchedulerLock() store.SchedulerLockRepository
 	TenantBackgroundState() store.TenantBackgroundStateRepository

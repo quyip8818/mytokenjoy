@@ -48,6 +48,20 @@ CREATE TABLE IF NOT EXISTS platform_operators (
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Global: users (authentication identity)
+CREATE TABLE IF NOT EXISTS users (
+    id            TEXT PRIMARY KEY,
+    phone         TEXT,
+    email         TEXT,
+    password_hash TEXT,
+    status        TEXT NOT NULL DEFAULT 'active',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL AND phone != '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL AND email != '';
+
 CREATE TABLE IF NOT EXISTS company_recharge_orders (
     id               TEXT PRIMARY KEY,
     company_id       BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
@@ -194,24 +208,25 @@ CREATE TABLE IF NOT EXISTS org_node_budget (
 CREATE TABLE IF NOT EXISTS members (
     id              TEXT NOT NULL,
     company_id      BIGINT NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    user_id         TEXT NOT NULL,
     name            TEXT NOT NULL,
-    phone           TEXT NOT NULL DEFAULT '',
-    email           TEXT NOT NULL DEFAULT '',
     department_id   TEXT NOT NULL,
     status          TEXT NOT NULL,
     source          TEXT NOT NULL DEFAULT '',
     external_id     TEXT,
-    password_hash   TEXT,
+    employee_id     TEXT,
+    job_title       TEXT,
     personal_budget NUMERIC(18, 6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
+    UNIQUE (user_id, company_id),
     FOREIGN KEY (company_id, department_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_members_department ON members (company_id, department_id);
 CREATE INDEX IF NOT EXISTS idx_members_status ON members (company_id, status);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_members_email_company ON members (company_id, email) WHERE email <> '';
+CREATE INDEX IF NOT EXISTS idx_members_user ON members (user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_members_external
     ON members (company_id, external_id) WHERE external_id IS NOT NULL;
 

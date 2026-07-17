@@ -10,16 +10,18 @@ import (
 )
 
 const memberSelect = `
-	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget
+	SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget
 	FROM members m
+	JOIN users u ON u.id = m.user_id
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 `
 
 const memberListSelect = `
-	SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''),
+	SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''),
 		m.status, m.source, m.external_id, m.personal_budget,
 		COALESCE(array_agg(r.name ORDER BY r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
 	FROM members m
+	JOIN users u ON u.id = m.user_id
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 	LEFT JOIN member_roles mr ON mr.company_id = m.company_id AND mr.member_id = m.id
 	LEFT JOIN roles r ON r.company_id = mr.company_id AND r.id = mr.role_id
@@ -38,7 +40,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, memberListSelect+`
 		WHERE m.company_id = $1
-		GROUP BY m.id, m.name, m.phone, m.email, m.department_id, o.name,
+		GROUP BY m.id, m.user_id, m.name, u.phone, u.email, m.department_id, o.name,
 			m.status, m.source, m.external_id, m.personal_budget
 		ORDER BY m.id
 	`, companyID)
@@ -51,7 +53,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 		var item types.Member
 		var roles []string
 		if err := rows.Scan(
-			&item.ID, &item.Name, &item.Phone, &item.Email,
+			&item.ID, &item.UserID, &item.Name, &item.Phone, &item.Email,
 			&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
 			&item.PersonalBudget, &roles,
 		); err != nil {
@@ -69,7 +71,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 	row := r.db.QueryRow(ctx, memberSelect+` WHERE m.company_id = $1 AND m.id = $2`, companyID, memberID)
 	var item types.Member
 	if err := row.Scan(
-		&item.ID, &item.Name, &item.Phone, &item.Email,
+		&item.ID, &item.UserID, &item.Name, &item.Phone, &item.Email,
 		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
 		&item.PersonalBudget,
 	); err != nil {
@@ -99,14 +101,15 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 
 func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget, m.password_hash
+		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget, u.password_hash
 		FROM members m
+		JOIN users u ON u.id = m.user_id
 		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
-		WHERE m.company_id = $1 AND m.email = $2`, companyID, email)
+		WHERE m.company_id = $1 AND u.email = $2`, companyID, email)
 	var item types.Member
 	var passwordHash *string
 	if err := row.Scan(
-		&item.ID, &item.Name, &item.Phone, &item.Email,
+		&item.ID, &item.UserID, &item.Name, &item.Phone, &item.Email,
 		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
 		&item.PersonalBudget, &passwordHash,
 	); err != nil {
@@ -140,9 +143,10 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.name, m.phone, m.email, m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,
+		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,
 		       c.authz_revision
 		FROM members m
+		JOIN users u ON u.id = m.user_id
 		JOIN companies c ON c.id = m.company_id
 		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 		WHERE m.company_id = $1 AND m.id = $2
@@ -150,7 +154,7 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberI
 	var item types.Member
 	var revision int64
 	if err := row.Scan(
-		&item.ID, &item.Name, &item.Phone, &item.Email,
+		&item.ID, &item.UserID, &item.Name, &item.Phone, &item.Email,
 		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
 		&item.PersonalBudget, &revision,
 	); err != nil {
@@ -213,20 +217,19 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 		ids[i] = member.ID
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO members (
-				id, company_id, name, phone, email, department_id,
+				id, company_id, user_id, name, department_id,
 				status, source, external_id, personal_budget, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
-				phone = EXCLUDED.phone,
-				email = EXCLUDED.email,
+				user_id = EXCLUDED.user_id,
 				department_id = EXCLUDED.department_id,
 				status = EXCLUDED.status,
 				source = EXCLUDED.source,
 				external_id = EXCLUDED.external_id,
 				personal_budget = EXCLUDED.personal_budget,
 				updated_at = NOW()
-		`, member.ID, companyID, member.Name, member.Phone, member.Email,
+		`, member.ID, companyID, member.UserID, member.Name,
 			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget); err != nil {
 			return fmt.Errorf("upsert member %s: %w", member.ID, err)
 		}
@@ -280,11 +283,11 @@ func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID str
 func (r *pgOrgRepo) SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
-		UPDATE members SET password_hash = $3, updated_at = NOW()
-		WHERE company_id = $1 AND id = $2
+		UPDATE users SET password_hash = $3, updated_at = NOW()
+		WHERE id = (SELECT user_id FROM members WHERE company_id = $1 AND id = $2)
 	`, companyID, memberID, passwordHash)
 	if err != nil {
-		return fmt.Errorf("set member password: %w", err)
+		return fmt.Errorf("set user password: %w", err)
 	}
 	return nil
 }

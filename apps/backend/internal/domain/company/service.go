@@ -45,6 +45,7 @@ type AcceptInviteRequest struct {
 // Store is the narrow store surface the company domain needs.
 type Store interface {
 	Company() store.CompanyRepository
+	User() store.UserRepository
 	Org() store.OrgRepository
 	Invite() store.InviteRepository
 	TenantBackgroundState() store.TenantBackgroundStateRepository

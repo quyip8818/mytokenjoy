@@ -3,6 +3,7 @@ package types
 type Member struct {
 	ID             string   `json:"id"`
 	CompanyID      int64    `json:"companyId"`
+	UserID         string   `json:"userId"`
 	Name           string   `json:"name"`
 	Phone          string   `json:"phone"`
 	Email          string   `json:"email"`

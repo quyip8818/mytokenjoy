@@ -14,19 +14,37 @@ import (
 func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members []types.Member, roleIDByName map[string]string) error {
 	demoHash := contract.DemoPasswordHash()
 	for _, member := range members {
+		// Create user for this member (use member.ID as base for user ID).
+		userID := "u-" + member.ID
 		var passwordHash *string
 		if member.Status == "active" && member.Email != "" {
 			hash := demoHash
 			passwordHash = &hash
 		}
+		var phone *string
+		if member.Phone != "" {
+			phone = &member.Phone
+		}
+		var email *string
+		if member.Email != "" {
+			email = &member.Email
+		}
+		if _, err := exec.Exec(ctx, `
+			INSERT INTO users (id, phone, email, password_hash, status)
+			VALUES ($1, $2, $3, $4, 'active')
+			ON CONFLICT (id) DO NOTHING
+		`, userID, phone, email, passwordHash); err != nil {
+			return fmt.Errorf("seed user for member %s: %w", member.ID, err)
+		}
+
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO members (
-				id, company_id, name, phone, email, department_id,
-				status, source, external_id, personal_budget, password_hash
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+				id, company_id, user_id, name, department_id,
+				status, source, external_id, personal_budget
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, member.ID, member.CompanyID, member.Name, member.Phone, member.Email,
-			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget, passwordHash); err != nil {
+		`, member.ID, member.CompanyID, userID, member.Name,
+			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget); err != nil {
 			return fmt.Errorf("seed member %s: %w", member.ID, err)
 		}
 		for _, roleName := range member.Roles {
