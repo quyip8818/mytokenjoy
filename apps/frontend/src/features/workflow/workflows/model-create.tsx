@@ -38,7 +38,7 @@ export function ModelCreateWorkflow({
   const [baseUrl, setBaseUrl] = useState('')
   const [endpointModelName, setEndpointModelName] = useState('')
   const [completionMode, setCompletionMode] = useState('chat')
-  const [maxContext, setMaxContext] = useState('4096')
+  const [maxContext, setMaxContext] = useState('1000000')
   const [maxTokens, setMaxTokens] = useState('4096')
   const [inputPrice, setInputPrice] = useState('10')
   const [outputPrice, setOutputPrice] = useState('30')
@@ -133,6 +133,8 @@ export function ModelCreateWorkflow({
             placeholder="endpoint model name, e.g. chatgpt4.0"
           />
         </div>
+        {/* Completion mode hidden for now */}
+        {false && (
         <div className="space-y-1.5">
           <Label>Completion mode</Label>
           <Select value={completionMode} onValueChange={(v) => { setCompletionMode(v); markDirty() }}>
@@ -148,6 +150,7 @@ export function ModelCreateWorkflow({
             </SelectContent>
           </Select>
         </div>
+        )}
         <div className="space-y-1.5">
           <Label>
             模型上下文长度 <span className="text-destructive">*</span>

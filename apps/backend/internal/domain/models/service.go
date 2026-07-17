@@ -65,7 +65,7 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	}
 	maxContext := input.MaxContext
 	if maxContext == 0 {
-		maxContext = 128000
+		maxContext = 1000000
 	}
 	capabilities := input.Capabilities
 	if len(capabilities) == 0 {

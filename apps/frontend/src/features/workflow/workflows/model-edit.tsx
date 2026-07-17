@@ -41,7 +41,7 @@ export function ModelEditWorkflow({
   const [apiKey, setApiKey] = useState(model.apiKey ?? '')
   const [endpointModelName, setEndpointModelName] = useState(model.endpointModelName ?? '')
   const [completionMode, setCompletionMode] = useState(model.capabilities?.[0] ?? 'chat')
-  const [maxContext, setMaxContext] = useState(String(model.maxContext || 4096))
+  const [maxContext, setMaxContext] = useState(String(model.maxContext || 1000000))
   const [maxTokens, setMaxTokens] = useState(String(model.maxTokens || 4096))
   const [inputPrice, setInputPrice] = useState(String(model.inputPrice))
   const [outputPrice, setOutputPrice] = useState(String(model.outputPrice))
@@ -139,6 +139,8 @@ export function ModelEditWorkflow({
             </div>
           </>
         )}
+        {/* Completion mode hidden for now */}
+        {false && (
         <div className="space-y-1.5">
           <Label>Completion mode</Label>
           <Select value={completionMode} onValueChange={(v) => { setCompletionMode(v); markDirty() }}>
@@ -154,6 +156,7 @@ export function ModelEditWorkflow({
             </SelectContent>
           </Select>
         </div>
+        )}
         <div className="space-y-1.5">
           <Label>
             模型上下文长度 <span className="text-destructive">*</span>
