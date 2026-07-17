@@ -16,17 +16,15 @@ func ValidPlatformKeyScope(scope string) bool {
 }
 
 type ProviderKey struct {
-	ID              string   `json:"id"`
-	Provider        string   `json:"provider"`
-	Name            string   `json:"name"`
-	KeyPrefix       string   `json:"keyPrefix"`
-	Status          string   `json:"status"`
-	Balance         *float64 `json:"balance"`
-	LastUsed        *string  `json:"lastUsed"`
-	CreatedAt       string   `json:"createdAt"`
-	RotateEnabled   bool     `json:"rotateEnabled"`
-	SecretKey       string   `json:"-"`
-	NewAPIChannelID int      `json:"-"`
+	ID              string `json:"id"`
+	Provider        string `json:"provider"`
+	Name            string `json:"name"`
+	KeyPrefix       string `json:"keyPrefix"`
+	Status          string `json:"status"`
+	CreatedAt       string `json:"createdAt"`
+	RotateEnabled   bool   `json:"rotateEnabled"`
+	SecretKey       string `json:"-"`
+	NewAPIChannelID int    `json:"-"`
 }
 
 type PlatformKey struct {

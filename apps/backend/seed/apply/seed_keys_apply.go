@@ -29,22 +29,14 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 		if err != nil {
 			createdAt = time.Now().UTC()
 		}
-		var lastUsed *time.Time
-		if key.LastUsed != nil {
-			t, err := pkgtime.Parse(*key.LastUsed)
-			if err != nil {
-				return err
-			}
-			lastUsed = &t
-		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO provider_keys (
 				id, provider, name, key_prefix, secret_key, newapi_channel_id, status,
-				balance, last_used, rotate_enabled, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+				rotate_enabled, created_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (id) DO NOTHING
 		`, key.ID, key.Provider, key.Name, key.KeyPrefix, key.SecretKey, key.NewAPIChannelID,
-			key.Status, key.Balance, lastUsed, key.RotateEnabled, createdAt); err != nil {
+			key.Status, key.RotateEnabled, createdAt); err != nil {
 			return err
 		}
 	}

@@ -7,8 +7,6 @@ export const mockProviderKeys: ProviderKey[] = [
     provider: 'openai',
     keyPrefix: 'sk-xxx',
     status: 'active',
-    balance: null,
-    lastUsed: null,
     createdAt: '2026-01-01 00:00',
     rotateEnabled: false,
   },

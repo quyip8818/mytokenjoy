@@ -7,8 +7,6 @@ export interface ProviderKey {
   name: string
   keyPrefix: string
   status: KeyStatus
-  balance: number | null
-  lastUsed: string | null
   createdAt: string
   rotateEnabled: boolean
 }

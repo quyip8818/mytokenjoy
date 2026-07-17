@@ -60,14 +60,6 @@ func cloneProviderKeys(items []types.ProviderKey) []types.ProviderKey {
 			SecretKey: key.SecretKey, NewAPIChannelID: key.NewAPIChannelID,
 			Status: key.Status, CreatedAt: key.CreatedAt, RotateEnabled: key.RotateEnabled,
 		}
-		if key.Balance != nil {
-			balance := *key.Balance
-			cloned.Balance = &balance
-		}
-		if key.LastUsed != nil {
-			lastUsed := *key.LastUsed
-			cloned.LastUsed = &lastUsed
-		}
 		result[i] = cloned
 	}
 	return result

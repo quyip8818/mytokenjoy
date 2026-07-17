@@ -7,10 +7,9 @@ import (
 
 // PrecheckContextRow is the store DTO loaded in a single round-trip for /v1 precheck.
 type PrecheckContextRow struct {
-	CompanyID          int64
-	CompanyStatus      string
-	WalletRemain       float64
-	NewAPIWalletUserID *int64
+	CompanyID     int64
+	CompanyStatus string
+	WalletRemain  float64
 
 	PlatformKeyID string
 	KeyStatus     string

@@ -364,8 +364,6 @@ CREATE TABLE IF NOT EXISTS provider_keys (
     secret_key       TEXT NOT NULL,
     newapi_channel_id INT NOT NULL DEFAULT 0,
     status           TEXT NOT NULL,
-    balance          NUMERIC(18, 6),
-    last_used        TIMESTAMPTZ,
     rotate_enabled   BOOLEAN NOT NULL DEFAULT FALSE,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()

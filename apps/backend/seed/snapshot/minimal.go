@@ -39,7 +39,7 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		BudgetApprovals: minimalBudgetApprovals(),
 		OverrunPolicy:   buildOverrunPolicy(),
 		AlertRules:      minimalAlertRules(),
-		ProviderKeys:    buildProviderKeys(ref)[:3],
+		ProviderKeys:    buildProviderKeys()[:3],
 		PlatformKeys:    platformKeys,
 		Approvals:       buildApprovals()[:1],
 		Models:          buildModels(),

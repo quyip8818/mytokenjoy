@@ -401,9 +401,6 @@ func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rotated.LastUsed != nil {
-		t.Fatalf("rotate must not stamp last_used, got %v", *rotated.LastUsed)
-	}
 	if rotated.KeyPrefix == created.KeyPrefix {
 		t.Fatal("expected key prefix to change after rotate")
 	}

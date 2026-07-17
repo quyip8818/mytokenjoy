@@ -35,7 +35,7 @@ func Build(cfg config.Config) store.Snapshot {
 		BudgetApprovals: buildBudgetApprovals(),
 		OverrunPolicy:   buildOverrunPolicy(),
 		AlertRules:      buildAlertRules(),
-		ProviderKeys:    buildProviderKeys(ref),
+		ProviderKeys:    buildProviderKeys(),
 		PlatformKeys:    loadPlatformKeys(),
 		Approvals:       buildApprovals(),
 		Models:          buildModels(),

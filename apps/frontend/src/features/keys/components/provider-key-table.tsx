@@ -24,13 +24,6 @@ interface ProviderKeyTableProps {
   onDelete: (id: string) => void
 }
 
-function getBalanceClass(balance: number | null) {
-  if (balance === null) return 'text-muted-foreground'
-  if (balance > 1000) return 'font-medium text-emerald-600'
-  if (balance < 500) return 'font-medium text-amber-600'
-  return ''
-}
-
 export function ProviderKeyTable({ keys, rowClass, onToggle, onDelete }: ProviderKeyTableProps) {
   return (
     <Table>
@@ -48,11 +41,8 @@ export function ProviderKeyTable({ keys, rowClass, onToggle, onDelete }: Provide
           <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
             状态
           </TableHead>
-          <TableHead className="text-right text-xs font-semibold uppercase text-muted-foreground">
-            余额
-          </TableHead>
           <TableHead className="text-xs font-semibold uppercase text-muted-foreground">
-            最后使用
+            创建时间
           </TableHead>
           <TableHead className="w-[120px] text-xs font-semibold uppercase text-muted-foreground">
             操作
@@ -72,10 +62,7 @@ export function ProviderKeyTable({ keys, rowClass, onToggle, onDelete }: Provide
             <TableCell>
               <KeyStatusBadge status={key.status} />
             </TableCell>
-            <TableCell className={`text-right ${getBalanceClass(key.balance)}`}>
-              {key.balance !== null ? `$${key.balance.toFixed(2)}` : '-'}
-            </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{key.lastUsed ?? '-'}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{key.createdAt}</TableCell>
             <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
