@@ -11,14 +11,16 @@ const (
 	IDModelLocalTest int64 = 1
 
 	ProdCatalogModelIDStart int64 = modelcatalog.ProdCatalogModelIDStart
-	IDModel1                int64 = ProdCatalogModelIDStart // gpt-4o
-	IDModel2                int64 = 101                     // gpt-4o-mini
-	IDModel3                int64 = 102                     // claude-opus-4-8
-	IDModel4                int64 = 103                     // claude-sonnet-4-6
-	IDModel5                int64 = 104                     // deepseek-v3
-	IDModel6                int64 = 105                     // deepseek-r1
-	IDModel7                int64 = 106                     // qwen-max
-	IDModel8                int64 = 107                     // qwen-plus
+	IDModel1                int64 = ProdCatalogModelIDStart // deepseek-v4
+	IDModel2                int64 = 101                     // deepseek-r1
+	IDModel3                int64 = 102                     // qwen-3.5-plus
+	IDModel4                int64 = 103                     // qwen-max-2026
+	IDModel5                int64 = 104                     // glm-5
+	IDModel6                int64 = 105                     // kimi-k3
+	IDModel7                int64 = 106                     // doubao-pro-256k
+	IDModel8                int64 = 107                     // minimax-m2
+	IDModel9                int64 = 108                     // claude-sonnet-5
+	IDModel10               int64 = 109                     // gpt-4o
 
 	IDDept2          = "dept-2"
 	IDDept3          = "dept-3"
@@ -42,12 +44,14 @@ const (
 // ModelTypeToID maps demo seed model types to catalog model_id values.
 var ModelTypeToID = map[string]int64{
 	modelcatalog.DevCallTypeLocalTest: IDModelLocalTest,
-	"gpt-4o":                          IDModel1,
-	"gpt-4o-mini":                     IDModel2,
-	"claude-opus-4-8":                 IDModel3,
-	"claude-sonnet-4-6":               IDModel4,
-	"deepseek-v3":                     IDModel5,
-	"deepseek-r1":                     IDModel6,
-	"qwen-max":                        IDModel7,
-	"qwen-plus":                       IDModel8,
+	"deepseek-v4":                     IDModel1,
+	"deepseek-r1":                     IDModel2,
+	"qwen-3.5-plus":                   IDModel3,
+	"qwen-max-2026":                   IDModel4,
+	"glm-5":                           IDModel5,
+	"kimi-k3":                         IDModel6,
+	"doubao-pro-256k":                 IDModel7,
+	"minimax-m2":                      IDModel8,
+	"claude-sonnet-5":                 IDModel9,
+	"gpt-4o":                          IDModel10,
 }
