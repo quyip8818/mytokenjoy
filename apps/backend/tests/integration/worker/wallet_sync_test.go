@@ -54,7 +54,7 @@ func TestWalletSyncWorkerCancelsWhenWalletNotConfigured(t *testing.T) {
 	const companyID int64 = 888_002
 	now := time.Now().UTC()
 	if err := fix.st.Company().Create(ctx, store.Company{
-		ID: companyID, Slug: "wallet-sync-cancel", Name: "No Wallet Co",
+		ID: companyID, Name: "No Wallet Co",
 		Status: store.CompanyStatusActive, BillingCurrency: common.DefaultBillingCurrency, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)

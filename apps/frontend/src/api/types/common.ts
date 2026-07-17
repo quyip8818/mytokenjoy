@@ -1,5 +1,7 @@
 import type { Member } from './org'
 
+export type CompanyType = 'standard' | 'trial' | 'demo' | 'selfhosted' | 'testing'
+
 export interface Paginated<T> {
   items: T[]
   total: number
@@ -13,6 +15,7 @@ export interface MemberPaginated extends Paginated<Member> {
 
 export interface SessionContext {
   companyId: number
+  companyType: CompanyType
   authzRevision: number
   member: Member
   permissions: string[]

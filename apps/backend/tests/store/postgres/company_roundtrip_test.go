@@ -18,8 +18,9 @@ func TestCompanyRoundTrip(t *testing.T) {
 	now := time.Now().UTC()
 
 	co := store.Company{
-		ID: 9001, Slug: "roundtrip-co", Name: "Roundtrip Co",
-		Status: store.CompanyStatusActive, CreatedAt: now, UpdatedAt: now,
+		ID: 9001, Name: "Roundtrip Co",
+		Type: store.CompanyTypeTesting, Status: store.CompanyStatusActive,
+		CreatedAt: now, UpdatedAt: now,
 	}
 	if err := st.Company().Create(ctx, co); err != nil {
 		t.Fatal(err)
@@ -28,8 +29,8 @@ func TestCompanyRoundTrip(t *testing.T) {
 	if err != nil || got == nil {
 		t.Fatal("expected company")
 	}
-	if got.Slug != co.Slug {
-		t.Fatalf("expected slug %s, got %s", co.Slug, got.Slug)
+	if got.Name != co.Name {
+		t.Fatalf("expected name %s, got %s", co.Name, got.Name)
 	}
 	if err := st.Company().UpdateStatus(ctx, co.ID, store.CompanyStatusSuspended); err != nil {
 		t.Fatal(err)

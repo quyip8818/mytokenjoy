@@ -22,7 +22,7 @@ func TestAppendPlatformOperationLogWritesToTargetCompany(t *testing.T) {
 	const action = "platform.company.recharge"
 
 	if err := st.Company().Create(context.Background(), store.Company{
-		ID: targetCompanyID, Slug: "target-co", Name: "Target Co", Status: store.CompanyStatusActive,
+		ID: targetCompanyID, Name: "Target Co", Status: store.CompanyStatusActive,
 	}); err != nil {
 		t.Fatal(err)
 	}

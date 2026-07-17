@@ -28,7 +28,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenMissingWallet(t *test
 	ctx := context.Background()
 	now := time.Now().UTC()
 	if err := st.Company().Create(ctx, store.Company{
-		ID: companyID, Slug: "no-wallet", Name: "No Wallet", Status: store.CompanyStatusActive,
+		ID: companyID, Name: "No Wallet", Status: store.CompanyStatusActive,
 		BillingCurrency: common.DefaultBillingCurrency, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestSyncCompanyWalletReturnsErrWalletNotConfiguredWhenWalletIDZero(t *testi
 	now := time.Now().UTC()
 	zero := int64(0)
 	if err := st.Company().Create(ctx, store.Company{
-		ID: companyID, Slug: "zero-wallet", Name: "Zero Wallet", Status: store.CompanyStatusActive,
+		ID: companyID, Name: "Zero Wallet", Status: store.CompanyStatusActive,
 		NewAPIWalletUserID: &zero, BillingCurrency: common.DefaultBillingCurrency, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)

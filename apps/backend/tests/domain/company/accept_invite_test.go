@@ -27,7 +27,7 @@ func TestAcceptInviteCreatesSessionReadyMember(t *testing.T) {
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
 	created := saas.CreateCompanyHTTP(t, router, platformCookie,
-		"accept-co", "Accept Co", "accept@example.com")
+		"Accept Co", "accept@example.com")
 	_, memberCookie := saas.AcceptInviteHTTP(t, router, created.InviteCode,
 		"Accept Admin", "securepass123")
 

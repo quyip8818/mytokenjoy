@@ -2,7 +2,6 @@ package billing_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -19,7 +18,7 @@ func newLotTestCompany(t *testing.T, st store.Store, companyID int64) context.Co
 	ctx := testutil.CtxForCompany(companyID)
 	now := time.Now().UTC()
 	co := store.Company{
-		ID: companyID, Slug: fmt.Sprintf("lot-co-%d", companyID), Name: "Lot Test Co",
+		ID: companyID, Name: "Lot Test Co",
 		Status: store.CompanyStatusActive, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := st.Company().Create(ctx, co); err != nil {

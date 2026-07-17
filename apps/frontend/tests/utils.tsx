@@ -23,6 +23,7 @@ export function createMockSession(
 ): SessionContext {
   return {
     companyId: 1,
+    companyType: 'selfhosted',
     authzRevision: 0,
     member: mockMember,
     permissions,

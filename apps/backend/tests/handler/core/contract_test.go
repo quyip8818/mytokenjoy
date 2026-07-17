@@ -102,7 +102,7 @@ func saasContractRouter(t *testing.T) (http.Handler, string, string) {
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"contract-co", "Contract Co", "contract@example.com", "Contract Admin", "securepass123")
+		"Contract Co", "contract@example.com", "Contract Admin", "securepass123")
 	return router, platformCookie, provisioned.MemberCookie
 }
 

@@ -125,7 +125,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	router := app.Router
 	platformCookie := saas.LoginPlatform(t, router)
 	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
-		"router-gw", "Router GW", "router-gw@example.com", "Router Admin", "securepass123")
+		"Router GW", "router-gw@example.com", "Router Admin", "securepass123")
 
 	walletID := int64(0)
 	if provisioned.Company.NewAPIWalletUserID != nil {

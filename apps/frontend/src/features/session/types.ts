@@ -1,6 +1,7 @@
 import type { Member } from '@/api/types'
+import type { CompanyType } from '@/api/types/common'
 
-export type CompanyType = 'standard' | 'trial' | 'demo' | 'selfhosted' | 'testing'
+export type { CompanyType } from '@/api/types/common'
 
 export interface AppSession {
   companyId: number

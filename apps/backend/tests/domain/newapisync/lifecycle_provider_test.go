@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -43,9 +42,9 @@ func TestSyncUpsertProviderKeyEnsuresPrivateGroup(t *testing.T) {
 	if err := sync.SyncUpsertProviderKey(ctx, pk.ID); err != nil {
 		t.Fatal(err)
 	}
-	want := newapiunits.NewAPIGroupForDepartment("dept-3")
-	if ensuredGroup != want {
-		t.Fatalf("expected ensured group %q, got %q", want, ensuredGroup)
+	// In non-SaaS mode, provider channel group is empty (no group restriction).
+	if ensuredGroup != "" {
+		t.Fatalf("expected ensured group %q, got %q", "", ensuredGroup)
 	}
 	if stub.EnsureGroupCalls != 1 || stub.UpsertChannelCalls != 1 {
 		t.Fatalf("expected one EnsureGroup and one UpsertChannel, got ensure=%d upsert=%d", stub.EnsureGroupCalls, stub.UpsertChannelCalls)
