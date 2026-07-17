@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -26,8 +27,8 @@ func (r *pgBudgetRepo) BudgetApprovals(ctx context.Context) ([]types.BudgetAppro
 	items := make([]types.BudgetApproval, 0)
 	for rows.Next() {
 		var item types.BudgetApproval
-		var applicantID *string
-		var departmentID *string
+		var applicantID *uuid.UUID
+		var departmentID *uuid.UUID
 		var createdAt time.Time
 		var resolvedAt *time.Time
 		if err := rows.Scan(
@@ -59,7 +60,7 @@ func (r *pgBudgetRepo) BudgetApprovals(ctx context.Context) ([]types.BudgetAppro
 func (r *pgBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.BudgetApproval) error {
 	companyID := store.CompanyID(ctx)
 	cloned := cloneBudgetApprovals(items)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, approval := range cloned {
 		ids[i] = approval.ID
 		createdAt, err := parseAPITime(approval.CreatedAt)
@@ -74,8 +75,8 @@ func (r *pgBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.Bud
 			}
 			resolvedAt = &t
 		}
-		var applicantID *string
-		if approval.ApplicantID != "" {
+		var applicantID *uuid.UUID
+		if approval.ApplicantID != uuid.Nil {
 			applicantID = &approval.ApplicantID
 		}
 		if _, err := r.db.Exec(ctx, `
@@ -103,7 +104,7 @@ func (r *pgBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.Bud
 		_, err := r.db.Exec(ctx, `DELETE FROM budget_approvals WHERE company_id = $1`, companyID)
 		return err
 	}
-	return pruneByIDForCompany(ctx, r.db, "budget_approvals", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "budget_approvals", companyID, ids)
 }
 
 func (r *pgBudgetRepo) UpdateBudgetApproval(ctx context.Context, id, status string, rejectReason *string, resolvedAt time.Time) error {

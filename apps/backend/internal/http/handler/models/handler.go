@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -89,7 +90,7 @@ func (h *Handler) RoutingList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RoutingResolve(w http.ResponseWriter, r *http.Request) {
-	deptID := r.URL.Query().Get("deptId")
+	deptID, _ := uuid.Parse(r.URL.Query().Get("deptId"))
 	result, err := h.service.ResolveRouting(r.Context(), deptID)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

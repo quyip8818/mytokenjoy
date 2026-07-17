@@ -1,7 +1,10 @@
 // Package notification defines domain types for the notification module.
 package notification
 
+import
+
 // --- Channels ---
+"github.com/google/uuid"
 
 const (
 	ChannelEmail   = "email"
@@ -134,8 +137,8 @@ const (
 
 type Event struct {
 	EventType   string
-	RecipientID string
-	CompanyID   int64
+	RecipientID uuid.UUID
+	CompanyID   uuid.UUID
 	Payload     map[string]any
 	Metadata    EventMetadata
 }
@@ -180,7 +183,7 @@ type PreferenceEntry struct {
 }
 
 type UserPreferences struct {
-	UserID      string
+	UserID      uuid.UUID
 	Preferences []PreferenceEntry
 	GlobalMute  bool
 	QuietHours  *QuietHours

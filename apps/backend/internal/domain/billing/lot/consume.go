@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Segment struct {
-	LotID           string
+	LotID           uuid.UUID
 	Points          float64
 	DisplayAmount   float64
 	BillingCurrency string
@@ -24,13 +25,13 @@ type ConsumeResult struct {
 
 // ConsumeLots locks the company row and consumes lots. Use when the caller has
 // NOT yet acquired the company lock within the current transaction.
-func ConsumeLots(ctx context.Context, st CreditStore, companyID int64, amountPoint float64) (ConsumeResult, error) {
+func ConsumeLots(ctx context.Context, st CreditStore, companyID uuid.UUID, amountPoint float64) (ConsumeResult, error) {
 	co, err := st.Company().LockForUpdate(ctx, companyID)
 	if err != nil {
 		return ConsumeResult{}, err
 	}
 	if co == nil {
-		return ConsumeResult{}, fmt.Errorf("company not found: %d", companyID)
+		return ConsumeResult{}, fmt.Errorf("company not found: %s", companyID)
 	}
 	return consumeLotsWithCompany(ctx, st, co, amountPoint)
 }
@@ -58,7 +59,7 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 	}
 	remaining := amountPoint
 	var segments []Segment
-	var nextHead *string
+	var nextHead *uuid.UUID
 	overdraftAdded := 0.0
 	for _, lotRow := range lots {
 		if remaining <= 0 {
@@ -139,14 +140,14 @@ func CreditFromLot(
 		if err := tx.Billing().ConfirmRechargeWithLot(ctx, order, lotRow); err != nil {
 			return err
 		}
-		var fifoHead *string
+		var fifoHead *uuid.UUID
 		if lotRow.PointsRemaining > 0 && lotRow.LotKind != store.LotKindOverdraft {
 			co, err := tx.Company().GetByID(ctx, order.CompanyID)
 			if err != nil {
 				return err
 			}
 			// Append-only queue: only set head when the queue is empty (first active lot).
-			if co.FIFOHeadLotID == nil || *co.FIFOHeadLotID == "" {
+			if co.FIFOHeadLotID == nil || *co.FIFOHeadLotID == uuid.Nil {
 				fifoHead = &lotRow.ID
 			}
 		}

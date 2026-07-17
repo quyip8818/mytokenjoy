@@ -3,12 +3,13 @@ package budget
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func ValidatePlatformKeyScope(scope string, memberID, projectID *string) error {
+func ValidatePlatformKeyScope(scope string, memberID, projectID *uuid.UUID) error {
 	if !types.ValidPlatformKeyScope(scope) {
 		return fmt.Errorf("invalid scope %q", scope)
 	}
@@ -32,7 +33,7 @@ func ValidatePlatformKeyScope(scope string, memberID, projectID *string) error {
 	return nil
 }
 
-func ValidateProjectMemberRoster(project types.Project, memberID string) error {
+func ValidateProjectMemberRoster(project types.Project, memberID uuid.UUID) error {
 	for _, id := range project.MemberIDs {
 		if id == memberID {
 			budget := project.MemberBudgets[memberID]
@@ -45,7 +46,7 @@ func ValidateProjectMemberRoster(project types.Project, memberID string) error {
 	return fmt.Errorf("member not on project roster")
 }
 
-func ProjectMemberBudget(project types.Project, memberID string) float64 {
+func ProjectMemberBudget(project types.Project, memberID uuid.UUID) float64 {
 	if project.MemberBudgets == nil {
 		return 0
 	}
@@ -55,9 +56,9 @@ func ProjectMemberBudget(project types.Project, memberID string) float64 {
 func ValidateProjectMemberKeyBudget(
 	project types.Project,
 	platformKeys []types.PlatformKey,
-	memberID string,
+	memberID uuid.UUID,
 	budget float64,
-	excludeKeyID string,
+	excludeKeyID uuid.UUID,
 ) *string {
 	subCap := ProjectMemberBudget(project, memberID)
 	allocated := 0.0
@@ -74,7 +75,7 @@ func ValidateProjectMemberKeyBudget(
 		if key.Status != "active" {
 			continue
 		}
-		if excludeKeyID != "" && key.ID == excludeKeyID {
+		if excludeKeyID != uuid.Nil && key.ID == excludeKeyID {
 			continue
 		}
 		allocated += key.Budget
@@ -91,7 +92,7 @@ func ValidateProjectMemberKeyBudget(
 	return nil
 }
 
-func FindProject(projects []types.Project, projectID string) (types.Project, bool) {
+func FindProject(projects []types.Project, projectID uuid.UUID) (types.Project, bool) {
 	for _, project := range projects {
 		if project.ID == projectID {
 			return project, true
@@ -100,19 +101,19 @@ func FindProject(projects []types.Project, projectID string) (types.Project, boo
 	return types.Project{}, false
 }
 
-func MemberDepartmentID(members []types.Member, memberID string) string {
+func MemberDepartmentID(members []types.Member, memberID uuid.UUID) uuid.UUID {
 	if member, ok := pkgorg.FindMemberByID(members, memberID); ok {
 		return member.DepartmentID
 	}
-	return ""
+	return uuid.Nil
 }
 
 func ValidateMemberScopeKeyBudget(
 	members []types.Member,
 	platformKeys []types.PlatformKey,
-	memberID string,
+	memberID uuid.UUID,
 	budget float64,
-	excludeKeyID string,
+	excludeKeyID uuid.UUID,
 ) *string {
 	if budget > memberScopeBudgetRemaining(members, platformKeys, memberID, excludeKeyID) {
 		msg := "额度不足，请先申请追加"
@@ -125,9 +126,9 @@ func ValidateProjectScopeKeyBudget(
 	scope string,
 	project types.Project,
 	platformKeys []types.PlatformKey,
-	memberID *string,
+	memberID *uuid.UUID,
 	budget float64,
-	excludeKeyID string,
+	excludeKeyID uuid.UUID,
 ) *string {
 	if scope == types.PlatformKeyScopeProjectMember {
 		if memberID == nil {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -44,7 +45,12 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberBudgets(w http.ResponseWriter, r *http.Request) {
-	budgets, err := h.service.ListMemberBudgets(r.Context(), chi.URLParam(r, "departmentId"))
+	deptID, err := uuid.Parse(chi.URLParam(r, "departmentId"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid departmentId")
+		return
+	}
+	budgets, err := h.service.ListMemberBudgets(r.Context(), deptID)
 	httputil.WriteJSON(w, http.StatusOK, budgets, err)
 }
 
@@ -54,7 +60,12 @@ func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	result, err := h.service.UpdateMemberBudget(r.Context(), chi.URLParam(r, "memberId"), body.PersonalBudget)
+	memberID, err := uuid.Parse(chi.URLParam(r, "memberId"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid memberId")
+		return
+	}
+	result, err := h.service.UpdateMemberBudget(r.Context(), memberID, body.PersonalBudget)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
@@ -67,8 +78,12 @@ func (h *Handler) ApplyAverageBudget(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	deptID := chi.URLParam(r, "departmentId")
-	err := h.service.ApplyAverageBudget(r.Context(), deptID, body.PersonalBudget, body.Recursive)
+	deptID, err := uuid.Parse(chi.URLParam(r, "departmentId"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid departmentId")
+		return
+	}
+	err = h.service.ApplyAverageBudget(r.Context(), deptID, body.PersonalBudget, body.Recursive)
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -167,7 +182,11 @@ func (h *Handler) ApprovalResolve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ProjectMemberConsumed(w http.ResponseWriter, r *http.Request) {
-	groupID := chi.URLParam(r, "id")
+	groupID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	result, err := h.service.GetProjectMemberConsumed(r.Context(), groupID)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -50,7 +51,7 @@ func insertSeedPermissions(ctx context.Context, exec TableWriter, permissions []
 	return nil
 }
 
-func insertSeedRoles(ctx context.Context, exec TableWriter, tid int64, roles []types.Role) error {
+func insertSeedRoles(ctx context.Context, exec TableWriter, tid uuid.UUID, roles []types.Role) error {
 	for _, role := range roles {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, $4)
@@ -70,8 +71,8 @@ func insertSeedRoles(ctx context.Context, exec TableWriter, tid int64, roles []t
 	return nil
 }
 
-func buildSeedRoleNameIndex(roles []types.Role) map[string]string {
-	index := make(map[string]string, len(roles))
+func buildSeedRoleNameIndex(roles []types.Role) map[string]uuid.UUID {
+	index := make(map[string]uuid.UUID, len(roles))
 	for _, role := range roles {
 		index[role.Name] = role.ID
 	}

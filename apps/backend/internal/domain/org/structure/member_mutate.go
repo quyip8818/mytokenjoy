@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -35,7 +36,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 	}
 
 	member := types.Member{
-		ID:     generateID("m"),
+		ID:     generateID(),
 		UserID: userID,
 		Name:   input.Name, Phone: input.Phone, Email: input.Email,
 		Username: input.Username, EmployeeID: input.EmployeeID,
@@ -72,12 +73,16 @@ func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.
 	if err := validateRolesNotEscalated(input.Roles); err != nil {
 		return types.Member{}, err
 	}
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return types.Member{}, err
+	}
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.Member{}, err
 	}
 	for i := range members {
-		if members[i].ID == id {
+		if members[i].ID == parsedID {
 			existing := members[i]
 			// Merge: only overwrite non-zero fields from input
 			if input.Name != "" {
@@ -101,7 +106,7 @@ func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.
 			if input.HireDate != "" {
 				existing.HireDate = input.HireDate
 			}
-			if input.DepartmentID != "" {
+			if input.DepartmentID != uuid.Nil {
 				existing.DepartmentID = input.DepartmentID
 				existing.DepartmentName = input.DepartmentName
 			}
@@ -139,12 +144,16 @@ func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, sta
 			return err
 		}
 		for _, id := range ids {
+			parsedID, err := uuid.Parse(id)
+			if err != nil {
+				continue
+			}
 			for i := range members {
-				if members[i].ID == id {
+				if members[i].ID == parsedID {
 					members[i].Status = status
 					if status == "inactive" {
 						for j := range keys {
-							if keys[j].MemberID != nil && *keys[j].MemberID == id {
+							if keys[j].MemberID != nil && *keys[j].MemberID == parsedID {
 								keys[j].Status = "disabled"
 							}
 						}
@@ -162,7 +171,7 @@ func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, sta
 	})
 }
 
-func (s *LocalService) TransferMembers(ctx context.Context, ids []string, departmentID string) error {
+func (s *LocalService) TransferMembers(ctx context.Context, ids []string, departmentID uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -196,9 +205,13 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []string, depart
 		if err != nil {
 			return err
 		}
-		idSet := make(map[string]struct{}, len(ids))
+		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			idSet[id] = struct{}{}
+			parsed, err := uuid.Parse(id)
+			if err != nil {
+				continue
+			}
+			idSet[parsed] = struct{}{}
 		}
 
 		for i := range members {

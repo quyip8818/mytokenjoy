@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 )
 
@@ -21,7 +22,8 @@ func (h *Handler) DepartmentCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	dept, err := h.service.CreateDepartment(r.Context(), body.Name, body.ParentID)
+	parentID, _ := uuid.Parse(body.ParentID)
+	dept, err := h.service.CreateDepartment(r.Context(), body.Name, parentID)
 	httputil.WriteJSON(w, http.StatusOK, dept, err)
 }
 
@@ -33,13 +35,21 @@ func (h *Handler) DepartmentUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	id := chi.URLParam(r, "id")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	dept, err := h.service.UpdateDepartment(r.Context(), id, body.Name)
 	httputil.WriteJSON(w, http.StatusOK, dept, err)
 }
 
 func (h *Handler) DepartmentDelete(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	err := h.service.DeleteDepartment(r.Context(), id)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.DeleteDepartment(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }

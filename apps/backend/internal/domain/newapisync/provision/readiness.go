@@ -3,12 +3,13 @@ package provision
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 // UnreadyPlatformKeyIDs lists active platform keys that are not fully synced to NewAPI.
-func UnreadyPlatformKeyIDs(ctx context.Context, d syncdeps.Deps) ([]string, error) {
+func UnreadyPlatformKeyIDs(ctx context.Context, d syncdeps.Deps) ([]uuid.UUID, error) {
 	if !syncdeps.Enabled(d) {
 		return nil, nil
 	}
@@ -16,7 +17,7 @@ func UnreadyPlatformKeyIDs(ctx context.Context, d syncdeps.Deps) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
-	var unready []string
+	var unready []uuid.UUID
 	for _, key := range platformKeys {
 		if key.Status != "active" {
 			continue
@@ -33,7 +34,7 @@ func UnreadyPlatformKeyIDs(ctx context.Context, d syncdeps.Deps) ([]string, erro
 		if err != nil {
 			return nil, err
 		}
-		if !ok || hash == store.HashPlatformKey("pending:"+key.ID) {
+		if !ok || hash == store.HashPlatformKey("pending:"+key.ID.String()) {
 			unready = append(unready, key.ID)
 		}
 	}

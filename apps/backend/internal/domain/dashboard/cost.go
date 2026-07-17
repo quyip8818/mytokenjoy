@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -17,7 +18,7 @@ func roundCost(v float64) float64 {
 	return math.Round(v*100) / 100
 }
 
-func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) (types.CostSummary, error) {
+func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) (types.CostSummary, error) {
 	current, err := s.resolveRange(params)
 	if err != nil {
 		return types.CostSummary{}, err
@@ -63,7 +64,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	if err != nil {
 		return nil, err
 	}
-	scopeDeptIDs, err := s.resolveScope(ctx, scope, "")
+	scopeDeptIDs, err := s.resolveScope(ctx, scope, uuid.Nil)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	result := make([]types.DepartmentCost, 0, len(rows))
 	for _, row := range rows {
 		dept := pkgorg.FindDepartment(departments, row.DepartmentID)
-		name := row.DepartmentID
+		name := row.DepartmentID.String()
 		hasChildren := false
 		if dept != nil {
 			name = dept.Name
@@ -107,7 +108,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID string, params t
 	return result, nil
 }
 
-func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error) {
+func (s *service) DepartmentMemberCosts(ctx context.Context, deptID uuid.UUID, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error) {
 	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	}
 	result := make([]types.DepartmentCostMember, 0, len(rows))
 	for _, row := range rows {
-		name := row.MemberID
+		name := row.MemberID.String()
 		if member, ok := pkgorg.FindMemberByID(members, row.MemberID); ok {
 			name = member.Name
 		}
@@ -148,7 +149,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID string, para
 	return result, nil
 }
 
-func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DailyCost, error) {
+func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.DailyCost, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
@@ -173,7 +174,7 @@ func (s *service) DailyCosts(ctx context.Context, params types.CostQueryParams, 
 	return result, nil
 }
 
-func (s *service) TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TopConsumer, error) {
+func (s *service) TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.TopConsumer, error) {
 	if limit <= 0 {
 		limit = 5
 	}
@@ -202,7 +203,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	}
 	result := make([]types.TopConsumer, 0, len(rows))
 	for _, row := range rows {
-		name := row.MemberID
+		name := row.MemberID.String()
 		deptName := ""
 		if member, ok := pkgorg.FindMemberByID(members, row.MemberID); ok {
 			name = member.Name
@@ -223,17 +224,21 @@ func storeChildOwnerDepartmentID(departments []types.Department, parentID string
 	if parentID == "" {
 		ids := make([]string, 0, len(departments))
 		for _, dept := range departments {
-			ids = append(ids, dept.ID)
+			ids = append(ids, dept.ID.String())
 		}
 		return ids
 	}
-	parent := pkgorg.FindDepartment(departments, parentID)
+	parentUUID, err := uuid.Parse(parentID)
+	if err != nil {
+		return nil
+	}
+	parent := pkgorg.FindDepartment(departments, parentUUID)
 	if parent == nil {
 		return nil
 	}
 	ids := make([]string, 0, len(parent.Children))
 	for _, child := range parent.Children {
-		ids = append(ids, child.ID)
+		ids = append(ids, child.ID.String())
 	}
 	return ids
 }

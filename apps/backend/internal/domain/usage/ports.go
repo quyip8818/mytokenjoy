@@ -3,6 +3,7 @@ package usage
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
@@ -11,7 +12,7 @@ import (
 
 // IngestJobEnqueuer enqueues side-effect jobs within the ingest transaction.
 type IngestJobEnqueuer interface {
-	EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64, effects *IngestEffects) error
+	EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID uuid.UUID, effects *IngestEffects) error
 }
 
 // BudgetOps is the port for budget domain operations needed during ingest.
@@ -19,17 +20,17 @@ type BudgetOps interface {
 	// ConsumptionDeltas computes budget axis increments for a settled entry.
 	ConsumptionDeltas(ctx context.Context, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) ([]ConsumedDelta, error)
 	// RefreshCombinedKeySummaries writes PG-derived summaries into the optional cache (best-effort).
-	RefreshCombinedKeySummaries(ctx context.Context, companyID int64, summaries []store.CombinedKeySummary)
+	RefreshCombinedKeySummaries(ctx context.Context, companyID uuid.UUID, summaries []store.CombinedKeySummary)
 	// CheckBudgetAlerts evaluates percentage alert rules for touched departments (best-effort post-commit).
-	CheckBudgetAlerts(ctx context.Context, st store.Store, companyID int64, touchedDepts map[string]struct{})
+	CheckBudgetAlerts(ctx context.Context, st store.Store, companyID uuid.UUID, touchedDepts map[uuid.UUID]struct{})
 	// ComputeGatewaySummaryUpdates recomputes combined key remain for touched platform keys.
-	ComputeGatewaySummaryUpdates(ctx context.Context, st store.Store, keyIDs map[string]struct{}, clk clock.Clock) ([]store.CombinedKeySummaryUpdate, error)
+	ComputeGatewaySummaryUpdates(ctx context.Context, st store.Store, keyIDs map[uuid.UUID]struct{}, clk clock.Clock) ([]store.CombinedKeySummaryUpdate, error)
 }
 
 // ConsumedDelta represents a single axis budget increment.
 type ConsumedDelta struct {
 	Kind      string
-	AxisID    string
+	AxisID    uuid.UUID
 	PeriodKey string
 	Amount    float64
 }
@@ -51,7 +52,7 @@ type LotConsumeResult struct {
 
 // LotSegment represents a single lot consumption segment.
 type LotSegment struct {
-	LotID           string
+	LotID           uuid.UUID
 	Points          float64
 	DisplayAmount   float64
 	BillingCurrency string

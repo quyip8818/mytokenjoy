@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -81,7 +82,7 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 	return best.val, best.name
 }
 
-func SumProjectMemberKeyConsumed(keys []types.PlatformKey, projectID, memberID string) float64 {
+func SumProjectMemberKeyConsumed(keys []types.PlatformKey, projectID, memberID uuid.UUID) float64 {
 	var sum float64
 	for _, key := range keys {
 		if key.Scope != types.PlatformKeyScopeProjectMember {
@@ -102,7 +103,7 @@ func SumProjectMemberKeyConsumedFromRepo(
 	ctx context.Context,
 	consumed store.BudgetConsumedRepository,
 	keys []types.PlatformKey,
-	projectID, memberID, periodKey string,
+	projectID, memberID uuid.UUID, periodKey string,
 ) (float64, error) {
 	var sum float64
 	for _, key := range keys {

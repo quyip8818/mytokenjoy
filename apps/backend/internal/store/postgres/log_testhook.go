@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -99,7 +100,7 @@ func ListPendingRiverJobs(ctx context.Context, pool *pgxpool.Pool, kind, subKind
 	return n, rows.Err()
 }
 
-func ListNotificationLogs(ctx context.Context, pool *pgxpool.Pool, companyID int64) ([]types.NotificationLogEntry, error) {
+func ListNotificationLogs(ctx context.Context, pool *pgxpool.Pool, companyID uuid.UUID) ([]types.NotificationLogEntry, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT id, channel, event_type, recipient, payload, status, COALESCE(error, '')
 		FROM notification_log

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -52,7 +53,7 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 			return err
 		}
 		created := rule
-		created.ID = generateBudgetID("alert")
+		created.ID = uuid.Must(uuid.NewV7())
 		rules, err := tx.Budget().AlertRules(ctx)
 		if err != nil {
 			return err
@@ -77,6 +78,10 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 		}
 		patch.Thresholds = normalizeThresholds(patch.Thresholds)
 	}
+	parsedID, parseErr := uuid.Parse(id)
+	if parseErr != nil {
+		return types.AlertRule{}, domain.Validation("invalid alert id")
+	}
 	var result types.AlertRule
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
@@ -87,8 +92,8 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 			return err
 		}
 		for i := range rules {
-			if rules[i].ID == id {
-				if patch.NodeID != "" {
+			if rules[i].ID == parsedID {
+				if patch.NodeID != uuid.Nil {
 					rules[i].NodeID = patch.NodeID
 				}
 				if patch.NodeName != "" {
@@ -98,7 +103,7 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 					rules[i].Thresholds = append([]int{}, patch.Thresholds...)
 				}
 				if patch.NotifyRoleIDs != nil {
-					rules[i].NotifyRoleIDs = append([]string{}, patch.NotifyRoleIDs...)
+					rules[i].NotifyRoleIDs = append([]uuid.UUID{}, patch.NotifyRoleIDs...)
 				}
 				rules[i].Enabled = patch.Enabled
 				if err := tx.Budget().SetAlertRules(ctx, rules); err != nil {
@@ -114,6 +119,10 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 }
 
 func (s *service) DeleteAlert(ctx context.Context, id string) error {
+	parsedID, parseErr := uuid.Parse(id)
+	if parseErr != nil {
+		return domain.Validation("invalid alert id")
+	}
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
@@ -125,7 +134,7 @@ func (s *service) DeleteAlert(ctx context.Context, id string) error {
 		filtered := make([]types.AlertRule, 0, len(rules))
 		found := false
 		for _, rule := range rules {
-			if rule.ID == id {
+			if rule.ID == parsedID {
 				found = true
 				continue
 			}

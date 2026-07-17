@@ -3,15 +3,16 @@ package jobs
 import (
 	"encoding/json"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
 // NotificationDeliveryArgs represents a single-channel notification delivery job.
 type NotificationDeliveryArgs struct {
-	CompanyID   int64           `json:"company_id"`
+	CompanyID   uuid.UUID       `json:"company_id"`
 	Channel     string          `json:"channel"`
-	RecipientID string          `json:"recipient_id"`
+	RecipientID uuid.UUID       `json:"recipient_id"`
 	EventType   string          `json:"event_type"`
 	Title       string          `json:"title"`
 	Body        string          `json:"body"`

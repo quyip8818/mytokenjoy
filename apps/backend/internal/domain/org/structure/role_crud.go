@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -38,7 +38,7 @@ func (s *LocalService) CreateRole(ctx context.Context, name string, permissions 
 		return types.Role{}, domain.NewDomainError(400, err.Error())
 	}
 	role := types.Role{
-		ID:   fmt.Sprintf("role-%d", time.Now().UnixMilli()),
+		ID:   uuid.Must(uuid.NewV7()),
 		Name: trimmedName, Type: "custom", Permissions: grantIDs, MemberCount: 0,
 	}
 	roles = append(roles, role)
@@ -56,8 +56,12 @@ func (s *LocalService) UpdateRole(ctx context.Context, id, name string, permissi
 	if err != nil {
 		return types.Role{}, err
 	}
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return types.Role{}, err
+	}
 	for i := range roles {
-		if roles[i].ID == id {
+		if roles[i].ID == parsedID {
 			if roles[i].Type == "preset" {
 				return types.Role{}, domain.NewDomainError(400, "Cannot modify preset role")
 			}
@@ -84,9 +88,13 @@ func (s *LocalService) DeleteRole(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return err
+	}
 	idx := -1
 	for i := range roles {
-		if roles[i].ID == id {
+		if roles[i].ID == parsedID {
 			idx = i
 			break
 		}

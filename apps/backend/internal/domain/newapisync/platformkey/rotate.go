@@ -3,11 +3,12 @@ package platformkey
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 )
 
-func SyncRotatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID string) (string, error) {
+func SyncRotatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) (string, error) {
 	if !syncdeps.Enabled(d) {
 		return "", domain.ServiceUnavailable("newapi not enabled")
 	}

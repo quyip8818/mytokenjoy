@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -16,7 +17,7 @@ func newTenantBackgroundStateRepo(db dbQuerier) store.TenantBackgroundStateRepos
 	return &tenantBackgroundStateRepo{db: db}
 }
 
-func (r *tenantBackgroundStateRepo) EnsureRow(ctx context.Context, companyID int64) error {
+func (r *tenantBackgroundStateRepo) EnsureRow(ctx context.Context, companyID uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO tenant_background_state (company_id)
 		VALUES ($1)
@@ -25,7 +26,7 @@ func (r *tenantBackgroundStateRepo) EnsureRow(ctx context.Context, companyID int
 	return err
 }
 
-func (r *tenantBackgroundStateRepo) Get(ctx context.Context, companyID int64) (*store.TenantBackgroundState, error) {
+func (r *tenantBackgroundStateRepo) Get(ctx context.Context, companyID uuid.UUID) (*store.TenantBackgroundState, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT company_id, next_org_sync_at, last_org_sync_at,
 		       last_rebalanced_period, last_budget_reconcile_at,
@@ -53,7 +54,7 @@ func (r *tenantBackgroundStateRepo) Get(ctx context.Context, companyID int64) (*
 	return &state, nil
 }
 
-func (r *tenantBackgroundStateRepo) UpsertOrgSchedule(ctx context.Context, companyID int64, nextOrgSyncAt time.Time, lastOrgSyncAt *time.Time) error {
+func (r *tenantBackgroundStateRepo) UpsertOrgSchedule(ctx context.Context, companyID uuid.UUID, nextOrgSyncAt time.Time, lastOrgSyncAt *time.Time) error {
 	if err := r.EnsureRow(ctx, companyID); err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (r *tenantBackgroundStateRepo) UpsertOrgSchedule(ctx context.Context, compa
 	return err
 }
 
-func (r *tenantBackgroundStateRepo) SetLastRebalancedPeriod(ctx context.Context, companyID int64, period string) error {
+func (r *tenantBackgroundStateRepo) SetLastRebalancedPeriod(ctx context.Context, companyID uuid.UUID, period string) error {
 	if err := r.EnsureRow(ctx, companyID); err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func (r *tenantBackgroundStateRepo) SetLastRebalancedPeriod(ctx context.Context,
 	return err
 }
 
-func (r *tenantBackgroundStateRepo) SetLastBudgetReconcileAt(ctx context.Context, companyID int64, at time.Time) error {
+func (r *tenantBackgroundStateRepo) SetLastBudgetReconcileAt(ctx context.Context, companyID uuid.UUID, at time.Time) error {
 	if err := r.EnsureRow(ctx, companyID); err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func (r *tenantBackgroundStateRepo) SetLastBudgetReconcileAt(ctx context.Context
 	return err
 }
 
-func (r *tenantBackgroundStateRepo) SetLastDashboardReconcileAt(ctx context.Context, companyID int64, at time.Time) error {
+func (r *tenantBackgroundStateRepo) SetLastDashboardReconcileAt(ctx context.Context, companyID uuid.UUID, at time.Time) error {
 	if err := r.EnsureRow(ctx, companyID); err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package credentials
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -11,7 +12,7 @@ import (
 )
 
 type Service interface {
-	AuthenticateMember(ctx context.Context, companyID int64, email, password string) (types.Member, error)
+	AuthenticateMember(ctx context.Context, companyID uuid.UUID, email, password string) (types.Member, error)
 	AuthenticatePlatform(ctx context.Context, email, password string) (string, error)
 	BootstrapPlatformIfNeeded(ctx context.Context) error
 }
@@ -38,14 +39,14 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 		return err
 	}
 	return s.store.Platform().CreateOperator(ctx, store.PlatformOperator{
-		ID:           "platform-op-1",
+		ID:           uuid.MustParse("90000000-0000-0000-0000-000000000001"),
 		Email:        s.cfg.PlatformBootstrapEmail,
 		PasswordHash: string(hash),
 		Status:       types.MemberStatusActive,
 	})
 }
 
-func (s *service) AuthenticateMember(ctx context.Context, companyID int64, email, password string) (types.Member, error) {
+func (s *service) AuthenticateMember(ctx context.Context, companyID uuid.UUID, email, password string) (types.Member, error) {
 	member, hash, err := s.store.Org().MemberByEmail(ctx, companyID, email)
 	if err != nil {
 		return types.Member{}, err
@@ -70,7 +71,7 @@ func (s *service) AuthenticatePlatform(ctx context.Context, email, password stri
 	if err := verifyPassword(op.PasswordHash, password); err != nil {
 		return "", domain.NewDomainError(401, "Invalid credentials")
 	}
-	return op.ID, nil
+	return op.ID.String(), nil
 }
 
 func verifyPassword(hash, password string) error {

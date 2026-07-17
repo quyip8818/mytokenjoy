@@ -3,6 +3,7 @@ package company
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/grants"
@@ -14,9 +15,9 @@ type Service interface {
 	CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error)
 	AcceptInvite(ctx context.Context, req AcceptInviteRequest) (types.Member, error)
 	ListCompanies(ctx context.Context) ([]store.Company, error)
-	UpdateCompany(ctx context.Context, id int64, patch UpdateCompanyPatch) error
-	ResolveCompanyContext(ctx context.Context, companyID int64) (Context, error)
-	ResolveFromMember(ctx context.Context, memberID string) (Context, error)
+	UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateCompanyPatch) error
+	ResolveCompanyContext(ctx context.Context, companyID uuid.UUID) (Context, error)
+	ResolveFromMember(ctx context.Context, memberID uuid.UUID) (Context, error)
 }
 
 type UpdateCompanyPatch struct {
@@ -83,7 +84,7 @@ func (s *service) ListCompanies(ctx context.Context) ([]store.Company, error) {
 	return s.store.Company().List(ctx)
 }
 
-func (s *service) UpdateCompany(ctx context.Context, id int64, patch UpdateCompanyPatch) error {
+func (s *service) UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateCompanyPatch) error {
 	if patch.Status != nil {
 		if err := s.store.Company().UpdateStatus(ctx, id, *patch.Status); err != nil {
 			return err

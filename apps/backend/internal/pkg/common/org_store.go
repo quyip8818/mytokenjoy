@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -43,11 +44,11 @@ func LoadRoutingRules(ctx context.Context, orgNodes store.OrgNodeRepository, all
 	return rules, nil
 }
 
-func HasOrgNodeRoutingConfig(node types.OrgNode, allowed []int64) bool {
+func HasOrgNodeRoutingConfig(node types.OrgNode, allowed []uuid.UUID) bool {
 	return len(allowed) > 0 || node.DefaultModelID != nil || node.FallbackModelID != nil || node.RoutingInherited
 }
 
-func RoutingRulesFromNodes(nodes []types.OrgNode, allowlists map[string][]int64) []types.RoutingRule {
+func RoutingRulesFromNodes(nodes []types.OrgNode, allowlists map[uuid.UUID][]uuid.UUID) []types.RoutingRule {
 	rules := make([]types.RoutingRule, 0)
 	for _, node := range pkgorg.FlattenOrgNodeTree(nodes) {
 		allowed := allowlists[node.ID]
@@ -66,7 +67,7 @@ type RoutingPersistStore interface {
 }
 
 func PersistRoutingRules(ctx context.Context, st RoutingPersistStore, nodes []types.OrgNode, rules []types.RoutingRule) error {
-	ruleByNode := make(map[string]types.RoutingRule, len(rules))
+	ruleByNode := make(map[uuid.UUID]types.RoutingRule, len(rules))
 	for _, rule := range rules {
 		ruleByNode[rule.NodeID] = rule
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/exchange"
@@ -29,6 +30,11 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		return types.BudgetApproval{}, domain.Validation("reject reason required")
 	}
 
+	parsedID, parseErr := uuid.Parse(id)
+	if parseErr != nil {
+		return types.BudgetApproval{}, domain.Validation("invalid approval id")
+	}
+
 	now := time.Now().UTC()
 	var result types.BudgetApproval
 
@@ -44,7 +50,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 			}
 			idx := -1
 			for i := range items {
-				if items[i].ID == id {
+				if items[i].ID == parsedID {
 					idx = i
 					break
 				}
@@ -58,7 +64,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 			approval := items[idx]
 
 			deptID := approval.DepartmentID
-			if deptID == "" {
+			if deptID == uuid.Nil {
 				member, err := txStore.Org().MemberByID(ctx, approval.ApplicantID)
 				if err != nil {
 					return err
@@ -120,7 +126,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 			return types.BudgetApproval{}, err
 		}
 
-		if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, result.ApplicantID); err != nil {
+		if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, result.ApplicantID.String()); err != nil {
 			return types.BudgetApproval{}, err
 		}
 	} else {
@@ -131,7 +137,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		}
 		idx := -1
 		for i := range items {
-			if items[i].ID == id {
+			if items[i].ID == parsedID {
 				idx = i
 				break
 			}

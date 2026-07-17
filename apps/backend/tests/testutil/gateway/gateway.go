@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
@@ -18,10 +19,10 @@ import (
 )
 
 type GatewayScenarioOpts struct {
-	CompanyID          int64
+	CompanyID          uuid.UUID
 	WalletBalancePoint *float64
 	NewAPIWalletUserID int64
-	DepartmentID       string
+	DepartmentID       uuid.UUID
 	Budget             float64
 	Consumed           float64
 	CompanyStatus      string
@@ -68,7 +69,7 @@ func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.Co
 	return domaingateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), cfg.Clock(), cache)
 }
 
-func setBudgetOnTree(nodes []types.BudgetNode, deptID string, budget, consumed float64) bool {
+func setBudgetOnTree(nodes []types.BudgetNode, deptID uuid.UUID, budget, consumed float64) bool {
 	for i := range nodes {
 		if nodes[i].ID == deptID {
 			nodes[i].Budget = budget

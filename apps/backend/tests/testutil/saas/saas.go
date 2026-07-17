@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -253,7 +254,7 @@ func ProvisionCompanyHTTP(t *testing.T, router http.Handler, platformCookie, nam
 	}
 }
 
-func PlatformRechargeHTTP(t *testing.T, router http.Handler, platformCookie string, companyID int64, amount float64) {
+func PlatformRechargeHTTP(t *testing.T, router http.Handler, platformCookie string, companyID uuid.UUID, amount float64) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]float64{"amount": amount})
 	url := fmt.Sprintf("/api/platform/companies/%d/recharge", companyID)
@@ -266,7 +267,7 @@ func PlatformRechargeHTTP(t *testing.T, router http.Handler, platformCookie stri
 	}
 }
 
-func UpdateCompanyStatusHTTP(t *testing.T, router http.Handler, platformCookie string, companyID int64, status string) {
+func UpdateCompanyStatusHTTP(t *testing.T, router http.Handler, platformCookie string, companyID uuid.UUID, status string) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{"status": status})
 	url := fmt.Sprintf("/api/platform/companies/%d", companyID)

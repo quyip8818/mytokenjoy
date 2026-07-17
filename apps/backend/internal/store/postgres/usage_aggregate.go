@@ -4,14 +4,15 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 type usageAggKey struct {
 	Bucket       string
-	DepartmentID string
-	MemberID     string
+	DepartmentID uuid.UUID
+	MemberID     uuid.UUID
 	Model        string
 }
 
@@ -110,10 +111,10 @@ func sortUsageSeriesPoints(points []types.UsageSeriesPoint) {
 			return points[i].Bucket < points[j].Bucket
 		}
 		if points[i].DepartmentID != points[j].DepartmentID {
-			return points[i].DepartmentID < points[j].DepartmentID
+			return points[i].DepartmentID.String() < points[j].DepartmentID.String()
 		}
 		if points[i].MemberID != points[j].MemberID {
-			return points[i].MemberID < points[j].MemberID
+			return points[i].MemberID.String() < points[j].MemberID.String()
 		}
 		return points[i].Model < points[j].Model
 	})
@@ -148,11 +149,15 @@ func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[st
 	if len(deptIDs) == 0 {
 		return map[string]string{}
 	}
-	deptSet := make(map[string]struct{}, len(deptIDs))
+	deptSet := make(map[uuid.UUID]struct{}, len(deptIDs))
 	for _, id := range deptIDs {
-		deptSet[id] = struct{}{}
+		parsed, err := uuid.Parse(id)
+		if err != nil {
+			continue
+		}
+		deptSet[parsed] = struct{}{}
 	}
-	costs := make(map[string]map[string]float64)
+	costs := make(map[uuid.UUID]map[string]float64)
 	for _, row := range rows {
 		if _, ok := deptSet[row.DepartmentID]; !ok {
 			continue
@@ -172,7 +177,7 @@ func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[st
 				topModel = model
 			}
 		}
-		result[deptID] = topModel
+		result[deptID.String()] = topModel
 	}
 	return result
 }

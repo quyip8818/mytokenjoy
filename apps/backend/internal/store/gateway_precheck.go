@@ -3,16 +3,18 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // PrecheckContextRow is the store DTO loaded in a single round-trip for /v1 precheck.
 type PrecheckContextRow struct {
-	CompanyID     int64
+	CompanyID     uuid.UUID
 	CompanyType   string
 	CompanyStatus string
 	WalletRemain  float64
 
-	PlatformKeyID string
+	PlatformKeyID uuid.UUID
 	KeyStatus     string
 	KeyExpiresAt  *time.Time
 

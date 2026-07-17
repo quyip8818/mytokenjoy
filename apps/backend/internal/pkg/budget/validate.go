@@ -3,11 +3,12 @@ package budget
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/exchange"
 )
 
-func FindParentNode(nodes []types.BudgetNode, childID string) *types.BudgetNode {
+func FindParentNode(nodes []types.BudgetNode, childID uuid.UUID) *types.BudgetNode {
 	var parent *types.BudgetNode
 	var walk func([]types.BudgetNode) bool
 	walk = func(list []types.BudgetNode) bool {
@@ -30,7 +31,7 @@ func FindParentNode(nodes []types.BudgetNode, childID string) *types.BudgetNode 
 
 func ValidateBudgetNodeUpdate(
 	tree []types.BudgetNode,
-	nodeID string,
+	nodeID uuid.UUID,
 	newBudget float64,
 	newReservedPool float64,
 	projects []types.Project,
@@ -76,7 +77,7 @@ func ValidateBudgetNodeUpdate(
 }
 
 // ProjectsBudgetForDept returns the sum of project budgets owned by a department.
-func ProjectsBudgetForDept(projects []types.Project, deptID string) float64 {
+func ProjectsBudgetForDept(projects []types.Project, deptID uuid.UUID) float64 {
 	sum := 0.0
 	for _, p := range projects {
 		if p.OwnerDepartmentID == deptID {
@@ -87,7 +88,7 @@ func ProjectsBudgetForDept(projects []types.Project, deptID string) float64 {
 }
 
 // MemberBudgetSumForDept returns the sum of all members' personal budgets in a department.
-func MemberBudgetSumForDept(members []types.Member, deptID string) float64 {
+func MemberBudgetSumForDept(members []types.Member, deptID uuid.UUID) float64 {
 	sum := 0.0
 	for _, m := range members {
 		if m.DepartmentID == deptID {

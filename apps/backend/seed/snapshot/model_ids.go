@@ -1,14 +1,17 @@
 package snapshot
 
-import "github.com/tokenjoy/backend/seed/contract"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/seed/contract"
+)
 
-func modelIDByType() map[string]int64 {
+func modelIDByType() map[string]uuid.UUID {
 	return contract.ModelTypeToID
 }
 
-func modelIDs(types []string) []int64 {
+func modelIDs(types []string) []uuid.UUID {
 	index := modelIDByType()
-	out := make([]int64, 0, len(types))
+	out := make([]uuid.UUID, 0, len(types))
 	for _, modelType := range types {
 		if id, ok := index[modelType]; ok {
 			out = append(out, id)
@@ -17,7 +20,7 @@ func modelIDs(types []string) []int64 {
 	return out
 }
 
-func modelIDPtr(modelType string) *int64 {
+func modelIDPtr(modelType string) *uuid.UUID {
 	index := modelIDByType()
 	if id, ok := index[modelType]; ok {
 		return &id

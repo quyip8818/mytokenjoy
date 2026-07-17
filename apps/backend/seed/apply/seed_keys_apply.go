@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, rows []store.ModelAllowlistRow) error {
+func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid uuid.UUID, rows []store.ModelAllowlistRow) error {
 	for _, row := range rows {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO model_allowlist (company_id, owner_type, owner_id, model_id)
@@ -23,7 +24,7 @@ func insertSeedModelAllowlist(ctx context.Context, exec TableWriter, tid int64, 
 	return nil
 }
 
-func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedKeys(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {
 	for _, key := range snap.ProviderKeys {
 		createdAt, err := pkgtime.Parse(key.CreatedAt)
 		if err != nil {
@@ -53,7 +54,7 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 			}
 			expiresAt = &t
 		}
-		keyHash := store.HashPlatformKey("pending:" + key.ID)
+		keyHash := store.HashPlatformKey("pending:" + key.ID.String())
 		if key.FullKey != nil && *key.FullKey != "" {
 			keyHash = store.HashPlatformKey(*key.FullKey)
 		}
@@ -97,10 +98,10 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid int64, snap store
 	return nil
 }
 
-func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models []types.ModelInfo) error {
+func insertSeedModels(ctx context.Context, exec TableWriter, tid uuid.UUID, models []types.ModelInfo) error {
 	for _, model := range models {
 		companyID := model.CompanyID
-		if companyID == 0 {
+		if companyID == uuid.Nil {
 			companyID = contract.TokenJoyCompanyID
 		}
 		if companyID != contract.TokenJoyCompanyID && companyID != tid {
@@ -112,7 +113,7 @@ func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models [
 				input_price, output_price, max_context, enabled
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (model_id) DO NOTHING
-		`, model.ModelID, companyID, model.Provider, model.Type, model.Name,
+		`, model.ID, companyID, model.Provider, model.Type, model.Name,
 			model.Description, model.Endpoint,
 			model.InputPrice, model.OutputPrice, model.MaxContext, model.Enabled); err != nil {
 			return err
@@ -121,7 +122,7 @@ func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models [
 			if _, err := exec.Exec(ctx, `
 				INSERT INTO model_capabilities (model_id, capability) VALUES ($1, $2)
 				ON CONFLICT DO NOTHING
-			`, model.ModelID, cap); err != nil {
+			`, model.ID, cap); err != nil {
 				return err
 			}
 		}
@@ -137,7 +138,7 @@ func insertSeedModels(ctx context.Context, exec TableWriter, tid int64, models [
 	return nil
 }
 
-func insertSeedAudit(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedAudit(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO audit_settings (company_id, content_retention_enabled)
 		VALUES ($1, $2) ON CONFLICT (company_id) DO NOTHING

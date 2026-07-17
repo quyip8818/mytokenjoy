@@ -3,8 +3,8 @@ package middleware
 import (
 	"crypto/subtle"
 	"net/http"
-	"strconv"
 
+	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -29,7 +29,7 @@ func AllowSyncTrigger(p httpdeps.Protected, companySvc domaincompany.Service) fu
 					httputil.WriteStatus(w, http.StatusBadRequest, "company id required")
 					return
 				}
-				companyID, err := strconv.ParseInt(companyIDStr, 10, 64)
+				companyID, err := uuid.Parse(companyIDStr)
 				if err != nil {
 					httputil.WriteStatus(w, http.StatusBadRequest, "invalid company id")
 					return

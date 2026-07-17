@@ -1,16 +1,20 @@
 package dashboard
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type JobEnqueuer interface {
-	InsertDashboardProject(ctx context.Context, companyID int64) error
-	InsertDashboardReconcile(ctx context.Context, companyID int64) error
+	InsertDashboardProject(ctx context.Context, companyID uuid.UUID) error
+	InsertDashboardReconcile(ctx context.Context, companyID uuid.UUID) error
 }
 
 type noopJobEnqueuer struct{}
 
-func (noopJobEnqueuer) InsertDashboardProject(context.Context, int64) error   { return nil }
-func (noopJobEnqueuer) InsertDashboardReconcile(context.Context, int64) error { return nil }
+func (noopJobEnqueuer) InsertDashboardProject(context.Context, uuid.UUID) error   { return nil }
+func (noopJobEnqueuer) InsertDashboardReconcile(context.Context, uuid.UUID) error { return nil }
 
 // NoopJobEnqueuer is the default when async dashboard jobs are disabled.
 var NoopJobEnqueuer JobEnqueuer = noopJobEnqueuer{}

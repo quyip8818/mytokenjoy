@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
@@ -34,8 +35,8 @@ func PersistDepartments(ctx context.Context, st store.Store, departments []types
 	return st.Org().Nodes().SetTree(ctx, nodes)
 }
 
-func flattenDepartments(departments []types.Department) map[string]types.Department {
-	result := make(map[string]types.Department)
+func flattenDepartments(departments []types.Department) map[uuid.UUID]types.Department {
+	result := make(map[uuid.UUID]types.Department)
 	var walk func([]types.Department)
 	walk = func(items []types.Department) {
 		for _, dept := range items {
@@ -51,7 +52,7 @@ func flattenDepartments(departments []types.Department) map[string]types.Departm
 	return result
 }
 
-func applyDepartmentsToOrgNodes(nodes []types.OrgNode, byID map[string]types.Department) {
+func applyDepartmentsToOrgNodes(nodes []types.OrgNode, byID map[uuid.UUID]types.Department) {
 	for i := range nodes {
 		if dept, ok := byID[nodes[i].ID]; ok {
 			nodes[i].Name = dept.Name

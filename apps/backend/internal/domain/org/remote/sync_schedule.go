@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
@@ -13,7 +14,7 @@ import (
 
 func (s *Service) ensureScheduledOrgSync(ctx context.Context) error {
 	companyID := company.CompanyID(ctx)
-	if companyID == 0 {
+	if companyID == uuid.Nil {
 		return fmt.Errorf("org sync: company context required")
 	}
 	cfg, err := s.GetSyncConfig(ctx)

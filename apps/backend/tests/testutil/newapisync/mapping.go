@@ -5,6 +5,7 @@ package newapisync
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -12,11 +13,11 @@ import (
 )
 
 type MappingOpts struct {
-	PlatformKeyID string
+	PlatformKeyID uuid.UUID
 	NewAPIKeyID   int64
-	MemberID      string
+	MemberID      uuid.UUID
 	NoMember      bool
-	DepartmentID  string
+	DepartmentID  uuid.UUID
 	NewAPIGroup   string
 }
 

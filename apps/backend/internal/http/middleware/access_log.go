@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 )
 
@@ -40,7 +41,7 @@ func AccessLog(logger *slog.Logger, slowThresholdMs int) func(http.Handler) http
 				"bytes", wrapped.bytes,
 			}
 
-			if companyID := ctxcompany.ID(r.Context()); companyID > 0 {
+			if companyID := ctxcompany.ID(r.Context()); companyID != uuid.Nil {
 				attrs = append(attrs, "company_id", companyID)
 			}
 

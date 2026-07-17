@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -22,7 +23,7 @@ func (c cachedOrgNodes) SetTree(context.Context, []types.OrgNode) error {
 	return fmt.Errorf("cached org nodes: read-only")
 }
 
-func (c cachedOrgNodes) GetNodeBudget(_ context.Context, nodeID string) (float64, bool, error) {
+func (c cachedOrgNodes) GetNodeBudget(_ context.Context, nodeID uuid.UUID) (float64, bool, error) {
 	node := pkgorg.FindOrgNode(c.tree, nodeID)
 	if node == nil {
 		return 0, false, nil
@@ -30,7 +31,7 @@ func (c cachedOrgNodes) GetNodeBudget(_ context.Context, nodeID string) (float64
 	return node.Budget, true, nil
 }
 
-func (c cachedOrgNodes) GetNodePeriod(_ context.Context, nodeID string) (string, bool, error) {
+func (c cachedOrgNodes) GetNodePeriod(_ context.Context, nodeID uuid.UUID) (string, bool, error) {
 	node := pkgorg.FindOrgNode(c.tree, nodeID)
 	if node == nil {
 		return "", false, nil
@@ -38,15 +39,15 @@ func (c cachedOrgNodes) GetNodePeriod(_ context.Context, nodeID string) (string,
 	return node.Period, true, nil
 }
 
-func (c cachedOrgNodes) ListSelfAndAncestorIDs(_ context.Context, leafNodeID string) ([]string, error) {
-	if leafNodeID == "" {
+func (c cachedOrgNodes) ListSelfAndAncestorIDs(_ context.Context, leafNodeID uuid.UUID) ([]uuid.UUID, error) {
+	if leafNodeID == uuid.Nil {
 		return nil, nil
 	}
-	ids := []string{leafNodeID}
+	ids := []uuid.UUID{leafNodeID}
 	current := leafNodeID
 	for {
 		node := pkgorg.FindOrgNode(c.tree, current)
-		if node == nil || node.ParentID == nil || *node.ParentID == "" {
+		if node == nil || node.ParentID == nil || *node.ParentID == uuid.Nil {
 			break
 		}
 		current = *node.ParentID

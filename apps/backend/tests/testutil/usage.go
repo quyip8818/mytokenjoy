@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/permission"
@@ -15,8 +16,8 @@ import (
 
 type UsageBucketOpts struct {
 	BucketStart  time.Time
-	DepartmentID string
-	MemberID     string
+	DepartmentID uuid.UUID
+	MemberID     uuid.UUID
 	Model        string
 	Cost         float64
 	DisplayCost  float64

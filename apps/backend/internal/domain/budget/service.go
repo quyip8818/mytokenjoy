@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -22,9 +23,9 @@ func generateBudgetID(prefix string) string {
 type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
 	UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error)
-	ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudget, error)
-	UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudget, error)
-	ApplyAverageBudget(ctx context.Context, deptID string, personalBudget float64, recursive bool) error
+	ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error)
+	UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) (types.MemberBudget, error)
+	ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget float64, recursive bool) error
 	ListProjects(ctx context.Context) ([]types.Project, error)
 	CreateProject(ctx context.Context, project types.Project) (types.Project, error)
 	UpdateProject(ctx context.Context, id string, patch types.UpdateProjectInput) (types.Project, error)
@@ -37,7 +38,7 @@ type Service interface {
 	DeleteAlert(ctx context.Context, id string) error
 	ListApprovals(ctx context.Context) ([]types.BudgetApproval, error)
 	ResolveApproval(ctx context.Context, id string, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error)
-	GetProjectMemberConsumed(ctx context.Context, groupID string) (map[string]float64, error)
+	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[string]float64, error)
 }
 
 // Store is the narrow store surface the budget service needs.

@@ -1,30 +1,31 @@
 package snapshot
 
 import (
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
 type orgNodeRoutingSeed struct {
-	allowedModelIDs []int64
-	defaultModelID  *int64
-	fallbackModelID *int64
+	allowedModelIDs []uuid.UUID
+	defaultModelID  *uuid.UUID
+	fallbackModelID *uuid.UUID
 	inherited       bool
 }
 
-func orgNodeRoutingByID() map[string]orgNodeRoutingSeed {
-	return map[string]orgNodeRoutingSeed{
-		"dept-1": {
-			allowedModelIDs: []int64{
+func orgNodeRoutingByID() map[uuid.UUID]orgNodeRoutingSeed {
+	return map[uuid.UUID]orgNodeRoutingSeed{
+		contract.IDDept1: {
+			allowedModelIDs: []uuid.UUID{
 				contract.IDModel1, contract.IDModel2, contract.IDModel4,
 				contract.IDModel5, contract.IDModel8, contract.IDModelLocalTest,
 			},
 			defaultModelID:  modelIDPtr("gpt-4o-mini"),
 			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
-		"dept-2": {
-			allowedModelIDs: []int64{
+		contract.IDDept2: {
+			allowedModelIDs: []uuid.UUID{
 				contract.IDModel1, contract.IDModel2, contract.IDModel4,
 				contract.IDModel3, contract.IDModel5,
 			},
@@ -32,33 +33,33 @@ func orgNodeRoutingByID() map[string]orgNodeRoutingSeed {
 			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
 		contract.IDDept3: {
-			allowedModelIDs: []int64{contract.IDModel1, contract.IDModel4, contract.IDModel5, contract.IDModelLocalTest},
+			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel4, contract.IDModel5, contract.IDModelLocalTest},
 			inherited:       true,
 		},
-		"dept-6": {
-			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel5, contract.IDModel8},
+		contract.IDDept6: {
+			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel5, contract.IDModel8},
 			defaultModelID:  modelIDPtr("gpt-4o-mini"),
 			fallbackModelID: modelIDPtr("qwen-plus"),
 		},
-		"dept-4": {
-			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel4, contract.IDModel5},
+		contract.IDDept4: {
+			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel4, contract.IDModel5},
 			defaultModelID:  modelIDPtr("claude-sonnet-4-6"),
 			fallbackModelID: modelIDPtr("gpt-4o-mini"),
 			inherited:       true,
 		},
-		"dept-5": {
-			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel5},
+		contract.IDDept5: {
+			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel5},
 			defaultModelID:  modelIDPtr("deepseek-v3"),
 			fallbackModelID: modelIDPtr("gpt-4o-mini"),
 			inherited:       true,
 		},
-		"dept-7": {
-			allowedModelIDs: []int64{contract.IDModel2, contract.IDModel8, contract.IDModel5},
+		contract.IDDept7: {
+			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel8, contract.IDModel5},
 			defaultModelID:  modelIDPtr("qwen-plus"),
 			fallbackModelID: modelIDPtr("gpt-4o-mini"),
 		},
-		"dept-8": {
-			allowedModelIDs: []int64{contract.IDModel2},
+		contract.IDDept8: {
+			allowedModelIDs: []uuid.UUID{contract.IDModel2},
 			defaultModelID:  modelIDPtr("gpt-4o-mini"),
 			inherited:       true,
 		},
@@ -72,12 +73,12 @@ func buildOrgNodes() []types.OrgNode {
 func assembleOrgNodes(depts []types.Department) []types.OrgNode {
 	budgetTree := buildBudgetTree()
 	routing := orgNodeRoutingByID()
-	ruleByNode := make(map[string]types.RoutingRule, len(routing))
+	ruleByNode := make(map[uuid.UUID]types.RoutingRule, len(routing))
 	for nodeID, cfg := range routing {
 		ruleByNode[nodeID] = types.RoutingRule{
 			ID:              nodeID,
 			NodeID:          nodeID,
-			AllowedModelIDs: append([]int64{}, cfg.allowedModelIDs...),
+			AllowedModelIDs: append([]uuid.UUID{}, cfg.allowedModelIDs...),
 			DefaultModelID:  cfg.defaultModelID,
 			FallbackModelID: cfg.fallbackModelID,
 			Inherited:       cfg.inherited,
@@ -89,7 +90,7 @@ func assembleOrgNodes(depts []types.Department) []types.OrgNode {
 func mergeOrgNodeTree(
 	depts []types.Department,
 	budgetTree []types.BudgetNode,
-	ruleByNode map[string]types.RoutingRule,
+	ruleByNode map[uuid.UUID]types.RoutingRule,
 ) []types.OrgNode {
 	budgetByID := flattenBudgetByID(budgetTree)
 	return mergeOrgNodeChildren(depts, budgetByID, ruleByNode)
@@ -97,8 +98,8 @@ func mergeOrgNodeTree(
 
 func mergeOrgNodeChildren(
 	depts []types.Department,
-	budgetByID map[string]types.BudgetNode,
-	ruleByNode map[string]types.RoutingRule,
+	budgetByID map[uuid.UUID]types.BudgetNode,
+	ruleByNode map[uuid.UUID]types.RoutingRule,
 ) []types.OrgNode {
 	nodes := make([]types.OrgNode, len(depts))
 	for i, dept := range depts {
@@ -119,8 +120,8 @@ func mergeOrgNodeChildren(
 	return nodes
 }
 
-func flattenBudgetByID(tree []types.BudgetNode) map[string]types.BudgetNode {
-	result := make(map[string]types.BudgetNode)
+func flattenBudgetByID(tree []types.BudgetNode) map[uuid.UUID]types.BudgetNode {
+	result := make(map[uuid.UUID]types.BudgetNode)
 	var walk func(nodes []types.BudgetNode)
 	walk = func(nodes []types.BudgetNode) {
 		for _, node := range nodes {

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -20,7 +21,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func upsertPendingPlatformKeyMapping(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID string) error {
+func upsertPendingPlatformKeyMapping(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID uuid.UUID) error {
 	if !syncdeps.Enabled(d) {
 		return domain.ServiceUnavailable("newapi not enabled")
 	}
@@ -36,7 +37,7 @@ func upsertPendingPlatformKeyMapping(ctx context.Context, d syncdeps.Deps, key t
 	return d.Mappings.UpsertMapping(ctx, mapping)
 }
 
-func SyncCreatePlatformKey(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID string) error {
+func SyncCreatePlatformKey(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID uuid.UUID) error {
 	if err := upsertPendingPlatformKeyMapping(ctx, d, key, departmentID); err != nil {
 		return err
 	}
@@ -47,7 +48,7 @@ func SyncCreatePlatformKey(ctx context.Context, d syncdeps.Deps, key types.Platf
 	})
 }
 
-func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (string, error) {
+func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) (string, error) {
 	if !syncdeps.Enabled(d) {
 		return "", domain.ServiceUnavailable("newapi not enabled")
 	}
@@ -89,7 +90,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 		return "", err
 	}
 	departmentID := DepartmentIDForPlatformKey(key, budgetCtx)
-	if departmentID == "" {
+	if departmentID == uuid.Nil {
 		return "", fmt.Errorf("department not resolved for key")
 	}
 
@@ -152,7 +153,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) (
 	return token.Key, nil
 }
 
-func deleteRemoteTokenBestEffort(ctx context.Context, d syncdeps.Deps, platformKeyID string, tokenID int64) {
+func deleteRemoteTokenBestEffort(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID, tokenID int64) {
 	if tokenID <= 0 {
 		return
 	}
@@ -162,7 +163,7 @@ func deleteRemoteTokenBestEffort(ctx context.Context, d syncdeps.Deps, platformK
 	}
 }
 
-func RollbackFailedCreate(ctx context.Context, d syncdeps.Deps, platformKeyID string) {
+func RollbackFailedCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) {
 	keys, err := d.Store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		slog.Default().Warn("rollback failed create load keys failed", "platform_key_id", platformKeyID, "error", err)
@@ -181,7 +182,7 @@ func RollbackFailedCreate(ctx context.Context, d syncdeps.Deps, platformKeyID st
 
 // SyncPlatformKeyCreate synchronously creates the NewAPI token and persists key_hash.
 // Async retry is not enqueued; callers that need outbox durability use SyncCreatePlatformKey.
-func SyncPlatformKeyCreate(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID string) (string, error) {
+func SyncPlatformKeyCreate(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID uuid.UUID) (string, error) {
 	if err := upsertPendingPlatformKeyMapping(ctx, d, key, departmentID); err != nil {
 		return "", err
 	}

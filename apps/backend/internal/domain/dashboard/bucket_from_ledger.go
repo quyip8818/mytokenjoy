@@ -3,11 +3,12 @@ package dashboard
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
 func bucketFromLedgerEntry(entry types.UsageLedgerEntry) types.UsageBucketRow {
-	var memberID string
+	var memberID uuid.UUID
 	if entry.MemberID != nil {
 		memberID = *entry.MemberID
 	}

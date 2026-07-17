@@ -51,5 +51,5 @@ func (w *NotificationDeliveryWorker) Work(ctx context.Context, job *river.Job[jo
 		Payload: payload,
 	}
 
-	return ch.Send(ctx, args.RecipientID, msg)
+	return ch.Send(ctx, args.RecipientID.String(), msg)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
@@ -29,7 +30,7 @@ func (p OccurrencePeriod) IsZero() bool { return p.key == "" }
 func TestOpenBudgetPeriod(key string) OpenBudgetPeriod { return OpenBudgetPeriod{key: key} }
 
 // OpenDepartmentPeriod resolves the open-budget period for a department from the business clock.
-func OpenDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, clk clock.Clock) (OpenBudgetPeriod, error) {
+func OpenDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, departmentID uuid.UUID, clk clock.Clock) (OpenBudgetPeriod, error) {
 	key, err := departmentPeriodKey(ctx, nodes, departmentID, clock.NowUTC(clk))
 	if err != nil {
 		return OpenBudgetPeriod{}, err
@@ -40,7 +41,7 @@ func OpenDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, de
 // OpenDepartmentPeriodAt resolves the open-budget period for a department at an
 // explicit point in time. Used by reconcile to reproduce the period that was active
 // when an entry was originally ingested.
-func OpenDepartmentPeriodAt(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, at time.Time) (OpenBudgetPeriod, error) {
+func OpenDepartmentPeriodAt(ctx context.Context, nodes store.OrgNodeRepository, departmentID uuid.UUID, at time.Time) (OpenBudgetPeriod, error) {
 	key, err := departmentPeriodKey(ctx, nodes, departmentID, at)
 	if err != nil {
 		return OpenBudgetPeriod{}, err
@@ -49,9 +50,9 @@ func OpenDepartmentPeriodAt(ctx context.Context, nodes store.OrgNodeRepository, 
 }
 
 // OccurrenceDepartmentPeriodFromTree resolves the ledger occurrence period from a pre-loaded org tree.
-func OccurrenceDepartmentPeriodFromTree(orgTree []types.OrgNode, departmentID string, occurredAt time.Time) (OccurrencePeriod, error) {
+func OccurrenceDepartmentPeriodFromTree(orgTree []types.OrgNode, departmentID uuid.UUID, occurredAt time.Time) (OccurrencePeriod, error) {
 	orgPeriod := PeriodMonthly
-	if departmentID != "" {
+	if departmentID != uuid.Nil {
 		if node := pkgorg.FindOrgNode(orgTree, departmentID); node != nil {
 			orgPeriod = node.Period
 		}
@@ -60,7 +61,7 @@ func OccurrenceDepartmentPeriodFromTree(orgTree []types.OrgNode, departmentID st
 }
 
 // OccurrenceDepartmentPeriod resolves the ledger occurrence period from event time.
-func OccurrenceDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, occurredAt time.Time) (OccurrencePeriod, error) {
+func OccurrenceDepartmentPeriod(ctx context.Context, nodes store.OrgNodeRepository, departmentID uuid.UUID, occurredAt time.Time) (OccurrencePeriod, error) {
 	key, err := departmentPeriodKey(ctx, nodes, departmentID, occurredAt)
 	if err != nil {
 		return OccurrencePeriod{}, err
@@ -83,15 +84,15 @@ func OccurrenceSnapshotKey(orgPeriod string, occurredAt time.Time) OccurrencePer
 func RootPeriodKey(nodes []types.OrgNode, at time.Time) string {
 	flat := pkgorg.FlattenOrgNodeTree(nodes)
 	for _, node := range flat {
-		if node.ParentID == nil || *node.ParentID == "" {
+		if node.ParentID == nil || *node.ParentID == uuid.Nil {
 			return SnapshotKey(node.Period, at)
 		}
 	}
 	return SnapshotKey(PeriodMonthly, at)
 }
 
-func departmentPeriodKey(ctx context.Context, nodes store.OrgNodeRepository, departmentID string, at time.Time) (string, error) {
-	if departmentID == "" {
+func departmentPeriodKey(ctx context.Context, nodes store.OrgNodeRepository, departmentID uuid.UUID, at time.Time) (string, error) {
+	if departmentID == uuid.Nil {
 		return SnapshotKey(PeriodMonthly, at), nil
 	}
 	orgPeriod, found, err := nodes.GetNodePeriod(ctx, departmentID)
@@ -104,17 +105,17 @@ func departmentPeriodKey(ctx context.Context, nodes store.OrgNodeRepository, dep
 	return SnapshotKey(orgPeriod, at), nil
 }
 
-func buildDeptPeriodMap(ctx context.Context, nodes store.OrgNodeRepository, at time.Time) (map[string]string, string, error) {
+func buildDeptPeriodMap(ctx context.Context, nodes store.OrgNodeRepository, at time.Time) (map[uuid.UUID]string, string, error) {
 	orgNodes, err := nodes.Tree(ctx)
 	if err != nil {
 		return nil, "", err
 	}
 	flat := pkgorg.FlattenOrgNodeTree(orgNodes)
-	deptPeriod := make(map[string]string, len(flat))
+	deptPeriod := make(map[uuid.UUID]string, len(flat))
 	var rootPeriodKey string
 	for _, node := range flat {
 		deptPeriod[node.ID] = node.Period
-		if node.ParentID == nil || *node.ParentID == "" {
+		if node.ParentID == nil || *node.ParentID == uuid.Nil {
 			rootPeriodKey = SnapshotKey(node.Period, at)
 		}
 	}

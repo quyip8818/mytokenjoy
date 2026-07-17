@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
@@ -29,21 +30,21 @@ func (r *pgModelsRepo) withCapabilities(ctx context.Context, items []types.Model
 	if len(items) == 0 {
 		return items, nil
 	}
-	ids := make([]int64, len(items))
+	ids := make([]uuid.UUID, len(items))
 	for i, item := range items {
-		ids[i] = item.ModelID
+		ids[i] = item.ID
 	}
 	byID, err := r.loadCapabilitiesBatch(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
 	for i := range items {
-		items[i].Capabilities = byID[items[i].ModelID]
+		items[i].Capabilities = byID[items[i].ID]
 	}
 	return items, nil
 }
 
-func (r *pgModelsRepo) modelByCompanyAndType(ctx context.Context, companyID int64, modelType string) (*types.ModelInfo, error) {
+func (r *pgModelsRepo) modelByCompanyAndType(ctx context.Context, companyID uuid.UUID, modelType string) (*types.ModelInfo, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT `+modelSelectColumns+`
 		FROM models WHERE company_id = $1 AND type = $2
@@ -53,7 +54,7 @@ func (r *pgModelsRepo) modelByCompanyAndType(ctx context.Context, companyID int6
 	return r.scanModelWithCapabilities(ctx, row)
 }
 
-func (r *pgModelsRepo) modelByCompanyProviderAndType(ctx context.Context, companyID int64, provider, modelType string) (*types.ModelInfo, error) {
+func (r *pgModelsRepo) modelByCompanyProviderAndType(ctx context.Context, companyID uuid.UUID, provider, modelType string) (*types.ModelInfo, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT `+modelSelectColumns+`
 		FROM models WHERE company_id = $1 AND provider = $2 AND type = $3
@@ -66,7 +67,7 @@ func (r *pgModelsRepo) scanModelWithCapabilities(ctx context.Context, row scanna
 	if err != nil || item == nil {
 		return item, err
 	}
-	caps, err := r.loadCapabilities(ctx, item.ModelID)
+	caps, err := r.loadCapabilities(ctx, item.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (r *pgModelsRepo) scanModelWithCapabilities(ctx context.Context, row scanna
 	return item, nil
 }
 
-func (r *pgModelsRepo) loadCapabilitiesBatch(ctx context.Context, modelIDs []int64) (map[int64][]string, error) {
+func (r *pgModelsRepo) loadCapabilitiesBatch(ctx context.Context, modelIDs []uuid.UUID) (map[uuid.UUID][]string, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT model_id, capability FROM model_capabilities
 		WHERE model_id = ANY($1)
@@ -85,9 +86,9 @@ func (r *pgModelsRepo) loadCapabilitiesBatch(ctx context.Context, modelIDs []int
 	}
 	defer rows.Close()
 
-	byID := make(map[int64][]string, len(modelIDs))
+	byID := make(map[uuid.UUID][]string, len(modelIDs))
 	for rows.Next() {
-		var modelID int64
+		var modelID uuid.UUID
 		var capability string
 		if err := rows.Scan(&modelID, &capability); err != nil {
 			return nil, err
@@ -97,15 +98,15 @@ func (r *pgModelsRepo) loadCapabilitiesBatch(ctx context.Context, modelIDs []int
 	return byID, rows.Err()
 }
 
-func (r *pgModelsRepo) loadCapabilities(ctx context.Context, modelID int64) ([]string, error) {
-	byID, err := r.loadCapabilitiesBatch(ctx, []int64{modelID})
+func (r *pgModelsRepo) loadCapabilities(ctx context.Context, modelID uuid.UUID) ([]string, error) {
+	byID, err := r.loadCapabilitiesBatch(ctx, []uuid.UUID{modelID})
 	if err != nil {
 		return nil, err
 	}
 	return byID[modelID], nil
 }
 
-func (r *pgModelsRepo) replaceCapabilities(ctx context.Context, modelID int64, capabilities []string) error {
+func (r *pgModelsRepo) replaceCapabilities(ctx context.Context, modelID uuid.UUID, capabilities []string) error {
 	if _, err := r.db.Exec(ctx, `DELETE FROM model_capabilities WHERE model_id = $1`, modelID); err != nil {
 		return err
 	}
@@ -122,7 +123,7 @@ func (r *pgModelsRepo) replaceCapabilities(ctx context.Context, modelID int64, c
 func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
 	var item types.ModelInfo
 	err := rows.Scan(
-		&item.ModelID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
+		&item.ID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
 		&item.Description, &item.Endpoint,
 		&item.ApiKey, &item.EndpointModelName,
 		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.MaxTokens, &item.Enabled,
@@ -133,7 +134,7 @@ func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
 func scanModelQueryRow(row scannable) (*types.ModelInfo, error) {
 	var item types.ModelInfo
 	err := row.Scan(
-		&item.ModelID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
+		&item.ID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
 		&item.Description, &item.Endpoint,
 		&item.ApiKey, &item.EndpointModelName,
 		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.MaxTokens, &item.Enabled,

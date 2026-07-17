@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 var (
 	UsageLifetimeStart = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -61,8 +65,8 @@ const (
 
 type UsageBucketRow struct {
 	BucketStart  time.Time
-	DepartmentID string
-	MemberID     string
+	DepartmentID uuid.UUID
+	MemberID     uuid.UUID
 	Model        string
 	Cost         float64 // point
 	DisplayCost  float64 // display currency (Σ ledger.display_amount)
@@ -79,21 +83,21 @@ type UsageSeriesQuery struct {
 	Start        time.Time
 	End          time.Time
 	GroupBy      string
-	DepartmentID string
-	MemberID     string
+	DepartmentID uuid.UUID
+	MemberID     uuid.UUID
 	Timezone     string
 	ScopeDeptIDs []string
 }
 
 type UsageSeriesPoint struct {
-	Bucket       string  `json:"bucket"`
-	DepartmentID string  `json:"departmentId,omitempty"`
-	MemberID     string  `json:"memberId,omitempty"`
-	Model        string  `json:"model,omitempty"`
-	Cost         float64 `json:"cost"`
-	CallCount    int     `json:"callCount"`
-	InputTokens  int64   `json:"inputTokens"`
-	OutputTokens int64   `json:"outputTokens"`
+	Bucket       string    `json:"bucket"`
+	DepartmentID uuid.UUID `json:"departmentId,omitempty"`
+	MemberID     uuid.UUID `json:"memberId,omitempty"`
+	Model        string    `json:"model,omitempty"`
+	Cost         float64   `json:"cost"`
+	CallCount    int       `json:"callCount"`
+	InputTokens  int64     `json:"inputTokens"`
+	OutputTokens int64     `json:"outputTokens"`
 }
 
 type UsageSeriesResponse struct {
@@ -113,9 +117,9 @@ type UsageAggregateQuery struct {
 	Granularity       string
 	Timezone          string
 	GroupBy           string
-	DepartmentID      string
+	DepartmentID      uuid.UUID
 	OwnerDepartmentID []string
-	MemberID          string
+	MemberID          uuid.UUID
 	ParentDeptID      string
 	Limit             int
 	ScopeDeptIDs      []string
@@ -123,8 +127,8 @@ type UsageAggregateQuery struct {
 
 type UsageAggregateRow struct {
 	Bucket       string
-	DepartmentID string
-	MemberID     string
+	DepartmentID uuid.UUID
+	MemberID     uuid.UUID
 	Model        string
 	Cost         float64 // point
 	DisplayCost  float64 // display currency
@@ -148,11 +152,11 @@ type UsageSummaryTotals struct {
 func (t UsageSummaryTotals) Spend() float64 { return t.DisplayCost }
 
 type NotificationLogEntry struct {
-	ID        string
+	ID        uuid.UUID
 	Channel   string
 	EventType string
 	Recipient string
-	UserID    string
+	UserID    uuid.UUID
 	Title     string
 	Body      string
 	Payload   []byte

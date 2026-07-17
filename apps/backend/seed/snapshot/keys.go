@@ -3,6 +3,7 @@ package snapshot
 import (
 	"encoding/json"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/data"
@@ -10,17 +11,17 @@ import (
 
 func loadPlatformKeys() []types.PlatformKey {
 	type platformKeySeed struct {
-		ID             string  `json:"id"`
-		Name           string  `json:"name"`
-		KeyPrefix      string  `json:"keyPrefix"`
-		Scope          string  `json:"scope"`
-		MemberID       *string `json:"memberId"`
-		ProjectID      *string `json:"projectId"`
-		Status         string  `json:"status"`
-		Budget         float64 `json:"budget"`
-		ModelWhitelist []int64 `json:"modelWhitelist"`
-		CreatedAt      string  `json:"createdAt"`
-		ExpiresAt      *string `json:"expiresAt"`
+		ID             string      `json:"id"`
+		Name           string      `json:"name"`
+		KeyPrefix      string      `json:"keyPrefix"`
+		Scope          string      `json:"scope"`
+		MemberID       *string     `json:"memberId"`
+		ProjectID      *string     `json:"projectId"`
+		Status         string      `json:"status"`
+		Budget         float64     `json:"budget"`
+		ModelWhitelist []string    `json:"modelWhitelist"`
+		CreatedAt      string      `json:"createdAt"`
+		ExpiresAt      *string     `json:"expiresAt"`
 	}
 	var raw []platformKeySeed
 	if err := json.Unmarshal(data.PlatformKeysJSON, &raw); err != nil {
@@ -29,11 +30,25 @@ func loadPlatformKeys() []types.PlatformKey {
 	var keys []types.PlatformKey
 	keys = make([]types.PlatformKey, len(raw))
 	for i, item := range raw {
+		var memberID *uuid.UUID
+		if item.MemberID != nil {
+			parsed := uuid.MustParse(*item.MemberID)
+			memberID = &parsed
+		}
+		var projectID *uuid.UUID
+		if item.ProjectID != nil {
+			parsed := uuid.MustParse(*item.ProjectID)
+			projectID = &parsed
+		}
+		modelWhitelist := make([]uuid.UUID, 0, len(item.ModelWhitelist))
+		for _, m := range item.ModelWhitelist {
+			modelWhitelist = append(modelWhitelist, uuid.MustParse(m))
+		}
 		keys[i] = types.PlatformKey{
-			ID: item.ID, Name: item.Name, KeyPrefix: item.KeyPrefix, Scope: item.Scope,
-			MemberID: item.MemberID, ProjectID: item.ProjectID,
+			ID: uuid.MustParse(item.ID), Name: item.Name, KeyPrefix: item.KeyPrefix, Scope: item.Scope,
+			MemberID: memberID, ProjectID: projectID,
 			Status: item.Status, Budget: seedPoints(item.Budget),
-			ModelWhitelist: append([]int64{}, item.ModelWhitelist...),
+			ModelWhitelist: modelWhitelist,
 			CreatedAt:      item.CreatedAt, ExpiresAt: item.ExpiresAt,
 		}
 	}
@@ -47,22 +62,22 @@ func loadPlatformKeys() []types.PlatformKey {
 
 func buildProviderKeys() []types.ProviderKey {
 	return []types.ProviderKey{
-		{ID: "pk-1", Provider: "openai", Name: "OpenAI 主力", KeyPrefix: "sk-proj-abc...", Status: "active", CreatedAt: "2026-01-15", RotateEnabled: true},
-		{ID: "pk-2", Provider: "anthropic", Name: "Anthropic 生产", KeyPrefix: "sk-ant-xyz...", Status: "active", CreatedAt: "2026-02-01", RotateEnabled: true},
-		{ID: "pk-3", Provider: "deepseek", Name: "DeepSeek V3", KeyPrefix: "sk-ds-mno...", Status: "active", CreatedAt: "2026-03-10", RotateEnabled: false},
-		{ID: "pk-4", Provider: "qwen", Name: "通义千问", KeyPrefix: "sk-qw-pqr...", Status: "disabled", CreatedAt: "2026-04-01", RotateEnabled: false},
-		{ID: "pk-5", Provider: "openai", Name: "OpenAI 备用", KeyPrefix: "sk-proj-def...", Status: "active", CreatedAt: "2026-05-01", RotateEnabled: true},
-		{ID: "pk-6", Provider: "openai", Name: "OpenAI 历史", KeyPrefix: "sk-proj-old...", Status: "expired", CreatedAt: "2025-12-01", RotateEnabled: false},
-		{ID: "pk-7", Provider: "anthropic", Name: "Anthropic 测试", KeyPrefix: "sk-ant-err...", Status: "error", CreatedAt: "2026-04-15", RotateEnabled: false},
-		{ID: "pk-8", Provider: "custom", Name: "自建模型网关", KeyPrefix: "sk-cst-ghi...", Status: "active", CreatedAt: "2026-05-20", RotateEnabled: true},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001001"), Provider: "openai", Name: "OpenAI 主力", KeyPrefix: "sk-proj-abc...", Status: "active", CreatedAt: "2026-01-15", RotateEnabled: true},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001002"), Provider: "anthropic", Name: "Anthropic 生产", KeyPrefix: "sk-ant-xyz...", Status: "active", CreatedAt: "2026-02-01", RotateEnabled: true},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001003"), Provider: "deepseek", Name: "DeepSeek V3", KeyPrefix: "sk-ds-mno...", Status: "active", CreatedAt: "2026-03-10", RotateEnabled: false},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001004"), Provider: "qwen", Name: "通义千问", KeyPrefix: "sk-qw-pqr...", Status: "disabled", CreatedAt: "2026-04-01", RotateEnabled: false},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001005"), Provider: "openai", Name: "OpenAI 备用", KeyPrefix: "sk-proj-def...", Status: "active", CreatedAt: "2026-05-01", RotateEnabled: true},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001006"), Provider: "openai", Name: "OpenAI 历史", KeyPrefix: "sk-proj-old...", Status: "expired", CreatedAt: "2025-12-01", RotateEnabled: false},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001007"), Provider: "anthropic", Name: "Anthropic 测试", KeyPrefix: "sk-ant-err...", Status: "error", CreatedAt: "2026-04-15", RotateEnabled: false},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001008"), Provider: "custom", Name: "自建模型网关", KeyPrefix: "sk-cst-ghi...", Status: "active", CreatedAt: "2026-05-20", RotateEnabled: true},
 	}
 }
 
 func buildApprovals() []types.KeyApproval {
 	return []types.KeyApproval{
-		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: "m-5", Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedBudget: seedPoints(5000), RequestedModels: []int64{contract.IDModel1, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
-		{ID: "apv-2", Type: "key", Applicant: "王五", ApplicantID: "m-3", Department: "后端组", Reason: "新项目需要多模型测试", RequestedBudget: seedPoints(8000), RequestedModels: []int64{contract.IDModel1, contract.IDModel5, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
-		{ID: "apv-3", Type: "budget", Applicant: "张三", ApplicantID: "m-1", Department: "后端组", Reason: "额度即将用完，申请追加", RequestedBudget: seedPoints(3000), RequestedModels: []int64{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
+		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: contract.IDMemberAuditor, Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedBudget: seedPoints(5000), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
+		{ID: contract.IDApproval2, Type: "key", Applicant: "王五", ApplicantID: contract.IDMember3, Department: "后端组", Reason: "新项目需要多模型测试", RequestedBudget: seedPoints(8000), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel5, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000000c3"), Type: "budget", Applicant: "张三", ApplicantID: contract.IDMember1, Department: "后端组", Reason: "额度即将用完，申请追加", RequestedBudget: seedPoints(3000), RequestedModels: []uuid.UUID{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
 	}
 }
 

@@ -3,6 +3,7 @@ package structure
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -15,9 +16,13 @@ func (s *LocalService) ListRoleMembers(ctx context.Context, roleID string) ([]ty
 	if err != nil {
 		return nil, err
 	}
+	parsedRoleID, err := uuid.Parse(roleID)
+	if err != nil {
+		return nil, err
+	}
 	var role *types.Role
 	for i := range roles {
-		if roles[i].ID == roleID {
+		if roles[i].ID == parsedRoleID {
 			role = &roles[i]
 			break
 		}
@@ -52,9 +57,18 @@ func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID strin
 		return err
 	}
 
+	parsedRoleID, err := uuid.Parse(roleID)
+	if err != nil {
+		return err
+	}
+	parsedMemberID, err := uuid.Parse(memberID)
+	if err != nil {
+		return err
+	}
+
 	var role *types.Role
 	for i := range roles {
-		if roles[i].ID == roleID {
+		if roles[i].ID == parsedRoleID {
 			role = &roles[i]
 			break
 		}
@@ -72,7 +86,7 @@ func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID strin
 
 	found := false
 	for i := range members {
-		if members[i].ID != memberID {
+		if members[i].ID != parsedMemberID {
 			continue
 		}
 		found = true
@@ -101,16 +115,25 @@ func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID st
 		return err
 	}
 
+	parsedRoleID, err := uuid.Parse(roleID)
+	if err != nil {
+		return err
+	}
+	parsedMemberID, err := uuid.Parse(memberID)
+	if err != nil {
+		return err
+	}
+
 	var role *types.Role
 	for i := range roles {
-		if roles[i].ID == roleID {
+		if roles[i].ID == parsedRoleID {
 			role = &roles[i]
 			break
 		}
 	}
 	var member *types.Member
 	for i := range members {
-		if members[i].ID == memberID {
+		if members[i].ID == parsedMemberID {
 			member = &members[i]
 			break
 		}
@@ -142,7 +165,7 @@ func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID st
 		}
 	}
 	for i := range members {
-		if members[i].ID == memberID {
+		if members[i].ID == parsedMemberID {
 			members[i].Roles = filtered
 			break
 		}

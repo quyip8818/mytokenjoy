@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
 type RebalanceArgs struct {
-	CompanyID int64  `json:"company_id" river:"unique"`
-	AxisKind  string `json:"axis_kind" river:"unique"`
-	AxisID    string `json:"axis_id" river:"unique"`
+	CompanyID uuid.UUID `json:"company_id" river:"unique"`
+	AxisKind  string    `json:"axis_kind" river:"unique"`
+	AxisID    string    `json:"axis_id" river:"unique"`
 }
 
 func (RebalanceArgs) Kind() string { return KindRebalance }
@@ -27,7 +28,7 @@ func (RebalanceArgs) InsertOpts() river.InsertOpts {
 }
 
 type OverrunArgs struct {
-	CompanyID int64           `json:"company_id" river:"unique"`
+	CompanyID uuid.UUID       `json:"company_id" river:"unique"`
 	Payload   json.RawMessage `json:"payload" river:"unique"`
 }
 
@@ -43,7 +44,7 @@ func (OverrunArgs) InsertOpts() river.InsertOpts {
 }
 
 type BudgetReconcileArgs struct {
-	CompanyID int64 `json:"company_id" river:"unique"`
+	CompanyID uuid.UUID `json:"company_id" river:"unique"`
 }
 
 func (BudgetReconcileArgs) Kind() string { return KindBudgetReconcile }

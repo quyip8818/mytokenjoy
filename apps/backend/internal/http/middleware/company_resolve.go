@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -14,7 +15,7 @@ import (
 )
 
 type CompanyService interface {
-	ResolveCompanyContext(ctx context.Context, companyID int64) (company.Context, error)
+	ResolveCompanyContext(ctx context.Context, companyID uuid.UUID) (company.Context, error)
 }
 
 func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer sessiontoken.Issuer) func(http.Handler) http.Handler {
@@ -32,14 +33,14 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer se
 			// In single-tenant (non-SaaS) mode, use LocalCompanyID as the implicit
 			// tenant for all requests. In SaaS mode, require the JWT to carry the
 			// company binding — no fallback.
-			var companyID int64
-			if claims, ok := httpx.ResolveMemberClaims(r, tokenIssuer); ok && claims.CompanyID > 0 {
+			var companyID uuid.UUID
+			if claims, ok := httpx.ResolveMemberClaims(r, tokenIssuer); ok && claims.CompanyID != uuid.Nil {
 				companyID = claims.CompanyID
 			} else if !cfg.SupportSaas {
 				companyID = cfg.LocalCompanyID
 			}
 
-			if companyID == 0 {
+			if companyID == uuid.Nil {
 				// No tenant context resolved. Let request proceed without company
 				// context — RequireSession middleware will reject unauthenticated
 				// requests downstream. Public routes (health, login) don't need it.

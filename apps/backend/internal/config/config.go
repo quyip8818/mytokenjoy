@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/pkg/baseurl"
 )
 
@@ -91,12 +92,12 @@ type WatchdogConfig struct {
 
 // PlatformConfig holds multi-tenant platform and company settings.
 type PlatformConfig struct {
-	SupportSaas               bool   `env:"SUPPORT_SAAS" envDefault:"false"`
-	CompanyName               string `env:"COMPANY_NAME"`
-	TokenJoyCompanyID         int64  `env:"TOKENJOY_COMPANY_ID" envDefault:"1"`
-	LocalCompanyID            int64  `env:"LOCAL_COMPANY_ID" envDefault:"2"`
-	PlatformSharedNewAPIGroup string `env:"PLATFORM_SHARED_NEW_API_GROUP" envDefault:"platform_shared"`
-	CompanyWalletCacheTTLSec  int    `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
+	SupportSaas               bool      `env:"SUPPORT_SAAS" envDefault:"false"`
+	CompanyName               string    `env:"COMPANY_NAME"`
+	TokenJoyCompanyID         uuid.UUID `env:"TOKENJOY_COMPANY_ID" envDefault:"00000000-0000-7000-8000-000000000001"`
+	LocalCompanyID            uuid.UUID `env:"LOCAL_COMPANY_ID" envDefault:"00000000-0000-7000-8000-000000000002"`
+	PlatformSharedNewAPIGroup string    `env:"PLATFORM_SHARED_NEW_API_GROUP" envDefault:"platform_shared"`
+	CompanyWalletCacheTTLSec  int       `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
 
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`

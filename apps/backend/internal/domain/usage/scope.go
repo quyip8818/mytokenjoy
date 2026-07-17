@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/authzscope"
@@ -12,8 +13,8 @@ import (
 )
 
 type SessionScope struct {
-	MemberID     string
-	DepartmentID string
+	MemberID     uuid.UUID
+	DepartmentID uuid.UUID
 	Permissions  []string
 }
 
@@ -31,10 +32,10 @@ type DashboardScopeConfig struct {
 func ResolveScopeDepartments(
 	departments []types.Department,
 	scope SessionScope,
-	requestedDeptID string,
+	requestedDeptID uuid.UUID,
 	cfg DashboardScopeConfig,
-) ([]string, error) {
-	if requestedDeptID != "" {
+) ([]uuid.UUID, error) {
+	if requestedDeptID != uuid.Nil {
 		if !IsDepartmentAccessible(departments, scope, requestedDeptID, cfg) {
 			return nil, domain.Forbidden("Department not accessible")
 		}
@@ -46,7 +47,7 @@ func ResolveScopeDepartments(
 	return collectSubtreeIDs(departments, scope.DepartmentID), nil
 }
 
-func IsDepartmentAccessible(departments []types.Department, scope SessionScope, targetDeptID string, cfg DashboardScopeConfig) bool {
+func IsDepartmentAccessible(departments []types.Department, scope SessionScope, targetDeptID uuid.UUID, cfg DashboardScopeConfig) bool {
 	if hasOrgWideDashboardAccess(scope.Permissions, cfg) {
 		return org.FindDepartment(departments, targetDeptID) != nil
 	}
@@ -69,20 +70,20 @@ func hasOrgWideDashboardAccess(permissions []string, cfg DashboardScopeConfig) b
 	return authzscope.HasAny(permissions, cfg.OrgWidePermissions...)
 }
 
-func collectSubtreeIDs(departments []types.Department, rootID string) []string {
+func collectSubtreeIDs(departments []types.Department, rootID uuid.UUID) []uuid.UUID {
 	root := org.FindDepartment(departments, rootID)
 	if root == nil {
-		return []string{rootID}
+		return []uuid.UUID{rootID}
 	}
-	ids := []string{root.ID}
+	ids := []uuid.UUID{root.ID}
 	for _, child := range root.Children {
 		ids = append(ids, collectSubtreeIDsFromNode(child)...)
 	}
 	return ids
 }
 
-func collectSubtreeIDsFromNode(dept types.Department) []string {
-	ids := []string{dept.ID}
+func collectSubtreeIDsFromNode(dept types.Department) []uuid.UUID {
+	ids := []uuid.UUID{dept.ID}
 	for _, child := range dept.Children {
 		ids = append(ids, collectSubtreeIDsFromNode(child)...)
 	}

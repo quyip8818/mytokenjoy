@@ -1,8 +1,11 @@
 package types
 
+import "github.com/google/uuid"
+
 // OrgNode is the storage SSOT for the company org tree (table org_nodes).
 // Physical columns named department_id (e.g. members.department_id) refer to OrgNode.ID;
-// see docs/Backend-存储架构.md §7.
+// see docs/Backend-存储架構.md §7.
+
 const (
 	AllowlistOwnerPlatformKey = "platform_key"
 	AllowlistOwnerOrgNode     = "org_node"
@@ -10,22 +13,22 @@ const (
 )
 
 type OrgNode struct {
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	ParentID         *string   `json:"parentId"`
-	Children         []OrgNode `json:"children,omitempty"`
-	MemberCount      int       `json:"memberCount"`
-	ExternalID       *string   `json:"externalId,omitempty"`
-	Source           *string   `json:"source,omitempty"`
-	ManagerID        *string   `json:"managerId,omitempty"`
-	Budget           float64   `json:"budget"`
-	Consumed         float64   `json:"consumed"`
-	ReservedPool     *float64  `json:"reservedPool,omitempty"`
-	Period           string    `json:"period"`
-	DefaultModelID   *int64    `json:"defaultModelId,omitempty"`
-	FallbackModelID  *int64    `json:"fallbackModelId,omitempty"`
-	RoutingInherited bool      `json:"routingInherited"`
-	MemberAvgBudget  float64   `json:"memberAvgBudget"`
+	ID               uuid.UUID  `json:"id"`
+	Name             string     `json:"name"`
+	ParentID         *uuid.UUID `json:"parentId"`
+	Children         []OrgNode  `json:"children,omitempty"`
+	MemberCount      int        `json:"memberCount"`
+	ExternalID       *string    `json:"externalId,omitempty"`
+	Source           *string    `json:"source,omitempty"`
+	ManagerID        *uuid.UUID `json:"managerId,omitempty"`
+	Budget           float64    `json:"budget"`
+	Consumed         float64    `json:"consumed"`
+	ReservedPool     *float64   `json:"reservedPool,omitempty"`
+	Period           string     `json:"period"`
+	DefaultModelID   *uuid.UUID `json:"defaultModelId,omitempty"`
+	FallbackModelID  *uuid.UUID `json:"fallbackModelId,omitempty"`
+	RoutingInherited bool       `json:"routingInherited"`
+	MemberAvgBudget  float64    `json:"memberAvgBudget"`
 }
 
 func OrgNodeToDepartment(node OrgNode) Department {
@@ -108,12 +111,12 @@ func orgNodeChildrenToBudgetNodes(children []OrgNode) []BudgetNode {
 	return result
 }
 
-func OrgNodeToRoutingRule(node OrgNode, allowedModelIDs []int64) RoutingRule {
+func OrgNodeToRoutingRule(node OrgNode, allowedModelIDs []uuid.UUID) RoutingRule {
 	return RoutingRule{
 		ID:              node.ID,
 		NodeID:          node.ID,
 		NodeName:        node.Name,
-		AllowedModelIDs: append([]int64{}, allowedModelIDs...),
+		AllowedModelIDs: append([]uuid.UUID{}, allowedModelIDs...),
 		DefaultModelID:  node.DefaultModelID,
 		FallbackModelID: node.FallbackModelID,
 		Inherited:       node.RoutingInherited,
@@ -121,7 +124,7 @@ func OrgNodeToRoutingRule(node OrgNode, allowedModelIDs []int64) RoutingRule {
 }
 
 func ApplyBudgetTreeToOrgNodes(nodes []OrgNode, tree []BudgetNode) {
-	byID := make(map[string]BudgetNode)
+	byID := make(map[uuid.UUID]BudgetNode)
 	var walk func(items []BudgetNode)
 	walk = func(items []BudgetNode) {
 		for _, node := range items {
@@ -137,7 +140,7 @@ func ApplyBudgetTreeToOrgNodes(nodes []OrgNode, tree []BudgetNode) {
 	applyBudgetFields(nodes, byID)
 }
 
-func applyBudgetFields(nodes []OrgNode, byID map[string]BudgetNode) {
+func applyBudgetFields(nodes []OrgNode, byID map[uuid.UUID]BudgetNode) {
 	for i := range nodes {
 		if budget, ok := byID[nodes[i].ID]; ok {
 			nodes[i].Budget = budget.Budget

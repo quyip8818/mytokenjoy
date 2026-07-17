@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -38,12 +39,12 @@ func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnque
 
 type bucketKey struct {
 	BucketStart  time.Time
-	DepartmentID string
-	MemberID     string
+	DepartmentID uuid.UUID
+	MemberID     uuid.UUID
 	Model        string
 }
 
-func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) error {
+func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) error {
 	co, err := s.store.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return err

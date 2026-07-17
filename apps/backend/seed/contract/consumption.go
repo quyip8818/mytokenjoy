@@ -1,35 +1,38 @@
 package contract
 
-import "github.com/tokenjoy/backend/internal/pkg/common"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/pkg/common"
+)
 
 // Demo consumption numbers shared by budget tree, platform keys, projects, and usage bucket scaling.
 
-var DemoLeafDeptConsumed = map[string]float64{
-	IDDept3:  21000,
-	IDDept4:  11200,
-	"dept-5": 6000,
-	"dept-6": 14300,
-	"dept-7": 8500,
-	"dept-8": 6500,
+var DemoLeafDeptConsumed = map[uuid.UUID]float64{
+	IDDept3: 21000,
+	IDDept4: 11200,
+	IDDept5: 6000,
+	IDDept6: 14300,
+	IDDept7: 8500,
+	IDDept8: 6500,
 }
 
-var DemoPlatformKeyConsumed = map[string]float64{
-	"plk-1":    3200,
-	"plk-1b":   450,
-	"plk-2":    7800,
-	"plk-4":    2000,
-	"plk-5":    4500,
-	"plk-bg-1": 4200,
+var DemoPlatformKeyConsumed = map[uuid.UUID]float64{
+	IDPlatformKey1: 3200,
+	IDPlatformKey2: 450,
+	IDPlatformKey3: 7800,
+	IDPlatformKey4: 2000,
+	IDPlatformKey5: 4500,
+	IDPlatformKey6: 4200,
 }
 
-var DemoProjectConsumed = map[string]float64{
+var DemoProjectConsumed = map[uuid.UUID]float64{
 	IDProject1: 18500,
 	IDProject4: 4200,
 }
 
 func init() {
 	ppu := float64(common.DefaultPointsPerUnit)
-	scaleMap := func(m map[string]float64) {
+	scaleMap := func(m map[uuid.UUID]float64) {
 		for k, v := range m {
 			m[k] = v * ppu
 		}

@@ -1,9 +1,11 @@
 package types
 
+import "github.com/google/uuid"
+
 type BudgetNode struct {
-	ID              string       `json:"id"`
+	ID              uuid.UUID    `json:"id"`
 	Name            string       `json:"name"`
-	ParentID        *string      `json:"parentId"`
+	ParentID        *uuid.UUID   `json:"parentId"`
 	Budget          float64      `json:"budget"`
 	Consumed        float64      `json:"consumed"`
 	ReservedPool    *float64     `json:"reservedPool,omitempty"`
@@ -13,13 +15,13 @@ type BudgetNode struct {
 }
 
 type Project struct {
-	ID                string             `json:"id"`
-	Name              string             `json:"name"`
-	Budget            float64            `json:"budget"`
-	Consumed          float64            `json:"consumed"`
-	MemberIDs         []string           `json:"memberIds"`
-	MemberBudgets     map[string]float64 `json:"memberBudgets,omitempty"`
-	OwnerDepartmentID string             `json:"ownerDepartmentId"`
+	ID                uuid.UUID             `json:"id"`
+	Name              string                `json:"name"`
+	Budget            float64               `json:"budget"`
+	Consumed          float64               `json:"consumed"`
+	MemberIDs         []uuid.UUID           `json:"memberIds"`
+	MemberBudgets     map[uuid.UUID]float64 `json:"memberBudgets,omitempty"`
+	OwnerDepartmentID uuid.UUID             `json:"ownerDepartmentId"`
 }
 
 type UpdateProjectInput struct {
@@ -39,21 +41,21 @@ type OverrunPolicyConfig struct {
 }
 
 type AlertRule struct {
-	ID            string   `json:"id"`
-	NodeID        string   `json:"nodeId"`
-	NodeName      string   `json:"nodeName"`
-	Thresholds    []int    `json:"thresholds"`
-	NotifyRoleIDs []string `json:"notifyRoleIds"`
-	Enabled       bool     `json:"enabled"`
+	ID            uuid.UUID   `json:"id"`
+	NodeID        uuid.UUID   `json:"nodeId"`
+	NodeName      string      `json:"nodeName"`
+	Thresholds    []int       `json:"thresholds"`
+	NotifyRoleIDs []uuid.UUID `json:"notifyRoleIds"`
+	Enabled       bool        `json:"enabled"`
 }
 
 type MemberBudget struct {
-	MemberID       string  `json:"memberId"`
-	MemberName     string  `json:"memberName"`
-	DepartmentID   string  `json:"departmentId"`
-	PersonalBudget float64 `json:"personalBudget"`
-	Allocated      float64 `json:"allocated"`
-	Consumed       float64 `json:"consumed"`
+	MemberID       uuid.UUID `json:"memberId"`
+	MemberName     string    `json:"memberName"`
+	DepartmentID   uuid.UUID `json:"departmentId"`
+	PersonalBudget float64   `json:"personalBudget"`
+	Allocated      float64   `json:"allocated"`
+	Consumed       float64   `json:"consumed"`
 }
 
 type UpdateMemberBudgetInput struct {
@@ -61,17 +63,17 @@ type UpdateMemberBudgetInput struct {
 }
 
 type BudgetApproval struct {
-	ID             string  `json:"id"`
-	ApplicantID    string  `json:"-"`
-	DepartmentID   string  `json:"-"`
-	ApplicantName  string  `json:"applicantName"`
-	DepartmentName string  `json:"departmentName"`
-	Amount         float64 `json:"amount"`
-	Reason         string  `json:"reason"`
-	Status         string  `json:"status"`
-	CreatedAt      string  `json:"createdAt"`
-	ResolvedAt     *string `json:"resolvedAt,omitempty"`
-	RejectReason   *string `json:"rejectReason,omitempty"`
+	ID             uuid.UUID `json:"id"`
+	ApplicantID    uuid.UUID `json:"-"`
+	DepartmentID   uuid.UUID `json:"-"`
+	ApplicantName  string    `json:"applicantName"`
+	DepartmentName string    `json:"departmentName"`
+	Amount         float64   `json:"amount"`
+	Reason         string    `json:"reason"`
+	Status         string    `json:"status"`
+	CreatedAt      string    `json:"createdAt"`
+	ResolvedAt     *string   `json:"resolvedAt,omitempty"`
+	RejectReason   *string   `json:"rejectReason,omitempty"`
 }
 
 type ResolveBudgetApprovalInput struct {

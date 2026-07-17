@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -77,7 +78,7 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 	cloned := cloneOrgNodes(tree)
 	flat := flattenOrgNodesWithOrder(cloned)
 	paths := store.ComputeOrgNodePaths(cloned)
-	ids := make([]string, len(flat))
+	ids := make([]uuid.UUID, len(flat))
 	for i, row := range flat {
 		ids[i] = row.ID
 		path, ok := paths[row.ID]
@@ -107,7 +108,7 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}
-	if err := pruneByIDForCompany(ctx, r.db, "org_nodes", companyID, ids); err != nil {
+	if err := pruneByIDForCompanyUUID(ctx, r.db, "org_nodes", companyID, ids); err != nil {
 		return err
 	}
 	_, err := r.db.Exec(ctx, `
@@ -119,7 +120,7 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 	return err
 }
 
-func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID string) (float64, bool, error) {
+func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID uuid.UUID) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var budget float64
 	err := r.db.QueryRow(ctx, `
@@ -134,7 +135,7 @@ func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID string) (float
 	return budget, true, nil
 }
 
-func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID string) (string, bool, error) {
+func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID uuid.UUID) (string, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var period string
 	err := r.db.QueryRow(ctx, `
@@ -149,8 +150,8 @@ func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID string) (strin
 	return period, true, nil
 }
 
-func (r *pgOrgNodeRepo) ListSelfAndAncestorIDs(ctx context.Context, leafNodeID string) ([]string, error) {
-	if leafNodeID == "" {
+func (r *pgOrgNodeRepo) ListSelfAndAncestorIDs(ctx context.Context, leafNodeID uuid.UUID) ([]uuid.UUID, error) {
+	if leafNodeID == uuid.Nil {
 		return nil, nil
 	}
 	companyID := store.CompanyID(ctx)
@@ -167,9 +168,9 @@ func (r *pgOrgNodeRepo) ListSelfAndAncestorIDs(ctx context.Context, leafNodeID s
 		return nil, err
 	}
 	defer rows.Close()
-	ids := make([]string, 0)
+	ids := make([]uuid.UUID, 0)
 	for rows.Next() {
-		var id string
+		var id uuid.UUID
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -196,14 +197,14 @@ func buildOrgNodeTree(rows []flatOrgNode) []types.OrgNode {
 	if len(rows) == 0 {
 		return nil
 	}
-	byID := make(map[string]flatOrgNode, len(rows))
-	orderByID := make(map[string]int, len(rows))
+	byID := make(map[uuid.UUID]flatOrgNode, len(rows))
+	orderByID := make(map[uuid.UUID]int, len(rows))
 	for _, row := range rows {
 		byID[row.ID] = row
 		orderByID[row.ID] = row.sortOrder
 	}
-	var build func(id string) types.OrgNode
-	build = func(id string) types.OrgNode {
+	var build func(id uuid.UUID) types.OrgNode
+	build = func(id uuid.UUID) types.OrgNode {
 		row := byID[id]
 		node := row.OrgNode
 		node.Children = nil
@@ -220,7 +221,7 @@ func buildOrgNodeTree(rows []flatOrgNode) []types.OrgNode {
 	}
 	roots := make([]types.OrgNode, 0)
 	for _, row := range rows {
-		if row.ParentID != nil && *row.ParentID != "" {
+		if row.ParentID != nil && *row.ParentID != uuid.Nil {
 			if _, ok := byID[*row.ParentID]; ok {
 				continue
 			}
@@ -231,7 +232,7 @@ func buildOrgNodeTree(rows []flatOrgNode) []types.OrgNode {
 	return roots
 }
 
-func sortOrgNodeSiblings(nodes []types.OrgNode, orderByID map[string]int) {
+func sortOrgNodeSiblings(nodes []types.OrgNode, orderByID map[uuid.UUID]int) {
 	for i := 0; i < len(nodes); i++ {
 		for j := i + 1; j < len(nodes); j++ {
 			if orderByID[nodes[i].ID] > orderByID[nodes[j].ID] {

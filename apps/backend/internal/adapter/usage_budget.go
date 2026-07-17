@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -44,15 +45,15 @@ func (a *usageBudgetOps) ConsumptionDeltas(ctx context.Context, entry types.Usag
 	return out, nil
 }
 
-func (a *usageBudgetOps) RefreshCombinedKeySummaries(ctx context.Context, companyID int64, summaries []store.CombinedKeySummary) {
+func (a *usageBudgetOps) RefreshCombinedKeySummaries(ctx context.Context, companyID uuid.UUID, summaries []store.CombinedKeySummary) {
 	domainbudget.RefreshCombinedKeySummaries(ctx, a.cache, a.logger, companyID, summaries)
 }
 
-func (a *usageBudgetOps) CheckBudgetAlerts(ctx context.Context, st store.Store, companyID int64, touchedDepts map[string]struct{}) {
+func (a *usageBudgetOps) CheckBudgetAlerts(ctx context.Context, st store.Store, companyID uuid.UUID, touchedDepts map[uuid.UUID]struct{}) {
 	domainbudget.CheckBudgetAlerts(ctx, st, companyID, touchedDepts, a.alertPublisher, a.logger)
 }
 
-func (a *usageBudgetOps) ComputeGatewaySummaryUpdates(ctx context.Context, st store.Store, keyIDs map[string]struct{}, clk clock.Clock) ([]store.CombinedKeySummaryUpdate, error) {
+func (a *usageBudgetOps) ComputeGatewaySummaryUpdates(ctx context.Context, st store.Store, keyIDs map[uuid.UUID]struct{}, clk clock.Clock) ([]store.CombinedKeySummaryUpdate, error) {
 	return domainbudget.ComputeGatewaySummaryUpdates(ctx, st, keyIDs, clk)
 }
 

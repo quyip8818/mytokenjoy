@@ -1,7 +1,11 @@
 package authz
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type RevisionReader interface {
-	GetAuthzRevision(ctx context.Context, companyID int64) (int64, error)
+	GetAuthzRevision(ctx context.Context, companyID uuid.UUID) (int64, error)
 }

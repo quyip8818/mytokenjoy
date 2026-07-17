@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -28,7 +29,7 @@ func (r *userRepo) Create(ctx context.Context, user store.User) error {
 	return nil
 }
 
-func (r *userRepo) GetByID(ctx context.Context, id string) (*store.User, error) {
+func (r *userRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.User, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
 		FROM users WHERE id = $1
@@ -52,22 +53,22 @@ func (r *userRepo) GetByEmail(ctx context.Context, email string) (*store.User, e
 	return scanUser(row)
 }
 
-func (r *userRepo) UpdatePassword(ctx context.Context, id string, passwordHash string) error {
+func (r *userRepo) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
 	_, err := r.db.Exec(ctx, `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1`, id, passwordHash)
 	return err
 }
 
-func (r *userRepo) UpdatePhone(ctx context.Context, id string, phone string) error {
+func (r *userRepo) UpdatePhone(ctx context.Context, id uuid.UUID, phone string) error {
 	_, err := r.db.Exec(ctx, `UPDATE users SET phone = $2, updated_at = NOW() WHERE id = $1`, id, nilIfEmpty(phone))
 	return err
 }
 
-func (r *userRepo) UpdateEmail(ctx context.Context, id string, email string) error {
+func (r *userRepo) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
 	_, err := r.db.Exec(ctx, `UPDATE users SET email = $2, updated_at = NOW() WHERE id = $1`, id, nilIfEmpty(email))
 	return err
 }
 
-func (r *userRepo) UpdateStatus(ctx context.Context, id string, status string) error {
+func (r *userRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
 	_, err := r.db.Exec(ctx, `UPDATE users SET status = $2, updated_at = NOW() WHERE id = $1`, id, status)
 	return err
 }

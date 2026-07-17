@@ -2,9 +2,9 @@ package company
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -14,12 +14,12 @@ type AuditAppender interface {
 	Audit() store.AuditRepository
 }
 
-func AppendPlatformOperationLog(ctx context.Context, st AuditAppender, companyID int64, action, operatorID, target, detail string) error {
+func AppendPlatformOperationLog(ctx context.Context, st AuditAppender, companyID uuid.UUID, action string, operatorID uuid.UUID, target, detail string) error {
 	companyCtx := WithContext(ctx, Context{CompanyID: companyID})
 	return st.Audit().AppendOperationLog(companyCtx, types.OperationLog{
-		ID:         fmt.Sprintf("op-%d", time.Now().UnixNano()),
+		ID:         uuid.Must(uuid.NewV7()),
 		Action:     action,
-		Operator:   operatorID,
+		Operator:   operatorID.String(),
 		OperatorID: operatorID,
 		ActorType:  store.ActorTypePlatform,
 		Target:     target,

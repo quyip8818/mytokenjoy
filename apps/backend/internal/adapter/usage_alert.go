@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -23,9 +24,13 @@ func NewBudgetAlertPublisher(svc *notification.Service) domainbudget.AlertPublis
 
 func (p *budgetAlertPublisher) PublishBudgetAlerts(ctx context.Context, alerts []domainbudget.BudgetAlertEvent) error {
 	for _, alert := range alerts {
+		recipientID, err := uuid.Parse(alert.RecipientID)
+		if err != nil {
+			continue
+		}
 		event := domainnotification.Event{
 			EventType:   domainnotification.EventBudgetAlertReached,
-			RecipientID: alert.RecipientID,
+			RecipientID: recipientID,
 			CompanyID:   alert.CompanyID,
 			Payload: map[string]any{
 				"departmentId": alert.DepartmentID,

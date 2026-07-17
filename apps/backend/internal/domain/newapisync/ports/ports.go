@@ -1,24 +1,28 @@
 package ports
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type SyncJob struct {
-	CompanyID     int64
+	CompanyID     uuid.UUID
 	SubKind       string
-	PlatformKeyID string
-	ProviderKeyID string
-	DepartmentID  string
+	PlatformKeyID uuid.UUID
+	ProviderKeyID uuid.UUID
+	DepartmentID  uuid.UUID
 }
 
 type SyncJobEnqueuer interface {
 	InsertNewAPISync(ctx context.Context, job SyncJob) error
-	InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error
+	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error
 }
 
 type noopSyncJobEnqueuer struct{}
 
 func (noopSyncJobEnqueuer) InsertNewAPISync(context.Context, SyncJob) error { return nil }
-func (noopSyncJobEnqueuer) InsertRebalance(context.Context, int64, string, string) error {
+func (noopSyncJobEnqueuer) InsertRebalance(context.Context, uuid.UUID, string, string) error {
 	return nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -59,13 +60,13 @@ func (r *pgBudgetRepo) AlertRules(ctx context.Context) ([]types.AlertRule, error
 	}
 	defer rows.Close()
 	rules := make([]types.AlertRule, 0)
-	ruleIndex := make(map[string]int)
+	ruleIndex := make(map[uuid.UUID]int)
 	for rows.Next() {
 		var rule types.AlertRule
 		if err := rows.Scan(&rule.ID, &rule.NodeID, &rule.NodeName, &rule.Thresholds, &rule.Enabled); err != nil {
 			return nil, err
 		}
-		rule.NotifyRoleIDs = []string{}
+		rule.NotifyRoleIDs = []uuid.UUID{}
 		ruleIndex[rule.ID] = len(rules)
 		rules = append(rules, rule)
 	}
@@ -82,7 +83,7 @@ func (r *pgBudgetRepo) AlertRules(ctx context.Context) ([]types.AlertRule, error
 	}
 	defer roleRows.Close()
 	for roleRows.Next() {
-		var ruleID, roleID string
+		var ruleID, roleID uuid.UUID
 		if err := roleRows.Scan(&ruleID, &roleID); err != nil {
 			return nil, err
 		}
@@ -100,7 +101,7 @@ func (r *pgBudgetRepo) AlertRules(ctx context.Context) ([]types.AlertRule, error
 func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRule) error {
 	companyID := store.CompanyID(ctx)
 	cloned := cloneAlertRules(rules)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, rule := range cloned {
 		ids[i] = rule.ID
 		if _, err := r.db.Exec(ctx, `
@@ -132,8 +133,8 @@ func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRul
 		_, err := r.db.Exec(ctx, `DELETE FROM alert_rules WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompany(ctx, r.db, "alert_rule_notify_roles", "rule_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompanyUUID(ctx, r.db, "alert_rule_notify_roles", "rule_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompany(ctx, r.db, "alert_rules", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "alert_rules", companyID, ids)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -31,7 +32,7 @@ func NewHandler(p httpdeps.Protected, service domaindashboard.Service) *Handler 
 func (h *Handler) CostSummary(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		deptID := r.URL.Query().Get("departmentId")
+		deptID, _ := uuid.Parse(r.URL.Query().Get("departmentId"))
 		result, err := h.service.CostSummary(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
@@ -49,7 +50,8 @@ func (h *Handler) DepartmentCosts(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DepartmentMemberCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		result, err := h.service.DepartmentMemberCosts(ctx, chi.URLParam(r, "deptId"), params, scope)
+		deptID, _ := uuid.Parse(chi.URLParam(r, "deptId"))
+		result, err := h.service.DepartmentMemberCosts(ctx, deptID, params, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }
@@ -57,7 +59,7 @@ func (h *Handler) DepartmentMemberCosts(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) DailyCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		deptID := r.URL.Query().Get("departmentId")
+		deptID, _ := uuid.Parse(r.URL.Query().Get("departmentId"))
 		result, err := h.service.DailyCosts(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
@@ -68,7 +70,7 @@ func (h *Handler) TopConsumers(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		limit := common.ParseIntParam(query.Get("limit"), 5)
 		params := parseCostQueryParams(r)
-		deptID := query.Get("departmentId")
+		deptID, _ := uuid.Parse(query.Get("departmentId"))
 		result, err := h.service.TopConsumers(ctx, limit, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
@@ -77,7 +79,7 @@ func (h *Handler) TopConsumers(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		deptID := r.URL.Query().Get("departmentId")
+		deptID, _ := uuid.Parse(r.URL.Query().Get("departmentId"))
 		result, err := h.service.ModelUsage(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
@@ -86,7 +88,7 @@ func (h *Handler) ModelUsage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DepartmentUsage(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		params := parseCostQueryParams(r)
-		deptID := r.URL.Query().Get("departmentId")
+		deptID, _ := uuid.Parse(r.URL.Query().Get("departmentId"))
 		result, err := h.service.DepartmentUsage(ctx, params, deptID, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})

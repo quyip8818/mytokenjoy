@@ -3,8 +3,8 @@ package budget
 import (
 	"context"
 	"fmt"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -56,11 +56,19 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 	var err error
 	switch axisKind {
 	case store.RebalanceAxisMember:
-		mappings, err = s.store.PlatformKeyMappings().ListMappingsByMemberID(ctx, axisID)
+		parsedID, parseErr := uuid.Parse(axisID)
+		if parseErr != nil {
+			return parseErr
+		}
+		mappings, err = s.store.PlatformKeyMappings().ListMappingsByMemberID(ctx, parsedID)
 	case store.RebalanceAxisProject:
-		mappings, err = s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, axisID)
+		parsedID, parseErr := uuid.Parse(axisID)
+		if parseErr != nil {
+			return parseErr
+		}
+		mappings, err = s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, parsedID)
 	case store.RebalanceAxisCompany:
-		companyID, parseErr := strconv.ParseInt(axisID, 10, 64)
+		companyID, parseErr := uuid.Parse(axisID)
 		if parseErr != nil {
 			return parseErr
 		}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -22,8 +23,8 @@ const (
 
 func (r *usageRepo) UpsertBucket(ctx context.Context, row types.UsageBucketRow) error {
 	companyID := store.CompanyID(ctx)
-	var memberID *string
-	if row.MemberID != "" {
+	var memberID *uuid.UUID
+	if row.MemberID != uuid.Nil {
 		memberID = &row.MemberID
 	}
 	_, err := r.db.Exec(ctx, `
@@ -45,8 +46,8 @@ func (r *usageRepo) UpsertBucket(ctx context.Context, row types.UsageBucketRow) 
 
 func (r *usageRepo) SetBucket(ctx context.Context, row types.UsageBucketRow) error {
 	companyID := store.CompanyID(ctx)
-	var memberID *string
-	if row.MemberID != "" {
+	var memberID *uuid.UUID
+	if row.MemberID != uuid.Nil {
 		memberID = &row.MemberID
 	}
 	_, err := r.db.Exec(ctx, `
@@ -80,7 +81,7 @@ func (r *usageRepo) ListBucketsSince(ctx context.Context, since time.Time) ([]ty
 	result := make([]types.UsageBucketRow, 0)
 	for rows.Next() {
 		var row types.UsageBucketRow
-		var memberID *string
+		var memberID *uuid.UUID
 		if err := rows.Scan(
 			&row.BucketStart, &row.DepartmentID, &memberID, &row.Model,
 			&row.Cost, &row.DisplayCost, &row.CallCount, &row.InputTokens, &row.OutputTokens,
@@ -154,7 +155,7 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 	if len(q.OwnerDepartmentID) > 0 {
 		filtered := make([]types.UsageAggregateRow, 0)
 		for _, row := range aggregated {
-			if containsString(q.OwnerDepartmentID, row.DepartmentID) {
+			if containsString(q.OwnerDepartmentID, row.DepartmentID.String()) {
 				filtered = append(filtered, row)
 			}
 		}
@@ -166,7 +167,7 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 func (r *usageRepo) fetchFilteredRows(
 	ctx context.Context,
 	start, end time.Time,
-	departmentID, memberID string,
+	departmentID, memberID uuid.UUID,
 	departmentIDs, scopeDeptIDs []string,
 ) ([]types.UsageBucketRow, error) {
 	companyID := store.CompanyID(ctx)
@@ -186,7 +187,7 @@ func (r *usageRepo) fetchFilteredRows(
 	result := make([]types.UsageBucketRow, 0)
 	for rows.Next() {
 		var row types.UsageBucketRow
-		var memberID *string
+		var memberID *uuid.UUID
 		if err := rows.Scan(
 			&row.BucketStart, &row.DepartmentID, &memberID, &row.Model,
 			&row.Cost, &row.DisplayCost, &row.CallCount, &row.InputTokens, &row.OutputTokens,
@@ -202,9 +203,9 @@ func (r *usageRepo) fetchFilteredRows(
 }
 
 func buildUsageWhere(
-	companyID int64,
+	companyID uuid.UUID,
 	start, end time.Time,
-	departmentID, memberID string,
+	departmentID, memberID uuid.UUID,
 	departmentIDs, scopeDeptIDs []string,
 ) (string, []any) {
 	args := []any{companyID, start.UTC(), end.UTC()}
@@ -214,7 +215,7 @@ func buildUsageWhere(
 		"bucket_start < $3",
 	}
 	idx := 4
-	if departmentID != "" {
+	if departmentID != uuid.Nil {
 		clauses = append(clauses, fmt.Sprintf("department_id = $%d", idx))
 		args = append(args, departmentID)
 		idx++
@@ -224,7 +225,7 @@ func buildUsageWhere(
 		args = append(args, departmentIDs)
 		idx++
 	}
-	if memberID != "" {
+	if memberID != uuid.Nil {
 		clauses = append(clauses, fmt.Sprintf("member_id = $%d", idx))
 		args = append(args, memberID)
 		idx++

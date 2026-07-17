@@ -1,40 +1,42 @@
 package types
 
+import "github.com/google/uuid"
+
 type Member struct {
-	ID             string   `json:"id"`
-	CompanyID      int64    `json:"companyId"`
-	UserID         string   `json:"userId"`
-	Name           string   `json:"name"`
-	Phone          string   `json:"phone"`
-	Email          string   `json:"email"`
-	Username       string   `json:"username,omitempty"`
-	EmployeeID     string   `json:"employeeId,omitempty"`
-	JobTitle       string   `json:"jobTitle,omitempty"`
-	HireDate       string   `json:"hireDate,omitempty"`
-	DepartmentID   string   `json:"departmentId"`
-	DepartmentName string   `json:"departmentName"`
-	Status         string   `json:"status"`
-	Roles          []string `json:"roles"`
-	Source         string   `json:"source"`
-	ExternalID     *string  `json:"externalId,omitempty"`
-	PersonalBudget float64  `json:"-"`
+	ID             uuid.UUID `json:"id"`
+	CompanyID      uuid.UUID `json:"companyId"`
+	UserID         uuid.UUID `json:"userId"`
+	Name           string    `json:"name"`
+	Phone          string    `json:"phone"`
+	Email          string    `json:"email"`
+	Username       string    `json:"username,omitempty"`
+	EmployeeID     string    `json:"employeeId,omitempty"`
+	JobTitle       string    `json:"jobTitle,omitempty"`
+	HireDate       string    `json:"hireDate,omitempty"`
+	DepartmentID   uuid.UUID `json:"departmentId"`
+	DepartmentName string    `json:"departmentName"`
+	Status         string    `json:"status"`
+	Roles          []string  `json:"roles"`
+	Source         string    `json:"source"`
+	ExternalID     *string   `json:"externalId,omitempty"`
+	PersonalBudget float64   `json:"-"`
 }
 
 type Role struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Type        string   `json:"type"`
-	Permissions []string `json:"permissions"`
-	MemberCount int      `json:"memberCount"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	Permissions []string  `json:"permissions"`
+	MemberCount int       `json:"memberCount"`
 }
 
 type SessionContext struct {
-	CompanyID       int64    `json:"companyId"`
-	CompanyType     string   `json:"companyType"`
-	AuthzRevision   int64    `json:"authzRevision"`
-	Member          Member   `json:"member"`
-	Permissions     []string `json:"permissions"`
-	ReadOnly        bool     `json:"readOnly"`
-	BillingCurrency string   `json:"billingCurrency"`
-	PointsPerUnit   int64    `json:"pointsPerUnit"`
+	CompanyID       uuid.UUID `json:"companyId"`
+	CompanyType     string    `json:"companyType"`
+	AuthzRevision   int64     `json:"authzRevision"`
+	Member          Member    `json:"member"`
+	Permissions     []string  `json:"permissions"`
+	ReadOnly        bool      `json:"readOnly"`
+	BillingCurrency string    `json:"billingCurrency"`
+	PointsPerUnit   int64     `json:"pointsPerUnit"`
 }

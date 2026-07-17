@@ -1,13 +1,7 @@
 package structure
 
-import (
-	"crypto/rand"
-	"fmt"
-	"time"
-)
+import "github.com/google/uuid"
 
-func generateID(prefix string) string {
-	b := make([]byte, 4)
-	_, _ = rand.Read(b)
-	return fmt.Sprintf("%s-%d-%x", prefix, time.Now().UnixMilli(), b)
+func generateID() uuid.UUID {
+	return uuid.Must(uuid.NewV7())
 }

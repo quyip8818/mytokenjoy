@@ -1,6 +1,7 @@
 package budget
 
 import (
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/tree"
 )
@@ -13,7 +14,7 @@ func SumChildrenBudget(node types.BudgetNode) float64 {
 	return sum
 }
 
-func FindBudgetNode(nodes []types.BudgetNode, id string) *types.BudgetNode {
+func FindBudgetNode(nodes []types.BudgetNode, id uuid.UUID) *types.BudgetNode {
 	for i := range nodes {
 		if nodes[i].ID == id {
 			return &nodes[i]
@@ -27,7 +28,7 @@ func FindBudgetNode(nodes []types.BudgetNode, id string) *types.BudgetNode {
 	return nil
 }
 
-func UpdateBudgetNodeInTree(nodes []types.BudgetNode, id string, data types.BudgetNode) bool {
+func UpdateBudgetNodeInTree(nodes []types.BudgetNode, id uuid.UUID, data types.BudgetNode) bool {
 	for i := range nodes {
 		if nodes[i].ID == id {
 			nodes[i].Budget = data.Budget
@@ -43,7 +44,7 @@ func UpdateBudgetNodeInTree(nodes []types.BudgetNode, id string, data types.Budg
 	return false
 }
 
-func InsertBudgetNode(nodes []types.BudgetNode, parentID string, node types.BudgetNode) bool {
+func InsertBudgetNode(nodes []types.BudgetNode, parentID uuid.UUID, node types.BudgetNode) bool {
 	for i := range nodes {
 		if nodes[i].ID == parentID {
 			nodes[i].Children = append(nodes[i].Children, node)
@@ -56,7 +57,7 @@ func InsertBudgetNode(nodes []types.BudgetNode, parentID string, node types.Budg
 	return false
 }
 
-func RemoveBudgetNode(nodes []types.BudgetNode, id string) ([]types.BudgetNode, bool) {
+func RemoveBudgetNode(nodes []types.BudgetNode, id uuid.UUID) ([]types.BudgetNode, bool) {
 	filtered := make([]types.BudgetNode, 0, len(nodes))
 	removed := false
 	for _, node := range nodes {
@@ -75,7 +76,7 @@ func RemoveBudgetNode(nodes []types.BudgetNode, id string) ([]types.BudgetNode, 
 	return filtered, removed
 }
 
-func UpdateBudgetNodeName(nodes []types.BudgetNode, id, name string) bool {
+func UpdateBudgetNodeName(nodes []types.BudgetNode, id uuid.UUID, name string) bool {
 	for i := range nodes {
 		if nodes[i].ID == id {
 			nodes[i].Name = name

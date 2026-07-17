@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -32,9 +33,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	CompanyID int64  `json:"companyId"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	CompanyID uuid.UUID `json:"companyId"`
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -43,9 +44,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	companyID := int64(0)
+	var companyID uuid.UUID
 	if h.pub.Cfg.SupportSaas {
-		if body.CompanyID == 0 {
+		if body.CompanyID == uuid.Nil {
 			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company id required"))
 			return
 		}
@@ -74,7 +75,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.SetSessionCookie(w, token, h.pub.SecureCookie)
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": member.ID}, nil)
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": member.ID.String()}, nil)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

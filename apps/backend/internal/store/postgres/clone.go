@@ -1,17 +1,20 @@
 package postgres
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
 
 func cloneProjects(items []types.Project) []types.Project {
 	result := make([]types.Project, len(items))
 	for i, project := range items {
 		result[i] = types.Project{
 			ID: project.ID, Name: project.Name, Budget: project.Budget, Consumed: project.Consumed,
-			MemberIDs:         append([]string{}, project.MemberIDs...),
+			MemberIDs:         append([]uuid.UUID{}, project.MemberIDs...),
 			OwnerDepartmentID: project.OwnerDepartmentID,
 		}
 		if len(project.MemberBudgets) > 0 {
-			result[i].MemberBudgets = make(map[string]float64, len(project.MemberBudgets))
+			result[i].MemberBudgets = make(map[uuid.UUID]float64, len(project.MemberBudgets))
 			for k, v := range project.MemberBudgets {
 				result[i].MemberBudgets[k] = v
 			}
@@ -26,7 +29,7 @@ func cloneAlertRules(items []types.AlertRule) []types.AlertRule {
 		result[i] = types.AlertRule{
 			ID: rule.ID, NodeID: rule.NodeID, NodeName: rule.NodeName,
 			Thresholds:    append([]int{}, rule.Thresholds...),
-			NotifyRoleIDs: append([]string{}, rule.NotifyRoleIDs...),
+			NotifyRoleIDs: append([]uuid.UUID{}, rule.NotifyRoleIDs...),
 			Enabled:       rule.Enabled,
 		}
 	}
@@ -77,7 +80,7 @@ func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 	cloned := types.PlatformKey{
 		ID: key.ID, Name: key.Name, KeyPrefix: key.KeyPrefix, Scope: key.Scope, Status: key.Status,
 		Budget: key.Budget, Consumed: key.Consumed, CreatedAt: key.CreatedAt,
-		ModelWhitelist: append([]int64{}, key.ModelWhitelist...),
+		ModelWhitelist: append([]uuid.UUID{}, key.ModelWhitelist...),
 	}
 	if key.FullKey != nil {
 		fullKey := *key.FullKey
@@ -113,7 +116,7 @@ func cloneApprovals(items []types.KeyApproval) []types.KeyApproval {
 			ID: approval.ID, Type: approval.Type, Applicant: approval.Applicant,
 			ApplicantID: approval.ApplicantID, Department: approval.Department,
 			Reason: approval.Reason, RequestedBudget: approval.RequestedBudget,
-			RequestedModels: append([]int64{}, approval.RequestedModels...),
+			RequestedModels: append([]uuid.UUID{}, approval.RequestedModels...),
 			Status:          approval.Status, CreatedAt: approval.CreatedAt,
 		}
 		if approval.Approver != nil {
@@ -137,7 +140,7 @@ func cloneModels(items []types.ModelInfo) []types.ModelInfo {
 	result := make([]types.ModelInfo, len(items))
 	for i, model := range items {
 		cloned := types.ModelInfo{
-			ModelID: model.ModelID, CompanyID: model.CompanyID, Provider: model.Provider, Type: model.Type,
+			ID: model.ID, CompanyID: model.CompanyID, Provider: model.Provider, Type: model.Type,
 			Name: model.Name, Description: model.Description,
 			InputPrice:  model.InputPrice,
 			OutputPrice: model.OutputPrice, MaxContext: model.MaxContext, Enabled: model.Enabled,

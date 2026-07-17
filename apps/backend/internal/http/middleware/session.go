@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -25,7 +26,13 @@ func RequireSession(p httpdeps.Protected) func(http.Handler) http.Handler {
 				return
 			}
 
-			sessionCtx, err := p.AuthzSvc.GetSessionContext(r.Context(), claims.CompanyID, claims.Subject)
+			memberID, parseErr := uuid.Parse(claims.Subject)
+			if parseErr != nil {
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+				return
+			}
+
+			sessionCtx, err := p.AuthzSvc.GetSessionContext(r.Context(), claims.CompanyID, memberID)
 			if err != nil {
 				var domainErr *domain.DomainError
 				if errors.As(err, &domainErr) && domainErr.Status == domain.StatusNotFound {
@@ -35,7 +42,7 @@ func RequireSession(p httpdeps.Protected) func(http.Handler) http.Handler {
 				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 				return
 			}
-			if sessionCtx.CompanyID != claims.CompanyID || sessionCtx.Member.ID != claims.Subject {
+			if sessionCtx.CompanyID != claims.CompanyID || sessionCtx.Member.ID != memberID {
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}

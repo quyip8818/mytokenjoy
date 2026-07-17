@@ -3,9 +3,9 @@ package platform
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -53,7 +53,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return
 	}
-	token, err := h.p.PlatformSessionToken.Issue(0, operatorID)
+	parsedOperatorID, err := uuid.Parse(operatorID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	token, err := h.p.PlatformSessionToken.Issue(uuid.Nil, parsedOperatorID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -89,7 +94,7 @@ type updateCompanyBody struct {
 }
 
 func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
@@ -112,7 +117,7 @@ type rechargeBody struct {
 }
 
 func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
@@ -122,7 +127,8 @@ func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	operatorIDStr, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	operatorID, _ := uuid.Parse(operatorIDStr)
 	err = h.p.BillingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
 	httputil.WriteVoid(w, err)
 }
@@ -132,7 +138,7 @@ type giftBody struct {
 }
 
 func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
@@ -142,7 +148,8 @@ func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	operatorIDStr, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	operatorID, _ := uuid.Parse(operatorIDStr)
 	err = h.p.BillingSvc.PlatformGift(r.Context(), id, body.Points, operatorID)
 	httputil.WriteVoid(w, err)
 }
@@ -153,7 +160,7 @@ type adjustBody struct {
 }
 
 func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
@@ -163,7 +170,8 @@ func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorID, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	operatorIDStr, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
+	operatorID, _ := uuid.Parse(operatorIDStr)
 	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Points, body.AmountDisplay, operatorID)
 	httputil.WriteVoid(w, err)
 }

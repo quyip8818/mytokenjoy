@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -40,7 +41,7 @@ func (s *Service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) er
 	}
 
 	companyID := company.CompanyID(ctx)
-	if companyID == 0 {
+	if companyID == uuid.Nil {
 		return fmt.Errorf("org sync config: company context required")
 	}
 	if err := s.d.Store.TenantBackgroundState().EnsureRow(ctx, companyID); err != nil {

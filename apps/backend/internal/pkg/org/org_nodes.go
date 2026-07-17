@@ -1,6 +1,9 @@
 package org
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
 
 func FlattenOrgNodeTree(nodes []types.OrgNode) []types.OrgNode {
 	result := make([]types.OrgNode, 0)
@@ -19,7 +22,7 @@ func FlattenOrgNodeTree(nodes []types.OrgNode) []types.OrgNode {
 	return result
 }
 
-func FindOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
+func FindOrgNode(nodes []types.OrgNode, id uuid.UUID) *types.OrgNode {
 	for i := range nodes {
 		if nodes[i].ID == id {
 			return &nodes[i]
@@ -33,7 +36,7 @@ func FindOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
 	return nil
 }
 
-func InsertOrgNodeChild(nodes []types.OrgNode, parentID string, child types.OrgNode) bool {
+func InsertOrgNodeChild(nodes []types.OrgNode, parentID uuid.UUID, child types.OrgNode) bool {
 	for i := range nodes {
 		if nodes[i].ID == parentID {
 			nodes[i].Children = append(nodes[i].Children, child)
@@ -46,7 +49,7 @@ func InsertOrgNodeChild(nodes []types.OrgNode, parentID string, child types.OrgN
 	return false
 }
 
-func RemoveOrgNodeByID(nodes []types.OrgNode, id string) []types.OrgNode {
+func RemoveOrgNodeByID(nodes []types.OrgNode, id uuid.UUID) []types.OrgNode {
 	filtered := make([]types.OrgNode, 0, len(nodes))
 	for _, node := range nodes {
 		if node.ID == id {
@@ -58,7 +61,7 @@ func RemoveOrgNodeByID(nodes []types.OrgNode, id string) []types.OrgNode {
 	return filtered
 }
 
-func UpdateOrgNodeName(nodes []types.OrgNode, id, name string) bool {
+func UpdateOrgNodeName(nodes []types.OrgNode, id uuid.UUID, name string) bool {
 	for i := range nodes {
 		if nodes[i].ID == id {
 			nodes[i].Name = name
@@ -71,7 +74,7 @@ func UpdateOrgNodeName(nodes []types.OrgNode, id, name string) bool {
 	return false
 }
 
-func GetOrgNodePath(nodes []types.OrgNode, targetID string) *string {
+func GetOrgNodePath(nodes []types.OrgNode, targetID uuid.UUID) *string {
 	var walk func(items []types.OrgNode, path []string) *string
 	walk = func(items []types.OrgNode, path []string) *string {
 		for _, node := range items {
@@ -91,7 +94,7 @@ func GetOrgNodePath(nodes []types.OrgNode, targetID string) *string {
 	return walk(nodes, nil)
 }
 
-func HasDirectChildOrgNodes(nodes []types.OrgNode, id string) bool {
+func HasDirectChildOrgNodes(nodes []types.OrgNode, id uuid.UUID) bool {
 	node := FindOrgNode(nodes, id)
 	if node == nil {
 		return false
@@ -100,7 +103,7 @@ func HasDirectChildOrgNodes(nodes []types.OrgNode, id string) bool {
 }
 
 func RecalcOrgNodeMemberCounts(nodes []types.OrgNode, members []types.Member) []types.OrgNode {
-	directCounts := make(map[string]int)
+	directCounts := make(map[uuid.UUID]int)
 	for _, member := range members {
 		if member.Status == types.MemberStatusInactive {
 			continue

@@ -3,12 +3,13 @@ package jobs
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
 type DashboardProjectArgs struct {
-	CompanyID int64 `json:"company_id" river:"unique"`
+	CompanyID uuid.UUID `json:"company_id" river:"unique"`
 }
 
 func (DashboardProjectArgs) Kind() string { return KindDashboardProject }
@@ -24,7 +25,7 @@ func (DashboardProjectArgs) InsertOpts() river.InsertOpts {
 }
 
 type DashboardReconcileArgs struct {
-	CompanyID int64 `json:"company_id" river:"unique"`
+	CompanyID uuid.UUID `json:"company_id" river:"unique"`
 }
 
 func (DashboardReconcileArgs) Kind() string { return KindDashboardReconcile }

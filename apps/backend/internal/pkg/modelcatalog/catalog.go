@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -29,10 +30,10 @@ func DedupeEffective(items []types.ModelInfo) []types.ModelInfo {
 	return out
 }
 
-func IndexByID(catalog []types.ModelInfo) map[int64]types.ModelInfo {
-	byID := make(map[int64]types.ModelInfo, len(catalog))
+func IndexByID(catalog []types.ModelInfo) map[uuid.UUID]types.ModelInfo {
+	byID := make(map[uuid.UUID]types.ModelInfo, len(catalog))
 	for _, item := range catalog {
-		byID[item.ModelID] = item
+		byID[item.ID] = item
 	}
 	return byID
 }
@@ -45,43 +46,43 @@ func IndexByCallType(catalog []types.ModelInfo) map[string][]types.ModelInfo {
 	return byType
 }
 
-func FilterEnabledIDs(catalog []types.ModelInfo, ids []int64) []int64 {
+func FilterEnabledIDs(catalog []types.ModelInfo, ids []uuid.UUID) []uuid.UUID {
 	if len(ids) == 0 {
 		return nil
 	}
 	byID := IndexByID(catalog)
-	out := make([]int64, 0, len(ids))
-	for _, id := range ids {
-		item, ok := byID[id]
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, mid := range ids {
+		item, ok := byID[mid]
 		if !ok || !item.Enabled {
 			continue
 		}
-		out = append(out, id)
+		out = append(out, mid)
 	}
 	return out
 }
 
-func FilterValidIDs(catalog []types.ModelInfo, ids []int64) []int64 {
+func FilterValidIDs(catalog []types.ModelInfo, ids []uuid.UUID) []uuid.UUID {
 	if len(ids) == 0 {
 		return nil
 	}
 	byID := IndexByID(catalog)
-	out := make([]int64, 0, len(ids))
-	for _, id := range ids {
-		if _, ok := byID[id]; ok {
-			out = append(out, id)
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, mid := range ids {
+		if _, ok := byID[mid]; ok {
+			out = append(out, mid)
 		}
 	}
 	return out
 }
 
-func IsCallTypeAllowed(catalog []types.ModelInfo, allowedIDs []int64, callType string) bool {
+func IsCallTypeAllowed(catalog []types.ModelInfo, allowedIDs []uuid.UUID, callType string) bool {
 	if callType == "" {
 		return false
 	}
 	byID := IndexByID(catalog)
-	for _, id := range allowedIDs {
-		item, ok := byID[id]
+	for _, mid := range allowedIDs {
+		item, ok := byID[mid]
 		if !ok || !item.Enabled {
 			continue
 		}
@@ -92,14 +93,14 @@ func IsCallTypeAllowed(catalog []types.ModelInfo, allowedIDs []int64, callType s
 	return false
 }
 
-func ResolveIDForCallType(catalog []types.ModelInfo, allowedIDs []int64, callType string) (*int64, bool) {
+func ResolveIDForCallType(catalog []types.ModelInfo, allowedIDs []uuid.UUID, callType string) (*uuid.UUID, bool) {
 	if callType == "" || len(allowedIDs) == 0 {
 		return nil, false
 	}
 	byID := IndexByID(catalog)
 	matches := make([]types.ModelInfo, 0)
-	for _, id := range allowedIDs {
-		item, ok := byID[id]
+	for _, mid := range allowedIDs {
+		item, ok := byID[mid]
 		if !ok || !item.Enabled || item.Type != callType {
 			continue
 		}
@@ -109,7 +110,7 @@ func ResolveIDForCallType(catalog []types.ModelInfo, allowedIDs []int64, callTyp
 		return nil, false
 	}
 	if len(matches) == 1 {
-		id := matches[0].ModelID
+		id := matches[0].ID
 		return &id, true
 	}
 	sort.Slice(matches, func(i, j int) bool {
@@ -121,19 +122,19 @@ func ResolveIDForCallType(catalog []types.ModelInfo, allowedIDs []int64, callTyp
 		}
 		return matches[i].Provider < matches[j].Provider
 	})
-	id := matches[0].ModelID
+	id := matches[0].ID
 	return &id, true
 }
 
-func CallTypesForIDs(catalog []types.ModelInfo, ids []int64) []string {
+func CallTypesForIDs(catalog []types.ModelInfo, ids []uuid.UUID) []string {
 	if len(ids) == 0 {
 		return nil
 	}
 	byID := IndexByID(catalog)
 	seen := make(map[string]struct{}, len(ids))
 	out := make([]string, 0, len(ids))
-	for _, id := range ids {
-		item, ok := byID[id]
+	for _, mid := range ids {
+		item, ok := byID[mid]
 		if !ok || !item.Enabled {
 			continue
 		}
@@ -149,7 +150,7 @@ func CallTypesForIDs(catalog []types.ModelInfo, ids []int64) []string {
 
 func ToModelRef(item types.ModelInfo) types.ModelRef {
 	return types.ModelRef{
-		ModelID:  item.ModelID,
+		ID:       item.ID,
 		Type:     item.Type,
 		Name:     item.Name,
 		Provider: item.Provider,
@@ -157,14 +158,14 @@ func ToModelRef(item types.ModelInfo) types.ModelRef {
 	}
 }
 
-func EnrichRefs(catalog []types.ModelInfo, ids []int64) []types.ModelRef {
+func EnrichRefs(catalog []types.ModelInfo, ids []uuid.UUID) []types.ModelRef {
 	if len(ids) == 0 {
 		return nil
 	}
 	byID := IndexByID(catalog)
 	out := make([]types.ModelRef, 0, len(ids))
-	for _, id := range ids {
-		item, ok := byID[id]
+	for _, mid := range ids {
+		item, ok := byID[mid]
 		if !ok {
 			continue
 		}
@@ -173,12 +174,12 @@ func EnrichRefs(catalog []types.ModelInfo, ids []int64) []types.ModelRef {
 	return out
 }
 
-func EnrichRef(catalog []types.ModelInfo, id *int64) *types.ModelRef {
-	if id == nil {
+func EnrichRef(catalog []types.ModelInfo, modelPtr *uuid.UUID) *types.ModelRef {
+	if modelPtr == nil {
 		return nil
 	}
 	byID := IndexByID(catalog)
-	item, ok := byID[*id]
+	item, ok := byID[*modelPtr]
 	if !ok {
 		return nil
 	}
@@ -186,13 +187,13 @@ func EnrichRef(catalog []types.ModelInfo, id *int64) *types.ModelRef {
 	return &ref
 }
 
-func ValidateWritableIDs(catalog []types.ModelInfo, ids []int64) error {
+func ValidateWritableIDs(catalog []types.ModelInfo, ids []uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}
 	byID := IndexByID(catalog)
-	for _, id := range ids {
-		item, ok := byID[id]
+	for _, mid := range ids {
+		item, ok := byID[mid]
 		if !ok {
 			return ErrUnknownModelID
 		}
@@ -203,11 +204,11 @@ func ValidateWritableIDs(catalog []types.ModelInfo, ids []int64) error {
 	return nil
 }
 
-func EnabledModelIDs(catalog []types.ModelInfo) []int64 {
-	out := make([]int64, 0, len(catalog))
+func EnabledModelIDs(catalog []types.ModelInfo) []uuid.UUID {
+	out := make([]uuid.UUID, 0, len(catalog))
 	for _, item := range catalog {
 		if item.Enabled {
-			out = append(out, item.ModelID)
+			out = append(out, item.ID)
 		}
 	}
 	return out

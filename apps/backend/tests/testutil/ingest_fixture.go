@@ -5,15 +5,16 @@ package testutil
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 // IngestBudgetFixture describes budget axes used when preparing ingest headroom in tests.
 type IngestBudgetFixture struct {
-	DepartmentID  string
-	PlatformKeyID string
-	MemberID      string // empty when ingest mapping has no member quota axis
+	DepartmentID  uuid.UUID
+	PlatformKeyID uuid.UUID
+	MemberID      uuid.UUID // empty when ingest mapping has no member quota axis
 	Amount        float64
 }
 

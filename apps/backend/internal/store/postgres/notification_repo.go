@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -22,7 +23,7 @@ func (r *notificationRepo) Append(ctx context.Context, entry types.NotificationL
 	return err
 }
 
-func (r *notificationRepo) List(ctx context.Context, userID string, limit, offset int) ([]types.NotificationLogEntry, error) {
+func (r *notificationRepo) List(ctx context.Context, userID uuid.UUID, limit, offset int) ([]types.NotificationLogEntry, error) {
 	companyID := store.CompanyID(ctx)
 	if limit <= 0 {
 		limit = 20
@@ -53,7 +54,7 @@ func (r *notificationRepo) List(ctx context.Context, userID string, limit, offse
 	return result, rows.Err()
 }
 
-func (r *notificationRepo) GetUnreadCount(ctx context.Context, userID string) (int, error) {
+func (r *notificationRepo) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error) {
 	companyID := store.CompanyID(ctx)
 	var count int
 	err := r.db.QueryRow(ctx, `
@@ -72,7 +73,7 @@ func (r *notificationRepo) MarkRead(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *notificationRepo) MarkAllRead(ctx context.Context, userID string) error {
+func (r *notificationRepo) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		UPDATE notification_log SET read_at = $1, status = 'read'

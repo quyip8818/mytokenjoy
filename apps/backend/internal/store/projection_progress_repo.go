@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -10,14 +12,14 @@ const (
 )
 
 type ProjectionProgress struct {
-	CompanyID      int64
+	CompanyID      uuid.UUID
 	Stream         string
 	LastOccurredAt *time.Time
-	LastLedgerID   *string
+	LastLedgerID   *uuid.UUID
 }
 
 type ProjectionProgressRepository interface {
 	Get(ctx context.Context, stream string) (*ProjectionProgress, error)
 	GetForUpdate(ctx context.Context, stream string) (*ProjectionProgress, error)
-	Advance(ctx context.Context, stream string, lastOccurredAt time.Time, lastLedgerID string) error
+	Advance(ctx context.Context, stream string, lastOccurredAt time.Time, lastLedgerID uuid.UUID) error
 }

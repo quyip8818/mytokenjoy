@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
@@ -13,13 +14,13 @@ type AxisKind = string
 
 type AxisKey struct {
 	Kind      AxisKind
-	AxisID    string
+	AxisID    uuid.UUID
 	PeriodKey string
 }
 
 type AxisDelta struct {
 	Kind      AxisKind
-	AxisID    string
+	AxisID    uuid.UUID
 	PeriodKey string
 	Amount    float64
 }

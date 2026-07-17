@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -50,7 +51,7 @@ func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnque
 	return &ReconcileService{cfg: cfg, store: st, enqueuer: enqueuer, logger: logger, combinedKeyCache: cache}
 }
 
-func (s *ReconcileService) RunCompany(ctx context.Context, companyID int64) error {
+func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) error {
 	co, err := s.store.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return err
@@ -237,12 +238,14 @@ func CollectPeriodKeys(expected map[AxisKey]float64) []string {
 	return out
 }
 
-func SortedKeys(m map[string]struct{}) []string {
-	out := make([]string, 0, len(m))
+func SortedKeys(m map[uuid.UUID]struct{}) []uuid.UUID {
+	out := make([]uuid.UUID, 0, len(m))
 	for k := range m {
 		out = append(out, k)
 	}
-	sort.Strings(out)
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].String() < out[j].String()
+	})
 	return out
 }
 

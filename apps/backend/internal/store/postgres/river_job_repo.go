@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -14,15 +15,15 @@ func newRiverJobRepo(db dbQuerier) store.RiverJobRepository {
 	return &riverJobRepo{db: db}
 }
 
-func (r *riverJobRepo) ListActiveOrgSyncJobIDs(ctx context.Context, companyID int64) ([]int64, error) {
+func (r *riverJobRepo) ListActiveOrgSyncJobIDs(ctx context.Context, companyID uuid.UUID) ([]int64, error) {
 	return r.listOrgSyncJobIDs(ctx, companyID, true)
 }
 
-func (r *riverJobRepo) ListCancellableOrgSyncJobIDs(ctx context.Context, companyID int64) ([]int64, error) {
+func (r *riverJobRepo) ListCancellableOrgSyncJobIDs(ctx context.Context, companyID uuid.UUID) ([]int64, error) {
 	return r.listOrgSyncJobIDs(ctx, companyID, false)
 }
 
-func (r *riverJobRepo) listOrgSyncJobIDs(ctx context.Context, companyID int64, includeRunning bool) ([]int64, error) {
+func (r *riverJobRepo) listOrgSyncJobIDs(ctx context.Context, companyID uuid.UUID, includeRunning bool) ([]int64, error) {
 	states := `('available', 'pending', 'scheduled', 'retryable')`
 	if includeRunning {
 		states = `('available', 'pending', 'scheduled', 'running', 'retryable')`
@@ -50,7 +51,7 @@ func (r *riverJobRepo) listOrgSyncJobIDs(ctx context.Context, companyID int64, i
 	return ids, rows.Err()
 }
 
-func (r *riverJobRepo) HasActiveOrgSync(ctx context.Context, companyID int64) (bool, error) {
+func (r *riverJobRepo) HasActiveOrgSync(ctx context.Context, companyID uuid.UUID) (bool, error) {
 	ids, err := r.ListActiveOrgSyncJobIDs(ctx, companyID)
 	if err != nil {
 		return false, err

@@ -1,8 +1,12 @@
 package notification
 
-import "sync"
+import (
+	"sync"
 
-// SSEEvent represents a notification event pushed to connected clients.
+	"github.com/google/uuid"
+	// SSEEvent represents a notification event pushed to connected clients.
+)
+
 type SSEEvent struct {
 	ID        string `json:"id"`
 	EventType string `json:"eventType"`
@@ -24,25 +28,25 @@ func NewSSEHub() *SSEHub {
 }
 
 // Subscribe registers a new subscriber channel for a user. Returns a channel and an unsubscribe function.
-func (h *SSEHub) Subscribe(userID string) (<-chan SSEEvent, func()) {
+func (h *SSEHub) Subscribe(userID uuid.UUID) (<-chan SSEEvent, func()) {
 	ch := make(chan SSEEvent, 16)
 	h.mu.Lock()
-	h.subscribers[userID] = append(h.subscribers[userID], ch)
+	h.subscribers[userID.String()] = append(h.subscribers[userID.String()], ch)
 	h.mu.Unlock()
 
 	unsubscribe := func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		subs := h.subscribers[userID]
+		subs := h.subscribers[userID.String()]
 		for i, sub := range subs {
 			if sub == ch {
-				h.subscribers[userID] = append(subs[:i], subs[i+1:]...)
+				h.subscribers[userID.String()] = append(subs[:i], subs[i+1:]...)
 				close(ch)
 				break
 			}
 		}
-		if len(h.subscribers[userID]) == 0 {
-			delete(h.subscribers, userID)
+		if len(h.subscribers[userID.String()]) == 0 {
+			delete(h.subscribers, userID.String())
 		}
 	}
 
@@ -50,9 +54,9 @@ func (h *SSEHub) Subscribe(userID string) (<-chan SSEEvent, func()) {
 }
 
 // Publish sends an event to all subscribers for a given user.
-func (h *SSEHub) Publish(userID string, event SSEEvent) {
+func (h *SSEHub) Publish(userID uuid.UUID, event SSEEvent) {
 	h.mu.RLock()
-	subs := h.subscribers[userID]
+	subs := h.subscribers[userID.String()]
 	h.mu.RUnlock()
 
 	for _, ch := range subs {
@@ -65,8 +69,8 @@ func (h *SSEHub) Publish(userID string, event SSEEvent) {
 }
 
 // ActiveSubscribers returns the number of active subscribers for a user.
-func (h *SSEHub) ActiveSubscribers(userID string) int {
+func (h *SSEHub) ActiveSubscribers(userID uuid.UUID) int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return len(h.subscribers[userID])
+	return len(h.subscribers[userID.String()])
 }

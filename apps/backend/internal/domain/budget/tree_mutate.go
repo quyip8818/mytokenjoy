@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -22,8 +23,12 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetNode{}, err
 	}
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return types.BudgetNode{}, err
+	}
 	var result types.BudgetNode
-	err := s.store.WithTx(ctx, func(tx store.Store) error {
+	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -32,7 +37,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 			return err
 		}
 		tree := types.OrgNodesToBudgetTree(nodes)
-		existing := pkgbudget.FindBudgetNode(tree, id)
+		existing := pkgbudget.FindBudgetNode(tree, parsedID)
 		if existing == nil {
 			return domain.NotFound("Node not found")
 		}
@@ -52,18 +57,18 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if err != nil {
 			return err
 		}
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, projects, members); msg != nil {
+		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, parsedID, budget, reservedValue, projects, members); msg != nil {
 			return domain.Validation(*msg)
 		}
 		update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
-		if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
+		if !pkgbudget.UpdateBudgetNodeInTree(tree, parsedID, update) {
 			return domain.NotFound("Node not found")
 		}
-		updated := pkgbudget.FindBudgetNode(tree, id)
+		updated := pkgbudget.FindBudgetNode(tree, parsedID)
 		if updated == nil {
 			return domain.NotFound("Node not found")
 		}
-		if err := pkgbudget.PersistNodeBudget(ctx, tx.Budget().OrgNodeBudget(), id, *updated); err != nil {
+		if err := pkgbudget.PersistNodeBudget(ctx, tx.Budget().OrgNodeBudget(), parsedID, *updated); err != nil {
 			return fmt.Errorf("persist node budget: %w", err)
 		}
 		result = *updated
@@ -75,7 +80,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	return result, err
 }
 
-func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, personalBudget float64) (types.MemberBudget, error) {
+func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) (types.MemberBudget, error) {
 	if personalBudget < 0 {
 		return types.MemberBudget{}, domain.Validation("personalBudget must be non-negative")
 	}
@@ -107,7 +112,7 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID string, perso
 	return result, err
 }
 
-func (s *service) ApplyAverageBudget(ctx context.Context, deptID string, personalBudget float64, recursive bool) error {
+func (s *service) ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget float64, recursive bool) error {
 	if personalBudget < 0 {
 		return domain.Validation("额度不能为负数")
 	}
@@ -229,13 +234,13 @@ func (s *service) enqueueCompanyRebalance(ctx context.Context, source string) {
 
 // enqueueMemberRebalance triggers a member-scoped rebalance so the member's token remain_quota
 // reflects the updated personal budget.
-func (s *service) enqueueMemberRebalance(ctx context.Context, memberID, source string) {
-	if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); err != nil {
+func (s *service) enqueueMemberRebalance(ctx context.Context, memberID uuid.UUID, source string) {
+	if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID.String()); err != nil {
 		s.logger.Warn(source+".rebalance_enqueue_failed", "member_id", memberID, "error", err)
 	}
 }
 
-func findOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
+func findOrgNode(nodes []types.OrgNode, id uuid.UUID) *types.OrgNode {
 	var result *types.OrgNode
 	var walk func([]types.OrgNode)
 	walk = func(list []types.OrgNode) {
@@ -253,7 +258,7 @@ func findOrgNode(nodes []types.OrgNode, id string) *types.OrgNode {
 	return result
 }
 
-func countMembersInDept(members []types.Member, deptID string) int {
+func countMembersInDept(members []types.Member, deptID uuid.UUID) int {
 	count := 0
 	for _, m := range members {
 		if m.DepartmentID == deptID {
@@ -272,8 +277,8 @@ func joinNames(names []string) string {
 
 // collectDeptIDs returns a set of department IDs to apply the budget to.
 // If recursive, it includes all descendant departments that haven't set their own avg budget.
-func collectDeptIDs(nodes []types.OrgNode, rootID string, recursive bool) map[string]bool {
-	result := make(map[string]bool)
+func collectDeptIDs(nodes []types.OrgNode, rootID uuid.UUID, recursive bool) map[uuid.UUID]bool {
+	result := make(map[uuid.UUID]bool)
 	var walk func([]types.OrgNode, bool)
 	walk = func(list []types.OrgNode, collecting bool) {
 		for _, node := range list {

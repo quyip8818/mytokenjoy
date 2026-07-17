@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
@@ -158,7 +159,7 @@ func pendingActiveJobs(st store.Store) int {
 	return count
 }
 
-func PendingJobCount(st store.Store, kind string, companyID int64) int {
+func PendingJobCount(st store.Store, kind string, companyID uuid.UUID) int {
 	ctx := context.Background()
 	pool := postgres.MainPool(st)
 	if pool == nil {
@@ -175,19 +176,19 @@ func PendingJobCount(st store.Store, kind string, companyID int64) int {
 	return count
 }
 
-func PendingRebalanceCount(st store.Store, companyID int64) int {
+func PendingRebalanceCount(st store.Store, companyID uuid.UUID) int {
 	return PendingJobCount(st, jobs.KindRebalance, companyID)
 }
 
-func PendingOverrunCount(st store.Store, companyID int64) int {
+func PendingOverrunCount(st store.Store, companyID uuid.UUID) int {
 	return PendingJobCount(st, jobs.KindOverrun, companyID)
 }
 
-func PendingWalletSyncCount(st store.Store, companyID int64) int {
+func PendingWalletSyncCount(st store.Store, companyID uuid.UUID) int {
 	return PendingJobCount(st, jobs.KindWalletSync, companyID)
 }
 
-func PendingDashboardProjectCount(st store.Store, companyID int64) int {
+func PendingDashboardProjectCount(st store.Store, companyID uuid.UUID) int {
 	return PendingJobCount(st, jobs.KindDashboardProject, companyID)
 }
 

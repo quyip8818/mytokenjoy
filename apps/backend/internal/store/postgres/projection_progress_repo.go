@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -64,7 +65,7 @@ func (r *projectionProgressRepo) GetForUpdate(ctx context.Context, stream string
 	return &progress, nil
 }
 
-func (r *projectionProgressRepo) Advance(ctx context.Context, stream string, lastOccurredAt time.Time, lastLedgerID string) error {
+func (r *projectionProgressRepo) Advance(ctx context.Context, stream string, lastOccurredAt time.Time, lastLedgerID uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, fmt.Sprintf(`
 		INSERT INTO %s (company_id, stream, last_occurred_at, last_ledger_id, updated_at)

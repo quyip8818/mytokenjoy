@@ -3,6 +3,7 @@ package schedule
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -10,10 +11,10 @@ import (
 )
 
 type RebalanceEnqueuer interface {
-	InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error
+	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error
 }
 
-func EnsureMonthRebalance(ctx context.Context, cfg config.Config, st store.Store, enqueuer RebalanceEnqueuer, companyID int64) error {
+func EnsureMonthRebalance(ctx context.Context, cfg config.Config, st store.Store, enqueuer RebalanceEnqueuer, companyID uuid.UUID) error {
 	entryCtx := company.WithDefaultCompany(ctx, companyID)
 	tbs, err := st.TenantBackgroundState().Get(entryCtx, companyID)
 	if err != nil {

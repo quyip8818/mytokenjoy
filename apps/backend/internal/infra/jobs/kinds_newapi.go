@@ -1,16 +1,17 @@
 package jobs
 
 import (
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
 type NewAPISyncArgs struct {
-	CompanyID     int64  `json:"company_id"`
-	SubKind       string `json:"sub_kind"`
-	PlatformKeyID string `json:"platform_key_id,omitempty"`
-	ProviderKeyID string `json:"provider_key_id,omitempty"`
-	DepartmentID  string `json:"department_id,omitempty"`
+	CompanyID     uuid.UUID `json:"company_id"`
+	SubKind       string    `json:"sub_kind"`
+	PlatformKeyID uuid.UUID `json:"platform_key_id,omitempty"`
+	ProviderKeyID string    `json:"provider_key_id,omitempty"`
+	DepartmentID  uuid.UUID `json:"department_id,omitempty"`
 }
 
 func (NewAPISyncArgs) Kind() string { return KindNewAPISync }

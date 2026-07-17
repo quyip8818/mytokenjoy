@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 )
 
@@ -127,7 +129,7 @@ func ParseMemberToken(r *http.Request, issuer sessiontoken.Issuer) (sessiontoken
 		}
 		return sessiontoken.Claims{}, ErrInvalidToken
 	}
-	if claims.CompanyID <= 0 {
+	if claims.CompanyID == uuid.Nil {
 		return sessiontoken.Claims{}, ErrInvalidToken
 	}
 	return claims, nil

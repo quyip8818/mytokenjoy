@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -13,25 +14,15 @@ import (
 )
 
 func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error) {
-	companies, err := s.store.Company().List(ctx)
-	if err != nil {
-		return CreateCompanyResult{}, err
-	}
-	var nextID int64 = 1
-	for _, t := range companies {
-		if t.ID >= nextID {
-			nextID = t.ID + 1
-		}
-	}
 	companyType := req.Type
 	if companyType == "" {
 		companyType = store.CompanyTypeStandard
 	}
 	now := time.Now().UTC()
 	var result CreateCompanyResult
-	err = s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		company := store.Company{
-			ID:        nextID,
+			ID:        uuid.Must(uuid.NewV7()),
 			Name:      req.Name,
 			Type:      companyType,
 			Status:    store.CompanyStatusActive,
@@ -49,7 +40,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			return fmt.Errorf("newapi admin client required")
 		}
 		user, err := s.client.CreateUser(ctx, adminport.CreateUserInput{
-			Username:    fmt.Sprintf("company-%d", company.ID),
+			Username:    fmt.Sprintf("company-%s", company.ID),
 			DisplayName: req.Name,
 			Password:    randomPassword(),
 			Quota:       0,
@@ -62,7 +53,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		}
 		walletID := user.ID
 		company.NewAPIWalletUserID = &walletID
-		rootDeptID := fmt.Sprintf("dept-root-%d", company.ID)
+		rootDeptID := uuid.Must(uuid.NewV7())
 		nodes, err := tx.Org().Nodes().Tree(companyCtx)
 		if err != nil {
 			return err
@@ -85,7 +76,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		if err != nil {
 			return err
 		}
-		inviteID := fmt.Sprintf("invite-%d-%d", company.ID, time.Now().UnixNano())
+		inviteID := uuid.Must(uuid.NewV7())
 		if err := tx.Invite().CreateInvite(ctx, store.CompanyInvite{
 			ID:         inviteID,
 			CompanyID:  company.ID,
@@ -103,19 +94,19 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	if err != nil {
 		return CreateCompanyResult{}, err
 	}
-	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", "platform", fmt.Sprintf("%d", result.Company.ID),
-		fmt.Sprintf("created company %d invite for %s", result.Company.ID, req.SuperAdminEmail))
+	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", uuid.Nil,
+		result.Company.ID.String(),
+		fmt.Sprintf("created company %s invite for %s", result.Company.ID, req.SuperAdminEmail))
 	return result, nil
 }
 
-func defaultCompanyRoles(companyID int64, normalizer grants.Normalizer) []types.Role {
-	prefix := fmt.Sprintf("%d", companyID)
+func defaultCompanyRoles(companyID uuid.UUID, normalizer grants.Normalizer) []types.Role {
 	roles := []types.Role{
-		{ID: "role-1-" + prefix, Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
-		{ID: "role-2-" + prefix, Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
-		{ID: "role-3-" + prefix, Name: grants.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
-		{ID: "role-4-" + prefix, Name: grants.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
-		{ID: "role-5-" + prefix, Name: grants.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
+		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
+		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
+		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
+		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
+		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
 	}
 	for i := range roles {
 		ids, err := normalizer.RoleGrantIDs(roles[i].Type, roles[i].Name, roles[i].Permissions)

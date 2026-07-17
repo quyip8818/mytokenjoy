@@ -1,6 +1,10 @@
 package store
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 const (
 	AxisKindProject     = "project"
@@ -11,17 +15,17 @@ const (
 // ConsumedDelta represents one axis increment for batch budget_consumed writes.
 type ConsumedDelta struct {
 	AxisKind  string
-	AxisID    string
+	AxisID    uuid.UUID
 	PeriodKey string
 	Amount    float64
 }
 
 type BudgetConsumedRepository interface {
-	GetConsumed(ctx context.Context, axisKind, axisID, periodKey string) (float64, bool, error)
-	ListConsumed(ctx context.Context, axisKind, periodKey string) (map[string]float64, error)
-	ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[string]float64, error)
-	IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amountPoint float64) error
+	GetConsumed(ctx context.Context, axisKind string, axisID uuid.UUID, periodKey string) (float64, bool, error)
+	ListConsumed(ctx context.Context, axisKind, periodKey string) (map[uuid.UUID]float64, error)
+	ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[uuid.UUID]float64, error)
+	IncrementConsumed(ctx context.Context, axisKind string, axisID uuid.UUID, periodKey string, amountPoint float64) error
 	// IncrementConsumedBatch atomically increments multiple axes in a single SQL round-trip.
 	IncrementConsumedBatch(ctx context.Context, deltas []ConsumedDelta) error
-	SetConsumed(ctx context.Context, axisKind, axisID, periodKey string, consumed float64) error
+	SetConsumed(ctx context.Context, axisKind string, axisID uuid.UUID, periodKey string, consumed float64) error
 }

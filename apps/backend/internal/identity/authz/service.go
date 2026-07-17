@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/billing"
@@ -14,7 +15,7 @@ import (
 )
 
 type Service interface {
-	GetSessionContext(ctx context.Context, companyID int64, memberID string) (types.SessionContext, error)
+	GetSessionContext(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (types.SessionContext, error)
 	RevisionReader
 }
 
@@ -41,11 +42,11 @@ func NewService(cfg config.Config, st Store) Service {
 	}
 }
 
-func (s *service) GetAuthzRevision(ctx context.Context, companyID int64) (int64, error) {
+func (s *service) GetAuthzRevision(ctx context.Context, companyID uuid.UUID) (int64, error) {
 	return s.store.Company().GetAuthzRevision(ctx, companyID)
 }
 
-func (s *service) GetSessionContext(ctx context.Context, companyID int64, memberID string) (types.SessionContext, error) {
+func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (types.SessionContext, error) {
 	revision, err := s.revCache.get(ctx, companyID, s.store.Company())
 	if err != nil {
 		return types.SessionContext{}, err
@@ -96,7 +97,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID int64, member
 
 // companyTypeFromContext tries to get company type from the request context first
 // (already resolved by CompanyResolve middleware), falling back to a DB lookup only if needed.
-func companyTypeFromContext(ctx context.Context, companyID int64, st Store) string {
+func companyTypeFromContext(ctx context.Context, companyID uuid.UUID, st Store) string {
 	if info, ok := ctxcompany.From(ctx); ok && info.CompanyID == companyID && info.Type != "" {
 		return info.Type
 	}
@@ -113,7 +114,7 @@ func companyTypeFromContext(ctx context.Context, companyID int64, st Store) stri
 type revisionCache struct {
 	mu      sync.Mutex
 	ttl     time.Duration
-	entries map[int64]revisionEntry
+	entries map[uuid.UUID]revisionEntry
 }
 
 type revisionEntry struct {
@@ -124,11 +125,11 @@ type revisionEntry struct {
 func newRevisionCache(ttl time.Duration) *revisionCache {
 	return &revisionCache{
 		ttl:     ttl,
-		entries: make(map[int64]revisionEntry),
+		entries: make(map[uuid.UUID]revisionEntry),
 	}
 }
 
-func (rc *revisionCache) get(ctx context.Context, companyID int64, repo store.CompanyRepository) (int64, error) {
+func (rc *revisionCache) get(ctx context.Context, companyID uuid.UUID, repo store.CompanyRepository) (int64, error) {
 	now := time.Now()
 	rc.mu.Lock()
 	if entry, ok := rc.entries[companyID]; ok && now.Before(entry.expiresAt) {

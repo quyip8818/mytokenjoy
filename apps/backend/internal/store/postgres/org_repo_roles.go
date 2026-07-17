@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -28,11 +29,11 @@ func (r *pgOrgRepo) Permissions(ctx context.Context) ([]types.Permission, error)
 	return items, nil
 }
 
-func (r *pgOrgRepo) rolesForCompany(ctx context.Context, companyID int64) ([]types.Role, error) {
+func (r *pgOrgRepo) rolesForCompany(ctx context.Context, companyID uuid.UUID) ([]types.Role, error) {
 	return r.rolesByCompanyID(ctx, companyID)
 }
 
-func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID int64) (map[string]string, error) {
+func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID uuid.UUID) (map[string]string, error) {
 	rows, err := db.Query(ctx, `SELECT id, name FROM roles WHERE company_id = $1`, companyID)
 	if err != nil {
 		return nil, fmt.Errorf("load roles index: %w", err)
@@ -53,7 +54,7 @@ func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 	return r.rolesByCompanyID(ctx, store.CompanyID(ctx))
 }
 
-func (r *pgOrgRepo) rolesByCompanyID(ctx context.Context, companyID int64) ([]types.Role, error) {
+func (r *pgOrgRepo) rolesByCompanyID(ctx context.Context, companyID uuid.UUID) ([]types.Role, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT r.id, r.name, r.type, COUNT(mr.member_id)::int
 		FROM roles r
@@ -107,7 +108,7 @@ func (r *pgOrgRepo) rolesByCompanyID(ctx context.Context, companyID int64) ([]ty
 func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 	companyID := store.CompanyID(ctx)
 	cloned := cloneRoles(roles)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, role := range cloned {
 		ids[i] = role.ID
 		if _, err := r.db.Exec(ctx, `
@@ -136,8 +137,8 @@ func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 		_, err := r.db.Exec(ctx, `DELETE FROM roles WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompany(ctx, r.db, "role_permission_grants", "role_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompanyUUID(ctx, r.db, "role_permission_grants", "role_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompany(ctx, r.db, "roles", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "roles", companyID, ids)
 }

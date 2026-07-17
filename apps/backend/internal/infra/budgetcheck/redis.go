@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -34,7 +35,7 @@ func newRedisStore(ctx context.Context, redisURL string, ttl time.Duration) (*re
 
 func (g *redisStore) Enabled() bool { return g != nil && g.rdb != nil }
 
-func (g *redisStore) Get(ctx context.Context, companyID int64, keyHash string) (Entry, bool, error) {
+func (g *redisStore) Get(ctx context.Context, companyID uuid.UUID, keyHash string) (Entry, bool, error) {
 	raw, err := g.rdb.Get(ctx, Key(companyID, keyHash)).Bytes()
 	if err == goredis.Nil {
 		return Entry{}, false, nil
@@ -49,7 +50,7 @@ func (g *redisStore) Get(ctx context.Context, companyID int64, keyHash string) (
 	return entry, true, nil
 }
 
-func (g *redisStore) Set(ctx context.Context, companyID int64, keyHash string, entry Entry) error {
+func (g *redisStore) Set(ctx context.Context, companyID uuid.UUID, keyHash string, entry Entry) error {
 	if entry.UpdatedAt.IsZero() {
 		entry.UpdatedAt = time.Now().UTC()
 	}

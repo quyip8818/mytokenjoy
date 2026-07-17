@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 )
 
-func gatewaySoftKey(companyID int64, keyHash string) string {
+func gatewaySoftKey(companyID uuid.UUID, keyHash string) string {
 	return fmt.Sprintf("gateway:budget_check:%d:%s", companyID, keyHash)
 }
 
@@ -28,7 +29,7 @@ func NewFakeBudgetCheck() *FakeBudgetCheck {
 
 func (f *FakeBudgetCheck) Enabled() bool { return f.enabled }
 
-func (f *FakeBudgetCheck) Get(_ context.Context, companyID int64, keyHash string) (domainbudget.CombinedKeyEntry, bool, error) {
+func (f *FakeBudgetCheck) Get(_ context.Context, companyID uuid.UUID, keyHash string) (domainbudget.CombinedKeyEntry, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.gets++
@@ -36,7 +37,7 @@ func (f *FakeBudgetCheck) Get(_ context.Context, companyID int64, keyHash string
 	return entry, ok, nil
 }
 
-func (f *FakeBudgetCheck) Set(_ context.Context, companyID int64, keyHash string, entry domainbudget.CombinedKeyEntry) error {
+func (f *FakeBudgetCheck) Set(_ context.Context, companyID uuid.UUID, keyHash string, entry domainbudget.CombinedKeyEntry) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.entries[gatewaySoftKey(companyID, keyHash)] = entry

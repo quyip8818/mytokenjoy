@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -15,12 +16,12 @@ import (
 type Service interface {
 	GetWallet(ctx context.Context) (WalletView, error)
 	ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error)
-	PlatformRecharge(ctx context.Context, companyID int64, amount float64, operatorID string) error
-	PlatformGift(ctx context.Context, companyID int64, points float64, operatorID string) error
-	PlatformAdjust(ctx context.Context, companyID int64, points float64, amountDisplay float64, operatorID string) error
-	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error)
+	PlatformRecharge(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error
+	PlatformGift(ctx context.Context, companyID uuid.UUID, points float64, operatorID uuid.UUID) error
+	PlatformAdjust(ctx context.Context, companyID uuid.UUID, points float64, amountDisplay float64, operatorID uuid.UUID) error
+	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID string) error
-	SyncCompanyWallet(ctx context.Context, companyID int64) error
+	SyncCompanyWallet(ctx context.Context, companyID uuid.UUID) error
 	ReconcileWalletDrift(ctx context.Context) error
 }
 
@@ -59,29 +60,29 @@ func NewService(
 	}
 }
 
-func (s *service) PlatformRecharge(ctx context.Context, companyID int64, amount float64, operatorID string) error {
+func (s *service) PlatformRecharge(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error {
 	ctx = company.WithContext(ctx, company.Context{CompanyID: companyID})
 	if err := s.confirmPaidRecharge(ctx, amount, store.RechargeSourcePlatform,
-		fmt.Sprintf("platform:%s", operatorID), nil); err != nil {
+		operatorID, nil); err != nil {
 		return err
 	}
 	return company.AppendPlatformOperationLog(ctx, s.store, companyID, "platform.company.recharge", operatorID,
-		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("amount=%.2f", amount))
+		fmt.Sprintf("company:%s", companyID), fmt.Sprintf("amount=%.2f", amount))
 }
 
-func (s *service) PlatformGift(ctx context.Context, companyID int64, points float64, operatorID string) error {
+func (s *service) PlatformGift(ctx context.Context, companyID uuid.UUID, points float64, operatorID uuid.UUID) error {
 	if points <= 0 {
 		return fmt.Errorf("gift points must be positive")
 	}
 	ctx = company.WithContext(ctx, company.Context{CompanyID: companyID})
-	if err := s.confirmGiftLot(ctx, points, fmt.Sprintf("platform-gift:%s", operatorID)); err != nil {
+	if err := s.confirmGiftLot(ctx, points, operatorID); err != nil {
 		return err
 	}
 	return company.AppendPlatformOperationLog(ctx, s.store, companyID, "platform.company.gift", operatorID,
-		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("points=%.0f", points))
+		fmt.Sprintf("company:%s", companyID), fmt.Sprintf("points=%.0f", points))
 }
 
-func (s *service) PlatformAdjust(ctx context.Context, companyID int64, points float64, amountDisplay float64, operatorID string) error {
+func (s *service) PlatformAdjust(ctx context.Context, companyID uuid.UUID, points float64, amountDisplay float64, operatorID uuid.UUID) error {
 	if points <= 0 {
 		return fmt.Errorf("adjust points must be positive")
 	}
@@ -89,21 +90,21 @@ func (s *service) PlatformAdjust(ctx context.Context, companyID int64, points fl
 		return fmt.Errorf("adjust amount display must be non-negative")
 	}
 	ctx = company.WithContext(ctx, company.Context{CompanyID: companyID})
-	if err := s.confirmAdjustLot(ctx, points, amountDisplay, fmt.Sprintf("platform-adjust:%s", operatorID)); err != nil {
+	if err := s.confirmAdjustLot(ctx, points, amountDisplay, operatorID); err != nil {
 		return err
 	}
 	return company.AppendPlatformOperationLog(ctx, s.store, companyID, "platform.company.adjust", operatorID,
-		fmt.Sprintf("company:%d", companyID), fmt.Sprintf("points=%.0f amount=%.2f", points, amountDisplay))
+		fmt.Sprintf("company:%s", companyID), fmt.Sprintf("points=%.0f amount=%.2f", points, amountDisplay))
 }
 
-func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID string) (store.RechargeOrder, error) {
+func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error) {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return store.RechargeOrder{}, err
 	}
 	now := time.Now().UTC()
-	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
+	orderID := uuid.Must(uuid.NewV7())
 	key := idempotencyKey
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,

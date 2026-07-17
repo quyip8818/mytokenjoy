@@ -3,12 +3,13 @@ package jobs
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/config"
 )
 
 type WalletSyncArgs struct {
-	CompanyID int64 `json:"company_id" river:"unique"`
+	CompanyID uuid.UUID `json:"company_id" river:"unique"`
 }
 
 func (WalletSyncArgs) Kind() string { return KindWalletSync }

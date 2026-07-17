@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 )
@@ -15,14 +16,14 @@ import (
 // --- List notifications ---
 
 type notificationItemResponse struct {
-	ID        string  `json:"id"`
-	EventType string  `json:"eventType"`
-	Channel   string  `json:"channel"`
-	Title     string  `json:"title"`
-	Body      string  `json:"body"`
-	Status    string  `json:"status"`
-	CreatedAt string  `json:"createdAt"`
-	ReadAt    *string `json:"readAt"`
+	ID        uuid.UUID `json:"id"`
+	EventType string    `json:"eventType"`
+	Channel   string    `json:"channel"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	Status    string    `json:"status"`
+	CreatedAt string    `json:"createdAt"`
+	ReadAt    *string   `json:"readAt"`
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {

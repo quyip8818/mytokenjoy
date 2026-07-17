@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -65,7 +66,7 @@ func buildSeedRechargeOrders() []store.RechargeOrder {
 		loc = time.UTC
 	}
 	specs := []struct {
-		id             string
+		id             uuid.UUID
 		amount         float64
 		status         string
 		createdAt      string
@@ -73,11 +74,11 @@ func buildSeedRechargeOrders() []store.RechargeOrder {
 		paymentMethod  string
 		invoiceStatus  string
 	}{
-		{"tu-1", 100, store.RechargeStatusConfirmed, "2026-06-19 14:30:00", "ORD202606190001", store.PaymentMethodAlipay, store.InvoiceStatusNone},
-		{"tu-2", 50, store.RechargeStatusConfirmed, "2026-06-18 10:15:00", "ORD202606180002", store.PaymentMethodWechat, store.InvoiceStatusApplied},
-		{"tu-3", 200, store.RechargeStatusConfirmed, "2026-06-15 09:00:00", "ORD202606150003", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
-		{"tu-4", 20, store.RechargeStatusPending, "2026-06-12 16:45:00", "ORD202606120004", store.PaymentMethodWechat, store.InvoiceStatusNone},
-		{"tu-5", 500, store.RechargeStatusConfirmed, "2026-06-10 08:20:00", "ORD202606100005", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
+		{uuid.MustParse("00000000-0000-7000-8000-000000000001"), 100, store.RechargeStatusConfirmed, "2026-06-19 14:30:00", "ORD202606190001", store.PaymentMethodAlipay, store.InvoiceStatusNone},
+		{uuid.MustParse("00000000-0000-7000-8000-000000000002"), 50, store.RechargeStatusConfirmed, "2026-06-18 10:15:00", "ORD202606180002", store.PaymentMethodWechat, store.InvoiceStatusApplied},
+		{uuid.MustParse("00000000-0000-7000-8000-000000000003"), 200, store.RechargeStatusConfirmed, "2026-06-15 09:00:00", "ORD202606150003", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
+		{uuid.MustParse("00000000-0000-7000-8000-000000000004"), 20, store.RechargeStatusPending, "2026-06-12 16:45:00", "ORD202606120004", store.PaymentMethodWechat, store.InvoiceStatusNone},
+		{uuid.MustParse("00000000-0000-7000-8000-000000000005"), 500, store.RechargeStatusConfirmed, "2026-06-10 08:20:00", "ORD202606100005", store.PaymentMethodAlipay, store.InvoiceStatusIssued},
 	}
 	orders := make([]store.RechargeOrder, 0, len(specs))
 	for _, spec := range specs {

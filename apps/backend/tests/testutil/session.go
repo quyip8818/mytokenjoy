@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
@@ -19,7 +20,7 @@ func SessionIssuer(t *testing.T) sessiontoken.Issuer {
 	return issuer
 }
 
-func IssueSessionJWT(t *testing.T, companyID int64, memberID string) string {
+func IssueSessionJWT(t *testing.T, companyID uuid.UUID, memberID uuid.UUID) string {
 	t.Helper()
 	token, err := SessionIssuer(t).Issue(companyID, memberID)
 	if err != nil {
@@ -28,12 +29,12 @@ func IssueSessionJWT(t *testing.T, companyID int64, memberID string) string {
 	return token
 }
 
-func SessionCookie(t *testing.T, memberID string) string {
+func SessionCookie(t *testing.T, memberID uuid.UUID) string {
 	t.Helper()
 	return SessionCookieForCompany(t, contract.DefaultCompanyID, memberID)
 }
 
-func SessionCookieForCompany(t *testing.T, companyID int64, memberID string) string {
+func SessionCookieForCompany(t *testing.T, companyID uuid.UUID, memberID uuid.UUID) string {
 	t.Helper()
 	token := IssueSessionJWT(t, companyID, memberID)
 	return httpx.SessionCookie + "=" + token
@@ -44,13 +45,13 @@ func SessionCookieAdmin(t *testing.T) string {
 	return SessionCookie(t, contract.IDMemberAdmin)
 }
 
-func PlatformSessionCookie(t *testing.T, operatorID string) string {
+func PlatformSessionCookie(t *testing.T, operatorID uuid.UUID) string {
 	t.Helper()
 	issuer, err := sessiontoken.NewIssuer(TestSessionSecret, 86400)
 	if err != nil {
 		t.Fatalf("platform session issuer: %v", err)
 	}
-	token, err := issuer.Issue(0, operatorID)
+	token, err := issuer.Issue(uuid.Nil, operatorID)
 	if err != nil {
 		t.Fatalf("issue platform jwt: %v", err)
 	}
@@ -66,7 +67,7 @@ func WithSessionConfig(cfg config.Config) config.Config {
 	return cfg
 }
 
-func SetSessionAuth(req *http.Request, t *testing.T, memberID string) {
+func SetSessionAuth(req *http.Request, t *testing.T, memberID uuid.UUID) {
 	t.Helper()
 	req.Header.Set("Cookie", SessionCookie(t, memberID))
 }

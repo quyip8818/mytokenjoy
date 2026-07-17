@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes []types.OrgNode) error {
+func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid uuid.UUID, nodes []types.OrgNode) error {
 	paths := store.ComputeOrgNodePaths(nodes)
 	flat := pkgorg.FlattenOrgNodeTree(nodes)
 	for i, node := range flat {
@@ -28,7 +29,7 @@ func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid int64, nodes 
 	return nil
 }
 
-func insertSeedOrgNodeStructure(ctx context.Context, exec TableWriter, tid int64, node types.OrgNode, path string, sortOrder int) error {
+func insertSeedOrgNodeStructure(ctx context.Context, exec TableWriter, tid uuid.UUID, node types.OrgNode, path string, sortOrder int) error {
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO org_nodes (
 			id, company_id, name, parent_id, path, external_id, source, manager_id, sort_order,
@@ -44,7 +45,7 @@ func insertSeedOrgNodeStructure(ctx context.Context, exec TableWriter, tid int64
 	return nil
 }
 
-func insertSeedOrgNodeBudget(ctx context.Context, exec TableWriter, tid int64, node types.OrgNode) error {
+func insertSeedOrgNodeBudget(ctx context.Context, exec TableWriter, tid uuid.UUID, node types.OrgNode) error {
 	row := pkgbudget.OrgNodeBudgetRowFromNode(node)
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO org_node_budget (

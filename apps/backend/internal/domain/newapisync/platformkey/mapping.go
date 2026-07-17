@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func findPlatformKey(keys []types.PlatformKey, id string) (types.PlatformKey, bool) {
+func findPlatformKey(keys []types.PlatformKey, id uuid.UUID) (types.PlatformKey, bool) {
 	for _, key := range keys {
 		if key.ID == id {
 			return key, true
@@ -19,7 +20,7 @@ func findPlatformKey(keys []types.PlatformKey, id string) (types.PlatformKey, bo
 	return types.PlatformKey{}, false
 }
 
-func RequireSyncedMapping(ctx context.Context, d syncdeps.Deps, platformKeyID string) (types.PlatformKey, store.PlatformKeyMapping, error) {
+func RequireSyncedMapping(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) (types.PlatformKey, store.PlatformKeyMapping, error) {
 	platformKeys, err := d.Store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return types.PlatformKey{}, store.PlatformKeyMapping{}, err

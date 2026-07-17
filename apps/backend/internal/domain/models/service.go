@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
@@ -23,7 +24,7 @@ type Service interface {
 	DeleteModel(ctx context.Context, id string) error
 	ToggleModel(ctx context.Context, id string, enabled bool) error
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
-	ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error)
+	ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
 	UpdateRoutingRule(ctx context.Context, id string, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
 }
 
@@ -229,7 +230,7 @@ func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, er
 	return rules, nil
 }
 
-func (s *service) ResolveRouting(ctx context.Context, deptID string) (types.ResolvedWhitelist, error) {
+func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error) {
 	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
@@ -285,7 +286,7 @@ func (s *service) UpdateRoutingRule(
 	}
 	idx := -1
 	for i := range rules {
-		if rules[i].ID == id {
+		if rules[i].ID.String() == id {
 			idx = i
 			break
 		}
@@ -298,19 +299,19 @@ func (s *service) UpdateRoutingRule(
 		if err := s.validateWritableModelIDs(ctx, input.AllowedModelIDs); err != nil {
 			return types.RoutingRule{}, err
 		}
-		updated.AllowedModelIDs = append([]int64{}, input.AllowedModelIDs...)
+		updated.AllowedModelIDs = append([]uuid.UUID{}, input.AllowedModelIDs...)
 	}
 	if input.Inherited != nil {
 		updated.Inherited = *input.Inherited
 	}
 	if input.DefaultModelID != nil {
-		if err := s.validateWritableModelIDs(ctx, []int64{*input.DefaultModelID}); err != nil {
+		if err := s.validateWritableModelIDs(ctx, []uuid.UUID{*input.DefaultModelID}); err != nil {
 			return types.RoutingRule{}, err
 		}
 		updated.DefaultModelID = input.DefaultModelID
 	}
 	if input.FallbackModelID != nil {
-		if err := s.validateWritableModelIDs(ctx, []int64{*input.FallbackModelID}); err != nil {
+		if err := s.validateWritableModelIDs(ctx, []uuid.UUID{*input.FallbackModelID}); err != nil {
 			return types.RoutingRule{}, err
 		}
 		updated.FallbackModelID = input.FallbackModelID

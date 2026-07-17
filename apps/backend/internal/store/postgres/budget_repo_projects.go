@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgBudgetRepo) GetProjectBudget(ctx context.Context, projectID string) (float64, float64, bool, error) {
+func (r *pgBudgetRepo) GetProjectBudget(ctx context.Context, projectID uuid.UUID) (float64, float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var budget float64
 	err := r.db.QueryRow(ctx, `
@@ -36,14 +37,14 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	}
 	defer rows.Close()
 	projects := make([]types.Project, 0)
-	projectIndex := make(map[string]int)
+	projectIndex := make(map[uuid.UUID]int)
 	for rows.Next() {
 		var p types.Project
 		if err := rows.Scan(&p.ID, &p.Name, &p.Budget, &p.OwnerDepartmentID); err != nil {
 			return nil, err
 		}
 		p.Consumed = 0
-		p.MemberIDs = []string{}
+		p.MemberIDs = []uuid.UUID{}
 		projectIndex[p.ID] = len(projects)
 		projects = append(projects, p)
 	}
@@ -63,7 +64,7 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	}
 	defer memberRows.Close()
 	for memberRows.Next() {
-		var projectID, memberID string
+		var projectID, memberID uuid.UUID
 		var memberBudget float64
 		if err := memberRows.Scan(&projectID, &memberID, &memberBudget); err != nil {
 			return nil, err
@@ -71,7 +72,7 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 		if idx, ok := projectIndex[projectID]; ok {
 			projects[idx].MemberIDs = append(projects[idx].MemberIDs, memberID)
 			if projects[idx].MemberBudgets == nil {
-				projects[idx].MemberBudgets = make(map[string]float64)
+				projects[idx].MemberBudgets = make(map[uuid.UUID]float64)
 			}
 			projects[idx].MemberBudgets[memberID] = memberBudget
 		}
@@ -79,7 +80,7 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	return projects, memberRows.Err()
 }
 
-func (r *pgBudgetRepo) GetProjectMemberBudget(ctx context.Context, projectID, memberID string) (float64, bool, error) {
+func (r *pgBudgetRepo) GetProjectMemberBudget(ctx context.Context, projectID, memberID uuid.UUID) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var budget float64
 	err := r.db.QueryRow(ctx, `
@@ -98,7 +99,7 @@ func (r *pgBudgetRepo) GetProjectMemberBudget(ctx context.Context, projectID, me
 func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project) error {
 	companyID := store.CompanyID(ctx)
 	cloned := cloneProjects(projects)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, project := range cloned {
 		ids[i] = project.ID
 		if _, err := r.db.Exec(ctx, `
@@ -136,7 +137,7 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 		_, err := r.db.Exec(ctx, `DELETE FROM projects WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompany(ctx, r.db, "project_members", "project_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompanyUUID(ctx, r.db, "project_members", "project_id", companyID, ids); err != nil {
 		return err
 	}
 	if _, err := r.db.Exec(ctx, `
@@ -145,5 +146,5 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 	`, companyID, ids); err != nil {
 		return fmt.Errorf("detach platform keys from pruned projects: %w", err)
 	}
-	return pruneByIDForCompany(ctx, r.db, "projects", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "projects", companyID, ids)
 }

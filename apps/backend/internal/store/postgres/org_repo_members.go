@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -27,11 +28,11 @@ const memberListSelect = `
 	LEFT JOIN roles r ON r.company_id = mr.company_id AND r.id = mr.role_id
 `
 
-func (r *pgOrgRepo) FindMemberCompanyID(ctx context.Context, memberID string) (int64, error) {
-	var companyID int64
+func (r *pgOrgRepo) FindMemberCompanyID(ctx context.Context, memberID uuid.UUID) (uuid.UUID, error) {
+	var companyID uuid.UUID
 	err := r.db.QueryRow(ctx, `SELECT company_id FROM members WHERE id = $1 LIMIT 1`, memberID).Scan(&companyID)
 	if err == pgx.ErrNoRows {
-		return 0, nil
+		return uuid.Nil, nil
 	}
 	return companyID, err
 }
@@ -66,7 +67,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	return items, rows.Err()
 }
 
-func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Member, error) {
+func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID uuid.UUID) (*types.Member, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, memberSelect+` WHERE m.company_id = $1 AND m.id = $2`, companyID, memberID)
 	var item types.Member
@@ -99,7 +100,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID string) (*types.Mem
 	return &item, nil
 }
 
-func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error) {
+func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, email string) (*types.Member, string, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget, u.password_hash
 		FROM members m
@@ -141,7 +142,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID int64, email st
 	return &item, hash, nil
 }
 
-func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*store.MemberAuthz, error) {
+func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,
 		       c.authz_revision
@@ -190,7 +191,7 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID int64, memberI
 	}, nil
 }
 
-func (r *pgOrgRepo) MemberPersonalBudget(ctx context.Context, memberID string) (float64, bool, error) {
+func (r *pgOrgRepo) MemberPersonalBudget(ctx context.Context, memberID uuid.UUID) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var quota float64
 	err := r.db.QueryRow(ctx, `
@@ -212,7 +213,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 	if err != nil {
 		return err
 	}
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, member := range cloned {
 		ids[i] = member.ID
 		if _, err := r.db.Exec(ctx, `
@@ -256,7 +257,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 		_, err := r.db.Exec(ctx, `DELETE FROM members WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompany(ctx, r.db, "member_roles", "member_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompanyUUID(ctx, r.db, "member_roles", "member_id", companyID, ids); err != nil {
 		return err
 	}
 	if _, err := r.db.Exec(ctx, `
@@ -265,10 +266,10 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 	`, companyID, ids); err != nil {
 		return fmt.Errorf("detach platform keys from pruned members: %w", err)
 	}
-	return pruneByIDForCompany(ctx, r.db, "members", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "members", companyID, ids)
 }
 
-func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID string, personalBudget float64) error {
+func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		UPDATE members SET personal_budget = $3, updated_at = NOW()

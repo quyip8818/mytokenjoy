@@ -3,6 +3,7 @@ package keys
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -20,7 +21,7 @@ type Service interface {
 	RotateProviderKey(ctx context.Context, id string, newKey string) (types.ProviderKey, error)
 	DeleteProviderKey(ctx context.Context, id string) error
 	ListPlatformKeys(ctx context.Context, filter types.PlatformKeyListFilter) (types.PageResult[types.PlatformKey], error)
-	BudgetSummary(ctx context.Context, memberID string) (types.MemberBudgetSummary, error)
+	BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
 	UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
 	TogglePlatformKey(ctx context.Context, id string, enabled bool) (types.PlatformKey, error)
@@ -85,8 +86,8 @@ func (s *service) ListProviderKeys(ctx context.Context) ([]types.ProviderKey, er
 	return s.store.Keys().ProviderKeys(ctx)
 }
 
-func (s *service) BudgetSummary(ctx context.Context, memberID string) (types.MemberBudgetSummary, error) {
-	if memberID == "" {
+func (s *service) BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error) {
+	if memberID == uuid.Nil {
 		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
 	}
 	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
@@ -102,6 +103,10 @@ func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]ty
 	if err != nil {
 		return nil, err
 	}
+	var parsedMemberID uuid.UUID
+	if memberID != "" {
+		parsedMemberID, _ = uuid.Parse(memberID)
+	}
 	filtered := make([]types.KeyApproval, 0, len(items))
 	for _, item := range items {
 		switch tab {
@@ -116,7 +121,7 @@ func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]ty
 				continue
 			}
 		}
-		if memberID != "" && item.ApplicantID != memberID {
+		if parsedMemberID != uuid.Nil && item.ApplicantID != parsedMemberID {
 			continue
 		}
 		filtered = append(filtered, item)
@@ -129,9 +134,13 @@ func (s *service) ApprovalBudgetCheck(ctx context.Context, id string) (types.App
 	if err != nil {
 		return types.ApprovalBudgetCheck{}, err
 	}
+	parsedID, parseErr := uuid.Parse(id)
+	if parseErr != nil {
+		return types.ApprovalBudgetCheck{}, domain.Validation("invalid approval id")
+	}
 	var approval *types.KeyApproval
 	for i := range approvals {
-		if approvals[i].ID == id {
+		if approvals[i].ID == parsedID {
 			approval = &approvals[i]
 			break
 		}

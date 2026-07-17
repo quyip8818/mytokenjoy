@@ -3,6 +3,7 @@ package keys
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -23,14 +24,14 @@ func (s *service) ListPlatformKeys(
 		return types.PageResult[types.PlatformKey]{}, err
 	}
 
-	var allowedDeptIDs map[string]struct{}
+	var allowedDeptIDs map[uuid.UUID]struct{}
 
-	if filter.DepartmentID != "" {
+	if filter.DepartmentID != uuid.Nil {
 		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.PageResult[types.PlatformKey]{}, err
 		}
-		allowedDeptIDs = make(map[string]struct{})
+		allowedDeptIDs = make(map[uuid.UUID]struct{})
 		for _, id := range pkgorg.CollectDescendantDeptIDs(departments, filter.DepartmentID) {
 			allowedDeptIDs[id] = struct{}{}
 		}
@@ -53,19 +54,19 @@ func (s *service) ListPlatformKeys(
 func matchesPlatformKeyFilter(
 	key types.PlatformKey,
 	filter types.PlatformKeyListFilter,
-	allowedDeptIDs map[string]struct{},
-	projectByID map[string]types.Project,
+	allowedDeptIDs map[uuid.UUID]struct{},
+	projectByID map[uuid.UUID]types.Project,
 ) bool {
-	if filter.MemberID != "" && (key.MemberID == nil || *key.MemberID != filter.MemberID) {
+	if filter.MemberID != uuid.Nil && (key.MemberID == nil || *key.MemberID != filter.MemberID) {
 		return false
 	}
-	if filter.ProjectID != "" && (key.ProjectID == nil || *key.ProjectID != filter.ProjectID) {
+	if filter.ProjectID != uuid.Nil && (key.ProjectID == nil || *key.ProjectID != filter.ProjectID) {
 		return false
 	}
 	if filter.Scope != "" && key.Scope != filter.Scope {
 		return false
 	}
-	if filter.DepartmentID == "" {
+	if filter.DepartmentID == uuid.Nil {
 		return true
 	}
 	if key.Scope == "member" {

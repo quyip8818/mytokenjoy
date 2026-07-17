@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -10,8 +12,8 @@ const (
 )
 
 type CompanyInvite struct {
-	ID         string
-	CompanyID  int64
+	ID         uuid.UUID
+	CompanyID  uuid.UUID
 	Email      string
 	Role       string
 	InviteCode string
@@ -23,5 +25,5 @@ type CompanyInvite struct {
 type InviteRepository interface {
 	CreateInvite(ctx context.Context, invite CompanyInvite) error
 	GetInviteByCode(ctx context.Context, inviteCode string) (*CompanyInvite, error)
-	MarkInviteAccepted(ctx context.Context, id string, acceptedAt time.Time) error
+	MarkInviteAccepted(ctx context.Context, id uuid.UUID, acceptedAt time.Time) error
 }

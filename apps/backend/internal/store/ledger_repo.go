@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -20,7 +21,7 @@ type LedgerCallFilter struct {
 
 type LedgerProjectorCursor struct {
 	LastOccurredAt *time.Time
-	LastLedgerID   *string
+	LastLedgerID   *uuid.UUID
 	Limit          int
 }
 

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -19,8 +20,8 @@ type Entry struct {
 
 type Store interface {
 	Enabled() bool
-	Get(ctx context.Context, companyID int64, keyHash string) (Entry, bool, error)
-	Set(ctx context.Context, companyID int64, keyHash string, entry Entry) error
+	Get(ctx context.Context, companyID uuid.UUID, keyHash string) (Entry, bool, error)
+	Set(ctx context.Context, companyID uuid.UUID, keyHash string, entry Entry) error
 }
 
 func BlocksWithVersion(entry Entry, pgVersion int64) bool {
@@ -30,7 +31,7 @@ func BlocksWithVersion(entry Entry, pgVersion int64) bool {
 	return entry.Remain <= 0
 }
 
-func Key(companyID int64, keyHash string) string {
+func Key(companyID uuid.UUID, keyHash string) string {
 	return fmt.Sprintf("gateway:budget_check:%d:%s", companyID, keyHash)
 }
 
@@ -38,7 +39,7 @@ func RefreshSummaries(
 	ctx context.Context,
 	cache Store,
 	logger *slog.Logger,
-	companyID int64,
+	companyID uuid.UUID,
 	summaries []store.CombinedKeySummary,
 ) {
 	if cache == nil || !cache.Enabled() || len(summaries) == 0 {
@@ -60,10 +61,10 @@ type Noop struct{}
 
 func (Noop) Enabled() bool { return false }
 
-func (Noop) Get(context.Context, int64, string) (Entry, bool, error) {
+func (Noop) Get(context.Context, uuid.UUID, string) (Entry, bool, error) {
 	return Entry{}, false, nil
 }
 
-func (Noop) Set(context.Context, int64, string, Entry) error { return nil }
+func (Noop) Set(context.Context, uuid.UUID, string, Entry) error { return nil }
 
 var _ Store = Noop{}

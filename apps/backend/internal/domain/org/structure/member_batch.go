@@ -3,6 +3,7 @@ package structure
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -22,9 +23,13 @@ func (s *LocalService) BatchInvite(ctx context.Context, ids []string) (types.Bat
 	}
 	targets := make([]types.Member, 0)
 	if len(ids) > 0 {
-		idSet := make(map[string]struct{}, len(ids))
+		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			idSet[id] = struct{}{}
+			parsed, err := uuid.Parse(id)
+			if err != nil {
+				continue
+			}
+			idSet[parsed] = struct{}{}
 		}
 		for _, member := range members {
 			if _, ok := idSet[member.ID]; ok {
@@ -79,7 +84,7 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 			continue
 		}
 		members = append(members, types.Member{
-			ID: generateID("m-import"), UserID: userID,
+			ID: generateID(), UserID: userID,
 			Name: row.Name, Phone: row.Phone, Email: row.Email,
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Status: types.MemberStatusActive, Roles: []string{grants.RoleMember}, Source: "imported",

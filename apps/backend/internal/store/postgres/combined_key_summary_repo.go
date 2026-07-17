@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -26,7 +27,7 @@ func (r *combinedKeySummaryRepo) UpdateBatch(ctx context.Context, updates []stor
 	ids := make([]string, len(updates))
 	remains := make([]float64, len(updates))
 	for i, u := range updates {
-		ids[i] = u.PlatformKeyID
+		ids[i] = u.PlatformKeyID.String()
 		remains[i] = u.Remain
 	}
 	rows, err := r.db.Query(ctx, `
@@ -67,12 +68,12 @@ func (r *combinedKeySummaryRepo) UpdateBatch(ctx context.Context, updates []stor
 	return out, rows.Err()
 }
 
-func (r *combinedKeySummaryRepo) DecrementBatch(ctx context.Context, decrements map[string]float64) ([]store.CombinedKeySummary, error) {
+func (r *combinedKeySummaryRepo) DecrementBatch(ctx context.Context, decrements map[uuid.UUID]float64) ([]store.CombinedKeySummary, error) {
 	if len(decrements) == 0 {
 		return nil, nil
 	}
 	companyID := store.CompanyID(ctx)
-	ids := make([]string, 0, len(decrements))
+	ids := make([]uuid.UUID, 0, len(decrements))
 	deltas := make([]float64, 0, len(decrements))
 	for id, delta := range decrements {
 		ids = append(ids, id)
@@ -80,7 +81,7 @@ func (r *combinedKeySummaryRepo) DecrementBatch(ctx context.Context, decrements 
 	}
 	rows, err := r.db.Query(ctx, `
 		WITH input AS (
-			SELECT unnest($2::text[]) AS platform_key_id,
+			SELECT unnest($2::uuid[]) AS platform_key_id,
 			       unnest($3::numeric[]) AS delta
 		),
 		updated AS (
@@ -117,7 +118,7 @@ func (r *combinedKeySummaryRepo) DecrementBatch(ctx context.Context, decrements 
 	return out, rows.Err()
 }
 
-func (r *combinedKeySummaryRepo) ListByPlatformKeyIDs(ctx context.Context, keyIDs []string) ([]store.CombinedKeySummary, error) {
+func (r *combinedKeySummaryRepo) ListByPlatformKeyIDs(ctx context.Context, keyIDs []uuid.UUID) ([]store.CombinedKeySummary, error) {
 	if len(keyIDs) == 0 {
 		return nil, nil
 	}
@@ -151,7 +152,7 @@ func (r *combinedKeySummaryRepo) ListByPlatformKeyIDs(ctx context.Context, keyID
 	return out, rows.Err()
 }
 
-func (r *combinedKeySummaryRepo) LockPlatformKeysForUpdate(ctx context.Context, keyIDs []string) error {
+func (r *combinedKeySummaryRepo) LockPlatformKeysForUpdate(ctx context.Context, keyIDs []uuid.UUID) error {
 	if len(keyIDs) == 0 {
 		return nil
 	}

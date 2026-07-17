@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
@@ -80,6 +81,6 @@ func (s *LocalService) checkTrialMemberLimitBatch(ctx context.Context, members [
 }
 
 // resolveOrCreateUser finds an existing user by phone or email, or creates a new one.
-func (s *LocalService) resolveOrCreateUser(ctx context.Context, phone, email string) (string, error) {
+func (s *LocalService) resolveOrCreateUser(ctx context.Context, phone, email string) (uuid.UUID, error) {
 	return core.ResolveOrCreateUser(ctx, s.d.Store, phone, email)
 }

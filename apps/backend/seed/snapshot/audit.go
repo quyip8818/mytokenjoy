@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -26,19 +27,19 @@ func loadOperationLogs() []types.OperationLog {
 }
 
 type seedLedgerRow struct {
-	ID             string  `json:"id"`
-	Caller         string  `json:"caller"`
-	CallerID       string  `json:"callerId"`
-	CallerType     string  `json:"callerType"`
-	Model          string  `json:"model"`
-	Provider       string  `json:"provider"`
-	InputTokens    float64 `json:"inputTokens"`
-	OutputTokens   float64 `json:"outputTokens"`
-	LatencyMs      float64 `json:"latencyMs"`
-	Status         string  `json:"status"`
-	Cost           float64 `json:"cost"`
-	CreatedAt      string  `json:"createdAt"`
-	PreviewSnippet string  `json:"previewSnippet"`
+	ID             uuid.UUID `json:"id"`
+	Caller         string    `json:"caller"`
+	CallerID       string    `json:"callerId"`
+	CallerType     string    `json:"callerType"`
+	Model          string    `json:"model"`
+	Provider       string    `json:"provider"`
+	InputTokens    float64   `json:"inputTokens"`
+	OutputTokens   float64   `json:"outputTokens"`
+	LatencyMs      float64   `json:"latencyMs"`
+	Status         string    `json:"status"`
+	Cost           float64   `json:"cost"`
+	CreatedAt      string    `json:"createdAt"`
+	PreviewSnippet string    `json:"previewSnippet"`
 }
 
 func loadUsageLedger() []types.UsageLedgerEntry {
@@ -46,7 +47,7 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 	if err := json.Unmarshal(data.UsageLedgerJSON, &rows); err != nil {
 		panic("seed: load usage ledger: " + err.Error())
 	}
-	keyScope := make(map[string]string, len(loadPlatformKeys()))
+	keyScope := make(map[uuid.UUID]string, len(loadPlatformKeys()))
 	for _, key := range loadPlatformKeys() {
 		keyScope[key.ID] = key.Scope
 	}
@@ -56,23 +57,26 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 		if err != nil {
 			panic("seed: parse ledger occurred_at: " + err.Error())
 		}
-		var memberID *string
+		var memberID *uuid.UUID
 		if row.CallerType == types.CallerTypeMember {
-			memberID = &row.CallerID
+			parsed := uuid.MustParse(row.CallerID)
+			memberID = &parsed
 		}
 		platformKeyID := contract.IDPlatformKey1
 		if row.CallerType == types.CallerTypePlatformKey {
-			platformKeyID = row.CallerID
+			platformKeyID = uuid.MustParse(row.CallerID)
 		}
 		scope := keyScope[platformKeyID]
 		if scope == "" {
 			panic(fmt.Sprintf("seed: unknown platform key %q for ledger row %s", platformKeyID, row.ID))
 		}
+		// Use a well-known seed lot UUID.
+		seedLotID := uuid.MustParse("00000000-0000-7000-8000-000000000aa1")
 		entries = append(entries, types.UsageLedgerEntry{
 			ID:               row.ID,
 			EventType:        types.EventTypeCallSettled,
 			IdempotencyKey:   fmt.Sprintf("%sseed-%d", types.IdempotencyPrefixNewAPI, i+1),
-			LotID:            "tu-1",
+			LotID:            seedLotID,
 			Amount:           seedPoints(row.Cost),
 			DisplayAmount:    row.Cost,
 			BillingCurrency:  common.DefaultBillingCurrency,

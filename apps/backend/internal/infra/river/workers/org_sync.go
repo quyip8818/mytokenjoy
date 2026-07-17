@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
@@ -19,7 +20,7 @@ func NewOrgSyncWorker(sync domainorg.SyncService) *OrgSyncWorker {
 }
 
 func (w *OrgSyncWorker) Work(ctx context.Context, job *river.Job[jobs.OrgSyncArgs]) error {
-	if job.Args.CompanyID == 0 {
+	if job.Args.CompanyID == uuid.Nil {
 		return nil
 	}
 	entryCtx := company.WithDefaultCompany(ctx, job.Args.CompanyID)

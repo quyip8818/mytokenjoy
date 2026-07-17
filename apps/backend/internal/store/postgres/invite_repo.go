@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -41,7 +42,7 @@ func (r *inviteRepo) GetInviteByCode(ctx context.Context, inviteCode string) (*s
 	return &inv, nil
 }
 
-func (r *inviteRepo) MarkInviteAccepted(ctx context.Context, id string, acceptedAt time.Time) error {
+func (r *inviteRepo) MarkInviteAccepted(ctx context.Context, id uuid.UUID, acceptedAt time.Time) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE company_invites SET accepted_at = $2 WHERE id = $1
 	`, id, acceptedAt)

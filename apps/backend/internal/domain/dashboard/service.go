@@ -3,6 +3,7 @@ package dashboard
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -15,13 +16,13 @@ import (
 type Service interface {
 	UsageSeries(ctx context.Context, q types.UsageSeriesQuery, scope domainusage.SessionScope) (types.UsageSeriesResponse, error)
 	UsageSeriesFromQuery(ctx context.Context, rawGranularity, rawStart, rawEnd, groupBy, deptID, memberID string, scope domainusage.SessionScope) (types.UsageSeriesResponse, error)
-	CostSummary(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) (types.CostSummary, error)
+	CostSummary(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) (types.CostSummary, error)
 	DepartmentCosts(ctx context.Context, parentID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCost, error)
-	DepartmentMemberCosts(ctx context.Context, deptID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error)
-	DailyCosts(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DailyCost, error)
-	TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.TopConsumer, error)
-	ModelUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.ModelUsage, error)
-	DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DepartmentUsage, error)
+	DepartmentMemberCosts(ctx context.Context, deptID uuid.UUID, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error)
+	DailyCosts(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.DailyCost, error)
+	TopConsumers(ctx context.Context, limit int, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.TopConsumer, error)
+	ModelUsage(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.ModelUsage, error)
+	DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.DepartmentUsage, error)
 }
 
 // Store is the narrow store surface the dashboard service needs.
@@ -57,12 +58,23 @@ func (s *service) resolveRange(params types.CostQueryParams) (budget.ResolvedRan
 	return budget.Resolve(normalized, s.clock.Now(), domainusage.ResolveTimezone(""))
 }
 
-func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID string) ([]string, error) {
+func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID uuid.UUID) ([]string, error) {
 	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
-	return domainusage.ResolveScopeDepartments(departments, scope, requestedDeptID, s.scopeConfig)
+	uuids, err := domainusage.ResolveScopeDepartments(departments, scope, requestedDeptID, s.scopeConfig)
+	if err != nil {
+		return nil, err
+	}
+	if uuids == nil {
+		return nil, nil
+	}
+	ids := make([]string, len(uuids))
+	for i, id := range uuids {
+		ids[i] = id.String()
+	}
+	return ids, nil
 }
 
 func withRange(base types.UsageAggregateQuery, rng budget.ResolvedRange) types.UsageAggregateQuery {

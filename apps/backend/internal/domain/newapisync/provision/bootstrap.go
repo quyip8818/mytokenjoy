@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/platformkey"
@@ -17,7 +18,7 @@ import (
 
 // Bootstrap synchronously creates NewAPI tokens for demo seed platform keys
 // inserted directly by seed apply. Local-only; uses the same sync path as production create.
-func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID int64) error {
+func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error {
 	if !syncdeps.Enabled(d) || !d.Cfg.AllowsDevHTTPRoutes() {
 		return nil
 	}
@@ -59,12 +60,12 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID int64) error {
 			if err != nil {
 				return err
 			}
-			if ok && hash != store.HashPlatformKey("pending:"+key.ID) {
+			if ok && hash != store.HashPlatformKey("pending:"+key.ID.String()) {
 				continue
 			}
 			if _, err := platformkey.TrySyncCreate(ctx, d, key.ID); err != nil {
 				departmentID := platformkey.DepartmentIDForPlatformKey(key, budgetCtx)
-				if departmentID == "" {
+				if departmentID == uuid.Nil {
 					return fmt.Errorf("repair platform key %s: %w", key.ID, err)
 				}
 				if _, err := platformkey.SyncPlatformKeyCreate(ctx, d, key, departmentID); err != nil {
@@ -74,7 +75,7 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID int64) error {
 			continue
 		}
 		departmentID := platformkey.DepartmentIDForPlatformKey(key, budgetCtx)
-		if departmentID == "" {
+		if departmentID == uuid.Nil {
 			continue
 		}
 		if _, err := platformkey.SyncPlatformKeyCreate(ctx, d, key, departmentID); err != nil {
@@ -87,7 +88,7 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID int64) error {
 	return nil
 }
 
-func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID int64) error {
+func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error {
 	if !d.Cfg.AllowsDevHTTPRoutes() || companyID != d.Cfg.LocalCompanyID {
 		return nil
 	}
@@ -102,7 +103,7 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID int
 		return nil
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
-		Username:    fmt.Sprintf("company-%d", companyID),
+		Username:    fmt.Sprintf("company-%s", companyID),
 		DisplayName: co.Name,
 		Password:    secrets.RandomHex(8),
 		Quota:       0,
@@ -140,7 +141,7 @@ func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, bu
 				"error", err,
 			)
 			departmentID := platformkey.DepartmentIDForPlatformKey(key, budgetCtx)
-			if departmentID == "" {
+			if departmentID == uuid.Nil {
 				continue
 			}
 			if _, err := platformkey.SyncPlatformKeyCreate(ctx, d, key, departmentID); err != nil {

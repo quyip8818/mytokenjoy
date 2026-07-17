@@ -1,19 +1,23 @@
 package budget
 
-import "context"
+import (
+	"context"
 
-// JobEnqueuer enqueues budget-domain River jobs without coupling to infra/jobs.
+	"github.com/google/uuid"
+	// JobEnqueuer enqueues budget-domain River jobs without coupling to infra/jobs.
+)
+
 type JobEnqueuer interface {
-	InsertOverrun(ctx context.Context, companyID int64, payload []byte) error
-	InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error
-	InsertBudgetReconcile(ctx context.Context, companyID int64) error
+	InsertOverrun(ctx context.Context, companyID uuid.UUID, payload []byte) error
+	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error
+	InsertBudgetReconcile(ctx context.Context, companyID uuid.UUID) error
 }
 
 type noopJobEnqueuer struct{}
 
-func (noopJobEnqueuer) InsertOverrun(context.Context, int64, []byte) error           { return nil }
-func (noopJobEnqueuer) InsertRebalance(context.Context, int64, string, string) error { return nil }
-func (noopJobEnqueuer) InsertBudgetReconcile(context.Context, int64) error           { return nil }
+func (noopJobEnqueuer) InsertOverrun(context.Context, uuid.UUID, []byte) error           { return nil }
+func (noopJobEnqueuer) InsertRebalance(context.Context, uuid.UUID, string, string) error { return nil }
+func (noopJobEnqueuer) InsertBudgetReconcile(context.Context, uuid.UUID) error           { return nil }
 
 // NoopJobEnqueuer is the default when async budget jobs are disabled.
 var NoopJobEnqueuer JobEnqueuer = noopJobEnqueuer{}

@@ -1,11 +1,15 @@
 package ctxcompany
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type contextKey struct{}
 
 type Info struct {
-	CompanyID          int64
+	CompanyID          uuid.UUID
 	NewAPIWalletUserID int64
 	Type               string
 	Status             string
@@ -20,9 +24,9 @@ func From(ctx context.Context) (Info, bool) {
 	return info, ok
 }
 
-func ID(ctx context.Context) int64 {
+func ID(ctx context.Context) uuid.UUID {
 	if info, ok := From(ctx); ok {
 		return info.CompanyID
 	}
-	return 0
+	return uuid.Nil
 }

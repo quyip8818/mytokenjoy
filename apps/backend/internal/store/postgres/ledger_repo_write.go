@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -27,7 +28,7 @@ func (r *pgLedgerRepo) InsertSegments(ctx context.Context, entries []types.Usage
 	return inserted, nil
 }
 
-func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID int64, entry types.UsageLedgerEntry) (bool, error) {
+func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID uuid.UUID, entry types.UsageLedgerEntry) (bool, error) {
 	detailJSON, err := json.Marshal(entry.CallDetail)
 	if err != nil {
 		return false, err

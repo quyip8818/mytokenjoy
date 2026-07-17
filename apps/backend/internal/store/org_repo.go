@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -25,14 +26,14 @@ type OrgRepository interface {
 	FieldMappings(ctx context.Context) ([]types.FieldMapping, error)
 	SetFieldMappings(ctx context.Context, mappings []types.FieldMapping) error
 	Nodes() OrgNodeRepository
-	FindMemberCompanyID(ctx context.Context, memberID string) (int64, error)
+	FindMemberCompanyID(ctx context.Context, memberID uuid.UUID) (uuid.UUID, error)
 	Members(ctx context.Context) ([]types.Member, error)
-	MemberByID(ctx context.Context, memberID string) (*types.Member, error)
-	MemberByEmail(ctx context.Context, companyID int64, email string) (*types.Member, string, error)
-	GetMemberAuthz(ctx context.Context, companyID int64, memberID string) (*MemberAuthz, error)
-	MemberPersonalBudget(ctx context.Context, memberID string) (float64, bool, error)
+	MemberByID(ctx context.Context, memberID uuid.UUID) (*types.Member, error)
+	MemberByEmail(ctx context.Context, companyID uuid.UUID, email string) (*types.Member, string, error)
+	GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*MemberAuthz, error)
+	MemberPersonalBudget(ctx context.Context, memberID uuid.UUID) (float64, bool, error)
 	SetMembers(ctx context.Context, members []types.Member) error
-	UpdateMemberPersonalBudget(ctx context.Context, memberID string, personalBudget float64) error
+	UpdateMemberPersonalBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) error
 	SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error
 	Roles(ctx context.Context) ([]types.Role, error)
 	SetRoles(ctx context.Context, roles []types.Role) error

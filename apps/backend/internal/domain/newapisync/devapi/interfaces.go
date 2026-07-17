@@ -1,11 +1,15 @@
 package devapi
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type BearerResolver interface {
-	ResolvePlatformKeyBearer(ctx context.Context, platformKeyID string) (string, error)
+	ResolvePlatformKeyBearer(ctx context.Context, platformKeyID uuid.UUID) (string, error)
 }
 
 type ReadinessChecker interface {
-	UnreadyPlatformKeyIDs(ctx context.Context) ([]string, error)
+	UnreadyPlatformKeyIDs(ctx context.Context) ([]uuid.UUID, error)
 }

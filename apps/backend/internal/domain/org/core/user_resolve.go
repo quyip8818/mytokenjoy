@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 // ResolveOrCreateUser finds an existing user by phone or email, or creates a new one.
 // Returns the user ID.
-func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (string, error) {
+func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (uuid.UUID, error) {
 	if phone != "" {
 		user, err := st.User().GetByPhone(ctx, phone)
 		if err != nil {
-			return "", err
+			return uuid.Nil, err
 		}
 		if user != nil {
 			return user.ID, nil
@@ -23,7 +24,7 @@ func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (st
 	if email != "" {
 		user, err := st.User().GetByEmail(ctx, email)
 		if err != nil {
-			return "", err
+			return uuid.Nil, err
 		}
 		if user != nil {
 			return user.ID, nil
@@ -32,7 +33,7 @@ func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (st
 
 	// Create new user.
 	now := time.Now().UTC()
-	userID := fmt.Sprintf("u-%d", now.UnixNano())
+	userID := uuid.Must(uuid.NewV7())
 	newUser := store.User{
 		ID:        userID,
 		Phone:     phone,
@@ -42,7 +43,7 @@ func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (st
 		UpdatedAt: now,
 	}
 	if err := st.User().Create(ctx, newUser); err != nil {
-		return "", fmt.Errorf("create user: %w", err)
+		return uuid.Nil, fmt.Errorf("create user: %w", err)
 	}
 	return userID, nil
 }

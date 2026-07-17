@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -11,7 +12,7 @@ type pgModelAllowlistRepo struct {
 	db dbQuerier
 }
 
-func (r *pgModelAllowlistRepo) List(ctx context.Context, ownerType, ownerID string) ([]int64, error) {
+func (r *pgModelAllowlistRepo) List(ctx context.Context, ownerType string, ownerID uuid.UUID) ([]uuid.UUID, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
 		SELECT model_id
@@ -23,9 +24,9 @@ func (r *pgModelAllowlistRepo) List(ctx context.Context, ownerType, ownerID stri
 		return nil, err
 	}
 	defer rows.Close()
-	modelIDs := make([]int64, 0)
+	modelIDs := make([]uuid.UUID, 0)
 	for rows.Next() {
-		var modelID int64
+		var modelID uuid.UUID
 		if err := rows.Scan(&modelID); err != nil {
 			return nil, err
 		}
@@ -34,7 +35,7 @@ func (r *pgModelAllowlistRepo) List(ctx context.Context, ownerType, ownerID stri
 	return modelIDs, rows.Err()
 }
 
-func (r *pgModelAllowlistRepo) Replace(ctx context.Context, ownerType, ownerID string, modelIDs []int64) error {
+func (r *pgModelAllowlistRepo) Replace(ctx context.Context, ownerType string, ownerID uuid.UUID, modelIDs []uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	if _, err := r.db.Exec(ctx, `
 		DELETE FROM model_allowlist WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
@@ -53,7 +54,7 @@ func (r *pgModelAllowlistRepo) Replace(ctx context.Context, ownerType, ownerID s
 	return nil
 }
 
-func (r *pgModelAllowlistRepo) DeleteByOwner(ctx context.Context, ownerType, ownerID string) error {
+func (r *pgModelAllowlistRepo) DeleteByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		DELETE FROM model_allowlist WHERE company_id = $1 AND owner_type = $2 AND owner_id = $3
@@ -61,7 +62,7 @@ func (r *pgModelAllowlistRepo) DeleteByOwner(ctx context.Context, ownerType, own
 	return err
 }
 
-func (r *pgModelAllowlistRepo) HasAny(ctx context.Context, ownerType, ownerID string) (bool, error) {
+func (r *pgModelAllowlistRepo) HasAny(ctx context.Context, ownerType string, ownerID uuid.UUID) (bool, error) {
 	companyID := store.CompanyID(ctx)
 	var hasAny bool
 	err := r.db.QueryRow(ctx, `
@@ -73,7 +74,7 @@ func (r *pgModelAllowlistRepo) HasAny(ctx context.Context, ownerType, ownerID st
 	return hasAny, err
 }
 
-func (r *pgModelAllowlistRepo) IsAllowed(ctx context.Context, ownerType, ownerID string, modelID int64) (bool, error) {
+func (r *pgModelAllowlistRepo) IsAllowed(ctx context.Context, ownerType string, ownerID uuid.UUID, modelID uuid.UUID) (bool, error) {
 	companyID := store.CompanyID(ctx)
 	var allowed bool
 	err := r.db.QueryRow(ctx, `
@@ -86,7 +87,7 @@ func (r *pgModelAllowlistRepo) IsAllowed(ctx context.Context, ownerType, ownerID
 	return allowed, err
 }
 
-func (r *pgModelAllowlistRepo) IsCallTypeAllowed(ctx context.Context, ownerType, ownerID, callType string) (bool, error) {
+func (r *pgModelAllowlistRepo) IsCallTypeAllowed(ctx context.Context, ownerType string, ownerID uuid.UUID, callType string) (bool, error) {
 	companyID := store.CompanyID(ctx)
 	var allowed bool
 	err := r.db.QueryRow(ctx, `
@@ -101,7 +102,7 @@ func (r *pgModelAllowlistRepo) IsCallTypeAllowed(ctx context.Context, ownerType,
 	return allowed, err
 }
 
-func pruneAllowlistByOwnerIDs(ctx context.Context, db dbQuerier, companyID int64, ownerType string, ownerIDs []string) error {
+func pruneAllowlistByOwnerIDs(ctx context.Context, db dbQuerier, companyID uuid.UUID, ownerType string, ownerIDs []uuid.UUID) error {
 	if len(ownerIDs) == 0 {
 		_, err := db.Exec(ctx, `DELETE FROM model_allowlist WHERE company_id = $1 AND owner_type = $2`, companyID, ownerType)
 		return err

@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 
+	"github.com/google/uuid"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
@@ -17,7 +18,7 @@ func NewUsageIngestEnqueuer(enqueuer jobs.Enqueuer) domainusage.IngestJobEnqueue
 	return usageIngestEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
-func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID int64, effects *domainusage.IngestEffects) error {
+func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID uuid.UUID, effects *domainusage.IngestEffects) error {
 	// Dashboard projection is now driven purely by the periodic watchdog (hourly).
 	// No per-ingest enqueue needed — usage_buckets are hour-granularity anyway.
 	if err := jobs.InsertWalletSync(ctx, u.enqueuer, tx, companyID); err != nil {
@@ -35,9 +36,9 @@ func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx
 	return nil
 }
 
-func platformKeyIDFromEffects(effects *domainusage.IngestEffects) string {
+func platformKeyIDFromEffects(effects *domainusage.IngestEffects) uuid.UUID {
 	if effects == nil {
-		return ""
+		return uuid.Nil
 	}
 	return effects.PlatformKeyID
 }

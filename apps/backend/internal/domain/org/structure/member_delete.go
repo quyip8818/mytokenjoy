@@ -3,6 +3,7 @@ package structure
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -25,9 +26,13 @@ func (s *LocalService) DeleteMembers(ctx context.Context, ids []string, currentM
 			return err
 		}
 
-		idSet := make(map[string]struct{}, len(ids))
+		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			idSet[id] = struct{}{}
+			parsed, err := uuid.Parse(id)
+			if err != nil {
+				continue
+			}
+			idSet[parsed] = struct{}{}
 		}
 
 		for i := range keys {

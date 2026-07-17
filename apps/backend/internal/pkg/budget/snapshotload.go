@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
@@ -14,12 +15,12 @@ func ResolveKeyPeriodKey(
 	key types.PlatformKey,
 	members []types.Member,
 	projects []types.Project,
-	deptPeriod map[string]string,
+	deptPeriod map[uuid.UUID]string,
 	rootPeriodKey string,
 	at time.Time,
 ) string {
 	deptID := keyDepartmentID(key, members, projects)
-	if deptID != "" {
+	if deptID != uuid.Nil {
 		if orgPeriod, ok := deptPeriod[deptID]; ok {
 			return SnapshotKey(orgPeriod, at)
 		}
@@ -27,7 +28,7 @@ func ResolveKeyPeriodKey(
 	return rootPeriodKey
 }
 
-func sumAxisConsumed(axisID string, periodKeys []string, byPeriod map[string]map[string]float64) float64 {
+func sumAxisConsumed(axisID uuid.UUID, periodKeys []string, byPeriod map[string]map[uuid.UUID]float64) float64 {
 	var total float64
 	for _, periodKey := range periodKeys {
 		if consumedByAxis, ok := byPeriod[periodKey]; ok {
@@ -55,7 +56,7 @@ func PlatformKeyConsumed(
 	return snapshots.GetConsumed(ctx, store.AxisKindPlatformKey, key.ID, periodKey)
 }
 
-func keyDepartmentID(key types.PlatformKey, members []types.Member, projects []types.Project) string {
+func keyDepartmentID(key types.PlatformKey, members []types.Member, projects []types.Project) uuid.UUID {
 	if key.MemberID != nil {
 		if member, ok := pkgorg.FindMemberByID(members, *key.MemberID); ok {
 			return member.DepartmentID
@@ -63,12 +64,12 @@ func keyDepartmentID(key types.PlatformKey, members []types.Member, projects []t
 	}
 	if key.ProjectID != nil {
 		for _, project := range projects {
-			if project.ID == *key.ProjectID && project.OwnerDepartmentID != "" {
+			if project.ID == *key.ProjectID && project.OwnerDepartmentID != uuid.Nil {
 				return project.OwnerDepartmentID
 			}
 		}
 	}
-	return ""
+	return uuid.Nil
 }
 
 func uniqueStrings(values []string) []string {
@@ -76,6 +77,22 @@ func uniqueStrings(values []string) []string {
 	out := make([]string, 0, len(values))
 	for _, value := range values {
 		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+func uniqueUUIDs(values []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(values))
+	out := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		if value == uuid.Nil {
 			continue
 		}
 		if _, ok := seen[value]; ok {
@@ -115,7 +132,7 @@ func LoadPlatformKeysWithUsed(
 	if err != nil {
 		return nil, err
 	}
-	keyPeriodKeys := make(map[string]string, len(items))
+	keyPeriodKeys := make(map[uuid.UUID]string, len(items))
 	periodKeys := make([]string, 0, len(items))
 	for _, key := range items {
 		periodKey := ResolveKeyPeriodKey(key, members, projects, deptPeriod, rootPeriodKey, at)
@@ -126,7 +143,7 @@ func LoadPlatformKeysWithUsed(
 	if err != nil {
 		return nil, err
 	}
-	usedByID := make(map[string]float64, len(items))
+	usedByID := make(map[uuid.UUID]float64, len(items))
 	for _, key := range items {
 		periodKey := keyPeriodKeys[key.ID]
 		if consumedByAxis, ok := byPeriod[periodKey]; ok {
@@ -166,7 +183,7 @@ func LoadProjectsWithConsumed(
 	if err != nil {
 		return nil, err
 	}
-	projectPeriodKeys := make(map[string][]string, len(projects))
+	projectPeriodKeys := make(map[uuid.UUID][]string, len(projects))
 	periodKeys := make([]string, 0, len(projects))
 	for _, project := range projects {
 		keys := ResolveProjectPeriodKeys(project, members, deptPeriod, rootPeriodKey, at)
@@ -177,7 +194,7 @@ func LoadProjectsWithConsumed(
 	if err != nil {
 		return nil, err
 	}
-	consumedByID := make(map[string]float64, len(projects))
+	consumedByID := make(map[uuid.UUID]float64, len(projects))
 	for _, project := range projects {
 		consumedByID[project.ID] = sumAxisConsumed(project.ID, projectPeriodKeys[project.ID], byPeriod)
 	}
@@ -188,3 +205,4 @@ func LoadProjectsWithConsumed(
 	}
 	return projects, nil
 }
+

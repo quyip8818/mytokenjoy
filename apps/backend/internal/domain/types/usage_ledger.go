@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 const (
 	EventTypeCallSettled    = "call_settled"
@@ -24,19 +28,19 @@ type UsageCallDetail struct {
 }
 
 type UsageLedgerEntry struct {
-	ID               string
-	CompanyID        int64
+	ID               uuid.UUID
+	CompanyID        uuid.UUID
 	EventType        string
 	IdempotencyKey   string
 	Amount           float64
-	LotID            string
+	LotID            uuid.UUID
 	SegmentIndex     int
 	DisplayAmount    float64
 	BillingCurrency  string
-	DepartmentID     string
-	MemberID         *string
-	ProjectID        *string
-	PlatformKeyID    string
+	DepartmentID     uuid.UUID
+	MemberID         *uuid.UUID
+	ProjectID        *uuid.UUID
+	PlatformKeyID    uuid.UUID
 	PlatformKeyScope string
 	Source           string
 	OccurredAt       time.Time

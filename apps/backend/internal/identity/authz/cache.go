@@ -4,12 +4,13 @@ import (
 	"container/list"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
 type cacheKey struct {
-	companyID int64
-	memberID  string
+	companyID uuid.UUID
+	memberID  uuid.UUID
 	revision  int64
 }
 
@@ -43,7 +44,7 @@ func NewLRUCache(maxSize int) *LRUCache {
 	}
 }
 
-func (c *LRUCache) Get(companyID int64, memberID string, revision int64) (types.Member, []string, bool, bool) {
+func (c *LRUCache) Get(companyID uuid.UUID, memberID uuid.UUID, revision int64) (types.Member, []string, bool, bool) {
 	key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -56,7 +57,7 @@ func (c *LRUCache) Get(companyID int64, memberID string, revision int64) (types.
 	return entry.value.member, append([]string(nil), entry.value.permissions...), entry.value.readOnly, true
 }
 
-func (c *LRUCache) Put(companyID int64, memberID string, revision int64, member types.Member, permissions []string, readOnly bool) {
+func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, member types.Member, permissions []string, readOnly bool) {
 	key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
 	c.mu.Lock()
 	defer c.mu.Unlock()

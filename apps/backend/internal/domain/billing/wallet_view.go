@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 )
 
@@ -15,7 +16,7 @@ type WalletCurrencyView struct {
 }
 
 type WalletView struct {
-	CompanyID         int64                `json:"companyId"`
+	CompanyID         uuid.UUID            `json:"companyId"`
 	BillingCurrency   string               `json:"billingCurrency"`
 	Balances          []WalletCurrencyView `json:"balances"`
 	WalletRemainPoint float64              `json:"walletRemainPoint"`

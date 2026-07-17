@@ -4,28 +4,28 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-const (
-	RootDepartmentID     = "dept-1"
-	DeptDeleteBlockedMsg = "请先移动或删除该部门下的子部门和成员"
-)
+var RootDepartmentID = uuid.MustParse("00000000-0000-7000-8000-000000000d01")
+
+const DeptDeleteBlockedMsg = "请先移动或删除该部门下的子部门和成员"
 
 type ProvisionInput struct {
-	ID       string
+	ID       uuid.UUID
 	Name     string
-	ParentID string
+	ParentID uuid.UUID
 	Period   string
 }
 
 type ProvisionState struct {
 	Nodes          []types.OrgNode
 	Models         []types.ModelInfo
-	NodeAllowlists map[string][]int64
+	NodeAllowlists map[uuid.UUID][]uuid.UUID
 }
 
 func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNode) (*ProvisionState, error) {
@@ -33,7 +33,7 @@ func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNo
 	if err != nil {
 		return nil, err
 	}
-	allowlists := make(map[string][]int64)
+	allowlists := make(map[uuid.UUID][]uuid.UUID)
 	for _, node := range pkgorg.FlattenOrgNodeTree(nodes) {
 		allowed, err := st.Models().Allowlist().List(ctx, types.AllowlistOwnerOrgNode, node.ID)
 		if err != nil {
@@ -63,7 +63,7 @@ func PersistProvisionState(ctx context.Context, st store.Store, state *Provision
 		return err
 	}
 	flat := pkgorg.FlattenOrgNodeTree(state.Nodes)
-	active := make(map[string]struct{}, len(state.NodeAllowlists))
+	active := make(map[uuid.UUID]struct{}, len(state.NodeAllowlists))
 	for _, node := range flat {
 		if allowed, ok := state.NodeAllowlists[node.ID]; ok {
 			active[node.ID] = struct{}{}
@@ -103,13 +103,13 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 		input.ParentID, departments, rules, state.Models,
 	)
 	if state.NodeAllowlists == nil {
-		state.NodeAllowlists = make(map[string][]int64)
+		state.NodeAllowlists = make(map[uuid.UUID][]uuid.UUID)
 	}
-	state.NodeAllowlists[input.ID] = append([]int64{}, parentAllowed...)
+	state.NodeAllowlists[input.ID] = append([]uuid.UUID{}, parentAllowed...)
 	return nil
 }
 
-func DeprovisionDepartment(state *ProvisionState, deptID string) error {
+func DeprovisionDepartment(state *ProvisionState, deptID uuid.UUID) error {
 	before := len(pkgorg.FlattenOrgNodeTree(state.Nodes))
 	state.Nodes = pkgorg.RemoveOrgNodeByID(state.Nodes, deptID)
 	if len(pkgorg.FlattenOrgNodeTree(state.Nodes)) == before {
@@ -119,7 +119,7 @@ func DeprovisionDepartment(state *ProvisionState, deptID string) error {
 	return nil
 }
 
-func RenameDepartment(state *ProvisionState, deptID, name string) error {
+func RenameDepartment(state *ProvisionState, deptID uuid.UUID, name string) error {
 	if pkgorg.FindOrgNode(state.Nodes, deptID) == nil {
 		return fmt.Errorf("department not found")
 	}
@@ -134,7 +134,7 @@ func RecalcDepartmentMemberCounts(nodes []types.OrgNode, members []types.Member)
 }
 
 func mergeMemberCountsIntoNodes(nodes []types.OrgNode, departments []types.Department) []types.OrgNode {
-	countByID := make(map[string]int)
+	countByID := make(map[uuid.UUID]int)
 	for _, dept := range pkgorg.FlattenDepartmentTree(departments) {
 		countByID[dept.ID] = dept.MemberCount
 	}
@@ -142,7 +142,7 @@ func mergeMemberCountsIntoNodes(nodes []types.OrgNode, departments []types.Depar
 	return nodes
 }
 
-func applyMemberCounts(nodes []types.OrgNode, countByID map[string]int) {
+func applyMemberCounts(nodes []types.OrgNode, countByID map[uuid.UUID]int) {
 	for i := range nodes {
 		if count, ok := countByID[nodes[i].ID]; ok {
 			nodes[i].MemberCount = count

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -11,7 +12,7 @@ type notificationPreferenceRepo struct {
 	db dbQuerier
 }
 
-func (r *notificationPreferenceRepo) Get(ctx context.Context, userID string) ([]types.NotificationPreferenceEntry, error) {
+func (r *notificationPreferenceRepo) Get(ctx context.Context, userID uuid.UUID) ([]types.NotificationPreferenceEntry, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
 		SELECT category, channel, enabled
@@ -35,7 +36,7 @@ func (r *notificationPreferenceRepo) Get(ctx context.Context, userID string) ([]
 	return result, rows.Err()
 }
 
-func (r *notificationPreferenceRepo) Upsert(ctx context.Context, userID string, entries []types.NotificationPreferenceEntry) error {
+func (r *notificationPreferenceRepo) Upsert(ctx context.Context, userID uuid.UUID, entries []types.NotificationPreferenceEntry) error {
 	companyID := store.CompanyID(ctx)
 	for _, e := range entries {
 		_, err := r.db.Exec(ctx, `
@@ -51,7 +52,7 @@ func (r *notificationPreferenceRepo) Upsert(ctx context.Context, userID string, 
 	return nil
 }
 
-func (r *notificationPreferenceRepo) Delete(ctx context.Context, userID string) error {
+func (r *notificationPreferenceRepo) Delete(ctx context.Context, userID uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		DELETE FROM notification_preferences

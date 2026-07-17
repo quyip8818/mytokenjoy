@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -122,7 +123,7 @@ func (c *Client) Inner() *river.Client[pgx.Tx] {
 	return c.inner
 }
 
-func (c *Client) CancelOrgSyncPending(ctx context.Context, companyID int64) error {
+func (c *Client) CancelOrgSyncPending(ctx context.Context, companyID uuid.UUID) error {
 	if c == nil || c.inner == nil || c.store == nil {
 		return nil
 	}

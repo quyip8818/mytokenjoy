@@ -3,9 +3,8 @@ package notification
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"time"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -40,7 +39,7 @@ func (s *Service) Dispatch(ctx context.Context, event domainnotification.Event) 
 	// 4. Deliver to each resolved channel
 	var lastErr error
 	for _, ch := range channels {
-		if err := ch.Send(ctx, event.RecipientID, msg); err != nil {
+		if err := ch.Send(ctx, event.RecipientID.String(), msg); err != nil {
 			s.logger.Warn("channel delivery failed",
 				"channel", ch.Name(),
 				"event", event.EventType,
@@ -59,7 +58,7 @@ func (s *Service) Dispatch(ctx context.Context, event domainnotification.Event) 
 	// Log channel always fires for audit trail (separate from user-facing channels)
 	logCh, ok := s.registry.Get(domainnotification.ChannelLog)
 	if ok {
-		_ = logCh.Send(ctx, event.RecipientID, msg)
+		_ = logCh.Send(ctx, event.RecipientID.String(), msg)
 	}
 
 	return lastErr
@@ -113,21 +112,21 @@ func (s *Service) DispatchAsync(ctx context.Context, event domainnotification.Ev
 				"event", event.EventType,
 				"error", err)
 			// Fall back to synchronous delivery for this channel
-			_ = ch.Send(ctx, event.RecipientID, msg)
+			_ = ch.Send(ctx, event.RecipientID.String(), msg)
 		}
 	}
 
 	// Log channel fires immediately (audit trail, not user-facing)
 	logCh, ok := s.registry.Get(domainnotification.ChannelLog)
 	if ok {
-		_ = logCh.Send(ctx, event.RecipientID, msg)
+		_ = logCh.Send(ctx, event.RecipientID.String(), msg)
 	}
 
 	return nil
 }
 
 // loadPreferences loads user notification preferences, falling back to defaults on error.
-func (s *Service) loadPreferences(ctx context.Context, userID string) domainnotification.UserPreferences {
+func (s *Service) loadPreferences(ctx context.Context, userID uuid.UUID) domainnotification.UserPreferences {
 	entries, err := s.store.NotificationPreference().Get(ctx, userID)
 	if err != nil {
 		s.logger.Debug("failed to load notification preferences, using defaults",
@@ -149,7 +148,7 @@ func (s *Service) loadPreferences(ctx context.Context, userID string) domainnoti
 	return prefs
 }
 
-func defaultPreferences(userID string) domainnotification.UserPreferences {
+func defaultPreferences(userID uuid.UUID) domainnotification.UserPreferences {
 	return domainnotification.UserPreferences{UserID: userID}
 }
 
@@ -182,7 +181,7 @@ func (s *Service) resolveChannels(event domainnotification.Event, prefs domainno
 		}
 
 		// Apply rate limit for SMS and Email channels
-		rateLimitKey := event.RecipientID + ":" + chName
+		rateLimitKey := event.RecipientID.String() + ":" + chName
 		switch chName {
 		case domainnotification.ChannelSMS:
 			if !s.smsRateLimiter.Allow(rateLimitKey) {
@@ -213,10 +212,10 @@ func (s *Service) resolveChannels(event domainnotification.Event, prefs domainno
 func (s *Service) recordFailure(ctx context.Context, channelName string, event domainnotification.Event, msg domainnotification.RenderedMessage, deliveryErr error) {
 	payload, _ := json.Marshal(msg.Payload)
 	entry := types.NotificationLogEntry{
-		ID:        fmt.Sprintf("ntf-%d", time.Now().UnixNano()),
+		ID:        uuid.Must(uuid.NewV7()),
 		Channel:   channelName,
 		EventType: event.EventType,
-		Recipient: event.RecipientID,
+		Recipient: event.RecipientID.String(),
 		UserID:    event.RecipientID,
 		Title:     msg.Title,
 		Body:      msg.Body,

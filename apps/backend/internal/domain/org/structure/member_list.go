@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
@@ -15,11 +16,15 @@ func (s *LocalService) ListMembers(ctx context.Context, departmentID, keyword st
 		return types.MemberPageResult{}, err
 	}
 	if departmentID != "" {
+		deptUUID, err := uuid.Parse(departmentID)
+		if err != nil {
+			return types.MemberPageResult{}, err
+		}
 		departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 		if err != nil {
 			return types.MemberPageResult{}, err
 		}
-		items = pkgorg.FilterMembersByDepartment(items, departments, departmentID, directOnly)
+		items = pkgorg.FilterMembersByDepartment(items, departments, deptUUID, directOnly)
 	}
 	// Count pending before keyword filtering so count is always accurate.
 	pendingCount := 0

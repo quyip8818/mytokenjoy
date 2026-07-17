@@ -3,6 +3,7 @@ package memberanalytics
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -10,7 +11,7 @@ import (
 )
 
 type Service interface {
-	GetDashboard(ctx context.Context, memberID string) (DashboardView, error)
+	GetDashboard(ctx context.Context, memberID uuid.UUID) (DashboardView, error)
 }
 
 type service struct {

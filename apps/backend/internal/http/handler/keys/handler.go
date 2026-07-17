@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -101,10 +102,13 @@ func (h *Handler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
+	memberID, _ := uuid.Parse(query.Get("memberId"))
+	projectID, _ := uuid.Parse(query.Get("projectId"))
+	departmentID, _ := uuid.Parse(query.Get("departmentId"))
 	keys, err := h.service.ListPlatformKeys(r.Context(), types.PlatformKeyListFilter{
-		MemberID:     query.Get("memberId"),
-		ProjectID:    query.Get("projectId"),
-		DepartmentID: query.Get("departmentId"),
+		MemberID:     memberID,
+		ProjectID:    projectID,
+		DepartmentID: departmentID,
 		Scope:        query.Get("scope"),
 	})
 	if err == nil {
@@ -116,7 +120,8 @@ func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PlatformBudgetSummary(w http.ResponseWriter, r *http.Request) {
-	summary, err := h.service.BudgetSummary(r.Context(), r.URL.Query().Get("memberId"))
+	memberID, _ := uuid.Parse(r.URL.Query().Get("memberId"))
+	summary, err := h.service.BudgetSummary(r.Context(), memberID)
 	httputil.WriteJSON(w, http.StatusOK, summary, err)
 }
 
@@ -202,7 +207,7 @@ func (h *Handler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID)
+	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID.String())
 	httputil.WriteVoid(w, err)
 }
 
@@ -217,6 +222,6 @@ func (h *Handler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID, body.Reason)
+	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID.String(), body.Reason)
 	httputil.WriteVoid(w, err)
 }

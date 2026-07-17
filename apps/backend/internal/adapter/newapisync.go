@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
@@ -21,12 +22,12 @@ func (n newAPISyncJobEnqueuer) InsertNewAPISync(ctx context.Context, job ports.S
 		CompanyID:     job.CompanyID,
 		SubKind:       job.SubKind,
 		PlatformKeyID: job.PlatformKeyID,
-		ProviderKeyID: job.ProviderKeyID,
+		ProviderKeyID: job.ProviderKeyID.String(),
 		DepartmentID:  job.DepartmentID,
 	})
 }
 
-func (n newAPISyncJobEnqueuer) InsertRebalance(ctx context.Context, companyID int64, axisKind, axisID string) error {
+func (n newAPISyncJobEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error {
 	return jobs.InsertRebalance(ctx, n.enqueuer, nil, companyID, axisKind, axisID)
 }
 

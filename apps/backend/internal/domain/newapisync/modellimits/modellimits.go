@@ -3,6 +3,7 @@ package modellimits
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/platformkey"
@@ -11,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func EnqueueModelLimitsForDepartment(ctx context.Context, d syncdeps.Deps, departmentID string) error {
+func EnqueueModelLimitsForDepartment(ctx context.Context, d syncdeps.Deps, departmentID uuid.UUID) error {
 	if !syncdeps.Enabled(d) {
 		return nil
 	}
@@ -22,10 +23,10 @@ func EnqueueModelLimitsForDepartment(ctx context.Context, d syncdeps.Deps, depar
 	})
 }
 
-func EnqueueModelLimitsForDepartments(ctx context.Context, d syncdeps.Deps, departmentIDs []string) error {
-	seen := make(map[string]struct{}, len(departmentIDs))
+func EnqueueModelLimitsForDepartments(ctx context.Context, d syncdeps.Deps, departmentIDs []uuid.UUID) error {
+	seen := make(map[uuid.UUID]struct{}, len(departmentIDs))
 	for _, deptID := range departmentIDs {
-		if deptID == "" {
+		if deptID == uuid.Nil {
 			continue
 		}
 		if _, ok := seen[deptID]; ok {
@@ -39,7 +40,7 @@ func EnqueueModelLimitsForDepartments(ctx context.Context, d syncdeps.Deps, depa
 	return nil
 }
 
-func SyncModelLimitsForDepartment(ctx context.Context, d syncdeps.Deps, departmentID string) error {
+func SyncModelLimitsForDepartment(ctx context.Context, d syncdeps.Deps, departmentID uuid.UUID) error {
 	if !syncdeps.Enabled(d) {
 		return nil
 	}

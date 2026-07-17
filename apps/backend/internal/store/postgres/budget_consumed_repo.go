@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -17,7 +18,7 @@ func newBudgetConsumedRepo(db dbQuerier) *budgetConsumedRepo {
 
 var _ store.BudgetConsumedRepository = (*budgetConsumedRepo)(nil)
 
-func (r *budgetConsumedRepo) ListConsumed(ctx context.Context, axisKind, periodKey string) (map[string]float64, error) {
+func (r *budgetConsumedRepo) ListConsumed(ctx context.Context, axisKind, periodKey string) (map[uuid.UUID]float64, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
 		SELECT axis_id, consumed FROM budget_consumed
@@ -27,9 +28,9 @@ func (r *budgetConsumedRepo) ListConsumed(ctx context.Context, axisKind, periodK
 		return nil, err
 	}
 	defer rows.Close()
-	out := make(map[string]float64)
+	out := make(map[uuid.UUID]float64)
 	for rows.Next() {
-		var axisID string
+		var axisID uuid.UUID
 		var consumed float64
 		if err := rows.Scan(&axisID, &consumed); err != nil {
 			return nil, err
@@ -39,9 +40,9 @@ func (r *budgetConsumedRepo) ListConsumed(ctx context.Context, axisKind, periodK
 	return out, rows.Err()
 }
 
-func (r *budgetConsumedRepo) ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[string]float64, error) {
+func (r *budgetConsumedRepo) ListConsumedByPeriods(ctx context.Context, axisKind string, periodKeys []string) (map[string]map[uuid.UUID]float64, error) {
 	if len(periodKeys) == 0 {
-		return map[string]map[string]float64{}, nil
+		return map[string]map[uuid.UUID]float64{}, nil
 	}
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
@@ -52,22 +53,23 @@ func (r *budgetConsumedRepo) ListConsumedByPeriods(ctx context.Context, axisKind
 		return nil, err
 	}
 	defer rows.Close()
-	out := make(map[string]map[string]float64)
+	out := make(map[string]map[uuid.UUID]float64)
 	for rows.Next() {
-		var periodKey, axisID string
+		var periodKey string
+		var axisID uuid.UUID
 		var consumed float64
 		if err := rows.Scan(&periodKey, &axisID, &consumed); err != nil {
 			return nil, err
 		}
 		if out[periodKey] == nil {
-			out[periodKey] = make(map[string]float64)
+			out[periodKey] = make(map[uuid.UUID]float64)
 		}
 		out[periodKey][axisID] = consumed
 	}
 	return out, rows.Err()
 }
 
-func (r *budgetConsumedRepo) GetConsumed(ctx context.Context, axisKind, axisID, periodKey string) (float64, bool, error) {
+func (r *budgetConsumedRepo) GetConsumed(ctx context.Context, axisKind string, axisID uuid.UUID, periodKey string) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var consumed float64
 	err := r.db.QueryRow(ctx, `
@@ -83,7 +85,7 @@ func (r *budgetConsumedRepo) GetConsumed(ctx context.Context, axisKind, axisID, 
 	return consumed, true, nil
 }
 
-func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind, axisID, periodKey string, amountPoint float64) error {
+func (r *budgetConsumedRepo) IncrementConsumed(ctx context.Context, axisKind string, axisID uuid.UUID, periodKey string, amountPoint float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
@@ -101,7 +103,7 @@ func (r *budgetConsumedRepo) IncrementConsumedBatch(ctx context.Context, deltas 
 	}
 	companyID := store.CompanyID(ctx)
 	axisKinds := make([]string, len(deltas))
-	axisIDs := make([]string, len(deltas))
+	axisIDs := make([]uuid.UUID, len(deltas))
 	periodKeys := make([]string, len(deltas))
 	amounts := make([]float64, len(deltas))
 	for i, d := range deltas {
@@ -113,7 +115,7 @@ func (r *budgetConsumedRepo) IncrementConsumedBatch(ctx context.Context, deltas 
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		SELECT $1, axis_kind, axis_id, period_key, amount, NOW()
-		FROM UNNEST($2::text[], $3::text[], $4::text[], $5::numeric[])
+		FROM UNNEST($2::text[], $3::uuid[], $4::text[], $5::numeric[])
 			AS input(axis_kind, axis_id, period_key, amount)
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO UPDATE SET
 			consumed = budget_consumed.consumed + EXCLUDED.consumed,
@@ -122,7 +124,7 @@ func (r *budgetConsumedRepo) IncrementConsumedBatch(ctx context.Context, deltas 
 	return err
 }
 
-func (r *budgetConsumedRepo) SetConsumed(ctx context.Context, axisKind, axisID, periodKey string, consumed float64) error {
+func (r *budgetConsumedRepo) SetConsumed(ctx context.Context, axisKind string, axisID uuid.UUID, periodKey string, consumed float64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)

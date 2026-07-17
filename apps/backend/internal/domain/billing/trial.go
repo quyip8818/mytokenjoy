@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -12,14 +13,14 @@ import (
 
 // SeedTrialCredit creates a trial lot with simulated funds for a newly registered
 // trial company. Call within the registration transaction after company creation.
-func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID int64, trialPoints float64) error {
+func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID uuid.UUID, trialPoints float64) error {
 	if trialPoints <= 0 {
 		return fmt.Errorf("trial credit amount must be positive")
 	}
 	currency := common.DefaultBillingCurrency
 	ppu := int64(common.DefaultPointsPerUnit)
 	now := time.Now().UTC()
-	orderID := fmt.Sprintf("trial-%d-%d", companyID, now.UnixNano())
+	orderID := uuid.Must(uuid.NewV7())
 
 	order := store.RechargeOrder{
 		ID:            orderID,
@@ -31,7 +32,7 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID i
 		Source:        store.RechargeSourceSystem,
 		LotKind:       store.LotKindMock,
 		Status:        store.RechargeStatusConfirmed,
-		CreatedBy:     "system",
+		CreatedBy:     uuid.Nil,
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
@@ -49,7 +50,7 @@ type TrialUpgradeStore interface {
 // ExpireMockLots expires all active mock lots for a company and recomputes
 // wallet_remain based on remaining active (non-mock) lots.
 // This is called during the trial→standard upgrade flow.
-func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID int64) error {
+func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID uuid.UUID) error {
 	return st.WithTx(ctx, func(tx store.Store) error {
 		// 1. Lock company row to serialize with concurrent ingest/consume.
 		co, err := tx.Company().LockForUpdate(ctx, companyID)
@@ -57,7 +58,7 @@ func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID int64) 
 			return err
 		}
 		if co == nil {
-			return fmt.Errorf("trial upgrade: company %d not found", companyID)
+			return fmt.Errorf("trial upgrade: company %s not found", companyID)
 		}
 
 		// 2. Expire all active mock lots.
@@ -73,7 +74,7 @@ func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID int64) 
 		}
 
 		// 4. Update wallet_remain (clear FIFO head if no active lots remain).
-		var fifoHead *string
+		var fifoHead *uuid.UUID
 		return tx.Company().SetWalletRemain(ctx, companyID, remain, fifoHead)
 	})
 }

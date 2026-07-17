@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -112,7 +113,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	return points, nil
 }
 
-func buildLedgerCallWhere(companyID int64, filter store.LedgerCallFilter) (string, []any) {
+func buildLedgerCallWhere(companyID uuid.UUID, filter store.LedgerCallFilter) (string, []any) {
 	clauses := []string{"company_id = $1", "event_type = $2"}
 	args := []any{companyID, types.EventTypeCallSettled}
 	idx := 3
@@ -154,16 +155,16 @@ func buildLedgerCallWhere(companyID int64, filter store.LedgerCallFilter) (strin
 	return strings.Join(clauses, " AND "), args
 }
 
-func buildLedgerSeriesWhere(companyID int64, q types.UsageSeriesQuery) (string, []any) {
+func buildLedgerSeriesWhere(companyID uuid.UUID, q types.UsageSeriesQuery) (string, []any) {
 	clauses := []string{"company_id = $1", "event_type = $2", "occurred_at >= $3", "occurred_at < $4"}
 	args := []any{companyID, types.EventTypeCallSettled, q.Start.UTC(), q.End.UTC()}
 	idx := 5
-	if q.DepartmentID != "" {
+	if q.DepartmentID != uuid.Nil {
 		clauses = append(clauses, fmt.Sprintf("department_id = $%d", idx))
 		args = append(args, q.DepartmentID)
 		idx++
 	}
-	if q.MemberID != "" {
+	if q.MemberID != uuid.Nil {
 		clauses = append(clauses, fmt.Sprintf("COALESCE(member_id, '') = $%d", idx))
 		args = append(args, q.MemberID)
 		idx++
@@ -190,7 +191,7 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 	items := make([]types.UsageLedgerEntry, 0)
 	for rows.Next() {
 		var item types.UsageLedgerEntry
-		var memberID, projectID *string
+		var memberID, projectID *uuid.UUID
 		var detailJSON []byte
 		var occurredAt, createdAt time.Time
 		if err := rows.Scan(

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -32,7 +33,9 @@ const mappingSelect = `
 
 func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	var m store.PlatformKeyMapping
-	var memberID, projectID, departmentID *string
+	var memberID *uuid.UUID
+	var projectID *uuid.UUID
+	var departmentID *uuid.UUID
 	var keyID *int64
 	var syncedAt *time.Time
 	err := row.Scan(
@@ -47,15 +50,18 @@ func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	if departmentID != nil {
 		m.DepartmentID = *departmentID
 	}
-	if m.DepartmentID == "" && strings.HasPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix) {
-		m.DepartmentID = strings.TrimPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix)
+	if m.DepartmentID == uuid.Nil && strings.HasPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix) {
+		parsed, parseErr := uuid.Parse(strings.TrimPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix))
+		if parseErr == nil {
+			m.DepartmentID = parsed
+		}
 	}
 	m.ProjectID = projectID
 	m.SyncedAt = syncedAt
 	return m, nil
 }
 
-func (r *platformKeyMappingRepo) GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) GetMappingByPlatformKeyID(ctx context.Context, platformKeyID uuid.UUID) (*store.PlatformKeyMapping, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, mappingSelect+` WHERE pkm.company_id = $1 AND pkm.platform_key_id = $2`, companyID, platformKeyID)
 	m, err := scanMapping(row)
@@ -120,22 +126,22 @@ func (r *platformKeyMappingRepo) listMappings(ctx context.Context, where string,
 	return out, rows.Err()
 }
 
-func (r *platformKeyMappingRepo) ListMappingsByMemberID(ctx context.Context, memberID string) ([]store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) ListMappingsByMemberID(ctx context.Context, memberID uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	companyID := store.CompanyID(ctx)
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pk.member_id = $2", companyID, memberID)
 }
 
-func (r *platformKeyMappingRepo) ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) ListMappingsByDepartmentID(ctx context.Context, departmentID uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	companyID := store.CompanyID(ctx)
 	return r.listMappings(ctx, "pkm.company_id = $1 AND m.department_id = $2", companyID, departmentID)
 }
 
-func (r *platformKeyMappingRepo) ListMappingsByProjectID(ctx context.Context, projectID string) ([]store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) ListMappingsByProjectID(ctx context.Context, projectID uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	companyID := store.CompanyID(ctx)
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pk.project_id = $2", companyID, projectID)
 }
 
-func (r *platformKeyMappingRepo) ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []string) ([]store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	if len(platformKeyIDs) == 0 {
 		return nil, nil
 	}
@@ -143,13 +149,13 @@ func (r *platformKeyMappingRepo) ListMappingsByPlatformKeyIDs(ctx context.Contex
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pkm.platform_key_id = ANY($2)", companyID, platformKeyIDs)
 }
 
-func (r *platformKeyMappingRepo) ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]store.PlatformKeyMapping, error) {
+func (r *platformKeyMappingRepo) ListActiveMappingsByCompany(ctx context.Context, companyID uuid.UUID) ([]store.PlatformKeyMapping, error) {
 	return r.listMappings(ctx, "pkm.company_id = $1 AND pkm.sync_status = $2", companyID, store.MappingSyncStatusSynced)
 }
 
 func (r *platformKeyMappingRepo) UpsertMapping(ctx context.Context, mapping store.PlatformKeyMapping) error {
 	companyID := store.CompanyID(ctx)
-	if mapping.CompanyID > 0 {
+	if mapping.CompanyID != uuid.Nil {
 		companyID = mapping.CompanyID
 	}
 	_, err := r.db.Exec(ctx, `
@@ -170,7 +176,7 @@ func (r *platformKeyMappingRepo) UpsertMapping(ctx context.Context, mapping stor
 
 func (r *platformKeyMappingRepo) UpdateMappingSync(
 	ctx context.Context,
-	platformKeyID string,
+	platformKeyID uuid.UUID,
 	keyID int64,
 	status string,
 	syncedAt time.Time,

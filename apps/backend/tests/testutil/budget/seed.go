@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -16,7 +17,7 @@ import (
 	"github.com/tokenjoy/backend/seed/runtime"
 )
 
-func SeedDeptOverrun(t *testing.T, st store.Store, deptID string, ledgerSpent float64) {
+func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent float64) {
 	t.Helper()
 	seedDefaultMapping(t, st)
 	ctx := company.DefaultContext(contract.DefaultCompanyID)

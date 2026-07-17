@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -32,7 +33,7 @@ func OrgNodeBudgetRowsFromNodes(nodes []types.OrgNode) []store.OrgNodeBudgetRow 
 	return rows
 }
 
-func PersistNodeBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, nodeID string, node types.BudgetNode) error {
+func PersistNodeBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, nodeID uuid.UUID, node types.BudgetNode) error {
 	existing, _, err := repo.Get(ctx, nodeID)
 	if err != nil {
 		return err
@@ -49,7 +50,7 @@ func PersistNodeBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, 
 	})
 }
 
-func PersistMemberAvgBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, nodeID string, memberAvg float64) error {
+func PersistMemberAvgBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, nodeID uuid.UUID, memberAvg float64) error {
 	existing, found, err := repo.Get(ctx, nodeID)
 	if err != nil {
 		return err

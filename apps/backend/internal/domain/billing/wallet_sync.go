@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -13,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) SyncCompanyWallet(ctx context.Context, companyID int64) error {
+func (s *service) SyncCompanyWallet(ctx context.Context, companyID uuid.UUID) error {
 	co, err := s.store.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return err

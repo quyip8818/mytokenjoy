@@ -3,6 +3,7 @@ package usage
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
@@ -53,11 +54,11 @@ func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *st
 	return input, nil
 }
 
-func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, platformKey *types.PlatformKey, snap EntryBuildSnapshot) []int64 {
+func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, platformKey *types.PlatformKey, snap EntryBuildSnapshot) []uuid.UUID {
 	if platformKey == nil {
 		return nil
 	}
-	keyIDs := append([]int64{}, platformKey.ModelWhitelist...)
+	keyIDs := append([]uuid.UUID{}, platformKey.ModelWhitelist...)
 	orgNodes := cachedOrgNodes{tree: snap.OrgTree}
 	departments := types.OrgNodesToDepartments(snap.OrgTree)
 	rules, err := common.LoadRoutingRules(ctx, orgNodes, deps.Models().Allowlist())

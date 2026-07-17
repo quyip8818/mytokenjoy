@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -66,19 +67,19 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 		return types.Member{}, err
 	}
 	deptID := rootOrgNodeID(nodes)
-	if deptID == "" {
-		deptID = fmt.Sprintf("dept-root-%d", company.ID)
+	if deptID == uuid.Nil {
+		deptID = uuid.Must(uuid.NewV7())
 	}
-	if company.RootDeptID != nil && *company.RootDeptID != "" {
+	if company.RootDeptID != nil && *company.RootDeptID != uuid.Nil {
 		deptID = *company.RootDeptID
 	}
-	memberID := fmt.Sprintf("member-%d-%d", company.ID, time.Now().UnixNano())
+	memberID := uuid.Must(uuid.NewV7())
 
 	var member types.Member
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		// Create or update user within the transaction.
 		if user == nil {
-			userID := fmt.Sprintf("u-%d", time.Now().UnixNano())
+			userID := uuid.Must(uuid.NewV7())
 			user = &store.User{
 				ID:           userID,
 				Email:        invite.Email,
@@ -135,13 +136,13 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	return member, nil
 }
 
-func rootOrgNodeID(nodes []types.OrgNode) string {
+func rootOrgNodeID(nodes []types.OrgNode) uuid.UUID {
 	for _, node := range org.FlattenOrgNodeTree(nodes) {
-		if node.ParentID == nil || *node.ParentID == "" {
+		if node.ParentID == nil || *node.ParentID == uuid.Nil {
 			return node.ID
 		}
 	}
-	return ""
+	return uuid.Nil
 }
 
 func randomInviteCode() (string, error) {

@@ -1,16 +1,19 @@
 package org
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
 
 func FlattenDepartmentTree(departments []types.Department) []types.Department {
 	return types.OrgNodesToDepartments(FlattenOrgNodeTree(departmentsToOrgNodes(departments)))
 }
 
-func GetDeptPath(departments []types.Department, targetID string) *string {
+func GetDeptPath(departments []types.Department, targetID uuid.UUID) *string {
 	return GetOrgNodePath(departmentsToOrgNodes(departments), targetID)
 }
 
-func FindDepartment(departments []types.Department, id string) *types.Department {
+func FindDepartment(departments []types.Department, id uuid.UUID) *types.Department {
 	node := FindOrgNode(departmentsToOrgNodes(departments), id)
 	if node == nil {
 		return nil
@@ -19,7 +22,7 @@ func FindDepartment(departments []types.Department, id string) *types.Department
 	return &dept
 }
 
-func InsertDepartmentChild(departments []types.Department, parentID string, dept types.Department) bool {
+func InsertDepartmentChild(departments []types.Department, parentID uuid.UUID, dept types.Department) bool {
 	nodes := departmentsToOrgNodes(departments)
 	if !InsertOrgNodeChild(nodes, parentID, departmentToOrgNode(dept)) {
 		return false
@@ -28,14 +31,14 @@ func InsertDepartmentChild(departments []types.Department, parentID string, dept
 	return true
 }
 
-func RemoveDepartment(departments []types.Department, id string) ([]types.Department, bool) {
+func RemoveDepartment(departments []types.Department, id uuid.UUID) ([]types.Department, bool) {
 	nodes := departmentsToOrgNodes(departments)
 	before := orgNodeTreeSize(nodes)
 	updated := RemoveOrgNodeByID(nodes, id)
 	return types.OrgNodesToDepartments(updated), orgNodeTreeSize(updated) != before
 }
 
-func UpdateDepartmentName(departments []types.Department, id, name string) bool {
+func UpdateDepartmentName(departments []types.Department, id uuid.UUID, name string) bool {
 	nodes := departmentsToOrgNodes(departments)
 	if !UpdateOrgNodeName(nodes, id, name) {
 		return false
@@ -44,11 +47,11 @@ func UpdateDepartmentName(departments []types.Department, id, name string) bool 
 	return true
 }
 
-func HasDirectChildDepartments(departments []types.Department, id string) bool {
+func HasDirectChildDepartments(departments []types.Department, id uuid.UUID) bool {
 	return HasDirectChildOrgNodes(departmentsToOrgNodes(departments), id)
 }
 
-func HasDirectActiveMembers(members []types.Member, deptID string) bool {
+func HasDirectActiveMembers(members []types.Member, deptID uuid.UUID) bool {
 	for _, member := range members {
 		if member.DepartmentID == deptID && member.Status == "active" {
 			return true

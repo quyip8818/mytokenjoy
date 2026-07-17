@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"github.com/google/uuid"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
@@ -25,13 +26,13 @@ type SummaryStore interface {
 func ComputeGatewaySummaryUpdates(
 	ctx context.Context,
 	st SummaryStore,
-	keyIDs map[string]struct{},
+	keyIDs map[uuid.UUID]struct{},
 	clk clock.Clock,
 ) ([]store.CombinedKeySummaryUpdate, error) {
 	if len(keyIDs) == 0 {
 		return nil, nil
 	}
-	ids := make([]string, 0, len(keyIDs))
+	ids := make([]uuid.UUID, 0, len(keyIDs))
 	for id := range keyIDs {
 		ids = append(ids, id)
 	}
@@ -47,7 +48,7 @@ func ComputeGatewaySummaryUpdates(
 
 	updates := make([]store.CombinedKeySummaryUpdate, 0, len(mappings))
 	for _, mapping := range mappings {
-		if mapping.DepartmentID == "" {
+		if mapping.DepartmentID == uuid.Nil {
 			continue
 		}
 		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), mapping.DepartmentID, clk)
@@ -72,8 +73,8 @@ func ComputeGatewaySummaryUpdates(
 }
 
 // RefreshPlatformKeyCombined recomputes and persists combined_key_remain for one platform key.
-func RefreshPlatformKeyCombined(ctx context.Context, st SummaryStore, keyID string, clk clock.Clock, cache CombinedKeyCache) error {
-	updates, err := ComputeGatewaySummaryUpdates(ctx, st, map[string]struct{}{keyID: {}}, clk)
+func RefreshPlatformKeyCombined(ctx context.Context, st SummaryStore, keyID uuid.UUID, clk clock.Clock, cache CombinedKeyCache) error {
+	updates, err := ComputeGatewaySummaryUpdates(ctx, st, map[uuid.UUID]struct{}{keyID: {}}, clk)
 	if err != nil {
 		return err
 	}
@@ -91,8 +92,8 @@ func RefreshPlatformKeyCombined(ctx context.Context, st SummaryStore, keyID stri
 
 // AffectedPlatformKeyIDs resolves platform keys whose combined key summary may
 // change after consumed drift repair on the given axis keys.
-func AffectedPlatformKeyIDs(ctx context.Context, st SummaryStore, repaired map[AxisKey]struct{}) (map[string]struct{}, error) {
-	out := make(map[string]struct{})
+func AffectedPlatformKeyIDs(ctx context.Context, st SummaryStore, repaired map[AxisKey]struct{}) (map[uuid.UUID]struct{}, error) {
+	out := make(map[uuid.UUID]struct{})
 	for key := range repaired {
 		var mappings []store.PlatformKeyMapping
 		var err error

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -83,7 +84,7 @@ func (c *Client) ListMembers(ctx context.Context) ([]Member, []types.ImportFailu
 			var page usersPage
 			if err := c.get(ctx, "/open-apis/contact/v3/users?"+query.Encode(), &page); err != nil {
 				failures = append(failures, types.ImportFailure{
-					ID:     fmt.Sprintf("dept-%s", dept.ExternalID),
+					ID:     uuid.Must(uuid.NewV7()),
 					Name:   dept.Name,
 					Reason: err.Error(),
 				})

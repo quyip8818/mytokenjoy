@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -53,16 +54,16 @@ func NewIngestService(
 
 type noopIngestEnqueuer struct{}
 
-func (noopIngestEnqueuer) EnqueueAfterIngest(context.Context, store.Tx, int64, *IngestEffects) error {
+func (noopIngestEnqueuer) EnqueueAfterIngest(context.Context, store.Tx, uuid.UUID, *IngestEffects) error {
 	return nil
 }
 
 // IngestEffects captures the side-effects produced during the ingest transaction
 // so post-commit logic (alerts, cache refresh) can act on them without re-querying.
 type IngestEffects struct {
-	TouchedDepartments map[string]struct{}
+	TouchedDepartments map[uuid.UUID]struct{}
 	Summaries          []store.CombinedKeySummary
-	PlatformKeyID      string
+	PlatformKeyID      uuid.UUID
 	OverrunPayload     json.RawMessage // pre-built overrun job payload
 }
 
@@ -76,7 +77,7 @@ func (s *IngestService) IngestByLogID(ctx context.Context, logID int64, source s
 
 // CompanyIDsByLogID resolves company IDs for a batch of consume log IDs (best-effort).
 // Missing logs or mappings are omitted from the result map.
-func (s *IngestService) CompanyIDsByLogID(ctx context.Context, logIDs []int64) (map[int64]int64, error) {
+func (s *IngestService) CompanyIDsByLogID(ctx context.Context, logIDs []int64) (map[int64]uuid.UUID, error) {
 	if len(logIDs) == 0 {
 		return nil, nil
 	}
@@ -97,14 +98,14 @@ func (s *IngestService) CompanyIDsByLogID(ctx context.Context, logIDs []int64) (
 	if err != nil {
 		return nil, err
 	}
-	companyByToken := make(map[int64]int64, len(mappings))
+	companyByToken := make(map[int64]uuid.UUID, len(mappings))
 	for _, m := range mappings {
 		if m.NewAPIKeyID == nil {
 			continue
 		}
 		companyByToken[*m.NewAPIKeyID] = m.CompanyID
 	}
-	out := make(map[int64]int64, len(logs))
+	out := make(map[int64]uuid.UUID, len(logs))
 	for _, raw := range logs {
 		if companyID, ok := companyByToken[raw.TokenID]; ok {
 			out[raw.ID] = companyID
@@ -154,7 +155,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 			return lockErr
 		}
 		if co == nil {
-			return fmt.Errorf("ingest: company %d not found", companyID)
+			return fmt.Errorf("ingest: company %s not found", companyID)
 		}
 
 		// 2. Idempotency check AFTER lock — guarantees zero side-effects on duplicate.
@@ -205,8 +206,8 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 
 		// 6. Decrement combined_key_remain.
 		var summaries []store.CombinedKeySummary
-		if entry.PlatformKeyID != "" {
-			decrements := map[string]float64{entry.PlatformKeyID: entry.Amount}
+		if entry.PlatformKeyID != uuid.Nil {
+			decrements := map[uuid.UUID]float64{entry.PlatformKeyID: entry.Amount}
 			summaries, err = st.CombinedKeySummaries().DecrementBatch(ctx, decrements)
 			if err != nil {
 				return err
@@ -224,7 +225,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 			}
 		}
 		effects.Summaries = summaries
-		effects.TouchedDepartments = map[string]struct{}{entry.DepartmentID: {}}
+		effects.TouchedDepartments = map[uuid.UUID]struct{}{entry.DepartmentID: {}}
 		effects.PlatformKeyID = entry.PlatformKeyID
 		effects.OverrunPayload = OverrunPayloadFromEntry(entry, open.String())
 
@@ -251,7 +252,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if consumeResult.OverdraftUsed && s.notifier != nil {
 		_ = s.notifier.Send(ctx, types.Notification{
 			EventType: types.NotificationEventOverdraftExpanded,
-			Recipient: fmt.Sprintf("company:%d", companyID),
+			Recipient: fmt.Sprintf("company:%s", companyID),
 			Payload: map[string]any{
 				"companyId":      companyID,
 				"overdraftDelta": consumeResult.OverdraftDelta,
@@ -264,12 +265,12 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 // absoluteRecompute handles the rare case where DecrementBatch did not update a key
 // (combined_key_remain was NULL). It locks the platform_keys row, recomputes the
 // combined remain from budget context, and writes the absolute value.
-func (s *IngestService) absoluteRecompute(ctx context.Context, st store.Store, platformKeyID string) ([]store.CombinedKeySummary, error) {
-	keyIDs := []string{platformKeyID}
+func (s *IngestService) absoluteRecompute(ctx context.Context, st store.Store, platformKeyID uuid.UUID) ([]store.CombinedKeySummary, error) {
+	keyIDs := []uuid.UUID{platformKeyID}
 	if err := st.CombinedKeySummaries().LockPlatformKeysForUpdate(ctx, keyIDs); err != nil {
 		return nil, err
 	}
-	keySet := make(map[string]struct{}, 1)
+	keySet := make(map[uuid.UUID]struct{}, 1)
 	keySet[platformKeyID] = struct{}{}
 	updates, err := s.budgetOps.ComputeGatewaySummaryUpdates(ctx, st, keySet, s.cfg.Clock())
 	if err != nil {
@@ -300,8 +301,8 @@ func OverrunPayloadFromEntry(entry types.UsageLedgerEntry, periodKey string) jso
 }
 
 // ShouldEnqueueOverrun decides whether an overrun job is needed based on combined remain.
-func ShouldEnqueueOverrun(summaries []store.CombinedKeySummary, platformKeyID string) bool {
-	if platformKeyID == "" {
+func ShouldEnqueueOverrun(summaries []store.CombinedKeySummary, platformKeyID uuid.UUID) bool {
+	if platformKeyID == uuid.Nil {
 		return false
 	}
 	// If absolute recompute returned nil (Unconstrained), skip overrun.

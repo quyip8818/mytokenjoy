@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
@@ -41,10 +42,10 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 		return types.KeyApproval{}, domain.Validation(*msg)
 	}
 	created := types.KeyApproval{
-		ID:   fmt.Sprintf("apv-%d", time.Now().UnixMilli()),
+		ID:   uuid.Must(uuid.NewV7()),
 		Type: input.Type, Applicant: member.Name, ApplicantID: input.MemberID, Department: member.DepartmentName,
 		Reason: input.Reason, RequestedBudget: input.RequestedBudget,
-		RequestedModels: append([]int64{}, input.RequestedModels...),
+		RequestedModels: append([]uuid.UUID{}, input.RequestedModels...),
 		Status:          "pending", CreatedAt: time.Now().Format("2006-01-02 15:04"),
 	}
 	approvals, err := s.store.Keys().Approvals(ctx)
@@ -68,7 +69,8 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 	idx := -1
 	for i := range approvals {
-		if approvals[i].ID == id {
+		parsedID, _ := uuid.Parse(id)
+		if approvals[i].ID == parsedID {
 			idx = i
 			break
 		}
@@ -91,7 +93,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return domain.Validation("Reserved pool insufficient")
 	}
 
-	var createdKeyID string
+	var createdKeyID uuid.UUID
 	var personalBudgetAdded float64
 	var members []types.Member
 	if err := s.store.WithTx(ctx, func(st store.Store) error {
@@ -112,12 +114,12 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 				members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, personalBudgetAdded)
 			}
 			memberID := approval.ApplicantID
-			createdKeyID = fmt.Sprintf("plk-apv-%d", time.Now().UnixMilli())
+			createdKeyID = uuid.Must(uuid.NewV7())
 			platformKeys = append(platformKeys, types.PlatformKey{
 				ID:   createdKeyID,
 				Name: fmt.Sprintf("%s-审批 Key", approval.Applicant), KeyPrefix: "pending...",
 				Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Status: "active", Budget: keyBudget, Consumed: 0,
-				ModelWhitelist: append([]int64{}, approval.RequestedModels...),
+				ModelWhitelist: append([]uuid.UUID{}, approval.RequestedModels...),
 				CreatedAt:      time.Now().Format("2006-01-02"),
 			})
 			if err := st.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
@@ -130,7 +132,11 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 
-		approver, err := resolveMemberName(approverMemberID, members)
+		approverParsedID, err := uuid.Parse(approverMemberID)
+		if err != nil {
+			return err
+		}
+		approver, err := resolveMemberName(approverParsedID, members)
 		if err != nil {
 			return err
 		}
@@ -143,11 +149,11 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 		return err
 	}
 
-	if createdKeyID == "" {
+	if createdKeyID == uuid.Nil {
 		return nil
 	}
 	applicant, ok := org.FindMemberByID(members, approval.ApplicantID)
-	if !ok || applicant.DepartmentID == "" {
+	if !ok || applicant.DepartmentID == uuid.Nil {
 		return domain.Validation("department required for newapi sync")
 	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
@@ -161,7 +167,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			break
 		}
 	}
-	if created.ID == "" {
+	if created.ID == uuid.Nil {
 		return domain.NotFound("Not found")
 	}
 	_, err = s.syncPlatformKeyCreate(ctx, created, applicant.DepartmentID)
@@ -178,8 +184,9 @@ func (s *service) revertKeyApproval(ctx context.Context, approvalID string) erro
 	if err != nil {
 		return err
 	}
+	parsedApprovalID, _ := uuid.Parse(approvalID)
 	for i := range approvals {
-		if approvals[i].ID != approvalID {
+		if approvals[i].ID != parsedApprovalID {
 			continue
 		}
 		approvals[i].Status = "pending"
@@ -190,11 +197,11 @@ func (s *service) revertKeyApproval(ctx context.Context, approvalID string) erro
 	return domain.NotFound("Not found")
 }
 
-func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID, applicantID, createdKeyID string, personalBudgetAdded float64) error {
+func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID string, applicantID uuid.UUID, createdKeyID uuid.UUID, personalBudgetAdded float64) error {
 	if err := s.revertKeyApproval(ctx, approvalID); err != nil {
 		return err
 	}
-	if createdKeyID != "" {
+	if createdKeyID != uuid.Nil {
 		if err := s.removePlatformKeyByID(ctx, createdKeyID); err != nil {
 			return err
 		}
@@ -213,7 +220,7 @@ func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID, a
 // removePlatformKeyByID drops a platform key from the store if it is still
 // present. It is idempotent: NewAPISync.RollbackFailedCreate may already have
 // removed the key, in which case this is a no-op.
-func (s *service) removePlatformKeyByID(ctx context.Context, keyID string) error {
+func (s *service) removePlatformKeyByID(ctx context.Context, keyID uuid.UUID) error {
 	keys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return err
@@ -245,9 +252,14 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 	if err != nil {
 		return err
 	}
+	parsedRejectID, _ := uuid.Parse(id)
 	for i := range approvals {
-		if approvals[i].ID == id {
-			approver, err := resolveMemberName(approverMemberID, members)
+		if approvals[i].ID == parsedRejectID {
+			approverParsedID, err := uuid.Parse(approverMemberID)
+			if err != nil {
+				return err
+			}
+			approver, err := resolveMemberName(approverParsedID, members)
 			if err != nil {
 				return err
 			}

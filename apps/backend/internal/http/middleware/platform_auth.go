@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
@@ -26,7 +27,12 @@ func PlatformAuth(cfg config.Config, tokenIssuer sessiontoken.Issuer) func(http.
 				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 				return
 			}
-			ctx := httpx.WithPlatformOperator(r.Context(), claims.Subject)
+			operatorID, parseErr := uuid.Parse(claims.Subject)
+			if parseErr != nil {
+				httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+				return
+			}
+			ctx := httpx.WithPlatformOperator(r.Context(), operatorID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

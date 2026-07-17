@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedBudget(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {
 	for _, project := range snap.Projects {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO projects (id, company_id, name, budget, owner_department_id)
@@ -58,12 +59,12 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid int64, snap sto
 	return insertSeedBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
 }
 
-func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {
 	if snap.SeedAt.IsZero() {
 		return fmt.Errorf("seed budget consumed require Snapshot.SeedAt")
 	}
 	periodKey := pkgbudget.RootPeriodKey(snap.OrgNodes, snap.SeedAt.UTC())
-	memberConsumed := make(map[string]float64)
+	memberConsumed := make(map[uuid.UUID]float64)
 	for _, key := range snap.PlatformKeys {
 		if key.Scope == types.PlatformKeyScopeMember && key.MemberID != nil && key.Consumed > 0 {
 			memberConsumed[*key.MemberID] += key.Consumed
@@ -93,7 +94,7 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid int64, 
 	return nil
 }
 
-func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid int64, axisKind, axisID, periodKey string, consumed float64) error {
+func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid uuid.UUID, axisKind string, axisID uuid.UUID, periodKey string, consumed float64) error {
 	_, err := exec.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())
@@ -102,7 +103,7 @@ func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid int64, a
 	return err
 }
 
-func insertSeedBudgetApprovals(ctx context.Context, exec TableWriter, tid int64, approvals []types.BudgetApproval) error {
+func insertSeedBudgetApprovals(ctx context.Context, exec TableWriter, tid uuid.UUID, approvals []types.BudgetApproval) error {
 	for _, approval := range approvals {
 		createdAt, err := pkgtime.Parse(approval.CreatedAt)
 		if err != nil {
@@ -116,8 +117,8 @@ func insertSeedBudgetApprovals(ctx context.Context, exec TableWriter, tid int64,
 			}
 			resolvedAt = &t
 		}
-		var applicantID *string
-		if approval.ApplicantID != "" {
+		var applicantID *uuid.UUID
+		if approval.ApplicantID != uuid.Nil {
 			applicantID = &approval.ApplicantID
 		}
 		if _, err := exec.Exec(ctx, `

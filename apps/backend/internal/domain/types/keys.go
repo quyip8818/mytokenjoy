@@ -1,5 +1,7 @@
 package types
 
+import "github.com/google/uuid"
+
 const (
 	PlatformKeyScopeMember        = "member"
 	PlatformKeyScopeProject       = "project"
@@ -16,58 +18,58 @@ func ValidPlatformKeyScope(scope string) bool {
 }
 
 type ProviderKey struct {
-	ID              string `json:"id"`
-	Provider        string `json:"provider"`
-	Name            string `json:"name"`
-	KeyPrefix       string `json:"keyPrefix"`
-	Status          string `json:"status"`
-	CreatedAt       string `json:"createdAt"`
-	RotateEnabled   bool   `json:"rotateEnabled"`
-	SecretKey       string `json:"-"`
-	NewAPIChannelID int    `json:"-"`
+	ID              uuid.UUID `json:"id"`
+	Provider        string    `json:"provider"`
+	Name            string    `json:"name"`
+	KeyPrefix       string    `json:"keyPrefix"`
+	Status          string    `json:"status"`
+	CreatedAt       string    `json:"createdAt"`
+	RotateEnabled   bool      `json:"rotateEnabled"`
+	SecretKey       string    `json:"-"`
+	NewAPIChannelID int       `json:"-"`
 }
 
 type PlatformKey struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	KeyPrefix      string  `json:"keyPrefix"`
-	FullKey        *string `json:"fullKey,omitempty"`
-	Scope          string  `json:"scope"`
-	MemberID       *string `json:"memberId"`
-	MemberName     *string `json:"memberName"`
-	ProjectID      *string `json:"projectId"`
-	ProjectName    *string `json:"projectName"`
-	DepartmentID   string  `json:"departmentId"`
-	DepartmentName string  `json:"departmentName"`
-	Status         string  `json:"status"`
-	Budget         float64 `json:"budget"`
-	Consumed       float64 `json:"consumed"`
-	ModelWhitelist []int64 `json:"modelWhitelist"`
-	CreatedAt      string  `json:"createdAt"`
-	ExpiresAt      *string `json:"expiresAt"`
+	ID             uuid.UUID   `json:"id"`
+	Name           string      `json:"name"`
+	KeyPrefix      string      `json:"keyPrefix"`
+	FullKey        *string     `json:"fullKey,omitempty"`
+	Scope          string      `json:"scope"`
+	MemberID       *uuid.UUID  `json:"memberId"`
+	MemberName     *string     `json:"memberName"`
+	ProjectID      *uuid.UUID  `json:"projectId"`
+	ProjectName    *string     `json:"projectName"`
+	DepartmentID   uuid.UUID   `json:"departmentId"`
+	DepartmentName string      `json:"departmentName"`
+	Status         string      `json:"status"`
+	Budget         float64     `json:"budget"`
+	Consumed       float64     `json:"consumed"`
+	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
+	CreatedAt      string      `json:"createdAt"`
+	ExpiresAt      *string     `json:"expiresAt"`
 }
 
 type PlatformKeyListFilter struct {
-	MemberID     string
-	ProjectID    string
-	DepartmentID string
+	MemberID     uuid.UUID
+	ProjectID    uuid.UUID
+	DepartmentID uuid.UUID
 	Scope        string
 }
 
 type KeyApproval struct {
-	ID              string  `json:"id"`
-	Type            string  `json:"type"`
-	Applicant       string  `json:"applicant"`
-	ApplicantID     string  `json:"applicantId"`
-	Department      string  `json:"department"`
-	Reason          string  `json:"reason"`
-	RequestedBudget float64 `json:"requestedBudget"`
-	RequestedModels []int64 `json:"requestedModels"`
-	Status          string  `json:"status"`
-	Approver        *string `json:"approver"`
-	RejectReason    *string `json:"rejectReason,omitempty"`
-	CreatedAt       string  `json:"createdAt"`
-	ResolvedAt      *string `json:"resolvedAt"`
+	ID              uuid.UUID   `json:"id"`
+	Type            string      `json:"type"`
+	Applicant       string      `json:"applicant"`
+	ApplicantID     uuid.UUID   `json:"applicantId"`
+	Department      string      `json:"department"`
+	Reason          string      `json:"reason"`
+	RequestedBudget float64     `json:"requestedBudget"`
+	RequestedModels []uuid.UUID `json:"requestedModels"`
+	Status          string      `json:"status"`
+	Approver        *string     `json:"approver"`
+	RejectReason    *string     `json:"rejectReason,omitempty"`
+	CreatedAt       string      `json:"createdAt"`
+	ResolvedAt      *string     `json:"resolvedAt"`
 }
 
 type MemberBudgetSummary struct {
@@ -98,18 +100,18 @@ type RotateProviderKeyInput struct {
 }
 
 type CreatePlatformKeyInput struct {
-	Name           string  `json:"name"`
-	Scope          string  `json:"scope"`
-	MemberID       *string `json:"memberId"`
-	ProjectID      *string `json:"projectId"`
-	Budget         float64 `json:"budget"`
-	ModelWhitelist []int64 `json:"modelWhitelist"`
+	Name           string      `json:"name"`
+	Scope          string      `json:"scope"`
+	MemberID       *uuid.UUID  `json:"memberId"`
+	ProjectID      *uuid.UUID  `json:"projectId"`
+	Budget         float64     `json:"budget"`
+	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 }
 
 type UpdatePlatformKeyInput struct {
-	Name           *string  `json:"name"`
-	Budget         *float64 `json:"budget"`
-	ModelWhitelist []int64  `json:"modelWhitelist"`
+	Name           *string     `json:"name"`
+	Budget         *float64    `json:"budget"`
+	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 }
 
 type TogglePlatformKeyInput struct {
@@ -117,11 +119,11 @@ type TogglePlatformKeyInput struct {
 }
 
 type CreateApprovalInput struct {
-	Type            string  `json:"type"`
-	Reason          string  `json:"reason"`
-	RequestedBudget float64 `json:"requestedBudget"`
-	RequestedModels []int64 `json:"requestedModels"`
-	MemberID        string  `json:"memberId"`
+	Type            string      `json:"type"`
+	Reason          string      `json:"reason"`
+	RequestedBudget float64     `json:"requestedBudget"`
+	RequestedModels []uuid.UUID `json:"requestedModels"`
+	MemberID        uuid.UUID   `json:"memberId"`
 }
 
 type RejectApprovalInput struct {

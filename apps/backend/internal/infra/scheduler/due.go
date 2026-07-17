@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -13,7 +14,7 @@ import (
 const reconcileStaleWindow = 7 * 24 * time.Hour
 
 type DueWork struct {
-	CompanyID               int64
+	CompanyID               uuid.UUID
 	NeedsOrgSync            bool
 	NeedsMonthRebalance     bool
 	NeedsBudgetReconcile    bool
@@ -45,7 +46,7 @@ func (s *Service) CollectDue(ctx context.Context, now time.Time) ([]DueWork, err
 	return due, err
 }
 
-func (s *Service) tenantDue(ctx context.Context, companyID int64, now time.Time) (DueWork, bool, error) {
+func (s *Service) tenantDue(ctx context.Context, companyID uuid.UUID, now time.Time) (DueWork, bool, error) {
 	work := DueWork{CompanyID: companyID}
 	tbs, err := s.store.TenantBackgroundState().Get(ctx, companyID)
 	if err != nil {

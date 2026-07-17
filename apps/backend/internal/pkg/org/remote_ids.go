@@ -1,13 +1,19 @@
 package org
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
 
-func LocalDeptID(platform types.Platform, externalID string) string {
-	return "dept-" + string(platform) + "-" + externalID
+// remoteIDNamespace is a fixed namespace UUID for deterministic ID generation from external IDs.
+var remoteIDNamespace = uuid.MustParse("6ba7b814-9dad-11d1-80b4-00c04fd430c8")
+
+func LocalDeptID(platform types.Platform, externalID string) uuid.UUID {
+	return uuid.NewSHA1(remoteIDNamespace, []byte("dept-"+string(platform)+"-"+externalID))
 }
 
-func LocalMemberID(platform types.Platform, externalID string) string {
-	return "m-" + string(platform) + "-" + externalID
+func LocalMemberID(platform types.Platform, externalID string) uuid.UUID {
+	return uuid.NewSHA1(remoteIDNamespace, []byte("m-"+string(platform)+"-"+externalID))
 }
 
 func IsManualDeptSource(source *string) bool {

@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
@@ -51,7 +52,7 @@ func PreparedConfig(schemaURL string) config.Config {
 	return cfg
 }
 
-func DrainPendingWalletSync(t *testing.T, st store.Store, companyID int64) {
+func DrainPendingWalletSync(t *testing.T, st store.Store, companyID uuid.UUID) {
 	t.Helper()
 	pool := postgres.MainPool(st)
 	_, err := pool.Exec(context.Background(), `

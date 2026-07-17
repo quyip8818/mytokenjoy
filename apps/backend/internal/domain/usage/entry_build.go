@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -44,7 +45,7 @@ type EntryBuildInput struct {
 	Mapping     *store.PlatformKeyMapping
 	Source      string
 	Catalog     []types.ModelInfo
-	AllowedIDs  []int64
+	AllowedIDs  []uuid.UUID
 	Settings    types.AuditSettings
 	Member      *types.Member
 	PlatformKey *types.PlatformKey
@@ -59,7 +60,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 		return types.UsageLedgerEntry{}, err
 	}
 
-	var memberID *string
+	var memberID *uuid.UUID
 	if input.Mapping.MemberID != nil {
 		memberID = input.Mapping.MemberID
 	}
@@ -75,7 +76,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 	}
 
 	return types.UsageLedgerEntry{
-		ID:               fmt.Sprintf("ul-%d", time.Now().UnixNano()),
+		ID:               uuid.Must(uuid.NewV7()),
 		EventType:        types.EventTypeCallSettled,
 		IdempotencyKey:   NewAPIIdempotencyKey(input.Raw.ID),
 		Amount:           cost,
@@ -98,7 +99,7 @@ func modelsFromInput(input EntryBuildInput) []types.ModelInfo {
 	return input.Catalog
 }
 
-func buildCallDetail(input EntryBuildInput, memberID *string, modelName string) types.UsageCallDetail {
+func buildCallDetail(input EntryBuildInput, memberID *uuid.UUID, modelName string) types.UsageCallDetail {
 	detail := types.UsageCallDetail{
 		Provider:  resolveProvider(modelName, modelsFromInput(input)),
 		Status:    types.CallStatusSuccess,
@@ -106,11 +107,11 @@ func buildCallDetail(input EntryBuildInput, memberID *string, modelName string) 
 	}
 	if memberID != nil && input.Member != nil {
 		detail.CallerType = types.CallerTypeMember
-		detail.CallerID = *memberID
+		detail.CallerID = memberID.String()
 		detail.Caller = input.Member.Name
 	} else {
 		detail.CallerType = types.CallerTypePlatformKey
-		detail.CallerID = input.Mapping.PlatformKeyID
+		detail.CallerID = input.Mapping.PlatformKeyID.String()
 		if input.PlatformKey != nil {
 			detail.Caller = input.PlatformKey.Name
 		}

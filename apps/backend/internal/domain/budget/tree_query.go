@@ -3,6 +3,7 @@ package budget
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -13,7 +14,7 @@ func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
 	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 }
 
-func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types.MemberBudget, error) {
+func (s *service) ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error) {
 	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func (s *service) ListMemberBudgets(ctx context.Context, deptID string) ([]types
 	return memberBudgets, nil
 }
 
-func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID string) (map[string]float64, error) {
+func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[string]float64, error) {
 	projects, err := s.store.Budget().Projects(ctx)
 	if err != nil {
 		return nil, err
@@ -70,7 +71,7 @@ func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID string
 		if err != nil {
 			return nil, err
 		}
-		result[memberID] = sum
+		result[memberID.String()] = sum
 	}
 	return result, nil
 }

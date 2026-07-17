@@ -3,6 +3,7 @@ package budgetcheck
 import (
 	"context"
 
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 )
 
@@ -22,7 +23,7 @@ func (a domainStoreAdapter) Enabled() bool {
 	return a.store.Enabled()
 }
 
-func (a domainStoreAdapter) Get(ctx context.Context, companyID int64, keyHash string) (domainbudget.CombinedKeyEntry, bool, error) {
+func (a domainStoreAdapter) Get(ctx context.Context, companyID uuid.UUID, keyHash string) (domainbudget.CombinedKeyEntry, bool, error) {
 	entry, ok, err := a.store.Get(ctx, companyID, keyHash)
 	if err != nil || !ok {
 		return domainbudget.CombinedKeyEntry{}, ok, err
@@ -34,7 +35,7 @@ func (a domainStoreAdapter) Get(ctx context.Context, companyID int64, keyHash st
 	}, ok, nil
 }
 
-func (a domainStoreAdapter) Set(ctx context.Context, companyID int64, keyHash string, entry domainbudget.CombinedKeyEntry) error {
+func (a domainStoreAdapter) Set(ctx context.Context, companyID uuid.UUID, keyHash string, entry domainbudget.CombinedKeyEntry) error {
 	return a.store.Set(ctx, companyID, keyHash, Entry{
 		Remain:    entry.Remain,
 		UpdatedAt: entry.UpdatedAt,

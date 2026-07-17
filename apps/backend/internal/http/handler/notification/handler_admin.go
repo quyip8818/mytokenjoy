@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -15,17 +16,17 @@ import (
 // --- Admin: Log ---
 
 type adminLogEntryResponse struct {
-	ID        string  `json:"id"`
-	Channel   string  `json:"channel"`
-	EventType string  `json:"eventType"`
-	Recipient string  `json:"recipient"`
-	UserID    string  `json:"userId"`
-	Title     string  `json:"title"`
-	Body      string  `json:"body"`
-	Status    string  `json:"status"`
-	Error     string  `json:"error,omitempty"`
-	CreatedAt string  `json:"createdAt"`
-	ReadAt    *string `json:"readAt,omitempty"`
+	ID        uuid.UUID `json:"id"`
+	Channel   string    `json:"channel"`
+	EventType string    `json:"eventType"`
+	Recipient string    `json:"recipient"`
+	UserID    uuid.UUID `json:"userId"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	Status    string    `json:"status"`
+	Error     string    `json:"error,omitempty"`
+	CreatedAt string    `json:"createdAt"`
+	ReadAt    *string   `json:"readAt,omitempty"`
 }
 
 func (h *Handler) AdminLog(w http.ResponseWriter, r *http.Request) {
@@ -96,10 +97,10 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 // --- Admin: Test Send ---
 
 type adminTestSendRequest struct {
-	UserID    string `json:"userId"`
-	EventType string `json:"eventType"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
+	UserID    uuid.UUID `json:"userId"`
+	EventType string    `json:"eventType"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
 }
 
 func (h *Handler) AdminTestSend(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +110,7 @@ func (h *Handler) AdminTestSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserID == "" || req.Title == "" {
+	if req.UserID == uuid.Nil || req.Title == "" {
 		httputil.WriteStatus(w, http.StatusBadRequest, "userId and title required")
 		return
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -122,7 +123,7 @@ func (r *pgAuditRepo) ListOperationsPage(ctx context.Context, filter store.Audit
 	return items, total, nil
 }
 
-func buildAuditOperationWhere(companyID int64, filter store.AuditOperationFilter) (string, []any) {
+func buildAuditOperationWhere(companyID uuid.UUID, filter store.AuditOperationFilter) (string, []any) {
 	clauses := []string{"company_id = $1"}
 	args := []any{companyID}
 	idx := 2

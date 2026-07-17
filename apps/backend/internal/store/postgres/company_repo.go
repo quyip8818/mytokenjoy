@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -17,7 +18,7 @@ func newCompanyRepo(db dbQuerier) *companyRepo {
 	return &companyRepo{db: db}
 }
 
-func (r *companyRepo) GetByID(ctx context.Context, id int64) (*store.Company, error) {
+func (r *companyRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
@@ -50,12 +51,12 @@ func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	return nil
 }
 
-func (r *companyRepo) UpdateStatus(ctx context.Context, id int64, status string) error {
+func (r *companyRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
 	_, err := r.db.Exec(ctx, `UPDATE companies SET status = $2, updated_at = NOW() WHERE id = $1`, id, status)
 	return err
 }
 
-func (r *companyRepo) UpdateNewAPIWalletUserID(ctx context.Context, id int64, walletUserID int64) error {
+func (r *companyRepo) UpdateNewAPIWalletUserID(ctx context.Context, id uuid.UUID, walletUserID int64) error {
 	if walletUserID <= 0 {
 		return fmt.Errorf("newapi wallet user id must be positive")
 	}
@@ -65,7 +66,7 @@ func (r *companyRepo) UpdateNewAPIWalletUserID(ctx context.Context, id int64, wa
 	return err
 }
 
-func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id int64, rootDeptID string) error {
+func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id uuid.UUID, rootDeptID uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET root_dept_id = $2, updated_at = NOW() WHERE id = $1
 	`, id, rootDeptID)
@@ -98,13 +99,13 @@ type scannable interface {
 	Scan(dest ...any) error
 }
 
-func (r *companyRepo) GetAuthzRevision(ctx context.Context, id int64) (int64, error) {
+func (r *companyRepo) GetAuthzRevision(ctx context.Context, id uuid.UUID) (int64, error) {
 	var revision int64
 	err := r.db.QueryRow(ctx, `SELECT authz_revision FROM companies WHERE id = $1`, id).Scan(&revision)
 	return revision, err
 }
 
-func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id int64) (int64, error) {
+func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id uuid.UUID) (int64, error) {
 	var revision int64
 	err := r.db.QueryRow(ctx, `
 		UPDATE companies SET authz_revision = authz_revision + 1, updated_at = NOW()
@@ -114,7 +115,7 @@ func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id int64) (int64, e
 	return revision, err
 }
 
-func (r *companyRepo) LockForUpdate(ctx context.Context, id int64) (*store.Company, error) {
+func (r *companyRepo) LockForUpdate(ctx context.Context, id uuid.UUID) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
@@ -124,7 +125,7 @@ func (r *companyRepo) LockForUpdate(ctx context.Context, id int64) (*store.Compa
 	return scanCompanyExtended(row)
 }
 
-func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id int64, delta float64, fifoHeadLotID *string) error {
+func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta float64, fifoHeadLotID *uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
 			wallet_remain = wallet_remain + $2,
@@ -135,7 +136,7 @@ func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id int64, delta floa
 	return err
 }
 
-func (r *companyRepo) SetWalletRemain(ctx context.Context, id int64, walletRemain float64, fifoHeadLotID *string) error {
+func (r *companyRepo) SetWalletRemain(ctx context.Context, id uuid.UUID, walletRemain float64, fifoHeadLotID *uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
 			wallet_remain = $2,

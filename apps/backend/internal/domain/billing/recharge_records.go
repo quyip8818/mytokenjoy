@@ -5,19 +5,20 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type RechargeRecord struct {
-	ID            string  `json:"id"`
-	OrderID       string  `json:"orderId"`
-	Method        string  `json:"method"`
-	Amount        float64 `json:"amount"`
-	PaidAmount    float64 `json:"paidAmount"`
-	InvoiceStatus string  `json:"invoiceStatus"`
-	Status        string  `json:"status"`
-	CreatedAt     string  `json:"createdAt"`
+	ID            uuid.UUID `json:"id"`
+	OrderID       string    `json:"orderId"`
+	Method        string    `json:"method"`
+	Amount        float64   `json:"amount"`
+	PaidAmount    float64   `json:"paidAmount"`
+	InvoiceStatus string    `json:"invoiceStatus"`
+	Status        string    `json:"status"`
+	CreatedAt     string    `json:"createdAt"`
 }
 
 func (s *service) ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error) {

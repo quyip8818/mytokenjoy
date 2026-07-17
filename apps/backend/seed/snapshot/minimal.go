@@ -1,6 +1,7 @@
 package snapshot
 
 import (
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
@@ -27,7 +28,7 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		Company:        defaultCompany(cfg),
 		OrgIntegration: orgIntegration,
 		SyncLogs: []types.SyncLog{
-			{ID: "sync-1", Time: ref + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
+			{ID: uuid.MustParse("00000000-0000-7000-8000-0000000aa001"), Time: ref + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
 		},
 		ImportFailures:  nil,
 		OrgNodes:        buildMinimalOrgNodes(),
@@ -51,24 +52,24 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 }
 
 func buildMinimalDepartments() []types.Department {
-	dept2Parent := "dept-1"
-	dept3Parent := "dept-2"
-	dept4Parent := "dept-2"
-	dept5Parent := "dept-2"
-	dept8Parent := "dept-1"
+	dept2Parent := contract.IDDept1
+	dept3Parent := contract.IDDept2
+	dept4Parent := contract.IDDept2
+	dept5Parent := contract.IDDept2
+	dept8Parent := contract.IDDept1
 	return []types.Department{
 		{
-			ID: "dept-1", Name: "总公司", ParentID: nil, MemberCount: 8,
+			ID: contract.IDDept1, Name: "总公司", ParentID: nil, MemberCount: 8,
 			Children: []types.Department{
 				{
-					ID: "dept-2", Name: "技术部", ParentID: &dept2Parent, MemberCount: 6,
+					ID: contract.IDDept2, Name: "技术部", ParentID: &dept2Parent, MemberCount: 6,
 					Children: []types.Department{
 						{ID: contract.IDDept3, Name: "后端组", ParentID: &dept3Parent, MemberCount: 4},
 						{ID: contract.IDDept4, Name: "前端组", ParentID: &dept4Parent, MemberCount: 2},
-						{ID: "dept-5", Name: "测试组", ParentID: &dept5Parent, MemberCount: 0},
+						{ID: contract.IDDept5, Name: "测试组", ParentID: &dept5Parent, MemberCount: 0},
 					},
 				},
-				{ID: "dept-8", Name: "行政部", ParentID: &dept8Parent, MemberCount: 1},
+				{ID: contract.IDDept8, Name: "行政部", ParentID: &dept8Parent, MemberCount: 1},
 			},
 		},
 	}
@@ -90,7 +91,7 @@ func minimalPlatformKeys() []types.PlatformKey {
 func minimalModelAllowlist(keys []types.PlatformKey) []store.ModelAllowlistRow {
 	rows := make([]store.ModelAllowlistRow, 0)
 	for nodeID, cfg := range orgNodeRoutingByID() {
-		if nodeID != contract.IDDept3 && nodeID != "dept-1" {
+		if nodeID != contract.IDDept3 && nodeID != contract.IDDept1 {
 			continue
 		}
 		for _, modelID := range cfg.allowedModelIDs {
@@ -117,7 +118,7 @@ func minimalProjects() []types.Project {
 	return []types.Project{
 		{
 			ID: contract.IDProject1, Name: "AI 创新项目组", Budget: 30000, Consumed: 18500,
-			MemberIDs: []string{contract.IDMember1, "m-4"}, OwnerDepartmentID: contract.IDDept3,
+			MemberIDs: []uuid.UUID{contract.IDMember1, uuid.MustParse("00000000-0000-7000-8000-000000000e06")}, OwnerDepartmentID: contract.IDDept3,
 		},
 	}
 }
@@ -125,7 +126,7 @@ func minimalProjects() []types.Project {
 func minimalBudgetApprovals() []types.BudgetApproval {
 	return []types.BudgetApproval{
 		{
-			ID: "appr-1", ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
+			ID: uuid.MustParse("00000000-0000-7000-8000-000000000a01"), ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
 			Amount: 500, Reason: "本月额度用尽，需完成搜索优化任务",
 			Status: "pending", CreatedAt: "2026-06-28 14:30",
 		},
@@ -134,7 +135,7 @@ func minimalBudgetApprovals() []types.BudgetApproval {
 
 func minimalAlertRules() []types.AlertRule {
 	return []types.AlertRule{
-		{ID: "alert-1", NodeID: "dept-1", NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []string{"role-1"}, Enabled: true},
-		{ID: "alert-3", NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []string{"role-2"}, Enabled: true},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab001"), NodeID: contract.IDDept1, NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-8000-00000000a101")}, Enabled: true},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000ab003"), NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-8000-00000000a102")}, Enabled: true},
 	}
 }

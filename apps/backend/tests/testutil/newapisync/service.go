@@ -5,6 +5,7 @@ package newapisync
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -77,12 +78,12 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 }
 
 type PendingPlatformKeyOpts struct {
-	ID             string
+	ID             uuid.UUID
 	Name           string
-	MemberID       string
-	DepartmentID   string
+	MemberID       uuid.UUID
+	DepartmentID   uuid.UUID
 	Budget         float64
-	ModelWhitelist []int64
+	ModelWhitelist []uuid.UUID
 }
 
 func SeedPendingPlatformKey(t *testing.T, st store.Store, opts PendingPlatformKeyOpts) types.PlatformKey {

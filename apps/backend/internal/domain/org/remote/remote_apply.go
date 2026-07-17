@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
@@ -87,8 +88,8 @@ func (s *Service) importRemoteSnapshot(
 	return s.importFromProvider(ctx, provider, platform, importOptions{})
 }
 
-func buildDeptExternalMap(departments []types.Department) map[string]string {
-	result := make(map[string]string)
+func buildDeptExternalMap(departments []types.Department) map[string]uuid.UUID {
+	result := make(map[string]uuid.UUID)
 	for _, dept := range pkgorg.FlattenDepartmentTree(departments) {
 		if dept.ExternalID != nil {
 			result[*dept.ExternalID] = dept.ID
@@ -107,8 +108,8 @@ func buildMemberExternalIndex(members []types.Member) map[string]types.Member {
 	return result
 }
 
-func flattenDeptNames(departments []types.Department) map[string]string {
-	result := make(map[string]string)
+func flattenDeptNames(departments []types.Department) map[uuid.UUID]string {
+	result := make(map[uuid.UUID]string)
 	for _, dept := range pkgorg.FlattenDepartmentTree(departments) {
 		result[dept.ID] = dept.Name
 		if path := pkgorg.GetDeptPath(departments, dept.ID); path != nil {
@@ -158,13 +159,13 @@ func filterRemoteMembersForRetry(
 ) []datasource.RemoteMember {
 	targets := make(map[string]struct{})
 	for _, failure := range failures {
-		if _, ok := retryIDs[failure.ID]; !ok {
+		if _, ok := retryIDs[failure.ID.String()]; !ok {
 			continue
 		}
 		if failure.EmployeeID != "" {
 			targets[failure.EmployeeID] = struct{}{}
 		}
-		targets[failure.ID] = struct{}{}
+		targets[failure.ID.String()] = struct{}{}
 	}
 	filtered := make([]datasource.RemoteMember, 0)
 	for _, member := range members {
@@ -185,8 +186,8 @@ func resolveLocalDeptID(
 	departments []types.Department,
 	platform types.Platform,
 	externalID string,
-	externalToLocal map[string]string,
-) string {
+	externalToLocal map[string]uuid.UUID,
+) uuid.UUID {
 	// Root department maps to the local company root
 	if externalID == "" || externalID == "0" {
 		return core.RootDepartmentID
@@ -205,8 +206,8 @@ func resolveLocalDeptID(
 func resolveParentLocalID(
 	parentExternal string,
 	platform types.Platform,
-	externalToLocal map[string]string,
-) string {
+	externalToLocal map[string]uuid.UUID,
+) uuid.UUID {
 	if parentExternal == "" || parentExternal == "0" {
 		return core.RootDepartmentID
 	}

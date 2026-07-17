@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -34,7 +35,7 @@ type cacheEntry struct {
 type PrecheckCache struct {
 	mu      sync.Mutex
 	entries map[string]*list.Element // keyHash → list element
-	byKeyID map[string]string        // platformKeyID → keyHash (reverse index)
+	byKeyID map[uuid.UUID]string     // platformKeyID → keyHash (reverse index)
 	order   *list.List               // front = most recently used
 	loader  store.GatewayPrecheckRepository
 	maxSize int
@@ -70,7 +71,7 @@ func WithTTL(d time.Duration) CacheOption {
 func NewPrecheckCache(loader store.GatewayPrecheckRepository, opts ...CacheOption) *PrecheckCache {
 	c := &PrecheckCache{
 		entries: make(map[string]*list.Element),
-		byKeyID: make(map[string]string),
+		byKeyID: make(map[uuid.UUID]string),
 		order:   list.New(),
 		loader:  loader,
 		maxSize: DefaultCacheMaxSize,
@@ -176,7 +177,7 @@ func (c *PrecheckCache) InvalidateKey(keyHash string) {
 
 // InvalidateByKeyID removes a cached entry by platform key ID.
 // This is used by keys service which operates on key IDs, not hashes.
-func (c *PrecheckCache) InvalidateByKeyID(platformKeyID string) {
+func (c *PrecheckCache) InvalidateByKeyID(platformKeyID uuid.UUID) {
 	c.mu.Lock()
 	if keyHash, ok := c.byKeyID[platformKeyID]; ok {
 		if el, found := c.entries[keyHash]; found {
@@ -189,7 +190,7 @@ func (c *PrecheckCache) InvalidateByKeyID(platformKeyID string) {
 
 // InvalidateCompany removes all cached keys belonging to a company.
 // Call this when company status changes (freeze/unfreeze).
-func (c *PrecheckCache) InvalidateCompany(companyID int64) {
+func (c *PrecheckCache) InvalidateCompany(companyID uuid.UUID) {
 	c.mu.Lock()
 	var toRemove []string
 	for keyHash, el := range c.entries {
@@ -211,7 +212,7 @@ func (c *PrecheckCache) InvalidateCompany(companyID int64) {
 func (c *PrecheckCache) InvalidateAll() {
 	c.mu.Lock()
 	c.entries = make(map[string]*list.Element)
-	c.byKeyID = make(map[string]string)
+	c.byKeyID = make(map[uuid.UUID]string)
 	c.order.Init()
 	c.mu.Unlock()
 }

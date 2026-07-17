@@ -3,12 +3,13 @@ package policy
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
 type ChannelPolicy interface {
-	ResolveNewAPIGroup(ctx context.Context, departmentID string) string
+	ResolveNewAPIGroup(ctx context.Context, departmentID uuid.UUID) string
 }
 
 type LocalChannelPolicy struct{}
@@ -17,7 +18,7 @@ func NewLocalChannelPolicy() ChannelPolicy {
 	return LocalChannelPolicy{}
 }
 
-func (LocalChannelPolicy) ResolveNewAPIGroup(_ context.Context, departmentID string) string {
+func (LocalChannelPolicy) ResolveNewAPIGroup(_ context.Context, departmentID uuid.UUID) string {
 	return newapiunits.NewAPIGroupForDepartment(departmentID)
 }
 
@@ -29,7 +30,7 @@ func NewSaaSSharedChannelPolicy(group string) ChannelPolicy {
 	return SaaSSharedChannelPolicy{group: group}
 }
 
-func (p SaaSSharedChannelPolicy) ResolveNewAPIGroup(_ context.Context, _ string) string {
+func (p SaaSSharedChannelPolicy) ResolveNewAPIGroup(_ context.Context, _ uuid.UUID) string {
 	return p.group
 }
 
@@ -40,17 +41,14 @@ func NewChannelPolicy(cfg config.Config) ChannelPolicy {
 	return NewLocalChannelPolicy()
 }
 
-var groupDisplayNames = map[string]string{
-	"dept-3": "后端组",
-	"dept-5": "测试组",
-}
+var groupDisplayNames = map[uuid.UUID]string{}
 
 // GroupDisplayName returns a human-readable NewAPI group label for known demo departments.
-func GroupDisplayName(departmentID string) string {
+func GroupDisplayName(departmentID uuid.UUID) string {
 	if name, ok := groupDisplayNames[departmentID]; ok {
 		return name
 	}
-	return departmentID
+	return departmentID.String()
 }
 
 // ResolveProviderChannelGroup picks the NewAPI group for the provider channel.

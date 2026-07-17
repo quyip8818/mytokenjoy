@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -16,14 +17,14 @@ import (
 // Handler serves /api/dev/* — registered only when config.AllowsDevHTTPRoutes.
 type Handler struct {
 	shared.ProtectedHandlerBase
-	localCompanyID   int64
+	localCompanyID   uuid.UUID
 	bearerResolver   devapi.BearerResolver
 	readinessChecker devapi.ReadinessChecker
 }
 
 func NewHandler(
 	p httpdeps.Protected,
-	localCompanyID int64,
+	localCompanyID uuid.UUID,
 	bearerResolver devapi.BearerResolver,
 	readinessChecker devapi.ReadinessChecker,
 ) *Handler {
@@ -42,8 +43,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type readinessResponse struct {
-	Ready                 bool     `json:"ready"`
-	UnreadyPlatformKeyIDs []string `json:"unready_platform_key_ids,omitempty"`
+	Ready                 bool        `json:"ready"`
+	UnreadyPlatformKeyIDs []uuid.UUID `json:"unready_platform_key_ids,omitempty"`
 }
 
 func (h *Handler) Readiness(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +74,12 @@ type platformKeyBearerResponse struct {
 
 func (h *Handler) PlatformKeyBearer(w http.ResponseWriter, r *http.Request) {
 	ctx := company.DefaultContext(h.localCompanyID)
-	bearer, err := h.bearerResolver.ResolvePlatformKeyBearer(ctx, chi.URLParam(r, "id"))
+	parsedID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	bearer, err := h.bearerResolver.ResolvePlatformKeyBearer(ctx, parsedID)
 	if err != nil {
 		httputil.WriteError(w, err)
 		return

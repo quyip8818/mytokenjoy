@@ -1,5 +1,7 @@
 package postgres
 
+import "github.com/google/uuid"
+
 const modelSelectColumns = `
 	model_id, company_id, provider, type, name, description, endpoint,
 	api_key, endpoint_model_name,
@@ -7,13 +9,13 @@ const modelSelectColumns = `
 
 type modelCatalog struct {
 	db                dbQuerier
-	tokenJoyCompanyID int64
+	tokenJoyCompanyID uuid.UUID
 }
 
-func newModelCatalog(db dbQuerier, tokenJoyCompanyID int64) modelCatalog {
+func newModelCatalog(db dbQuerier, tokenJoyCompanyID uuid.UUID) modelCatalog {
 	return modelCatalog{db: db, tokenJoyCompanyID: tokenJoyCompanyID}
 }
 
-func (c modelCatalog) globalCompanyID() int64 {
+func (c modelCatalog) globalCompanyID() uuid.UUID {
 	return c.tokenJoyCompanyID
 }

@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID int64, fifoHeadID *string) ([]store.RechargeLot, error) {
+func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID uuid.UUID, fifoHeadID *uuid.UUID) ([]store.RechargeLot, error) {
 	query := `
 		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
 			amount_display, points_granted, points_remaining, unit_price_display,
@@ -27,7 +28,7 @@ func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID int64, f
 	if err != nil {
 		return nil, err
 	}
-	if fifoHeadID == nil || *fifoHeadID == "" {
+	if fifoHeadID == nil || *fifoHeadID == uuid.Nil {
 		return lots, nil
 	}
 	start := 0
@@ -52,7 +53,7 @@ func (r *billingRepo) UpdateLotRemaining(ctx context.Context, lot store.Recharge
 	return err
 }
 
-func (r *billingRepo) GetLotByID(ctx context.Context, lotID string) (*store.RechargeLot, error) {
+func (r *billingRepo) GetLotByID(ctx context.Context, lotID uuid.UUID) (*store.RechargeLot, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
 			amount_display, points_granted, points_remaining, unit_price_display,
@@ -62,9 +63,9 @@ func (r *billingRepo) GetLotByID(ctx context.Context, lotID string) (*store.Rech
 	return scanRechargeLot(row)
 }
 
-func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, billingCurrency string, pointsDelta float64) (*store.RechargeLot, error) {
-	key := fmt.Sprintf("overdraft:%d", companyID)
-	var existingID string
+func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUID, billingCurrency string, pointsDelta float64) (*store.RechargeLot, error) {
+	key := fmt.Sprintf("overdraft:%s", companyID)
+	var existingID uuid.UUID
 	err := r.db.QueryRow(ctx, `
 		SELECT l.id FROM company_recharge_lots l
 		JOIN company_recharge_orders o ON o.id = l.recharge_order_id
@@ -95,7 +96,7 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 	if err != nil && err != pgx.ErrNoRows {
 		return nil, err
 	}
-	orderID := fmt.Sprintf("od-%d", companyID)
+	orderID := uuid.Must(uuid.NewV7())
 	lotID := orderID
 	now := time.Now().UTC()
 	order := store.RechargeOrder{
@@ -103,7 +104,7 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 		PointsPerUnit: 1, PointsGranted: pointsDelta,
 		Source: store.RechargeSourceSystem, LotKind: store.LotKindOverdraft,
 		IdempotencyKey: &key, Status: store.RechargeStatusConfirmed,
-		CreatedBy: "system", CreatedAt: now, UpdatedAt: now,
+		CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := store.RechargeLot{
 		ID: lotID, CompanyID: companyID, RechargeOrderID: orderID,
@@ -117,7 +118,7 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID int64, b
 	return &lot, nil
 }
 
-func (r *billingRepo) ExpireMockLots(ctx context.Context, companyID int64) (int64, error) {
+func (r *billingRepo) ExpireMockLots(ctx context.Context, companyID uuid.UUID) (int64, error) {
 	tag, err := r.db.Exec(ctx, `
 		UPDATE company_recharge_lots
 		SET status = 'expired', updated_at = NOW()
@@ -129,7 +130,7 @@ func (r *billingRepo) ExpireMockLots(ctx context.Context, companyID int64) (int6
 	return tag.RowsAffected(), nil
 }
 
-func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID int64) (float64, error) {
+func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (float64, error) {
 	var remain float64
 	err := r.db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(points_remaining), 0)

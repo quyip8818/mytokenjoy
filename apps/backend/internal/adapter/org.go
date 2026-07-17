@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	domainorgremote "github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
 // OrgRiverAdmin is the interface for org-specific River admin operations.
 type OrgRiverAdmin interface {
-	CancelOrgSyncPending(ctx context.Context, companyID int64) error
+	CancelOrgSyncPending(ctx context.Context, companyID uuid.UUID) error
 }
 
 // OrgRiverAdminHolder wraps an OrgRiverAdmin with late-binding support.
@@ -35,13 +36,13 @@ func (h *OrgRiverAdminHolder) Set(admin OrgRiverAdmin) {
 }
 
 // CancelOrgSyncPending delegates to the inner implementation.
-func (h *OrgRiverAdminHolder) CancelOrgSyncPending(ctx context.Context, companyID int64) error {
+func (h *OrgRiverAdminHolder) CancelOrgSyncPending(ctx context.Context, companyID uuid.UUID) error {
 	return h.inner.CancelOrgSyncPending(ctx, companyID)
 }
 
 type noopOrgRiverAdmin struct{}
 
-func (noopOrgRiverAdmin) CancelOrgSyncPending(context.Context, int64) error { return nil }
+func (noopOrgRiverAdmin) CancelOrgSyncPending(context.Context, uuid.UUID) error { return nil }
 
 type orgJobEnqueuer struct {
 	enqueuer jobs.Enqueuer
@@ -56,11 +57,11 @@ func NewOrgEnqueuer(enqueuer jobs.Enqueuer, admin *OrgRiverAdminHolder) domainor
 	return orgJobEnqueuer{enqueuer: JobsOrNoop(enqueuer), admin: admin}
 }
 
-func (o orgJobEnqueuer) InsertOrgSync(ctx context.Context, companyID int64, scheduledAt *time.Time) error {
+func (o orgJobEnqueuer) InsertOrgSync(ctx context.Context, companyID uuid.UUID, scheduledAt *time.Time) error {
 	return jobs.InsertOrgSync(ctx, o.enqueuer, nil, companyID, scheduledAt)
 }
 
-func (o orgJobEnqueuer) CancelPendingOrgSync(ctx context.Context, companyID int64) error {
+func (o orgJobEnqueuer) CancelPendingOrgSync(ctx context.Context, companyID uuid.UUID) error {
 	return o.admin.CancelOrgSyncPending(ctx, companyID)
 }
 

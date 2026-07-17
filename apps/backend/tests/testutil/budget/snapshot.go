@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -18,12 +19,12 @@ func DisplayPoints(display float64) float64 {
 	return points.FromDisplay(display)
 }
 
-func SnapshotConsumed(t *testing.T, st store.Store, axisKind, axisID string) float64 {
+func SnapshotConsumed(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID) float64 {
 	t.Helper()
 	return SnapshotConsumedAtPeriod(t, st, axisKind, axisID, contract.DemoBudgetPeriod)
 }
 
-func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string) float64 {
+func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID, periodKey string) float64 {
 	t.Helper()
 	ctx := ctx()
 	consumed, found, err := st.BudgetConsumed().GetConsumed(ctx, axisKind, axisID, periodKey)
@@ -36,17 +37,17 @@ func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, pe
 	return consumed
 }
 
-func PlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID string) float64 {
+func PlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID uuid.UUID) float64 {
 	t.Helper()
 	return SnapshotConsumed(t, st, store.AxisKindPlatformKey, keyID)
 }
 
-func SetPlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID string, consumed float64) {
+func SetPlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID uuid.UUID, consumed float64) {
 	t.Helper()
 	SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, keyID, contract.DemoBudgetPeriod, consumed)
 }
 
-func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID, periodKey string, consumed float64) {
+func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID, periodKey string, consumed float64) {
 	t.Helper()
 	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, axisKind, axisID, periodKey, consumed); err != nil {
@@ -54,7 +55,7 @@ func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind, axisID,
 	}
 }
 
-func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID string, consumed float64) {
+func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID uuid.UUID, consumed float64) {
 	t.Helper()
 	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindProject, projectID, contract.DemoBudgetPeriod, consumed); err != nil {
@@ -62,7 +63,7 @@ func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID string, 
 	}
 }
 
-func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, consumed float64) {
+func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID uuid.UUID, consumed float64) {
 	t.Helper()
 	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindMember, memberID, contract.DemoBudgetPeriod, consumed); err != nil {
@@ -70,7 +71,7 @@ func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID string, co
 	}
 }
 
-func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID string, remain float64) {
+func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID, remain float64) {
 	t.Helper()
 	ctx := ctx()
 	if _, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
@@ -80,10 +81,10 @@ func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID string, remain flo
 	}
 }
 
-func CombinedKeyRemain(t *testing.T, st store.Store, keyID string) (remain *float64, version int64) {
+func CombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID) (remain *float64, version int64) {
 	t.Helper()
 	ctx := ctx()
-	items, err := st.CombinedKeySummaries().ListByPlatformKeyIDs(ctx, []string{keyID})
+	items, err := st.CombinedKeySummaries().ListByPlatformKeyIDs(ctx, []uuid.UUID{keyID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +99,7 @@ func CombinedKeyRemain(t *testing.T, st store.Store, keyID string) (remain *floa
 	return nil, item.Version
 }
 
-func CombinedKeyRemainVersion(t *testing.T, st store.Store, keyID string) int64 {
+func CombinedKeyRemainVersion(t *testing.T, st store.Store, keyID uuid.UUID) int64 {
 	t.Helper()
 	_, version := CombinedKeyRemain(t, st, keyID)
 	return version

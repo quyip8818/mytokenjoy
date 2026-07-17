@@ -2,23 +2,23 @@ package billing
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy string) error {
+func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy uuid.UUID) error {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return err
 	}
 	now := time.Now().UTC()
-	orderID := fmt.Sprintf("gift-%d-%d", companyID, now.UnixNano())
+	orderID := uuid.Must(uuid.NewV7())
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: currency,
 		PointsPerUnit: ppu, PointsGranted: points,
@@ -33,14 +33,14 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 	return s.afterRecharge(ctx, companyID)
 }
 
-func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay float64, createdBy string) error {
+func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay float64, createdBy uuid.UUID) error {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return err
 	}
 	now := time.Now().UTC()
-	orderID := fmt.Sprintf("adj-%d-%d", companyID, now.UnixNano())
+	orderID := uuid.Must(uuid.NewV7())
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amountDisplay, Currency: currency,
 		PointsPerUnit: ppu, PointsGranted: points,
@@ -89,14 +89,14 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	return s.afterRecharge(ctx, order.CompanyID)
 }
 
-func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, source, createdBy string, idempotencyKey *string) error {
+func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, source string, createdBy uuid.UUID, idempotencyKey *string) error {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
 		return err
 	}
 	now := time.Now().UTC()
-	orderID := fmt.Sprintf("rch-%d-%d", companyID, now.UnixNano())
+	orderID := uuid.Must(uuid.NewV7())
 	points := PointsGrantedFromAmount(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
@@ -115,7 +115,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 	return s.afterRecharge(ctx, companyID)
 }
 
-func (s *service) afterRecharge(ctx context.Context, companyID int64) error {
+func (s *service) afterRecharge(ctx context.Context, companyID uuid.UUID) error {
 	return s.enqueuer.InsertWalletSync(ctx, companyID)
 }
 

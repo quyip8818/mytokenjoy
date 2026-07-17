@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
@@ -57,7 +58,7 @@ func (r *pgModelsRepo) ModelByProviderType(ctx context.Context, provider, modelT
 	return r.modelByCompanyProviderAndType(ctx, r.catalog.globalCompanyID(), provider, modelType)
 }
 
-func (r *pgModelsRepo) ModelByID(ctx context.Context, modelID int64) (*types.ModelInfo, error) {
+func (r *pgModelsRepo) ModelByID(ctx context.Context, modelID uuid.UUID) (*types.ModelInfo, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, `
 		SELECT `+modelSelectColumns+`
@@ -68,7 +69,7 @@ func (r *pgModelsRepo) ModelByID(ctx context.Context, modelID int64) (*types.Mod
 	if err != nil || item == nil {
 		return item, err
 	}
-	caps, err := r.loadCapabilities(ctx, item.ModelID)
+	caps, err := r.loadCapabilities(ctx, item.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (r *pgModelsRepo) ModelByIDs(ctx context.Context, modelIDs []int64) ([]type
 
 func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error) {
 	companyID := store.CompanyID(ctx)
-	var modelID int64
+	var modelID uuid.UUID
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO models (
 			company_id, provider, type, name, description, endpoint,
@@ -113,7 +114,7 @@ func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (
 	if err := r.replaceCapabilities(ctx, modelID, model.Capabilities); err != nil {
 		return types.ModelInfo{}, err
 	}
-	model.ModelID = modelID
+	model.ID = modelID
 	model.CompanyID = companyID
 	return model, nil
 }
@@ -136,20 +137,20 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			enabled = $14,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
-	`, model.ModelID, companyID, model.Provider, model.Type, model.Name,
+	`, model.ID, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
 		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled)
 	if err != nil {
-		return fmt.Errorf("update model %d: %w", model.ModelID, err)
+		return fmt.Errorf("update model %d: %w", model.ID, err)
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("model %d not found in tenant scope", model.ModelID)
+		return fmt.Errorf("model %d not found in tenant scope", model.ID)
 	}
-	return r.replaceCapabilities(ctx, model.ModelID, model.Capabilities)
+	return r.replaceCapabilities(ctx, model.ID, model.Capabilities)
 }
 
-func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID int64) error {
+func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	if _, err := r.db.Exec(ctx, `
 		UPDATE org_nodes SET default_model_id = NULL, updated_at = NOW()

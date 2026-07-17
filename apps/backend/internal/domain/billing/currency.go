@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -43,12 +44,12 @@ func (s *service) lookupPointsPerUnit(ctx context.Context, currency string) (int
 	return lookupCurrencyPPU(ctx, s.store, currency)
 }
 
-func (s *service) resolveChargeRate(ctx context.Context, companyID int64) (currency string, ppu int64, err error) {
+func (s *service) resolveChargeRate(ctx context.Context, companyID uuid.UUID) (currency string, ppu int64, err error) {
 	return ResolveCompanyChargeRate(ctx, s.store, companyID)
 }
 
 // ResolveCompanyChargeRate returns the company's billing currency and points_per_unit.
-func ResolveCompanyChargeRate(ctx context.Context, st CurrencyStore, companyID int64) (currency string, ppu int64, err error) {
+func ResolveCompanyChargeRate(ctx context.Context, st CurrencyStore, companyID uuid.UUID) (currency string, ppu int64, err error) {
 	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return "", 0, err

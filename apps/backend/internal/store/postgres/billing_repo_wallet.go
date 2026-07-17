@@ -3,11 +3,12 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *billingRepo) AggregateWallet(ctx context.Context, companyID int64) (store.WalletAggregate, error) {
+func (r *billingRepo) AggregateWallet(ctx context.Context, companyID uuid.UUID) (store.WalletAggregate, error) {
 	var billingCurrency string
 	var walletRemain float64
 	if err := r.db.QueryRow(ctx, `SELECT billing_currency, wallet_remain FROM companies WHERE id = $1`, companyID).

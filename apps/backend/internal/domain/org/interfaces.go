@@ -3,6 +3,7 @@ package org
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -28,9 +29,9 @@ type SyncService interface {
 
 type DepartmentService interface {
 	GetDepartmentTree(ctx context.Context) ([]types.Department, error)
-	CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error)
-	UpdateDepartment(ctx context.Context, id, name string) (types.Department, error)
-	DeleteDepartment(ctx context.Context, id string) error
+	CreateDepartment(ctx context.Context, name string, parentID uuid.UUID) (types.Department, error)
+	UpdateDepartment(ctx context.Context, id uuid.UUID, name string) (types.Department, error)
+	DeleteDepartment(ctx context.Context, id uuid.UUID) error
 }
 
 type MemberService interface {
@@ -39,7 +40,7 @@ type MemberService interface {
 	UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error)
 	DeleteMembers(ctx context.Context, ids []string, currentMemberID string) error
 	UpdateMemberStatus(ctx context.Context, ids []string, status string) error
-	TransferMembers(ctx context.Context, ids []string, departmentID string) error
+	TransferMembers(ctx context.Context, ids []string, departmentID uuid.UUID) error
 	InviteMember() error
 	BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error)
 	BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error)

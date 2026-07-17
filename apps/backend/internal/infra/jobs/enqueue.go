@@ -4,16 +4,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func InsertWalletSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+func InsertWalletSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID) error {
 	args := WalletSyncArgs{CompanyID: companyID}
 	return insert(ctx, e, tx, args, nil)
 }
 
-func InsertRebalance(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64, axisKind, axisID string) error {
+func InsertRebalance(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID, axisKind, axisID string) error {
 	args := RebalanceArgs{
 		CompanyID: companyID,
 		AxisKind:  axisKind,
@@ -22,7 +23,7 @@ func InsertRebalance(ctx context.Context, e Enqueuer, tx store.Tx, companyID int
 	return insert(ctx, e, tx, args, nil)
 }
 
-func InsertOverrun(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64, payload []byte) error {
+func InsertOverrun(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID, payload []byte) error {
 	args := OverrunArgs{
 		CompanyID: companyID,
 		Payload:   payload,
@@ -34,7 +35,7 @@ func InsertNewAPISync(ctx context.Context, e Enqueuer, tx store.Tx, args NewAPIS
 	return insert(ctx, e, tx, args, nil)
 }
 
-func InsertOrgSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64, scheduledAt *time.Time) error {
+func InsertOrgSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID, scheduledAt *time.Time) error {
 	args := OrgSyncArgs{CompanyID: companyID}
 	var opts *river.InsertOpts
 	if scheduledAt != nil {
@@ -45,17 +46,17 @@ func InsertOrgSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64
 	return insert(ctx, e, tx, args, opts)
 }
 
-func InsertBudgetReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+func InsertBudgetReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID) error {
 	args := BudgetReconcileArgs{CompanyID: companyID}
 	return insert(ctx, e, tx, args, nil)
 }
 
-func InsertDashboardProject(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+func InsertDashboardProject(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID) error {
 	args := DashboardProjectArgs{CompanyID: companyID}
 	return insert(ctx, e, tx, args, nil)
 }
 
-func InsertDashboardReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID int64) error {
+func InsertDashboardReconcile(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID) error {
 	args := DashboardReconcileArgs{CompanyID: companyID}
 	return insert(ctx, e, tx, args, nil)
 }

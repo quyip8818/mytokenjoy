@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -80,7 +81,7 @@ func (s *Service) importFromProvider(
 	}
 
 	result := types.ImportResult{Failures: append([]types.ImportFailure{}, fetchFailures...)}
-	changedDeptIDs := make([]string, 0)
+	changedDeptIDs := make([]uuid.UUID, 0)
 
 	err = s.d.Store.WithTx(ctx, func(st store.Store) error {
 		membersAdded := false
@@ -132,7 +133,8 @@ func (s *Service) importFromProvider(
 					node.ExternalID = stringPtr(remote.ExternalID)
 					node.Source = stringPtr(types.DeptSourceImported)
 					if remote.LeaderUserID != "" {
-						node.ManagerID = stringPtr(pkgorg.LocalMemberID(platform, remote.LeaderUserID))
+						managerID := pkgorg.LocalMemberID(platform, remote.LeaderUserID)
+						node.ManagerID = &managerID
 					}
 				}
 				departments = core.DepartmentsFromState(state)
@@ -153,7 +155,8 @@ func (s *Service) importFromProvider(
 				node.ExternalID = stringPtr(remote.ExternalID)
 				node.Source = stringPtr(types.DeptSourceImported)
 				if remote.LeaderUserID != "" {
-					node.ManagerID = stringPtr(pkgorg.LocalMemberID(platform, remote.LeaderUserID))
+					managerID := pkgorg.LocalMemberID(platform, remote.LeaderUserID)
+					node.ManagerID = &managerID
 				}
 			}
 			departments = core.DepartmentsFromState(state)

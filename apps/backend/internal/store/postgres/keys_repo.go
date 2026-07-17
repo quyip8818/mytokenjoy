@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -32,7 +33,7 @@ const platformKeyListSelect = `
 		AND ma.owner_id = pk.id
 `
 
-func (r *pgKeysRepo) resolvePlatformKeyHash(ctx context.Context, companyID int64, key types.PlatformKey) (string, error) {
+func (r *pgKeysRepo) resolvePlatformKeyHash(ctx context.Context, companyID uuid.UUID, key types.PlatformKey) (string, error) {
 	if key.FullKey != nil && *key.FullKey != "" {
 		return store.HashPlatformKey(*key.FullKey), nil
 	}
@@ -41,7 +42,7 @@ func (r *pgKeysRepo) resolvePlatformKeyHash(ctx context.Context, companyID int64
 		SELECT key_hash FROM platform_keys WHERE company_id = $1 AND id = $2
 	`, companyID, key.ID).Scan(&existing)
 	if err == pgx.ErrNoRows {
-		return store.HashPlatformKey("pending:" + key.ID), nil
+		return store.HashPlatformKey("pending:" + key.ID.String()), nil
 	}
 	if err != nil {
 		return "", err
@@ -53,7 +54,7 @@ func scanPlatformKeyWithModels(rows pgx.Rows) (types.PlatformKey, error) {
 	var item types.PlatformKey
 	var createdAt time.Time
 	var expiresAt *time.Time
-	var modelIDs []int64
+	var modelIDs []uuid.UUID
 	if err := rows.Scan(
 		&item.ID, &item.Name, &item.KeyPrefix, &item.Scope, &item.MemberID,
 		&item.ProjectID, &item.Status,

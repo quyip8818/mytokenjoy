@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
@@ -78,7 +79,7 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 // budgetRemainCheck queries Redis directly for the remain value.
 // No PG version comparison — Ingest SET always overwrites Redis with the precise value,
 // and Rebalance refreshes after budget changes. Fail-open on cache miss or Redis error.
-func (p *PrecheckService) budgetRemainCheck(ctx context.Context, companyID int64, keyHash string) error {
+func (p *PrecheckService) budgetRemainCheck(ctx context.Context, companyID uuid.UUID, keyHash string) error {
 	if !p.budgetCheck.Enabled() {
 		return nil
 	}

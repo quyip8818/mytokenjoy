@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -29,7 +30,7 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 	if project.Budget < 0 {
 		return types.Project{}, domain.Validation("budget must be non-negative")
 	}
-	if strings.TrimSpace(project.OwnerDepartmentID) == "" {
+	if project.OwnerDepartmentID == uuid.Nil {
 		return types.Project{}, domain.Validation("ownerDepartmentId is required")
 	}
 	var result types.Project
@@ -48,15 +49,15 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 			}
 		}
 		created := types.Project{
-			ID:                generateBudgetID("proj"),
+			ID:                uuid.Must(uuid.NewV7()),
 			Name:              trimmedName,
 			Budget:            project.Budget,
 			Consumed:          0,
-			MemberIDs:         append([]string{}, project.MemberIDs...),
-			MemberBudgets:     cloneMemberBudgets(project.MemberBudgets),
-			OwnerDepartmentID: strings.TrimSpace(project.OwnerDepartmentID),
+			MemberIDs:         append([]uuid.UUID{}, project.MemberIDs...),
+			MemberBudgets:     cloneMemberBudgetsUUID(project.MemberBudgets),
+			OwnerDepartmentID: project.OwnerDepartmentID,
 		}
-		if err := validateProjectMemberBudgets(created.Budget, created.MemberIDs, created.MemberBudgets); err != nil {
+		if err := validateProjectMemberBudgetsUUID(created.Budget, created.MemberIDs, created.MemberBudgets); err != nil {
 			return err
 		}
 		projects = append(projects, created)
@@ -79,8 +80,12 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 	if patch.Budget != nil && *patch.Budget < 0 {
 		return types.Project{}, domain.Validation("budget must be non-negative")
 	}
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return types.Project{}, err
+	}
 	var result types.Project
-	err := s.store.WithTx(ctx, func(tx store.Store) error {
+	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -89,7 +94,7 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 			return err
 		}
 		for i := range projects {
-			if projects[i].ID == id {
+			if projects[i].ID == parsedID {
 				if patch.Name != nil && *patch.Name != "" {
 					projects[i].Name = *patch.Name
 				}
@@ -97,20 +102,32 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 					projects[i].Budget = *patch.Budget
 				}
 				if patch.MemberIDs != nil {
-					projects[i].MemberIDs = append([]string{}, (*patch.MemberIDs)...)
-					projects[i].MemberBudgets = pruneMemberBudgets(projects[i].MemberBudgets, projects[i].MemberIDs)
+					parsed := make([]uuid.UUID, 0, len(*patch.MemberIDs))
+					for _, s := range *patch.MemberIDs {
+						id, err := uuid.Parse(s)
+						if err != nil {
+							return err
+						}
+						parsed = append(parsed, id)
+					}
+					projects[i].MemberIDs = parsed
+					projects[i].MemberBudgets = pruneMemberBudgetsUUID(projects[i].MemberBudgets, projects[i].MemberIDs)
 				}
 				if patch.MemberBudgets != nil {
-					merged, err := mergeMemberBudgetPatch(projects[i].MemberBudgets, *patch.MemberBudgets, projects[i].MemberIDs)
+					merged, err := mergeMemberBudgetPatchUUID(projects[i].MemberBudgets, *patch.MemberBudgets, projects[i].MemberIDs)
 					if err != nil {
 						return err
 					}
 					projects[i].MemberBudgets = merged
 				}
 				if patch.OwnerDepartmentID != nil && *patch.OwnerDepartmentID != "" {
-					projects[i].OwnerDepartmentID = *patch.OwnerDepartmentID
+					ownerID, err := uuid.Parse(*patch.OwnerDepartmentID)
+					if err != nil {
+						return err
+					}
+					projects[i].OwnerDepartmentID = ownerID
 				}
-				if err := validateProjectMemberBudgets(projects[i].Budget, projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
+				if err := validateProjectMemberBudgetsUUID(projects[i].Budget, projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
 					return err
 				}
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {
@@ -121,7 +138,7 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 					return fmt.Errorf("load budget context: %w", err)
 				}
 				for _, loaded := range budgetCtx.Projects {
-					if loaded.ID == id {
+					if loaded.ID == parsedID {
 						result = loaded
 						return nil
 					}
@@ -136,8 +153,12 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 }
 
 func (s *service) DeleteProject(ctx context.Context, id string) error {
-	var deletedMemberIDs []string
-	err := s.store.WithTx(ctx, func(tx store.Store) error {
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return err
+	}
+	var deletedMemberIDs []uuid.UUID
+	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -146,8 +167,8 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			return err
 		}
 		for i := range projects {
-			if projects[i].ID == id {
-				deletedMemberIDs = append([]string{}, projects[i].MemberIDs...)
+			if projects[i].ID == parsedID {
+				deletedMemberIDs = append([]uuid.UUID{}, projects[i].MemberIDs...)
 				projects = append(projects[:i], projects[i+1:]...)
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {
 					return fmt.Errorf("persist projects: %w", err)
@@ -159,7 +180,7 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 	})
 	if err == nil {
 		for _, memberID := range deletedMemberIDs {
-			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); rebalErr != nil {
+			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID.String()); rebalErr != nil {
 				return rebalErr
 			}
 		}

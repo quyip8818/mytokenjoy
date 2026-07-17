@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
@@ -31,7 +32,7 @@ func ComputeRemainForMapping(
 	mapping store.PlatformKeyMapping,
 	periodKey string,
 ) (float64, error) {
-	if mapping.DepartmentID == "" {
+	if mapping.DepartmentID == uuid.Nil {
 		return 0, fmt.Errorf("department not found")
 	}
 	key, ok := budgetCtx.FindPlatformKey(mapping.PlatformKeyID)

@@ -1,6 +1,7 @@
 package filler
 
 import (
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -10,7 +11,7 @@ import (
 )
 
 type DeptBudget struct {
-	DepartmentID   string
+	DepartmentID   uuid.UUID
 	DepartmentName string
 	Count          int
 }
@@ -18,17 +19,24 @@ type DeptBudget struct {
 var leafDeptBudgets = []DeptBudget{
 	{DepartmentID: contract.IDDept3, DepartmentName: "后端组", Count: 8},
 	{DepartmentID: contract.IDDept4, DepartmentName: "前端组", Count: 7},
-	{DepartmentID: "dept-5", DepartmentName: "测试组", Count: 6},
-	{DepartmentID: "dept-6", DepartmentName: "产品部", Count: 6},
-	{DepartmentID: "dept-7", DepartmentName: "市场部", Count: 6},
-	{DepartmentID: "dept-8", DepartmentName: "行政部", Count: 7},
+	{DepartmentID: contract.IDDept5, DepartmentName: "测试组", Count: 6},
+	{DepartmentID: contract.IDDept6, DepartmentName: "产品部", Count: 6},
+	{DepartmentID: contract.IDDept7, DepartmentName: "市场部", Count: 6},
+	{DepartmentID: contract.IDDept8, DepartmentName: "行政部", Count: 7},
 }
+
+// Stable member UUIDs for non-contract anchor members.
+var (
+	idMember2 = uuid.MustParse("00000000-0000-7000-8000-000000000e07")
+	idMember4 = uuid.MustParse("00000000-0000-7000-8000-000000000e06")
+	idMember5 = uuid.MustParse("00000000-0000-7000-8000-000000000e09")
+)
 
 func anchorMembers() []types.Member {
 	return []types.Member{
 		{
 			ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID, Name: "管理员", Phone: "13800000001", Email: "admin@example.com",
-			DepartmentID: "dept-1", DepartmentName: "总公司", Status: "active",
+			DepartmentID: contract.IDDept1, DepartmentName: "总公司", Status: "active",
 			Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
 		},
 		{
@@ -37,33 +45,33 @@ func anchorMembers() []types.Member {
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{
-			ID: "m-2", CompanyID: contract.DefaultCompanyID, Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
-			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "active",
+			ID: idMember2, CompanyID: contract.DefaultCompanyID, Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
+			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleOrgAdmin, permission.RoleBudgetApprover}, Source: "imported",
 		},
 		{
 			ID: contract.IDMember3, CompanyID: contract.DefaultCompanyID, Name: "王五", Phone: "", Email: "wangwu@example.com",
-			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "pending",
+			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "pending",
 			Roles: []string{permission.RoleMember}, Source: "invited",
 		},
 		{
-			ID: "m-4", CompanyID: contract.DefaultCompanyID, Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
-			DepartmentID: "dept-4", DepartmentName: "前端组", Status: "active",
+			ID: idMember4, CompanyID: contract.DefaultCompanyID, Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
+			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "manual",
 		},
 		{
-			ID: "m-5", CompanyID: contract.DefaultCompanyID, Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
-			DepartmentID: "dept-4", DepartmentName: "前端组", Status: "inactive",
+			ID: idMember5, CompanyID: contract.DefaultCompanyID, Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
+			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "inactive",
 			Roles: []string{permission.RoleMember}, Source: "imported",
 		},
 		{
 			ID: contract.IDMemberAuditor, CompanyID: contract.DefaultCompanyID, Name: "孙审计", Phone: "13512345678", Email: "sunaudit@example.com",
-			DepartmentID: "dept-8", DepartmentName: "行政部", Status: "active",
+			DepartmentID: contract.IDDept8, DepartmentName: "行政部", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAuditor}, Source: "manual",
 		},
 		{
 			ID: contract.IDMemberPure, CompanyID: contract.DefaultCompanyID, Name: "周八", Phone: "13412345678", Email: "zhouba@example.com",
-			DepartmentID: "dept-3", DepartmentName: "后端组", Status: "active",
+			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember}, Source: "manual",
 		},
 	}
@@ -91,7 +99,7 @@ func pickSource(index int) string {
 	return "imported"
 }
 
-func anchorsInDept(members []types.Member, deptID string) []types.Member {
+func anchorsInDept(members []types.Member, deptID uuid.UUID) []types.Member {
 	result := make([]types.Member, 0)
 	for _, member := range members {
 		if member.DepartmentID == deptID {
@@ -101,16 +109,31 @@ func anchorsInDept(members []types.Member, deptID string) []types.Member {
 	return result
 }
 
-func buildGeneratedMember(id string, index int, departmentID, departmentName string) types.Member {
-	name := buildChineseName(index)
+// seedMemberID generates a stable UUID for generated members based on seq index.
+func seedMemberID(seq int) uuid.UUID {
+	// Use a deterministic UUID based on the sequence number.
+	return uuid.MustParse("00000000-0000-7000-8000-0000000e0" + padHex3(seq))
+}
+
+func padHex3(n int) string {
+	h := [3]byte{}
+	hex := "0123456789abcdef"
+	h[0] = hex[(n>>8)&0xf]
+	h[1] = hex[(n>>4)&0xf]
+	h[2] = hex[n&0xf]
+	return string(h[:])
+}
+
+func buildGeneratedMember(seq int, departmentID uuid.UUID, departmentName string) types.Member {
+	name := buildChineseName(seq)
 	phone := ""
-	if pickStatus(index) != "pending" {
-		phone = buildPhone(index)
+	if pickStatus(seq) != "pending" {
+		phone = buildPhone(seq)
 	}
 	return types.Member{
-		ID: id, CompanyID: contract.DefaultCompanyID, Name: name, Phone: phone, Email: buildEmail(index),
+		ID: seedMemberID(seq), CompanyID: contract.DefaultCompanyID, Name: name, Phone: phone, Email: buildEmail(seq),
 		DepartmentID: departmentID, DepartmentName: departmentName,
-		Status: pickStatus(index), Roles: []string{permission.RoleMember}, Source: pickSource(index),
+		Status: pickStatus(seq), Roles: []string{permission.RoleMember}, Source: pickSource(seq),
 	}
 }
 
@@ -129,9 +152,7 @@ func BuildMembers() []types.Member {
 		anchors := anchorsInDept(members, budget.DepartmentID)
 		generatedCount := budget.Count - len(anchors)
 		for i := 0; i < generatedCount; i++ {
-			members = append(members, buildGeneratedMember(
-				"m-"+itoa(seq), seq, budget.DepartmentID, budget.DepartmentName,
-			))
+			members = append(members, buildGeneratedMember(seq, budget.DepartmentID, budget.DepartmentName))
 			seq++
 		}
 	}
@@ -141,11 +162,11 @@ func BuildMembers() []types.Member {
 	return members
 }
 
-var anchorPersonalBudgets = map[string]float64{
+var anchorPersonalBudgets = map[uuid.UUID]float64{
 	contract.IDMemberAdmin:   50000,
 	contract.IDMember1:       10000,
-	"m-2":                    15000,
-	"m-4":                    12000,
+	idMember2:                15000,
+	idMember4:                12000,
 	contract.IDMemberAuditor: 5000,
 	contract.IDMemberPure:    3000,
 }
@@ -162,7 +183,7 @@ func applyMemberPersonalBudgets(members []types.Member) {
 
 func assignSpecialRoles(members []types.Member) {
 	for i := range members {
-		if members[i].ID == "m-6" && members[i].DepartmentID == "dept-3" {
+		if members[i].ID == seedMemberID(6) && members[i].DepartmentID == contract.IDDept3 {
 			if !org.ContainsRole(members[i].Roles, permission.RoleOrgAdmin) {
 				members[i].Roles = append(members[i].Roles, permission.RoleOrgAdmin)
 			}
@@ -170,7 +191,7 @@ func assignSpecialRoles(members []types.Member) {
 	}
 
 	for i := range members {
-		if members[i].DepartmentID == "dept-6" && members[i].ID != "m-2" {
+		if members[i].DepartmentID == contract.IDDept6 && members[i].ID != idMember2 {
 			if !org.ContainsRole(members[i].Roles, permission.RoleBudgetApprover) {
 				members[i].Roles = append(members[i].Roles, permission.RoleBudgetApprover)
 				break
@@ -180,7 +201,7 @@ func assignSpecialRoles(members []types.Member) {
 
 	auditorCount := 0
 	for i := range members {
-		if members[i].DepartmentID == "dept-8" && members[i].Status == "active" && auditorCount < 3 {
+		if members[i].DepartmentID == contract.IDDept8 && members[i].Status == "active" && auditorCount < 3 {
 			if !org.ContainsRole(members[i].Roles, permission.RoleAuditor) {
 				members[i].Roles = append(members[i].Roles, permission.RoleAuditor)
 			}

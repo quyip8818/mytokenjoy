@@ -1,15 +1,19 @@
 package billing
 
-import "context"
+import (
+	"context"
 
-// JobEnqueuer enqueues billing-domain River jobs without coupling to infra/jobs.
+	"github.com/google/uuid"
+	// JobEnqueuer enqueues billing-domain River jobs without coupling to infra/jobs.
+)
+
 type JobEnqueuer interface {
-	InsertWalletSync(ctx context.Context, companyID int64) error
+	InsertWalletSync(ctx context.Context, companyID uuid.UUID) error
 }
 
 type noopJobEnqueuer struct{}
 
-func (noopJobEnqueuer) InsertWalletSync(context.Context, int64) error { return nil }
+func (noopJobEnqueuer) InsertWalletSync(context.Context, uuid.UUID) error { return nil }
 
 // NoopJobEnqueuer is the default when async billing jobs are disabled.
 var NoopJobEnqueuer JobEnqueuer = noopJobEnqueuer{}

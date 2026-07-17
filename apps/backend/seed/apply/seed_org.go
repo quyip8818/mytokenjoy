@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members []types.Member, roleIDByName map[string]string) error {
+func insertSeedMembers(ctx context.Context, exec TableWriter, tid uuid.UUID, members []types.Member, roleIDByName map[string]uuid.UUID) error {
 	demoHash := contract.DemoPasswordHash()
 	for _, member := range members {
-		// Create user for this member (use member.ID as base for user ID).
-		userID := "u-" + member.ID
+		// Create user for this member (use a derived user UUID).
+		userID := member.UserID
 		var passwordHash *string
 		if member.Status == "active" && member.Email != "" {
 			hash := demoHash
@@ -63,7 +64,7 @@ func insertSeedMembers(ctx context.Context, exec TableWriter, tid int64, members
 	return nil
 }
 
-func insertSeedOrgIntegration(ctx context.Context, exec TableWriter, tid int64, snap store.Snapshot) error {
+func insertSeedOrgIntegration(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {
 	integration := snap.OrgIntegration
 	var platform *string
 	if integration.Platform != nil {

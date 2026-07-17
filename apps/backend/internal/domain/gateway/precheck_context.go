@@ -3,17 +3,18 @@ package gateway
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type WalletState struct {
-	CompanyID     int64
+	CompanyID     uuid.UUID
 	CompanyStatus string
 	WalletRemain  float64
 }
 
 type RoutingState struct {
-	PlatformKeyID  string
+	PlatformKeyID  uuid.UUID
 	KeyStatus      string
 	KeyExpiresAt   *time.Time
 	HasAllowlist   bool

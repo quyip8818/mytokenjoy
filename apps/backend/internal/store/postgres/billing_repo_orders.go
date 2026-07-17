@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -40,7 +41,7 @@ func (r *billingRepo) GetRechargeOrder(ctx context.Context, id string) (*store.R
 	return scanRechargeOrder(row)
 }
 
-func (r *billingRepo) ListRechargeOrders(ctx context.Context, companyID int64) ([]store.RechargeOrder, error) {
+func (r *billingRepo) ListRechargeOrders(ctx context.Context, companyID uuid.UUID) ([]store.RechargeOrder, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, company_id, amount, currency, points_per_unit, points_granted,
 			source, lot_kind, idempotency_key, status,

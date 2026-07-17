@@ -3,13 +3,14 @@ package keys
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 )
 
 type platformKeyLookups struct {
-	memberByID  map[string]types.Member
-	projectByID map[string]types.Project
+	memberByID  map[uuid.UUID]types.Member
+	projectByID map[uuid.UUID]types.Project
 }
 
 func (s *service) loadPlatformKeyLookups(ctx context.Context) (platformKeyLookups, error) {
@@ -17,7 +18,7 @@ func (s *service) loadPlatformKeyLookups(ctx context.Context) (platformKeyLookup
 	if err != nil {
 		return platformKeyLookups{}, err
 	}
-	memberByID := make(map[string]types.Member, len(members))
+	memberByID := make(map[uuid.UUID]types.Member, len(members))
 	for _, member := range members {
 		memberByID[member.ID] = member
 	}
@@ -25,7 +26,7 @@ func (s *service) loadPlatformKeyLookups(ctx context.Context) (platformKeyLookup
 	if err != nil {
 		return platformKeyLookups{}, err
 	}
-	projectByID := make(map[string]types.Project, len(projects))
+	projectByID := make(map[uuid.UUID]types.Project, len(projects))
 	for _, project := range projects {
 		projectByID[project.ID] = project
 	}

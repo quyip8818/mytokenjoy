@@ -3,6 +3,7 @@ package keys
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -16,7 +17,7 @@ func (s *service) requireNewAPI() error {
 	return nil
 }
 
-func platformKeyIndex(keys []types.PlatformKey, id string) (int, bool) {
+func platformKeyIndex(keys []types.PlatformKey, id uuid.UUID) (int, bool) {
 	for i := range keys {
 		if keys[i].ID == id {
 			return i, true
@@ -25,7 +26,7 @@ func platformKeyIndex(keys []types.PlatformKey, id string) (int, bool) {
 	return -1, false
 }
 
-func (s *service) newAPIRevokeKey(ctx context.Context, id string) ([]types.PlatformKey, int, error) {
+func (s *service) newAPIRevokeKey(ctx context.Context, id uuid.UUID) ([]types.PlatformKey, int, error) {
 	if err := s.requireNewAPI(); err != nil {
 		return nil, -1, err
 	}
@@ -48,7 +49,7 @@ func (s *service) persistPlatformKeyWithNewAPISync(
 	platformKeys []types.PlatformKey,
 	idx int,
 	updated, previous types.PlatformKey,
-	id string,
+	id uuid.UUID,
 ) (types.PlatformKey, error) {
 	platformKeys[idx] = updated
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
@@ -78,7 +79,7 @@ func platformKeyPrefix(fullKey string) string {
 	return prefix
 }
 
-func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.PlatformKey, departmentID string) (types.PlatformKey, error) {
+func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.PlatformKey, departmentID uuid.UUID) (types.PlatformKey, error) {
 	fullKey, err := s.newAPISync.SyncPlatformKeyCreate(ctx, created, departmentID)
 	if err != nil {
 		return types.PlatformKey{}, domain.ServiceUnavailable("NewAPI sync failed")
@@ -92,24 +93,24 @@ func (s *service) resolvePlatformKeyDepartmentID(
 	input types.CreatePlatformKeyInput,
 	members []types.Member,
 	projects []types.Project,
-) (string, error) {
+) (uuid.UUID, error) {
 	if input.MemberID != nil {
-		if member, ok := org.FindMemberByID(members, *input.MemberID); ok && member.DepartmentID != "" {
+		if member, ok := org.FindMemberByID(members, *input.MemberID); ok && member.DepartmentID != uuid.Nil {
 			return member.DepartmentID, nil
 		}
 	}
 	if input.ProjectID != nil {
 		for _, project := range projects {
-			if project.ID == *input.ProjectID && project.OwnerDepartmentID != "" {
+			if project.ID == *input.ProjectID && project.OwnerDepartmentID != uuid.Nil {
 				return project.OwnerDepartmentID, nil
 			}
 		}
 	}
-	return "", domain.Validation("department required for newapi sync")
+	return uuid.Nil, domain.Validation("department required for newapi sync")
 }
 
-func resolveMemberName(memberID string, members []types.Member) (string, error) {
-	if memberID == "" {
+func resolveMemberName(memberID uuid.UUID, members []types.Member) (string, error) {
+	if memberID == uuid.Nil {
 		return "", domain.BadRequest("member id is required")
 	}
 	for _, member := range members {

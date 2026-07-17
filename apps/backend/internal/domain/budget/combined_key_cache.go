@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -18,8 +19,8 @@ type CombinedKeyEntry struct {
 // CombinedKeyCache is the domain port for combined key budget cache (PG remains authoritative).
 type CombinedKeyCache interface {
 	Enabled() bool
-	Get(ctx context.Context, companyID int64, keyHash string) (CombinedKeyEntry, bool, error)
-	Set(ctx context.Context, companyID int64, keyHash string, entry CombinedKeyEntry) error
+	Get(ctx context.Context, companyID uuid.UUID, keyHash string) (CombinedKeyEntry, bool, error)
+	Set(ctx context.Context, companyID uuid.UUID, keyHash string, entry CombinedKeyEntry) error
 }
 
 // BlocksCombinedKey reports whether a cached entry should block at the given PG version.
@@ -35,7 +36,7 @@ func RefreshCombinedKeySummaries(
 	ctx context.Context,
 	cache CombinedKeyCache,
 	logger *slog.Logger,
-	companyID int64,
+	companyID uuid.UUID,
 	summaries []store.CombinedKeySummary,
 ) {
 	if cache == nil || !cache.Enabled() || len(summaries) == 0 {
@@ -57,11 +58,11 @@ type noopCombinedKeyCache struct{}
 
 func (noopCombinedKeyCache) Enabled() bool { return false }
 
-func (noopCombinedKeyCache) Get(context.Context, int64, string) (CombinedKeyEntry, bool, error) {
+func (noopCombinedKeyCache) Get(context.Context, uuid.UUID, string) (CombinedKeyEntry, bool, error) {
 	return CombinedKeyEntry{}, false, nil
 }
 
-func (noopCombinedKeyCache) Set(context.Context, int64, string, CombinedKeyEntry) error { return nil }
+func (noopCombinedKeyCache) Set(context.Context, uuid.UUID, string, CombinedKeyEntry) error { return nil }
 
 // NoopCombinedKeyCache is the default when Redis is unavailable or disabled.
 var NoopCombinedKeyCache CombinedKeyCache = noopCombinedKeyCache{}

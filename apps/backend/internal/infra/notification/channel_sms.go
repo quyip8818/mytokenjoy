@@ -10,6 +10,7 @@ import (
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	dysmsapi "github.com/alibabacloud-go/dysmsapi-20170525/v3/client"
 	"github.com/alibabacloud-go/tea/tea"
+	"github.com/google/uuid"
 
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 )
@@ -74,7 +75,7 @@ func (c *SMSChannel) IsConfigured() bool {
 }
 
 func (c *SMSChannel) Send(ctx context.Context, recipientID string, msg domainnotification.RenderedMessage) error {
-	phone := c.resolver.Resolve(ctx, recipientID).Phone
+	phone := c.resolver.Resolve(ctx, uuid.MustParse(recipientID)).Phone
 	if phone == "" {
 		c.logger.Debug("sms: no phone for recipient, skipping", "recipient", recipientID)
 		return nil

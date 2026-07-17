@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -19,27 +21,27 @@ func HashPlatformKey(raw string) string {
 }
 
 type PlatformKeyMapping struct {
-	CompanyID     int64
-	PlatformKeyID string
+	CompanyID     uuid.UUID
+	PlatformKeyID uuid.UUID
 	NewAPIKeyID   *int64
-	MemberID      *string
-	DepartmentID  string
-	ProjectID     *string
+	MemberID      *uuid.UUID
+	DepartmentID  uuid.UUID
+	ProjectID     *uuid.UUID
 	NewAPIGroup   string
 	SyncStatus    string
 	SyncedAt      *time.Time
 }
 
 type PlatformKeyMappingRepository interface {
-	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID string) (*PlatformKeyMapping, error)
+	GetMappingByPlatformKeyID(ctx context.Context, platformKeyID uuid.UUID) (*PlatformKeyMapping, error)
 	GetMappingByKeyHash(ctx context.Context, keyHash string) (*PlatformKeyMapping, error)
 	FindMappingByNewAPIKeyID(ctx context.Context, keyID int64) (*PlatformKeyMapping, error)
 	ListMappingsByNewAPIKeyIDs(ctx context.Context, keyIDs []int64) ([]PlatformKeyMapping, error)
-	ListMappingsByMemberID(ctx context.Context, memberID string) ([]PlatformKeyMapping, error)
-	ListMappingsByDepartmentID(ctx context.Context, departmentID string) ([]PlatformKeyMapping, error)
-	ListMappingsByProjectID(ctx context.Context, projectID string) ([]PlatformKeyMapping, error)
-	ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []string) ([]PlatformKeyMapping, error)
-	ListActiveMappingsByCompany(ctx context.Context, companyID int64) ([]PlatformKeyMapping, error)
+	ListMappingsByMemberID(ctx context.Context, memberID uuid.UUID) ([]PlatformKeyMapping, error)
+	ListMappingsByDepartmentID(ctx context.Context, departmentID uuid.UUID) ([]PlatformKeyMapping, error)
+	ListMappingsByProjectID(ctx context.Context, projectID uuid.UUID) ([]PlatformKeyMapping, error)
+	ListMappingsByPlatformKeyIDs(ctx context.Context, platformKeyIDs []uuid.UUID) ([]PlatformKeyMapping, error)
+	ListActiveMappingsByCompany(ctx context.Context, companyID uuid.UUID) ([]PlatformKeyMapping, error)
 	UpsertMapping(ctx context.Context, mapping PlatformKeyMapping) error
-	UpdateMappingSync(ctx context.Context, platformKeyID string, keyID int64, status string, syncedAt time.Time) error
+	UpdateMappingSync(ctx context.Context, platformKeyID uuid.UUID, keyID int64, status string, syncedAt time.Time) error
 }

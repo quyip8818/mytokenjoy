@@ -1,5 +1,7 @@
 package types
 
+import "github.com/google/uuid"
+
 type CostPeriod string
 
 const (
@@ -22,19 +24,19 @@ type CostSummary struct {
 }
 
 type DepartmentCost struct {
-	DepartmentID   string  `json:"departmentId"`
-	DepartmentName string  `json:"departmentName"`
-	Cost           float64 `json:"cost"`
-	Percentage     float64 `json:"percentage"`
-	HasChildren    bool    `json:"hasChildren,omitempty"`
+	DepartmentID   uuid.UUID `json:"departmentId"`
+	DepartmentName string    `json:"departmentName"`
+	Cost           float64   `json:"cost"`
+	Percentage     float64   `json:"percentage"`
+	HasChildren    bool      `json:"hasChildren,omitempty"`
 }
 
 type DepartmentCostMember struct {
-	MemberID   string  `json:"memberId"`
-	MemberName string  `json:"memberName"`
-	Cost       float64 `json:"cost"`
-	Requests   float64 `json:"requests"`
-	Tokens     float64 `json:"tokens"`
+	MemberID   uuid.UUID `json:"memberId"`
+	MemberName string    `json:"memberName"`
+	Cost       float64   `json:"cost"`
+	Requests   float64   `json:"requests"`
+	Tokens     float64   `json:"tokens"`
 }
 
 type DailyCost struct {
@@ -45,12 +47,12 @@ type DailyCost struct {
 }
 
 type TopConsumer struct {
-	MemberID   string  `json:"memberId"`
-	MemberName string  `json:"memberName"`
-	Department string  `json:"department"`
-	Cost       float64 `json:"cost"`
-	Tokens     float64 `json:"tokens"`
-	Requests   float64 `json:"requests"`
+	MemberID   uuid.UUID `json:"memberId"`
+	MemberName string    `json:"memberName"`
+	Department string    `json:"department"`
+	Cost       float64   `json:"cost"`
+	Tokens     float64   `json:"tokens"`
+	Requests   float64   `json:"requests"`
 }
 
 type ModelUsage struct {
@@ -65,12 +67,12 @@ type ModelUsage struct {
 }
 
 type DepartmentUsage struct {
-	DepartmentID   string  `json:"departmentId"`
-	DepartmentName string  `json:"departmentName"`
-	Budget         float64 `json:"budget"`
-	Consumed       float64 `json:"consumed"`
-	MemberCount    float64 `json:"memberCount"`
-	TopModel       string  `json:"topModel"`
+	DepartmentID   uuid.UUID `json:"departmentId"`
+	DepartmentName string    `json:"departmentName"`
+	Budget         float64   `json:"budget"`
+	Consumed       float64   `json:"consumed"`
+	MemberCount    float64   `json:"memberCount"`
+	TopModel       string    `json:"topModel"`
 }
 
 type CostQueryParams struct {

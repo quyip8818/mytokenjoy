@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 
+	"github.com/google/uuid"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
@@ -16,11 +17,11 @@ func NewDashboardEnqueuer(enqueuer jobs.Enqueuer) domaindashboard.JobEnqueuer {
 	return dashboardJobEnqueuer{enqueuer: JobsOrNoop(enqueuer)}
 }
 
-func (d dashboardJobEnqueuer) InsertDashboardProject(ctx context.Context, companyID int64) error {
+func (d dashboardJobEnqueuer) InsertDashboardProject(ctx context.Context, companyID uuid.UUID) error {
 	return jobs.InsertDashboardProject(ctx, d.enqueuer, nil, companyID)
 }
 
-func (d dashboardJobEnqueuer) InsertDashboardReconcile(ctx context.Context, companyID int64) error {
+func (d dashboardJobEnqueuer) InsertDashboardReconcile(ctx context.Context, companyID uuid.UUID) error {
 	return jobs.InsertDashboardReconcile(ctx, d.enqueuer, nil, companyID)
 }
 

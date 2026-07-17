@@ -3,13 +3,14 @@ package dashboard
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.ModelUsage, error) {
+func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.ModelUsage, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
@@ -67,7 +68,7 @@ func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, 
 	return result, nil
 }
 
-func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID string, scope domainusage.SessionScope) ([]types.DepartmentUsage, error) {
+func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.DepartmentUsage, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
@@ -96,14 +97,14 @@ func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryPar
 	if err != nil {
 		return nil, err
 	}
-	consumedByDept := make(map[string]float64, len(rows))
+	consumedByDept := make(map[uuid.UUID]float64, len(rows))
 	for _, row := range rows {
 		consumedByDept[row.DepartmentID] = row.Spend()
 	}
 	aggregateConsumed(deptTree, consumedByDept)
 	deptIDs := make([]string, 0, len(departments))
 	for _, dept := range departments {
-		deptIDs = append(deptIDs, dept.ID)
+		deptIDs = append(deptIDs, dept.ID.String())
 	}
 	topModels, err := s.reader.TopModelsByDepartments(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone, ScopeDeptIDs: scopeDeptIDs,
@@ -126,13 +127,13 @@ func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryPar
 		result = append(result, types.DepartmentUsage{
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Budget: deptBudget, Consumed: consumedByDept[dept.ID],
-			MemberCount: memberCount, TopModel: topModels[dept.ID],
+			MemberCount: memberCount, TopModel: topModels[dept.ID.String()],
 		})
 	}
 	return result, nil
 }
 
-func findBudgetNode(tree []types.BudgetNode, id string) *types.BudgetNode {
+func findBudgetNode(tree []types.BudgetNode, id uuid.UUID) *types.BudgetNode {
 	for i := range tree {
 		if tree[i].ID == id {
 			return &tree[i]
@@ -149,7 +150,7 @@ func findBudgetNode(tree []types.BudgetNode, id string) *types.BudgetNode {
 // aggregateConsumed walks the department tree bottom-up and accumulates each
 // subtree's consumed total into parent nodes so that a parent department's
 // consumed value includes all descendants.
-func aggregateConsumed(departments []types.Department, consumed map[string]float64) float64 {
+func aggregateConsumed(departments []types.Department, consumed map[uuid.UUID]float64) float64 {
 	total := 0.0
 	for _, dept := range departments {
 		childSum := aggregateConsumed(dept.Children, consumed)

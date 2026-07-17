@@ -5,6 +5,7 @@ package testutil
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -28,7 +29,7 @@ func NotificationLogs(st store.Store) []types.NotificationLogEntry {
 	return NotificationLogsForCompany(st, contract.DefaultCompanyID)
 }
 
-func NotificationLogsForCompany(st store.Store, companyID int64) []types.NotificationLogEntry {
+func NotificationLogsForCompany(st store.Store, companyID uuid.UUID) []types.NotificationLogEntry {
 	logs, err := postgres.ListNotificationLogs(CtxForCompany(companyID), postgres.MainPool(st), companyID)
 	if err != nil {
 		return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -17,15 +18,15 @@ func (s *LocalService) GetDepartmentTree(ctx context.Context) ([]types.Departmen
 	return common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 }
 
-func (s *LocalService) CreateDepartment(ctx context.Context, name, parentID string) (types.Department, error) {
+func (s *LocalService) CreateDepartment(ctx context.Context, name string, parentID uuid.UUID) (types.Department, error) {
 	if strings.TrimSpace(name) == "" {
 		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "types.Department name is required")
 	}
-	if parentID == "" {
+	if parentID == uuid.Nil {
 		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "Parent department is required")
 	}
 
-	deptID := generateID("dept")
+	deptID := generateID()
 	var created types.Department
 
 	err := s.d.Store.WithTx(ctx, func(st store.Store) error {
@@ -71,7 +72,7 @@ func (s *LocalService) CreateDepartment(ctx context.Context, name, parentID stri
 	return created, nil
 }
 
-func (s *LocalService) UpdateDepartment(ctx context.Context, id, name string) (types.Department, error) {
+func (s *LocalService) UpdateDepartment(ctx context.Context, id uuid.UUID, name string) (types.Department, error) {
 	if strings.TrimSpace(name) == "" {
 		return types.Department{}, domain.NewDomainError(domain.StatusUnprocessable, "types.Department name is required")
 	}
@@ -115,7 +116,7 @@ func (s *LocalService) UpdateDepartment(ctx context.Context, id, name string) (t
 	return updated, nil
 }
 
-func (s *LocalService) DeleteDepartment(ctx context.Context, id string) error {
+func (s *LocalService) DeleteDepartment(ctx context.Context, id uuid.UUID) error {
 	if id == core.RootDepartmentID {
 		return domain.NewDomainError(domain.StatusUnprocessable, core.DeptDeleteBlockedMsg)
 	}

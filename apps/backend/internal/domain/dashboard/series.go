@@ -3,6 +3,7 @@ package dashboard
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -21,13 +22,21 @@ func (s *service) UsageSeriesFromQuery(
 	if groupBy == "" {
 		groupBy = types.UsageGroupByNone
 	}
+	parsedDeptID := uuid.Nil
+	if deptID != "" {
+		parsedDeptID, _ = uuid.Parse(deptID)
+	}
+	parsedMemberID := uuid.Nil
+	if memberID != "" {
+		parsedMemberID, _ = uuid.Parse(memberID)
+	}
 	return s.UsageSeries(ctx, types.UsageSeriesQuery{
 		Granularity:  rawGranularity,
 		Start:        start,
 		End:          end,
 		GroupBy:      groupBy,
-		DepartmentID: deptID,
-		MemberID:     memberID,
+		DepartmentID: parsedDeptID,
+		MemberID:     parsedMemberID,
 		Timezone:     timezone,
 	}, scope)
 }

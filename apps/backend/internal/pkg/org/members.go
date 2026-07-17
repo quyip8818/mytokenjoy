@@ -1,12 +1,13 @@
 package org
 
 import (
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-func CollectDescendantDeptIDs(departments []types.Department, rootID string) []string {
+func CollectDescendantDeptIDs(departments []types.Department, rootID uuid.UUID) []uuid.UUID {
 	flat := FlattenDepartmentTree(departments)
-	childrenByParent := make(map[string][]string)
+	childrenByParent := make(map[uuid.UUID][]uuid.UUID)
 	for _, dept := range flat {
 		if dept.ParentID != nil {
 			parentID := *dept.ParentID
@@ -14,8 +15,8 @@ func CollectDescendantDeptIDs(departments []types.Department, rootID string) []s
 		}
 	}
 
-	result := make([]string, 0)
-	queue := []string{rootID}
+	result := make([]uuid.UUID, 0)
+	queue := []uuid.UUID{rootID}
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
@@ -28,7 +29,7 @@ func CollectDescendantDeptIDs(departments []types.Department, rootID string) []s
 func FilterMembersByDepartment(
 	members []types.Member,
 	departments []types.Department,
-	departmentID string,
+	departmentID uuid.UUID,
 	directOnly bool,
 ) []types.Member {
 	if directOnly {
@@ -41,7 +42,7 @@ func FilterMembersByDepartment(
 		return filtered
 	}
 
-	allowed := make(map[string]struct{})
+	allowed := make(map[uuid.UUID]struct{})
 	for _, id := range CollectDescendantDeptIDs(departments, departmentID) {
 		allowed[id] = struct{}{}
 	}
@@ -55,7 +56,7 @@ func FilterMembersByDepartment(
 	return filtered
 }
 
-func FindMemberByID(members []types.Member, memberID string) (*types.Member, bool) {
+func FindMemberByID(members []types.Member, memberID uuid.UUID) (*types.Member, bool) {
 	for i := range members {
 		if members[i].ID == memberID {
 			return &members[i], true

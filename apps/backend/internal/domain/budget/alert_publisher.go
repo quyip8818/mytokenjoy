@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
@@ -12,9 +13,9 @@ import (
 
 // BudgetAlertEvent is a single alert to be published via the notification server.
 type BudgetAlertEvent struct {
-	CompanyID    int64
+	CompanyID    uuid.UUID
 	RecipientID  string // real member ID
-	DepartmentID string
+	DepartmentID uuid.UUID
 	NodeName     string
 	RuleID       string
 	Threshold    int
@@ -44,8 +45,8 @@ var NoopAlertPublisher AlertPublisher = noopAlertPublisher{}
 func CheckBudgetAlerts(
 	ctx context.Context,
 	st store.Store,
-	companyID int64,
-	touchedDepts map[string]struct{},
+	companyID uuid.UUID,
+	touchedDepts map[uuid.UUID]struct{},
 	publisher AlertPublisher,
 	logger *slog.Logger,
 ) {
@@ -58,8 +59,8 @@ func CheckBudgetAlerts(
 func checkBudgetAlertsImpl(
 	ctx context.Context,
 	st store.Store,
-	companyID int64,
-	touchedDepts map[string]struct{},
+	companyID uuid.UUID,
+	touchedDepts map[uuid.UUID]struct{},
 	publisher AlertPublisher,
 	logger *slog.Logger,
 ) {
@@ -75,7 +76,7 @@ func checkBudgetAlertsImpl(
 	}
 
 	// Index rules by NodeID.
-	rulesByNode := make(map[string][]types.AlertRule)
+	rulesByNode := make(map[uuid.UUID][]types.AlertRule)
 	for _, rule := range rules {
 		if !rule.Enabled {
 			continue
@@ -93,7 +94,7 @@ func checkBudgetAlertsImpl(
 		}
 		return
 	}
-	roleNameByID := make(map[string]string, len(roles))
+	roleNameByID := make(map[uuid.UUID]string, len(roles))
 	for _, r := range roles {
 		roleNameByID[r.ID] = r.Name
 	}
@@ -126,7 +127,7 @@ func checkBudgetAlertsImpl(
 		}
 		periodKey := open.String()
 
-		consumed, err := st.Ledger().SumAmountByDepartment(ctx, deptID, periodKey)
+		consumed, err := st.Ledger().SumAmountByDepartment(ctx, deptID.String(), periodKey)
 		if err != nil {
 			continue
 		}
@@ -146,13 +147,13 @@ func checkBudgetAlertsImpl(
 							RecipientID:  memberID,
 							DepartmentID: deptID,
 							NodeName:     rule.NodeName,
-							RuleID:       rule.ID,
+							RuleID:       rule.ID.String(),
 							Threshold:    threshold,
 							CurrentPct:   pct,
 							Consumed:     consumed,
 							Budget:       budget,
 							PeriodKey:    periodKey,
-							DedupeKey:    fmt.Sprintf("budget-alert:%d:%s:%d:%s:%s", companyID, rule.ID, threshold, periodKey, memberID),
+							DedupeKey:    fmt.Sprintf("budget-alert:%s:%s:%d:%s:%s", companyID, rule.ID, threshold, periodKey, memberID),
 						})
 					}
 					break
@@ -178,13 +179,13 @@ func IndexMembersByRole(members []types.Member) map[string][]string {
 			continue
 		}
 		for _, role := range m.Roles {
-			out[role] = append(out[role], m.ID)
+			out[role] = append(out[role], m.ID.String())
 		}
 	}
 	return out
 }
 
-func ResolveRoleRecipients(roleIDs []string, roleNameByID map[string]string, membersByRoleName map[string][]string) []string {
+func ResolveRoleRecipients(roleIDs []uuid.UUID, roleNameByID map[uuid.UUID]string, membersByRoleName map[string][]string) []string {
 	seen := make(map[string]struct{})
 	var out []string
 	for _, roleID := range roleIDs {

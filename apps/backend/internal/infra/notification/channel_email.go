@@ -7,6 +7,7 @@ import (
 	"net/smtp"
 	"strings"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 )
 
@@ -49,7 +50,7 @@ func (c *EmailChannel) IsConfigured() bool {
 
 func (c *EmailChannel) Send(ctx context.Context, recipientID string, msg domainnotification.RenderedMessage) error {
 	// Resolve memberID → email address
-	info := c.resolver.Resolve(ctx, recipientID)
+	info := c.resolver.Resolve(ctx, uuid.MustParse(recipientID))
 	to := info.Email
 	if to == "" {
 		c.logger.Debug("email channel: no email for recipient, skipping",

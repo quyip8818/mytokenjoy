@@ -1,10 +1,11 @@
 package postgres
 
 import (
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func newDomainRepoSet(db dbQuerier, tokenJoyCompanyID int64, credentialKey []byte) domainRepos {
+func newDomainRepoSet(db dbQuerier, tokenJoyCompanyID uuid.UUID, credentialKey []byte) domainRepos {
 	catalog := newModelCatalog(db, tokenJoyCompanyID)
 	allowlist := &pgModelAllowlistRepo{db: db}
 	orgNodes := &pgOrgNodeRepo{db: db}

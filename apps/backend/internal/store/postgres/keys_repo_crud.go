@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -47,7 +48,7 @@ func (r *pgKeysRepo) ProviderKeys(ctx context.Context) ([]types.ProviderKey, err
 
 func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderKey) error {
 	cloned := cloneProviderKeys(keys)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, key := range cloned {
 		ids[i] = key.ID
 		createdAt, err := parseAPITime(key.CreatedAt)
@@ -77,7 +78,7 @@ func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderK
 			return fmt.Errorf("upsert provider key %s: %w", key.ID, err)
 		}
 	}
-	return pruneByID(ctx, r.db, "provider_keys", ids)
+	return pruneByIDUUID(ctx, r.db, "provider_keys", ids)
 }
 
 func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, error) {
@@ -105,7 +106,7 @@ func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, err
 func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformKey) error {
 	companyID := store.CompanyID(ctx)
 	cloned := clonePlatformKeys(keys)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, key := range cloned {
 		ids[i] = key.ID
 		keyHash, err := r.resolvePlatformKeyHash(ctx, companyID, key)
@@ -159,7 +160,7 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 	if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerPlatformKey, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompany(ctx, r.db, "platform_keys", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "platform_keys", companyID, ids)
 }
 
 func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error) {
@@ -206,7 +207,7 @@ func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error)
 func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyApproval) error {
 	companyID := store.CompanyID(ctx)
 	cloned := cloneApprovals(approvals)
-	ids := make([]string, len(cloned))
+	ids := make([]uuid.UUID, len(cloned))
 	for i, approval := range cloned {
 		ids[i] = approval.ID
 		createdAt, err := parseAPITime(approval.CreatedAt)
@@ -257,10 +258,10 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 	if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerKeyApproval, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompany(ctx, r.db, "key_approvals", companyID, ids)
+	return pruneByIDForCompanyUUID(ctx, r.db, "key_approvals", companyID, ids)
 }
 
-func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.PlatformKey, error) {
+func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID uuid.UUID) (*types.PlatformKey, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, platformKeySelect+` WHERE company_id = $1 AND id = $2`, companyID, keyID)
 	item, err := scanPlatformKeyRow(row)
@@ -278,7 +279,7 @@ func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID string) (*types.
 	return &item, nil
 }
 
-func (r *pgKeysRepo) PlatformKeyHashByID(ctx context.Context, keyID string) (string, bool, error) {
+func (r *pgKeysRepo) PlatformKeyHashByID(ctx context.Context, keyID uuid.UUID) (string, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var keyHash string
 	err := r.db.QueryRow(ctx,

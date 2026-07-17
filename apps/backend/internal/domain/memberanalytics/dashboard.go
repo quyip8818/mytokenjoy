@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
@@ -56,8 +57,8 @@ type DashboardView struct {
 	CallRanking             []ModelRank         `json:"callRanking"`
 }
 
-func (s *service) GetDashboard(ctx context.Context, memberID string) (DashboardView, error) {
-	if memberID == "" {
+func (s *service) GetDashboard(ctx context.Context, memberID uuid.UUID) (DashboardView, error) {
+	if memberID == uuid.Nil {
 		return DashboardView{}, domain.BadRequest("memberId is required")
 	}
 	loc, err := time.LoadLocation(types.UsageDefaultTimezone)

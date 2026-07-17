@@ -1,5 +1,7 @@
 package types
 
+import "github.com/google/uuid"
+
 type Platform string
 
 const (
@@ -22,10 +24,10 @@ type ImportResult struct {
 }
 
 type ImportFailure struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	EmployeeID string `json:"employeeId"`
-	Reason     string `json:"reason"`
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	EmployeeID string    `json:"employeeId"`
+	Reason     string    `json:"reason"`
 }
 
 type SyncConfig struct {
@@ -40,22 +42,22 @@ type SyncConfig struct {
 }
 
 type SyncLog struct {
-	ID     string `json:"id"`
-	Time   string `json:"time"`
-	Type   string `json:"type"`
-	Result string `json:"result"`
-	Detail string `json:"detail"`
+	ID     uuid.UUID `json:"id"`
+	Time   string    `json:"time"`
+	Type   string    `json:"type"`
+	Result string    `json:"result"`
+	Detail string    `json:"detail"`
 }
 
 type Department struct {
-	ID          string       `json:"id"`
+	ID          uuid.UUID    `json:"id"`
 	Name        string       `json:"name"`
-	ParentID    *string      `json:"parentId"`
+	ParentID    *uuid.UUID   `json:"parentId"`
 	Children    []Department `json:"children,omitempty"`
 	MemberCount int          `json:"memberCount"`
 	ExternalID  *string      `json:"externalId,omitempty"`
 	Source      *string      `json:"source,omitempty"`
-	ManagerID   *string      `json:"managerId,omitempty"`
+	ManagerID   *uuid.UUID   `json:"managerId,omitempty"`
 }
 
 type BatchImportRow struct {
@@ -76,9 +78,9 @@ type MemberBatchImportFailure struct {
 }
 
 type Permission struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Group string `json:"group"`
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Group string    `json:"group"`
 }
 
 type DataSourceSearchResult struct {

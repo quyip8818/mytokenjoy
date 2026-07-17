@@ -3,12 +3,13 @@ package platformkey
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func SyncRevokePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID string) error {
+func SyncRevokePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) error {
 	if !syncdeps.Enabled(d) {
 		return domain.ServiceUnavailable("newapi not enabled")
 	}

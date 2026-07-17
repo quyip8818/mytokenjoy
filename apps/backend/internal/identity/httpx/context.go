@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 )
@@ -33,7 +34,7 @@ func SessionFromContext(ctx context.Context) (types.SessionContext, bool) {
 
 type platformContextKey struct{}
 
-func WithPlatformOperator(ctx context.Context, operatorID string) context.Context {
+func WithPlatformOperator(ctx context.Context, operatorID uuid.UUID) context.Context {
 	return context.WithValue(ctx, platformContextKey{}, operatorID)
 }
 

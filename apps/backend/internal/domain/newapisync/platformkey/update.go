@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
@@ -14,7 +15,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID string, targetActive *bool) error {
+func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID, targetActive *bool) error {
 	if !syncdeps.Enabled(d) {
 		return domain.ServiceUnavailable("newapi not enabled")
 	}
@@ -81,7 +82,7 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID s
 	return d.Mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, now)
 }
 
-func DisablePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID string) error {
+func DisablePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) error {
 	keys, err := d.Store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return err

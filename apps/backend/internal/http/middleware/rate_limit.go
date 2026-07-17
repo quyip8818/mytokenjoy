@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 )
@@ -19,7 +20,7 @@ func RateLimitTenant(limiter ratelimit.Limiter, rate, burst int, dryRun bool, lo
 				return
 			}
 			companyID := ctxcompany.ID(r.Context())
-			if companyID == 0 {
+			if companyID == uuid.Nil {
 				// No tenant resolved yet — skip (login/public routes).
 				next.ServeHTTP(w, r)
 				return

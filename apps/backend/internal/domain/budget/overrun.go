@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -13,10 +14,10 @@ import (
 )
 
 type overrunPayload struct {
-	DepartmentID  string  `json:"departmentId"`
-	MemberID      *string `json:"memberId,omitempty"`
-	ProjectID     *string `json:"projectId,omitempty"`
-	PlatformKeyID string  `json:"platformKeyId"`
+	DepartmentID  uuid.UUID  `json:"departmentId"`
+	MemberID      *uuid.UUID `json:"memberId,omitempty"`
+	ProjectID     *uuid.UUID `json:"projectId,omitempty"`
+	PlatformKeyID uuid.UUID  `json:"platformKeyId"`
 }
 
 // OverrunStore is the narrow store surface the overrun processor needs.
@@ -82,7 +83,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		periodKey := open.String()
 		consumedRepo := tx.BudgetConsumed()
 
-		if payload.PlatformKeyID != "" {
+		if payload.PlatformKeyID != uuid.Nil {
 			key, err := tx.Keys().PlatformKeyByID(ctx, payload.PlatformKeyID)
 			if err != nil {
 				return err
@@ -96,7 +97,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 					keyID := payload.PlatformKeyID
 					action = &disableAction{
 						scope:  "platformKey",
-						target: keyID,
+						target: keyID.String(),
 						keys:   func(ctx context.Context) error { return s.keyControl.DisablePlatformKey(ctx, keyID) },
 						payload: map[string]any{
 							"scope": "platformKey", "platformKeyId": keyID,
@@ -121,7 +122,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 				memberID := *payload.MemberID
 				action = &disableAction{
 					scope:  "member",
-					target: memberID,
+					target: memberID.String(),
 					keys:   func(ctx context.Context) error { return s.disableMemberKeys(ctx, memberID) },
 					payload: map[string]any{
 						"scope": "member", "memberId": memberID, "consumed": memberConsumed, "capacity": capacity,
@@ -152,7 +153,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 					projectID := *payload.ProjectID
 					action = &disableAction{
 						scope:  "project_member",
-						target: memberID + ":" + projectID,
+						target: memberID.String() + ":" + projectID.String(),
 						keys:   func(ctx context.Context) error { return s.disableProjectMemberKeys(ctx, projectID, memberID) },
 						payload: map[string]any{
 							"scope": "project_member", "memberId": memberID, "projectId": projectID,
@@ -177,7 +178,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 				projectID := *payload.ProjectID
 				action = &disableAction{
 					scope:  "project",
-					target: projectID,
+					target: projectID.String(),
 					keys:   func(ctx context.Context) error { return s.disableProjectKeys(ctx, projectID) },
 					payload: map[string]any{
 						"axisKind": "project", "projectId": projectID,
@@ -193,13 +194,13 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			return err
 		}
 		if deptFound && deptBudget > 0 {
-			deptSpent, err := tx.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID, periodKey)
+			deptSpent, err := tx.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID.String(), periodKey)
 			if err != nil {
 				return err
 			}
 			if pkgbudget.BudgetExhausted(deptSpent, deptBudget) {
 				deptID := payload.DepartmentID
-				s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, deptID, map[string]any{
+				s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, deptID.String(), map[string]any{
 					"axisKind": "department_ledger", "departmentId": deptID,
 					"consumed": deptSpent, "budget": deptBudget, "notifyOnly": true,
 				})
@@ -242,7 +243,7 @@ func (s *OverrunService) notifyOverrun(ctx context.Context, eventType, recipient
 	}
 }
 
-func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string) error {
+func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID uuid.UUID) error {
 	keys, err := s.store.Keys().ListActiveMemberKeys(ctx, memberID)
 	if err != nil {
 		return err
@@ -255,7 +256,7 @@ func (s *OverrunService) disableMemberKeys(ctx context.Context, memberID string)
 	return nil
 }
 
-func (s *OverrunService) disableProjectKeys(ctx context.Context, projectID string) error {
+func (s *OverrunService) disableProjectKeys(ctx context.Context, projectID uuid.UUID) error {
 	keys, err := s.store.Keys().ListActiveKeysByProjectID(ctx, projectID)
 	if err != nil {
 		return err
@@ -271,7 +272,7 @@ func (s *OverrunService) disableProjectKeys(ctx context.Context, projectID strin
 	return nil
 }
 
-func (s *OverrunService) disableProjectMemberKeys(ctx context.Context, projectID, memberID string) error {
+func (s *OverrunService) disableProjectMemberKeys(ctx context.Context, projectID, memberID uuid.UUID) error {
 	keys, err := s.store.Keys().ListActiveKeysByProjectID(ctx, projectID)
 	if err != nil {
 		return err

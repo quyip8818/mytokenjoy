@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -39,7 +40,7 @@ func NewProjector(cfg config.Config, st ProjectorStore, enqueuer JobEnqueuer, lo
 	}
 }
 
-func (p *Projector) RunBatch(ctx context.Context, companyID int64) (bool, error) {
+func (p *Projector) RunBatch(ctx context.Context, companyID uuid.UUID) (bool, error) {
 	co, err := p.store.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return false, err

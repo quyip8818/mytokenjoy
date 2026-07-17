@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -55,7 +56,7 @@ func (h *Handler) MembersDelete(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	err := h.service.DeleteMembers(r.Context(), body.IDs, sessionCtx.Member.ID)
+	err := h.service.DeleteMembers(r.Context(), body.IDs, sessionCtx.Member.ID.String())
 	httputil.WriteVoid(w, err)
 }
 
@@ -81,7 +82,8 @@ func (h *Handler) MembersTransfer(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	err := h.service.TransferMembers(r.Context(), body.IDs, body.DepartmentID)
+	deptID, _ := uuid.Parse(body.DepartmentID)
+	err := h.service.TransferMembers(r.Context(), body.IDs, deptID)
 	httputil.WriteVoid(w, err)
 }
 

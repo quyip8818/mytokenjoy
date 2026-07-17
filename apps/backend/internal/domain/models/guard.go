@@ -3,19 +3,19 @@ package models
 import (
 	"context"
 	"errors"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func parseModelID(raw string) (int64, error) {
-	return strconv.ParseInt(raw, 10, 64)
+func parseModelID(raw string) (uuid.UUID, error) {
+	return uuid.Parse(raw)
 }
 
-func (s *service) requireTenantModel(ctx context.Context, modelID int64) (*types.ModelInfo, error) {
+func (s *service) requireTenantModel(ctx context.Context, modelID uuid.UUID) (*types.ModelInfo, error) {
 	model, err := s.store.Models().ModelByID(ctx, modelID)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (s *service) validateModelProviderTypeAvailable(ctx context.Context, provid
 	return nil
 }
 
-func (s *service) validateWritableModelIDs(ctx context.Context, ids []int64) error {
+func (s *service) validateWritableModelIDs(ctx context.Context, ids []uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}

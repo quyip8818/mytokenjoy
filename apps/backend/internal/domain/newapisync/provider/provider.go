@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
@@ -12,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 )
 
-func EnqueueUpsertProviderKey(ctx context.Context, d syncdeps.Deps, providerKeyID string) error {
+func EnqueueUpsertProviderKey(ctx context.Context, d syncdeps.Deps, providerKeyID uuid.UUID) error {
 	if !syncdeps.Enabled(d) {
 		return nil
 	}
@@ -23,7 +24,7 @@ func EnqueueUpsertProviderKey(ctx context.Context, d syncdeps.Deps, providerKeyI
 	})
 }
 
-func SyncUpsertProviderKey(ctx context.Context, d syncdeps.Deps, providerKeyID string) error {
+func SyncUpsertProviderKey(ctx context.Context, d syncdeps.Deps, providerKeyID uuid.UUID) error {
 	if !syncdeps.Enabled(d) {
 		return nil
 	}

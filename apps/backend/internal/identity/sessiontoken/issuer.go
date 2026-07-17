@@ -7,18 +7,19 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type Claims struct {
-	CompanyID int64  `json:"company_id"`
-	UserID    string `json:"user_id,omitempty"`
-	Sid       string `json:"sid"`
+	CompanyID uuid.UUID `json:"company_id"`
+	UserID    uuid.UUID `json:"user_id,omitempty"`
+	Sid       string    `json:"sid"`
 	jwt.RegisteredClaims
 }
 
 type Issuer interface {
-	Issue(companyID int64, memberID string) (string, error)
-	IssueWithUser(companyID int64, memberID string, userID string) (string, error)
+	Issue(companyID uuid.UUID, memberID uuid.UUID) (string, error)
+	IssueWithUser(companyID uuid.UUID, memberID uuid.UUID, userID uuid.UUID) (string, error)
 	Parse(token string) (Claims, error)
 	Secret() []byte
 }
@@ -45,18 +46,18 @@ func (i *issuer) Secret() []byte {
 	return append([]byte(nil), i.secret...)
 }
 
-func (i *issuer) Issue(companyID int64, memberID string) (string, error) {
-	return i.IssueWithUser(companyID, memberID, "")
+func (i *issuer) Issue(companyID uuid.UUID, memberID uuid.UUID) (string, error) {
+	return i.IssueWithUser(companyID, memberID, uuid.Nil)
 }
 
-func (i *issuer) IssueWithUser(companyID int64, memberID string, userID string) (string, error) {
+func (i *issuer) IssueWithUser(companyID uuid.UUID, memberID uuid.UUID, userID uuid.UUID) (string, error) {
 	now := time.Now().UTC()
 	claims := Claims{
 		CompanyID: companyID,
 		UserID:    userID,
 		Sid:       newSessionID(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   memberID,
+			Subject:   memberID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(i.ttl)),
 		},

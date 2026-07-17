@@ -1,6 +1,10 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 const (
 	DeptSourceImported = "imported"
@@ -22,6 +26,6 @@ const (
 )
 
 // OrgSyncLockName returns the per-tenant scheduler lock for org sync.
-func OrgSyncLockName(companyID int64) string {
-	return fmt.Sprintf("org_sync:%d", companyID)
+func OrgSyncLockName(companyID uuid.UUID) string {
+	return fmt.Sprintf("org_sync:%s", companyID)
 }

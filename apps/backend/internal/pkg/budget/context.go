@@ -3,6 +3,7 @@ package budget
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -48,7 +49,7 @@ func LoadBudgetContext(
 	}, nil
 }
 
-func (c BudgetContext) FindPlatformKey(id string) (types.PlatformKey, bool) {
+func (c BudgetContext) FindPlatformKey(id uuid.UUID) (types.PlatformKey, bool) {
 	for _, key := range c.PlatformKeys {
 		if key.ID == id {
 			return key, true

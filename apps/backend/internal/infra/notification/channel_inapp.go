@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"time"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -39,11 +39,11 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID string, msg domainn
 	}
 
 	entry := types.NotificationLogEntry{
-		ID:        fmt.Sprintf("ntf-%d", time.Now().UnixNano()),
+		ID:        uuid.Must(uuid.NewV7()),
 		Channel:   domainnotification.ChannelInApp,
 		EventType: extractEventType(msg.Payload),
 		Recipient: recipientID,
-		UserID:    recipientID,
+		UserID:    uuid.MustParse(recipientID),
 		Title:     msg.Title,
 		Body:      msg.Body,
 		Payload:   payload,
@@ -56,8 +56,8 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID string, msg domainn
 
 	// Push to SSE hub if available
 	if c.hub != nil {
-		c.hub.Publish(recipientID, SSEEvent{
-			ID:        entry.ID,
+		c.hub.Publish(uuid.MustParse(recipientID), SSEEvent{
+			ID:        entry.ID.String(),
 			EventType: entry.EventType,
 			Title:     msg.Title,
 			Body:      msg.Body,

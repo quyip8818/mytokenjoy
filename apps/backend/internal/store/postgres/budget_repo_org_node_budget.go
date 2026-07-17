@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgBudgetRepo) Upsert(ctx context.Context, nodeID string, row store.OrgNodeBudgetRow) error {
+func (r *pgBudgetRepo) Upsert(ctx context.Context, nodeID uuid.UUID, row store.OrgNodeBudgetRow) error {
 	return r.UpsertMany(ctx, []store.OrgNodeBudgetRow{{NodeID: nodeID, Budget: row.Budget, ReservedPool: row.ReservedPool, Period: row.Period, MemberAvgBudget: row.MemberAvgBudget}})
 }
 
@@ -40,7 +41,7 @@ func (r *pgBudgetRepo) UpsertMany(ctx context.Context, rows []store.OrgNodeBudge
 	return nil
 }
 
-func (r *pgBudgetRepo) Get(ctx context.Context, nodeID string) (store.OrgNodeBudgetRow, bool, error) {
+func (r *pgBudgetRepo) Get(ctx context.Context, nodeID uuid.UUID) (store.OrgNodeBudgetRow, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var row store.OrgNodeBudgetRow
 	row.NodeID = nodeID

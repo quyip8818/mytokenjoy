@@ -5,12 +5,13 @@ import (
 	"math"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
-func HighestModelPricePoint(models []types.ModelInfo, allowedIDs []int64) float64 {
+func HighestModelPricePoint(models []types.ModelInfo, allowedIDs []uuid.UUID) float64 {
 	byID := modelcatalog.IndexByID(models)
 	highest := 0.0
 	for _, id := range allowedIDs {
@@ -44,7 +45,7 @@ func CostFromQuota(quota int64, modelPricePoint float64) float64 {
 	return float64(quota) / float64(common.QuotaPerUnit) * modelPricePoint
 }
 
-func ToNewAPIUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs []int64) int64 {
+func ToNewAPIUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs []uuid.UUID) int64 {
 	if pointRemaining <= 0 || math.IsNaN(pointRemaining) || math.IsInf(pointRemaining, 0) {
 		return 0
 	}
@@ -59,7 +60,7 @@ func ToNewAPIUnits(pointRemaining float64, models []types.ModelInfo, allowedIDs 
 	return int64(units)
 }
 
-func FromNewAPIUnits(units int64, models []types.ModelInfo, allowedIDs []int64) float64 {
+func FromNewAPIUnits(units int64, models []types.ModelInfo, allowedIDs []uuid.UUID) float64 {
 	if units <= 0 {
 		return 0
 	}
@@ -74,7 +75,7 @@ func FormatModelLimits(callTypes []string) string {
 	return strings.Join(callTypes, ",")
 }
 
-func ModelPricePoint(models []types.ModelInfo, allowedIDs []int64, callType string) float64 {
+func ModelPricePoint(models []types.ModelInfo, allowedIDs []uuid.UUID, callType string) float64 {
 	if resolved, ok := modelcatalog.ResolveIDForCallType(models, allowedIDs, callType); ok {
 		byID := modelcatalog.IndexByID(models)
 		if model, found := byID[*resolved]; found {
@@ -97,15 +98,15 @@ func ModelPricePoint(models []types.ModelInfo, allowedIDs []int64, callType stri
 	return common.DefaultModelPricePoint
 }
 
-func EffectiveWhitelistIDs(keyWhitelist, deptAllowed []int64) []int64 {
+func EffectiveWhitelistIDs(keyWhitelist, deptAllowed []uuid.UUID) []uuid.UUID {
 	if len(keyWhitelist) == 0 {
-		return append([]int64{}, deptAllowed...)
+		return append([]uuid.UUID{}, deptAllowed...)
 	}
-	allowed := make(map[int64]struct{}, len(deptAllowed))
+	allowed := make(map[uuid.UUID]struct{}, len(deptAllowed))
 	for _, id := range deptAllowed {
 		allowed[id] = struct{}{}
 	}
-	out := make([]int64, 0, len(keyWhitelist))
+	out := make([]uuid.UUID, 0, len(keyWhitelist))
 	for _, id := range keyWhitelist {
 		if _, ok := allowed[id]; ok {
 			out = append(out, id)
@@ -114,6 +115,6 @@ func EffectiveWhitelistIDs(keyWhitelist, deptAllowed []int64) []int64 {
 	return out
 }
 
-func NewAPIGroupForDepartment(departmentID string) string {
+func NewAPIGroupForDepartment(departmentID uuid.UUID) string {
 	return fmt.Sprintf("%s%s", common.NewAPIGroupPrefix, departmentID)
 }

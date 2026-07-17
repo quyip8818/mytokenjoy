@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -30,7 +31,12 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	ctx, err := h.AuthzSvc.GetSessionContext(r.Context(), claims.CompanyID, claims.Subject)
+	memberID, parseErr := uuid.Parse(claims.Subject)
+	if parseErr != nil {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	ctx, err := h.AuthzSvc.GetSessionContext(r.Context(), claims.CompanyID, memberID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return

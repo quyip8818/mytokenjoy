@@ -3,10 +3,12 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PlatformOperator struct {
-	ID           string
+	ID           uuid.UUID
 	Email        string
 	PasswordHash string
 	Status       string

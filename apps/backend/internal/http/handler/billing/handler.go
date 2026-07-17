@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
@@ -62,7 +63,7 @@ func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	memberID := ""
+	memberID := uuid.Nil
 	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
 		memberID = sessionCtx.Member.ID
 	}

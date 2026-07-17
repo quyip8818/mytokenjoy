@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -21,7 +22,7 @@ type Store struct {
 	combinedKeySummaries *combinedKeySummaryRepo
 	logs                 store.LogStore
 	domain               domainRepos
-	tokenJoyCompanyID    int64
+	tokenJoyCompanyID    uuid.UUID
 	credentialKey        []byte
 }
 

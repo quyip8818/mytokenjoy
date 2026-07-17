@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -70,7 +71,7 @@ func (s *Service) schedulerHolder() string {
 
 func (s *Service) acquireOrgSyncLock(ctx context.Context) (release func(), acquired bool, err error) {
 	companyID := company.CompanyID(ctx)
-	if companyID == 0 {
+	if companyID == uuid.Nil {
 		return func() {}, false, fmt.Errorf("org sync: company context required")
 	}
 	holder := s.schedulerHolder()
@@ -149,7 +150,7 @@ func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.
 
 func (s *Service) appendSyncLog(ctx context.Context, syncType, result, detail string) error {
 	logEntry := types.SyncLog{
-		ID:     fmt.Sprintf("sync-%d", time.Now().UnixNano()),
+		ID:     uuid.Must(uuid.NewV7()),
 		Time:   time.Now().Format("2006-01-02 15:04"),
 		Type:   syncType,
 		Result: result,

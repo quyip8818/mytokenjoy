@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 func (c Config) validate() error {
@@ -24,14 +26,11 @@ func (c Config) validateCore() error {
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("DATABASE_URL is required")
 	}
-	if c.TokenJoyCompanyID <= 0 || c.LocalCompanyID <= 0 {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be positive")
+	if c.TokenJoyCompanyID == uuid.Nil || c.LocalCompanyID == uuid.Nil {
+		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be set")
 	}
 	if c.TokenJoyCompanyID == c.LocalCompanyID {
 		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must differ")
-	}
-	if c.TokenJoyCompanyID >= 1000000 || c.LocalCompanyID >= 1000000 {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be < 1000000")
 	}
 	if !c.SupportSaas && strings.TrimSpace(c.CompanyName) == "" {
 		return fmt.Errorf("COMPANY_NAME is required when SUPPORT_SAAS=false")

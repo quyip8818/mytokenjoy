@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
@@ -20,17 +21,17 @@ type UsageRepository interface {
 
 type NotificationRepository interface {
 	Append(ctx context.Context, entry types.NotificationLogEntry) error
-	List(ctx context.Context, userID string, limit, offset int) ([]types.NotificationLogEntry, error)
-	GetUnreadCount(ctx context.Context, userID string) (int, error)
+	List(ctx context.Context, userID uuid.UUID, limit, offset int) ([]types.NotificationLogEntry, error)
+	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error)
 	MarkRead(ctx context.Context, id string) error
-	MarkAllRead(ctx context.Context, userID string) error
+	MarkAllRead(ctx context.Context, userID uuid.UUID) error
 	// Admin queries
 	ListLog(ctx context.Context, filter types.NotificationLogFilter) ([]types.NotificationLogEntry, error)
 	Stats(ctx context.Context) ([]types.NotificationStatRow, error)
 }
 
 type NotificationPreferenceRepository interface {
-	Get(ctx context.Context, userID string) ([]types.NotificationPreferenceEntry, error)
-	Upsert(ctx context.Context, userID string, entries []types.NotificationPreferenceEntry) error
-	Delete(ctx context.Context, userID string) error
+	Get(ctx context.Context, userID uuid.UUID) ([]types.NotificationPreferenceEntry, error)
+	Upsert(ctx context.Context, userID uuid.UUID, entries []types.NotificationPreferenceEntry) error
+	Delete(ctx context.Context, userID uuid.UUID) error
 }
