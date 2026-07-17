@@ -21,6 +21,7 @@ export function ModelListPageShell({
   error,
   refresh,
   canManage,
+  isSelfHosted,
   modelCta,
   rowClass,
   handleToggle,
@@ -28,6 +29,51 @@ export function ModelListPageShell({
   openCreate,
   openEdit,
 }: ModelListPageShellProps) {
+  const tableContent = (
+    <DataSection
+      loading={loading}
+      error={error}
+      onRetry={refresh}
+      skeletonColumns={isSelfHosted ? 7 : 4}
+      className="border-0 shadow-none"
+      contentClassName="p-0"
+      empty={listEmpty(loading, models, {
+        icon: Box,
+        title: '暂无模型',
+        description: isSelfHosted
+          ? '添加自定义模型以扩展可用模型列表'
+          : '当前没有可用的内置模型',
+        actionLabel: isSelfHosted && canManage ? '添加模型' : undefined,
+        onAction: isSelfHosted && canManage ? openCreate : undefined,
+      })}
+    >
+      <ModelListTable
+        models={models}
+        canManage={canManage}
+        showActions={isSelfHosted}
+        showProviderColumn={isSelfHosted}
+        rowClass={rowClass}
+        onToggle={handleToggle}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+      />
+    </DataSection>
+  )
+
+  // SaaS version: simple table without tabs
+  if (!isSelfHosted) {
+    return (
+      <PageShell>
+        <Card className="min-h-[360px] border-border shadow-xs">
+          <CardContent className="px-5 pt-4 pb-4">
+            {tableContent}
+          </CardContent>
+        </Card>
+      </PageShell>
+    )
+  }
+
+  // Self-hosted version: full tabs + add button
   return (
     <PageShell
       actions={
@@ -45,7 +91,7 @@ export function ModelListPageShell({
       }
     >
       <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
-        <Card className="border-border shadow-xs">
+        <Card className="min-h-[360px] border-border shadow-xs">
           <CardContent className="px-5 pt-4 pb-4">
             <TabsList variant="line" className="mb-4">
               <TabsTrigger value="all">全部模型 ({counts.all})</TabsTrigger>
@@ -54,31 +100,7 @@ export function ModelListPageShell({
             </TabsList>
 
             <TabsContent value={tab} className="mt-0">
-              <DataSection
-                loading={loading}
-                error={error}
-                onRetry={refresh}
-                skeletonColumns={7}
-                className="border-0 shadow-none"
-                contentClassName="p-0"
-                empty={listEmpty(loading, models, {
-                  icon: Box,
-                  title: '暂无模型',
-                  description: '添加自定义模型以扩展可用模型列表',
-                  actionLabel: canManage ? '添加模型' : undefined,
-                  onAction: canManage ? openCreate : undefined,
-                })}
-              >
-                <ModelListTable
-                  models={models}
-                  canManage={canManage}
-                  showActions={tab !== 'builtin'}
-                  rowClass={rowClass}
-                  onToggle={handleToggle}
-                  onEdit={openEdit}
-                  onDelete={handleDelete}
-                />
-              </DataSection>
+              {tableContent}
             </TabsContent>
           </CardContent>
         </Card>

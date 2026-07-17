@@ -8,6 +8,7 @@ import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { usePermissions } from '@/features/session'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
 import { useWorkflowRefresh } from '@/features/workflow'
+import { useSession } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
 import { isCustomModel, matchesModelListTab } from '../lib/model-kind'
 
@@ -19,6 +20,8 @@ export function useModelListPage(injectedApis?: AppApis) {
   const modelCta = useCtaHighlight('MODEL')
   const { has } = usePermissions()
   const canManage = has(PERMISSION.MODEL_MANAGE)
+  const session = useSession()
+  const isSelfHosted = session.companyType === 'selfhosted'
   const [tab, setTab] = useState<ModelListTab>('all')
 
   const {
@@ -39,8 +42,12 @@ export function useModelListPage(injectedApis?: AppApis) {
   })
 
   const filteredModels = useMemo(() => {
+    if (!isSelfHosted) {
+      // SaaS: only show builtin models
+      return models.filter((model) => !isCustomModel(model))
+    }
     return models.filter((model) => matchesModelListTab(model, tab))
-  }, [models, tab])
+  }, [models, tab, isSelfHosted])
 
   const counts = useMemo(
     () => ({
@@ -87,6 +94,7 @@ export function useModelListPage(injectedApis?: AppApis) {
     error,
     refresh,
     canManage,
+    isSelfHosted,
     modelCta,
     rowClass,
     handleToggle,
