@@ -79,7 +79,22 @@ func OrgNodesToBudgetTree(nodes []OrgNode) []BudgetNode {
 	for i, node := range nodes {
 		result[i] = OrgNodeToBudgetNode(node)
 	}
+	// Inherit memberAvgBudget from parent when child has no own value.
+	inheritMemberAvgBudget(result, 0)
 	return result
+}
+
+// inheritMemberAvgBudget walks the tree top-down: if a node's MemberAvgBudget
+// is 0 (unset), it inherits the nearest ancestor's value.
+func inheritMemberAvgBudget(nodes []BudgetNode, parentAvg float64) {
+	for i := range nodes {
+		if nodes[i].MemberAvgBudget == 0 {
+			nodes[i].MemberAvgBudget = parentAvg
+		}
+		if len(nodes[i].Children) > 0 {
+			inheritMemberAvgBudget(nodes[i].Children, nodes[i].MemberAvgBudget)
+		}
+	}
 }
 
 func orgNodeChildrenToBudgetNodes(children []OrgNode) []BudgetNode {
