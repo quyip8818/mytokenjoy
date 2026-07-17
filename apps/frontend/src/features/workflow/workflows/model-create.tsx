@@ -6,8 +6,23 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
+
+const COMPLETION_MODES = [
+  { value: 'chat', label: '对话' },
+  { value: 'embedding', label: '嵌入' },
+  { value: 'rerank', label: 'Rerank' },
+  { value: 'speech2text', label: '语音转文字' },
+  { value: 'tts', label: '文字转语音' },
+] as const
 
 export function ModelCreateWorkflow({
   entry,
@@ -17,23 +32,35 @@ export function ModelCreateWorkflow({
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const onSuccess = entry.payload.onSuccess as ((id?: string | number) => void) | undefined
-  const [callType, setCallType] = useState('')
-  const [name, setName] = useState('')
+  const [modelName, setModelName] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
+  const [endpointModelName, setEndpointModelName] = useState('')
+  const [completionMode, setCompletionMode] = useState('chat')
+  const [maxContext, setMaxContext] = useState('4096')
+  const [maxTokens, setMaxTokens] = useState('4096')
   const [inputPrice, setInputPrice] = useState('10')
   const [outputPrice, setOutputPrice] = useState('30')
   const [submitting, setSubmitting] = useState(false)
 
+  const canSubmit = modelName.trim() && baseUrl.trim() && Number(maxContext) > 0
+
   const handleSubmit = async () => {
-    if (!callType.trim() || !name.trim() || !baseUrl.trim()) return
+    if (!canSubmit) return
     setSubmitting(true)
     try {
       const created = await apis.modelApi.create({
-        type: callType.trim(),
-        name: name.trim(),
+        type: modelName.trim(),
+        name: displayName.trim() || modelName.trim(),
         baseUrl: baseUrl.trim(),
+        apiKey: apiKey.trim() || undefined,
+        endpointModelName: endpointModelName.trim() || undefined,
         inputPrice: Number(inputPrice),
         outputPrice: Number(outputPrice),
+        maxContext: Number(maxContext),
+        maxTokens: Number(maxTokens) || undefined,
+        capabilities: [completionMode],
       })
       toast.success('模型已添加')
       onSuccess?.(created.modelId)
@@ -45,6 +72,8 @@ export function ModelCreateWorkflow({
     }
   }
 
+  const markDirty = () => onSetDirty(true)
+
   return (
     <WorkflowPanelChrome
       title="添加自定义模型"
@@ -54,42 +83,91 @@ export function ModelCreateWorkflow({
           onCancel={onClose}
           primaryLabel={submitting ? '保存中...' : '保存'}
           onPrimary={handleSubmit}
-          primaryDisabled={!callType.trim() || !name.trim() || !baseUrl.trim() || submitting}
+          primaryDisabled={!canSubmit || submitting}
         />
       }
     >
       <WorkflowFormLayout>
         <div className="space-y-1.5">
-          <Label>调用标识 (callType)</Label>
+          <Label>
+            模型名称 <span className="text-destructive">*</span>
+          </Label>
           <Input
-            value={callType}
-            onChange={(e) => {
-              setCallType(e.target.value)
-              onSetDirty(true)
-            }}
-            placeholder="my-custom-model"
+            value={modelName}
+            onChange={(e) => { setModelName(e.target.value); markDirty() }}
+            placeholder="输入模型全称"
           />
         </div>
         <div className="space-y-1.5">
-          <Label>展示名称</Label>
+          <Label>模型显示名称</Label>
           <Input
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value)
-              onSetDirty(true)
-            }}
-            placeholder="My Custom Model"
+            value={displayName}
+            onChange={(e) => { setDisplayName(e.target.value); markDirty() }}
+            placeholder="模型在界面的显示名称"
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Base URL</Label>
+          <Label>API Key</Label>
+          <Input
+            value={apiKey}
+            onChange={(e) => { setApiKey(e.target.value); markDirty() }}
+            placeholder="在此输入您的 API Key"
+            type="password"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>
+            API endpoint URL <span className="text-destructive">*</span>
+          </Label>
           <Input
             value={baseUrl}
-            onChange={(e) => {
-              setBaseUrl(e.target.value)
-              onSetDirty(true)
-            }}
-            placeholder="https://api.example.com/v1"
+            onChange={(e) => { setBaseUrl(e.target.value); markDirty() }}
+            placeholder="Base URL, e.g. https://api.openai.com/v1"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>API endpoint中的模型名称</Label>
+          <Input
+            value={endpointModelName}
+            onChange={(e) => { setEndpointModelName(e.target.value); markDirty() }}
+            placeholder="endpoint model name, e.g. chatgpt4.0"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Completion mode</Label>
+          <Select value={completionMode} onValueChange={(v) => { setCompletionMode(v); markDirty() }}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COMPLETION_MODES.map((mode) => (
+                <SelectItem key={mode.value} value={mode.value}>
+                  {mode.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>
+            模型上下文长度 <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            type="number"
+            min={1}
+            value={maxContext}
+            onChange={(e) => { setMaxContext(e.target.value); markDirty() }}
+            placeholder="4096"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>最大 token 上限</Label>
+          <Input
+            type="number"
+            min={0}
+            value={maxTokens}
+            onChange={(e) => { setMaxTokens(e.target.value); markDirty() }}
+            placeholder="4096"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -98,10 +176,7 @@ export function ModelCreateWorkflow({
             <Input
               type="number"
               value={inputPrice}
-              onChange={(e) => {
-                setInputPrice(e.target.value)
-                onSetDirty(true)
-              }}
+              onChange={(e) => { setInputPrice(e.target.value); markDirty() }}
             />
           </div>
           <div className="space-y-1.5">
@@ -109,10 +184,7 @@ export function ModelCreateWorkflow({
             <Input
               type="number"
               value={outputPrice}
-              onChange={(e) => {
-                setOutputPrice(e.target.value)
-                onSetDirty(true)
-              }}
+              onChange={(e) => { setOutputPrice(e.target.value); markDirty() }}
             />
           </div>
         </div>

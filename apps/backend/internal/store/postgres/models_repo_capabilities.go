@@ -124,7 +124,8 @@ func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
 	err := rows.Scan(
 		&item.ModelID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
 		&item.Description, &item.Endpoint,
-		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.Enabled,
+		&item.ApiKey, &item.EndpointModelName,
+		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.MaxTokens, &item.Enabled,
 	)
 	return item, err
 }
@@ -134,7 +135,8 @@ func scanModelQueryRow(row scannable) (*types.ModelInfo, error) {
 	err := row.Scan(
 		&item.ModelID, &item.CompanyID, &item.Provider, &item.Type, &item.Name,
 		&item.Description, &item.Endpoint,
-		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.Enabled,
+		&item.ApiKey, &item.EndpointModelName,
+		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.MaxTokens, &item.Enabled,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil

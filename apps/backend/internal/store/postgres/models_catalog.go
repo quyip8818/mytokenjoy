@@ -2,7 +2,8 @@ package postgres
 
 const modelSelectColumns = `
 	model_id, company_id, provider, type, name, description, endpoint,
-	input_price, output_price, max_context, enabled`
+	api_key, endpoint_model_name,
+	input_price, output_price, max_context, max_tokens, enabled`
 
 type modelCatalog struct {
 	db                dbQuerier

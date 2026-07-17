@@ -9,9 +9,12 @@ export interface ModelInfo {
   name: string
   description: string
   endpoint?: string
+  apiKey?: string
+  endpointModelName?: string
   inputPrice: number
   outputPrice: number
   maxContext: number
+  maxTokens: number
   enabled: boolean
   capabilities: string[]
 }
@@ -32,8 +35,13 @@ export interface CreateModelInput {
   type: string
   name: string
   baseUrl: string
+  apiKey?: string
+  endpointModelName?: string
   inputPrice: number
   outputPrice: number
+  maxContext: number
+  maxTokens?: number
+  capabilities?: string[]
 }
 
 export interface UpdateModelInput {
@@ -41,9 +49,12 @@ export interface UpdateModelInput {
   type?: string
   description?: string
   endpoint?: string
+  apiKey?: string
+  endpointModelName?: string
   inputPrice?: number
   outputPrice?: number
   maxContext?: number
+  maxTokens?: number
   capabilities?: string[]
 }
 

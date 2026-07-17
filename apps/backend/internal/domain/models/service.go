@@ -63,17 +63,36 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	if name == "" {
 		name = input.Type
 	}
+	maxContext := input.MaxContext
+	if maxContext == 0 {
+		maxContext = 128000
+	}
+	capabilities := input.Capabilities
+	if len(capabilities) == 0 {
+		capabilities = []string{"chat"}
+	}
+	var apiKey *string
+	if input.ApiKey != "" {
+		apiKey = &input.ApiKey
+	}
+	var endpointModelName *string
+	if input.EndpointModelName != "" {
+		endpointModelName = &input.EndpointModelName
+	}
 	model := types.ModelInfo{
-		Provider:     types.ProviderCustom,
-		Type:         input.Type,
-		Name:         name,
-		Description:  "",
-		Endpoint:     &input.BaseURL,
-		InputPrice:   input.InputPrice,
-		OutputPrice:  input.OutputPrice,
-		MaxContext:   128000,
-		Enabled:      true,
-		Capabilities: []string{"chat"},
+		Provider:          types.ProviderCustom,
+		Type:              input.Type,
+		Name:              name,
+		Description:       "",
+		Endpoint:          &input.BaseURL,
+		ApiKey:            apiKey,
+		EndpointModelName: endpointModelName,
+		InputPrice:        input.InputPrice,
+		OutputPrice:       input.OutputPrice,
+		MaxContext:        maxContext,
+		MaxTokens:         input.MaxTokens,
+		Enabled:           true,
+		Capabilities:      capabilities,
 	}
 	if err := s.validateModelProviderTypeAvailable(ctx, types.ProviderCustom, input.Type); err != nil {
 		return types.ModelInfo{}, err
@@ -112,6 +131,12 @@ func (s *service) UpdateModel(ctx context.Context, id string, input types.Update
 	if input.Endpoint != nil && existing.IsCustom() {
 		existing.Endpoint = input.Endpoint
 	}
+	if input.ApiKey != nil && existing.IsCustom() {
+		existing.ApiKey = input.ApiKey
+	}
+	if input.EndpointModelName != nil && existing.IsCustom() {
+		existing.EndpointModelName = input.EndpointModelName
+	}
 	if input.InputPrice != nil {
 		existing.InputPrice = *input.InputPrice
 	}
@@ -120,6 +145,9 @@ func (s *service) UpdateModel(ctx context.Context, id string, input types.Update
 	}
 	if input.MaxContext != nil {
 		existing.MaxContext = *input.MaxContext
+	}
+	if input.MaxTokens != nil {
+		existing.MaxTokens = *input.MaxTokens
 	}
 	if input.Capabilities != nil {
 		existing.Capabilities = append([]string{}, input.Capabilities...)

@@ -139,9 +139,12 @@ CREATE TABLE IF NOT EXISTS models (
     name         TEXT NOT NULL,
     description  TEXT NOT NULL DEFAULT '',
     endpoint     TEXT,
+    api_key      TEXT,
+    endpoint_model_name TEXT,
     input_price  NUMERIC(18, 8) NOT NULL DEFAULT 0,
     output_price NUMERIC(18, 8) NOT NULL DEFAULT 0,
     max_context  INT NOT NULL DEFAULT 0,
+    max_tokens   INT NOT NULL DEFAULT 0,
     enabled      BOOLEAN NOT NULL DEFAULT TRUE,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (company_id, provider, type)

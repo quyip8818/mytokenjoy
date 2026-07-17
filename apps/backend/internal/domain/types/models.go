@@ -10,18 +10,21 @@ func ModelCatalogKey(provider, modelType string) string {
 }
 
 type ModelInfo struct {
-	ModelID      int64    `json:"modelId"`
-	CompanyID    int64    `json:"-"`
-	Provider     string   `json:"provider"`
-	Type         string   `json:"type"`
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Endpoint     *string  `json:"endpoint,omitempty"`
-	InputPrice   float64  `json:"inputPrice"`
-	OutputPrice  float64  `json:"outputPrice"`
-	MaxContext   int      `json:"maxContext"`
-	Enabled      bool     `json:"enabled"`
-	Capabilities []string `json:"capabilities"`
+	ModelID           int64    `json:"modelId"`
+	CompanyID         int64    `json:"-"`
+	Provider          string   `json:"provider"`
+	Type              string   `json:"type"`
+	Name              string   `json:"name"`
+	Description       string   `json:"description"`
+	Endpoint          *string  `json:"endpoint,omitempty"`
+	ApiKey            *string  `json:"apiKey,omitempty"`
+	EndpointModelName *string  `json:"endpointModelName,omitempty"`
+	InputPrice        float64  `json:"inputPrice"`
+	OutputPrice       float64  `json:"outputPrice"`
+	MaxContext        int      `json:"maxContext"`
+	MaxTokens         int      `json:"maxTokens"`
+	Enabled           bool     `json:"enabled"`
+	Capabilities      []string `json:"capabilities"`
 }
 
 func (m ModelInfo) IsCustom() bool {
@@ -50,11 +53,16 @@ type RoutingRule struct {
 }
 
 type CreateModelInput struct {
-	Type        string  `json:"type"`
-	Name        string  `json:"name"`
-	BaseURL     string  `json:"baseUrl"`
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
+	Type              string   `json:"type"`
+	Name              string   `json:"name"`
+	BaseURL           string   `json:"baseUrl"`
+	ApiKey            string   `json:"apiKey"`
+	EndpointModelName string   `json:"endpointModelName"`
+	InputPrice        float64  `json:"inputPrice"`
+	OutputPrice       float64  `json:"outputPrice"`
+	MaxContext        int      `json:"maxContext"`
+	MaxTokens         int      `json:"maxTokens"`
+	Capabilities      []string `json:"capabilities"`
 }
 
 type ToggleModelInput struct {
@@ -62,14 +70,17 @@ type ToggleModelInput struct {
 }
 
 type UpdateModelInput struct {
-	Name         *string  `json:"name"`
-	Type         *string  `json:"type"`
-	Description  *string  `json:"description"`
-	Endpoint     *string  `json:"endpoint"`
-	InputPrice   *float64 `json:"inputPrice"`
-	OutputPrice  *float64 `json:"outputPrice"`
-	MaxContext   *int     `json:"maxContext"`
-	Capabilities []string `json:"capabilities"`
+	Name              *string  `json:"name"`
+	Type              *string  `json:"type"`
+	Description       *string  `json:"description"`
+	Endpoint          *string  `json:"endpoint"`
+	ApiKey            *string  `json:"apiKey"`
+	EndpointModelName *string  `json:"endpointModelName"`
+	InputPrice        *float64 `json:"inputPrice"`
+	OutputPrice       *float64 `json:"outputPrice"`
+	MaxContext        *int     `json:"maxContext"`
+	MaxTokens         *int     `json:"maxTokens"`
+	Capabilities      []string `json:"capabilities"`
 }
 
 type UpdateRoutingRuleInput struct {
