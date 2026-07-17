@@ -106,7 +106,7 @@ const ADMIN_ROUTE_DEFINITIONS = [
   {
     key: 'modelsRouting',
     path: '/models/routing',
-    label: '模型白名单',
+    label: '模型配置',
     icon: GitBranch,
     audience: 'admin',
     requiredPermissions: [PERMISSION.MODEL_WHITELIST],

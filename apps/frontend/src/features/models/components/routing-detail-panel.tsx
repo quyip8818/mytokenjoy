@@ -124,9 +124,9 @@ export function RoutingDetailPanel({
       {/* Inherit toggle */}
       <div className="flex items-center justify-between rounded-xl border border-border p-4">
         <div>
-          <Label className="text-sm font-medium">继承父级白名单</Label>
+          <Label className="text-sm font-medium">继承父级配置</Label>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            开启后使用父级配置（{parentModelIds.size} 个模型），关闭可自定义
+            开启后使用父级的模型配置（{parentModelIds.size} 个模型），关闭可自定义
           </p>
         </div>
         <Switch checked={inherited} onCheckedChange={setInherited} />
@@ -191,7 +191,7 @@ export function RoutingDetailPanel({
       {inherited && (
         <div className="rounded-xl border border-dashed border-border p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            当前继承父级白名单，共 {parentModelIds.size} 个可用模型
+            当前继承父级配置，共 {parentModelIds.size} 个可用模型
           </p>
         </div>
       )}

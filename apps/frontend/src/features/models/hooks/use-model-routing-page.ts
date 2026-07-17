@@ -73,7 +73,7 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
           defaultModelId: input.defaultModelId,
           fallbackModelId: input.fallbackModelId,
         })
-        toast.success('白名单已保存')
+        toast.success('模型配置已保存')
         await refresh()
       } catch {
         toast.error('保存失败，请重试')

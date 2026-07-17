@@ -45,7 +45,7 @@ export function ModelRoutingPageShell({
                   permission={PERMISSION.MODEL_WHITELIST}
                   fallback={
                     <div className="flex flex-1 items-center justify-center p-8">
-                      <p className="text-sm text-muted-foreground">无权限配置模型白名单</p>
+                      <p className="text-sm text-muted-foreground">无权限配置模型</p>
                     </div>
                   }
                 >
@@ -61,7 +61,7 @@ export function ModelRoutingPageShell({
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8">
                   <GitBranch className="size-8 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">选择左侧团队查看白名单配置</p>
+                  <p className="text-sm text-muted-foreground">选择左侧团队查看模型配置</p>
                 </div>
               )}
             </div>
