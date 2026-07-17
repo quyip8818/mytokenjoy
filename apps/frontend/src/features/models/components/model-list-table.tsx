@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from 'react'
 import type { ModelInfo } from '@/api/types'
 import { isCustomModel } from '../lib/model-kind'
 import {
@@ -19,7 +20,7 @@ interface ModelListTableProps {
   showActions?: boolean
   showProviderColumn?: boolean
   rowClass: (id: string | number) => string | undefined
-  onToggle: (model: ModelInfo) => void
+  onToggle: (model: ModelInfo) => void | Promise<void>
   onEdit: (model: ModelInfo) => void
   onDelete: (model: ModelInfo) => void
 }
@@ -34,6 +35,23 @@ export function ModelListTable({
   onEdit,
   onDelete,
 }: ModelListTableProps) {
+  const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set())
+  const inflightRef = useRef<Set<number>>(new Set())
+
+  const handleToggle = useCallback(
+    async (model: ModelInfo) => {
+      if (inflightRef.current.has(model.modelId)) return
+      inflightRef.current.add(model.modelId)
+      setTogglingIds(new Set(inflightRef.current))
+      try {
+        await onToggle(model)
+      } finally {
+        inflightRef.current.delete(model.modelId)
+        setTogglingIds(new Set(inflightRef.current))
+      }
+    },
+    [onToggle],
+  )
   return (
     <Table>
       <TableHeader>
@@ -92,7 +110,8 @@ export function ModelListTable({
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={model.enabled}
-                    onCheckedChange={() => onToggle(model)}
+                    disabled={togglingIds.has(model.modelId)}
+                    onCheckedChange={() => void handleToggle(model)}
                     aria-label={model.enabled ? '禁用模型' : '启用模型'}
                   />
                   {showActions && isCustomModel(model) && (
