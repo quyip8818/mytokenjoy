@@ -22,7 +22,7 @@ func TestIndexMembersByRole(t *testing.T) {
 	}
 	result := budget.IndexMembersByRole(members)
 
-	if len(result["super_admin"]) != 1 || result["super_admin"][0] != m1.String() {
+	if len(result["super_admin"]) != 1 || result["super_admin"][0] != m1 {
 		t.Errorf("super_admin = %v, want [%s]", result["super_admin"], m1)
 	}
 	if len(result["org_admin"]) != 2 {
@@ -44,10 +44,14 @@ func TestResolveRoleRecipients(t *testing.T) {
 		role2: "org_admin",
 		role3: "member",
 	}
-	membersByRoleName := map[string][]string{
-		"super_admin": {"m-1"},
-		"org_admin":   {"m-1", "m-2"},
-		"member":      {"m-3", "m-4"},
+	m1 := uuid.MustParse("00000000-0000-7000-0000-00000000aa01")
+	m2 := uuid.MustParse("00000000-0000-7000-0000-00000000aa02")
+	m3 := uuid.MustParse("00000000-0000-7000-0000-00000000aa03")
+	m4 := uuid.MustParse("00000000-0000-7000-0000-00000000aa04")
+	membersByRoleName := map[string][]uuid.UUID{
+		"super_admin": {m1},
+		"org_admin":   {m1, m2},
+		"member":      {m3, m4},
 	}
 
 	tests := []struct {
@@ -67,7 +71,7 @@ func TestResolveRoleRecipients(t *testing.T) {
 			if len(got) != tc.want {
 				t.Errorf("got %d recipients %v, want %d", len(got), got, tc.want)
 			}
-			seen := make(map[string]struct{})
+			seen := make(map[uuid.UUID]struct{})
 			for _, id := range got {
 				if _, dup := seen[id]; dup {
 					t.Errorf("duplicate recipient: %s", id)

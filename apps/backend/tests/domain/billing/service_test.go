@@ -122,10 +122,10 @@ func TestConfirmPaymentIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.ConfirmPayment(ctx, order.ID.String()); err != nil {
+	if err := svc.ConfirmPayment(ctx, order.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.ConfirmPayment(ctx, order.ID.String()); err != nil {
+	if err := svc.ConfirmPayment(ctx, order.ID); err != nil {
 		t.Fatal(err)
 	}
 }

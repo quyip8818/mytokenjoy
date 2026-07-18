@@ -37,7 +37,7 @@ func TestResolveRoutingWithoutRule(t *testing.T) {
 func TestUpdateRoutingRuleNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
-	_, err := svc.UpdateRoutingRule(testutil.Ctx(), "missing", types.UpdateRoutingRuleInput{
+	_, err := svc.UpdateRoutingRule(testutil.Ctx(), uuid.MustParse("00000000-0000-0000-0000-000000000000"), types.UpdateRoutingRuleInput{
 		AllowedModelIDs: []uuid.UUID{contract.IDModel1},
 	})
 	if err == nil {

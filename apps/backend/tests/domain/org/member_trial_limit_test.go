@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
@@ -31,7 +32,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 
 	// Seed: the default company already has members from bootstrap.
 	// Count existing members to calibrate.
-	page, err := svc.ListMembers(ctx, "", "", false, 1, 1000)
+	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}

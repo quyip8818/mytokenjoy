@@ -16,7 +16,7 @@ type monthTestEnqueuer struct {
 	rebalance int
 }
 
-func (r *monthTestEnqueuer) InsertRebalance(_ context.Context, _ uuid.UUID, _, _ string) error {
+func (r *monthTestEnqueuer) InsertRebalance(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID) error {
 	r.rebalance++
 	return nil
 }

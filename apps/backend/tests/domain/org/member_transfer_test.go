@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/store"
@@ -20,7 +21,7 @@ func TestTransferMembersDoesNotBumpAuthzRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.TransferMembers(ctx, []string{contract.IDMember1.String()}, contract.IDDept4); err != nil {
+	if err := svc.TransferMembers(ctx, []uuid.UUID{contract.IDMember1}, contract.IDDept4); err != nil {
 		t.Fatal(err)
 	}
 	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
@@ -50,7 +51,7 @@ func TestTransferMembersUpdatesPlatformKeyMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.TransferMembers(testutil.Ctx(), []string{memberID.String()}, targetDept); err != nil {
+	if err := svc.TransferMembers(testutil.Ctx(), []uuid.UUID{memberID}, targetDept); err != nil {
 		t.Fatal(err)
 	}
 

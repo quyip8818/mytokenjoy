@@ -32,7 +32,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1.String()); err != nil {
+	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 1 {
@@ -56,7 +56,7 @@ func TestRebalanceBidirectional(t *testing.T) {
 		}
 	}
 
-	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1.String()); err != nil {
+	if err := rebalance.ProcessAxis(ctx, store.RebalanceAxisMember, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 	if stub.UpdateTokenCalls != 1 {

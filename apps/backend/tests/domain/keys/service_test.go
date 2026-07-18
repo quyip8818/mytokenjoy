@@ -267,7 +267,7 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 		{name: "allows within member sub cap", budget: budgetfix.DisplayPoints(5500)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			updated, err := svc.UpdatePlatformKey(ctx, "00000000-0000-7000-0000-00000000b901", types.UpdatePlatformKeyInput{Budget: &tc.budget})
+			updated, err := svc.UpdatePlatformKey(ctx, uuid.MustParse("00000000-0000-7000-0000-00000000b901"), types.UpdatePlatformKeyInput{Budget: &tc.budget})
 			if tc.wantErr != 0 {
 				testutil.AssertDomainStatus(t, err, tc.wantErr)
 				return
@@ -289,7 +289,7 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	versionBefore := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1)
 	newBudget := budgetfix.DisplayPoints(4000)
-	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1.String(), types.UpdatePlatformKeyInput{
+	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Budget: &newBudget,
 	}); err != nil {
 		t.Fatal(err)
@@ -316,7 +316,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := beforeSummary.Remaining
-	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID.String()); err != nil {
+	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID); err != nil {
 		t.Fatal(err)
 	}
 	afterSummary, err := svc.BudgetSummary(testutil.Ctx(), memberID)
@@ -333,14 +333,14 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 func TestRejectApprovalNotFound(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	err := svc.RejectApproval(testutil.Ctx(), "missing-approval", contract.IDMemberAdmin.String(), nil)
+	err := svc.RejectApproval(testutil.Ctx(), uuid.Nil, contract.IDMemberAdmin, nil)
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestApprovalBudgetCheckNotFound(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	_, err := svc.ApprovalBudgetCheck(testutil.Ctx(), "00000000-0000-7000-8000-ffffffffffff")
+	_, err := svc.ApprovalBudgetCheck(testutil.Ctx(), uuid.MustParse("00000000-0000-7000-8000-ffffffffffff"))
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
@@ -371,7 +371,7 @@ func TestRevokePlatformKey(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1.String()); err != nil {
+	if err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -398,7 +398,7 @@ func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
 	if !created.RotateEnabled {
 		t.Fatal("expected newly created provider keys to allow rotation")
 	}
-	rotated, err := svc.RotateProviderKey(ctx, created.ID.String(), "sk-rotated-new-key")
+	rotated, err := svc.RotateProviderKey(ctx, created.ID, "sk-rotated-new-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -419,7 +419,7 @@ func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
 			break
 		}
 	}
-	_, err = svc.RotateProviderKey(ctx, created.ID.String(), "sk-should-fail")
+	_, err = svc.RotateProviderKey(ctx, created.ID, "sk-should-fail")
 	if err == nil {
 		t.Fatal("expected rotate to fail when rotateEnabled=false")
 	}

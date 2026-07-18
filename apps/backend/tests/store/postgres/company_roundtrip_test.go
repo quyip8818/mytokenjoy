@@ -92,7 +92,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err := st.Billing().CreateRechargeOrder(ctx, order); err != nil {
 		t.Fatal(err)
 	}
-	got, err := st.Billing().GetRechargeOrder(ctx, order.ID.String())
+	got, err := st.Billing().GetRechargeOrder(ctx, order.ID)
 	if err != nil || got == nil || got.Amount != 99 {
 		t.Fatalf("unexpected order: %+v err=%v", got, err)
 	}
@@ -105,7 +105,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
 		t.Fatal(err)
 	}
-	got, err = st.Billing().GetRechargeOrder(ctx, order.ID.String())
+	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)
 	if err != nil || got.Status != store.RechargeStatusConfirmed {
 		t.Fatalf("expected confirmed, got %+v", got)
 	}

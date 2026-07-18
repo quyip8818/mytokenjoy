@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -11,7 +12,7 @@ import (
 func TestDeletePresetRoleReturns400(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	err := svc.DeleteRole(testutil.Ctx(), contract.IDRole1.String())
+	err := svc.DeleteRole(testutil.Ctx(), contract.IDRole1)
 	if err == nil {
 		t.Fatal("expected error deleting preset role")
 	}
@@ -20,7 +21,7 @@ func TestDeletePresetRoleReturns400(t *testing.T) {
 func TestListMembersPagination(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	page, err := svc.ListMembers(testutil.Ctx(), "", "", false, 1, 20)
+	page, err := svc.ListMembers(testutil.Ctx(), uuid.Nil, "", false, 1, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func TestListMembersPagination(t *testing.T) {
 func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	err := svc.RemoveRoleMember(testutil.Ctx(), contract.IDRole3.String(), contract.IDMember1.String())
+	err := svc.RemoveRoleMember(testutil.Ctx(), contract.IDRole3, contract.IDMember1)
 	if err == nil {
 		t.Fatal("expected error removing base member role")
 	}
@@ -93,10 +94,10 @@ func TestAddRoleMember(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(ctx, role.ID.String(), contract.IDMember3.String()); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID, contract.IDMember3); err != nil {
 		t.Fatal(err)
 	}
-	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
+	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,13 +128,13 @@ func TestRemoveRoleMemberSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(ctx, role.ID.String(), contract.IDMember3.String()); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID, contract.IDMember3); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RemoveRoleMember(ctx, role.ID.String(), contract.IDMember3.String()); err != nil {
+	if err := svc.RemoveRoleMember(ctx, role.ID, contract.IDMember3); err != nil {
 		t.Fatal(err)
 	}
-	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
+	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}

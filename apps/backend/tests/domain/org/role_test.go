@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
@@ -81,7 +82,7 @@ func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateRole(ctx, role.ID.String(), "Renamed Role", []string{"p-1", "p-2"})
+	updated, err := svc.UpdateRole(ctx, role.ID, "Renamed Role", []string{"p-1", "p-2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +101,7 @@ func TestUpdateRolePersistsAndBumpsAuthzRevision(t *testing.T) {
 func TestUpdateRolePresetNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	_, err := svc.UpdateRole(testutil.Ctx(), "missing-role", "X", []string{"p-1"})
+	_, err := svc.UpdateRole(testutil.Ctx(), uuid.Nil, "X", []string{"p-1"})
 	if err == nil {
 		t.Fatal("expected error for missing role")
 	}
@@ -112,7 +113,7 @@ func TestUpdateRoleRejectsPresetRole(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	_, err := svc.UpdateRole(ctx, contract.IDRole1.String(), "Hacked Admin", []string{"*"})
+	_, err := svc.UpdateRole(ctx, contract.IDRole1, "Hacked Admin", []string{"*"})
 	if err == nil {
 		t.Fatal("expected error when updating preset role")
 	}
@@ -132,7 +133,7 @@ func TestUpdateRoleAllowsCustomRole(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateRole(ctx, role.ID.String(), "Updated Custom", []string{"p-1", "p-2"})
+	updated, err := svc.UpdateRole(ctx, role.ID, "Updated Custom", []string{"p-1", "p-2"})
 	if err != nil {
 		t.Fatalf("expected update to succeed for custom role, got: %v", err)
 	}
@@ -154,7 +155,7 @@ func TestAddRoleMemberRejectsProtectedPresetRole(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	members, err := svc.ListMembers(ctx, "", "", false, 1, 10)
+	members, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +164,7 @@ func TestAddRoleMemberRejectsProtectedPresetRole(t *testing.T) {
 	}
 	memberID := members.Items[0].ID
 
-	err = svc.AddRoleMember(ctx, contract.IDRole1.String(), memberID.String())
+	err = svc.AddRoleMember(ctx, contract.IDRole1, memberID)
 	if err == nil {
 		t.Fatal("expected error when adding member to protected preset role")
 	}
@@ -183,7 +184,7 @@ func TestAddRoleMemberAllowsCustomRole(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	members, err := svc.ListMembers(ctx, "", "", false, 1, 10)
+	members, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +193,7 @@ func TestAddRoleMemberAllowsCustomRole(t *testing.T) {
 	}
 	memberID := members.Items[0].ID
 
-	err = svc.AddRoleMember(ctx, role.ID.String(), memberID.String())
+	err = svc.AddRoleMember(ctx, role.ID, memberID)
 	if err != nil {
 		t.Fatalf("expected no error adding member to custom role, got: %v", err)
 	}
@@ -209,7 +210,7 @@ func TestAddRoleMemberNotFoundMember(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = svc.AddRoleMember(ctx, role.ID.String(), "00000000-0000-7000-8000-ffffffffffff")
+	err = svc.AddRoleMember(ctx, role.ID, uuid.MustParse("00000000-0000-7000-8000-ffffffffffff"))
 	if err == nil {
 		t.Fatal("expected error for non-existent member, got nil")
 	}
@@ -224,7 +225,7 @@ func TestRemoveRoleMemberLastSuperAdmin(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	err := svc.RemoveRoleMember(ctx, contract.IDRole1.String(), contract.IDMemberAdmin.String())
+	err := svc.RemoveRoleMember(ctx, contract.IDRole1, contract.IDMemberAdmin)
 	if err == nil {
 		t.Fatal("expected error when removing the last super admin")
 	}
@@ -252,7 +253,7 @@ func TestRemoveRoleMemberSuperAdminAllowedWhenMultiple(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.RemoveRoleMember(ctx, contract.IDRole1.String(), contract.IDMemberAdmin.String()); err != nil {
+	if err := svc.RemoveRoleMember(ctx, contract.IDRole1, contract.IDMemberAdmin); err != nil {
 		t.Fatalf("expected removal to succeed with multiple admins: %v", err)
 	}
 }
@@ -281,7 +282,7 @@ func TestDeleteRoleTransactional(t *testing.T) {
 	}
 	memberID := members[0].ID
 
-	err = svc.AddRoleMember(ctx, role.ID.String(), memberID.String())
+	err = svc.AddRoleMember(ctx, role.ID, memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,7 +305,7 @@ func TestDeleteRoleTransactional(t *testing.T) {
 		t.Fatal("member should have the role before deletion")
 	}
 
-	err = svc.DeleteRole(ctx, role.ID.String())
+	err = svc.DeleteRole(ctx, role.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,7 +28,7 @@ func TestCreateMemberPersists(t *testing.T) {
 		t.Fatal("expected member id")
 	}
 
-	page, err := svc.ListMembers(ctx, contract.IDDept5.String(), "", true, 1, 200)
+	page, err := svc.ListMembers(ctx, contract.IDDept5, "", true, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestDeleteMembersRejectsSelf(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
-	err := svc.DeleteMembers(ctx, []string{contract.IDMember1.String()}, contract.IDMember1.String())
+	err := svc.DeleteMembers(ctx, []uuid.UUID{contract.IDMember1}, contract.IDMember1)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", de.Status)
@@ -71,7 +71,7 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.DeleteMembers(testutil.Ctx(), []string{contract.IDMember1.String()}, ""); err != nil {
+	if err := svc.DeleteMembers(testutil.Ctx(), []uuid.UUID{contract.IDMember1}, uuid.Nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -102,7 +102,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.UpdateMemberStatus(testutil.Ctx(), []string{contract.IDMember1.String()}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(testutil.Ctx(), []uuid.UUID{contract.IDMember1}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -121,11 +121,11 @@ func TestListMembersDirectOnly(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	allPage, err := svc.ListMembers(ctx, contract.IDDept2.String(), "", false, 1, 200)
+	allPage, err := svc.ListMembers(ctx, contract.IDDept2, "", false, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
-	directPage, err := svc.ListMembers(ctx, contract.IDDept2.String(), "", true, 1, 200)
+	directPage, err := svc.ListMembers(ctx, contract.IDDept2, "", true, 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}

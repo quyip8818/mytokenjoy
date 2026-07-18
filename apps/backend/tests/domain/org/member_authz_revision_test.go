@@ -57,7 +57,7 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 		}
 	}
 	target.Roles = []string{"预算审批员"}
-	if _, err := svc.UpdateMember(ctx, contract.IDMember1.String(), target); err != nil {
+	if _, err := svc.UpdateMember(ctx, contract.IDMember1, target); err != nil {
 		t.Fatal(err)
 	}
 	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)

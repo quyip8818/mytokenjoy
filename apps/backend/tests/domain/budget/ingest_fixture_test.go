@@ -55,7 +55,7 @@ func (r *recordingBudgetEnqueuer) InsertOverrun(ctx context.Context, companyID u
 	return r.inner.InsertOverrun(ctx, companyID, payload)
 }
 
-func (r *recordingBudgetEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error {
+func (r *recordingBudgetEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error {
 	r.rebalances++
 	return r.inner.InsertRebalance(ctx, companyID, axisKind, axisID)
 }

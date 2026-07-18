@@ -19,7 +19,7 @@ func TestMemberStatusTransition_ActiveToInactive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// Active member goes inactive
-	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -38,9 +38,9 @@ func TestMemberStatusTransition_InactiveToActive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// First disable
-	svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "inactive")
+	svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "inactive")
 	// Then re-enable
-	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "active"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "active"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -67,7 +67,7 @@ func TestMemberDisableDisablesAllKeys(t *testing.T) {
 	st.Keys().SetPlatformKeys(ctx, keys)
 
 	// Disable member
-	if err := svc.UpdateMemberStatus(ctx, []string{contract.IDMember1.String()}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "inactive"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,7 +89,7 @@ func TestMemberDeleteSetsInactive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// DeleteMembers is implemented as UpdateMemberStatus to "inactive"
-	if err := svc.DeleteMembers(ctx, []string{contract.IDMember1.String()}, ""); err != nil {
+	if err := svc.DeleteMembers(ctx, []uuid.UUID{contract.IDMember1}, uuid.Nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -108,10 +108,10 @@ func TestBatchStatusChangeMultipleMembers(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	members, _ := st.Org().Members(ctx)
-	ids := make([]string, 0)
+	ids := make([]uuid.UUID, 0)
 	for _, m := range members {
 		if m.Status == "active" && len(ids) < 3 {
-			ids = append(ids, m.ID.String())
+			ids = append(ids, m.ID)
 		}
 	}
 	if len(ids) < 2 {
@@ -126,7 +126,7 @@ func TestBatchStatusChangeMultipleMembers(t *testing.T) {
 	members, _ = st.Org().Members(ctx)
 	for _, m := range members {
 		for _, id := range ids {
-			if m.ID.String() == id && m.Status != "inactive" {
+			if m.ID == id && m.Status != "inactive" {
 				t.Errorf("member %s should be inactive", m.ID)
 			}
 		}
@@ -166,7 +166,7 @@ func TestBatchInviteSetsStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := svc.BatchInvite(ctx, []string{member.ID.String()})
+	result, err := svc.BatchInvite(ctx, []uuid.UUID{member.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
