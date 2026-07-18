@@ -12,7 +12,7 @@ func TestPrecheckBlocksOnCombinedKeyRemain(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
 	budgetfix.SetCombinedKeyRemain(t, fx.Store, fx.LoadPrecheckRow(t).PlatformKeyID, 0)
-	if err := fx.Run("gpt-4o", false); err == nil {
+	if err := fx.Run("deepseek-v4", false); err == nil {
 		t.Fatal("expected PG soft summary block")
 	}
 }
@@ -20,7 +20,7 @@ func TestPrecheckBlocksOnCombinedKeyRemain(t *testing.T) {
 func TestPrecheckAllowsNullCombinedKeyRemain(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
-	if err := fx.Run("gpt-4o", false); err != nil {
+	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected allow when soft summary NULL, got %v", err)
 	}
 }
@@ -51,7 +51,7 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 				Remain: tc.remain,
 			})
 
-			err := fx.Run("gpt-4o", false)
+			err := fx.Run("deepseek-v4", false)
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected block for remain=%v", tc.remain)
 			}
@@ -71,7 +71,7 @@ func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 	fake := gatewaytf.NewFakeBudgetCheck()
 	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
-	if err := fx.Run("gpt-4o", false); err != nil {
+	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected allow on cache miss, got %v", err)
 	}
 	if fake.Gets() != 1 {
@@ -84,7 +84,7 @@ func TestGatewayBudgetCheckDisabledSkipsGet(t *testing.T) {
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
 	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, domainbudget.NoopCombinedKeyCache)
 
-	if err := fx.Run("gpt-4o", false); err != nil {
+	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected allow with disabled soft block, got %v", err)
 	}
 }

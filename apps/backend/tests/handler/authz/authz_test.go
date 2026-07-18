@@ -12,6 +12,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
+	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -72,7 +73,7 @@ func TestSyncTriggerWithAPIKey(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/org/sync/trigger", nil)
 	req.Header.Set(httpmiddleware.SyncTriggerAPIKeyHeader, "test-sync-key")
-	req.Header.Set(httpmiddleware.CompanyIDHeader, "2")
+	req.Header.Set(httpmiddleware.CompanyIDHeader, contract.DefaultCompanyID.String())
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

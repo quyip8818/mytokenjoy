@@ -3,6 +3,7 @@ package org_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +19,7 @@ func TestDepartmentUpdateHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"name":"Updated Team"}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/org/departments/dept-5", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/org/departments/%s", contract.IDDept5), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()
@@ -31,7 +32,7 @@ func TestDepartmentUpdateHTTP(t *testing.T) {
 func TestDepartmentDeleteLeafHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	createBody := []byte(`{"name":"Temp Leaf","parentId":"dept-2"}`)
+	createBody := []byte(fmt.Sprintf(`{"name":"Temp Leaf","parentId":"%s"}`, contract.IDDept2))
 	createReq := httptest.NewRequest(http.MethodPost, "/api/org/departments", bytes.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -58,7 +59,7 @@ func TestDepartmentDeleteLeafHTTP(t *testing.T) {
 func TestMembersTransferHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"memberIds":["` + contract.IDMember1.String() + `"],"departmentId":"dept-4"}`)
+	body := []byte(fmt.Sprintf(`{"memberIds":["%s"],"departmentId":"%s"}`, contract.IDMember1, contract.IDDept4))
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/transfer", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))

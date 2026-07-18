@@ -116,7 +116,7 @@ func TestGatewayAllowsDevModelInLocal(t *testing.T) {
 		DeployEnv:       config.DeployEnvLocal,
 	})
 
-	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "local-test-model")
+	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "dev-local-test")
 	w := httptest.NewRecorder()
 	scenario.Gateway.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -142,7 +142,7 @@ func TestGatewayRejectsDevModelOutsideLocal(t *testing.T) {
 				DeployEnv:       env,
 			})
 
-			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "local-test-model")
+			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "dev-local-test")
 			w := httptest.NewRecorder()
 			scenario.Gateway.ServeHTTP(w, req)
 			if w.Code != http.StatusForbidden {

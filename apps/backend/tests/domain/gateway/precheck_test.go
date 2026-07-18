@@ -38,7 +38,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := fx.Run("gpt-4o", false); err == nil {
+	if err := fx.Run("deepseek-v4", false); err == nil {
 		t.Fatal("expected inactive platform key error")
 	}
 }
@@ -46,7 +46,7 @@ func TestPrecheckRejectsInactivePlatformKey(t *testing.T) {
 func TestPrecheckPassesWhenNewAPIUnavailable(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
-	if err := fx.Run("gpt-4o", false); err != nil {
+	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected precheck to pass without NewAPI wallet read, got %v", err)
 	}
 }
@@ -62,7 +62,7 @@ func TestPrecheckAllowsModelsListingWithoutModelField(t *testing.T) {
 func TestPrecheckPassesRegardlessOfDeptConsumed(t *testing.T) {
 	t.Parallel()
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
-	if err := fx.Run("gpt-4o", false); err != nil {
+	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected precheck to pass without budget consumed join, got %v", err)
 	}
 }

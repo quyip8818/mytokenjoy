@@ -2,10 +2,12 @@ package keys_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
@@ -110,20 +112,20 @@ func keysCases() []keysCase {
 		},
 		{
 			name: "approvals list pending member id",
-			path: "/api/keys/approvals?tab=pending&memberId=m-5",
+			path: fmt.Sprintf("/api/keys/approvals?tab=pending&memberId=%s", contract.IDMemberAuditor),
 			assert: func(t *testing.T, body []byte) {
 				t.Helper()
 				var approvals []struct {
-					Status      string `json:"status"`
-					ApplicantID string `json:"applicantId"`
+					Status      string    `json:"status"`
+					ApplicantID uuid.UUID `json:"applicantId"`
 				}
 				if err := json.Unmarshal(body, &approvals); err != nil {
 					t.Fatal(err)
 				}
 				if len(approvals) != 1 {
-					t.Fatalf("expected 1 pending approval for m-5, got %+v", approvals)
+					t.Fatalf("expected 1 pending approval for auditor, got %+v", approvals)
 				}
-				if approvals[0].Status != "pending" || approvals[0].ApplicantID != "m-5" {
+				if approvals[0].Status != "pending" || approvals[0].ApplicantID != contract.IDMemberAuditor {
 					t.Fatalf("unexpected approval: %+v", approvals[0])
 				}
 			},

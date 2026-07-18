@@ -90,7 +90,7 @@ func TestGatewayRejectsSubpath(t *testing.T) {
 	scenario := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{
 		Budget: 1000,
 	})
-	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "gpt-4o")
+	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "deepseek-v4")
 	req.URL.Path = "/v1/chat/completions/evil"
 	rec := httptest.NewRecorder()
 	scenario.Gateway.ServeHTTP(rec, req)

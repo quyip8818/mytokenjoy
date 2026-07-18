@@ -34,7 +34,7 @@ func RejectionCases() []RejectionCase {
 				pc.Wallet.CompanyStatus = "suspended"
 			},
 			Scenario: GatewayScenarioOpts{Budget: 1000, CompanyStatus: "suspended"},
-			Model:    "gpt-4o",
+			Model:    "deepseek-v4",
 			Precheck: true,
 			WantHTTP: http.StatusForbidden,
 		},
@@ -47,7 +47,7 @@ func RejectionCases() []RejectionCase {
 				Budget:             1000,
 				WalletBalancePoint: zeroWallet,
 			},
-			Model:    "gpt-4o",
+			Model:    "deepseek-v4",
 			Precheck: true,
 			WantHTTP: http.StatusForbidden,
 		},

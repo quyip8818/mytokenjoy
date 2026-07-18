@@ -3,6 +3,7 @@ package core_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -277,7 +278,7 @@ func TestBudgetNodeUpdateOversell(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"budget":90000000,"reservedPool":1500000}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/dept-3", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/budget/departments/%s", contract.IDDept3), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

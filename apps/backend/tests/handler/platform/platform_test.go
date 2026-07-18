@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 
@@ -155,8 +156,10 @@ func TestSuspendedCompanyBlocksWrites(t *testing.T) {
 
 	saas.UpdateCompanyStatusHTTP(t, router, platformCookie, provisioned.Company.ID, store.CompanyStatusSuspended)
 
+	// Any valid budget write endpoint suffices — use a random UUID as deptID;
+	// it will hit the "company suspended" guard before reaching dept lookup.
 	body, _ := json.Marshal(map[string]float64{"budget": 1000})
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/budget/departments/dept-root-%d", provisioned.Company.ID), bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/budget/departments/%s", uuid.Must(uuid.NewV7())), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", provisioned.MemberCookie)
 	rec := httptest.NewRecorder()

@@ -3,10 +3,12 @@ package core_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	saas "github.com/tokenjoy/backend/tests/testutil/saas"
@@ -30,24 +32,24 @@ func getContractCases() []getContractCase {
 		{name: "org departments tree", path: "/api/org/departments/tree"},
 		{name: "org members", path: "/api/org/members?page=1&pageSize=20"},
 		{name: "org roles", path: "/api/org/roles"},
-		{name: "org role members", path: "/api/org/roles/role-1/members"},
+		{name: "org role members", path: fmt.Sprintf("/api/org/roles/%s/members", contract.IDRole1)},
 		{name: "org permissions", path: "/api/org/permissions"},
 		{name: "budget tree", path: "/api/budget/tree"},
-		{name: "budget member budgets", path: "/api/budget/departments/dept-3/member-budgets"},
+		{name: "budget member budgets", path: fmt.Sprintf("/api/budget/departments/%s/member-budgets", contract.IDDept3)},
 		{name: "budget projects", path: "/api/budget/projects"},
 		{name: "budget overrun policy", path: "/api/budget/overrun-policy"},
 		{name: "budget alerts", path: "/api/budget/alerts"},
 		{name: "keys provider", path: "/api/keys/provider"},
 		{name: "keys platform", path: "/api/keys/platform"},
-		{name: "keys platform budget summary", path: "/api/keys/platform/budget-summary?memberId=m-1"},
+		{name: "keys platform budget summary", path: fmt.Sprintf("/api/keys/platform/budget-summary?memberId=%s", contract.IDMember1)},
 		{name: "keys approvals", path: "/api/keys/approvals"},
-		{name: "keys approval budget check", path: "/api/keys/approvals/apv-1/budget-check"},
+		{name: "keys approval budget check", path: fmt.Sprintf("/api/keys/approvals/%s/budget-check", contract.IDApproval1)},
 		{name: "models list", path: "/api/models"},
 		{name: "models routing", path: "/api/models/routing"},
-		{name: "models routing resolve", path: "/api/models/routing/resolve?deptId=dept-3"},
+		{name: "models routing resolve", path: fmt.Sprintf("/api/models/routing/resolve?deptId=%s", contract.IDDept3)},
 		{name: "dashboard cost summary", path: "/api/dashboard/cost/summary"},
 		{name: "dashboard cost departments", path: "/api/dashboard/cost/departments"},
-		{name: "dashboard cost department members", path: "/api/dashboard/cost/departments/dept-3/members"},
+		{name: "dashboard cost department members", path: fmt.Sprintf("/api/dashboard/cost/departments/%s/members", contract.IDDept3)},
 		{name: "dashboard cost daily", path: "/api/dashboard/cost/daily"},
 		{name: "dashboard cost top", path: "/api/dashboard/cost/top?limit=5"},
 		{name: "dashboard usage models", path: "/api/dashboard/usage/models"},
