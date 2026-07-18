@@ -127,14 +127,6 @@ func insertSeedModels(ctx context.Context, exec TableWriter, tid uuid.UUID, mode
 			}
 		}
 	}
-	if _, err := exec.Exec(ctx, `
-		SELECT setval(
-			pg_get_serial_sequence('models', 'model_id'),
-			(SELECT COALESCE(MAX(model_id), 1) FROM models)
-		)
-	`); err != nil {
-		return fmt.Errorf("reset models identity: %w", err)
-	}
 	return nil
 }
 

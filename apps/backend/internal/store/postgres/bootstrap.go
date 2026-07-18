@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -15,10 +16,11 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 		return err
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO companies (id, name, type, status)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO companies (id, name, type, status, newapi_wallet_username)
+		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (id) DO NOTHING
-	`, cfg.TokenJoyCompanyID, "TokenJoy", store.CompanyTypeTesting, store.CompanyStatusActive); err != nil {
+	`, cfg.TokenJoyCompanyID, "TokenJoy", store.CompanyTypeTesting, store.CompanyStatusActive,
+		company.WalletUsername(cfg.TokenJoyCompanyID)); err != nil {
 		return fmt.Errorf("bootstrap tokenjoy company: %w", err)
 	}
 
@@ -29,10 +31,11 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 		companyType = store.CompanyTypeTesting
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO companies (id, name, type, status)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO companies (id, name, type, status, newapi_wallet_username)
+		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (id) DO NOTHING
-	`, companyID, name, companyType, store.CompanyStatusActive); err != nil {
+	`, companyID, name, companyType, store.CompanyStatusActive,
+		company.WalletUsername(companyID)); err != nil {
 		return fmt.Errorf("bootstrap company: %w", err)
 	}
 	return nil

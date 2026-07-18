@@ -87,6 +87,9 @@ var (
 var (
 	IDRole1 = uuid.MustParse("00000000-0000-7000-8000-00000000a101")
 	IDRole2 = uuid.MustParse("00000000-0000-7000-8000-00000000a102")
+	IDRole3 = uuid.MustParse("00000000-0000-7000-8000-00000000a103")
+	IDRole4 = uuid.MustParse("00000000-0000-7000-8000-00000000a104")
+	IDRole5 = uuid.MustParse("00000000-0000-7000-8000-00000000a105")
 	IDRole6 = uuid.MustParse("00000000-0000-7000-8000-00000000a106")
 )
 
@@ -110,6 +113,10 @@ var (
 	IDBudgetApproval1 = uuid.MustParse("00000000-0000-7000-8000-000000000a01")
 	IDBudgetApproval2 = uuid.MustParse("00000000-0000-7000-8000-000000000a02")
 	IDBudgetApproval3 = uuid.MustParse("00000000-0000-7000-8000-000000000a03")
+
+	// Seed lot/order used by usage_ledger seed data.
+	IDSeedLotOrder = uuid.MustParse("00000000-0000-7000-8000-000000000aa0")
+	IDSeedLot      = uuid.MustParse("00000000-0000-7000-8000-000000000aa1")
 )
 
 // --- Constants ---

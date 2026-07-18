@@ -1,8 +1,8 @@
 [
   {
-    "id": "call-1",
+    "id": "00000000-0000-7000-8000-0000000dd001",
     "caller": "张三",
-    "callerId": "m-1",
+    "callerId": "00000000-0000-7000-8000-000000000e02",
     "callerType": "member",
     "model": "gpt-4o",
     "provider": "openai",
@@ -15,9 +15,9 @@
     "previewSnippet": "请帮我优化这段 Go 代码的性能..."
   },
   {
-    "id": "call-2",
+    "id": "00000000-0000-7000-8000-0000000dd002",
     "caller": "李四",
-    "callerId": "m-2",
+    "callerId": "00000000-0000-7000-8000-000000000e07",
     "callerType": "member",
     "model": "claude-sonnet-4-6",
     "provider": "anthropic",
@@ -30,9 +30,9 @@
     "previewSnippet": "分析这个系统架构的瓶颈..."
   },
   {
-    "id": "call-3",
+    "id": "00000000-0000-7000-8000-0000000dd003",
     "caller": "赵六",
-    "callerId": "m-4",
+    "callerId": "00000000-0000-7000-8000-000000000e06",
     "callerType": "member",
     "model": "deepseek-v3",
     "provider": "deepseek",
@@ -45,9 +45,9 @@
     "previewSnippet": "请生成一个 React 组件..."
   },
   {
-    "id": "call-4",
+    "id": "00000000-0000-7000-8000-0000000dd004",
     "caller": "代码助手",
-    "callerId": "plk-5",
+    "callerId": "00000000-0000-7000-8000-000000000f05",
     "callerType": "platform_key",
     "model": "claude-sonnet-4-6",
     "provider": "anthropic",
@@ -60,9 +60,9 @@
     "previewSnippet": "Review this pull request diff..."
   },
   {
-    "id": "call-5",
+    "id": "00000000-0000-7000-8000-0000000dd005",
     "caller": "张三",
-    "callerId": "m-1",
+    "callerId": "00000000-0000-7000-8000-000000000e02",
     "callerType": "member",
     "model": "gpt-4o-mini",
     "provider": "openai",

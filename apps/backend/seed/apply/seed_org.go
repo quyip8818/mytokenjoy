@@ -15,8 +15,11 @@ import (
 func insertSeedMembers(ctx context.Context, exec TableWriter, tid uuid.UUID, members []types.Member, roleIDByName map[string]uuid.UUID) error {
 	demoHash := contract.DemoPasswordHash()
 	for _, member := range members {
-		// Create user for this member (use a derived user UUID).
+		// Create user for this member (use member ID as user ID when not explicitly set).
 		userID := member.UserID
+		if userID == uuid.Nil {
+			userID = member.ID
+		}
 		var passwordHash *string
 		if member.Status == "active" && member.Email != "" {
 			hash := demoHash

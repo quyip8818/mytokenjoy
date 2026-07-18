@@ -103,7 +103,7 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 		return nil
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
-		Username:    fmt.Sprintf("company-%s", companyID),
+		Username:    co.NewAPIWalletUsername,
 		DisplayName: co.Name,
 		Password:    secrets.RandomHex(8),
 		Quota:       0,

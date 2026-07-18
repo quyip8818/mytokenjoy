@@ -69,6 +69,21 @@ func anchorMembers() []types.Member {
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember}, Source: "manual",
 		},
+		{
+			ID: contract.IDMember6, CompanyID: contract.DefaultCompanyID, Name: "吴九", Phone: "13312345678", Email: "wujiu@example.com",
+			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
+			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+		},
+		{
+			ID: contract.IDMember15, CompanyID: contract.DefaultCompanyID, Name: "郑十五", Phone: "13212345615", Email: "zheng15@example.com",
+			DepartmentID: contract.IDDept5, DepartmentName: "测试组", Status: "active",
+			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+		},
+		{
+			ID: contract.IDMember16, CompanyID: contract.DefaultCompanyID, Name: "冯十六", Phone: "13212345616", Email: "feng16@example.com",
+			DepartmentID: contract.IDDept5, DepartmentName: "测试组", Status: "active",
+			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+		},
 	}
 }
 

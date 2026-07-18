@@ -63,12 +63,12 @@ func buildSyncLogs(refDate string) []types.SyncLog {
 
 func buildRoles(members []types.Member) []types.Role {
 	roles := []types.Role{
-		{ID: uuid.MustParse("00000000-0000-7000-8000-000000002001"), Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-000000002002"), Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-000000002003"), Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-000000002004"), Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}, MemberCount: org.CountMembersByRole(members, permission.RoleAuditor)},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-000000002005"), Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-000000002006"), Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover)},
+		{ID: contract.IDRole1, Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
+		{ID: contract.IDRole2, Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
+		{ID: contract.IDRole3, Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
+		{ID: contract.IDRole4, Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}, MemberCount: org.CountMembersByRole(members, permission.RoleAuditor)},
+		{ID: contract.IDRole5, Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
+		{ID: contract.IDRole6, Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover)},
 	}
 	for i := range roles {
 		roles[i].Permissions = mustRoleGrantIDs(roles[i])

@@ -1,75 +1,92 @@
 [
   {
-    "id": "plk-1",
+    "id": "00000000-0000-7000-8000-000000000f01",
     "name": "张三-开发调试",
     "keyPrefix": "sk-gate...",
     "scope": "member",
-    "memberId": "m-1",
+    "memberId": "00000000-0000-7000-8000-000000000e02",
     "status": "active",
     "budget": 5000,
-    "modelWhitelist": [100, 103, 1],
+    "modelWhitelist": [
+      "00000000-0000-7000-8000-0000000000b1",
+      "00000000-0000-7000-8000-0000000000b4",
+      "00000000-0000-7000-8000-0000000000a1"
+    ],
     "createdAt": "2026-03-01",
     "expiresAt": "2026-12-31"
   },
   {
-    "id": "plk-1b",
+    "id": "00000000-0000-7000-8000-000000000f03",
     "name": "张三-个人实验",
     "keyPrefix": "tj-dev-002...",
     "scope": "member",
-    "memberId": "m-1",
+    "memberId": "00000000-0000-7000-8000-000000000e02",
     "status": "active",
     "budget": 2000,
-    "modelWhitelist": [101, 104],
+    "modelWhitelist": [
+      "00000000-0000-7000-8000-0000000000b2",
+      "00000000-0000-7000-8000-0000000000b5"
+    ],
     "createdAt": "2026-05-10",
     "expiresAt": null
   },
   {
-    "id": "plk-2",
+    "id": "00000000-0000-7000-8000-000000000f02",
     "name": "李四-后端服务",
     "keyPrefix": "tj-svc-002...",
     "scope": "member",
-    "memberId": "m-2",
+    "memberId": "00000000-0000-7000-8000-000000000e07",
     "status": "active",
     "budget": 10000,
-    "modelWhitelist": [100, 104, 1],
+    "modelWhitelist": [
+      "00000000-0000-7000-8000-0000000000b1",
+      "00000000-0000-7000-8000-0000000000b5",
+      "00000000-0000-7000-8000-0000000000a1"
+    ],
     "createdAt": "2026-03-15",
     "expiresAt": null
   },
   {
-    "id": "plk-4",
+    "id": "00000000-0000-7000-8000-000000000f04",
     "name": "赵六-实验",
     "keyPrefix": "tj-exp-004...",
     "scope": "project_member",
-    "memberId": "m-4",
-    "projectId": "proj-1",
+    "memberId": "00000000-0000-7000-8000-000000000e06",
+    "projectId": "00000000-0000-7000-8000-000000000101",
     "status": "disabled",
     "budget": 2000,
-    "modelWhitelist": [101],
+    "modelWhitelist": ["00000000-0000-7000-8000-0000000000b2"],
     "createdAt": "2026-05-01",
     "expiresAt": "2026-06-30"
   },
   {
-    "id": "plk-5",
+    "id": "00000000-0000-7000-8000-000000000f05",
     "name": "代码助手-CI",
     "keyPrefix": "tj-ci-005...",
     "scope": "project",
-    "projectId": "proj-4",
+    "projectId": "00000000-0000-7000-8000-000000000104",
     "status": "active",
     "budget": 8000,
-    "modelWhitelist": [101, 104],
+    "modelWhitelist": [
+      "00000000-0000-7000-8000-0000000000b2",
+      "00000000-0000-7000-8000-0000000000b5"
+    ],
     "createdAt": "2026-05-15",
     "expiresAt": null
   },
   {
-    "id": "plk-bg-1",
+    "id": "00000000-0000-7000-8000-000000000f06",
     "name": "AI创新-共享Key",
     "keyPrefix": "tj-bg-001...",
     "scope": "project_member",
-    "memberId": "m-1",
-    "projectId": "proj-1",
+    "memberId": "00000000-0000-7000-8000-000000000e02",
+    "projectId": "00000000-0000-7000-8000-000000000101",
     "status": "active",
     "budget": 8000,
-    "modelWhitelist": [100, 103],
+    "modelWhitelist": [
+      "00000000-0000-7000-8000-0000000000b1",
+      "00000000-0000-7000-8000-0000000000b4"
+    ],
     "createdAt": "2026-04-15",
     "expiresAt": null
   }

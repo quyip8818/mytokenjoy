@@ -19,18 +19,19 @@ const (
 )
 
 type Company struct {
-	ID                 uuid.UUID
-	Name               string
-	Type               string
-	Status             string
-	RootDeptID         *uuid.UUID
-	NewAPIWalletUserID *int64
-	AuthzRevision      int64
-	BillingCurrency    string
-	FIFOHeadLotID      *uuid.UUID
-	WalletRemain       float64
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	ID                   uuid.UUID
+	Name                 string
+	Type                 string
+	Status               string
+	RootDeptID           *uuid.UUID
+	NewAPIWalletUserID   *int64
+	NewAPIWalletUsername string
+	AuthzRevision        int64
+	BillingCurrency      string
+	FIFOHeadLotID        *uuid.UUID
+	WalletRemain         float64
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 // ConfiguredNewAPIWalletUserID returns the NewAPI wallet user id when it is positive.

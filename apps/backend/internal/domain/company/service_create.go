@@ -21,13 +21,15 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	now := time.Now().UTC()
 	var result CreateCompanyResult
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
+		companyID := uuid.Must(uuid.NewV7())
 		company := store.Company{
-			ID:        uuid.Must(uuid.NewV7()),
-			Name:      req.Name,
-			Type:      companyType,
-			Status:    store.CompanyStatusActive,
-			CreatedAt: now,
-			UpdatedAt: now,
+			ID:                   companyID,
+			Name:                 req.Name,
+			Type:                 companyType,
+			Status:               store.CompanyStatusActive,
+			NewAPIWalletUsername: WalletUsername(companyID),
+			CreatedAt:            now,
+			UpdatedAt:            now,
 		}
 		if err := tx.Company().Create(ctx, company); err != nil {
 			return err
@@ -40,7 +42,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 			return fmt.Errorf("newapi admin client required")
 		}
 		user, err := s.client.CreateUser(ctx, adminport.CreateUserInput{
-			Username:    fmt.Sprintf("company-%s", company.ID),
+			Username:    company.NewAPIWalletUsername,
 			DisplayName: req.Name,
 			Password:    randomPassword(),
 			Quota:       0,
