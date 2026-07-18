@@ -82,6 +82,35 @@ func (r *userRepo) HasAnyMember(ctx context.Context, userID uuid.UUID) (bool, er
 	return exists, nil
 }
 
+func (r *userRepo) ListMemberCompanies(ctx context.Context, userID uuid.UUID) ([]store.MemberCompany, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT m.id, m.company_id, c.name,
+			COALESCE((
+				SELECT ro.name FROM member_roles mr
+				JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
+				WHERE mr.company_id = m.company_id AND mr.member_id = m.id
+				LIMIT 1
+			), '') AS role_name
+		FROM members m
+		JOIN companies c ON c.id = m.company_id
+		WHERE m.user_id = $1 AND m.status = 'active' AND c.status = 'active'
+		ORDER BY m.created_at
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []store.MemberCompany
+	for rows.Next() {
+		var mc store.MemberCompany
+		if err := rows.Scan(&mc.MemberID, &mc.CompanyID, &mc.CompanyName, &mc.Role); err != nil {
+			return nil, err
+		}
+		result = append(result, mc)
+	}
+	return result, rows.Err()
+}
+
 func scanUser(row pgx.Row) (*store.User, error) {
 	var u store.User
 	err := row.Scan(&u.ID, &u.Phone, &u.Email, &u.PasswordHash, &u.Status, &u.CreatedAt, &u.UpdatedAt)

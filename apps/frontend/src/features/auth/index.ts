@@ -1,2 +1,6 @@
 export { useLoginPage } from './hooks/use-login-page'
+export { useSmsLoginPage } from './hooks/use-sms-login-page'
+export { useSelectPage } from './hooks/use-select-page'
+export { useOnboardPage } from './hooks/use-onboard-page'
 export { LoginForm } from './components/login-form'
+export { SmsLoginForm } from './components/sms-login-form'

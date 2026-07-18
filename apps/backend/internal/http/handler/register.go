@@ -6,6 +6,7 @@ import (
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
 	"github.com/tokenjoy/backend/internal/http/handler/auth"
+	authsmshandler "github.com/tokenjoy/backend/internal/http/handler/authsms"
 	"github.com/tokenjoy/backend/internal/http/handler/billing"
 	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
 	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
@@ -27,6 +28,7 @@ type Registry struct {
 	config         config.Config
 	session        *sessionhandler.Handler
 	auth           *auth.Handler
+	authSms        *authsmshandler.Handler
 	register       *registerhandler.Handler
 	platform       *platform.Handler
 	billing        *billing.Handler
@@ -49,6 +51,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		config:         deps.Config,
 		session:        sessionhandler.NewHandler(p),
 		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Store),
+		authSms:        authsmshandler.NewHandler(deps.SmsSvc, deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
 		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
 		platform:       platform.NewHandler(deps.Platform(), deps.Protected()),
 		billing:        billing.NewHandler(p, deps.BillingSvc),
@@ -79,6 +82,9 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireSaaS(reg.config))
 		reg.register.RegisterRoutes(r)
+		if reg.authSms != nil {
+			reg.authSms.RegisterRoutes(r)
+		}
 	})
 
 	// SaaS only: platform management

@@ -27,4 +27,13 @@ type UserRepository interface {
 	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 	HasAnyMember(ctx context.Context, userID uuid.UUID) (bool, error)
+	ListMemberCompanies(ctx context.Context, userID uuid.UUID) ([]MemberCompany, error)
+}
+
+// MemberCompany represents a user's membership in a company (for login routing).
+type MemberCompany struct {
+	MemberID  uuid.UUID
+	CompanyID uuid.UUID
+	CompanyName string
+	Role        string // primary role name
 }
