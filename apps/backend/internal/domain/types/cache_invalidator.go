@@ -1,12 +1,10 @@
 package types
 
-import
+import "github.com/google/uuid"
 
 // PrecheckCacheInvalidator is the shared interface for invalidating gateway precheck
 // cache entries. Defined in the shared kernel so both keys and company domains can
 // depend on it without importing gateway (which would create circular imports).
-"github.com/google/uuid"
-
 type PrecheckCacheInvalidator interface {
 	InvalidateByKeyID(platformKeyID uuid.UUID)
 	InvalidateCompany(companyID uuid.UUID)

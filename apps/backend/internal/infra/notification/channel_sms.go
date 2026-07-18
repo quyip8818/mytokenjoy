@@ -74,8 +74,8 @@ func (c *SMSChannel) IsConfigured() bool {
 	return c.client != nil
 }
 
-func (c *SMSChannel) Send(ctx context.Context, recipientID string, msg domainnotification.RenderedMessage) error {
-	phone := c.resolver.Resolve(ctx, uuid.MustParse(recipientID)).Phone
+func (c *SMSChannel) Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error {
+	phone := c.resolver.Resolve(ctx, recipientID).Phone
 	if phone == "" {
 		c.logger.Debug("sms: no phone for recipient, skipping", "recipient", recipientID)
 		return nil

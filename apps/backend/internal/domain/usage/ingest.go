@@ -252,7 +252,6 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if consumeResult.OverdraftUsed && s.notifier != nil {
 		_ = s.notifier.Send(ctx, types.Notification{
 			EventType: types.NotificationEventOverdraftExpanded,
-			Recipient: fmt.Sprintf("company:%s", companyID),
 			Payload: map[string]any{
 				"companyId":      companyID,
 				"overdraftDelta": consumeResult.OverdraftDelta,

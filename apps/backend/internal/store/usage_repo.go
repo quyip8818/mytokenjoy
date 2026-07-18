@@ -16,7 +16,7 @@ type UsageRepository interface {
 	QueryAggregates(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error)
 	QuerySummary(ctx context.Context, q types.UsageAggregateQuery) (types.UsageSummaryTotals, error)
 	QueryFilteredBuckets(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageBucketRow, error)
-	TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error)
+	TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []uuid.UUID) (map[uuid.UUID]string, error)
 }
 
 type NotificationRepository interface {

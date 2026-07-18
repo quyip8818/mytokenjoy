@@ -16,7 +16,7 @@ type usageAggKey struct {
 	Model        string
 }
 
-func containsString(items []string, target string) bool {
+func containsUUID(items []uuid.UUID, target uuid.UUID) bool {
 	for _, item := range items {
 		if item == target {
 			return true
@@ -145,17 +145,13 @@ func limitUsageByCost(rows []types.UsageAggregateRow, limit int) []types.UsageAg
 	return rows[:limit]
 }
 
-func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[string]string {
+func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []uuid.UUID) map[uuid.UUID]string {
 	if len(deptIDs) == 0 {
-		return map[string]string{}
+		return map[uuid.UUID]string{}
 	}
 	deptSet := make(map[uuid.UUID]struct{}, len(deptIDs))
 	for _, id := range deptIDs {
-		parsed, err := uuid.Parse(id)
-		if err != nil {
-			continue
-		}
-		deptSet[parsed] = struct{}{}
+		deptSet[id] = struct{}{}
 	}
 	costs := make(map[uuid.UUID]map[string]float64)
 	for _, row := range rows {
@@ -167,7 +163,7 @@ func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[st
 		}
 		costs[row.DepartmentID][row.Model] += row.Spend()
 	}
-	result := make(map[string]string, len(deptIDs))
+	result := make(map[uuid.UUID]string, len(deptIDs))
 	for deptID, models := range costs {
 		topModel := ""
 		topCost := 0.0
@@ -177,7 +173,7 @@ func topModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[st
 				topModel = model
 			}
 		}
-		result[deptID.String()] = topModel
+		result[deptID] = topModel
 	}
 	return result
 }

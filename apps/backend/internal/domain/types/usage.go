@@ -86,7 +86,7 @@ type UsageSeriesQuery struct {
 	DepartmentID uuid.UUID
 	MemberID     uuid.UUID
 	Timezone     string
-	ScopeDeptIDs []string
+	ScopeDeptIDs []uuid.UUID
 }
 
 type UsageSeriesPoint struct {
@@ -118,11 +118,11 @@ type UsageAggregateQuery struct {
 	Timezone          string
 	GroupBy           string
 	DepartmentID      uuid.UUID
-	OwnerDepartmentID []string
+	OwnerDepartmentID []uuid.UUID
 	MemberID          uuid.UUID
-	ParentDeptID      string
+	ParentDeptID      uuid.UUID
 	Limit             int
-	ScopeDeptIDs      []string
+	ScopeDeptIDs      []uuid.UUID
 }
 
 type UsageAggregateRow struct {
@@ -167,9 +167,9 @@ type NotificationLogEntry struct {
 }
 
 type Notification struct {
-	EventType string
-	Recipient string
-	Payload   map[string]any
+	EventType   string
+	RecipientID uuid.UUID
+	Payload     map[string]any
 }
 
 type NotificationPreferenceEntry struct {

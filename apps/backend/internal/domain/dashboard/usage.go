@@ -102,9 +102,9 @@ func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryPar
 		consumedByDept[row.DepartmentID] = row.Spend()
 	}
 	aggregateConsumed(deptTree, consumedByDept)
-	deptIDs := make([]string, 0, len(departments))
+	deptIDs := make([]uuid.UUID, 0, len(departments))
 	for _, dept := range departments {
-		deptIDs = append(deptIDs, dept.ID.String())
+		deptIDs = append(deptIDs, dept.ID)
 	}
 	topModels, err := s.reader.TopModelsByDepartments(ctx, types.UsageAggregateQuery{
 		Start: rng.Start, End: rng.End, Timezone: rng.Timezone, ScopeDeptIDs: scopeDeptIDs,
@@ -127,7 +127,7 @@ func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryPar
 		result = append(result, types.DepartmentUsage{
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Budget: deptBudget, Consumed: consumedByDept[dept.ID],
-			MemberCount: memberCount, TopModel: topModels[dept.ID.String()],
+			MemberCount: memberCount, TopModel: topModels[dept.ID],
 		})
 	}
 	return result, nil

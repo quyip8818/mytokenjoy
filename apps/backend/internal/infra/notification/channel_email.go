@@ -48,9 +48,9 @@ func (c *EmailChannel) IsConfigured() bool {
 	return c.host != "" && c.from != ""
 }
 
-func (c *EmailChannel) Send(ctx context.Context, recipientID string, msg domainnotification.RenderedMessage) error {
+func (c *EmailChannel) Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error {
 	// Resolve memberID → email address
-	info := c.resolver.Resolve(ctx, uuid.MustParse(recipientID))
+	info := c.resolver.Resolve(ctx, recipientID)
 	to := info.Email
 	if to == "" {
 		c.logger.Debug("email channel: no email for recipient, skipping",

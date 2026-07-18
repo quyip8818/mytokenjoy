@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 )
 
@@ -13,5 +14,5 @@ type Channel interface {
 	// IsConfigured returns true if this channel has all required configuration to operate.
 	IsConfigured() bool
 	// Send delivers a rendered message to the given recipient.
-	Send(ctx context.Context, recipientID string, msg domainnotification.RenderedMessage) error
+	Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error
 }

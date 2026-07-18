@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 )
 
@@ -34,7 +35,7 @@ func (c *WebhookChannel) IsConfigured() bool {
 	return c.url != ""
 }
 
-func (c *WebhookChannel) Send(ctx context.Context, recipientID string, msg domainnotification.RenderedMessage) error {
+func (c *WebhookChannel) Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error {
 	payload, err := json.Marshal(msg.Payload)
 	if err != nil {
 		return fmt.Errorf("webhook marshal payload: %w", err)
@@ -45,7 +46,7 @@ func (c *WebhookChannel) Send(ctx context.Context, recipientID string, msg domai
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Notification-Title", msg.Title)
-	req.Header.Set("X-Notification-Recipient", recipientID)
+	req.Header.Set("X-Notification-Recipient", recipientID.String())
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {

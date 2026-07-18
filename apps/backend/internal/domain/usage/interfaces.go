@@ -3,6 +3,7 @@ package usage
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -31,7 +32,7 @@ type AnalyticsQuerier interface {
 	QuerySummary(ctx context.Context, q types.UsageAggregateQuery) (types.UsageSummaryTotals, error)
 	QueryAggregates(ctx context.Context, q types.UsageAggregateQuery) ([]types.UsageAggregateRow, error)
 	QuerySeries(ctx context.Context, q types.UsageSeriesQuery) ([]types.UsageSeriesPoint, error)
-	TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error)
+	TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []uuid.UUID) (map[uuid.UUID]string, error)
 }
 
 type Reader interface {

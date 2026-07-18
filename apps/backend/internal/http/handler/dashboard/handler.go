@@ -42,7 +42,8 @@ func (h *Handler) DepartmentCosts(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		query := r.URL.Query()
 		params := parseCostQueryParams(r)
-		result, err := h.service.DepartmentCosts(ctx, query.Get("parentId"), params, scope)
+		parentID, _ := uuid.Parse(query.Get("parentId"))
+		result, err := h.service.DepartmentCosts(ctx, parentID, params, scope)
 		httputil.WriteJSON(w, http.StatusOK, result, err)
 	})
 }

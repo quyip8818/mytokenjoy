@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -92,10 +91,9 @@ var _ types.Notifier = (*Service)(nil)
 // Send implements types.Notifier for backward compatibility with existing callers.
 // It converts the simple Notification into a domain Event and dispatches.
 func (s *Service) Send(ctx context.Context, notification types.Notification) error {
-	recipientID, _ := uuid.Parse(notification.Recipient)
 	event := domainnotification.Event{
 		EventType:   notification.EventType,
-		RecipientID: recipientID,
+		RecipientID: notification.RecipientID,
 		CompanyID:   store.CompanyID(ctx),
 		Payload:     notification.Payload,
 		Metadata: domainnotification.EventMetadata{

@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 )
@@ -13,12 +14,12 @@ import (
 type mockChannel struct {
 	name       string
 	configured bool
-	sent       []string
+	sent       []uuid.UUID
 }
 
 func (c *mockChannel) Name() string       { return c.name }
 func (c *mockChannel) IsConfigured() bool { return c.configured }
-func (c *mockChannel) Send(_ context.Context, recipientID string, _ domainnotification.RenderedMessage) error {
+func (c *mockChannel) Send(_ context.Context, recipientID uuid.UUID, _ domainnotification.RenderedMessage) error {
 	c.sent = append(c.sent, recipientID)
 	return nil
 }

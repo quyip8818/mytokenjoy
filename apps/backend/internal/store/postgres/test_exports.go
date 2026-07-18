@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -33,7 +34,7 @@ func TestHookLimitUsageByCost(rows []types.UsageAggregateRow, limit int) []types
 	return limitUsageByCost(rows, limit)
 }
 
-func TestHookTopModelPerDepartment(rows []types.UsageBucketRow, deptIDs []string) map[string]string {
+func TestHookTopModelPerDepartment(rows []types.UsageBucketRow, deptIDs []uuid.UUID) map[uuid.UUID]string {
 	return topModelPerDepartment(rows, deptIDs)
 }
 

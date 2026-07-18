@@ -228,15 +228,16 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 	return nil
 }
 
-func (s *OverrunService) notifyOverrun(ctx context.Context, eventType, recipient string, payload map[string]any) {
+func (s *OverrunService) notifyOverrun(ctx context.Context, eventType, target string, payload map[string]any) {
 	if s.notifier == nil {
 		return
 	}
-	if err := s.notifier.Send(ctx, types.Notification{EventType: eventType, Recipient: recipient, Payload: payload}); err != nil {
+	payload["target"] = target
+	if err := s.notifier.Send(ctx, types.Notification{EventType: eventType, Payload: payload}); err != nil {
 		if s.logger != nil {
 			s.logger.Error("overrun notification failed",
 				"event_type", eventType,
-				"recipient", recipient,
+				"target", target,
 				"error", err,
 			)
 		}

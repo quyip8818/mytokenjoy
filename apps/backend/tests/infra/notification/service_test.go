@@ -19,7 +19,6 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 
 	if err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventSyncThreshold,
-		Recipient: "ops",
 		Payload:   map[string]any{"detail": "test"},
 	}); err != nil {
 		t.Fatal(err)
@@ -44,7 +43,6 @@ func TestWebhookNotTriggeredByFallbackChain(t *testing.T) {
 
 	err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventOverrunBlocked,
-		Recipient: "ops",
 		Payload:   map[string]any{"scope": "member"},
 	})
 	if err != nil {

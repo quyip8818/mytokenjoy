@@ -134,7 +134,7 @@ func (r *usageRepo) QueryFilteredBuckets(ctx context.Context, q types.UsageAggre
 	return r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.OwnerDepartmentID, q.ScopeDeptIDs)
 }
 
-func (r *usageRepo) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error) {
+func (r *usageRepo) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []uuid.UUID) (map[uuid.UUID]string, error) {
 	rows, err := r.fetchFilteredRows(ctx, q.Start, q.End, q.DepartmentID, q.MemberID, q.OwnerDepartmentID, q.ScopeDeptIDs)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 	if len(q.OwnerDepartmentID) > 0 {
 		filtered := make([]types.UsageAggregateRow, 0)
 		for _, row := range aggregated {
-			if containsString(q.OwnerDepartmentID, row.DepartmentID.String()) {
+			if containsUUID(q.OwnerDepartmentID, row.DepartmentID) {
 				filtered = append(filtered, row)
 			}
 		}
@@ -168,7 +168,7 @@ func (r *usageRepo) fetchFilteredRows(
 	ctx context.Context,
 	start, end time.Time,
 	departmentID, memberID uuid.UUID,
-	departmentIDs, scopeDeptIDs []string,
+	departmentIDs, scopeDeptIDs []uuid.UUID,
 ) ([]types.UsageBucketRow, error) {
 	companyID := store.CompanyID(ctx)
 	where, args := buildUsageWhere(companyID, start, end, departmentID, memberID, departmentIDs, scopeDeptIDs)
@@ -206,7 +206,7 @@ func buildUsageWhere(
 	companyID uuid.UUID,
 	start, end time.Time,
 	departmentID, memberID uuid.UUID,
-	departmentIDs, scopeDeptIDs []string,
+	departmentIDs, scopeDeptIDs []uuid.UUID,
 ) (string, []any) {
 	args := []any{companyID, start.UTC(), end.UTC()}
 	clauses := []string{

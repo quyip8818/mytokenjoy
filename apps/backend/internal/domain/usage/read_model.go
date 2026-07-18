@@ -3,6 +3,7 @@ package usage
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -39,7 +40,7 @@ func (s *readerService) QuerySeries(ctx context.Context, q types.UsageSeriesQuer
 	return s.usage.QuerySeries(ctx, q)
 }
 
-func (s *readerService) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []string) (map[string]string, error) {
+func (s *readerService) TopModelsByDepartments(ctx context.Context, q types.UsageAggregateQuery, deptIDs []uuid.UUID) (map[uuid.UUID]string, error) {
 	return s.usage.TopModelsByDepartments(ctx, q, deptIDs)
 }
 

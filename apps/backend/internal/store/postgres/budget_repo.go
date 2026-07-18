@@ -16,6 +16,9 @@ type pgBudgetRepo struct {
 
 func (r *pgBudgetRepo) AcquireBudgetLock(ctx context.Context) error {
 	companyID := store.CompanyID(ctx)
+	// ponytail: hashtext produces 32-bit int from UUID text, so two different companyIDs
+	// could theoretically collide on the same advisory lock (~1 in 4B).
+	// Acceptable for budget serialization; upgrade path: use the low 64 bits of UUID directly.
 	_, err := r.db.Exec(ctx, "SELECT pg_advisory_xact_lock($1, hashtext($2::text))", budgetLockNamespace, companyID)
 	return err
 }

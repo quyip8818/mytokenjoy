@@ -39,7 +39,7 @@ func (s *Service) Dispatch(ctx context.Context, event domainnotification.Event) 
 	// 4. Deliver to each resolved channel
 	var lastErr error
 	for _, ch := range channels {
-		if err := ch.Send(ctx, event.RecipientID.String(), msg); err != nil {
+		if err := ch.Send(ctx, event.RecipientID, msg); err != nil {
 			s.logger.Warn("channel delivery failed",
 				"channel", ch.Name(),
 				"event", event.EventType,
@@ -58,7 +58,7 @@ func (s *Service) Dispatch(ctx context.Context, event domainnotification.Event) 
 	// Log channel always fires for audit trail (separate from user-facing channels)
 	logCh, ok := s.registry.Get(domainnotification.ChannelLog)
 	if ok {
-		_ = logCh.Send(ctx, event.RecipientID.String(), msg)
+		_ = logCh.Send(ctx, event.RecipientID, msg)
 	}
 
 	return lastErr
@@ -112,14 +112,14 @@ func (s *Service) DispatchAsync(ctx context.Context, event domainnotification.Ev
 				"event", event.EventType,
 				"error", err)
 			// Fall back to synchronous delivery for this channel
-			_ = ch.Send(ctx, event.RecipientID.String(), msg)
+			_ = ch.Send(ctx, event.RecipientID, msg)
 		}
 	}
 
 	// Log channel fires immediately (audit trail, not user-facing)
 	logCh, ok := s.registry.Get(domainnotification.ChannelLog)
 	if ok {
-		_ = logCh.Send(ctx, event.RecipientID.String(), msg)
+		_ = logCh.Send(ctx, event.RecipientID, msg)
 	}
 
 	return nil

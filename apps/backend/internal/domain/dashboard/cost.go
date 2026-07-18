@@ -59,7 +59,7 @@ func (s *service) CostSummary(ctx context.Context, params types.CostQueryParams,
 	}, nil
 }
 
-func (s *service) DepartmentCosts(ctx context.Context, parentID string, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCost, error) {
+func (s *service) DepartmentCosts(ctx context.Context, parentID uuid.UUID, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCost, error) {
 	rng, err := s.resolveRange(params)
 	if err != nil {
 		return nil, err
@@ -220,25 +220,21 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	return result, nil
 }
 
-func storeChildOwnerDepartmentID(departments []types.Department, parentID string) []string {
-	if parentID == "" {
-		ids := make([]string, 0, len(departments))
+func storeChildOwnerDepartmentID(departments []types.Department, parentID uuid.UUID) []uuid.UUID {
+	if parentID == uuid.Nil {
+		ids := make([]uuid.UUID, 0, len(departments))
 		for _, dept := range departments {
-			ids = append(ids, dept.ID.String())
+			ids = append(ids, dept.ID)
 		}
 		return ids
 	}
-	parentUUID, err := uuid.Parse(parentID)
-	if err != nil {
-		return nil
-	}
-	parent := pkgorg.FindDepartment(departments, parentUUID)
+	parent := pkgorg.FindDepartment(departments, parentID)
 	if parent == nil {
 		return nil
 	}
-	ids := make([]string, 0, len(parent.Children))
+	ids := make([]uuid.UUID, 0, len(parent.Children))
 	for _, child := range parent.Children {
-		ids = append(ids, child.ID.String())
+		ids = append(ids, child.ID)
 	}
 	return ids
 }
