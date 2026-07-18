@@ -64,7 +64,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	companyID := store.CompanyID(ctx)
 	where, args := buildLedgerSeriesWhere(companyID, q)
 	query := fmt.Sprintf(`
-		SELECT occurred_at, department_id, COALESCE(member_id, ''), model,
+		SELECT occurred_at, department_id, COALESCE(member_id, '00000000-0000-0000-0000-000000000000'::uuid), model,
 			amount, display_amount, input_tokens, output_tokens
 		FROM usage_ledger
 		WHERE %s
@@ -165,7 +165,7 @@ func buildLedgerSeriesWhere(companyID uuid.UUID, q types.UsageSeriesQuery) (stri
 		idx++
 	}
 	if q.MemberID != uuid.Nil {
-		clauses = append(clauses, fmt.Sprintf("COALESCE(member_id, '') = $%d", idx))
+		clauses = append(clauses, fmt.Sprintf("member_id = $%d", idx))
 		args = append(args, q.MemberID)
 		idx++
 	}

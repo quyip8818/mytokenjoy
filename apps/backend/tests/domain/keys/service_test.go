@@ -254,7 +254,7 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	budgetfix.SetProjectSnapshotConsumed(t, st, contract.IDProject1, 0)
 	newapisynctf.UpsertMapping(t, st, newapisynctf.MappingOpts{
-		PlatformKeyID: uuid.MustParse("00000000-0000-7000-0000-00000000b901"),
+		PlatformKeyID: contract.IDPlatformKey6,
 		NewAPIKeyID:   88,
 	})
 
@@ -267,7 +267,7 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 		{name: "allows within member sub cap", budget: budgetfix.DisplayPoints(5500)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			updated, err := svc.UpdatePlatformKey(ctx, uuid.MustParse("00000000-0000-7000-0000-00000000b901"), types.UpdatePlatformKeyInput{Budget: &tc.budget})
+			updated, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey6, types.UpdatePlatformKeyInput{Budget: &tc.budget})
 			if tc.wantErr != 0 {
 				testutil.AssertDomainStatus(t, err, tc.wantErr)
 				return
@@ -348,8 +348,9 @@ func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
+	// Zero out existing consumed, then set controlled values.
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 1000)
-	budgetfix.SetPlatformKeySnapshotConsumed(t, st, uuid.MustParse("00000000-0000-7000-0000-00000000f01b"), 234.5)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey3, 234.5)
 	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)

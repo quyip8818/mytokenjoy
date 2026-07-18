@@ -7,7 +7,6 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -17,23 +16,17 @@ func TestBatchInviteByIDs(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	pendingID := uuid.MustParse("00000000-0000-7000-0000-00000000ff99")
+	// Use an existing seeded member as the pending target (avoid needing to insert user row).
 	members, err := st.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range members {
-		if members[i].ID == pendingID {
-			continue
-		}
-		if members[i].Status == types.MemberStatusActive {
-			members[i].Status = types.MemberStatusPending
-		}
+	if len(members) == 0 {
+		t.Fatal("no seed members")
 	}
-	members = append(members, types.Member{
-		ID: pendingID, Name: "Pending User", DepartmentID: contract.IDDept5,
-		Status: types.MemberStatusPending, Roles: []string{"普通成员"},
-	})
+	// Pick the first active member and flip its status to pending.
+	pendingID := members[0].ID
+	members[0].Status = types.MemberStatusPending
 	if err := st.Org().SetMembers(ctx, members); err != nil {
 		t.Fatal(err)
 	}

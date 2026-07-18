@@ -21,12 +21,14 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	importedExternalID := "ou-gone"
+	memberID := uuid.MustParse("00000000-0000-7000-8000-00000000ee99")
+	testutil.EnsureUser(t, env.Store, memberID)
 	members, err := env.Store.Org().Members(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	members = append(members, types.Member{
-		ID: uuid.MustParse("00000000-0000-7000-8000-00000000ee99"), Name: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
+		ID: memberID, UserID: memberID, Name: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &importedExternalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -99,8 +101,10 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	memberID := uuid.MustParse("00000000-0000-7000-8000-00000000ee99")
+	testutil.EnsureUser(t, env.Store, memberID)
 	members = append(members, types.Member{
-		ID: uuid.MustParse("00000000-0000-7000-8000-00000000ee99"), Name: "Gone User", DepartmentID: contract.IDDept3,
+		ID: memberID, UserID: memberID, Name: "Gone User", DepartmentID: contract.IDDept3,
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &externalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -129,7 +133,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, member := range members {
-		if member.ID == uuid.MustParse("00000000-0000-7000-8000-00000000ee99") && member.Status != "inactive" {
+		if member.ID == memberID && member.Status != "inactive" {
 			t.Fatalf("expected soft-deleted member, got status %s", member.Status)
 		}
 	}
