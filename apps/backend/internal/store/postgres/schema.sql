@@ -605,7 +605,6 @@ CREATE TABLE IF NOT EXISTS notification_log (
     company_id UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     channel    TEXT NOT NULL,
     event_type TEXT NOT NULL,
-    recipient  TEXT,
     user_id    UUID,
     title      TEXT NOT NULL DEFAULT '',
     body       TEXT NOT NULL DEFAULT '',

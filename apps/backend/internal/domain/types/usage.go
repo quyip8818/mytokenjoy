@@ -155,7 +155,6 @@ type NotificationLogEntry struct {
 	ID        uuid.UUID
 	Channel   string
 	EventType string
-	Recipient string
 	UserID    uuid.UUID
 	Title     string
 	Body      string

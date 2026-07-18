@@ -1,7 +1,6 @@
 package usage_test
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -55,10 +54,6 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 	n := notifier.Notifications[0]
 	if n.EventType != types.NotificationEventOverdraftExpanded {
 		t.Fatalf("event = %q, want %q", n.EventType, types.NotificationEventOverdraftExpanded)
-	}
-	wantRecipient := fmt.Sprintf("company:%d", contract.DefaultCompanyID)
-	if n.Recipient != wantRecipient {
-		t.Fatalf("recipient = %q, want %q", n.Recipient, wantRecipient)
 	}
 	delta, ok := n.Payload["overdraftDelta"].(float64)
 	if !ok || delta <= 0 {

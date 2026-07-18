@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	// SSEEvent represents a notification event pushed to connected clients.
 )
 
 type SSEEvent struct {
@@ -17,13 +16,13 @@ type SSEEvent struct {
 // SSEHub manages per-user SSE connections for real-time notification push.
 type SSEHub struct {
 	mu          sync.RWMutex
-	subscribers map[string][]chan SSEEvent
+	subscribers map[uuid.UUID][]chan SSEEvent
 }
 
 // NewSSEHub creates a new hub for SSE notification broadcasting.
 func NewSSEHub() *SSEHub {
 	return &SSEHub{
-		subscribers: make(map[string][]chan SSEEvent),
+		subscribers: make(map[uuid.UUID][]chan SSEEvent),
 	}
 }
 
@@ -31,22 +30,22 @@ func NewSSEHub() *SSEHub {
 func (h *SSEHub) Subscribe(userID uuid.UUID) (<-chan SSEEvent, func()) {
 	ch := make(chan SSEEvent, 16)
 	h.mu.Lock()
-	h.subscribers[userID.String()] = append(h.subscribers[userID.String()], ch)
+	h.subscribers[userID] = append(h.subscribers[userID], ch)
 	h.mu.Unlock()
 
 	unsubscribe := func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		subs := h.subscribers[userID.String()]
+		subs := h.subscribers[userID]
 		for i, sub := range subs {
 			if sub == ch {
-				h.subscribers[userID.String()] = append(subs[:i], subs[i+1:]...)
+				h.subscribers[userID] = append(subs[:i], subs[i+1:]...)
 				close(ch)
 				break
 			}
 		}
-		if len(h.subscribers[userID.String()]) == 0 {
-			delete(h.subscribers, userID.String())
+		if len(h.subscribers[userID]) == 0 {
+			delete(h.subscribers, userID)
 		}
 	}
 
@@ -56,7 +55,7 @@ func (h *SSEHub) Subscribe(userID uuid.UUID) (<-chan SSEEvent, func()) {
 // Publish sends an event to all subscribers for a given user.
 func (h *SSEHub) Publish(userID uuid.UUID, event SSEEvent) {
 	h.mu.RLock()
-	subs := h.subscribers[userID.String()]
+	subs := h.subscribers[userID]
 	h.mu.RUnlock()
 
 	for _, ch := range subs {
@@ -72,5 +71,5 @@ func (h *SSEHub) Publish(userID uuid.UUID, event SSEEvent) {
 func (h *SSEHub) ActiveSubscribers(userID uuid.UUID) int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return len(h.subscribers[userID.String()])
+	return len(h.subscribers[userID])
 }

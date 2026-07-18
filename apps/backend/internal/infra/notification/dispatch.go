@@ -215,7 +215,6 @@ func (s *Service) recordFailure(ctx context.Context, channelName string, event d
 		ID:        uuid.Must(uuid.NewV7()),
 		Channel:   channelName,
 		EventType: event.EventType,
-		Recipient: event.RecipientID.String(),
 		UserID:    event.RecipientID,
 		Title:     msg.Title,
 		Body:      msg.Body,

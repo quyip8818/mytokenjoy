@@ -19,7 +19,6 @@ type adminLogEntryResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Channel   string    `json:"channel"`
 	EventType string    `json:"eventType"`
-	Recipient string    `json:"recipient"`
 	UserID    uuid.UUID `json:"userId"`
 	Title     string    `json:"title"`
 	Body      string    `json:"body"`
@@ -50,7 +49,6 @@ func (h *Handler) AdminLog(w http.ResponseWriter, r *http.Request) {
 			ID:        e.ID,
 			Channel:   e.Channel,
 			EventType: e.EventType,
-			Recipient: e.Recipient,
 			UserID:    e.UserID,
 			Title:     e.Title,
 			Body:      e.Body,

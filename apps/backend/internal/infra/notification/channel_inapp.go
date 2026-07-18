@@ -42,7 +42,6 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID uuid.UUID, msg doma
 		ID:        uuid.Must(uuid.NewV7()),
 		Channel:   domainnotification.ChannelInApp,
 		EventType: extractEventType(msg.Payload),
-		Recipient: recipientID.String(),
 		UserID:    recipientID,
 		Title:     msg.Title,
 		Body:      msg.Body,

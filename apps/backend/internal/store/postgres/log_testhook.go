@@ -102,7 +102,7 @@ func ListPendingRiverJobs(ctx context.Context, pool *pgxpool.Pool, kind, subKind
 
 func ListNotificationLogs(ctx context.Context, pool *pgxpool.Pool, companyID uuid.UUID) ([]types.NotificationLogEntry, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT id, channel, event_type, recipient, payload, status, COALESCE(error, '')
+		SELECT id, channel, event_type, COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::uuid), payload, status, COALESCE(error, '')
 		FROM notification_log
 		WHERE company_id = $1
 		ORDER BY created_at
@@ -114,7 +114,7 @@ func ListNotificationLogs(ctx context.Context, pool *pgxpool.Pool, companyID uui
 	out := make([]types.NotificationLogEntry, 0)
 	for rows.Next() {
 		var e types.NotificationLogEntry
-		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.Recipient, &e.Payload, &e.Status, &e.Error); err != nil {
+		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.UserID, &e.Payload, &e.Status, &e.Error); err != nil {
 			return nil, err
 		}
 		out = append(out, e)

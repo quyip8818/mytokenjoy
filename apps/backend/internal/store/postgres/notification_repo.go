@@ -21,9 +21,9 @@ func (r *notificationRepo) Append(ctx context.Context, entry types.NotificationL
 		userID = &entry.UserID
 	}
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO notification_log (id, company_id, channel, event_type, recipient, user_id, title, body, payload, status, error, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULLIF($11, ''), NOW())
-	`, entry.ID, companyID, entry.Channel, entry.EventType, entry.Recipient, userID, entry.Title, entry.Body, entry.Payload, entry.Status, entry.Error)
+		INSERT INTO notification_log (id, company_id, channel, event_type, user_id, title, body, payload, status, error, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), NOW())
+	`, entry.ID, companyID, entry.Channel, entry.EventType, userID, entry.Title, entry.Body, entry.Payload, entry.Status, entry.Error)
 	return err
 }
 
@@ -36,7 +36,7 @@ func (r *notificationRepo) List(ctx context.Context, userID uuid.UUID, limit, of
 		limit = 100
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, channel, event_type, COALESCE(recipient,''), COALESCE(user_id,''), title, body, payload, status, COALESCE(error,''), created_at, read_at
+		SELECT id, channel, event_type, user_id, title, body, payload, status, COALESCE(error,''), created_at, read_at
 		FROM notification_log
 		WHERE company_id = $1 AND user_id = $2 AND channel = 'in_app'
 		ORDER BY created_at DESC
@@ -50,7 +50,7 @@ func (r *notificationRepo) List(ctx context.Context, userID uuid.UUID, limit, of
 	var result []types.NotificationLogEntry
 	for rows.Next() {
 		var e types.NotificationLogEntry
-		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.Recipient, &e.UserID, &e.Title, &e.Body, &e.Payload, &e.Status, &e.Error, &e.CreatedAt, &e.ReadAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.UserID, &e.Title, &e.Body, &e.Payload, &e.Status, &e.Error, &e.CreatedAt, &e.ReadAt); err != nil {
 			return nil, err
 		}
 		result = append(result, e)
@@ -98,7 +98,7 @@ func (r *notificationRepo) ListLog(ctx context.Context, filter types.Notificatio
 		limit = 200
 	}
 
-	query := `SELECT id, channel, event_type, COALESCE(recipient,''), COALESCE(user_id,''), title, body, payload, status, COALESCE(error,''), created_at, read_at
+	query := `SELECT id, channel, event_type, COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::uuid), title, body, payload, status, COALESCE(error,''), created_at, read_at
 		FROM notification_log WHERE company_id = $1`
 	args := []any{companyID}
 	argIdx := 2
@@ -131,7 +131,7 @@ func (r *notificationRepo) ListLog(ctx context.Context, filter types.Notificatio
 	var result []types.NotificationLogEntry
 	for rows.Next() {
 		var e types.NotificationLogEntry
-		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.Recipient, &e.UserID, &e.Title, &e.Body, &e.Payload, &e.Status, &e.Error, &e.CreatedAt, &e.ReadAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.UserID, &e.Title, &e.Body, &e.Payload, &e.Status, &e.Error, &e.CreatedAt, &e.ReadAt); err != nil {
 			return nil, err
 		}
 		result = append(result, e)
