@@ -137,7 +137,7 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 		_, err := r.db.Exec(ctx, `DELETE FROM projects WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompanyUUID(ctx, r.db, "project_members", "project_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "project_members", "project_id", companyID, ids); err != nil {
 		return err
 	}
 	if _, err := r.db.Exec(ctx, `
@@ -146,5 +146,5 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 	`, companyID, ids); err != nil {
 		return fmt.Errorf("detach platform keys from pruned projects: %w", err)
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "projects", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "projects", companyID, ids)
 }

@@ -21,7 +21,7 @@ func (b budgetJobEnqueuer) InsertOverrun(ctx context.Context, companyID uuid.UUI
 	return jobs.InsertOverrun(ctx, b.enqueuer, nil, companyID, payload)
 }
 
-func (b budgetJobEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error {
+func (b budgetJobEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error {
 	return jobs.InsertRebalance(ctx, b.enqueuer, nil, companyID, axisKind, axisID)
 }
 

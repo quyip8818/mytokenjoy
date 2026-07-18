@@ -223,7 +223,7 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, pers
 // reflects the updated budget. Best-effort: failure is logged but does not fail the caller.
 func (s *service) enqueueCompanyRebalance(ctx context.Context, source string) {
 	companyID := store.CompanyID(ctx)
-	if err := s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, store.CompanyAxisID(companyID)); err != nil {
+	if err := s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, companyID); err != nil {
 		s.logger.Warn(source+".rebalance_enqueue_failed", "error", err)
 	}
 }
@@ -231,7 +231,7 @@ func (s *service) enqueueCompanyRebalance(ctx context.Context, source string) {
 // enqueueMemberRebalance triggers a member-scoped rebalance so the member's token remain_quota
 // reflects the updated personal budget.
 func (s *service) enqueueMemberRebalance(ctx context.Context, memberID uuid.UUID, source string) {
-	if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID.String()); err != nil {
+	if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); err != nil {
 		s.logger.Warn(source+".rebalance_enqueue_failed", "member_id", memberID, "error", err)
 	}
 }

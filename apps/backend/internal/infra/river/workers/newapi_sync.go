@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -28,11 +27,7 @@ func (w *NewAPISyncWorker) Work(ctx context.Context, job *river.Job[jobs.NewAPIS
 	case outbox.KindCreateKey:
 		_, err = w.handler.TrySyncCreate(entryCtx, job.Args.PlatformKeyID)
 	case outbox.KindUpsertChannel:
-		providerKeyID, parseErr := uuid.Parse(job.Args.ProviderKeyID)
-		if parseErr != nil {
-			return river.JobCancel(parseErr)
-		}
-		err = w.handler.SyncUpsertProviderKey(entryCtx, providerKeyID)
+		err = w.handler.SyncUpsertProviderKey(entryCtx, job.Args.ProviderKeyID)
 	case outbox.KindUpdateModelLimits:
 		err = w.handler.SyncModelLimitsForDepartment(entryCtx, job.Args.DepartmentID)
 	default:

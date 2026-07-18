@@ -49,7 +49,7 @@ func TestUpdateRoutingRuleShrinksChildren(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
 	ctx := testutil.Ctx()
-	if _, err := svc.UpdateRoutingRule(ctx, contract.IDDept1.String(), types.UpdateRoutingRuleInput{
+	if _, err := svc.UpdateRoutingRule(ctx, contract.IDDept1, types.UpdateRoutingRuleInput{
 		AllowedModelIDs: []uuid.UUID{contract.IDModel1},
 	}); err != nil {
 		t.Fatal(err)
@@ -121,7 +121,7 @@ func TestToggleModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	wasEnabled := target.Enabled
-	if err := svc.ToggleModel(testutil.Ctx(), target.ID.String(), !wasEnabled); err != nil {
+	if err := svc.ToggleModel(testutil.Ctx(), target.ID, !wasEnabled); err != nil {
 		t.Fatal(err)
 	}
 	after, err := svc.ListModels(testutil.Ctx())
@@ -156,7 +156,7 @@ func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 		t.Fatal("expected builtin model")
 	}
 	wantEnabled := !global.Enabled
-	err = svc.ToggleModel(testutil.Ctx(), global.ID.String(), wantEnabled)
+	err = svc.ToggleModel(testutil.Ctx(), global.ID, wantEnabled)
 	if err != nil {
 		t.Fatalf("toggle global model should succeed via tenant override: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestUpdateModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	label := "Updated Display"
-	updated, err := svc.UpdateModel(testutil.Ctx(), created.ID.String(), types.UpdateModelInput{
+	updated, err := svc.UpdateModel(testutil.Ctx(), created.ID, types.UpdateModelInput{
 		Name: &label,
 	})
 	if err != nil {
@@ -258,7 +258,7 @@ func TestDeleteModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.DeleteModel(testutil.Ctx(), created.ID.String()); err != nil {
+	if err := svc.DeleteModel(testutil.Ctx(), created.ID); err != nil {
 		t.Fatal(err)
 	}
 	models, err := svc.ListModels(testutil.Ctx())
@@ -322,7 +322,7 @@ func TestUpdateModelNewFields(t *testing.T) {
 	newKey := "sk-updated-key"
 	newEndpointModel := "gpt-4-turbo"
 	newMaxTokens := 16384
-	updated, err := svc.UpdateModel(testutil.Ctx(), created.ID.String(), types.UpdateModelInput{
+	updated, err := svc.UpdateModel(testutil.Ctx(), created.ID, types.UpdateModelInput{
 		ApiKey:            &newKey,
 		EndpointModelName: &newEndpointModel,
 		MaxTokens:         &newMaxTokens,
@@ -359,11 +359,11 @@ func TestToggleGlobalModelTwice(t *testing.T) {
 		t.Fatal("expected builtin model")
 	}
 	// First toggle: creates override
-	if err := svc.ToggleModel(testutil.Ctx(), global.ID.String(), false); err != nil {
+	if err := svc.ToggleModel(testutil.Ctx(), global.ID, false); err != nil {
 		t.Fatalf("first toggle failed: %v", err)
 	}
 	// Second toggle: updates existing override
-	if err := svc.ToggleModel(testutil.Ctx(), global.ID.String(), true); err != nil {
+	if err := svc.ToggleModel(testutil.Ctx(), global.ID, true); err != nil {
 		t.Fatalf("second toggle failed: %v", err)
 	}
 	after, err := svc.ListModels(testutil.Ctx())

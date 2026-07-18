@@ -30,7 +30,7 @@ func (r *billingRepo) CreateRechargeOrder(ctx context.Context, order store.Recha
 	return err
 }
 
-func (r *billingRepo) GetRechargeOrder(ctx context.Context, id string) (*store.RechargeOrder, error) {
+func (r *billingRepo) GetRechargeOrder(ctx context.Context, id uuid.UUID) (*store.RechargeOrder, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, company_id, amount, currency, points_per_unit, points_granted,
 			source, lot_kind, idempotency_key, status,

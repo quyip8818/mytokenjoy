@@ -11,7 +11,7 @@ import (
 )
 
 type RebalanceEnqueuer interface {
-	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error
+	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error
 }
 
 func EnsureMonthRebalance(ctx context.Context, cfg config.Config, st store.Store, enqueuer RebalanceEnqueuer, companyID uuid.UUID) error {
@@ -24,5 +24,5 @@ func EnsureMonthRebalance(ctx context.Context, cfg config.Config, st store.Store
 	if tbs != nil && tbs.LastRebalancedPeriod == current {
 		return nil
 	}
-	return enqueuer.InsertRebalance(entryCtx, companyID, store.RebalanceAxisCompany, store.CompanyAxisID(companyID))
+	return enqueuer.InsertRebalance(entryCtx, companyID, store.RebalanceAxisCompany, companyID)
 }

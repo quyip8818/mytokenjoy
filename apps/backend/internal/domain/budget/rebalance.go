@@ -15,7 +15,7 @@ import (
 )
 
 type Rebalancer interface {
-	ProcessAxis(ctx context.Context, axisKind, axisID string) error
+	ProcessAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error
 }
 
 // RebalanceStore is the narrow store surface the rebalance processor needs.
@@ -48,7 +48,7 @@ type rebalanceContext struct {
 	models      []types.ModelInfo
 }
 
-func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID string) error {
+func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error {
 	if s.client == nil {
 		return fmt.Errorf("newapi admin client required")
 	}
@@ -56,23 +56,11 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind, axisID str
 	var err error
 	switch axisKind {
 	case store.RebalanceAxisMember:
-		parsedID, parseErr := uuid.Parse(axisID)
-		if parseErr != nil {
-			return parseErr
-		}
-		mappings, err = s.store.PlatformKeyMappings().ListMappingsByMemberID(ctx, parsedID)
+		mappings, err = s.store.PlatformKeyMappings().ListMappingsByMemberID(ctx, axisID)
 	case store.RebalanceAxisProject:
-		parsedID, parseErr := uuid.Parse(axisID)
-		if parseErr != nil {
-			return parseErr
-		}
-		mappings, err = s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, parsedID)
+		mappings, err = s.store.PlatformKeyMappings().ListMappingsByProjectID(ctx, axisID)
 	case store.RebalanceAxisCompany:
-		companyID, parseErr := uuid.Parse(axisID)
-		if parseErr != nil {
-			return parseErr
-		}
-		mappings, err = s.store.PlatformKeyMappings().ListActiveMappingsByCompany(ctx, companyID)
+		mappings, err = s.store.PlatformKeyMappings().ListActiveMappingsByCompany(ctx, axisID)
 	default:
 		return nil
 	}

@@ -18,7 +18,7 @@ type PlatformOperator struct {
 
 type PlatformRepository interface {
 	GetOperatorByEmail(ctx context.Context, email string) (*PlatformOperator, error)
-	GetOperatorByID(ctx context.Context, id string) (*PlatformOperator, error)
+	GetOperatorByID(ctx context.Context, id uuid.UUID) (*PlatformOperator, error)
 	CreateOperator(ctx context.Context, op PlatformOperator) error
 	CountOperators(ctx context.Context) (int, error)
 }

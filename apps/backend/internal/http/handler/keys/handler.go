@@ -76,27 +76,42 @@ func (h *Handler) ProviderCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ProviderToggle(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.ToggleProviderKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	err := h.service.ToggleProviderKey(r.Context(), chi.URLParam(r, "id"), body.Enabled)
+	err = h.service.ToggleProviderKey(r.Context(), id, body.Enabled)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) ProviderRotate(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.RotateProviderKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	key, err := h.service.RotateProviderKey(r.Context(), chi.URLParam(r, "id"), body.NewKey)
+	key, err := h.service.RotateProviderKey(r.Context(), id, body.NewKey)
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
 func (h *Handler) ProviderDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteProviderKey(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.DeleteProviderKey(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
@@ -136,12 +151,17 @@ func (h *Handler) PlatformCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.UpdatePlatformKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	key, err := h.service.UpdatePlatformKey(r.Context(), chi.URLParam(r, "id"), body)
+	key, err := h.service.UpdatePlatformKey(r.Context(), id, body)
 	if err == nil {
 		key.FullKey = nil
 	}
@@ -149,12 +169,17 @@ func (h *Handler) PlatformUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.TogglePlatformKeyInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	key, err := h.service.TogglePlatformKey(r.Context(), chi.URLParam(r, "id"), body.Enabled)
+	key, err := h.service.TogglePlatformKey(r.Context(), id, body.Enabled)
 	if err == nil {
 		key.FullKey = nil
 	}
@@ -162,23 +187,39 @@ func (h *Handler) PlatformToggle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PlatformRotate(w http.ResponseWriter, r *http.Request) {
-	key, err := h.service.RotatePlatformKey(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	key, err := h.service.RotatePlatformKey(r.Context(), id)
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }
 
 func (h *Handler) PlatformRevoke(w http.ResponseWriter, r *http.Request) {
-	err := h.service.RevokePlatformKey(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.RevokePlatformKey(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeletePlatformKey(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.DeletePlatformKey(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	approvals, err := h.service.ListApprovals(r.Context(), query.Get("tab"), query.Get("memberId"))
+	memberID, _ := uuid.Parse(query.Get("memberId"))
+	approvals, err := h.service.ListApprovals(r.Context(), query.Get("tab"), memberID)
 	httputil.WriteJSON(w, http.StatusOK, approvals, err)
 }
 
@@ -197,21 +238,36 @@ func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ApprovalBudgetCheck(w http.ResponseWriter, r *http.Request) {
-	result, err := h.service.ApprovalBudgetCheck(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	result, err := h.service.ApprovalBudgetCheck(r.Context(), id)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
 func (h *Handler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
 	if !ok {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	err := h.service.ApproveApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID.String())
+	err = h.service.ApproveApproval(r.Context(), id, sessionCtx.Member.ID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.RejectApprovalInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -222,6 +278,6 @@ func (h *Handler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	err := h.service.RejectApproval(r.Context(), chi.URLParam(r, "id"), sessionCtx.Member.ID.String(), body.Reason)
+	err = h.service.RejectApproval(r.Context(), id, sessionCtx.Member.ID, body.Reason)
 	httputil.WriteVoid(w, err)
 }

@@ -40,7 +40,7 @@ func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 			break
 		}
 	}
-	_, err = svc.TogglePlatformKey(ctx, contract.IDPlatformKey1.String(), false)
+	_, err = svc.TogglePlatformKey(ctx, contract.IDPlatformKey1, false)
 	if err == nil {
 		t.Fatal("expected error when newapi update fails")
 	}
@@ -70,7 +70,7 @@ func TestRevokePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
-	err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1.String())
+	err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1)
 	if err == nil {
 		t.Fatal("expected error when newapi delete fails")
 	}
@@ -104,7 +104,7 @@ func TestRotatePlatformKeySuccess(t *testing.T) {
 		}
 		return newapi.Token{ID: id, Key: "sk-rotated-key"}, nil
 	}
-	rotated, err := svc.RotatePlatformKey(ctx, contract.IDPlatformKey1.String())
+	rotated, err := svc.RotatePlatformKey(ctx, contract.IDPlatformKey1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,11 +128,11 @@ func TestRotatePlatformKeyRequiresActiveStatus(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.TogglePlatformKey(ctx, contract.IDPlatformKey1.String(), false); err != nil {
+	if _, err := svc.TogglePlatformKey(ctx, contract.IDPlatformKey1, false); err != nil {
 		t.Fatal(err)
 	}
 	stub.RegenerateTokenCalls = 0
-	_, err := svc.RotatePlatformKey(ctx, contract.IDPlatformKey1.String())
+	_, err := svc.RotatePlatformKey(ctx, contract.IDPlatformKey1)
 	testutil.AssertDomainStatus(t, err, 409)
 	if stub.RegenerateTokenCalls != 0 {
 		t.Fatalf("expected no regenerate call, got %d", stub.RegenerateTokenCalls)
@@ -143,7 +143,7 @@ func TestNilNewAPIClientReturns503(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	memberID := contract.IDMember1
-	_, err := svc.TogglePlatformKey(testutil.Ctx(), contract.IDPlatformKey1.String(), false)
+	_, err := svc.TogglePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, false)
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
 	_, err = svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "x", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 100,
@@ -159,7 +159,7 @@ func ptrInt64(v int64) *int64 {
 func TestDeletePlatformKeyRequiresNewAPI(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	err := svc.DeletePlatformKey(testutil.Ctx(), contract.IDPlatformKey1.String())
+	err := svc.DeletePlatformKey(testutil.Ctx(), contract.IDPlatformKey1)
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
 }
 
@@ -177,7 +177,7 @@ func TestDeletePlatformKeyRemoteFailureKeepsKey(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1.String())
+	err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1)
 	if err == nil {
 		t.Fatal("expected error when newapi delete fails")
 	}
@@ -205,7 +205,7 @@ func TestDeletePlatformKeyRevokesRemoteToken(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1.String()); err != nil {
+	if err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
 		t.Fatal(err)
 	}
 	if stub.DeleteTokenCalls != 1 {
@@ -227,7 +227,7 @@ func TestUpdatePlatformKeyRequiresNewAPI(t *testing.T) {
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()
 	name := "updated-name"
-	_, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1.String(), types.UpdatePlatformKeyInput{
+	_, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Name: &name,
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusServiceUnavailable)
@@ -270,7 +270,7 @@ func TestUpdatePlatformKeyRemoteFailureRollsBack(t *testing.T) {
 		}
 	}
 	newName := nameBefore + "-failed"
-	_, err = svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1.String(), types.UpdatePlatformKeyInput{
+	_, err = svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Name: &newName,
 	})
 	if err == nil {
@@ -301,7 +301,7 @@ func TestUpdatePlatformKeyAppliesSyncImmediately(t *testing.T) {
 		t.Fatal(err)
 	}
 	name := "synced-name"
-	_, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1.String(), types.UpdatePlatformKeyInput{
+	_, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Name: &name,
 	})
 	if err != nil {

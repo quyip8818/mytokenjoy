@@ -133,8 +133,8 @@ func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRul
 		_, err := r.db.Exec(ctx, `DELETE FROM alert_rules WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompanyUUID(ctx, r.db, "alert_rule_notify_roles", "rule_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "alert_rule_notify_roles", "rule_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "alert_rules", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "alert_rules", companyID, ids)
 }

@@ -52,8 +52,8 @@ func (b *BulkEnqueuer) enqueueTenant(ctx context.Context, st store.Store, item D
 		}
 	}
 	if item.NeedsMonthRebalance {
-		if err := jobs.InsertRebalance(ctx, b.enqueuer, nil, item.CompanyID, store.RebalanceAxisCompany, store.CompanyAxisID(item.CompanyID)); err != nil {
-			return fmt.Errorf("rebalance company %d: %w", item.CompanyID, err)
+		if err := jobs.InsertRebalance(ctx, b.enqueuer, nil, item.CompanyID, store.RebalanceAxisCompany, item.CompanyID); err != nil {
+			return fmt.Errorf("rebalance company %s: %w", item.CompanyID, err)
 		}
 	}
 	if item.NeedsBudgetReconcile {

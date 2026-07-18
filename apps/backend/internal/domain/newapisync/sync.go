@@ -108,7 +108,7 @@ func (l *NewAPISync) SyncModelLimitsForDepartment(ctx context.Context, departmen
 	return modellimits.SyncModelLimitsForDepartment(ctx, l.deps, departmentID)
 }
 
-func (l *NewAPISync) EnqueueRebalanceAxis(ctx context.Context, axisKind, axisID string) error {
+func (l *NewAPISync) EnqueueRebalanceAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error {
 	if !l.Enabled() {
 		return nil
 	}

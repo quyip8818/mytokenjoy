@@ -16,8 +16,9 @@ func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 	page := common.ParseIntParam(query.Get("page"), 1)
 	pageSize := common.ParseIntParam(query.Get("pageSize"), 20)
 	directOnly := query.Get("directOnly") == "true"
+	departmentID, _ := uuid.Parse(query.Get("departmentId"))
 	result, err := h.service.ListMembers(r.Context(),
-		query.Get("departmentId"), query.Get("keyword"), directOnly, page, pageSize,
+		departmentID, query.Get("keyword"), directOnly, page, pageSize,
 	)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
@@ -33,19 +34,23 @@ func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.Member
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	id := chi.URLParam(r, "id")
 	member, err := h.service.UpdateMember(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, member, err)
 }
 
 func (h *Handler) MembersDelete(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		IDs []string `json:"ids"`
+		IDs []uuid.UUID `json:"ids"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -56,14 +61,14 @@ func (h *Handler) MembersDelete(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return
 	}
-	err := h.service.DeleteMembers(r.Context(), body.IDs, sessionCtx.Member.ID.String())
+	err := h.service.DeleteMembers(r.Context(), body.IDs, sessionCtx.Member.ID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) MembersStatus(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		IDs    []string `json:"ids"`
-		Status string   `json:"status"`
+		IDs    []uuid.UUID `json:"ids"`
+		Status string      `json:"status"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -75,15 +80,14 @@ func (h *Handler) MembersStatus(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) MembersTransfer(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		IDs          []string `json:"ids"`
-		DepartmentID string   `json:"departmentId"`
+		IDs          []uuid.UUID `json:"ids"`
+		DepartmentID uuid.UUID   `json:"departmentId"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	deptID, _ := uuid.Parse(body.DepartmentID)
-	err := h.service.TransferMembers(r.Context(), body.IDs, deptID)
+	err := h.service.TransferMembers(r.Context(), body.IDs, body.DepartmentID)
 	httputil.WriteVoid(w, err)
 }
 
@@ -99,7 +103,7 @@ func (h *Handler) MembersInvite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) MembersBatchInvite(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		IDs []string `json:"ids"`
+		IDs []uuid.UUID `json:"ids"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)

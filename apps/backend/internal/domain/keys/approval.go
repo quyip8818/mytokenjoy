@@ -59,7 +59,7 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	return created, nil
 }
 
-func (s *service) ApproveApproval(ctx context.Context, id string, approverMemberID string) error {
+func (s *service) ApproveApproval(ctx context.Context, id uuid.UUID, approverMemberID uuid.UUID) error {
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return err
 	}
@@ -69,8 +69,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	}
 	idx := -1
 	for i := range approvals {
-		parsedID, _ := uuid.Parse(id)
-		if approvals[i].ID == parsedID {
+		if approvals[i].ID == id {
 			idx = i
 			break
 		}
@@ -132,11 +131,7 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 			return err
 		}
 
-		approverParsedID, err := uuid.Parse(approverMemberID)
-		if err != nil {
-			return err
-		}
-		approver, err := resolveMemberName(approverParsedID, members)
+		approver, err := resolveMemberName(approverMemberID, members)
 		if err != nil {
 			return err
 		}
@@ -179,14 +174,13 @@ func (s *service) ApproveApproval(ctx context.Context, id string, approverMember
 	return err
 }
 
-func (s *service) revertKeyApproval(ctx context.Context, approvalID string) error {
+func (s *service) revertKeyApproval(ctx context.Context, approvalID uuid.UUID) error {
 	approvals, err := s.store.Keys().Approvals(ctx)
 	if err != nil {
 		return err
 	}
-	parsedApprovalID, _ := uuid.Parse(approvalID)
 	for i := range approvals {
-		if approvals[i].ID != parsedApprovalID {
+		if approvals[i].ID != approvalID {
 			continue
 		}
 		approvals[i].Status = "pending"
@@ -197,7 +191,7 @@ func (s *service) revertKeyApproval(ctx context.Context, approvalID string) erro
 	return domain.NotFound("Not found")
 }
 
-func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID string, applicantID uuid.UUID, createdKeyID uuid.UUID, personalBudgetAdded float64) error {
+func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID uuid.UUID, applicantID uuid.UUID, createdKeyID uuid.UUID, personalBudgetAdded float64) error {
 	if err := s.revertKeyApproval(ctx, approvalID); err != nil {
 		return err
 	}
@@ -240,7 +234,7 @@ func (s *service) removePlatformKeyByID(ctx context.Context, keyID uuid.UUID) er
 	return s.store.Keys().SetPlatformKeys(ctx, filtered)
 }
 
-func (s *service) RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error {
+func (s *service) RejectApproval(ctx context.Context, id uuid.UUID, approverMemberID uuid.UUID, reason *string) error {
 	if err := s.delayer.Wait(ctx, 500*time.Millisecond); err != nil {
 		return err
 	}
@@ -252,14 +246,9 @@ func (s *service) RejectApproval(ctx context.Context, id string, approverMemberI
 	if err != nil {
 		return err
 	}
-	parsedRejectID, _ := uuid.Parse(id)
 	for i := range approvals {
-		if approvals[i].ID == parsedRejectID {
-			approverParsedID, err := uuid.Parse(approverMemberID)
-			if err != nil {
-				return err
-			}
-			approver, err := resolveMemberName(approverParsedID, members)
+		if approvals[i].ID == id {
+			approver, err := resolveMemberName(approverMemberID, members)
 			if err != nil {
 				return err
 			}

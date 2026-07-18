@@ -35,25 +35,25 @@ type DepartmentService interface {
 }
 
 type MemberService interface {
-	ListMembers(ctx context.Context, departmentID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error)
+	ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error)
 	CreateMember(ctx context.Context, input types.Member) (types.Member, error)
-	UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error)
-	DeleteMembers(ctx context.Context, ids []string, currentMemberID string) error
-	UpdateMemberStatus(ctx context.Context, ids []string, status string) error
-	TransferMembers(ctx context.Context, ids []string, departmentID uuid.UUID) error
+	UpdateMember(ctx context.Context, id uuid.UUID, input types.Member) (types.Member, error)
+	DeleteMembers(ctx context.Context, ids []uuid.UUID, currentMemberID uuid.UUID) error
+	UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, status string) error
+	TransferMembers(ctx context.Context, ids []uuid.UUID, departmentID uuid.UUID) error
 	InviteMember() error
-	BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error)
+	BatchInvite(ctx context.Context, ids []uuid.UUID) (types.BatchInviteResult, error)
 	BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error)
 }
 
 type RoleService interface {
 	ListRoles(ctx context.Context) ([]types.Role, error)
 	CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error)
-	UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error)
-	DeleteRole(ctx context.Context, id string) error
-	ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error)
-	AddRoleMember(ctx context.Context, roleID, memberID string) error
-	RemoveRoleMember(ctx context.Context, roleID, memberID string) error
+	UpdateRole(ctx context.Context, id uuid.UUID, name string, permissions []string) (types.Role, error)
+	DeleteRole(ctx context.Context, id uuid.UUID) error
+	ListRoleMembers(ctx context.Context, roleID uuid.UUID) ([]types.Member, error)
+	AddRoleMember(ctx context.Context, roleID, memberID uuid.UUID) error
+	RemoveRoleMember(ctx context.Context, roleID, memberID uuid.UUID) error
 	ListPermissions(ctx context.Context) ([]types.Permission, error)
 }
 

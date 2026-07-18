@@ -51,17 +51,13 @@ func (s *LocalService) CreateRole(ctx context.Context, name string, permissions 
 	return role, nil
 }
 
-func (s *LocalService) UpdateRole(ctx context.Context, id, name string, permissions []string) (types.Role, error) {
+func (s *LocalService) UpdateRole(ctx context.Context, id uuid.UUID, name string, permissions []string) (types.Role, error) {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return types.Role{}, err
 	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return types.Role{}, err
-	}
 	for i := range roles {
-		if roles[i].ID == parsedID {
+		if roles[i].ID == id {
 			if roles[i].Type == "preset" {
 				return types.Role{}, domain.NewDomainError(400, "Cannot modify preset role")
 			}
@@ -83,18 +79,14 @@ func (s *LocalService) UpdateRole(ctx context.Context, id, name string, permissi
 	return types.Role{}, domain.NewDomainError(404, "Not found")
 }
 
-func (s *LocalService) DeleteRole(ctx context.Context, id string) error {
+func (s *LocalService) DeleteRole(ctx context.Context, id uuid.UUID) error {
 	roles, err := s.d.Store.Org().Roles(ctx)
-	if err != nil {
-		return err
-	}
-	parsedID, err := uuid.Parse(id)
 	if err != nil {
 		return err
 	}
 	idx := -1
 	for i := range roles {
-		if roles[i].ID == parsedID {
+		if roles[i].ID == id {
 			idx = i
 			break
 		}

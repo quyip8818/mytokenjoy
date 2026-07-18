@@ -76,7 +76,12 @@ func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
 		return
 	}
-	err := h.billingSvc.ConfirmPayment(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.billingSvc.ConfirmPayment(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 

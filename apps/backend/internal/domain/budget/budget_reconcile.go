@@ -200,7 +200,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) 
 
 	// Post-commit: refresh cache and trigger rebalance.
 	RefreshCombinedKeySummaries(ctx, s.combinedKeyCache, s.logger, companyID, summaries)
-	return s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, store.CompanyAxisID(companyID))
+	return s.enqueuer.InsertRebalance(ctx, companyID, store.RebalanceAxisCompany, companyID)
 }
 
 // expectedConsumedByEntryTime computes expected consumed aggregation using each

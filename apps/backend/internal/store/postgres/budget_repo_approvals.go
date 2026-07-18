@@ -104,7 +104,7 @@ func (r *pgBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.Bud
 		_, err := r.db.Exec(ctx, `DELETE FROM budget_approvals WHERE company_id = $1`, companyID)
 		return err
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "budget_approvals", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "budget_approvals", companyID, ids)
 }
 
 func (r *pgBudgetRepo) UpdateBudgetApproval(ctx context.Context, id uuid.UUID, status string, rejectReason *string, resolvedAt time.Time) error {

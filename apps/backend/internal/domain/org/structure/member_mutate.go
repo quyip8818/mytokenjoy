@@ -69,12 +69,8 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 	return member, nil
 }
 
-func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.Member) (types.Member, error) {
+func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input types.Member) (types.Member, error) {
 	if err := validateRolesNotEscalated(input.Roles); err != nil {
-		return types.Member{}, err
-	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
 		return types.Member{}, err
 	}
 	members, err := s.d.Store.Org().Members(ctx)
@@ -82,7 +78,7 @@ func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.
 		return types.Member{}, err
 	}
 	for i := range members {
-		if members[i].ID == parsedID {
+		if members[i].ID == id {
 			existing := members[i]
 			// Merge: only overwrite non-zero fields from input
 			if input.Name != "" {
@@ -133,7 +129,7 @@ func (s *LocalService) UpdateMember(ctx context.Context, id string, input types.
 	return types.Member{}, domain.NewDomainError(404, "types.Member not found")
 }
 
-func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, status string) error {
+func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, status string) error {
 	return s.d.Store.WithTx(ctx, func(st store.Store) error {
 		members, err := st.Org().Members(ctx)
 		if err != nil {
@@ -143,20 +139,19 @@ func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, sta
 		if err != nil {
 			return err
 		}
+		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			parsedID, err := uuid.Parse(id)
-			if err != nil {
+			idSet[id] = struct{}{}
+		}
+		for i := range members {
+			if _, ok := idSet[members[i].ID]; !ok {
 				continue
 			}
-			for i := range members {
-				if members[i].ID == parsedID {
-					members[i].Status = status
-					if status == "inactive" {
-						for j := range keys {
-							if keys[j].MemberID != nil && *keys[j].MemberID == parsedID {
-								keys[j].Status = "disabled"
-							}
-						}
+			members[i].Status = status
+			if status == "inactive" {
+				for j := range keys {
+					if keys[j].MemberID != nil && *keys[j].MemberID == members[i].ID {
+						keys[j].Status = "disabled"
 					}
 				}
 			}
@@ -171,7 +166,7 @@ func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []string, sta
 	})
 }
 
-func (s *LocalService) TransferMembers(ctx context.Context, ids []string, departmentID uuid.UUID) error {
+func (s *LocalService) TransferMembers(ctx context.Context, ids []uuid.UUID, departmentID uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -207,11 +202,7 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []string, depart
 		}
 		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			parsed, err := uuid.Parse(id)
-			if err != nil {
-				continue
-			}
-			idSet[parsed] = struct{}{}
+			idSet[id] = struct{}{}
 		}
 
 		for i := range members {

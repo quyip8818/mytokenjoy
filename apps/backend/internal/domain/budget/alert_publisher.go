@@ -14,10 +14,10 @@ import (
 // BudgetAlertEvent is a single alert to be published via the notification server.
 type BudgetAlertEvent struct {
 	CompanyID    uuid.UUID
-	RecipientID  string // real member ID
+	RecipientID  uuid.UUID
 	DepartmentID uuid.UUID
 	NodeName     string
-	RuleID       string
+	RuleID       uuid.UUID
 	Threshold    int
 	CurrentPct   int
 	Consumed     float64
@@ -127,7 +127,7 @@ func checkBudgetAlertsImpl(
 		}
 		periodKey := open.String()
 
-		consumed, err := st.Ledger().SumAmountByDepartment(ctx, deptID.String(), periodKey)
+		consumed, err := st.Ledger().SumAmountByDepartment(ctx, deptID, periodKey)
 		if err != nil {
 			continue
 		}
@@ -147,7 +147,7 @@ func checkBudgetAlertsImpl(
 							RecipientID:  memberID,
 							DepartmentID: deptID,
 							NodeName:     rule.NodeName,
-							RuleID:       rule.ID.String(),
+							RuleID:       rule.ID,
 							Threshold:    threshold,
 							CurrentPct:   pct,
 							Consumed:     consumed,
@@ -172,22 +172,22 @@ func checkBudgetAlertsImpl(
 	}
 }
 
-func IndexMembersByRole(members []types.Member) map[string][]string {
-	out := make(map[string][]string)
+func IndexMembersByRole(members []types.Member) map[string][]uuid.UUID {
+	out := make(map[string][]uuid.UUID)
 	for _, m := range members {
 		if m.Status != "active" {
 			continue
 		}
 		for _, role := range m.Roles {
-			out[role] = append(out[role], m.ID.String())
+			out[role] = append(out[role], m.ID)
 		}
 	}
 	return out
 }
 
-func ResolveRoleRecipients(roleIDs []uuid.UUID, roleNameByID map[uuid.UUID]string, membersByRoleName map[string][]string) []string {
-	seen := make(map[string]struct{})
-	var out []string
+func ResolveRoleRecipients(roleIDs []uuid.UUID, roleNameByID map[uuid.UUID]string, membersByRoleName map[string][]uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{})
+	var out []uuid.UUID
 	for _, roleID := range roleIDs {
 		roleName, ok := roleNameByID[roleID]
 		if !ok {

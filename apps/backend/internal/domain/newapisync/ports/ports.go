@@ -16,13 +16,13 @@ type SyncJob struct {
 
 type SyncJobEnqueuer interface {
 	InsertNewAPISync(ctx context.Context, job SyncJob) error
-	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error
+	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error
 }
 
 type noopSyncJobEnqueuer struct{}
 
 func (noopSyncJobEnqueuer) InsertNewAPISync(context.Context, SyncJob) error { return nil }
-func (noopSyncJobEnqueuer) InsertRebalance(context.Context, uuid.UUID, string, string) error {
+func (noopSyncJobEnqueuer) InsertRebalance(context.Context, uuid.UUID, string, uuid.UUID) error {
 	return nil
 }
 

@@ -14,7 +14,7 @@ func InsertWalletSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID uu
 	return insert(ctx, e, tx, args, nil)
 }
 
-func InsertRebalance(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID, axisKind, axisID string) error {
+func InsertRebalance(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error {
 	args := RebalanceArgs{
 		CompanyID: companyID,
 		AxisKind:  axisKind,

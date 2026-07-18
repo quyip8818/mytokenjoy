@@ -9,7 +9,7 @@ type CreateKeyOutboxPayload struct {
 
 type UpsertChannelOutboxPayload struct {
 	CompanyID     uuid.UUID `json:"companyId"`
-	ProviderKeyID string    `json:"providerKeyId"`
+	ProviderKeyID uuid.UUID `json:"providerKeyId"`
 }
 
 type UpdateModelLimitsOutboxPayload struct {
@@ -20,5 +20,5 @@ type UpdateModelLimitsOutboxPayload struct {
 type RebalanceAxisOutboxPayload struct {
 	CompanyID uuid.UUID `json:"companyId"`
 	AxisKind  string    `json:"axisKind"`
-	AxisID    string    `json:"axisId"`
+	AxisID    uuid.UUID `json:"axisId"`
 }

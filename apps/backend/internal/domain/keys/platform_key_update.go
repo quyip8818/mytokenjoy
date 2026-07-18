@@ -11,13 +11,9 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
-func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error) {
+func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input types.UpdatePlatformKeyInput) (types.PlatformKey, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
-	}
-	parsedID, parseErr := uuid.Parse(id)
-	if parseErr != nil {
-		return types.PlatformKey{}, domain.Validation("invalid platform key id")
 	}
 	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
@@ -27,7 +23,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	projects := budgetCtx.Projects
 	idx := -1
 	for i := range platformKeys {
-		if platformKeys[i].ID == parsedID {
+		if platformKeys[i].ID == id {
 			idx = i
 			break
 		}
@@ -92,5 +88,5 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id string, input types.
 	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
-	return s.persistPlatformKeyWithNewAPISync(ctx, platformKeys, idx, existing, previous, parsedID)
+	return s.persistPlatformKeyWithNewAPISync(ctx, platformKeys, idx, existing, previous, id)
 }

@@ -17,22 +17,22 @@ type Service interface {
 	ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error)
 	CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
 	CreateProviderKeyForPlatform(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error)
-	ToggleProviderKey(ctx context.Context, id string, enabled bool) error
-	RotateProviderKey(ctx context.Context, id string, newKey string) (types.ProviderKey, error)
-	DeleteProviderKey(ctx context.Context, id string) error
+	ToggleProviderKey(ctx context.Context, id uuid.UUID, enabled bool) error
+	RotateProviderKey(ctx context.Context, id uuid.UUID, newKey string) (types.ProviderKey, error)
+	DeleteProviderKey(ctx context.Context, id uuid.UUID) error
 	ListPlatformKeys(ctx context.Context, filter types.PlatformKeyListFilter) (types.PageResult[types.PlatformKey], error)
 	BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
-	UpdatePlatformKey(ctx context.Context, id string, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
-	TogglePlatformKey(ctx context.Context, id string, enabled bool) (types.PlatformKey, error)
-	RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error)
-	RevokePlatformKey(ctx context.Context, id string) error
-	DeletePlatformKey(ctx context.Context, id string) error
-	ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error)
+	UpdatePlatformKey(ctx context.Context, id uuid.UUID, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
+	TogglePlatformKey(ctx context.Context, id uuid.UUID, enabled bool) (types.PlatformKey, error)
+	RotatePlatformKey(ctx context.Context, id uuid.UUID) (types.PlatformKey, error)
+	RevokePlatformKey(ctx context.Context, id uuid.UUID) error
+	DeletePlatformKey(ctx context.Context, id uuid.UUID) error
+	ListApprovals(ctx context.Context, tab string, memberID uuid.UUID) ([]types.KeyApproval, error)
 	CreateApproval(ctx context.Context, input types.CreateApprovalInput) (types.KeyApproval, error)
-	ApprovalBudgetCheck(ctx context.Context, id string) (types.ApprovalBudgetCheck, error)
-	ApproveApproval(ctx context.Context, id string, approverMemberID string) error
-	RejectApproval(ctx context.Context, id string, approverMemberID string, reason *string) error
+	ApprovalBudgetCheck(ctx context.Context, id uuid.UUID) (types.ApprovalBudgetCheck, error)
+	ApproveApproval(ctx context.Context, id uuid.UUID, approverMemberID uuid.UUID) error
+	RejectApproval(ctx context.Context, id uuid.UUID, approverMemberID uuid.UUID, reason *string) error
 }
 
 // Store is the narrow store surface the keys domain needs.
@@ -98,14 +98,10 @@ func (s *service) BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.
 	return budget.BuildBudgetSummary(budgetCtx.Members, budgetCtx.PlatformKeys, memberID, reservedPool), nil
 }
 
-func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]types.KeyApproval, error) {
+func (s *service) ListApprovals(ctx context.Context, tab string, memberID uuid.UUID) ([]types.KeyApproval, error) {
 	items, err := s.store.Keys().Approvals(ctx)
 	if err != nil {
 		return nil, err
-	}
-	var parsedMemberID uuid.UUID
-	if memberID != "" {
-		parsedMemberID, _ = uuid.Parse(memberID)
 	}
 	filtered := make([]types.KeyApproval, 0, len(items))
 	for _, item := range items {
@@ -121,7 +117,7 @@ func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]ty
 				continue
 			}
 		}
-		if parsedMemberID != uuid.Nil && item.ApplicantID != parsedMemberID {
+		if memberID != uuid.Nil && item.ApplicantID != memberID {
 			continue
 		}
 		filtered = append(filtered, item)
@@ -129,18 +125,14 @@ func (s *service) ListApprovals(ctx context.Context, tab, memberID string) ([]ty
 	return filtered, nil
 }
 
-func (s *service) ApprovalBudgetCheck(ctx context.Context, id string) (types.ApprovalBudgetCheck, error) {
+func (s *service) ApprovalBudgetCheck(ctx context.Context, id uuid.UUID) (types.ApprovalBudgetCheck, error) {
 	approvals, err := s.store.Keys().Approvals(ctx)
 	if err != nil {
 		return types.ApprovalBudgetCheck{}, err
 	}
-	parsedID, parseErr := uuid.Parse(id)
-	if parseErr != nil {
-		return types.ApprovalBudgetCheck{}, domain.Validation("invalid approval id")
-	}
 	var approval *types.KeyApproval
 	for i := range approvals {
-		if approvals[i].ID == parsedID {
+		if approvals[i].ID == id {
 			approval = &approvals[i]
 			break
 		}

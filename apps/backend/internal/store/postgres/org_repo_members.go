@@ -257,7 +257,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 		_, err := r.db.Exec(ctx, `DELETE FROM members WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompanyUUID(ctx, r.db, "member_roles", "member_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "member_roles", "member_id", companyID, ids); err != nil {
 		return err
 	}
 	if _, err := r.db.Exec(ctx, `
@@ -266,7 +266,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 	`, companyID, ids); err != nil {
 		return fmt.Errorf("detach platform keys from pruned members: %w", err)
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "members", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "members", companyID, ids)
 }
 
 func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) error {

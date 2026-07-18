@@ -160,7 +160,7 @@ func (s *service) DeleteProject(ctx context.Context, id uuid.UUID) error {
 	})
 	if err == nil {
 		for _, memberID := range deletedMemberIDs {
-			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID.String()); rebalErr != nil {
+			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); rebalErr != nil {
 				return rebalErr
 			}
 		}

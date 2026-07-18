@@ -34,7 +34,7 @@ type ModelLimitsLifecycle interface {
 }
 
 type RebalanceEnqueuer interface {
-	EnqueueRebalanceAxis(ctx context.Context, axisKind, axisID string) error
+	EnqueueRebalanceAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error
 }
 
 type Lifecycle interface {

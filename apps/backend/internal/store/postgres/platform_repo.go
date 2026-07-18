@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -22,7 +23,7 @@ func (r *platformRepo) GetOperatorByEmail(ctx context.Context, email string) (*s
 	return scanPlatformOperator(row)
 }
 
-func (r *platformRepo) GetOperatorByID(ctx context.Context, id string) (*store.PlatformOperator, error) {
+func (r *platformRepo) GetOperatorByID(ctx context.Context, id uuid.UUID) (*store.PlatformOperator, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, email, password_hash, status, created_at, updated_at
 		FROM platform_operators WHERE id = $1

@@ -78,7 +78,7 @@ func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderK
 			return fmt.Errorf("upsert provider key %s: %w", key.ID, err)
 		}
 	}
-	return pruneByIDUUID(ctx, r.db, "provider_keys", ids)
+	return pruneByID(ctx, r.db, "provider_keys", ids)
 }
 
 func (r *pgKeysRepo) PlatformKeys(ctx context.Context) ([]types.PlatformKey, error) {
@@ -160,7 +160,7 @@ func (r *pgKeysRepo) SetPlatformKeys(ctx context.Context, keys []types.PlatformK
 	if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerPlatformKey, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "platform_keys", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "platform_keys", companyID, ids)
 }
 
 func (r *pgKeysRepo) Approvals(ctx context.Context) ([]types.KeyApproval, error) {
@@ -258,7 +258,7 @@ func (r *pgKeysRepo) SetApprovals(ctx context.Context, approvals []types.KeyAppr
 	if err := pruneAllowlistByOwnerIDs(ctx, r.db, companyID, types.AllowlistOwnerKeyApproval, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "key_approvals", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "key_approvals", companyID, ids)
 }
 
 func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID uuid.UUID) (*types.PlatformKey, error) {

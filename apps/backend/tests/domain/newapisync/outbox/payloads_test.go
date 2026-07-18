@@ -47,14 +47,15 @@ func TestOutboxPayloadJSONRoundtrip(t *testing.T) {
 
 	t.Run("upsert channel", func(t *testing.T) {
 		t.Parallel()
+		providerKeyID := uuid.MustParse("00000000-0000-7000-0000-00000000a001")
 		var wire struct {
 			CompanyID     string `json:"companyId"`
 			ProviderKeyID string `json:"providerKeyId"`
 		}
 		assertOutboxWireJSON(t, outbox.UpsertChannelOutboxPayload{
-			CompanyID: companyID3, ProviderKeyID: "pvk-1",
+			CompanyID: companyID3, ProviderKeyID: providerKeyID,
 		}, &wire)
-		if wire.CompanyID != companyID3.String() || wire.ProviderKeyID != "pvk-1" {
+		if wire.CompanyID != companyID3.String() || wire.ProviderKeyID != providerKeyID.String() {
 			t.Fatalf("wire mismatch: %+v", wire)
 		}
 	})
@@ -75,15 +76,16 @@ func TestOutboxPayloadJSONRoundtrip(t *testing.T) {
 
 	t.Run("rebalance axis", func(t *testing.T) {
 		t.Parallel()
+		axisID := uuid.MustParse("00000000-0000-7000-0000-000000000d03")
 		var wire struct {
 			CompanyID string `json:"companyId"`
 			AxisKind  string `json:"axisKind"`
 			AxisID    string `json:"axisId"`
 		}
 		assertOutboxWireJSON(t, outbox.RebalanceAxisOutboxPayload{
-			CompanyID: companyID5, AxisKind: "department", AxisID: "dept-3",
+			CompanyID: companyID5, AxisKind: "department", AxisID: axisID,
 		}, &wire)
-		if wire.CompanyID != companyID5.String() || wire.AxisKind != "department" || wire.AxisID != "dept-3" {
+		if wire.CompanyID != companyID5.String() || wire.AxisKind != "department" || wire.AxisID != axisID.String() {
 			t.Fatalf("wire mismatch: %+v", wire)
 		}
 	})

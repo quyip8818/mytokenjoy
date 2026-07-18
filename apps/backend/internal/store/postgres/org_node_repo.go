@@ -108,7 +108,7 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 			return fmt.Errorf("upsert org node %s: %w", row.ID, err)
 		}
 	}
-	if err := pruneByIDForCompanyUUID(ctx, r.db, "org_nodes", companyID, ids); err != nil {
+	if err := pruneByIDForCompany(ctx, r.db, "org_nodes", companyID, ids); err != nil {
 		return err
 	}
 	_, err := r.db.Exec(ctx, `

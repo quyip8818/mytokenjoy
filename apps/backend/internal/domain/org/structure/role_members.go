@@ -11,18 +11,14 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *LocalService) ListRoleMembers(ctx context.Context, roleID string) ([]types.Member, error) {
+func (s *LocalService) ListRoleMembers(ctx context.Context, roleID uuid.UUID) ([]types.Member, error) {
 	roles, err := s.d.Store.Org().Roles(ctx)
-	if err != nil {
-		return nil, err
-	}
-	parsedRoleID, err := uuid.Parse(roleID)
 	if err != nil {
 		return nil, err
 	}
 	var role *types.Role
 	for i := range roles {
-		if roles[i].ID == parsedRoleID {
+		if roles[i].ID == roleID {
 			role = &roles[i]
 			break
 		}
@@ -47,7 +43,7 @@ func (s *LocalService) ListRoleMembers(ctx context.Context, roleID string) ([]ty
 	return result, nil
 }
 
-func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID string) error {
+func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID uuid.UUID) error {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
@@ -57,18 +53,9 @@ func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID strin
 		return err
 	}
 
-	parsedRoleID, err := uuid.Parse(roleID)
-	if err != nil {
-		return err
-	}
-	parsedMemberID, err := uuid.Parse(memberID)
-	if err != nil {
-		return err
-	}
-
 	var role *types.Role
 	for i := range roles {
-		if roles[i].ID == parsedRoleID {
+		if roles[i].ID == roleID {
 			role = &roles[i]
 			break
 		}
@@ -86,7 +73,7 @@ func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID strin
 
 	found := false
 	for i := range members {
-		if members[i].ID != parsedMemberID {
+		if members[i].ID != memberID {
 			continue
 		}
 		found = true
@@ -105,7 +92,7 @@ func (s *LocalService) AddRoleMember(ctx context.Context, roleID, memberID strin
 	return nil
 }
 
-func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID string) error {
+func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID uuid.UUID) error {
 	roles, err := s.d.Store.Org().Roles(ctx)
 	if err != nil {
 		return err
@@ -115,25 +102,16 @@ func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID st
 		return err
 	}
 
-	parsedRoleID, err := uuid.Parse(roleID)
-	if err != nil {
-		return err
-	}
-	parsedMemberID, err := uuid.Parse(memberID)
-	if err != nil {
-		return err
-	}
-
 	var role *types.Role
 	for i := range roles {
-		if roles[i].ID == parsedRoleID {
+		if roles[i].ID == roleID {
 			role = &roles[i]
 			break
 		}
 	}
 	var member *types.Member
 	for i := range members {
-		if members[i].ID == parsedMemberID {
+		if members[i].ID == memberID {
 			member = &members[i]
 			break
 		}
@@ -165,7 +143,7 @@ func (s *LocalService) RemoveRoleMember(ctx context.Context, roleID, memberID st
 		}
 	}
 	for i := range members {
-		if members[i].ID == parsedMemberID {
+		if members[i].ID == memberID {
 			members[i].Roles = filtered
 			break
 		}

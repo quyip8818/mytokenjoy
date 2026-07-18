@@ -194,7 +194,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			return err
 		}
 		if deptFound && deptBudget > 0 {
-			deptSpent, err := tx.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID.String(), periodKey)
+			deptSpent, err := tx.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID, periodKey)
 			if err != nil {
 				return err
 			}

@@ -121,7 +121,7 @@ func (s *service) ResolveApproval(ctx context.Context, id uuid.UUID, input types
 			return types.BudgetApproval{}, err
 		}
 
-		if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, result.ApplicantID.String()); err != nil {
+		if err := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, result.ApplicantID); err != nil {
 			return types.BudgetApproval{}, err
 		}
 	} else {

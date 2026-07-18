@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *LocalService) DeleteMembers(ctx context.Context, ids []string, currentMemberID string) error {
+func (s *LocalService) DeleteMembers(ctx context.Context, ids []uuid.UUID, currentMemberID uuid.UUID) error {
 	for _, id := range ids {
 		if id == currentMemberID {
 			return domain.BadRequest("不能删除当前登录的用户")
@@ -28,11 +28,7 @@ func (s *LocalService) DeleteMembers(ctx context.Context, ids []string, currentM
 
 		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			parsed, err := uuid.Parse(id)
-			if err != nil {
-				continue
-			}
-			idSet[parsed] = struct{}{}
+			idSet[id] = struct{}{}
 		}
 
 		for i := range keys {

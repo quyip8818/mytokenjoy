@@ -11,10 +11,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func parseModelID(raw string) (uuid.UUID, error) {
-	return uuid.Parse(raw)
-}
-
 func (s *service) requireTenantModel(ctx context.Context, modelID uuid.UUID) (*types.ModelInfo, error) {
 	model, err := s.store.Models().ModelByID(ctx, modelID)
 	if err != nil {

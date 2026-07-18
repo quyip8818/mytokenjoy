@@ -95,7 +95,7 @@ type Currency struct {
 
 type BillingRepository interface {
 	CreateRechargeOrder(ctx context.Context, order RechargeOrder) error
-	GetRechargeOrder(ctx context.Context, id string) (*RechargeOrder, error)
+	GetRechargeOrder(ctx context.Context, id uuid.UUID) (*RechargeOrder, error)
 	ListRechargeOrders(ctx context.Context, companyID uuid.UUID) ([]RechargeOrder, error)
 	ConfirmRechargeWithLot(ctx context.Context, order RechargeOrder, lot RechargeLot) error
 	ListActiveLotsFIFO(ctx context.Context, companyID uuid.UUID, fifoHeadID *uuid.UUID) ([]RechargeLot, error)

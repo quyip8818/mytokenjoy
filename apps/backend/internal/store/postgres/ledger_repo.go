@@ -217,7 +217,7 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 	return items, rows.Err()
 }
 
-func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID, periodKey string) (float64, error) {
+func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID uuid.UUID, periodKey string) (float64, error) {
 	companyID := store.CompanyID(ctx)
 	var total float64
 	err := r.db.QueryRow(ctx, `

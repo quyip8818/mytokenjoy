@@ -119,7 +119,7 @@ func (s *service) afterRecharge(ctx context.Context, companyID uuid.UUID) error 
 	return s.enqueuer.InsertWalletSync(ctx, companyID)
 }
 
-func (s *service) ConfirmPayment(ctx context.Context, orderID string) error {
+func (s *service) ConfirmPayment(ctx context.Context, orderID uuid.UUID) error {
 	order, err := s.store.Billing().GetRechargeOrder(ctx, orderID)
 	if err != nil {
 		return err

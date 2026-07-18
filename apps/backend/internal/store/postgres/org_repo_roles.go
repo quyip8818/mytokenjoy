@@ -137,8 +137,8 @@ func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 		_, err := r.db.Exec(ctx, `DELETE FROM roles WHERE company_id = $1`, companyID)
 		return err
 	}
-	if err := pruneByColumnForCompanyUUID(ctx, r.db, "role_permission_grants", "role_id", companyID, ids); err != nil {
+	if err := pruneByColumnForCompany(ctx, r.db, "role_permission_grants", "role_id", companyID, ids); err != nil {
 		return err
 	}
-	return pruneByIDForCompanyUUID(ctx, r.db, "roles", companyID, ids)
+	return pruneByIDForCompany(ctx, r.db, "roles", companyID, ids)
 }

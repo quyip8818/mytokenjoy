@@ -16,7 +16,7 @@ func (s *LocalService) InviteMember() error {
 	return domain.NewDomainError(domain.StatusNotImplemented, "Invite member is not implemented")
 }
 
-func (s *LocalService) BatchInvite(ctx context.Context, ids []string) (types.BatchInviteResult, error) {
+func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID) (types.BatchInviteResult, error) {
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.BatchInviteResult{}, err
@@ -25,11 +25,7 @@ func (s *LocalService) BatchInvite(ctx context.Context, ids []string) (types.Bat
 	if len(ids) > 0 {
 		idSet := make(map[uuid.UUID]struct{}, len(ids))
 		for _, id := range ids {
-			parsed, err := uuid.Parse(id)
-			if err != nil {
-				continue
-			}
-			idSet[parsed] = struct{}{}
+			idSet[id] = struct{}{}
 		}
 		for _, member := range members {
 			if _, ok := idSet[member.ID]; ok {

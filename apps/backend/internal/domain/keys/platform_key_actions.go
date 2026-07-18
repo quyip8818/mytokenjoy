@@ -10,27 +10,23 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool) (types.PlatformKey, error) {
+func (s *service) TogglePlatformKey(ctx context.Context, id uuid.UUID, enabled bool) (types.PlatformKey, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.PlatformKey{}, err
 	}
 	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
 	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	idx, ok := platformKeyIndex(platformKeys, parsedID)
+	idx, ok := platformKeyIndex(platformKeys, id)
 	if !ok {
 		return types.PlatformKey{}, domain.NotFound("Not found")
 	}
 	targetActive := enabled
-	if err := s.newAPISync.SyncUpdatePlatformKey(ctx, parsedID, &targetActive); err != nil {
+	if err := s.newAPISync.SyncUpdatePlatformKey(ctx, id, &targetActive); err != nil {
 		return types.PlatformKey{}, err
 	}
 	if enabled {
@@ -41,24 +37,20 @@ func (s *service) TogglePlatformKey(ctx context.Context, id string, enabled bool
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return types.PlatformKey{}, err
 	}
-	s.cacheInvalidator.InvalidateByKeyID(parsedID)
+	s.cacheInvalidator.InvalidateByKeyID(id)
 	if enabled {
-		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, parsedID, s.cfg.Clock(), nil); err != nil {
+		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
 			return types.PlatformKey{}, err
 		}
 	}
 	return s.enrichPlatformKeyResponse(ctx, platformKeys[idx])
 }
 
-func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.PlatformKey, error) {
+func (s *service) RotatePlatformKey(ctx context.Context, id uuid.UUID) (types.PlatformKey, error) {
 	if err := s.requireNewAPI(); err != nil {
 		return types.PlatformKey{}, err
 	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return types.PlatformKey{}, err
-	}
-	fullKey, err := s.newAPISync.SyncRotatePlatformKey(ctx, parsedID)
+	fullKey, err := s.newAPISync.SyncRotatePlatformKey(ctx, id)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -67,7 +59,7 @@ func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.Platf
 		return types.PlatformKey{}, err
 	}
 	for i := range platformKeys {
-		if platformKeys[i].ID == parsedID {
+		if platformKeys[i].ID == id {
 			key := platformKeys[i]
 			key.FullKey = &fullKey
 			return s.enrichPlatformKeyResponse(ctx, key)
@@ -76,15 +68,11 @@ func (s *service) RotatePlatformKey(ctx context.Context, id string) (types.Platf
 	return types.PlatformKey{}, domain.NotFound("Not found")
 }
 
-func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
+func (s *service) RevokePlatformKey(ctx context.Context, id uuid.UUID) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
-	platformKeys, idx, err := s.newAPIRevokeKey(ctx, parsedID)
+	platformKeys, idx, err := s.newAPIRevokeKey(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -92,16 +80,12 @@ func (s *service) RevokePlatformKey(ctx context.Context, id string) error {
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return err
 	}
-	s.cacheInvalidator.InvalidateByKeyID(parsedID)
+	s.cacheInvalidator.InvalidateByKeyID(id)
 	return nil
 }
 
-func (s *service) DeletePlatformKey(ctx context.Context, id string) error {
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
-	platformKeys, idx, err := s.newAPIRevokeKey(ctx, parsedID)
+func (s *service) DeletePlatformKey(ctx context.Context, id uuid.UUID) error {
+	platformKeys, idx, err := s.newAPIRevokeKey(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -109,6 +93,6 @@ func (s *service) DeletePlatformKey(ctx context.Context, id string) error {
 	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
 		return err
 	}
-	s.cacheInvalidator.InvalidateByKeyID(parsedID)
+	s.cacheInvalidator.InvalidateByKeyID(id)
 	return nil
 }

@@ -12,7 +12,7 @@ import (
 type RebalanceArgs struct {
 	CompanyID uuid.UUID `json:"company_id" river:"unique"`
 	AxisKind  string    `json:"axis_kind" river:"unique"`
-	AxisID    string    `json:"axis_id" river:"unique"`
+	AxisID    uuid.UUID `json:"axis_id" river:"unique"`
 }
 
 func (RebalanceArgs) Kind() string { return KindRebalance }

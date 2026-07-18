@@ -60,27 +60,42 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.UpdateModelInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	model, err := h.service.UpdateModel(r.Context(), chi.URLParam(r, "id"), body)
+	model, err := h.service.UpdateModel(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, model, err)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteModel(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.DeleteModel(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) Toggle(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.ToggleModelInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	err := h.service.ToggleModel(r.Context(), chi.URLParam(r, "id"), body.Enabled)
+	err = h.service.ToggleModel(r.Context(), id, body.Enabled)
 	httputil.WriteVoid(w, err)
 }
 
@@ -96,11 +111,16 @@ func (h *Handler) RoutingResolve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RoutingUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	var body types.UpdateRoutingRuleInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	rule, err := h.service.UpdateRoutingRule(r.Context(), chi.URLParam(r, "id"), body)
+	rule, err := h.service.UpdateRoutingRule(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, rule, err)
 }

@@ -22,12 +22,12 @@ func (n newAPISyncJobEnqueuer) InsertNewAPISync(ctx context.Context, job ports.S
 		CompanyID:     job.CompanyID,
 		SubKind:       job.SubKind,
 		PlatformKeyID: job.PlatformKeyID,
-		ProviderKeyID: job.ProviderKeyID.String(),
+		ProviderKeyID: job.ProviderKeyID,
 		DepartmentID:  job.DepartmentID,
 	})
 }
 
-func (n newAPISyncJobEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind, axisID string) error {
+func (n newAPISyncJobEnqueuer) InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error {
 	return jobs.InsertRebalance(ctx, n.enqueuer, nil, companyID, axisKind, axisID)
 }
 

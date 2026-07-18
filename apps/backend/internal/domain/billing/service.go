@@ -20,7 +20,7 @@ type Service interface {
 	PlatformGift(ctx context.Context, companyID uuid.UUID, points float64, operatorID uuid.UUID) error
 	PlatformAdjust(ctx context.Context, companyID uuid.UUID, points float64, amountDisplay float64, operatorID uuid.UUID) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
-	ConfirmPayment(ctx context.Context, orderID string) error
+	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
 	SyncCompanyWallet(ctx context.Context, companyID uuid.UUID) error
 	ReconcileWalletDrift(ctx context.Context) error
 }

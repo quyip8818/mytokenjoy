@@ -20,12 +20,12 @@ import (
 type Service interface {
 	ListModels(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
-	UpdateModel(ctx context.Context, id string, input types.UpdateModelInput) (types.ModelInfo, error)
-	DeleteModel(ctx context.Context, id string) error
-	ToggleModel(ctx context.Context, id string, enabled bool) error
+	UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
+	DeleteModel(ctx context.Context, id uuid.UUID) error
+	ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
 	ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
-	UpdateRoutingRule(ctx context.Context, id string, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
+	UpdateRoutingRule(ctx context.Context, id uuid.UUID, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
 }
 
 // Store is the narrow store surface the models domain needs.
@@ -105,15 +105,11 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	return created, nil
 }
 
-func (s *service) UpdateModel(ctx context.Context, id string, input types.UpdateModelInput) (types.ModelInfo, error) {
+func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.ModelInfo{}, err
 	}
-	modelID, err := parseModelID(id)
-	if err != nil {
-		return types.ModelInfo{}, domain.Validation("invalid model id")
-	}
-	existing, err := s.requireTenantModel(ctx, modelID)
+	existing, err := s.requireTenantModel(ctx, id)
 	if err != nil {
 		return types.ModelInfo{}, err
 	}
@@ -159,29 +155,21 @@ func (s *service) UpdateModel(ctx context.Context, id string, input types.Update
 	return *existing, nil
 }
 
-func (s *service) DeleteModel(ctx context.Context, id string) error {
+func (s *service) DeleteModel(ctx context.Context, id uuid.UUID) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	modelID, err := parseModelID(id)
-	if err != nil {
-		return domain.Validation("invalid model id")
-	}
-	if _, err := s.requireTenantModel(ctx, modelID); err != nil {
+	if _, err := s.requireTenantModel(ctx, id); err != nil {
 		return err
 	}
-	return s.store.Models().DeleteModel(ctx, modelID)
+	return s.store.Models().DeleteModel(ctx, id)
 }
 
-func (s *service) ToggleModel(ctx context.Context, id string, enabled bool) error {
+func (s *service) ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return err
 	}
-	modelID, err := parseModelID(id)
-	if err != nil {
-		return domain.Validation("invalid model id")
-	}
-	model, err := s.store.Models().ModelByID(ctx, modelID)
+	model, err := s.store.Models().ModelByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -274,7 +262,7 @@ func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.R
 
 func (s *service) UpdateRoutingRule(
 	ctx context.Context,
-	id string,
+	id uuid.UUID,
 	input types.UpdateRoutingRuleInput,
 ) (types.RoutingRule, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
@@ -286,7 +274,7 @@ func (s *service) UpdateRoutingRule(
 	}
 	idx := -1
 	for i := range rules {
-		if rules[i].ID.String() == id {
+		if rules[i].ID == id {
 			idx = i
 			break
 		}
