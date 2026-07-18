@@ -39,7 +39,7 @@ type Store interface {
 	Company() CompanyRepository
 	User() UserRepository
 	Invite() InviteRepository
-	Platform() PlatformRepository
+
 	Billing() BillingRepository
 	Org() OrgRepository
 	Budget() BudgetRepository

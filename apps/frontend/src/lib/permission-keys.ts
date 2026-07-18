@@ -24,6 +24,7 @@ export const PERMISSION = {
   API_CALL: 'api:call',
   BILLING_READ: 'billing:read',
   BILLING_RECHARGE: 'billing:recharge',
+  PLATFORM_MANAGE: 'platform:manage',
 } as const
 
 export type PermissionKey = (typeof PERMISSION)[keyof typeof PERMISSION]

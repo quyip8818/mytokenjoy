@@ -9,4 +9,5 @@ const (
 	RoleAuditor        = grants.RoleAuditor
 	RoleAPICaller      = grants.RoleAPICaller
 	RoleBudgetApprover = grants.RoleBudgetApprover
+	RolePlatformAdmin  = grants.RolePlatformAdmin
 )

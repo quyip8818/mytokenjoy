@@ -27,31 +27,30 @@ import (
 )
 
 type Deps struct {
-	Config               config.Config
-	Logger               *slog.Logger
-	Store                store.Store
-	AuthzSvc             authz.Service
-	Credentials          credentials.Service
-	SessionToken         sessiontoken.Issuer
-	PlatformSessionToken sessiontoken.Issuer
-	OrgSvc               domainorg.Service
-	BudgetSvc            domainbudget.Service
-	KeysSvc              domainkeys.Service
-	ModelsSvc            domainmodels.Service
-	DashboardSvc         domaindashboard.Service
-	AuditSvc             domainaudit.Service
-	ReadModel            domainusage.ReadModel
-	IngestSvc            domainusage.Ingestor
-	IngestEnqueuer       jobs.Enqueuer
-	IngestMetrics        ingestmetrics.Recorder
-	CompanySvc           domaincompany.Service
-	BillingSvc           domainbilling.Service
-	MemberAnalyticsSvc   domainmemberanalytics.Service
-	WalletSvc            domaincompany.WalletService
-	CompanyGate          *domaincompany.Gate
-	Gateway              domaingateway.GatewayService
-	DevBearerResolver    devapi.BearerResolver
-	DevReadinessChecker  devapi.ReadinessChecker
-	NotificationSvc      *notification.Service
-	RateLimiter          ratelimit.Limiter
+	Config              config.Config
+	Logger              *slog.Logger
+	Store               store.Store
+	AuthzSvc            authz.Service
+	Credentials         credentials.Service
+	SessionToken        sessiontoken.Issuer
+	OrgSvc              domainorg.Service
+	BudgetSvc           domainbudget.Service
+	KeysSvc             domainkeys.Service
+	ModelsSvc           domainmodels.Service
+	DashboardSvc        domaindashboard.Service
+	AuditSvc            domainaudit.Service
+	ReadModel           domainusage.ReadModel
+	IngestSvc           domainusage.Ingestor
+	IngestEnqueuer      jobs.Enqueuer
+	IngestMetrics       ingestmetrics.Recorder
+	CompanySvc          domaincompany.Service
+	BillingSvc          domainbilling.Service
+	MemberAnalyticsSvc  domainmemberanalytics.Service
+	WalletSvc           domaincompany.WalletService
+	CompanyGate         *domaincompany.Gate
+	Gateway             domaingateway.GatewayService
+	DevBearerResolver   devapi.BearerResolver
+	DevReadinessChecker devapi.ReadinessChecker
+	NotificationSvc     *notification.Service
+	RateLimiter         ratelimit.Limiter
 }

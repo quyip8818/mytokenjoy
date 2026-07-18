@@ -41,9 +41,6 @@ func (c Config) validateCore() error {
 	if err := validateDataSourceCredentialKey(c.DataSourceCredentialKey); err != nil {
 		return err
 	}
-	if c.SupportSaas && strings.TrimSpace(c.PlatformSessionSecret) == "" {
-		return fmt.Errorf("PLATFORM_SESSION_SECRET is required when SUPPORT_SAAS=true")
-	}
 	if c.LogSchemaIsolated && !c.IngestEnabled() {
 		return fmt.Errorf("log schema isolation requires LOG_DATABASE_URL")
 	}

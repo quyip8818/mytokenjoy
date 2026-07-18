@@ -88,10 +88,6 @@ func (s *txStore) Invite() store.InviteRepository {
 	return s.invite
 }
 
-func (s *txStore) Platform() store.PlatformRepository {
-	return s.parent.Platform()
-}
-
 func (s *txStore) Billing() store.BillingRepository {
 	return s.billing
 }

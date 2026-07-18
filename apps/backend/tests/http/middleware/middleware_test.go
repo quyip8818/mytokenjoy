@@ -102,38 +102,96 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		}
 	})
 
-	t.Run("M3 platform auth unauthorized", func(t *testing.T) {
+	t.Run("M3 RequirePlatformAdmin rejects non-platform session", func(t *testing.T) {
 		t.Parallel()
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			t.Fatal("next should not run")
 		})
-		handler := httpmiddleware.PlatformAuth(sessionConfig(), testutil.SessionIssuer(t))(next)
+		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
-		if rec.Code != http.StatusUnauthorized {
-			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
 		}
 	})
 
-	t.Run("M4 platform login bypass", func(t *testing.T) {
+	t.Run("M3b RequirePlatformAdmin rejects tenant member with wrong companyID", func(t *testing.T) {
+		t.Parallel()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatal("next should not run")
+		})
+		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
+		tenantCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000002")
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
+
+		// Inject a session from a different company (tenant) even with "*" permissions
+		session := types.SessionContext{
+			CompanyID:   tenantCompanyID,
+			Permissions: []string{"*"},
+			Member:      types.Member{ID: uuid.New()},
+		}
+		req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
+		ctx := httpx.WithSessionContext(req.Context(), session)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 for tenant member, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("M3c RequirePlatformAdmin allows platform admin session", func(t *testing.T) {
 		t.Parallel()
 		called := false
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			called = true
-			w.WriteHeader(http.StatusNoContent)
+			w.WriteHeader(http.StatusOK)
 		})
-		handler := httpmiddleware.PlatformAuth(sessionConfig(), testutil.SessionIssuer(t))(next)
+		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
 
-		req := httptest.NewRequest(http.MethodPost, "/api/platform/auth/login", nil)
+		session := types.SessionContext{
+			CompanyID:   tokenJoyCompanyID,
+			Permissions: []string{"platform:manage"},
+			Member:      types.Member{ID: uuid.New()},
+		}
+		req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
+		ctx := httpx.WithSessionContext(req.Context(), session)
+		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 		if !called {
-			t.Fatal("expected login path to bypass platform auth")
+			t.Fatal("expected next handler to run for platform admin")
 		}
-		if rec.Code != http.StatusNoContent {
-			t.Fatalf("expected 204, got %d", rec.Code)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("M3d RequirePlatformAdmin rejects super company member without platform:manage", func(t *testing.T) {
+		t.Parallel()
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatal("next should not run")
+		})
+		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
+
+		// Same company but missing platform:manage permission
+		session := types.SessionContext{
+			CompanyID:   tokenJoyCompanyID,
+			Permissions: []string{"org:read", "budget:read"},
+			Member:      types.Member{ID: uuid.New()},
+		}
+		req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
+		ctx := httpx.WithSessionContext(req.Context(), session)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 for member without platform:manage, got %d", rec.Code)
 		}
 	})
 

@@ -157,10 +157,9 @@ func TestConfig(opts ...ConfigOption) config.Config {
 			LocalCompanyID:    contract.LocalCompanyID,
 		},
 		IdentityConfig: config.IdentityConfig{
-			SessionSecret:         TestSessionSecret,
-			PlatformSessionSecret: TestSessionSecret,
-			SessionTTLSec:         900,
-			RefreshTokenTTLSec:    604800,
+			SessionSecret:      TestSessionSecret,
+			SessionTTLSec:      900,
+			RefreshTokenTTLSec: 604800,
 		},
 	}
 	for _, opt := range opts {

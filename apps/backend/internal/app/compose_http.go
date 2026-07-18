@@ -13,19 +13,12 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials.Service, sessiontoken.Issuer, sessiontoken.Issuer, error) {
+func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials.Service, sessiontoken.Issuer, error) {
 	memberToken, err := sessiontoken.NewIssuer(cfg.SessionSecret, cfg.SessionTTLSec)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("member session token: %w", err)
+		return nil, nil, nil, fmt.Errorf("member session token: %w", err)
 	}
-	var platformToken sessiontoken.Issuer
-	if cfg.SupportSaas {
-		platformToken, err = sessiontoken.NewIssuer(cfg.PlatformSessionSecret, cfg.SessionTTLSec)
-		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("platform session token: %w", err)
-		}
-	}
-	return authz.NewService(cfg, st), credentials.NewService(cfg, st), memberToken, platformToken, nil
+	return authz.NewService(cfg, st), credentials.NewService(cfg, st), memberToken, nil
 }
 
 func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {

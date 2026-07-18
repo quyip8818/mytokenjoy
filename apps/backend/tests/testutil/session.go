@@ -45,22 +45,8 @@ func SessionCookieAdmin(t *testing.T) string {
 	return SessionCookie(t, contract.IDMemberAdmin)
 }
 
-func PlatformSessionCookie(t *testing.T, operatorID uuid.UUID) string {
-	t.Helper()
-	issuer, err := sessiontoken.NewIssuer(TestSessionSecret, 86400)
-	if err != nil {
-		t.Fatalf("platform session issuer: %v", err)
-	}
-	token, err := issuer.Issue(uuid.Nil, operatorID)
-	if err != nil {
-		t.Fatalf("issue platform jwt: %v", err)
-	}
-	return httpx.PlatformSessionCookie + "=" + token
-}
-
 func WithSessionConfig(cfg config.Config) config.Config {
 	cfg.SessionSecret = TestSessionSecret
-	cfg.PlatformSessionSecret = TestSessionSecret
 	if cfg.SessionTTLSec == 0 {
 		cfg.SessionTTLSec = 900
 	}

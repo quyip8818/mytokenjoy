@@ -102,4 +102,12 @@ func nilIfEmpty(s string) *string {
 	return &s
 }
 
+// nilUUID returns nil for uuid.Nil (for nullable UUID DB columns).
+func nilUUID(id uuid.UUID) *uuid.UUID {
+	if id == uuid.Nil {
+		return nil
+	}
+	return &id
+}
+
 var _ store.UserRepository = (*userRepo)(nil)

@@ -11,14 +11,14 @@ import (
 )
 
 const memberSelect = `
-	SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget
+	SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget
 	FROM members m
 	JOIN users u ON u.id = m.user_id
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 `
 
 const memberListSelect = `
-	SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''),
+	SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''),
 		m.status, m.source, m.external_id, m.personal_budget,
 		COALESCE(array_agg(r.name ORDER BY r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
 	FROM members m
@@ -102,7 +102,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID uuid.UUID) (*types.
 
 func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, email string) (*types.Member, string, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget, u.password_hash
+		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget, u.password_hash
 		FROM members m
 		JOIN users u ON u.id = m.user_id
 		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
@@ -144,7 +144,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, emai
 
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), m.department_id, COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,
+		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,
 		       c.authz_revision
 		FROM members m
 		JOIN users u ON u.id = m.user_id
@@ -231,7 +231,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 				personal_budget = EXCLUDED.personal_budget,
 				updated_at = NOW()
 		`, member.ID, companyID, member.UserID, member.Name,
-			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget); err != nil {
+			nilUUID(member.DepartmentID), member.Status, member.Source, member.ExternalID, member.PersonalBudget); err != nil {
 			return fmt.Errorf("upsert member %s: %w", member.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `DELETE FROM member_roles WHERE company_id = $1 AND member_id = $2`, companyID, member.ID); err != nil {

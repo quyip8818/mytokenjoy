@@ -23,7 +23,8 @@
     "audit:read",
     "api:call",
     "billing:read",
-    "billing:recharge"
+    "billing:recharge",
+    "platform:manage"
   ],
   "permissionIdMap": {
     "p-1": "org:structure",
@@ -48,7 +49,8 @@
     "p-20": "keys:read",
     "p-21": "model:read",
     "p-22": "billing:read",
-    "p-23": "billing:recharge"
+    "p-23": "billing:recharge",
+    "p-24": "platform:manage"
   },
   "presetRoles": {
     "超级管理员": ["*"],
@@ -64,7 +66,8 @@
       "dashboard:usage",
       "self:approval"
     ],
-    "API 调用者": ["api:call"]
+    "API 调用者": ["api:call"],
+    "平台管理员": ["platform:manage"]
   },
   "writeCapabilities": [
     "org:datasource",

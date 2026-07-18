@@ -17,14 +17,14 @@ func TestManifestLoads(t *testing.T) {
 	if m.Version != 1 {
 		t.Fatalf("version: got %d want 1", m.Version)
 	}
-	if len(m.Capabilities) != 23 {
-		t.Fatalf("capabilities: got %d want 23", len(m.Capabilities))
+	if len(m.Capabilities) != 24 {
+		t.Fatalf("capabilities: got %d want 24", len(m.Capabilities))
 	}
-	if len(m.PermissionIDMap) != 23 {
-		t.Fatalf("permissionIdMap: got %d want 23", len(m.PermissionIDMap))
+	if len(m.PermissionIDMap) != 24 {
+		t.Fatalf("permissionIdMap: got %d want 24", len(m.PermissionIDMap))
 	}
-	if len(m.PresetRoles) != 5 {
-		t.Fatalf("presetRoles: got %d want 5", len(m.PresetRoles))
+	if len(m.PresetRoles) != 6 {
+		t.Fatalf("presetRoles: got %d want 6", len(m.PresetRoles))
 	}
 	if len(m.WriteCapabilities) == 0 {
 		t.Fatal("writeCapabilities empty")

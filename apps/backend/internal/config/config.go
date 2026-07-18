@@ -105,11 +105,10 @@ type PlatformConfig struct {
 
 // IdentityConfig holds authentication, session, and authorization settings.
 type IdentityConfig struct {
-	SessionSecret         string `env:"SESSION_SECRET"`
-	SessionTTLSec         int    `env:"SESSION_TTL_SEC" envDefault:"900"`
-	RefreshTokenTTLSec    int    `env:"REFRESH_TOKEN_TTL_SEC" envDefault:"604800"`
-	PlatformSessionSecret string `env:"PLATFORM_SESSION_SECRET"`
-	AuthzCacheSize        int    `env:"AUTHZ_CACHE_SIZE" envDefault:"4096"`
+	SessionSecret      string `env:"SESSION_SECRET"`
+	SessionTTLSec      int    `env:"SESSION_TTL_SEC" envDefault:"900"`
+	RefreshTokenTTLSec int    `env:"REFRESH_TOKEN_TTL_SEC" envDefault:"604800"`
+	AuthzCacheSize     int    `env:"AUTHZ_CACHE_SIZE" envDefault:"4096"`
 }
 
 // CacheConfig holds Redis and gateway budget-check cache settings.

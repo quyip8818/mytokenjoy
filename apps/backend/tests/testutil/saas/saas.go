@@ -179,8 +179,8 @@ func LoginPlatform(t *testing.T, router http.Handler) string {
 		t.Fatalf("platform login: expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "tokenjoy_platform_session" && c.Value != "" {
-			return "tokenjoy_platform_session=" + c.Value
+		if c.Name == "tokenjoy_session_member" && c.Value != "" {
+			return "tokenjoy_session_member=" + c.Value
 		}
 	}
 	t.Fatal("platform session cookie not set")

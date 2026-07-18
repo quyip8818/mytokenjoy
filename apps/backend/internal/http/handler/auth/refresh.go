@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // Refresh validates the refresh cookie and issues a new access token.
@@ -53,38 +52,13 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 // issueTokenPair creates a session record and sets both access + refresh cookies.
 func (h *Handler) issueTokenPair(w http.ResponseWriter, r *http.Request, companyID, memberID, userID uuid.UUID) (string, error) {
-	sid := sessiontoken.NewSessionID()
-	refreshRaw := sid + "." + sessiontoken.RandomHex(32)
-
-	ttl := time.Duration(h.pub.Cfg.SessionTTLSec) * time.Second
-	accessToken, err := sessiontoken.IssueAccessToken(
-		h.pub.SessionToken.Secret(), ttl,
-		companyID, memberID, userID, sid,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	now := time.Now().UTC()
-	refreshTTL := time.Duration(h.pub.Cfg.RefreshTokenTTLSec) * time.Second
-	sess := store.Session{
-		ID:        sid,
-		UserID:    userID,
-		MemberID:  memberID,
-		CompanyID: companyID,
-		TokenHash: sessiontoken.SHA256Hex(refreshRaw),
-		UserAgent: r.UserAgent(),
-		IP:        r.RemoteAddr,
-		CreatedAt: now,
-		ExpiresAt: now.Add(refreshTTL),
-	}
-	if err := h.store.Session().Create(r.Context(), sess); err != nil {
-		return "", err
-	}
-
-	httpx.SetSessionCookie(w, accessToken, h.pub.SecureCookie)
-	httpx.SetRefreshCookie(w, refreshRaw, h.pub.SecureCookie, h.pub.Cfg.RefreshTokenTTLSec)
-	return accessToken, nil
+	return httpx.IssueTokenPair(r.Context(), w, r, httpx.TokenPairParams{
+		Secret:        h.pub.SessionToken.Secret(),
+		SessionTTLSec: h.pub.Cfg.SessionTTLSec,
+		RefreshTTLSec: h.pub.Cfg.RefreshTokenTTLSec,
+		SecureCookie:  h.pub.SecureCookie,
+		SessionStore:  h.store.Session(),
+	}, companyID, memberID, userID)
 }
 
 // splitRefreshToken parses "sid.random" into (sid, random, ok).

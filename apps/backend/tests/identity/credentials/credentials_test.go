@@ -49,7 +49,7 @@ func TestAuthenticateMember_NonexistentEmail(t *testing.T) {
 	}
 }
 
-func TestBootstrapPlatformIfNeeded_CreatesOperator(t *testing.T) {
+func TestBootstrapPlatformIfNeeded_CreatesAdmin(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
@@ -61,17 +61,17 @@ func TestBootstrapPlatformIfNeeded_CreatesOperator(t *testing.T) {
 		t.Fatalf("bootstrap error: %v", err)
 	}
 
-	// Verify operator was created
-	opID, err := svc.AuthenticatePlatform(ctx, "admin@platform.com", "secret123")
+	// Verify platform admin was created as a member of the super company
+	member, err := svc.AuthenticateMember(ctx, cfg.TokenJoyCompanyID, "admin@platform.com", "secret123")
 	if err != nil {
-		t.Fatalf("auth platform error: %v", err)
+		t.Fatalf("auth member error: %v", err)
 	}
-	if opID == "" {
-		t.Error("expected non-empty operator ID")
+	if member.ID.String() == "" {
+		t.Error("expected non-empty member ID")
 	}
 }
 
-func TestBootstrapPlatformIfNeeded_SkipsWhenOperatorsExist(t *testing.T) {
+func TestBootstrapPlatformIfNeeded_SkipsWhenAlreadyExists(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
@@ -79,27 +79,27 @@ func TestBootstrapPlatformIfNeeded_SkipsWhenOperatorsExist(t *testing.T) {
 	svc := credentials.NewService(cfg, st)
 	ctx := testutil.Ctx()
 
-	// First bootstrap creates the operator
+	// First bootstrap creates the admin
 	if err := svc.BootstrapPlatformIfNeeded(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	// Second bootstrap should be a no-op (no duplicate)
-	cfg.PlatformBootstrapEmail = "admin2@platform.com"
-	cfg.PlatformBootstrapPassword = "other"
+	// Second bootstrap should be a no-op (idempotent)
+	cfg.PlatformBootstrapEmail = "admin@platform.com"
+	cfg.PlatformBootstrapPassword = "other-password"
 	svc2 := credentials.NewService(cfg, st)
 	if err := svc2.BootstrapPlatformIfNeeded(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	// admin2 should not exist
-	_, err := svc2.AuthenticatePlatform(ctx, "admin2@platform.com", "other")
-	if err == nil {
-		t.Error("expected admin2 to not exist")
+	// Original password should still work (not overwritten)
+	_, err := svc.AuthenticateMember(ctx, cfg.TokenJoyCompanyID, "admin@platform.com", "secret123")
+	if err != nil {
+		t.Fatalf("expected original password to still work: %v", err)
 	}
 }
 
-func TestAuthenticatePlatform_WrongPassword(t *testing.T) {
+func TestBootstrapPlatformIfNeeded_WrongPassword(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithPlatformBootstrap("admin@platform.com", "secret123"),
@@ -111,7 +111,7 @@ func TestAuthenticatePlatform_WrongPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := svc.AuthenticatePlatform(ctx, "admin@platform.com", "wrong")
+	_, err := svc.AuthenticateMember(ctx, cfg.TokenJoyCompanyID, "admin@platform.com", "wrong")
 	if err == nil {
 		t.Fatal("expected error for wrong password")
 	}

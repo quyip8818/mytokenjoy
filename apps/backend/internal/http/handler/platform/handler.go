@@ -15,17 +15,19 @@ import (
 )
 
 type Handler struct {
-	p httpdeps.Platform
+	p         httpdeps.Platform
+	protected httpdeps.Protected
 }
 
-func NewHandler(p httpdeps.Platform) *Handler {
-	return &Handler{p: p}
+func NewHandler(p httpdeps.Platform, protected httpdeps.Protected) *Handler {
+	return &Handler{p: p, protected: protected}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/login", h.Login)
 	r.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.PlatformAuth(h.p.Cfg, h.p.PlatformSessionToken))
+		r.Use(httpmiddleware.RequireSession(h.protected))
+		r.Use(httpmiddleware.RequirePlatformAdmin(h.p.Cfg.TokenJoyCompanyID))
 		r.Get("/companies", h.ListCompanies)
 		r.Post("/companies", h.CreateCompany)
 		r.Patch("/companies/{id}", h.UpdateCompany)
@@ -48,23 +50,22 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorID, err := h.p.Credentials.AuthenticatePlatform(r.Context(), body.Email, body.Password)
+	member, err := h.p.Credentials.AuthenticateMember(r.Context(), h.p.Cfg.TokenJoyCompanyID, body.Email, body.Password)
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return
 	}
-	parsedOperatorID, err := uuid.Parse(operatorID)
-	if err != nil {
+	if _, err := httpx.IssueTokenPair(r.Context(), w, r, httpx.TokenPairParams{
+		Secret:        h.p.SessionToken.Secret(),
+		SessionTTLSec: h.p.Cfg.SessionTTLSec,
+		RefreshTTLSec: h.p.Cfg.RefreshTokenTTLSec,
+		SecureCookie:  h.p.SecureCookie,
+		SessionStore:  h.p.Sessions,
+	}, member.CompanyID, member.ID, member.UserID); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	token, err := h.p.PlatformSessionToken.Issue(uuid.Nil, parsedOperatorID)
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-		return
-	}
-	httpx.SetPlatformSessionCookie(w, token, h.p.SecureCookie)
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"operatorId": operatorID}, nil)
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": member.ID.String()}, nil)
 }
 
 type createCompanyBody struct {
@@ -123,6 +124,14 @@ func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
+func operatorIDFromSession(r *http.Request) uuid.UUID {
+	session, ok := httpx.SessionFromContext(r.Context())
+	if !ok {
+		return uuid.Nil
+	}
+	return session.Member.ID
+}
+
 type rechargeBody struct {
 	Amount float64 `json:"amount"`
 }
@@ -138,8 +147,7 @@ func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorIDStr, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
-	operatorID, _ := uuid.Parse(operatorIDStr)
+	operatorID := operatorIDFromSession(r)
 	err = h.p.BillingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
 	httputil.WriteVoid(w, err)
 }
@@ -159,8 +167,7 @@ func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorIDStr, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
-	operatorID, _ := uuid.Parse(operatorIDStr)
+	operatorID := operatorIDFromSession(r)
 	err = h.p.BillingSvc.PlatformGift(r.Context(), id, body.Points, operatorID)
 	httputil.WriteVoid(w, err)
 }
@@ -181,8 +188,7 @@ func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	operatorIDStr, _ := httpmiddleware.PlatformOperatorFromContext(r.Context())
-	operatorID, _ := uuid.Parse(operatorIDStr)
+	operatorID := operatorIDFromSession(r)
 	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Points, body.AmountDisplay, operatorID)
 	httputil.WriteVoid(w, err)
 }

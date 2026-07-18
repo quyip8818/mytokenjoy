@@ -7,4 +7,5 @@ const (
 	RoleAuditor        = "只读审计员"
 	RoleAPICaller      = "API 调用者"
 	RoleBudgetApprover = "预算审批员"
+	RolePlatformAdmin  = "平台管理员"
 )

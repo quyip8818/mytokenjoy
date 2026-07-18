@@ -12,8 +12,8 @@ func TestNormalizeGrantIDsWildcard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ids) != 23 {
-		t.Fatalf("expected 23 permission ids, got %d", len(ids))
+	if len(ids) != 24 {
+		t.Fatalf("expected 24 permission ids, got %d", len(ids))
 	}
 }
 

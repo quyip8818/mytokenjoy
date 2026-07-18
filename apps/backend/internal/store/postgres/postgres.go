@@ -127,10 +127,6 @@ func (s *Store) Invite() store.InviteRepository {
 	return newInviteRepo(s.pool)
 }
 
-func (s *Store) Platform() store.PlatformRepository {
-	return newPlatformRepo(s.pool)
-}
-
 func (s *Store) Billing() store.BillingRepository {
 	return newBillingRepo(s.pool)
 }

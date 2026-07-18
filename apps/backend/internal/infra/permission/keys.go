@@ -26,6 +26,7 @@ const (
 	APICall         = "api:call"
 	BillingRead     = "billing:read"
 	BillingRecharge = "billing:recharge"
+	PlatformManage  = "platform:manage"
 )
 
 var AllPermissions = []string{
@@ -52,6 +53,7 @@ var AllPermissions = []string{
 	APICall,
 	BillingRead,
 	BillingRecharge,
+	PlatformManage,
 }
 
 var PermissionIDMap = map[string]string{
@@ -71,6 +73,7 @@ var PermissionIDMap = map[string]string{
 	"p-21": ModelRead,
 	"p-22": BillingRead,
 	"p-23": BillingRecharge,
+	"p-24": PlatformManage,
 	"p-3":  OrgRoles,
 	"p-4":  OrgDatasource,
 	"p-5":  BudgetAllocate,

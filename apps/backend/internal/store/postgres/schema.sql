@@ -44,15 +44,6 @@ CREATE INDEX IF NOT EXISTS idx_company_invites_email_pending ON company_invites 
 CREATE INDEX IF NOT EXISTS idx_company_invites_phone_pending ON company_invites (phone) WHERE accepted_at IS NULL AND phone IS NOT NULL AND phone != '';
 CREATE INDEX IF NOT EXISTS idx_company_invites_user_pending ON company_invites (user_id) WHERE accepted_at IS NULL AND user_id IS NOT NULL;
 
-CREATE TABLE IF NOT EXISTS platform_operators (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email         TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    status        TEXT NOT NULL DEFAULT 'active',
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 -- Global: users (authentication identity)
 CREATE TABLE IF NOT EXISTS users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -215,7 +206,7 @@ CREATE TABLE IF NOT EXISTS members (
     company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     user_id         UUID NOT NULL,
     name            TEXT NOT NULL,
-    department_id   UUID NOT NULL,
+    department_id   UUID,
     status          TEXT NOT NULL,
     source          TEXT NOT NULL DEFAULT '',
     external_id     TEXT,

@@ -27,6 +27,24 @@ func TestPlatformCompaniesUnauthorized(t *testing.T) {
 	}
 }
 
+func TestPlatformCompaniesForbiddenForTenantMember(t *testing.T) {
+	t.Parallel()
+	mock := saas.StartNewAPIMock(t)
+	router := saas.NewRouter(t, mock)
+	platformCookie := saas.LoginPlatform(t, router)
+	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
+		"Tenant Co", "tenant@example.com", "Tenant Admin", "securepass123")
+
+	// Use the tenant member's cookie to access platform API — should be forbidden
+	req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
+	req.Header.Set("Cookie", provisioned.MemberCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for tenant member accessing platform API, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestPlatformLoginRejectsBadCredentials(t *testing.T) {
 	t.Parallel()
 	router := saas.NewRouter(t, nil)

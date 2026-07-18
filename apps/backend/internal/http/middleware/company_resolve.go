@@ -21,10 +21,6 @@ type CompanyService interface {
 func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer sessiontoken.Issuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/api/platform/") {
-				next.ServeHTTP(w, r)
-				return
-			}
 			if strings.HasPrefix(r.URL.Path, "/api/internal/") {
 				next.ServeHTTP(w, r)
 				return

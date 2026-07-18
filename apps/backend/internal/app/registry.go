@@ -45,7 +45,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices, l
 		}
 		gateway = gw
 	}
-	authzSvc, credSvc, memberToken, platformToken, err := wireIdentity(cfg, i.store)
+	authzSvc, credSvc, memberToken, err := wireIdentity(cfg, i.store)
 	if err != nil {
 		panic(err)
 	}
@@ -58,32 +58,31 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices, l
 	}
 	return ServiceRegistry{
 		Deps: httpdeps.Deps{
-			Config:               cfg,
-			Store:                i.store,
-			AuthzSvc:             authzSvc,
-			Credentials:          credSvc,
-			SessionToken:         memberToken,
-			PlatformSessionToken: platformToken,
-			OrgSvc:               services.org,
-			BudgetSvc:            services.budget,
-			KeysSvc:              services.keys,
-			ModelsSvc:            services.models,
-			DashboardSvc:         services.dashboard,
-			AuditSvc:             services.audit,
-			ReadModel:            services.readModel,
-			IngestSvc:            services.ingest,
-			IngestEnqueuer:       holder,
-			IngestMetrics:        metrics,
-			CompanySvc:           services.company,
-			BillingSvc:           services.billing,
-			MemberAnalyticsSvc:   services.memberAnalytics,
-			WalletSvc:            i.wallet,
-			CompanyGate:          i.companyGate,
-			Gateway:              gateway,
-			DevBearerResolver:    devBearer,
-			DevReadinessChecker:  devReadiness,
-			NotificationSvc:      i.notificationSvc,
-			RateLimiter:          i.rateLimiter,
+			Config:              cfg,
+			Store:               i.store,
+			AuthzSvc:            authzSvc,
+			Credentials:         credSvc,
+			SessionToken:        memberToken,
+			OrgSvc:              services.org,
+			BudgetSvc:           services.budget,
+			KeysSvc:             services.keys,
+			ModelsSvc:           services.models,
+			DashboardSvc:        services.dashboard,
+			AuditSvc:            services.audit,
+			ReadModel:           services.readModel,
+			IngestSvc:           services.ingest,
+			IngestEnqueuer:      holder,
+			IngestMetrics:       metrics,
+			CompanySvc:          services.company,
+			BillingSvc:          services.billing,
+			MemberAnalyticsSvc:  services.memberAnalytics,
+			WalletSvc:           i.wallet,
+			CompanyGate:         i.companyGate,
+			Gateway:             gateway,
+			DevBearerResolver:   devBearer,
+			DevReadinessChecker: devReadiness,
+			NotificationSvc:     i.notificationSvc,
+			RateLimiter:         i.rateLimiter,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

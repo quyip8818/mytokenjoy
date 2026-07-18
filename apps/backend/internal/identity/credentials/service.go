@@ -2,18 +2,21 @@ package credentials
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
 	AuthenticateMember(ctx context.Context, companyID uuid.UUID, email, password string) (types.Member, error)
-	AuthenticatePlatform(ctx context.Context, email, password string) (string, error)
 	BootstrapPlatformIfNeeded(ctx context.Context) error
 }
 
@@ -26,24 +29,72 @@ func NewService(cfg config.Config, st store.Store) Service {
 	return &service{cfg: cfg, store: st}
 }
 
+// BootstrapPlatformIfNeeded creates the first platform admin as a member of the
+// super company (TokenJoyCompanyID). Idempotent: skips if the member already exists.
 func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
-	count, err := s.store.Platform().CountOperators(ctx)
-	if err != nil {
-		return err
-	}
-	if count > 0 || s.cfg.PlatformBootstrapEmail == "" || s.cfg.PlatformBootstrapPassword == "" {
+	if s.cfg.PlatformBootstrapEmail == "" || s.cfg.PlatformBootstrapPassword == "" {
 		return nil
 	}
+	// Idempotent check: already bootstrapped?
+	existing, _, _ := s.store.Org().MemberByEmail(ctx, s.cfg.TokenJoyCompanyID, s.cfg.PlatformBootstrapEmail)
+	if existing != nil {
+		return nil
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(s.cfg.PlatformBootstrapPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return fmt.Errorf("bootstrap platform: hash password: %w", err)
 	}
-	return s.store.Platform().CreateOperator(ctx, store.PlatformOperator{
-		ID:           uuid.MustParse("90000000-0000-0000-0000-000000000001"),
-		Email:        s.cfg.PlatformBootstrapEmail,
-		PasswordHash: string(hash),
-		Status:       types.MemberStatusActive,
-	})
+
+	now := time.Now().UTC()
+	userID := uuid.MustParse("90000000-0000-0000-0000-000000000001")
+	memberID := uuid.MustParse("90000000-0000-0000-0000-000000000002")
+	roleID := uuid.MustParse("90000000-0000-0000-0000-000000000003")
+
+	// Create user (idempotent via GetByEmail check)
+	existingUser, _ := s.store.User().GetByEmail(ctx, s.cfg.PlatformBootstrapEmail)
+	if existingUser != nil {
+		userID = existingUser.ID
+	} else {
+		if err := s.store.User().Create(ctx, store.User{
+			ID:           userID,
+			Email:        s.cfg.PlatformBootstrapEmail,
+			PasswordHash: string(hash),
+			Status:       types.MemberStatusActive,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}); err != nil {
+			return fmt.Errorf("bootstrap platform: create user: %w", err)
+		}
+	}
+
+	// Create role + member + member_roles via SetRoles + SetMembers.
+	// Safe because super company starts empty; subsequent boots short-circuit above.
+	// Permissions left empty: preset role permissions are resolved from manifest at runtime,
+	// not from role_permission_grants in DB.
+	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: s.cfg.TokenJoyCompanyID})
+
+	role := types.Role{
+		ID:   roleID,
+		Name: grants.RolePlatformAdmin,
+		Type: "preset",
+	}
+	if err := s.store.Org().SetRoles(companyCtx, []types.Role{role}); err != nil {
+		return fmt.Errorf("bootstrap platform: set roles: %w", err)
+	}
+
+	member := types.Member{
+		ID:        memberID,
+		CompanyID: s.cfg.TokenJoyCompanyID,
+		UserID:    userID,
+		Name:      s.cfg.PlatformBootstrapEmail,
+		Status:    types.MemberStatusActive,
+		Roles:     []string{grants.RolePlatformAdmin},
+	}
+	if err := s.store.Org().SetMembers(companyCtx, []types.Member{member}); err != nil {
+		return fmt.Errorf("bootstrap platform: set members: %w", err)
+	}
+	return nil
 }
 
 func (s *service) AuthenticateMember(ctx context.Context, companyID uuid.UUID, email, password string) (types.Member, error) {
@@ -61,17 +112,6 @@ func (s *service) AuthenticateMember(ctx context.Context, companyID uuid.UUID, e
 		return types.Member{}, domain.NewDomainError(401, "Invalid credentials")
 	}
 	return *member, nil
-}
-
-func (s *service) AuthenticatePlatform(ctx context.Context, email, password string) (string, error) {
-	op, err := s.store.Platform().GetOperatorByEmail(ctx, email)
-	if err != nil || op == nil || op.Status != types.MemberStatusActive {
-		return "", domain.NewDomainError(401, "Invalid credentials")
-	}
-	if err := verifyPassword(op.PasswordHash, password); err != nil {
-		return "", domain.NewDomainError(401, "Invalid credentials")
-	}
-	return op.ID.String(), nil
 }
 
 func verifyPassword(hash, password string) error {
