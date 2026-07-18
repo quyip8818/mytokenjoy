@@ -649,3 +649,19 @@ CREATE INDEX IF NOT EXISTS idx_notification_pref_user
     ON notification_preferences (company_id, user_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_unique_name ON projects(company_id, name);
+
+-- Sessions (refresh token backing store)
+CREATE TABLE IF NOT EXISTS sessions (
+    id          TEXT PRIMARY KEY,
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    member_id   UUID NOT NULL,
+    company_id  UUID NOT NULL,
+    token_hash  TEXT NOT NULL,
+    user_agent  TEXT NOT NULL DEFAULT '',
+    ip          TEXT NOT NULL DEFAULT '',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at  TIMESTAMPTZ NOT NULL,
+    revoked_at  TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user_active ON sessions(user_id) WHERE revoked_at IS NULL;

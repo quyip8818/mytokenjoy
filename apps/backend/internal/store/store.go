@@ -58,6 +58,7 @@ type Store interface {
 	Usage() UsageRepository
 	Notification() NotificationRepository
 	NotificationPreference() NotificationPreferenceRepository
+	Session() SessionRepository
 	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error
 }

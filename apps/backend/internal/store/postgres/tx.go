@@ -72,6 +72,10 @@ func (s *txStore) NotificationPreference() store.NotificationPreferenceRepositor
 	return &notificationPreferenceRepo{db: s.tx}
 }
 
+func (s *txStore) Session() store.SessionRepository {
+	return newSessionRepo(s.tx)
+}
+
 func (s *txStore) Company() store.CompanyRepository {
 	return s.company
 }

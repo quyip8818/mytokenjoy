@@ -159,6 +159,10 @@ func (s *Store) NotificationPreference() store.NotificationPreferenceRepository 
 	return &notificationPreferenceRepo{db: s.pool}
 }
 
+func (s *Store) Session() store.SessionRepository {
+	return newSessionRepo(s.pool)
+}
+
 func (s *Store) Close() {
 	if s.logPool != nil {
 		s.logPool.Close()

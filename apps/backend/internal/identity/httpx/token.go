@@ -14,7 +14,9 @@ import (
 const (
 	SessionCookie         = "tokenjoy_session_member"
 	PlatformSessionCookie = "tokenjoy_platform_session"
+	RefreshCookie         = "tokenjoy_refresh"
 	HeaderAuthzRevision   = "X-Authz-Revision"
+	refreshCookiePath     = "/api/auth/refresh"
 )
 
 var (
@@ -145,4 +147,37 @@ func ParsePlatformToken(r *http.Request, issuer sessiontoken.Issuer) (sessiontok
 		return sessiontoken.Claims{}, ErrInvalidToken
 	}
 	return claims, nil
+}
+
+// SetRefreshCookie writes the refresh token cookie (Path restricted to refresh endpoint).
+func SetRefreshCookie(w http.ResponseWriter, token string, secure bool, maxAgeSec int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     RefreshCookie,
+		Value:    token,
+		Path:     refreshCookiePath,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   secure,
+		MaxAge:   maxAgeSec,
+	})
+}
+
+// ClearRefreshCookie removes the refresh token cookie.
+func ClearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     RefreshCookie,
+		Value:    "",
+		Path:     refreshCookiePath,
+		HttpOnly: true,
+		MaxAge:   -1,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+// ResolveRefreshCookie extracts the refresh token from the request cookie.
+func ResolveRefreshCookie(r *http.Request) string {
+	if cookie, err := r.Cookie(RefreshCookie); err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+	return ""
 }

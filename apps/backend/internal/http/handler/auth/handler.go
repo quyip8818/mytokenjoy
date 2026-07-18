@@ -34,6 +34,7 @@ func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service, st store.
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/login", h.Login)
 	r.Post("/auth/logout", h.Logout)
+	r.Post("/auth/refresh", h.Refresh)
 	r.Post("/auth/accept-invite", h.AcceptInvite)
 	r.Get("/auth/invites/pending", h.PendingInvites)
 }
@@ -75,18 +76,20 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return
 	}
-	token, err := h.pub.SessionToken.IssueWithUser(member.CompanyID, member.ID, member.UserID)
-	if err != nil {
+	if _, err := h.issueTokenPair(w, r, member.CompanyID, member.ID, member.UserID); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	httpx.SetSessionCookie(w, token, h.pub.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": member.ID.String()}, nil)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	if claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken); ok && claims.Sid != "" {
+		_ = h.store.Session().Revoke(r.Context(), claims.Sid)
+	}
 	httpx.ClearSessionCookie(w)
-	httputil.WriteStatus(w, http.StatusNoContent, "")
+	httpx.ClearRefreshCookie(w)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type acceptInviteBody struct {
@@ -179,12 +182,10 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 		return
 	}
-	token, err := h.pub.SessionToken.IssueWithUser(member.CompanyID, member.ID, member.UserID)
-	if err != nil {
+	if _, err := h.issueTokenPair(w, r, member.CompanyID, member.ID, member.UserID); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	httpx.SetSessionCookie(w, token, h.pub.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, map[string]any{
 		"memberId":  member.ID,
 		"companyId": member.CompanyID,

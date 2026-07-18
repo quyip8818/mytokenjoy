@@ -2,6 +2,7 @@ package sessiontoken
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -34,7 +35,7 @@ func NewIssuer(secret string, ttlSec int) (Issuer, error) {
 		return nil, fmt.Errorf("session secret is required")
 	}
 	if ttlSec <= 0 {
-		ttlSec = 86400
+		ttlSec = 900
 	}
 	return &issuer{
 		secret: []byte(secret),
@@ -89,4 +90,42 @@ func newSessionID() string {
 		return fmt.Sprintf("%d", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(b[:])
+}
+
+// NewSessionID generates a random session ID for external callers (e.g. issueTokenPair).
+func NewSessionID() string {
+	return newSessionID()
+}
+
+// RandomHex generates n random bytes and returns their hex encoding (2n chars).
+func RandomHex(n int) string {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand unavailable: " + err.Error())
+	}
+	return hex.EncodeToString(b)
+}
+
+// SHA256Hex returns the hex-encoded SHA-256 hash of s.
+func SHA256Hex(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
+}
+
+// IssueAccessToken is a standalone function (not on Issuer) that signs a JWT
+// with a caller-supplied sid. Used by refresh and issueTokenPair flows where
+// the session ID is managed externally.
+func IssueAccessToken(secret []byte, ttl time.Duration, companyID, memberID, userID uuid.UUID, sid string) (string, error) {
+	now := time.Now().UTC()
+	claims := Claims{
+		CompanyID: companyID,
+		UserID:    userID,
+		Sid:       sid,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   memberID.String(),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+		},
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 }

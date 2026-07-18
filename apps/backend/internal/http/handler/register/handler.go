@@ -26,6 +26,8 @@ type Handler struct {
 	sessionToken        sessiontoken.Issuer
 	secureCookie        bool
 	registrationEnabled bool
+	sessionTTLSec       int
+	refreshTTLSec       int
 }
 
 func NewHandler(
@@ -35,6 +37,8 @@ func NewHandler(
 	sessionToken sessiontoken.Issuer,
 	secureCookie bool,
 	registrationEnabled bool,
+	sessionTTLSec int,
+	refreshTTLSec int,
 ) *Handler {
 	return &Handler{
 		companySvc:          companySvc,
@@ -43,6 +47,8 @@ func NewHandler(
 		sessionToken:        sessionToken,
 		secureCookie:        secureCookie,
 		registrationEnabled: registrationEnabled,
+		sessionTTLSec:       sessionTTLSec,
+		refreshTTLSec:       refreshTTLSec,
 	}
 }
 
@@ -70,7 +76,7 @@ type initBody struct {
 }
 
 type initResponseChoose struct {
-	Action  string                      `json:"action"`
+	Action  string                        `json:"action"`
 	Invites []domaincompany.PendingInvite `json:"invites"`
 }
 
@@ -196,7 +202,7 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.issueSessionAndRespond(w, member)
+	h.issueSessionAndRespond(w, r, member)
 }
 
 // --- Company ---
@@ -236,7 +242,7 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.issueSessionAndRespond(w, *result.Member)
+	h.issueSessionAndRespond(w, r, *result.Member)
 }
 
 func (h *Handler) resolveRegisterUser(r *http.Request) (uuid.UUID, error) {
@@ -251,13 +257,40 @@ func (h *Handler) resolveRegisterUser(r *http.Request) (uuid.UUID, error) {
 	return claims.UserID, nil
 }
 
-func (h *Handler) issueSessionAndRespond(w http.ResponseWriter, member types.Member) {
-	token, err := h.sessionToken.IssueWithUser(member.CompanyID, member.ID, member.UserID)
+func (h *Handler) issueSessionAndRespond(w http.ResponseWriter, r *http.Request, member types.Member) {
+	sid := sessiontoken.NewSessionID()
+	refreshRaw := sid + "." + sessiontoken.RandomHex(32)
+
+	ttl := time.Duration(h.sessionTTLSec) * time.Second
+	accessToken, err := sessiontoken.IssueAccessToken(
+		h.sessionToken.Secret(), ttl,
+		member.CompanyID, member.ID, member.UserID, sid,
+	)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	httpx.SetSessionCookie(w, token, h.secureCookie)
+
+	now := time.Now().UTC()
+	refreshTTL := time.Duration(h.refreshTTLSec) * time.Second
+	sess := store.Session{
+		ID:        sid,
+		UserID:    member.UserID,
+		MemberID:  member.ID,
+		CompanyID: member.CompanyID,
+		TokenHash: sessiontoken.SHA256Hex(refreshRaw),
+		UserAgent: r.UserAgent(),
+		IP:        r.RemoteAddr,
+		CreatedAt: now,
+		ExpiresAt: now.Add(refreshTTL),
+	}
+	if err := h.store.Session().Create(r.Context(), sess); err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	httpx.SetSessionCookie(w, accessToken, h.secureCookie)
+	httpx.SetRefreshCookie(w, refreshRaw, h.secureCookie, h.refreshTTLSec)
 	clearRegisterSessionCookie(w)
 	httputil.WriteJSON(w, http.StatusOK, acceptResponse{
 		MemberID:  member.ID,

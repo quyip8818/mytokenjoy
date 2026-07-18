@@ -48,9 +48,27 @@ function notifyAuthzRevision(res: Response): void {
   }
 }
 
+// Singleton refresh promise — concurrent 401s share one refresh call.
+let refreshing: Promise<boolean> | null = null
+
+function doRefresh(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = fetch(`${API_BASE_PATH}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null
+      })
+  }
+  return refreshing
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_PATH}${path}`
-  const res = await fetch(url, {
+  const init: RequestInit = {
     credentials: 'include',
     headers: {
       Accept: 'application/json',
@@ -58,9 +76,19 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       ...options.headers,
     },
     ...options,
-  })
+  }
 
+  let res = await fetch(url, init)
   notifyAuthzRevision(res)
+
+  // 401 and not the refresh endpoint itself → attempt silent token refresh once
+  if (res.status === 401 && path !== '/auth/refresh') {
+    const ok = await doRefresh()
+    if (ok) {
+      res = await fetch(url, init)
+      notifyAuthzRevision(res)
+    }
+  }
 
   if (!res.ok) {
     let body: { message?: string; retryAfter?: number } = {}

@@ -159,7 +159,8 @@ func TestConfig(opts ...ConfigOption) config.Config {
 		IdentityConfig: config.IdentityConfig{
 			SessionSecret:         TestSessionSecret,
 			PlatformSessionSecret: TestSessionSecret,
-			SessionTTLSec:         86400,
+			SessionTTLSec:         900,
+			RefreshTokenTTLSec:    604800,
 		},
 	}
 	for _, opt := range opts {

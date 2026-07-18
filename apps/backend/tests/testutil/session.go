@@ -62,7 +62,7 @@ func WithSessionConfig(cfg config.Config) config.Config {
 	cfg.SessionSecret = TestSessionSecret
 	cfg.PlatformSessionSecret = TestSessionSecret
 	if cfg.SessionTTLSec == 0 {
-		cfg.SessionTTLSec = 86400
+		cfg.SessionTTLSec = 900
 	}
 	return cfg
 }

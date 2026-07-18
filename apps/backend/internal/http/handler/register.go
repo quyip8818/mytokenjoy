@@ -49,7 +49,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		config:         deps.Config,
 		session:        sessionhandler.NewHandler(p),
 		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Store),
-		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled),
+		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
 		platform:       platform.NewHandler(deps.Platform()),
 		billing:        billing.NewHandler(p, deps.BillingSvc),
 		org:            orghandler.NewHandler(p, deps.OrgSvc, deps.CompanySvc),
