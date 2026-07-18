@@ -38,12 +38,14 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID string, msg domainn
 		payload = []byte("{}")
 	}
 
+	parsedRecipient, _ := uuid.Parse(recipientID)
+
 	entry := types.NotificationLogEntry{
 		ID:        uuid.Must(uuid.NewV7()),
 		Channel:   domainnotification.ChannelInApp,
 		EventType: extractEventType(msg.Payload),
 		Recipient: recipientID,
-		UserID:    uuid.MustParse(recipientID),
+		UserID:    parsedRecipient,
 		Title:     msg.Title,
 		Body:      msg.Body,
 		Payload:   payload,
@@ -55,8 +57,8 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID string, msg domainn
 	}
 
 	// Push to SSE hub if available
-	if c.hub != nil {
-		c.hub.Publish(uuid.MustParse(recipientID), SSEEvent{
+	if c.hub != nil && parsedRecipient != uuid.Nil {
+		c.hub.Publish(parsedRecipient, SSEEvent{
 			ID:        entry.ID.String(),
 			EventType: entry.EventType,
 			Title:     msg.Title,

@@ -65,7 +65,7 @@ func TestListOperationsOperatorFilter(t *testing.T) {
 
 	// Filter by a non-existent operator
 	result, err := svc.ListOperations(ctx, types.AuditOperationsQueryParams{
-		Page: 1, PageSize: 100, OperatorID: "nonexistent-operator",
+		Page: 1, PageSize: 100, OperatorID: "00000000-0000-0000-0000-ffffffffffff",
 	})
 	if err != nil {
 		t.Fatal(err)

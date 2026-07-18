@@ -18,7 +18,7 @@ func TestCreateAlertRuleWithMultipleThresholds(t *testing.T) {
 		NodeID:        contract.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
-		NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-000000000001")},
+		NotifyRoleIDs: []uuid.UUID{contract.IDRole1},
 		Enabled:       true,
 	})
 	if err != nil {
@@ -44,7 +44,7 @@ func TestDisabledAlertRuleDoesNotTrigger(t *testing.T) {
 		NodeID:        contract.IDDept3,
 		NodeName:      "后端组",
 		Thresholds:    []int{80, 90, 100},
-		NotifyRoleIDs: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-000000000001")},
+		NotifyRoleIDs: []uuid.UUID{contract.IDRole1},
 		Enabled:       true,
 	})
 	if err != nil {

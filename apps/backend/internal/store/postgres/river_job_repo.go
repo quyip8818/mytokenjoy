@@ -32,7 +32,7 @@ func (r *riverJobRepo) listOrgSyncJobIDs(ctx context.Context, companyID uuid.UUI
 		SELECT id
 		FROM river_job
 		WHERE kind = $2
-		  AND (args->>'company_id')::bigint = $1
+		  AND (args->>'company_id')::uuid = $1
 		  AND state IN ` + states
 	rows, err := r.db.Query(ctx, query, companyID, store.RiverJobKindOrgSync)
 	if err != nil {

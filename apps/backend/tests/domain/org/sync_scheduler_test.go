@@ -118,7 +118,7 @@ func TestScheduledSyncSelfHealsExpiredScheduleWithoutPendingJob(t *testing.T) {
 		UPDATE river_job
 		SET state = 'completed', finalized_at = NOW()
 		WHERE kind = $1
-		  AND (args->>'company_id')::bigint = $2
+		  AND (args->>'company_id')::uuid = $2
 		  AND state IN ('available', 'retryable', 'scheduled', 'running')
 	`, jobs.KindOrgSync, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)

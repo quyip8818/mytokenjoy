@@ -180,7 +180,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 
 	modelsBefore := modelUpdatedAt(t, pool, contract.IDModel1)
 	memberBefore := memberUpdatedAt(t, pool, contract.IDMember1)
-	budgetBefore := budgetNodeUpdatedAt(t, pool, "dept-1")
+	budgetBefore := budgetNodeUpdatedAt(t, pool, contract.IDDept1.String())
 
 	err := st.WithTx(ctx, func(tx store.Store) error {
 		members, err := tx.Org().Members(ctx)
@@ -209,7 +209,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 	}
 
 	memberAfter := memberUpdatedAt(t, pool, contract.IDMember1)
-	budgetAfter := budgetNodeUpdatedAt(t, pool, "dept-1")
+	budgetAfter := budgetNodeUpdatedAt(t, pool, contract.IDDept1.String())
 	modelsAfter := modelUpdatedAt(t, pool, contract.IDModel1)
 
 	if !memberAfter.After(memberBefore) {

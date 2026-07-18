@@ -166,13 +166,18 @@ func PendingJobCount(st store.Store, kind string, companyID uuid.UUID) int {
 		return 0
 	}
 	var count int
-	_ = pool.QueryRow(ctx, `
-		SELECT COUNT(*)
-		FROM river_job
-		WHERE kind = $1
-		  AND state IN ('available', 'retryable', 'scheduled', 'running')
-		  AND ($2 = 0 OR (args->>'company_id')::bigint = $2)
-	`, kind, companyID).Scan(&count)
+	if companyID == uuid.Nil {
+		_ = pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM river_job
+			WHERE kind = $1 AND state IN ('available', 'retryable', 'scheduled', 'running')
+		`, kind).Scan(&count)
+	} else {
+		_ = pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM river_job
+			WHERE kind = $1 AND state IN ('available', 'retryable', 'scheduled', 'running')
+			  AND (args->>'company_id')::uuid = $2
+		`, kind, companyID).Scan(&count)
+	}
 	return count
 }
 

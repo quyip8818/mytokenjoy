@@ -24,15 +24,15 @@ func (r *combinedKeySummaryRepo) UpdateBatch(ctx context.Context, updates []stor
 		return nil, nil
 	}
 	companyID := store.CompanyID(ctx)
-	ids := make([]string, len(updates))
+	ids := make([]uuid.UUID, len(updates))
 	remains := make([]float64, len(updates))
 	for i, u := range updates {
-		ids[i] = u.PlatformKeyID.String()
+		ids[i] = u.PlatformKeyID
 		remains[i] = u.Remain
 	}
 	rows, err := r.db.Query(ctx, `
 		WITH input AS (
-			SELECT unnest($2::text[]) AS platform_key_id,
+			SELECT unnest($2::uuid[]) AS platform_key_id,
 			       unnest($3::numeric[]) AS remain
 		),
 		updated AS (

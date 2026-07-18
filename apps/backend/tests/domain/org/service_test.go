@@ -11,7 +11,7 @@ import (
 func TestDeletePresetRoleReturns400(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	err := svc.DeleteRole(testutil.Ctx(), "role-1")
+	err := svc.DeleteRole(testutil.Ctx(), contract.IDRole1.String())
 	if err == nil {
 		t.Fatal("expected error deleting preset role")
 	}
@@ -35,7 +35,7 @@ func TestListMembersPagination(t *testing.T) {
 func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	err := svc.RemoveRoleMember(testutil.Ctx(), "role-3", "m-1")
+	err := svc.RemoveRoleMember(testutil.Ctx(), contract.IDRole3.String(), contract.IDMember1.String())
 	if err == nil {
 		t.Fatal("expected error removing base member role")
 	}
@@ -93,7 +93,7 @@ func TestAddRoleMember(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(ctx, role.ID.String(), "m-3"); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID.String(), contract.IDMember3.String()); err != nil {
 		t.Fatal(err)
 	}
 	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)
@@ -127,10 +127,10 @@ func TestRemoveRoleMemberSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.AddRoleMember(ctx, role.ID.String(), "m-3"); err != nil {
+	if err := svc.AddRoleMember(ctx, role.ID.String(), contract.IDMember3.String()); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RemoveRoleMember(ctx, role.ID.String(), "m-3"); err != nil {
+	if err := svc.RemoveRoleMember(ctx, role.ID.String(), contract.IDMember3.String()); err != nil {
 		t.Fatal(err)
 	}
 	page, err := svc.ListMembers(ctx, "", "", false, 1, 200)

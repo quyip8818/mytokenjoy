@@ -59,7 +59,7 @@ func DrainPendingWalletSync(t *testing.T, st store.Store, companyID uuid.UUID) {
 		UPDATE river_job
 		SET state = 'completed', finalized_at = NOW()
 		WHERE kind = $1
-		  AND (args->>'company_id')::bigint = $2
+		  AND (args->>'company_id')::uuid = $2
 		  AND state IN ('available', 'retryable', 'scheduled', 'running')
 	`, jobs.KindWalletSync, companyID)
 	if err != nil {

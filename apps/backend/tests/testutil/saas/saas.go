@@ -257,7 +257,7 @@ func ProvisionCompanyHTTP(t *testing.T, router http.Handler, platformCookie, nam
 func PlatformRechargeHTTP(t *testing.T, router http.Handler, platformCookie string, companyID uuid.UUID, amount float64) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]float64{"amount": amount})
-	url := fmt.Sprintf("/api/platform/companies/%d/recharge", companyID)
+	url := fmt.Sprintf("/api/platform/companies/%s/recharge", companyID)
 	req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	req.Header.Set("Cookie", platformCookie)
 	rec := httptest.NewRecorder()
@@ -270,7 +270,7 @@ func PlatformRechargeHTTP(t *testing.T, router http.Handler, platformCookie stri
 func UpdateCompanyStatusHTTP(t *testing.T, router http.Handler, platformCookie string, companyID uuid.UUID, status string) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{"status": status})
-	url := fmt.Sprintf("/api/platform/companies/%d", companyID)
+	url := fmt.Sprintf("/api/platform/companies/%s", companyID)
 	req := httptest.NewRequest(http.MethodPatch, url, bytes.NewReader(body))
 	req.Header.Set("Cookie", platformCookie)
 	rec := httptest.NewRecorder()

@@ -2,9 +2,11 @@ package authz_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -23,7 +25,7 @@ func TestRoleUpdateBumpsAuthzRevisionHeader(t *testing.T) {
 	beforeHeader := treeRec1.Header().Get("X-Authz-Revision")
 
 	updateRec := testhttp.ServeAuthz(
-		t, router, http.MethodPut, "/api/org/roles/role-6", admin,
+		t, router, http.MethodPut, fmt.Sprintf("/api/org/roles/%s", contract.IDRole6.String()), admin,
 		`{"name":"预算审批员","permissions":["p-6","p-12"]}`,
 		nil,
 	)
@@ -61,7 +63,7 @@ func TestTransferMembersDoesNotBumpAuthzRevisionHeader(t *testing.T) {
 
 	transferRec := testhttp.ServeAuthz(
 		t, router, http.MethodPost, "/api/org/members/transfer",
-		admin, `{"ids":["m-1"],"departmentId":"dept-4"}`, nil,
+		admin, fmt.Sprintf(`{"ids":["%s"],"departmentId":"%s"}`, contract.IDMember1.String(), contract.IDDept4.String()), nil,
 	)
 	if transferRec.Code != http.StatusOK {
 		t.Fatalf("transfer members: expected 200, got %d body=%s", transferRec.Code, transferRec.Body.String())

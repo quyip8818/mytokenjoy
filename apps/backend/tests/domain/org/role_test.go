@@ -112,7 +112,7 @@ func TestUpdateRoleRejectsPresetRole(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	_, err := svc.UpdateRole(ctx, "role-1", "Hacked Admin", []string{"*"})
+	_, err := svc.UpdateRole(ctx, contract.IDRole1.String(), "Hacked Admin", []string{"*"})
 	if err == nil {
 		t.Fatal("expected error when updating preset role")
 	}
@@ -163,7 +163,7 @@ func TestAddRoleMemberRejectsProtectedPresetRole(t *testing.T) {
 	}
 	memberID := members.Items[0].ID
 
-	err = svc.AddRoleMember(ctx, "role-1", memberID.String())
+	err = svc.AddRoleMember(ctx, contract.IDRole1.String(), memberID.String())
 	if err == nil {
 		t.Fatal("expected error when adding member to protected preset role")
 	}
@@ -224,7 +224,7 @@ func TestRemoveRoleMemberLastSuperAdmin(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	err := svc.RemoveRoleMember(ctx, "role-1", contract.IDMemberAdmin.String())
+	err := svc.RemoveRoleMember(ctx, contract.IDRole1.String(), contract.IDMemberAdmin.String())
 	if err == nil {
 		t.Fatal("expected error when removing the last super admin")
 	}
@@ -252,7 +252,7 @@ func TestRemoveRoleMemberSuperAdminAllowedWhenMultiple(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.RemoveRoleMember(ctx, "role-1", contract.IDMemberAdmin.String()); err != nil {
+	if err := svc.RemoveRoleMember(ctx, contract.IDRole1.String(), contract.IDMemberAdmin.String()); err != nil {
 		t.Fatalf("expected removal to succeed with multiple admins: %v", err)
 	}
 }

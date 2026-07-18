@@ -68,7 +68,7 @@ func TestWalletSyncWorkerCancelsWhenWalletNotConfigured(t *testing.T) {
 	var state string
 	if err := pool.QueryRow(ctx, `
 		SELECT state::text FROM river_job
-		WHERE kind = $1 AND (args->>'company_id')::bigint = $2
+		WHERE kind = $1 AND (args->>'company_id')::uuid = $2
 		ORDER BY id DESC LIMIT 1
 	`, jobs.KindWalletSync, companyID).Scan(&state); err != nil {
 		t.Fatal(err)

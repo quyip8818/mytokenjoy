@@ -16,7 +16,7 @@ type pgBudgetRepo struct {
 
 func (r *pgBudgetRepo) AcquireBudgetLock(ctx context.Context) error {
 	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, "SELECT pg_advisory_xact_lock($1, $2)", budgetLockNamespace, companyID)
+	_, err := r.db.Exec(ctx, "SELECT pg_advisory_xact_lock($1, hashtext($2::text))", budgetLockNamespace, companyID)
 	return err
 }
 

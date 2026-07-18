@@ -3,10 +3,12 @@ package org_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -15,7 +17,7 @@ import (
 func TestMemberCreateHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"name":"测试用户","phone":"13800000000","email":"test@example.com","departmentId":"dept-3"}`)
+	body := []byte(fmt.Sprintf(`{"name":"测试用户","phone":"13800000000","email":"test@example.com","departmentId":"%s"}`, contract.IDDept3.String()))
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
@@ -62,7 +64,7 @@ func TestBatchImportHTTP(t *testing.T) {
 func TestBatchInviteHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"ids":["m-1"]}`)
+	body := []byte(fmt.Sprintf(`{"ids":["%s"]}`, contract.IDMember1.String()))
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members/batch-invite", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
