@@ -416,8 +416,8 @@ HTTP 非 2xx 时，body 应包含：
 | 方法   | 路径                           | Body / 查询                                                                          | 响应                     | 备注                                                                 |
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
 | GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project` \| `project_member` |
-| POST   | `/keys/platform`               | `{ name, scope, memberId?, projectId?, budget, modelWhitelist: number[] }`               | `PlatformKey`            | `scope` **必填**；个人 Key 缺 `memberId` → 400；`project_member` 需 roster + `member_budget > 0`；白名单 → 422 |
-| PUT    | `/keys/platform/:id`           | `{ name?, budget?, modelWhitelist?: number[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
+| POST   | `/keys/platform`               | `{ name, scope, memberId?, projectId?, budget, modelWhitelist: string[] }`               | `PlatformKey`            | `scope` **必填**；个人 Key 缺 `memberId` → 400；`project_member` 需 roster + `member_budget > 0`；白名单 → 422 |
+| PUT    | `/keys/platform/:id`           | `{ name?, budget?, modelWhitelist?: string[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
 | PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
 | POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
 | PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
@@ -461,7 +461,7 @@ HTTP 非 2xx 时，body 应包含：
 | 方法 | 路径                      | Body / 查询                                                   | 响应                |
 | ---- | ------------------------- | ------------------------------------------------------------- | ------------------- |
 | GET  | `/models/routing`         | —                                                             | `RoutingRule[]`     |
-| PUT  | `/models/routing/:id`     | `{ allowedModelIds: number[], inherited, defaultModelId?, fallbackModelId? }` | `RoutingRule`       |
+| PUT  | `/models/routing/:id`     | `{ allowedModelIds: string[], inherited, defaultModelId?, fallbackModelId? }` | `RoutingRule`       |
 | GET  | `/models/routing/resolve` | query: `deptId`                                               | `ResolvedWhitelist` |
 
 ---
@@ -616,7 +616,7 @@ HTTP 非 2xx 时，body 应包含：
 
 **ProviderKey：** `id`, `provider`, `name`, `keyPrefix`, `status`, `balance`, `lastUsed`, `createdAt`, `rotateEnabled`
 
-**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `scope`†, `memberId`, `memberName`†, `departmentId`†, `departmentName`†, `projectId`, `projectName`†, `status`, `budget`, `consumed`, `modelWhitelist: number[]`, `createdAt`, `expiresAt`  
+**PlatformKey：** `id`, `name`, `keyPrefix`, `fullKey?`, `scope`†, `memberId`, `memberName`†, `departmentId`†, `departmentName`†, `projectId`, `projectName`†, `status`, `budget`, `consumed`, `modelWhitelist: string[]`, `createdAt`, `expiresAt`  
 † 服务端 enrich 推导，不入库 `platform_keys`（见 §5.0.1）
 
 **ApprovalType：** `key` \| `budget` · **ApprovalStatus：** `pending` \| `approved` \| `rejected`

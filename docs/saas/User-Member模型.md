@@ -15,7 +15,7 @@
 
 ```sql
 CREATE TABLE users (
-    id            TEXT PRIMARY KEY,
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone         TEXT,
     email         TEXT,
     password_hash TEXT,
@@ -28,11 +28,11 @@ CREATE UNIQUE INDEX idx_users_phone ON users(phone) WHERE phone IS NOT NULL AND 
 CREATE UNIQUE INDEX idx_users_email ON users(email) WHERE email IS NOT NULL AND email != '';
 
 CREATE TABLE members (
-    id            TEXT PRIMARY KEY,
-    user_id       TEXT NOT NULL REFERENCES users(id),
-    company_id    BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID NOT NULL REFERENCES users(id),
+    company_id    UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     name          TEXT NOT NULL,
-    department_id TEXT,
+    department_id UUID,
     roles         TEXT[] NOT NULL DEFAULT '{}',
     status        TEXT NOT NULL DEFAULT 'active',
     source        TEXT NOT NULL DEFAULT 'invite',
@@ -79,15 +79,16 @@ user (1) ──→ (N) member ──→ (1) company
 
 ```json
 {
-  "uid": "user-xxx",
-  "cid": 2,
-  "mid": "member-yyy"
+  "sub": "550e8400-e29b-41d4-a716-446655440000",
+  "company_id": "00000000-0000-7000-8000-000000000002",
+  "iat": 1710000000,
+  "exp": 1710086400
 }
 ```
 
-- `uid` — 认证身份（改密码、改手机号用）
-- `cid` — 当前企业
-- `mid` — 当前角色（权限检查、业务操作用）
+- `sub` — member UUID（权限检查、业务操作用）
+- `company_id` — 当前企业 UUID
+- 认证身份（改密码、改手机号）通过 member → user 关联
 
 ---
 

@@ -78,9 +78,9 @@ type MemberBatchImportFailure struct {
 }
 
 type Permission struct {
-	ID    uuid.UUID `json:"id"`
-	Name  string    `json:"name"`
-	Group string    `json:"group"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Group string `json:"group"`
 }
 
 type DataSourceSearchResult struct {

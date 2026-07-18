@@ -31,10 +31,10 @@ describe('useLoginPage', () => {
 
   it('prefills company id from query string', () => {
     const { result } = renderHookWithProviders(() => useLoginPage(), {
-      initialEntries: ['/login?companyid=100'],
+      initialEntries: ['/login?companyid=00000000-0000-7000-8000-000000000002'],
     })
 
-    expect(result.current.companyId).toBe('100')
+    expect(result.current.companyId).toBe('00000000-0000-7000-8000-000000000002')
   })
 
   it('sends companyId on login when provided', async () => {
@@ -42,14 +42,14 @@ describe('useLoginPage', () => {
     refreshSession.mockResolvedValue(undefined)
 
     const { result } = renderHookWithProviders(() => useLoginPage(), {
-      initialEntries: ['/login?companyid=100'],
+      initialEntries: ['/login?companyid=00000000-0000-7000-8000-000000000002'],
     })
 
     await result.current.handleSubmit({ preventDefault: () => undefined } as React.FormEvent)
 
     expect(login).toHaveBeenCalledWith(
       expect.objectContaining({
-        companyId: 100,
+        companyId: '00000000-0000-7000-8000-000000000002',
       }),
     )
   })

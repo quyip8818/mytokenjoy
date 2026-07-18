@@ -22,7 +22,7 @@ export function createMockSession(
   readOnly = false,
 ): SessionContext {
   return {
-    companyId: 1,
+    companyId: '00000000-0000-7000-8000-000000000002',
     companyType: 'selfhosted',
     authzRevision: 0,
     member: mockMember,

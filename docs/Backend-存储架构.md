@@ -224,9 +224,9 @@ flowchart LR
 | `RoutingRule.id`        | = `nodeId`                                                    |
 | `sk-xxx`                | → `platform_keys.key_hash` → `platform_key_mappings.newapi_key_id` |
 | `newapi_wallet_user_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `wallet_remain`） |
-| `TOKENJOY_COMPANY_ID`   | 平台模型源公司 ID（默认 `1`）                                 |
-| `LOCAL_COMPANY_ID`      | 本地化部署业务公司 ID（默认 `2`）                             |
-| SaaS 公司 ID            | 从 `1000000` 起分配                                            |
+| `TOKENJOY_COMPANY_ID`   | 平台模型源公司 UUID（默认 `00000000-0000-7000-8000-000000000001`）|
+| `LOCAL_COMPANY_ID`      | 本地化部署业务公司 UUID（默认 `00000000-0000-7000-8000-000000000002`）|
+| SaaS 公司 ID            | 创建时由 `uuid.NewV7()` 生成                                    |
 | 幂等键                  | `newapi:{log_id}`                                             |
 | `members`               | TokenJoy 成员，非 NewAPI user                                 |
 | `personalQuota`         | 走 `MemberBudget` API，不在 Member JSON                  |

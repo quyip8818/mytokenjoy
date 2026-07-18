@@ -1,5 +1,7 @@
 # UUID v7 迁移实现文档
 
+> **Status: ✅ Implemented**（2026-07-18）
+
 ## 目标
 
 将所有业务实体 ID 从 `BIGINT`/`TEXT` 统一为 PostgreSQL 原生 `UUID` 类型 + Go `uuid.UUID`。

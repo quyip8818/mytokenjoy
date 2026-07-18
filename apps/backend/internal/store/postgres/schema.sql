@@ -141,7 +141,8 @@ CREATE TABLE IF NOT EXISTS role_permission_grants (
     role_id       UUID NOT NULL,
     permission_id TEXT NOT NULL,
     PRIMARY KEY (company_id, role_id, permission_id),
-    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
+    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS models (

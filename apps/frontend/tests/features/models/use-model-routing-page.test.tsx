@@ -30,8 +30,11 @@ const rules: RoutingRule[] = [
     nodeId: 'dept-1',
     nodeName: '总公司',
     inherited: false,
-    allowedModelIds: [1, 2],
-    defaultModelId: 1,
+    allowedModelIds: [
+      '00000000-0000-7000-8000-0000000000b1',
+      '00000000-0000-7000-8000-0000000000b2',
+    ],
+    defaultModelId: '00000000-0000-7000-8000-0000000000b1',
     fallbackModelId: null,
   },
   {
@@ -39,8 +42,11 @@ const rules: RoutingRule[] = [
     nodeId: 'dept-2',
     nodeName: '技术部',
     inherited: false,
-    allowedModelIds: [1, 2],
-    defaultModelId: 1,
+    allowedModelIds: [
+      '00000000-0000-7000-8000-0000000000b1',
+      '00000000-0000-7000-8000-0000000000b2',
+    ],
+    defaultModelId: '00000000-0000-7000-8000-0000000000b1',
     fallbackModelId: null,
   },
   {
@@ -48,8 +54,8 @@ const rules: RoutingRule[] = [
     nodeId: 'dept-3',
     nodeName: '后端组',
     inherited: true,
-    allowedModelIds: [1],
-    defaultModelId: 1,
+    allowedModelIds: ['00000000-0000-7000-8000-0000000000b1'],
+    defaultModelId: '00000000-0000-7000-8000-0000000000b1',
     fallbackModelId: null,
   },
 ]
@@ -135,16 +141,22 @@ describe('useModelRoutingPage', () => {
     await act(async () => {
       await result.current.handleSave({
         inherited: false,
-        allowedModelIds: [1, 2],
-        defaultModelId: 1,
+        allowedModelIds: [
+          '00000000-0000-7000-8000-0000000000b1',
+          '00000000-0000-7000-8000-0000000000b2',
+        ],
+        defaultModelId: '00000000-0000-7000-8000-0000000000b1',
         fallbackModelId: null,
       })
     })
 
     expect(apis.routingApi.updateRule).toHaveBeenCalledWith('dept-1', {
       inherited: false,
-      allowedModelIds: [1, 2],
-      defaultModelId: 1,
+      allowedModelIds: [
+        '00000000-0000-7000-8000-0000000000b1',
+        '00000000-0000-7000-8000-0000000000b2',
+      ],
+      defaultModelId: '00000000-0000-7000-8000-0000000000b1',
       fallbackModelId: null,
     })
   })

@@ -2,7 +2,7 @@ import type { Member } from '@/api/types'
 
 export const mockMember: Member = {
   id: 'm-admin',
-  companyId: 1,
+  companyId: '00000000-0000-7000-8000-000000000002',
   name: '管理员',
   phone: '13800000000',
   email: 'admin@test.com',
@@ -16,7 +16,7 @@ export const mockMember: Member = {
 export const mockMembers: Member[] = [
   {
     id: 'm1',
-    companyId: 1,
+    companyId: '00000000-0000-7000-8000-000000000002',
     name: '张三',
     phone: '13800000001',
     email: 'zhangsan@example.com',
@@ -28,7 +28,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 'm2',
-    companyId: 1,
+    companyId: '00000000-0000-7000-8000-000000000002',
     name: '李四',
     phone: '13800000002',
     email: 'lisi@example.com',

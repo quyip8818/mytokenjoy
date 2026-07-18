@@ -1,10 +1,22 @@
 import type { ModelInfo, ModelRef } from '@/api/types'
 
 export const mockModelRefs: ModelRef[] = [
-  { modelId: 1, type: 'deepseek-v4', name: 'DeepSeek V4', provider: 'deepseek', enabled: true },
-  { modelId: 2, type: 'qwen-3.5-plus', name: 'Qwen 3.5 Plus', provider: 'qwen', enabled: true },
   {
-    modelId: 3,
+    modelId: '00000000-0000-7000-8000-0000000000b1',
+    type: 'deepseek-v4',
+    name: 'DeepSeek V4',
+    provider: 'deepseek',
+    enabled: true,
+  },
+  {
+    modelId: '00000000-0000-7000-8000-0000000000b2',
+    type: 'qwen-3.5-plus',
+    name: 'Qwen 3.5 Plus',
+    provider: 'qwen',
+    enabled: true,
+  },
+  {
+    modelId: '00000000-0000-7000-8000-0000000000b3',
     type: 'claude-sonnet-5',
     name: 'Claude Sonnet 5',
     provider: 'anthropic',
@@ -14,7 +26,7 @@ export const mockModelRefs: ModelRef[] = [
 
 export const mockModels: ModelInfo[] = [
   {
-    modelId: 1,
+    modelId: '00000000-0000-7000-8000-0000000000b1',
     type: 'deepseek-v4',
     name: 'DeepSeek V4',
     provider: 'deepseek',
@@ -27,7 +39,7 @@ export const mockModels: ModelInfo[] = [
     capabilities: ['chat'],
   },
   {
-    modelId: 2,
+    modelId: '00000000-0000-7000-8000-0000000000b2',
     type: 'qwen-3.5-plus',
     name: 'Qwen 3.5 Plus',
     provider: 'qwen',
@@ -40,7 +52,7 @@ export const mockModels: ModelInfo[] = [
     capabilities: ['chat', 'vision'],
   },
   {
-    modelId: 3,
+    modelId: '00000000-0000-7000-8000-0000000000b3',
     type: 'custom-model',
     name: 'My Custom',
     provider: 'custom',

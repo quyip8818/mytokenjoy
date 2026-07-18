@@ -23,31 +23,17 @@
 
 ## 二、🔴 严重（数据一致性 / 安全）
 
-### BUG-01 — Company ID 生成竞态条件
+### BUG-01 — Company ID 生成竞态条件 ✅
 
-**文件**：`internal/domain/company/service_create.go`  
-**现状**：事务外 `List()` 全量读取 → 手动 `max(ID)+1`。两个并发 `CreateCompany` 得到同一 `nextID`，导致主键冲突。
-
-```go
-companies, err := s.store.Company().List(ctx)
-var nextID int64 = 1
-for _, t := range companies {
-    if t.ID >= nextID { nextID = t.ID + 1 }
-}
-// ... 之后才进入 WithTx
-```
-
-**建议**：在事务内使用 PostgreSQL `SELECT MAX(id)+1 ... FOR UPDATE` 或 SERIAL。
+**状态**：已通过 UUID v7 迁移修复（2026-07-18）。  
+Company ID 现为 `uuid.Must(uuid.NewV7())`，事务内生成，无竞态。
 
 ---
 
-### BUG-02 — Keys 域 Entity ID 使用 `UnixMilli()` 无随机后缀
+### BUG-02 — Keys 域 Entity ID 使用 `UnixMilli()` 无随机后缀 ✅
 
-**文件**：`internal/domain/keys/platform_key_create.go`、`approval.go`  
-**现状**：`fmt.Sprintf("plk-%d", time.Now().UnixMilli())`，同毫秒并发 → ID 碰撞。  
-**对比**：`budget/service.go` 的 `generateBudgetID` 已加 `rand.Read` 4 字节。
-
-**建议**：统一使用 `generateBudgetID` 模式或 ULID。
+**状态**：已通过 UUID v7 迁移修复（2026-07-18）。  
+所有实体 ID 统一为 `uuid.Must(uuid.NewV7())`，无碰撞风险。
 
 ---
 

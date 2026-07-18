@@ -107,7 +107,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
 
   const session = useMemo<AppSession>(() => {
     return {
-      companyId: query.data?.companyId ?? 0,
+      companyId: query.data?.companyId ?? '',
       companyType: query.data?.companyType ?? 'selfhosted',
       authzRevision: query.data?.authzRevision ?? 0,
       memberId: query.data?.member?.id ?? '',

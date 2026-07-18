@@ -8,41 +8,15 @@
 
 ## 严重问题 (Bugs / 潜在数据损坏)
 
-### 1. Company ID 生成存在竞态条件
+### 1. Company ID 生成存在竞态条件 ✅ 已修复
 
-**文件**: `internal/domain/company/service_create.go`
-
-```go
-companies, err := s.store.Company().List(ctx)
-// ...
-var nextID int64 = 1
-for _, t := range companies {
-    if t.ID >= nextID {
-        nextID = t.ID + 1
-    }
-}
-```
-
-这段代码在事务外读取所有公司列表，然后手动算 max(ID)+1。两个并发 `CreateCompany` 调用会得到相同的 `nextID`，导致主键冲突或数据覆盖。
-
-**建议**: 使用 PostgreSQL 的 `SERIAL`/`BIGSERIAL` 或 `SELECT nextval(...)` 在事务内生成 ID。
+> **已通过 UUID v7 迁移修复（2026-07-18）。** Company ID 现为事务内 `uuid.Must(uuid.NewV7())` 生成。
 
 ---
 
-### 2. Entity ID 使用 `time.Now().UnixMilli()` 缺少随机后缀
+### 2. Entity ID 使用 `time.Now().UnixMilli()` 缺少随机后缀 ✅ 已修复
 
-**文件**: `internal/domain/keys/platform_key_create.go`, `approval.go`
-
-```go
-created := types.PlatformKey{
-    ID: fmt.Sprintf("plk-%d", time.Now().UnixMilli()),
-    // ...
-}
-```
-
-毫秒精度 ID 在同一毫秒内的两个并发请求会产生相同 ID。`budget/service.go` 中的 `generateBudgetID` 正确使用了 `rand.Read` 追加随机字节，但 keys 模块没有。
-
-**建议**: 统一使用 `generateBudgetID` 模式，或用 ULID/UUID。
+> **已通过 UUID v7 迁移修复（2026-07-18）。** 所有实体 ID 统一为 `uuid.Must(uuid.NewV7())`。
 
 ---
 
