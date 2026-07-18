@@ -20,7 +20,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	prepareDept3NodeUpdateFixture(t, st)
 	reserved := budgetfix.DisplayPoints(1500)
 	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
-	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3.String(), wantBudget, &reserved)
+	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, wantBudget, &reserved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestUpdateNodeOversell(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
 	reserved := budgetfix.DisplayPoints(1500)
-	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3.String(), budgetfix.DisplayPoints(90000), &reserved)
+	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.DisplayPoints(90000), &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -154,9 +154,9 @@ func TestUpdateProjectMemberIDsPreservesBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	memberIDStrs := []string{contract.IDMember1.String(), contract.IDMember3.String()}
-	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID.String(), types.UpdateProjectInput{
-		MemberIDs: &memberIDStrs,
+	memberIDs := []uuid.UUID{contract.IDMember1, contract.IDMember3}
+	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
+		MemberIDs: &memberIDs,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -190,8 +190,8 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	budgets := map[string]float64{contract.IDMember1.String(): 3000, contract.IDMember3.String(): 2000}
-	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID.String(), types.UpdateProjectInput{
+	budgets := map[uuid.UUID]float64{contract.IDMember1: 3000, contract.IDMember3: 2000}
+	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
 		MemberBudgets: &budgets,
 	})
 	if err != nil {
@@ -212,8 +212,8 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 			t.Fatalf("persisted member1 budget = %v, want 3000", project.MemberBudgets[contract.IDMember1])
 		}
 	}
-	_, err = svc.UpdateProject(testutil.Ctx(), created.ID.String(), types.UpdateProjectInput{
-		MemberBudgets: &map[string]float64{contract.IDMemberPure.String(): 100},
+	_, err = svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
+		MemberBudgets: &map[uuid.UUID]float64{contract.IDMemberPure: 100},
 	})
 	if err == nil {
 		t.Fatal("expected validation error for member not on roster")
@@ -249,8 +249,8 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		over := map[string]float64{contract.IDMember1.String(): 7_000, contract.IDMember3.String(): 5_000}
-		_, err = svc.UpdateProject(ctx, created.ID.String(), types.UpdateProjectInput{MemberBudgets: &over})
+		over := map[uuid.UUID]float64{contract.IDMember1: 7_000, contract.IDMember3: 5_000}
+		_, err = svc.UpdateProject(ctx, created.ID, types.UpdateProjectInput{MemberBudgets: &over})
 		testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 	})
 }
@@ -258,7 +258,7 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 func TestDeleteProject(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
-	if err := svc.DeleteProject(testutil.Ctx(), contract.IDProject4.String()); err != nil {
+	if err := svc.DeleteProject(testutil.Ctx(), contract.IDProject4); err != nil {
 		t.Fatal(err)
 	}
 	projects, err := st.Budget().Projects(testutil.Ctx())
@@ -305,7 +305,7 @@ func TestOrgSyncSetTreeDoesNotOverwriteBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	reserved := budgetfix.DisplayPoints(1500)
 	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
-	if _, err := svc.UpdateNode(ctx, contract.IDDept3.String(), wantBudget, &reserved); err != nil {
+	if _, err := svc.UpdateNode(ctx, contract.IDDept3, wantBudget, &reserved); err != nil {
 		t.Fatal(err)
 	}
 	nodes, err := st.Org().Nodes().Tree(ctx)

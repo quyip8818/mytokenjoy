@@ -38,7 +38,7 @@ func TestBatchInviteByIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := svc.BatchInvite(ctx, []string{"m-pending"})
+	result, err := svc.BatchInvite(ctx, []string{pendingID.String()})
 	if err != nil {
 		t.Fatal(err)
 	}

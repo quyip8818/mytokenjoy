@@ -68,7 +68,7 @@ func (s *service) CreateAlert(ctx context.Context, rule types.AlertRule) (types.
 	return result, err
 }
 
-func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertRule) (types.AlertRule, error) {
+func (s *service) UpdateAlert(ctx context.Context, id uuid.UUID, patch types.AlertRule) (types.AlertRule, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.AlertRule{}, err
 	}
@@ -77,10 +77,6 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 			return types.AlertRule{}, err
 		}
 		patch.Thresholds = normalizeThresholds(patch.Thresholds)
-	}
-	parsedID, parseErr := uuid.Parse(id)
-	if parseErr != nil {
-		return types.AlertRule{}, domain.Validation("invalid alert id")
 	}
 	var result types.AlertRule
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
@@ -92,7 +88,7 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 			return err
 		}
 		for i := range rules {
-			if rules[i].ID == parsedID {
+			if rules[i].ID == id {
 				if patch.NodeID != uuid.Nil {
 					rules[i].NodeID = patch.NodeID
 				}
@@ -118,11 +114,7 @@ func (s *service) UpdateAlert(ctx context.Context, id string, patch types.AlertR
 	return result, err
 }
 
-func (s *service) DeleteAlert(ctx context.Context, id string) error {
-	parsedID, parseErr := uuid.Parse(id)
-	if parseErr != nil {
-		return domain.Validation("invalid alert id")
-	}
+func (s *service) DeleteAlert(ctx context.Context, id uuid.UUID) error {
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
@@ -134,7 +126,7 @@ func (s *service) DeleteAlert(ctx context.Context, id string) error {
 		filtered := make([]types.AlertRule, 0, len(rules))
 		found := false
 		for _, rule := range rules {
-			if rule.ID == parsedID {
+			if rule.ID == id {
 				found = true
 				continue
 			}

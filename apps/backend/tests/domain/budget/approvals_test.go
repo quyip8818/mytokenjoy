@@ -33,7 +33,7 @@ func TestResolveApprovalApprove(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
 	ctx := testutil.Ctx()
-	updated, err := svc.ResolveApproval(ctx, contract.IDBudgetApproval1.String(), types.ResolveBudgetApprovalInput{Status: "approved"})
+	updated, err := svc.ResolveApproval(ctx, contract.IDBudgetApproval1, types.ResolveBudgetApprovalInput{Status: "approved"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestResolveApprovalApprove(t *testing.T) {
 func TestResolveApprovalRejectRequiresReason(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	_, err := svc.ResolveApproval(testutil.Ctx(), contract.IDBudgetApproval2.String(), types.ResolveBudgetApprovalInput{Status: "rejected"})
+	_, err := svc.ResolveApproval(testutil.Ctx(), contract.IDBudgetApproval2, types.ResolveBudgetApprovalInput{Status: "rejected"})
 	if err == nil {
 		t.Fatal("expected validation error")
 	}

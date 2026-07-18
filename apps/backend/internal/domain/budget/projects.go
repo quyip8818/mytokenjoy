@@ -54,10 +54,10 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 			Budget:            project.Budget,
 			Consumed:          0,
 			MemberIDs:         append([]uuid.UUID{}, project.MemberIDs...),
-			MemberBudgets:     cloneMemberBudgetsUUID(project.MemberBudgets),
+			MemberBudgets:     cloneMemberBudgets(project.MemberBudgets),
 			OwnerDepartmentID: project.OwnerDepartmentID,
 		}
-		if err := validateProjectMemberBudgetsUUID(created.Budget, created.MemberIDs, created.MemberBudgets); err != nil {
+		if err := validateProjectMemberBudgets(created.Budget, created.MemberIDs, created.MemberBudgets); err != nil {
 			return err
 		}
 		projects = append(projects, created)
@@ -70,7 +70,7 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 	return result, err
 }
 
-func (s *service) UpdateProject(ctx context.Context, id string, patch types.UpdateProjectInput) (types.Project, error) {
+func (s *service) UpdateProject(ctx context.Context, id uuid.UUID, patch types.UpdateProjectInput) (types.Project, error) {
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.Project{}, err
 	}
@@ -80,12 +80,8 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 	if patch.Budget != nil && *patch.Budget < 0 {
 		return types.Project{}, domain.Validation("budget must be non-negative")
 	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return types.Project{}, err
-	}
 	var result types.Project
-	err = s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -94,7 +90,7 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 			return err
 		}
 		for i := range projects {
-			if projects[i].ID == parsedID {
+			if projects[i].ID == id {
 				if patch.Name != nil && *patch.Name != "" {
 					projects[i].Name = *patch.Name
 				}
@@ -102,32 +98,20 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 					projects[i].Budget = *patch.Budget
 				}
 				if patch.MemberIDs != nil {
-					parsed := make([]uuid.UUID, 0, len(*patch.MemberIDs))
-					for _, s := range *patch.MemberIDs {
-						id, err := uuid.Parse(s)
-						if err != nil {
-							return err
-						}
-						parsed = append(parsed, id)
-					}
-					projects[i].MemberIDs = parsed
-					projects[i].MemberBudgets = pruneMemberBudgetsUUID(projects[i].MemberBudgets, projects[i].MemberIDs)
+					projects[i].MemberIDs = *patch.MemberIDs
+					projects[i].MemberBudgets = pruneMemberBudgets(projects[i].MemberBudgets, projects[i].MemberIDs)
 				}
 				if patch.MemberBudgets != nil {
-					merged, err := mergeMemberBudgetPatchUUID(projects[i].MemberBudgets, *patch.MemberBudgets, projects[i].MemberIDs)
+					merged, err := mergeMemberBudgetPatch(projects[i].MemberBudgets, *patch.MemberBudgets, projects[i].MemberIDs)
 					if err != nil {
 						return err
 					}
 					projects[i].MemberBudgets = merged
 				}
-				if patch.OwnerDepartmentID != nil && *patch.OwnerDepartmentID != "" {
-					ownerID, err := uuid.Parse(*patch.OwnerDepartmentID)
-					if err != nil {
-						return err
-					}
-					projects[i].OwnerDepartmentID = ownerID
+				if patch.OwnerDepartmentID != nil && *patch.OwnerDepartmentID != uuid.Nil {
+					projects[i].OwnerDepartmentID = *patch.OwnerDepartmentID
 				}
-				if err := validateProjectMemberBudgetsUUID(projects[i].Budget, projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
+				if err := validateProjectMemberBudgets(projects[i].Budget, projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
 					return err
 				}
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {
@@ -138,7 +122,7 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 					return fmt.Errorf("load budget context: %w", err)
 				}
 				for _, loaded := range budgetCtx.Projects {
-					if loaded.ID == parsedID {
+					if loaded.ID == id {
 						result = loaded
 						return nil
 					}
@@ -152,13 +136,9 @@ func (s *service) UpdateProject(ctx context.Context, id string, patch types.Upda
 	return result, err
 }
 
-func (s *service) DeleteProject(ctx context.Context, id string) error {
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
+func (s *service) DeleteProject(ctx context.Context, id uuid.UUID) error {
 	var deletedMemberIDs []uuid.UUID
-	err = s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -167,7 +147,7 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			return err
 		}
 		for i := range projects {
-			if projects[i].ID == parsedID {
+			if projects[i].ID == id {
 				deletedMemberIDs = append([]uuid.UUID{}, projects[i].MemberIDs...)
 				projects = append(projects[:i], projects[i+1:]...)
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {

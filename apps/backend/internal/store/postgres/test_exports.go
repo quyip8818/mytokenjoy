@@ -18,8 +18,8 @@ func EnsureBootstrapCompanyForTest(ctx context.Context, pool *pgxpool.Pool, cfg 
 
 // Usage aggregate test hooks (pure functions moved from store/usagequery).
 
-func TestHookContainsString(items []string, target string) bool {
-	return containsString(items, target)
+func TestHookUUIDSet(items []uuid.UUID) map[uuid.UUID]struct{} {
+	return uuidSet(items)
 }
 
 func TestHookTruncateUsageBucket(t time.Time, granularity string, loc *time.Location) time.Time {

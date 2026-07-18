@@ -11,13 +11,13 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -116,7 +116,13 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	remainUnitsVal := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
 
 	group := d.ChannelPolicy.ResolveNewAPIGroup(ctx, departmentID)
-	if err := d.Client.EnsureGroup(ctx, group, policy.GroupDisplayName(departmentID)); err != nil {
+	displayName := departmentID.String()
+	if depts, err := common.LoadDepartments(ctx, d.Store.Org().Nodes()); err == nil {
+		if dept := pkgorg.FindDepartment(depts, departmentID); dept != nil {
+			displayName = dept.Name
+		}
+	}
+	if err := d.Client.EnsureGroup(ctx, group, displayName); err != nil {
 		return "", fmt.Errorf("ensure newapi group %s: %w", group, err)
 	}
 

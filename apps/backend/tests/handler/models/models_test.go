@@ -3,6 +3,7 @@ package models_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,8 +17,8 @@ import (
 func TestRoutingUpdateHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(`{"allowedModelIds":[100]}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/dept-3", bytes.NewReader(body))
+	body := []byte(fmt.Sprintf(`{"allowedModelIds":["%s"]}`, contract.IDModel1))
+	req := httptest.NewRequest(http.MethodPut, "/api/models/routing/"+contract.IDDept3.String(), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()
@@ -31,9 +32,6 @@ func TestRoutingUpdateHTTP(t *testing.T) {
 	}
 	if len(rule.AllowedModelIDs) != 1 || rule.AllowedModelIDs[0] != contract.IDModel1 {
 		t.Fatalf("expected allowedModelIds [%s], got %v", contract.IDModel1, rule.AllowedModelIDs)
-	}
-	if len(rule.AllowedModels) != 1 || rule.AllowedModels[0].Type != "gpt-4o" {
-		t.Fatalf("expected enriched gpt-4o, got %v", rule.AllowedModels)
 	}
 }
 

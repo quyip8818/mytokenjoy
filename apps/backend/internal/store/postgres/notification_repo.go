@@ -68,7 +68,7 @@ func (r *notificationRepo) GetUnreadCount(ctx context.Context, userID uuid.UUID)
 	return count, err
 }
 
-func (r *notificationRepo) MarkRead(ctx context.Context, id string) error {
+func (r *notificationRepo) MarkRead(ctx context.Context, id uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		UPDATE notification_log SET read_at = $1, status = 'read'
@@ -98,7 +98,7 @@ func (r *notificationRepo) ListLog(ctx context.Context, filter types.Notificatio
 		limit = 200
 	}
 
-	query := `SELECT id, channel, event_type, COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::uuid), title, body, payload, status, COALESCE(error,''), created_at, read_at
+	query := `SELECT id, channel, event_type, user_id, title, body, payload, status, COALESCE(error,''), created_at, read_at
 		FROM notification_log WHERE company_id = $1`
 	args := []any{companyID}
 	argIdx := 2
@@ -131,8 +131,12 @@ func (r *notificationRepo) ListLog(ctx context.Context, filter types.Notificatio
 	var result []types.NotificationLogEntry
 	for rows.Next() {
 		var e types.NotificationLogEntry
-		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &e.UserID, &e.Title, &e.Body, &e.Payload, &e.Status, &e.Error, &e.CreatedAt, &e.ReadAt); err != nil {
+		var userID *uuid.UUID
+		if err := rows.Scan(&e.ID, &e.Channel, &e.EventType, &userID, &e.Title, &e.Body, &e.Payload, &e.Status, &e.Error, &e.CreatedAt, &e.ReadAt); err != nil {
 			return nil, err
+		}
+		if userID != nil {
+			e.UserID = *userID
 		}
 		result = append(result, e)
 	}

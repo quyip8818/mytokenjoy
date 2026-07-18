@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -43,8 +44,9 @@ func TestBootstrapDemoWalletUserCreatesWallet(t *testing.T) {
 	if stub.CreateUserCalls != 1 {
 		t.Fatalf("expected one CreateUser call, got %d", stub.CreateUserCalls)
 	}
-	if createdUsername != "company-2" {
-		t.Fatalf("expected username company-2, got %q", createdUsername)
+	expectedUsername := company.WalletUsername(contract.LocalCompanyID)
+	if createdUsername != expectedUsername {
+		t.Fatalf("expected username %q, got %q", expectedUsername, createdUsername)
 	}
 	co, err := st.Company().GetByID(ctx, contract.LocalCompanyID)
 	if err != nil {

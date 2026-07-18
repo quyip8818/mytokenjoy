@@ -21,5 +21,5 @@ type BudgetRepository interface {
 	SetAlertRules(ctx context.Context, rules []types.AlertRule) error
 	BudgetApprovals(ctx context.Context) ([]types.BudgetApproval, error)
 	SetBudgetApprovals(ctx context.Context, items []types.BudgetApproval) error
-	UpdateBudgetApproval(ctx context.Context, id, status string, rejectReason *string, resolvedAt time.Time) error
+	UpdateBudgetApproval(ctx context.Context, id uuid.UUID, status string, rejectReason *string, resolvedAt time.Time) error
 }

@@ -25,11 +25,11 @@ type Project struct {
 }
 
 type UpdateProjectInput struct {
-	Name              *string             `json:"name"`
-	Budget            *float64            `json:"budget"`
-	MemberIDs         *[]string           `json:"memberIds"`
-	MemberBudgets     *map[string]float64 `json:"memberBudgets"`
-	OwnerDepartmentID *string             `json:"ownerDepartmentId"`
+	Name              *string                `json:"name"`
+	Budget            *float64               `json:"budget"`
+	MemberIDs         *[]uuid.UUID           `json:"memberIds"`
+	MemberBudgets     *map[uuid.UUID]float64 `json:"memberBudgets"`
+	OwnerDepartmentID *uuid.UUID             `json:"ownerDepartmentId"`
 }
 
 type OverrunPolicyConfig struct {

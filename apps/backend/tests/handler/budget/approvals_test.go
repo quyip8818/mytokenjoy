@@ -10,6 +10,7 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/seed/contract"
 )
 
 func TestBudgetApprovalsList(t *testing.T) {
@@ -35,7 +36,7 @@ func TestBudgetApprovalResolve(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	body := []byte(`{"status":"approved"}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/budget/approvals/appr-1", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/budget/approvals/"+contract.IDBudgetApproval1.String(), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))
 	rec := httptest.NewRecorder()

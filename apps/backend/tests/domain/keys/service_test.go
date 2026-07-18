@@ -340,7 +340,7 @@ func TestRejectApprovalNotFound(t *testing.T) {
 func TestApprovalBudgetCheckNotFound(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
-	_, err := svc.ApprovalBudgetCheck(testutil.Ctx(), "missing-approval")
+	_, err := svc.ApprovalBudgetCheck(testutil.Ctx(), "00000000-0000-7000-8000-ffffffffffff")
 	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 

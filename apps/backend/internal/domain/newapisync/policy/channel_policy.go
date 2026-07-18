@@ -41,16 +41,6 @@ func NewChannelPolicy(cfg config.Config) ChannelPolicy {
 	return NewLocalChannelPolicy()
 }
 
-var groupDisplayNames = map[uuid.UUID]string{}
-
-// GroupDisplayName returns a human-readable NewAPI group label for known demo departments.
-func GroupDisplayName(departmentID uuid.UUID) string {
-	if name, ok := groupDisplayNames[departmentID]; ok {
-		return name
-	}
-	return departmentID.String()
-}
-
 // ResolveProviderChannelGroup picks the NewAPI group for the provider channel.
 // In local (non-SaaS) mode, returns empty so all department tokens can access the shared channel.
 // In SaaS mode, returns the platform-wide shared group.

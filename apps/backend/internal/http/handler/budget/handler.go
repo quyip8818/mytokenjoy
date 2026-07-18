@@ -40,7 +40,12 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	node, err := h.service.UpdateNode(r.Context(), chi.URLParam(r, "departmentId"), body.Budget, body.ReservedPool)
+	id, err := uuid.Parse(chi.URLParam(r, "departmentId"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid departmentId")
+		return
+	}
+	node, err := h.service.UpdateNode(r.Context(), id, body.Budget, body.ReservedPool)
 	httputil.WriteJSON(w, http.StatusOK, node, err)
 }
 
@@ -112,12 +117,22 @@ func (h *Handler) ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	group, err := h.service.UpdateProject(r.Context(), chi.URLParam(r, "id"), body)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	group, err := h.service.UpdateProject(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, group, err)
 }
 
 func (h *Handler) ProjectDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteProject(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.DeleteProject(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
@@ -157,12 +172,22 @@ func (h *Handler) AlertUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	rule, err := h.service.UpdateAlert(r.Context(), chi.URLParam(r, "id"), body)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	rule, err := h.service.UpdateAlert(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, rule, err)
 }
 
 func (h *Handler) AlertDelete(w http.ResponseWriter, r *http.Request) {
-	err := h.service.DeleteAlert(r.Context(), chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	err = h.service.DeleteAlert(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
@@ -177,7 +202,12 @@ func (h *Handler) ApprovalResolve(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	item, err := h.service.ResolveApproval(r.Context(), chi.URLParam(r, "id"), body)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	item, err := h.service.ResolveApproval(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, item, err)
 }
 

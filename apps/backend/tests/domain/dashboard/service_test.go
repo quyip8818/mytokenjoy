@@ -144,7 +144,7 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 20, CallCount: 4})
-	depts, err := svc.DepartmentCosts(ctx, contract.IDDept2.String(), types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
+	depts, err := svc.DepartmentCosts(ctx, contract.IDDept2, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}

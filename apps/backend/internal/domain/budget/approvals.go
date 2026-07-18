@@ -19,7 +19,7 @@ func (s *service) ListApprovals(ctx context.Context) ([]types.BudgetApproval, er
 	return s.store.Budget().BudgetApprovals(ctx)
 }
 
-func (s *service) ResolveApproval(ctx context.Context, id string, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error) {
+func (s *service) ResolveApproval(ctx context.Context, id uuid.UUID, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error) {
 	if err := s.delayer.Wait(ctx, 100*time.Millisecond); err != nil {
 		return types.BudgetApproval{}, err
 	}
@@ -28,11 +28,6 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 	}
 	if input.Status == "rejected" && (input.RejectReason == nil || *input.RejectReason == "") {
 		return types.BudgetApproval{}, domain.Validation("reject reason required")
-	}
-
-	parsedID, parseErr := uuid.Parse(id)
-	if parseErr != nil {
-		return types.BudgetApproval{}, domain.Validation("invalid approval id")
 	}
 
 	now := time.Now().UTC()
@@ -50,7 +45,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 			}
 			idx := -1
 			for i := range items {
-				if items[i].ID == parsedID {
+				if items[i].ID == id {
 					idx = i
 					break
 				}
@@ -137,7 +132,7 @@ func (s *service) ResolveApproval(ctx context.Context, id string, input types.Re
 		}
 		idx := -1
 		for i := range items {
-			if items[i].ID == parsedID {
+			if items[i].ID == id {
 				idx = i
 				break
 			}

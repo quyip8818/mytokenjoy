@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) UpdateNode(ctx context.Context, id string, budget float64, reservedPool *float64) (types.BudgetNode, error) {
+func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget float64, reservedPool *float64) (types.BudgetNode, error) {
 	if budget < 0 {
 		return types.BudgetNode{}, domain.Validation("budget must be non-negative")
 	}
@@ -23,12 +23,8 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.BudgetNode{}, err
 	}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return types.BudgetNode{}, err
-	}
 	var result types.BudgetNode
-	err = s.store.WithTx(ctx, func(tx store.Store) error {
+	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
@@ -37,7 +33,7 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 			return err
 		}
 		tree := types.OrgNodesToBudgetTree(nodes)
-		existing := pkgbudget.FindBudgetNode(tree, parsedID)
+		existing := pkgbudget.FindBudgetNode(tree, id)
 		if existing == nil {
 			return domain.NotFound("Node not found")
 		}
@@ -57,18 +53,18 @@ func (s *service) UpdateNode(ctx context.Context, id string, budget float64, res
 		if err != nil {
 			return err
 		}
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, parsedID, budget, reservedValue, projects, members); msg != nil {
+		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, projects, members); msg != nil {
 			return domain.Validation(*msg)
 		}
 		update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
-		if !pkgbudget.UpdateBudgetNodeInTree(tree, parsedID, update) {
+		if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
 			return domain.NotFound("Node not found")
 		}
-		updated := pkgbudget.FindBudgetNode(tree, parsedID)
+		updated := pkgbudget.FindBudgetNode(tree, id)
 		if updated == nil {
 			return domain.NotFound("Node not found")
 		}
-		if err := pkgbudget.PersistNodeBudget(ctx, tx.Budget().OrgNodeBudget(), parsedID, *updated); err != nil {
+		if err := pkgbudget.PersistNodeBudget(ctx, tx.Budget().OrgNodeBudget(), id, *updated); err != nil {
 			return fmt.Errorf("persist node budget: %w", err)
 		}
 		result = *updated

@@ -25,17 +25,23 @@ func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost float6
 	}
 }
 
-func TestContainsString(t *testing.T) {
+func TestUUIDSet(t *testing.T) {
 	t.Parallel()
-	items := []string{"a", "b", "c"}
-	if !postgres.TestHookContainsString(items, "b") {
-		t.Error("expected true for 'b'")
+	a := uuid.MustParse("00000000-0000-7000-8000-000000000001")
+	b := uuid.MustParse("00000000-0000-7000-8000-000000000002")
+	c := uuid.MustParse("00000000-0000-7000-8000-000000000003")
+	d := uuid.MustParse("00000000-0000-7000-8000-000000000004")
+	items := []uuid.UUID{a, b, c}
+	set := postgres.TestHookUUIDSet(items)
+	if _, ok := set[b]; !ok {
+		t.Error("expected b in set")
 	}
-	if postgres.TestHookContainsString(items, "d") {
-		t.Error("expected false for 'd'")
+	if _, ok := set[d]; ok {
+		t.Error("expected d not in set")
 	}
-	if postgres.TestHookContainsString(nil, "a") {
-		t.Error("expected false for nil slice")
+	nilSet := postgres.TestHookUUIDSet(nil)
+	if _, ok := nilSet[a]; ok {
+		t.Error("expected a not in nil set")
 	}
 }
 
@@ -132,12 +138,12 @@ func TestTopModelPerDepartment(t *testing.T) {
 		makeRow(time.Now(), d2, m2, "gpt-4", 20, 2),
 	}
 
-	result := postgres.TestHookTopModelPerDepartment(rows, []string{d1.String(), d2.String()})
-	if result[d1.String()] != "gpt-4" {
-		t.Errorf("d1 top model = %q, want 'gpt-4'", result[d1.String()])
+	result := postgres.TestHookTopModelPerDepartment(rows, []uuid.UUID{d1, d2})
+	if result[d1] != "gpt-4" {
+		t.Errorf("d1 top model = %q, want 'gpt-4'", result[d1])
 	}
-	if result[d2.String()] != "claude" {
-		t.Errorf("d2 top model = %q, want 'claude'", result[d2.String()])
+	if result[d2] != "claude" {
+		t.Errorf("d2 top model = %q, want 'claude'", result[d2])
 	}
 }
 

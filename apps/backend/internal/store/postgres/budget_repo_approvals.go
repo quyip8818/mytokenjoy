@@ -107,7 +107,7 @@ func (r *pgBudgetRepo) SetBudgetApprovals(ctx context.Context, items []types.Bud
 	return pruneByIDForCompanyUUID(ctx, r.db, "budget_approvals", companyID, ids)
 }
 
-func (r *pgBudgetRepo) UpdateBudgetApproval(ctx context.Context, id, status string, rejectReason *string, resolvedAt time.Time) error {
+func (r *pgBudgetRepo) UpdateBudgetApproval(ctx context.Context, id uuid.UUID, status string, rejectReason *string, resolvedAt time.Time) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		UPDATE budget_approvals

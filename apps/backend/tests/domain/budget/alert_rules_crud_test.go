@@ -51,7 +51,7 @@ func TestDisabledAlertRuleDoesNotTrigger(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateAlert(ctx, rule.ID.String(), types.AlertRule{Enabled: false})
+	updated, err := svc.UpdateAlert(ctx, rule.ID, types.AlertRule{Enabled: false})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestUpdateAlertRuleThresholds(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := svc.UpdateAlert(ctx, rule.ID.String(), types.AlertRule{
+	updated, err := svc.UpdateAlert(ctx, rule.ID, types.AlertRule{
 		Thresholds: []int{80, 90, 100},
 		Enabled:    true,
 	})
@@ -112,7 +112,7 @@ func TestDeleteAlertRule(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.DeleteAlert(ctx, rule.ID.String()); err != nil {
+	if err := svc.DeleteAlert(ctx, rule.ID); err != nil {
 		t.Fatal(err)
 	}
 

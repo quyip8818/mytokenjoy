@@ -153,9 +153,10 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 	}
 	aggregated := aggregateUsageRows(rows, q.Granularity, q.GroupBy, loc)
 	if len(q.OwnerDepartmentID) > 0 {
+		ownerSet := uuidSet(q.OwnerDepartmentID)
 		filtered := make([]types.UsageAggregateRow, 0)
 		for _, row := range aggregated {
-			if containsUUID(q.OwnerDepartmentID, row.DepartmentID) {
+			if _, ok := ownerSet[row.DepartmentID]; ok {
 				filtered = append(filtered, row)
 			}
 		}

@@ -209,7 +209,7 @@ func TestAddRoleMemberNotFoundMember(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = svc.AddRoleMember(ctx, role.ID.String(), "non-existent-member-id")
+	err = svc.AddRoleMember(ctx, role.ID.String(), "00000000-0000-7000-8000-ffffffffffff")
 	if err == nil {
 		t.Fatal("expected error for non-existent member, got nil")
 	}

@@ -31,7 +31,7 @@ func (s *service) ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]ty
 	return memberBudgets, nil
 }
 
-func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[string]float64, error) {
+func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]float64, error) {
 	projects, err := s.store.Budget().Projects(ctx)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.U
 		return nil, domain.NotFound("Project not found")
 	}
 	if len(target.MemberIDs) == 0 {
-		return make(map[string]float64), nil
+		return make(map[uuid.UUID]float64), nil
 	}
 
 	deptID := target.OwnerDepartmentID
@@ -63,7 +63,7 @@ func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.U
 	}
 	consumedRepo := s.store.BudgetConsumed()
 
-	result := make(map[string]float64, len(target.MemberIDs))
+	result := make(map[uuid.UUID]float64, len(target.MemberIDs))
 	for _, memberID := range target.MemberIDs {
 		sum, err := pkgbudget.SumProjectMemberKeyConsumedFromRepo(
 			ctx, consumedRepo, keys, projectID, memberID, periodKey,
@@ -71,7 +71,7 @@ func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.U
 		if err != nil {
 			return nil, err
 		}
-		result[memberID.String()] = sum
+		result[memberID] = sum
 	}
 	return result, nil
 }

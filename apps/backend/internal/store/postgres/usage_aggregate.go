@@ -16,13 +16,12 @@ type usageAggKey struct {
 	Model        string
 }
 
-func containsUUID(items []uuid.UUID, target uuid.UUID) bool {
-	for _, item := range items {
-		if item == target {
-			return true
-		}
+func uuidSet(items []uuid.UUID) map[uuid.UUID]struct{} {
+	s := make(map[uuid.UUID]struct{}, len(items))
+	for _, id := range items {
+		s[id] = struct{}{}
 	}
-	return false
+	return s
 }
 
 func truncateUsageBucket(t time.Time, granularity string, loc *time.Location) time.Time {
