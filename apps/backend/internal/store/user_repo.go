@@ -26,4 +26,5 @@ type UserRepository interface {
 	UpdatePhone(ctx context.Context, id uuid.UUID, phone string) error
 	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
+	HasAnyMember(ctx context.Context, userID uuid.UUID) (bool, error)
 }

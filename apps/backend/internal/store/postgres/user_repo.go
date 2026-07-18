@@ -73,6 +73,15 @@ func (r *userRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status string
 	return err
 }
 
+func (r *userRepo) HasAnyMember(ctx context.Context, userID uuid.UUID) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1)`, userID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
 func scanUser(row pgx.Row) (*store.User, error) {
 	var u store.User
 	err := row.Scan(&u.ID, &u.Phone, &u.Email, &u.PasswordHash, &u.Status, &u.CreatedAt, &u.UpdatedAt)

@@ -68,8 +68,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 type createCompanyBody struct {
-	Name            string `json:"name"`
-	SuperAdminEmail string `json:"superAdminEmail"`
+	Name  string `json:"name"`
+	Type  string `json:"type,omitempty"`
+	Email string `json:"email"` // invite email for deferred join
 }
 
 func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
@@ -78,8 +79,18 @@ func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
+	if body.Email == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "email required")
+		return
+	}
+	companyType := body.Type
+	if companyType == "" {
+		companyType = "standard"
+	}
 	result, err := h.p.CompanySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
-		Name: body.Name, SuperAdminEmail: body.SuperAdminEmail,
+		Name:        body.Name,
+		Type:        companyType,
+		InviteEmail: body.Email,
 	})
 	httputil.WriteJSON(w, http.StatusCreated, result, err)
 }

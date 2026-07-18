@@ -4,21 +4,15 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/pkg/secrets"
 	"github.com/tokenjoy/backend/internal/store"
-	"golang.org/x/crypto/bcrypt"
 )
-
-const minInvitePasswordLen = 8
 
 func memberRolesFromInvite(role string) []string {
 	switch role {
@@ -30,6 +24,10 @@ func memberRolesFromInvite(role string) []string {
 }
 
 func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (types.Member, error) {
+	if req.UserID == uuid.Nil {
+		return types.Member{}, domain.BadRequest("user id required")
+	}
+
 	invite, err := s.store.Invite().GetInviteByCode(ctx, req.InviteCode)
 	if err != nil {
 		return types.Member{}, domain.NotFound("invite not found")
@@ -40,94 +38,14 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	if time.Now().After(invite.ExpiresAt) {
 		return types.Member{}, domain.NewDomainError(400, "invite expired")
 	}
-	if len(req.Password) < minInvitePasswordLen {
-		return types.Member{}, domain.NewDomainError(400, "password too short")
-	}
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return types.Member{}, fmt.Errorf("hash password: %w", err)
-	}
-	company, err := s.store.Company().GetByID(ctx, invite.CompanyID)
-	if err != nil {
-		return types.Member{}, err
-	}
-	if company == nil {
-		return types.Member{}, domain.NotFound("company not found")
-	}
-
-	// Find or create user by email — then create member in same transaction.
-	user, err := s.store.User().GetByEmail(ctx, invite.Email)
-	if err != nil {
-		return types.Member{}, err
-	}
-
-	companyCtx := WithContext(ctx, ContextFromStore(*company))
-	nodes, err := s.store.Org().Nodes().Tree(companyCtx)
-	if err != nil {
-		return types.Member{}, err
-	}
-	deptID := rootOrgNodeID(nodes)
-	if deptID == uuid.Nil {
-		deptID = uuid.Must(uuid.NewV7())
-	}
-	if company.RootDeptID != nil && *company.RootDeptID != uuid.Nil {
-		deptID = *company.RootDeptID
-	}
-	memberID := uuid.Must(uuid.NewV7())
 
 	var member types.Member
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
-		// Create or update user within the transaction.
-		if user == nil {
-			userID := uuid.Must(uuid.NewV7())
-			user = &store.User{
-				ID:           userID,
-				Email:        invite.Email,
-				PasswordHash: string(passwordHash),
-				Status:       "active",
-				CreatedAt:    time.Now().UTC(),
-				UpdatedAt:    time.Now().UTC(),
-			}
-			if err := tx.User().Create(ctx, *user); err != nil {
-				return fmt.Errorf("accept-invite create user (id=%s): %w", user.ID, err)
-			}
-		} else {
-			if err := tx.User().UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
-				return fmt.Errorf("accept-invite update password: %w", err)
-			}
-		}
-
-		member = types.Member{
-			ID:             memberID,
-			CompanyID:      company.ID,
-			UserID:         user.ID,
-			Name:           req.Name,
-			Email:          invite.Email,
-			Phone:          user.Phone,
-			DepartmentID:   deptID,
-			Status:         "active",
-			Roles:          memberRolesFromInvite(invite.Role),
-			PersonalBudget: common.DefaultPersonalBudget,
-		}
-
-		txCompanyCtx := WithContext(ctx, ContextFromStore(*company))
-		members, err := tx.Org().Members(txCompanyCtx)
+		m, err := s.addMember(ctx, tx, req.UserID, invite.CompanyID, req.Name, invite.Role)
 		if err != nil {
-			return fmt.Errorf("accept-invite load members: %w", err)
+			return err
 		}
-		members = append(members, member)
-		if err := tx.Org().SetMembers(txCompanyCtx, members); err != nil {
-			return fmt.Errorf("accept-invite SetMembers: %w", err)
-		}
-
-		for i := range nodes {
-			if nodes[i].ID == deptID {
-				nodes[i].ManagerID = &memberID
-			}
-		}
-		if err := tx.Org().Nodes().SetTree(txCompanyCtx, nodes); err != nil {
-			return fmt.Errorf("accept-invite SetTree: %w", err)
-		}
+		member = m
 		return tx.Invite().MarkInviteAccepted(ctx, invite.ID, time.Now().UTC())
 	})
 	if err != nil {
@@ -136,13 +54,44 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	return member, nil
 }
 
-func rootOrgNodeID(nodes []types.OrgNode) uuid.UUID {
-	for _, node := range org.FlattenOrgNodeTree(nodes) {
-		if node.ParentID == nil || *node.ParentID == uuid.Nil {
-			return node.ID
-		}
+func (s *service) PendingInvitesForUser(ctx context.Context, req PendingInvitesForUserRequest) ([]PendingInvite, error) {
+	invites, err := s.store.Invite().FindPendingInvitesForUser(ctx, req.Email, req.Phone, req.UserID)
+	if err != nil {
+		return nil, err
 	}
-	return uuid.Nil
+	if len(invites) == 0 {
+		return nil, nil
+	}
+
+	// Batch fetch company names.
+	companyIDs := make([]uuid.UUID, 0, len(invites))
+	for _, inv := range invites {
+		companyIDs = append(companyIDs, inv.CompanyID)
+	}
+	companies, err := s.store.Company().GetByIDs(ctx, companyIDs)
+	if err != nil {
+		return nil, err
+	}
+	nameByID := make(map[uuid.UUID]string, len(companies))
+	for _, co := range companies {
+		nameByID[co.ID] = co.Name
+	}
+
+	result := make([]PendingInvite, 0, len(invites))
+	for _, inv := range invites {
+		name, ok := nameByID[inv.CompanyID]
+		if !ok {
+			continue
+		}
+		result = append(result, PendingInvite{
+			InviteCode:  inv.InviteCode,
+			CompanyID:   inv.CompanyID,
+			CompanyName: name,
+			Role:        inv.Role,
+			ExpiresAt:   inv.ExpiresAt,
+		})
+	}
+	return result, nil
 }
 
 func randomInviteCode() (string, error) {

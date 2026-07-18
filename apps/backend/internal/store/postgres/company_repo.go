@@ -28,6 +28,31 @@ func (r *companyRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.Company
 	return scanCompanyExtendedOptional(row)
 }
 
+func (r *companyRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]store.Company, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, newapi_wallet_username, authz_revision,
+			billing_currency, fifo_head_lot_id, wallet_remain,
+			created_at, updated_at
+		FROM companies WHERE id = ANY($1)
+	`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var companies []store.Company
+	for rows.Next() {
+		c, err := scanCompanyExtended(rows)
+		if err != nil {
+			return nil, err
+		}
+		companies = append(companies, *c)
+	}
+	return companies, rows.Err()
+}
+
 func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	if company.BillingCurrency == "" {
 		company.BillingCurrency = common.ResolveBillingCurrency("")

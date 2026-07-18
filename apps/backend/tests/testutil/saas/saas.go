@@ -190,7 +190,7 @@ func LoginPlatform(t *testing.T, router http.Handler) string {
 func CreateCompanyHTTP(t *testing.T, router http.Handler, platformCookie, name, superAdminEmail string) CreateCompanyHTTPResult {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{
-		"name": name, "superAdminEmail": superAdminEmail,
+		"name": name, "email": superAdminEmail,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/platform/companies", bytes.NewReader(body))
 	req.Header.Set("Cookie", platformCookie)
@@ -220,10 +220,14 @@ func AcceptInviteHTTP(t *testing.T, router http.Handler, inviteToken, name, pass
 	if rec.Code != http.StatusOK {
 		t.Fatalf("accept invite: expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	var member types.Member
-	if err := json.NewDecoder(rec.Body).Decode(&member); err != nil {
+	var resp struct {
+		MemberID  uuid.UUID `json:"memberId"`
+		CompanyID uuid.UUID `json:"companyId"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatal(err)
 	}
+	member := types.Member{ID: resp.MemberID, CompanyID: resp.CompanyID}
 	var sessionCookie string
 	for _, c := range rec.Result().Cookies() {
 		if c.Name == "tokenjoy_session_member" && c.Value != "" {

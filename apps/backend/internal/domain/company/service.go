@@ -2,6 +2,7 @@ package company
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
@@ -14,6 +15,7 @@ import (
 type Service interface {
 	CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error)
 	AcceptInvite(ctx context.Context, req AcceptInviteRequest) (types.Member, error)
+	PendingInvitesForUser(ctx context.Context, req PendingInvitesForUserRequest) ([]PendingInvite, error)
 	ListCompanies(ctx context.Context) ([]store.Company, error)
 	UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateCompanyPatch) error
 	ResolveCompanyContext(ctx context.Context, companyID uuid.UUID) (Context, error)
@@ -24,21 +26,41 @@ type UpdateCompanyPatch struct {
 	Status *string
 }
 
+// CreateCompanyRequest supports two modes:
+// - UserID mode (UserID != Nil): creator becomes super-admin Member immediately
+// - InviteEmail mode (UserID == Nil && InviteEmail != ""): generates invite for deferred join
 type CreateCompanyRequest struct {
-	Name            string
-	Type            string
-	SuperAdminEmail string
+	UserID      uuid.UUID // optional: non-nil → creator becomes super-admin
+	Name        string
+	Type        string // "standard" | "trial" | "selfhosted"
+	InviteEmail string // optional: non-empty → generate invite (platform provisioning)
 }
 
 type CreateCompanyResult struct {
 	Company    store.Company
-	InviteCode string
+	Member     *types.Member // non-nil in UserID mode
+	InviteCode string        // non-empty in InviteEmail mode
 }
 
+// AcceptInviteRequest — user identity is resolved by the handler layer.
 type AcceptInviteRequest struct {
+	UserID     uuid.UUID
 	InviteCode string
 	Name       string
-	Password   string
+}
+
+type PendingInvitesForUserRequest struct {
+	Email  string
+	Phone  string
+	UserID uuid.UUID
+}
+
+type PendingInvite struct {
+	InviteCode  string    `json:"inviteCode"`
+	CompanyID   uuid.UUID `json:"companyId"`
+	CompanyName string    `json:"companyName"`
+	Role        string    `json:"role"`
+	ExpiresAt   time.Time `json:"expiresAt"`
 }
 
 // Store is the narrow store surface the company domain needs.

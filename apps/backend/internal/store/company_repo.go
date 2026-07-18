@@ -44,6 +44,7 @@ func ConfiguredNewAPIWalletUserID(co *Company) (int64, bool) {
 
 type CompanyRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*Company, error)
+	GetByIDs(ctx context.Context, ids []uuid.UUID) ([]Company, error)
 	Create(ctx context.Context, company Company) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 	UpdateNewAPIWalletUserID(ctx context.Context, id uuid.UUID, walletUserID int64) error

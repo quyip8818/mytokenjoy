@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -12,17 +13,21 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/store"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Handler struct {
 	pub        httpdeps.Public
 	companySvc domaincompany.Service
+	store      store.Store
 }
 
-func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service) *Handler {
+func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service, st store.Store) *Handler {
 	return &Handler{
 		pub:        pub,
 		companySvc: companySvc,
+		store:      st,
 	}
 }
 
@@ -30,6 +35,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/login", h.Login)
 	r.Post("/auth/logout", h.Logout)
 	r.Post("/auth/accept-invite", h.AcceptInvite)
+	r.Get("/auth/invites/pending", h.PendingInvites)
 }
 
 type loginBody struct {
@@ -86,17 +92,88 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 type acceptInviteBody struct {
 	InviteCode string `json:"inviteCode"`
 	Name       string `json:"name"`
-	Password   string `json:"password"`
+	Password   string `json:"password,omitempty"` // required only for unauthenticated (email link)
 }
 
+// AcceptInvite handles both logged-in users (session → userID) and
+// unauthenticated users (email invite link → password creates/updates User).
 func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	var body acceptInviteBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	member, err := h.companySvc.AcceptInvite(r.Context(), domaincompany.AcceptInviteRequest{
-		InviteCode: body.InviteCode, Name: body.Name, Password: body.Password,
+	if body.InviteCode == "" || body.Name == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "inviteCode and name required")
+		return
+	}
+
+	ctx := r.Context()
+	var userID uuid.UUID
+
+	// Try to resolve from session (logged-in user).
+	if claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken); ok && claims.UserID != uuid.Nil {
+		userID = claims.UserID
+	} else {
+		// Unauthenticated path: need password + resolve user from invite email.
+		if len(body.Password) < 8 {
+			httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
+			return
+		}
+		// Validate invite early — fail before mutating user if invite is bad.
+		invite, err := h.store.Invite().GetInviteByCode(ctx, body.InviteCode)
+		if err != nil || invite == nil {
+			httputil.WriteStatus(w, http.StatusNotFound, "invite not found")
+			return
+		}
+		if invite.AcceptedAt != nil {
+			httputil.WriteStatus(w, http.StatusBadRequest, "invite already accepted")
+			return
+		}
+		if time.Now().After(invite.ExpiresAt) {
+			httputil.WriteStatus(w, http.StatusBadRequest, "invite expired")
+			return
+		}
+
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+		// Find or create user by email.
+		user, err := h.store.User().GetByEmail(ctx, invite.Email)
+		if err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+		if user == nil {
+			now := time.Now().UTC()
+			newUser := store.User{
+				ID:           uuid.Must(uuid.NewV7()),
+				Email:        invite.Email,
+				PasswordHash: string(passwordHash),
+				Status:       "active",
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			}
+			if err := h.store.User().Create(ctx, newUser); err != nil {
+				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+				return
+			}
+			userID = newUser.ID
+		} else {
+			if err := h.store.User().UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
+				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+				return
+			}
+			userID = user.ID
+		}
+	}
+
+	member, err := h.companySvc.AcceptInvite(ctx, domaincompany.AcceptInviteRequest{
+		UserID:     userID,
+		InviteCode: body.InviteCode,
+		Name:       body.Name,
 	})
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
@@ -108,5 +185,38 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.SetSessionCookie(w, token, h.pub.SecureCookie)
-	httputil.WriteJSON(w, http.StatusOK, member, nil)
+	httputil.WriteJSON(w, http.StatusOK, map[string]any{
+		"memberId":  member.ID,
+		"companyId": member.CompanyID,
+	}, nil)
+}
+
+// PendingInvites returns pending invites for the currently logged-in user.
+func (h *Handler) PendingInvites(w http.ResponseWriter, r *http.Request) {
+	claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken)
+	if !ok || claims.UserID == uuid.Nil {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+
+	ctx := r.Context()
+	user, err := h.store.User().GetByID(ctx, claims.UserID)
+	if err != nil || user == nil {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+
+	invites, err := h.companySvc.PendingInvitesForUser(ctx, domaincompany.PendingInvitesForUserRequest{
+		Email:  user.Email,
+		Phone:  user.Phone,
+		UserID: user.ID,
+	})
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	if invites == nil {
+		invites = []domaincompany.PendingInvite{}
+	}
+	httputil.WriteJSON(w, http.StatusOK, invites, nil)
 }

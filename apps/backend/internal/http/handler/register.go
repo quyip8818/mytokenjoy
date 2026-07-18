@@ -17,13 +17,17 @@ import (
 	notificationhandler "github.com/tokenjoy/backend/internal/http/handler/notification"
 	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
 	"github.com/tokenjoy/backend/internal/http/handler/platform"
+	registerhandler "github.com/tokenjoy/backend/internal/http/handler/register"
 	sessionhandler "github.com/tokenjoy/backend/internal/http/handler/session"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
+	"github.com/tokenjoy/backend/internal/identity/registertoken"
 )
 
 type Registry struct {
 	config         config.Config
 	session        *sessionhandler.Handler
 	auth           *auth.Handler
+	register       *registerhandler.Handler
 	platform       *platform.Handler
 	billing        *billing.Handler
 	org            *orghandler.Handler
@@ -40,10 +44,12 @@ type Registry struct {
 
 func NewRegistry(deps httpdeps.Deps) Registry {
 	p := deps.Protected()
+	regTokenIssuer := registertoken.NewIssuer(deps.SessionToken.Secret())
 	return Registry{
 		config:         deps.Config,
 		session:        sessionhandler.NewHandler(p),
-		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc),
+		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Store),
+		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled),
 		platform:       platform.NewHandler(deps.Platform()),
 		billing:        billing.NewHandler(p, deps.BillingSvc),
 		org:            orghandler.NewHandler(p, deps.OrgSvc, deps.CompanySvc),
@@ -60,15 +66,26 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 }
 
 func (reg Registry) RegisterAPIRoutes(r chi.Router) {
+	// Both modes: auth (login, logout, accept-invite, invites/pending)
 	reg.session.RegisterRoutes(r)
 	reg.auth.RegisterRoutes(r)
+
 	r.Route("/internal", func(r chi.Router) {
 		reg.internalIngest.RegisterRoutes(r)
 	})
 	reg.billing.RegisterRoutes(r)
+
+	// SaaS only: register endpoints
+	r.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireSaaS(reg.config))
+		reg.register.RegisterRoutes(r)
+	})
+
+	// SaaS only: platform management
 	if reg.config.SupportSaas {
 		r.Route("/platform", reg.platform.RegisterRoutes)
 	}
+
 	r.Route("/org", reg.org.RegisterRoutes)
 	r.Route("/budget", reg.budget.RegisterRoutes)
 	r.Route("/keys", reg.keys.RegisterRoutes)

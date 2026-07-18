@@ -67,8 +67,25 @@ func TestAcceptInviteAssignsInviteRole(t *testing.T) {
 	platformCookie := saas.LoginPlatform(t, app.Router)
 	created := saas.CreateCompanyHTTP(t, app.Router, platformCookie,
 		"Role Co", "role@example.com")
-	member, _ := saas.AcceptInviteHTTP(t, app.Router, created.InviteCode, "Role Admin", "securepass123")
-	if len(member.Roles) != 1 || member.Roles[0] != permission.RoleSuperAdmin {
-		t.Fatalf("expected super admin role, got %v", member.Roles)
+	_, memberCookie := saas.AcceptInviteHTTP(t, app.Router, created.InviteCode, "Role Admin", "securepass123")
+
+	// Verify role via session endpoint.
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Cookie", memberCookie)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var session struct {
+		Member struct {
+			Roles []string `json:"roles"`
+		} `json:"member"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&session); err != nil {
+		t.Fatal(err)
+	}
+	if len(session.Member.Roles) != 1 || session.Member.Roles[0] != permission.RoleSuperAdmin {
+		t.Fatalf("expected super admin role, got %v", session.Member.Roles)
 	}
 }

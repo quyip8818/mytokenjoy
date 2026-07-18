@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS companies (
 CREATE TABLE IF NOT EXISTS company_invites (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id   UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    email        TEXT NOT NULL,
+    email        TEXT,
+    phone        TEXT,
+    user_id      UUID,
     role         TEXT NOT NULL DEFAULT 'super_admin',
     invite_code  TEXT NOT NULL UNIQUE,
     expires_at   TIMESTAMPTZ NOT NULL,
@@ -38,6 +40,9 @@ CREATE TABLE IF NOT EXISTS company_invites (
 
 CREATE INDEX IF NOT EXISTS idx_company_invites_invite_code ON company_invites (invite_code);
 CREATE INDEX IF NOT EXISTS idx_company_invites_company ON company_invites (company_id);
+CREATE INDEX IF NOT EXISTS idx_company_invites_email_pending ON company_invites (email) WHERE accepted_at IS NULL AND email IS NOT NULL AND email != '';
+CREATE INDEX IF NOT EXISTS idx_company_invites_phone_pending ON company_invites (phone) WHERE accepted_at IS NULL AND phone IS NOT NULL AND phone != '';
+CREATE INDEX IF NOT EXISTS idx_company_invites_user_pending ON company_invites (user_id) WHERE accepted_at IS NULL AND user_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS platform_operators (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
