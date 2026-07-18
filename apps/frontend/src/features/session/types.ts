@@ -4,7 +4,7 @@ import type { CompanyType } from '@/api/types/common'
 export type { CompanyType } from '@/api/types/common'
 
 export interface AppSession {
-  companyId: number
+  companyId: string
   companyType: CompanyType
   authzRevision: number
   memberId: string

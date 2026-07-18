@@ -162,7 +162,7 @@ export function useKeyFormState({
     if (initialBudget != null) return initialBudget
     return String(pointsToDisplay(5000))
   })
-  const [models, setModels] = useState<number[]>(key?.modelWhitelist ?? [])
+  const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(
     adminCreate ? (initialTargetMemberId ?? '') : defaultMemberId,
   )

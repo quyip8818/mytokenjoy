@@ -63,7 +63,7 @@ export interface TopConsumer {
 
 export interface ModelUsage {
   callType: string
-  modelId?: number
+  modelId?: string
   modelName: string
   provider: ProviderType
   requests: number

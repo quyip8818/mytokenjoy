@@ -4,16 +4,16 @@ export function modelRefLabel(ref: Pick<ModelRef, 'name' | 'type'>): string {
   return ref.name || ref.type
 }
 
-export function buildModelIndex(models: ModelInfo[]): Map<number, ModelInfo> {
+export function buildModelIndex(models: ModelInfo[]): Map<string, ModelInfo> {
   return new Map(models.map((model) => [model.modelId, model]))
 }
 
-export function modelIdLabel(modelId: number, index: Map<number, ModelInfo>): string {
+export function modelIdLabel(modelId: string, index: Map<string, ModelInfo>): string {
   const model = index.get(modelId)
   if (!model) return `#${modelId}`
   return model.name || model.type
 }
 
-export function modelIdsToLabels(modelIds: number[], index: Map<number, ModelInfo>): string[] {
+export function modelIdsToLabels(modelIds: string[], index: Map<string, ModelInfo>): string[] {
   return modelIds.map((id) => modelIdLabel(id, index))
 }

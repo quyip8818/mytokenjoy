@@ -41,9 +41,9 @@ export const platformKeyApi = {
     memberId?: string
     projectId?: string
     budget: number
-    modelWhitelist: number[]
+    modelWhitelist: string[]
   }) => request<PlatformKey>('/keys/platform', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: { name?: string; budget?: number; modelWhitelist?: number[] }) =>
+  update: (id: string, data: { name?: string; budget?: number; modelWhitelist?: string[] }) =>
     request<PlatformKey>(`/keys/platform/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   toggle: (id: string, enabled: boolean) =>
     request<PlatformKey>(`/keys/platform/${id}/toggle`, {
@@ -64,7 +64,7 @@ export const approvalApi = {
     type: ApprovalType
     reason: string
     requestedBudget: number
-    requestedModels: number[]
+    requestedModels: string[]
     memberId: string
   }) => request<KeyApproval>('/keys/approvals', { method: 'POST', body: JSON.stringify(data) }),
   approve: (id: string) => request<void>(`/keys/approvals/${id}/approve`, { method: 'PUT' }),

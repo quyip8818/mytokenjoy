@@ -18,7 +18,7 @@ interface PlatformKeyTableProps {
   type: PlatformKeyTab
   rowClass: (id: string) => string
   onRevoke: (id: string) => void
-  modelLabel?: (modelId: number) => string
+  modelLabel?: (modelId: string) => string
 }
 
 export function PlatformKeyTable({

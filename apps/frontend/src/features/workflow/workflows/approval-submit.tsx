@@ -43,7 +43,7 @@ export function ApprovalSubmitWorkflow({
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
   const [requestedBudget, setRequestedBudget] = useState('3000')
-  const [models, setModels] = useState<number[]>([])
+  const [models, setModels] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   const handlePickModels = () => {

@@ -60,9 +60,9 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
   const handleSave = useCallback(
     async (input: {
       inherited: boolean
-      allowedModelIds: number[]
-      defaultModelId: number | null
-      fallbackModelId: number | null
+      allowedModelIds: string[]
+      defaultModelId: string | null
+      fallbackModelId: string | null
     }) => {
       if (!selectedRule) return
       setSaving(true)

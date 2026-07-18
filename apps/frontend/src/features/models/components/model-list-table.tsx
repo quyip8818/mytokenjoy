@@ -19,7 +19,7 @@ interface ModelListTableProps {
   canManage: boolean
   showActions?: boolean
   showProviderColumn?: boolean
-  rowClass: (id: string | number) => string | undefined
+  rowClass: (id: string) => string | undefined
   onToggle: (model: ModelInfo) => void | Promise<void>
   onEdit: (model: ModelInfo) => void
   onDelete: (model: ModelInfo) => void
@@ -35,8 +35,8 @@ export function ModelListTable({
   onEdit,
   onDelete,
 }: ModelListTableProps) {
-  const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set())
-  const inflightRef = useRef<Set<number>>(new Set())
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
+  const inflightRef = useRef<Set<string>>(new Set())
 
   const handleToggle = useCallback(
     async (model: ModelInfo) => {

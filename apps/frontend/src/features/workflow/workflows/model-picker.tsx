@@ -18,15 +18,15 @@ export function ModelPickerWorkflow({
 }: WorkflowComponentProps<'model-picker'>) {
   const apis = useInjectedApis()
   const selectedModelIds = useMemo(
-    () => (entry.payload.selectedModelIds as number[]) ?? [],
+    () => (entry.payload.selectedModelIds as string[]) ?? [],
     [entry.payload.selectedModelIds],
   )
   const parentAllowedModelIds =
-    (entry.payload.parentAllowedModelIds as number[] | undefined) ?? undefined
-  const onConfirm = entry.payload.onConfirm as ((modelIds: number[]) => void) | undefined
+    (entry.payload.parentAllowedModelIds as string[] | undefined) ?? undefined
+  const onConfirm = entry.payload.onConfirm as ((modelIds: string[]) => void) | undefined
   const [models, setModels] = useState<ModelInfo[]>([])
   const [search, setSearch] = useState('')
-  const [pickedIds, setPickedIds] = useState<number[]>(() => [...selectedModelIds])
+  const [pickedIds, setPickedIds] = useState<string[]>(() => [...selectedModelIds])
 
   useEffect(() => {
     apis.modelApi.list().then((list) => {
@@ -46,7 +46,7 @@ export function ModelPickerWorkflow({
       m.type.toLowerCase().includes(search.toLowerCase()),
   )
 
-  const toggle = (modelId: number) => {
+  const toggle = (modelId: string) => {
     setPickedIds((prev) =>
       prev.includes(modelId) ? prev.filter((id) => id !== modelId) : [...prev, modelId],
     )

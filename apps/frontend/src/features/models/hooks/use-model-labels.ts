@@ -6,7 +6,7 @@ import { buildModelIndex, modelIdLabel } from '../lib/model-catalog'
 
 export function useModelLabels(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
-  const [index, setIndex] = useState<Map<number, ModelInfo>>(new Map())
+  const [index, setIndex] = useState<Map<string, ModelInfo>>(new Map())
 
   useEffect(() => {
     let cancelled = false
@@ -18,7 +18,7 @@ export function useModelLabels(injectedApis?: AppApis) {
     }
   }, [apis])
 
-  const labelFor = (modelId: number) => modelIdLabel(modelId, index)
+  const labelFor = (modelId: string) => modelIdLabel(modelId, index)
 
   return { index, labelFor }
 }

@@ -3,19 +3,19 @@ import type { RoutingRule } from '@/api/types'
 
 export interface ModelsWorkflowPayloads {
   'model-create': {
-    onSuccess?: (id?: string | number) => void
+    onSuccess?: (id?: string) => void
   }
   'model-edit': {
     model: ModelInfo
-    onSuccess?: (id?: string | number) => void
+    onSuccess?: (id?: string) => void
   }
   'whitelist-config': {
     rule: RoutingRule
     onSuccess?: () => void
   }
   'model-picker': {
-    selectedModelIds?: number[]
-    parentAllowedModelIds?: number[]
-    onConfirm?: (modelIds: number[]) => void
+    selectedModelIds?: string[]
+    parentAllowedModelIds?: string[]
+    onConfirm?: (modelIds: string[]) => void
   }
 }

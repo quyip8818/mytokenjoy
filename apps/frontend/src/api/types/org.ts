@@ -76,7 +76,7 @@ export type MemberStatus = 'active' | 'inactive' | 'pending'
 
 export interface Member {
   id: string
-  companyId: number
+  companyId: string
   name: string
   phone: string
   email: string

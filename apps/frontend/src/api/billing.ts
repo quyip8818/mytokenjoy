@@ -8,7 +8,7 @@ export interface WalletCurrencyView {
 }
 
 export interface WalletView {
-  companyId: number
+  companyId: string
   billingCurrency: string
   balances: WalletCurrencyView[]
   walletRemainPoint: number

@@ -35,7 +35,7 @@ export function WhitelistConfigWorkflow({
   const rule = entry.payload.rule as RoutingRule
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [inherited, setInherited] = useState(rule.inherited)
-  const [modelIds, setModelIds] = useState<number[]>(rule.allowedModelIds)
+  const [modelIds, setModelIds] = useState<string[]>(rule.allowedModelIds)
   const [parentRefs, setParentRefs] = useState<ModelRef[]>(refsFromRule(rule))
   const [submitting, setSubmitting] = useState(false)
 
@@ -69,7 +69,7 @@ export function WhitelistConfigWorkflow({
     onPush('model-picker', {
       selectedModelIds: modelIds,
       parentAllowedModelIds: parentRefs.map((ref) => ref.modelId),
-      onConfirm: (picked: number[]) => {
+      onConfirm: (picked: string[]) => {
         setModelIds(picked)
         onSetDirty(true)
       },

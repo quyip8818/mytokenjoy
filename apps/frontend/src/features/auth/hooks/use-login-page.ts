@@ -33,7 +33,7 @@ export function useLoginPage() {
       await authApi.login({
         email,
         password,
-        ...(id ? { companyId: Number(id) } : {}),
+        ...(id ? { companyId: id } : {}),
       })
       await refreshSession()
       navigate(ROUTES.home, { replace: true })

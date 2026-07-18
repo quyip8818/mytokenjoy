@@ -24,9 +24,9 @@ interface RoutingDetailPanelProps {
   saving: boolean
   onSave: (input: {
     inherited: boolean
-    allowedModelIds: number[]
-    defaultModelId: number | null
-    fallbackModelId: number | null
+    allowedModelIds: string[]
+    defaultModelId: string | null
+    fallbackModelId: string | null
   }) => Promise<void>
 }
 
@@ -39,9 +39,9 @@ export function RoutingDetailPanel({
   onSave,
 }: RoutingDetailPanelProps) {
   const [inherited, setInherited] = useState(rule.inherited)
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set(rule.allowedModelIds))
-  const [defaultModelId, setDefaultModelId] = useState<number | null>(rule.defaultModelId ?? null)
-  const [fallbackModelId, setFallbackModelId] = useState<number | null>(
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(rule.allowedModelIds))
+  const [defaultModelId, setDefaultModelId] = useState<string | null>(rule.defaultModelId ?? null)
+  const [fallbackModelId, setFallbackModelId] = useState<string | null>(
     rule.fallbackModelId ?? null,
   )
 
@@ -78,7 +78,7 @@ export function RoutingDetailPanel({
 
   const effectiveIds = inherited ? Array.from(parentModelIds) : Array.from(selectedIds)
 
-  const toggleModel = useCallback((modelId: number) => {
+  const toggleModel = useCallback((modelId: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(modelId)) next.delete(modelId)
@@ -201,8 +201,8 @@ export function RoutingDetailPanel({
             <Label className="text-sm font-medium">默认模型</Label>
           </div>
           <Select
-            value={defaultModelId ? String(defaultModelId) : 'none'}
-            onValueChange={(v) => setDefaultModelId(v === 'none' ? null : Number(v))}
+            value={defaultModelId ?? 'none'}
+            onValueChange={(v) => setDefaultModelId(v === 'none' ? null : v)}
           >
             <SelectTrigger className="h-9">
               <SelectValue placeholder="未设置" />
@@ -210,7 +210,7 @@ export function RoutingDetailPanel({
             <SelectContent>
               <SelectItem value="none">未设置</SelectItem>
               {selectedModels.map((m) => (
-                <SelectItem key={m.modelId} value={String(m.modelId)}>
+                <SelectItem key={m.modelId} value={m.modelId}>
                   {m.name || m.type}
                 </SelectItem>
               ))}
@@ -223,8 +223,8 @@ export function RoutingDetailPanel({
             <Label className="text-sm font-medium">降级模型</Label>
           </div>
           <Select
-            value={fallbackModelId ? String(fallbackModelId) : 'none'}
-            onValueChange={(v) => setFallbackModelId(v === 'none' ? null : Number(v))}
+            value={fallbackModelId ?? 'none'}
+            onValueChange={(v) => setFallbackModelId(v === 'none' ? null : v)}
           >
             <SelectTrigger className="h-9">
               <SelectValue placeholder="未设置" />
@@ -232,7 +232,7 @@ export function RoutingDetailPanel({
             <SelectContent>
               <SelectItem value="none">未设置</SelectItem>
               {selectedModels.map((m) => (
-                <SelectItem key={m.modelId} value={String(m.modelId)}>
+                <SelectItem key={m.modelId} value={m.modelId}>
                   {m.name || m.type}
                 </SelectItem>
               ))}

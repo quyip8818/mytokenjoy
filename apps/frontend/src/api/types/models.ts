@@ -3,7 +3,7 @@ import type { ProviderType } from './keys'
 export const CUSTOM_MODEL_PROVIDER: ProviderType = 'custom'
 
 export interface ModelInfo {
-  modelId: number
+  modelId: string
   provider: ProviderType
   type: string
   name: string
@@ -24,7 +24,7 @@ export function isCustomModel(model: Pick<ModelInfo, 'provider'>): boolean {
 }
 
 export interface ModelRef {
-  modelId: number
+  modelId: string
   type: string
   name: string
   provider: ProviderType
@@ -62,9 +62,9 @@ export interface RoutingRule {
   id: string
   nodeId: string
   nodeName: string
-  allowedModelIds: number[]
-  defaultModelId: number | null
-  fallbackModelId: number | null
+  allowedModelIds: string[]
+  defaultModelId: string | null
+  fallbackModelId: string | null
   inherited: boolean
   allowedModels?: ModelRef[]
   defaultModel?: ModelRef | null
@@ -73,7 +73,7 @@ export interface RoutingRule {
 
 export interface ResolvedWhitelist {
   inherited: boolean
-  allowedModelIds: number[]
+  allowedModelIds: string[]
   parentCount: number
   allowedModels?: ModelRef[]
 }

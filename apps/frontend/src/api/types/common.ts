@@ -14,7 +14,7 @@ export interface MemberPaginated extends Paginated<Member> {
 }
 
 export interface SessionContext {
-  companyId: number
+  companyId: string
   companyType: CompanyType
   authzRevision: number
   member: Member

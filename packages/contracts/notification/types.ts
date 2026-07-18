@@ -74,7 +74,7 @@ export type NotificationStatus =
 export interface NotificationEvent {
   eventType: NotificationEventType | string
   recipientId: string
-  companyId: number
+  companyId: string
   payload: Record<string, unknown>
   metadata?: NotificationMetadata
 }
