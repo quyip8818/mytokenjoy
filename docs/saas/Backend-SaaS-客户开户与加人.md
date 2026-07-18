@@ -33,9 +33,9 @@
 ```text
 开 Company（平台代开 或 客户自助，同一 domain）
   → Postgres company + NewAPI wallet user W
-  → 超管 invite / 注册人即超管
+  → InviteEmail 模式: 生成 invite / UserID 模式: 注册人即超管
 加人（企内）
-  → company_invites → accept-invite → member + password_hash + 企业 JWT
+  → company_invites → accept-invite(userID) → member + 企业 JWT
 发 Key
   → CreateToken(user_id=W)（已有 as-built）
 ```
@@ -57,16 +57,18 @@
 
 | 能力 | 路径 | 状态 |
 | --- | --- | --- |
-| 平台开户 | `POST /api/platform/companies` → `company/service_create.go` | ✅ |
-| 钱包用户 | 同 Tx `CreateUser` → `newapi_wallet_user_id` | ✅ |
-| 超管 invite 行 | CreateCompany 写 `company_invites`（7 天） | ✅ |
-| accept-invite | `POST /api/auth/accept-invite` → `service_invite.go` | ✅ API；❌ 前端 |
+| 平台开户 | `POST /api/platform/companies` → `company/service_create.go` | ✅（InviteEmail 模式） |
+| 钱包用户 | `provisionCompany` 内 `CreateUser` → `newapi_wallet_user_id` | ✅ |
+| 超管 invite 行 | CreateCompany InviteEmail 模式写 `company_invites`（7 天） | ✅ |
+| accept-invite | `POST /api/auth/accept-invite` → `service_invite.go` | ✅ API + 双路径（已登录/未登录） |
+| 已登录接受邀请 | `GET /api/auth/invites/pending` + `POST /auth/accept-invite` | ✅ |
+| 注册流程 | `POST /auth/register/init` + `/accept` + `/company` | ✅ API（SaaS only + RegistrationEnabled） |
 | 企内 InviteMember | `org/structure/member_batch.go` → **NotImplemented** | ❌ |
 | BatchInvite | 返回假 `sent`，不写 invite | ❌ |
 | 手动/导入加人 | `CreateMember` / batch-import，立即 active、无密码 | ✅ 组织面；非密码自助 |
 | 前端 platform / invite | Frontend.md：未接入 | ❌ |
 
-契约漂移：Frontend.md 写 `token`；后端 body 为 **`inviteCode`**。实现时以后端为准，改文档/前端。
+契约：后端 body 字段为 `inviteCode`（已统一）。
 
 ---
 
@@ -166,10 +168,17 @@ NewAPI Admin by-id 能力仍仅服务 Backend；SaaS 客户增多时 **不要** 
 ## 7. 代码索引
 
 ```text
-开户     domain/company/service_create.go
-         http/handler/platform/handler.go
-邀请激活 domain/company/service_invite.go
-         http/handler/auth/handler.go
+开户     domain/company/service_create.go       — CreateCompany (双模式: UserID / InviteEmail)
+                                                  provisionCompany (内部 helper)
+                                                  addMember (内部 helper, 幂等)
+         http/handler/platform/handler.go       — POST /platform/companies (InviteEmail 模式)
+邀请激活 domain/company/service_invite.go       — AcceptInvite (接收 UserID)
+                                                  PendingInvitesForUser (batch 查)
+         http/handler/auth/handler.go           — POST /auth/accept-invite (双路径)
+                                                  GET /auth/invites/pending
+注册流程 http/handler/register/handler.go       — POST /auth/register/init, /accept, /company
+         identity/registertoken/token.go        — 短期注册 session JWT
+Mode     http/middleware/mode_guard.go          — RequireSaaS / RequireLocal
 企内邀请 domain/org/structure/member_batch.go   ← 待实现
          http/handler/org/member.go
 钥匙     docs/Backend-NewAPI-多租户钥匙代建.md
@@ -184,3 +193,6 @@ NewAPI Admin by-id 能力仍仅服务 Backend；SaaS 客户增多时 **不要** 
 | 2026-07-14 | 现架构方向正确；不重做开户/NewAPI 边界 |
 | 2026-07-14 | 主缺口：InviteMember + accept-invite 前端；自助开户为可选新入口复用 CreateCompany |
 | 2026-07-14 | 本文升格为实施文档 |
+| 2026-07-18 | CreateCompany 重构为双模式（UserID / InviteEmail）；AcceptInvite 接收 UserID（handler 层负责 User 创建）|
+| 2026-07-18 | 注册流程实现：register/init + accept + company 三端点；RequireSaaS + RegistrationEnabled 守卫 |
+| 2026-07-18 | PendingInvitesForUser 新增（支持 email/phone/userID 多标识匹配）|
