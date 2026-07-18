@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -107,6 +108,9 @@ func (s *service) ListCompanies(ctx context.Context) ([]store.Company, error) {
 }
 
 func (s *service) UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateCompanyPatch) error {
+	if id == s.cfg.TokenJoyCompanyID || id == s.cfg.LocalCompanyID {
+		return domain.Forbidden("protected company cannot be modified")
+	}
 	if patch.Status != nil {
 		if err := s.store.Company().UpdateStatus(ctx, id, *patch.Status); err != nil {
 			return err
