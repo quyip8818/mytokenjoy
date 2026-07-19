@@ -113,7 +113,7 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err = g.precheck.Run(r.Context(), keyHash, model, opts)
 	if err != nil {
 		logGatewayRejection(r.URL.Path, model, err.Error())
-		http.Error(w, "request rejected", http.StatusForbidden)
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	g.proxy.ServeHTTP(w, r)

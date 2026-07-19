@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
-var ErrBudgetExhausted = errors.New("budget exhausted")
+var ErrBudgetExhausted = errors.New("insufficient member or key quota")
 
 const minEstimatePoint = 0.01 * float64(common.DefaultPointsPerUnit)
 
@@ -26,7 +26,7 @@ func EvaluateAt(pc PrecheckContext, model string, opts PrecheckOpts, now time.Ti
 		return fmt.Errorf("company not active")
 	}
 	if pc.Wallet.WalletRemain < minEstimatePoint {
-		return fmt.Errorf("insufficient wallet points")
+		return fmt.Errorf("insufficient company wallet")
 	}
 	if pc.Routing.KeyStatus != "active" {
 		return fmt.Errorf("platform key inactive")

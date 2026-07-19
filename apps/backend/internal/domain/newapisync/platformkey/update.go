@@ -79,6 +79,12 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 		return err
 	}
 	now := time.Now()
+	// Keep gateway precheck's combined_key_remain in sync with the full budget chain.
+	if _, err := d.Store.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
+		{PlatformKeyID: platformKeyID, Remain: remainPoint},
+	}); err != nil {
+		return err
+	}
 	return d.Mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, now)
 }
 
