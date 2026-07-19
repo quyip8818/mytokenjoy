@@ -25,7 +25,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess, err := h.store.Session().GetActive(r.Context(), sid)
+	sess, err := h.sessions.GetActive(r.Context(), sid)
 	if err != nil || sess == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -57,7 +57,7 @@ func (h *Handler) issueTokenPair(w http.ResponseWriter, r *http.Request, company
 		SessionTTLSec: h.pub.Cfg.SessionTTLSec,
 		RefreshTTLSec: h.pub.Cfg.RefreshTokenTTLSec,
 		SecureCookie:  h.pub.SecureCookie,
-		SessionStore:  h.store.Session(),
+		SessionStore:  h.sessions,
 	}, companyID, memberID, userID)
 }
 

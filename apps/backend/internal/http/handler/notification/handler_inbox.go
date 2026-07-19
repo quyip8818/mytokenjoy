@@ -39,7 +39,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		limit = 20
 	}
 
-	entries, err := h.store.Notification().List(r.Context(), sessionCtx.Member.ID, limit, offset)
+	entries, err := h.notifRepo.List(r.Context(), sessionCtx.Member.ID, limit, offset)
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -78,7 +78,7 @@ func (h *Handler) UnreadCount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, err := h.store.Notification().GetUnreadCount(r.Context(), sessionCtx.Member.ID)
+	count, err := h.notifRepo.GetUnreadCount(r.Context(), sessionCtx.Member.ID)
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -102,7 +102,7 @@ func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.Notification().MarkRead(r.Context(), id)
+	err = h.notifRepo.MarkRead(r.Context(), id)
 	httputil.WriteVoid(w, err)
 }
 
@@ -115,7 +115,7 @@ func (h *Handler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.store.Notification().MarkAllRead(r.Context(), sessionCtx.Member.ID)
+	err := h.notifRepo.MarkAllRead(r.Context(), sessionCtx.Member.ID)
 	httputil.WriteVoid(w, err)
 }
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
 )
 
 // MemoryLimiter is a local in-memory rate limiter used as fallback when Redis
@@ -30,11 +32,11 @@ func NewMemoryLimiter() *MemoryLimiter {
 	return m
 }
 
-func (m *MemoryLimiter) AllowTokenBucket(_ context.Context, key string, _ int, burst int) (Result, error) {
+func (m *MemoryLimiter) AllowTokenBucket(_ context.Context, key string, _ int, burst int) (pkgrl.Result, error) {
 	return m.AllowSlidingWindow(context.Background(), key, burst, 1)
 }
 
-func (m *MemoryLimiter) AllowSlidingWindow(_ context.Context, key string, maxReq int, windowSec int) (Result, error) {
+func (m *MemoryLimiter) AllowSlidingWindow(_ context.Context, key string, maxReq int, windowSec int) (pkgrl.Result, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -44,7 +46,7 @@ func (m *MemoryLimiter) AllowSlidingWindow(_ context.Context, key string, maxReq
 	b, ok := m.buckets[key]
 	if !ok || now.Sub(b.windowAt) >= window {
 		m.buckets[key] = &memoryBucket{count: 1, windowAt: now}
-		return Result{
+		return pkgrl.Result{
 			Allowed:   true,
 			Remaining: int64(maxReq - 1),
 			Limit:     int64(maxReq),
@@ -56,7 +58,7 @@ func (m *MemoryLimiter) AllowSlidingWindow(_ context.Context, key string, maxReq
 	remaining := maxReq - b.count
 	allowed := b.count <= maxReq
 
-	return Result{
+	return pkgrl.Result{
 		Allowed:   allowed,
 		Remaining: int64(max(remaining, 0)),
 		Limit:     int64(maxReq),
@@ -89,4 +91,4 @@ func (m *MemoryLimiter) cleanup() {
 	}
 }
 
-var _ Limiter = (*MemoryLimiter)(nil)
+var _ pkgrl.Limiter = (*MemoryLimiter)(nil)

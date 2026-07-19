@@ -7,29 +7,8 @@ import (
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
+	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
 )
-
-// Result holds the outcome of a rate limit check.
-type Result struct {
-	Allowed   bool
-	Remaining int64
-	Limit     int64
-	ResetAt   time.Time
-}
-
-// Limiter is the interface for rate limiting operations.
-type Limiter interface {
-	// AllowTokenBucket checks a token bucket rate limit.
-	// Returns whether the request is allowed and remaining tokens.
-	AllowTokenBucket(ctx context.Context, key string, rate int, burst int) (Result, error)
-
-	// AllowSlidingWindow checks a sliding window rate limit.
-	// Returns whether the request is allowed within the window.
-	AllowSlidingWindow(ctx context.Context, key string, max int, windowSec int) (Result, error)
-
-	// Close releases resources.
-	Close() error
-}
 
 // RedisLimiter implements distributed rate limiting using Redis + Lua scripts.
 type RedisLimiter struct {
@@ -74,7 +53,7 @@ func NewRedisLimiter(ctx context.Context, redisURL string, logger *slog.Logger) 
 	}, nil
 }
 
-func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate int, burst int) (Result, error) {
+func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate int, burst int) (pkgrl.Result, error) {
 	now := time.Now().UnixMicro()
 	// refillInterval = 1_000_000 / rate (microseconds per token)
 	refillInterval := int64(1_000_000) / int64(rate)
@@ -86,14 +65,14 @@ func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate in
 		now,            // ARGV[4] now (microseconds)
 	).Int64Slice()
 	if err != nil {
-		return Result{}, err
+		return pkgrl.Result{}, err
 	}
 
 	allowed := res[0] == 1
 	remaining := res[1]
 	resetAt := time.Now().Add(time.Duration(refillInterval) * time.Microsecond)
 
-	return Result{
+	return pkgrl.Result{
 		Allowed:   allowed,
 		Remaining: remaining,
 		Limit:     int64(burst),
@@ -101,7 +80,7 @@ func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate in
 	}, nil
 }
 
-func (l *RedisLimiter) AllowSlidingWindow(ctx context.Context, key string, max int, windowSec int) (Result, error) {
+func (l *RedisLimiter) AllowSlidingWindow(ctx context.Context, key string, max int, windowSec int) (pkgrl.Result, error) {
 	now := time.Now().Unix()
 
 	res, err := l.rdb.EvalSha(ctx, l.slidingWindowSHA, []string{key},
@@ -110,14 +89,14 @@ func (l *RedisLimiter) AllowSlidingWindow(ctx context.Context, key string, max i
 		now,       // ARGV[3] current timestamp
 	).Int64Slice()
 	if err != nil {
-		return Result{}, err
+		return pkgrl.Result{}, err
 	}
 
 	allowed := res[0] == 1
 	remaining := res[1]
 	resetAt := time.Now().Add(time.Duration(windowSec) * time.Second)
 
-	return Result{
+	return pkgrl.Result{
 		Allowed:   allowed,
 		Remaining: remaining,
 		Limit:     int64(max),
@@ -132,4 +111,4 @@ func (l *RedisLimiter) Close() error {
 	return l.rdb.Close()
 }
 
-var _ Limiter = (*RedisLimiter)(nil)
+var _ pkgrl.Limiter = (*RedisLimiter)(nil)

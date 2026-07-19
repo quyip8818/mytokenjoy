@@ -21,7 +21,8 @@ const registerSessionCookie = "tokenjoy_register_session"
 // Handler implements POST /auth/register/* endpoints (SaaS only).
 type Handler struct {
 	companySvc          domaincompany.Service
-	store               store.Store
+	users               store.UserRepository
+	sessions            store.SessionRepository
 	registerToken       *registertoken.Issuer
 	sessionToken        sessiontoken.Issuer
 	secureCookie        bool
@@ -32,7 +33,8 @@ type Handler struct {
 
 func NewHandler(
 	companySvc domaincompany.Service,
-	st store.Store,
+	users store.UserRepository,
+	sessions store.SessionRepository,
 	registerToken *registertoken.Issuer,
 	sessionToken sessiontoken.Issuer,
 	secureCookie bool,
@@ -42,7 +44,8 @@ func NewHandler(
 ) *Handler {
 	return &Handler{
 		companySvc:          companySvc,
-		store:               st,
+		users:               users,
+		sessions:            sessions,
 		registerToken:       registerToken,
 		sessionToken:        sessionToken,
 		secureCookie:        secureCookie,
@@ -101,7 +104,7 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Find or create user by phone.
-	user, err := h.store.User().GetByPhone(ctx, body.Phone)
+	user, err := h.users.GetByPhone(ctx, body.Phone)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -117,14 +120,14 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
-		if err := h.store.User().Create(ctx, newUser); err != nil {
+		if err := h.users.Create(ctx, newUser); err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}
 		user = &newUser
 	} else {
 		// User exists — check if they already have a member.
-		hasMember, err := h.store.User().HasAnyMember(ctx, user.ID)
+		hasMember, err := h.users.HasAnyMember(ctx, user.ID)
 		if err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
@@ -284,7 +287,7 @@ func (h *Handler) issueSessionAndRespond(w http.ResponseWriter, r *http.Request,
 		CreatedAt: now,
 		ExpiresAt: now.Add(refreshTTL),
 	}
-	if err := h.store.Session().Create(r.Context(), sess); err != nil {
+	if err := h.sessions.Create(r.Context(), sess); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}

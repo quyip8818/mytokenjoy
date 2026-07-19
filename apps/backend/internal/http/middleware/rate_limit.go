@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/pkg/ratelimit"
 )
 
 // RateLimitTenant applies per-tenant (companyID) token bucket rate limiting.

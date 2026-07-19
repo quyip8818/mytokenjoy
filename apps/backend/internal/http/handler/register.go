@@ -50,9 +50,9 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 	return Registry{
 		config:         deps.Config,
 		session:        sessionhandler.NewHandler(p),
-		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Store),
-		authSms:        authsmshandler.NewHandler(deps.SmsSvc, deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
-		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Store, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
+		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Users(), deps.Sessions(), deps.Invites()),
+		authSms:        authsmshandler.NewHandler(deps.SmsSvc, deps.CompanySvc, deps.Users(), deps.Sessions(), regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
+		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Users(), deps.Sessions(), regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
 		platform:       platform.NewHandler(deps.Platform(), deps.Protected()),
 		billing:        billing.NewHandler(p, deps.BillingSvc),
 		org:            orghandler.NewHandler(p, deps.OrgSvc, deps.CompanySvc),
@@ -62,7 +62,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:          audithandler.NewHandler(p, deps.AuditSvc),
 		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc),
-		notification:   notificationhandler.NewHandler(p, deps.Store, deps.NotificationSvc),
+		notification:   notificationhandler.NewHandler(p, deps.Notifications(), deps.NotificationPreferences(), deps.NotificationSvc),
 		internalIngest: ingesthandler.NewHandler(deps.Config, deps.IngestEnqueuer, deps.IngestMetrics, deps.Logger),
 		dev:            devhandler.NewHandler(p, deps.Config.LocalCompanyID, deps.DevBearerResolver, deps.DevReadinessChecker),
 	}

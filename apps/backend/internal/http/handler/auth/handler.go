@@ -20,14 +20,19 @@ import (
 type Handler struct {
 	pub        httpdeps.Public
 	companySvc domaincompany.Service
-	store      store.Store
+	users      store.UserRepository
+	sessions   store.SessionRepository
+	invites    store.InviteRepository
 }
 
-func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service, st store.Store) *Handler {
+func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
+	users store.UserRepository, sessions store.SessionRepository, invites store.InviteRepository) *Handler {
 	return &Handler{
 		pub:        pub,
 		companySvc: companySvc,
-		store:      st,
+		users:      users,
+		sessions:   sessions,
+		invites:    invites,
 	}
 }
 
@@ -85,7 +90,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken); ok && claims.Sid != "" {
-		_ = h.store.Session().Revoke(r.Context(), claims.Sid)
+		_ = h.sessions.Revoke(r.Context(), claims.Sid)
 	}
 	httpx.ClearSessionCookie(w)
 	httpx.ClearRefreshCookie(w)
@@ -124,7 +129,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Validate invite early — fail before mutating user if invite is bad.
-		invite, err := h.store.Invite().GetInviteByCode(ctx, body.InviteCode)
+		invite, err := h.invites.GetInviteByCode(ctx, body.InviteCode)
 		if err != nil || invite == nil {
 			httputil.WriteStatus(w, http.StatusNotFound, "invite not found")
 			return
@@ -144,7 +149,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Find or create user by email.
-		user, err := h.store.User().GetByEmail(ctx, invite.Email)
+		user, err := h.users.GetByEmail(ctx, invite.Email)
 		if err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
@@ -159,13 +164,13 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 				CreatedAt:    now,
 				UpdatedAt:    now,
 			}
-			if err := h.store.User().Create(ctx, newUser); err != nil {
+			if err := h.users.Create(ctx, newUser); err != nil {
 				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 				return
 			}
 			userID = newUser.ID
 		} else {
-			if err := h.store.User().UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
+			if err := h.users.UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
 				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 				return
 			}
@@ -201,7 +206,7 @@ func (h *Handler) PendingInvites(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	user, err := h.store.User().GetByID(ctx, claims.UserID)
+	user, err := h.users.GetByID(ctx, claims.UserID)
 	if err != nil || user == nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
 		return

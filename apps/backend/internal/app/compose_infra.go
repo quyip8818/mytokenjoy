@@ -19,6 +19,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -34,7 +35,7 @@ type infra struct {
 	delayer         common.Delayer
 	enqueuer        jobs.Enqueuer
 	budgetCheck     budgetcheck.Store
-	rateLimiter     ratelimit.Limiter
+	rateLimiter     pkgrl.Limiter
 	precheckCache   *domaingateway.PrecheckCache
 	smsSvc          *sms.Service
 }

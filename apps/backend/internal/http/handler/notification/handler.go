@@ -12,14 +12,18 @@ import (
 // Handler serves notification-related HTTP endpoints.
 type Handler struct {
 	shared.ProtectedHandlerBase
-	store     store.Store
+	notifRepo store.NotificationRepository
+	prefRepo  store.NotificationPreferenceRepository
 	notifySvc *notification.Service
 }
 
-func NewHandler(p httpdeps.Protected, st store.Store, notifySvc *notification.Service) *Handler {
+func NewHandler(p httpdeps.Protected,
+	notifRepo store.NotificationRepository, prefRepo store.NotificationPreferenceRepository,
+	notifySvc *notification.Service) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
-		store:                st,
+		notifRepo:            notifRepo,
+		prefRepo:             prefRepo,
 		notifySvc:            notifySvc,
 	}
 }

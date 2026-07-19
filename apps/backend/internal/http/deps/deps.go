@@ -23,7 +23,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
-	"github.com/tokenjoy/backend/internal/infra/ratelimit"
+	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -53,6 +53,18 @@ type Deps struct {
 	DevBearerResolver   devapi.BearerResolver
 	DevReadinessChecker devapi.ReadinessChecker
 	NotificationSvc     *notification.Service
-	RateLimiter         ratelimit.Limiter
+	RateLimiter         pkgrl.Limiter
 	SmsSvc              *sms.Service
+}
+
+// Narrow repo accessors — avoid leaking Store into handler layer.
+
+func (d Deps) Users() store.UserRepository       { return d.Store.User() }
+func (d Deps) Sessions() store.SessionRepository { return d.Store.Session() }
+func (d Deps) Invites() store.InviteRepository   { return d.Store.Invite() }
+func (d Deps) Notifications() store.NotificationRepository {
+	return d.Store.Notification()
+}
+func (d Deps) NotificationPreferences() store.NotificationPreferenceRepository {
+	return d.Store.NotificationPreference()
 }

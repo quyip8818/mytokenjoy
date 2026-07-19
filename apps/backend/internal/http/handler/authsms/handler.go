@@ -20,7 +20,8 @@ import (
 type Handler struct {
 	sms           *sms.Service
 	companySvc    domaincompany.Service
-	store         store.Store
+	users         store.UserRepository
+	sessions      store.SessionRepository
 	registerToken *registertoken.Issuer
 	sessionToken  sessiontoken.Issuer
 	secureCookie  bool
@@ -31,7 +32,8 @@ type Handler struct {
 func NewHandler(
 	smsSvc *sms.Service,
 	companySvc domaincompany.Service,
-	st store.Store,
+	users store.UserRepository,
+	sessions store.SessionRepository,
 	registerToken *registertoken.Issuer,
 	sessionToken sessiontoken.Issuer,
 	secureCookie bool,
@@ -44,7 +46,8 @@ func NewHandler(
 	return &Handler{
 		sms:           smsSvc,
 		companySvc:    companySvc,
-		store:         st,
+		users:         users,
+		sessions:      sessions,
 		registerToken: registerToken,
 		sessionToken:  sessionToken,
 		secureCookie:  secureCookie,
@@ -140,7 +143,7 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 2: Find or create user.
-	user, err := h.store.User().GetByPhone(ctx, phone)
+	user, err := h.users.GetByPhone(ctx, phone)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -155,7 +158,7 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
-		if err := h.store.User().Create(ctx, newUser); err != nil {
+		if err := h.users.Create(ctx, newUser); err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}
@@ -163,7 +166,7 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 3: Query members for this user.
-	members, err := h.store.User().ListMemberCompanies(ctx, user.ID)
+	members, err := h.users.ListMemberCompanies(ctx, user.ID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -258,7 +261,7 @@ func (h *Handler) Select(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Verify the user actually has a member in this company.
-	members, err := h.store.User().ListMemberCompanies(ctx, userID)
+	members, err := h.users.ListMemberCompanies(ctx, userID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -305,7 +308,7 @@ func (h *Handler) issueTokenPairAndRespond(w http.ResponseWriter, r *http.Reques
 		SessionTTLSec: h.sessionTTLSec,
 		RefreshTTLSec: h.refreshTTLSec,
 		SecureCookie:  h.secureCookie,
-		SessionStore:  h.store.Session(),
+		SessionStore:  h.sessions,
 	}, companyID, memberID, userID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)

@@ -37,7 +37,7 @@ func (h *Handler) AdminLog(w http.ResponseWriter, r *http.Request) {
 	filter.Limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
 	filter.Offset, _ = strconv.Atoi(r.URL.Query().Get("offset"))
 
-	entries, err := h.store.Notification().ListLog(r.Context(), filter)
+	entries, err := h.notifRepo.ListLog(r.Context(), filter)
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -74,7 +74,7 @@ type adminStatResponse struct {
 }
 
 func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
-	stats, err := h.store.Notification().Stats(r.Context())
+	stats, err := h.notifRepo.Stats(r.Context())
 	if err != nil {
 		httputil.WriteError(w, err)
 		return

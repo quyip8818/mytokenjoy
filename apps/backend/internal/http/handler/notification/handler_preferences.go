@@ -26,7 +26,7 @@ func (h *Handler) GetPreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := h.store.NotificationPreference().Get(r.Context(), sessionCtx.Member.ID)
+	entries, err := h.prefRepo.Get(r.Context(), sessionCtx.Member.ID)
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -75,7 +75,7 @@ func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err := h.store.NotificationPreference().Upsert(r.Context(), sessionCtx.Member.ID, entries)
+	err := h.prefRepo.Upsert(r.Context(), sessionCtx.Member.ID, entries)
 	httputil.WriteVoid(w, err)
 }
 
@@ -86,6 +86,6 @@ func (h *Handler) ResetPreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.store.NotificationPreference().Delete(r.Context(), sessionCtx.Member.ID)
+	err := h.prefRepo.Delete(r.Context(), sessionCtx.Member.ID)
 	httputil.WriteVoid(w, err)
 }
