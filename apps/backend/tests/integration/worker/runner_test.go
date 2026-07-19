@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 
 	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
@@ -59,9 +60,10 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 	}
 
 	memberID := contract.IDMember1
+	plkWorker := uuid.MustParse("00000000-0000-7000-8000-000000000f20")
 	key := types.PlatformKey{
-		ID: "plk-worker", Name: "worker-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
-		Status: "active", Budget: 1000, ModelWhitelist: []int64{contract.IDModel1},
+		ID: plkWorker, Name: "worker-key", Scope: types.PlatformKeyScopeMember, MemberID: &memberID,
+		Status: "active", Budget: 1000, ModelWhitelist: []uuid.UUID{contract.IDModel1},
 		CreatedAt: "2026-06-19",
 	}
 	keys, err := fix.st.Keys().PlatformKeys(testutil.Ctx())

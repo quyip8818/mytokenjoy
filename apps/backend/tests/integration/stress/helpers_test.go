@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -107,11 +108,11 @@ func buildStressEnv(t *testing.T, opts stressEnvOpts) *stressEnv {
 	// Set alert rules
 	if len(opts.AlertThresholds) > 0 {
 		rule := types.AlertRule{
-			ID:            "stress-alert-1",
+			ID:            uuid.MustParse("00000000-0000-7000-8000-0000000a0001"),
 			NodeID:        contract.IDDept3,
 			NodeName:      "Dept 3",
 			Thresholds:    opts.AlertThresholds,
-			NotifyRoleIDs: []string{},
+			NotifyRoleIDs: []uuid.UUID{},
 			Enabled:       true,
 		}
 		if err := st.Budget().SetAlertRules(ctx, []types.AlertRule{rule}); err != nil {
@@ -202,7 +203,7 @@ func drainOverrunJobs(t *testing.T, env *stressEnv) {
 // Assertion Helpers
 // ---------------------------------------------------------------------------
 
-func assertKeyStatus(t *testing.T, st store.Store, keyID, expectedStatus string) {
+func assertKeyStatus(t *testing.T, st store.Store, keyID uuid.UUID, expectedStatus string) {
 	t.Helper()
 	ctx := testutil.Ctx()
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -220,12 +221,12 @@ func assertKeyStatus(t *testing.T, st store.Store, keyID, expectedStatus string)
 	t.Errorf("key %s not found", keyID)
 }
 
-func assertKeyActive(t *testing.T, st store.Store, keyID string) {
+func assertKeyActive(t *testing.T, st store.Store, keyID uuid.UUID) {
 	t.Helper()
 	assertKeyStatus(t, st, keyID, "active")
 }
 
-func assertKeyDisabled(t *testing.T, st store.Store, keyID string) {
+func assertKeyDisabled(t *testing.T, st store.Store, keyID uuid.UUID) {
 	t.Helper()
 	ctx := testutil.Ctx()
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -310,7 +311,7 @@ func keyHashForPlatformKey(t *testing.T, st store.Store) string {
 }
 
 // consumedForKey returns the current budget_consumed value for a platform key.
-func consumedForKey(t *testing.T, st store.Store, keyID string) float64 {
+func consumedForKey(t *testing.T, st store.Store, keyID uuid.UUID) float64 {
 	t.Helper()
 	return budgetfix.PlatformKeySnapshotConsumed(t, st, keyID)
 }

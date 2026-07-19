@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -29,7 +30,7 @@ func TestWalletSyncWorkerTopUpOnDrift(t *testing.T) {
 	if err := fix.st.Company().UpdateNewAPIWalletUserID(ctx, contract.DefaultCompanyID, walletID); err != nil {
 		t.Fatal(err)
 	}
-	if err := fix.rt.Registry.BillingSvc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, "wallet-sync-test"); err != nil {
+	if err := fix.rt.Registry.BillingSvc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, contract.IDMember1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -51,7 +52,7 @@ func TestWalletSyncWorkerCancelsWhenWalletNotConfigured(t *testing.T) {
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
 
-	const companyID int64 = 888_002
+	companyID := uuid.MustParse("00000000-0000-7000-8000-000000888002")
 	now := time.Now().UTC()
 	if err := fix.st.Company().Create(ctx, store.Company{
 		ID: companyID, Name: "No Wallet Co",

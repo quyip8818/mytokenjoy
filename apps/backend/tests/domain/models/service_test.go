@@ -87,12 +87,12 @@ func TestCreateModel(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
 	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
-		Type: "test-model", InputPrice: 1.0, OutputPrice: 2.0,
+		Type: "create-model-test", InputPrice: 1.0, OutputPrice: 2.0,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Type != "test-model" || !created.Enabled {
+	if created.Type != "create-model-test" || !created.Enabled {
 		t.Fatalf("unexpected model %+v", created)
 	}
 	found := false

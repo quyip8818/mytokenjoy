@@ -3,7 +3,6 @@
 package worker_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -24,7 +23,7 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	tokenID := int64(42)
 	if err := fix.st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
 		CompanyID: contract.DefaultCompanyID, PlatformKeyID: contract.IDPlatformKey1,
-		NewAPIKeyID: &tokenID, MemberID: testutil.StrPtr(contract.IDMember1),
+		NewAPIKeyID: &tokenID, MemberID: &contract.IDMember1,
 		DepartmentID: contract.IDDept3, SyncStatus: store.MappingSyncStatusSynced,
 		NewAPIGroup: "dept-dept-3",
 	}); err != nil {
@@ -49,7 +48,7 @@ func TestWorkerCompanyRebalanceSetsLastRebalancedPeriod(t *testing.T) {
 	ctx := testutil.Ctx()
 	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, fix.rt.Registry.Config.Clock()).String()
 
-	if err := jobs.InsertRebalance(ctx, fix.rt.Enqueuer, nil, contract.DefaultCompanyID, store.RebalanceAxisCompany, fmt.Sprintf("%d", contract.DefaultCompanyID)); err != nil {
+	if err := jobs.InsertRebalance(ctx, fix.rt.Enqueuer, nil, contract.DefaultCompanyID, store.RebalanceAxisCompany, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -114,8 +115,9 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	fullKey := "sk-app-key-test"
+	plk3 := uuid.MustParse("00000000-0000-7000-8000-000000000f13")
 	if err := st.Keys().SetPlatformKeys(ctx, []types.PlatformKey{{
-		ID:        "plk-3",
+		ID:        plk3,
 		Name:      "App Key",
 		KeyPrefix: "sk-app",
 		Scope:     types.PlatformKeyScopeProject,
@@ -127,13 +129,13 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	}
 
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.MappingOpts{
-		PlatformKeyID: "plk-3",
+		PlatformKeyID: plk3,
 		NewAPIKeyID:   77,
 		NoMember:      true,
 		DepartmentID:  contract.IDDept3,
 	})
 
-	before := budgetfix.PlatformKeySnapshotConsumed(t, st, "plk-3")
+	before := budgetfix.PlatformKeySnapshotConsumed(t, st, plk3)
 
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(98002, 77))
 	if err := ingest.IngestByLogID(ctx, 98002, types.SourceWebhook); err != nil {
@@ -141,7 +143,7 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	}
 	runner.RunOnce(t, ctx)
 
-	after := budgetfix.PlatformKeySnapshotConsumed(t, st, "plk-3")
+	after := budgetfix.PlatformKeySnapshotConsumed(t, st, plk3)
 	if after <= before {
 		t.Fatalf("expected platform key consumed increase for app key, before=%v after=%v", before, after)
 	}
