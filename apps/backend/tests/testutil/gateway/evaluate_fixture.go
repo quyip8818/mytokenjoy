@@ -23,6 +23,6 @@ func BasePrecheckContext() domaingateway.PrecheckContext {
 // SufficientBudgetContext returns a context that passes wallet checks.
 func SufficientBudgetContext() domaingateway.PrecheckContext {
 	pc := BasePrecheckContext()
-	pc.Wallet.WalletRemain = float64(common.DefaultPointsPerUnit) * 100
+	pc.Wallet.WalletRemain = common.DefaultQuotaPerUnit * 100
 	return pc
 }

@@ -207,7 +207,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		// 6. Decrement combined_key_remain.
 		var summaries []store.CombinedKeySummary
 		if entry.PlatformKeyID != uuid.Nil {
-			decrements := map[uuid.UUID]float64{entry.PlatformKeyID: entry.Amount}
+			decrements := map[uuid.UUID]int64{entry.PlatformKeyID: entry.Amount}
 			summaries, err = st.CombinedKeySummaries().DecrementBatch(ctx, decrements)
 			if err != nil {
 				return err

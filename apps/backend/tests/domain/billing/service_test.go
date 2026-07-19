@@ -150,7 +150,7 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cur == nil || !cur.Enabled || cur.PointsPerUnit <= 0 {
+	if cur == nil || !cur.Enabled || cur.QuotaPerUnit <= 0 {
 		t.Fatalf("expected seeded CNY currency, got %+v", cur)
 	}
 	order, err := svc.CreateSelfRecharge(ctx, 15, "ppu-key-1", contract.IDMemberAdmin)
@@ -160,11 +160,11 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	if order.Currency != common.DefaultBillingCurrency {
 		t.Fatalf("currency: got %q want default currency", order.Currency)
 	}
-	if order.PointsPerUnit != cur.PointsPerUnit {
-		t.Fatalf("points_per_unit: got %d want %d (from currencies)", order.PointsPerUnit, cur.PointsPerUnit)
+	if order.QuotaPerUnit != cur.QuotaPerUnit {
+		t.Fatalf("points_per_unit: got %d want %d (from currencies)", order.QuotaPerUnit, cur.QuotaPerUnit)
 	}
-	wantGranted := domainbilling.PointsGrantedFromAmount(15, cur.PointsPerUnit)
-	if order.PointsGranted != wantGranted {
-		t.Fatalf("points_granted: got %v want %v", order.PointsGranted, wantGranted)
+	wantGranted := common.QuotaFromAmount(15, cur.QuotaPerUnit)
+	if order.QuotaGranted != wantGranted {
+		t.Fatalf("points_granted: got %v want %v", order.QuotaGranted, wantGranted)
 	}
 }

@@ -28,7 +28,6 @@ type infra struct {
 	adminPort       adminport.Port
 	newAPISync      newapisync.Lifecycle
 	channelPolicy   policy.ChannelPolicy
-	wallet          domaincompany.WalletService
 	companyGate     *domaincompany.Gate
 	notifier        types.Notifier
 	notificationSvc *notification.Service
@@ -52,7 +51,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 	}
 	channelPolicy := policy.NewChannelPolicy(cfg)
 	adminPort := newapi.NewAdminPortAdapter(adminClient)
-	wallet := domaincompany.NewWalletService(cfg, adminPort)
 
 	notifySvc := notification.NewService(cfg, st, logger)
 
@@ -60,7 +58,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		store:           st,
 		adminPort:       adminPort,
 		channelPolicy:   channelPolicy,
-		wallet:          wallet,
 		companyGate:     domaincompany.NewGate(cfg),
 		newAPISync:      newapisync.New(cfg, st, adminPort, channelPolicy, adapter.NewNewAPISyncEnqueuer(enqueuer)),
 		notifier:        notifySvc,

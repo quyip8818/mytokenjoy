@@ -77,7 +77,7 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 			EventType:        types.EventTypeCallSettled,
 			IdempotencyKey:   fmt.Sprintf("%sseed-%d", types.IdempotencyPrefixNewAPI, i+1),
 			LotID:            seedLotID,
-			Amount:           seedPoints(row.Cost),
+			Amount:           seedQuota(row.Cost),
 			DisplayAmount:    row.Cost,
 			BillingCurrency:  common.DefaultBillingCurrency,
 			DepartmentID:     contract.IDDept3,

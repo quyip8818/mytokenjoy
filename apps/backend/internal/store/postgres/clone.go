@@ -14,7 +14,7 @@ func cloneProjects(items []types.Project) []types.Project {
 			OwnerDepartmentID: project.OwnerDepartmentID,
 		}
 		if len(project.MemberBudgets) > 0 {
-			result[i].MemberBudgets = make(map[uuid.UUID]float64, len(project.MemberBudgets))
+			result[i].MemberBudgets = make(map[uuid.UUID]int64, len(project.MemberBudgets))
 			for k, v := range project.MemberBudgets {
 				result[i].MemberBudgets[k] = v
 			}

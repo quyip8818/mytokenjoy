@@ -13,10 +13,10 @@ import (
 
 type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
-	UpdateNode(ctx context.Context, id uuid.UUID, budget float64, reservedPool *float64) (types.BudgetNode, error)
+	UpdateNode(ctx context.Context, id uuid.UUID, budget int64, reservedPool *int64) (types.BudgetNode, error)
 	ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error)
-	UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) (types.MemberBudget, error)
-	ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget float64, recursive bool) error
+	UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget int64) (types.MemberBudget, error)
+	ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget int64, recursive bool) error
 	ListProjects(ctx context.Context) ([]types.Project, error)
 	CreateProject(ctx context.Context, project types.Project) (types.Project, error)
 	UpdateProject(ctx context.Context, id uuid.UUID, patch types.UpdateProjectInput) (types.Project, error)
@@ -29,7 +29,7 @@ type Service interface {
 	DeleteAlert(ctx context.Context, id uuid.UUID) error
 	ListApprovals(ctx context.Context) ([]types.BudgetApproval, error)
 	ResolveApproval(ctx context.Context, id uuid.UUID, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error)
-	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]float64, error)
+	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]int64, error)
 }
 
 // Store is the narrow store surface the budget service needs.

@@ -6,9 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
@@ -50,19 +48,4 @@ func PreparedConfig(schemaURL string) config.Config {
 	}
 	cfg.StoreBootstrap.SchemaPrepared = true
 	return cfg
-}
-
-func DrainPendingWalletSync(t *testing.T, st store.Store, companyID uuid.UUID) {
-	t.Helper()
-	pool := postgres.MainPool(st)
-	_, err := pool.Exec(context.Background(), `
-		UPDATE river_job
-		SET state = 'completed', finalized_at = NOW()
-		WHERE kind = $1
-		  AND (args->>'company_id')::uuid = $2
-		  AND state IN ('available', 'retryable', 'scheduled', 'running')
-	`, jobs.KindWalletSync, companyID)
-	if err != nil {
-		t.Fatalf("drain pending wallet sync: %v", err)
-	}
 }

@@ -43,10 +43,10 @@ func ensureBootstrapCompany(ctx context.Context, pool *pgxpool.Pool, cfg config.
 
 func ensureBootstrapCurrencies(ctx context.Context, pool *pgxpool.Pool) error {
 	_, err := pool.Exec(ctx, `
-		INSERT INTO currencies (currency, points_per_unit, enabled)
+		INSERT INTO currencies (currency, quota_per_unit, enabled)
 		VALUES ($1, $2, TRUE)
 		ON CONFLICT (currency) DO NOTHING
-	`, common.DefaultBillingCurrency, common.DefaultPointsPerUnit)
+	`, common.DefaultBillingCurrency, common.DefaultQuotaPerUnit)
 	if err != nil {
 		return fmt.Errorf("bootstrap currencies: %w", err)
 	}

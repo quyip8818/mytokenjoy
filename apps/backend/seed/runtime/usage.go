@@ -56,8 +56,8 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	// DemoLeafDeptConsumed is already in points (×PPU). Entry sketch costs are display yuan.
 	rootPoints := contract.DemoRootConsumed()
 	const rawDisplayTotal = 39.5
-	pointsScale := rootPoints / rawDisplayTotal
-	ppu := float64(common.DefaultPointsPerUnit)
+	pointsScale := float64(rootPoints) / rawDisplayTotal
+	ppu := float64(common.DefaultQuotaPerUnit)
 
 	type entry struct {
 		day    int
@@ -115,7 +115,7 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 			DepartmentID: e.dept,
 			MemberID:     e.member,
 			Model:        e.model,
-			Cost:         points,
+			Cost:         int64(points),
 			DisplayCost:  points / ppu,
 			CallCount:    e.calls,
 		}

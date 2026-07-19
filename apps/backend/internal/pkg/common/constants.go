@@ -1,17 +1,19 @@
 package common
 
+import "math"
+
 const ModelNotInDeptMessage = "该模型不在您部门的可用范围内"
 
 const DefaultPersonalBudget = 0
-
-const DefaultModelPricePoint = 1000
 
 // DefaultBillingCurrency is the only hardcoded billing currency code.
 // Empty company.BillingCurrency resolves here; never substitute for ledger/lot rows.
 const DefaultBillingCurrency = "CNY"
 
-// DefaultPointsPerUnit is the seed PPU for DefaultBillingCurrency (currencies table).
-const DefaultPointsPerUnit = 1000
+// DefaultQuotaPerUnit is the seed QPU for DefaultBillingCurrency (currencies table).
+// 1 CNY = 500000 quota. This aligns with NewAPI's internal QuotaPerUnit so that
+// model_ratio=1 traffic flows through without conversion.
+const DefaultQuotaPerUnit int64 = 500000
 
 // ResolveBillingCurrency returns code, or DefaultBillingCurrency when empty.
 func ResolveBillingCurrency(code string) string {
@@ -21,14 +23,17 @@ func ResolveBillingCurrency(code string) string {
 	return code
 }
 
-const QuotaPerUnit = 500000
-
-// WalletSyncDriftEpsilon is the max allowed Postgres vs NewAPI point drift before reconcile.
-const WalletSyncDriftEpsilon = 0.01 * float64(DefaultPointsPerUnit)
-
-// WalletSyncDebounceSecs delays wallet_sync execution after ingest/recharge bursts.
-// NewAPI user quota is a redundant backstop when all traffic goes through Gateway;
-// a longer window reduces unnecessary NewAPI API calls.
-const WalletSyncDebounceSecs = 60
-
 const NewAPIGroupPrefix = "dept-"
+
+// QuotaFromAmount converts a display amount (e.g. CNY) to quota using the given quotaPerUnit.
+func QuotaFromAmount(amount float64, quotaPerUnit int64) int64 {
+	return int64(math.Round(amount * float64(quotaPerUnit)))
+}
+
+// QuotaToDisplay converts quota to display amount using the given quotaPerUnit.
+func QuotaToDisplay(quota int64, quotaPerUnit int64) float64 {
+	if quotaPerUnit <= 0 {
+		return 0
+	}
+	return float64(quota) / float64(quotaPerUnit)
+}

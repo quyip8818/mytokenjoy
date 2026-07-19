@@ -150,7 +150,7 @@ func (r *companyRepo) LockForUpdate(ctx context.Context, id uuid.UUID) (*store.C
 	return scanCompanyExtended(row)
 }
 
-func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta float64, fifoHeadLotID *uuid.UUID) error {
+func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta int64, fifoHeadLotID *uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
 			wallet_remain = wallet_remain + $2,
@@ -161,7 +161,7 @@ func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta 
 	return err
 }
 
-func (r *companyRepo) SetWalletRemain(ctx context.Context, id uuid.UUID, walletRemain float64, fifoHeadLotID *uuid.UUID) error {
+func (r *companyRepo) SetWalletRemain(ctx context.Context, id uuid.UUID, walletRemain int64, fifoHeadLotID *uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
 			wallet_remain = $2,

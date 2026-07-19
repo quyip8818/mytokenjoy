@@ -29,7 +29,7 @@ type Company struct {
 	AuthzRevision        int64
 	BillingCurrency      string
 	FIFOHeadLotID        *uuid.UUID
-	WalletRemain         float64
+	WalletRemain         int64
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }
@@ -53,6 +53,6 @@ type CompanyRepository interface {
 	BumpAuthzRevision(ctx context.Context, id uuid.UUID) (int64, error)
 	List(ctx context.Context) ([]Company, error)
 	LockForUpdate(ctx context.Context, id uuid.UUID) (*Company, error)
-	ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta float64, fifoHeadLotID *uuid.UUID) error
-	SetWalletRemain(ctx context.Context, id uuid.UUID, walletRemain float64, fifoHeadLotID *uuid.UUID) error
+	ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta int64, fifoHeadLotID *uuid.UUID) error
+	SetWalletRemain(ctx context.Context, id uuid.UUID, walletRemain int64, fifoHeadLotID *uuid.UUID) error
 }

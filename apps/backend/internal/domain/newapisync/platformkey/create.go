@@ -95,25 +95,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	}
 
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
-	effectiveIDs, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
-	mapping := store.PlatformKeyMapping{
-		CompanyID:     company.CompanyID(ctx),
-		PlatformKeyID: key.ID,
-		MemberID:      key.MemberID,
-		DepartmentID:  departmentID,
-		ProjectID:     key.ProjectID,
-	}
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, d.Store.Org().Nodes(), departmentID, d.Cfg.Clock())
-	if err != nil {
-		return "", err
-	}
-	remainPoint, err := pkgbudget.ComputeRemainForMapping(
-		ctx, budgetCtx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Company(), mapping, open.String(),
-	)
-	if err != nil {
-		return "", err
-	}
-	remainUnitsVal := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
+	_, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
 
 	group := d.ChannelPolicy.ResolveNewAPIGroup(ctx, departmentID)
 	displayName := departmentID.String()
@@ -136,8 +118,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
 		Name:               TokenName(key.ID),
-		RemainQuota:        remainUnitsVal,
-		UnlimitedQuota:     false,
+		UnlimitedQuota:     true,
 		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
 		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
 		Group:              group,

@@ -50,7 +50,7 @@ func PersistNodeBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, 
 	})
 }
 
-func PersistMemberAvgBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, nodeID uuid.UUID, memberAvg float64) error {
+func PersistMemberAvgBudget(ctx context.Context, repo store.OrgNodeBudgetRepository, nodeID uuid.UUID, memberAvg int64) error {
 	existing, found, err := repo.Get(ctx, nodeID)
 	if err != nil {
 		return err

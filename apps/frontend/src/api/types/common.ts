@@ -21,5 +21,5 @@ export interface SessionContext {
   permissions: string[]
   readOnly: boolean
   billingCurrency: string
-  pointsPerUnit: number
+  quotaPerUnit: number
 }

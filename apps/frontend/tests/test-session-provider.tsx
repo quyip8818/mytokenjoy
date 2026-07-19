@@ -28,7 +28,7 @@ export function TestSessionProvider({
       permissions,
       readOnly,
       billingCurrency: 'CNY',
-      pointsPerUnit: 1000,
+      quotaPerUnit: 500000,
       loading: false,
       sessionError: null,
       refreshSession: async () => {},

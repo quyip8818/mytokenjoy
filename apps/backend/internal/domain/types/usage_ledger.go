@@ -32,7 +32,7 @@ type UsageLedgerEntry struct {
 	CompanyID        uuid.UUID
 	EventType        string
 	IdempotencyKey   string
-	Amount           float64
+	Amount           int64
 	LotID            uuid.UUID
 	SegmentIndex     int
 	DisplayAmount    float64

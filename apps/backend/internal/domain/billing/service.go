@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -21,8 +21,6 @@ type Service interface {
 	PlatformAdjust(ctx context.Context, companyID uuid.UUID, points float64, amountDisplay float64, operatorID uuid.UUID) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
-	SyncCompanyWallet(ctx context.Context, companyID uuid.UUID) error
-	ReconcileWalletDrift(ctx context.Context) error
 }
 
 // Store is the narrow store surface the billing domain needs.
@@ -35,28 +33,18 @@ type Store interface {
 }
 
 type service struct {
-	cfg      config.Config
-	store    Store
-	reader   domainusage.Reader
-	client   adminport.Port
-	wallet   company.WalletService
-	enqueuer JobEnqueuer
+	cfg    config.Config
+	store  Store
+	reader domainusage.Reader
 }
 
 func NewService(
 	cfg config.Config,
 	st Store,
 	reader domainusage.Reader,
-	client adminport.Port,
-	wallet company.WalletService,
-	enqueuer JobEnqueuer,
 ) Service {
-	if enqueuer == nil {
-		enqueuer = NoopJobEnqueuer
-	}
 	return &service{
-		cfg: cfg, store: st, reader: reader, client: client, wallet: wallet,
-		enqueuer: enqueuer,
+		cfg: cfg, store: st, reader: reader,
 	}
 }
 
@@ -108,7 +96,7 @@ func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempo
 	key := idempotencyKey
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
-		PointsPerUnit: ppu, PointsGranted: PointsGrantedFromAmount(amount, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(amount, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending, CreatedBy: memberID,
 		DisplayOrderID: formatDisplayOrderID(now),

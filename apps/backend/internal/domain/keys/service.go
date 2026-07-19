@@ -140,7 +140,7 @@ func (s *service) ApprovalBudgetCheck(ctx context.Context, id uuid.UUID) (types.
 	if approval == nil {
 		return types.ApprovalBudgetCheck{}, domain.NotFound("Not found")
 	}
-	requested := approval.RequestedBudget
+	requested := int64(approval.RequestedBudget)
 	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {
 		return types.ApprovalBudgetCheck{}, err

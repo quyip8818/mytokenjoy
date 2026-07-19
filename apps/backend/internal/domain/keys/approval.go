@@ -88,12 +88,12 @@ func (s *service) ApproveApproval(ctx context.Context, id uuid.UUID, approverMem
 		return err
 	}
 	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, approval.ApplicantID)
-	if approval.Type == "budget" && approval.RequestedBudget > reservedPool {
+	if approval.Type == "budget" && int64(approval.RequestedBudget) > reservedPool {
 		return domain.Validation("Reserved pool insufficient")
 	}
 
 	var createdKeyID uuid.UUID
-	var personalBudgetAdded float64
+	var personalBudgetAdded int64
 	var members []types.Member
 	if err := s.store.WithTx(ctx, func(st store.Store) error {
 		var err error
@@ -106,7 +106,7 @@ func (s *service) ApproveApproval(ctx context.Context, id uuid.UUID, approverMem
 			return err
 		}
 		if approval.Type == "key" {
-			keyBudget := approval.RequestedBudget
+			keyBudget := int64(approval.RequestedBudget)
 			remaining := budget.GetBudgetRemaining(members, platformKeys, approval.ApplicantID)
 			if keyBudget > remaining {
 				personalBudgetAdded = keyBudget - remaining
@@ -125,7 +125,7 @@ func (s *service) ApproveApproval(ctx context.Context, id uuid.UUID, approverMem
 				return err
 			}
 		} else if approval.Type == "budget" {
-			members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, approval.RequestedBudget)
+			members = budget.AddMemberPersonalBudget(members, approval.ApplicantID, int64(approval.RequestedBudget))
 		}
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
@@ -191,7 +191,7 @@ func (s *service) revertKeyApproval(ctx context.Context, approvalID uuid.UUID) e
 	return domain.NotFound("Not found")
 }
 
-func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID uuid.UUID, applicantID uuid.UUID, createdKeyID uuid.UUID, personalBudgetAdded float64) error {
+func (s *service) compensateFailedKeyApproval(ctx context.Context, approvalID uuid.UUID, applicantID uuid.UUID, createdKeyID uuid.UUID, personalBudgetAdded int64) error {
 	if err := s.revertKeyApproval(ctx, approvalID); err != nil {
 		return err
 	}

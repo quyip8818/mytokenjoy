@@ -99,7 +99,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) 
 		consumedRepo := tx.BudgetConsumed()
 
 		// Build actual map from all axis kinds.
-		actual := make(map[AxisKey]float64)
+		actual := make(map[AxisKey]int64)
 		for _, axisKind := range []string{store.AxisKindPlatformKey, store.AxisKindMember, store.AxisKindProject} {
 			byPeriod, err := consumedRepo.ListConsumedByPeriods(ctx, axisKind, periodKeys)
 			if err != nil {
@@ -205,8 +205,8 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) 
 
 // expectedConsumedByEntryTime computes expected consumed aggregation using each
 // entry's OccurredAt to determine its budget period — matching what Ingest wrote.
-func expectedConsumedByEntryTime(ctx context.Context, nodes store.OrgNodeRepository, entries []types.UsageLedgerEntry) (map[AxisKey]float64, error) {
-	acc := make(map[AxisKey]float64)
+func expectedConsumedByEntryTime(ctx context.Context, nodes store.OrgNodeRepository, entries []types.UsageLedgerEntry) (map[AxisKey]int64, error) {
+	acc := make(map[AxisKey]int64)
 	for _, entry := range entries {
 		// Use OccurredAt as the reference time for open period — this matches
 		// what Ingest computed at write time (Clock ≈ OccurredAt for fresh entries).
@@ -226,7 +226,7 @@ func expectedConsumedByEntryTime(ctx context.Context, nodes store.OrgNodeReposit
 	return acc, nil
 }
 
-func CollectPeriodKeys(expected map[AxisKey]float64) []string {
+func CollectPeriodKeys(expected map[AxisKey]int64) []string {
 	set := make(map[string]struct{})
 	for key := range expected {
 		set[key.PeriodKey] = struct{}{}

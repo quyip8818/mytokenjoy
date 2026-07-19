@@ -18,12 +18,12 @@ func newBillingRepo(db dbQuerier) *billingRepo {
 func (r *billingRepo) CreateRechargeOrder(ctx context.Context, order store.RechargeOrder) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO company_recharge_orders (
-			id, company_id, amount, currency, points_per_unit, points_granted,
+			id, company_id, amount, currency, quota_per_unit, quota_granted,
 			source, lot_kind, idempotency_key, status,
 			display_order_id, payment_method, invoice_status,
 			created_by, created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-	`, order.ID, order.CompanyID, order.Amount, order.Currency, order.PointsPerUnit, order.PointsGranted,
+	`, order.ID, order.CompanyID, order.Amount, order.Currency, order.QuotaPerUnit, order.QuotaGranted,
 		order.Source, order.LotKind, order.IdempotencyKey, order.Status,
 		order.DisplayOrderID, order.PaymentMethod, order.InvoiceStatus,
 		order.CreatedBy, order.CreatedAt, order.UpdatedAt)
@@ -32,7 +32,7 @@ func (r *billingRepo) CreateRechargeOrder(ctx context.Context, order store.Recha
 
 func (r *billingRepo) GetRechargeOrder(ctx context.Context, id uuid.UUID) (*store.RechargeOrder, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, company_id, amount, currency, points_per_unit, points_granted,
+		SELECT id, company_id, amount, currency, quota_per_unit, quota_granted,
 			source, lot_kind, idempotency_key, status,
 			display_order_id, payment_method, invoice_status,
 			created_by, created_at, updated_at
@@ -43,7 +43,7 @@ func (r *billingRepo) GetRechargeOrder(ctx context.Context, id uuid.UUID) (*stor
 
 func (r *billingRepo) ListRechargeOrders(ctx context.Context, companyID uuid.UUID) ([]store.RechargeOrder, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, company_id, amount, currency, points_per_unit, points_granted,
+		SELECT id, company_id, amount, currency, quota_per_unit, quota_granted,
 			source, lot_kind, idempotency_key, status,
 			display_order_id, payment_method, invoice_status,
 			created_by, created_at, updated_at
@@ -71,10 +71,10 @@ func (r *billingRepo) ConfirmRechargeWithLot(
 ) error {
 	tag, err := r.db.Exec(ctx, `
 		UPDATE company_recharge_orders SET
-			amount = $2, currency = $3, points_per_unit = $4, points_granted = $5,
+			amount = $2, currency = $3, quota_per_unit = $4, quota_granted = $5,
 			lot_kind = $6, status = $7, updated_at = NOW()
 		WHERE id = $1
-	`, order.ID, order.Amount, order.Currency, order.PointsPerUnit, order.PointsGranted,
+	`, order.ID, order.Amount, order.Currency, order.QuotaPerUnit, order.QuotaGranted,
 		order.LotKind, order.Status)
 	if err != nil {
 		return err
@@ -87,12 +87,12 @@ func (r *billingRepo) ConfirmRechargeWithLot(
 	lotTag, err := r.db.Exec(ctx, `
 		INSERT INTO company_recharge_lots (
 			id, company_id, recharge_order_id, billing_currency, lot_kind,
-			amount_display, points_granted, points_remaining, unit_price_display,
+			amount_display, quota_per_unit, quota_granted, quota_remaining,
 			status, created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		ON CONFLICT (id) DO NOTHING
 	`, lot.ID, lot.CompanyID, lot.RechargeOrderID, lot.BillingCurrency, lot.LotKind,
-		lot.AmountDisplay, lot.PointsGranted, lot.PointsRemaining, lot.UnitPriceDisplay,
+		lot.AmountDisplay, lot.QuotaPerUnit, lot.QuotaGranted, lot.QuotaRemaining,
 		lot.Status, lot.CreatedAt, lot.UpdatedAt)
 	if err != nil {
 		return err

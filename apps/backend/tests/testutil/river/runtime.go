@@ -84,7 +84,6 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Cfg:                cfg,
 		Store:              st,
-		Billing:            reg.BillingSvc,
 		Overrun:            reg.Overrun,
 		Rebalance:          reg.Rebalance,
 		NewAPISync:         reg.MustNewAPISync(),
@@ -187,10 +186,6 @@ func PendingRebalanceCount(st store.Store, companyID uuid.UUID) int {
 
 func PendingOverrunCount(st store.Store, companyID uuid.UUID) int {
 	return PendingJobCount(st, jobs.KindOverrun, companyID)
-}
-
-func PendingWalletSyncCount(st store.Store, companyID uuid.UUID) int {
-	return PendingJobCount(st, jobs.KindWalletSync, companyID)
 }
 
 func PendingDashboardProjectCount(st store.Store, companyID uuid.UUID) int {

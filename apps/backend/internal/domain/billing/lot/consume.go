@@ -11,8 +11,9 @@ import (
 
 type Segment struct {
 	LotID           uuid.UUID
-	Points          float64
-	DisplayAmount   float64
+	Quota           int64
+	QuotaPerUnit    int64   // lot's snapshot rate
+	DisplayAmount   float64 // = float64(Quota) / float64(QuotaPerUnit)
 	BillingCurrency string
 }
 
@@ -20,12 +21,12 @@ type Segment struct {
 type ConsumeResult struct {
 	Segments       []Segment
 	OverdraftUsed  bool
-	OverdraftDelta float64
+	OverdraftDelta int64
 }
 
 // ConsumeLots locks the company row and consumes lots. Use when the caller has
 // NOT yet acquired the company lock within the current transaction.
-func ConsumeLots(ctx context.Context, st CreditStore, companyID uuid.UUID, amountPoint float64) (ConsumeResult, error) {
+func ConsumeLots(ctx context.Context, st CreditStore, companyID uuid.UUID, amount int64) (ConsumeResult, error) {
 	co, err := st.Company().LockForUpdate(ctx, companyID)
 	if err != nil {
 		return ConsumeResult{}, err
@@ -33,7 +34,7 @@ func ConsumeLots(ctx context.Context, st CreditStore, companyID uuid.UUID, amoun
 	if co == nil {
 		return ConsumeResult{}, fmt.Errorf("company not found: %s", companyID)
 	}
-	return consumeLotsWithCompany(ctx, st, co, amountPoint)
+	return consumeLotsWithCompany(ctx, st, co, amount)
 }
 
 // LotStore is the minimal store surface for lot consumption operations.
@@ -44,37 +45,41 @@ type LotStore interface {
 
 // ConsumeLotsLocked consumes lots assuming the company row is already locked
 // (i.e. the caller already called Company().LockForUpdate within this tx).
-func ConsumeLotsLocked(ctx context.Context, st LotStore, co *store.Company, amountPoint float64) (ConsumeResult, error) {
+func ConsumeLotsLocked(ctx context.Context, st LotStore, co *store.Company, amount int64) (ConsumeResult, error) {
 	if co == nil {
 		return ConsumeResult{}, fmt.Errorf("company must not be nil")
 	}
-	return consumeLotsWithCompany(ctx, st, co, amountPoint)
+	return consumeLotsWithCompany(ctx, st, co, amount)
 }
 
-func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company, amountPoint float64) (ConsumeResult, error) {
+func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company, amount int64) (ConsumeResult, error) {
 	companyID := co.ID
 	lots, err := st.Billing().ListActiveLotsFIFO(ctx, companyID, co.FIFOHeadLotID)
 	if err != nil {
 		return ConsumeResult{}, err
 	}
-	remaining := amountPoint
+	remaining := amount
 	var segments []Segment
 	var nextHead *uuid.UUID
-	overdraftAdded := 0.0
+	var overdraftAdded int64
 	for _, lotRow := range lots {
 		if remaining <= 0 {
 			break
 		}
-		take := lotRow.PointsRemaining
+		take := lotRow.QuotaRemaining
 		if take > remaining {
 			take = remaining
 		}
-		display := take * lotRow.UnitPriceDisplay
+		display := common.QuotaToDisplay(take, lotRow.QuotaPerUnit)
 		segments = append(segments, Segment{
-			LotID: lotRow.ID, Points: take, DisplayAmount: display, BillingCurrency: lotRow.BillingCurrency,
+			LotID:           lotRow.ID,
+			Quota:           take,
+			QuotaPerUnit:    lotRow.QuotaPerUnit,
+			DisplayAmount:   display,
+			BillingCurrency: lotRow.BillingCurrency,
 		})
-		lotRow.PointsRemaining -= take
-		if lotRow.PointsRemaining <= 0 {
+		lotRow.QuotaRemaining -= take
+		if lotRow.QuotaRemaining <= 0 {
 			lotRow.Status = store.LotStatusExhausted
 		} else {
 			head := lotRow.ID
@@ -93,18 +98,22 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 			return ConsumeResult{}, err
 		}
 		segments = append(segments, Segment{
-			LotID: od.ID, Points: remaining, DisplayAmount: 0, BillingCurrency: od.BillingCurrency,
+			LotID:           od.ID,
+			Quota:           remaining,
+			QuotaPerUnit:    od.QuotaPerUnit,
+			DisplayAmount:   0,
+			BillingCurrency: od.BillingCurrency,
 		})
-		od.PointsRemaining -= remaining
-		if od.PointsRemaining < 0 {
-			od.PointsRemaining = 0
+		od.QuotaRemaining -= remaining
+		if od.QuotaRemaining < 0 {
+			od.QuotaRemaining = 0
 		}
 		if err := st.Billing().UpdateLotRemaining(ctx, *od); err != nil {
 			return ConsumeResult{}, err
 		}
 		remaining = 0
 	}
-	newRemain := co.WalletRemain - amountPoint + overdraftAdded
+	newRemain := co.WalletRemain - amount + overdraftAdded
 	if newRemain < 0 {
 		newRemain = 0
 	}
@@ -134,14 +143,14 @@ func CreditFromLot(
 	st CreditStore,
 	order store.RechargeOrder,
 	lotRow store.RechargeLot,
-	deltaPoint float64,
+	deltaQuota int64,
 ) error {
 	return st.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Billing().ConfirmRechargeWithLot(ctx, order, lotRow); err != nil {
 			return err
 		}
 		var fifoHead *uuid.UUID
-		if lotRow.PointsRemaining > 0 && lotRow.LotKind != store.LotKindOverdraft {
+		if lotRow.QuotaRemaining > 0 && lotRow.LotKind != store.LotKindOverdraft {
 			co, err := tx.Company().GetByID(ctx, order.CompanyID)
 			if err != nil {
 				return err
@@ -151,6 +160,6 @@ func CreditFromLot(
 				fifoHead = &lotRow.ID
 			}
 		}
-		return tx.Company().ApplyWalletDelta(ctx, order.CompanyID, deltaPoint, fifoHead)
+		return tx.Company().ApplyWalletDelta(ctx, order.CompanyID, deltaQuota, fifoHead)
 	})
 }

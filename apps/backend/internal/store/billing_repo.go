@@ -41,10 +41,10 @@ const (
 type RechargeOrder struct {
 	ID             uuid.UUID
 	CompanyID      uuid.UUID
-	Amount         float64
+	Amount         float64 // display amount (CNY)
 	Currency       string
-	PointsPerUnit  int64
-	PointsGranted  float64
+	QuotaPerUnit   int64
+	QuotaGranted   int64
 	Source         string
 	LotKind        string
 	IdempotencyKey *string
@@ -58,18 +58,18 @@ type RechargeOrder struct {
 }
 
 type RechargeLot struct {
-	ID               uuid.UUID
-	CompanyID        uuid.UUID
-	RechargeOrderID  uuid.UUID
-	BillingCurrency  string
-	LotKind          string
-	AmountDisplay    float64
-	PointsGranted    float64
-	PointsRemaining  float64
-	UnitPriceDisplay float64
-	Status           string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID              uuid.UUID
+	CompanyID       uuid.UUID
+	RechargeOrderID uuid.UUID
+	BillingCurrency string
+	LotKind         string
+	AmountDisplay   float64 // paid amount in display currency (gift/overdraft = 0)
+	QuotaPerUnit    int64   // snapshot at recharge time
+	QuotaGranted    int64
+	QuotaRemaining  int64
+	Status          string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type WalletCurrencyBalance struct {
@@ -82,15 +82,15 @@ type WalletCurrencyBalance struct {
 type WalletAggregate struct {
 	BillingCurrency string
 	Balances        []WalletCurrencyBalance
-	WalletRemain    float64
-	GiftPoints      float64
-	OverdraftPoints float64
+	WalletRemain    int64
+	GiftQuota       int64
+	OverdraftQuota  int64
 }
 
 type Currency struct {
-	Code          string
-	PointsPerUnit int64
-	Enabled       bool
+	Code         string
+	QuotaPerUnit int64
+	Enabled      bool
 }
 
 type BillingRepository interface {
@@ -101,9 +101,9 @@ type BillingRepository interface {
 	ListActiveLotsFIFO(ctx context.Context, companyID uuid.UUID, fifoHeadID *uuid.UUID) ([]RechargeLot, error)
 	UpdateLotRemaining(ctx context.Context, lot RechargeLot) error
 	GetLotByID(ctx context.Context, lotID uuid.UUID) (*RechargeLot, error)
-	ExpandOverdraftLot(ctx context.Context, companyID uuid.UUID, billingCurrency string, pointsDelta float64) (*RechargeLot, error)
+	ExpandOverdraftLot(ctx context.Context, companyID uuid.UUID, billingCurrency string, quotaDelta int64) (*RechargeLot, error)
 	ExpireMockLots(ctx context.Context, companyID uuid.UUID) (int64, error)
-	SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (float64, error)
+	SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (int64, error)
 	AggregateWallet(ctx context.Context, companyID uuid.UUID) (WalletAggregate, error)
 	GetCurrency(ctx context.Context, code string) (*Currency, error)
 }

@@ -47,7 +47,7 @@ func loadPlatformKeys() []types.PlatformKey {
 		keys[i] = types.PlatformKey{
 			ID: uuid.MustParse(item.ID), Name: item.Name, KeyPrefix: item.KeyPrefix, Scope: item.Scope,
 			MemberID: memberID, ProjectID: projectID,
-			Status: item.Status, Budget: seedPoints(item.Budget),
+			Status: item.Status, Budget: seedQuota(item.Budget),
 			ModelWhitelist: modelWhitelist,
 			CreatedAt:      item.CreatedAt, ExpiresAt: item.ExpiresAt,
 		}
@@ -75,9 +75,9 @@ func buildProviderKeys() []types.ProviderKey {
 
 func buildApprovals() []types.KeyApproval {
 	return []types.KeyApproval{
-		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: contract.IDMemberAuditor, Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedBudget: seedPoints(5000), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
-		{ID: contract.IDApproval2, Type: "key", Applicant: "王五", ApplicantID: contract.IDMember3, Department: "后端组", Reason: "新项目需要多模型测试", RequestedBudget: seedPoints(8000), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel5, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000000c3"), Type: "budget", Applicant: "张三", ApplicantID: contract.IDMember1, Department: "后端组", Reason: "额度即将用完，申请追加", RequestedBudget: seedPoints(3000), RequestedModels: []uuid.UUID{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
+		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: contract.IDMemberAuditor, Department: "前端组", Reason: "需要接入 GPT-4o 进行代码辅助开发", RequestedBudget: float64(seedQuota(5000)), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
+		{ID: contract.IDApproval2, Type: "key", Applicant: "王五", ApplicantID: contract.IDMember3, Department: "后端组", Reason: "新项目需要多模型测试", RequestedBudget: float64(seedQuota(8000)), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel5, contract.IDModel4}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
+		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000000c3"), Type: "budget", Applicant: "张三", ApplicantID: contract.IDMember1, Department: "后端组", Reason: "额度即将用完，申请追加", RequestedBudget: float64(seedQuota(3000)), RequestedModels: []uuid.UUID{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
 	}
 }
 

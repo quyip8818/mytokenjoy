@@ -18,26 +18,26 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID u
 		return fmt.Errorf("trial credit amount must be positive")
 	}
 	currency := common.DefaultBillingCurrency
-	ppu := int64(common.DefaultPointsPerUnit)
+	ppu := common.DefaultQuotaPerUnit
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
 
 	order := store.RechargeOrder{
-		ID:            orderID,
-		CompanyID:     companyID,
-		Amount:        0,
-		Currency:      currency,
-		PointsPerUnit: ppu,
-		PointsGranted: trialPoints,
-		Source:        store.RechargeSourceSystem,
-		LotKind:       store.LotKindMock,
-		Status:        store.RechargeStatusConfirmed,
-		CreatedBy:     uuid.Nil,
-		CreatedAt:     now,
-		UpdatedAt:     now,
+		ID:           orderID,
+		CompanyID:    companyID,
+		Amount:       0,
+		Currency:     currency,
+		QuotaPerUnit: ppu,
+		QuotaGranted: int64(trialPoints),
+		Source:       store.RechargeSourceSystem,
+		LotKind:      store.LotKindMock,
+		Status:       store.RechargeStatusConfirmed,
+		CreatedBy:    uuid.Nil,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 	lot := BuildMockLot(order, currency)
-	return billinglot.CreditFromLot(ctx, st, order, lot, trialPoints)
+	return billinglot.CreditFromLot(ctx, st, order, lot, int64(trialPoints))
 }
 
 // TrialUpgradeStore is the minimal store surface needed for the trial→standard upgrade.

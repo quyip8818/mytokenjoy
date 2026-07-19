@@ -58,7 +58,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input typ
 			if existing.MemberID == nil {
 				return types.PlatformKey{}, domain.Validation("memberId required for member scope")
 			}
-			if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *existing.MemberID, *input.Budget, existing.ID); msg != nil {
+			if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *existing.MemberID, int64(*input.Budget), existing.ID); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		case types.PlatformKeyScopeProject, types.PlatformKeyScopeProjectMember:
@@ -69,7 +69,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input typ
 			if !ok {
 				return types.PlatformKey{}, domain.NotFound("Project not found")
 			}
-			if msg := budget.ValidateProjectScopeKeyBudget(existing.Scope, project, platformKeys, existing.MemberID, *input.Budget, existing.ID); msg != nil {
+			if msg := budget.ValidateProjectScopeKeyBudget(existing.Scope, project, platformKeys, existing.MemberID, int64(*input.Budget), existing.ID); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		default:
@@ -80,7 +80,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input typ
 		existing.Name = *input.Name
 	}
 	if input.Budget != nil {
-		existing.Budget = *input.Budget
+		existing.Budget = int64(*input.Budget)
 	}
 	if input.ModelWhitelist != nil {
 		existing.ModelWhitelist = append([]uuid.UUID{}, input.ModelWhitelist...)

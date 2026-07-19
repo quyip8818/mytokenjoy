@@ -19,7 +19,7 @@ type Member struct {
 	Roles          []string  `json:"roles"`
 	Source         string    `json:"source"`
 	ExternalID     *string   `json:"externalId,omitempty"`
-	PersonalBudget float64   `json:"-"`
+	PersonalBudget int64     `json:"-"`
 }
 
 type Role struct {
@@ -38,5 +38,5 @@ type SessionContext struct {
 	Permissions     []string  `json:"permissions"`
 	ReadOnly        bool      `json:"readOnly"`
 	BillingCurrency string    `json:"billingCurrency"`
-	PointsPerUnit   int64     `json:"pointsPerUnit"`
+	QuotaPerUnit    int64     `json:"quotaPerUnit"`
 }

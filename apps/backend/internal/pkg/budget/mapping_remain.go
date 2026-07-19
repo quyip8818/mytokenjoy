@@ -17,7 +17,6 @@ type MappingStores struct {
 	Org      store.OrgRepository
 	Budget   store.BudgetRepository
 	Keys     store.KeysRepository
-	Company  store.CompanyRepository
 	Clock    clock.Clock
 }
 
@@ -28,10 +27,9 @@ func ComputeRemainForMapping(
 	consumed store.BudgetConsumedRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
-	companyRepo store.CompanyRepository,
 	mapping store.PlatformKeyMapping,
 	periodKey string,
-) (float64, error) {
+) (int64, error) {
 	if mapping.DepartmentID == uuid.Nil {
 		return 0, fmt.Errorf("department not found")
 	}
@@ -42,7 +40,7 @@ func ComputeRemainForMapping(
 	if key.Scope == "" {
 		return 0, fmt.Errorf("platform key scope missing")
 	}
-	inputs, err := BuildChainInputs(ctx, budgetCtx, consumed, org, budgetRepo, companyRepo, key, mapping, periodKey)
+	inputs, err := BuildChainInputs(ctx, budgetCtx, consumed, org, budgetRepo, key, mapping, periodKey)
 	if err != nil {
 		return 0, err
 	}
@@ -56,7 +54,6 @@ func BuildChainInputs(
 	consumed store.BudgetConsumedRepository,
 	org store.OrgRepository,
 	budgetRepo store.BudgetRepository,
-	companyRepo store.CompanyRepository,
 	key types.PlatformKey,
 	mapping store.PlatformKeyMapping,
 	periodKey string,
@@ -72,14 +69,6 @@ func BuildChainInputs(
 		}
 		inputs.KeyBudget = key.Budget
 		inputs.KeyConsumed = key.Consumed
-	}
-
-	co, err := companyRepo.GetByID(ctx, mapping.CompanyID)
-	if err != nil {
-		return ChainInputs{}, err
-	}
-	if co != nil {
-		inputs.WalletRemain = co.WalletRemain
 	}
 
 	switch key.Scope {

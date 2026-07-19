@@ -22,7 +22,7 @@ type AxisDelta struct {
 	Kind      AxisKind
 	AxisID    uuid.UUID
 	PeriodKey string
-	Amount    float64
+	Amount    int64
 }
 
 // ConsumptionDeltas computes the budget_consumed axis increments for a single entry.
@@ -54,12 +54,6 @@ func ConsumptionDeltas(_ context.Context, _ store.OrgNodeRepository, entry types
 	return deltas, nil
 }
 
-const reconcileEpsilon = 0.000001
-
-func ConsumedDrift(expected, actual float64) bool {
-	diff := expected - actual
-	if diff < 0 {
-		diff = -diff
-	}
-	return diff > reconcileEpsilon
+func ConsumedDrift(expected, actual int64) bool {
+	return expected != actual
 }

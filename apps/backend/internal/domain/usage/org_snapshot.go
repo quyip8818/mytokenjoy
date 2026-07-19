@@ -23,7 +23,7 @@ func (c cachedOrgNodes) SetTree(context.Context, []types.OrgNode) error {
 	return fmt.Errorf("cached org nodes: read-only")
 }
 
-func (c cachedOrgNodes) GetNodeBudget(_ context.Context, nodeID uuid.UUID) (float64, bool, error) {
+func (c cachedOrgNodes) GetNodeBudget(_ context.Context, nodeID uuid.UUID) (int64, bool, error) {
 	node := pkgorg.FindOrgNode(c.tree, nodeID)
 	if node == nil {
 		return 0, false, nil

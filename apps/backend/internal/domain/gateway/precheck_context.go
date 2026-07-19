@@ -10,7 +10,7 @@ import (
 type WalletState struct {
 	CompanyID     uuid.UUID
 	CompanyStatus string
-	WalletRemain  float64
+	WalletRemain  int64
 }
 
 type RoutingState struct {
@@ -22,7 +22,7 @@ type RoutingState struct {
 }
 
 type BudgetState struct {
-	Remain  *float64
+	Remain  *int64
 	Version int64
 }
 

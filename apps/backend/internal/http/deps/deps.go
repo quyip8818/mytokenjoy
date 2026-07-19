@@ -47,7 +47,6 @@ type Deps struct {
 	CompanySvc          domaincompany.Service
 	BillingSvc          domainbilling.Service
 	MemberAnalyticsSvc  domainmemberanalytics.Service
-	WalletSvc           domaincompany.WalletService
 	CompanyGate         *domaincompany.Gate
 	Gateway             domaingateway.GatewayService
 	DevBearerResolver   devapi.BearerResolver

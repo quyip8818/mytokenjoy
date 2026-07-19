@@ -6,30 +6,30 @@ type BudgetNode struct {
 	ID              uuid.UUID    `json:"id"`
 	Name            string       `json:"name"`
 	ParentID        *uuid.UUID   `json:"parentId"`
-	Budget          float64      `json:"budget"`
-	Consumed        float64      `json:"consumed"`
-	ReservedPool    *float64     `json:"reservedPool,omitempty"`
+	Budget          int64        `json:"budget"`
+	Consumed        int64        `json:"consumed"`
+	ReservedPool    *int64       `json:"reservedPool,omitempty"`
 	Children        []BudgetNode `json:"children,omitempty"`
 	Period          string       `json:"period"`
-	MemberAvgBudget float64      `json:"memberAvgBudget"`
+	MemberAvgBudget int64        `json:"memberAvgBudget"`
 }
 
 type Project struct {
-	ID                uuid.UUID             `json:"id"`
-	Name              string                `json:"name"`
-	Budget            float64               `json:"budget"`
-	Consumed          float64               `json:"consumed"`
-	MemberIDs         []uuid.UUID           `json:"memberIds"`
-	MemberBudgets     map[uuid.UUID]float64 `json:"memberBudgets,omitempty"`
-	OwnerDepartmentID uuid.UUID             `json:"ownerDepartmentId"`
+	ID                uuid.UUID           `json:"id"`
+	Name              string              `json:"name"`
+	Budget            int64               `json:"budget"`
+	Consumed          int64               `json:"consumed"`
+	MemberIDs         []uuid.UUID         `json:"memberIds"`
+	MemberBudgets     map[uuid.UUID]int64 `json:"memberBudgets,omitempty"`
+	OwnerDepartmentID uuid.UUID           `json:"ownerDepartmentId"`
 }
 
 type UpdateProjectInput struct {
-	Name              *string                `json:"name"`
-	Budget            *float64               `json:"budget"`
-	MemberIDs         *[]uuid.UUID           `json:"memberIds"`
-	MemberBudgets     *map[uuid.UUID]float64 `json:"memberBudgets"`
-	OwnerDepartmentID *uuid.UUID             `json:"ownerDepartmentId"`
+	Name              *string              `json:"name"`
+	Budget            *int64               `json:"budget"`
+	MemberIDs         *[]uuid.UUID         `json:"memberIds"`
+	MemberBudgets     *map[uuid.UUID]int64 `json:"memberBudgets"`
+	OwnerDepartmentID *uuid.UUID           `json:"ownerDepartmentId"`
 }
 
 type OverrunPolicyConfig struct {
@@ -53,13 +53,13 @@ type MemberBudget struct {
 	MemberID       uuid.UUID `json:"memberId"`
 	MemberName     string    `json:"memberName"`
 	DepartmentID   uuid.UUID `json:"departmentId"`
-	PersonalBudget float64   `json:"personalBudget"`
-	Allocated      float64   `json:"allocated"`
-	Consumed       float64   `json:"consumed"`
+	PersonalBudget int64     `json:"personalBudget"`
+	Allocated      int64     `json:"allocated"`
+	Consumed       int64     `json:"consumed"`
 }
 
 type UpdateMemberBudgetInput struct {
-	PersonalBudget float64 `json:"personalBudget"`
+	PersonalBudget int64 `json:"personalBudget"`
 }
 
 type BudgetApproval struct {
@@ -68,7 +68,7 @@ type BudgetApproval struct {
 	DepartmentID   uuid.UUID `json:"-"`
 	ApplicantName  string    `json:"applicantName"`
 	DepartmentName string    `json:"departmentName"`
-	Amount         float64   `json:"amount"`
+	Amount         int64     `json:"amount"`
 	Reason         string    `json:"reason"`
 	Status         string    `json:"status"`
 	CreatedAt      string    `json:"createdAt"`

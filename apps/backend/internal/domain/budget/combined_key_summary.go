@@ -17,7 +17,6 @@ type SummaryStore interface {
 	Budget() store.BudgetRepository
 	Keys() store.KeysRepository
 	PlatformKeyMappings() store.PlatformKeyMappingRepository
-	Company() store.CompanyRepository
 	CombinedKeySummaries() store.CombinedKeySummaryRepository
 }
 
@@ -56,12 +55,12 @@ func ComputeGatewaySummaryUpdates(
 			return nil, err
 		}
 		remain, err := pkgbudget.ComputeRemainForMapping(
-			ctx, budgetCtx, st.BudgetConsumed(), st.Org(), st.Budget(), st.Company(), mapping, open.String(),
+			ctx, budgetCtx, st.BudgetConsumed(), st.Org(), st.Budget(), mapping, open.String(),
 		)
 		if err != nil {
 			continue
 		}
-		if remain >= math.MaxFloat64 {
+		if remain >= math.MaxInt64 {
 			continue // No budget constraints — leave combined_key_remain as NULL (allow).
 		}
 		updates = append(updates, store.CombinedKeySummaryUpdate{

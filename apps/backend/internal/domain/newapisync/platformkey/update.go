@@ -44,18 +44,8 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 		return err
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
-	effectiveIDs, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, d.Store.Org().Nodes(), mapping.DepartmentID, d.Cfg.Clock())
-	if err != nil {
-		return err
-	}
-	remainPoint, err := pkgbudget.ComputeRemainForMapping(
-		ctx, budgetCtx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Company(), *mapping, open.String(),
-	)
-	if err != nil {
-		return err
-	}
-	remain := newapiunits.ToNewAPIUnits(remainPoint, models, effectiveIDs)
+	_, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
+
 	status := adminport.TokenStatusEnabled
 	if targetActive != nil {
 		if !*targetActive {
@@ -69,7 +59,6 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 		ID:                 *mapping.NewAPIKeyID,
 		Name:               key.Name,
 		Status:             &status,
-		RemainQuota:        &remain,
 		ModelLimitsEnabled: &enabled,
 		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
 		Group:              mapping.NewAPIGroup,
@@ -79,12 +68,6 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 		return err
 	}
 	now := time.Now()
-	// Keep gateway precheck's combined_key_remain in sync with the full budget chain.
-	if _, err := d.Store.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
-		{PlatformKeyID: platformKeyID, Remain: remainPoint},
-	}); err != nil {
-		return err
-	}
 	return d.Mappings.UpdateMappingSync(ctx, key.ID, token.ID, store.MappingSyncStatusSynced, now)
 }
 
@@ -113,11 +96,9 @@ func DisablePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid
 		return nil
 	}
 	status := adminport.TokenStatusDisabled
-	zero := int64(0)
 	req := adminport.UpdateTokenInput{
-		ID:          *mapping.NewAPIKeyID,
-		Status:      &status,
-		RemainQuota: &zero,
+		ID:     *mapping.NewAPIKeyID,
+		Status: &status,
 	}
 	_, err = d.Client.UpdateToken(ctx, req)
 	return err

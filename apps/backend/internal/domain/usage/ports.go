@@ -32,13 +32,13 @@ type ConsumedDelta struct {
 	Kind      string
 	AxisID    uuid.UUID
 	PeriodKey string
-	Amount    float64
+	Amount    int64
 }
 
 // LotConsumer is the port for billing lot consumption during ingest.
 type LotConsumer interface {
 	// ConsumeLotsLocked consumes lots assuming the company row is already locked.
-	ConsumeLotsLocked(ctx context.Context, st store.Store, co *store.Company, amountPoint float64) (LotConsumeResult, error)
+	ConsumeLotsLocked(ctx context.Context, st store.Store, co *store.Company, amount int64) (LotConsumeResult, error)
 	// LedgerSegmentsFromEntry builds ledger segment entries from lot consumption segments.
 	LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []LotSegment) []types.UsageLedgerEntry
 }
@@ -47,13 +47,14 @@ type LotConsumer interface {
 type LotConsumeResult struct {
 	Segments       []LotSegment
 	OverdraftUsed  bool
-	OverdraftDelta float64
+	OverdraftDelta int64
 }
 
 // LotSegment represents a single lot consumption segment.
 type LotSegment struct {
 	LotID           uuid.UUID
-	Points          float64
+	Quota           int64
+	QuotaPerUnit    int64
 	DisplayAmount   float64
 	BillingCurrency string
 }

@@ -8,10 +8,10 @@ import (
 
 type OrgNodeBudgetRow struct {
 	NodeID          uuid.UUID
-	Budget          float64
-	ReservedPool    *float64
+	Budget          int64
+	ReservedPool    *int64
 	Period          string
-	MemberAvgBudget float64
+	MemberAvgBudget int64
 }
 
 type OrgNodeBudgetRepository interface {

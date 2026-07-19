@@ -3,7 +3,6 @@ package jobs
 const (
 	KindIngest               = "ingest"
 	KindIngestReconcile      = "ingest_reconcile"
-	KindWalletSync           = "wallet_sync"
 	KindRebalance            = "rebalance"
 	KindOverrun              = "overrun"
 	KindNewAPISync           = "newapi_sync"

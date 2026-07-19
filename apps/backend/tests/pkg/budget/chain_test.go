@@ -13,7 +13,7 @@ func TestGatewayChainRemain(t *testing.T) {
 		name  string
 		scope string
 		in    pkgbudget.ChainInputs
-		want  float64
+		want  int64
 		limit string
 	}{
 		{

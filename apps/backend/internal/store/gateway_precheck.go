@@ -12,7 +12,7 @@ type PrecheckContextRow struct {
 	CompanyID     uuid.UUID
 	CompanyType   string
 	CompanyStatus string
-	WalletRemain  float64
+	WalletRemain  int64
 
 	PlatformKeyID uuid.UUID
 	KeyStatus     string
@@ -21,7 +21,7 @@ type PrecheckContextRow struct {
 	HasAllowlist   bool
 	AllowlistTypes []string
 
-	CombinedKeyRemain        *float64
+	CombinedKeyRemain        *int64
 	CombinedKeyRemainAt      *time.Time
 	CombinedKeyRemainVersion int64
 }

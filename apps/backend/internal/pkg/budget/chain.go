@@ -18,20 +18,19 @@ const (
 )
 
 type ChainInputs struct {
-	KeyBudget        float64
-	KeyConsumed      float64
-	WalletRemain     float64
-	PersonalCap      float64
-	PersonalConsumed float64
-	ProjectCap       float64
-	ProjectConsumed  float64
-	MemberBudget     float64
-	SubConsumed      float64
+	KeyBudget        int64
+	KeyConsumed      int64
+	PersonalCap      int64
+	PersonalConsumed int64
+	ProjectCap       int64
+	ProjectConsumed  int64
+	MemberBudget     int64
+	SubConsumed      int64
 }
 
-func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting string) {
+func GatewayChainRemain(scope string, in ChainInputs) (remain int64, limiting string) {
 	type candidate struct {
-		val  float64
+		val  int64
 		name string
 	}
 	// wallet_remain is checked independently in the precheck path (real-time from PG).
@@ -40,7 +39,7 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 
 	if in.KeyBudget > 0 {
 		candidates = append(candidates, candidate{
-			ClampNonNegative(in.KeyBudget - in.KeyConsumed),
+			clampNonNegative(in.KeyBudget - in.KeyConsumed),
 			LimitingPlatformKey,
 		})
 	}
@@ -48,22 +47,22 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 	switch scope {
 	case types.PlatformKeyScopeMember:
 		candidates = append(candidates, candidate{
-			ClampNonNegative(in.PersonalCap - in.PersonalConsumed),
+			clampNonNegative(in.PersonalCap - in.PersonalConsumed),
 			LimitingMember,
 		})
 	case types.PlatformKeyScopeProject:
 		candidates = append(candidates, candidate{
-			ClampNonNegative(in.ProjectCap - in.ProjectConsumed),
+			clampNonNegative(in.ProjectCap - in.ProjectConsumed),
 			LimitingProject,
 		})
 	case types.PlatformKeyScopeProjectMember:
 		candidates = append(candidates,
 			candidate{
-				ClampNonNegative(in.MemberBudget - in.SubConsumed),
+				clampNonNegative(in.MemberBudget - in.SubConsumed),
 				LimitingProjectMember,
 			},
 			candidate{
-				ClampNonNegative(in.ProjectCap - in.ProjectConsumed),
+				clampNonNegative(in.ProjectCap - in.ProjectConsumed),
 				LimitingProject,
 			},
 		)
@@ -71,7 +70,7 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 
 	if len(candidates) == 0 {
 		// No budget constraints configured — uncapped by management rules.
-		return math.MaxFloat64, ""
+		return math.MaxInt64, ""
 	}
 	best := candidates[0]
 	for _, c := range candidates[1:] {
@@ -82,8 +81,15 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting 
 	return best.val, best.name
 }
 
-func SumProjectMemberKeyConsumed(keys []types.PlatformKey, projectID, memberID uuid.UUID) float64 {
-	var sum float64
+func clampNonNegative(v int64) int64 {
+	if v < 0 {
+		return 0
+	}
+	return v
+}
+
+func SumProjectMemberKeyConsumed(keys []types.PlatformKey, projectID, memberID uuid.UUID) int64 {
+	var sum int64
 	for _, key := range keys {
 		if key.Scope != types.PlatformKeyScopeProjectMember {
 			continue
@@ -104,8 +110,8 @@ func SumProjectMemberKeyConsumedFromRepo(
 	consumed store.BudgetConsumedRepository,
 	keys []types.PlatformKey,
 	projectID, memberID uuid.UUID, periodKey string,
-) (float64, error) {
-	var sum float64
+) (int64, error) {
+	var sum int64
 	for _, key := range keys {
 		if key.Scope != types.PlatformKeyScopeProjectMember {
 			continue

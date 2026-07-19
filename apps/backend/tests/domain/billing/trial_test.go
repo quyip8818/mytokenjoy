@@ -44,8 +44,8 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	if lots[0].LotKind != store.LotKindMock {
 		t.Fatalf("lot kind: got %q want %q", lots[0].LotKind, store.LotKindMock)
 	}
-	if lots[0].PointsGranted != trialPoints {
-		t.Fatalf("points granted: got %v want %v", lots[0].PointsGranted, trialPoints)
+	if lots[0].QuotaGranted != trialPoints {
+		t.Fatalf("points granted: got %v want %v", lots[0].QuotaGranted, trialPoints)
 	}
 	if lots[0].AmountDisplay != 0 {
 		t.Fatalf("amount display should be 0 for trial lot, got %v", lots[0].AmountDisplay)
@@ -125,20 +125,20 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	}
 
 	// 2. Add a paid lot (simulates real recharge before upgrade).
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 	paidAmount := float64(50)
-	paidPoints := domainbilling.PointsGrantedFromAmount(paidAmount, ppu)
+	paidPoints := common.QuotaFromAmount(paidAmount, ppu)
 	now := time.Now().UTC()
 	paidOrder := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009204"), CompanyID: companyID, Amount: paidAmount,
-		Currency: common.DefaultBillingCurrency, PointsPerUnit: ppu, PointsGranted: paidPoints,
+		Currency: common.DefaultBillingCurrency, QuotaPerUnit: ppu, QuotaGranted: paidPoints,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-9204",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	paidLot := domainbilling.BuildPaidLot(paidOrder, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 

@@ -53,7 +53,6 @@ type EntryBuildInput struct {
 
 func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error) {
 	modelName := ResolveConsumeModel(input.Raw)
-	cost := CostFromLog(input.Raw.Quota, modelName, input.Catalog, input.AllowedIDs)
 
 	occurredAt, err := OccurredAtFromPayload(input.Raw.CreatedAt)
 	if err != nil {
@@ -79,7 +78,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 		ID:               uuid.Must(uuid.NewV7()),
 		EventType:        types.EventTypeCallSettled,
 		IdempotencyKey:   NewAPIIdempotencyKey(input.Raw.ID),
-		Amount:           cost,
+		Amount:           input.Raw.Quota, // direct pass-through, no conversion
 		DepartmentID:     input.Mapping.DepartmentID,
 		MemberID:         memberID,
 		ProjectID:        input.Mapping.ProjectID,

@@ -6,11 +6,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func GetPersonalBudget(members []types.Member, memberID uuid.UUID) float64 {
+func GetPersonalBudget(members []types.Member, memberID uuid.UUID) int64 {
 	member, ok := org.FindMemberByID(members, memberID)
 	if !ok {
 		return common.DefaultPersonalBudget
@@ -21,12 +20,12 @@ func GetPersonalBudget(members []types.Member, memberID uuid.UUID) float64 {
 	return common.DefaultPersonalBudget
 }
 
-func AddMemberPersonalBudget(members []types.Member, memberID uuid.UUID, amount float64) []types.Member {
+func AddMemberPersonalBudget(members []types.Member, memberID uuid.UUID, amount int64) []types.Member {
 	current := GetPersonalBudget(members, memberID)
 	return SetMemberPersonalBudget(members, memberID, current+amount)
 }
 
-func SetMemberPersonalBudget(members []types.Member, memberID uuid.UUID, personalBudget float64) []types.Member {
+func SetMemberPersonalBudget(members []types.Member, memberID uuid.UUID, personalBudget int64) []types.Member {
 	result := append([]types.Member{}, members...)
 	for i := range result {
 		if result[i].ID == memberID {
@@ -37,12 +36,12 @@ func SetMemberPersonalBudget(members []types.Member, memberID uuid.UUID, persona
 	return append(result, types.Member{ID: memberID, PersonalBudget: personalBudget})
 }
 
-func GetAllocatedKeyBudget(platformKeys []types.PlatformKey, memberID uuid.UUID) float64 {
+func GetAllocatedKeyBudget(platformKeys []types.PlatformKey, memberID uuid.UUID) int64 {
 	return sumMemberScopeKeyBudget(platformKeys, memberID, uuid.Nil)
 }
 
-func sumMemberScopeKeyBudget(platformKeys []types.PlatformKey, memberID, excludeKeyID uuid.UUID) float64 {
-	sum := 0.0
+func sumMemberScopeKeyBudget(platformKeys []types.PlatformKey, memberID, excludeKeyID uuid.UUID) int64 {
+	var sum int64
 	for _, key := range platformKeys {
 		if key.Scope != types.PlatformKeyScopeMember {
 			continue
@@ -58,8 +57,8 @@ func sumMemberScopeKeyBudget(platformKeys []types.PlatformKey, memberID, exclude
 	return sum
 }
 
-func GetConsumedKeyBudget(platformKeys []types.PlatformKey, memberID uuid.UUID) float64 {
-	sum := 0.0
+func GetConsumedKeyBudget(platformKeys []types.PlatformKey, memberID uuid.UUID) int64 {
+	var sum int64
 	for _, key := range platformKeys {
 		if key.Scope != types.PlatformKeyScopeMember {
 			continue
@@ -71,11 +70,11 @@ func GetConsumedKeyBudget(platformKeys []types.PlatformKey, memberID uuid.UUID) 
 	return sum
 }
 
-func GetBudgetRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID uuid.UUID) float64 {
+func GetBudgetRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID uuid.UUID) int64 {
 	return memberScopeBudgetRemaining(members, platformKeys, memberID, uuid.Nil)
 }
 
-func memberScopeBudgetRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID, excludeKeyID uuid.UUID) float64 {
+func memberScopeBudgetRemaining(members []types.Member, platformKeys []types.PlatformKey, memberID, excludeKeyID uuid.UUID) int64 {
 	remaining := GetPersonalBudget(members, memberID) - sumMemberScopeKeyBudget(platformKeys, memberID, excludeKeyID)
 	if remaining < 0 {
 		return 0
@@ -83,7 +82,7 @@ func memberScopeBudgetRemaining(members []types.Member, platformKeys []types.Pla
 	return remaining
 }
 
-func BuildBudgetSummary(members []types.Member, platformKeys []types.PlatformKey, memberID uuid.UUID, reservedPool float64) types.MemberBudgetSummary {
+func BuildBudgetSummary(members []types.Member, platformKeys []types.PlatformKey, memberID uuid.UUID, reservedPool int64) types.MemberBudgetSummary {
 	totalBudget := GetPersonalBudget(members, memberID)
 	consumed := GetConsumedKeyBudget(platformKeys, memberID)
 	remaining := GetBudgetRemaining(members, platformKeys, memberID)
@@ -92,8 +91,8 @@ func BuildBudgetSummary(members []types.Member, platformKeys []types.PlatformKey
 	}
 }
 
-func GetMemberBudgetCapacity(deptNode types.BudgetNode) float64 {
-	reserved := 0.0
+func GetMemberBudgetCapacity(deptNode types.BudgetNode) int64 {
+	var reserved int64
 	if deptNode.ReservedPool != nil {
 		reserved = *deptNode.ReservedPool
 	}
@@ -119,7 +118,7 @@ func ValidateMemberBudgetUpdate(
 	members []types.Member,
 	platformKeys []types.PlatformKey,
 	memberID uuid.UUID,
-	personalBudget float64,
+	personalBudget int64,
 ) *string {
 	member, ok := org.FindMemberByID(members, memberID)
 	if !ok {
@@ -129,7 +128,7 @@ func ValidateMemberBudgetUpdate(
 
 	allocated := GetAllocatedKeyBudget(platformKeys, memberID)
 	if personalBudget < allocated {
-		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（%s）", exchange.Format(allocated))
+		msg := fmt.Sprintf("个人额度不能低于已分配 Key 额度（%d quota）", allocated)
 		return &msg
 	}
 
@@ -140,7 +139,7 @@ func ValidateMemberBudgetUpdate(
 	}
 
 	capacity := GetMemberBudgetCapacity(*deptNode)
-	otherSum := 0.0
+	var otherSum int64
 	for _, m := range members {
 		if m.DepartmentID == member.DepartmentID && m.ID != memberID {
 			otherSum += GetPersonalBudget(members, m.ID)
@@ -151,7 +150,7 @@ func ValidateMemberBudgetUpdate(
 		if remaining < 0 {
 			remaining = 0
 		}
-		msg := fmt.Sprintf("超出部门可分配成员额度，当前剩余约 %s", exchange.Format(remaining))
+		msg := fmt.Sprintf("超出部门可分配成员额度，当前剩余约 %d quota", remaining)
 		return &msg
 	}
 	return nil
@@ -161,7 +160,7 @@ func ApplyMemberBudgetUpdate(
 	members []types.Member,
 	platformKeys []types.PlatformKey,
 	memberID uuid.UUID,
-	personalBudget float64,
+	personalBudget int64,
 ) (types.MemberBudget, []types.Member) {
 	updatedMembers := SetMemberPersonalBudget(members, memberID, personalBudget)
 	member, ok := org.FindMemberByID(updatedMembers, memberID)

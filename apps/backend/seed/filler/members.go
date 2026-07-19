@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/seed/contract"
-	"github.com/tokenjoy/backend/seed/points"
 )
 
 type DeptBudget struct {
@@ -174,10 +173,10 @@ var anchorPersonalBudgets = map[uuid.UUID]float64{
 func applyMemberPersonalBudgets(members []types.Member) {
 	for i := range members {
 		if amount, ok := anchorPersonalBudgets[members[i].ID]; ok {
-			members[i].PersonalBudget = points.FromDisplay(amount)
+			members[i].PersonalBudget = common.QuotaFromAmount(amount, common.DefaultQuotaPerUnit)
 			continue
 		}
-		members[i].PersonalBudget = points.FromDisplay(common.DefaultPersonalBudget)
+		members[i].PersonalBudget = common.DefaultPersonalBudget
 	}
 }
 

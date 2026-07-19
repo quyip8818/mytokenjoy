@@ -55,7 +55,6 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		Ingest:               reg.IngestSvc,
 		Enqueuer:             holder,
 		Logger:               logger,
-		Billing:              reg.BillingSvc,
 		Overrun:              reg.Overrun,
 		Rebalance:            reg.Rebalance,
 		NewAPISync:           reg.Infra.newAPISync,

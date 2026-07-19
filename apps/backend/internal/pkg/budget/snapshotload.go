@@ -28,8 +28,8 @@ func ResolveKeyPeriodKey(
 	return rootPeriodKey
 }
 
-func sumAxisConsumed(axisID uuid.UUID, periodKeys []string, byPeriod map[string]map[uuid.UUID]float64) float64 {
-	var total float64
+func sumAxisConsumed(axisID uuid.UUID, periodKeys []string, byPeriod map[string]map[uuid.UUID]int64) int64 {
+	var total int64
 	for _, periodKey := range periodKeys {
 		if consumedByAxis, ok := byPeriod[periodKey]; ok {
 			total += consumedByAxis[axisID]
@@ -46,7 +46,7 @@ func PlatformKeyConsumed(
 	members []types.Member,
 	projects []types.Project,
 	clk clock.Clock,
-) (float64, bool, error) {
+) (int64, bool, error) {
 	at := clock.NowUTC(clk)
 	deptPeriod, rootPeriodKey, err := buildDeptPeriodMap(ctx, orgNodes, at)
 	if err != nil {
@@ -143,7 +143,7 @@ func LoadPlatformKeysWithUsed(
 	if err != nil {
 		return nil, err
 	}
-	usedByID := make(map[uuid.UUID]float64, len(items))
+	usedByID := make(map[uuid.UUID]int64, len(items))
 	for _, key := range items {
 		periodKey := keyPeriodKeys[key.ID]
 		if consumedByAxis, ok := byPeriod[periodKey]; ok {
@@ -194,7 +194,7 @@ func LoadProjectsWithConsumed(
 	if err != nil {
 		return nil, err
 	}
-	consumedByID := make(map[uuid.UUID]float64, len(projects))
+	consumedByID := make(map[uuid.UUID]int64, len(projects))
 	for _, project := range projects {
 		consumedByID[project.ID] = sumAxisConsumed(project.ID, projectPeriodKeys[project.ID], byPeriod)
 	}

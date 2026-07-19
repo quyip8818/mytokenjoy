@@ -28,7 +28,7 @@ func SetNodePeriod(nodes []types.OrgNode, id uuid.UUID, period string) bool {
 }
 
 // SetNodeBudget sets the Budget field of the OrgNode matching id.
-func SetNodeBudget(nodes []types.OrgNode, id uuid.UUID, budget float64) bool {
+func SetNodeBudget(nodes []types.OrgNode, id uuid.UUID, budget int64) bool {
 	return MutateOrgNode(nodes, id, func(n *types.OrgNode) {
 		n.Budget = budget
 	})

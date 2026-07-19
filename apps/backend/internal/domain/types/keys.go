@@ -42,8 +42,8 @@ type PlatformKey struct {
 	DepartmentID   uuid.UUID   `json:"departmentId"`
 	DepartmentName string      `json:"departmentName"`
 	Status         string      `json:"status"`
-	Budget         float64     `json:"budget"`
-	Consumed       float64     `json:"consumed"`
+	Budget         int64       `json:"budget"`
+	Consumed       int64       `json:"consumed"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 	CreatedAt      string      `json:"createdAt"`
 	ExpiresAt      *string     `json:"expiresAt"`
@@ -73,16 +73,16 @@ type KeyApproval struct {
 }
 
 type MemberBudgetSummary struct {
-	TotalBudget  float64 `json:"totalBudget"`
-	Consumed     float64 `json:"consumed"`
-	Remaining    float64 `json:"remaining"`
-	ReservedPool float64 `json:"reservedPool"`
+	TotalBudget  int64 `json:"totalBudget"`
+	Consumed     int64 `json:"consumed"`
+	Remaining    int64 `json:"remaining"`
+	ReservedPool int64 `json:"reservedPool"`
 }
 
 type ApprovalBudgetCheck struct {
-	Sufficient   bool    `json:"sufficient"`
-	ReservedPool float64 `json:"reservedPool"`
-	Requested    float64 `json:"requested"`
+	Sufficient   bool  `json:"sufficient"`
+	ReservedPool int64 `json:"reservedPool"`
+	Requested    int64 `json:"requested"`
 }
 
 type CreateProviderKeyInput struct {

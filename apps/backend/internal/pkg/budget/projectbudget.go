@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -40,8 +39,8 @@ func ResolveProjectPeriodKeys(
 	return keys
 }
 
-func GetAllocatedProjectKeyBudget(platformKeys []types.PlatformKey, projectID uuid.UUID) float64 {
-	sum := 0.0
+func GetAllocatedProjectKeyBudget(platformKeys []types.PlatformKey, projectID uuid.UUID) int64 {
+	var sum int64
 	for _, key := range platformKeys {
 		if key.ProjectID != nil && *key.ProjectID == projectID && key.Status == "active" {
 			sum += key.Budget
@@ -50,7 +49,7 @@ func GetAllocatedProjectKeyBudget(platformKeys []types.PlatformKey, projectID uu
 	return sum
 }
 
-func GetProjectBudgetRemaining(project types.Project, platformKeys []types.PlatformKey) float64 {
+func GetProjectBudgetRemaining(project types.Project, platformKeys []types.PlatformKey) int64 {
 	allocated := GetAllocatedProjectKeyBudget(platformKeys, project.ID)
 	remaining := project.Budget - project.Consumed - allocated
 	if remaining < 0 {
@@ -59,8 +58,8 @@ func GetProjectBudgetRemaining(project types.Project, platformKeys []types.Platf
 	return remaining
 }
 
-func ValidateProjectKeyBudget(project types.Project, platformKeys []types.PlatformKey, budget float64, excludeKeyID uuid.UUID) *string {
-	allocated := 0.0
+func ValidateProjectKeyBudget(project types.Project, platformKeys []types.PlatformKey, budget int64, excludeKeyID uuid.UUID) *string {
+	var allocated int64
 	for _, key := range platformKeys {
 		if key.ProjectID != nil && *key.ProjectID == project.ID && key.Status == "active" {
 			if excludeKeyID != uuid.Nil && key.ID == excludeKeyID {
@@ -75,7 +74,7 @@ func ValidateProjectKeyBudget(project types.Project, platformKeys []types.Platfo
 		if display < 0 {
 			display = 0
 		}
-		msg := fmt.Sprintf("项目剩余可分配额度约 %s", exchange.Format(display))
+		msg := fmt.Sprintf("项目剩余可分配额度约 %d quota", display)
 		return &msg
 	}
 	return nil

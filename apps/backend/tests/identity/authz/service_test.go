@@ -35,8 +35,8 @@ func TestGetSessionContextSuccess(t *testing.T) {
 	if ctx.BillingCurrency == "" {
 		t.Fatal("expected billingCurrency")
 	}
-	if ctx.PointsPerUnit <= 0 {
-		t.Fatal("expected pointsPerUnit > 0")
+	if ctx.QuotaPerUnit <= 0 {
+		t.Fatal("expected quotaPerUnit > 0")
 	}
 	if ctx.CompanyType == "" {
 		t.Fatal("expected companyType to be populated")

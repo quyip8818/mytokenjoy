@@ -11,7 +11,7 @@ import (
 
 // CombinedKeyEntry is the optional Redis cache row for combined key budget checks.
 type CombinedKeyEntry struct {
-	Remain    float64
+	Remain    int64
 	UpdatedAt time.Time
 	Version   int64
 }

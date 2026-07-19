@@ -23,7 +23,7 @@ type CurrencyStore interface {
 	Company() store.CompanyRepository
 }
 
-func lookupCurrencyPPU(ctx context.Context, st CurrencyStore, currency string) (int64, error) {
+func lookupQuotaPerUnit(ctx context.Context, st CurrencyStore, currency string) (int64, error) {
 	cur, err := st.Billing().GetCurrency(ctx, currency)
 	if err != nil {
 		return 0, err
@@ -34,22 +34,22 @@ func lookupCurrencyPPU(ctx context.Context, st CurrencyStore, currency string) (
 	if !cur.Enabled {
 		return 0, domain.BadRequest(fmt.Sprintf("currency %s is disabled", currency))
 	}
-	if cur.PointsPerUnit <= 0 {
-		return 0, domain.BadRequest(fmt.Sprintf("currency %s has invalid points_per_unit", currency))
+	if cur.QuotaPerUnit <= 0 {
+		return 0, domain.BadRequest(fmt.Sprintf("currency %s has invalid quota_per_unit", currency))
 	}
-	return cur.PointsPerUnit, nil
+	return cur.QuotaPerUnit, nil
 }
 
-func (s *service) lookupPointsPerUnit(ctx context.Context, currency string) (int64, error) {
-	return lookupCurrencyPPU(ctx, s.store, currency)
+func (s *service) resolveQuotaPerUnit(ctx context.Context, currency string) (int64, error) {
+	return lookupQuotaPerUnit(ctx, s.store, currency)
 }
 
-func (s *service) resolveChargeRate(ctx context.Context, companyID uuid.UUID) (currency string, ppu int64, err error) {
+func (s *service) resolveChargeRate(ctx context.Context, companyID uuid.UUID) (currency string, qpu int64, err error) {
 	return ResolveCompanyChargeRate(ctx, s.store, companyID)
 }
 
-// ResolveCompanyChargeRate returns the company's billing currency and points_per_unit.
-func ResolveCompanyChargeRate(ctx context.Context, st CurrencyStore, companyID uuid.UUID) (currency string, ppu int64, err error) {
+// ResolveCompanyChargeRate returns the company's billing currency and quota_per_unit.
+func ResolveCompanyChargeRate(ctx context.Context, st CurrencyStore, companyID uuid.UUID) (currency string, qpu int64, err error) {
 	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return "", 0, err
@@ -58,9 +58,9 @@ func ResolveCompanyChargeRate(ctx context.Context, st CurrencyStore, companyID u
 		return "", 0, domain.NotFound("company not found")
 	}
 	currency = resolveBillingCurrency(co)
-	ppu, err = lookupCurrencyPPU(ctx, st, currency)
+	qpu, err = lookupQuotaPerUnit(ctx, st, currency)
 	if err != nil {
 		return "", 0, err
 	}
-	return currency, ppu, nil
+	return currency, qpu, nil
 }

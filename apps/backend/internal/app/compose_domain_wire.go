@@ -42,7 +42,7 @@ func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainb
 }
 
 func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
-	return domainbudget.NewRebalanceService(cfg, i.store, i.adminPort)
+	return domainbudget.NewRebalanceService(cfg, i.store)
 }
 
 func wireKeys(cfg config.Config, i infra) domainkeys.Service {
@@ -65,8 +65,8 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 	return domaincompany.NewService(cfg, i.store, i.adminPort, grants, domaincompany.WithCompanyCacheInvalidator(i.precheckCache))
 }
 
-func wireBilling(cfg config.Config, i infra, reader domainusage.Reader, enqueuer jobs.Enqueuer) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminPort, i.wallet, adapter.NewBillingEnqueuer(enqueuer))
+func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
+	return domainbilling.NewService(cfg, i.store, reader)
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {

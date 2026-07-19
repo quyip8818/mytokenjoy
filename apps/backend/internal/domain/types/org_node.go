@@ -21,14 +21,14 @@ type OrgNode struct {
 	ExternalID       *string    `json:"externalId,omitempty"`
 	Source           *string    `json:"source,omitempty"`
 	ManagerID        *uuid.UUID `json:"managerId,omitempty"`
-	Budget           float64    `json:"budget"`
-	Consumed         float64    `json:"consumed"`
-	ReservedPool     *float64   `json:"reservedPool,omitempty"`
+	Budget           int64      `json:"budget"`
+	Consumed         int64      `json:"consumed"`
+	ReservedPool     *int64     `json:"reservedPool,omitempty"`
 	Period           string     `json:"period"`
 	DefaultModelID   *uuid.UUID `json:"defaultModelId,omitempty"`
 	FallbackModelID  *uuid.UUID `json:"fallbackModelId,omitempty"`
 	RoutingInherited bool       `json:"routingInherited"`
-	MemberAvgBudget  float64    `json:"memberAvgBudget"`
+	MemberAvgBudget  int64      `json:"memberAvgBudget"`
 }
 
 func OrgNodeToDepartment(node OrgNode) Department {
@@ -89,7 +89,7 @@ func OrgNodesToBudgetTree(nodes []OrgNode) []BudgetNode {
 
 // inheritMemberAvgBudget walks the tree top-down: if a node's MemberAvgBudget
 // is 0 (unset), it inherits the nearest ancestor's value.
-func inheritMemberAvgBudget(nodes []BudgetNode, parentAvg float64) {
+func inheritMemberAvgBudget(nodes []BudgetNode, parentAvg int64) {
 	for i := range nodes {
 		if nodes[i].MemberAvgBudget == 0 {
 			nodes[i].MemberAvgBudget = parentAvg

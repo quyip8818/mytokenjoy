@@ -11,7 +11,6 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/tokenjoy/backend/internal/config"
-	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
@@ -38,7 +37,6 @@ type Deps struct {
 	Ingest               domainusage.Ingestor
 	Enqueuer             jobs.Enqueuer
 	Logger               *slog.Logger
-	Billing              domainbilling.Service
 	Overrun              domainbudget.OverrunProcessor
 	Rebalance            domainbudget.Rebalancer
 	NewAPISync           newapisync.OutboxHandler
@@ -78,7 +76,7 @@ func registerWorkers(deps Deps) *river.Workers {
 	workersBundle := river.NewWorkers()
 	river.AddWorker(workersBundle, workers.NewIngestWorker(deps.Ingest, deps.Logger))
 	river.AddWorker(workersBundle, workers.NewIngestReconcileWorker(deps.LogStore, deps.Ingest, deps.Enqueuer, deps.Cfg.ReconcileBatchSize(), deps.Cfg.ReconcileMaxRounds(), deps.Logger))
-	river.AddWorker(workersBundle, workers.NewWalletSyncWorker(deps.Billing))
+
 	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.Store, deps.Cfg))
 	river.AddWorker(workersBundle, workers.NewOverrunWorker(deps.Overrun))
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))

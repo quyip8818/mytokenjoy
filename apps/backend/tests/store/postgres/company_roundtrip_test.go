@@ -77,11 +77,11 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
 	key := "idem-rt-key"
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-0000000000b1"), CompanyID: contract.DefaultCompanyID, Amount: 99, Currency: common.DefaultBillingCurrency,
-		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(99, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(99, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending,
 		DisplayOrderID: "ORD20260101120000",
@@ -102,7 +102,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err != nil || before == nil {
 		t.Fatal("expected company before recharge")
 	}
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)
@@ -127,7 +127,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after recharge")
 	}
-	if co.WalletRemain != before.WalletRemain+lot.PointsGranted {
-		t.Fatalf("wallet_remain: got %v want %v", co.WalletRemain, before.WalletRemain+lot.PointsGranted)
+	if co.WalletRemain != before.WalletRemain+lot.QuotaGranted {
+		t.Fatalf("wallet_remain: got %v want %v", co.WalletRemain, before.WalletRemain+lot.QuotaGranted)
 	}
 }

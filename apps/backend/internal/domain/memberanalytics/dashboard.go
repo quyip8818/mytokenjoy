@@ -108,7 +108,7 @@ func (s *service) GetDashboard(ctx context.Context, memberID uuid.UUID) (Dashboa
 	avgRPM, avgTPM := performanceStats(summary, start, end)
 	return DashboardView{
 		Account: AccountStats{
-			BudgetRemaining: budgetSummary.Remaining,
+			BudgetRemaining: float64(budgetSummary.Remaining),
 			TotalSpent:      summary.Spend(),
 		},
 		UsageStats: UsageStats{

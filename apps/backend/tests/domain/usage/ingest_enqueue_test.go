@@ -3,10 +3,8 @@ package usage_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
@@ -24,8 +22,5 @@ func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 	}
 	if ingested {
 		t.Fatal("expected no ledger row when enqueue fails inside transaction")
-	}
-	if riverfix.PendingWalletSyncCount(fix.Store, contract.DefaultCompanyID) != 0 {
-		t.Fatal("expected no wallet_sync job after rollback")
 	}
 }

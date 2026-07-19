@@ -25,7 +25,7 @@ func (r *combinedKeySummaryRepo) UpdateBatch(ctx context.Context, updates []stor
 	}
 	companyID := store.CompanyID(ctx)
 	ids := make([]uuid.UUID, len(updates))
-	remains := make([]float64, len(updates))
+	remains := make([]int64, len(updates))
 	for i, u := range updates {
 		ids[i] = u.PlatformKeyID
 		remains[i] = u.Remain
@@ -68,13 +68,13 @@ func (r *combinedKeySummaryRepo) UpdateBatch(ctx context.Context, updates []stor
 	return out, rows.Err()
 }
 
-func (r *combinedKeySummaryRepo) DecrementBatch(ctx context.Context, decrements map[uuid.UUID]float64) ([]store.CombinedKeySummary, error) {
+func (r *combinedKeySummaryRepo) DecrementBatch(ctx context.Context, decrements map[uuid.UUID]int64) ([]store.CombinedKeySummary, error) {
 	if len(decrements) == 0 {
 		return nil, nil
 	}
 	companyID := store.CompanyID(ctx)
 	ids := make([]uuid.UUID, 0, len(decrements))
-	deltas := make([]float64, 0, len(decrements))
+	deltas := make([]int64, 0, len(decrements))
 	for id, delta := range decrements {
 		ids = append(ids, id)
 		deltas = append(deltas, delta)
@@ -136,7 +136,7 @@ func (r *combinedKeySummaryRepo) ListByPlatformKeyIDs(ctx context.Context, keyID
 	out := make([]store.CombinedKeySummary, 0, len(keyIDs))
 	for rows.Next() {
 		var item store.CombinedKeySummary
-		var remain *float64
+		var remain *int64
 		var updatedAt *time.Time
 		if err := rows.Scan(&item.PlatformKeyID, &item.KeyHash, &remain, &updatedAt, &item.Version); err != nil {
 			return nil, err

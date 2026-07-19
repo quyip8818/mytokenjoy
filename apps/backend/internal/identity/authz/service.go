@@ -69,7 +69,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 			Permissions:     perms,
 			ReadOnly:        readOnly,
 			BillingCurrency: currency,
-			PointsPerUnit:   ppu,
+			QuotaPerUnit:    ppu,
 		}, nil
 	}
 
@@ -91,7 +91,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 		Permissions:     permissions,
 		ReadOnly:        readOnly,
 		BillingCurrency: currency,
-		PointsPerUnit:   ppu,
+		QuotaPerUnit:    ppu,
 	}, nil
 }
 

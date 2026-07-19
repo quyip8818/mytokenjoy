@@ -10,10 +10,10 @@ import (
 func (r *billingRepo) GetCurrency(ctx context.Context, code string) (*store.Currency, error) {
 	var c store.Currency
 	err := r.db.QueryRow(ctx, `
-		SELECT currency, points_per_unit, enabled
+		SELECT currency, quota_per_unit, enabled
 		FROM currencies
 		WHERE currency = $1
-	`, code).Scan(&c.Code, &c.PointsPerUnit, &c.Enabled)
+	`, code).Scan(&c.Code, &c.QuotaPerUnit, &c.Enabled)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}

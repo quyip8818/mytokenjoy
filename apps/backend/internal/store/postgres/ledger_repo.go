@@ -84,7 +84,8 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	for rows.Next() {
 		var occurredAt time.Time
 		var row types.UsageBucketRow
-		var amount, displayAmount float64
+		var amount int64
+		var displayAmount float64
 		var inputTokens, outputTokens int64
 		if err := rows.Scan(
 			&occurredAt, &row.DepartmentID, &row.MemberID, &row.Model,
@@ -217,9 +218,9 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 	return items, rows.Err()
 }
 
-func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID uuid.UUID, periodKey string) (float64, error) {
+func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID uuid.UUID, periodKey string) (int64, error) {
 	companyID := store.CompanyID(ctx)
-	var total float64
+	var total int64
 	err := r.db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(amount), 0)
 		FROM usage_ledger

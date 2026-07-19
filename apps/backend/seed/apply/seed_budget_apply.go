@@ -21,7 +21,7 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid uuid.UUID, snap
 			return err
 		}
 		for _, memberID := range project.MemberIDs {
-			memberBudget := 0.0
+			var memberBudget int64
 			if project.MemberBudgets != nil {
 				memberBudget = project.MemberBudgets[memberID]
 			}
@@ -64,7 +64,7 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid uuid.UU
 		return fmt.Errorf("seed budget consumed require Snapshot.SeedAt")
 	}
 	periodKey := pkgbudget.RootPeriodKey(snap.OrgNodes, snap.SeedAt.UTC())
-	memberConsumed := make(map[uuid.UUID]float64)
+	memberConsumed := make(map[uuid.UUID]int64)
 	for _, key := range snap.PlatformKeys {
 		if key.Scope == types.PlatformKeyScopeMember && key.MemberID != nil && key.Consumed > 0 {
 			memberConsumed[*key.MemberID] += key.Consumed
@@ -94,7 +94,7 @@ func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid uuid.UU
 	return nil
 }
 
-func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid uuid.UUID, axisKind string, axisID uuid.UUID, periodKey string, consumed float64) error {
+func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid uuid.UUID, axisKind string, axisID uuid.UUID, periodKey string, consumed int64) error {
 	_, err := exec.Exec(ctx, `
 		INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())

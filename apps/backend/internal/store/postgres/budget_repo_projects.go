@@ -10,9 +10,9 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (r *pgBudgetRepo) GetProjectBudget(ctx context.Context, projectID uuid.UUID) (float64, float64, bool, error) {
+func (r *pgBudgetRepo) GetProjectBudget(ctx context.Context, projectID uuid.UUID) (int64, int64, bool, error) {
 	companyID := store.CompanyID(ctx)
-	var budget float64
+	var budget int64
 	err := r.db.QueryRow(ctx, `
 		SELECT budget FROM projects WHERE company_id = $1 AND id = $2
 	`, companyID, projectID).Scan(&budget)
@@ -65,14 +65,14 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	defer memberRows.Close()
 	for memberRows.Next() {
 		var projectID, memberID uuid.UUID
-		var memberBudget float64
+		var memberBudget int64
 		if err := memberRows.Scan(&projectID, &memberID, &memberBudget); err != nil {
 			return nil, err
 		}
 		if idx, ok := projectIndex[projectID]; ok {
 			projects[idx].MemberIDs = append(projects[idx].MemberIDs, memberID)
 			if projects[idx].MemberBudgets == nil {
-				projects[idx].MemberBudgets = make(map[uuid.UUID]float64)
+				projects[idx].MemberBudgets = make(map[uuid.UUID]int64)
 			}
 			projects[idx].MemberBudgets[memberID] = memberBudget
 		}
@@ -80,9 +80,9 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	return projects, memberRows.Err()
 }
 
-func (r *pgBudgetRepo) GetProjectMemberBudget(ctx context.Context, projectID, memberID uuid.UUID) (float64, bool, error) {
+func (r *pgBudgetRepo) GetProjectMemberBudget(ctx context.Context, projectID, memberID uuid.UUID) (int64, bool, error) {
 	companyID := store.CompanyID(ctx)
-	var budget float64
+	var budget int64
 	err := r.db.QueryRow(ctx, `
 		SELECT member_budget FROM project_members
 		WHERE company_id = $1 AND project_id = $2 AND member_id = $3
@@ -119,7 +119,7 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 			return err
 		}
 		for _, memberID := range project.MemberIDs {
-			memberBudget := 0.0
+			var memberBudget int64
 			if project.MemberBudgets != nil {
 				memberBudget = project.MemberBudgets[memberID]
 			}

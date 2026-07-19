@@ -115,7 +115,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
       permissions: query.data?.permissions ?? [],
       readOnly: query.data?.readOnly ?? false,
       billingCurrency: query.data?.billingCurrency ?? 'CNY',
-      pointsPerUnit: query.data?.pointsPerUnit ?? 0,
+      quotaPerUnit: query.data?.quotaPerUnit ?? 0,
       loading: query.loading,
       sessionError: query.error,
       refreshSession,
@@ -125,10 +125,10 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
   const billingExchange = useMemo(
     () =>
       createBillingExchange(
-        query.data?.pointsPerUnit || undefined,
+        query.data?.quotaPerUnit || undefined,
         query.data?.billingCurrency ?? 'CNY',
       ),
-    [query.data?.billingCurrency, query.data?.pointsPerUnit],
+    [query.data?.billingCurrency, query.data?.quotaPerUnit],
   )
 
   return (

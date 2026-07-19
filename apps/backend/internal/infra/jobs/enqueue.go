@@ -9,11 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func InsertWalletSync(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID) error {
-	args := WalletSyncArgs{CompanyID: companyID}
-	return insert(ctx, e, tx, args, nil)
-}
-
 func InsertRebalance(ctx context.Context, e Enqueuer, tx store.Tx, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error {
 	args := RebalanceArgs{
 		CompanyID: companyID,

@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -19,18 +20,19 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
+	quotaGranted := common.QuotaFromAmount(points, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: currency,
-		PointsPerUnit: ppu, PointsGranted: points,
+		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
 		Source: store.RechargeSourceGift, LotKind: store.LotKindGift,
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildGiftLot(order, currency)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
-	return s.afterRecharge(ctx, companyID)
+	return nil
 }
 
 func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay float64, createdBy uuid.UUID) error {
@@ -41,18 +43,19 @@ func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay fl
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
+	quotaGranted := common.QuotaFromAmount(points, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amountDisplay, Currency: currency,
-		PointsPerUnit: ppu, PointsGranted: points,
+		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
 		Source: store.RechargeSourceAdjust, LotKind: store.LotKindAdjust,
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildAdjustLot(order, currency, amountDisplay)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
-	return s.afterRecharge(ctx, companyID)
+	return nil
 }
 
 func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOrder) error {
@@ -68,25 +71,25 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	if currency == "" {
 		currency = resolveBillingCurrency(co)
 	}
-	ppu := order.PointsPerUnit
+	ppu := order.QuotaPerUnit
 	if ppu <= 0 {
-		ppu, err = s.lookupPointsPerUnit(ctx, currency)
+		ppu, err = s.resolveQuotaPerUnit(ctx, currency)
 		if err != nil {
 			return err
 		}
 	}
-	if order.PointsGranted <= 0 {
-		order.PointsGranted = PointsGrantedFromAmount(order.Amount, ppu)
+	if order.QuotaGranted <= 0 {
+		order.QuotaGranted = common.QuotaFromAmount(order.Amount, ppu)
 	}
 	order.Currency = currency
 	order.LotKind = store.LotKindPaid
 	order.Status = store.RechargeStatusConfirmed
-	order.PointsPerUnit = ppu
-	lot := BuildPaidLot(order, currency, ppu)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
+	order.QuotaPerUnit = ppu
+	lot := BuildPaidLot(order, currency)
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
-	return s.afterRecharge(ctx, order.CompanyID)
+	return nil
 }
 
 func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, source string, createdBy uuid.UUID, idempotencyKey *string) error {
@@ -97,10 +100,10 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	points := PointsGrantedFromAmount(amount, ppu)
+	quotaGranted := common.QuotaFromAmount(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
-		PointsPerUnit: ppu, PointsGranted: points,
+		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
 		Source: source, LotKind: store.LotKindPaid,
 		IdempotencyKey: idempotencyKey, Status: store.RechargeStatusConfirmed,
 		DisplayOrderID: formatDisplayOrderID(now),
@@ -108,15 +111,11 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 		InvoiceStatus:  store.InvoiceStatusNone,
 		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
 	}
-	lot := BuildPaidLot(order, currency, ppu)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.PointsGranted); err != nil {
+	lot := BuildPaidLot(order, currency)
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
-	return s.afterRecharge(ctx, companyID)
-}
-
-func (s *service) afterRecharge(ctx context.Context, companyID uuid.UUID) error {
-	return s.enqueuer.InsertWalletSync(ctx, companyID)
+	return nil
 }
 
 func (s *service) ConfirmPayment(ctx context.Context, orderID uuid.UUID) error {

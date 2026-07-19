@@ -6,26 +6,24 @@ export {
   formatCurrencyAmount,
 } from '@/lib/currency-format'
 
-export const DEFAULT_POINTS_PER_UNIT = 1000
+// 1 CNY = 500000 quota, aligned with NewAPI QuotaPerUnit.
+export const DEFAULT_QUOTA_PER_UNIT = 500000
 
 export function createBillingExchange(
-  pointsPerUnit: number = DEFAULT_POINTS_PER_UNIT,
+  quotaPerUnit: number = DEFAULT_QUOTA_PER_UNIT,
   billingCurrency: string = DEFAULT_BILLING_CURRENCY,
 ) {
-  const ppu = pointsPerUnit > 0 ? pointsPerUnit : DEFAULT_POINTS_PER_UNIT
+  const qpu = quotaPerUnit > 0 ? quotaPerUnit : DEFAULT_QUOTA_PER_UNIT
   const currency = billingCurrency || DEFAULT_BILLING_CURRENCY
-  const pointsToDisplayFn = (points: number) => points / ppu
-  const displayToPointsFn = (display: number) => {
-    const rounded = Math.round(display * 100) / 100
-    return Math.round(rounded * ppu)
-  }
+  const quotaToDisplayFn = (quota: number) => (qpu > 0 ? quota / qpu : 0)
+  const displayToQuotaFn = (display: number) => Math.round(display * qpu)
   return {
-    pointsPerUnit: ppu,
+    quotaPerUnit: qpu,
     billingCurrency: currency,
-    pointsToDisplay: pointsToDisplayFn,
-    displayToPoints: displayToPointsFn,
-    formatDisplayCurrency: (points: number) =>
-      formatCurrencyAmount(pointsToDisplayFn(points), currency),
+    pointsToDisplay: quotaToDisplayFn,
+    displayToPoints: displayToQuotaFn,
+    formatDisplayCurrency: (quota: number) =>
+      formatCurrencyAmount(quotaToDisplayFn(quota), currency),
     formatMoney: (amount: number) => formatCurrencyAmount(amount, currency),
   }
 }
@@ -42,17 +40,19 @@ export function getActiveBillingExchange(): BillingExchange {
   return active
 }
 
-export function pointsToDisplay(points: number): number {
-  return active.pointsToDisplay(points)
+/** Convert quota to display amount (e.g. CNY). */
+export function pointsToDisplay(quota: number): number {
+  return active.pointsToDisplay(quota)
 }
 
+/** Convert display amount to quota. */
 export function displayToPoints(display: number): number {
   return active.displayToPoints(display)
 }
 
-/** Format point amounts (budget / key limits) using active company exchange. */
-export function formatDisplayCurrency(points: number): string {
-  return active.formatDisplayCurrency(points)
+/** Format quota amounts (budget / key limits) using active company exchange. */
+export function formatDisplayCurrency(quota: number): string {
+  return active.formatDisplayCurrency(quota)
 }
 
 /** Format amounts already in display currency using active company currency. */

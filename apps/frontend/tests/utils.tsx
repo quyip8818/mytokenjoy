@@ -29,7 +29,7 @@ export function createMockSession(
     permissions,
     readOnly,
     billingCurrency: 'CNY',
-    pointsPerUnit: 1000,
+    quotaPerUnit: 500000,
   }
 }
 

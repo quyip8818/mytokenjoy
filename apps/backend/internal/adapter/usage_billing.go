@@ -17,8 +17,8 @@ func NewUsageLotConsumer() domainusage.LotConsumer {
 	return &usageLotConsumer{}
 }
 
-func (a *usageLotConsumer) ConsumeLotsLocked(ctx context.Context, st store.Store, co *store.Company, amountPoint float64) (domainusage.LotConsumeResult, error) {
-	result, err := billinglot.ConsumeLotsLocked(ctx, st, co, amountPoint)
+func (a *usageLotConsumer) ConsumeLotsLocked(ctx context.Context, st store.Store, co *store.Company, amount int64) (domainusage.LotConsumeResult, error) {
+	result, err := billinglot.ConsumeLotsLocked(ctx, st, co, amount)
 	if err != nil {
 		return domainusage.LotConsumeResult{}, err
 	}
@@ -26,7 +26,8 @@ func (a *usageLotConsumer) ConsumeLotsLocked(ctx context.Context, st store.Store
 	for i, seg := range result.Segments {
 		segs[i] = domainusage.LotSegment{
 			LotID:           seg.LotID,
-			Points:          seg.Points,
+			Quota:           seg.Quota,
+			QuotaPerUnit:    seg.QuotaPerUnit,
 			DisplayAmount:   seg.DisplayAmount,
 			BillingCurrency: seg.BillingCurrency,
 		}
@@ -43,7 +44,8 @@ func (a *usageLotConsumer) LedgerSegmentsFromEntry(base types.UsageLedgerEntry, 
 	for i, seg := range segs {
 		lotSegs[i] = billinglot.Segment{
 			LotID:           seg.LotID,
-			Points:          seg.Points,
+			Quota:           seg.Quota,
+			QuotaPerUnit:    seg.QuotaPerUnit,
 			DisplayAmount:   seg.DisplayAmount,
 			BillingCurrency: seg.BillingCurrency,
 		}

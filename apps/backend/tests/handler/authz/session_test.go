@@ -36,8 +36,8 @@ func TestSessionCookieReturnsMember(t *testing.T) {
 	if payload.BillingCurrency == "" {
 		t.Fatal("expected billingCurrency")
 	}
-	if payload.PointsPerUnit <= 0 {
-		t.Fatal("expected pointsPerUnit > 0")
+	if payload.QuotaPerUnit <= 0 {
+		t.Fatal("expected quotaPerUnit > 0")
 	}
 }
 

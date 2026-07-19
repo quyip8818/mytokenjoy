@@ -68,7 +68,7 @@ type UsageBucketRow struct {
 	DepartmentID uuid.UUID
 	MemberID     uuid.UUID
 	Model        string
-	Cost         float64 // point
+	Cost         int64   // quota
 	DisplayCost  float64 // display currency (Σ ledger.display_amount)
 	CallCount    int
 	InputTokens  int64

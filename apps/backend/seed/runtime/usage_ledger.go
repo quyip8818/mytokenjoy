@@ -53,31 +53,31 @@ func ensureSeedLot(ctx context.Context, st store.Store) error {
 		return nil
 	}
 
-	ppu := int64(common.DefaultPointsPerUnit)
-	points := float64(ppu) * 99999
+	ppu := common.DefaultQuotaPerUnit
+	points := ppu * 99999
 	order := store.RechargeOrder{
-		ID:            contract.IDSeedLotOrder,
-		CompanyID:     companyID,
-		Amount:        0,
-		Currency:      common.DefaultBillingCurrency,
-		PointsPerUnit: ppu,
-		PointsGranted: points,
-		Source:        "seed",
-		LotKind:       store.LotKindMock,
-		Status:        store.RechargeStatusConfirmed,
-		CreatedBy:     contract.IDMemberAdmin,
+		ID:           contract.IDSeedLotOrder,
+		CompanyID:    companyID,
+		Amount:       0,
+		Currency:     common.DefaultBillingCurrency,
+		QuotaPerUnit: ppu,
+		QuotaGranted: points,
+		Source:       "seed",
+		LotKind:      store.LotKindMock,
+		Status:       store.RechargeStatusConfirmed,
+		CreatedBy:    contract.IDMemberAdmin,
 	}
 	seedLot := store.RechargeLot{
-		ID:               contract.IDSeedLot,
-		CompanyID:        companyID,
-		RechargeOrderID:  contract.IDSeedLotOrder,
-		BillingCurrency:  common.DefaultBillingCurrency,
-		LotKind:          store.LotKindMock,
-		AmountDisplay:    0,
-		PointsGranted:    points,
-		PointsRemaining:  points,
-		UnitPriceDisplay: 0,
-		Status:           store.LotStatusActive,
+		ID:              contract.IDSeedLot,
+		CompanyID:       companyID,
+		RechargeOrderID: contract.IDSeedLotOrder,
+		BillingCurrency: common.DefaultBillingCurrency,
+		LotKind:         store.LotKindMock,
+		AmountDisplay:   0,
+		QuotaPerUnit:    ppu,
+		QuotaGranted:    points,
+		QuotaRemaining:  points,
+		Status:          store.LotStatusActive,
 	}
 	if err := st.Billing().CreateRechargeOrder(ctx, order); err != nil {
 		return fmt.Errorf("create seed order: %w", err)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
@@ -46,7 +45,7 @@ func ValidateProjectMemberRoster(project types.Project, memberID uuid.UUID) erro
 	return fmt.Errorf("member not on project roster")
 }
 
-func ProjectMemberBudget(project types.Project, memberID uuid.UUID) float64 {
+func ProjectMemberBudget(project types.Project, memberID uuid.UUID) int64 {
 	if project.MemberBudgets == nil {
 		return 0
 	}
@@ -57,11 +56,11 @@ func ValidateProjectMemberKeyBudget(
 	project types.Project,
 	platformKeys []types.PlatformKey,
 	memberID uuid.UUID,
-	budget float64,
+	budget int64,
 	excludeKeyID uuid.UUID,
 ) *string {
 	subCap := ProjectMemberBudget(project, memberID)
-	allocated := 0.0
+	var allocated int64
 	for _, key := range platformKeys {
 		if key.Scope != types.PlatformKeyScopeProjectMember {
 			continue
@@ -86,7 +85,7 @@ func ValidateProjectMemberKeyBudget(
 		if display < 0 {
 			display = 0
 		}
-		msg := fmt.Sprintf("成员项目子额度剩余约 %s", exchange.Format(display))
+		msg := fmt.Sprintf("成员项目子额度剩余约 %d quota", display)
 		return &msg
 	}
 	return nil
@@ -112,7 +111,7 @@ func ValidateMemberScopeKeyBudget(
 	members []types.Member,
 	platformKeys []types.PlatformKey,
 	memberID uuid.UUID,
-	budget float64,
+	budget int64,
 	excludeKeyID uuid.UUID,
 ) *string {
 	if budget > memberScopeBudgetRemaining(members, platformKeys, memberID, excludeKeyID) {
@@ -127,7 +126,7 @@ func ValidateProjectScopeKeyBudget(
 	project types.Project,
 	platformKeys []types.PlatformKey,
 	memberID *uuid.UUID,
-	budget float64,
+	budget int64,
 	excludeKeyID uuid.UUID,
 ) *string {
 	if scope == types.PlatformKeyScopeProjectMember {

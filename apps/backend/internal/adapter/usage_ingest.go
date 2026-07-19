@@ -19,11 +19,6 @@ func NewUsageIngestEnqueuer(enqueuer jobs.Enqueuer) domainusage.IngestJobEnqueue
 }
 
 func (u usageIngestEnqueuer) EnqueueAfterIngest(ctx context.Context, tx store.Tx, companyID uuid.UUID, effects *domainusage.IngestEffects) error {
-	// Dashboard projection is now driven purely by the periodic watchdog (hourly).
-	// No per-ingest enqueue needed — usage_buckets are hour-granularity anyway.
-	if err := jobs.InsertWalletSync(ctx, u.enqueuer, tx, companyID); err != nil {
-		return err
-	}
 	// Conditional overrun: only enqueue when remain is known <= 0 or unknown.
 	if effects != nil && domainusage.ShouldEnqueueOverrun(effects.Summaries, platformKeyIDFromEffects(effects)) {
 		payload := domainusage.OverrunPayloadFromEffects(effects)

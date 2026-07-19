@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/exchange"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -77,12 +76,12 @@ func (s *service) ResolveApproval(ctx context.Context, id uuid.UUID, input types
 			if !found {
 				return domain.NotFound("部门不存在")
 			}
-			reserved := 0.0
+			reserved := int64(0)
 			if row.ReservedPool != nil {
 				reserved = *row.ReservedPool
 			}
 			if reserved < approval.Amount {
-				return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %s", exchange.Format(reserved)))
+				return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %d quota", reserved))
 			}
 
 			if err := txStore.Budget().UpdateBudgetApproval(ctx, id, input.Status, input.RejectReason, now); err != nil {

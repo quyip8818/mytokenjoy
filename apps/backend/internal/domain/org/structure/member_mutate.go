@@ -191,7 +191,7 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []uuid.UUID, dep
 		if err != nil {
 			return err
 		}
-		targetAvgBudget := 0.0
+		targetAvgBudget := int64(0)
 		if found && targetBudgetRow.MemberAvgBudget > 0 {
 			targetAvgBudget = targetBudgetRow.MemberAvgBudget
 		}

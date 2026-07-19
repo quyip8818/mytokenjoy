@@ -5,22 +5,22 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 )
 
-func cloneMemberBudgets(src map[uuid.UUID]float64) map[uuid.UUID]float64 {
+func cloneMemberBudgets(src map[uuid.UUID]int64) map[uuid.UUID]int64 {
 	if len(src) == 0 {
 		return nil
 	}
-	out := make(map[uuid.UUID]float64, len(src))
+	out := make(map[uuid.UUID]int64, len(src))
 	for memberID, budget := range src {
 		out[memberID] = budget
 	}
 	return out
 }
 
-func pruneMemberBudgets(budgets map[uuid.UUID]float64, roster []uuid.UUID) map[uuid.UUID]float64 {
+func pruneMemberBudgets(budgets map[uuid.UUID]int64, roster []uuid.UUID) map[uuid.UUID]int64 {
 	if len(budgets) == 0 {
 		return nil
 	}
-	out := make(map[uuid.UUID]float64)
+	out := make(map[uuid.UUID]int64)
 	for _, memberID := range roster {
 		if budget, ok := budgets[memberID]; ok {
 			out[memberID] = budget
@@ -32,7 +32,7 @@ func pruneMemberBudgets(budgets map[uuid.UUID]float64, roster []uuid.UUID) map[u
 	return out
 }
 
-func validateProjectMemberBudgets(projectBudget float64, roster []uuid.UUID, budgets map[uuid.UUID]float64) error {
+func validateProjectMemberBudgets(projectBudget int64, roster []uuid.UUID, budgets map[uuid.UUID]int64) error {
 	if len(budgets) == 0 {
 		return nil
 	}
@@ -40,7 +40,7 @@ func validateProjectMemberBudgets(projectBudget float64, roster []uuid.UUID, bud
 	for _, id := range roster {
 		rosterSet[id] = struct{}{}
 	}
-	var sum float64
+	var sum int64
 	for memberID, budget := range budgets {
 		if budget < 0 {
 			return domain.Validation("member budget must be non-negative")
@@ -56,12 +56,12 @@ func validateProjectMemberBudgets(projectBudget float64, roster []uuid.UUID, bud
 	return nil
 }
 
-func mergeMemberBudgetPatch(existing map[uuid.UUID]float64, patch map[uuid.UUID]float64, roster []uuid.UUID) (map[uuid.UUID]float64, error) {
+func mergeMemberBudgetPatch(existing map[uuid.UUID]int64, patch map[uuid.UUID]int64, roster []uuid.UUID) (map[uuid.UUID]int64, error) {
 	if len(patch) == 0 {
 		return existing, nil
 	}
 	if existing == nil {
-		existing = make(map[uuid.UUID]float64)
+		existing = make(map[uuid.UUID]int64)
 	}
 	rosterSet := make(map[uuid.UUID]struct{}, len(roster))
 	for _, id := range roster {

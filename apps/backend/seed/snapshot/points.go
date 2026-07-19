@@ -1,7 +1,7 @@
 package snapshot
 
-import "github.com/tokenjoy/backend/seed/points"
+import "github.com/tokenjoy/backend/internal/pkg/common"
 
-func seedPoints(display float64) float64 {
-	return points.FromDisplay(display)
+func seedQuota(display float64) int64 {
+	return common.QuotaFromAmount(display, common.DefaultQuotaPerUnit)
 }

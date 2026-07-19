@@ -37,18 +37,18 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	if err != nil {
 		return fmt.Errorf("load currency %s: %w", currency, err)
 	}
-	ppu := domainbilling.DefaultPointsPerUnit()
-	if cur != nil && cur.PointsPerUnit > 0 {
-		ppu = cur.PointsPerUnit
+	ppu := domainbilling.DefaultQuotaPerUnit()
+	if cur != nil && cur.QuotaPerUnit > 0 {
+		ppu = cur.QuotaPerUnit
 	}
 	for _, order := range buildSeedRechargeOrders() {
 		order.Currency = currency
-		order.PointsPerUnit = ppu
-		order.PointsGranted = domainbilling.PointsGrantedFromAmount(order.Amount, ppu)
+		order.QuotaPerUnit = ppu
+		order.QuotaGranted = common.QuotaFromAmount(order.Amount, ppu)
 		order.LotKind = store.LotKindPaid
 		if order.Status == store.RechargeStatusConfirmed {
-			lot := domainbilling.BuildPaidLot(order, currency, ppu)
-			if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+			lot := domainbilling.BuildPaidLot(order, currency)
+			if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 				return fmt.Errorf("seed recharge lot %s: %w", order.ID, err)
 			}
 			continue

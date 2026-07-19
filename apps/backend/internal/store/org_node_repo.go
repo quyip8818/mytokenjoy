@@ -14,7 +14,7 @@ import (
 type OrgNodeRepository interface {
 	Tree(ctx context.Context) ([]types.OrgNode, error)
 	SetTree(ctx context.Context, tree []types.OrgNode) error
-	GetNodeBudget(ctx context.Context, nodeID uuid.UUID) (budget float64, found bool, err error)
+	GetNodeBudget(ctx context.Context, nodeID uuid.UUID) (budget int64, found bool, err error)
 	GetNodePeriod(ctx context.Context, nodeID uuid.UUID) (period string, found bool, err error)
 	ListSelfAndAncestorIDs(ctx context.Context, leafNodeID uuid.UUID) ([]uuid.UUID, error)
 }

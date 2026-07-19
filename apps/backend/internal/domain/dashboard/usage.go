@@ -114,9 +114,9 @@ func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryPar
 	}
 	result := make([]types.DepartmentUsage, 0, len(departments))
 	for _, dept := range departments {
-		deptBudget := 0.0
+		deptBudget := float64(0)
 		if node := findBudgetNode(tree, dept.ID); node != nil {
-			deptBudget = node.Budget
+			deptBudget = float64(node.Budget)
 		}
 		memberCount := 0.0
 		for _, member := range members {

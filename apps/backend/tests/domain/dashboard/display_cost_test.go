@@ -39,7 +39,7 @@ func TestCostSummaryUsesDisplayCostNotPointsOrPPU(t *testing.T) {
 	if summary.TotalCost != 10 {
 		t.Fatalf("expected display total 10, got %v", summary.TotalCost)
 	}
-	ppuApprox := (5000 + 3000) / float64(common.DefaultPointsPerUnit)
+	ppuApprox := (5000 + 3000) / float64(common.DefaultQuotaPerUnit)
 	if summary.TotalCost == ppuApprox {
 		t.Fatalf("totalCost must not equal point/PPU approximation %v", ppuApprox)
 	}

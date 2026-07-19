@@ -150,8 +150,8 @@ func checkBudgetAlertsImpl(
 							RuleID:       rule.ID,
 							Threshold:    threshold,
 							CurrentPct:   pct,
-							Consumed:     consumed,
-							Budget:       budget,
+							Consumed:     float64(consumed),
+							Budget:       float64(budget),
 							PeriodKey:    periodKey,
 							DedupeKey:    fmt.Sprintf("budget-alert:%s:%s:%d:%s:%s", companyID, rule.ID, threshold, periodKey, memberID),
 						})

@@ -12,7 +12,7 @@ export interface AppSession {
   permissions: string[]
   readOnly: boolean
   billingCurrency: string
-  pointsPerUnit: number
+  quotaPerUnit: number
   loading: boolean
   sessionError: Error | null
   refreshSession: () => Promise<void>

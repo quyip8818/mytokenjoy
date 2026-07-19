@@ -13,7 +13,7 @@ import (
 )
 
 type Entry struct {
-	Remain    float64   `json:"remain"`
+	Remain    int64     `json:"remain"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Version   int64     `json:"version"`
 }

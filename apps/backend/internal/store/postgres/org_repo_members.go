@@ -191,9 +191,9 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, mem
 	}, nil
 }
 
-func (r *pgOrgRepo) MemberPersonalBudget(ctx context.Context, memberID uuid.UUID) (float64, bool, error) {
+func (r *pgOrgRepo) MemberPersonalBudget(ctx context.Context, memberID uuid.UUID) (int64, bool, error) {
 	companyID := store.CompanyID(ctx)
-	var quota float64
+	var quota int64
 	err := r.db.QueryRow(ctx, `
 		SELECT personal_budget FROM members WHERE company_id = $1 AND id = $2
 	`, companyID, memberID).Scan(&quota)
@@ -269,7 +269,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 	return pruneByIDForCompany(ctx, r.db, "members", companyID, ids)
 }
 
-func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) error {
+func (r *pgOrgRepo) UpdateMemberPersonalBudget(ctx context.Context, memberID uuid.UUID, personalBudget int64) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
 		UPDATE members SET personal_budget = $3, updated_at = NOW()

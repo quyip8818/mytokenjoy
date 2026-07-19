@@ -13,10 +13,10 @@ import (
 func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID uuid.UUID, fifoHeadID *uuid.UUID) ([]store.RechargeLot, error) {
 	query := `
 		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
-			amount_display, points_granted, points_remaining, unit_price_display,
+			amount_display, quota_per_unit, quota_granted, quota_remaining,
 			status, created_at, updated_at
 		FROM company_recharge_lots
-		WHERE company_id = $1 AND status = $2 AND points_remaining > 0
+		WHERE company_id = $1 AND status = $2 AND quota_remaining > 0
 		ORDER BY created_at ASC
 	`
 	rows, err := r.db.Query(ctx, query, companyID, store.LotStatusActive)
@@ -47,23 +47,23 @@ func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID uuid.UUI
 func (r *billingRepo) UpdateLotRemaining(ctx context.Context, lot store.RechargeLot) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE company_recharge_lots
-		SET points_remaining = $2, status = $3, updated_at = NOW()
+		SET quota_remaining = $2, status = $3, updated_at = NOW()
 		WHERE id = $1 AND company_id = $4
-	`, lot.ID, lot.PointsRemaining, lot.Status, lot.CompanyID)
+	`, lot.ID, lot.QuotaRemaining, lot.Status, lot.CompanyID)
 	return err
 }
 
 func (r *billingRepo) GetLotByID(ctx context.Context, lotID uuid.UUID) (*store.RechargeLot, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
-			amount_display, points_granted, points_remaining, unit_price_display,
+			amount_display, quota_per_unit, quota_granted, quota_remaining,
 			status, created_at, updated_at
 		FROM company_recharge_lots WHERE id = $1
 	`, lotID)
 	return scanRechargeLot(row)
 }
 
-func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUID, billingCurrency string, pointsDelta float64) (*store.RechargeLot, error) {
+func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUID, billingCurrency string, quotaDelta int64) (*store.RechargeLot, error) {
 	key := fmt.Sprintf("overdraft:%s", companyID)
 	var existingID uuid.UUID
 	err := r.db.QueryRow(ctx, `
@@ -75,19 +75,19 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUI
 	if err == nil {
 		_, err = r.db.Exec(ctx, `
 			UPDATE company_recharge_lots
-			SET points_granted = points_granted + $2,
-				points_remaining = points_remaining + $2,
+			SET quota_granted = quota_granted + $2,
+				quota_remaining = quota_remaining + $2,
 				updated_at = NOW()
 			WHERE id = $1
-		`, existingID, pointsDelta)
+		`, existingID, quotaDelta)
 		if err != nil {
 			return nil, err
 		}
 		_, err = r.db.Exec(ctx, `
 			UPDATE company_recharge_orders
-			SET points_granted = points_granted + $2, updated_at = NOW()
+			SET quota_granted = quota_granted + $2, updated_at = NOW()
 			WHERE id = (SELECT recharge_order_id FROM company_recharge_lots WHERE id = $1)
-		`, existingID, pointsDelta)
+		`, existingID, quotaDelta)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUI
 	now := time.Now().UTC()
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: billingCurrency,
-		PointsPerUnit: 1, PointsGranted: pointsDelta,
+		QuotaPerUnit: 1, QuotaGranted: quotaDelta,
 		Source: store.RechargeSourceSystem, LotKind: store.LotKindOverdraft,
 		IdempotencyKey: &key, Status: store.RechargeStatusConfirmed,
 		CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
@@ -109,8 +109,8 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUI
 	lot := store.RechargeLot{
 		ID: lotID, CompanyID: companyID, RechargeOrderID: orderID,
 		BillingCurrency: billingCurrency, LotKind: store.LotKindOverdraft,
-		AmountDisplay: 0, PointsGranted: pointsDelta, PointsRemaining: pointsDelta,
-		UnitPriceDisplay: 0, Status: store.LotStatusActive, CreatedAt: now, UpdatedAt: now,
+		AmountDisplay: 0, QuotaPerUnit: 1, QuotaGranted: quotaDelta, QuotaRemaining: quotaDelta,
+		Status: store.LotStatusActive, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := r.ConfirmRechargeWithLot(ctx, order, lot); err != nil {
 		return nil, err
@@ -130,12 +130,12 @@ func (r *billingRepo) ExpireMockLots(ctx context.Context, companyID uuid.UUID) (
 	return tag.RowsAffected(), nil
 }
 
-func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (float64, error) {
-	var remain float64
+func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	var total int64
 	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(points_remaining), 0)
+		SELECT COALESCE(SUM(quota_remaining), 0)
 		FROM company_recharge_lots
 		WHERE company_id = $1 AND status = $2
-	`, companyID, store.LotStatusActive).Scan(&remain)
-	return remain, err
+	`, companyID, store.LotStatusActive).Scan(&total)
+	return total, err
 }

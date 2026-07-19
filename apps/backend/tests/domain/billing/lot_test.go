@@ -29,10 +29,10 @@ func newLotTestCompany(t *testing.T, st store.Store, companyID uuid.UUID) contex
 }
 
 func paidRechargeOrder(companyID uuid.UUID, id uuid.UUID, amount float64, createdAt time.Time) store.RechargeOrder {
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 	return store.RechargeOrder{
 		ID: id, CompanyID: companyID, Amount: amount, Currency: common.DefaultBillingCurrency,
-		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(amount, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(amount, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status:         store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD-" + id.String(),
@@ -47,7 +47,7 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 
 	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
 	if err != nil || co == nil {
@@ -58,7 +58,7 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 	key := "idem-wallet-credit"
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000002001"), CompanyID: contract.DefaultCompanyID, Amount: 50, Currency: common.DefaultBillingCurrency,
-		PointsPerUnit: ppu, PointsGranted: domainbilling.PointsGrantedFromAmount(50, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(50, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD20260101130000",
@@ -67,7 +67,7 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -75,7 +75,7 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 	if err != nil || got == nil {
 		t.Fatal("expected company after credit")
 	}
-	want := before + lot.PointsGranted
+	want := before + lot.QuotaGranted
 	if got.WalletRemain != want {
 		t.Fatalf("wallet_remain: got %v want %v", got.WalletRemain, want)
 	}
@@ -86,12 +86,12 @@ func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
-	ppu := domainbilling.DefaultPointsPerUnit()
-	grant := domainbilling.PointsGrantedFromAmount(10, ppu)
+	ppu := domainbilling.DefaultQuotaPerUnit()
+	grant := common.QuotaFromAmount(10, ppu)
 
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000002002"), CompanyID: contract.DefaultCompanyID, Amount: 10, Currency: common.DefaultBillingCurrency,
-		PointsPerUnit: ppu, PointsGranted: grant,
+		QuotaPerUnit: ppu, QuotaGranted: grant,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status:         store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD20260101140000",
@@ -100,7 +100,7 @@ func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
 		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 	afterCredit, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
@@ -141,8 +141,8 @@ func TestCreditFromLotSetsFIFOHeadOnFirstRecharge(t *testing.T) {
 	now := time.Now().UTC()
 
 	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001001"), 20, now)
-	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultPointsPerUnit())
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultQuotaPerUnit())
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -161,17 +161,17 @@ func TestCreditFromLotPreservesFIFOHeadOnSecondRecharge(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	base := time.Now().UTC()
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 
 	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001002"), 30, base)
 	lotA := domainbilling.BuildPaidLot(orderA, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
 	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001003"), 40, base.Add(time.Second))
 	lotB := domainbilling.BuildPaidLot(orderB, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -193,21 +193,21 @@ func TestConsumeLotsDepletesOlderLotFirst(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	base := time.Now().UTC()
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 
 	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001004"), 100, base)
 	lotA := domainbilling.BuildPaidLot(orderA, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
 	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001005"), 100, base.Add(time.Second))
 	lotB := domainbilling.BuildPaidLot(orderB, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
-	consume := lotA.PointsGranted / 4
+	consume := lotA.QuotaGranted / 4
 	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
 	if err != nil {
 		t.Fatal(err)
@@ -227,17 +227,17 @@ func TestConsumeLotsDepletesOlderLotFirst(t *testing.T) {
 	if err != nil || gotA == nil {
 		t.Fatal("expected lot A")
 	}
-	wantA := lotA.PointsGranted - consume
-	if gotA.PointsRemaining != wantA {
-		t.Fatalf("lot A remaining: got %v want %v", gotA.PointsRemaining, wantA)
+	wantA := lotA.QuotaGranted - consume
+	if gotA.QuotaRemaining != wantA {
+		t.Fatalf("lot A remaining: got %v want %v", gotA.QuotaRemaining, wantA)
 	}
 
 	gotB, err := st.Billing().GetLotByID(ctx, lotB.ID)
 	if err != nil || gotB == nil {
 		t.Fatal("expected lot B")
 	}
-	if gotB.PointsRemaining != lotB.PointsGranted {
-		t.Fatalf("lot B should be untouched: got %v want %v", gotB.PointsRemaining, lotB.PointsGranted)
+	if gotB.QuotaRemaining != lotB.QuotaGranted {
+		t.Fatalf("lot B should be untouched: got %v want %v", gotB.QuotaRemaining, lotB.QuotaGranted)
 	}
 }
 
@@ -247,22 +247,22 @@ func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 	base := time.Now().UTC()
-	ppu := domainbilling.DefaultPointsPerUnit()
+	ppu := domainbilling.DefaultQuotaPerUnit()
 
 	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001006"), 50, base)
 	lotA := domainbilling.BuildPaidLot(orderA, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
 	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001007"), 80, base.Add(time.Second))
 	lotB := domainbilling.BuildPaidLot(orderB, common.DefaultBillingCurrency, ppu)
-	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.PointsGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
 	// Drain lot A completely, then take 10 from lot B.
-	consume := lotA.PointsGranted + 10
+	consume := lotA.QuotaGranted + 10
 	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
 	if err != nil {
 		t.Fatal(err)
@@ -275,8 +275,8 @@ func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 		t.Fatalf("segment lot order: got [%q, %q] want [%q, %q]",
 			segments[0].LotID, segments[1].LotID, lotA.ID, lotB.ID)
 	}
-	if segments[0].Points != lotA.PointsGranted {
-		t.Fatalf("first segment points: got %v want %v", segments[0].Points, lotA.PointsGranted)
+	if segments[0].Points != lotA.QuotaGranted {
+		t.Fatalf("first segment points: got %v want %v", segments[0].Points, lotA.QuotaGranted)
 	}
 	if segments[1].Points != 10 {
 		t.Fatalf("second segment points: got %v want 10", segments[1].Points)
@@ -294,13 +294,13 @@ func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
 	now := time.Now().UTC()
 
 	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001008"), 10, now)
-	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultPointsPerUnit())
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.PointsGranted); err != nil {
+	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, domainbilling.DefaultQuotaPerUnit())
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
-	extra := domainbilling.PointsGrantedFromAmount(3, domainbilling.DefaultPointsPerUnit())
-	consume := lot.PointsGranted + extra
+	extra := common.QuotaFromAmount(3, domainbilling.DefaultQuotaPerUnit())
+	consume := lot.QuotaGranted + extra
 	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
 	if err != nil {
 		t.Fatal(err)

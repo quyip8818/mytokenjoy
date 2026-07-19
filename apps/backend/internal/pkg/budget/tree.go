@@ -6,8 +6,8 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/tree"
 )
 
-func SumChildrenBudget(node types.BudgetNode) float64 {
-	sum := 0.0
+func SumChildrenBudget(node types.BudgetNode) int64 {
+	var sum int64
 	for _, child := range node.Children {
 		sum += child.Budget
 	}
