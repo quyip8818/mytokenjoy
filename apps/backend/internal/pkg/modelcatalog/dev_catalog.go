@@ -7,30 +7,30 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
-// DevCallTypeLocalTest is the local ingest mock call type.
-const DevCallTypeLocalTest = "dev-local-test"
+// TestCallType is the local ingest mock call type.
+const TestCallType = "test-model"
 
-// IsDevModel returns true if the model type starts with "dev-".
-func IsDevModel(m types.ModelInfo) bool {
-	return strings.HasPrefix(m.Type, "dev-")
+// IsTestModel returns true if the model type starts with "test-".
+func IsTestModel(m types.ModelInfo) bool {
+	return strings.HasPrefix(m.Type, "test-")
 }
 
-// IsLocalOnlyCallType is Gateway-blocked outside DEPLOY_ENV=local and
+// IsTestOnlyCallType is Gateway-blocked outside DEPLOY_ENV=local and
 // allowlist-exempt when local routes are enabled.
-func IsLocalOnlyCallType(callType string) bool {
-	return strings.HasPrefix(callType, "dev-")
+func IsTestOnlyCallType(callType string) bool {
+	return strings.HasPrefix(callType, "test-")
 }
 
 // ModelLimitsCallTypes builds NewAPI token model_limits from a Platform Key whitelist.
-// Pass includeDevCatalog=true only when DEPLOY_ENV=local (AllowsDevHTTPRoutes).
-func ModelLimitsCallTypes(catalog []types.ModelInfo, allowedIDs []uuid.UUID, includeDevCatalog bool) []string {
-	if !includeDevCatalog {
+// Pass includeTestCatalog=true only when DEPLOY_ENV=local (AllowsDevHTTPRoutes).
+func ModelLimitsCallTypes(catalog []types.ModelInfo, allowedIDs []uuid.UUID, includeTestCatalog bool) []string {
+	if !includeTestCatalog {
 		return CallTypesForIDs(catalog, allowedIDs)
 	}
-	return CallTypesForIDs(catalog, withDevModelIDs(catalog, allowedIDs))
+	return CallTypesForIDs(catalog, withTestModelIDs(catalog, allowedIDs))
 }
 
-func withDevModelIDs(catalog []types.ModelInfo, ids []uuid.UUID) []uuid.UUID {
+func withTestModelIDs(catalog []types.ModelInfo, ids []uuid.UUID) []uuid.UUID {
 	seen := make(map[uuid.UUID]struct{}, len(ids)+4)
 	out := make([]uuid.UUID, 0, len(ids)+4)
 	for _, mid := range ids {
@@ -41,7 +41,7 @@ func withDevModelIDs(catalog []types.ModelInfo, ids []uuid.UUID) []uuid.UUID {
 		out = append(out, mid)
 	}
 	for _, item := range catalog {
-		if !item.Enabled || !IsDevModel(item) {
+		if !item.Enabled || !IsTestModel(item) {
 			continue
 		}
 		if _, ok := seen[item.ID]; ok {

@@ -32,8 +32,8 @@ type UserRepository interface {
 
 // MemberCompany represents a user's membership in a company (for login routing).
 type MemberCompany struct {
-	MemberID  uuid.UUID
-	CompanyID uuid.UUID
+	MemberID    uuid.UUID
+	CompanyID   uuid.UUID
 	CompanyName string
 	Role        string // primary role name
 }

@@ -1,4 +1,4 @@
-import { LOCAL_TEST_MODEL } from './constants'
+import { TEST_MODEL } from './constants'
 
 export class GatewayClientError extends Error {
   readonly status: number
@@ -24,8 +24,8 @@ export async function postChatCompletions(input: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: LOCAL_TEST_MODEL,
-      messages: [{ role: 'user', content: 'tokenjoy local-test-model' }],
+      model: TEST_MODEL,
+      messages: [{ role: 'user', content: 'tokenjoy test-model' }],
       max_tokens: 1,
       dev_usage: {
         prompt_tokens: input.inputTokens,

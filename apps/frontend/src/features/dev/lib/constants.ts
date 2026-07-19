@@ -1,12 +1,12 @@
 import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
 
 /** Catalog type shared by TokenJoy seed, NewAPI channel, and Gateway calls. */
-export const LOCAL_TEST_MODEL = 'local-test-model'
+export const TEST_MODEL = 'test-model'
 
 export const DEFAULT_INPUT_TOKENS = 12_000_000
 export const DEFAULT_OUTPUT_TOKENS = 8_000_000
 
-export const PLATFORM_KEY_ID_SESSION_KEY = 'tokenjoy.local-test-model.platformKeyId'
+export const PLATFORM_KEY_ID_SESSION_KEY = 'tokenjoy.test-model.platformKeyId'
 
 /** Per-1M-token display prices — same tier as gpt-4o-mini seed. */
 const INPUT_PRICE_DISPLAY = 0.15

@@ -9,7 +9,7 @@ import (
 func buildModels() []types.ModelInfo {
 	devMockEndpoint := "http://127.0.0.1:8765"
 	return []types.ModelInfo{
-		{ID: contract.IDModelLocalTest, CompanyID: contract.TokenJoyCompanyID, Provider: types.ProviderCustom, Type: modelcatalog.DevCallTypeLocalTest, Name: "Local Test Model", Description: "Local upstream for full-path ingest testing; echoes requested usage", Endpoint: &devMockEndpoint, InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat"}},
+		{ID: contract.IDModelTest, CompanyID: contract.TokenJoyCompanyID, Provider: types.ProviderCustom, Type: modelcatalog.TestCallType, Name: "Test Model", Description: "Local upstream for full-path ingest testing; echoes requested usage", Endpoint: &devMockEndpoint, InputPrice: seedPoints(0.15), OutputPrice: seedPoints(0.6), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat"}},
 		// DeepSeek
 		{ID: contract.IDModel1, CompanyID: contract.TokenJoyCompanyID, Provider: "deepseek", Type: "deepseek-v4", Name: "DeepSeek V4", Description: "DeepSeek 旗舰通用模型，性能对标 GPT-4o", InputPrice: seedPoints(0.3), OutputPrice: seedPoints(0.5), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat", "function_calling"}},
 		{ID: contract.IDModel2, CompanyID: contract.TokenJoyCompanyID, Provider: "deepseek", Type: "deepseek-r1", Name: "DeepSeek R1", Description: "DeepSeek 推理模型，擅长数学和代码", InputPrice: seedPoints(0.55), OutputPrice: seedPoints(2.19), MaxContext: 128000, Enabled: true, Capabilities: []string{"chat", "function_calling"}},

@@ -223,7 +223,7 @@ func TestUpdateTokenPreservesExpiredTimeAndIdentity(t *testing.T) {
 				"data": map[string]any{
 					"id": 9, "name": "tokenjoy:plk-1", "status": 1,
 					"remain_quota": 10, "unlimited_quota": false,
-					"model_limits_enabled": true, "model_limits": "local-test-model",
+					"model_limits_enabled": true, "model_limits": "test-model",
 					"group": "dept-dept-3", "expired_time": -1,
 				},
 			})

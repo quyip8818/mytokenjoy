@@ -65,7 +65,10 @@ export function useSmsLoginPage() {
             navigate('/login/select', { state: { companies: result.companies }, replace: true })
             break
           case 'choose':
-            navigate('/onboard', { state: { invites: result.invites, mode: 'choose' }, replace: true })
+            navigate('/onboard', {
+              state: { invites: result.invites, mode: 'choose' },
+              replace: true,
+            })
             break
           case 'onboard':
             navigate('/onboard', { state: { mode: 'onboard' }, replace: true })

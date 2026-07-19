@@ -19,14 +19,14 @@ func TestModelLimitsCallTypes(t *testing.T) {
 	t.Parallel()
 
 	catalog := []types.ModelInfo{
-		{ID: devModel1, Type: modelcatalog.DevCallTypeLocalTest, Enabled: true},
+		{ID: devModel1, Type: modelcatalog.TestCallType, Enabled: true},
 		{ID: devModel100, Type: "gpt-4o", Enabled: true},
 		{ID: devModel2, Type: "disabled-dev", Enabled: false},
 	}
 
-	t.Run("local unions dev models", func(t *testing.T) {
+	t.Run("local unions test models", func(t *testing.T) {
 		got := modelcatalog.ModelLimitsCallTypes(catalog, []uuid.UUID{devModel100}, true)
-		if !slices.Contains(got, modelcatalog.DevCallTypeLocalTest) || !slices.Contains(got, "gpt-4o") {
+		if !slices.Contains(got, modelcatalog.TestCallType) || !slices.Contains(got, "gpt-4o") {
 			t.Fatalf("got %v", got)
 		}
 		if slices.Contains(got, "disabled-dev") {
@@ -42,24 +42,24 @@ func TestModelLimitsCallTypes(t *testing.T) {
 	})
 }
 
-func TestIsLocalOnlyCallType(t *testing.T) {
+func TestIsTestOnlyCallType(t *testing.T) {
 	t.Parallel()
-	if !modelcatalog.IsLocalOnlyCallType(modelcatalog.DevCallTypeLocalTest) {
-		t.Fatal("expected dev-local-test to be local-only")
+	if !modelcatalog.IsTestOnlyCallType(modelcatalog.TestCallType) {
+		t.Fatal("expected test-model to be test-only")
 	}
-	if modelcatalog.IsLocalOnlyCallType("gpt-4o") {
-		t.Fatal("gpt-4o must not be local-only")
+	if modelcatalog.IsTestOnlyCallType("gpt-4o") {
+		t.Fatal("gpt-4o must not be test-only")
 	}
 }
 
-func TestIsDevModel(t *testing.T) {
+func TestIsTestModel(t *testing.T) {
 	t.Parallel()
-	devModelInfo := types.ModelInfo{ID: devModel1, Type: "dev-local-test", Enabled: true}
+	testModelInfo := types.ModelInfo{ID: devModel1, Type: "test-model", Enabled: true}
 	prodModelInfo := types.ModelInfo{ID: devModel100, Type: "gpt-4o", Enabled: true}
-	if !modelcatalog.IsDevModel(devModelInfo) {
-		t.Fatal("expected dev model")
+	if !modelcatalog.IsTestModel(testModelInfo) {
+		t.Fatal("expected test model")
 	}
-	if modelcatalog.IsDevModel(prodModelInfo) {
-		t.Fatal("expected prod model not to be dev")
+	if modelcatalog.IsTestModel(prodModelInfo) {
+		t.Fatal("expected prod model not to be test")
 	}
 }

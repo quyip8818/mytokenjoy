@@ -104,8 +104,8 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	model := parseRequestModel(body)
-	if !g.allowDevModel && modelcatalog.IsLocalOnlyCallType(model) {
-		logGatewayRejection(r.URL.Path, model, "dev-only model outside local environment")
+	if !g.allowDevModel && modelcatalog.IsTestOnlyCallType(model) {
+		logGatewayRejection(r.URL.Path, model, "test-only model outside local environment")
 		http.Error(w, "request rejected", http.StatusForbidden)
 		return
 	}

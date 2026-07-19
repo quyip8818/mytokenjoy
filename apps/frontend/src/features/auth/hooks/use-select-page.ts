@@ -12,7 +12,8 @@ export function useSelectPage() {
   const [selecting, setSelecting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const companies: CompanyOption[] = (location.state as { companies?: CompanyOption[] })?.companies ?? []
+  const companies: CompanyOption[] =
+    (location.state as { companies?: CompanyOption[] })?.companies ?? []
 
   const handleSelect = useCallback(
     async (companyId: string) => {

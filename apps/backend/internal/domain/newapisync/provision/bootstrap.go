@@ -32,9 +32,6 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error 
 	if err != nil {
 		return err
 	}
-	if len(unready) == 0 {
-		return nil
-	}
 
 	platformKeys, err := d.Store.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -45,6 +42,11 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error 
 	)
 	if err != nil {
 		return fmt.Errorf("load budget context: %w", err)
+	}
+
+	if len(unready) == 0 {
+		// All keys synced — reconcile to ensure upstream state matches DB (quota, model_limits, group).
+		return reconcileSyncedPlatformKeyMappings(ctx, d, budgetCtx, platformKeys)
 	}
 
 	for _, key := range platformKeys {
@@ -132,7 +134,7 @@ func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, bu
 		if mapping == nil || mapping.SyncStatus != store.MappingSyncStatusSynced || mapping.NewAPIKeyID == nil {
 			continue
 		}
-		token, err := d.Client.GetToken(ctx, *mapping.NewAPIKeyID)
+		_, err = d.Client.GetToken(ctx, *mapping.NewAPIKeyID)
 		if err != nil {
 			slog.Default().Warn(
 				"reconcile platform key mapping: token missing in newapi, recreate",
@@ -149,17 +151,9 @@ func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, bu
 			}
 			continue
 		}
-		expectedGroup := mapping.NewAPIGroup
-		if token.Group != expectedGroup {
-			if err := platformkey.SyncUpdatePlatformKey(ctx, d, key.ID, nil); err != nil {
-				slog.Default().Warn(
-					"reconcile platform key group mismatch update failed",
-					"platform_key_id", key.ID,
-					"expected_group", expectedGroup,
-					"actual_group", token.Group,
-					"error", err,
-				)
-			}
+		// Ensure group, model_limits, and quota stay in sync with current DB state.
+		if err := platformkey.SyncUpdatePlatformKey(ctx, d, key.ID, nil); err != nil {
+			slog.Default().Warn("reconcile platform key sync failed", "platform_key_id", key.ID, "error", err)
 		}
 	}
 	return nil

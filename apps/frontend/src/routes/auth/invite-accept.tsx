@@ -51,9 +51,7 @@ export default function InviteAcceptPage() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
       <form onSubmit={handleSubmit} className="flex w-full max-w-md flex-col gap-4">
         <h1 className="text-center text-lg font-semibold">接受邀请</h1>
-        <p className="text-center text-sm text-muted-foreground">
-          设置您的姓名和密码以加入团队
-        </p>
+        <p className="text-center text-sm text-muted-foreground">设置您的姓名和密码以加入团队</p>
 
         <div className="space-y-2">
           <Label htmlFor="invite-name">姓名</Label>

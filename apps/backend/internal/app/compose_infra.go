@@ -73,7 +73,6 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 	}, nil
 }
 
-
 func buildSMSService(cfg config.Config, logger *slog.Logger) *sms.Service {
 	if !cfg.SupportSaas {
 		return nil

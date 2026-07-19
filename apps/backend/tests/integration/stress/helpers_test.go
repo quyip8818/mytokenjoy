@@ -155,7 +155,7 @@ func seedAndIngest(t *testing.T, env *stressEnv, quota int64) int64 {
 		ID:        logID,
 		TokenID:   99, // matches default mapping
 		Quota:     quota,
-		ModelName: "local-test-model",
+		ModelName: "test-model",
 		CreatedAt: 1781866800, // within clock anchor window
 	}
 	testutil.SeedConsumeLog(t, env.Store, raw)
@@ -180,7 +180,7 @@ func concurrentIngest(t *testing.T, env *stressEnv, n int, quotaPerReq int64) []
 				ID:        logID,
 				TokenID:   99,
 				Quota:     quotaPerReq,
-				ModelName: "local-test-model",
+				ModelName: "test-model",
 				CreatedAt: 1781866800,
 			}
 			testutil.SeedConsumeLog(t, env.Store, raw)
@@ -247,7 +247,7 @@ func assertGatewayBlocked(t *testing.T, env *stressEnv, keyHash string) {
 	t.Helper()
 	// Use a fresh precheck (no cache) to check current PG state
 	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), env.Cfg.Clock(), nil)
-	_, err := fresh.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
+	_, err := fresh.Run(testutil.Ctx(), keyHash, "test-model", gateway.PrecheckOpts{})
 	if err == nil {
 		t.Error("expected gateway precheck to block, but it passed")
 	}
@@ -257,7 +257,7 @@ func assertGatewayAllowed(t *testing.T, env *stressEnv, keyHash string) {
 	t.Helper()
 	// Use a fresh precheck (no cache) to check current PG state
 	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), env.Cfg.Clock(), nil)
-	_, err := fresh.Run(testutil.Ctx(), keyHash, "local-test-model", gateway.PrecheckOpts{})
+	_, err := fresh.Run(testutil.Ctx(), keyHash, "test-model", gateway.PrecheckOpts{})
 	if err != nil {
 		t.Errorf("expected gateway precheck to pass, got: %v", err)
 	}

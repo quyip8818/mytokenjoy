@@ -84,6 +84,20 @@ verify_wait_newapi() {
   verify_info "Waiting for NewAPI..."
   for _ in $(seq 1 60); do
     if curl -fsS "${NEWAPI_URL}/api/status" >/dev/null 2>&1; then
+      # /api/status responds before DB is fully migrated on first boot.
+      # Poll a DB-backed endpoint to confirm readiness.
+      for _ in $(seq 1 15); do
+        local code
+        code=$(curl -s -o /dev/null -w "%{http_code}" \
+          -X POST "${NEWAPI_URL}/api/user/login" \
+          -H "Content-Type: application/json" \
+          -d '{"username":"__probe__","password":"x"}')
+        # 200 or 403 means DB is up (login logic ran); 5xx means migrations not done yet.
+        if [[ "${code}" =~ ^[234] ]]; then
+          return 0
+        fi
+        sleep 1
+      done
       return 0
     fi
     sleep 2

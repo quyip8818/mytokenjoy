@@ -23,14 +23,14 @@ type Prechecker interface {
 // PrecheckOpts controls optional gateway precheck skips.
 type PrecheckOpts struct {
 	SkipModelCheck     bool // /v1/models listing
-	SkipModelAllowlist bool // modelcatalog.IsLocalOnlyCallType when allowDev
+	SkipModelAllowlist bool // modelcatalog.IsTestOnlyCallType when allowDev
 }
 
 // PrecheckForRequest builds precheck options from the gateway request context.
 func PrecheckForRequest(path, model string, allowDev bool) PrecheckOpts {
 	return PrecheckOpts{
 		SkipModelCheck:     path == "/v1/models",
-		SkipModelAllowlist: allowDev && modelcatalog.IsLocalOnlyCallType(model),
+		SkipModelAllowlist: allowDev && modelcatalog.IsTestOnlyCallType(model),
 	}
 }
 

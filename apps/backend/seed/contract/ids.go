@@ -16,17 +16,17 @@ var (
 // --- Models ---
 
 var (
-	IDModelLocalTest = uuid.MustParse("00000000-0000-7000-8000-0000000000a1")
-	IDModel1         = uuid.MustParse("00000000-0000-7000-8000-0000000000b1") // deepseek-v4
-	IDModel2         = uuid.MustParse("00000000-0000-7000-8000-0000000000b2") // deepseek-r1
-	IDModel3         = uuid.MustParse("00000000-0000-7000-8000-0000000000b3") // qwen-3.5-plus
-	IDModel4         = uuid.MustParse("00000000-0000-7000-8000-0000000000b4") // qwen-max-2026
-	IDModel5         = uuid.MustParse("00000000-0000-7000-8000-0000000000b5") // glm-5
-	IDModel6         = uuid.MustParse("00000000-0000-7000-8000-0000000000b6") // kimi-k3
-	IDModel7         = uuid.MustParse("00000000-0000-7000-8000-0000000000b7") // doubao-pro-256k
-	IDModel8         = uuid.MustParse("00000000-0000-7000-8000-0000000000b8") // minimax-m2
-	IDModel9         = uuid.MustParse("00000000-0000-7000-8000-0000000000b9") // claude-sonnet-5
-	IDModel10        = uuid.MustParse("00000000-0000-7000-8000-0000000000ba") // gpt-4o
+	IDModelTest = uuid.MustParse("00000000-0000-7000-8000-0000000000a1")
+	IDModel1    = uuid.MustParse("00000000-0000-7000-8000-0000000000b1") // deepseek-v4
+	IDModel2    = uuid.MustParse("00000000-0000-7000-8000-0000000000b2") // deepseek-r1
+	IDModel3    = uuid.MustParse("00000000-0000-7000-8000-0000000000b3") // qwen-3.5-plus
+	IDModel4    = uuid.MustParse("00000000-0000-7000-8000-0000000000b4") // qwen-max-2026
+	IDModel5    = uuid.MustParse("00000000-0000-7000-8000-0000000000b5") // glm-5
+	IDModel6    = uuid.MustParse("00000000-0000-7000-8000-0000000000b6") // kimi-k3
+	IDModel7    = uuid.MustParse("00000000-0000-7000-8000-0000000000b7") // doubao-pro-256k
+	IDModel8    = uuid.MustParse("00000000-0000-7000-8000-0000000000b8") // minimax-m2
+	IDModel9    = uuid.MustParse("00000000-0000-7000-8000-0000000000b9") // claude-sonnet-5
+	IDModel10   = uuid.MustParse("00000000-0000-7000-8000-0000000000ba") // gpt-4o
 )
 
 // --- Departments ---
@@ -133,10 +133,10 @@ const (
 )
 
 // ModelTypeToID maps demo seed model types to catalog model_id values.
-// NOTE: Cannot reference modelcatalog.DevCallTypeLocalTest here due to import cycle
+// NOTE: Cannot reference modelcatalog.TestCallType here due to import cycle
 // (contract is imported by modelcatalog's test). The literal must stay in sync.
 var ModelTypeToID = map[string]uuid.UUID{
-	"dev-local-test":  IDModelLocalTest,
+	"test-model":      IDModelTest,
 	"deepseek-v4":     IDModel1,
 	"deepseek-r1":     IDModel2,
 	"qwen-3.5-plus":   IDModel3,

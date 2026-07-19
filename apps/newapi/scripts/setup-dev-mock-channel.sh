@@ -5,17 +5,17 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/_verify-lib.sh"
 verify_load_backend_dotenv
 
-MODEL="${DEV_MOCK_MODEL:-local-test-model}"
+MODEL="${DEV_MOCK_MODEL:-test-model}"
 BASE_URL="$(verify_http_origin "${DEV_MOCK_BASE_URL:-http://host.docker.internal:8765}")"
-GROUP="${DEV_MOCK_CHANNEL_GROUP:-dept-dept-3}"
-NAME="${DEV_MOCK_CHANNEL_NAME:-local-test-model}"
+GROUP="${DEV_MOCK_CHANNEL_GROUP:-dept-00000000-0000-7000-8000-000000000d03}"
+NAME="${DEV_MOCK_CHANNEL_NAME:-test-model}"
 CHANNEL_KEY="${DEV_MOCK_CHANNEL_KEY:-sk-local-test}"
 
 # NewAPI ChannelSettings (`setting` column). Pass-through keeps TokenJoy
 # `dev_usage` in the upstream body so dev-mock-llm can echo usage.
 CHANNEL_SETTING_JSON='{"pass_through_body_enabled":true}'
 
-verify_info "local-test-model channel → ${BASE_URL} (group=${GROUP}, pass_through_body=on)"
+verify_info "test-model channel → ${BASE_URL} (group=${GROUP}, pass_through_body=on)"
 
 if [[ -z "${NEW_API_ADMIN_TOKEN}" ]]; then
   cat <<EOF
@@ -123,4 +123,4 @@ sync_code=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}")
 [[ "${sync_code}" == "200" ]] || verify_fail "channel sync HTTP ${sync_code}"
 
-verify_info "local-test-model channel ready"
+verify_info "test-model channel ready"

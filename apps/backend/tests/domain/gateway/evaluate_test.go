@@ -91,8 +91,8 @@ func TestEvaluateSkipsAllowlistForDevCatalogModel(t *testing.T) {
 	pc := gatewaytf.BasePrecheckContext()
 	pc.Routing.HasAllowlist = true
 	pc.Routing.AllowlistTypes = []string{"gpt-4o"}
-	if err := domaingateway.Evaluate(pc, "local-test-model", precheckOpts(false, true)); err != nil {
-		t.Fatalf("expected dev catalog model to bypass allowlist, got %v", err)
+	if err := domaingateway.Evaluate(pc, "test-model", precheckOpts(false, true)); err != nil {
+		t.Fatalf("expected test catalog model to bypass allowlist, got %v", err)
 	}
 }
 

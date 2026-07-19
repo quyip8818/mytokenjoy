@@ -116,11 +116,11 @@ func TestGatewayAllowsDevModelInLocal(t *testing.T) {
 		DeployEnv:       config.DeployEnvLocal,
 	})
 
-	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "dev-local-test")
+	req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "test-model")
 	w := httptest.NewRecorder()
 	scenario.Gateway.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
-		t.Errorf("expected 200 for dev model in local, got %d; body: %s", w.Code, w.Body.String())
+		t.Errorf("expected 200 for test model in local, got %d; body: %s", w.Code, w.Body.String())
 	}
 }
 
@@ -131,7 +131,7 @@ func TestGatewayRejectsDevModelOutsideLocal(t *testing.T) {
 		t.Run(env, func(t *testing.T) {
 			t.Parallel()
 			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Error("proxy must not be reached for dev model outside local")
+				t.Error("proxy must not be reached for test model outside local")
 				w.WriteHeader(http.StatusOK)
 			}))
 			defer backend.Close()
@@ -142,11 +142,11 @@ func TestGatewayRejectsDevModelOutsideLocal(t *testing.T) {
 				DeployEnv:       env,
 			})
 
-			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "dev-local-test")
+			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "test-model")
 			w := httptest.NewRecorder()
 			scenario.Gateway.ServeHTTP(w, req)
 			if w.Code != http.StatusForbidden {
-				t.Errorf("expected 403 for dev model in %s, got %d; body: %s", env, w.Code, w.Body.String())
+				t.Errorf("expected 403 for test model in %s, got %d; body: %s", env, w.Code, w.Body.String())
 			}
 		})
 	}

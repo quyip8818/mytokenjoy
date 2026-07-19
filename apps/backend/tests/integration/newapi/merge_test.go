@@ -12,7 +12,7 @@ func TestMergeTokenPutPreservesAndHealsExpired(t *testing.T) {
 	t.Parallel()
 	cur := newapi.Token{
 		ID: 9, Name: "tokenjoy:plk-1", Status: 1, RemainQuota: 10,
-		ModelLimitsEnabled: true, ModelLimits: "local-test-model",
+		ModelLimitsEnabled: true, ModelLimits: "test-model",
 		Group: "dept-dept-3", ExpiredTime: -1,
 	}
 	remain := int64(42)
