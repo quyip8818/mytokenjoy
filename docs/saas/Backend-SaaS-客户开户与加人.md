@@ -58,7 +58,7 @@
 | 能力 | 路径 | 状态 |
 | --- | --- | --- |
 | 平台开户 | `POST /api/platform/companies` → `company/service_create.go` | ✅（InviteEmail 模式） |
-| 钱包用户 | `provisionCompany` 内 `CreateUser` → `newapi_wallet_user_id` | ✅ |
+| 钱包用户 | `provisionCompany` 内 `CreateUser` → `newapi_wallet_company_id` | ✅ |
 | 超管 invite 行 | CreateCompany InviteEmail 模式写 `company_invites`（7 天） | ✅ |
 | accept-invite | `POST /api/auth/accept-invite` → `service_invite.go` | ✅ API + 双路径（已登录/未登录） |
 | 已登录接受邀请 | `GET /api/auth/invites/pending` + `POST /auth/accept-invite` | ✅ |

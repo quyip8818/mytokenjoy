@@ -174,12 +174,11 @@ CREATE TABLE IF NOT EXISTS companies (
                               CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              UUID,
-    newapi_wallet_user_id     BIGINT,
-    newapi_wallet_username    TEXT,
+    newapi_wallet_company_id  BIGINT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
     billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY',
     fifo_head_lot_id          UUID,
-    wallet_remain             NUMERIC(28, 10) NOT NULL DEFAULT 0,
+    wallet_remain             BIGINT NOT NULL DEFAULT 0,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

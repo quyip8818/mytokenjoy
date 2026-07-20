@@ -163,8 +163,8 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 ### 6.1 `wallet_sync`
 
 - 读权威 `users.quota`（`FreshNewAPIUnits`）与 `wallet_remain` → `ToNewAPIUnits` → `QuotaDelta` → `TopUp`
-- 公司无 `NewAPIWalletUserID` → `billing.ErrWalletNotConfigured` → `river.JobCancel`
-- NewAPI / PG `bigint out of range`（SQLSTATE 22003）、缺 `newapi_wallet_user_id` 等配置错误 → `IsNonRetryableNewAPIError` → `JobCancel`（rebalance / newapi_sync / overrun 同策略）
+- 公司无 `NewAPIWalletCompanyID` → `billing.ErrWalletNotConfigured` → `river.JobCancel`
+- NewAPI / PG `bigint out of range`（SQLSTATE 22003）、缺 `newapi_wallet_company_id` 等配置错误 → `IsNonRetryableNewAPIError` → `JobCancel`（rebalance / newapi_sync / overrun 同策略）
 
 ### 6.2 `rebalance` / `overrun`
 

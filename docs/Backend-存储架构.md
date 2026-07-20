@@ -61,7 +61,7 @@ flowchart TB
 | 部门 + 节点预算 + 路由      | `org_nodes`（HTTP 投影 `Department` / `BudgetNode` / `RoutingRule`） |
 | 平台 Key 归因               | `platform_keys`；`platform_key_mappings` 仅同步状态                         |
 | 消耗 SSOT / 看板 / Gateway 软缓存 | `usage_ledger` / `usage_buckets` / `budget_consumed` + `gateway_soft_*` |
-| 企业钱包余额                | SSOT：`company_recharge_lots` / `wallet_remain`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_user_id`） |
+| 企业钱包余额                | SSOT：`company_recharge_lots` / `wallet_remain`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_company_id`） |
 | SaaS 上游 Key               | 全局 `provider_keys`（无 `company_id`）                              |
 
 ---
@@ -223,7 +223,7 @@ flowchart LR
 | `departmentId`          | = `org_nodes.id` = `members.department_id`                    |
 | `RoutingRule.id`        | = `nodeId`                                                    |
 | `sk-xxx`                | → `platform_keys.key_hash` → `platform_key_mappings.newapi_key_id` |
-| `newapi_wallet_user_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `wallet_remain`） |
+| `newapi_wallet_company_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `wallet_remain`） |
 | `TOKENJOY_COMPANY_ID`   | 平台模型源公司 UUID（默认 `00000000-0000-7000-8000-000000000001`）|
 | `LOCAL_COMPANY_ID`      | 本地化部署业务公司 UUID（默认 `00000000-0000-7000-8000-000000000002`）|
 | SaaS 公司 ID            | 创建时由 `uuid.NewV7()` 生成                                    |

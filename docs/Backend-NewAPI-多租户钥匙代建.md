@@ -3,16 +3,16 @@
 | | |
 | --- | --- |
 | 状态 | **已实施（P0–P2）**；P3 生产错挂修复待维护窗 |
-| 方案 | 单一运营 Admin AT + Admin 代建 Token，`user_id` = `newapi_wallet_user_id` |
+| 方案 | 单一运营 Admin AT + Admin 代建 Token，`user_id` = `newapi_wallet_company_id` |
 | Patch | [`0002-admin-token-contract.patch`](../apps/newapi/patches/new-api/0002-admin-token-contract.patch) |
 | 上游 | [`UPSTREAM_REF`](../apps/newapi/patches/new-api/UPSTREAM_REF) |
 
 ## 行为
 
 ```text
-CreateCompany → CreateUser → newapi_wallet_user_id = W
+CreateCompany → CreateUser → newapi_wallet_company_id = W
 Create PlatformKey → CreateToken(user_id=W) → Token.user_id = W
-wallet_sync TopUp(W) / UpdateToken(by id) 同属 W
+TopUp(W) / UpdateToken(by id) 同属 W
 ```
 
 | 不变量 | |
