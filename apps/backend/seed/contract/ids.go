@@ -20,7 +20,7 @@ var (
 
 var (
 	IDModelTest = uuid.MustParse("00000000-0000-7000-8000-0000000000a1")
-	IDModel1    = uuid.MustParse("00000000-0000-7000-8000-0000000000b1") // deepseek-v4
+	IDModel1    = uuid.MustParse("00000000-0000-7000-8000-0000000000b1") // deepseek-v4-pro
 	IDModel2    = uuid.MustParse("00000000-0000-7000-8000-0000000000b2") // deepseek-r1
 	IDModel3    = uuid.MustParse("00000000-0000-7000-8000-0000000000b3") // qwen-3.5-plus
 	IDModel4    = uuid.MustParse("00000000-0000-7000-8000-0000000000b4") // qwen-max-2026
@@ -30,6 +30,7 @@ var (
 	IDModel8    = uuid.MustParse("00000000-0000-7000-8000-0000000000b8") // minimax-m2
 	IDModel9    = uuid.MustParse("00000000-0000-7000-8000-0000000000b9") // claude-sonnet-5
 	IDModel10   = uuid.MustParse("00000000-0000-7000-8000-0000000000ba") // gpt-4o
+	IDModel11   = uuid.MustParse("00000000-0000-7000-8000-0000000000bb") // deepseek-v4-flash
 )
 
 // --- Departments ---
@@ -139,15 +140,7 @@ const (
 // NOTE: Cannot reference modelcatalog.TestCallType here due to import cycle
 // (contract is imported by modelcatalog's test). The literal must stay in sync.
 var ModelTypeToID = map[string]uuid.UUID{
-	"test-model":      IDModelTest,
-	"deepseek-v4":     IDModel1,
-	"deepseek-r1":     IDModel2,
-	"qwen-3.5-plus":   IDModel3,
-	"qwen-max-2026":   IDModel4,
-	"glm-5":           IDModel5,
-	"kimi-k3":         IDModel6,
-	"doubao-pro-256k": IDModel7,
-	"minimax-m2":      IDModel8,
-	"claude-sonnet-5": IDModel9,
-	"gpt-4o":          IDModel10,
+	"test-model":        IDModelTest,
+	"deepseek-v4-pro":   IDModel1,
+	"deepseek-v4-flash": IDModel11,
 }

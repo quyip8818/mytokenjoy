@@ -86,7 +86,7 @@ func setBudgetOnTree(nodes []types.BudgetNode, deptID uuid.UUID, budget, consume
 }
 
 func GatewayRequest(fullKey string) *http.Request {
-	return GatewayRequestWithModel(fullKey, "deepseek-v4")
+	return GatewayRequestWithModel(fullKey, "deepseek-v4-pro")
 }
 
 func GatewayRequestWithModel(fullKey, model string) *http.Request {

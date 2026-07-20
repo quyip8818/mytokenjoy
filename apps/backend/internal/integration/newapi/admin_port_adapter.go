@@ -113,3 +113,7 @@ func (a AdminPortAdapter) GetUserQuota(ctx context.Context, userID int64) (int64
 func (a AdminPortAdapter) EnsureGroup(ctx context.Context, group, displayName string) error {
 	return a.client.EnsureGroup(ctx, group, displayName)
 }
+
+func (a AdminPortAdapter) ListModelPricing(ctx context.Context) ([]adminport.ModelPricing, error) {
+	return a.client.ListModelPricing(ctx)
+}

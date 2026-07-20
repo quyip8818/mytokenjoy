@@ -5,6 +5,8 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/_verify-lib.sh"
 verify_load_backend_dotenv
 
+# ─── test-model channel (dev-mock upstream) ───────────────────────────────────
+
 MODEL="${DEV_MOCK_MODEL:-test-model}"
 BASE_URL="$(verify_http_origin "${DEV_MOCK_BASE_URL:-http://host.docker.internal:8765}")"
 GROUP="${DEV_MOCK_CHANNEL_GROUP:-dept-00000000-0000-7000-8000-000000000d03}"
@@ -117,10 +119,92 @@ else
   verify_info "created channel ${NAME}"
 fi
 
+# ─── DeepSeek channel (production upstream) ───────────────────────────────────
+
+DS_CHANNEL_NAME="Deepseek"
+DS_CHANNEL_TYPE=43  # DeepSeek official
+DS_CHANNEL_MODELS="deepseek-v4-flash,deepseek-v4-pro"
+DS_CHANNEL_GROUP="default"
+DS_CHANNEL_KEY="${DEEPSEEK_API_KEY:-sk-f0463e3791b741aca89144cf78106da4}"
+
+verify_info "DeepSeek channel → models=${DS_CHANNEL_MODELS} (group=${DS_CHANNEL_GROUP})"
+
+# Ensure pricing ratios for deepseek models
+verify_ensure_local_test_model_pricing "deepseek-v4-pro" "0.2175" "1"
+verify_ensure_local_test_model_pricing "deepseek-v4-flash" "0.0725" "1"
+
+ds_existing_id=$(python3 - "${list_resp}" "${DS_CHANNEL_NAME}" "deepseek-v4" <<'PY'
+import json
+import sys
+
+path, name, model_prefix = sys.argv[1], sys.argv[2], sys.argv[3]
+data = json.load(open(path, encoding="utf-8"))
+items = data.get("data", {}).get("items") or data.get("data") or []
+if isinstance(items, dict):
+    items = items.get("items") or []
+for item in items:
+    if item.get("name") == name and model_prefix in (item.get("models") or ""):
+        print(item.get("id") or "")
+        break
+PY
+)
+
+ds_channel_payload() {
+  local mode="$1"
+  python3 - "${mode}" "${ds_existing_id:-}" "${DS_CHANNEL_NAME}" "${DS_CHANNEL_KEY}" "" "${DS_CHANNEL_MODELS}" "${DS_CHANNEL_GROUP}" "${DS_CHANNEL_TYPE}" <<'PY'
+import json
+import sys
+
+mode, existing_id, name, key, base_url, models, group, ch_type = sys.argv[1:9]
+channel = {
+    "type": int(ch_type),
+    "name": name,
+    "key": key,
+    "base_url": base_url,
+    "models": models,
+    "group": group,
+    "weight": 1,
+    "priority": 0,
+}
+if mode == "update":
+    channel["id"] = int(existing_id)
+    print(json.dumps(channel))
+else:
+    channel["status"] = 1
+    print(json.dumps({"mode": "single", "channel": channel}))
+PY
+}
+
+if [[ -n "${ds_existing_id}" ]]; then
+  code=$(curl -s -o "${resp}" -w "%{http_code}" \
+    -X PUT "${NEWAPI_URL}/api/channel/" \
+    -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
+    -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
+    -H "Content-Type: application/json" \
+    -d "$(ds_channel_payload update)")
+  if [[ "${code}" != "200" ]] || [[ "$(verify_json_success "${resp}")" != "yes" ]]; then
+    verify_fail "update DeepSeek channel HTTP ${code}: $(cat "${resp}")"
+  fi
+  verify_info "updated channel ${DS_CHANNEL_NAME} (id=${ds_existing_id})"
+else
+  code=$(curl -s -o "${resp}" -w "%{http_code}" \
+    -X POST "${NEWAPI_URL}/api/channel/" \
+    -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
+    -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
+    -H "Content-Type: application/json" \
+    -d "$(ds_channel_payload create)")
+  if [[ "${code}" != "200" ]] || [[ "$(verify_json_success "${resp}")" != "yes" ]]; then
+    verify_fail "create DeepSeek channel HTTP ${code}: $(cat "${resp}")"
+  fi
+  verify_info "created channel ${DS_CHANNEL_NAME}"
+fi
+
+# ─── Sync abilities ───────────────────────────────────────────────────────────
+
 sync_code=$(curl -s -o /dev/null -w "%{http_code}" \
   -X GET "${NEWAPI_URL}/api/channel/sync" \
   -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
   -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}")
 [[ "${sync_code}" == "200" ]] || verify_fail "channel sync HTTP ${sync_code}"
 
-verify_info "test-model channel ready"
+verify_info "all channels ready"

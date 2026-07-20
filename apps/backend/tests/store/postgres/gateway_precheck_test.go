@@ -56,7 +56,7 @@ func TestLoadPrecheckContextAllowlistTypes(t *testing.T) {
 	if !row.HasAllowlist {
 		t.Fatal("expected platform key allowlist to be present")
 	}
-	for _, want := range []string{"deepseek-v4", "qwen-max-2026", "test-model"} {
+	for _, want := range []string{"deepseek-v4-pro", "deepseek-v4-flash", "test-model"} {
 		if !contains(row.AllowlistTypes, want) {
 			t.Fatalf("expected allowlist to include %q, got %v", want, row.AllowlistTypes)
 		}

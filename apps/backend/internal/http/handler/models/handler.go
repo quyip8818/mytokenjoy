@@ -39,6 +39,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	manageWrite.Put("/{id}", h.Update)
 	manageWrite.Delete("/{id}", h.Delete)
 	manageWrite.Put("/{id}/toggle", h.Toggle)
+	manageWrite.Post("/sync-pricing", h.SyncPricing)
 
 	whitelistWrite := write.With(httpmiddleware.RequireAnyPermission(permission.ModelWhitelist))
 	whitelistWrite.Put("/routing/{id}", h.RoutingUpdate)
@@ -123,4 +124,9 @@ func (h *Handler) RoutingUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	rule, err := h.service.UpdateRoutingRule(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, rule, err)
+}
+
+func (h *Handler) SyncPricing(w http.ResponseWriter, r *http.Request) {
+	updated, err := h.service.SyncPricingFromUpstream(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, map[string]int{"updated": updated}, err)
 }

@@ -91,6 +91,17 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		startDeferredWatchdog(workerCtx, cfg, logger, st, holder)
 	}
 
+	if cfg.NewAPIEnabled {
+		go func() {
+			n, err := registry.Deps.ModelsSvc.SyncPricingFromUpstream(context.Background())
+			if err != nil {
+				slog.Warn("startup pricing sync failed", "error", err)
+			} else if n > 0 {
+				slog.Info("startup pricing sync complete", "updated", n)
+			}
+		}()
+	}
+
 	return &App{
 		Config:  cfg,
 		Store:   st,

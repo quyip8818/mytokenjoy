@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -26,6 +27,7 @@ type Service interface {
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
 	ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
 	UpdateRoutingRule(ctx context.Context, id uuid.UUID, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
+	SyncPricingFromUpstream(ctx context.Context) (int, error)
 }
 
 // Store is the narrow store surface the models domain needs.
@@ -345,4 +347,42 @@ func (s *service) UpdateRoutingRule(
 		return types.RoutingRule{}, err
 	}
 	return common.EnrichRoutingRule(updated, catalog), nil
+}
+
+func (s *service) SyncPricingFromUpstream(ctx context.Context) (int, error) {
+	if s.client == nil {
+		return 0, fmt.Errorf("newapi admin client required")
+	}
+	pricing, err := s.client.ListModelPricing(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("fetch upstream pricing: %w", err)
+	}
+	priceByModel := make(map[string]adminport.ModelPricing, len(pricing))
+	for _, p := range pricing {
+		priceByModel[p.ModelName] = p
+	}
+
+	models, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("list models: %w", err)
+	}
+
+	updated := 0
+	for _, model := range models {
+		p, ok := priceByModel[model.Type]
+		if !ok {
+			continue
+		}
+		inputPoints, outputPoints := newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+		if model.InputPrice == inputPoints && model.OutputPrice == outputPoints {
+			continue
+		}
+		model.InputPrice = inputPoints
+		model.OutputPrice = outputPoints
+		if err := s.store.Models().UpdateModel(ctx, model); err != nil {
+			return updated, fmt.Errorf("update model %s pricing: %w", model.Type, err)
+		}
+		updated++
+	}
+	return updated, nil
 }

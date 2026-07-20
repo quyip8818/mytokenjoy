@@ -32,9 +32,8 @@ describe('useAuditCallsPage', () => {
 
     expect(apis.auditApi.getCalls).toHaveBeenCalled()
     expect(result.current.modelOptions).toEqual({
-      'deepseek-v4': 'DeepSeek V4',
-      'qwen-3.5-plus': 'Qwen 3.5 Plus',
-      'claude-sonnet-5': 'Claude Sonnet 5',
+      'deepseek-v4-pro': 'DeepSeek V4 Pro',
+      'deepseek-v4-flash': 'DeepSeek V4 Flash',
     })
     expect(result.current.memberOptions).toEqual({ m1: '张三', m2: '李四' })
     expect(result.current.contentRetentionEnabled).toBe(true)

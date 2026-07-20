@@ -12,11 +12,11 @@ func TestSeedModelCatalogIDs(t *testing.T) {
 	if contract.ModelTypeToID["test-model"] != contract.IDModelTest {
 		t.Fatalf("expected test-model id %s, got %s", contract.IDModelTest, contract.ModelTypeToID["test-model"])
 	}
-	if contract.ModelTypeToID["gpt-4o"] != contract.IDModel10 {
-		t.Fatalf("expected gpt-4o id %s, got %s", contract.IDModel10, contract.ModelTypeToID["gpt-4o"])
+	if contract.ModelTypeToID["deepseek-v4-pro"] != contract.IDModel1 {
+		t.Fatalf("expected deepseek-v4-pro id %s, got %s", contract.IDModel1, contract.ModelTypeToID["deepseek-v4-pro"])
 	}
 	// Verify all expected model types are present in the map.
-	expectedTypes := []string{"deepseek-v4", "deepseek-r1", "qwen-3.5-plus", "qwen-max-2026", "glm-5", "kimi-k3", "doubao-pro-256k", "minimax-m2", "claude-sonnet-5", "gpt-4o", "test-model"}
+	expectedTypes := []string{"deepseek-v4-pro", "deepseek-v4-flash", "test-model"}
 	for _, mt := range expectedTypes {
 		if _, ok := contract.ModelTypeToID[mt]; !ok {
 			t.Errorf("ModelTypeToID missing expected type %q", mt)

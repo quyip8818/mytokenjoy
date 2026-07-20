@@ -1,0 +1,13 @@
+diff --git a/model/token.go b/model/token.go
+index 0305d02..9142531 100644
+--- a/model/token.go
++++ b/model/token.go
+@@ -49,7 +49,7 @@ func MaskTokenKey(key string) string {
+ }
+ 
+ func (token *Token) GetFullKey() string {
+-	return token.Key
++	return "sk-" + token.Key
+ }
+ 
+ func (token *Token) GetMaskedKey() string {

@@ -15,4 +15,5 @@ type Port interface {
 	RebuildAbilities(ctx context.Context) error
 	GetUserQuota(ctx context.Context, userID int64) (int64, error)
 	EnsureGroup(ctx context.Context, group, displayName string) error
+	ListModelPricing(ctx context.Context) ([]ModelPricing, error)
 }

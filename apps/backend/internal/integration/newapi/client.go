@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
 
 type AdminClient interface {
@@ -25,6 +27,7 @@ type AdminClient interface {
 	UpsertChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error)
 	RebuildAbilities(ctx context.Context) error
 	EnsureGroup(ctx context.Context, group, displayName string) error
+	ListModelPricing(ctx context.Context) ([]adminport.ModelPricing, error)
 }
 
 type Client struct {

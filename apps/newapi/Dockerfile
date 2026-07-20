@@ -47,6 +47,9 @@ RUN git apply /tmp/0002-admin-token-contract.patch
 COPY patches/new-api/0003-username-max-length.patch /tmp/0003-username-max-length.patch
 RUN git apply /tmp/0003-username-max-length.patch
 
+COPY patches/new-api/0004-sk-prefix-key-format.patch /tmp/0004-sk-prefix-key-format.patch
+RUN git apply /tmp/0004-sk-prefix-key-format.patch
+
 COPY --from=web-default /upstream/web/default/dist ./web/default/dist
 COPY --from=web-classic /upstream/web/classic/dist ./web/classic/dist
 

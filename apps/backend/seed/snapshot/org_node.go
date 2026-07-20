@@ -18,49 +18,34 @@ func orgNodeRoutingByID() map[uuid.UUID]orgNodeRoutingSeed {
 	return map[uuid.UUID]orgNodeRoutingSeed{
 		contract.IDDept1: {
 			allowedModelIDs: []uuid.UUID{
-				contract.IDModel1, contract.IDModel2, contract.IDModel4,
-				contract.IDModel5, contract.IDModel8, contract.IDModelTest,
+				contract.IDModel1, contract.IDModel11, contract.IDModelTest,
 			},
-			defaultModelID:  modelIDPtr("gpt-4o-mini"),
-			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
 		contract.IDDept2: {
 			allowedModelIDs: []uuid.UUID{
-				contract.IDModel1, contract.IDModel2, contract.IDModel4,
-				contract.IDModel3, contract.IDModel5,
+				contract.IDModel1, contract.IDModel11,
 			},
-			defaultModelID:  modelIDPtr("gpt-4o"),
-			fallbackModelID: modelIDPtr("deepseek-v3"),
 		},
 		contract.IDDept3: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel4, contract.IDModel5, contract.IDModelTest},
+			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11, contract.IDModelTest},
 			inherited:       true,
 		},
 		contract.IDDept6: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel5, contract.IDModel8},
-			defaultModelID:  modelIDPtr("gpt-4o-mini"),
-			fallbackModelID: modelIDPtr("qwen-plus"),
+			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
 		},
 		contract.IDDept4: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel4, contract.IDModel5},
-			defaultModelID:  modelIDPtr("claude-sonnet-4-6"),
-			fallbackModelID: modelIDPtr("gpt-4o-mini"),
+			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
 			inherited:       true,
 		},
 		contract.IDDept5: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel5},
-			defaultModelID:  modelIDPtr("deepseek-v3"),
-			fallbackModelID: modelIDPtr("gpt-4o-mini"),
+			allowedModelIDs: []uuid.UUID{contract.IDModel11},
 			inherited:       true,
 		},
 		contract.IDDept7: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel2, contract.IDModel8, contract.IDModel5},
-			defaultModelID:  modelIDPtr("qwen-plus"),
-			fallbackModelID: modelIDPtr("gpt-4o-mini"),
+			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
 		},
 		contract.IDDept8: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel2},
-			defaultModelID:  modelIDPtr("gpt-4o-mini"),
+			allowedModelIDs: []uuid.UUID{contract.IDModel11},
 			inherited:       true,
 		},
 	}

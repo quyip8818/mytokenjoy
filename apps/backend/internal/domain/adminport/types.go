@@ -54,3 +54,9 @@ type TopUpInput struct {
 	CompanyID int64
 	Quota     int64
 }
+
+type ModelPricing struct {
+	ModelName       string
+	ModelRatio      float64
+	CompletionRatio float64
+}

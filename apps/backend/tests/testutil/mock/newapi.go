@@ -3,6 +3,7 @@ package mock
 import (
 	"context"
 
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
@@ -22,6 +23,7 @@ type StubAdminClient struct {
 	UpsertChannelFn    func(ctx context.Context, req newapi.UpsertChannelRequest) (newapi.Channel, error)
 	RebuildAbilitiesFn func(ctx context.Context) error
 	EnsureGroupFn      func(ctx context.Context, group, displayName string) error
+	ListModelPricingFn func(ctx context.Context) ([]adminport.ModelPricing, error)
 
 	CreateTokenCalls      int
 	UpdateTokenCalls      int
@@ -35,6 +37,7 @@ type StubAdminClient struct {
 	UpsertChannelCalls    int
 	RebuildAbilitiesCalls int
 	EnsureGroupCalls      int
+	ListModelPricingCalls int
 }
 
 func (s *StubAdminClient) CreateToken(ctx context.Context, req newapi.CreateTokenRequest) (newapi.Token, error) {
@@ -134,4 +137,12 @@ func (s *StubAdminClient) EnsureGroup(ctx context.Context, group, displayName st
 		return s.EnsureGroupFn(ctx, group, displayName)
 	}
 	return nil
+}
+
+func (s *StubAdminClient) ListModelPricing(ctx context.Context) ([]adminport.ModelPricing, error) {
+	s.ListModelPricingCalls++
+	if s.ListModelPricingFn != nil {
+		return s.ListModelPricingFn(ctx)
+	}
+	return nil, nil
 }
