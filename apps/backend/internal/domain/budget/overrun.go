@@ -26,6 +26,7 @@ type OverrunStore interface {
 	BudgetConsumed() store.BudgetConsumedRepository
 	Org() store.OrgRepository
 	Keys() store.KeysRepository
+	Ledger() store.LedgerRepository
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 
@@ -62,6 +63,25 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		return nil
 	}
 
+	// Short-circuit: if the key is already disabled, skip the entire evaluation
+	// when there's no higher-level scope (member/project) to check.
+	// If member or project context exists, we still need to evaluate those levels
+	// because a delayed in-flight webhook could push them over budget too.
+	if payload.PlatformKeyID != uuid.Nil {
+		key, err := s.store.Keys().PlatformKeyByID(ctx, payload.PlatformKeyID)
+		if err != nil {
+			return err
+		}
+		if key == nil || key.Status != "active" {
+			if payload.MemberID == nil && payload.ProjectID == nil {
+				return nil
+			}
+			// Key already handled — clear it so the tx skips key-level check,
+			// but proceeds with member/project/department evaluation.
+			payload.PlatformKeyID = uuid.Nil
+		}
+	}
+
 	type disableAction struct {
 		scope   string
 		target  string
@@ -70,6 +90,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 	}
 
 	var action *disableAction
+	var periodKey string
 
 	if err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
@@ -80,7 +101,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		if err != nil {
 			return err
 		}
-		periodKey := open.String()
+		periodKey = open.String()
 		consumedRepo := tx.BudgetConsumed()
 
 		if payload.PlatformKeyID != uuid.Nil {
@@ -189,27 +210,14 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			}
 		}
 
-		deptBudget, deptFound, err := tx.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
-		if err != nil {
-			return err
-		}
-		if deptFound && deptBudget > 0 {
-			deptSpent, err := tx.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID, periodKey)
-			if err != nil {
-				return err
-			}
-			if pkgbudget.BudgetExhausted(deptSpent, deptBudget) {
-				deptID := payload.DepartmentID
-				s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, deptID.String(), map[string]any{
-					"axisKind": "department_ledger", "departmentId": deptID,
-					"consumed": deptSpent, "budget": deptBudget, "notifyOnly": true,
-				})
-			}
-		}
 		return nil
 	}); err != nil {
 		return err
 	}
+
+	// Department only triggers a notification (no disable), so it doesn't need
+	// the advisory lock and can tolerate slight staleness.
+	s.checkDepartmentOverrun(ctx, payload, periodKey)
 
 	if action == nil {
 		return nil
@@ -226,6 +234,29 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 		return err
 	}
 	return nil
+}
+
+// checkDepartmentOverrun evaluates department-level budget exhaustion outside the
+// advisory lock transaction. It only sends a notification (never disables keys),
+// so it can tolerate slightly stale data and doesn't need serialization.
+func (s *OverrunService) checkDepartmentOverrun(ctx context.Context, payload overrunPayload, periodKey string) {
+	if periodKey == "" {
+		return
+	}
+	deptBudget, deptFound, err := s.store.Org().Nodes().GetNodeBudget(ctx, payload.DepartmentID)
+	if err != nil || !deptFound || deptBudget <= 0 {
+		return
+	}
+	deptSpent, err := s.store.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID, periodKey)
+	if err != nil {
+		return
+	}
+	if pkgbudget.BudgetExhausted(deptSpent, deptBudget) {
+		s.notifyOverrun(ctx, types.NotificationEventOverrunBlocked, payload.DepartmentID.String(), map[string]any{
+			"axisKind": "department_ledger", "departmentId": payload.DepartmentID,
+			"consumed": deptSpent, "budget": deptBudget, "notifyOnly": true,
+		})
+	}
 }
 
 func (s *OverrunService) notifyOverrun(ctx context.Context, eventType, target string, payload map[string]any) {

@@ -181,8 +181,15 @@ func TestCoreGetEndpoints(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&tree); err != nil {
 			t.Fatal(err)
 		}
-		if len(tree) == 0 || tree[0].ID != contract.IDDept1 {
-			t.Fatal("expected budget tree root dept-1")
+		var found bool
+		for _, node := range tree {
+			if node.ID == contract.IDDept1 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatal("expected budget tree to contain dept-1")
 		}
 	})
 

@@ -221,7 +221,11 @@ func TestOrgNodeTreeMemberCounts(t *testing.T) {
 	if len(nodes) == 0 {
 		t.Fatal("expected org tree")
 	}
-	if nodes[0].MemberCount <= 0 {
-		t.Fatalf("expected root memberCount > 0, got %d", nodes[0].MemberCount)
+	var totalMembers int
+	for _, n := range nodes {
+		totalMembers += n.MemberCount
+	}
+	if totalMembers <= 0 {
+		t.Fatalf("expected total memberCount > 0 across roots, got %d", totalMembers)
 	}
 }

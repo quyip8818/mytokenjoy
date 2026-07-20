@@ -71,18 +71,8 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 }
 
 func DisablePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID) error {
-	keys, err := d.Store.Keys().PlatformKeys(ctx)
-	if err != nil {
+	if err := d.Store.Keys().DisablePlatformKey(ctx, platformKeyID); err != nil {
 		return err
-	}
-	for i := range keys {
-		if keys[i].ID == platformKeyID {
-			keys[i].Status = "disabled"
-			if err := d.Store.Keys().SetPlatformKeys(ctx, keys); err != nil {
-				return err
-			}
-			break
-		}
 	}
 	if !syncdeps.Enabled(d) {
 		return nil

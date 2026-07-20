@@ -25,17 +25,15 @@ func (r *pgBudgetRepo) UpsertMany(ctx context.Context, rows []store.OrgNodeBudge
 			period = pkgbudget.PeriodMonthly
 		}
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO org_node_budget (
-				company_id, node_id, budget, reserved_pool, period, member_avg_budget, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, NOW())
-			ON CONFLICT (company_id, node_id) DO UPDATE SET
-				budget = EXCLUDED.budget,
-				reserved_pool = EXCLUDED.reserved_pool,
-				period = EXCLUDED.period,
-				member_avg_budget = EXCLUDED.member_avg_budget,
+			UPDATE org_nodes SET
+				budget = $3,
+				reserved_pool = $4,
+				period = $5,
+				member_avg_budget = $6,
 				updated_at = NOW()
+			WHERE company_id = $1 AND id = $2
 		`, companyID, row.NodeID, row.Budget, row.ReservedPool, period, row.MemberAvgBudget); err != nil {
-			return fmt.Errorf("upsert org node budget %s: %w", row.NodeID, err)
+			return fmt.Errorf("update org node budget %s: %w", row.NodeID, err)
 		}
 	}
 	return nil
@@ -47,7 +45,7 @@ func (r *pgBudgetRepo) Get(ctx context.Context, nodeID uuid.UUID) (store.OrgNode
 	row.NodeID = nodeID
 	err := r.db.QueryRow(ctx, `
 		SELECT budget, reserved_pool, period, member_avg_budget
-		FROM org_node_budget WHERE company_id = $1 AND node_id = $2
+		FROM org_nodes WHERE company_id = $1 AND id = $2
 	`, companyID, nodeID).Scan(&row.Budget, &row.ReservedPool, &row.Period, &row.MemberAvgBudget)
 	if err != nil {
 		if err == pgx.ErrNoRows {

@@ -37,13 +37,13 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	}
 	row, found, err := st.Budget().OrgNodeBudget().Get(testutil.Ctx(), contract.IDDept3)
 	if err != nil || !found {
-		t.Fatalf("org_node_budget row missing: found=%v err=%v", found, err)
+		t.Fatalf("org_nodes budget row missing: found=%v err=%v", found, err)
 	}
 	if row.Budget != wantBudget {
-		t.Fatalf("org_node_budget budget: got %v want %v", row.Budget, wantBudget)
+		t.Fatalf("org_nodes budget: got %v want %v", row.Budget, wantBudget)
 	}
 	if row.ReservedPool == nil || *row.ReservedPool != reserved {
-		t.Fatalf("org_node_budget reserved: got %+v want %v", row.ReservedPool, reserved)
+		t.Fatalf("org_nodes reserved: got %+v want %v", row.ReservedPool, reserved)
 	}
 }
 

@@ -279,6 +279,15 @@ func (r *pgKeysRepo) PlatformKeyByID(ctx context.Context, keyID uuid.UUID) (*typ
 	return &item, nil
 }
 
+func (r *pgKeysRepo) DisablePlatformKey(ctx context.Context, keyID uuid.UUID) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE platform_keys SET status = 'disabled', updated_at = NOW()
+		WHERE company_id = $1 AND id = $2 AND status = 'active'
+	`, companyID, keyID)
+	return err
+}
+
 func (r *pgKeysRepo) PlatformKeyHashByID(ctx context.Context, keyID uuid.UUID) (string, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var keyHash string

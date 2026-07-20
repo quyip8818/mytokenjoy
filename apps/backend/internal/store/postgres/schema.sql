@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS models (
     max_context  INT NOT NULL DEFAULT 0,
     max_tokens   INT NOT NULL DEFAULT 0,
     enabled      BOOLEAN NOT NULL DEFAULT TRUE,
+    capabilities TEXT[] NOT NULL DEFAULT '{}',
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (company_id, provider, type)
 );
@@ -169,6 +170,10 @@ CREATE TABLE IF NOT EXISTS org_nodes (
     default_model_id  UUID,
     fallback_model_id UUID,
     routing_inherited BOOLEAN NOT NULL DEFAULT FALSE,
+    budget            BIGINT NOT NULL DEFAULT 0,
+    reserved_pool     BIGINT,
+    period            TEXT NOT NULL DEFAULT 'monthly' CHECK (period IN ('monthly')),
+    member_avg_budget BIGINT NOT NULL DEFAULT 0,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
@@ -181,18 +186,6 @@ CREATE INDEX IF NOT EXISTS idx_org_nodes_parent ON org_nodes (company_id, parent
 CREATE INDEX IF NOT EXISTS idx_org_nodes_path ON org_nodes USING GIST (path);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_org_nodes_external
     ON org_nodes (company_id, external_id) WHERE external_id IS NOT NULL;
-
-CREATE TABLE IF NOT EXISTS org_node_budget (
-    company_id        UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    node_id           UUID NOT NULL,
-    budget            BIGINT NOT NULL DEFAULT 0,
-    reserved_pool     BIGINT,
-    period            TEXT NOT NULL CHECK (period IN ('monthly')),
-    member_avg_budget BIGINT NOT NULL DEFAULT 0,
-    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, node_id),
-    FOREIGN KEY (company_id, node_id) REFERENCES org_nodes (company_id, id) ON DELETE CASCADE
-);
 
 CREATE TABLE IF NOT EXISTS members (
     id              UUID NOT NULL,
@@ -338,13 +331,6 @@ CREATE TABLE IF NOT EXISTS budget_approvals (
 
 CREATE INDEX IF NOT EXISTS idx_budget_approvals_status
     ON budget_approvals (company_id, status, created_at DESC);
-
-CREATE TABLE IF NOT EXISTS model_capabilities (
-    model_id   UUID NOT NULL,
-    capability TEXT NOT NULL,
-    PRIMARY KEY (model_id, capability),
-    FOREIGN KEY (model_id) REFERENCES models (model_id) ON DELETE CASCADE
-);
 
 CREATE TABLE IF NOT EXISTS model_allowlist (
     company_id UUID NOT NULL,

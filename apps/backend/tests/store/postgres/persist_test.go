@@ -33,7 +33,7 @@ func budgetNodeUpdatedAt(t *testing.T, pool *pgxpool.Pool, nodeID string) time.T
 	t.Helper()
 	var ts time.Time
 	err := pool.QueryRow(context.Background(), `
-		SELECT updated_at FROM org_node_budget WHERE node_id = $1
+		SELECT updated_at FROM org_nodes WHERE id = $1
 	`, nodeID).Scan(&ts)
 	if err != nil {
 		t.Fatalf("read budget node %s updated_at: %v", nodeID, err)

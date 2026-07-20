@@ -26,24 +26,6 @@ func (r *pgModelsRepo) queryModels(ctx context.Context, query string, args ...an
 	return items, rows.Err()
 }
 
-func (r *pgModelsRepo) withCapabilities(ctx context.Context, items []types.ModelInfo) ([]types.ModelInfo, error) {
-	if len(items) == 0 {
-		return items, nil
-	}
-	ids := make([]uuid.UUID, len(items))
-	for i, item := range items {
-		ids[i] = item.ID
-	}
-	byID, err := r.loadCapabilitiesBatch(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	for i := range items {
-		items[i].Capabilities = byID[items[i].ID]
-	}
-	return items, nil
-}
-
 func (r *pgModelsRepo) modelByCompanyAndType(ctx context.Context, companyID uuid.UUID, modelType string) (*types.ModelInfo, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT `+modelSelectColumns+`
@@ -51,7 +33,7 @@ func (r *pgModelsRepo) modelByCompanyAndType(ctx context.Context, companyID uuid
 		ORDER BY CASE WHEN provider = $3 THEN 0 ELSE 1 END, provider
 		LIMIT 1
 	`, companyID, modelType, types.ProviderCustom)
-	return r.scanModelWithCapabilities(ctx, row)
+	return scanModelQueryRow(row)
 }
 
 func (r *pgModelsRepo) modelByCompanyProviderAndType(ctx context.Context, companyID uuid.UUID, provider, modelType string) (*types.ModelInfo, error) {
@@ -59,65 +41,7 @@ func (r *pgModelsRepo) modelByCompanyProviderAndType(ctx context.Context, compan
 		SELECT `+modelSelectColumns+`
 		FROM models WHERE company_id = $1 AND provider = $2 AND type = $3
 	`, companyID, provider, modelType)
-	return r.scanModelWithCapabilities(ctx, row)
-}
-
-func (r *pgModelsRepo) scanModelWithCapabilities(ctx context.Context, row scannable) (*types.ModelInfo, error) {
-	item, err := scanModelQueryRow(row)
-	if err != nil || item == nil {
-		return item, err
-	}
-	caps, err := r.loadCapabilities(ctx, item.ID)
-	if err != nil {
-		return nil, err
-	}
-	item.Capabilities = caps
-	return item, nil
-}
-
-func (r *pgModelsRepo) loadCapabilitiesBatch(ctx context.Context, modelIDs []uuid.UUID) (map[uuid.UUID][]string, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT model_id, capability FROM model_capabilities
-		WHERE model_id = ANY($1)
-		ORDER BY model_id, capability
-	`, modelIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	byID := make(map[uuid.UUID][]string, len(modelIDs))
-	for rows.Next() {
-		var modelID uuid.UUID
-		var capability string
-		if err := rows.Scan(&modelID, &capability); err != nil {
-			return nil, err
-		}
-		byID[modelID] = append(byID[modelID], capability)
-	}
-	return byID, rows.Err()
-}
-
-func (r *pgModelsRepo) loadCapabilities(ctx context.Context, modelID uuid.UUID) ([]string, error) {
-	byID, err := r.loadCapabilitiesBatch(ctx, []uuid.UUID{modelID})
-	if err != nil {
-		return nil, err
-	}
-	return byID[modelID], nil
-}
-
-func (r *pgModelsRepo) replaceCapabilities(ctx context.Context, modelID uuid.UUID, capabilities []string) error {
-	if _, err := r.db.Exec(ctx, `DELETE FROM model_capabilities WHERE model_id = $1`, modelID); err != nil {
-		return err
-	}
-	for _, capability := range capabilities {
-		if _, err := r.db.Exec(ctx, `
-			INSERT INTO model_capabilities (model_id, capability) VALUES ($1, $2)
-		`, modelID, capability); err != nil {
-			return err
-		}
-	}
-	return nil
+	return scanModelQueryRow(row)
 }
 
 func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
@@ -127,6 +51,7 @@ func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
 		&item.Description, &item.Endpoint,
 		&item.ApiKey, &item.EndpointModelName,
 		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.MaxTokens, &item.Enabled,
+		&item.Capabilities,
 	)
 	return item, err
 }
@@ -138,6 +63,7 @@ func scanModelQueryRow(row scannable) (*types.ModelInfo, error) {
 		&item.Description, &item.Endpoint,
 		&item.ApiKey, &item.EndpointModelName,
 		&item.InputPrice, &item.OutputPrice, &item.MaxContext, &item.MaxTokens, &item.Enabled,
+		&item.Capabilities,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil

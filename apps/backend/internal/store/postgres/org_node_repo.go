@@ -19,14 +19,13 @@ type pgOrgNodeRepo struct {
 func (r *pgOrgNodeRepo) Tree(ctx context.Context) ([]types.OrgNode, error) {
 	companyID := store.CompanyID(ctx)
 	rows, err := r.db.Query(ctx, `
-		SELECT n.id, n.name, n.parent_id, n.external_id, n.source, n.manager_id, n.sort_order,
-			COALESCE(b.budget, 0), b.reserved_pool,
-			COALESCE(b.period, 'monthly'), n.default_model_id, n.fallback_model_id, n.routing_inherited,
-			COALESCE(b.member_avg_budget, 0)
-		FROM org_nodes n
-		LEFT JOIN org_node_budget b ON b.company_id = n.company_id AND b.node_id = n.id
-		WHERE n.company_id = $1
-		ORDER BY n.sort_order
+		SELECT id, name, parent_id, external_id, source, manager_id, sort_order,
+			budget, reserved_pool, period,
+			default_model_id, fallback_model_id, routing_inherited,
+			member_avg_budget
+		FROM org_nodes
+		WHERE company_id = $1
+		ORDER BY sort_order
 	`, companyID)
 	if err != nil {
 		return nil, err
@@ -111,20 +110,14 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 	if err := pruneByIDForCompany(ctx, r.db, "org_nodes", companyID, ids); err != nil {
 		return err
 	}
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO org_node_budget (company_id, node_id, budget, period, member_avg_budget, updated_at)
-		SELECT company_id, id, 0, 'monthly', 0, NOW()
-		FROM org_nodes WHERE company_id = $1
-		ON CONFLICT (company_id, node_id) DO NOTHING
-	`, companyID)
-	return err
+	return nil
 }
 
 func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID uuid.UUID) (int64, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var budget int64
 	err := r.db.QueryRow(ctx, `
-		SELECT budget FROM org_node_budget WHERE company_id = $1 AND node_id = $2
+		SELECT budget FROM org_nodes WHERE company_id = $1 AND id = $2
 	`, companyID, nodeID).Scan(&budget)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -139,7 +132,7 @@ func (r *pgOrgNodeRepo) GetNodePeriod(ctx context.Context, nodeID uuid.UUID) (st
 	companyID := store.CompanyID(ctx)
 	var period string
 	err := r.db.QueryRow(ctx, `
-		SELECT period FROM org_node_budget WHERE company_id = $1 AND node_id = $2
+		SELECT period FROM org_nodes WHERE company_id = $1 AND id = $2
 	`, companyID, nodeID).Scan(&period)
 	if err != nil {
 		if err == pgx.ErrNoRows {

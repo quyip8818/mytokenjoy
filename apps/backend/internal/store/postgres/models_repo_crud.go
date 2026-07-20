@@ -31,7 +31,7 @@ func (r *pgModelsRepo) Models(ctx context.Context) ([]types.ModelInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.withCapabilities(ctx, modelcatalog.DedupeEffective(items))
+	return modelcatalog.DedupeEffective(items), nil
 }
 
 func (r *pgModelsRepo) ModelByType(ctx context.Context, modelType string) (*types.ModelInfo, error) {
@@ -65,16 +65,7 @@ func (r *pgModelsRepo) ModelByID(ctx context.Context, modelID uuid.UUID) (*types
 		FROM models
 		WHERE model_id = $1 AND (company_id = $2 OR company_id = $3)
 	`, modelID, r.catalog.globalCompanyID(), companyID)
-	item, err := scanModelQueryRow(row)
-	if err != nil || item == nil {
-		return item, err
-	}
-	caps, err := r.loadCapabilities(ctx, item.ID)
-	if err != nil {
-		return nil, err
-	}
-	item.Capabilities = caps
-	return item, nil
+	return scanModelQueryRow(row)
 }
 
 func (r *pgModelsRepo) ModelByIDs(ctx context.Context, modelIDs []int64) ([]types.ModelInfo, error) {
@@ -82,37 +73,35 @@ func (r *pgModelsRepo) ModelByIDs(ctx context.Context, modelIDs []int64) ([]type
 		return nil, nil
 	}
 	companyID := store.CompanyID(ctx)
-	items, err := r.queryModels(ctx, `
+	return r.queryModels(ctx, `
 		SELECT `+modelSelectColumns+`
 		FROM models
 		WHERE model_id = ANY($1) AND (company_id = $2 OR company_id = $3)
 		ORDER BY model_id
 	`, modelIDs, r.catalog.globalCompanyID(), companyID)
-	if err != nil {
-		return nil, err
-	}
-	return r.withCapabilities(ctx, items)
 }
 
 func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error) {
 	companyID := store.CompanyID(ctx)
+	capabilities := model.Capabilities
+	if capabilities == nil {
+		capabilities = []string{}
+	}
 	var modelID uuid.UUID
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO models (
 			company_id, provider, type, name, description, endpoint,
 			api_key, endpoint_model_name,
-			input_price, output_price, max_context, max_tokens, enabled, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+			input_price, output_price, max_context, max_tokens, enabled, capabilities, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
 		RETURNING model_id
 	`, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled).Scan(&modelID)
+		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled,
+		capabilities).Scan(&modelID)
 	if err != nil {
 		return types.ModelInfo{}, fmt.Errorf("insert model: %w", err)
-	}
-	if err := r.replaceCapabilities(ctx, modelID, model.Capabilities); err != nil {
-		return types.ModelInfo{}, err
 	}
 	model.ID = modelID
 	model.CompanyID = companyID
@@ -121,6 +110,10 @@ func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (
 
 func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) error {
 	companyID := store.CompanyID(ctx)
+	capabilities := model.Capabilities
+	if capabilities == nil {
+		capabilities = []string{}
+	}
 	tag, err := r.db.Exec(ctx, `
 		UPDATE models SET
 			provider = $3,
@@ -135,19 +128,21 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			max_context = $12,
 			max_tokens = $13,
 			enabled = $14,
+			capabilities = $15,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
 	`, model.ID, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled)
+		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled,
+		capabilities)
 	if err != nil {
 		return fmt.Errorf("update model %d: %w", model.ID, err)
 	}
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("model %d not found in tenant scope", model.ID)
 	}
-	return r.replaceCapabilities(ctx, model.ID, model.Capabilities)
+	return nil
 }
 
 func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error {
