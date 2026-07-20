@@ -105,9 +105,25 @@ def ensure_model_pricing(model: str, model_ratio: float, completion_ratio: float
         )
 
 
+def seed_model_catalog(catalog_path: str) -> None:
+    """Bulk-seed model pricing from a JSON catalog file (idempotent)."""
+    with open(catalog_path, encoding="utf-8") as f:
+        catalog = json.load(f)
+    if not isinstance(catalog, list):
+        raise SystemExit(f"catalog must be a JSON array, got {type(catalog).__name__}")
+    count = 0
+    for entry in catalog:
+        model = entry["model"]
+        model_ratio = float(entry["model_ratio"])
+        completion_ratio = float(entry["completion_ratio"])
+        ensure_model_pricing(model, model_ratio, completion_ratio)
+        count += 1
+    print(f"Model catalog seed complete: {count} models processed")
+
+
 def main(argv: list[str]) -> None:
     if len(argv) < 2:
-        raise SystemExit("usage: newapi_admin.py <origin|ensure-group|ensure-model-pricing> ...")
+        raise SystemExit("usage: newapi_admin.py <origin|ensure-group|ensure-model-pricing|seed-model-catalog> ...")
     cmd = argv[1]
     if cmd == "origin":
         print(http_origin(argv[2] if len(argv) > 2 else ""))
@@ -117,6 +133,11 @@ def main(argv: list[str]) -> None:
         return
     if cmd == "ensure-model-pricing":
         ensure_model_pricing(argv[2], float(argv[3]), float(argv[4]))
+        return
+    if cmd == "seed-model-catalog":
+        if len(argv) < 3:
+            raise SystemExit("usage: newapi_admin.py seed-model-catalog <catalog.json>")
+        seed_model_catalog(argv[2])
         return
     raise SystemExit(f"unknown command: {cmd}")
 

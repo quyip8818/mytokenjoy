@@ -47,6 +47,11 @@ verify_newapi_mint_admin_token
 if [[ "${SKIP_CHANNEL}" == "true" ]]; then
   verify_info "Skipping dev-mock channel (--skip-channel)"
 else
+  verify_info "Seeding model pricing catalog (best-effort)..."
+  if ! "${VERIFY_SCRIPTS_DIR}/seed-model-catalog.sh"; then
+    verify_info "WARN: model catalog seed failed — models can be configured manually"
+  fi
+
   verify_info "Configuring local-test-model channel (best-effort)..."
   if ! "${VERIFY_SCRIPTS_DIR}/setup-dev-mock-channel.sh"; then
     verify_info "WARN: dev-mock channel setup failed — configure manually in NewAPI Admin if needed"
