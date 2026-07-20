@@ -101,7 +101,6 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, co
 		Username:    WalletUsername(companyID),
 		DisplayName: name,
 		Password:    randomPassword(),
-		Quota:       0,
 	})
 	if err != nil {
 		return store.Company{}, fmt.Errorf("create newapi wallet account: %w", err)

@@ -101,16 +101,14 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	if co == nil {
 		return nil
 	}
-	walletCompanyID, alreadyConfigured := store.ConfiguredNewAPIWalletCompanyID(co)
+	_, alreadyConfigured := store.ConfiguredNewAPIWalletCompanyID(co)
 	if alreadyConfigured {
-		// Ensure existing wallet user has sufficient quota to match wallet_remain.
-		return ensureWalletCompanyQuota(ctx, d, walletCompanyID, co.WalletRemain)
+		return nil // wallet user already exists; no further action needed
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
 		Username:    company.WalletUsername(companyID),
 		DisplayName: co.Name,
 		Password:    secrets.RandomHex(8),
-		Quota:       co.WalletRemain, // NewAPI user quota = wallet_remain; tokenjoy Gateway is the real limiter
 	})
 	if err != nil {
 		return fmt.Errorf("create demo newapi wallet user: %w", err)
@@ -122,23 +120,6 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 		return err
 	}
 	return nil
-}
-
-// ensureWalletCompanyQuota tops up the wallet company so NewAPI quota >= wallet_remain.
-// Since tokenjoy Gateway is the only limiter, the NewAPI account should never reject.
-func ensureWalletCompanyQuota(ctx context.Context, d syncdeps.Deps, walletCompanyID int64, walletRemain int64) error {
-	current, err := d.Client.GetUserQuota(ctx, walletCompanyID)
-	if err != nil {
-		return nil // best-effort: don't block bootstrap
-	}
-	delta := walletRemain - current
-	if delta <= 0 {
-		return nil
-	}
-	return d.Client.TopUp(ctx, adminport.TopUpInput{
-		CompanyID: walletCompanyID,
-		Quota:     delta,
-	})
 }
 
 func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, budgetCtx budget.BudgetContext, platformKeys []types.PlatformKey) error {

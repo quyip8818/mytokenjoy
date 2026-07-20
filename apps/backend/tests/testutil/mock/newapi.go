@@ -19,8 +19,6 @@ type StubAdminClient struct {
 	DeleteTokenFn      func(ctx context.Context, tokenID int64) error
 	RegenerateTokenFn  func(ctx context.Context, tokenID int64) (adminport.TokenResult, error)
 	CreateUserFn       func(ctx context.Context, req adminport.CreateUserInput) (adminport.UserResult, error)
-	GetUserQuotaFn     func(ctx context.Context, userID int64) (int64, error)
-	TopUpFn            func(ctx context.Context, req adminport.TopUpInput) error
 	UpsertChannelFn    func(ctx context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error)
 	RebuildAbilitiesFn func(ctx context.Context) error
 	EnsureGroupFn      func(ctx context.Context, group, displayName string) error
@@ -33,8 +31,6 @@ type StubAdminClient struct {
 	DeleteTokenCalls      int
 	RegenerateTokenCalls  int
 	CreateUserCalls       int
-	GetUserQuotaCalls     int
-	TopUpCalls            int
 	UpsertChannelCalls    int
 	RebuildAbilitiesCalls int
 	EnsureGroupCalls      int
@@ -108,22 +104,6 @@ func (s *StubAdminClient) CreateUser(ctx context.Context, req adminport.CreateUs
 		return s.CreateUserFn(ctx, req)
 	}
 	return adminport.UserResult{ID: s.User.ID}, nil
-}
-
-func (s *StubAdminClient) GetUserQuota(ctx context.Context, userID int64) (int64, error) {
-	s.GetUserQuotaCalls++
-	if s.GetUserQuotaFn != nil {
-		return s.GetUserQuotaFn(ctx, userID)
-	}
-	return s.User.Quota, nil
-}
-
-func (s *StubAdminClient) TopUp(ctx context.Context, req adminport.TopUpInput) error {
-	s.TopUpCalls++
-	if s.TopUpFn != nil {
-		return s.TopUpFn(ctx, req)
-	}
-	return nil
 }
 
 func (s *StubAdminClient) UpsertChannel(ctx context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {

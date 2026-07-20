@@ -50,22 +50,16 @@ type ChannelResult struct {
 	ID int
 }
 
-// --- User/Quota (used by billing, provision) ---
+// --- User provisioning (used by company creation, bootstrap) ---
 
 type CreateUserInput struct {
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
 	Password    string `json:"password"`
-	Quota       int64  `json:"quota"`
 }
 
 type UserResult struct {
 	ID int64
-}
-
-type TopUpInput struct {
-	CompanyID int64
-	Quota     int64
 }
 
 // --- Pricing (used by models domain) ---

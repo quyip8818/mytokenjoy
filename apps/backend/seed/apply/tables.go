@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -26,6 +27,10 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 		return err
 	}
 	roleIDByName := buildSeedRoleNameIndex(snap.Roles)
+	// Include global preset roles so member_roles can reference them.
+	for name, id := range grants.PresetRoles {
+		roleIDByName[name] = id
+	}
 	if err := insertSeedModels(ctx, exec, tid, snap.Models); err != nil {
 		return err
 	}

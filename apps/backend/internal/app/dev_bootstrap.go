@@ -49,7 +49,7 @@ func RunDevBootstrap(ctx context.Context, cfg config.Config, logger *slog.Logger
 	}
 	bootstrapCtx := company.DefaultContext(cfg.LocalCompanyID)
 	if err := sync.Bootstrap(bootstrapCtx, cfg.LocalCompanyID); err != nil {
-		return fmt.Errorf("bootstrap platform keys: %w", err)
+		logger.Warn("platform key sync failed (non-fatal, keys will sync on next request)", "error", err)
 	}
 
 	return nil

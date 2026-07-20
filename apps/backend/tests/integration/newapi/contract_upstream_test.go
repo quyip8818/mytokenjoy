@@ -71,40 +71,6 @@ func TestCreateUserResolvesIDWhenUpstreamReturnsEmptyData(t *testing.T) {
 	}
 }
 
-func TestTopUpUsesManageAddQuotaNotLegacyTopupPath(t *testing.T) {
-	t.Parallel()
-	var sawManage bool
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/api/topup":
-			t.Fatal("must not call legacy /api/topup")
-		case r.Method == http.MethodPost && r.URL.Path == "/api/user/manage":
-			sawManage = true
-			var body map[string]any
-			_ = json.NewDecoder(r.Body).Decode(&body)
-			if body["action"] != "add_quota" || body["mode"] != "subtract" {
-				t.Fatalf("unexpected manage body %#v", body)
-			}
-			if body["id"] != float64(7) || body["value"] != float64(9) {
-				t.Fatalf("unexpected id/value %#v", body)
-			}
-			_, _ = w.Write([]byte(`{"success":true}`))
-		default:
-			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-	}))
-	t.Cleanup(server.Close)
-
-	client := newapi.NewClient(server.URL, "admin", 1)
-	if err := client.TopUp(context.Background(), adminport.TopUpInput{CompanyID: 7, Quota: -9}); err != nil {
-		t.Fatal(err)
-	}
-	if !sawManage {
-		t.Fatal("expected /api/user/manage")
-	}
-}
-
 func TestUpsertChannelCreateUsesModeSingleAndResolvesID(t *testing.T) {
 	t.Parallel()
 	var createBody map[string]any

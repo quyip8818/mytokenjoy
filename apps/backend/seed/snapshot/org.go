@@ -2,7 +2,6 @@ package snapshot
 
 import (
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/org"
@@ -63,13 +62,9 @@ func buildSyncLogs(refDate string) []types.SyncLog {
 }
 
 func buildRoles(members []types.Member) []types.Role {
+	// Preset roles are inserted by bootstrap (company_id = NULL, global).
+	// Only custom roles belong in the seed snapshot.
 	return []types.Role{
-		{ID: grants.IDSuperAdmin, Name: permission.RoleSuperAdmin, Type: "preset", MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
-		{ID: grants.IDOrgAdmin, Name: permission.RoleOrgAdmin, Type: "preset", MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
-		{ID: grants.IDMember, Name: permission.RoleMember, Type: "preset", MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
-		{ID: grants.IDAuditor, Name: permission.RoleAuditor, Type: "preset", MemberCount: org.CountMembersByRole(members, permission.RoleAuditor)},
-		{ID: grants.IDAPICaller, Name: permission.RoleAPICaller, Type: "preset", MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
-		// BudgetApprover 是公司自定义角色
 		{
 			ID: contract.IDRoleBudgetApprover, CompanyID: contract.DefaultCompanyID,
 			Name: permission.RoleBudgetApprover, Type: "custom",
