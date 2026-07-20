@@ -19,7 +19,7 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
-	trialPoints := float64(10000)
+	trialPoints := int64(10000)
 	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestExpireMockLotsZerosWalletRemain(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	// Seed trial credit.
-	trialPoints := float64(10000)
+	trialPoints := int64(10000)
 	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	// 1. Seed trial credit.
-	trialPoints := float64(10000)
+	trialPoints := int64(10000)
 	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
-	paidLot := domainbilling.BuildPaidLot(paidOrder, common.DefaultBillingCurrency, ppu)
+	paidLot := domainbilling.BuildPaidLot(paidOrder, common.DefaultBillingCurrency)
 	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
@@ -186,13 +186,13 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	// Seed trial credit.
-	trialPoints := float64(10000)
+	trialPoints := int64(10000)
 	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
 		t.Fatal(err)
 	}
 
 	// Consume part of the trial lot.
-	consumed := float64(3000)
+	consumed := int64(3000)
 	_, err := billinglot.ConsumeLots(ctx, st, companyID, consumed)
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +228,7 @@ func TestExpireMockLotsIdempotent(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
-	trialPoints := float64(5000)
+	trialPoints := int64(5000)
 	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
 		t.Fatal(err)
 	}

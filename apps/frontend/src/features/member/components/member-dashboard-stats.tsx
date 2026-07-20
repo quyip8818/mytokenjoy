@@ -6,7 +6,7 @@ import type {
   UsageStats,
 } from '@/api/types/member'
 import { MemberStatGroup } from '@/features/member'
-import { formatDisplayCurrency, formatMoney } from '@/lib/points'
+import { formatDisplayCurrency, formatMoney } from '@/lib/quota-display'
 
 interface MemberDashboardStatsProps {
   loading: boolean

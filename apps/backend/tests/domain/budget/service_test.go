@@ -81,7 +81,7 @@ func TestUpdateMemberBudgetSuccess(t *testing.T) {
 	}
 	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil)
 
-	wantQuota := budgetfix.DisplayPoints(15000)
+	wantQuota := int64(4_000_000_000) // must exceed sum of existing key budgets for member1
 	result, err := svc.UpdateMemberBudget(testutil.Ctx(), contract.IDMember1, wantQuota)
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +93,7 @@ func TestUpdateMemberBudgetSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var pool float64
+	var pool int64
 	for _, member := range poolMap {
 		if member.ID == contract.IDMember1 {
 			pool = member.PersonalBudget
@@ -190,7 +190,7 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	budgets := map[uuid.UUID]float64{contract.IDMember1: 3000, contract.IDMember3: 2000}
+	budgets := map[uuid.UUID]int64{contract.IDMember1: 3000, contract.IDMember3: 2000}
 	updated, err := svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
 		MemberBudgets: &budgets,
 	})
@@ -213,7 +213,7 @@ func TestUpdateProjectMemberBudgets(t *testing.T) {
 		}
 	}
 	_, err = svc.UpdateProject(testutil.Ctx(), created.ID, types.UpdateProjectInput{
-		MemberBudgets: &map[uuid.UUID]float64{contract.IDMemberPure: 100},
+		MemberBudgets: &map[uuid.UUID]int64{contract.IDMemberPure: 100},
 	})
 	if err == nil {
 		t.Fatal("expected validation error for member not on roster")
@@ -231,7 +231,7 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 			Budget:            5_000,
 			OwnerDepartmentID: contract.IDDept3,
 			MemberIDs:         []uuid.UUID{contract.IDMember1, contract.IDMember3},
-			MemberBudgets: map[uuid.UUID]float64{
+			MemberBudgets: map[uuid.UUID]int64{
 				contract.IDMember1: 3_000,
 				contract.IDMember3: 3_000,
 			},
@@ -249,7 +249,7 @@ func TestProjectRejectsMemberBudgetsOverProjectBudget(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		over := map[uuid.UUID]float64{contract.IDMember1: 7_000, contract.IDMember3: 5_000}
+		over := map[uuid.UUID]int64{contract.IDMember1: 7_000, contract.IDMember3: 5_000}
 		_, err = svc.UpdateProject(ctx, created.ID, types.UpdateProjectInput{MemberBudgets: &over})
 		testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 	})
@@ -284,17 +284,17 @@ func TestDeptRemainingAllocatableBudget(t *testing.T) {
 	if dept3 == nil {
 		t.Fatal("dept-3 not found")
 	}
-	childrenSum := 0.0
+	childrenSum := int64(0)
 	for _, child := range dept3.Children {
 		childrenSum += child.Budget
 	}
-	reserved := 0.0
+	var reserved int64
 	if dept3.ReservedPool != nil {
 		reserved = *dept3.ReservedPool
 	}
 	remaining := dept3.Budget - reserved - childrenSum
 	if remaining <= 0 {
-		t.Fatalf("expected positive remaining allocatable, got %f", remaining)
+		t.Fatalf("expected positive remaining allocatable, got %d", remaining)
 	}
 }
 

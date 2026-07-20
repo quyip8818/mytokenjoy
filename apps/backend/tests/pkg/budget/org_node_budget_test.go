@@ -27,7 +27,7 @@ func TestOrgNodeBudgetRowFromNode_DefaultPeriod(t *testing.T) {
 func TestOrgNodeBudgetRowFromNode_PreservesFields(t *testing.T) {
 	t.Parallel()
 	deptB := uuid.MustParse("00000000-0000-7000-0000-00000000da02")
-	reserved := budgetfix.FloatPtr(500)
+	reserved := budgetfix.Int64Ptr(500)
 	row := pkgbudget.OrgNodeBudgetRowFromNode(types.OrgNode{
 		ID: deptB, Budget: 2000, ReservedPool: reserved,
 		Period: "2026-06", MemberAvgBudget: 300,
@@ -50,7 +50,7 @@ func TestOrgNodeBudgetRowsFromNodes_FlattensTree(t *testing.T) {
 			ID: rootID, Budget: 1000, Period: pkgbudget.PeriodMonthly,
 			Children: []types.OrgNode{
 				{ID: childA, Budget: 400},
-				{ID: childB, Budget: 600, ReservedPool: budgetfix.FloatPtr(50)},
+				{ID: childB, Budget: 600, ReservedPool: budgetfix.Int64Ptr(50)},
 			},
 		},
 	}

@@ -20,7 +20,7 @@ func TestCombinedKeySummaryUpdateBatch(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	summaries, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
-		{PlatformKeyID: contract.IDPlatformKey1, Remain: 123.45},
+		{PlatformKeyID: contract.IDPlatformKey1, Remain: 123},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -28,8 +28,8 @@ func TestCombinedKeySummaryUpdateBatch(t *testing.T) {
 	if len(summaries) != 1 {
 		t.Fatalf("expected 1 summary, got %d", len(summaries))
 	}
-	if summaries[0].Remain != 123.45 {
-		t.Fatalf("remain = %v, want 123.45", summaries[0].Remain)
+	if summaries[0].Remain != 123 {
+		t.Fatalf("remain = %v, want 123", summaries[0].Remain)
 	}
 	if summaries[0].Version != 1 {
 		t.Fatalf("version = %d, want 1", summaries[0].Version)
@@ -57,8 +57,8 @@ func TestCombinedKeySummaryDecrementBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
-		contract.IDPlatformKey1:                                12.5,
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]int64{
+		contract.IDPlatformKey1:                                12,
 		uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"): 1,
 	})
 	if err != nil {
@@ -67,8 +67,8 @@ func TestCombinedKeySummaryDecrementBatch(t *testing.T) {
 	if len(summaries) != 1 {
 		t.Fatalf("expected 1 updated summary, got %d", len(summaries))
 	}
-	if summaries[0].Remain != 87.5 {
-		t.Fatalf("remain = %v, want 87.5", summaries[0].Remain)
+	if summaries[0].Remain != 88 {
+		t.Fatalf("remain = %v, want 88", summaries[0].Remain)
 	}
 	if summaries[0].Version != 2 {
 		t.Fatalf("version = %d, want 2", summaries[0].Version)
@@ -86,7 +86,7 @@ func TestCombinedKeySummaryDecrementBatchFloorsAtZero(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]int64{
 		contract.IDPlatformKey1: 12,
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func TestCombinedKeySummaryDecrementBatchSkipsNullRemain(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]int64{
 		contract.IDPlatformKey1: 1,
 	})
 	if err != nil {

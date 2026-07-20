@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession, useBillingExchange } from '@/features/session'
-import { currencySymbol } from '@/lib/points'
+import { currencySymbol } from '@/lib/quota-display'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '@/features/workflow'
 import { WorkflowFormLayout } from '@/features/workflow'
@@ -34,7 +34,7 @@ export function ApprovalSubmitWorkflow({
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
-  const { displayToPoints, billingCurrency } = useBillingExchange()
+  const { displayToQuota, billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
@@ -77,7 +77,7 @@ export function ApprovalSubmitWorkflow({
       await apis.approvalApi.create({
         type,
         reason,
-        requestedBudget: displayToPoints(Number(requestedBudget) || 0),
+        requestedBudget: displayToQuota(Number(requestedBudget) || 0),
         requestedModels: models,
         memberId,
       })

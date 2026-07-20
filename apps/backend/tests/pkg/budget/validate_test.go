@@ -33,9 +33,9 @@ func TestValidateBudgetNodeUpdate(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
 		{
-			ID: uuid.MustParse("00000000-0000-7000-0000-00000000ff01"), Budget: 100000, ReservedPool: budgetfix.FloatPtr(10000),
+			ID: uuid.MustParse("00000000-0000-7000-0000-00000000ff01"), Budget: 100000, ReservedPool: budgetfix.Int64Ptr(10000),
 			Children: []types.BudgetNode{
-				{ID: uuid.MustParse("00000000-0000-7000-0000-00000000da01"), Budget: 40000, ReservedPool: budgetfix.FloatPtr(5000)},
+				{ID: uuid.MustParse("00000000-0000-7000-0000-00000000da01"), Budget: 40000, ReservedPool: budgetfix.Int64Ptr(5000)},
 				{ID: uuid.MustParse("00000000-0000-7000-0000-00000000da02"), Budget: 40000},
 			},
 		},
@@ -53,9 +53,9 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
 		{
-			ID: uuid.MustParse("00000000-0000-7000-0000-00000000ff01"), Budget: 100000, ReservedPool: budgetfix.FloatPtr(10000),
+			ID: uuid.MustParse("00000000-0000-7000-0000-00000000ff01"), Budget: 100000, ReservedPool: budgetfix.Int64Ptr(10000),
 			Children: []types.BudgetNode{
-				{ID: uuid.MustParse("00000000-0000-7000-0000-00000000da01"), Budget: 40000, ReservedPool: budgetfix.FloatPtr(5000)},
+				{ID: uuid.MustParse("00000000-0000-7000-0000-00000000da01"), Budget: 40000, ReservedPool: budgetfix.Int64Ptr(5000)},
 				{ID: uuid.MustParse("00000000-0000-7000-0000-00000000da02"), Budget: 40000},
 			},
 		},
@@ -67,7 +67,7 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 
 func TestGetMemberBudgetCapacity(t *testing.T) {
 	t.Parallel()
-	reserved := 2000.0
+	reserved := int64(2000)
 	node := types.BudgetNode{
 		ID: uuid.MustParse("00000000-0000-7000-0000-00000000da05"), Budget: 20000, ReservedPool: &reserved,
 		Children: []types.BudgetNode{
@@ -76,8 +76,8 @@ func TestGetMemberBudgetCapacity(t *testing.T) {
 		},
 	}
 	capacity := budget.GetMemberBudgetCapacity(node)
-	want := 20000.0 - 2000.0 - 8000.0 - 5000.0
+	want := int64(20000 - 2000 - 8000 - 5000)
 	if capacity != want {
-		t.Fatalf("expected capacity %f, got %f", want, capacity)
+		t.Fatalf("expected capacity %d, got %d", want, capacity)
 	}
 }

@@ -19,7 +19,7 @@ func TestConsumptionDeltas_MemberScope(t *testing.T) {
 		PlatformKeyID:    pkID,
 		PlatformKeyScope: types.PlatformKeyScopeMember,
 		MemberID:         &memberID,
-		Amount:           42.5,
+		Amount:           42,
 	}
 	open := pkgbudget.TestOpenBudgetPeriod("2026-07")
 	deltas, err := budget.ConsumptionDeltas(context.Background(), nil, entry, open)
@@ -32,7 +32,7 @@ func TestConsumptionDeltas_MemberScope(t *testing.T) {
 	if deltas[0].Kind != store.AxisKindPlatformKey || deltas[0].AxisID != pkID {
 		t.Errorf("delta[0] = %+v", deltas[0])
 	}
-	if deltas[0].Amount != 42.5 || deltas[0].PeriodKey != "2026-07" {
+	if deltas[0].Amount != 42 || deltas[0].PeriodKey != "2026-07" {
 		t.Errorf("delta[0] amount/period = %v/%v", deltas[0].Amount, deltas[0].PeriodKey)
 	}
 	if deltas[1].Kind != store.AxisKindMember || deltas[1].AxisID != memberID {

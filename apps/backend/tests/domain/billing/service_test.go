@@ -4,28 +4,21 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/adapter"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
-	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
 func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbilling.Service, store.Store, context.Context) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
-	wallet := company.NewWalletService(cfg, client)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
-		adapter.NewBillingEnqueuer(enqueuer),
-	)
+	svc := domainbilling.NewService(cfg, st, reader)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
@@ -68,9 +61,8 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	client := &mock.StubAdminClient{}
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), company.NewWalletService(cfg, client), domainbilling.NoopJobEnqueuer)
+	svc := domainbilling.NewService(cfg, st, reader)
 	ctx := testutil.Ctx()
 	view, err := svc.GetWallet(ctx)
 	if err != nil {
@@ -78,37 +70,6 @@ func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
 	}
 	if domainbilling.PrimaryWalletBalance(view) != 0 {
 		t.Fatalf("expected zero balance, got %v", domainbilling.PrimaryWalletBalance(view))
-	}
-}
-
-func TestPlatformRechargeEnqueuesWalletSyncWhenConfigured(t *testing.T) {
-	t.Parallel()
-	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	enqueuer := riverfix.NewInsertOnlyEnqueuer(t, cfg, st)
-	client := &mock.StubAdminClient{
-		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
-	}
-	wallet := company.NewWalletService(cfg, client)
-	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, newapi.NewAdminPortAdapter(client), wallet,
-		adapter.NewBillingEnqueuer(enqueuer),
-	)
-	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	walletID := int64(501)
-	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
-		t.Fatal(err)
-	}
-	ctx := company.WithContext(context.Background(), company.Context{
-		CompanyID: contract.DefaultCompanyID, NewAPIWalletUserID: walletID, Status: co.Status,
-	})
-	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 50, contract.IDMemberAdmin); err != nil {
-		t.Fatal(err)
-	}
-	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected wallet_sync job after platform recharge")
 	}
 }
 

@@ -1,5 +1,5 @@
 import type { CostSummary, DepartmentCost, DepartmentCostMember } from '@/api/types'
-import { formatMoney } from '@/lib/points'
+import { formatMoney } from '@/lib/quota-display'
 import { Coins, Zap, User, type LucideIcon } from 'lucide-react'
 
 export const COST_CHART_COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#06b6d4']

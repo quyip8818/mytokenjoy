@@ -64,15 +64,15 @@ const (
 )
 
 type UsageBucketRow struct {
-	BucketStart  time.Time
-	DepartmentID uuid.UUID
-	MemberID     uuid.UUID
-	Model        string
-	Cost         int64   // quota
-	DisplayCost  float64 // display currency (Σ ledger.display_amount)
-	CallCount    int
-	InputTokens  int64
-	OutputTokens int64
+	BucketStart   time.Time
+	DepartmentID  uuid.UUID
+	MemberID      uuid.UUID
+	Model         string
+	QuotaConsumed int64   // Σ ledger.amount (quota)
+	DisplayCost   float64 // display currency (Σ ledger.display_amount)
+	CallCount     int
+	InputTokens   int64
+	OutputTokens  int64
 }
 
 // Spend is the display-currency amount for dashboard / series APIs.
@@ -126,26 +126,26 @@ type UsageAggregateQuery struct {
 }
 
 type UsageAggregateRow struct {
-	Bucket       string
-	DepartmentID uuid.UUID
-	MemberID     uuid.UUID
-	Model        string
-	Cost         float64 // point
-	DisplayCost  float64 // display currency
-	CallCount    int
-	InputTokens  int64
-	OutputTokens int64
+	Bucket        string
+	DepartmentID  uuid.UUID
+	MemberID      uuid.UUID
+	Model         string
+	QuotaConsumed float64 // Σ quota (float64 for aggregation arithmetic)
+	DisplayCost   float64 // display currency
+	CallCount     int
+	InputTokens   int64
+	OutputTokens  int64
 }
 
 // Spend is the display-currency amount for dashboard / series APIs.
 func (r UsageAggregateRow) Spend() float64 { return r.DisplayCost }
 
 type UsageSummaryTotals struct {
-	Cost         float64 // point
-	DisplayCost  float64 // display currency
-	CallCount    int
-	InputTokens  int64
-	OutputTokens int64
+	QuotaConsumed float64 // Σ quota (float64 for aggregation arithmetic)
+	DisplayCost   float64 // display currency
+	CallCount     int
+	InputTokens   int64
+	OutputTokens  int64
 }
 
 // Spend is the display-currency amount for dashboard / series APIs.

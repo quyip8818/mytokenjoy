@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CALL_LOG_STATUS_LABELS, CALL_LOG_STATUS_VARIANTS } from '@/features/audit'
-import { formatMoney, currencySymbol } from '@/lib/points'
+import { formatMoney, currencySymbol } from '@/lib/quota-display'
 import { useBillingExchange } from '@/features/session'
 
 export interface CallLogsTableProps {

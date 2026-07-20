@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { PermissionGate } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 import type { useMyKeysPage } from '@/features/keys'
 import { MyKeysTable } from './my-keys-table'
 

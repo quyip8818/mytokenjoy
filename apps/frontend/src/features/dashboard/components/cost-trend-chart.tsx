@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import { DataSection } from '@/components/layout/data-section'
 import type { CostGranularity, DailyCost } from '@/api/types'
-import { formatMoney } from '@/lib/points'
+import { formatMoney } from '@/lib/quota-display'
 
 interface CostTrendChartProps {
   dailyCosts: DailyCost[]

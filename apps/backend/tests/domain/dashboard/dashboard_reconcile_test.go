@@ -50,15 +50,15 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 		bucketMemberID = *entry.MemberID
 	}
 	if err := st.Usage().SetBucket(ctx, types.UsageBucketRow{
-		BucketStart:  bucketStart,
-		DepartmentID: entry.DepartmentID,
-		MemberID:     bucketMemberID,
-		Model:        entry.Model,
-		Cost:         0.01,
-		DisplayCost:  0,
-		CallCount:    1,
-		InputTokens:  1,
-		OutputTokens: 1,
+		BucketStart:   bucketStart,
+		DepartmentID:  entry.DepartmentID,
+		MemberID:      bucketMemberID,
+		Model:         entry.Model,
+		QuotaConsumed: 1,
+		DisplayCost:   0,
+		CallCount:     1,
+		InputTokens:   1,
+		OutputTokens:  1,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -83,8 +83,8 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 	if repaired == nil {
 		t.Fatalf("expected repaired bucket, got %+v", buckets)
 	}
-	if repaired.Cost != entry.Amount {
-		t.Fatalf("expected point cost %f after reconcile, got %f", entry.Amount, repaired.Cost)
+	if repaired.QuotaConsumed != entry.Amount {
+		t.Fatalf("expected quota cost %d after reconcile, got %d", entry.Amount, repaired.QuotaConsumed)
 	}
 	if repaired.DisplayCost != entry.DisplayAmount {
 		t.Fatalf("expected display cost %f after reconcile, got %f", entry.DisplayAmount, repaired.DisplayCost)

@@ -45,7 +45,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatal("budget node not created")
 	}
 	if budgetNode.Budget != 0 {
-		t.Fatalf("expected budget 0, got %f", budgetNode.Budget)
+		t.Fatalf("expected budget 0, got %d", budgetNode.Budget)
 	}
 
 	rules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())

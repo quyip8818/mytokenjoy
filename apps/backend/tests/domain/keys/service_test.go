@@ -140,7 +140,7 @@ func TestApproveInsufficientReserved(t *testing.T) {
 	t.Parallel()
 	svc, _ := newKeysService(t)
 	created, err := svc.CreateApproval(testutil.Ctx(), types.CreateApprovalInput{
-		Type: "budget", Reason: "too much", RequestedBudget: 2_000_000,
+		Type: "budget", Reason: "too much", RequestedBudget: 1_000_000_000,
 		RequestedModels: []uuid.UUID{contract.IDModel1}, MemberID: contract.IDMember1,
 	})
 	if err != nil {
@@ -196,10 +196,10 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 
 func TestCreatePlatformKeyQuotaExceeded(t *testing.T) {
 	t.Parallel()
-	svc, _ := newKeysService(t)
+	svc, _, _ := newKeysServiceWithNewAPI(t)
 	memberID := contract.IDMember1
 	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
-		Name: "too-big", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 20_000_000,
+		Name: "too-big", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 99_000_000_000,
 		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
@@ -240,8 +240,8 @@ func TestCreateProjectKeyQuotaExceeded(t *testing.T) {
 
 func TestUpdatePlatformKeyQuota(t *testing.T) {
 	t.Parallel()
-	svc, _ := newKeysService(t)
-	quota := 20_000_000.0
+	svc, _, _ := newKeysServiceWithNewAPI(t)
+	quota := int64(99_000_000_000)
 	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Budget: &quota,
 	})
@@ -260,7 +260,7 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 
 	for _, tc := range []struct {
 		name    string
-		budget  float64
+		budget  int64
 		wantErr int
 	}{
 		{name: "rejects over member sub cap", budget: budgetfix.DisplayPoints(7000), wantErr: domain.StatusUnprocessable},
@@ -350,13 +350,13 @@ func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	ctx := testutil.Ctx()
 	// Zero out existing consumed, then set controlled values.
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 1000)
-	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey3, 234.5)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey3, 234)
 	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Consumed != 1234.5 {
-		t.Fatalf("expected consumed 1234.5 from snapshot, got %v", summary.Consumed)
+	if summary.Consumed != 1234 {
+		t.Fatalf("expected consumed 1234 from snapshot, got %v", summary.Consumed)
 	}
 }
 

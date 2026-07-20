@@ -3,7 +3,7 @@ import type { ProjectView, Member } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
 import { budgetApi } from '@/api/budget'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 import { BudgetMemberPicker } from './budget-member-picker'
 import {
   Dialog,

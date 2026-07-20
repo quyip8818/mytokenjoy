@@ -97,7 +97,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 		t.Fatalf("unexpected order: %+v err=%v", got, err)
 	}
 	order.Status = store.RechargeStatusConfirmed
-	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency, ppu)
+	lot := domainbilling.BuildPaidLot(order, common.DefaultBillingCurrency)
 	before, err := st.Company().GetByID(ctx, order.CompanyID)
 	if err != nil || before == nil {
 		t.Fatal("expected company before recharge")

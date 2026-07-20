@@ -15,10 +15,10 @@ type IngestBudgetFixture struct {
 	DepartmentID  uuid.UUID
 	PlatformKeyID uuid.UUID
 	MemberID      uuid.UUID // empty when ingest mapping has no member quota axis
-	Amount        float64
+	Amount        int64
 }
 
-func DefaultConsumeLogQuota() float64 {
+func DefaultConsumeLogQuota() int64 {
 	return 500_000
 }
 
@@ -60,7 +60,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 	}
 }
 
-func ingestHeadroomConsumed(limit, amount float64) float64 {
+func ingestHeadroomConsumed(limit, amount int64) int64 {
 	consumed := limit - amount
 	if consumed < 0 {
 		return 0

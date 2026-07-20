@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
-import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
+import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
 
 interface BudgetAllocationDialogProps {
   open: boolean
@@ -39,7 +39,7 @@ export function BudgetAllocationDialog({
     } else {
       const initial: Record<string, string> = {}
       for (const child of children) {
-        initial[child.id] = String(pointsToDisplay(child.budget))
+        initial[child.id] = String(quotaToDisplay(child.budget))
       }
       setDrafts(initial)
       setError(null)
@@ -51,21 +51,21 @@ export function BudgetAllocationDialog({
     setError(null)
     const updates: { id: string; budget: number }[] = []
     for (const child of children) {
-      const raw = drafts[child.id] ?? String(pointsToDisplay(child.budget))
+      const raw = drafts[child.id] ?? String(quotaToDisplay(child.budget))
       const value = parseFloat(raw)
       if (Number.isNaN(value) || value < 0) {
         setError(`"${child.name}" 额度无效`)
         return
       }
-      const budget = displayToPoints(value)
+      const budget = displayToQuota(value)
       if (budget !== child.budget) {
         updates.push({ id: child.id, budget })
       }
     }
 
     const newChildSum = children.reduce((sum, child) => {
-      const raw = drafts[child.id] ?? String(pointsToDisplay(child.budget))
-      return sum + displayToPoints(parseFloat(raw))
+      const raw = drafts[child.id] ?? String(quotaToDisplay(child.budget))
+      return sum + displayToQuota(parseFloat(raw))
     }, 0)
     const projectSum = nodeProjects.reduce((sum, p) => sum + p.budget, 0)
     if (newChildSum + projectSum > node.budget) {
@@ -107,7 +107,7 @@ export function BudgetAllocationDialog({
             <Input
               type="number"
               min={0}
-              value={drafts[child.id] ?? String(pointsToDisplay(child.budget))}
+              value={drafts[child.id] ?? String(quotaToDisplay(child.budget))}
               onChange={(e) => {
                 setDrafts((prev) => ({ ...prev, [child.id]: e.target.value }))
                 setError(null)

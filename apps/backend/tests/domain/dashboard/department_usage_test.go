@@ -16,22 +16,22 @@ func TestDepartmentUsageTopModelBatch(t *testing.T) {
 	ctx := testutil.Ctx()
 	base := time.Date(2026, 6, 19, 10, 0, 0, 0, time.UTC)
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		DepartmentID: contract.IDDept3,
-		Model:        "gpt-4o",
-		Cost:         30,
-		BucketStart:  base,
+		DepartmentID:  contract.IDDept3,
+		Model:         "gpt-4o",
+		QuotaConsumed: 30,
+		BucketStart:   base,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		DepartmentID: contract.IDDept3,
-		Model:        "gpt-4o-mini",
-		Cost:         5,
-		BucketStart:  base,
+		DepartmentID:  contract.IDDept3,
+		Model:         "gpt-4o-mini",
+		QuotaConsumed: 5,
+		BucketStart:   base,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		DepartmentID: contract.IDDept4,
-		Model:        "claude-3",
-		Cost:         20,
-		BucketStart:  base,
+		DepartmentID:  contract.IDDept4,
+		Model:         "claude-3",
+		QuotaConsumed: 20,
+		BucketStart:   base,
 	})
 
 	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, testutil.AdminDashboardScope())

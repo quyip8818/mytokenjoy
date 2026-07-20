@@ -42,7 +42,7 @@ func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return totals.CallCount == 0 && totals.Cost == 0 && totals.DisplayCost == 0, nil
+	return totals.CallCount == 0 && totals.QuotaConsumed == 0 && totals.DisplayCost == 0, nil
 }
 
 func buildUsageBuckets(refDate string) []types.UsageBucketRow {
@@ -53,10 +53,10 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	currentMonth := time.Date(anchor.Year(), anchor.Month(), 1, 0, 0, 0, 0, time.UTC)
 	lastMonth := currentMonth.AddDate(0, -1, 0)
 
-	// DemoLeafDeptConsumed is already in points (×PPU). Entry sketch costs are display yuan.
-	rootPoints := contract.DemoRootConsumed()
+	// DemoLeafDeptConsumed is already in quota (×QPU). Entry sketch costs are display yuan.
+	rootQuota := contract.DemoRootConsumed()
 	const rawDisplayTotal = 39.5
-	pointsScale := float64(rootPoints) / rawDisplayTotal
+	quotaScale := float64(rootQuota) / rawDisplayTotal
 	ppu := float64(common.DefaultQuotaPerUnit)
 
 	type entry struct {
@@ -109,15 +109,15 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	}
 
 	toBucket := func(e entry, when time.Time) types.UsageBucketRow {
-		points := e.cost * pointsScale
+		quota := e.cost * quotaScale
 		return types.UsageBucketRow{
-			BucketStart:  when,
-			DepartmentID: e.dept,
-			MemberID:     e.member,
-			Model:        e.model,
-			Cost:         int64(points),
-			DisplayCost:  points / ppu,
-			CallCount:    e.calls,
+			BucketStart:   when,
+			DepartmentID:  e.dept,
+			MemberID:      e.member,
+			Model:         e.model,
+			QuotaConsumed: int64(quota),
+			DisplayCost:   quota / ppu,
+			CallCount:     e.calls,
 		}
 	}
 

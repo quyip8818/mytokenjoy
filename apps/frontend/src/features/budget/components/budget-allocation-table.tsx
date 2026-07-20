@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
+import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
 
 type BudgetAllocationTableProps = {
   node: BudgetNode
@@ -52,10 +52,10 @@ export function BudgetAllocationTable({
           {children.map((child) => {
             const childPct =
               child.budget > 0 ? Math.round((child.consumed / child.budget) * 100) : 0
-            const draftBudget = drafts[child.id]?.budget ?? String(pointsToDisplay(child.budget))
+            const draftBudget = drafts[child.id]?.budget ?? String(quotaToDisplay(child.budget))
             const draftValue = parseFloat(draftBudget)
             const budgetOver =
-              editing && !Number.isNaN(draftValue) && displayToPoints(draftValue) > node.budget
+              editing && !Number.isNaN(draftValue) && displayToQuota(draftValue) > node.budget
 
             return (
               <TableRow key={child.id} className="even:bg-muted/40 hover:bg-muted/50">

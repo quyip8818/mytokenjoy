@@ -8,15 +8,16 @@ import { createMockApis, renderHookWithProviders } from '@tests/utils'
 
 describe('formatBudgetContext', () => {
   it('includes remaining budget and department label', () => {
+    // remaining=600000 quota → ¥1.20 at DEFAULT_QUOTA_PER_UNIT=500000
     expect(
       formatBudgetContext(
-        { remaining: 1200, consumed: 300, totalBudget: 1500, reservedPool: 0 },
+        { remaining: 600000, consumed: 150000, totalBudget: 750000, reservedPool: 0 },
         '研发部',
       ),
     ).toContain('研发部')
     expect(
       formatBudgetContext(
-        { remaining: 1200, consumed: 300, totalBudget: 1500, reservedPool: 0 },
+        { remaining: 600000, consumed: 150000, totalBudget: 750000, reservedPool: 0 },
         '研发部',
       ),
     ).toContain('¥1.2')

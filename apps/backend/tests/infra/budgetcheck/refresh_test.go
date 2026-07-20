@@ -31,7 +31,7 @@ func TestRefreshSummariesSetsWithoutStoreReads(t *testing.T) {
 		{
 			PlatformKeyID: uuid.MustParse("00000000-0000-7000-0000-00000000f001"),
 			KeyHash:       "hash-1",
-			Remain:        12.5,
+			Remain:        12,
 			UpdatedAt:     time.Unix(1, 0).UTC(),
 			Version:       3,
 		},

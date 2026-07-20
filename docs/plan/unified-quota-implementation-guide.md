@@ -88,7 +88,7 @@ type RechargeLot struct {
 | budget_consumed | consumed | bigint |
 | usage_ledger | amount | bigint |
 | usage_ledger | display_amount | float64 (= amount / lot.QuotaPerUnit) |
-| usage_buckets | cost | bigint |
+| usage_buckets | quota_consumed | bigint |
 | usage_buckets | display_cost | float64 |
 | combined_key_summaries | remain | bigint |
 
@@ -244,7 +244,7 @@ func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 | `domain/newapisync/platformkey/` | 删 `ToNewAPIUnits`；`UnlimitedQuota: true` |
 | `domain/budget/rebalance.go` | 删 `ToNewAPIUnits` 调用（token unlimited 后不再同步 remain） |
 | `http/handler/budget/` | API 请求/响应改 int64；下发 quotaPerUnit |
-| `domain/dashboard/bucket_from_ledger.go` | `Cost` 字段 = quota(int64)，`DisplayCost` = displayAmount(float64) |
+| `domain/dashboard/bucket_from_ledger.go` | `QuotaConsumed` 字段 = quota(int64)，`DisplayCost` = displayAmount(float64) |
 | `store/postgres/usage_aggregate.go` | dashboard series/summary API 返回 `display_cost` 而非 `cost` 给前端 |
 | `seed/filler/members.go` | `x * DefaultQuotaPerUnit` |
 | `seed/snapshot/models.go` | 模型价格存人民币元 |

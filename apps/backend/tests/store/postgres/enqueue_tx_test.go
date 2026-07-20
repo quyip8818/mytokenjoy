@@ -21,7 +21,7 @@ func TestInsertInTxRollsBackWithStoreTransaction(t *testing.T) {
 		if !ok {
 			t.Fatal("expected transactional store")
 		}
-		if err := jobs.InsertWalletSync(ctx, enqueuer, tx, contract.DefaultCompanyID); err != nil {
+		if err := jobs.InsertRebalance(ctx, enqueuer, tx, contract.DefaultCompanyID, store.RebalanceAxisCompany, contract.DefaultCompanyID); err != nil {
 			return err
 		}
 		return fmt.Errorf("force rollback")
@@ -29,8 +29,8 @@ func TestInsertInTxRollsBackWithStoreTransaction(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected forced rollback error")
 	}
-	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 0 {
-		t.Fatal("expected no wallet_sync job after transaction rollback")
+	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) != 0 {
+		t.Fatal("expected no rebalance job after transaction rollback")
 	}
 }
 
@@ -44,11 +44,11 @@ func TestInsertInTxCommitsWithStoreTransaction(t *testing.T) {
 		if !ok {
 			t.Fatal("expected transactional store")
 		}
-		return jobs.InsertWalletSync(ctx, enqueuer, tx, contract.DefaultCompanyID)
+		return jobs.InsertRebalance(ctx, enqueuer, tx, contract.DefaultCompanyID, store.RebalanceAxisCompany, contract.DefaultCompanyID)
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) != 1 {
-		t.Fatal("expected wallet_sync job after transaction commit")
+	if riverfix.PendingRebalanceCount(st, contract.DefaultCompanyID) != 1 {
+		t.Fatal("expected rebalance job after transaction commit")
 	}
 }

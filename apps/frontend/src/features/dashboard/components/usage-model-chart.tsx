@@ -9,7 +9,7 @@ import {
   Legend,
 } from 'recharts'
 import type { ModelUsage } from '@/api/types'
-import { formatMoney } from '@/lib/points'
+import { formatMoney } from '@/lib/quota-display'
 
 export interface UsageModelChartProps {
   modelUsage: readonly ModelUsage[]

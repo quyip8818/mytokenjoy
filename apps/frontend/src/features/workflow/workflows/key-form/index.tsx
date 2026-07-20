@@ -21,7 +21,7 @@ import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { useModelLabels } from '@/features/models'
 import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
 import { useBillingExchange } from '@/features/session'
-import { currencySymbol, formatDisplayCurrency } from '@/lib/points'
+import { currencySymbol, formatDisplayCurrency } from '@/lib/quota-display'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -37,7 +37,7 @@ export function KeyFormWorkflow({
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
   const { memberId } = useSession()
-  const { displayToPoints, billingCurrency } = useBillingExchange()
+  const { displayToQuota, billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const isCreate = entry.id === 'key-create'
@@ -83,7 +83,7 @@ export function KeyFormWorkflow({
     budgetSummary,
     projectBudgetRemaining,
     subBudgetRemaining,
-    budgetPoints,
+    budgetQuota,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
@@ -125,7 +125,7 @@ export function KeyFormWorkflow({
       toast.error(BUDGET_INSUFFICIENT_MESSAGE)
       return
     }
-    if (budgetSummary && budgetPoints > budgetSummary.remaining) {
+    if (budgetSummary && budgetQuota > budgetSummary.remaining) {
       toast.error(`额度不能超过剩余 ${formatDisplayCurrency(budgetSummary.remaining)}`)
       return
     }
@@ -149,7 +149,7 @@ export function KeyFormWorkflow({
               ? effectiveMemberId || undefined
               : undefined,
         projectId: scope === 'project' || scope === 'project_member' ? projectId : undefined,
-        budget: budgetPoints,
+        budget: budgetQuota,
         modelWhitelist: models,
       })
       toast.success('Key 创建成功')
@@ -175,7 +175,7 @@ export function KeyFormWorkflow({
     try {
       await apis.platformKeyApi.update(key.id, {
         name,
-        budget: displayToPoints(Number(budget) || 0),
+        budget: displayToQuota(Number(budget) || 0),
         modelWhitelist: models,
       })
       toast.success('Key 已更新')
@@ -361,7 +361,7 @@ export function KeyFormWorkflow({
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
               <p>名称：{name || '—'}</p>
-              <p>额度：{formatDisplayCurrency(budgetPoints)}</p>
+              <p>额度：{formatDisplayCurrency(budgetQuota)}</p>
               <p>模型：{models.length} 个</p>
             </div>
           ) : (

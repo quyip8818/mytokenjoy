@@ -1,7 +1,7 @@
 import { AlertTriangle, BarChart3, Gift, TrendingUp, Wallet } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
 import type { WalletView } from '@/api/billing'
-import { formatCurrencyAmount, formatMoney } from '@/lib/points'
+import { formatCurrencyAmount, formatMoney } from '@/lib/quota-display'
 import { primaryWalletBalance } from '../lib/selectors'
 
 interface WalletStatsProps {
@@ -14,12 +14,12 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
   const balance = primary?.balance ?? 0
   const totalConsumed = primary?.totalConsumed ?? 0
   const totalTopup = primary?.totalTopup ?? 0
-  const walletRemainPoint = wallet?.walletRemainPoint ?? 0
-  const giftPoints = wallet?.giftPoints ?? 0
-  const overdraftPoints = wallet?.overdraftPoints ?? 0
+  const walletRemain = wallet?.walletRemain ?? 0
+  const giftQuota = wallet?.giftQuota ?? 0
+  const overdraftQuota = wallet?.overdraftQuota ?? 0
   const totalRequests = wallet?.totalRequests ?? 0
   const balances = wallet?.balances ?? []
-  const hasOverdraft = overdraftPoints > 0
+  const hasOverdraft = overdraftQuota > 0
 
   return (
     <div className="space-y-4">
@@ -39,14 +39,14 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
         <StatCard
           icon={BarChart3}
           iconLayout="inline"
-          label="可用 point"
-          value={loading ? '—' : walletRemainPoint.toLocaleString()}
+          label="可用 quota"
+          value={loading ? '—' : walletRemain.toLocaleString()}
         />
         <StatCard
           icon={Gift}
           iconLayout="inline"
-          label="赠送 point"
-          value={loading ? '—' : giftPoints.toLocaleString()}
+          label="赠送 quota"
+          value={loading ? '—' : giftQuota.toLocaleString()}
         />
       </div>
 
@@ -74,7 +74,7 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           <AlertTriangle className="size-4 shrink-0" />
           <span>
-            透支额度 {overdraftPoints.toLocaleString()} point，请尽快充值（累计充值{' '}
+            透支额度 {overdraftQuota.toLocaleString()} quota，请尽快充值（累计充值{' '}
             {formatMoney(totalTopup)}）
           </span>
         </div>

@@ -111,7 +111,7 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 // (project keys without a member) still have their budget_consumed incremented.
 func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 77, RemainQuota: 1000}}
-	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
+	_, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 
 	fullKey := "sk-app-key-test"
@@ -141,7 +141,6 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 98002, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(t, ctx)
 
 	after := budgetfix.PlatformKeySnapshotConsumed(t, st, plk3)
 	if after <= before {
@@ -149,13 +148,15 @@ func TestIngestAppKeyIncrementsPlatformKeyConsumed(t *testing.T) {
 	}
 }
 
-// TestIngestEnqueuesWalletSyncOnly verifies that after a successful ingest,
-// wallet_sync is enqueued but dashboard_project is NOT (driven by hourly watchdog instead).
-func TestIngestEnqueuesWalletSyncOnly(t *testing.T) {
+// TestIngestDoesNotEnqueueDashboard verifies that after a successful ingest,
+// dashboard_project is NOT enqueued (driven by hourly watchdog instead).
+func TestIngestDoesNotEnqueueDashboard(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	_, st, ingest := riverfix.NewIngestRuntime(t, stub)
 
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
+	// Seed combined_key_remain so overrun safety-enqueue doesn't trigger.
+	budgetfix.SetCombinedKeyRemain(t, st, contract.IDPlatformKey1, 999_999_999)
 	testutil.SeedConsumeLog(t, st, testutil.DefaultConsumeLog(4101, 99))
 
 	if err := ingest.IngestByLogID(testutil.Ctx(), 4101, types.SourceWebhook); err != nil {
@@ -169,9 +170,6 @@ func TestIngestEnqueuesWalletSyncOnly(t *testing.T) {
 		t.Fatal("expected no rebalance jobs directly from ingest")
 	}
 	if riverfix.PendingOverrunCount(st, contract.DefaultCompanyID) != 0 {
-		t.Fatal("expected no overrun jobs directly from ingest")
-	}
-	if riverfix.PendingWalletSyncCount(st, contract.DefaultCompanyID) == 0 {
-		t.Fatal("expected wallet_sync job after ingest")
+		t.Fatal("expected no overrun jobs directly from ingest when remain is high")
 	}
 }

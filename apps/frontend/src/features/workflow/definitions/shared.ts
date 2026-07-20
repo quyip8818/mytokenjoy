@@ -1,4 +1,4 @@
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 import { defineWorkflow } from '../types'
 import { defineAlertWorkflow } from '../define-alert-workflow'
 import { RejectReasonWorkflow } from '../workflows/reject-reason'

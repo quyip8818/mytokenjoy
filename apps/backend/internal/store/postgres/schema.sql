@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS company_recharge_lots (
 
 CREATE INDEX IF NOT EXISTS idx_recharge_lots_fifo
     ON company_recharge_lots (company_id, created_at)
-    WHERE status = 'active' AND points_remaining > 0;
+    WHERE status = 'active' AND quota_remaining > 0;
 
 CREATE INDEX IF NOT EXISTS idx_company_recharge_orders_company ON company_recharge_orders (company_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_company_recharge_orders_idempotency
@@ -516,7 +516,7 @@ CREATE TABLE IF NOT EXISTS usage_buckets (
     member_id     UUID,
     member_scope  TEXT GENERATED ALWAYS AS (COALESCE(member_id::text, '')) STORED,
     model         TEXT NOT NULL,
-    cost          BIGINT NOT NULL DEFAULT 0,
+    quota_consumed BIGINT NOT NULL DEFAULT 0,
     display_cost  NUMERIC(18, 6) NOT NULL DEFAULT 0,
     call_count    INT NOT NULL DEFAULT 0,
     input_tokens  BIGINT NOT NULL DEFAULT 0,

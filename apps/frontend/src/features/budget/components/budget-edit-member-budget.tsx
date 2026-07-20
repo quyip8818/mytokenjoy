@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
+import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
 import { useAsyncFetch } from '@/features/budget'
@@ -142,10 +142,10 @@ function MemberBudgetEditDialog({
     }
     setSavingAverage(true)
     try {
-      const points = displayToPoints(value)
-      await applyAverageBudget(departmentId, { personalBudget: points, recursive: true })
+      const quota = displayToQuota(value)
+      await applyAverageBudget(departmentId, { personalBudget: quota, recursive: true })
       onUpdated()
-      toast.success(`已将所有成员额度设置为 ${formatDisplayCurrency(points)}/人`)
+      toast.success(`已将所有成员额度设置为 ${formatDisplayCurrency(quota)}/人`)
       handleClose()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '设置失败，请重试')
@@ -156,7 +156,7 @@ function MemberBudgetEditDialog({
 
   const startEdit = useCallback((member: MemberBudget) => {
     setEditingId(member.memberId)
-    setDraft(String(pointsToDisplay(member.personalBudget)))
+    setDraft(String(quotaToDisplay(member.personalBudget)))
   }, [])
 
   const cancelEdit = useCallback(() => {
@@ -174,7 +174,7 @@ function MemberBudgetEditDialog({
       setSaving(true)
       try {
         const updated = await updateMemberBudget(memberId, {
-          personalBudget: displayToPoints(value),
+          personalBudget: displayToQuota(value),
         })
         replaceMembers(members.map((m) => (m.memberId === memberId ? updated : m)))
         setEditingId(null)

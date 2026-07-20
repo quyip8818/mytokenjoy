@@ -59,7 +59,7 @@ func TestValidateMemberBudgetBelowAllocated(t *testing.T) {
 func TestValidateMemberBudgetExceedsDeptCapacity(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
-		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), Budget: 20000, ReservedPool: budgetfix.FloatPtr(2000)},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), Budget: 20000, ReservedPool: budgetfix.Int64Ptr(2000)},
 	}
 	members := []types.Member{
 		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), PersonalBudget: 10000},

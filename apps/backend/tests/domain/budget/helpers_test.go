@@ -83,7 +83,7 @@ func prepareDept3NodeUpdateFixture(t *testing.T, st store.Store) {
 
 // chooseValidDeptBudget picks the smallest budget >= allocated obligations that passes
 // the same validation as domain UpdateNode, optionally bumped when parent headroom allows.
-func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reserved float64) float64 {
+func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reserved int64) int64 {
 	t.Helper()
 	inputs := loadDeptBudgetInputs(t, st, deptID)
 	node := pkgbudget.FindBudgetNode(inputs.tree, deptID)
@@ -92,7 +92,7 @@ func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reser
 		pkgbudget.ProjectsBudgetForDept(inputs.projects, deptID) +
 		pkgbudget.MemberBudgetSumForDept(inputs.members, deptID)
 
-	candidates := []float64{floor + budgetfix.DisplayPoints(1000), floor}
+	candidates := []int64{floor + budgetfix.DisplayPoints(1000), floor}
 	for _, budget := range candidates {
 		if msg := pkgbudget.ValidateBudgetNodeUpdate(
 			inputs.tree, deptID, budget, reserved, inputs.projects, inputs.members,

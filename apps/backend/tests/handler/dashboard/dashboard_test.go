@@ -76,10 +76,10 @@ func TestDashboardDefaultApp(t *testing.T) {
 	})
 
 	t.Run("usage series group by department", func(t *testing.T) {
-		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{Cost: 4})
+		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{QuotaConsumed: 4})
 		testutil.SeedUsageBucket(t, app.Store, testutil.UsageBucketOpts{
 			BucketStart:  time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-			DepartmentID: contract.IDDept4, MemberID: contract.IDMember4, Cost: 6,
+			DepartmentID: contract.IDDept4, MemberID: contract.IDMember4, QuotaConsumed: 6,
 		})
 		req := httptest.NewRequest(http.MethodGet, "/api/dashboard/usage/series?granularity=day&start=2026-06-10&end=2026-06-11&groupBy=department", nil)
 		req.Header.Set("Cookie", adminCookie)

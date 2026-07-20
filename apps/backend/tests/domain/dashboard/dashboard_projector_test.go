@@ -63,12 +63,12 @@ func TestDashboardProjectorUpsertBucketFromLedger(t *testing.T) {
 	}
 	found := false
 	for _, b := range buckets {
-		if b.Model == entries[0].Model && b.Cost == entries[0].Amount && b.DisplayCost == entries[0].DisplayAmount {
+		if b.Model == entries[0].Model && b.QuotaConsumed == entries[0].Amount && b.DisplayCost == entries[0].DisplayAmount {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("expected bucket with cost=%f display_cost=%f, got %+v", entries[0].Amount, entries[0].DisplayAmount, buckets)
+		t.Fatalf("expected bucket with quota_consumed=%d display_cost=%f, got %+v", entries[0].Amount, entries[0].DisplayAmount, buckets)
 	}
 }

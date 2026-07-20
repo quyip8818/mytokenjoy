@@ -1,6 +1,6 @@
 import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { DataSection } from '@/components/layout/data-section'
-import { formatMoney } from '@/lib/points'
+import { formatMoney } from '@/lib/quota-display'
 
 interface CostDistributionChartProps {
   data: Array<{ departmentName: string; cost: number; fill: string }>

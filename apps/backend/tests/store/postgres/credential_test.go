@@ -43,7 +43,7 @@ func TestUsageBucketQuerySeriesHour(t *testing.T) {
 	bucket := time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: uuid.MustParse("00000000-0000-7000-0000-000000ddd001"), MemberID: uuid.MustParse("00000000-0000-7000-0000-000000eee001"),
-		Model: "gpt-4o", Cost: 9000, DisplayCost: 9, CallCount: 2,
+		Model: "gpt-4o", QuotaConsumed: 9000, DisplayCost: 9, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}

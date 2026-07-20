@@ -5,6 +5,7 @@ package worker_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -34,11 +35,18 @@ func TestWorkerProcessesRebalanceQueue(t *testing.T) {
 	}
 
 	fix.runRiver(t)
-	if stub.UpdateTokenCalls == 0 {
-		t.Fatal("expected rebalance processor to update token")
-	}
+
+	// Rebalance no longer calls NewAPI (tokens are unlimited_quota=true).
+	// Verify the job was drained and combined_key_remain was recomputed.
 	if riverfix.PendingRebalanceCount(fix.st, contract.DefaultCompanyID) != 0 {
 		t.Fatal("expected rebalance queue drained")
+	}
+	summaries, err := fix.st.CombinedKeySummaries().ListByPlatformKeyIDs(ctx, []uuid.UUID{contract.IDPlatformKey1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) == 0 {
+		t.Fatal("expected combined_key_summary to be computed after rebalance")
 	}
 }
 

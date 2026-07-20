@@ -77,7 +77,7 @@ func aggregateUsageRows(
 		existing.DepartmentID = key.DepartmentID
 		existing.MemberID = key.MemberID
 		existing.Model = key.Model
-		existing.Cost += float64(row.Cost)
+		existing.QuotaConsumed += float64(row.QuotaConsumed)
 		existing.DisplayCost += row.DisplayCost
 		existing.CallCount += row.CallCount
 		existing.InputTokens += row.InputTokens
@@ -125,7 +125,7 @@ func summaryUsageTotals(rows []types.UsageBucketRow, start, end time.Time) types
 		if row.BucketStart.Before(start) || !row.BucketStart.Before(end) {
 			continue
 		}
-		totals.Cost += float64(row.Cost)
+		totals.QuotaConsumed += float64(row.QuotaConsumed)
 		totals.DisplayCost += row.DisplayCost
 		totals.CallCount += row.CallCount
 		totals.InputTokens += row.InputTokens

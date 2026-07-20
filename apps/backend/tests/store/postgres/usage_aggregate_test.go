@@ -11,17 +11,17 @@ import (
 
 var loc = time.UTC
 
-func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost float64, calls int) types.UsageBucketRow {
+func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost int64, calls int) types.UsageBucketRow {
 	return types.UsageBucketRow{
-		BucketStart:  bucket,
-		DepartmentID: dept,
-		MemberID:     member,
-		Model:        model,
-		Cost:         cost,
-		DisplayCost:  cost,
-		CallCount:    calls,
-		InputTokens:  int64(calls * 100),
-		OutputTokens: int64(calls * 50),
+		BucketStart:   bucket,
+		DepartmentID:  dept,
+		MemberID:      member,
+		Model:         model,
+		QuotaConsumed: cost,
+		DisplayCost:   float64(cost),
+		CallCount:     calls,
+		InputTokens:   int64(calls * 100),
+		OutputTokens:  int64(calls * 50),
 	}
 }
 
@@ -83,8 +83,8 @@ func TestSummaryTotals(t *testing.T) {
 	}
 
 	totals := postgres.TestHookSummaryUsageTotals(rows, start, end)
-	if totals.Cost != 30 {
-		t.Errorf("Cost = %v, want 30", totals.Cost)
+	if totals.QuotaConsumed != 30 {
+		t.Errorf("Cost = %v, want 30", totals.QuotaConsumed)
 	}
 	if totals.CallCount != 3 {
 		t.Errorf("CallCount = %v, want 3", totals.CallCount)
@@ -94,10 +94,10 @@ func TestSummaryTotals(t *testing.T) {
 func TestLimitByCost(t *testing.T) {
 	t.Parallel()
 	rows := []types.UsageAggregateRow{
-		{Cost: 10, DisplayCost: 10},
-		{Cost: 50, DisplayCost: 50},
-		{Cost: 30, DisplayCost: 30},
-		{Cost: 20, DisplayCost: 20},
+		{QuotaConsumed: 10, DisplayCost: 10},
+		{QuotaConsumed: 50, DisplayCost: 50},
+		{QuotaConsumed: 30, DisplayCost: 30},
+		{QuotaConsumed: 20, DisplayCost: 20},
 	}
 
 	t.Run("limits to top N", func(t *testing.T) {

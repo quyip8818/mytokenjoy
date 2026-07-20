@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { ApprovalStatusBadge } from './status-badges'
-import { currencySymbol, formatDisplayCurrency } from '@/lib/points'
+import { currencySymbol, formatDisplayCurrency } from '@/lib/quota-display'
 import { useBillingExchange } from '@/features/session'
 
 interface ApprovalTableProps {

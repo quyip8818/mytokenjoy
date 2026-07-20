@@ -13,8 +13,8 @@ import (
 
 // SeedTrialCredit creates a trial lot with simulated funds for a newly registered
 // trial company. Call within the registration transaction after company creation.
-func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID uuid.UUID, trialPoints float64) error {
-	if trialPoints <= 0 {
+func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID uuid.UUID, trialQuota int64) error {
+	if trialQuota <= 0 {
 		return fmt.Errorf("trial credit amount must be positive")
 	}
 	currency := common.DefaultBillingCurrency
@@ -28,7 +28,7 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID u
 		Amount:       0,
 		Currency:     currency,
 		QuotaPerUnit: ppu,
-		QuotaGranted: int64(trialPoints),
+		QuotaGranted: trialQuota,
 		Source:       store.RechargeSourceSystem,
 		LotKind:      store.LotKindMock,
 		Status:       store.RechargeStatusConfirmed,
@@ -37,7 +37,7 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID u
 		UpdatedAt:    now,
 	}
 	lot := BuildMockLot(order, currency)
-	return billinglot.CreditFromLot(ctx, st, order, lot, int64(trialPoints))
+	return billinglot.CreditFromLot(ctx, st, order, lot, trialQuota)
 }
 
 // TrialUpgradeStore is the minimal store surface needed for the trial→standard upgrade.
@@ -67,7 +67,7 @@ func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID uuid.UU
 			return err
 		}
 
-		// 3. Recompute wallet_remain = sum of remaining active lot points.
+		// 3. Recompute wallet_remain = sum of remaining active lot quota.
 		remain, err := tx.Billing().SumActiveLotsRemaining(ctx, companyID)
 		if err != nil {
 			return err

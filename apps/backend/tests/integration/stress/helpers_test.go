@@ -31,9 +31,9 @@ import (
 // ---------------------------------------------------------------------------
 
 type stressEnvOpts struct {
-	KeyBudget       float64
-	MemberBudget    float64
-	DeptBudget      float64
+	KeyBudget       int64
+	MemberBudget    int64
+	DeptBudget      int64
 	AlertThresholds []int
 }
 
@@ -311,12 +311,12 @@ func keyHashForPlatformKey(t *testing.T, st store.Store) string {
 }
 
 // consumedForKey returns the current budget_consumed value for a platform key.
-func consumedForKey(t *testing.T, st store.Store, keyID uuid.UUID) float64 {
+func consumedForKey(t *testing.T, st store.Store, keyID uuid.UUID) int64 {
 	t.Helper()
 	return budgetfix.PlatformKeySnapshotConsumed(t, st, keyID)
 }
 
-// formatPoints formats a float64 as a concise string for logging.
-func formatPoints(v float64) string {
-	return fmt.Sprintf("%.2f", v)
+// formatPoints formats an int64 quota value for logging.
+func formatPoints(v int64) string {
+	return fmt.Sprintf("%d", v)
 }

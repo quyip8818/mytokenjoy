@@ -117,13 +117,12 @@ func testDeptAlertNoBlock(t *testing.T) {
 	env := buildStressEnv(t, stressEnvOpts{
 		KeyBudget:       1_000_000,
 		MemberBudget:    1_000_000,
-		DeptBudget:      1, // very low dept budget to trigger
+		DeptBudget:      1, // very low dept budget to trigger alert
 		AlertThresholds: []int{50, 80, 100},
 	})
 
-	// Ingest enough to exceed dept budget
+	// Ingest enough to exceed dept budget (alert fires post-commit, no River job needed).
 	seedAndIngest(t, env, 100000)
-	drainOverrunJobs(t, env)
 
 	// Key should STILL be active (dept overrun is notify-only)
 	assertKeyActive(t, env.Store, contract.IDPlatformKey1)
@@ -157,7 +156,7 @@ func testIdempotentReplay(t *testing.T) {
 
 	// Consumed should not have increased
 	afterConsumed := consumedForKey(t, env.Store, contract.IDPlatformKey1)
-	if afterConsumed > firstConsumed+0.001 {
+	if afterConsumed > firstConsumed {
 		t.Errorf("idempotent replay increased consumed: before=%s after=%s",
 			formatPoints(firstConsumed), formatPoints(afterConsumed))
 	}

@@ -3,7 +3,7 @@ import type { CallLog } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatMoney } from '@/lib/points'
+import { formatMoney } from '@/lib/quota-display'
 
 interface CallLogsListProps {
   logs: CallLog[]

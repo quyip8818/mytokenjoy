@@ -15,7 +15,7 @@ import (
 // headroom for a successful ingest. Use this instead of UpsertMapping when the
 // test expects ingest to succeed without immediate overrun; demo seed dept-3 is intentionally
 // over budget.
-func PrepareIngestFixture(t *testing.T, st store.Store, opts MappingOpts, amount ...float64) {
+func PrepareIngestFixture(t *testing.T, st store.Store, opts MappingOpts, amount ...int64) {
 	t.Helper()
 	if opts.PlatformKeyID == uuid.Nil {
 		opts = DefaultMappingOpts()

@@ -16,18 +16,18 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	ctx := testutil.Ctx()
 	bucket := time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC)
 	row := types.UsageBucketRow{
-		BucketStart:  bucket,
-		DepartmentID: uuid.MustParse("00000000-0000-7000-8000-00000000dd01"),
-		MemberID:     uuid.MustParse("00000000-0000-7000-8000-00000000ee01"),
-		Model:        "gpt-4o",
-		Cost:         1.5,
-		DisplayCost:  0.015,
-		CallCount:    1,
+		BucketStart:   bucket,
+		DepartmentID:  uuid.MustParse("00000000-0000-7000-8000-00000000dd01"),
+		MemberID:      uuid.MustParse("00000000-0000-7000-8000-00000000ee01"),
+		Model:         "gpt-4o",
+		QuotaConsumed: 1,
+		DisplayCost:   0.015,
+		CallCount:     1,
 	}
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
 	}
-	row.Cost = 2.5
+	row.QuotaConsumed = 2
 	row.DisplayCost = 0.025
 	row.CallCount = 1
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
@@ -41,17 +41,18 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	}
 	defer conn.Close(ctx)
 
-	var cost, displayCost float64
+	var quotaConsumed int64
+	var displayCost float64
 	var callCount int
 	err = conn.QueryRow(ctx, `
-		SELECT cost, display_cost, call_count FROM usage_buckets
+		SELECT quota_consumed, display_cost, call_count FROM usage_buckets
 		WHERE bucket_start = $1 AND department_id = $2 AND member_id = $3 AND model = $4
-	`, bucket, row.DepartmentID, row.MemberID, row.Model).Scan(&cost, &displayCost, &callCount)
+	`, bucket, row.DepartmentID, row.MemberID, row.Model).Scan(&quotaConsumed, &displayCost, &callCount)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cost != 4.0 || displayCost != 0.04 || callCount != 2 {
-		t.Fatalf("expected accumulated usage 4.0/0.04/2 calls, got cost=%v display=%v calls=%d", cost, displayCost, callCount)
+	if quotaConsumed != 3 || displayCost != 0.04 || callCount != 2 {
+		t.Fatalf("expected accumulated usage 3/0.04/2 calls, got cost=%d display=%v calls=%d", quotaConsumed, displayCost, callCount)
 	}
 }
 
@@ -62,7 +63,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: uuid.MustParse("00000000-0000-7000-8000-00000000dd02"), MemberID: uuid.MustParse("00000000-0000-7000-8000-00000000ee02"),
-		Model: "gpt-4o", Cost: 5000, DisplayCost: 5, CallCount: 2,
+		Model: "gpt-4o", QuotaConsumed: 5000, DisplayCost: 5, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}

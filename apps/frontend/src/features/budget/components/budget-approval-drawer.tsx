@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
 
 interface BudgetApprovalDrawerProps {

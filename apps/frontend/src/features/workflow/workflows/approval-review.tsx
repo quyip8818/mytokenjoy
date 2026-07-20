@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
 import { useModelLabels } from '@/features/models'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 
 export function ApprovalReviewWorkflow({
   entry,

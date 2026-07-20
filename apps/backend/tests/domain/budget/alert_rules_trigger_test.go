@@ -62,7 +62,7 @@ func TestOverrunMemberThresholdSendsNotification(t *testing.T) {
 	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
-	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100)
 
 	payload, err := json.Marshal(map[string]any{
 		"memberId":      contract.IDMember1,
@@ -132,7 +132,7 @@ func TestOverrunProjectSendsNotification(t *testing.T) {
 		t.Fatal("expected projects in seed")
 	}
 	groupID := groups[0].ID
-	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
+	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, groups[0].Budget+1)
 	groupIDCopy := groupID
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {

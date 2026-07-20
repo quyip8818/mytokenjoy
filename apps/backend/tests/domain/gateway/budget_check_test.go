@@ -30,7 +30,7 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		remain  float64
+		remain  int64
 		wantErr bool
 	}{
 		{name: "exhausted blocks", remain: -1, wantErr: true},

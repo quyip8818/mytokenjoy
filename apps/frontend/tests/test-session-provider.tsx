@@ -4,7 +4,7 @@ import type { CompanyType } from '@/api/types/common'
 import { BillingExchangeProvider } from '@/features/session/billing-exchange-provider'
 import { SessionReactContext } from '@/features/session/context'
 import type { AppSession } from '@/features/session/types'
-import { createBillingExchange } from '@/lib/points'
+import { createBillingExchange } from '@/lib/quota-display'
 import { mockMember } from '@tests/fixtures/members'
 
 export function TestSessionProvider({

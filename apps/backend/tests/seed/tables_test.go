@@ -89,10 +89,10 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, budgetfix.DisplayPoints(20000), budgetfix.DisplayPoints(1500))
 }
 
-func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID uuid.UUID, wantBudget, wantReserved float64) {
+func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID uuid.UUID, wantBudget, wantReserved int64) {
 	t.Helper()
-	var budget float64
-	var reserved *float64
+	var budget int64
+	var reserved *int64
 	err := pool.QueryRow(ctx, `
 		SELECT budget, reserved_pool
 		FROM org_node_budget

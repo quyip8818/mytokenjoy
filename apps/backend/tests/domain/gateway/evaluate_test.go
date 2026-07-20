@@ -54,7 +54,7 @@ func TestEvaluateAllowsNullRemain(t *testing.T) {
 func TestEvaluateAllowsPositiveRemain(t *testing.T) {
 	t.Parallel()
 	pc := gatewaytf.BasePrecheckContext()
-	pos := 10.0
+	pos := int64(10)
 	pc.Budget.Remain = &pos
 	if err := domaingateway.Evaluate(pc, "gpt-4o", precheckOpts(false, false)); err != nil {
 		t.Fatalf("expected pass, got %v", err)
@@ -64,12 +64,12 @@ func TestEvaluateAllowsPositiveRemain(t *testing.T) {
 func TestEvaluateModelsListingSkipsAllowlistNotBudget(t *testing.T) {
 	t.Parallel()
 	pc := gatewaytf.BasePrecheckContext()
-	zero := 0.0
+	zero := int64(0)
 	pc.Budget.Remain = &zero
 	if err := domaingateway.Evaluate(pc, "", precheckOpts(true, false)); err == nil {
 		t.Fatal("expected budget exhausted for /v1/models path")
 	}
-	pos := 10.0
+	pos := int64(10)
 	pc.Budget.Remain = &pos
 	if err := domaingateway.Evaluate(pc, "", precheckOpts(true, false)); err != nil {
 		t.Fatalf("expected pass without model check, got %v", err)

@@ -3,7 +3,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { MemberBudgetSummary, PlatformKey, PlatformKeyScope } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { useBillingExchange } from '@/features/session'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 
 export function formatBudgetContext(
   summary: MemberBudgetSummary | null,
@@ -35,7 +35,7 @@ export function useKeyFormBudget({
   injectedApis,
 }: UseKeyFormBudgetOptions) {
   const apis = useInjectedApis(injectedApis)
-  const { displayToPoints } = useBillingExchange()
+  const { displayToQuota } = useBillingExchange()
   const [budgetState, setBudgetState] = useState<{
     memberId: string
     summary: MemberBudgetSummary
@@ -100,7 +100,7 @@ export function useKeyFormBudget({
     }
   }, [apis, effectiveMemberId, isCreate, projectId, scope])
 
-  const budgetPoints = displayToPoints(Number(budget) || 0)
+  const budgetQuota = displayToQuota(Number(budget) || 0)
   const budgetSummary = budgetState?.memberId === effectiveMemberId ? budgetState.summary : null
   const budgetInsufficient =
     isCreate &&
@@ -112,23 +112,23 @@ export function useKeyFormBudget({
     isCreate &&
     scope === 'member' &&
     budgetSummary !== null &&
-    budgetPoints > budgetSummary.remaining
+    budgetQuota > budgetSummary.remaining
   const projectBudgetExceeds =
     isCreate &&
     scope === 'project' &&
     projectBudgetRemaining !== null &&
-    budgetPoints > projectBudgetRemaining
+    budgetQuota > projectBudgetRemaining
   const subBudgetExceeds =
     isCreate &&
     scope === 'project_member' &&
     subBudgetRemaining !== null &&
-    budgetPoints > subBudgetRemaining
+    budgetQuota > subBudgetRemaining
 
   return {
     budgetSummary,
     projectBudgetRemaining,
     subBudgetRemaining,
-    budgetPoints,
+    budgetQuota,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
@@ -154,13 +154,13 @@ export function useKeyFormState({
   initialName,
   initialBudget,
 }: UseKeyFormStateOptions) {
-  const { pointsToDisplay } = useBillingExchange()
+  const { quotaToDisplay } = useBillingExchange()
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
   const [budget, setBudget] = useState(() => {
-    if (key != null) return String(pointsToDisplay(key.budget))
+    if (key != null) return String(quotaToDisplay(key.budget))
     if (initialBudget != null) return initialBudget
-    return String(pointsToDisplay(5000))
+    return String(quotaToDisplay(5000))
   })
   const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(

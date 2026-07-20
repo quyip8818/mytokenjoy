@@ -15,24 +15,24 @@ import (
 )
 
 type UsageBucketOpts struct {
-	BucketStart  time.Time
-	DepartmentID uuid.UUID
-	MemberID     uuid.UUID
-	Model        string
-	Cost         float64
-	DisplayCost  float64
-	CallCount    int
+	BucketStart   time.Time
+	DepartmentID  uuid.UUID
+	MemberID      uuid.UUID
+	Model         string
+	QuotaConsumed int64
+	DisplayCost   float64
+	CallCount     int
 }
 
 func DefaultUsageBucketOpts() UsageBucketOpts {
 	return UsageBucketOpts{
-		BucketStart:  time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC),
-		DepartmentID: contract.IDDept3,
-		MemberID:     contract.IDMember1,
-		Model:        "gpt-4o",
-		Cost:         1,
-		DisplayCost:  1,
-		CallCount:    1,
+		BucketStart:   time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC),
+		DepartmentID:  contract.IDDept3,
+		MemberID:      contract.IDMember1,
+		Model:         "gpt-4o",
+		QuotaConsumed: 1,
+		DisplayCost:   1,
+		CallCount:     1,
 	}
 }
 
@@ -54,12 +54,12 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 	if opts.CallCount == 0 {
 		opts.CallCount = def.CallCount
 	}
-	if opts.DisplayCost == 0 && opts.Cost != 0 {
-		opts.DisplayCost = opts.Cost
+	if opts.DisplayCost == 0 && opts.QuotaConsumed != 0 {
+		opts.DisplayCost = float64(opts.QuotaConsumed)
 	}
 	if err := st.Usage().UpsertBucket(Ctx(), types.UsageBucketRow{
 		BucketStart: opts.BucketStart, DepartmentID: opts.DepartmentID, MemberID: opts.MemberID,
-		Model: opts.Model, Cost: opts.Cost, DisplayCost: opts.DisplayCost, CallCount: opts.CallCount,
+		Model: opts.Model, QuotaConsumed: opts.QuotaConsumed, DisplayCost: opts.DisplayCost, CallCount: opts.CallCount,
 	}); err != nil {
 		t.Fatal(err)
 	}

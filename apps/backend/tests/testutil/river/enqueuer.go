@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
-	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
@@ -31,12 +30,6 @@ func NewInsertOnlyEnqueuer(t *testing.T, cfg config.Config, st store.Store) jobs
 func NewBudgetInsertOnlyEnqueuer(t *testing.T, cfg config.Config, st store.Store) domainbudget.JobEnqueuer {
 	t.Helper()
 	return adapter.NewBudgetEnqueuer(NewInsertOnlyEnqueuer(t, cfg, st))
-}
-
-// NewBillingInsertOnlyEnqueuer wraps NewInsertOnlyEnqueuer as domain/billing.JobEnqueuer.
-func NewBillingInsertOnlyEnqueuer(t *testing.T, cfg config.Config, st store.Store) domainbilling.JobEnqueuer {
-	t.Helper()
-	return adapter.NewBillingEnqueuer(NewInsertOnlyEnqueuer(t, cfg, st))
 }
 
 // budgetEnqueuerFromHolder adapts a jobs.Enqueuer for tests using app.BuildRegistry holder.

@@ -20,8 +20,8 @@ export function createBillingExchange(
   return {
     quotaPerUnit: qpu,
     billingCurrency: currency,
-    pointsToDisplay: quotaToDisplayFn,
-    displayToPoints: displayToQuotaFn,
+    quotaToDisplay: quotaToDisplayFn,
+    displayToQuota: displayToQuotaFn,
     formatDisplayCurrency: (quota: number) =>
       formatCurrencyAmount(quotaToDisplayFn(quota), currency),
     formatMoney: (amount: number) => formatCurrencyAmount(amount, currency),
@@ -41,13 +41,13 @@ export function getActiveBillingExchange(): BillingExchange {
 }
 
 /** Convert quota to display amount (e.g. CNY). */
-export function pointsToDisplay(quota: number): number {
-  return active.pointsToDisplay(quota)
+export function quotaToDisplay(quota: number): number {
+  return active.quotaToDisplay(quota)
 }
 
 /** Convert display amount to quota. */
-export function displayToPoints(display: number): number {
-  return active.displayToPoints(display)
+export function displayToQuota(display: number): number {
+  return active.displayToQuota(display)
 }
 
 /** Format quota amounts (budget / key limits) using active company exchange. */

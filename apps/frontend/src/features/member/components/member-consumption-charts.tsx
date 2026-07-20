@@ -17,7 +17,7 @@ import {
   Legend,
 } from 'recharts'
 import { MemberChartSection } from '@/features/member'
-import { formatMoney } from '@/lib/points'
+import { formatMoney } from '@/lib/quota-display'
 
 const CALL_DISTRIBUTION_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#06b6d4'] as const
 

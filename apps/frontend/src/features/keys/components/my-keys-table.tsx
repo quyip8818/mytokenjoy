@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { KeyStatusBadge } from './status-badges'
 import { Progress } from '@/components/ui/progress'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 import {
   DropdownMenu,
   DropdownMenuContent,

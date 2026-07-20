@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { BudgetNode, Department, Member } from '@/api/types'
-import { displayToPoints, formatDisplayCurrency } from '@/lib/points'
+import { displayToQuota, formatDisplayCurrency } from '@/lib/quota-display'
 import { BudgetOrgMemberPicker } from './budget-org-member-picker'
 import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
@@ -73,7 +73,7 @@ export function ProjectDialog({
       setError('请输入有效的项目额度')
       return
     }
-    if (displayToPoints(budgetNum) > available) {
+    if (displayToQuota(budgetNum) > available) {
       setError(`团队可用额度为 ${formatDisplayCurrency(available)}，请调低项目额度`)
       return
     }
@@ -82,7 +82,7 @@ export function ProjectDialog({
     try {
       await onCreateProject({
         name: trimmedName,
-        budget: displayToPoints(budgetNum),
+        budget: displayToQuota(budgetNum),
         memberIds,
         ownerDepartmentId: department.id,
       })

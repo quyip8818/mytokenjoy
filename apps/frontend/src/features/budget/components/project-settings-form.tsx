@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Pencil } from 'lucide-react'
-import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
+import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
 
 type ProjectSettingsFormProps = {
   project: ProjectView
@@ -32,7 +32,7 @@ export function ProjectSettingsForm({
   const [saving, setSaving] = useState(false)
 
   function openDialog() {
-    setDraftBudget(String(pointsToDisplay(project.budget)))
+    setDraftBudget(String(quotaToDisplay(project.budget)))
     setDialogOpen(true)
   }
 
@@ -42,13 +42,13 @@ export function ProjectSettingsForm({
       toast.error('请输入有效的额度')
       return
     }
-    if (budgetNum < pointsToDisplay(project.consumed)) {
+    if (budgetNum < quotaToDisplay(project.consumed)) {
       toast.error(`额度不能低于已消耗 ${formatDisplayCurrency(project.consumed)}`)
       return
     }
     setSaving(true)
     try {
-      await onUpdateProject(project.id, { budget: displayToPoints(budgetNum) })
+      await onUpdateProject(project.id, { budget: displayToQuota(budgetNum) })
       setDialogOpen(false)
       onUpdated()
       toast.success('项目设置已更新')

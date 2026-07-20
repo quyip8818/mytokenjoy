@@ -94,7 +94,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 			return nil, err
 		}
 		row.BucketStart = truncateUsageBucket(occurredAt, types.UsageGranularityMinute, loc)
-		row.Cost = amount
+		row.QuotaConsumed = amount
 		row.DisplayCost = displayAmount
 		row.CallCount = 1
 		row.InputTokens = inputTokens

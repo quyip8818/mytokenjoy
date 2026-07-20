@@ -23,7 +23,7 @@ type GatewayScenarioOpts struct {
 	WalletBalancePoint *float64
 	NewAPIWalletUserID int64
 	DepartmentID       uuid.UUID
-	Budget             float64
+	Budget             int64
 	Consumed           float64
 	CompanyStatus      string
 	ProxyBackendURL    string
@@ -69,7 +69,7 @@ func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.Co
 	return domaingateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), cfg.Clock(), cache)
 }
 
-func setBudgetOnTree(nodes []types.BudgetNode, deptID uuid.UUID, budget, consumed float64) bool {
+func setBudgetOnTree(nodes []types.BudgetNode, deptID uuid.UUID, budget, consumed int64) bool {
 	for i := range nodes {
 		if nodes[i].ID == deptID {
 			nodes[i].Budget = budget

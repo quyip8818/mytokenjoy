@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { displayToPoints, formatDisplayCurrency, pointsToDisplay } from '@/lib/points'
+import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Pencil, Check, X, Loader2 } from 'lucide-react'
 
@@ -90,7 +90,7 @@ function BudgetMemberBudgetDialogBody({
 
   const startEdit = useCallback((member: MemberBudget) => {
     setEditingId(member.memberId)
-    setDraft(String(pointsToDisplay(member.personalBudget)))
+    setDraft(String(quotaToDisplay(member.personalBudget)))
   }, [])
 
   const cancelEdit = useCallback(() => {
@@ -109,7 +109,7 @@ function BudgetMemberBudgetDialogBody({
       setSaving(true)
       try {
         const updated = await updateMemberBudget(memberId, {
-          personalBudget: displayToPoints(value),
+          personalBudget: displayToQuota(value),
         })
         setMemberBudgets((prev) =>
           prev.map((item) => (item.memberId === memberId ? updated : item)),

@@ -3,7 +3,7 @@ import { getBudgetProgressClass, getBudgetProgressTone } from '@/features/budget
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 
 interface BudgetHeroCardProps {
   budget: number

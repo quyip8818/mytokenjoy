@@ -2,7 +2,7 @@ import type { ProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { POLICY_LABELS } from '@/features/budget'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 
 type ProjectHeaderProps = {
   project: ProjectView

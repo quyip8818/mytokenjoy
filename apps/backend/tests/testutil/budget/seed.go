@@ -17,7 +17,7 @@ import (
 	"github.com/tokenjoy/backend/seed/runtime"
 )
 
-func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent float64) {
+func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent int64) {
 	t.Helper()
 	seedDefaultMapping(t, st)
 	ctx := company.DefaultContext(contract.DefaultCompanyID)
@@ -34,10 +34,10 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent
 		ID:               uuid.Must(uuid.NewV7()),
 		CompanyID:        contract.DefaultCompanyID,
 		EventType:        types.EventTypeCallSettled,
-		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%d", deptID, int(ledgerSpent)),
+		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%d", deptID, ledgerSpent),
 		LotID:            lots[0].ID,
 		Amount:           ledgerSpent,
-		DisplayAmount:    ledgerSpent,
+		DisplayAmount:    float64(ledgerSpent) / float64(common.DefaultQuotaPerUnit),
 		BillingCurrency:  common.DefaultBillingCurrency,
 		DepartmentID:     deptID,
 		MemberID:         &memberID,

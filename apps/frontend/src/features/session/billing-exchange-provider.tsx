@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { setActiveBillingExchange, type BillingExchange } from '@/lib/points'
+import { setActiveBillingExchange, type BillingExchange } from '@/lib/quota-display'
 import { BillingExchangeContext } from './billing-exchange-context'
 
 /** Syncs active module exchange during render (before children) and provides DI via context. */

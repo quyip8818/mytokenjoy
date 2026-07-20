@@ -104,13 +104,13 @@ type CreatePlatformKeyInput struct {
 	Scope          string      `json:"scope"`
 	MemberID       *uuid.UUID  `json:"memberId"`
 	ProjectID      *uuid.UUID  `json:"projectId"`
-	Budget         float64     `json:"budget"`
+	Budget         int64       `json:"budget"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 }
 
 type UpdatePlatformKeyInput struct {
 	Name           *string     `json:"name"`
-	Budget         *float64    `json:"budget"`
+	Budget         *int64      `json:"budget"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 }
 

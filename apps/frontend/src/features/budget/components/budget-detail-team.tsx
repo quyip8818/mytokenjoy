@@ -13,7 +13,7 @@ import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { ProjectDialog } from './project-dialog'
 import { BudgetInitPrompt } from './budget-init-prompt'
-import { formatDisplayCurrency } from '@/lib/points'
+import { formatDisplayCurrency } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Plus, ChevronRight } from 'lucide-react'
 

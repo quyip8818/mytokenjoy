@@ -28,7 +28,7 @@ type ingestFixtureOption func(*ingestFixtureConfig)
 
 type ingestFixtureConfig struct {
 	mappingOpts newapisynctf.MappingOpts
-	amount      *float64
+	amount      *int64
 	skipMapping bool
 	enqueuer    jobs.Enqueuer
 }
@@ -41,7 +41,7 @@ func withMappingOpts(opts newapisynctf.MappingOpts) ingestFixtureOption {
 }
 
 // withBudgetAmount overrides the budget headroom amount.
-func withBudgetAmount(amount float64) ingestFixtureOption {
+func withBudgetAmount(amount int64) ingestFixtureOption {
 	return func(c *ingestFixtureConfig) {
 		c.amount = &amount
 	}

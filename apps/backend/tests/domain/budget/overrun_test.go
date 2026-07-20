@@ -45,7 +45,7 @@ func TestOverrunMemberAxisWhenOverQuota(t *testing.T) {
 	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
-	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 101)
 
 	payload, err := json.Marshal(map[string]any{
 		"memberId":      contract.IDMember1,
@@ -75,7 +75,7 @@ func TestOverrunProjectAxis(t *testing.T) {
 		t.Fatal("expected project")
 	}
 	groupID := groups[0].ID
-	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, groups[0].Budget+0.01)
+	budgetfix.SetProjectSnapshotConsumed(t, st, groupID, groups[0].Budget+1)
 	groupIDCopy := groupID
 	keys, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -129,7 +129,7 @@ func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var keyBudget float64
+	var keyBudget int64
 	for _, key := range keys {
 		if key.ID == contract.IDPlatformKey1 {
 			keyBudget = key.Budget
@@ -139,7 +139,7 @@ func TestOverrunPlatformKeyAxisWhenOverQuota(t *testing.T) {
 	if keyBudget <= 0 {
 		t.Fatal("expected plk-1 to have positive budget")
 	}
-	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, keyBudget+0.01)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, keyBudget+1)
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,
@@ -167,11 +167,11 @@ func TestOverrunProjectMemberAxisWhenOverQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	memberBudget := 100.0
+	memberBudget := int64(100)
 	for i := range projects {
 		if projects[i].ID == contract.IDProject1 {
 			if projects[i].MemberBudgets == nil {
-				projects[i].MemberBudgets = make(map[uuid.UUID]float64)
+				projects[i].MemberBudgets = make(map[uuid.UUID]int64)
 			}
 			projects[i].MemberBudgets[contract.IDMember1] = memberBudget
 			break
@@ -180,7 +180,7 @@ func TestOverrunProjectMemberAxisWhenOverQuota(t *testing.T) {
 	if err := st.Budget().SetProjects(ctx, projects); err != nil {
 		t.Fatal(err)
 	}
-	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey6, memberBudget+0.01)
+	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey6, memberBudget+1)
 
 	projectID := contract.IDProject1
 	memberID := contract.IDMember1
@@ -225,7 +225,7 @@ func TestOverrunSkipsMemberAxisWhenProjectPresent(t *testing.T) {
 	if err := st.Org().UpdateMemberPersonalBudget(ctx, contract.IDMember1, 100); err != nil {
 		t.Fatal(err)
 	}
-	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 100.01)
+	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 101)
 
 	groups, err := st.Budget().Projects(ctx)
 	if err != nil || len(groups) == 0 {

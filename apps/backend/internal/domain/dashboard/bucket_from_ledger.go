@@ -13,15 +13,15 @@ func bucketFromLedgerEntry(entry types.UsageLedgerEntry) types.UsageBucketRow {
 		memberID = *entry.MemberID
 	}
 	return types.UsageBucketRow{
-		BucketStart:  entry.OccurredAt.UTC().Truncate(time.Hour),
-		DepartmentID: entry.DepartmentID,
-		MemberID:     memberID,
-		Model:        entry.Model,
-		Cost:         entry.Amount,
-		DisplayCost:  entry.DisplayAmount,
-		CallCount:    1,
-		InputTokens:  entry.InputTokens,
-		OutputTokens: entry.OutputTokens,
+		BucketStart:   entry.OccurredAt.UTC().Truncate(time.Hour),
+		DepartmentID:  entry.DepartmentID,
+		MemberID:      memberID,
+		Model:         entry.Model,
+		QuotaConsumed: entry.Amount,
+		DisplayCost:   entry.DisplayAmount,
+		CallCount:     1,
+		InputTokens:   entry.InputTokens,
+		OutputTokens:  entry.OutputTokens,
 	}
 }
 
@@ -30,7 +30,7 @@ func mergeBucketDelta(dst *types.UsageBucketRow, delta types.UsageBucketRow) {
 		*dst = delta
 		return
 	}
-	dst.Cost += delta.Cost
+	dst.QuotaConsumed += delta.QuotaConsumed
 	dst.DisplayCost += delta.DisplayCost
 	dst.CallCount += delta.CallCount
 	dst.InputTokens += delta.InputTokens

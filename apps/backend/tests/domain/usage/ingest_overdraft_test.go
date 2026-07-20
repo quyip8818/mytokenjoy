@@ -55,7 +55,7 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 	if n.EventType != types.NotificationEventOverdraftExpanded {
 		t.Fatalf("event = %q, want %q", n.EventType, types.NotificationEventOverdraftExpanded)
 	}
-	delta, ok := n.Payload["overdraftDelta"].(float64)
+	delta, ok := n.Payload["overdraftDelta"].(int64)
 	if !ok || delta <= 0 {
 		t.Fatalf("expected positive overdraftDelta, got %v", n.Payload["overdraftDelta"])
 	}

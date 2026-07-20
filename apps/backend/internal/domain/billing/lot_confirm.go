@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy uuid.UUID) error {
+func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy uuid.UUID) error {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
@@ -20,7 +20,7 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.QuotaFromAmount(points, ppu)
+	quotaGranted := common.QuotaFromAmount(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
@@ -35,7 +35,7 @@ func (s *service) confirmGiftLot(ctx context.Context, points float64, createdBy 
 	return nil
 }
 
-func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay float64, createdBy uuid.UUID) error {
+func (s *service) confirmAdjustLot(ctx context.Context, amount, amountDisplay float64, createdBy uuid.UUID) error {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
@@ -43,7 +43,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, points, amountDisplay fl
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.QuotaFromAmount(points, ppu)
+	quotaGranted := common.QuotaFromAmount(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amountDisplay, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,

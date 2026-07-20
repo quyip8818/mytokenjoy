@@ -28,13 +28,13 @@ func TestCostSummaryFromBuckets(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 12.5, CallCount: 3})
+	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 12, CallCount: 3})
 	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.TotalCost != 12.5 {
-		t.Fatalf("expected bucket cost 12.5, got %v", summary.TotalCost)
+	if summary.TotalCost != 12 {
+		t.Fatalf("expected bucket cost 12, got %v", summary.TotalCost)
 	}
 }
 
@@ -42,10 +42,10 @@ func TestDailyCostsWeekGranularity(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 4})
+	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 4})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		BucketStart: time.Date(2026, 6, 12, 9, 0, 0, 0, time.UTC),
-		Cost:        6,
+		BucketStart:   time.Date(2026, 6, 12, 9, 0, 0, 0, time.UTC),
+		QuotaConsumed: 6,
 	})
 	rows, err := svc.DailyCosts(ctx, types.CostQueryParams{
 		Period: string(types.CostPeriodCurrentMonth), Granularity: types.UsageGranularityWeek,
@@ -75,10 +75,10 @@ func TestUsageSeriesHourFromBuckets(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 3})
+	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 3})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		BucketStart: time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
-		Cost:        7,
+		BucketStart:   time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC),
+		QuotaConsumed: 7,
 	})
 	resp, err := svc.UsageSeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityHour,
@@ -99,7 +99,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 18.5, CallCount: 2})
+	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 18, CallCount: 2})
 	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, domainusage.SessionScope{
 		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
 	})
@@ -110,8 +110,8 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 		if dept.DepartmentID != contract.IDDept3 {
 			continue
 		}
-		if dept.Consumed != 18.5 {
-			t.Fatalf("expected consumed from buckets 18.5, got %v", dept.Consumed)
+		if dept.Consumed != 18 {
+			t.Fatalf("expected consumed from buckets 18, got %v", dept.Consumed)
 		}
 		return
 	}
@@ -123,19 +123,19 @@ func TestCostSummaryPeriodOverPeriod(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		BucketStart: time.Date(2026, 5, 15, 8, 0, 0, 0, time.UTC),
-		Cost:        5,
+		BucketStart:   time.Date(2026, 5, 15, 8, 0, 0, 0, time.UTC),
+		QuotaConsumed: 5,
 	})
-	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 12.5, CallCount: 2})
+	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 12, CallCount: 2})
 	summary, err := svc.CostSummary(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.TotalCost != 12.5 {
-		t.Fatalf("expected current month cost 12.5, got %v", summary.TotalCost)
+	if summary.TotalCost != 12 {
+		t.Fatalf("expected current month cost 12, got %v", summary.TotalCost)
 	}
-	if summary.TotalCostMom != 150 {
-		t.Fatalf("expected mom 150%%, got %v", summary.TotalCostMom)
+	if summary.TotalCostMom != 140 {
+		t.Fatalf("expected mom 140%%, got %v", summary.TotalCostMom)
 	}
 }
 
@@ -143,7 +143,7 @@ func TestDepartmentCostDrillDown(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
-	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{Cost: 20, CallCount: 4})
+	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 20, CallCount: 4})
 	depts, err := svc.DepartmentCosts(ctx, contract.IDDept2, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, testutil.AdminDashboardScope())
 	if err != nil {
 		t.Fatal(err)
@@ -172,12 +172,12 @@ func TestUsageSeriesTimezoneShanghai(t *testing.T) {
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		BucketStart: time.Date(2026, 6, 9, 16, 0, 0, 0, time.UTC),
-		Cost:        3,
+		BucketStart:   time.Date(2026, 6, 9, 16, 0, 0, 0, time.UTC),
+		QuotaConsumed: 3,
 	})
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{
-		BucketStart: time.Date(2026, 6, 10, 7, 0, 0, 0, time.UTC),
-		Cost:        7,
+		BucketStart:   time.Date(2026, 6, 10, 7, 0, 0, 0, time.UTC),
+		QuotaConsumed: 7,
 	})
 	resp, err := svc.UsageSeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityDay,
