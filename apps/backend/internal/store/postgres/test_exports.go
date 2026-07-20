@@ -3,18 +3,11 @@
 package postgres
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
-
-func EnsureBootstrapCompanyForTest(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
-	return ensureBootstrapCompany(ctx, pool, cfg)
-}
 
 // Usage aggregate test hooks (pure functions moved from store/usagequery).
 

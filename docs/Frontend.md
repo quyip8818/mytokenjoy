@@ -867,7 +867,7 @@ HTTP 非 2xx 时，body 应包含：
 | ------------------------------ | --------------- | --------------------------------------------------------------- |
 | `GET /session`                 | `companyId = 1` | `companyId` = 成员所属企业                                      |
 | `provider-keys` 写             | 允许            | **403**                                                         |
-| `POST /keys/platform`          | 不变            | 不变；后端 Token 绑 `newapi_wallet_user_id` + `platform_shared` |
+| `POST /keys/platform`          | 不变            | 不变；后端 Token 绑 `newapi_wallet_company_id` + `platform_shared` |
 | 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                                     |
 | 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                                      |
 

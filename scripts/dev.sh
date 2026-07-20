@@ -10,6 +10,7 @@ shift || true
 
 case "${cmd}" in
   local) exec bash "${DEV}/start-local.sh" ;;
+  local-empty|empty) exec bash "${DEV}/start-local-empty.sh" ;;
   saas) exec bash "${DEV}/start-saas.sh" ;;
   lite) exec bash "${DEV}/start-lite.sh" ;;
   reset|docker-reset) exec bash "${DEV}/reset.sh" ;;

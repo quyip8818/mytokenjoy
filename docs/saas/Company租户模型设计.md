@@ -202,7 +202,7 @@ bootstrap 时：
 | `ctxcompany.Info` | 加 `Type string`（供 middleware / service 判断） |
 | `CompanyResolve` middleware | `ResolveCompanyContext` 已返回完整 context，type 自然带入 |
 | `CreateCompany` / `CreateCompanyRequest` | 加 `Type` 参数（默认 `standard`，Trial 传 `trial`） |
-| `ensureBootstrapCompany` | INSERT 加上 type 列（selfhosted / testing） |
+| `seed/bootstrap/companies.go` | INSERT 加上 type 列（selfhosted / testing） |
 | `AuthzSvc.GetSessionContext` | session 响应增加 `companyType`、`onboardingStatus` 字段 |
 | Gateway precheck | 检查 type，Trial 租户路由到 mock LLM |
 | 前端 `AppSession` | 加 `companyType`、`onboardingStatus` 字段 |

@@ -19,7 +19,7 @@
 | 变量 | 默认 | 职责 |
 | --- | --- | --- |
 | `DEPLOY_ENV` | `local` | `local` / `staging` / `production`；仅 `production` 触发生产契约 fail-fast |
-| `BOOTSTRAP_MODE` | `none` | `none` / `minimal` / `demo`；空库引导策略 |
+| `BOOTSTRAP_MODE` | `none` | `none` / `prod` / `minimal` / `demo`；空库引导策略（见 §5） |
 | `SECURE_COOKIE` | `false` | Set-Cookie Secure；`production` 下必须为 `true` |
 | `CLOCK_ANCHOR` | 空 | 可选 `YYYY-MM-DD`；空=系统时钟；固定看板「今天」与种子参考日期 |
 | `SIMULATE_DELAY` | `false` | 模拟延迟；`production` 下必须为 `false` |
@@ -78,7 +78,8 @@ env.Parse
 ### 3.4 辅助方法
 
 ```go
-BootstrapIsNone / BootstrapIsMinimal / BootstrapIsDemo
+BootstrapIsNone / BootstrapIsProd / BootstrapIsMinimal / BootstrapIsDemo
+BootstrapNeedsSeed
 IsProductionDeploy
 Clock()
 SeedReferenceDate()   // clock.NowUTC(Clock()).Format("2006-01-02")；种子展示日
@@ -120,20 +121,28 @@ func NowUTC(clk Clock) time.Time
 
 ---
 
-## 5. 数据引导（`store/postgres`）
+## 5. 数据引导（`seed/`）
 
-入口：`loadOrSeedDomain`（`members` 计数为 0 视为空库）。
+入口：`seed.Init`（由 `store/postgres.New` 调用，schema DDL 之后）。
 
-| `BOOTSTRAP_MODE` | 空库行为 |
+| `BOOTSTRAP_MODE` | 行为 |
 | --- | --- |
-| `none` | 启动失败，提示设置 `minimal` / `demo` 或外部灌库 |
-| `minimal` | `seed.LoadMinimal` → `ApplyTables` |
-| `demo` | `seed.Load` → `ApplyTables` → `runtime.ApplyDemo`（buckets / recharge / ledger） |
+| `none` | 仅检查 DB 非空，否则启动失败 |
+| `prod` | `bootstrap.ApplyBootstrap`（currencies/companies/permissions/roles/org root/admin/models）+ `ReconcilePresetRoles`；不写 demo 数据 |
+| `minimal` | 同 prod bootstrap + reconcile；若 DB 空则追加精简 demo snapshot（少量部门/成员/key） |
+| `demo` | 同 prod bootstrap + reconcile；若 DB 空则追加完整 demo snapshot + `runtime.ApplyDemo`（buckets/recharge/ledger） |
 
-非空库：**永不**写入 seed / runtime。  
-非空库补演示 runtime：测试用 `NewTestStoreWithDemoRuntime` / `ApplyDemoRuntime`；运维用迁移脚本。
+**每次启动执行**：`ApplyBootstrap`（幂等 ON CONFLICT DO NOTHING）+ `ReconcilePresetRoles`（只增不删 preset role grants）。
 
-`StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`（默认 12，缩小测试模板分区范围；生产仍 2024–2032）。无 `RuntimeSeed` / `SkipRuntimeSeed`。
+**prod 模式下 admin 创建**：由 `BOOTSTRAP_CONFIG_PATH` YAML 配置（见 `seed/bootstrap/config.go`）。未配置时使用 `DefaultConfig()`。
+
+| 环境变量 | 默认 | 职责 |
+| --- | --- | --- |
+| `BOOTSTRAP_CONFIG_PATH` | 空（用内嵌默认） | 指向 bootstrap YAML 配置文件路径 |
+
+非空库：bootstrap 全部 `ON CONFLICT DO NOTHING`，幂等无副作用。`ReconcilePresetRoles` 只补齐新增 permission grants。
+
+`StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`（默认 12，缩小测试模板分区范围；生产仍 2024–2032）。
 
 克隆 schema 上 reopen store 须 `PreparedConfig(schemaURL)`（`SchemaPrepared=true`），否则会再跑 `apply partitions` 并在非分区父表上报错。见 [Backend.md](./Backend.md) §5.0。
 
@@ -205,8 +214,9 @@ func NowUTC(clk Clock) time.Time
 | --- | --- |
 | `internal/config/*.go` | Load / validate / Clock / Bootstrap / SeedReferenceDate |
 | `internal/pkg/clock/clock.go` | Clock 接口 |
-| `internal/store/postgres/postgres.go` | `loadOrSeedDomain` |
-| `seed/runtime/demo.go` | `ApplyDemo` |
+| `seed/init.go` | `seed.Init` — 数据引导总入口 |
+| `seed/bootstrap/` | `ApplyBootstrap` / `ReconcilePresetRoles` / bootstrap config |
+| `seed/runtime/demo.go` | `ApplyDemo`（demo 运行时数据） |
 | `internal/http/deps/public.go` | SecureCookie |
 | `internal/domain/org/core/credentials.go` | CredentialKey |
 | `tests/testutil/config.go` | TestConfig + options |
@@ -218,4 +228,4 @@ func NowUTC(clk Clock) time.Time
 
 ## 11. 一句话
 
-没有 Profile。本地 `DEPLOY_ENV=local` + 显式 `BOOTSTRAP_MODE=demo`；生产 `DEPLOY_ENV=production` 强制 §7 fail-fast；账期业务时间走 `Clock()`；密钥缺则死；空库 `none` 则死。
+没有 Profile。本地 `DEPLOY_ENV=local` + 显式 `BOOTSTRAP_MODE=demo`；生产 `DEPLOY_ENV=production` 强制 §7 fail-fast；账期业务时间走 `Clock()`；密钥缺则死；空库 `none` 则死。`prod` 模式适用于 selfhosted 首次部署（仅创建必要数据，不含 demo 假数据）。

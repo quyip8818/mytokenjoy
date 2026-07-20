@@ -26,7 +26,7 @@
 | **combined_key_summaries 表** | 存每个 key 的 remain 值，gateway precheck 读取 | ✅ 保留 — 预算限额数据源 |
 | **SyncUpdatePlatformKey 中的 budget 计算** | `LoadBudgetContext` + `ComputeRemainForMapping` + `UpdateBatch` | ⚠️ 冗余 — 调用方已自行调 `RefreshPlatformKeyCombined` |
 | **SyncCreatePlatformKey 中的 budget 计算** | `LoadBudgetContext` + `ComputeRemainForMapping`（赋值给已删除的 RemainQuota） | ⚠️ 死代码 — 无任何 side effect |
-| **bootstrap.go ensureWalletUserQuota** | 用 MaxInt32 TopUp user quota | ⚠️ hacky — 需要改为 TopUp to wallet_remain |
+| **bootstrap.go ensureWalletCompanyQuota** | TopUp to wallet_remain | ✅ 已改为正确逻辑 |
 | **NewAPI user quota** | 新 user = MaxInt32 / 旧 user = 0 | ⚠️ 需要正确的同步策略 |
 
 ---
@@ -208,8 +208,8 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 | 时机 | 操作 | 实现位置 |
 |------|------|---------|
-| 充值成功后 | `TopUp(walletUserID, quotaGranted)` | `billing/lot_confirm.go` 每个路径的 CreditFromLot 后 |
-| 应用启动 | `TopUp(walletUserID, max(0, walletRemain - currentQuota))` | `provision/bootstrap.go` |
+| 充值成功后 | `TopUp(walletCompanyID, quotaGranted)` | `billing/lot_confirm.go` 每个路径的 CreditFromLot 后 |
+| 应用启动 | `TopUp(walletCompanyID, max(0, walletRemain - currentQuota))` | `provision/bootstrap.go` |
 | 消费 | **不需要操作** — NewAPI 消费时自动扣 user quota | — |
 
 ---
@@ -259,14 +259,14 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 | 文件 | 改动 |
 |------|------|
-| `provision/bootstrap.go` | 新建 user 时 `Quota: co.WalletRemain`；已有 user 时 `TopUp(walletUserID, max(0, co.WalletRemain - currentQuota))` |
+| `provision/bootstrap.go` | 新建 user 时 `Quota: co.WalletRemain`；已有 user 时 `TopUp(walletCompanyID, max(0, co.WalletRemain - currentQuota))` |
 | | 删除 `math` import 和 MaxInt32 常量 |
 
 ### Phase 3：充值后 TopUp（新增功能）
 
 **依赖注入**：`billing.NewService` 加一个 `adminport.Port` 参数（可为 nil）。调用方 `compose_domain_wire.go` → `wireBilling` 传入 `i.newAPIClient`（已存在的 adminport adapter）。
 
-**walletUserID 获取路径**：`topUpNewAPIQuota` 内部调 `s.store.Company().GetByID(ctx, companyID)` → `store.ConfiguredNewAPIWalletUserID(co)`。不需要每个 confirm 方法单独获取——统一在 `topUpNewAPIQuota` 里做。
+**walletCompanyID 获取路径**：`topUpNewAPIQuota` 内部调 `company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())`。先从 context 读缓存，fallback 查 DB。不需要每个 confirm 方法单独获取——统一在 `topUpNewAPIQuota` 里做。
 
 | 文件 | 改动 |
 |------|------|
@@ -278,24 +278,19 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 ```go
 // wallet_topup.go
-func (s *service) topUpNewAPIQuota(ctx context.Context, companyID uuid.UUID, delta int64) {
+func (s *service) topUpNewAPIQuota(ctx context.Context, delta int64) {
     if s.adminClient == nil || delta <= 0 {
         return
     }
-    co, err := s.store.Company().GetByID(ctx, companyID)
-    if err != nil {
-        slog.Warn("topup: load company failed", "company_id", companyID, "error", err)
-        return
-    }
-    walletUserID, ok := store.ConfiguredNewAPIWalletUserID(co)
+    walletCompanyID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
     if !ok {
         return
     }
     if err := s.adminClient.TopUp(ctx, adminport.TopUpInput{
-        UserID: walletUserID,
-        Quota:  delta,
+        CompanyID: walletCompanyID,
+        Quota:     delta,
     }); err != nil {
-        slog.Warn("topup: NewAPI TopUp failed", "company_id", companyID, "delta", delta, "error", err)
+        slog.Warn("topup: NewAPI TopUp failed", "company_id", company.CompanyID(ctx), "delta", delta, "error", err)
     }
 }
 ```

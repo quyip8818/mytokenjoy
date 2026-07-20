@@ -10,8 +10,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
+	"github.com/tokenjoy/backend/seed/snapshot"
 )
 
 func ApplyUsageLedger(ctx context.Context, st store.Store, cfg config.Config) error {
@@ -29,9 +29,9 @@ func ApplyUsageLedger(ctx context.Context, st store.Store, cfg config.Config) er
 	}
 	var snap store.Snapshot
 	if cfg.BootstrapIsMinimal() {
-		snap = seed.LoadMinimal(cfg)
+		snap = snapshot.BuildMinimal(cfg)
 	} else {
-		snap = seed.Load(cfg)
+		snap = snapshot.Build(cfg)
 	}
 	for _, entry := range snap.UsageLedger {
 		if _, err := st.Ledger().InsertOnConflict(ctx, entry); err != nil {

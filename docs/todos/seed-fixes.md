@@ -11,7 +11,7 @@
 | 公司 / 组织 / 模型 catalog / platform_keys 行       | ✅ `apply/`   | —                                                                                                                                               |
 | `platform_key_mappings` + `key_hash` 落地           | ❌            | 本地：`dev-bootstrap`（`provision.Bootstrap`）；生产：用户 Create → `SyncPlatformKeyCreate`                                                     |
 | NewAPI Token `group` / `model_limits` / secret      | ❌            | `TrySyncCreate` / `SyncUpdatePlatformKey`；River 仅重试 outbox（`create_key`、`update_model_limits` 等）                                        |
-| `companies.newapi_wallet_user_id`                   | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004)                                                                                    |
+| `companies.newapi_wallet_company_id`                | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004)                                                                                    |
 | NewAPI `UserUsableGroups`                           | ❌            | `EnsureGroup`（Create 路径）+ 本地脚本保险                                                                                                      |
 
 **Reseed 规则：** 修改 seed 数据后须 **`pnpm docker:reset`**（清卷）；非空库不会自动覆盖 seed。仅 `make dev-bootstrap` 只补 NewAPI sync，不 reseed。
@@ -48,9 +48,9 @@
 **仍然适用**：Seed 只改 Postgres 行；`model_limits` 在 sync 时计算。已 synced 的 mapping 不会自动重算。  
 **修复**：Rotate 相关 Key 或 `docker:reset`。bootstrap 已 enqueue `OutboxKindUpdateModelLimits`。
 
-### FIX-SEED-004 — Demo 公司无 `newapi_wallet_user_id` ✅
+### FIX-SEED-004 — Demo 公司无 `newapi_wallet_company_id` ✅
 
-已落地。bootstrap 调用 `CreateUser` + `UpdateNewAPIWalletUserID`；`newapi_wallet_username` 由 `company.WalletUsername(companyID)` 确定性生成。
+已落地。bootstrap 调用 `CreateUser` + `UpdateNewAPIWalletCompanyID`；wallet username 由 `company.WalletUsername(companyID)` 确定性生成（UUID 去横杠，32 字符）。
 
 ---
 
@@ -61,7 +61,7 @@
 所有 Key ID、部门 ID、模型 ID 现为 UUID，具体值见 `seed/contract/ids.go`。  
 白名单有效性 = Key 白名单 ∩ 部门路由允许列表。
 
-NewAPI `group` 由集成层计算（UUID 转 base62 短名），**不是** seed 字段。
+NewAPI `group` 由集成层计算，**不是** seed 字段。
 
 ---
 

@@ -159,7 +159,7 @@ sequenceDiagram
   Admin->>API: 充值确认（gift/adjust/paid）
   API->>API: QuotaFromAmount(amount, QPU)
   API->>PG: CreditFromLot<br/>(insert lot + wallet_remain += delta)
-  API->>NA: TopUp(walletUserID, +delta)
+  API->>NA: TopUp(walletCompanyID, +delta)
   Note over NA: best-effort，失败仅 Warn
   API-->>Admin: 成功
 ```
@@ -309,6 +309,90 @@ sequenceDiagram
 - 代码注释：`"Token is unlimited on NewAPI — no remote quota to sync"`
 - 下一个请求到达 Gateway 时即按新限额拦截
 
+### 5.1 Rebalance 轴范围
+
+系统定义三种 Rebalance 轴（`store/rebalance.go`），决定需要刷新哪些 Key 的 `combined_key_remain`：
+
+| 轴 | 值 | 加载范围 | 典型触发场景 |
+|---|---|---|---|
+| `member` | 成员 ID | 只加载该成员关联的所有 PlatformKeyMapping | 修改成员 personal_budget |
+| `project` | 项目 ID | 只加载该项目关联的所有 PlatformKeyMapping | 修改项目 budget |
+| `company` | 企业 ID | 加载该企业**所有 active** 的 PlatformKeyMapping | 修改部门 budget、均分额度、月初重置 |
+
+### 5.2 Rebalance 处理流程详解
+
+`RebalanceService.ProcessAxis` 内部：
+
+```text
+1. 按 axisKind 查出受影响的 PlatformKeyMapping 列表
+2. 过滤：只保留 NewAPIKeyID != nil 且 SyncStatus = "synced" 的（已同步的 active mapping）
+3. 一次性 LoadBudgetContext：加载所有成员/项目/Key/consumed 到内存
+4. 对每个 mapping：
+   a. 定位其 departmentID → 确定当前账期 periodKey
+   b. BuildChainInputs → GatewayChainRemain(scope, inputs) → 计算 remain
+   c. UpdateBatch 写入 combined_key_remain（PG）
+   d. RefreshCombinedKeySummaries → 推送 Redis cache
+```
+
+### 5.3 具体场景举例
+
+**例 1：管理员调高成员 A 的 personal_budget 从 10,000 → 20,000**
+
+```text
+① UpdateMemberBudget(memberA, 20000)
+   → 事务内校验总额不超过部门 budget
+   → PG: members.personal_budget = 20000
+② 事务提交后 enqueueMemberRebalance(memberA)
+③ Worker 拉取 job → ProcessAxis("member", memberA)
+④ 查 PlatformKeyMapping → 成员 A 有 2 把 Key（key-1、key-2）
+⑤ 对 key-1：
+   - KeyBudget=5000, KeyConsumed=3000 → key_remain=2000
+   - PersonalCap=20000, PersonalConsumed=8000 → personal_remain=12000
+   - GatewayChainRemain("member", ...) = min(2000, 12000) = 2000
+⑥ 对 key-2（无 KeyBudget 限制）：
+   - PersonalCap=20000, PersonalConsumed=8000 → personal_remain=12000
+   - GatewayChainRemain("member", ...) = 12000
+⑦ UpdateBatch: key-1.combined_key_remain=2000, key-2.combined_key_remain=12000
+```
+
+**例 2：管理员调低部门 budget 从 100,000 → 50,000（已消费 60,000）**
+
+```text
+① UpdateNode(deptID, 50000)
+   → 事务内 ValidateBudgetNodeUpdate 校验子配置总和不超出
+   → PG: org_node_budget.budget = 50000
+② enqueueCompanyRebalance → 全公司 Rebalance
+③ 该部门下所有 Key 的 combined_key_remain 重算
+   → 注意：部门 budget 不直接参与 chain 计算
+   → 但成员 personal_budget 不能超过部门 budget（校验时保证）
+④ 部门是否超限由 Overrun + Alert 独立检查（通过 ledger 聚合）
+```
+
+**例 3：月初自动归零 → Rebalance**
+
+```text
+① 每月 1 日 EnsureMonthRebalance 检查 LastRebalancedPeriod ≠ 当前月
+② InsertRebalance("company", companyID)
+③ Worker 执行全公司 Rebalance
+④ 所有 Key 的 consumed 按新 periodKey 查询 → 本月消费=0
+⑤ combined_key_remain 回到各级 budget 限额（满额）
+⑥ Gateway 下一请求即用新额度放行
+```
+
+### 5.4 均分额度（ApplyAverageBudget）
+
+一种批量调整便捷操作——对某部门下所有成员统一设置 personal_budget：
+
+```text
+管理员："把研发部所有人额度设为 5000"
+① 验证：部门 budget ≥ 子部门总额 + 项目总额 + 人数×5000
+② 批量更新所有成员的 personal_budget = 5000
+③ 记录 member_avg_budget（用于 recursive 跳过已设置子部门）
+④ enqueueCompanyRebalance → 全量刷新
+```
+
+### 5.5 操作影响矩阵
+
 | 操作 | PG 影响 | NewAPI Token | NewAPI User |
 |------|---------|-------------|-------------|
 | 改部门/成员预算 | 写 limit + Rebalance | 不调用 | 不变 |
@@ -316,12 +400,49 @@ sequenceDiagram
 | 创建 Key | 写 + Refresh | CreateToken(Unlimited=true) | 不变 |
 | 充值 | Credit lot + wallet | 不变 | TopUp(+delta) |
 | 消费入账 | wallet/consumed/remain 递减 | user quota 由 NewAPI 自扣 | — |
+| 月初重置 | consumed 新月自动归零（按 periodKey 查） | 不调用 | 不变 |
+
+### 5.6 设计决策
+
+**为什么 Preload-Once 而非逐 Key 查询？**  
+`LoadBudgetContext` 一次加载全部成员、项目、Key 数据到内存，然后对每个 mapping 在内存中计算。对大多数租户（< 1000 个 Key），单次 SQL 查询比 N 次小查询更高效。只有当某租户 Key 数量极大时，才需要考虑按 axis 范围过滤加载。
+
+**为什么 Rebalance 是异步的？**  
+管理员修改预算需要立即返回成功。Rebalance 可能涉及几百个 Key 的重算，放在 worker 中避免阻塞 HTTP 响应。时效性影响：admin 操作到 Gateway 生效有几秒延迟（worker 延迟 + Redis 传播），在人工操作场景下完全可接受。
 
 ---
 
 ## 6. 流程四：超限处理（Overrun）
 
 Overrun 在入账**事务内**构建 payload、事务后 enqueue job，由 `OverrunService` 异步处理。
+
+### 6.1 入队条件（Gate）
+
+并非每次入账都触发 Overrun job。`ShouldEnqueueOverrun` 的判断逻辑：
+
+```text
+入账事务内：
+  1. absoluteRecompute → 得到最新 combined_key_remain
+  2. 取该 Key 的 summary.Remain
+
+                 ┌─────────────────────────────┐
+                 │ summaries == nil（Unconstrained）│───→ 不入队（无配额约束）
+                 └───────────────┬─────────────┘
+                                 │
+                 ┌───────────────▼─────────────┐
+                 │ Key 在 summaries 中找到       │
+                 │   remain <= 0？             │───→ 入队 ✓
+                 │   remain > 0？              │───→ 不入队
+                 └───────────────┬─────────────┘
+                                 │
+                 ┌───────────────▼─────────────┐
+                 │ Key 不在 summaries 中         │───→ 入队 ✓（Unknown = 安全起见检查）
+                 └─────────────────────────────┘
+```
+
+**设计原则**：宁可多检查一次（Unknown → enqueue），不可漏掉超限（false negative 比 false positive 后果严重）。
+
+### 6.2 评估流程图
 
 ```mermaid
 flowchart TD
@@ -340,9 +461,140 @@ flowchart TD
 
 **评估顺序**（由细到粗）：Key → Member → ProjectMember → Project → Department
 
-- Key/Member/Project 级别：**自动 Disable Key**（通过 `newapisync.DisablePlatformKey`）
+- Key/Member/Project/ProjectMember 级别：**自动 Disable Key**（通过 `newapisync.DisablePlatformKey`）
 - Department 级别：**仅发通知**（不自动禁用）
 - 所有 Disable 动作通过 `OverrunKeyControl` 接口，既 Disable PG 记录也更新 NewAPI Token status
+- 评估在**事务内**读最新 consumed（带 `AcquireBudgetLock`），确保并发安全
+
+### 6.3 DisablePlatformKey 做了什么
+
+```text
+DisablePlatformKey(keyID):
+  1. PG: key.Status = "disabled"  → 写入 platform_keys 表
+  2. 查 PlatformKeyMapping 找到对应 NewAPIKeyID
+  3. 调 NewAPI Admin API: UpdateToken(id, status="disabled")
+     → NewAPI 侧也标记 token 为 disabled
+```
+
+效果：下一个使用该 Key 的请求在 Gateway 预检阶段就被拦截（检查 Key status ≠ active）。
+
+### 6.4 各级 Disable 范围
+
+| 级别 | 判定条件 | Disable 范围 | 通知 |
+|------|---------|-------------|------|
+| Key | `keyConsumed >= key.Budget` | 仅该 Key | ✓ |
+| Member | `memberConsumed >= personal_budget` | 该成员所有 active Key（`ListActiveMemberKeys`） | ✓ |
+| ProjectMember | `subConsumed >= project.memberBudget` | 该项目中该成员的所有 `scope=project_member` Key | ✓ |
+| Project | `projectConsumed >= project.budget` | 该项目所有 `scope=project/project_member` Key | ✓ |
+| Department | `ledgerSum >= dept.budget` | 无（仅通知） | ✓ |
+
+### 6.5 具体场景举例
+
+**例 1：Key 级超限（最常见）**
+
+```text
+场景：Key-A 预算 10,000 point，已消费 9,800。一次请求消耗 300 point。
+① Ingest 入账：key consumed → 10,100（已超 10,000）
+② combined_key_remain 重算 → 0（或负数）
+③ ShouldEnqueueOverrun → remain <= 0 → 入队 ✓
+④ OverrunService.evaluateOverrun：
+   - key.Budget=10000, keyConsumed=10100 → BudgetExhausted=true
+   - action = Disable Key-A
+⑤ DisablePlatformKey(Key-A)：PG disabled + NewAPI token disabled
+⑥ 通知管理员：{"scope":"platformKey", "consumed":10100, "budget":10000}
+⑦ 后续请求用 Key-A → Gateway 预检 Key status=disabled → 403
+```
+
+**例 2：成员级超限（跨 Key 累计）**
+
+```text
+场景：成员 B personal_budget=50,000。有 3 把 Key（各无 Key budget）。
+      Key-1 消费 20,000 + Key-2 消费 20,000 + Key-3 本次消费 12,000 = 52,000
+
+① Ingest 入账 Key-3 的 12,000
+② evaluateOverrun：
+   - Key-3 无 budget → 跳过 Key 级检查
+   - memberConsumed=52,000 >= personal_budget=50,000 → BudgetExhausted=true
+   - action = disableMemberKeys(memberB)
+③ 遍历 ListActiveMemberKeys(memberB) → [Key-1, Key-2, Key-3]
+④ 逐个 DisablePlatformKey → 三把 Key 全部 disabled
+⑤ 通知管理员：{"scope":"member", "consumed":52000, "capacity":50000}
+```
+
+**例 3：项目成员子配额超限**
+
+```text
+场景：项目 P budget=100,000，成员 C 在项目 P 的子配额=15,000。
+      成员 C 在项目 P 有 2 把 scope=project_member 的 Key。
+
+① Ingest 入账后 subConsumed（该成员在项目 P 所有 Key 消耗之和）= 15,500
+② evaluateOverrun：
+   - Key 级无 budget → 跳过
+   - scope != member（是 project_member）→ 跳过 Member 级
+   - ProjectMember 级：subConsumed=15500 >= memberBudget=15000 → true
+   - action = disableProjectMemberKeys(projectP, memberC)
+③ 只 Disable 项目 P 中成员 C 的 Key，不影响成员 C 在其他项目的 Key
+```
+
+**例 4：部门超限（仅通知）**
+
+```text
+场景：研发部 budget=500,000，ledger 累计消费达到 510,000。
+① 前面所有级别（Key/Member/Project）都未触发（个体未超）
+② Department 级：SumAmountByDepartment=510,000 >= 500,000 → true
+③ 仅发通知，不 Disable 任何 Key
+   原因：部门是聚合级别，单个请求无法确定应该禁用谁
+④ 管理员收到通知后可手动调整各成员额度或加大部门预算
+```
+
+### 6.6 Overrun 与 Gateway 的协作
+
+```text
+时间线：
+  T0: 请求到达 Gateway → 预检通过（combined_key_remain > 0）
+  T1: NewAPI 执行完成
+  T2: Webhook → Ingest 入账 → combined_key_remain 递减至 0
+  T3: ShouldEnqueueOverrun → 入队
+  T4: OverrunService 评估 → Disable Key
+  
+  T0~T4 之间如果有并发请求：
+  - T0~T2: 可能多放行（超卖窗口，见 §10.3）
+  - T2~T4: Gateway 用 combined_key_remain ≤ 0 自然拦截（无需等 Disable）
+  - T4 之后: Key status=disabled，双重保险
+```
+
+**核心洞察**：Overrun Disable 不是唯一的止血手段——`combined_key_remain ≤ 0` 在 T2 之后就已经拦截了后续请求。Disable 是**补充保险**，确保即使 cache 异常也不会继续放行。
+
+### 6.7 Overrun Policy 配置
+
+管理员可配置 `OverrunPolicyConfig`：
+
+```json
+{
+  "thresholds": [80, 90],
+  "notifyEmail": true,
+  "notifyPhone": true,
+  "notifyIm": true,
+  "blockMessage": "额度已用尽，请联系管理员申请追加"
+}
+```
+
+- `thresholds`：预警阈值百分比（用于 Alert 机制，见 §7）
+- `notifyEmail/Phone/Im`：通知渠道开关
+- `blockMessage`：超限后展示给用户的自定义消息
+
+### 6.8 OverrunKeyControl 的安全门
+
+```go
+type OverrunKeyControl interface {
+    NewAPIGate              // Enabled() bool — 全局开关
+    DisablePlatformKey(ctx context.Context, platformKeyID uuid.UUID) error
+}
+```
+
+- 如果 `keyControl == nil || !keyControl.Enabled()` → 整个 Overrun 评估直接跳过
+- 这是 NewAPI 集成的全局开关——未配置 NewAPI 的环境不执行 Disable
+- `Enabled()` 由 `NewAPISync` 实现，检查 `config.NewAPIEnabled`
 
 ---
 

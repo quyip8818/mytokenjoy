@@ -46,7 +46,7 @@ graph LR
     D -.->|审计视角| C
 ```
 
-**SaaS** 在之上增加 **平台运营**（企业开户、全局 Channel、代充）；企业内角色与私有化一致。成员登录 TokenJoy 控制台，**不**登录 NewAPI；企业钱包在 NewAPI 侧以 **企业钱包用户**（`newapi_wallet_user_id`）存在（见 [Backend.md](./Backend.md) §2、[Backend-预算.md](./Backend-预算.md)）。
+**SaaS** 在之上增加 **平台运营**（企业开户、全局 Channel、代充）；企业内角色与私有化一致。成员登录 TokenJoy 控制台，**不**登录 NewAPI；企业钱包在 NewAPI 侧以 **企业钱包账号**（`newapi_wallet_company_id`）存在（见 [Backend.md](./Backend.md) §2、[Backend-预算.md](./Backend-预算.md)）。
 
 | 角色       | 范围       | 核心诉求                           |
 | ---------- | ---------- | ---------------------------------- |

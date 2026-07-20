@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed"
-	"github.com/tokenjoy/backend/seed/runtime"
 )
 
 type Store struct {
@@ -51,10 +50,6 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 	}
 	if !cfg.StoreBootstrap.SchemaPrepared {
 		if err := applySchema(ctx, pool, cfg); err != nil {
-			pool.Close()
-			return nil, err
-		}
-		if err := ensureBootstrapCompany(ctx, pool, cfg); err != nil {
 			pool.Close()
 			return nil, err
 		}
@@ -100,7 +95,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		s.logs = newLogRepo(logPool, tables)
 	}
 	if !cfg.StoreBootstrap.SchemaPrepared {
-		if err := s.loadOrSeedDomain(ctx, cfg); err != nil {
+		if err := seed.Init(ctx, pool, s, cfg); err != nil {
 			pool.Close()
 			if s.logPool != nil {
 				s.logPool.Close()
@@ -193,46 +188,3 @@ func (s *Store) Pool() *pgxpool.Pool { return s.pool }
 
 // LogPool returns the pool used for the ingest log database (for LISTEN/NOTIFY).
 func (s *Store) LogPool() *pgxpool.Pool { return s.logPool }
-
-func (s *Store) loadOrSeedDomain(ctx context.Context, cfg config.Config) error {
-	empty, err := isDatabaseEmpty(ctx, s.pool)
-	if err != nil {
-		return err
-	}
-	if !empty {
-		return nil
-	}
-	if !cfg.BootstrapIsMinimal() && !cfg.BootstrapIsDemo() {
-		return fmt.Errorf("database empty: set BOOTSTRAP_MODE=minimal|demo or run seed")
-	}
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin seed tx: %w", err)
-	}
-	defer tx.Rollback(ctx)
-	var snap store.Snapshot
-	if cfg.BootstrapIsMinimal() {
-		snap = seed.LoadMinimal(cfg)
-	} else {
-		snap = seed.Load(cfg)
-	}
-	if err := seed.ApplyTables(ctx, tx, snap); err != nil {
-		return err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("commit seed tx: %w", err)
-	}
-	if cfg.BootstrapIsDemo() {
-		return runtime.ApplyDemo(ctx, s, cfg)
-	}
-	return nil
-}
-
-func isDatabaseEmpty(ctx context.Context, exec dbQuerier) (bool, error) {
-	var count int
-	err := exec.QueryRow(ctx, `SELECT COUNT(*) FROM members`).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("count members: %w", err)
-	}
-	return count == 0, nil
-}

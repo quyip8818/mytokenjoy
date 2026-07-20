@@ -74,12 +74,12 @@ func (s *service) confirmPaidRecharge(...) error {
 
 ### Bootstrap 补齐
 
-应用启动时（`provision/bootstrap.go`），对已配置的 wallet user：
+应用启动时（`provision/bootstrap.go`），对已配置的 wallet company：
 
 ```go
-currentQuota := client.GetUserQuota(ctx, walletUserID)
+currentQuota := client.GetUserQuota(ctx, walletCompanyID)
 if currentQuota < co.WalletRemain {
-    client.TopUp(ctx, { UserID: walletUserID, Quota: co.WalletRemain - currentQuota })
+    client.TopUp(ctx, { CompanyID: walletCompanyID, Quota: co.WalletRemain - currentQuota })
 }
 ```
 

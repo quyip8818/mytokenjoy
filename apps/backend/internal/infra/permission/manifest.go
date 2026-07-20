@@ -10,13 +10,19 @@ import (
 //go:embed manifest.json
 var manifestJSON []byte
 
+type PermissionMeta struct {
+	Name  string `json:"name"`
+	Group string `json:"group"`
+}
+
 type Manifest struct {
-	Version                 int                 `json:"version"`
-	Capabilities            []string            `json:"capabilities"`
-	PermissionIDMap         map[string]string   `json:"permissionIdMap"`
-	PresetRoles             map[string][]string `json:"presetRoles"`
-	WriteCapabilities       []string            `json:"writeCapabilities"`
-	BudgetWriteCapabilities []string            `json:"budgetWriteCapabilities"`
+	Version                 int                       `json:"version"`
+	Capabilities            []string                  `json:"capabilities"`
+	PermissionIDMap         map[string]string         `json:"permissionIdMap"`
+	PermissionNames         map[string]PermissionMeta `json:"permissionNames"`
+	PresetRoles             map[string][]string       `json:"presetRoles"`
+	WriteCapabilities       []string                  `json:"writeCapabilities"`
+	BudgetWriteCapabilities []string                  `json:"budgetWriteCapabilities"`
 	Rules                   struct {
 		BudgetWriteImpliesRead bool `json:"budgetWriteImpliesRead"`
 	} `json:"rules"`
