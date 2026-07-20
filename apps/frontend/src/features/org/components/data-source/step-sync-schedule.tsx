@@ -46,19 +46,14 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
 
   useEffect(() => {
     void syncApi.getConfig().then((config) => {
-      const fields: (keyof SyncConfig)[] = [
-        'enabled',
-        'startTime',
-        'frequencyHours',
-        'deleteMemberThreshold',
-        'deleteDepartmentThreshold',
-        'notifyPhone',
-        'notifyEmail',
-        'notifyIm',
-      ]
-      fields.forEach((key) => {
-        setValue(key, config[key] as never)
-      })
+      setValue('enabled', config.enabled)
+      setValue('startTime', config.startTime || '02:00')
+      setValue('frequencyHours', config.frequencyHours || 24)
+      setValue('deleteMemberThreshold', config.deleteMemberThreshold ?? 10)
+      setValue('deleteDepartmentThreshold', config.deleteDepartmentThreshold ?? 3)
+      setValue('notifyPhone', config.notifyPhone)
+      setValue('notifyEmail', config.notifyEmail)
+      setValue('notifyIm', config.notifyIm)
     })
   }, [syncApi, setValue])
 
