@@ -20,7 +20,7 @@ func TestUpdateSyncConfigValidation(t *testing.T) {
 	deps := core.NewDeps(
 		testutil.TestConfig(),
 		nil, // store not reached for invalid inputs
-		nil, nil, nil,
+		nil, nil,
 		common.NewDelayer(false),
 		slog.Default(),
 		permission.NewGrantNormalizer(),

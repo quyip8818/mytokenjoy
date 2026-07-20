@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
@@ -81,7 +80,6 @@ func (s *Service) importFromProvider(
 	}
 
 	result := types.ImportResult{Failures: append([]types.ImportFailure{}, fetchFailures...)}
-	changedDeptIDs := make([]uuid.UUID, 0)
 
 	err = s.d.Store.WithTx(ctx, func(st store.Store) error {
 		membersAdded := false
@@ -139,7 +137,6 @@ func (s *Service) importFromProvider(
 				}
 				departments = core.DepartmentsFromState(state)
 				externalToLocal[remote.ExternalID] = localID
-				changedDeptIDs = append(changedDeptIDs, localID)
 				result.SuccessDepartments++
 				continue
 			}
@@ -148,7 +145,6 @@ func (s *Service) importFromProvider(
 				if err := core.RenameDepartment(state, localID, remote.Name); err != nil {
 					return err
 				}
-				changedDeptIDs = append(changedDeptIDs, localID)
 			}
 			node := pkgorg.FindOrgNode(state.Nodes, localID)
 			if node != nil {
@@ -253,11 +249,6 @@ func (s *Service) importFromProvider(
 
 	if err := s.d.Store.Org().SetImportFailures(ctx, result.Failures); err != nil {
 		s.d.Logger.Error("persist import failures", "error", err)
-	}
-	if s.d.ModelLimits != nil && len(changedDeptIDs) > 0 {
-		if err := s.d.ModelLimits.EnqueueModelLimitsForDepartments(ctx, changedDeptIDs); err != nil {
-			s.d.Logger.Error("enqueue model limits", "error", err)
-		}
 	}
 	return result, nil
 }

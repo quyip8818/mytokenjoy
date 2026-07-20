@@ -28,8 +28,6 @@ func (w *NewAPISyncWorker) Work(ctx context.Context, job *river.Job[jobs.NewAPIS
 		_, err = w.handler.TrySyncCreate(entryCtx, job.Args.PlatformKeyID)
 	case outbox.KindUpsertChannel:
 		err = w.handler.SyncUpsertProviderKey(entryCtx, job.Args.ProviderKeyID)
-	case outbox.KindUpdateModelLimits:
-		err = w.handler.SyncModelLimitsForDepartment(entryCtx, job.Args.DepartmentID)
 	default:
 		return river.JobCancel(fmt.Errorf("unknown newapi sync sub kind: %s", job.Args.SubKind))
 	}

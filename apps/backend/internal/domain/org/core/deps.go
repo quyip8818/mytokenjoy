@@ -6,7 +6,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/grants"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -26,22 +25,20 @@ type Store interface {
 }
 
 type Deps struct {
-	Cfg         config.Config
-	Store       Store
-	Factory     datasource.Factory
-	ModelLimits newapisync.ModelLimitsLifecycle
-	Notifier    types.Notifier
-	Delayer     common.Delayer
-	Logger      *slog.Logger
-	Grants      grants.Normalizer
-	cryptoKey   []byte
+	Cfg       config.Config
+	Store     Store
+	Factory   datasource.Factory
+	Notifier  types.Notifier
+	Delayer   common.Delayer
+	Logger    *slog.Logger
+	Grants    grants.Normalizer
+	cryptoKey []byte
 }
 
 func NewDeps(
 	cfg config.Config,
 	st Store,
 	factory datasource.Factory,
-	modelLimits newapisync.ModelLimitsLifecycle,
 	notifier types.Notifier,
 	delayer common.Delayer,
 	logger *slog.Logger,
@@ -51,14 +48,13 @@ func NewDeps(
 		logger = slog.Default()
 	}
 	return &Deps{
-		Cfg:         cfg,
-		Store:       st,
-		Factory:     factory,
-		ModelLimits: modelLimits,
-		Notifier:    notifier,
-		Delayer:     delayer,
-		Logger:      logger,
-		Grants:      grants,
+		Cfg:      cfg,
+		Store:    st,
+		Factory:  factory,
+		Notifier: notifier,
+		Delayer:  delayer,
+		Logger:   logger,
+		Grants:   grants,
 	}
 }
 

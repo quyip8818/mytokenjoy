@@ -15,7 +15,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -89,17 +88,6 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	if err != nil {
 		return "", err
 	}
-	rules, err := common.LoadRoutingRules(ctx, d.Store.Org().Nodes(), d.Store.Models().Allowlist())
-	if err != nil {
-		return "", err
-	}
-	models, err := d.Store.Models().Models(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
-	_, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
 
 	group := d.ChannelPolicy.ResolveNewAPIGroup(ctx, departmentID)
 	displayName := departmentID.String()
@@ -115,12 +103,10 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 		return "", fmt.Errorf("newapi wallet company id required for platform key %s", key.ID)
 	}
 	req := adminport.CreateTokenInput{
-		UserID:             walletCompanyID,
-		Name:               TokenName(key.ID),
-		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
-		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
-		Group:              group,
-		ExpiredTime:        -1,
+		UserID:      walletCompanyID,
+		Name:        TokenName(key.ID),
+		Group:       group,
+		ExpiredTime: -1,
 	}
 	token, err := d.Client.CreateToken(ctx, req)
 	if err != nil {

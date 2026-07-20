@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -66,5 +65,22 @@ func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mappin
 		return keyIDs
 	}
 	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, snap.Catalog)
-	return newapiunits.EffectiveWhitelistIDs(keyIDs, deptAllowed)
+	return effectiveWhitelistIDs(keyIDs, deptAllowed)
+}
+
+func effectiveWhitelistIDs(keyWhitelist, deptAllowed []uuid.UUID) []uuid.UUID {
+	if len(keyWhitelist) == 0 {
+		return append([]uuid.UUID{}, deptAllowed...)
+	}
+	allowed := make(map[uuid.UUID]struct{}, len(deptAllowed))
+	for _, id := range deptAllowed {
+		allowed[id] = struct{}{}
+	}
+	out := make([]uuid.UUID, 0, len(keyWhitelist))
+	for _, id := range keyWhitelist {
+		if _, ok := allowed[id]; ok {
+			out = append(out, id)
+		}
+	}
+	return out
 }

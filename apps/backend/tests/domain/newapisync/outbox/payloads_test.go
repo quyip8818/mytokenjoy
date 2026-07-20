@@ -26,10 +26,8 @@ func TestOutboxPayloadJSONRoundtrip(t *testing.T) {
 
 	companyID1 := uuid.MustParse("00000000-0000-7000-0000-000000000001")
 	companyID3 := uuid.MustParse("00000000-0000-7000-0000-000000000003")
-	companyID4 := uuid.MustParse("00000000-0000-7000-0000-000000000004")
 	companyID5 := uuid.MustParse("00000000-0000-7000-0000-000000000005")
 	platformKeyID := uuid.MustParse("00000000-0000-7000-0000-00000000f001")
-	deptID := uuid.MustParse("00000000-0000-7000-0000-000000000d03")
 
 	t.Run("create key", func(t *testing.T) {
 		t.Parallel()
@@ -56,20 +54,6 @@ func TestOutboxPayloadJSONRoundtrip(t *testing.T) {
 			CompanyID: companyID3, ProviderKeyID: providerKeyID,
 		}, &wire)
 		if wire.CompanyID != companyID3.String() || wire.ProviderKeyID != providerKeyID.String() {
-			t.Fatalf("wire mismatch: %+v", wire)
-		}
-	})
-
-	t.Run("update model limits", func(t *testing.T) {
-		t.Parallel()
-		var wire struct {
-			CompanyID    string `json:"companyId"`
-			DepartmentID string `json:"departmentId"`
-		}
-		assertOutboxWireJSON(t, outbox.UpdateModelLimitsOutboxPayload{
-			CompanyID: companyID4, DepartmentID: deptID,
-		}, &wire)
-		if wire.CompanyID != companyID4.String() || wire.DepartmentID != deptID.String() {
 			t.Fatalf("wire mismatch: %+v", wire)
 		}
 	})

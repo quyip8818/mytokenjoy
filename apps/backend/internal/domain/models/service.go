@@ -9,12 +9,11 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
-	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -37,20 +36,23 @@ type Store interface {
 }
 
 type service struct {
-	cfg         config.Config
-	store       Store
-	delayer     common.Delayer
-	client      adminport.Port
-	modelLimits newapisync.ModelLimitsLifecycle
+	cfg              config.Config
+	store            Store
+	delayer          common.Delayer
+	client           adminport.Port
+	cacheInvalidator types.PrecheckCacheInvalidator
 }
 
-func NewService(cfg config.Config, st Store, client adminport.Port, modelLimits newapisync.ModelLimitsLifecycle, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st Store, client adminport.Port, cacheInvalidator types.PrecheckCacheInvalidator, delayer common.Delayer) Service {
+	if cacheInvalidator == nil {
+		cacheInvalidator = types.NoopPrecheckCacheInvalidator{}
+	}
 	return &service{
-		cfg:         cfg,
-		store:       st,
-		delayer:     delayer,
-		client:      client,
-		modelLimits: modelLimits,
+		cfg:              cfg,
+		store:            st,
+		delayer:          delayer,
+		client:           client,
+		cacheInvalidator: cacheInvalidator,
 	}
 }
 
@@ -332,16 +334,7 @@ func (s *service) UpdateRoutingRule(
 	if err := s.client.RebuildAbilities(ctx); err != nil {
 		return types.RoutingRule{}, fmt.Errorf("rebuild abilities: %w", err)
 	}
-	if s.modelLimits != nil {
-		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
-		if err != nil {
-			return types.RoutingRule{}, err
-		}
-		deptIDs := org.CollectDescendantDeptIDs(departments, updated.NodeID)
-		if err := s.modelLimits.EnqueueModelLimitsForDepartments(ctx, deptIDs); err != nil {
-			return types.RoutingRule{}, fmt.Errorf("enqueue model limits: %w", err)
-		}
-	}
+	s.cacheInvalidator.InvalidateCompany(company.CompanyID(ctx))
 	catalog, err := s.store.Models().Models(ctx)
 	if err != nil {
 		return types.RoutingRule{}, err

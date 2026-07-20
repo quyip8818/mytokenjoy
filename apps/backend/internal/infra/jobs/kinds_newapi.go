@@ -11,7 +11,6 @@ type NewAPISyncArgs struct {
 	SubKind       string    `json:"sub_kind"`
 	PlatformKeyID uuid.UUID `json:"platform_key_id,omitempty"`
 	ProviderKeyID uuid.UUID `json:"provider_key_id,omitempty"`
-	DepartmentID  uuid.UUID `json:"department_id,omitempty"`
 }
 
 func (NewAPISyncArgs) Kind() string { return KindNewAPISync }

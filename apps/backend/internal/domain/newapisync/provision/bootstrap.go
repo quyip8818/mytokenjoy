@@ -45,7 +45,7 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error 
 	}
 
 	if len(unready) == 0 {
-		// All keys synced — reconcile to ensure upstream state matches DB (quota, model_limits, group).
+		// All keys synced — reconcile to ensure upstream state matches DB (quota, group).
 		return reconcileSyncedPlatformKeyMappings(ctx, d, budgetCtx, platformKeys)
 	}
 
@@ -151,7 +151,7 @@ func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, bu
 			}
 			continue
 		}
-		// Ensure group, model_limits, and quota stay in sync with current DB state.
+		// Ensure group and quota stay in sync with current DB state.
 		if err := platformkey.SyncUpdatePlatformKey(ctx, d, key.ID, nil); err != nil {
 			slog.Default().Warn("reconcile platform key sync failed", "platform_key_id", key.ID, "error", err)
 		}

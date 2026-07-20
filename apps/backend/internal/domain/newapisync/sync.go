@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/modellimits"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/platformkey"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/ports"
@@ -96,18 +95,6 @@ func (l *NewAPISync) SyncUpsertProviderKey(ctx context.Context, providerKeyID uu
 	return provider.SyncUpsertProviderKey(ctx, l.deps, providerKeyID)
 }
 
-func (l *NewAPISync) EnqueueModelLimitsForDepartment(ctx context.Context, departmentID uuid.UUID) error {
-	return modellimits.EnqueueModelLimitsForDepartment(ctx, l.deps, departmentID)
-}
-
-func (l *NewAPISync) EnqueueModelLimitsForDepartments(ctx context.Context, departmentIDs []uuid.UUID) error {
-	return modellimits.EnqueueModelLimitsForDepartments(ctx, l.deps, departmentIDs)
-}
-
-func (l *NewAPISync) SyncModelLimitsForDepartment(ctx context.Context, departmentID uuid.UUID) error {
-	return modellimits.SyncModelLimitsForDepartment(ctx, l.deps, departmentID)
-}
-
 func (l *NewAPISync) EnqueueRebalanceAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error {
 	if !l.Enabled() {
 		return nil
@@ -117,7 +104,6 @@ func (l *NewAPISync) EnqueueRebalanceAxis(ctx context.Context, axisKind string, 
 
 var (
 	_ Lifecycle               = (*NewAPISync)(nil)
-	_ ModelLimitsLifecycle    = (*NewAPISync)(nil)
 	_ OverrunKeyControl       = (*NewAPISync)(nil)
 	_ KeysNewAPISync          = (*NewAPISync)(nil)
 	_ OutboxHandler           = (*NewAPISync)(nil)

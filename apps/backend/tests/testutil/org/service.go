@@ -8,8 +8,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -28,9 +26,8 @@ func NewService(t *testing.T, cfg config.Config, st store.Store) org.Service {
 func NewServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enqueuer jobs.Enqueuer) org.Service {
 	t.Helper()
 	factory := datasource.NewFactory(cfg)
-	newAPISync := newapisync.New(cfg, st, nil, policy.NewChannelPolicy(cfg), adapter.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, newAPISync, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), adapter.NewOrgEnqueuer(enqueuer, adapter.NewOrgRiverAdminHolder(nil)))
+	return org.NewService(cfg, st, factory, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), adapter.NewOrgEnqueuer(enqueuer, adapter.NewOrgRiverAdminHolder(nil)))
 }
 
 func NewServiceFromStore(t *testing.T, opts ...testutil.ConfigOption) (config.Config, store.Store, org.Service) {

@@ -9,8 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -30,20 +28,6 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 		return fmt.Errorf("platform key not found")
 	}
 	key := *keyPtr
-	departments, err := common.LoadDepartments(ctx, d.Store.Org().Nodes())
-	if err != nil {
-		return err
-	}
-	rules, err := common.LoadRoutingRules(ctx, d.Store.Org().Nodes(), d.Store.Models().Allowlist())
-	if err != nil {
-		return err
-	}
-	models, err := d.Store.Models().Models(ctx)
-	if err != nil {
-		return err
-	}
-	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, models)
-	_, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
 
 	status := adminport.TokenStatusEnabled
 	if targetActive != nil {
@@ -53,14 +37,11 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 	} else if key.Status != "active" {
 		status = adminport.TokenStatusDisabled
 	}
-	enabled := len(effectiveCallTypes) > 0
 	req := adminport.UpdateTokenInput{
-		ID:                 *mapping.NewAPIKeyID,
-		Name:               key.Name,
-		Status:             &status,
-		ModelLimitsEnabled: &enabled,
-		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
-		Group:              mapping.NewAPIGroup,
+		ID:     *mapping.NewAPIKeyID,
+		Name:   key.Name,
+		Status: &status,
+		Group:  mapping.NewAPIGroup,
 	}
 	token, err := d.Client.UpdateToken(ctx, req)
 	if err != nil {

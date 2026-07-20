@@ -12,11 +12,6 @@ type UpsertChannelOutboxPayload struct {
 	ProviderKeyID uuid.UUID `json:"providerKeyId"`
 }
 
-type UpdateModelLimitsOutboxPayload struct {
-	CompanyID    uuid.UUID `json:"companyId"`
-	DepartmentID uuid.UUID `json:"departmentId"`
-}
-
 type RebalanceAxisOutboxPayload struct {
 	CompanyID uuid.UUID `json:"companyId"`
 	AxisKind  string    `json:"axisKind"`

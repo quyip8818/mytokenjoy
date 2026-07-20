@@ -23,7 +23,6 @@ func (n newAPISyncJobEnqueuer) InsertNewAPISync(ctx context.Context, job ports.S
 		SubKind:       job.SubKind,
 		PlatformKeyID: job.PlatformKeyID,
 		ProviderKeyID: job.ProviderKeyID,
-		DepartmentID:  job.DepartmentID,
 	})
 }
 

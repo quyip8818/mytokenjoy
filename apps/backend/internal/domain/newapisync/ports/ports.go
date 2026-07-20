@@ -11,7 +11,6 @@ type SyncJob struct {
 	SubKind       string
 	PlatformKeyID uuid.UUID
 	ProviderKeyID uuid.UUID
-	DepartmentID  uuid.UUID
 }
 
 type SyncJobEnqueuer interface {

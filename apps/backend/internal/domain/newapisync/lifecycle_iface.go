@@ -27,12 +27,6 @@ type ProviderKeyLifecycle interface {
 	SyncUpsertProviderKey(ctx context.Context, providerKeyID uuid.UUID) error
 }
 
-type ModelLimitsLifecycle interface {
-	EnqueueModelLimitsForDepartment(ctx context.Context, departmentID uuid.UUID) error
-	EnqueueModelLimitsForDepartments(ctx context.Context, departmentIDs []uuid.UUID) error
-	SyncModelLimitsForDepartment(ctx context.Context, departmentID uuid.UUID) error
-}
-
 type RebalanceEnqueuer interface {
 	EnqueueRebalanceAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error
 }
@@ -41,7 +35,6 @@ type Lifecycle interface {
 	NewAPIGate
 	PlatformKeyLifecycle
 	ProviderKeyLifecycle
-	ModelLimitsLifecycle
 	RebalanceEnqueuer
 }
 
@@ -54,7 +47,6 @@ type KeysNewAPISync interface {
 type OutboxHandler interface {
 	PlatformKeyLifecycle
 	ProviderKeyLifecycle
-	ModelLimitsLifecycle
 }
 
 type OverrunKeyControl interface {

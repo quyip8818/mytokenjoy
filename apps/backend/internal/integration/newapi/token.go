@@ -74,8 +74,8 @@ func MergeTokenPut(cur Token, req adminport.UpdateTokenInput) TokenPutBody {
 		Status:             coalescePtr(req.Status, cur.Status),
 		RemainQuota:        coalescePtr(req.RemainQuota, cur.RemainQuota),
 		UnlimitedQuota:     coalescePtr(req.UnlimitedQuota, cur.UnlimitedQuota),
-		ModelLimitsEnabled: coalescePtr(req.ModelLimitsEnabled, cur.ModelLimitsEnabled),
-		ModelLimits:        coalesceString(req.ModelLimits, cur.ModelLimits),
+		ModelLimitsEnabled: cur.ModelLimitsEnabled,
+		ModelLimits:        cur.ModelLimits,
 		Group:              coalesceString(req.Group, cur.Group),
 		ExpiredTime:        expiredTimeForPut(req.ExpiredTime, cur.ExpiredTime),
 	}
