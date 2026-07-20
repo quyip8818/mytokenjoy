@@ -16,11 +16,18 @@ for arg in "$@"; do
     --full) SEED=full ;;
     -h|--help)
       echo "usage: pnpm reset [local|saas] [--empty|--minimal|--full]"
+      echo "  local (default): single company, seed controlled by --empty/--minimal/--full"
+      echo "  saas: multi-tenant platform + demo company (always full seed)"
       exit 0
       ;;
     *) echo "unknown arg: ${arg}" >&2; exit 1 ;;
   esac
 done
+
+# saas mode: always full seed (platform admin + demo company)
+if [[ "${MODE}" == "saas" ]]; then
+  SEED=full
+fi
 
 SUPPORT_SAAS=$([[ "${MODE}" == "saas" ]] && echo true || echo false)
 

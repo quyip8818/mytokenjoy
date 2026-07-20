@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -26,8 +26,8 @@ func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	stub.UpdateTokenFn = func(_ context.Context, _ newapi.UpdateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{}, errors.New("newapi down")
+	stub.UpdateTokenFn = func(_ context.Context, _ adminport.UpdateTokenInput) (adminport.TokenResult, error) {
+		return adminport.TokenResult{}, errors.New("newapi down")
 	}
 	before, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {
@@ -98,11 +98,11 @@ func TestRotatePlatformKeySuccess(t *testing.T) {
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
-	stub.RegenerateTokenFn = func(_ context.Context, id int64) (newapi.Token, error) {
+	stub.RegenerateTokenFn = func(_ context.Context, id int64) (adminport.TokenResult, error) {
 		if id != tokenID {
 			t.Fatalf("expected token id %d, got %d", tokenID, id)
 		}
-		return newapi.Token{ID: id, Key: "sk-rotated-key"}, nil
+		return adminport.TokenResult{ID: id, Key: "sk-rotated-key"}, nil
 	}
 	rotated, err := svc.RotatePlatformKey(ctx, contract.IDPlatformKey1)
 	if err != nil {
@@ -255,8 +255,8 @@ func TestUpdatePlatformKeyRemoteFailureRollsBack(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	stub.UpdateTokenFn = func(_ context.Context, _ newapi.UpdateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{}, errors.New("newapi down")
+	stub.UpdateTokenFn = func(_ context.Context, _ adminport.UpdateTokenInput) (adminport.TokenResult, error) {
+		return adminport.TokenResult{}, errors.New("newapi down")
 	}
 	before, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {

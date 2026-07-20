@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
@@ -21,12 +21,12 @@ func TestBootstrapLeavesAllPlatformKeysReady(t *testing.T) {
 	t.Parallel()
 	var nextTokenID int64 = 600
 	stub := &mock.StubAdminClient{
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-readiness-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-readiness-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-readiness-%d", tokenID), RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-readiness-%d", tokenID), RemainQuota: 1000}, nil
 		},
 	}
 	sync, _ := newapisynctf.NewLocalTestService(t, stub)
@@ -47,12 +47,12 @@ func TestDevReadinessOKAfterBootstrap(t *testing.T) {
 	t.Parallel()
 	var nextTokenID int64 = 610
 	stub := &mock.StubAdminClient{
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-readiness-http-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-readiness-http-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-readiness-http-%d", tokenID), RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-readiness-http-%d", tokenID), RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)

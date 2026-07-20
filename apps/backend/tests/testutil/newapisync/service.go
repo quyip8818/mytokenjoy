@@ -70,7 +70,7 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 	sync := domainnewapisync.New(
 		cfg,
 		st,
-		newapi.NewAdminPortAdapter(stub),
+		stub,
 		policy.NewChannelPolicy(cfg),
 		adapter.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
 	)

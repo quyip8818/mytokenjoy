@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
@@ -38,7 +39,7 @@ func TestCreateTokenUsesResponseDataAndAssertsOwner(t *testing.T) {
 	defer server.Close()
 
 	client := newapi.NewClient(server.URL, "admin-token", 1)
-	token, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{
+	token, err := client.CreateToken(context.Background(), adminport.CreateTokenInput{
 		UserID: 2, Name: "tokenjoy:plk-1", RemainQuota: 10, Group: "platform_shared", ExpiredTime: -1,
 	})
 	if err != nil {
@@ -66,7 +67,7 @@ func TestCreateTokenFailsWhenResponseMissingID(t *testing.T) {
 	defer server.Close()
 
 	client := newapi.NewClient(server.URL, "admin-token", 1)
-	_, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{UserID: 2, Name: "tokenjoy:x"})
+	_, err := client.CreateToken(context.Background(), adminport.CreateTokenInput{UserID: 2, Name: "tokenjoy:x"})
 	if err == nil || !strings.Contains(err.Error(), "missing id") {
 		t.Fatalf("expected missing id error, got %v", err)
 	}
@@ -94,7 +95,7 @@ func TestCreateTokenFailsAndDeletesOnOwnerMismatch(t *testing.T) {
 	defer server.Close()
 
 	client := newapi.NewClient(server.URL, "admin-token", 1)
-	_, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{UserID: 2, Name: "tokenjoy:x"})
+	_, err := client.CreateToken(context.Background(), adminport.CreateTokenInput{UserID: 2, Name: "tokenjoy:x"})
 	if err == nil || !strings.Contains(err.Error(), "owner mismatch") {
 		t.Fatalf("expected owner mismatch, got %v", err)
 	}
@@ -128,7 +129,7 @@ func TestCreateTokenRegeneratesWhenKeyMasked(t *testing.T) {
 	defer server.Close()
 
 	client := newapi.NewClient(server.URL, "admin-token", 1)
-	token, err := client.CreateToken(context.Background(), newapi.CreateTokenRequest{
+	token, err := client.CreateToken(context.Background(), adminport.CreateTokenInput{
 		UserID: 2, Name: "tokenjoy:plk-masked",
 	})
 	if err != nil {

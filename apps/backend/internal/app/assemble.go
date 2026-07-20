@@ -16,7 +16,7 @@ func assembleRegistry(cfg config.Config, logger *slog.Logger, st store.Store, o 
 	if orgAdmin == nil {
 		orgAdmin = adapter.NewOrgRiverAdminHolder(nil)
 	}
-	infraDeps, err := buildInfraWithStore(cfg, logger, st, holder, o.adminClient)
+	infraDeps, err := buildInfraWithStore(cfg, logger, st, holder, o.adminPort)
 	if err != nil {
 		return ServiceRegistry{}, err
 	}

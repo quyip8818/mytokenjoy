@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 )
 
@@ -59,7 +60,7 @@ func TestCreateUserResolvesIDWhenUpstreamReturnsEmptyData(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	client := newapi.NewClient(server.URL, "admin", 1)
-	user, err := client.CreateUser(context.Background(), newapi.CreateUserRequest{
+	user, err := client.CreateUser(context.Background(), adminport.CreateUserInput{
 		Username: username, DisplayName: "Co", Password: "abcdefgh",
 	})
 	if err != nil {
@@ -96,7 +97,7 @@ func TestTopUpUsesManageAddQuotaNotLegacyTopupPath(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	client := newapi.NewClient(server.URL, "admin", 1)
-	if err := client.TopUp(context.Background(), newapi.TopUpRequest{UserID: 7, Quota: -9}); err != nil {
+	if err := client.TopUp(context.Background(), adminport.TopUpInput{CompanyID: 7, Quota: -9}); err != nil {
 		t.Fatal(err)
 	}
 	if !sawManage {
@@ -128,7 +129,7 @@ func TestUpsertChannelCreateUsesModeSingleAndResolvesID(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	client := newapi.NewClient(server.URL, "admin", 1)
-	ch, err := client.UpsertChannel(context.Background(), newapi.UpsertChannelRequest{
+	ch, err := client.UpsertChannel(context.Background(), adminport.UpsertChannelInput{
 		Type: 1, Name: "pk-openai", Key: "sk-x", Status: 1, Group: "platform_shared",
 	})
 	if err != nil {
@@ -171,7 +172,7 @@ func TestUpsertChannelUpdatePreservesUnspecifiedFields(t *testing.T) {
 
 	client := newapi.NewClient(server.URL, "admin", 1)
 	disabled := 2
-	_, err := client.UpsertChannel(context.Background(), newapi.UpsertChannelRequest{
+	_, err := client.UpsertChannel(context.Background(), adminport.UpsertChannelInput{
 		ID: 12, Status: disabled, Key: "sk-new",
 	})
 	if err != nil {
@@ -238,7 +239,7 @@ func TestUpdateTokenPreservesExpiredTimeAndIdentity(t *testing.T) {
 
 	client := newapi.NewClient(srv.URL, "tok", 1)
 	remain := int64(42)
-	_, err := client.UpdateToken(t.Context(), newapi.UpdateTokenRequest{
+	_, err := client.UpdateToken(t.Context(), adminport.UpdateTokenInput{
 		ID:          9,
 		RemainQuota: &remain,
 	})
@@ -284,7 +285,7 @@ func TestUpdateTokenHealsZeroExpiredTime(t *testing.T) {
 
 	client := newapi.NewClient(srv.URL, "tok", 1)
 	remain := int64(100)
-	if _, err := client.UpdateToken(t.Context(), newapi.UpdateTokenRequest{
+	if _, err := client.UpdateToken(t.Context(), adminport.UpdateTokenInput{
 		ID: 3, RemainQuota: &remain,
 	}); err != nil {
 		t.Fatal(err)

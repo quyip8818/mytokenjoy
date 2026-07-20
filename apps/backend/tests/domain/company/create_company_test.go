@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -21,7 +22,7 @@ func TestCreateCompanyInviteEmailMode(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 501, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -62,7 +63,7 @@ func TestCreateCompanyUserIDMode(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 502, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	// Create a user first.
@@ -99,12 +100,12 @@ func TestCreateCompanyUserIDModeIdempotent(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	var callCount int
 	client := &mock.StubAdminClient{
-		CreateUserFn: func(_ context.Context, _ newapi.CreateUserRequest) (newapi.User, error) {
+		CreateUserFn: func(_ context.Context, _ adminport.CreateUserInput) (adminport.UserResult, error) {
 			callCount++
-			return newapi.User{ID: int64(600 + callCount), Quota: 0}, nil
+			return adminport.UserResult{ID: int64(600 + callCount)}, nil
 		},
 	}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	userID := uuid.Must(uuid.NewV7())
@@ -128,7 +129,7 @@ func TestCreateCompanyRejectsBothEmpty(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	client := &mock.StubAdminClient{User: newapi.User{ID: 700, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 
 	_, err := svc.CreateCompany(context.Background(), company.CreateCompanyRequest{
 		Name: "No User No Email",
@@ -142,11 +143,11 @@ func TestCreateCompanyRollsBackOnCreateUserFailure(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{
-		CreateUserFn: func(context.Context, newapi.CreateUserRequest) (newapi.User, error) {
-			return newapi.User{}, errors.New("newapi unavailable")
+		CreateUserFn: func(context.Context, adminport.CreateUserInput) (adminport.UserResult, error) {
+			return adminport.UserResult{}, errors.New("newapi unavailable")
 		},
 	}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	before, err := st.Company().List(ctx)
@@ -176,7 +177,7 @@ func TestCreateCompanyDefaultsToStandardType(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	client := &mock.StubAdminClient{User: newapi.User{ID: 601, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -199,7 +200,7 @@ func TestCreateCompanyPresetRolesAndBudgetTree(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 603, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	result, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{

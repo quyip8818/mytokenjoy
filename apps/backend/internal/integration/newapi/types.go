@@ -1,5 +1,6 @@
 package newapi
 
+// Token is the JSON response from NewAPI token endpoints.
 type Token struct {
 	ID                 int64  `json:"id"`
 	UserID             int64  `json:"user_id"`
@@ -15,31 +16,7 @@ type Token struct {
 	ExpiredTime        int64  `json:"expired_time"`
 }
 
-type CreateTokenRequest struct {
-	UserID             int64  `json:"user_id,omitempty"`
-	Name               string `json:"name"`
-	RemainQuota        int64  `json:"remain_quota"`
-	UnlimitedQuota     bool   `json:"unlimited_quota"`
-	ModelLimitsEnabled bool   `json:"model_limits_enabled"`
-	ModelLimits        string `json:"model_limits"`
-	Group              string `json:"group"`
-	ExpiredTime        int64  `json:"expired_time"`
-}
-
-type UpdateTokenRequest struct {
-	ID                 int64  `json:"id"`
-	Name               string `json:"name,omitempty"`
-	Status             *int   `json:"status,omitempty"`
-	RemainQuota        *int64 `json:"remain_quota,omitempty"`
-	UnlimitedQuota     *bool  `json:"unlimited_quota,omitempty"`
-	ModelLimitsEnabled *bool  `json:"model_limits_enabled,omitempty"`
-	ModelLimits        string `json:"model_limits,omitempty"`
-	Group              string `json:"group,omitempty"`
-	// ExpiredTime is optional; when nil, UpdateToken preserves the existing value
-	// (NewAPI PUT replaces the whole token and zero means already-expired).
-	ExpiredTime *int64 `json:"-"`
-}
-
+// Channel is the JSON response from NewAPI channel endpoints.
 type Channel struct {
 	ID     int    `json:"id"`
 	Type   int    `json:"type"`
@@ -47,13 +24,4 @@ type Channel struct {
 	Key    string `json:"key"`
 	Status int    `json:"status"`
 	Group  string `json:"group"`
-}
-
-type UpsertChannelRequest struct {
-	ID     int    `json:"id,omitempty"`
-	Type   int    `json:"type"`
-	Name   string `json:"name"`
-	Key    string `json:"key"`
-	Status int    `json:"status"`
-	Group  string `json:"group,omitempty"`
 }

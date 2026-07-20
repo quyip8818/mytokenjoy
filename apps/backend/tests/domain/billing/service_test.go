@@ -11,14 +11,13 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbilling.Service, store.Store, context.Context) {
+func newBillingService(t *testing.T) (domainbilling.Service, store.Store, context.Context) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, nil)
+	svc := domainbilling.NewService(cfg, st, reader)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
@@ -37,12 +36,7 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 
 func TestGetWalletReturnsBalance(t *testing.T) {
 	t.Parallel()
-	client := &mock.StubAdminClient{
-		GetUserQuotaFn: func(_ context.Context, userID int64) (int64, error) {
-			return 1_000_000, nil
-		},
-	}
-	svc, _, ctx := newBillingService(t, client)
+	svc, _, ctx := newBillingService(t)
 	if err := svc.PlatformRecharge(ctx, contract.DefaultCompanyID, 100, contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +56,7 @@ func TestGetWalletWithoutNewAPIWalletCompanyIDReturnsZero(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader, nil)
+	svc := domainbilling.NewService(cfg, st, reader)
 	ctx := testutil.Ctx()
 	view, err := svc.GetWallet(ctx)
 	if err != nil {
@@ -75,10 +69,7 @@ func TestGetWalletWithoutNewAPIWalletCompanyIDReturnsZero(t *testing.T) {
 
 func TestConfirmPaymentIdempotent(t *testing.T) {
 	t.Parallel()
-	client := &mock.StubAdminClient{
-		GetUserQuotaFn: func(_ context.Context, _ int64) (int64, error) { return 0, nil },
-	}
-	svc, _, ctx := newBillingService(t, client)
+	svc, _, ctx := newBillingService(t)
 	order, err := svc.CreateSelfRecharge(ctx, 20, "idem-key-1", contract.IDMemberAdmin)
 	if err != nil {
 		t.Fatal(err)
@@ -93,8 +84,7 @@ func TestConfirmPaymentIdempotent(t *testing.T) {
 
 func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 	t.Parallel()
-	client := &mock.StubAdminClient{}
-	svc, _, ctx := newBillingService(t, client)
+	svc, _, ctx := newBillingService(t)
 	if _, err := svc.CreateSelfRecharge(ctx, 10, "dup-key", contract.IDMemberAdmin); err != nil {
 		t.Fatal(err)
 	}
@@ -105,8 +95,7 @@ func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 
 func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	t.Parallel()
-	client := &mock.StubAdminClient{}
-	svc, st, ctx := newBillingService(t, client)
+	svc, st, ctx := newBillingService(t)
 	cur, err := st.Billing().GetCurrency(ctx, common.DefaultBillingCurrency)
 	if err != nil {
 		t.Fatal(err)

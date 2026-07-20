@@ -8,6 +8,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -17,25 +18,25 @@ func TestAppNewDoesNotWriteNewAPI(t *testing.T) {
 	t.Parallel()
 	stub := &mock.StubAdminClient{
 		User: newapi.User{ID: 1, Quota: 0},
-		CreateUserFn: func(context.Context, newapi.CreateUserRequest) (newapi.User, error) {
+		CreateUserFn: func(context.Context, adminport.CreateUserInput) (adminport.UserResult, error) {
 			t.Fatal("app.New must not call CreateUser")
-			return newapi.User{}, nil
+			return adminport.UserResult{}, nil
 		},
-		CreateTokenFn: func(context.Context, newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(context.Context, adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			t.Fatal("app.New must not call CreateToken")
-			return newapi.Token{}, nil
+			return adminport.TokenResult{}, nil
 		},
-		UpdateTokenFn: func(context.Context, newapi.UpdateTokenRequest) (newapi.Token, error) {
+		UpdateTokenFn: func(context.Context, adminport.UpdateTokenInput) (adminport.TokenResult, error) {
 			t.Fatal("app.New must not call UpdateToken")
-			return newapi.Token{}, nil
+			return adminport.TokenResult{}, nil
 		},
 		EnsureGroupFn: func(context.Context, string, string) error {
 			t.Fatal("app.New must not call EnsureGroup")
 			return nil
 		},
-		UpsertChannelFn: func(context.Context, newapi.UpsertChannelRequest) (newapi.Channel, error) {
+		UpsertChannelFn: func(context.Context, adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
 			t.Fatal("app.New must not call UpsertChannel")
-			return newapi.Channel{}, nil
+			return adminport.ChannelResult{}, nil
 		},
 	}
 	testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {

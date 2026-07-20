@@ -16,7 +16,7 @@ import (
 func newModelsService(t *testing.T) models.Service {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	return models.NewService(cfg, st, newapi.NewAdminPortAdapter(&mock.StubAdminClient{}), nil, common.NewDelayer(false))
+	return models.NewService(cfg, st, &mock.StubAdminClient{}, nil, common.NewDelayer(false))
 }
 
 func TestResolveRoutingWithoutRule(t *testing.T) {

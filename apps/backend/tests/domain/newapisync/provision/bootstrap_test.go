@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -24,16 +25,16 @@ func TestBootstrapDemoWalletUserCreatesWallet(t *testing.T) {
 	var nextTokenID int64 = 500
 	stub := &mock.StubAdminClient{
 		User: newapi.User{ID: 501},
-		CreateUserFn: func(_ context.Context, req newapi.CreateUserRequest) (newapi.User, error) {
+		CreateUserFn: func(_ context.Context, req adminport.CreateUserInput) (adminport.UserResult, error) {
 			createdUsername = req.Username
-			return newapi.User{ID: 501}, nil
+			return adminport.UserResult{ID: 501}, nil
 		},
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
@@ -61,12 +62,12 @@ func TestBootstrapSyncsActiveSeedKey(t *testing.T) {
 	t.Parallel()
 	var nextTokenID int64 = 800
 	stub := &mock.StubAdminClient{
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
@@ -99,9 +100,9 @@ func TestBootstrapRepairsPendingHashOnSyncedMapping(t *testing.T) {
 			}
 			return bearer, nil
 		},
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-other-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-other-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
@@ -145,15 +146,15 @@ func TestReconcileMissingTokenRecreatesSync(t *testing.T) {
 	staleID := int64(99)
 	var nextTokenID int64 = 900
 	stub := &mock.StubAdminClient{
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-recreated-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-recreated-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, id int64) (newapi.Token, error) {
+		GetTokenFn: func(_ context.Context, id int64) (adminport.TokenResult, error) {
 			if id == staleID {
-				return newapi.Token{}, errors.New("token not found")
+				return adminport.TokenResult{}, errors.New("token not found")
 			}
-			return newapi.Token{ID: id, Key: fmt.Sprintf("sk-recreated-%d", id), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: id, Key: fmt.Sprintf("sk-recreated-%d", id), RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
@@ -191,12 +192,12 @@ func TestBootstrapSkipsWhenAllReady(t *testing.T) {
 	t.Parallel()
 	var nextTokenID int64 = 800
 	stub := &mock.StubAdminClient{
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), Group: "dept-dept-3", RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), Group: "dept-dept-3", RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
@@ -218,15 +219,15 @@ func TestBootstrapHealsZeroWalletCompanyID(t *testing.T) {
 	t.Parallel()
 	var nextTokenID int64 = 900
 	stub := &mock.StubAdminClient{
-		CreateUserFn: func(_ context.Context, _ newapi.CreateUserRequest) (newapi.User, error) {
-			return newapi.User{ID: 777}, nil
+		CreateUserFn: func(_ context.Context, _ adminport.CreateUserInput) (adminport.UserResult, error) {
+			return adminport.UserResult{ID: 777}, nil
 		},
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: nextTokenID, Key: fmt.Sprintf("sk-bootstrap-%d", nextTokenID), RemainQuota: 1000}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-bootstrap-%d", tokenID), RemainQuota: 1000}, nil
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)

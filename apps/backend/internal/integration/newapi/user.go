@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
 
 const (
@@ -15,22 +17,11 @@ const (
 	manageModeSubtract   = "subtract"
 )
 
+// User is the JSON response from NewAPI user endpoints.
 type User struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
 	Quota    int64  `json:"quota"`
-}
-
-type CreateUserRequest struct {
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	Password    string `json:"password"`
-	Quota       int64  `json:"quota"`
-}
-
-type TopUpRequest struct {
-	UserID int64
-	Quota  int64
 }
 
 type manageUserRequest struct {
@@ -40,24 +31,27 @@ type manageUserRequest struct {
 	Mode   string `json:"mode"`
 }
 
-func (c *Client) CreateUser(ctx context.Context, req CreateUserRequest) (User, error) {
+func (c *Client) CreateUser(ctx context.Context, req adminport.CreateUserInput) (adminport.UserResult, error) {
 	var user User
 	createErr := c.do(ctx, "POST", "/api/user/", req, &user)
 	if createErr == nil && user.ID > 0 {
-		return user, nil
+		return adminport.UserResult{ID: user.ID}, nil
 	}
 	if createErr != nil && !isDuplicateUsernameError(createErr) {
-		return User{}, createErr
+		return adminport.UserResult{}, createErr
 	}
 	// Upstream often returns success with empty data; duplicates need lookup too.
 	found, findErr := c.findUserByUsername(ctx, req.Username)
 	if findErr != nil {
 		if createErr != nil {
-			return User{}, fmt.Errorf("%w (lookup after duplicate: %v)", createErr, findErr)
+			return adminport.UserResult{}, fmt.Errorf("%w (lookup after duplicate: %v)", createErr, findErr)
 		}
-		return User{}, fmt.Errorf("create user succeeded but id missing: %w", findErr)
+		return adminport.UserResult{}, fmt.Errorf("create user succeeded but id missing: %w", findErr)
 	}
-	return found, nil
+	if found.ID <= 0 {
+		return adminport.UserResult{}, fmt.Errorf("create user succeeded but id missing")
+	}
+	return adminport.UserResult{ID: found.ID}, nil
 }
 
 func (c *Client) GetUserQuota(ctx context.Context, userID int64) (int64, error) {
@@ -69,8 +63,8 @@ func (c *Client) GetUserQuota(ctx context.Context, userID int64) (int64, error) 
 	return user.Quota, nil
 }
 
-func (c *Client) TopUp(ctx context.Context, req TopUpRequest) error {
-	if req.UserID <= 0 {
+func (c *Client) TopUp(ctx context.Context, req adminport.TopUpInput) error {
+	if req.CompanyID <= 0 {
 		return fmt.Errorf("user id required")
 	}
 	if req.Quota == 0 {
@@ -87,7 +81,7 @@ func (c *Client) TopUp(ctx context.Context, req TopUpRequest) error {
 	}
 	// NewAPI removed POST /api/topup; admin quota changes go through ManageUser.
 	return c.do(ctx, "POST", "/api/user/manage", manageUserRequest{
-		ID:     req.UserID,
+		ID:     req.CompanyID,
 		Action: manageActionAddQuota,
 		Mode:   mode,
 		Value:  value,

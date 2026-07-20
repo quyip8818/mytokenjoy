@@ -12,6 +12,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -45,20 +46,20 @@ func defaultStubAdminClient() *mock.StubAdminClient {
 	var nextTokenID int64 = 1000
 	return &mock.StubAdminClient{
 		User: newapi.User{ID: nextUserID, Quota: 0},
-		CreateUserFn: func(_ context.Context, _ newapi.CreateUserRequest) (newapi.User, error) {
+		CreateUserFn: func(_ context.Context, _ adminport.CreateUserInput) (adminport.UserResult, error) {
 			nextUserID++
-			return newapi.User{ID: nextUserID, Quota: 0}, nil
+			return adminport.UserResult{ID: nextUserID}, nil
 		},
-		CreateTokenFn: func(_ context.Context, _ newapi.CreateTokenRequest) (newapi.Token, error) {
+		CreateTokenFn: func(_ context.Context, _ adminport.CreateTokenInput) (adminport.TokenResult, error) {
 			nextTokenID++
-			return newapi.Token{
+			return adminport.TokenResult{
 				ID:          nextTokenID,
 				Key:         fmt.Sprintf("sk-test-%d", nextTokenID),
 				RemainQuota: 1000,
 			}, nil
 		},
-		GetTokenFn: func(_ context.Context, tokenID int64) (newapi.Token, error) {
-			return newapi.Token{ID: tokenID, Key: fmt.Sprintf("sk-test-%d", tokenID), RemainQuota: 1000}, nil
+		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-test-%d", tokenID), RemainQuota: 1000}, nil
 		},
 		GetTokenKeyFn: func(_ context.Context, tokenID int64) (string, error) {
 			return fmt.Sprintf("sk-test-%d", tokenID), nil

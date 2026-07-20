@@ -14,6 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
@@ -52,11 +53,11 @@ func buildStressEnv(t *testing.T, opts stressEnvOpts) *stressEnv {
 	stub := &mock.StubAdminClient{
 		Token: newapi.Token{ID: 99, RemainQuota: 1_000_000, Key: "sk-stress-99"},
 	}
-	stub.CreateTokenFn = func(_ context.Context, req newapi.CreateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{ID: 99, Key: "sk-stress-99", RemainQuota: 1_000_000}, nil
+	stub.CreateTokenFn = func(_ context.Context, req adminport.CreateTokenInput) (adminport.TokenResult, error) {
+		return adminport.TokenResult{ID: 99, Key: "sk-stress-99", RemainQuota: 1_000_000}, nil
 	}
-	stub.UpdateTokenFn = func(_ context.Context, req newapi.UpdateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{ID: req.ID, RemainQuota: 0}, nil
+	stub.UpdateTokenFn = func(_ context.Context, req adminport.UpdateTokenInput) (adminport.TokenResult, error) {
+		return adminport.TokenResult{ID: req.ID, RemainQuota: 0}, nil
 	}
 
 	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)

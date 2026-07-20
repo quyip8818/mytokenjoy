@@ -14,22 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
 
-type AdminClient interface {
-	CreateToken(ctx context.Context, req CreateTokenRequest) (Token, error)
-	UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token, error)
-	GetToken(ctx context.Context, tokenID int64) (Token, error)
-	GetTokenKey(ctx context.Context, tokenID int64) (string, error)
-	DeleteToken(ctx context.Context, tokenID int64) error
-	RegenerateToken(ctx context.Context, tokenID int64) (Token, error)
-	CreateUser(ctx context.Context, req CreateUserRequest) (User, error)
-	GetUserQuota(ctx context.Context, userID int64) (int64, error)
-	TopUp(ctx context.Context, req TopUpRequest) error
-	UpsertChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error)
-	RebuildAbilities(ctx context.Context) error
-	EnsureGroup(ctx context.Context, group, displayName string) error
-	ListModelPricing(ctx context.Context) ([]adminport.ModelPricing, error)
-}
-
+// Client implements adminport.Port by calling the NewAPI admin HTTP API.
 type Client struct {
 	baseURL     string
 	adminToken  string
@@ -45,6 +30,17 @@ func NewClient(baseURL, adminToken string, adminUserID int64) *Client {
 		httpClient:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
+
+// NewPort returns an adminport.Port backed by a NewAPI HTTP client.
+// Returns nil when baseURL is empty (NewAPI disabled).
+func NewPort(baseURL, adminToken string, adminUserID int64) adminport.Port {
+	if strings.TrimSpace(baseURL) == "" {
+		return nil
+	}
+	return NewClient(baseURL, adminToken, adminUserID)
+}
+
+var _ adminport.Port = (*Client)(nil)
 
 type apiResponse struct {
 	Success bool            `json:"success"`

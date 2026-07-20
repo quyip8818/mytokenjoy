@@ -67,7 +67,7 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminPort)
+	return domainbilling.NewService(cfg, i.store, reader)
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {

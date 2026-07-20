@@ -42,7 +42,7 @@ func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *m
 		testutil.WithNewAPIAdminToken("token"),
 	)
 	newapisynctf.EnsureWalletCompanyID(t, st, contract.DefaultCompanyID, newapisynctf.TestWalletCompanyID)
-	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st))
+	newAPISync := newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st))
 	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false)), st, stub
 }
 
@@ -54,7 +54,7 @@ func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPI
 		testutil.WithNewAPIAdminToken("token"),
 	)
 	newapisynctf.EnsureWalletCompanyID(t, st, contract.DefaultCompanyID, newapisynctf.TestWalletCompanyID)
-	return newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st)), st
+	return newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st)), st
 }
 
 func findApproval(st store.Store, id uuid.UUID) *types.KeyApproval {

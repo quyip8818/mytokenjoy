@@ -11,7 +11,7 @@ import (
 
 func TestAdminPortAdapterImplementsPort(t *testing.T) {
 	t.Parallel()
-	var _ adminport.Port = newapi.NewAdminPortAdapter(&newapi.Client{})
+	var _ adminport.Port = &newapi.Client{}
 }
 
 func TestAdminPortAdapterCreateTokenMapsResult(t *testing.T) {
@@ -19,7 +19,7 @@ func TestAdminPortAdapterCreateTokenMapsResult(t *testing.T) {
 	stub := &mock.StubAdminClient{
 		Token: newapi.Token{ID: 7, UserID: 501, Key: "sk-demo", RemainQuota: 42, Group: "platform_shared"},
 	}
-	port := newapi.NewAdminPortAdapter(stub)
+	port := stub
 	got, err := port.CreateToken(context.Background(), adminport.CreateTokenInput{UserID: 501, Name: "demo"})
 	if err != nil {
 		t.Fatal(err)

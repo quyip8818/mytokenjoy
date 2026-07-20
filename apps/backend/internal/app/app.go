@@ -7,10 +7,10 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
@@ -28,9 +28,9 @@ type App struct {
 }
 
 type options struct {
-	skipWorker  bool
-	adminClient newapi.AdminClient
-	orgSync     domainorg.SyncService
+	skipWorker bool
+	adminPort  adminport.Port
+	orgSync    domainorg.SyncService
 }
 
 type Option func(*options)
@@ -41,9 +41,9 @@ func WithoutWorker() Option {
 	}
 }
 
-func WithAdminClient(client newapi.AdminClient) Option {
+func WithAdminClient(client adminport.Port) Option {
 	return func(o *options) {
-		o.adminClient = client
+		o.adminPort = client
 	}
 }
 

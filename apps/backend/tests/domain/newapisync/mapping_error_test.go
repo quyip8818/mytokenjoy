@@ -62,7 +62,7 @@ func TestDisablePlatformKey_MappingLookupError(t *testing.T) {
 	d := syncdeps.Deps{
 		Cfg:      cfg,
 		Store:    st,
-		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
+		Client:   &mock.StubAdminClient{},
 		Mappings: errMappings{err: want},
 	}
 	err := platformkey.DisablePlatformKey(testutil.Ctx(), d, uuid.MustParse("00000000-0000-7000-0000-00000000bb01"))
@@ -76,7 +76,7 @@ func TestSyncRevokePlatformKey_MappingLookupError(t *testing.T) {
 	want := fmt.Errorf("mapping db down")
 	d := syncdeps.Deps{
 		Cfg:      config.Config{NewAPIConfig: config.NewAPIConfig{NewAPIEnabled: true}},
-		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
+		Client:   &mock.StubAdminClient{},
 		Mappings: errMappings{err: want},
 	}
 	err := platformkey.SyncRevokePlatformKey(context.Background(), d, uuid.MustParse("00000000-0000-7000-0000-00000000bb01"))
@@ -89,7 +89,7 @@ func TestSyncRevokePlatformKey_MissingMappingNoop(t *testing.T) {
 	t.Parallel()
 	d := syncdeps.Deps{
 		Cfg:      config.Config{NewAPIConfig: config.NewAPIConfig{NewAPIEnabled: true}},
-		Client:   newapi.NewAdminPortAdapter(&mock.StubAdminClient{}),
+		Client:   &mock.StubAdminClient{},
 		Mappings: errMappings{err: nil},
 	}
 	if err := platformkey.SyncRevokePlatformKey(context.Background(), d, uuid.MustParse("00000000-0000-7000-0000-00000000bb02")); err != nil {

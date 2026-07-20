@@ -39,18 +39,17 @@ type infra struct {
 	smsSvc          *sms.Service
 }
 
-func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminClientOverride newapi.AdminClient) (infra, error) {
-	var adminClient newapi.AdminClient
-	if adminClientOverride != nil {
-		adminClient = adminClientOverride
+func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminPortOverride adminport.Port) (infra, error) {
+	var adminPort adminport.Port
+	if adminPortOverride != nil {
+		adminPort = adminPortOverride
 	} else {
-		adminClient = newapi.NewClient(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken, cfg.NewAPIAdminUserID)
+		adminPort = newapi.NewPort(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken, cfg.NewAPIAdminUserID)
 	}
 	if enqueuer == nil {
 		enqueuer = jobs.NoopEnqueuer{}
 	}
 	channelPolicy := policy.NewChannelPolicy(cfg)
-	adminPort := newapi.NewAdminPortAdapter(adminClient)
 
 	notifySvc := notification.NewService(cfg, st, logger)
 

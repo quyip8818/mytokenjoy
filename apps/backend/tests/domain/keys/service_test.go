@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -56,8 +56,8 @@ func TestApproveKeySyncFailureRevertsApproval(t *testing.T) {
 	t.Parallel()
 	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
-	stub.CreateTokenFn = func(context.Context, newapi.CreateTokenRequest) (newapi.Token, error) {
-		return newapi.Token{}, errors.New("newapi create failed")
+	stub.CreateTokenFn = func(context.Context, adminport.CreateTokenInput) (adminport.TokenResult, error) {
+		return adminport.TokenResult{}, errors.New("newapi create failed")
 	}
 	keysBefore, err := st.Keys().PlatformKeys(ctx)
 	if err != nil {

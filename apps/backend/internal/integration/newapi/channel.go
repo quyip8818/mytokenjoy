@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
 
 const channelAddModeSingle = "single"
@@ -13,6 +15,7 @@ type addChannelRequest struct {
 	Channel UpsertChannelBody `json:"channel"`
 }
 
+// UpsertChannelBody is the JSON body for PUT /api/channel/ (full replacement).
 type UpsertChannelBody struct {
 	ID     int    `json:"id,omitempty"`
 	Type   int    `json:"type"`
@@ -22,14 +25,14 @@ type UpsertChannelBody struct {
 	Group  string `json:"group,omitempty"`
 }
 
-func (c *Client) UpsertChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error) {
+func (c *Client) UpsertChannel(ctx context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
 	if req.ID > 0 {
 		return c.updateChannel(ctx, req)
 	}
 	return c.createChannel(ctx, req)
 }
 
-func (c *Client) createChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error) {
+func (c *Client) createChannel(ctx context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
 	payload := addChannelRequest{
 		Mode: channelAddModeSingle,
 		Channel: UpsertChannelBody{
@@ -42,35 +45,36 @@ func (c *Client) createChannel(ctx context.Context, req UpsertChannelRequest) (C
 	}
 	// Upstream AddChannel returns success with empty data; resolve by unique name.
 	if err := c.do(ctx, "POST", "/api/channel/", payload, nil); err != nil {
-		return Channel{}, err
+		return adminport.ChannelResult{}, err
 	}
 	ch, err := c.findChannelByName(ctx, req.Name)
 	if err != nil {
-		return Channel{}, err
+		return adminport.ChannelResult{}, err
 	}
 	if ch.ID <= 0 {
-		return Channel{}, fmt.Errorf("create channel succeeded but id missing for %q", req.Name)
+		return adminport.ChannelResult{}, fmt.Errorf("create channel succeeded but id missing for %q", req.Name)
 	}
-	return ch, nil
+	return adminport.ChannelResult{ID: ch.ID}, nil
 }
 
-func (c *Client) updateChannel(ctx context.Context, req UpsertChannelRequest) (Channel, error) {
+func (c *Client) updateChannel(ctx context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
 	cur, err := c.GetChannel(ctx, req.ID)
 	if err != nil {
-		return Channel{}, err
+		return adminport.ChannelResult{}, err
 	}
 	body := MergeChannelPut(cur, req)
 	var out Channel
 	if err := c.do(ctx, "PUT", "/api/channel/", body, &out); err != nil {
-		return Channel{}, err
+		return adminport.ChannelResult{}, err
 	}
-	if out.ID == 0 {
-		out.ID = req.ID
+	id := out.ID
+	if id == 0 {
+		id = req.ID
 	}
-	return out, nil
+	return adminport.ChannelResult{ID: id}, nil
 }
 
-func MergeChannelPut(cur Channel, req UpsertChannelRequest) UpsertChannelBody {
+func MergeChannelPut(cur Channel, req adminport.UpsertChannelInput) UpsertChannelBody {
 	return UpsertChannelBody{
 		ID:     req.ID,
 		Type:   coalesceNonZeroInt(req.Type, cur.Type),

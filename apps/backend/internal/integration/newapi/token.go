@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
 
 // NewAPI uses -1 for never-expire; 0 means already expired.
 const TokenExpiredNever int64 = -1
 
+// TokenPutBody is the full-replacement payload for PUT /api/token/.
 type TokenPutBody struct {
 	ID                 int64  `json:"id"`
 	Name               string `json:"name"`
@@ -22,24 +25,24 @@ type TokenPutBody struct {
 	ExpiredTime        int64  `json:"expired_time"`
 }
 
-func (c *Client) CreateToken(ctx context.Context, req CreateTokenRequest) (Token, error) {
+func (c *Client) CreateToken(ctx context.Context, req adminport.CreateTokenInput) (adminport.TokenResult, error) {
 	var token Token
 	if err := c.do(ctx, "POST", "/api/token/", req, &token); err != nil {
-		return Token{}, err
+		return adminport.TokenResult{}, err
 	}
 	if err := validateCreatedToken(req, token); err != nil {
 		if token.ID > 0 {
 			_ = c.DeleteToken(ctx, token.ID)
 		}
-		return Token{}, err
+		return adminport.TokenResult{}, err
 	}
 	if token.Key == "" || strings.Contains(token.Key, "*") {
 		return c.RegenerateToken(ctx, token.ID)
 	}
-	return token, nil
+	return tokenToResult(token), nil
 }
 
-func validateCreatedToken(req CreateTokenRequest, token Token) error {
+func validateCreatedToken(req adminport.CreateTokenInput, token Token) error {
 	if token.ID <= 0 {
 		return fmt.Errorf("newapi create token: response missing id (admin create-token contract required)")
 	}
@@ -49,22 +52,22 @@ func validateCreatedToken(req CreateTokenRequest, token Token) error {
 	return nil
 }
 
-func (c *Client) UpdateToken(ctx context.Context, req UpdateTokenRequest) (Token, error) {
+func (c *Client) UpdateToken(ctx context.Context, req adminport.UpdateTokenInput) (adminport.TokenResult, error) {
 	// NewAPI UpdateToken replaces the whole row; omitted JSON fields bind as zero
 	// (expired_time=0 → immediately expired; empty name/group wipe platform metadata).
-	cur, err := c.GetToken(ctx, req.ID)
+	cur, err := c.getToken(ctx, req.ID)
 	if err != nil {
-		return Token{}, err
+		return adminport.TokenResult{}, err
 	}
 	payload := MergeTokenPut(cur, req)
 	var token Token
 	if err := c.do(ctx, "PUT", "/api/token/", payload, &token); err != nil {
-		return Token{}, err
+		return adminport.TokenResult{}, err
 	}
-	return token, nil
+	return tokenToResult(token), nil
 }
 
-func MergeTokenPut(cur Token, req UpdateTokenRequest) TokenPutBody {
+func MergeTokenPut(cur Token, req adminport.UpdateTokenInput) TokenPutBody {
 	return TokenPutBody{
 		ID:                 req.ID,
 		Name:               coalesceString(req.Name, cur.Name),
@@ -90,7 +93,16 @@ func expiredTimeForPut(override *int64, current int64) int64 {
 	return current
 }
 
-func (c *Client) GetToken(ctx context.Context, tokenID int64) (Token, error) {
+func (c *Client) GetToken(ctx context.Context, tokenID int64) (adminport.TokenResult, error) {
+	token, err := c.getToken(ctx, tokenID)
+	if err != nil {
+		return adminport.TokenResult{}, err
+	}
+	return tokenToResult(token), nil
+}
+
+// getToken fetches the raw Token response (used internally by UpdateToken merge).
+func (c *Client) getToken(ctx context.Context, tokenID int64) (Token, error) {
 	var token Token
 	path := "/api/token/" + strconv.FormatInt(tokenID, 10)
 	if err := c.do(ctx, "GET", path, nil, &token); err != nil {
@@ -117,11 +129,21 @@ func (c *Client) DeleteToken(ctx context.Context, tokenID int64) error {
 	return c.do(ctx, "DELETE", path, nil, nil)
 }
 
-func (c *Client) RegenerateToken(ctx context.Context, tokenID int64) (Token, error) {
+func (c *Client) RegenerateToken(ctx context.Context, tokenID int64) (adminport.TokenResult, error) {
 	var token Token
 	path := "/api/token/" + strconv.FormatInt(tokenID, 10) + "/regenerate"
 	if err := c.do(ctx, "POST", path, nil, &token); err != nil {
-		return Token{}, err
+		return adminport.TokenResult{}, err
 	}
-	return token, nil
+	return tokenToResult(token), nil
+}
+
+func tokenToResult(t Token) adminport.TokenResult {
+	return adminport.TokenResult{
+		ID:          t.ID,
+		UserID:      t.UserID,
+		Key:         t.Key,
+		RemainQuota: t.RemainQuota,
+		Group:       t.Group,
+	}
 }

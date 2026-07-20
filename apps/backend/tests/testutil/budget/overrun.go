@@ -28,7 +28,7 @@ func NewOverrunService(
 	notifier types.Notifier,
 ) *budget.OverrunService {
 	t.Helper()
-	newAPISync := newapisync.New(cfg, st, newapi.NewAdminPortAdapter(stub), policy.NewChannelPolicy(cfg), adapter.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
+	newAPISync := newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), adapter.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	if notifier == nil {
 		notifier = notification.NewService(cfg, st, logger)

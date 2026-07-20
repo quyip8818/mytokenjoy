@@ -20,7 +20,7 @@ func TestAcceptInviteCreatesMembers(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 700, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	// Create a properly provisioned company.
@@ -67,7 +67,7 @@ func TestAcceptInviteIdempotent(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 701, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	// Create a provisioned company.
@@ -122,7 +122,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 703, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	created, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -157,7 +157,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 702, Quota: 0}}
-	svc := company.NewService(cfg, st, newapi.NewAdminPortAdapter(client), permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
 	ctx := context.Background()
 
 	created, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{

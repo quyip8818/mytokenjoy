@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -17,11 +17,11 @@ func TestSyncUpsertProviderKeyEnsuresPrivateGroup(t *testing.T) {
 			ensuredGroup = group
 			return nil
 		},
-		UpsertChannelFn: func(_ context.Context, req newapi.UpsertChannelRequest) (newapi.Channel, error) {
+		UpsertChannelFn: func(_ context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
 			if req.Group != ensuredGroup {
 				t.Fatalf("expected channel group %q, got %q", ensuredGroup, req.Group)
 			}
-			return newapi.Channel{ID: 7}, nil
+			return adminport.ChannelResult{ID: 7}, nil
 		},
 	}
 	sync, st := newSyncWithStubAndCfg(t, stub)
@@ -60,11 +60,11 @@ func TestSyncUpsertProviderKeyEnsuresSaaSGroup(t *testing.T) {
 			}
 			return nil
 		},
-		UpsertChannelFn: func(_ context.Context, req newapi.UpsertChannelRequest) (newapi.Channel, error) {
+		UpsertChannelFn: func(_ context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
 			if req.Group != "platform_shared" {
 				t.Fatalf("expected platform_shared group, got %q", req.Group)
 			}
-			return newapi.Channel{ID: 8}, nil
+			return adminport.ChannelResult{ID: 8}, nil
 		},
 	}
 	sync, st := newSyncWithStubAndCfg(t, stub, testutil.WithSupportSaas(true))
