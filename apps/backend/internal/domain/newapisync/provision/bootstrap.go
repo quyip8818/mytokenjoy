@@ -107,7 +107,7 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 		return ensureWalletCompanyQuota(ctx, d, walletCompanyID, co.WalletRemain)
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
-		Username:    co.NewAPIWalletUsername,
+		Username:    company.WalletUsername(companyID),
 		DisplayName: co.Name,
 		Password:    secrets.RandomHex(8),
 		Quota:       co.WalletRemain, // NewAPI user quota = wallet_remain; tokenjoy Gateway is the real limiter

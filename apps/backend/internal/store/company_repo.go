@@ -25,7 +25,6 @@ type Company struct {
 	Status                string
 	RootDeptID            *uuid.UUID
 	NewAPIWalletCompanyID *int64
-	NewAPIWalletUsername  string
 	AuthzRevision         int64
 	BillingCurrency       string
 	FIFOHeadLotID         *uuid.UUID

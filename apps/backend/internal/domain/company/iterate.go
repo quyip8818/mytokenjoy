@@ -39,3 +39,16 @@ func ContextFromStore(co store.Company) Context {
 	}
 	return info
 }
+
+// ResolveNewAPIWalletCompanyID returns the NewAPI wallet company ID from context (fast path)
+// or falls back to querying the DB.
+func ResolveNewAPIWalletCompanyID(ctx context.Context, companies store.CompanyRepository) (int64, bool) {
+	if info, ok := FromContext(ctx); ok && info.NewAPIWalletCompanyID > 0 {
+		return info.NewAPIWalletCompanyID, true
+	}
+	co, err := companies.GetByID(ctx, CompanyID(ctx))
+	if err != nil || co == nil {
+		return 0, false
+	}
+	return store.ConfiguredNewAPIWalletCompanyID(co)
+}

@@ -79,13 +79,12 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, co
 	now := time.Now().UTC()
 	companyID := uuid.Must(uuid.NewV7())
 	company := store.Company{
-		ID:                   companyID,
-		Name:                 name,
-		Type:                 companyType,
-		Status:               store.CompanyStatusActive,
-		NewAPIWalletUsername: WalletUsername(companyID),
-		CreatedAt:            now,
-		UpdatedAt:            now,
+		ID:        companyID,
+		Name:      name,
+		Type:      companyType,
+		Status:    store.CompanyStatusActive,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 	if err := tx.Company().Create(ctx, company); err != nil {
 		return store.Company{}, err
@@ -100,7 +99,7 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, co
 		return store.Company{}, fmt.Errorf("newapi admin client required")
 	}
 	user, err := s.client.CreateUser(ctx, adminport.CreateUserInput{
-		Username:    company.NewAPIWalletUsername,
+		Username:    WalletUsername(companyID),
 		DisplayName: name,
 		Password:    randomPassword(),
 		Quota:       0,

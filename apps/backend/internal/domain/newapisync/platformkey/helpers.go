@@ -5,32 +5,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
-	"github.com/tokenjoy/backend/internal/store"
 )
-
-func newAPIWalletCompanyID(ctx context.Context, d syncdeps.Deps) (int64, error) {
-	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletCompanyID > 0 {
-		return companyCtx.NewAPIWalletCompanyID, nil
-	}
-	companyID := company.CompanyID(ctx)
-	co, err := d.Store.Company().GetByID(ctx, companyID)
-	if err != nil {
-		return 0, err
-	}
-	if co == nil {
-		return 0, nil
-	}
-	id, ok := store.ConfiguredNewAPIWalletCompanyID(co)
-	if !ok {
-		return 0, nil
-	}
-	return id, nil
-}
 
 func newAPIPlatformKeyPrefix(fullKey string) string {
 	prefix := fullKey

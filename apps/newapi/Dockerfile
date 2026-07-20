@@ -37,11 +37,15 @@ RUN git clone https://github.com/QuantumNous/new-api.git . \
 
 COPY patches/management/notify.go patches/management/notify_test.go ./management/
 COPY patches/new-api/0001-management-webhook.patch /tmp/0001-management-webhook.patch
+
 RUN git apply /tmp/0001-management-webhook.patch \
     && go test -count=1 ./management/...
 
 COPY patches/new-api/0002-admin-token-contract.patch /tmp/0002-admin-token-contract.patch
 RUN git apply /tmp/0002-admin-token-contract.patch
+
+COPY patches/new-api/0003-username-max-length.patch /tmp/0003-username-max-length.patch
+RUN git apply /tmp/0003-username-max-length.patch
 
 COPY --from=web-default /upstream/web/default/dist ./web/default/dist
 COPY --from=web-classic /upstream/web/classic/dist ./web/classic/dist

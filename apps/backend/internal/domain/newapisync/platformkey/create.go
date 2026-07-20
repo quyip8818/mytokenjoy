@@ -110,11 +110,8 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 		return "", fmt.Errorf("ensure newapi group %s: %w", group, err)
 	}
 
-	walletCompanyID, err := newAPIWalletCompanyID(ctx, d)
-	if err != nil {
-		return "", err
-	}
-	if walletCompanyID <= 0 {
+	walletCompanyID, ok := company.ResolveNewAPIWalletCompanyID(ctx, d.Store.Company())
+	if !ok || walletCompanyID <= 0 {
 		return "", fmt.Errorf("newapi wallet company id required for platform key %s", key.ID)
 	}
 	req := adminport.CreateTokenInput{

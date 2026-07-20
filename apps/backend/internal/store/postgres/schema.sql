@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS companies (
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              UUID,
     newapi_wallet_user_id     BIGINT,
-    newapi_wallet_username    TEXT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
     -- Default must match common.DefaultBillingCurrency.
     billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),

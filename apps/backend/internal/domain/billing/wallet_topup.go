@@ -6,7 +6,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // topUpNewAPIQuota tops up the NewAPI company quota by delta after a successful credit.
@@ -15,13 +14,7 @@ func (s *service) topUpNewAPIQuota(ctx context.Context, delta int64) {
 	if s.adminClient == nil || delta <= 0 {
 		return
 	}
-	companyID := company.CompanyID(ctx)
-	co, err := s.store.Company().GetByID(ctx, companyID)
-	if err != nil {
-		slog.Default().Warn("topUpNewAPIQuota: get company failed", "company_id", companyID, "error", err)
-		return
-	}
-	walletCompanyID, ok := store.ConfiguredNewAPIWalletCompanyID(co)
+	walletCompanyID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
 	if !ok {
 		return
 	}
@@ -29,6 +22,6 @@ func (s *service) topUpNewAPIQuota(ctx context.Context, delta int64) {
 		CompanyID: walletCompanyID,
 		Quota:     delta,
 	}); err != nil {
-		slog.Default().Warn("topUpNewAPIQuota: TopUp failed", "company_id", companyID, "wallet_company_id", walletCompanyID, "delta", delta, "error", err)
+		slog.Default().Warn("topUpNewAPIQuota: TopUp failed", "company_id", company.CompanyID(ctx), "wallet_company_id", walletCompanyID, "delta", delta, "error", err)
 	}
 }
