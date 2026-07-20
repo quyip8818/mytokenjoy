@@ -27,7 +27,7 @@ const platforms: {
     description: '通过钉钉开放平台同步组织架构和成员信息',
     icon: Building2,
     iconClassName: 'bg-sky-50 text-sky-600',
-    available: true,
+    available: false,
   },
   {
     id: 'wecom',
@@ -35,7 +35,7 @@ const platforms: {
     description: '通过企业微信 API 同步组织架构和成员信息',
     icon: Users,
     iconClassName: 'bg-emerald-50 text-emerald-600',
-    available: true,
+    available: false,
   },
 ]
 
