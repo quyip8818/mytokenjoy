@@ -171,11 +171,7 @@ func (h *Handler) Stream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		httputil.WriteStatus(w, http.StatusInternalServerError, "streaming not supported")
-		return
-	}
+	rc := http.NewResponseController(w)
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -186,7 +182,7 @@ func (h *Handler) Stream(w http.ResponseWriter, r *http.Request) {
 	defer unsubscribe()
 
 	fmt.Fprintf(w, "event: connected\ndata: {\"status\":\"ok\"}\n\n")
-	flusher.Flush()
+	_ = rc.Flush()
 
 	ctx := r.Context()
 	for {
@@ -199,7 +195,7 @@ func (h *Handler) Stream(w http.ResponseWriter, r *http.Request) {
 			}
 			data, _ := json.Marshal(event)
 			fmt.Fprintf(w, "event: notification\ndata: %s\n\n", data)
-			flusher.Flush()
+			_ = rc.Flush()
 		}
 	}
 }
