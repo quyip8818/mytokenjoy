@@ -61,7 +61,7 @@ func insertSeedRoles(ctx context.Context, exec TableWriter, roles []types.Role) 
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO roles (id, company_id, name, type, permissions)
 			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, permissions = EXCLUDED.permissions
+			ON CONFLICT (company_id, name) DO UPDATE SET type = EXCLUDED.type, permissions = EXCLUDED.permissions
 		`, role.ID, companyID, role.Name, role.Type, perms); err != nil {
 			return fmt.Errorf("seed role %s: %w", role.ID, err)
 		}
