@@ -42,7 +42,8 @@ func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainb
 }
 
 func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
-	return domainbudget.NewRebalanceService(cfg, i.store)
+	cache := budgetcheck.WrapStore(i.budgetCheck)
+	return domainbudget.NewRebalanceService(cfg, i.store, domainbudget.WithRebalanceCache(cache))
 }
 
 func wireKeys(cfg config.Config, i infra) domainkeys.Service {

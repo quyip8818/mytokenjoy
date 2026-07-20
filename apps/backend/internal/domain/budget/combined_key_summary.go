@@ -22,6 +22,8 @@ type SummaryStore interface {
 
 // ComputeGatewaySummaryUpdates loads budget context once and returns combined key summary
 // updates for touched platform keys.
+// When multiple keys are provided it uses the batch-preloaded path (3 SQL calls for all consumed data)
+// instead of per-key GetConsumed queries.
 func ComputeGatewaySummaryUpdates(
 	ctx context.Context,
 	st SummaryStore,
@@ -45,18 +47,43 @@ func ComputeGatewaySummaryUpdates(
 		return nil, err
 	}
 
-	updates := make([]store.CombinedKeySummaryUpdate, 0, len(mappings))
+	// Resolve period keys for each mapping's department and collect unique periods.
+	type mappingPeriod struct {
+		mapping   store.PlatformKeyMapping
+		periodKey string
+	}
+	resolved := make([]mappingPeriod, 0, len(mappings))
+	periodKeys := make([]string, 0, 2)
+	deptPeriodCache := make(map[uuid.UUID]string, 4) // departmentID → periodKey
 	for _, mapping := range mappings {
 		if mapping.DepartmentID == uuid.Nil {
 			continue
 		}
-		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), mapping.DepartmentID, clk)
-		if err != nil {
-			return nil, err
+		pk, cached := deptPeriodCache[mapping.DepartmentID]
+		if !cached {
+			open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), mapping.DepartmentID, clk)
+			if err != nil {
+				return nil, err
+			}
+			pk = open.String()
+			deptPeriodCache[mapping.DepartmentID] = pk
 		}
-		remain, err := pkgbudget.ComputeRemainForMapping(
-			ctx, budgetCtx, st.BudgetConsumed(), st.Org(), st.Budget(), mapping, open.String(),
-		)
+		resolved = append(resolved, mappingPeriod{mapping: mapping, periodKey: pk})
+		periodKeys = append(periodKeys, pk)
+	}
+	if len(resolved) == 0 {
+		return nil, nil
+	}
+
+	// Batch-preload consumed for all three axes — replaces N×GetConsumed with 3 SQL calls.
+	preloaded, err := pkgbudget.PreloadConsumed(ctx, st.BudgetConsumed(), periodKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	updates := make([]store.CombinedKeySummaryUpdate, 0, len(resolved))
+	for _, mp := range resolved {
+		remain, err := pkgbudget.ComputeRemainForMappingPreloaded(budgetCtx, preloaded, mp.mapping, mp.periodKey)
 		if err != nil {
 			continue
 		}
@@ -64,7 +91,7 @@ func ComputeGatewaySummaryUpdates(
 			continue // No budget constraints — leave combined_key_remain as NULL (allow).
 		}
 		updates = append(updates, store.CombinedKeySummaryUpdate{
-			PlatformKeyID: mapping.PlatformKeyID,
+			PlatformKeyID: mp.mapping.PlatformKeyID,
 			Remain:        remain,
 		})
 	}

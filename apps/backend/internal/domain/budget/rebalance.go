@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -26,17 +25,28 @@ type RebalanceStore interface {
 type RebalanceService struct {
 	cfg   config.Config
 	store RebalanceStore
+	cache CombinedKeyCache
 }
 
-func NewRebalanceService(cfg config.Config, st RebalanceStore) *RebalanceService {
-	return &RebalanceService{cfg: cfg, store: st}
+func NewRebalanceService(cfg config.Config, st RebalanceStore, opts ...RebalanceOption) *RebalanceService {
+	s := &RebalanceService{cfg: cfg, store: st}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
-// rebalanceContext holds preloaded data shared across all mappings in a single ProcessAxis call.
-type rebalanceContext struct {
-	budgetCtx pkgbudget.BudgetContext
+// RebalanceOption configures optional dependencies for RebalanceService.
+type RebalanceOption func(*RebalanceService)
+
+// WithRebalanceCache sets the Redis cache used to propagate combined_key_remain updates.
+func WithRebalanceCache(cache CombinedKeyCache) RebalanceOption {
+	return func(s *RebalanceService) { s.cache = cache }
 }
 
+// ProcessAxis recomputes combined_key_remain for all active platform keys on the given axis.
+// It loads budget context once, computes remain for all affected keys in batch, then
+// persists and caches the results in a single round-trip each.
 func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind string, axisID uuid.UUID) error {
 	var mappings []store.PlatformKeyMapping
 	var err error
@@ -54,7 +64,7 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind string, axi
 		return err
 	}
 
-	// Filter to actionable mappings first.
+	// Filter to actionable mappings (synced with a live NewAPI key).
 	active := mappings[:0]
 	for _, m := range mappings {
 		if m.NewAPIKeyID != nil && m.SyncStatus == store.MappingSyncStatusSynced {
@@ -65,38 +75,27 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind string, axi
 		return nil
 	}
 
-	// Preload shared data once for all mappings.
-	rctx, err := s.loadRebalanceContext(ctx)
+	// Collect all platform key IDs for a single batch computation.
+	keyIDs := make(map[uuid.UUID]struct{}, len(active))
+	for _, m := range active {
+		keyIDs[m.PlatformKeyID] = struct{}{}
+	}
+
+	// Token is unlimited on NewAPI — no remote quota to sync.
+	// Only refresh the local combined_key_remain for gateway precheck.
+	updates, err := ComputeGatewaySummaryUpdates(ctx, s.store, keyIDs, s.cfg.Clock())
 	if err != nil {
 		return err
 	}
-
-	for _, mapping := range active {
-		if err := s.rebalanceKey(ctx, mapping, rctx); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *RebalanceService) loadRebalanceContext(ctx context.Context) (*rebalanceContext, error) {
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
-	if err != nil {
-		return nil, err
-	}
-	return &rebalanceContext{
-		budgetCtx: budgetCtx,
-	}, nil
-}
-
-func (s *RebalanceService) rebalanceKey(ctx context.Context, mapping store.PlatformKeyMapping, rctx *rebalanceContext) error {
-	key, ok := rctx.budgetCtx.FindPlatformKey(mapping.PlatformKeyID)
-	if !ok || key.Status != "active" {
+	if len(updates) == 0 {
 		return nil
 	}
-	// Token is unlimited on NewAPI — no remote quota to sync.
-	// Only refresh the local combined_key_remain for gateway precheck.
-	return RefreshPlatformKeyCombined(ctx, s.store, mapping.PlatformKeyID, s.cfg.Clock(), nil)
+	summaries, err := s.store.CombinedKeySummaries().UpdateBatch(ctx, updates)
+	if err != nil {
+		return err
+	}
+	RefreshCombinedKeySummaries(ctx, s.cache, nil, store.CompanyID(ctx), summaries)
+	return nil
 }
 
 var _ Rebalancer = (*RebalanceService)(nil)
