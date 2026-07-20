@@ -13,3 +13,7 @@ func Load(cfg config.Config) store.Snapshot {
 func LoadMinimal(cfg config.Config) store.Snapshot {
 	return snapshot.BuildMinimal(cfg)
 }
+
+func LoadEmpty(cfg config.Config) store.Snapshot {
+	return snapshot.BuildEmpty(cfg)
+}

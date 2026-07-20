@@ -14,10 +14,20 @@ const (
 	BootstrapDemo    = "demo"
 )
 
+const (
+	SeedFull    = "full"
+	SeedMinimal = "minimal"
+	SeedEmpty   = "empty"
+)
+
 func (c Config) BootstrapIsNone() bool    { return c.BootstrapMode == BootstrapNone }
 func (c Config) BootstrapIsProd() bool    { return c.BootstrapMode == BootstrapProd }
 func (c Config) BootstrapIsMinimal() bool { return c.BootstrapMode == BootstrapMinimal }
 func (c Config) BootstrapIsDemo() bool    { return c.BootstrapMode == BootstrapDemo }
+
+func (c Config) SeedIsFull() bool    { return c.Seed == "" || c.Seed == SeedFull }
+func (c Config) SeedIsMinimal() bool { return c.Seed == SeedMinimal }
+func (c Config) SeedIsEmpty() bool   { return c.Seed == SeedEmpty }
 
 // BootstrapNeedsSeed returns true when the mode requires data initialization.
 func (c Config) BootstrapNeedsSeed() bool {

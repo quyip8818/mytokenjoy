@@ -6,7 +6,7 @@ company:
 admin:
   name: '管理员'
   email: 'admin@example.com'
-  password: 'admin123'
+  password: 'demo1234'
 
 billing:
   currency: 'CNY'

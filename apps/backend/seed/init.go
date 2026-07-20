@@ -53,14 +53,14 @@ func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Co
 		return fmt.Errorf("seed init: %w", err)
 	}
 
-	// 3. Conditionally apply demo/minimal data on empty DB.
+	// 3. Conditionally apply seed data on empty DB.
 	if cfg.BootstrapIsMinimal() || cfg.BootstrapIsDemo() {
 		empty, err := isDatabaseEmpty(ctx, pool)
 		if err != nil {
 			return err
 		}
 		if empty {
-			if err := applyDemoOrMinimal(ctx, pool, st, cfg); err != nil {
+			if err := applySeedData(ctx, pool, st, cfg); err != nil {
 				return err
 			}
 		}
@@ -69,7 +69,7 @@ func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Co
 	return nil
 }
 
-func applyDemoOrMinimal(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config) error {
+func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin seed tx: %w", err)
@@ -77,18 +77,23 @@ func applyDemoOrMinimal(ctx context.Context, pool *pgxpool.Pool, st store.Store,
 	defer tx.Rollback(ctx)
 
 	var snap store.Snapshot
-	if cfg.BootstrapIsMinimal() {
+	switch {
+	case cfg.SeedIsEmpty():
+		snap = LoadEmpty(cfg)
+	case cfg.SeedIsMinimal() || cfg.BootstrapIsMinimal():
 		snap = LoadMinimal(cfg)
-	} else {
+	default:
 		snap = Load(cfg)
 	}
+
 	if err := ApplyTables(ctx, tx, snap); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit seed tx: %w", err)
 	}
-	if cfg.BootstrapIsDemo() {
+	// Runtime demo data (usage ledger projections etc.) only for full seed.
+	if cfg.BootstrapIsDemo() && cfg.SeedIsFull() {
 		return runtime.ApplyDemo(ctx, st, cfg)
 	}
 	return nil
