@@ -2,6 +2,7 @@ package snapshot
 
 import (
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/org"
@@ -62,13 +63,14 @@ func buildSyncLogs(refDate string) []types.SyncLog {
 }
 
 func buildRoles(members []types.Member) []types.Role {
+	companyID := contract.DefaultCompanyID
 	roles := []types.Role{
-		{ID: contract.IDRole1, Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
-		{ID: contract.IDRole2, Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
-		{ID: contract.IDRole3, Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
-		{ID: contract.IDRole4, Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}, MemberCount: org.CountMembersByRole(members, permission.RoleAuditor)},
-		{ID: contract.IDRole5, Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
-		{ID: contract.IDRole6, Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover)},
+		{ID: grants.PresetRoleID(companyID, permission.RoleSuperAdmin), Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}, MemberCount: org.CountMembersByRole(members, permission.RoleSuperAdmin)},
+		{ID: grants.PresetRoleID(companyID, permission.RoleOrgAdmin), Name: permission.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleOrgAdmin)},
+		{ID: grants.PresetRoleID(companyID, permission.RoleMember), Name: permission.RoleMember, Type: "preset", Permissions: []string{"self:*"}, MemberCount: org.CountMembersByRole(members, permission.RoleMember)},
+		{ID: grants.PresetRoleID(companyID, permission.RoleAuditor), Name: permission.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}, MemberCount: org.CountMembersByRole(members, permission.RoleAuditor)},
+		{ID: grants.PresetRoleID(companyID, permission.RoleAPICaller), Name: permission.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}, MemberCount: org.CountMembersByRole(members, permission.RoleAPICaller)},
+		{ID: grants.PresetRoleID(companyID, permission.RoleBudgetApprover), Name: permission.RoleBudgetApprover, Type: "custom", Permissions: []string{"p-6"}, MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover)},
 	}
 	for i := range roles {
 		roles[i].Permissions = mustRoleGrantIDs(roles[i])

@@ -1,13 +1,13 @@
 version: 1
 
 company:
-  name: "Demo Company"
+  name: 'Demo Company'
 
 admin:
-  name: "管理员"
-  email: "admin@example.com"
-  password: "admin123"
+  name: '管理员'
+  email: 'admin@example.com'
+  password: 'admin123'
 
 billing:
-  currency: "CNY"
+  currency: 'CNY'
   quota_per_unit: 500000

@@ -3,20 +3,23 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func insertRootOrg(ctx context.Context, exec TableWriter, companyID uuid.UUID, appCfg config.Config, cfg Config) error {
 	rootID := deterministicOrgRootID(companyID)
+	pathLabel := strings.ReplaceAll(rootID.String(), "-", "_")
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO org_nodes (id, company_id, name, parent_id, type, sort_order)
-		VALUES ($1, $2, $3, NULL, 'department', 0)
+		INSERT INTO org_nodes (id, company_id, name, parent_id, path, type, sort_order)
+		VALUES ($1, $2, $3, NULL, $4::ltree, 'dept', 0)
 		ON CONFLICT (company_id, id) DO NOTHING
-	`, rootID, companyID, cfg.Company.Name); err != nil {
+	`, rootID, companyID, cfg.Company.Name, pathLabel); err != nil {
 		return fmt.Errorf("insert root org node: %w", err)
 	}
 
@@ -69,7 +72,7 @@ func insertAdminMember(ctx context.Context, exec TableWriter, companyID, deptID 
 	}
 
 	// 3. Assign super admin role via member_roles.
-	superAdminRoleID := deterministicRoleID(companyID, "超级管理员")
+	superAdminRoleID := grants.PresetRoleID(companyID, grants.RoleSuperAdmin)
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO member_roles (company_id, member_id, role_id)
 		VALUES ($1, $2, $3)

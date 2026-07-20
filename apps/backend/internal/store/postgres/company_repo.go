@@ -20,7 +20,7 @@ func newCompanyRepo(db dbQuerier) *companyRepo {
 
 func (r *companyRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
+		SELECT id, name, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies WHERE id = $1
@@ -33,7 +33,7 @@ func (r *companyRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]store.Co
 		return nil, nil
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
+		SELECT id, name, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies WHERE id = ANY($1)
@@ -62,7 +62,7 @@ func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	}
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO companies (
-			id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
+			id, name, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
@@ -86,7 +86,7 @@ func (r *companyRepo) UpdateNewAPIWalletCompanyID(ctx context.Context, id uuid.U
 		return fmt.Errorf("newapi wallet company id must be positive")
 	}
 	_, err := r.db.Exec(ctx, `
-		UPDATE companies SET newapi_wallet_user_id = $2, updated_at = NOW() WHERE id = $1
+		UPDATE companies SET newapi_wallet_company_id = $2, updated_at = NOW() WHERE id = $1
 	`, id, walletCompanyID)
 	return err
 }
@@ -100,7 +100,7 @@ func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id uuid.UUID, rootDe
 
 func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
+		SELECT id, name, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies ORDER BY id
@@ -142,7 +142,7 @@ func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id uuid.UUID) (int6
 
 func (r *companyRepo) LockForUpdate(ctx context.Context, id uuid.UUID) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, name, type, status, root_dept_id, newapi_wallet_user_id, authz_revision,
+		SELECT id, name, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain,
 			created_at, updated_at
 		FROM companies WHERE id = $1 FOR UPDATE

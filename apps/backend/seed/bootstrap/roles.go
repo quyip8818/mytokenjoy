@@ -5,16 +5,17 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 func insertPresetRoles(ctx context.Context, exec TableWriter, companyID uuid.UUID) error {
 	manifest := permission.MustManifest()
 	for roleName := range manifest.PresetRoles {
-		roleID := deterministicRoleID(companyID, roleName)
+		roleID := grants.PresetRoleID(companyID, roleName)
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, 'preset')
-			ON CONFLICT (company_id, id) DO NOTHING
+			ON CONFLICT (company_id, name) DO NOTHING
 		`, roleID, companyID, roleName); err != nil {
 			return fmt.Errorf("insert preset role %s: %w", roleName, err)
 		}
@@ -29,11 +30,10 @@ func reconcileCompanyPresetRoles(ctx context.Context, exec TableWriter, companyI
 	allPermIDs := allPermissionIDs(manifest)
 
 	for roleName, capabilities := range manifest.PresetRoles {
-		roleID := deterministicRoleID(companyID, roleName)
-		// Ensure role row exists (idempotent, covers edge case where bootstrap was skipped).
+		roleID := grants.PresetRoleID(companyID, roleName)
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, 'preset')
-			ON CONFLICT (company_id, id) DO NOTHING
+			ON CONFLICT (company_id, name) DO NOTHING
 		`, roleID, companyID, roleName); err != nil {
 			return fmt.Errorf("reconcile: ensure role %s: %w", roleName, err)
 		}
@@ -75,9 +75,4 @@ func allPermissionIDs(manifest permission.Manifest) []string {
 		ids = append(ids, id)
 	}
 	return ids
-}
-
-// deterministicRoleID produces a stable UUID for a preset role so re-runs don't duplicate.
-func deterministicRoleID(companyID uuid.UUID, roleName string) uuid.UUID {
-	return uuid.NewSHA1(companyID, []byte("preset-role:"+roleName))
 }

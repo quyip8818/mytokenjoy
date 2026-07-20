@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS companies (
                               CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              UUID,
-    newapi_wallet_user_id     BIGINT,
+    newapi_wallet_company_id  BIGINT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
     -- Default must match common.DefaultBillingCurrency.
     billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),
@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS org_nodes (
     name              TEXT NOT NULL,
     parent_id         UUID,
     path              LTREE NOT NULL,
+    type              TEXT NOT NULL DEFAULT 'dept',
     external_id       TEXT,
     source            TEXT,
     manager_id        UUID,

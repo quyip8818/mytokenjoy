@@ -1,6 +1,9 @@
 package contract
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
+)
 
 // remoteIDNamespace mirrors pkg/org.remoteIDNamespace for deterministic external→local ID mapping.
 var remoteIDNamespace = uuid.MustParse("6ba7b814-9dad-11d1-80b4-00c04fd430c8")
@@ -85,15 +88,15 @@ var (
 	IDProject4 = uuid.MustParse("00000000-0000-7000-8000-000000000104")
 )
 
-// --- Roles ---
+// --- Roles (deterministic from company + role name) ---
 
 var (
-	IDRole1 = uuid.MustParse("00000000-0000-7000-8000-00000000a101")
-	IDRole2 = uuid.MustParse("00000000-0000-7000-8000-00000000a102")
-	IDRole3 = uuid.MustParse("00000000-0000-7000-8000-00000000a103")
-	IDRole4 = uuid.MustParse("00000000-0000-7000-8000-00000000a104")
-	IDRole5 = uuid.MustParse("00000000-0000-7000-8000-00000000a105")
-	IDRole6 = uuid.MustParse("00000000-0000-7000-8000-00000000a106")
+	IDRole1 = grants.PresetRoleID(DefaultCompanyID, grants.RoleSuperAdmin)
+	IDRole2 = grants.PresetRoleID(DefaultCompanyID, grants.RoleOrgAdmin)
+	IDRole3 = grants.PresetRoleID(DefaultCompanyID, grants.RoleMember)
+	IDRole4 = grants.PresetRoleID(DefaultCompanyID, grants.RoleAuditor)
+	IDRole5 = grants.PresetRoleID(DefaultCompanyID, grants.RoleAPICaller)
+	IDRole6 = grants.PresetRoleID(DefaultCompanyID, grants.RoleBudgetApprover)
 )
 
 // --- Misc seed IDs ---

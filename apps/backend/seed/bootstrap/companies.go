@@ -7,18 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 func insertCompanies(ctx context.Context, exec TableWriter, appCfg config.Config, bsCfg Config, tokenJoyID, companyID uuid.UUID) error {
 	// TokenJoy internal company (always testing type).
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO companies (id, name, type, status, newapi_wallet_username)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO companies (id, name, type, status)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO NOTHING
-	`, tokenJoyID, "TokenJoy", store.CompanyTypeTesting, store.CompanyStatusActive,
-		company.WalletUsername(tokenJoyID)); err != nil {
+	`, tokenJoyID, "TokenJoy", store.CompanyTypeTesting, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("insert tokenjoy company: %w", err)
 	}
 
@@ -29,11 +27,10 @@ func insertCompanies(ctx context.Context, exec TableWriter, appCfg config.Config
 		companyType = store.CompanyTypeTesting
 	}
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO companies (id, name, type, status, newapi_wallet_username)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO companies (id, name, type, status)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO NOTHING
-	`, companyID, name, companyType, store.CompanyStatusActive,
-		company.WalletUsername(companyID)); err != nil {
+	`, companyID, name, companyType, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("insert company: %w", err)
 	}
 	return nil

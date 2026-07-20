@@ -235,7 +235,7 @@ func TestBootstrapHealsZeroWalletCompanyID(t *testing.T) {
 		t.Fatal(err)
 	}
 	pool := postgres.MainPool(st)
-	if _, err := pool.Exec(ctx, `UPDATE companies SET newapi_wallet_user_id = 0 WHERE id = $1`, contract.LocalCompanyID); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE companies SET newapi_wallet_company_id = 0 WHERE id = $1`, contract.LocalCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	createCallsBefore := stub.CreateUserCalls

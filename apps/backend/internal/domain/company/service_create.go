@@ -125,7 +125,7 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, co
 	if err := tx.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 		return store.Company{}, err
 	}
-	if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(s.grants)); err != nil {
+	if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(companyID, s.grants)); err != nil {
 		return store.Company{}, err
 	}
 	if err := tx.Company().UpdateRootDeptID(ctx, company.ID, rootDeptID); err != nil {
@@ -214,13 +214,13 @@ func (s *service) addMember(ctx context.Context, tx store.Store, userID, company
 	return member, nil
 }
 
-func defaultCompanyRoles(normalizer grants.Normalizer) []types.Role {
+func defaultCompanyRoles(companyID uuid.UUID, normalizer grants.Normalizer) []types.Role {
 	roles := []types.Role{
-		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
-		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
-		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
-		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
-		{ID: uuid.Must(uuid.NewV7()), Name: grants.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
+		{ID: grants.PresetRoleID(companyID, grants.RoleSuperAdmin), Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
+		{ID: grants.PresetRoleID(companyID, grants.RoleOrgAdmin), Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
+		{ID: grants.PresetRoleID(companyID, grants.RoleMember), Name: grants.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
+		{ID: grants.PresetRoleID(companyID, grants.RoleAuditor), Name: grants.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
+		{ID: grants.PresetRoleID(companyID, grants.RoleAPICaller), Name: grants.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
 	}
 	for i := range roles {
 		ids, err := normalizer.RoleGrantIDs(roles[i].Type, roles[i].Name, roles[i].Permissions)
