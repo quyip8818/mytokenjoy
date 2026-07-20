@@ -42,5 +42,5 @@ func TestAppNewDoesNotWriteNewAPI(t *testing.T) {
 	testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {
 		testutil.WithDeployEnv("local")(cfg)
 		testutil.WithNewAPIEnabled(true)(cfg)
-	}, app.WithoutWorker(), app.WithAdminClient(stub))
+	}, app.WithoutWorker(), app.WithAdminPort(stub))
 }

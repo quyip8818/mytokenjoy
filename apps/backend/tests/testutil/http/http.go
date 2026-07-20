@@ -25,7 +25,7 @@ func NewApp(t *testing.T, mutate func(*config.Config)) *app.App {
 		t,
 		mutate,
 		app.WithoutWorker(),
-		app.WithAdminClient(testutil.DefaultStubAdminClient()),
+		app.WithAdminPort(testutil.DefaultStubAdminClient()),
 	)
 }
 

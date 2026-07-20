@@ -41,7 +41,7 @@ func WithoutWorker() Option {
 	}
 }
 
-func WithAdminClient(client adminport.Port) Option {
+func WithAdminPort(client adminport.Port) Option {
 	return func(o *options) {
 		o.adminPort = client
 	}

@@ -18,7 +18,7 @@ import (
 )
 
 func NewTestApp(t *testing.T, mutate func(*config.Config)) *app.App {
-	return NewTestAppWithOptions(t, mutate, app.WithoutWorker(), app.WithAdminClient(defaultStubAdminClient()))
+	return NewTestAppWithOptions(t, mutate, app.WithoutWorker(), app.WithAdminPort(defaultStubAdminClient()))
 }
 
 func NewTestAppWithOptions(t *testing.T, mutate func(*config.Config), opts ...app.Option) *app.App {

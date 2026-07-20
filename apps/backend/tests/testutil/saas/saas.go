@@ -156,7 +156,7 @@ func NewRouter(t *testing.T, mock *NewAPIMock) http.Handler {
 	t.Helper()
 	appOpts := []app.Option{app.WithoutWorker()}
 	if mock == nil {
-		appOpts = append(appOpts, app.WithAdminClient(testutil.DefaultStubAdminClient()))
+		appOpts = append(appOpts, app.WithAdminPort(testutil.DefaultStubAdminClient()))
 	}
 	application := testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {
 		ApplyConfig(cfg)

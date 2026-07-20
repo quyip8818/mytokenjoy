@@ -31,7 +31,7 @@ func newBudgetIngestFixture(t *testing.T, stub *mock.StubAdminClient) (config.Co
 		testutil.WithNewAPIWebhookSecret("secret"),
 	)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	reg, holder, err := app.BuildRegistry(cfg, logger, st, app.WithAdminClient(stub))
+	reg, holder, err := app.BuildRegistry(cfg, logger, st, app.WithAdminPort(stub))
 	if err != nil {
 		t.Fatal(err)
 	}
