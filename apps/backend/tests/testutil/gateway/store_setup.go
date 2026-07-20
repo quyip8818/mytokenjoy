@@ -25,8 +25,8 @@ func normalizeGatewayOpts(opts GatewayScenarioOpts) GatewayScenarioOpts {
 	if opts.DepartmentID == uuid.Nil {
 		opts.DepartmentID = contract.IDDept3
 	}
-	if opts.NewAPIWalletUserID == 0 {
-		opts.NewAPIWalletUserID = 99
+	if opts.NewAPIWalletCompanyID == 0 {
+		opts.NewAPIWalletCompanyID = 99
 	}
 	if opts.CompanyStatus == "" {
 		opts.CompanyStatus = store.CompanyStatusActive
@@ -45,7 +45,7 @@ func applyGatewayCompanyState(t *testing.T, cfg config.Config, st store.Store, o
 	if err := st.Company().SetWalletRemain(ctx, opts.CompanyID, walletPoint, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Company().UpdateNewAPIWalletUserID(ctx, opts.CompanyID, opts.NewAPIWalletUserID); err != nil {
+	if err := st.Company().UpdateNewAPIWalletCompanyID(ctx, opts.CompanyID, opts.NewAPIWalletCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	if opts.CompanyStatus != store.CompanyStatusActive {

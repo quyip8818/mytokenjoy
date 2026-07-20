@@ -34,8 +34,8 @@ func ContextFromStore(co store.Company) Context {
 		Type:      co.Type,
 		Status:    co.Status,
 	}
-	if id, ok := store.ConfiguredNewAPIWalletUserID(&co); ok {
-		info.NewAPIWalletUserID = id
+	if id, ok := store.ConfiguredNewAPIWalletCompanyID(&co); ok {
+		info.NewAPIWalletCompanyID = id
 	}
 	return info
 }

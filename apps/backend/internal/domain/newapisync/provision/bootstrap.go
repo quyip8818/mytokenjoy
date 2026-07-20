@@ -101,10 +101,10 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	if co == nil {
 		return nil
 	}
-	walletUserID, alreadyConfigured := store.ConfiguredNewAPIWalletUserID(co)
+	walletCompanyID, alreadyConfigured := store.ConfiguredNewAPIWalletCompanyID(co)
 	if alreadyConfigured {
 		// Ensure existing wallet user has sufficient quota to match wallet_remain.
-		return ensureWalletUserQuota(ctx, d, walletUserID, co.WalletRemain)
+		return ensureWalletCompanyQuota(ctx, d, walletCompanyID, co.WalletRemain)
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
 		Username:    co.NewAPIWalletUsername,
@@ -118,16 +118,16 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	if user.ID <= 0 {
 		return fmt.Errorf("create demo newapi wallet user: missing id")
 	}
-	if err := d.Store.Company().UpdateNewAPIWalletUserID(ctx, companyID, user.ID); err != nil {
+	if err := d.Store.Company().UpdateNewAPIWalletCompanyID(ctx, companyID, user.ID); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ensureWalletUserQuota tops up the wallet user so NewAPI user quota >= wallet_remain.
-// Since tokenjoy Gateway is the only limiter, the NewAPI user should never reject.
-func ensureWalletUserQuota(ctx context.Context, d syncdeps.Deps, walletUserID int64, walletRemain int64) error {
-	current, err := d.Client.GetUserQuota(ctx, walletUserID)
+// ensureWalletCompanyQuota tops up the wallet company so NewAPI quota >= wallet_remain.
+// Since tokenjoy Gateway is the only limiter, the NewAPI account should never reject.
+func ensureWalletCompanyQuota(ctx context.Context, d syncdeps.Deps, walletCompanyID int64, walletRemain int64) error {
+	current, err := d.Client.GetUserQuota(ctx, walletCompanyID)
 	if err != nil {
 		return nil // best-effort: don't block bootstrap
 	}
@@ -136,8 +136,8 @@ func ensureWalletUserQuota(ctx context.Context, d syncdeps.Deps, walletUserID in
 		return nil
 	}
 	return d.Client.TopUp(ctx, adminport.TopUpInput{
-		UserID: walletUserID,
-		Quota:  delta,
+		CompanyID: walletCompanyID,
+		Quota:     delta,
 	})
 }
 

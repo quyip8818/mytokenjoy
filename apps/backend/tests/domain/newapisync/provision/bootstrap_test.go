@@ -52,8 +52,8 @@ func TestBootstrapDemoWalletUserCreatesWallet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if co.NewAPIWalletUserID == nil || *co.NewAPIWalletUserID != 501 {
-		t.Fatalf("expected wallet user 501, got %v", co.NewAPIWalletUserID)
+	if co.NewAPIWalletCompanyID == nil || *co.NewAPIWalletCompanyID != 501 {
+		t.Fatalf("expected wallet company 501, got %v", co.NewAPIWalletCompanyID)
 	}
 }
 
@@ -214,7 +214,7 @@ func TestBootstrapSkipsWhenAllReady(t *testing.T) {
 	_ = st
 }
 
-func TestBootstrapHealsZeroWalletUserID(t *testing.T) {
+func TestBootstrapHealsZeroWalletCompanyID(t *testing.T) {
 	t.Parallel()
 	var nextTokenID int64 = 900
 	stub := &mock.StubAdminClient{
@@ -249,7 +249,7 @@ func TestBootstrapHealsZeroWalletUserID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if co.NewAPIWalletUserID == nil || *co.NewAPIWalletUserID != 777 {
-		t.Fatalf("expected wallet user 777 after heal, got %v", co.NewAPIWalletUserID)
+	if co.NewAPIWalletCompanyID == nil || *co.NewAPIWalletCompanyID != 777 {
+		t.Fatalf("expected wallet company 777 after heal, got %v", co.NewAPIWalletCompanyID)
 	}
 }

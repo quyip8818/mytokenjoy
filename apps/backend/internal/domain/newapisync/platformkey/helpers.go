@@ -13,9 +13,9 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) (int64, error) {
-	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletUserID > 0 {
-		return companyCtx.NewAPIWalletUserID, nil
+func newAPIWalletCompanyID(ctx context.Context, d syncdeps.Deps) (int64, error) {
+	if companyCtx, ok := company.FromContext(ctx); ok && companyCtx.NewAPIWalletCompanyID > 0 {
+		return companyCtx.NewAPIWalletCompanyID, nil
 	}
 	companyID := company.CompanyID(ctx)
 	co, err := d.Store.Company().GetByID(ctx, companyID)
@@ -25,7 +25,7 @@ func newAPIWalletUserID(ctx context.Context, d syncdeps.Deps) (int64, error) {
 	if co == nil {
 		return 0, nil
 	}
-	id, ok := store.ConfiguredNewAPIWalletUserID(co)
+	id, ok := store.ConfiguredNewAPIWalletCompanyID(co)
 	if !ok {
 		return 0, nil
 	}

@@ -135,9 +135,7 @@ export function useBudgetAllocationEdit({
       ? child.budget
       : displayToQuota(displayValue)
   }
-  const reservedValue = editing
-    ? displayToQuota(parseFloat(reservedDraft))
-    : nodeReservedPool(node)
+  const reservedValue = editing ? displayToQuota(parseFloat(reservedDraft)) : nodeReservedPool(node)
   const projectSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
   const usedSum =
     Object.values(draftBudgetMap).reduce((sum, value) => sum + value, 0) +

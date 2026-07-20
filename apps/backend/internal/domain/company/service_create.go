@@ -108,11 +108,11 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, co
 	if err != nil {
 		return store.Company{}, fmt.Errorf("create newapi wallet account: %w", err)
 	}
-	if err := tx.Company().UpdateNewAPIWalletUserID(ctx, company.ID, user.ID); err != nil {
+	if err := tx.Company().UpdateNewAPIWalletCompanyID(ctx, company.ID, user.ID); err != nil {
 		return store.Company{}, err
 	}
 	walletID := user.ID
-	company.NewAPIWalletUserID = &walletID
+	company.NewAPIWalletCompanyID = &walletID
 
 	rootDeptID := uuid.Must(uuid.NewV7())
 	nodes, err := tx.Org().Nodes().Tree(companyCtx)

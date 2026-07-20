@@ -55,7 +55,7 @@ func TestProcessNewAPISyncOutbox(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, Key: "sk-worker", RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
-	if err := fix.st.Company().UpdateNewAPIWalletUserID(ctx, contract.DefaultCompanyID, 501); err != nil {
+	if err := fix.st.Company().UpdateNewAPIWalletCompanyID(ctx, contract.DefaultCompanyID, 501); err != nil {
 		t.Fatal(err)
 	}
 

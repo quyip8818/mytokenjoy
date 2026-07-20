@@ -102,8 +102,8 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 		"Dual Axis", "dual@example.com", "Dual Admin", "securepass123")
 
 	walletID := int64(0)
-	if provisioned.Company.NewAPIWalletUserID != nil {
-		walletID = *provisioned.Company.NewAPIWalletUserID
+	if provisioned.Company.NewAPIWalletCompanyID != nil {
+		walletID = *provisioned.Company.NewAPIWalletCompanyID
 	}
 	rootDept := uuid.Nil
 	if provisioned.Company.RootDeptID != nil {
@@ -112,11 +112,11 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 
 	// No recharge: wallet 0 -> 403
 	fullKey := gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
-		CompanyID:          provisioned.Company.ID,
-		NewAPIWalletUserID: walletID,
-		WalletBalancePoint: testutil.Float64Ptr(0),
-		DepartmentID:       rootDept,
-		Budget:             1000,
+		CompanyID:             provisioned.Company.ID,
+		NewAPIWalletCompanyID: walletID,
+		WalletBalancePoint:    testutil.Float64Ptr(0),
+		DepartmentID:          rootDept,
+		Budget:                1000,
 	})
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
@@ -127,11 +127,11 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	// Recharge wallet: budget=0 means unconstrained, gateway allows
 	saas.PlatformRechargeHTTP(t, router, platformCookie, provisioned.Company.ID, 100)
 	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
-		CompanyID:          provisioned.Company.ID,
-		NewAPIWalletUserID: walletID,
-		DepartmentID:       rootDept,
-		Budget:             0,
-		FullKey:            "sk-onboard-zero-budget",
+		CompanyID:             provisioned.Company.ID,
+		NewAPIWalletCompanyID: walletID,
+		DepartmentID:          rootDept,
+		Budget:                0,
+		FullKey:               "sk-onboard-zero-budget",
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))
@@ -142,11 +142,11 @@ func TestOnboardingWalletAndBudgetDualAxisGateway(t *testing.T) {
 	// Both wallet and budget configured -> 200
 	saas.UpdateBudgetNodeHTTP(t, router, provisioned.MemberCookie, rootDept.String(), 1000)
 	fullKey = gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
-		CompanyID:          provisioned.Company.ID,
-		NewAPIWalletUserID: walletID,
-		DepartmentID:       rootDept,
-		Budget:             1000,
-		FullKey:            "sk-onboard-budget-ready",
+		CompanyID:             provisioned.Company.ID,
+		NewAPIWalletCompanyID: walletID,
+		DepartmentID:          rootDept,
+		Budget:                1000,
+		FullKey:               "sk-onboard-budget-ready",
 	})
 	rec = httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, gatewaytf.GatewayRequest(fullKey))

@@ -67,7 +67,7 @@ func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 			created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`, company.ID, company.Name, company.Type, company.Status,
-		company.RootDeptID, company.NewAPIWalletUserID, company.NewAPIWalletUsername, company.AuthzRevision,
+		company.RootDeptID, company.NewAPIWalletCompanyID, company.NewAPIWalletUsername, company.AuthzRevision,
 		company.BillingCurrency, company.FIFOHeadLotID, company.WalletRemain,
 		company.CreatedAt, company.UpdatedAt)
 	if err != nil {
@@ -81,13 +81,13 @@ func (r *companyRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status str
 	return err
 }
 
-func (r *companyRepo) UpdateNewAPIWalletUserID(ctx context.Context, id uuid.UUID, walletUserID int64) error {
-	if walletUserID <= 0 {
-		return fmt.Errorf("newapi wallet user id must be positive")
+func (r *companyRepo) UpdateNewAPIWalletCompanyID(ctx context.Context, id uuid.UUID, walletCompanyID int64) error {
+	if walletCompanyID <= 0 {
+		return fmt.Errorf("newapi wallet company id must be positive")
 	}
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET newapi_wallet_user_id = $2, updated_at = NOW() WHERE id = $1
-	`, id, walletUserID)
+	`, id, walletCompanyID)
 	return err
 }
 
@@ -183,7 +183,7 @@ func scanCompanyExtendedOptional(row scannable) (*store.Company, error) {
 func scanCompanyExtended(row scannable) (*store.Company, error) {
 	var c store.Company
 	err := row.Scan(&c.ID, &c.Name, &c.Type, &c.Status,
-		&c.RootDeptID, &c.NewAPIWalletUserID, &c.NewAPIWalletUsername, &c.AuthzRevision,
+		&c.RootDeptID, &c.NewAPIWalletCompanyID, &c.NewAPIWalletUsername, &c.AuthzRevision,
 		&c.BillingCurrency, &c.FIFOHeadLotID, &c.WalletRemain,
 		&c.CreatedAt, &c.UpdatedAt)
 	if err != nil {

@@ -42,7 +42,7 @@ func TestCreateCompanyInviteEmailMode(t *testing.T) {
 	if err != nil || stored == nil {
 		t.Fatal("expected company to exist")
 	}
-	if stored.NewAPIWalletUserID == nil || *stored.NewAPIWalletUserID <= 0 {
+	if stored.NewAPIWalletCompanyID == nil || *stored.NewAPIWalletCompanyID <= 0 {
 		t.Fatal("expected wallet account")
 	}
 	if stored.RootDeptID == nil {

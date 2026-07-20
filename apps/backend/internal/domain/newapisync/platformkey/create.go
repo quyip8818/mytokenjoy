@@ -110,15 +110,15 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 		return "", fmt.Errorf("ensure newapi group %s: %w", group, err)
 	}
 
-	walletUserID, err := newAPIWalletUserID(ctx, d)
+	walletCompanyID, err := newAPIWalletCompanyID(ctx, d)
 	if err != nil {
 		return "", err
 	}
-	if walletUserID <= 0 {
-		return "", fmt.Errorf("newapi wallet user id required for platform key %s", key.ID)
+	if walletCompanyID <= 0 {
+		return "", fmt.Errorf("newapi wallet company id required for platform key %s", key.ID)
 	}
 	req := adminport.CreateTokenInput{
-		UserID:             walletUserID,
+		UserID:             walletCompanyID,
 		Name:               TokenName(key.ID),
 		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
 		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),

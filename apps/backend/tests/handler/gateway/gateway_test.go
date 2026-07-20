@@ -128,8 +128,8 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 		"Router GW", "router-gw@example.com", "Router Admin", "securepass123")
 
 	walletID := int64(0)
-	if provisioned.Company.NewAPIWalletUserID != nil {
-		walletID = *provisioned.Company.NewAPIWalletUserID
+	if provisioned.Company.NewAPIWalletCompanyID != nil {
+		walletID = *provisioned.Company.NewAPIWalletCompanyID
 	}
 	rootDept := uuid.Nil
 	if provisioned.Company.RootDeptID != nil {
@@ -141,10 +141,10 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 	}
 
 	fullKey := gatewaytf.ConfigureGatewayStore(t, app.Config, app.Store, gatewaytf.GatewayScenarioOpts{
-		CompanyID:          provisioned.Company.ID,
-		NewAPIWalletUserID: walletID,
-		DepartmentID:       rootDept,
-		Budget:             1000,
+		CompanyID:             provisioned.Company.ID,
+		NewAPIWalletCompanyID: walletID,
+		DepartmentID:          rootDept,
+		Budget:                1000,
 	})
 
 	rec := httptest.NewRecorder()

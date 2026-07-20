@@ -24,13 +24,13 @@ func newBillingService(t *testing.T, client *mock.StubAdminClient) (domainbillin
 		t.Fatal(err)
 	}
 	walletID := int64(501)
-	if err := st.Company().UpdateNewAPIWalletUserID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
+	if err := st.Company().UpdateNewAPIWalletCompanyID(context.Background(), contract.DefaultCompanyID, walletID); err != nil {
 		t.Fatal(err)
 	}
 	ctx := company.WithContext(context.Background(), company.Context{
-		CompanyID:          contract.DefaultCompanyID,
-		NewAPIWalletUserID: walletID,
-		Status:             co.Status,
+		CompanyID:             contract.DefaultCompanyID,
+		NewAPIWalletCompanyID: walletID,
+		Status:                co.Status,
 	})
 	return svc, st, ctx
 }
@@ -58,7 +58,7 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 	}
 }
 
-func TestGetWalletWithoutNewAPIWalletUserIDReturnsZero(t *testing.T) {
+func TestGetWalletWithoutNewAPIWalletCompanyIDReturnsZero(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())

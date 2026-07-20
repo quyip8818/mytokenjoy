@@ -97,7 +97,7 @@ func (a AdminPortAdapter) CreateUser(ctx context.Context, req adminport.CreateUs
 
 func (a AdminPortAdapter) TopUp(ctx context.Context, req adminport.TopUpInput) error {
 	return a.client.TopUp(ctx, TopUpRequest{
-		UserID: req.UserID,
+		UserID: req.CompanyID,
 		Quota:  req.Quota,
 	})
 }

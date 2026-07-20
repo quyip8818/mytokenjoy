@@ -19,27 +19,27 @@ const (
 )
 
 type Company struct {
-	ID                   uuid.UUID
-	Name                 string
-	Type                 string
-	Status               string
-	RootDeptID           *uuid.UUID
-	NewAPIWalletUserID   *int64
-	NewAPIWalletUsername string
-	AuthzRevision        int64
-	BillingCurrency      string
-	FIFOHeadLotID        *uuid.UUID
-	WalletRemain         int64
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
+	ID                    uuid.UUID
+	Name                  string
+	Type                  string
+	Status                string
+	RootDeptID            *uuid.UUID
+	NewAPIWalletCompanyID *int64
+	NewAPIWalletUsername  string
+	AuthzRevision         int64
+	BillingCurrency       string
+	FIFOHeadLotID         *uuid.UUID
+	WalletRemain          int64
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
-// ConfiguredNewAPIWalletUserID returns the NewAPI wallet user id when it is positive.
-func ConfiguredNewAPIWalletUserID(co *Company) (int64, bool) {
-	if co == nil || co.NewAPIWalletUserID == nil || *co.NewAPIWalletUserID <= 0 {
+// ConfiguredNewAPIWalletCompanyID returns the NewAPI wallet company id when it is positive.
+func ConfiguredNewAPIWalletCompanyID(co *Company) (int64, bool) {
+	if co == nil || co.NewAPIWalletCompanyID == nil || *co.NewAPIWalletCompanyID <= 0 {
 		return 0, false
 	}
-	return *co.NewAPIWalletUserID, true
+	return *co.NewAPIWalletCompanyID, true
 }
 
 type CompanyRepository interface {
@@ -47,7 +47,7 @@ type CompanyRepository interface {
 	GetByIDs(ctx context.Context, ids []uuid.UUID) ([]Company, error)
 	Create(ctx context.Context, company Company) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
-	UpdateNewAPIWalletUserID(ctx context.Context, id uuid.UUID, walletUserID int64) error
+	UpdateNewAPIWalletCompanyID(ctx context.Context, id uuid.UUID, walletCompanyID int64) error
 	UpdateRootDeptID(ctx context.Context, id uuid.UUID, rootDeptID uuid.UUID) error
 	GetAuthzRevision(ctx context.Context, id uuid.UUID) (int64, error)
 	BumpAuthzRevision(ctx context.Context, id uuid.UUID) (int64, error)

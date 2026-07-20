@@ -19,16 +19,16 @@ import (
 )
 
 type GatewayScenarioOpts struct {
-	CompanyID          uuid.UUID
-	WalletBalancePoint *float64
-	NewAPIWalletUserID int64
-	DepartmentID       uuid.UUID
-	Budget             int64
-	Consumed           float64
-	CompanyStatus      string
-	ProxyBackendURL    string
-	DeployEnv          string
-	FullKey            string
+	CompanyID             uuid.UUID
+	WalletBalancePoint    *float64
+	NewAPIWalletCompanyID int64
+	DepartmentID          uuid.UUID
+	Budget                int64
+	Consumed              float64
+	CompanyStatus         string
+	ProxyBackendURL       string
+	DeployEnv             string
+	FullKey               string
 }
 
 type GatewayScenario struct {

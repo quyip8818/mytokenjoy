@@ -24,14 +24,14 @@ type TestServiceOpts struct {
 	SkipWalletSeed bool
 }
 
-const TestWalletUserID int64 = 501
+const TestWalletCompanyID int64 = 501
 
-func EnsureWalletUserID(t *testing.T, st store.Store, companyID uuid.UUID, walletUserID int64) {
+func EnsureWalletCompanyID(t *testing.T, st store.Store, companyID uuid.UUID, walletCompanyID int64) {
 	t.Helper()
-	if err := st.Company().UpdateNewAPIWalletUserID(
+	if err := st.Company().UpdateNewAPIWalletCompanyID(
 		testutil.CtxForCompany(companyID),
 		companyID,
-		walletUserID,
+		walletCompanyID,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func NewTestService(t *testing.T, opts TestServiceOpts) (*domainnewapisync.NewAP
 func NewLocalTestService(t *testing.T, stub *mock.StubAdminClient, cfgOpts ...testutil.ConfigOption) (*domainnewapisync.NewAPISync, store.Store) {
 	t.Helper()
 	if stub != nil && stub.User.ID == 0 {
-		stub.User.ID = TestWalletUserID
+		stub.User.ID = TestWalletCompanyID
 	}
 	base := []testutil.ConfigOption{testutil.WithDeployEnv("local")}
 	sync, _, st := newTestService(t, TestServiceOpts{Stub: stub, SkipWalletSeed: true}, append(base, cfgOpts...))
@@ -65,7 +65,7 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 	}
 	cfg, st := testutil.NewTestStore(t, append(base, cfgOpts...)...)
 	if !opts.SkipWalletSeed {
-		EnsureWalletUserID(t, st, contract.DefaultCompanyID, TestWalletUserID)
+		EnsureWalletCompanyID(t, st, contract.DefaultCompanyID, TestWalletCompanyID)
 	}
 	sync := domainnewapisync.New(
 		cfg,
