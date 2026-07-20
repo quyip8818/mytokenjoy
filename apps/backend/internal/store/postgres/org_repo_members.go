@@ -25,7 +25,7 @@ const memberListSelect = `
 	JOIN users u ON u.id = m.user_id
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 	LEFT JOIN member_roles mr ON mr.company_id = m.company_id AND mr.member_id = m.id
-	LEFT JOIN roles r ON r.id = mr.role_id
+	LEFT JOIN roles r ON r.company_id = mr.company_id AND r.id = mr.role_id
 `
 
 func (r *pgOrgRepo) FindMemberCompanyID(ctx context.Context, memberID uuid.UUID) (uuid.UUID, error) {
@@ -84,7 +84,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID uuid.UUID) (*types.
 	item.CompanyID = companyID
 	roleRows, err := r.db.Query(ctx, `
 		SELECT ro.name FROM member_roles mr
-		JOIN roles ro ON ro.id = mr.role_id
+		JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
 		WHERE mr.company_id = $1 AND mr.member_id = $2
 		ORDER BY ro.name
 	`, companyID, item.ID)
@@ -122,7 +122,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, emai
 	item.CompanyID = companyID
 	roleRows, err := r.db.Query(ctx, `
 		SELECT ro.name FROM member_roles mr
-		JOIN roles ro ON ro.id = mr.role_id
+		JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
 		WHERE mr.company_id = $1 AND mr.member_id = $2
 		ORDER BY ro.name
 	`, companyID, item.ID)
@@ -167,7 +167,7 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, mem
 	item.CompanyID = companyID
 	roleRows, err := r.db.Query(ctx, `
 		SELECT ro.name FROM member_roles mr
-		JOIN roles ro ON ro.id = mr.role_id
+		JOIN roles ro ON ro.company_id = mr.company_id AND ro.id = mr.role_id
 		WHERE mr.company_id = $1 AND mr.member_id = $2
 		ORDER BY ro.name
 	`, companyID, item.ID)
