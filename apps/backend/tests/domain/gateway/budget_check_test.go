@@ -10,7 +10,7 @@ import (
 
 func TestPrecheckBlocksOnCombinedKeyRemain(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
 	budgetfix.SetCombinedKeyRemain(t, fx.Store, fx.LoadPrecheckRow(t).PlatformKeyID, 0)
 	if err := fx.Run("deepseek-v4", false); err == nil {
 		t.Fatal("expected PG soft summary block")
@@ -19,7 +19,7 @@ func TestPrecheckBlocksOnCombinedKeyRemain(t *testing.T) {
 
 func TestPrecheckAllowsNullCombinedKeyRemain(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
 	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected allow when soft summary NULL, got %v", err)
 	}
@@ -41,7 +41,7 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+			fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
 			fake := gatewaytf.NewFakeBudgetCheck()
 			fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
@@ -67,7 +67,7 @@ func TestGatewayBudgetCheckCombinedKeyBlock(t *testing.T) {
 
 func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
 	fake := gatewaytf.NewFakeBudgetCheck()
 	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, fake)
 
@@ -81,7 +81,7 @@ func TestGatewayBudgetCheckMissAllows(t *testing.T) {
 
 func TestGatewayBudgetCheckDisabledSkipsGet(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
 	fx.Precheck = gatewaytf.NewPrecheckService(fx.Cfg, fx.Store, domainbudget.NoopCombinedKeyCache)
 
 	if err := fx.Run("deepseek-v4", false); err != nil {

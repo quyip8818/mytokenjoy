@@ -18,7 +18,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	t.Parallel()
 	svc, st := newBudgetService(t)
 	prepareDept3NodeUpdateFixture(t, st)
-	reserved := budgetfix.DisplayPoints(1500)
+	reserved := budgetfix.QuotaFromDisplay(1500)
 	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
 	updated, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, wantBudget, &reserved)
 	if err != nil {
@@ -50,8 +50,8 @@ func TestUpdateNodeSuccess(t *testing.T) {
 func TestUpdateNodeOversell(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	reserved := budgetfix.DisplayPoints(1500)
-	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.DisplayPoints(90000), &reserved)
+	reserved := budgetfix.QuotaFromDisplay(1500)
+	_, err := svc.UpdateNode(testutil.Ctx(), contract.IDDept3, budgetfix.QuotaFromDisplay(90000), &reserved)
 	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
 }
 
@@ -303,7 +303,7 @@ func TestOrgSyncSetTreeDoesNotOverwriteBudget(t *testing.T) {
 	svc, st := newBudgetService(t)
 	prepareDept3NodeUpdateFixture(t, st)
 	ctx := testutil.Ctx()
-	reserved := budgetfix.DisplayPoints(1500)
+	reserved := budgetfix.QuotaFromDisplay(1500)
 	wantBudget := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
 	if _, err := svc.UpdateNode(ctx, contract.IDDept3, wantBudget, &reserved); err != nil {
 		t.Fatal(err)

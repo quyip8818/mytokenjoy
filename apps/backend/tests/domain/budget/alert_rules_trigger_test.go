@@ -22,7 +22,7 @@ func TestOverrunDepartmentThresholdSendsNotification(t *testing.T) {
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, nil)
 	ctx := testutil.Ctx()
 
-	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.DisplayPoints(25000))
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.QuotaFromDisplay(25000))
 
 	payload, err := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,

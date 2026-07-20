@@ -19,8 +19,8 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
-	trialPoints := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+	trialQuota := int64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
 		t.Fatal(err)
 	}
 
@@ -29,8 +29,8 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after trial credit")
 	}
-	if co.WalletRemain != trialPoints {
-		t.Fatalf("wallet_remain: got %v want %v", co.WalletRemain, trialPoints)
+	if co.WalletRemain != trialQuota {
+		t.Fatalf("wallet_remain: got %v want %v", co.WalletRemain, trialQuota)
 	}
 
 	// Verify lot exists with correct kind.
@@ -44,8 +44,8 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	if lots[0].LotKind != store.LotKindMock {
 		t.Fatalf("lot kind: got %q want %q", lots[0].LotKind, store.LotKindMock)
 	}
-	if lots[0].QuotaGranted != trialPoints {
-		t.Fatalf("points granted: got %v want %v", lots[0].QuotaGranted, trialPoints)
+	if lots[0].QuotaGranted != trialQuota {
+		t.Fatalf("quota granted: got %v want %v", lots[0].QuotaGranted, trialQuota)
 	}
 	if lots[0].AmountDisplay != 0 {
 		t.Fatalf("amount display should be 0 for trial lot, got %v", lots[0].AmountDisplay)
@@ -74,8 +74,8 @@ func TestExpireMockLotsZerosWalletRemain(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	// Seed trial credit.
-	trialPoints := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+	trialQuota := int64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,8 +84,8 @@ func TestExpireMockLotsZerosWalletRemain(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletRemain != trialPoints {
-		t.Fatalf("before expire: wallet_remain got %v want %v", co.WalletRemain, trialPoints)
+	if co.WalletRemain != trialQuota {
+		t.Fatalf("before expire: wallet_remain got %v want %v", co.WalletRemain, trialQuota)
 	}
 
 	// Expire trial lots (simulates upgrade).
@@ -119,8 +119,8 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	// 1. Seed trial credit.
-	trialPoints := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+	trialQuota := int64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,7 +147,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	expectedBefore := trialPoints + paidPoints
+	expectedBefore := trialQuota + paidPoints
 	if co.WalletRemain != expectedBefore {
 		t.Fatalf("before expire: wallet_remain got %v want %v", co.WalletRemain, expectedBefore)
 	}
@@ -186,8 +186,8 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	// Seed trial credit.
-	trialPoints := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+	trialQuota := int64(10000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
 		t.Fatal(err)
 	}
 
@@ -203,8 +203,8 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletRemain != trialPoints-consumed {
-		t.Fatalf("after consume: wallet_remain got %v want %v", co.WalletRemain, trialPoints-consumed)
+	if co.WalletRemain != trialQuota-consumed {
+		t.Fatalf("after consume: wallet_remain got %v want %v", co.WalletRemain, trialQuota-consumed)
 	}
 
 	// Expire trial lots.
@@ -228,8 +228,8 @@ func TestExpireMockLotsIdempotent(t *testing.T) {
 	_, st := testutil.NewTestStore(t)
 	ctx := newLotTestCompany(t, st, companyID)
 
-	trialPoints := int64(5000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialPoints); err != nil {
+	trialQuota := int64(5000)
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
 		t.Fatal(err)
 	}
 

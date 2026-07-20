@@ -17,7 +17,7 @@ func TestOrgNodeBudgetRepositoryRoundTrip(t *testing.T) {
 	ctx := testutil.Ctx()
 	repo := st.Budget().OrgNodeBudget()
 
-	reserved := budgetfix.DisplayPoints(800)
+	reserved := budgetfix.QuotaFromDisplay(800)
 	row := store.OrgNodeBudgetRow{
 		NodeID: contract.IDDept3, Budget: 900, ReservedPool: &reserved,
 		Period: pkgbudget.PeriodMonthly, MemberAvgBudget: 120,
@@ -50,7 +50,7 @@ func TestPersistNodeBudgetPreservesPeriodAndMemberAvg(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("seed budget missing: found=%v err=%v", found, err)
 	}
-	newBudget := budgetfix.DisplayPoints(22000)
+	newBudget := budgetfix.QuotaFromDisplay(22000)
 	if err := pkgbudget.PersistNodeBudget(ctx, repo, contract.IDDept3, types.BudgetNode{
 		Budget: newBudget, ReservedPool: before.ReservedPool,
 	}); err != nil {
@@ -81,7 +81,7 @@ func TestPersistMemberAvgBudgetUpdatesOnlyMemberAvg(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("seed budget missing: found=%v err=%v", found, err)
 	}
-	wantAvg := budgetfix.DisplayPoints(16000)
+	wantAvg := budgetfix.QuotaFromDisplay(16000)
 	if err := pkgbudget.PersistMemberAvgBudget(ctx, repo, contract.IDDept3, wantAvg); err != nil {
 		t.Fatal(err)
 	}
@@ -103,8 +103,8 @@ func TestSetTreeDoesNotOverwriteOrgNodeBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	repo := st.Budget().OrgNodeBudget()
 
-	wantBudget := budgetfix.DisplayPoints(20500)
-	reserved := budgetfix.DisplayPoints(1500)
+	wantBudget := budgetfix.QuotaFromDisplay(20500)
+	reserved := budgetfix.QuotaFromDisplay(1500)
 	if err := repo.Upsert(ctx, contract.IDDept3, store.OrgNodeBudgetRow{
 		NodeID: contract.IDDept3, Budget: wantBudget, ReservedPool: &reserved,
 		Period: pkgbudget.PeriodMonthly,

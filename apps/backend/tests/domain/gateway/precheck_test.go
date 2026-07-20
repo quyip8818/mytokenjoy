@@ -61,7 +61,7 @@ func TestPrecheckAllowsModelsListingWithoutModelField(t *testing.T) {
 
 func TestPrecheckPassesRegardlessOfDeptConsumed(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.DisplayPoints(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
 	if err := fx.Run("deepseek-v4", false); err != nil {
 		t.Fatalf("expected precheck to pass without budget consumed join, got %v", err)
 	}

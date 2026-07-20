@@ -263,8 +263,8 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 		budget  int64
 		wantErr int
 	}{
-		{name: "rejects over member sub cap", budget: budgetfix.DisplayPoints(7000), wantErr: domain.StatusUnprocessable},
-		{name: "allows within member sub cap", budget: budgetfix.DisplayPoints(5500)},
+		{name: "rejects over member sub cap", budget: budgetfix.QuotaFromDisplay(7000), wantErr: domain.StatusUnprocessable},
+		{name: "allows within member sub cap", budget: budgetfix.QuotaFromDisplay(5500)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			updated, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey6, types.UpdatePlatformKeyInput{Budget: &tc.budget})
@@ -288,7 +288,7 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 	ctx := testutil.Ctx()
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	versionBefore := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1)
-	newBudget := budgetfix.DisplayPoints(4000)
+	newBudget := budgetfix.QuotaFromDisplay(4000)
 	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Budget: &newBudget,
 	}); err != nil {

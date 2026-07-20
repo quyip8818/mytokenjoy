@@ -86,7 +86,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	assertCount(t, ctx, pool, "provider_keys", len(snap.ProviderKeys))
 	assertCount(t, ctx, pool, "platform_keys", len(snap.PlatformKeys))
 	assertCount(t, ctx, pool, "org_node_budget", len(pkgorg.FlattenOrgNodeTree(snap.OrgNodes)))
-	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, budgetfix.DisplayPoints(20000), budgetfix.DisplayPoints(1500))
+	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, budgetfix.QuotaFromDisplay(20000), budgetfix.QuotaFromDisplay(1500))
 }
 
 func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID uuid.UUID, wantBudget, wantReserved int64) {

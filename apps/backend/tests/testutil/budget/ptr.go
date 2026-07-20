@@ -8,7 +8,7 @@ func FloatPtr(v float64) *float64 { return &v }
 
 func Int64Ptr(v int64) *int64 { return &v }
 
-// DisplayPoints converts a display-currency amount (e.g. CNY) to int64 quota.
-func DisplayPoints(display float64) int64 {
+// QuotaFromDisplay converts a display-currency amount (e.g. CNY) to int64 quota.
+func QuotaFromDisplay(display float64) int64 {
 	return common.QuotaFromAmount(display, common.DefaultQuotaPerUnit)
 }

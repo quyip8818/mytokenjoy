@@ -73,8 +73,8 @@ func TestOrgNodeBudgetRowsFromNodes_FlattensTree(t *testing.T) {
 func TestOrgNodeBudgetRowsFromNodes_MatchesSnapshotDept3(t *testing.T) {
 	t.Parallel()
 	dept3 := uuid.MustParse("00000000-0000-7000-0000-00000000da03")
-	wantBudget := budgetfix.DisplayPoints(20000)
-	wantReserved := budgetfix.DisplayPoints(1500)
+	wantBudget := budgetfix.QuotaFromDisplay(20000)
+	wantReserved := budgetfix.QuotaFromDisplay(1500)
 	rows := pkgbudget.OrgNodeBudgetRowsFromNodes([]types.OrgNode{
 		{
 			ID: dept3, Budget: wantBudget, ReservedPool: &wantReserved,

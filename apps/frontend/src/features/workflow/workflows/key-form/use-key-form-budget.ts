@@ -142,7 +142,7 @@ export interface UseKeyFormStateOptions {
   defaultMemberId: string
   initialTargetMemberId?: string
   initialName?: string
-  /** Display-currency initial budget (optional). Point budgets come from key.budget. */
+  /** Display-currency initial budget (optional). Quota budgets come from key.budget. */
   initialBudget?: string
 }
 

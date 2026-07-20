@@ -26,7 +26,7 @@ func TestOverrunNotifiesOnDepartmentExhaustion(t *testing.T) {
 	notifier := &testutil.RecordingNotifier{}
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.DisplayPoints(25000))
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.QuotaFromDisplay(25000))
 
 	payload, _ := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,
@@ -53,7 +53,7 @@ func TestOverrunBlocksEvenIfNotificationFails(t *testing.T) {
 	notifier := &testutil.FailingNotifier{}
 	overrun := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
 
-	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.DisplayPoints(25000))
+	budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.QuotaFromDisplay(25000))
 
 	payload, _ := json.Marshal(map[string]any{
 		"departmentId":  contract.IDDept3,

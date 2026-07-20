@@ -19,7 +19,7 @@ func TestValidateProjectKeyBudget(t *testing.T) {
 
 	for _, project := range projects {
 		if project.ID == contract.IDProject1 {
-			if msg := budget.ValidateProjectKeyBudget(project, keys, budgetfix.DisplayPoints(99999), uuid.Nil); msg == nil {
+			if msg := budget.ValidateProjectKeyBudget(project, keys, budgetfix.QuotaFromDisplay(99999), uuid.Nil); msg == nil {
 				t.Fatal("expected validation error when budget exceeds project remaining")
 			}
 			return
