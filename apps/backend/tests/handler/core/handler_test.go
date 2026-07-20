@@ -137,8 +137,8 @@ func TestCoreGetEndpoints(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&roles); err != nil {
 			t.Fatal(err)
 		}
-		if len(roles) != 6 {
-			t.Fatalf("expected 6 roles, got %d", len(roles))
+		if len(roles) != 7 {
+			t.Fatalf("expected 7 roles, got %d", len(roles))
 		}
 		foundSuperAdmin := false
 		for _, r := range roles {
@@ -215,8 +215,8 @@ func TestCoreGetEndpoints(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&modelsList); err != nil {
 			t.Fatal(err)
 		}
-		if len(modelsList) < 8 {
-			t.Fatalf("expected at least 8 models, got %d", len(modelsList))
+		if len(modelsList) < 3 {
+			t.Fatalf("expected at least 3 models, got %d", len(modelsList))
 		}
 	})
 

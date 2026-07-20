@@ -203,13 +203,17 @@ func TestUpdateModel(t *testing.T) {
 func TestCreateModelAllowsSameTypeDifferentProvider(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
+
+	// Pick a builtin type that exists in the seed catalog.
+	const builtinType = "deepseek-v4-pro"
+
 	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
-		Type: "gpt-4o", InputPrice: 1.0, OutputPrice: 2.0, BaseURL: "http://llm.test",
+		Type: builtinType, InputPrice: 1.0, OutputPrice: 2.0, BaseURL: "http://llm.test",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Provider != types.ProviderCustom || created.Type != "gpt-4o" {
+	if created.Provider != types.ProviderCustom || created.Type != builtinType {
 		t.Fatalf("unexpected model %+v", created)
 	}
 	models, err := svc.ListModels(testutil.Ctx())
@@ -218,7 +222,7 @@ func TestCreateModelAllowsSameTypeDifferentProvider(t *testing.T) {
 	}
 	var builtinCount, customCount int
 	for _, m := range models {
-		if m.Type != "gpt-4o" {
+		if m.Type != builtinType {
 			continue
 		}
 		if m.Provider == types.ProviderCustom {
@@ -228,7 +232,7 @@ func TestCreateModelAllowsSameTypeDifferentProvider(t *testing.T) {
 		}
 	}
 	if builtinCount == 0 || customCount == 0 {
-		t.Fatalf("expected builtin and custom gpt-4o in catalog, got builtin=%d custom=%d", builtinCount, customCount)
+		t.Fatalf("expected builtin and custom %s in catalog, got builtin=%d custom=%d", builtinType, builtinCount, customCount)
 	}
 }
 
