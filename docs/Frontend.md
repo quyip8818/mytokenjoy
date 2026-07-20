@@ -693,7 +693,7 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.5.7 Billing — [`billing.ts`](../apps/frontend/src/api/billing.ts)
 
-部分钱包 DTO 内联于 `api/billing.ts`（非 `api/types/`）：`WalletSummary`、`WalletCurrency`、`TopUpRecord`、`RechargeOrder` 等。展示换算见 `src/lib/points.ts`。
+部分钱包 DTO 内联于 `api/billing.ts`（非 `api/types/`）：`WalletSummary`、`WalletCurrency`、`TopUpRecord`、`RechargeOrder` 等。展示换算见 `src/lib/quota-display.ts`。
 
 #### 5.5.8 Member — [`types/member.ts`](../apps/frontend/src/api/types/member.ts)
 
@@ -792,13 +792,13 @@ HTTP 非 2xx 时，body 应包含：
 | `companyId`       | `number`             | 企业 ID |
 | `billingCurrency` | `string`             | 当前租户默认展示币 |
 | `balances`        | `WalletCurrency[]`   | 按币种余额列表 |
-| `walletRemainPoint` | `number`             | 全 lot 剩余 point |
-| `giftPoints`      | `number`             | gift lot 剩余 point |
-| `overdraftPoints` | `number`             | overdraft lot 累计 point |
+| `walletRemain`    | `number`             | 全 lot 剩余 quota (int64) |
+| `giftQuota`       | `number`             | gift lot 剩余 quota |
+| `overdraftQuota`  | `number`             | overdraft lot 累计 quota |
 
 **`WalletCurrency`**：`currency` / `balance` / `totalTopup` / `totalConsumed`；同币种满足 `totalTopup - totalConsumed = balance`。前端以 `balances[]` 为唯一展示数据源。
 
-**预算 API：** JSON 字段 `budget` / `consumed` 均为 **point**；前端展示时 `÷ PPU(1000)` 换算为 ¥，提交时 `× PPU` 写回。详见 [Backend-计费模式.md](./Backend-计费模式.md) §8.2。
+**预算 API：** JSON 字段 `budget` / `consumed` 均为 **int64 quota**；前端展示时 `quotaToDisplay()` 换算为 ¥，提交时 `displayToQuota()` 写回。详见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
 **`RechargeOrder`**
 
@@ -838,8 +838,8 @@ HTTP 非 2xx 时，body 应包含：
 | POST  | `/platform/companies`              | `CreateCompanyRequest`          | `Company`            | 开户 + 发超管邀请               |
 | PATCH | `/platform/companies/:id`          | `PatchCompanyRequest`           | `Company`            | 状态、套餐                      |
 | POST  | `/platform/companies/:id/recharge` | `{ amount }`                    | `void`               | 平台代充；`source=platform`     |
-| POST  | `/platform/companies/:id/gift`     | `{ points }`                    | `void`               | 平台赠送 point                  |
-| POST  | `/platform/companies/:id/adjust`   | `{ points, amountDisplay }`     | `void`               | 平台调账（point + 展示币）      |
+| POST  | `/platform/companies/:id/gift`     | `{ amount }`                    | `void`               | 平台赠送（display 金额）        |
+| POST  | `/platform/companies/:id/adjust`   | `{ amount, amountDisplay }`     | `void`               | 平台调账（display 金额）        |
 | GET   | `/platform/channels`               | —                               | `ProviderKey[]`      | 全局上游 Channel 列表           |
 | POST  | `/platform/channels`               | 同企业面 `provider-keys` 创建体 | `ProviderKey`        | 同步到 NewAPI `platform_shared` |
 
@@ -884,7 +884,7 @@ HTTP 非 2xx 时，body 应包含：
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`）；含 recharge / gift / adjust | 未接入                                    | 无 `/platform/login`               |
 | `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
-> **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`walletRemainPoint`、`giftPoints`、`overdraftPoints`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
+> **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`walletRemain`（int64 quota）、`giftQuota`、`overdraftQuota`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
 
 后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
 

@@ -104,12 +104,12 @@ sequenceDiagram
   participant W as wallet_remain
   participant Q as River
 
-  API->>Svc: RefundUsageInput<br/>companyId, refLedgerId,<br/>points, idempotencyKey
+  API->>Svc: RefundUsageInput<br/>companyId, refLedgerId,<br/>quota, idempotencyKey
   Svc->>Tx: BEGIN + company lock
   Tx->>Ld: 读原段 call_settled
-  Note over Svc: 校验 points∈(0, 原 amount]<br/>且未超额冲正累计
+  Note over Svc: 校验 quota∈(0, 原 amount]<br/>且未超额冲正累计
   Tx->>Ld: INSERT call_reversal<br/>amount=-P<br/>display=-P×原lot.unit_price<br/>currency=原lot币<br/>轴字段抄原段
-  Tx->>Lot: points_remaining += P<br/>status=active if needed
+  Tx->>Lot: quota_remaining += P<br/>status=active if needed
   Tx->>W: wallet_remain += P
   Tx->>Q: InsertBudgetProjection<br/>InsertDashboard<br/>InsertWalletSync
   Tx-->>API: COMMIT
@@ -124,7 +124,7 @@ RefundUsage(ctx, RefundUsageInput) error
 
 RefundUsageInput:
   RefLedgerID     string   // 原 call_settled 段
-  Points          float64  // >0，冲正绝对值
+  Quota           int64    // >0，冲正绝对值
   IdempotencyKey  string
   Reason          string
   OperatorID      string
@@ -162,7 +162,7 @@ Dashboard `usage_buckets` 同源：负 `cost` / `display_cost` 进入 Σ。
 
 实现：按 `call_detail.refLedgerId` 查已冲正和，或不做部分冲正、只允许一次全额冲正（首版更简单）。
 
-**首版建议：只允许整段冲正**（`Points == 原 amount`），少状态机。
+**首版建议：只允许整段冲正**（`Quota == 原 amount`），少状态机。
 
 ---
 
@@ -179,7 +179,7 @@ flowchart LR
 
 规则：
 
-- 可退 point ≤ `lot.points_remaining`  
+- 可退 quota ≤ `lot.quota_remaining`  
 - 退款展示额 = `P × lot.unit_price_display`（冻结单价）  
 - gift / overdraft：**不允许走 A**（gift 无应付；overdraft 走 C）  
 - 审计：`operation_logs` + 可选 `usage_ledger` event `wallet_refund`（投影**忽略**该 type）
@@ -219,7 +219,7 @@ POST /api/platform/companies/{id}/refunds/lot         # A，可选二期
 }
 ```
 
-（整段冲正时不传 points。）
+（整段冲正时不传 quota。）
 
 ---
 

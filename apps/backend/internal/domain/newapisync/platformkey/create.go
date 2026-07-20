@@ -118,7 +118,6 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	req := adminport.CreateTokenInput{
 		UserID:             walletUserID,
 		Name:               TokenName(key.ID),
-		UnlimitedQuota:     true,
 		ModelLimitsEnabled: len(effectiveCallTypes) > 0,
 		ModelLimits:        newapiunits.FormatModelLimits(effectiveCallTypes),
 		Group:              group,

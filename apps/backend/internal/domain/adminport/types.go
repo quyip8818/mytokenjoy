@@ -3,8 +3,6 @@ package adminport
 type CreateTokenInput struct {
 	UserID             int64
 	Name               string
-	RemainQuota        int64
-	UnlimitedQuota     bool
 	ModelLimitsEnabled bool
 	ModelLimits        string
 	Group              string
@@ -15,8 +13,6 @@ type UpdateTokenInput struct {
 	ID                 int64
 	Name               string
 	Status             *int
-	RemainQuota        *int64
-	UnlimitedQuota     *bool
 	ModelLimitsEnabled *bool
 	ModelLimits        string
 	Group              string

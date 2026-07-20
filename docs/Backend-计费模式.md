@@ -21,23 +21,23 @@
 | 指标 | 用户看到 | 后端字段 | 用途 |
 | --- | --- | --- | --- |
 | **展示币** | 钱包余额、CallLog 费用、看板 Spend | `balances[]`、`ledger.display_amount`、`buckets.display_cost` | 财务闭合；**入账时冻结** |
-| **Point** | 预算/Key 额度（UI 常再换算成「元」） | `wallet_remain`、`budget_*`、`key.budget` | Gateway、预算、ingest |
+| **Quota** | 预算/Key 额度（UI 常再换算成「元」） | `wallet_remain`、`budget_*`、`key.budget` | Gateway、预算、ingest |
 
-默认：`1 CNY = 1000 point`（`DefaultPointsPerUnit`，与 `currencies` seed 对齐）。
+默认：`1 CNY = 500000 quota`（`DefaultQuotaPerUnit`，与 `currencies` seed 对齐，等于 NewAPI 的 `QuotaPerUnit`）。
 
 ```text
 钱包 / CallLog / Spend     预算 / Key 额度 UI
    已是展示币                   用户填展示额
-   formatMoney                  ÷PPU 展示 / ×PPU 提交
+   formatMoney                  quotaToDisplay / displayToQuota
         │                              │
         ▼                              ▼
-   lot 单价冻结                 API 只存 point
-        └──────── point 世界（Gateway / ingest）────────┘
+   lot 单价冻结                 API 只存 quota (int64)
+        └──────── quota 世界（Gateway / ingest）────────┘
 ```
 
-**文案：** 「账户余额」= lot 闭合；「预算额度」= 组织额度（按**当前**公司 PPU 近似展示，≠ 历史 CallLog 单价）。
+**文案：** 「账户余额」= lot 闭合；「预算额度」= 组织额度（按**当前**公司 QPU 近似展示，≠ 历史 CallLog 单价）。
 
-易错：**量纲混用**（填 ¥ 当 point 提交 → ~1000×）、**二次换算**（对已是展示币再 ÷PPU）。
+易错：**量纲混用**（填 ¥ 当 quota 提交 → ~500000×）、**二次换算**（对已是展示币再 ÷QPU）。
 
 ---
 
@@ -45,33 +45,32 @@
 
 ```mermaid
 flowchart LR
-  U[Usage tokens] -->|CostFromQuota| P[Point]
-  P -->|FIFO × lot.unit_price| W[Wallet 展示币]
-  P --> B[预算 / soft remain]
-  P -->|ToNewAPIUnits| N[NewAPI quota]
+  U[Usage tokens] -->|entry.Amount = raw.Quota| Q[Quota int64]
+  Q -->|FIFO × lot.quota_per_unit| W[Wallet 展示币]
+  Q --> B[预算 / soft remain]
 ```
 
 | 世界 | 含义 | 典型字段 | 改公司币后现算？ |
 | --- | --- | --- | --- |
 | Usage | token / 次数 | `input_tokens` / `output_tokens` | — |
-| Point | 内部统一货币 | `wallet_remain`、`ledger.amount`、`budget_*`、`models.*_price` | 额度本身不换币 |
-| Wallet | lot 成本价 + 冻结展示 | `unit_price_display`、`ledger.display_amount`、`buckets.display_cost` | **否** |
+| Quota | 内部统一货币 (int64) | `wallet_remain`、`ledger.amount`、`budget_*` | 额度本身不换币 |
+| Wallet | lot 成本价 + 冻结展示 | `ledger.display_amount`、`buckets.display_cost` | **否** |
 
-### 2.1 币种 / PPU SSOT
+### 2.1 币种 / QPU SSOT
 
 | 位置 | 作用 |
 | --- | --- |
 | `common.DefaultBillingCurrency`（`CNY`） | 唯一硬编码默认币码 |
 | `common.ResolveBillingCurrency` | 空 → 默认 |
-| `currencies.points_per_unit` | **PPU 表级 SSOT** |
+| `currencies.quota_per_unit` | **QPU 表级 SSOT** |
 | `companies.billing_currency` | 公司**当前**计费币（只影响**新**充值 / overdraft） |
-| Session `billingCurrency` + `pointsPerUnit` | FE 写边界注入（`ResolveCompanyChargeRate`） |
+| Session `billingCurrency` + `quotaPerUnit` | FE 写边界注入（`ResolveCompanyChargeRate`） |
 
 ### 2.2 冻结规则（已实现）
 
-1. 订单：落 `currency` + `points_per_unit` + `points_granted`。  
-2. Lot：`unit_price_display = amount_display / points_granted`（paid/adjust）；gift/overdraft 单价 0。  
-3. 消耗：`display_amount = take × lot.unit_price_display`，币种 = **lot.billing_currency**。  
+1. 订单：落 `currency` + `quota_per_unit` + `quota_granted`。  
+2. Lot：`display_amount = quota / lot.quota_per_unit`（paid/adjust）；gift/overdraft AmountDisplay=0。  
+3. 消耗：`display_amount = take / lot.quota_per_unit`，币种 = **lot.billing_currency**。  
 4. 改 `companies.billing_currency`：历史 lot / ledger **不回写**。
 
 ---
@@ -171,16 +170,15 @@ sequenceDiagram
   participant PG as lots + wallet
 
   B->>Co: billing_currency
-  B->>Cur: points_per_unit
-  Note over B: points = amount × PPU
-  B->>PG: BuildPaidLot 锁定单价/币种
-  B->>PG: wallet_remain += points
-  B-->>B: enqueue wallet_sync
+  B->>Cur: quota_per_unit
+  Note over B: quota = Round(amount × QPU)
+  B->>PG: BuildPaidLot 锁定 QPU/币种
+  B->>PG: wallet_remain += quota
 ```
 
 | 场景 | `lot_kind` | 展示币 |
 | --- | --- | --- |
-| 自助/平台充值 | `paid` | `points/PPU`，锁单价 |
+| 自助/平台充值 | `paid` | `quota / QPU`，锁 QPU |
 | 赠送 | `gift` | 0 |
 | 调账 | `adjust` | 显式写入 |
 | ingest 透支 | `overdraft`（每企业至多一个 active） | 0 |
@@ -193,7 +191,7 @@ sequenceDiagram
 flowchart TD
   A[Webhook/reconcile] --> B[锁 company]
   B --> C{幂等?}
-  C -->|否| D[CostFromQuota → FIFO 扣 lot]
+  C -->|否| D[entry.Amount = raw.Quota → FIFO 扣 lot]
   D --> E{不足?}
   E -->|是| F[扩展 overdraft]
   E -->|否| G[ledger 段 amount+display 冻结]
@@ -241,26 +239,26 @@ erDiagram
 ### 5.2 展示币闭合（paid + adjust）
 
 ```text
-unit_price_display = amount_display / points_granted
-balance(c) = Σ (points_remaining × unit_price_display)  WHERE currency=c AND kind∈{paid,adjust}
+display = quota / lot.quota_per_unit                         (单条)
+balance(c) = Σ (quota_remaining × amount_display / NULLIF(quota_granted,0))  WHERE currency=c AND kind∈{paid,adjust}
 totalTopup − totalConsumed = balance
 ```
 
-### 5.3 Point 守恒
+### 5.3 Quota 守恒
 
 ```text
-Σ points_granted − Σ ledger.amount = Σ points_remaining
-wallet_remain = Σ points_remaining
+Σ quota_granted − Σ ledger.amount = Σ quota_remaining
+wallet_remain = Σ quota_remaining
 ```
 
 ### 5.4 lot_kind
 
 | kind | 可花 | 计 totalTopup | 消耗 display |
 | --- | --- | --- | --- |
-| paid / adjust | ✅ | ✅ | `× unit_price` |
-| gift / overdraft | ✅ | ❌ | 0 |
+| paid / adjust | ✅ | ✅ | `take / lot.quota_per_unit` |
+| gift / overdraft | ✅ | ❌ | 等价金额（同公式） |
 
-预算 limit / consumed、`models.*_price` 均为 **point**。
+预算 limit / consumed、key.budget 均为 **int64 quota**。
 
 ---
 
@@ -269,29 +267,25 @@ wallet_remain = Σ points_remaining
 ### 6.1 换算
 
 ```text
-CostFromQuota(quota, price) = quota / QuotaPerUnit × price
-  price = InputPrice + OutputPrice（当前产品 SSOT；ingest 与 wallet_sync 同公式，变更须同 PR）
-ToNewAPIUnits(points, upperPrice) = sat(points / upperPrice × QuotaPerUnit)
-points_granted = amount_display × PPU(currency)
+entry.Amount = raw.Quota                              (NewAPI 日志直通，零转换)
+display_amount = take / lot.quota_per_unit            (FIFO 冻结)
+quota_granted = Round(amount_display × QPU(currency))
 ```
 
 | 常量 | 值 |
 | --- | --- |
-| `DefaultPointsPerUnit` | 1000 |
-| `QuotaPerUnit` | 500000 |
-| `WalletSyncDebounceSecs` | 5 |
-| `WalletSyncDriftEpsilon` | 0.01×PPU |
+| `DefaultQuotaPerUnit` | 500000 |
 
 ### 6.2 闭环
 
 | # | 验证 |
 | --- | --- |
-| 1 | point 守恒：授予 − ledger = remaining |
+| 1 | quota 守恒：授予 − ledger = remaining |
 | 2 | 展示币闭合：`wallet_closure_test` |
-| 3 | `display_amount = amount × unit_price` |
+| 3 | `display_amount = amount / lot.quota_per_unit` |
 | 4 | 幂等 `(company_id, idempotency_key, lot_id, …)` |
 | 5 | FIFO 与 ledger / wallet 同事务 |
-| 6 | sync 后 NewAPI 与 wallet 在 ε 内 |
+| 6 | NewAPI token unlimited_quota=true，无需同步 |
 | 7 | 投影终态：`Σ ledger.amount ≈ budget_consumed`（可 reconcile） |
 
 ### 6.3 边界行为
@@ -308,25 +302,24 @@ points_granted = amount_display × PPU(currency)
 ## 7. 代码地图
 
 ```text
-pkg/common/constants.go          DefaultBillingCurrency / DefaultPointsPerUnit
-pkg/exchange/convert.go          ToPointsAt / ToDisplayAt / Format
-pkg/newapiunits/quota.go         CostFromQuota / ToNewAPIUnits
+pkg/common/constants.go          DefaultBillingCurrency / DefaultQuotaPerUnit
+pkg/newapiunits/quota.go         FormatModelLimits / EffectiveWhitelistIDs / NewAPIGroupForDepartment
 
-domain/billing/currency.go       ResolveCompanyChargeRate
+domain/billing/currency.go       ResolveCompanyChargeRate / resolveQuotaPerUnit
 domain/billing/lot*.go           BuildPaidLot / Confirm / ConsumeLots
-domain/billing/wallet_*.go       AggregateWallet / Sync
+domain/billing/wallet_*.go       AggregateWallet / lifetimeRequestCount
 
-domain/usage/ingest.go           入账事务
+domain/usage/ingest.go           入账事务（entry.Amount = raw.Quota）
 domain/usage/ledger_audit.go     CallLog.cost = DisplayAmount
 
-identity/authz/service.go        Session 下发 billingCurrency + pointsPerUnit
-domain/gateway/evaluate.go       预检
+identity/authz/service.go        Session 下发 billingCurrency + quotaPerUnit
+domain/gateway/evaluate.go       预检（wallet_remain + combined_key_remain）
 
-apps/frontend/src/lib/points.ts  createBillingExchange / setActive（session 同步）
-                                 formatMoney(展示币) vs formatDisplayCurrency(point)
+apps/frontend/src/lib/quota-display.ts  createBillingExchange / setActive（session 同步）
+                                        formatMoney(展示币) vs formatDisplayCurrency(quota)
 ```
 
-**HTTP：** `GET /billing/wallet` · `GET /session`（含币种/PPU）· `POST /platform/.../recharge|gift|adjust`
+**HTTP：** `GET /billing/wallet` · `GET /session`（含币种/QPU）· `POST /platform/.../recharge|gift|adjust`
 
 ---
 
@@ -335,10 +328,10 @@ apps/frontend/src/lib/points.ts  createBillingExchange / setActive（session 同
 ### 8.1 Session（写边界）
 
 ```json
-{ "billingCurrency": "CNY", "pointsPerUnit": 1000, "...": "..." }
+{ "billingCurrency": "CNY", "quotaPerUnit": 500000, "...": "..." }
 ```
 
-FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToPoints` / `pointsToDisplay`。
+FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToQuota` / `quotaToDisplay`。
 
 ### 8.2 钱包
 
@@ -346,9 +339,9 @@ FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToPoi
 {
   "billingCurrency": "CNY",
   "balances": [{ "currency": "CNY", "balance": 37.5, "totalTopup": 100, "totalConsumed": 62.5 }],
-  "walletRemainPoint": 37500,
-  "giftPoints": 0,
-  "overdraftPoints": 0
+  "walletRemain": 18750000,
+  "giftQuota": 0,
+  "overdraftQuota": 0
 }
 ```
 
@@ -387,11 +380,11 @@ go test -tags=testhook ./tests/identity/authz/...
 
 | 项 | 状态 |
 | --- | --- |
-| Session 下发币种+PPU | ✅ |
-| Key/审批 display↔points | ✅ |
+| Session 下发币种+QPU | ✅ |
+| Key/审批 display↔quota | ✅ |
 | CallLog/看板 `formatMoney` | ✅ |
-| CostFromQuota 公式钉死（单测） | ✅（未改公式） |
-| 充值 PPU 查表 + FIFO 冻结 display | ✅ |
+| Ingest 直通 raw.Quota | ✅ |
+| 充值 QPU 查表 + FIFO 冻结 display | ✅ |
 
 ### 10.2 接受中的风险
 

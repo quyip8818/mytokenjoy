@@ -111,12 +111,12 @@ LotKindTrial = "trial"  // 模拟资金，仅 trial 期间可用
 order := store.RechargeOrder{
     ID: fmt.Sprintf("trial-%d-%d", companyID, now.UnixNano()),
     CompanyID: companyID, Amount: 0, Currency: currency,
-    PointsPerUnit: ppu, PointsGranted: cfg.TrialCreditAmount,
-    Source: "system", LotKind: store.LotKindTrial,
+    QuotaPerUnit: ppu, QuotaGranted: trialQuota,
+    Source: "system", LotKind: store.LotKindMock,
     Status: "confirmed", CreatedBy: "system",
 }
-lot := BuildTrialLot(order, currency) // 类似 BuildGiftLot，UnitPriceDisplay=0
-billinglot.CreditFromLot(ctx, st, order, lot, cfg.TrialCreditAmount)
+lot := BuildMockLot(order, currency)
+billinglot.CreditFromLot(ctx, st, order, lot, trialQuota)
 ```
 
 ### 3.3 升级清零
@@ -132,7 +132,7 @@ UPDATE recharge_lots
 -- 2. wallet_remain 按剩余 active lot 重算（非 trial lot 余额之和）
 UPDATE companies
    SET wallet_remain = (
-       SELECT COALESCE(SUM(points_remaining), 0)
+       SELECT COALESCE(SUM(quota_remaining), 0)
          FROM recharge_lots
         WHERE company_id = $1 AND status = 'active'
    ),
@@ -223,7 +223,7 @@ interface AppSession {
 | --- | --- | --- |
 | `REGISTRATION_ENABLED` | `true` | 允许公开注册 |
 | `TRIAL_MEMBER_LIMIT` | `50` | 成员上限 |
-| `TRIAL_CREDIT_AMOUNT` | `10000` | 模拟资金（points） |
+| `TRIAL_CREDIT_AMOUNT` | `10000` | 模拟资金（quota） |
 | `VITE_REGISTRATION_ENABLED` | — | 前端控制试用按钮显示 |
 
 ---

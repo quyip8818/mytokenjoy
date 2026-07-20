@@ -108,21 +108,21 @@ CostFromQuota(quota, price) = quota / QuotaPerUnit × price
   price = InputPrice + OutputPrice
 
 # Point ↔ 展示币
-points = display × pointsPerUnit       (充值方向)
-display = points / pointsPerUnit        (展示方向)
+quota = Round(display × quotaPerUnit)       (充值方向)
+display = quota / quotaPerUnit        (展示方向)
 
 # 已结算 ledger 展示金额
-display_amount = take_points × lot.unit_price_display  (FIFO 冻结)
+display_amount = take / lot.quota_per_unit  (FIFO 冻结)
 
 # Point → NewAPI quota
-ToNewAPIUnits(points, upperPrice) = sat(points / upperPrice × QuotaPerUnit)
+-- 已删除：NewAPI token unlimited_quota=true
 ```
 
 ### 2.3 关键常量
 
 | 常量 | 值 | 说明 |
 |------|---|------|
-| `DefaultPointsPerUnit` | 1000 | 默认 1 CNY = 1000 point |
+| `DefaultQuotaPerUnit` | 1000 | 默认 1 CNY = 1000 point |
 | `QuotaPerUnit` | 500000 | NewAPI 配额单位 |
 | `WalletSyncDebounceSecs` | 5 | wallet_sync 去重窗口 |
 
@@ -148,12 +148,12 @@ sequenceDiagram
   participant NA as NewAPI
 
   User->>API: 创建充值订单（amount + currency）
-  API->>CUR: 查 points_per_unit
+  API->>CUR: 查 quota_per_unit
   API->>DB: 创建 RechargeOrder (pending)
   User->>API: 确认支付 ConfirmPayment
   API->>DB: BEGIN TX
   API->>DB: BuildPaidLot → INSERT lot（锁定单价+币种）
-  API->>DB: wallet_remain += points_granted
+  API->>DB: wallet_remain += quota_granted
   API->>DB: COMMIT
   API->>DB: 入队 wallet_sync + rebalance
   Note over NA: 异步 Worker
@@ -172,8 +172,8 @@ sequenceDiagram
 ### 3.3 钱包展示币闭合
 
 ```text
-unit_price_display = amount_display / points_granted
-balance(currency) = Σ (points_remaining × unit_price_display)  WHERE kind∈{paid,adjust}
+unit_price_display = amount_display / quota_granted
+balance(currency) = Σ (quota_remaining × unit_price_display)  WHERE kind∈{paid,adjust}
 totalTopup − totalConsumed = balance
 ```
 
@@ -372,13 +372,13 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph config [配置源]
-    CUR_TBL[currencies 表<br/>PPU = points_per_unit]
+    CUR_TBL[currencies 表<br/>PPU = quota_per_unit]
     CO_TBL[companies.billing_currency]
     CONST[DefaultBillingCurrency = CNY]
   end
 
   subgraph write_boundary [写边界 · 唯一换算点]
-    CHARGE[充值表单<br/>display × PPU → points]
+    CHARGE[充值表单<br/>display × QPU → quota]
     LOT[Lot 创建<br/>锁定 currency + PPU + unit_price]
   end
 
@@ -399,7 +399,7 @@ flowchart TB
 ```go
 // ResolveCompanyChargeRate
 1. 读 companies.billing_currency（空则 DefaultBillingCurrency=CNY）
-2. 查 currencies 表 → points_per_unit
+2. 查 currencies 表 → quota_per_unit
 3. 返回 (currency, ppu) 供充值/lot 使用
 ```
 
@@ -407,8 +407,8 @@ flowchart TB
 
 | 时机 | 冻结内容 | 意义 |
 |------|----------|------|
-| 充值订单创建 | `currency` + `points_per_unit` + `points_granted` | 订单级锁定 |
-| Lot 创建 | `unit_price_display = amount_display / points_granted` | 消费时按此单价算展示金额 |
+| 充值订单创建 | `currency` + `quota_per_unit` + `quota_granted` | 订单级锁定 |
+| Lot 创建 | `unit_price_display = amount_display / quota_granted` | 消费时按此单价算展示金额 |
 | Ingest 消耗 | `display_amount = take × lot.unit_price_display` | ledger 冻结展示金额 |
 
 ### 6.4 改币种影响
@@ -655,7 +655,7 @@ gantt
 | `projection_lag_seconds` | ≥ 1s warning, ≥ 5s critical | 超卖窗口 |
 | `overdraft_lots_active` | ≥ 1 | 欠费企业数 |
 | `ingest_lock_wait_seconds` | P95 ≥ 200ms | 锁竞争严重度 |
-| `wallet_sync_drift_points` | > ε | NewAPI 漂移 |
+| `wallet_sync_drift_quota` | > ε | NewAPI 漂移 |
 | `reserved_pool_approval_overflow` | any | P3 问题触发 |
 
 ---
@@ -664,7 +664,7 @@ gantt
 
 | 模块 | 路径 | 职责 |
 |------|------|------|
-| 汇率换算 | `pkg/exchange/convert.go` | ToPointsAt / ToDisplayAt |
+| 汇率换算 | `pkg/exchange/convert.go` | 已删除（pkg/exchange 已移除） |
 | 充值/钱包 | `domain/billing/service.go` | Recharge / Gift / Adjust |
 | Lot FIFO | `domain/billing/lot/consume.go` | ConsumeLots / CreditFromLot |
 | 币种解析 | `domain/billing/currency.go` | ResolveCompanyChargeRate |

@@ -14,7 +14,7 @@ Billing.GetCurrency(currency)  → 1 DB
 ### 影响量化
 
 - 假设系统 1000 req/s，每个请求 2 次不必要 DB 查询 = **2000 额外 QPS 到 Postgres**
-- billing currency 和 points_per_unit 是公司级管理配置，变更频率 < 1 次/天
+- billing currency 和 quota_per_unit 是公司级管理配置，变更频率 < 1 次/天
 - 当前 authz LRU 缓存命中率在稳态下 > 95%（4096 条目，revision TTL 5s），但 billing 完全不享受缓存红利
 
 ---
@@ -23,7 +23,7 @@ Billing.GetCurrency(currency)  → 1 DB
 
 ### 核心思路
 
-billing rate（`currency` + `pointsPerUnit`）和 member authz 一样，以 `(companyID, memberID, revision)` 为缓存键。当 revision 不变时，billing 配置不可能变。
+billing rate（`currency` + `quotaPerUnit`）和 member authz 一样，以 `(companyID, memberID, revision)` 为缓存键。当 revision 不变时，billing 配置不可能变。
 
 将 billing 字段加入 LRU cacheValue，查询逻辑移到 cache miss 分支。
 
@@ -45,7 +45,7 @@ type cacheValue struct {
     permissions     []string
     readOnly        bool
     billingCurrency string
-    pointsPerUnit   int64
+    quotaPerUnit   int64
 }
 ```
 
@@ -64,10 +64,10 @@ func (c *LRUCache) Get(companyID uuid.UUID, memberID uuid.UUID, revision int64) 
     c.ll.MoveToFront(elem)
     entry := elem.Value.(*lruEntry)
     v := entry.value
-    return v.member, append([]string(nil), v.permissions...), v.readOnly, v.billingCurrency, v.pointsPerUnit, true
+    return v.member, append([]string(nil), v.permissions...), v.readOnly, v.billingCurrency, v.quotaPerUnit, true
 }
 
-func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, member types.Member, permissions []string, readOnly bool, billingCurrency string, pointsPerUnit int64) {
+func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, member types.Member, permissions []string, readOnly bool, billingCurrency string, quotaPerUnit int64) {
     key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
     c.mu.Lock()
     defer c.mu.Unlock()
@@ -78,7 +78,7 @@ func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, 
             permissions:     append([]string(nil), permissions...),
             readOnly:        readOnly,
             billingCurrency: billingCurrency,
-            pointsPerUnit:   pointsPerUnit,
+            quotaPerUnit:   quotaPerUnit,
         }
         return
     }
@@ -96,7 +96,7 @@ func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, 
             permissions:     append([]string(nil), permissions...),
             readOnly:        readOnly,
             billingCurrency: billingCurrency,
-            pointsPerUnit:   pointsPerUnit,
+            quotaPerUnit:   quotaPerUnit,
         },
     }
     c.items[key] = c.ll.PushFront(entry)
@@ -124,7 +124,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
             Permissions:     perms,
             ReadOnly:        readOnly,
             BillingCurrency: currency,
-            PointsPerUnit:   ppu,
+            QuotaPerUnit:   ppu,
         }, nil
     }
 
@@ -155,7 +155,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
         Permissions:     permissions,
         ReadOnly:        readOnly,
         BillingCurrency: currency,
-        PointsPerUnit:   ppu,
+        QuotaPerUnit:   ppu,
     }, nil
 }
 ```
@@ -175,7 +175,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 | 触发场景 | 影响字段 | 是否 bump authz_revision |
 |----------|----------|------------------------|
 | 管理员改公司 billing currency | `companies.billing_currency` | **需要确认** |
-| 管理员改币种 points_per_unit | `currencies.points_per_unit` | **需要确认** |
+| 管理员改币种 quota_per_unit | `currencies.quota_per_unit` | **需要确认** |
 
 **关键前提**：`authz_revision` 只在权限相关变更时 bump（角色变更、成员增删）。如果 billing 配置变更不 bump revision，缓存会返回过期的 billing 数据。
 
@@ -198,7 +198,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 
 ## 需要确认的前置条件
 
-1. **billing 配置变更代码在哪？** 需要找到修改 `companies.billing_currency` 和 `currencies.points_per_unit` 的路径，确认是否已 bump revision 或需要加。
+1. **billing 配置变更代码在哪？** 需要找到修改 `companies.billing_currency` 和 `currencies.quota_per_unit` 的路径，确认是否已 bump revision 或需要加。
 2. **`companyType` 变更是否 bump revision？** 当前 `companyTypeFromContext` 从 context 取值（CompanyResolve middleware 注入），不走缓存，无问题。但如果未来 companyType 也缓存化，需要同样挂到 revision。
 
 ---

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
@@ -101,14 +102,16 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	if co == nil {
 		return nil
 	}
-	if _, ok := store.ConfiguredNewAPIWalletUserID(co); ok {
-		return nil
+	walletUserID, alreadyConfigured := store.ConfiguredNewAPIWalletUserID(co)
+	if alreadyConfigured {
+		// Ensure existing wallet user has sufficient quota (covers upgrades from old wallet_sync regime).
+		return ensureWalletUserQuota(ctx, d, walletUserID)
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
 		Username:    co.NewAPIWalletUsername,
 		DisplayName: co.Name,
 		Password:    secrets.RandomHex(8),
-		Quota:       0,
+		Quota:       math.MaxInt32, // NewAPI user quota set to max — tokenjoy Gateway is the real limiter
 	})
 	if err != nil {
 		return fmt.Errorf("create demo newapi wallet user: %w", err)
@@ -120,6 +123,27 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 		return err
 	}
 	return nil
+}
+
+// ensureWalletUserQuota tops up the wallet user if current quota is below threshold.
+// Since tokenjoy Gateway is the only limiter, the NewAPI user should never reject.
+func ensureWalletUserQuota(ctx context.Context, d syncdeps.Deps, walletUserID int64) error {
+	current, err := d.Client.GetUserQuota(ctx, walletUserID)
+	if err != nil {
+		return nil // best-effort: don't block bootstrap
+	}
+	const minQuota = int64(math.MaxInt32 / 2)
+	if current >= minQuota {
+		return nil
+	}
+	delta := int64(math.MaxInt32) - current
+	if delta <= 0 {
+		return nil
+	}
+	return d.Client.TopUp(ctx, adminport.TopUpInput{
+		UserID: walletUserID,
+		Quota:  delta,
+	})
 }
 
 func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, budgetCtx budget.BudgetContext, platformKeys []types.PlatformKey) error {

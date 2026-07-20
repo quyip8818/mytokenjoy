@@ -29,8 +29,7 @@ func (a AdminPortAdapter) CreateToken(ctx context.Context, req adminport.CreateT
 	return mapTokenResult(a.client.CreateToken(ctx, CreateTokenRequest{
 		UserID:             req.UserID,
 		Name:               req.Name,
-		RemainQuota:        req.RemainQuota,
-		UnlimitedQuota:     req.UnlimitedQuota,
+		UnlimitedQuota:     true,
 		ModelLimitsEnabled: req.ModelLimitsEnabled,
 		ModelLimits:        req.ModelLimits,
 		Group:              req.Group,
@@ -43,8 +42,6 @@ func (a AdminPortAdapter) UpdateToken(ctx context.Context, req adminport.UpdateT
 		ID:                 req.ID,
 		Name:               req.Name,
 		Status:             req.Status,
-		RemainQuota:        req.RemainQuota,
-		UnlimitedQuota:     req.UnlimitedQuota,
 		ModelLimitsEnabled: req.ModelLimitsEnabled,
 		ModelLimits:        req.ModelLimits,
 		Group:              req.Group,

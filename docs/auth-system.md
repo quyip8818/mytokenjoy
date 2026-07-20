@@ -233,7 +233,7 @@ platform_keys (
 
 #### P0：将 billing rate 纳入缓存
 
-billing currency 和 points_per_unit 是公司级配置，变更频率极低（管理员操作）。应该和 member authz 一起缓存在 LRU 中，以 revision 为失效键。
+billing currency 和 quota_per_unit 是公司级配置，变更频率极低（管理员操作）。应该和 member authz 一起缓存在 LRU 中，以 revision 为失效键。
 
 ```go
 // 目标：GetSessionContext 在完全命中时 = 0 DB 查询
@@ -242,7 +242,7 @@ type cacheValue struct {
     permissions     []string
     readOnly        bool
     billingCurrency string  // ← 新增
-    pointsPerUnit   int64   // ← 新增
+    quotaPerUnit   int64   // ← 新增
 }
 ```
 

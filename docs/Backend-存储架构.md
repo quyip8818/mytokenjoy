@@ -278,8 +278,8 @@ flowchart LR
 
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
-| **企业钱包** | `Σ lot.points_remaining` / `companies.wallet_remain`                                   | FIFO 扣 lot；ledger 事实                | rebalance 按 Postgres 封顶 NewAPIKey remain |
-| **组织预算** | `org_nodes.budget` · `personal_budget` · `projects.budget` · `project_members.member_budget`† · `platform_keys.budget`（均为 point） | **`budget_consumed`**（三轴‡，point） | Gateway 预检（`gateway_soft_*`）、预算树、Overrun        |
+| **企业钱包** | `Σ lot.quota_remaining` / `companies.wallet_remain`                                   | FIFO 扣 lot；ledger 事实                | NewAPI token unlimited，无需同步 remain |
+| **组织预算** | `org_nodes.budget` · `personal_budget` · `projects.budget` · `project_members.member_budget`† · `platform_keys.budget`（均为 int64 quota） | **`budget_consumed`**（三轴‡，int64 quota） | Gateway 预检（`combined_key_remain`）、预算树、Overrun        |
 
 † `member_budget`，见 [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) §3。‡ **三轴** `platform_key` · `member` · `project`；部门花费读 `usage_ledger` 聚合。
 

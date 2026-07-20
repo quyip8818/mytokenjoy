@@ -149,12 +149,12 @@
 ```sql
 -- 单条批量 UPDATE，一次扫完 FIFO 队列
 WITH consumption AS (
-    SELECT id, LEAST(points_remaining, $remaining) AS take
+    SELECT id, LEAST(quota_remaining, $remaining) AS take
     FROM recharge_lots
     WHERE company_id = $1 AND status = 'active'
     ORDER BY created_at
 )
-UPDATE recharge_lots SET points_remaining = points_remaining - take ...
+UPDATE recharge_lots SET quota_remaining = quota_remaining - take ...
 ```
 
 **收益**：N 条 SQL → 1~2 条，锁持有时间减半  
@@ -303,21 +303,21 @@ s.store.WithTx(ctx, func(st store.Store) error {
 ```sql
 -- 1. 单条 CTE 完成 FIFO 消耗 + lot 状态更新
 WITH ordered_lots AS (
-    SELECT id, points_remaining,
-           SUM(points_remaining) OVER (ORDER BY created_at) AS cumulative
+    SELECT id, quota_remaining,
+           SUM(quota_remaining) OVER (ORDER BY created_at) AS cumulative
     FROM recharge_lots
     WHERE company_id = $1 AND status = 'active'
       AND (fifo_head IS NULL OR id >= fifo_head)
 ),
 consumption AS (
     SELECT id,
-           LEAST(points_remaining, GREATEST($2 - (cumulative - points_remaining), 0)) AS take
+           LEAST(quota_remaining, GREATEST($2 - (cumulative - quota_remaining), 0)) AS take
     FROM ordered_lots
-    WHERE cumulative - points_remaining < $2
+    WHERE cumulative - quota_remaining < $2
 )
 UPDATE recharge_lots r
-SET points_remaining = r.points_remaining - c.take,
-    status = CASE WHEN r.points_remaining - c.take <= 0 THEN 'exhausted' ELSE r.status END,
+SET quota_remaining = r.quota_remaining - c.take,
+    status = CASE WHEN r.quota_remaining - c.take <= 0 THEN 'exhausted' ELSE r.status END,
     updated_at = NOW()
 FROM consumption c
 WHERE r.id = c.id
