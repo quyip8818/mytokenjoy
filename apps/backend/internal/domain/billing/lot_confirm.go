@@ -32,6 +32,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
+	s.topUpNewAPIQuota(ctx, lot.QuotaGranted)
 	return nil
 }
 
@@ -55,6 +56,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, amountDisplay fl
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
+	s.topUpNewAPIQuota(ctx, lot.QuotaGranted)
 	return nil
 }
 
@@ -89,6 +91,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
+	s.topUpNewAPIQuota(ctx, lot.QuotaGranted)
 	return nil
 }
 
@@ -115,6 +118,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
+	s.topUpNewAPIQuota(ctx, lot.QuotaGranted)
 	return nil
 }
 

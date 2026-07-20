@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -33,18 +34,20 @@ type Store interface {
 }
 
 type service struct {
-	cfg    config.Config
-	store  Store
-	reader domainusage.Reader
+	cfg         config.Config
+	store       Store
+	reader      domainusage.Reader
+	adminClient adminport.Port // nil-safe: no-op when NewAPI is not configured
 }
 
 func NewService(
 	cfg config.Config,
 	st Store,
 	reader domainusage.Reader,
+	adminClient adminport.Port,
 ) Service {
 	return &service{
-		cfg: cfg, store: st, reader: reader,
+		cfg: cfg, store: st, reader: reader, adminClient: adminClient,
 	}
 }
 

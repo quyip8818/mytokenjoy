@@ -14,7 +14,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
@@ -69,13 +68,22 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 		}
 		return bearer, nil
 	}
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Keys(), d.Cfg.Clock())
+	keyPtr, err := d.Store.Keys().PlatformKeyByID(ctx, platformKeyID)
 	if err != nil {
 		return "", err
 	}
-	key, ok := budgetCtx.FindPlatformKey(platformKeyID)
-	if !ok {
+	if keyPtr == nil {
 		return "", fmt.Errorf("platform key not found")
+	}
+	key := *keyPtr
+	// DepartmentID is pre-written by upsertPendingPlatformKeyMapping before TrySyncCreate is called.
+	// At this point existing is guaranteed non-nil (pending or synced mapping exists).
+	if existing == nil {
+		return "", fmt.Errorf("platform key mapping missing for %s", platformKeyID)
+	}
+	departmentID := existing.DepartmentID
+	if departmentID == uuid.Nil {
+		return "", fmt.Errorf("department not resolved for key")
 	}
 	departments, err := common.LoadDepartments(ctx, d.Store.Org().Nodes())
 	if err != nil {
@@ -89,20 +97,14 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	if err != nil {
 		return "", err
 	}
-	departmentID := DepartmentIDForPlatformKey(key, budgetCtx)
-	if departmentID == uuid.Nil {
-		return "", fmt.Errorf("department not resolved for key")
-	}
 
 	deptAllowed := common.ResolveDeptAllowedModelIDs(departmentID, departments, rules, models)
 	_, effectiveCallTypes := resolveModelLimits(d, models, key.ModelWhitelist, deptAllowed)
 
 	group := d.ChannelPolicy.ResolveNewAPIGroup(ctx, departmentID)
 	displayName := departmentID.String()
-	if depts, err := common.LoadDepartments(ctx, d.Store.Org().Nodes()); err == nil {
-		if dept := pkgorg.FindDepartment(depts, departmentID); dept != nil {
-			displayName = dept.Name
-		}
+	if dept := pkgorg.FindDepartment(departments, departmentID); dept != nil {
+		displayName = dept.Name
 	}
 	if err := d.Client.EnsureGroup(ctx, group, displayName); err != nil {
 		return "", fmt.Errorf("ensure newapi group %s: %w", group, err)

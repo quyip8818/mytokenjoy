@@ -6,17 +6,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
 func ctx() context.Context {
 	return company.DefaultContext(contract.DefaultCompanyID)
-}
-
-func QuotaFromDisplay(display float64) int64 {
-	return common.QuotaFromAmount(display, common.DefaultQuotaPerUnit)
 }
 
 func SnapshotConsumed(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID) int64 {

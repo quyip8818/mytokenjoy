@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/syncdeps"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 	"github.com/tokenjoy/backend/internal/store"
@@ -23,14 +22,14 @@ func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID u
 	if err != nil || mapping == nil || mapping.NewAPIKeyID == nil {
 		return fmt.Errorf("platform key mapping missing for %s", platformKeyID)
 	}
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Keys(), d.Cfg.Clock())
+	keyPtr, err := d.Store.Keys().PlatformKeyByID(ctx, platformKeyID)
 	if err != nil {
 		return err
 	}
-	key, ok := budgetCtx.FindPlatformKey(platformKeyID)
-	if !ok {
+	if keyPtr == nil {
 		return fmt.Errorf("platform key not found")
 	}
+	key := *keyPtr
 	departments, err := common.LoadDepartments(ctx, d.Store.Org().Nodes())
 	if err != nil {
 		return err

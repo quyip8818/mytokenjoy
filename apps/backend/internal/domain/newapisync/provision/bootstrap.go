@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
@@ -104,14 +103,14 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	}
 	walletUserID, alreadyConfigured := store.ConfiguredNewAPIWalletUserID(co)
 	if alreadyConfigured {
-		// Ensure existing wallet user has sufficient quota (covers upgrades from old wallet_sync regime).
-		return ensureWalletUserQuota(ctx, d, walletUserID)
+		// Ensure existing wallet user has sufficient quota to match wallet_remain.
+		return ensureWalletUserQuota(ctx, d, walletUserID, co.WalletRemain)
 	}
 	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
 		Username:    co.NewAPIWalletUsername,
 		DisplayName: co.Name,
 		Password:    secrets.RandomHex(8),
-		Quota:       math.MaxInt32, // NewAPI user quota set to max — tokenjoy Gateway is the real limiter
+		Quota:       co.WalletRemain, // NewAPI user quota = wallet_remain; tokenjoy Gateway is the real limiter
 	})
 	if err != nil {
 		return fmt.Errorf("create demo newapi wallet user: %w", err)
@@ -125,18 +124,14 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	return nil
 }
 
-// ensureWalletUserQuota tops up the wallet user if current quota is below threshold.
+// ensureWalletUserQuota tops up the wallet user so NewAPI user quota >= wallet_remain.
 // Since tokenjoy Gateway is the only limiter, the NewAPI user should never reject.
-func ensureWalletUserQuota(ctx context.Context, d syncdeps.Deps, walletUserID int64) error {
+func ensureWalletUserQuota(ctx context.Context, d syncdeps.Deps, walletUserID int64, walletRemain int64) error {
 	current, err := d.Client.GetUserQuota(ctx, walletUserID)
 	if err != nil {
 		return nil // best-effort: don't block bootstrap
 	}
-	const minQuota = int64(math.MaxInt32 / 2)
-	if current >= minQuota {
-		return nil
-	}
-	delta := int64(math.MaxInt32) - current
+	delta := walletRemain - current
 	if delta <= 0 {
 		return nil
 	}
