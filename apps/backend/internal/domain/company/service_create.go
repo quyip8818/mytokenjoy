@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
-	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -125,9 +124,6 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, co
 	if err := tx.Org().Nodes().SetTree(companyCtx, nodes); err != nil {
 		return store.Company{}, err
 	}
-	if err := tx.Org().SetRoles(companyCtx, defaultCompanyRoles(companyID, s.grants)); err != nil {
-		return store.Company{}, err
-	}
 	if err := tx.Company().UpdateRootDeptID(ctx, company.ID, rootDeptID); err != nil {
 		return store.Company{}, err
 	}
@@ -212,22 +208,4 @@ func (s *service) addMember(ctx context.Context, tx store.Store, userID, company
 	}
 
 	return member, nil
-}
-
-func defaultCompanyRoles(companyID uuid.UUID, normalizer grants.Normalizer) []types.Role {
-	roles := []types.Role{
-		{ID: grants.PresetRoleID(companyID, grants.RoleSuperAdmin), Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
-		{ID: grants.PresetRoleID(companyID, grants.RoleOrgAdmin), Name: grants.RoleOrgAdmin, Type: "preset", Permissions: []string{"org:*"}},
-		{ID: grants.PresetRoleID(companyID, grants.RoleMember), Name: grants.RoleMember, Type: "preset", Permissions: []string{"self:*"}},
-		{ID: grants.PresetRoleID(companyID, grants.RoleAuditor), Name: grants.RoleAuditor, Type: "preset", Permissions: []string{"audit:read"}},
-		{ID: grants.PresetRoleID(companyID, grants.RoleAPICaller), Name: grants.RoleAPICaller, Type: "preset", Permissions: []string{"api:call"}},
-	}
-	for i := range roles {
-		ids, err := normalizer.RoleGrantIDs(roles[i].Type, roles[i].Name, roles[i].Permissions)
-		if err != nil {
-			panic(err)
-		}
-		roles[i].Permissions = ids
-	}
-	return roles
 }

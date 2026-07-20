@@ -122,22 +122,16 @@ CREATE TABLE IF NOT EXISTS permissions (
 );
 
 CREATE TABLE IF NOT EXISTS roles (
-    id         UUID NOT NULL,
-    company_id UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    name       TEXT NOT NULL,
-    type       TEXT NOT NULL,
-    PRIMARY KEY (company_id, id),
+    id          UUID PRIMARY KEY,
+    company_id  UUID REFERENCES companies (id) ON DELETE CASCADE,          -- NULL = 全局预设
+    name        TEXT NOT NULL,
+    type        TEXT NOT NULL CHECK (type IN ('preset', 'custom')),
+    permissions TEXT[] NOT NULL DEFAULT '{}',                              -- 自定义角色存 p-* ID
     UNIQUE (company_id, name)
 );
 
-CREATE TABLE IF NOT EXISTS role_permission_grants (
-    company_id    UUID NOT NULL,
-    role_id       UUID NOT NULL,
-    permission_id TEXT NOT NULL,
-    PRIMARY KEY (company_id, role_id, permission_id),
-    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE RESTRICT
-);
+-- NULL 不参与 UNIQUE 约束，需 partial index 保证全局预设角色名唯一
+CREATE UNIQUE INDEX IF NOT EXISTS idx_roles_preset_name ON roles (name) WHERE company_id IS NULL;
 
 CREATE TABLE IF NOT EXISTS models (
     model_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -228,10 +222,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_members_external
 CREATE TABLE IF NOT EXISTS member_roles (
     company_id UUID NOT NULL,
     member_id  UUID NOT NULL,
-    role_id    UUID NOT NULL,
+    role_id    UUID NOT NULL REFERENCES roles (id) ON DELETE RESTRICT,
     PRIMARY KEY (company_id, member_id, role_id),
-    FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
+    FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_member_roles_role ON member_roles (company_id, role_id);
@@ -323,10 +316,9 @@ CREATE TABLE IF NOT EXISTS alert_rules (
 CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
     company_id UUID NOT NULL,
     rule_id    UUID NOT NULL,
-    role_id    UUID NOT NULL,
+    role_id    UUID NOT NULL REFERENCES roles (id) ON DELETE RESTRICT,
     PRIMARY KEY (company_id, rule_id, role_id),
-    FOREIGN KEY (company_id, rule_id) REFERENCES alert_rules (company_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (company_id, role_id) REFERENCES roles (company_id, id) ON DELETE CASCADE
+    FOREIGN KEY (company_id, rule_id) REFERENCES alert_rules (company_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS budget_approvals (

@@ -72,7 +72,7 @@ func insertAdminMember(ctx context.Context, exec TableWriter, companyID, deptID 
 	}
 
 	// 3. Assign super admin role via member_roles.
-	superAdminRoleID := grants.PresetRoleID(companyID, grants.RoleSuperAdmin)
+	superAdminRoleID := grants.IDSuperAdmin
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO member_roles (company_id, member_id, role_id)
 		VALUES ($1, $2, $3)

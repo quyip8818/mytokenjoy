@@ -119,6 +119,9 @@ func (r *pgBudgetRepo) SetAlertRules(ctx context.Context, rules []types.AlertRul
 			return err
 		}
 		for _, roleID := range rule.NotifyRoleIDs {
+			// role_id FK 指向 roles(id)，允许全局预设(company_id IS NULL)或本公司自定义角色。
+			// 不存在的 role_id 会被 FK 约束拒绝；跨公司自定义角色在实践中不会出现
+			// （前端从 Roles 列表获取 ID，该列表仅返回全局预设 + 本公司角色）。
 			if _, err := r.db.Exec(ctx, `
 				INSERT INTO alert_rule_notify_roles (company_id, rule_id, role_id) VALUES ($1, $2, $3)
 			`, companyID, rule.ID, roleID); err != nil {

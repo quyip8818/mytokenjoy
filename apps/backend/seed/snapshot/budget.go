@@ -82,10 +82,10 @@ func buildAlertRules() []types.AlertRule {
 		{ID: contract.IDAlertRule1, NodeID: contract.IDDept1, NodeName: "总公司", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole1}, Enabled: true},
 		{ID: contract.IDAlertRule2, NodeID: contract.IDDept2, NodeName: "技术部", Thresholds: []int{80, 90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
 		{ID: contract.IDAlertRule3, NodeID: contract.IDDept3, NodeName: "后端组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
-		{ID: contract.IDAlertRule4, NodeID: contract.IDDept6, NodeName: "产品部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole6}, Enabled: false},
+		{ID: contract.IDAlertRule4, NodeID: contract.IDDept6, NodeName: "产品部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRoleBudgetApprover}, Enabled: false},
 		{ID: contract.IDAlertRule5, NodeID: contract.IDDept4, NodeName: "前端组", Thresholds: []int{80, 90}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
 		{ID: contract.IDAlertRule6, NodeID: contract.IDDept5, NodeName: "测试组", Thresholds: []int{90, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole2}, Enabled: true},
-		{ID: contract.IDAlertRule7, NodeID: contract.IDDept7, NodeName: "市场部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole6}, Enabled: true},
+		{ID: contract.IDAlertRule7, NodeID: contract.IDDept7, NodeName: "市场部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRoleBudgetApprover}, Enabled: true},
 		{ID: contract.IDAlertRule8, NodeID: contract.IDDept8, NodeName: "行政部", Thresholds: []int{100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole1}, Enabled: false},
 	}
 }

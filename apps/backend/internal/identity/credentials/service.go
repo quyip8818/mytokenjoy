@@ -49,7 +49,6 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 	now := time.Now().UTC()
 	userID := uuid.MustParse("90000000-0000-0000-0000-000000000001")
 	memberID := uuid.MustParse("90000000-0000-0000-0000-000000000002")
-	roleID := uuid.MustParse("90000000-0000-0000-0000-000000000003")
 
 	// Create user (idempotent via GetByEmail check)
 	existingUser, _ := s.store.User().GetByEmail(ctx, s.cfg.PlatformBootstrapEmail)
@@ -68,20 +67,9 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 		}
 	}
 
-	// Create role + member + member_roles via SetRoles + SetMembers.
-	// Safe because super company starts empty; subsequent boots short-circuit above.
-	// Permissions left empty: preset role permissions are resolved from manifest at runtime,
-	// not from role_permission_grants in DB.
+	// PlatformAdmin is a global preset role (seeded by bootstrap), no need to insert it.
+	// Only need to create the member with the role assignment.
 	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: s.cfg.TokenJoyCompanyID})
-
-	role := types.Role{
-		ID:   roleID,
-		Name: grants.RolePlatformAdmin,
-		Type: "preset",
-	}
-	if err := s.store.Org().SetRoles(companyCtx, []types.Role{role}); err != nil {
-		return fmt.Errorf("bootstrap platform: set roles: %w", err)
-	}
 
 	member := types.Member{
 		ID:        memberID,

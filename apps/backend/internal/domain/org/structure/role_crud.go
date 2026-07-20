@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
@@ -17,15 +18,18 @@ func (s *LocalService) ListRoles(ctx context.Context) ([]types.Role, error) {
 }
 
 func (s *LocalService) CreateRole(ctx context.Context, name string, permissions []string) (types.Role, error) {
-	roles, err := s.d.Store.Org().Roles(ctx)
-	if err != nil {
-		return types.Role{}, err
-	}
-
 	// Validate role name
 	trimmedName := strings.TrimSpace(name)
 	if trimmedName == "" {
 		return types.Role{}, domain.Validation("role name must not be empty")
+	}
+	if grants.IsPresetRole(trimmedName) {
+		return types.Role{}, domain.NewDomainError(400, "role name already exists")
+	}
+
+	roles, err := s.d.Store.Org().Roles(ctx)
+	if err != nil {
+		return types.Role{}, err
 	}
 	for _, existing := range roles {
 		if existing.Name == trimmedName {

@@ -51,24 +51,30 @@ func insertSeedPermissions(ctx context.Context, exec TableWriter, permissions []
 	return nil
 }
 
-func insertSeedRoles(ctx context.Context, exec TableWriter, tid uuid.UUID, roles []types.Role) error {
+func insertSeedRoles(ctx context.Context, exec TableWriter, roles []types.Role) error {
 	for _, role := range roles {
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, $4)
-			ON CONFLICT (company_id, name) DO UPDATE SET type = EXCLUDED.type
-		`, role.ID, tid, role.Name, role.Type); err != nil {
-			return fmt.Errorf("seed role %s: %w", role.ID, err)
+		companyID := nilUUID(role.CompanyID)
+		perms := role.Permissions
+		if perms == nil {
+			perms = []string{}
 		}
-		for _, perm := range role.Permissions {
-			if _, err := exec.Exec(ctx, `
-				INSERT INTO role_permission_grants (company_id, role_id, permission_id) VALUES ($1, $2, $3)
-				ON CONFLICT DO NOTHING
-			`, tid, role.ID, perm); err != nil {
-				return fmt.Errorf("seed role grant: %w", err)
-			}
+		if _, err := exec.Exec(ctx, `
+			INSERT INTO roles (id, company_id, name, type, permissions)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, permissions = EXCLUDED.permissions
+		`, role.ID, companyID, role.Name, role.Type, perms); err != nil {
+			return fmt.Errorf("seed role %s: %w", role.ID, err)
 		}
 	}
 	return nil
+}
+
+// nilUUID returns nil if id is zero-value, otherwise returns &id.
+func nilUUID(id uuid.UUID) *uuid.UUID {
+	if id == uuid.Nil {
+		return nil
+	}
+	return &id
 }
 
 func buildSeedRoleNameIndex(roles []types.Role) map[string]uuid.UUID {

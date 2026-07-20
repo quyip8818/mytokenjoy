@@ -22,7 +22,7 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 	if err := insertSeedPermissions(ctx, exec, snap.Permissions); err != nil {
 		return err
 	}
-	if err := insertSeedRoles(ctx, exec, tid, snap.Roles); err != nil {
+	if err := insertSeedRoles(ctx, exec, snap.Roles); err != nil {
 		return err
 	}
 	roleIDByName := buildSeedRoleNameIndex(snap.Roles)

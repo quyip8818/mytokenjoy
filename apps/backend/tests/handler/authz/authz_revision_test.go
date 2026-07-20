@@ -25,7 +25,7 @@ func TestRoleUpdateBumpsAuthzRevisionHeader(t *testing.T) {
 	beforeHeader := treeRec1.Header().Get("X-Authz-Revision")
 
 	updateRec := testhttp.ServeAuthz(
-		t, router, http.MethodPut, fmt.Sprintf("/api/org/roles/%s", contract.IDRole6.String()), admin,
+		t, router, http.MethodPut, fmt.Sprintf("/api/org/roles/%s", contract.IDRoleBudgetApprover.String()), admin,
 		`{"name":"预算审批员","permissions":["p-6","p-12"]}`,
 		nil,
 	)

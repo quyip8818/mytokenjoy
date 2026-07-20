@@ -24,6 +24,7 @@ type Member struct {
 
 type Role struct {
 	ID          uuid.UUID `json:"id"`
+	CompanyID   uuid.UUID `json:"-"`
 	Name        string    `json:"name"`
 	Type        string    `json:"type"`
 	Permissions []string  `json:"permissions"`

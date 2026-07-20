@@ -89,15 +89,16 @@ var (
 	IDProject4 = uuid.MustParse("00000000-0000-7000-8000-000000000104")
 )
 
-// --- Roles (deterministic from company + role name) ---
+// --- Roles (全局预设角色引用 grants.ID*，自定义角色用固定 seed UUID) ---
 
 var (
-	IDRole1 = grants.PresetRoleID(DefaultCompanyID, grants.RoleSuperAdmin)
-	IDRole2 = grants.PresetRoleID(DefaultCompanyID, grants.RoleOrgAdmin)
-	IDRole3 = grants.PresetRoleID(DefaultCompanyID, grants.RoleMember)
-	IDRole4 = grants.PresetRoleID(DefaultCompanyID, grants.RoleAuditor)
-	IDRole5 = grants.PresetRoleID(DefaultCompanyID, grants.RoleAPICaller)
-	IDRole6 = grants.PresetRoleID(DefaultCompanyID, grants.RoleBudgetApprover)
+	IDRole1 = grants.IDSuperAdmin
+	IDRole2 = grants.IDOrgAdmin
+	IDRole3 = grants.IDMember
+	IDRole4 = grants.IDAuditor
+	IDRole5 = grants.IDAPICaller
+	// BudgetApprover 是 demo seed 的公司自定义角色
+	IDRoleBudgetApprover = uuid.MustParse("00000000-0000-7000-8000-000000000060")
 )
 
 // --- Misc seed IDs ---

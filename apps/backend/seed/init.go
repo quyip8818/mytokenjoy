@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
@@ -18,8 +17,7 @@ import (
 //
 // Sequence:
 //  1. bootstrap.ApplyBootstrap — currencies, companies, permissions, roles, org (idempotent)
-//  2. bootstrap.ReconcilePresetRoles — ensure grants match manifest (every startup)
-//  3. if demo/minimal + empty DB → apply demo/minimal snapshot data
+//  2. if demo/minimal + empty DB → apply demo/minimal snapshot data
 func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config) error {
 	if cfg.BootstrapIsNone() {
 		// none mode: no initialization. Error out if DB is empty.
@@ -44,16 +42,7 @@ func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Co
 		return fmt.Errorf("seed init: %w", err)
 	}
 
-	// 2. Reconcile preset roles for all companies (every startup).
-	companyIDs, err := listCompanyIDs(ctx, pool)
-	if err != nil {
-		return fmt.Errorf("seed init: list companies: %w", err)
-	}
-	if err := bootstrap.ReconcilePresetRoles(ctx, pool, companyIDs); err != nil {
-		return fmt.Errorf("seed init: %w", err)
-	}
-
-	// 3. Conditionally apply seed data on empty DB.
+	// 2. Conditionally apply seed data on empty DB.
 	if cfg.BootstrapIsMinimal() || cfg.BootstrapIsDemo() {
 		empty, err := isDatabaseEmpty(ctx, pool)
 		if err != nil {
@@ -97,23 +86,6 @@ func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg 
 		return runtime.ApplyDemo(ctx, st, cfg)
 	}
 	return nil
-}
-
-func listCompanyIDs(ctx context.Context, pool *pgxpool.Pool) ([]uuid.UUID, error) {
-	rows, err := pool.Query(ctx, `SELECT id FROM companies`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var ids []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, rows.Err()
 }
 
 func isDatabaseEmpty(ctx context.Context, pool *pgxpool.Pool) (bool, error) {

@@ -27,7 +27,7 @@ func requireDatabaseURL(t *testing.T) string {
 func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 	_, err := pool.Exec(ctx, `
 		TRUNCATE TABLE
-			member_roles, role_permission_grants, alert_rule_notify_roles,
+			member_roles, alert_rule_notify_roles,
 			project_members,
 			model_allowlist, key_approvals, platform_keys, provider_keys,
 			operation_logs, usage_ledger, budget_consumed,

@@ -30,7 +30,7 @@ func ApplyBootstrap(ctx context.Context, exec TableWriter, appCfg config.Config,
 	if err := insertPermissions(ctx, exec); err != nil {
 		return fmt.Errorf("bootstrap permissions: %w", err)
 	}
-	if err := insertPresetRoles(ctx, exec, companyID); err != nil {
+	if err := seedGlobalPresetRoles(ctx, exec); err != nil {
 		return fmt.Errorf("bootstrap roles: %w", err)
 	}
 	if err := insertRootOrg(ctx, exec, companyID, appCfg, bsCfg); err != nil {
@@ -41,17 +41,6 @@ func ApplyBootstrap(ctx context.Context, exec TableWriter, appCfg config.Config,
 	}
 	if err := insertTenantBackgroundState(ctx, exec, tokenJoyID, companyID); err != nil {
 		return fmt.Errorf("bootstrap tenant_background_state: %w", err)
-	}
-	return nil
-}
-
-// ReconcilePresetRoles ensures preset roles' permission grants match the current manifest.
-// Runs on every startup (not just first boot). Idempotent, incremental, never deletes.
-func ReconcilePresetRoles(ctx context.Context, exec TableWriter, companyIDs []uuid.UUID) error {
-	for _, cid := range companyIDs {
-		if err := reconcileCompanyPresetRoles(ctx, exec, cid); err != nil {
-			return fmt.Errorf("reconcile preset roles for company %s: %w", cid, err)
-		}
 	}
 	return nil
 }

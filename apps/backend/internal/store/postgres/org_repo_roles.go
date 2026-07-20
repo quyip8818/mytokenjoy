@@ -34,7 +34,9 @@ func (r *pgOrgRepo) rolesForCompany(ctx context.Context, companyID uuid.UUID) ([
 }
 
 func loadRoleNameIndex(ctx context.Context, db dbQuerier, companyID uuid.UUID) (map[string]string, error) {
-	rows, err := db.Query(ctx, `SELECT id, name FROM roles WHERE company_id = $1`, companyID)
+	rows, err := db.Query(ctx, `
+		SELECT id::text, name FROM roles WHERE company_id IS NULL OR company_id = $1
+	`, companyID)
 	if err != nil {
 		return nil, fmt.Errorf("load roles index: %w", err)
 	}
@@ -55,89 +57,52 @@ func (r *pgOrgRepo) Roles(ctx context.Context) ([]types.Role, error) {
 }
 
 func (r *pgOrgRepo) rolesByCompanyID(ctx context.Context, companyID uuid.UUID) ([]types.Role, error) {
+	// ponytail: OR 条件可能不走索引，当前角色数极少无影响；
+	// 若将来角色数 >1000，改为 UNION ALL（全局预设 + 本公司自定义分开查）。
 	rows, err := r.db.Query(ctx, `
-		SELECT r.id, r.name, r.type, COUNT(mr.member_id)::int
+		SELECT r.id, r.name, r.type, r.permissions, COUNT(mr.member_id)::int AS member_count
 		FROM roles r
-		LEFT JOIN member_roles mr ON mr.company_id = r.company_id AND mr.role_id = r.id
-		WHERE r.company_id = $1
-		GROUP BY r.id, r.name, r.type
-		ORDER BY r.id
+		LEFT JOIN member_roles mr ON mr.role_id = r.id AND mr.company_id = $1
+		WHERE r.company_id IS NULL OR r.company_id = $1
+		GROUP BY r.id, r.name, r.type, r.permissions
+		ORDER BY r.type, r.name
 	`, companyID)
 	if err != nil {
 		return nil, err
 	}
-	type roleRow struct {
-		role types.Role
-	}
-	batch := make([]roleRow, 0)
+	defer rows.Close()
+	var items []types.Role
 	for rows.Next() {
-		var row roleRow
-		if err := rows.Scan(&row.role.ID, &row.role.Name, &row.role.Type, &row.role.MemberCount); err != nil {
-			rows.Close()
+		var role types.Role
+		if err := rows.Scan(&role.ID, &role.Name, &role.Type, &role.Permissions, &role.MemberCount); err != nil {
 			return nil, err
 		}
-		batch = append(batch, row)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	items := make([]types.Role, 0, len(batch))
-	for _, row := range batch {
-		role := row.role
-		grantRows, err := r.db.Query(ctx, `
-			SELECT permission_id FROM role_permission_grants WHERE company_id = $1 AND role_id = $2 ORDER BY permission_id
-		`, companyID, role.ID)
-		if err != nil {
-			return nil, err
-		}
-		for grantRows.Next() {
-			var ref string
-			if err := grantRows.Scan(&ref); err != nil {
-				grantRows.Close()
-				return nil, err
-			}
-			role.Permissions = append(role.Permissions, ref)
-		}
-		grantRows.Close()
 		items = append(items, role)
 	}
-	return items, nil
+	return items, rows.Err()
 }
 
 func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 	companyID := store.CompanyID(ctx)
-	cloned := cloneRoles(roles)
-	ids := make([]uuid.UUID, len(cloned))
-	for i, role := range cloned {
-		ids[i] = role.ID
+	ids := make([]uuid.UUID, 0, len(roles))
+	for _, role := range roles {
+		if role.Type == "preset" {
+			continue // 不操作全局预设行
+		}
+		ids = append(ids, role.ID)
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO roles (id, company_id, name, type) VALUES ($1, $2, $3, $4)
-			ON CONFLICT (company_id, id) DO UPDATE SET
-				name = EXCLUDED.name,
-				type = EXCLUDED.type
-		`, role.ID, companyID, role.Name, role.Type); err != nil {
+			INSERT INTO roles (id, company_id, name, type, permissions)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, permissions = EXCLUDED.permissions
+		`, role.ID, companyID, role.Name, role.Type, role.Permissions); err != nil {
 			return fmt.Errorf("upsert role %s: %w", role.ID, err)
 		}
-		if _, err := r.db.Exec(ctx, `DELETE FROM role_permission_grants WHERE company_id = $1 AND role_id = $2`, companyID, role.ID); err != nil {
-			return fmt.Errorf("clear role grants: %w", err)
-		}
-		for _, perm := range role.Permissions {
-			if _, err := r.db.Exec(ctx, `
-				INSERT INTO role_permission_grants (company_id, role_id, permission_id) VALUES ($1, $2, $3)
-			`, companyID, role.ID, perm); err != nil {
-				return fmt.Errorf("insert role grant: %w", err)
-			}
-		}
 	}
+	// Prune deleted custom roles.
+	// 安全说明：pruneByIDForCompany 使用 DELETE FROM roles WHERE company_id = $1 AND id NOT IN (...)，
+	// 全局预设角色 company_id IS NULL 不会被 company_id = $1 匹配到，不会被误删。
 	if len(ids) == 0 {
-		if _, err := r.db.Exec(ctx, `DELETE FROM role_permission_grants WHERE company_id = $1`, companyID); err != nil {
-			return err
-		}
 		_, err := r.db.Exec(ctx, `DELETE FROM roles WHERE company_id = $1`, companyID)
-		return err
-	}
-	if err := pruneByColumnForCompany(ctx, r.db, "role_permission_grants", "role_id", companyID, ids); err != nil {
 		return err
 	}
 	return pruneByIDForCompany(ctx, r.db, "roles", companyID, ids)
