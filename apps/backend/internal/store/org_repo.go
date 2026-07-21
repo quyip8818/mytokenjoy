@@ -13,6 +13,13 @@ type MemberAuthz struct {
 	AuthzRevision int64
 }
 
+// MemberCompanyAuth is returned by MemberByPhone — includes member + company info + password hash.
+type MemberCompanyAuth struct {
+	Member       types.Member
+	CompanyName  string
+	PasswordHash string
+}
+
 type OrgRepository interface {
 	Integration(ctx context.Context) (types.OrgIntegration, error)
 	SetIntegration(ctx context.Context, integration types.OrgIntegration) error
@@ -30,6 +37,7 @@ type OrgRepository interface {
 	Members(ctx context.Context) ([]types.Member, error)
 	MemberByID(ctx context.Context, memberID uuid.UUID) (*types.Member, error)
 	MemberByEmail(ctx context.Context, companyID uuid.UUID, email string) (*types.Member, string, error)
+	MemberByPhone(ctx context.Context, phone string) ([]MemberCompanyAuth, error)
 	GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*MemberAuthz, error)
 	MemberPersonalBudget(ctx context.Context, memberID uuid.UUID) (int64, bool, error)
 	SetMembers(ctx context.Context, members []types.Member) error

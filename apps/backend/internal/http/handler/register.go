@@ -50,7 +50,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 	return Registry{
 		config:         deps.Config,
 		session:        sessionhandler.NewHandler(p),
-		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Users(), deps.Sessions(), deps.Invites()),
+		auth:           auth.NewHandler(deps.Public(), deps.CompanySvc, deps.Users(), deps.Org(), deps.Sessions(), deps.Invites(), deps.SmsSvc),
 		authSms:        authsmshandler.NewHandler(deps.SmsSvc, deps.CompanySvc, deps.Users(), deps.Sessions(), regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
 		register:       registerhandler.NewHandler(deps.CompanySvc, deps.Users(), deps.Sessions(), deps.SmsSvc, regTokenIssuer, deps.SessionToken, deps.Config.SecureCookie, deps.Config.RegistrationEnabled, deps.Config.SessionTTLSec, deps.Config.RefreshTokenTTLSec),
 		platform:       platform.NewHandler(deps.Platform(), deps.Protected()),

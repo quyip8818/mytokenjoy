@@ -148,8 +148,6 @@ CREATE TABLE IF NOT EXISTS companies (
     type                      TEXT NOT NULL DEFAULT 'selfhosted'
                               CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
     status                    TEXT NOT NULL DEFAULT 'active',
-    onboarding_status         TEXT NOT NULL DEFAULT 'pending'
-                              CHECK (onboarding_status IN ('pending', 'completed', 'skipped')),
     root_dept_id              UUID,
     newapi_wallet_company_id  BIGINT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
@@ -240,7 +238,6 @@ Trial 无到期机制，不需要 `trial_expires_at` 列。
 ```typescript
 interface AppSession {
   companyType: 'standard' | 'trial' | 'demo' | 'selfhosted' | 'testing'
-  onboardingStatus: 'pending' | 'completed' | 'skipped'
 }
 ```
 
@@ -255,9 +252,9 @@ interface AppSession {
 | `ctxcompany.Info` | 加 `Type string`（供 middleware / service 判断） |
 | `CreateCompany` / `CreateCompanyRequest` | 加 `Type` 参数（默认 `standard`，Trial 传 `trial`） |
 | `seed/bootstrap/companies.go` | INSERT 加上 type 列（selfhosted / testing） |
-| `AuthzSvc.GetSessionContext` | session 响应增加 `companyType`、`onboardingStatus` 字段 |
+| `AuthzSvc.GetSessionContext` | session 响应增加 `companyType` 字段 |
 | Gateway precheck | 检查 type，Trial 租户路由到 mock LLM |
-| 前端 `AppSession` | 加 `companyType`、`onboardingStatus` 字段 |
+| 前端 `AppSession` | 加 `companyType` 字段 |
 
 ---
 

@@ -16,9 +16,6 @@ import { RouteFallback } from '@/components/layout/route-fallback'
 import { SessionGate } from '@/features/session'
 
 const LoginPage = lazy(() => import('@/routes/auth/login'))
-const RegisterPage = lazy(() => import('@/routes/auth/register'))
-const SelectCompanyPage = lazy(() => import('@/routes/auth/select'))
-const OnboardPage = lazy(() => import('@/routes/auth/onboard'))
 const InviteAcceptPage = lazy(() => import('@/routes/auth/invite-accept'))
 
 const lazyPages = APP_ROUTES.map((entry) => ({
@@ -63,30 +60,6 @@ export default function App() {
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <LoginPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="register"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <RegisterPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="login/select"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <SelectCompanyPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="onboard"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <OnboardPage />
                   </Suspense>
                 }
               />

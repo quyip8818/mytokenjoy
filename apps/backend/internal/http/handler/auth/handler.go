@@ -12,6 +12,7 @@ import (
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/identity/sms"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
@@ -21,18 +22,22 @@ type Handler struct {
 	pub        httpdeps.Public
 	companySvc domaincompany.Service
 	users      store.UserRepository
+	org        store.OrgRepository
 	sessions   store.SessionRepository
 	invites    store.InviteRepository
+	sms        *sms.Service
 }
 
 func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
-	users store.UserRepository, sessions store.SessionRepository, invites store.InviteRepository) *Handler {
+	users store.UserRepository, org store.OrgRepository, sessions store.SessionRepository, invites store.InviteRepository, smsSvc *sms.Service) *Handler {
 	return &Handler{
 		pub:        pub,
 		companySvc: companySvc,
 		users:      users,
+		org:        org,
 		sessions:   sessions,
 		invites:    invites,
+		sms:        smsSvc,
 	}
 }
 
@@ -42,6 +47,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/refresh", h.Refresh)
 	r.Post("/auth/accept-invite", h.AcceptInvite)
 	r.Post("/auth/set-password", h.SetPassword)
+	r.Post("/auth/reset-password", h.ResetPassword)
 	r.Get("/auth/invites/pending", h.PendingInvites)
 }
 
@@ -57,27 +63,82 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
+	if body.Email == "" || body.Password == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "credentials required")
+		return
+	}
+
+	ctx := r.Context()
+	identifier := body.Email
+
+	// Detect if identifier is a phone number (digits, optional +86 prefix).
+	isPhone := isPhoneNumber(identifier)
+
+	if isPhone {
+		// Phone + password login: look up all companies for this phone, verify password.
+		results, err := h.org.MemberByPhone(ctx, sms.FormatPhone(identifier))
+		if err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+		// Filter to those with matching password.
+		var matched []store.MemberCompanyAuth
+		for _, r := range results {
+			if r.PasswordHash != "" && verifyPassword(r.PasswordHash, body.Password) == nil {
+				matched = append(matched, r)
+			}
+		}
+		if len(matched) == 0 {
+			httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
+			return
+		}
+		if len(matched) == 1 {
+			m := matched[0].Member
+			if _, err := h.issueTokenPair(w, r, m.CompanyID, m.ID, m.UserID); err != nil {
+				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+				return
+			}
+			httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": m.ID.String()}, nil)
+			return
+		}
+		// Multiple companies → return list for selection (same as SMS flow).
+		companies := make([]map[string]any, len(matched))
+		for i, mc := range matched {
+			companies[i] = map[string]any{
+				"companyId":   mc.Member.CompanyID,
+				"companyName": mc.CompanyName,
+				"memberId":    mc.Member.ID,
+			}
+		}
+		httputil.WriteJSON(w, http.StatusOK, map[string]any{
+			"action":    "select_company",
+			"companies": companies,
+		}, nil)
+		return
+	}
+
+	// Email + password login: original flow (requires companyID in SaaS mode).
 	var companyID uuid.UUID
 	if h.pub.Cfg.SupportSaas {
 		if body.CompanyID == uuid.Nil {
-			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company id required"))
+			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company id required for email login"))
 			return
 		}
-		companyCtx, err := h.companySvc.ResolveCompanyContext(r.Context(), body.CompanyID)
+		companyCtx, err := h.companySvc.ResolveCompanyContext(ctx, body.CompanyID)
 		if err != nil {
 			httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 			return
 		}
 		companyID = companyCtx.CompanyID
 	} else {
-		companyCtx, ok := ctxcompany.From(r.Context())
+		companyCtx, ok := ctxcompany.From(ctx)
 		if !ok {
 			httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
 			return
 		}
 		companyID = companyCtx.CompanyID
 	}
-	member, err := h.pub.Credentials.AuthenticateMember(r.Context(), companyID, body.Email, body.Password)
+	member, err := h.pub.Credentials.AuthenticateMember(ctx, companyID, body.Email, body.Password)
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
 		return
@@ -263,4 +324,89 @@ func (h *Handler) SetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- Reset Password ---
+
+type resetPasswordBody struct {
+	Phone       string `json:"phone"`
+	Code        string `json:"code"`
+	NewPassword string `json:"newPassword"`
+}
+
+// ResetPassword verifies SMS code then sets a new password.
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var body resetPasswordBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+		return
+	}
+	if body.Phone == "" || body.Code == "" || len(body.NewPassword) < 8 {
+		httputil.WriteStatus(w, http.StatusBadRequest, "phone, code, and newPassword (min 8) required")
+		return
+	}
+
+	ctx := r.Context()
+	phone := sms.FormatPhone(body.Phone)
+
+	// Verify SMS code.
+	if h.sms == nil {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "SMS not configured")
+		return
+	}
+	vr := h.sms.Verify(ctx, phone, body.Code)
+	if !vr.OK {
+		status := http.StatusBadRequest
+		if vr.Locked {
+			status = http.StatusTooManyRequests
+		}
+		httputil.WriteJSON(w, status, map[string]string{"message": vr.Reason}, nil)
+		return
+	}
+
+	// Find user by phone.
+	user, err := h.users.GetByPhone(ctx, phone)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	if user == nil {
+		httputil.WriteStatus(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	// Hash and save new password.
+	hash, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	if err := h.users.UpdatePassword(ctx, user.ID, string(hash)); err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- Helpers ---
+
+func isPhoneNumber(s string) bool {
+	cleaned := s
+	if len(cleaned) > 0 && cleaned[0] == '+' {
+		cleaned = cleaned[1:]
+	}
+	if len(cleaned) < 11 {
+		return false
+	}
+	for _, c := range cleaned {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func verifyPassword(hash, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

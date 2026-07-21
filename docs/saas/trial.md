@@ -56,17 +56,17 @@
 | 约束 | 实现方式 |
 | --- | --- |
 | 模拟资金只能用于 mock 模型 | Gateway allowlist 仅含 mock model → 非 mock 请求 403，根本不进 ingest |
-| 升级后模拟资金不可用 | 升级时 expire 所有 `lot_kind='trial'` 的 lot，`wallet_remain` 按实际 active lot 重算 |
-| Trial 期间看板可见消费 | Trial lot 正常走 FIFO 消费 → ledger 有条目 → 看板展示 |
+| 升级后模拟资金不可用 | 升级时 expire 所有 `lot_kind='mock'` 的 lot，`wallet_remain` 按实际 active lot 重算 |
+| Trial 期间看板可见消费 | Mock lot 正常走 FIFO 消费 → ledger 有条目 → 看板展示 |
 
-核心逻辑：**Gateway allowlist 做模型隔离（消费侧守卫），lot_kind 做资金标记（升级清零依据）**，不给 ingest/lot-consume 加任何 if-else。
+核心逻辑：**Gateway allowlist 做模型隔离（消费侧守卫），lot_kind='mock' 做资金标记（升级清零依据）**，不给 ingest/lot-consume 加任何 if-else。
 
 ### 2.2 数据模型
 
 新增 lot kind：
 
 ```go
-LotKindTrial = "trial"  // 模拟资金，仅 trial 期间可用
+LotKindMock = "mock"  // 模拟资金，Trial 期间使用
 ```
 
 注册时灌入：
@@ -89,12 +89,12 @@ billinglot.CreditFromLot(ctx, st, order, lot, trialQuota)
 升级接口（`trial` → `standard`）执行：
 
 ```sql
--- 1. 冻结所有 trial lot
+-- 1. 冻结所有 mock lot
 UPDATE recharge_lots
    SET status = 'expired', updated_at = now()
- WHERE company_id = $1 AND lot_kind = 'trial' AND status = 'active';
+ WHERE company_id = $1 AND lot_kind = 'mock' AND status = 'active';
 
--- 2. wallet_remain 按剩余 active lot 重算（非 trial lot 余额之和）
+-- 2. wallet_remain 按剩余 active lot 重算（非 mock lot 余额之和）
 UPDATE companies
    SET wallet_remain = (
        SELECT COALESCE(SUM(quota_remaining), 0)
@@ -112,7 +112,7 @@ UPDATE companies
 | 方案 | 优点 | 缺点 |
 | --- | --- | --- |
 | Sandbox 双账本 | 语义最隔离 | 双路径查询，改动大，Trial 数据升级后要迁移或丢弃 |
-| **标记型 Trial Lot**（采用） | 零侵入计费核心、升级只需 expire + 重算 | 无 |
+| **标记型 Mock Lot**（采用） | 零侵入计费核心、升级只需 expire + 重算 | 无 |
 
 ---
 
@@ -122,8 +122,8 @@ UPDATE companies
 - Gateway precheck 正常执行 allowlist 检查 → Trial Key 调用真实模型自然被 "model not allowed" 拦截
 - mock 模型请求正常通过 → proxy 到 NewAPI → NewAPI 路由到 mock channel
 - Mock LLM 返回模拟 response → 正常走 ingest 写 ledger
-- Trial lot 正常 FIFO 扣费，看板可见消费数据
-- 升级为 standard 后：扩展 Key allowlist 解锁全部模型，trial lot 已 expired 不参与消费
+- Mock lot 正常 FIFO 扣费，看板可见消费数据
+- 升级为 standard 后：扩展 Key allowlist 解锁全部模型，mock lot 已 expired 不参与消费
 
 > **无需特殊 Gateway 路由或第二个 proxy**——复用现有 allowlist 机制和 NewAPI 内的 mock channel。
 >
@@ -178,7 +178,7 @@ Trial 公司的充值流程变为**升级确认**：
 
 确认后：
 1. 创建充值订单（paid lot）
-2. 执行 Trial lot expire + wallet_remain 重算
+2. 执行 mock lot expire + wallet_remain 重算
 3. `companies.type` 改为 `standard`
 4. Banner 消失，Key allowlist 解锁
 
@@ -230,15 +230,14 @@ routes/register.tsx
 
 ### 后端
 
-- [ ] schema: `onboarding_status` 列
-- [ ] store: `LotKindTrial = "trial"` 常量
-- [ ] `POST /auth/register/company` 内创建 trial company + 灌入 trial lot
-- [ ] `BuildTrialLot` 构建函数（类似 `BuildGiftLot`，`UnitPriceDisplay=0`）
+- [ ] store: `LotKindMock = "mock"` 已有
+- [ ] `POST /auth/register/company` 内创建 trial company + 灌入 mock lot
+- [ ] `BuildMockLot` 构建函数（类似 `BuildGiftLot`，`UnitPriceDisplay=0`）
 - [ ] `GET /auth/trial/csv-template`
 - [ ] CSV 解析（部门层级 + 成员 + 角色映射）
 - [ ] Gateway: 产线级 `trial-mock-model` 定义（model_id ≥ 100）
 - [ ] NewAPI: mock channel 配置（路由到 echo LLM 服务）
-- [ ] 升级接口: expire trial lots + wallet_remain 重算
+- [ ] 升级接口: expire mock lots + wallet_remain 重算
 - [ ] `REGISTRATION_ENABLED` 守卫
 - [ ] 成员上限守卫
 - [ ] 充值接口 Trial 拦截（禁止真实充值）

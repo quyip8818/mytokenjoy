@@ -142,6 +142,38 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, emai
 	return &item, hash, nil
 }
 
+func (r *pgOrgRepo) MemberByPhone(ctx context.Context, phone string) ([]store.MemberCompanyAuth, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT m.id, m.user_id, m.company_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''),
+		       m.status, c.name AS company_name, u.password_hash
+		FROM members m
+		JOIN users u ON u.id = m.user_id
+		JOIN companies c ON c.id = m.company_id
+		WHERE u.phone = $1 AND m.status = 'active' AND c.status = 'active'`, phone)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []store.MemberCompanyAuth
+	for rows.Next() {
+		var item store.MemberCompanyAuth
+		var passwordHash *string
+		if err := rows.Scan(
+			&item.Member.ID, &item.Member.UserID, &item.Member.CompanyID, &item.Member.Name,
+			&item.Member.Phone, &item.Member.Email,
+			&item.Member.Status, &item.CompanyName, &passwordHash,
+		); err != nil {
+			return nil, err
+		}
+		if passwordHash != nil {
+			item.PasswordHash = *passwordHash
+		}
+		results = append(results, item)
+	}
+	return results, rows.Err()
+}
+
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT m.id, m.user_id, m.name, COALESCE(u.phone,''), COALESCE(u.email,''), COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, m.personal_budget,

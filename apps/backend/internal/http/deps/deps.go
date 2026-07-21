@@ -61,6 +61,7 @@ type Deps struct {
 func (d Deps) Users() store.UserRepository       { return d.Store.User() }
 func (d Deps) Sessions() store.SessionRepository { return d.Store.Session() }
 func (d Deps) Invites() store.InviteRepository   { return d.Store.Invite() }
+func (d Deps) Org() store.OrgRepository          { return d.Store.Org() }
 func (d Deps) Notifications() store.NotificationRepository {
 	return d.Store.Notification()
 }

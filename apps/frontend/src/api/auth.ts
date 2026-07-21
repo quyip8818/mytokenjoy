@@ -28,9 +28,13 @@ export type SmsVerifyResult =
   | { action: 'choose'; invites: PendingInvite[] }
   | { action: 'not_found' }
 
+export type LoginResult =
+  | { memberId: string }
+  | { action: 'select_company'; companies: CompanyOption[] }
+
 export const authApi = {
   login: (input: LoginInput) =>
-    request<{ memberId: string }>('/auth/login', {
+    request<LoginResult>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(input),
     }),
@@ -92,5 +96,12 @@ export const authApi = {
     request<void>('/auth/set-password', {
       method: 'POST',
       body: JSON.stringify({ password }),
+    }),
+
+  // --- Reset password (unauthenticated, SMS verified) ---
+  resetPassword: (phone: string, code: string, newPassword: string) =>
+    request<void>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code, newPassword }),
     }),
 }
