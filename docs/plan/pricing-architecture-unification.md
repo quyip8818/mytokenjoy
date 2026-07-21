@@ -1,204 +1,315 @@
-# 定价统一：TJ 自计价
+# 定价统一：Local/SaaS 实现方案
 
 ## 一句话
 
-把"tokens → quota"的计算从 NewAPI 搬到 TJ 来做。NewAPI 只报 token 数，TJ 自己用模型单价算钱。
+TJ 通过 `models.Service` 统一封装模型数据（目录来自 DB，价格来自本地 NewAPI）。本地 NewAPI 的价格由平台定时同步写入。调用方无需关心价格来源。
 
 ---
 
-## 1. 现状 vs 目标
+## 0. 与三端架构的关系
 
-### 现状：NewAPI 算，TJ 抄
+本文档描述的是 **Local/SaaS 版本项目**（即这个 repo）的实现。
+
+```
+官方管理平台 (NewAPI 原生 UI 管理定价)
+    ↓ 定时同步（pricing syncer）
+Local/SaaS NewAPI (本地，model_ratio 被同步覆盖)
+    ↓ GET /api/pricing
+TJ models.Service (本文档描述的代码)
+    ↓
+TJ 前端 (展示价格)
+```
+
+- **平台**是全局 SOT（定价的最终来源）
+- **本地 NewAPI**是本实例的 SOT（TJ 代码只需问本地 NewAPI 要价格）
+- **TJ models.Service**不需要知道价格是平台同步来的还是手动设的
+
+---
+
+## 1. 职责划分
+
+| 职责 | 归属 | 理由 |
+|------|------|------|
+| **模型价格** — 全局发布 | 官方管理平台 | 平台是 SOT |
+| **模型价格** — 本地读取 | 本地 NewAPI | syncer 已写入，TJ 只管读 |
+| **模型目录** — 创建/删除/启停 | TJ | 路由/白名单/外键深度依赖 TJ models 表 UUID |
+| **模型路由/白名单** | TJ | TJ 独有业务：部门→模型权限控制 |
+| **实际计费** | 平台网关 NewAPI | Gateway 模式，Local 碰不到 |
+| **本地 quota 展示** | 本地 NewAPI | 给 TJ 预算系统做展示/预警 |
+
+### 为什么模型目录不放 NewAPI？
+
+TJ models 表承担核心业务职责：
+- `org_nodes.default_model_id` / `fallback_model_id` → REFERENCES models(model_id)
+- `model_allowlist` 表 → 按 model_id 控制可用范围
+- 路由解析 → ResolveDeptAllowedModelIDs 按 UUID 做权限过滤
+- precheck 缓存 → 网关预检用 model_id 判断
+
+迁移成本极高，无收益。
+
+---
+
+## 2. Service 层设计
+
+```go
+type Service interface {
+    // 含价格 — 给 HTTP handler / 前端展示用
+    // 内部：DB 查目录 + 本地 NewAPI 查价格 + join
+    ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error)
+
+    // 不含价格 — 给路由/precheck/ingest 等内部热路径用
+    // 内部：纯 DB 查询
+    ListModels(ctx context.Context) ([]types.ModelInfo, error)
+
+    // 其他不变
+    CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
+    UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
+    DeleteModel(ctx context.Context, id uuid.UUID) error
+    ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error
+    ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
+    ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
+    UpdateRoutingRule(ctx context.Context, id uuid.UUID, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
+}
+```
+
+### 调用方使用
+
+| 调用方 | 调哪个 | 原因 |
+|--------|--------|------|
+| HTTP handler（模型列表页） | `ListModelsWithPricing` | 前端需要展示价格 |
+| 路由规则解析 | `ListModels` | 只需 ID/type/enabled，不需要价格 |
+| precheck / 网关 | `ListModels` | 热路径，纯 DB |
+| ingest / entry_build | `ListModels` | 只需 catalog 做 provider 解析 |
+
+### 性能分析
+
+| 路径 | 频率 | 数据源 | 延迟 |
+|------|------|--------|------|
+| 模型列表页 | 低频（管理员操作） | DB + 本地 NewAPI HTTP | ~15ms |
+| 路由/precheck | 高频（每次 API 请求） | 纯 DB | ~5ms |
+| ingest | 批量 | 纯 DB（snapshot） | ~5ms |
+
+---
+
+## 3. 数据流
 
 ```mermaid
 sequenceDiagram
-    participant User as 用户请求
-    participant GW as Gateway
-    participant NA as NewAPI
-    participant TJ as TokenJoy Ingest
+    participant Platform as 官方管理平台
+    participant Syncer as pricing syncer
+    participant NA as 本地 NewAPI
+    participant S as models.Service
+    participant DB as TJ models 表
+    participant FE as 前端
 
-    User->>GW: API 调用
-    GW->>NA: 转发
-    NA->>NA: 模型调用 + 计价(model_ratio)
-    NA-->>TJ: consume_log(quota=算好的值, tokens, model)
-    TJ->>TJ: entry.Amount = raw.Quota（直通）
-    TJ->>TJ: FIFO lot 消费
+    Note over Platform,NA: 定时同步（每 10 分钟）
+    Syncer->>Platform: GET /api/v1/pricing/latest
+    Platform-->>Syncer: { version, models: {...} }
+    Syncer->>NA: PUT /api/option (ModelRatio, CompletionRatio, ...)
+
+    Note over FE,NA: 前端请求模型列表
+    FE->>S: GET /api/models
+    S->>DB: 查模型目录
+    S->>NA: GET /api/pricing
+    S->>S: join（内置模型用 NewAPI 价格，自定义模型用 DB 价格）
+    S-->>FE: []ModelInfo（含价格）
+
+    Note over S,DB: 高频路径（路由/precheck）
+    S->>DB: 查模型目录
+    S-->>S: []ModelInfo（无 NewAPI 调用）
 ```
-
-**TJ 不参与计价，只搬运 NewAPI 的结果。**
-
-### 目标：TJ 自己算
-
-```mermaid
-sequenceDiagram
-    participant User as 用户请求
-    participant GW as Gateway
-    participant NA as NewAPI
-    participant TJ as TokenJoy Ingest
-
-    User->>GW: API 调用
-    GW->>NA: 转发
-    NA->>NA: 模型调用（只记 token 数）
-    NA-->>TJ: consume_log(tokens, model)
-    TJ->>TJ: 查 models 表拿单价
-    TJ->>TJ: 查 currencies 表拿 QPU
-    TJ->>TJ: entry.Amount = tokens × 单价 × QPU
-    TJ->>TJ: FIFO lot 消费
-```
-
-**TJ 掌握定价权，NewAPI 退化为纯转发。**
 
 ---
 
-## 2. 计价逻辑
+## 4. 改动范围
 
-### 和充值走同一条路
+### 4.1 删除
 
-```mermaid
-flowchart LR
-    subgraph 充值["充值（已有）"]
-        A[用户付 100 元] --> B["× QPU (currencies 表)"]
-        B --> C[50,000,000 quota]
-    end
+| 文件/逻辑 | 说明 |
+|-----------|------|
+| `models/service.go` → `SyncPricingFromUpstream` 方法 + interface 签名 | 被 pricing syncer 替代 |
+| `app/app.go` → startup goroutine（调 SyncPricingFromUpstream） | 被 pricing syncer 替代 |
+| `handler/models/handler.go` → `SyncPricing` handler + `/sync-pricing` 路由 | 不再需要手动触发旧同步 |
 
-    subgraph 自计价["消费自计价（新增）"]
-        D[1000 tokens × 1.0 元/M] --> E[0.001 元]
-        E --> F["× QPU (currencies 表)"]
-        F --> G[500 quota]
-    end
+### 4.2 新增
 
-    style 充值 fill:#e8f5e9
-    style 自计价 fill:#e3f2fd
-```
-
-**同一个 QPU，同一条路径：展示币 × QPU = quota。**
-
-### 公式
-
-```
-展示币成本 = prompt_tokens × input_price / 1M + completion_tokens × output_price / 1M
-quota      = Round(展示币成本 × QPU)
-```
-
-| 参数 | 来源 | 说明 |
-|------|------|------|
-| `input_price` / `output_price` | models 表 | 展示币/百万 tokens（管理员在 UI 维护） |
-| `QPU` | currencies 表 | 每 1 展示币 = 多少 quota（动态可调） |
-
----
-
-## 3. 优点
-
-| 优点 | 说明 |
+| 文件 | 说明 |
 |------|------|
-| **定价权归 TJ** | 管理员在 TJ 改价即生效，不依赖 NewAPI 后台 |
-| **展示=实际** | 前端展示的模型单价就是实际扣费的价格，消除用户困惑 |
-| **支持差异化定价** | 未来可按公司/部门/时段设不同价，NewAPI 做不到 |
-| **可审计** | 谁改了价、什么时候改的，审计表全记录 |
-| **解耦 NewAPI** | NewAPI 只管转发，model_ratio 改不改都不影响 TJ |
-| **QPU 一致性** | 计价和充值走同一条换算，不存在两套 QPU 不一致的可能 |
+| `domain/pricing/syncer.go` | 定时从平台拉价格 → 写本地 NewAPI option |
+| `domain/pricing/types.go` | PricingVersion, SyncStatus |
+| `integration/newapi/option.go` | `GetOption` / `UpdateOption` 实现 |
+| `integration/platform/client.go` | 平台 HTTP client（拉最新定价） |
+| `handler/pricing/handler.go` | GET /pricing/sync-status, POST /pricing/sync-now |
 
-## 4. 缺点 / 代价
+### 4.3 修改
 
-| 缺点 | 说明 | 缓解 |
-|------|------|------|
-| **要维护模型价格** | 以前 NewAPI 维护 ratio，TJ 自动 sync；改后 TJ 必须自己管 | 管理员本来就在 TJ UI 填价格，只是以前是"展示用" |
-| **新模型漏配风险** | NewAPI 接了新模型但 TJ 没加 → fallback 到 raw.Quota | 加 metrics 告警，发现 fallback 立即补录 |
-| **切换期数据差异** | 新旧逻辑计算结果可能有微小舍入差 | 灰度期对比验证，确认差异在可接受范围 |
-| **依赖 token 数准确** | 如果 NewAPI 上报的 token 数有误，TJ 也算错 | 和现状一样——NewAPI token 数是唯一源 |
-| **1M 是隐式约定** | `input_price` 的单位（展示币/百万 tokens）是代码约定而非数据库配置 | 前端 UI label 已明确标注"¥/M tokens"，不易误解 |
+| 文件 | 改动 |
+|------|------|
+| `models/service.go` | 新增 `ListModelsWithPricing`：调 `adminport.ListModelPricing` + join |
+| `handler/models/handler.go` → `List` | 改调 `ListModelsWithPricing` |
+| `domain/adminport/port.go` | 接口新增 `GetOption` / `UpdateOption` |
+| `app/app.go` | 注册 pricing syncer worker |
+| 前端 `model-list-table.tsx` | 加价格展示列（¥/M tokens） |
+| 前端 `model-edit.tsx` | 内置模型：价格字段只读 |
+
+### 4.4 保留不动
+
+| 组件 | 说明 |
+|------|------|
+| models 表 schema（含 input_price/output_price） | 自定义模型仍用 |
+| `ListModels()`（原有纯 DB 版） | 路由/precheck/ingest 继续调 |
+| `adminport.Port` → `ListModelPricing` | Service 内部用 |
+| `integration/newapi/pricing.go` | Service 内部用 |
+| `newapiunits.PriceFromRatio` | Service 内 ratio→价格转换 |
+| `usage/entry_build.go` → `Amount: input.Raw.Quota` | 本地 quota 记录不动 |
 
 ---
 
-## 5. 改动范围
+## 5. ListModelsWithPricing 实现
 
-```mermaid
-flowchart TD
-    subgraph 新增["新增"]
-        A[ComputeQuota 计价函数]
-        B[EntryBuildSnapshot.QPU]
-        C[model_pricing_audit 审计表]
-    end
+```go
+func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error) {
+    models, err := s.store.Models().Models(ctx)
+    if err != nil {
+        return nil, err
+    }
 
-    subgraph 修改["修改"]
-        D["entry.Amount = computeAmount(...)"]
-    end
+    // best-effort: NewAPI 不可达时仍返回模型列表，价格保留 DB 值
+    pricingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+    pricing, _ := s.client.ListModelPricing(pricingCtx)
+    priceMap := make(map[string]adminport.ModelPricing, len(pricing))
+    for _, p := range pricing {
+        priceMap[p.ModelName] = p
+    }
 
-    subgraph 删除["删除"]
-        E[SyncPricingFromUpstream]
-        F[integration/newapi/pricing.go]
-        G[PriceFromRatio]
-        H[SyncPricing HTTP handler]
-        I[startup goroutine]
-    end
-
-    style 新增 fill:#e8f5e9
-    style 修改 fill:#fff3e0
-    style 删除 fill:#ffebee
+    for i := range models {
+        if models[i].IsCustom() {
+            continue // 自定义模型保留 DB 中的价格
+        }
+        if p, ok := priceMap[models[i].Type]; ok {
+            models[i].InputPrice, models[i].OutputPrice = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+        }
+        // else: 保留 DB 值（不清零，防止 NewAPI 返回不完整时丢价格）
+    }
+    return models, nil
+}
 ```
 
-### 文件清单
+---
 
-| 操作 | 文件 |
-|------|------|
-| 新增 | `newapiunits/pricing.go` → `ComputeQuota` |
-| 修改 | `usage/entry_load.go` → snapshot 加 QPU |
-| 修改 | `usage/entry_build.go` → Amount 改为自计价 |
-| 删除 | `models/service.go` → `SyncPricingFromUpstream` |
-| 删除 | `integration/newapi/pricing.go` → 整个文件 |
-| 删除 | `adminport/types.go` → `ModelPricing` struct |
-| 删除 | `adminport/port.go` → `ListModelPricing` |
-| 删除 | `http/handler/models/handler.go` → `SyncPricing` |
-| 删除 | `app/app.go` → startup goroutine |
-| 删除 | `newapiunits/pricing.go` → `PriceFromRatio` |
-| 新增 | migration → `model_pricing_audit` 表 |
+## 6. Pricing Syncer 实现
+
+```go
+// domain/pricing/syncer.go
+type Syncer struct {
+    platform    platform.Client  // 拉取平台定价
+    adminport   adminport.Port   // 写入本地 NewAPI
+    interval    time.Duration
+    lastVersion string
+}
+
+func (s *Syncer) Run(ctx context.Context) {
+    s.syncOnce(ctx) // 启动立即同步一次
+    ticker := time.NewTicker(s.interval)
+    defer ticker.Stop()
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        case <-ticker.C:
+            s.syncOnce(ctx)
+        }
+    }
+}
+
+func (s *Syncer) syncOnce(ctx context.Context) {
+    latest, err := s.platform.GetLatestPricing(ctx)
+    if err != nil {
+        slog.Warn("pricing sync failed", "error", err)
+        return
+    }
+    if latest.Version == s.lastVersion {
+        return
+    }
+
+    // 全量替换 — 平台是 SOT
+    if err := s.adminport.UpdateOption(ctx, "ModelRatio", marshal(latest.ModelRatio)); err != nil {
+        slog.Error("update ModelRatio failed", "error", err)
+        return
+    }
+    if err := s.adminport.UpdateOption(ctx, "CompletionRatio", marshal(latest.CompletionRatio)); err != nil {
+        slog.Error("update CompletionRatio failed", "error", err)
+        return
+    }
+    // CacheRatio, ModelPrice 等同理...
+
+    s.lastVersion = latest.Version
+    slog.Info("pricing synced", "version", latest.Version)
+}
+```
 
 ---
 
-## 6. 边界情况
+## 7. 自定义模型 vs 内置模型
+
+| | 内置模型 | 自定义模型 |
+|---|---------|-----------|
+| **价格来源** | 本地 NewAPI（被平台同步覆盖） | TJ models 表 |
+| **价格编辑** | 不允许（平台 SOT） | TJ 编辑表单（客户自己管） |
+| **模型创建** | TJ 加目录 + 对应平台网关 channel | TJ 创建（含 endpoint/apiKey） |
+| **计费归属** | 平台收钱 | 客户自己的成本 |
+| **channel 指向** | 平台网关 | 客户自己的 endpoint |
+
+---
+
+## 8. 边界情况
 
 | 场景 | 处理 |
 |------|------|
-| 模型不在 catalog | fallback `raw.Quota` + 告警 |
-| token 数为零 | fallback `raw.Quota` |
-| 价格为零（免费模型） | 正常算，amount=0 |
-| QPU 被 admin 调整 | 后续 ingest 自动用新值（和充值一样） |
-| 管理员调价 | 立即生效 + 审计记录 |
+| 本地 NewAPI 不可达 | `ListModelsWithPricing` 保留 DB 值，不清零 |
+| 平台不可达（syncer 失败） | 继续用上次同步的价格，不影响服务 |
+| NewAPI 返回慢 | 3s timeout，超时保留 DB 值 |
+| 内置模型编辑 | 价格字段只读，其他字段可改 |
+| 自定义模型 | 完全独立，不受同步影响 |
 
 ---
 
-## 7. 上线策略
+## 9. 实施步骤
 
-```mermaid
-flowchart LR
-    A[Feature Flag 关] -->|对比验证| B[日志同时输出新旧值]
-    B -->|差异可接受| C[Feature Flag 开]
-    C -->|观察| D[删除旧逻辑]
-
-    style A fill:#ffebee
-    style B fill:#fff3e0
-    style C fill:#e8f5e9
-    style D fill:#e8f5e9
-```
-
-1. **灰度 flag**：`SelfPricingEnabled=false`，上线代码但不生效
-2. **对比验证**：日志同时算 `computeAmount()` 和 `raw.Quota`，比较差异
-3. **切换**：确认无异常后开启 flag
-4. **清理**：删除 flag + 旧 sync 链路
-
-**回滚**：任何阶段关 flag 即回到 `raw.Quota`，零风险。
+1. **后端：Service 新增 `ListModelsWithPricing`** — 调 `adminport.ListModelPricing` + join
+2. **后端：Handler `List` 改调 `ListModelsWithPricing`**
+3. **后端：adminport 扩展** — `GetOption` / `UpdateOption`
+4. **后端：platform client** — `GetLatestPricing`
+5. **后端：pricing syncer** — 定时拉取 → 写本地 NewAPI option
+6. **后端：删除旧同步链路** — `SyncPricingFromUpstream`、startup goroutine、`/sync-pricing` 路由
+7. **后端：pricing handler** — sync-status + sync-now
+8. **前端：模型列表加价格列**
+9. **前端：内置模型编辑表单价格只读**
+10. **前端：同步状态指示器**（Local 版本）
 
 ---
 
-## 8. 决策记录
+## 10. 安全性
+
+| 关注点 | 措施 |
+|--------|------|
+| TJ → 本地 NewAPI | `NEW_API_ADMIN_TOKEN` Bearer 认证（内网） |
+| TJ → 平台 | `INSTANCE_API_KEY` Bearer 认证（HTTPS） |
+| 前端不直连 NewAPI | 通过 TJ Service 代理 |
+| Local hack 本地 ratio | 不影响平台计费（Gateway 模式） |
+
+---
+
+## 11. 决策记录
 
 | 决策 | 理由 |
 |------|------|
-| 走充值同一条换算路径 | 系统只有一种展示币→quota 的转换逻辑 |
-| QPU 从 currencies 表动态查 | 和充值/lot 同源，admin 调整全局生效 |
-| QPU 在 snapshot 级别缓存 | batch 内一致，不重复查 DB |
-| 模型未找到时 fallback | 防御性，ingest 不中断 |
-| 保底 1 quota | 防微请求零成本 |
-| 灰度 flag 控制 | 可对比验证，随时回滚 |
-| 删除整条 sync 链路 | TJ 为唯一定价源后完全不需要 |
-| 加审计表 | 定价变更可追溯 |
+| 模型目录留 TJ | 外键/路由/白名单深度依赖 UUID |
+| 价格读本地 NewAPI | syncer 已同步，实时读最简单 |
+| 旧 SyncPricingFromUpstream 删除 | 被 pricing syncer 完整替代（更可靠、有版本管理） |
+| Service 层封装 | 调用方无需知道价格来源 |
+| 两个方法分离 | 热路径不付 HTTP 开销 |
+| NewAPI 不可达时不清零 | 保留 DB 值比展示 0 更安全 |
+| 自定义模型不受同步影响 | 客户自己的模型，平台不管 |
+| 全量替换 option | 平台是 SOT，Local 不应有"额外"的 ratio |
