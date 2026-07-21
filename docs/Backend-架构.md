@@ -179,7 +179,7 @@ apps/backend/
 | 领域服务 | `service.go`；按流程拆分 `service_<动词>.go` |
 | 领域端口 | `ports.go`（Job enqueuer）；其它端口见 [Backend-结构优化.md §1.3](./Backend-结构优化.md#13-领域端口) |
 | PlatformKey | `platform_key_<动作>.go` |
-| NewAPISync | 子包 `platformkey/`、`provision/`、`provider/`、`modellimits/`、`outbox/`、`policy/`；根包 `sync.go` + `lifecycle_iface.go` |
+| NewAPISync | 子包 `platformkey/`、`provision/`、`provider/`、`outbox/`、`policy/`；根包 `sync.go` + `lifecycle_iface.go` |
 | 投影 / 对账 | `*_projector.go`、`*_reconcile.go` |
 | org | 子包 `core/`、`structure/`、`remote/` + 动词文件 |
 | Store 大 Repo | `<域>_repo_<主题>.go` |
@@ -352,8 +352,8 @@ sequenceDiagram
 | 操作 | 模式 |
 | --- | --- |
 | Create / Approve / Toggle / Revoke / Rotate / Delete | 同步 Remote-first |
-| Update 配额/白名单 | 同步：先写 DB → `SyncUpdatePlatformKey`，失败回滚 |
-| Rebalance、ModelLimits、Provider Channel | async outbox → Worker |
+| Update 配额/白名单 | 同步：先写 DB → `SyncUpdatePlatformKey`(status+group)，失败回滚 |
+| Provider Channel | async outbox → Worker |
 
 Rotate 使用 NewAPI `POST /api/token/{id}/regenerate`，保持 `newapi_key_id` 不变以利 ingest 入账。细节与未完成项见 [工程收口.md](./工程收口.md)。
 
@@ -392,15 +392,15 @@ flowchart TB
 
 | 组件               | 包              | 职责                                      |
 | ------------------ | --------------- | ----------------------------------------- |
-| `adminport.Port`   | `domain/adminport` + `integration/newapi` adapter | NewAPI Admin 写操作边界 |
+| `adminport.Port`   | `domain/adminport` + `integration/newapi` | NewAPI Admin 写操作边界 |
 | `NewAPISync`       | `domain/newapisync` | Create/Update/Disable NewAPIKey；同步 Channel；注入 `adminport.Port` |
 | `IngestService`    | `domain/usage`      | Webhook 入账（不依赖 NewAPISync）             |
-| `RebalanceService` | `domain/budget`     | point → `remain_quota`（封顶 Postgres 钱包）；`adminport.Port` 更新 token |
+| `RebalanceService` | `domain/budget`     | point → `remain_quota`（封顶 Postgres 钱包）  |
 | `OverrunService`   | `domain/budget`     | 超限封禁 Key                                  |
-| `PrecheckService`  | `domain/gateway`    | `LoadPrecheckContext` + `Evaluate()`（纯内存预检） |
+| `PrecheckService`  | `domain/gateway`    | `LoadPrecheckContext` + `Evaluate()`（纯内存预检，含模型白名单检查） |
 | `GatewayService`   | `domain/gateway`    | `/v1` 鉴权 + Precheck + 反代 NewAPI           |
 
-**`adminport.Port` 消费者：** `newapisync`、`billing.Service`（TopUp）、`budget.RebalanceService`（UpdateToken）、`models.Service`（RebuildAbilities）、`company.Service`（CreateUser）。
+**`adminport.Port` 消费者：** `newapisync`、`models.Service`（RebuildAbilities + ListModelPricing）、`company.Service`（CreateUser）。
 
 **NewAPISync 子接口（嵌入组合，DI 收窄）：**
 
@@ -408,18 +408,16 @@ flowchart TB
 | ------ | ---- |
 | `PlatformKeyLifecycle` | Create / Update / Revoke / Rotate / Disable |
 | `ProviderKeyLifecycle` | Upsert channel |
-| `ModelLimitsLifecycle` | 部门模型白名单同步 |
 | `RebalanceEnqueuer` | Rebalance outbox 入队 |
 
 | 消费者 | 接口 |
 | ------ | ---- |
 | `keys` | `KeysNewAPISync`（`NewAPIGate` + Platform + Provider） |
-| `models` / `org` | `ModelLimitsLifecycle` |
 | `overrun` | `OverrunKeyControl`（`NewAPIGate` + `DisablePlatformKey`） |
-| Worker newapi_sync outbox | `OutboxHandler`（Platform + Provider + ModelLimits + Rebalance） |
+| Worker newapi_sync outbox | `OutboxHandler`（Platform + Provider） |
 | `app` 装配 | `Lifecycle`（上述全部 + `NewAPIGate`） |
 
-实现位于 `domain/newapisync/` 子包（`platformkey/`、`provider/`、`modellimits/` 等）；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [Backend-离线任务.md](./Backend-离线任务.md) 与 [Backend-NewAPI-Provision架构.md](./Backend-NewAPI-Provision架构.md)。
+实现位于 `domain/newapisync/` 子包（`platformkey/`、`provider/`、`outbox/`、`policy/`）；`NewAPISync` 注入 `PlatformKeyMappingRepository`；outbox 入队经 `river.Client`（kind `newapi_sync`）。详见 [Backend-离线任务.md](./Backend-离线任务.md) 与 [Backend-NewAPI-Provision架构.md](./Backend-NewAPI-Provision架构.md)。
 
 ### 7.1 后台运行时（简化后）
 

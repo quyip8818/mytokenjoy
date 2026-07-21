@@ -10,7 +10,7 @@
 | --------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | 公司 / 组织 / 模型 catalog / platform_keys 行       | ✅ `apply/`   | —                                                                                                                                               |
 | `platform_key_mappings` + `key_hash` 落地           | ❌            | 本地：`dev-bootstrap`（`provision.Bootstrap`）；生产：用户 Create → `SyncPlatformKeyCreate`                                                     |
-| NewAPI Token `group` / `model_limits` / secret      | ❌            | `TrySyncCreate` / `SyncUpdatePlatformKey`；River 仅重试 outbox（`create_key`、`update_model_limits` 等）                                        |
+| NewAPI Token `group` / secret                       | ❌            | `TrySyncCreate` / `SyncUpdatePlatformKey`；River 仅重试 outbox（`create_key`、`upsert_channel` 等）                                        |
 | `companies.newapi_wallet_company_id`                | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004)                                                                                    |
 | NewAPI `UserUsableGroups`                           | ❌            | `EnsureGroup`（Create 路径）+ 本地脚本保险                                                                                                      |
 
@@ -45,8 +45,8 @@
 
 ### FIX-SEED-003 — 改 seed 后 NewAPI token 未更新
 
-**仍然适用**：Seed 只改 Postgres 行；`model_limits` 在 sync 时计算。已 synced 的 mapping 不会自动重算。  
-**修复**：Rotate 相关 Key 或 `docker:reset`。bootstrap 已 enqueue `OutboxKindUpdateModelLimits`。
+**仍然适用**：Seed 只改 Postgres 行；NewAPI token status/group 在 sync 时推送。已 synced 的 mapping 不会自动重算。  
+**修复**：Rotate 相关 Key 或 `docker:reset`。bootstrap reconcile 会对齐 status + group。
 
 ### FIX-SEED-004 — Demo 公司无 `newapi_wallet_company_id` ✅
 

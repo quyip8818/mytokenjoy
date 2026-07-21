@@ -303,7 +303,7 @@ quota_granted = Round(amount_display × QPU(currency))
 
 ```text
 pkg/common/constants.go          DefaultBillingCurrency / DefaultQuotaPerUnit
-pkg/newapiunits/quota.go         FormatModelLimits / EffectiveWhitelistIDs / NewAPIGroupForDepartment
+pkg/newapiunits/quota.go         NewAPIGroupForDepartment
 
 domain/billing/currency.go       ResolveCompanyChargeRate / resolveQuotaPerUnit
 domain/billing/lot*.go           BuildPaidLot / Confirm / ConsumeLots
