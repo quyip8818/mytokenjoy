@@ -34,7 +34,7 @@ export function FakeDashboard() {
         <main className="flex-1 overflow-hidden p-8 opacity-60">
           {/* Stats row */}
           <div className="grid grid-cols-4 gap-4">
-            {['12,580', '¥48,200', '23', '1,247'].map((val, i) => (
+            {['12,580', '¥48,200', '23', '1,247'].map((_, i) => (
               <div key={i} className="rounded-lg border border-border bg-card p-4">
                 <div className="h-3 w-16 rounded bg-muted/70" />
                 <div className="mt-2 h-5 w-20 rounded bg-muted/50" />

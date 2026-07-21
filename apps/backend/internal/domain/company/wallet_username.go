@@ -7,7 +7,8 @@ import (
 )
 
 // WalletUsername derives a deterministic NewAPI wallet username from a company UUID.
-// Returns the UUID hex without hyphens (32 chars, within NewAPI's 40-char limit).
+// Returns "w_" + first 16 hex digits (18 chars total, within NewAPI's 20-char default limit).
 func WalletUsername(id uuid.UUID) string {
-	return strings.ReplaceAll(id.String(), "-", "")
+	hex := strings.ReplaceAll(id.String(), "-", "")
+	return "w_" + hex[:16]
 }

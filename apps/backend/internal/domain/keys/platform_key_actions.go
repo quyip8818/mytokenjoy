@@ -61,7 +61,8 @@ func (s *service) RotatePlatformKey(ctx context.Context, id uuid.UUID) (types.Pl
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			key := platformKeys[i]
-			key.FullKey = &fullKey
+			displayKey := "sk-" + fullKey
+			key.FullKey = &displayKey
 			return s.enrichPlatformKeyResponse(ctx, key)
 		}
 	}
