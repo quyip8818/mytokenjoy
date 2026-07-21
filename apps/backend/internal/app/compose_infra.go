@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
@@ -44,7 +46,11 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 	if adminPortOverride != nil {
 		adminPort = adminPortOverride
 	} else {
-		adminPort = newapi.NewPort(cfg.NewAPIBaseURL, cfg.NewAPIAdminToken, cfg.NewAPIAdminUserID)
+		port, err := buildAdminPort(context.Background(), cfg, logger)
+		if err != nil {
+			return infra{}, err
+		}
+		adminPort = port
 	}
 	if enqueuer == nil {
 		enqueuer = jobs.NoopEnqueuer{}
@@ -83,4 +89,28 @@ func buildVerifyCodeService(cfg config.Config, notifier verifycode.Notifier, log
 		return nil
 	}
 	return svc
+}
+
+// buildAdminPort creates the NewAPI admin port by reading the admin token
+// directly from NewAPI's database (same Postgres instance, "newapi" database).
+func buildAdminPort(ctx context.Context, cfg config.Config, logger *slog.Logger) (adminport.Port, error) {
+	if !cfg.NewAPIEnabled || strings.TrimSpace(cfg.NewAPIBaseURL) == "" {
+		return nil, nil
+	}
+	newAPIDSN := cfg.NewAPIDatabaseURL
+	if newAPIDSN == "" {
+		derived, err := newapi.DeriveNewAPIDSN(cfg.DatabaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("derive NewAPI DSN: %w", err)
+		}
+		newAPIDSN = derived
+	}
+	tokenStore := newapi.NewTokenStore(newAPIDSN, cfg.NewAPIAdminUserID)
+	token, err := tokenStore.FetchToken(ctx)
+	if err != nil {
+		return nil, newapi.FormatError(err)
+	}
+	logger.Info("newapi admin token loaded from database")
+	client := newapi.NewClient(cfg.NewAPIBaseURL, token, cfg.NewAPIAdminUserID)
+	return newapi.NewSelfHealingPort(client, tokenStore), nil
 }

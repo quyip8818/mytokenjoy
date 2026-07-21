@@ -39,12 +39,6 @@ func WithNewAPIBaseURL(baseURL string) ConfigOption {
 	}
 }
 
-func WithNewAPIAdminToken(token string) ConfigOption {
-	return func(cfg *config.Config) {
-		cfg.NewAPIAdminToken = token
-	}
-}
-
 func WithBootstrapMode(mode string) ConfigOption {
 	return func(cfg *config.Config) {
 		cfg.BootstrapMode = mode
@@ -77,7 +71,6 @@ func WithProductionContract() ConfigOption {
 		WithNewAPIEnabled(true)(cfg)
 		cfg.GatewayEnabled = true
 		WithNewAPIBaseURL("http://127.0.0.1:3000")(cfg)
-		WithNewAPIAdminToken("admin-token")(cfg)
 		if cfg.DatabaseURL == "" {
 			cfg.DatabaseURL = config.DefaultDatabaseURL
 		}
@@ -141,9 +134,8 @@ func TestConfig(opts ...ConfigOption) config.Config {
 			},
 		},
 		NewAPIConfig: config.NewAPIConfig{
-			NewAPIEnabled:    true,
-			NewAPIBaseURL:    "http://newapi.test",
-			NewAPIAdminToken: "token",
+			NewAPIEnabled: true,
+			NewAPIBaseURL: "http://newapi.test",
 		},
 		DataSourceConfig: config.DataSourceConfig{
 			DataSourceCredentialKey: DefaultTestCredentialKey,

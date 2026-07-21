@@ -61,7 +61,6 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
-		testutil.WithNewAPIAdminToken("token"),
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithIngestEnabled(true),
 		testutil.WithNewAPIWebhookSecret("secret"),

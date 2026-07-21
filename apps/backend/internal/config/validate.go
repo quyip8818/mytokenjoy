@@ -79,9 +79,6 @@ func (c Config) validateNewAPI() error {
 	if strings.TrimSpace(c.NewAPIBaseURL) == "" {
 		return fmt.Errorf("NEW_API_BASE_URL is required when NEW_API_ENABLED=true")
 	}
-	if strings.TrimSpace(c.NewAPIAdminToken) == "" {
-		return fmt.Errorf("NEW_API_ADMIN_TOKEN is required when NEW_API_ENABLED=true")
-	}
 	return nil
 }
 

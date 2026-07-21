@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Post docker:reset: start infra, mint NewAPI admin token → apps/backend/.env, optional dev-mock channel.
+# Post docker:reset: start infra, ensure NewAPI root account, optional dev-mock channel.
+# Admin token is no longer written to .env — Backend reads it directly from NewAPI's database.
 
 # shellcheck source=_verify-lib.sh
 source "$(cd "$(dirname "$0")" && pwd)/_verify-lib.sh"
 trap verify_cleanup EXIT
 
 SKIP_CHANNEL=false
-TOKEN_ONLY=false
 for arg in "$@"; do
   case "${arg}" in
     --skip-channel) SKIP_CHANNEL=true ;;
-    --token-only) TOKEN_ONLY=true ;;
+    --token-only)
+      echo "DEPRECATED: --token-only is no longer needed. Backend reads token directly from NewAPI DB."
+      exit 0
+      ;;
     -h|--help)
       cat <<EOF
-Usage: bootstrap-local-after-reset.sh [--token-only] [--skip-channel]
+Usage: bootstrap-local-after-reset.sh [--skip-channel]
 
 Run after pnpm docker:reset (or whenever NewAPI Postgres volume was wiped):
-  --token-only     Mint admin token → apps/backend/.env only (NewAPI must already be up)
-  default          start-infra + token + dev-mock channel (best-effort)
+  default          start-infra + ensure root account + dev-mock channel (best-effort)
   --skip-channel   Skip local-test-model channel setup
 
 Then: pnpm start
@@ -29,23 +31,18 @@ EOF
   esac
 done
 
-if [[ "${TOKEN_ONLY}" == "true" ]]; then
-  echo "== TokenJoy bootstrap:token =="
-  verify_require_tools
-  verify_bootstrap_newapi_admin_token
-  echo ""
-  echo "OK: NEW_API_ADMIN_TOKEN → ${BACKEND_ENV_FILE}"
-  echo "Restart Backend if it is already running."
-  exit 0
-fi
-
 echo "== TokenJoy bootstrap-local-after-reset =="
 
 verify_require_tools
 
 "${VERIFY_SCRIPTS_DIR}/start-infra.sh"
 
-verify_bootstrap_newapi_admin_token
+# Ensure root account exists (needed for NewAPI admin panel access).
+verify_wait_newapi
+verify_newapi_ensure_root
+
+# Mint token into env for verify/channel scripts that still need it.
+verify_newapi_mint_admin_token
 
 if [[ "${SKIP_CHANNEL}" == "true" ]]; then
   verify_info "Skipping dev-mock channel (--skip-channel)"
@@ -58,6 +55,5 @@ fi
 
 echo ""
 echo "Bootstrap complete."
-echo "  NEW_API_ADMIN_TOKEN → ${BACKEND_ENV_FILE}"
-echo "Next: pnpm start   (L1 platform key sync already done by pnpm docker:reset)"
-echo "      If Backend is already running, restart it to load the new token."
+echo "  Backend reads admin token directly from NewAPI database — no .env needed."
+echo "Next: pnpm start"

@@ -317,13 +317,23 @@ verify_run_gate_flow() {
   verify_post_webhook "900001"
 }
 
-# Load apps/backend/.env when NEW_API_ADMIN_TOKEN is unset (verify / channel scripts).
+# Ensure NEW_API_ADMIN_TOKEN is available for scripts that call NewAPI HTTP API.
+# First checks shell env, then .env file, then auto-mints from NewAPI DB.
 verify_load_backend_dotenv() {
-  if [[ -n "${NEW_API_ADMIN_TOKEN}" || ! -f "${BACKEND_ENV_FILE}" ]]; then
+  if [[ -n "${NEW_API_ADMIN_TOKEN}" ]]; then
     return 0
   fi
-  # shellcheck disable=SC1090
-  set -a && source "${BACKEND_ENV_FILE}" && set +a
+  # Try sourcing .env (legacy / fallback).
+  if [[ -f "${BACKEND_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1090
+    set -a && source "${BACKEND_ENV_FILE}" && set +a
+    if [[ -n "${NEW_API_ADMIN_TOKEN:-}" ]]; then
+      return 0
+    fi
+  fi
+  # Auto-mint: login to NewAPI and fetch the admin token.
+  verify_newapi_ensure_root
+  verify_newapi_mint_admin_token
 }
 
 verify_write_env_var() {
@@ -425,12 +435,13 @@ verify_assert_newapi_admin_token() {
   verify_info "NEW_API_ADMIN_TOKEN verified against NewAPI"
 }
 
+# DEPRECATED: Backend now reads token directly from NewAPI's database.
+# This function is kept for backward compat but no longer writes to .env.
 verify_bootstrap_newapi_admin_token() {
   verify_require_tools
   verify_wait_newapi
   verify_newapi_ensure_root
   verify_newapi_mint_admin_token
   verify_assert_newapi_admin_token
-  verify_write_env_var "${BACKEND_ENV_FILE}" "NEW_API_ADMIN_TOKEN" "${NEW_API_ADMIN_TOKEN}"
-  verify_info "Wrote NEW_API_ADMIN_TOKEN to ${BACKEND_ENV_FILE}"
+  verify_info "NEW_API_ADMIN_TOKEN available in shell env (Backend reads from NewAPI DB directly)"
 }

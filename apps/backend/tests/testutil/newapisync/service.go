@@ -61,7 +61,6 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 	base := []testutil.ConfigOption{
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
-		testutil.WithNewAPIAdminToken("token"),
 	}
 	cfg, st := testutil.NewTestStore(t, append(base, cfgOpts...)...)
 	if !opts.SkipWalletSeed {

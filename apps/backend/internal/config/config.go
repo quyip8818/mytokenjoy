@@ -44,7 +44,7 @@ type DatabaseConfig struct {
 type NewAPIConfig struct {
 	NewAPIEnabled       bool   `env:"NEW_API_ENABLED" envDefault:"true"`
 	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
-	NewAPIAdminToken    string `env:"NEW_API_ADMIN_TOKEN"`
+	NewAPIDatabaseURL   string `env:"NEW_API_DATABASE_URL"` // optional; derived from DATABASE_URL if empty
 	NewAPIAdminUserID   int64  `env:"NEW_API_ADMIN_USER_ID" envDefault:"1"`
 	NewAPIWebhookSecret string `env:"NEW_API_WEBHOOK_SECRET"`
 	GatewayEnabled      bool   `env:"NEW_API_GATEWAY_ENABLED" envDefault:"false"`

@@ -31,15 +31,6 @@ func NewClient(baseURL, adminToken string, adminUserID int64) *Client {
 	}
 }
 
-// NewPort returns an adminport.Port backed by a NewAPI HTTP client.
-// Returns nil when baseURL is empty (NewAPI disabled).
-func NewPort(baseURL, adminToken string, adminUserID int64) adminport.Port {
-	if strings.TrimSpace(baseURL) == "" {
-		return nil
-	}
-	return NewClient(baseURL, adminToken, adminUserID)
-}
-
 var _ adminport.Port = (*Client)(nil)
 
 type apiResponse struct {

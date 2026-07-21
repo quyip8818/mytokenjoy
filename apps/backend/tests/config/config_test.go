@@ -151,8 +151,8 @@ func TestLocalRequiresNewAPIStack(t *testing.T) {
 	if !cfg.NewAPIEnabled {
 		t.Fatalf("expected newapi enabled, got %v", cfg.NewAPIEnabled)
 	}
-	if strings.TrimSpace(cfg.NewAPIBaseURL) == "" || strings.TrimSpace(cfg.NewAPIAdminToken) == "" {
-		t.Fatal("expected newapi credentials in local config")
+	if strings.TrimSpace(cfg.NewAPIBaseURL) == "" {
+		t.Fatal("expected newapi base url in local config")
 	}
 }
 

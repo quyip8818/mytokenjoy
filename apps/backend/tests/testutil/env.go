@@ -14,7 +14,6 @@ func ApplyLocalEnv(t *testing.T) {
 	t.Setenv("NEW_API_ENABLED", "true")
 	t.Setenv("NEW_API_GATEWAY_ENABLED", "false")
 	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3000")
-	t.Setenv("NEW_API_ADMIN_TOKEN", "admin-token")
 	t.Setenv("SESSION_SECRET", TestSessionSecret)
 	t.Setenv("DATA_SOURCE_CREDENTIAL_KEY", DefaultTestCredentialKey)
 }

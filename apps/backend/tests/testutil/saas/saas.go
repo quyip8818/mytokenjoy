@@ -144,7 +144,6 @@ func (m *NewAPIMock) SetQuota(userID, quota int64) {
 func (m *NewAPIMock) ApplyToConfig(cfg *config.Config) {
 	cfg.NewAPIEnabled = true
 	cfg.NewAPIBaseURL = m.Server.URL
-	cfg.NewAPIAdminToken = "test-token"
 }
 
 type CreateCompanyHTTPResult struct {

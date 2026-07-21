@@ -25,7 +25,6 @@ func newBudgetIngestFixture(t *testing.T, stub *mock.StubAdminClient) (config.Co
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithNewAPIBaseURL("http://newapi.test"),
-		testutil.WithNewAPIAdminToken("token"),
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithIngestEnabled(true),
 		testutil.WithNewAPIWebhookSecret("secret"),
