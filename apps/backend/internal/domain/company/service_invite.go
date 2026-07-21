@@ -103,5 +103,5 @@ func randomInviteCode() (string, error) {
 }
 
 func randomPassword() string {
-	return secrets.RandomHex(16)
+	return secrets.RandomHex(10) // 20 hex chars — NewAPI max password length is 20
 }

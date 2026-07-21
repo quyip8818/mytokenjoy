@@ -2,6 +2,7 @@ package register
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -279,6 +280,7 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 		Type:     store.CompanyTypeTrial,
 	})
 	if err != nil {
+		slog.Error("register/company: CreateCompany failed", "error", err, "user_id", userID)
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
 		return
 	}
