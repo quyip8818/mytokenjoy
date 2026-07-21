@@ -5,15 +5,13 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
-	"github.com/tokenjoy/backend/tests/testutil"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestGetReservedPoolForMember(t *testing.T) {
 	t.Parallel()
-	snapshot := seed.Load(testutil.TestConfig())
+	snapshot := cachedSnapshot()
 	tree := types.OrgNodesToBudgetTree(snapshot.OrgNodes)
 	members := snapshot.Members
 

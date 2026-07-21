@@ -25,100 +25,89 @@ func postJSON(router http.Handler, path string, body any, cookie string) *httpte
 	return rec
 }
 
-func TestLogin_EmailPassword_Success(t *testing.T) {
+func TestLoginEndpoints(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 
-	rec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":     "zhangsan@example.com",
-		"password":  contract.DemoPassword,
-		"companyId": contract.DefaultCompanyID,
-	}, "")
+	t.Run("EmailPassword_Success", func(t *testing.T) {
+		t.Parallel()
+		rec := postJSON(router, "/api/auth/login", map[string]any{
+			"email":     "zhangsan@example.com",
+			"password":  contract.DemoPassword,
+			"companyId": contract.DefaultCompanyID,
+		}, "")
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
-	}
-	var resp map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if resp["memberId"] == nil || resp["memberId"] == "" {
-		t.Error("expected memberId in response")
-	}
-}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+		}
+		var resp map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if resp["memberId"] == nil || resp["memberId"] == "" {
+			t.Error("expected memberId in response")
+		}
+	})
 
-func TestLogin_EmailPassword_WrongPassword(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
+	t.Run("EmailPassword_WrongPassword", func(t *testing.T) {
+		t.Parallel()
+		rec := postJSON(router, "/api/auth/login", map[string]any{
+			"email":     "zhangsan@example.com",
+			"password":  "wrong-password",
+			"companyId": contract.DefaultCompanyID,
+		}, "")
 
-	rec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":     "zhangsan@example.com",
-		"password":  "wrong-password",
-		"companyId": contract.DefaultCompanyID,
-	}, "")
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
+	t.Run("PhonePassword_Success", func(t *testing.T) {
+		t.Parallel()
+		rec := postJSON(router, "/api/auth/login", map[string]any{
+			"email":    "13812341234",
+			"password": contract.DemoPassword,
+		}, "")
 
-func TestLogin_PhonePassword_Success(t *testing.T) {
-	// ponytail: seed template may cache phones without +86 prefix.
-	// In production, registration always applies FormatPhone.
-	// This test validates the handler logic assuming normalized storage.
-	// If template is stale (phones stored as bare "138..."), this will fail until template is rebuilt.
-	t.Parallel()
-	router := testhttp.NewRouter(t)
+		// Accept 200 (fresh template with +86 phones) or 401 (stale template).
+		if rec.Code != http.StatusOK && rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 200 or 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
 
-	rec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":    "13812341234",
-		"password": contract.DemoPassword,
-	}, "")
+	t.Run("PhonePassword_WrongPassword", func(t *testing.T) {
+		t.Parallel()
+		rec := postJSON(router, "/api/auth/login", map[string]any{
+			"email":    "13812341234",
+			"password": "bad-password",
+		}, "")
 
-	// Accept 200 (fresh template with +86 phones) or 401 (stale template).
-	if rec.Code != http.StatusOK && rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 200 or 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
 
-func TestLogin_PhonePassword_WrongPassword(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
+	t.Run("PhonePassword_NonexistentPhone", func(t *testing.T) {
+		t.Parallel()
+		rec := postJSON(router, "/api/auth/login", map[string]any{
+			"email":    "19999999999",
+			"password": "whatever",
+		}, "")
 
-	rec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":    "13812341234",
-		"password": "bad-password",
-	}, "")
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
+	t.Run("MissingCredentials", func(t *testing.T) {
+		t.Parallel()
+		rec := postJSON(router, "/api/auth/login", map[string]any{
+			"email":    "",
+			"password": "",
+		}, "")
 
-func TestLogin_PhonePassword_NonexistentPhone(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-
-	rec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":    "19999999999",
-		"password": "whatever",
-	}, "")
-
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestLogin_MissingCredentials(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-
-	rec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":    "",
-		"password": "",
-	}, "")
-
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", rec.Code)
-	}
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", rec.Code)
+		}
+	})
 }

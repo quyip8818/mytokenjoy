@@ -13,58 +13,58 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestBareMemberIDCookieRejected(t *testing.T) {
+func TestAuthzSecurityReadOnly(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member=m-admin", "", nil)
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
 
-func TestBareBearerMemberIDRejected(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "", "", map[string]string{
-		"Authorization": "Bearer m-admin",
+	t.Run("BareMemberIDCookieRejected", func(t *testing.T) {
+		t.Parallel()
+		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member=m-admin", "", nil)
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
 	})
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
 
-func TestTamperedJWTRejected(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-	token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, contract.IDMemberAdmin)
-	tampered := token + "x"
-	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member="+tampered, "", nil)
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
+	t.Run("BareBearerMemberIDRejected", func(t *testing.T) {
+		t.Parallel()
+		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "", "", map[string]string{
+			"Authorization": "Bearer m-admin",
+		})
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
 
-func TestJWTCompanyMismatchRejected(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-	cookie := testutil.SessionCookieForCompany(t, uuid.MustParse("00000000-0000-7000-0000-000000000999"), contract.IDMemberAdmin)
-	rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", cookie, "", nil)
-	if rec.Code != http.StatusUnauthorized && rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 401 or 400, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
+	t.Run("TamperedJWTRejected", func(t *testing.T) {
+		t.Parallel()
+		token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, contract.IDMemberAdmin)
+		tampered := token + "x"
+		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member="+tampered, "", nil)
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
 
-func TestAuthLoginIssuesJWTCookie(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-	rec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/auth/login", "", `{"email":"admin@example.com","password":"demo1234"}`, nil)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
-	}
-	setCookie := rec.Header().Get("Set-Cookie")
-	if !strings.Contains(setCookie, "tokenjoy_session_member=") {
-		t.Fatalf("expected session cookie, got %q", setCookie)
-	}
+	t.Run("JWTCompanyMismatchRejected", func(t *testing.T) {
+		t.Parallel()
+		cookie := testutil.SessionCookieForCompany(t, uuid.MustParse("00000000-0000-7000-0000-000000000999"), contract.IDMemberAdmin)
+		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/org/departments/tree", cookie, "", nil)
+		if rec.Code != http.StatusUnauthorized && rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 401 or 400, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("AuthLoginIssuesJWTCookie", func(t *testing.T) {
+		t.Parallel()
+		rec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/auth/login", "", `{"email":"admin@example.com","password":"demo1234"}`, nil)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+		}
+		setCookie := rec.Header().Get("Set-Cookie")
+		if !strings.Contains(setCookie, "tokenjoy_session_member=") {
+			t.Fatalf("expected session cookie, got %q", setCookie)
+		}
+	})
 }
 
 func TestDisabledMemberSessionRejected(t *testing.T) {

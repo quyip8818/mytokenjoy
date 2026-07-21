@@ -10,6 +10,7 @@ import (
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -223,7 +224,7 @@ func (h *Handler) SelectCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := h.resolveRegisterUser(r)
+	userID, err := h.registerToken.ResolveUserID(r)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, "register session expired or invalid")
 		return
@@ -254,20 +255,6 @@ func (h *Handler) SelectCompany(w http.ResponseWriter, r *http.Request) {
 
 // --- Register session helpers ---
 
-const registerCookieName = "tokenjoy_register_session"
-
-func (h *Handler) resolveRegisterUser(r *http.Request) (uuid.UUID, error) {
-	cookie, err := r.Cookie(registerCookieName)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	claims, err := h.registerToken.Parse(cookie.Value)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	return claims.UserID, nil
-}
-
 func (h *Handler) issueTokenPairAndRespond(w http.ResponseWriter, r *http.Request, companyID, memberID, userID uuid.UUID, payload map[string]any, clearRegister bool) {
 	_, err := httpx.IssueTokenPair(r.Context(), w, r, httpx.TokenPairParams{
 		Secret:        h.pub.SessionToken.Secret(),
@@ -281,7 +268,7 @@ func (h *Handler) issueTokenPairAndRespond(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if clearRegister {
-		clearRegisterSessionCookie(w)
+		registertoken.ClearCookie(w)
 	}
 	httputil.WriteJSON(w, http.StatusOK, payload, nil)
 }
@@ -292,29 +279,6 @@ func (h *Handler) issueRegisterSessionAndRespond(w http.ResponseWriter, userID u
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	setRegisterSessionCookie(w, regToken, h.pub.SecureCookie)
+	registertoken.SetCookie(w, regToken, h.pub.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, payload, nil)
-}
-
-func setRegisterSessionCookie(w http.ResponseWriter, token string, secure bool) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     registerCookieName,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   secure,
-		MaxAge:   600,
-	})
-}
-
-func clearRegisterSessionCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     registerCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   -1,
-		SameSite: http.SameSiteLaxMode,
-	})
 }

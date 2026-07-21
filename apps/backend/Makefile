@@ -4,7 +4,7 @@ export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslm
 export COMPANY_NAME ?= Demo Company
 export SESSION_SECRET ?= tokenjoy-dev-session-secret
 TEST_PARALLEL ?= 8
-TEST_PKG_PARALLEL ?= 2
+TEST_PKG_PARALLEL ?= 4
 
 AIR_VERSION ?= v1.65.3
 AIR := $(shell go env GOPATH)/bin/air

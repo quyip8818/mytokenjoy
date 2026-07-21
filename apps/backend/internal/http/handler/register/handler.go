@@ -19,8 +19,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const registerSessionCookie = "tokenjoy_register_session"
-
 // Handler implements POST /auth/register/* endpoints (SaaS only).
 type Handler struct {
 	companySvc          domaincompany.Service
@@ -177,7 +175,7 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	setRegisterSessionCookie(w, regToken, h.secureCookie)
+	registertoken.SetCookie(w, regToken, h.secureCookie)
 
 	httputil.WriteJSON(w, http.StatusOK, initResponseChoose{
 		Action:  "choose",
@@ -288,15 +286,7 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) resolveRegisterUser(r *http.Request) (uuid.UUID, error) {
-	cookie, err := r.Cookie(registerSessionCookie)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	claims, err := h.registerToken.Parse(cookie.Value)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	return claims.UserID, nil
+	return h.registerToken.ResolveUserID(r)
 }
 
 func (h *Handler) issueSessionAndRespond(w http.ResponseWriter, r *http.Request, member types.Member) {
@@ -333,32 +323,9 @@ func (h *Handler) issueSessionAndRespond(w http.ResponseWriter, r *http.Request,
 
 	httpx.SetSessionCookie(w, accessToken, h.secureCookie)
 	httpx.SetRefreshCookie(w, refreshRaw, h.secureCookie, h.refreshTTLSec)
-	clearRegisterSessionCookie(w)
+	registertoken.ClearCookie(w)
 	httputil.WriteJSON(w, http.StatusOK, acceptResponse{
 		MemberID:  member.ID,
 		CompanyID: member.CompanyID,
 	}, nil)
-}
-
-func setRegisterSessionCookie(w http.ResponseWriter, token string, secure bool) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     registerSessionCookie,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   secure,
-		MaxAge:   600, // 10 min
-	})
-}
-
-func clearRegisterSessionCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     registerSessionCookie,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   -1,
-		SameSite: http.SameSiteLaxMode,
-	})
 }

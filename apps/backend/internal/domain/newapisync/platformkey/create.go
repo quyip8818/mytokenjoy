@@ -81,6 +81,18 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 		return "", fmt.Errorf("platform key mapping missing for %s", platformKeyID)
 	}
 	departmentID := existing.DepartmentID
+	if departmentID == uuid.Nil && key.ProjectID != nil {
+		// Project-scope keys have no member; resolve via project's OwnerDepartmentID.
+		projects, pErr := d.Store.Budget().Projects(ctx)
+		if pErr == nil {
+			for _, p := range projects {
+				if p.ID == *key.ProjectID {
+					departmentID = p.OwnerDepartmentID
+					break
+				}
+			}
+		}
+	}
 	if departmentID == uuid.Nil {
 		return "", fmt.Errorf("department not resolved for key")
 	}

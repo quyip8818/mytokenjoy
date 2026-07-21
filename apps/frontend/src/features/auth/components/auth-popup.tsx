@@ -58,6 +58,7 @@ export function AuthPopup({
   const [industry, setIndustry] = useState('')
   const [size, setSize] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   // Multi-select state
@@ -78,6 +79,7 @@ export function AuthPopup({
     setMode(newMode)
     setStep(newMode === 'login' ? 'login-phone-pw' : 'register-phone')
     setError(null)
+    setSuccessMessage(null)
   }, [])
 
   // --- Login: phone + password ---
@@ -87,6 +89,7 @@ export function AuthPopup({
       if (!phone.trim() || !password) return
       setSubmitting(true)
       setError(null)
+      setSuccessMessage(null)
       try {
         const result = await authApi.login({ email: phone.trim(), password })
         if ('action' in result && result.action === 'select_company') {
@@ -126,7 +129,7 @@ export function AuthPopup({
             setStep('select-invite')
             break
           case 'not_found':
-            setError('该手机号尚未注册')
+            setError('该手机号尚未加入任何企业，请切换到注册')
             break
         }
       } catch (err) {
@@ -214,7 +217,13 @@ export function AuthPopup({
           setError('该手机号已注册，请切换到登录')
           return
         }
-        // User created + register session set. Move to company name step.
+        // result.action === 'choose' — check if there are pending invites.
+        if (result.invites && result.invites.length > 0) {
+          setInvites(result.invites)
+          setStep('select-invite')
+          return
+        }
+        // No invites → move to company creation step.
         setStep('register-info')
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '验证失败')
@@ -261,6 +270,7 @@ export function AuthPopup({
         setStep('login-phone-pw')
         setPassword('')
         setError(null)
+        setSuccessMessage('密码已重置，请使用新密码登录')
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '重置失败')
       } finally {
@@ -333,6 +343,7 @@ export function AuthPopup({
           {/* === LOGIN: phone + password (default) === */}
           {step === 'login-phone-pw' && (
             <form onSubmit={handleLoginPhonePw} className="flex flex-col gap-5">
+              {successMessage && <p className="text-sm text-emerald-600">{successMessage}</p>}
               <div className="space-y-2">
                 <Label htmlFor="lp-phone" className="text-sm font-medium">
                   手机号
@@ -383,6 +394,7 @@ export function AuthPopup({
                   onClick={() => {
                     setStep('login-phone-code')
                     setError(null)
+                    setSuccessMessage(null)
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -393,6 +405,7 @@ export function AuthPopup({
                   onClick={() => {
                     setStep('login-email-pw')
                     setError(null)
+                    setSuccessMessage(null)
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -405,6 +418,7 @@ export function AuthPopup({
                   onClick={() => {
                     setStep('reset-password')
                     setError(null)
+                    setSuccessMessage(null)
                     setCode('')
                   }}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
