@@ -58,7 +58,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 	}
 
 	precheck := NewPrecheckService(cfg, st, nil)
-	gw, err := domaingateway.NewGatewayService(cfg, precheck, nil, nil)
+	gw, err := domaingateway.NewGatewayService(cfg, precheck, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

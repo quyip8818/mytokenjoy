@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/credentials"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
+	"github.com/tokenjoy/backend/internal/infra/gatewaymetrics"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -26,5 +27,5 @@ func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {
 }
 
 func wireGatewayService(cfg config.Config, i infra, logger *slog.Logger) (domaingateway.GatewayService, error) {
-	return domaingateway.NewGatewayService(cfg, wirePrecheckService(cfg, i), i.rateLimiter, logger)
+	return domaingateway.NewGatewayService(cfg, wirePrecheckService(cfg, i), i.rateLimiter, logger, gatewaymetrics.NewRecorder())
 }

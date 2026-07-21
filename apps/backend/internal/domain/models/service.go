@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +19,7 @@ import (
 
 type Service interface {
 	ListModels(ctx context.Context) ([]types.ModelInfo, error)
-	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error)
+	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoWithPricing, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
 	DeleteModel(ctx context.Context, id uuid.UUID) error
@@ -93,8 +92,6 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		Endpoint:          &input.BaseURL,
 		ApiKey:            apiKey,
 		EndpointModelName: endpointModelName,
-		InputPrice:        input.InputPrice,
-		OutputPrice:       input.OutputPrice,
 		MaxContext:        maxContext,
 		MaxTokens:         input.MaxTokens,
 		Enabled:           true,
@@ -107,10 +104,15 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	if err != nil {
 		return types.ModelInfo{}, mapModelPersistError(err)
 	}
-	// Write pricing to NewAPI (SOT for all model pricing)
+	// Write pricing to NewAPI (SOT for all model pricing).
+	// Fail the creation if pricing sync fails — a model without pricing
+	// would cause consume_log quota to use the default ratio (likely 0).
 	if s.client != nil && (input.InputPrice > 0 || input.OutputPrice > 0) {
 		if err := s.client.UpsertModelRatio(ctx, input.Type, input.InputPrice, input.OutputPrice); err != nil {
-			slog.Warn("create model: failed to write pricing to NewAPI", "model", input.Type, "error", err)
+			// Best-effort rollback: remove the local model so we don't leave
+			// an orphan without pricing.
+			_ = s.store.Models().DeleteModel(ctx, created.ID)
+			return types.ModelInfo{}, fmt.Errorf("create model pricing: %w", err)
 		}
 	}
 	return created, nil
@@ -145,15 +147,24 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 	if input.EndpointModelName != nil && existing.IsCustom() {
 		existing.EndpointModelName = input.EndpointModelName
 	}
-	if input.InputPrice != nil {
-		existing.InputPrice = *input.InputPrice
-	}
-	if input.OutputPrice != nil {
-		existing.OutputPrice = *input.OutputPrice
-	}
-	// Write pricing to NewAPI if changed
+	// Write pricing to NewAPI if changed. Resolve current prices for merge.
 	if (input.InputPrice != nil || input.OutputPrice != nil) && s.client != nil {
-		if err := s.client.UpsertModelRatio(ctx, existing.Type, existing.InputPrice, existing.OutputPrice); err != nil {
+		var curInput, curOutput float64
+		if pricing, err := s.client.ListModelPricing(ctx); err == nil {
+			for _, p := range pricing {
+				if p.ModelName == existing.Type {
+					curInput, curOutput = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+					break
+				}
+			}
+		}
+		if input.InputPrice != nil {
+			curInput = *input.InputPrice
+		}
+		if input.OutputPrice != nil {
+			curOutput = *input.OutputPrice
+		}
+		if err := s.client.UpsertModelRatio(ctx, existing.Type, curInput, curOutput); err != nil {
 			return types.ModelInfo{}, fmt.Errorf("update model pricing: %w", err)
 		}
 	}
@@ -355,15 +366,20 @@ func (s *service) UpdateRoutingRule(
 	return common.EnrichRoutingRule(updated, catalog), nil
 }
 
-func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error) {
+func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoWithPricing, error) {
 	models, err := s.store.Models().Models(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	result := make([]types.ModelInfoWithPricing, len(models))
+	for i := range models {
+		result[i] = types.ModelInfoWithPricing{ModelInfo: models[i]}
+	}
+
 	// best-effort: NewAPI 不可达时仍返回模型列表，价格为 0
 	if s.client == nil {
-		return models, nil
+		return result, nil
 	}
 	pricingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -373,10 +389,10 @@ func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo,
 		priceMap[p.ModelName] = p
 	}
 
-	for i := range models {
-		if p, ok := priceMap[models[i].Type]; ok {
-			models[i].InputPrice, models[i].OutputPrice = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+	for i := range result {
+		if p, ok := priceMap[result[i].Type]; ok {
+			result[i].InputPrice, result[i].OutputPrice = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
 		}
 	}
-	return models, nil
+	return result, nil
 }

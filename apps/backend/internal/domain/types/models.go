@@ -21,8 +21,6 @@ type ModelInfo struct {
 	Endpoint          *string   `json:"endpoint,omitempty"`
 	ApiKey            *string   `json:"apiKey,omitempty"`
 	EndpointModelName *string   `json:"endpointModelName,omitempty"`
-	InputPrice        float64   `json:"inputPrice"`
-	OutputPrice       float64   `json:"outputPrice"`
 	MaxContext        int       `json:"maxContext"`
 	MaxTokens         int       `json:"maxTokens"`
 	Enabled           bool      `json:"enabled"`
@@ -31,6 +29,14 @@ type ModelInfo struct {
 
 func (m ModelInfo) IsCustom() bool {
 	return m.Provider == ProviderCustom
+}
+
+// ModelInfoWithPricing extends ModelInfo with pricing data fetched from NewAPI.
+// These prices are NOT persisted in TJ's models table — NewAPI is the SOT for pricing.
+type ModelInfoWithPricing struct {
+	ModelInfo
+	InputPrice  float64 `json:"inputPrice"`
+	OutputPrice float64 `json:"outputPrice"`
 }
 
 type ModelRef struct {

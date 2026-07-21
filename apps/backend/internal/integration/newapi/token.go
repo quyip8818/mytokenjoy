@@ -53,18 +53,37 @@ func validateCreatedToken(req adminport.CreateTokenInput, token Token) error {
 }
 
 func (c *Client) UpdateToken(ctx context.Context, req adminport.UpdateTokenInput) (adminport.TokenResult, error) {
-	// NewAPI UpdateToken replaces the whole row; omitted JSON fields bind as zero
-	// (expired_time=0 → immediately expired; empty name/group wipe platform metadata).
-	cur, err := c.getToken(ctx, req.ID)
-	if err != nil {
-		return adminport.TokenResult{}, err
-	}
-	payload := MergeTokenPut(cur, req)
+	// TJ always creates tokens with unlimited quota, never-expire, no model_limits.
+	// Since we control all writes, we can skip the GET and build the PUT body directly
+	// using these known invariants + the caller-supplied overrides.
+	payload := BuildTokenPut(req)
 	var token Token
 	if err := c.do(ctx, "PUT", "/api/token/", payload, &token); err != nil {
 		return adminport.TokenResult{}, err
 	}
 	return tokenToResult(token), nil
+}
+
+// BuildTokenPut constructs the full PUT payload using TJ's token creation invariants.
+// ponytail: relies on TJ always creating tokens as unlimited/never-expire.
+// If NewAPI-side manual edits break this assumption, revisit.
+func BuildTokenPut(req adminport.UpdateTokenInput) TokenPutBody {
+	status := adminport.TokenStatusEnabled
+	if req.Status != nil {
+		status = *req.Status
+	}
+	expiredTime := TokenExpiredNever
+	if req.ExpiredTime != nil {
+		expiredTime = *req.ExpiredTime
+	}
+	return TokenPutBody{
+		ID:             req.ID,
+		Name:           req.Name,
+		Status:         status,
+		UnlimitedQuota: true,
+		Group:          req.Group,
+		ExpiredTime:    expiredTime,
+	}
 }
 
 func MergeTokenPut(cur Token, req adminport.UpdateTokenInput) TokenPutBody {
