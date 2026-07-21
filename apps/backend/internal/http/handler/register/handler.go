@@ -78,8 +78,9 @@ func (h *Handler) requireRegistration(next http.HandlerFunc) http.HandlerFunc {
 // --- Init ---
 
 type initBody struct {
-	Phone string `json:"phone"`
-	Code  string `json:"code"`
+	Phone    string `json:"phone"`
+	Code     string `json:"code"`
+	Password string `json:"password"`
 }
 
 type initResponseChoose struct {
@@ -99,6 +100,10 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Phone == "" || body.Code == "" {
 		httputil.WriteStatus(w, http.StatusBadRequest, "phone and code required")
+		return
+	}
+	if len(body.Password) < 8 {
+		httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
 		return
 	}
 
@@ -127,15 +132,21 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user == nil {
-		// Create new user.
+		// Create new user with password.
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
 		userID := uuid.Must(uuid.NewV7())
 		now := time.Now().UTC()
 		newUser := store.User{
-			ID:        userID,
-			Phone:     phone,
-			Status:    "active",
-			CreatedAt: now,
-			UpdatedAt: now,
+			ID:           userID,
+			Phone:        phone,
+			PasswordHash: string(passwordHash),
+			Status:       "active",
+			CreatedAt:    now,
+			UpdatedAt:    now,
 		}
 		if err := h.users.Create(ctx, newUser); err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
@@ -151,6 +162,16 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		}
 		if hasMember {
 			httputil.WriteJSON(w, http.StatusOK, initResponseLogin{Action: "login"}, nil)
+			return
+		}
+		// User exists but no member — update password in case they're re-registering.
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+		if err := h.users.UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}
 	}
@@ -231,7 +252,6 @@ type companyBody struct {
 	CompanyName string `json:"companyName"`
 	Industry    string `json:"industry"`
 	Size        string `json:"size"`
-	Password    string `json:"password"`
 }
 
 func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
@@ -244,25 +264,10 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "companyName required")
 		return
 	}
-	if len(body.Password) < 8 {
-		httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
-		return
-	}
 
 	userID, err := h.resolveRegisterUser(r)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, "register session expired or invalid")
-		return
-	}
-
-	// Hash and persist password for the user.
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-		return
-	}
-	if err := h.users.UpdatePassword(r.Context(), userID, string(passwordHash)); err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
 

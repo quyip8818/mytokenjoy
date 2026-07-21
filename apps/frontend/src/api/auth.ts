@@ -26,11 +26,13 @@ export type SmsVerifyResult =
   | { action: 'enter' }
   | { action: 'select_company'; companies: CompanyOption[] }
   | { action: 'choose'; invites: PendingInvite[] }
+  | { action: 'create_company' }
   | { action: 'not_found' }
 
 export type LoginResult =
   | { memberId: string }
   | { action: 'select_company'; companies: CompanyOption[] }
+  | { action: 'create_company' }
 
 export const authApi = {
   login: (input: LoginInput) =>
@@ -63,12 +65,12 @@ export const authApi = {
     }),
 
   // --- Register endpoints ---
-  registerInit: (phone: string, code: string) =>
+  registerInit: (phone: string, code: string, password: string) =>
     request<{ action: 'choose'; invites: PendingInvite[] } | { action: 'login' }>(
       '/auth/register/init',
       {
         method: 'POST',
-        body: JSON.stringify({ phone, code }),
+        body: JSON.stringify({ phone, code, password }),
       },
     ),
 
@@ -78,10 +80,10 @@ export const authApi = {
       body: JSON.stringify({ inviteCode, name }),
     }),
 
-  registerCompany: (companyName: string, password: string, industry: string, size: string) =>
+  registerCompany: (companyName: string, industry: string, size: string) =>
     request<{ memberId: string; companyId: string }>('/auth/register/company', {
       method: 'POST',
-      body: JSON.stringify({ companyName, password, industry, size }),
+      body: JSON.stringify({ companyName, industry, size }),
     }),
 
   // --- Accept invite (unauthenticated, email link) ---

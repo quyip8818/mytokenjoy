@@ -103,6 +103,20 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if len(matched) == 0 {
+			// Check if user exists with valid password but no member (incomplete registration).
+			phone := verifycode.FormatPhone(identifier)
+			user, err := h.users.GetByPhone(ctx, phone)
+			if err != nil {
+				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+				return
+			}
+			if user != nil && user.PasswordHash != "" && verifyPassword(user.PasswordHash, body.Password) == nil {
+				// User exists, password correct, but no member → needs company creation.
+				h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
+					"action": "create_company",
+				})
+				return
+			}
 			httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
 			return
 		}

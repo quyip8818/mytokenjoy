@@ -202,7 +202,10 @@ func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		httputil.WriteJSON(w, http.StatusOK, map[string]any{"action": "not_found"}, nil)
+		// No members and no invites — user needs to create a company.
+		h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
+			"action": "create_company",
+		})
 	}
 }
 

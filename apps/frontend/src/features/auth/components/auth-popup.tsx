@@ -74,13 +74,23 @@ export function AuthPopup({
     step === 'login-phone-pw' || step === 'login-phone-code' || step === 'login-email-pw'
   const showTabs = isLoginStep || step === 'register-phone'
 
-  // --- Tab switch ---
-  const switchTab = useCallback((newMode: AuthMode) => {
-    setMode(newMode)
-    setStep(newMode === 'login' ? 'login-phone-pw' : 'register-phone')
+  // Clear sensitive fields whenever the visible step changes.
+  const changeStep = useCallback((next: AuthStep) => {
+    setStep(next)
+    setPassword('')
+    setConfirmPassword('')
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setCode('')
     setError(null)
     setSuccessMessage(null)
   }, [])
+
+  // --- Tab switch ---
+  const switchTab = useCallback((newMode: AuthMode) => {
+    setMode(newMode)
+    changeStep(newMode === 'login' ? 'login-phone-pw' : 'register-phone')
+  }, [changeStep])
 
   // --- Login: phone + password ---
   const handleLoginPhonePw = useCallback(
@@ -95,6 +105,8 @@ export function AuthPopup({
         if ('action' in result && result.action === 'select_company') {
           setCompanies(result.companies)
           setStep('select-company')
+        } else if ('action' in result && result.action === 'create_company') {
+          setStep('register-info')
         } else {
           onSuccess?.()
         }
@@ -128,8 +140,11 @@ export function AuthPopup({
             setInvites(result.invites)
             setStep('select-invite')
             break
+          case 'create_company':
+            setStep('register-info')
+            break
           case 'not_found':
-            setError('该手机号尚未加入任何企业，请切换到注册')
+            setError('该手机号尚未注册，请切换到注册')
             break
         }
       } catch (err) {
@@ -153,6 +168,8 @@ export function AuthPopup({
         if ('action' in result && result.action === 'select_company') {
           setCompanies(result.companies)
           setStep('select-company')
+        } else if ('action' in result && result.action === 'create_company') {
+          setStep('register-info')
         } else {
           onSuccess?.()
         }
@@ -212,7 +229,7 @@ export function AuthPopup({
       setSubmitting(true)
       setError(null)
       try {
-        const result = await authApi.registerInit(phone.trim(), code.trim())
+        const result = await authApi.registerInit(phone.trim(), code.trim(), password)
         if (result.action === 'login') {
           setError('该手机号已注册，请切换到登录')
           return
@@ -234,15 +251,15 @@ export function AuthPopup({
     [phone, code, password, confirmPassword],
   )
 
-  // --- Register: create company (password already collected in previous step) ---
+  // --- Register: create company (password already stored in init step) ---
   const handleCreateCompany = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-      if (!companyName.trim() || password.length < 8) return
+      if (!companyName.trim()) return
       setSubmitting(true)
       setError(null)
       try {
-        await authApi.registerCompany(companyName.trim(), password, industry, size)
+        await authApi.registerCompany(companyName.trim(), industry, size)
         onSuccess?.()
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '创建失败')
@@ -250,7 +267,7 @@ export function AuthPopup({
         setSubmitting(false)
       }
     },
-    [companyName, password, industry, size, onSuccess],
+    [companyName, industry, size, onSuccess],
   )
 
   // --- Reset password ---
@@ -267,9 +284,7 @@ export function AuthPopup({
       try {
         await authApi.resetPassword(phone.trim(), code.trim(), newPassword)
         // Success → switch back to login with a success message.
-        setStep('login-phone-pw')
-        setPassword('')
-        setError(null)
+        changeStep('login-phone-pw')
         setSuccessMessage('密码已重置，请使用新密码登录')
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '重置失败')
@@ -392,9 +407,7 @@ export function AuthPopup({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('login-phone-code')
-                    setError(null)
-                    setSuccessMessage(null)
+                    changeStep('login-phone-code')
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -403,9 +416,7 @@ export function AuthPopup({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('login-email-pw')
-                    setError(null)
-                    setSuccessMessage(null)
+                    changeStep('login-email-pw')
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -416,10 +427,7 @@ export function AuthPopup({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('reset-password')
-                    setError(null)
-                    setSuccessMessage(null)
-                    setCode('')
+                    changeStep('reset-password')
                   }}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -454,8 +462,7 @@ export function AuthPopup({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('login-phone-pw')
-                    setError(null)
+                    changeStep('login-phone-pw')
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -464,8 +471,7 @@ export function AuthPopup({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('login-email-pw')
-                    setError(null)
+                    changeStep('login-email-pw')
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -520,8 +526,7 @@ export function AuthPopup({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('login-phone-pw')
-                    setError(null)
+                    changeStep('login-phone-pw')
                   }}
                   className="hover:text-foreground transition-colors"
                 >
@@ -590,8 +595,7 @@ export function AuthPopup({
               <button
                 type="button"
                 onClick={() => {
-                  setStep('login-phone-pw')
-                  setError(null)
+                  changeStep('login-phone-pw')
                 }}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
@@ -720,7 +724,7 @@ export function AuthPopup({
               </Button>
               <button
                 type="button"
-                onClick={() => setStep('register-phone')}
+                onClick={() => changeStep('register-phone')}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 ← 返回
