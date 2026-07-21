@@ -70,10 +70,13 @@
 - `model-create.tsx` / `model-edit.tsx` — 自定义模型 CRUD
 - `IsCustom()` / `isCustomModel()` — 区分内置/自定义
 
-**需要新增的**：
+**已实现**：
 - 内置模型的价格展示列（`ListModelsWithPricing`）
 - 内置模型编辑时价格字段只读
-- 同步状态指示器（版本号 + 上次同步时间）
+- 自定义模型价格写入 NewAPI（`UpsertModelRatio`）
+
+**待实现**：
+- 同步状态指示器（版本号 + 上次同步时间）— 需 `handler/pricing/handler.go`
 
 ---
 
@@ -186,15 +189,15 @@ func (s *Syncer) syncOnce(ctx context.Context) {
 
 ## 7. 实施步骤
 
-| 步骤 | 说明 | 工作量 |
-|------|------|--------|
+| 步骤 | 说明 | 状态 |
+|------|------|------|
 | 1. 平台：部署网关 NewAPI | 配置上游 channel，运营人员用自带 UI 管理定价 | 运维配置 |
 | 2. Local：NewAPI channel 指向平台网关 | 部署配置变更 | 运维配置 |
-| 3. 平台：暴露 `GET /api/v1/pricing/latest` | Local syncer 的数据源 | 小 |
-| 4. Local 后端：pricing syncer | 定时拉取 → 写本地 NewAPI option | 小 |
-| 5. Local 后端：adminport 扩展 | GetOption / UpdateOption | 小 |
-| 6. Local 前端：模型列表增强 | 内置模型价格列 + 同步状态 | 小 |
-| 7. 平台：账单模块 | 从网关 log 按实例汇总出账 | 中 |
+| 3. 平台：暴露 `GET /api/v1/pricing/latest` | Local syncer 的数据源 | 待实现 |
+| 4. Local 后端：pricing sync worker | 定时拉取 → 写本地 NewAPI option | ✅ 已实现（feature flag 控制） |
+| 5. Local 后端：adminport 扩展 | UpdateOption / UpsertModelRatio | ✅ 已实现 |
+| 6. Local 前端：模型列表增强 | 内置模型价格列 + 编辑只读 | ✅ 已实现 |
+| 7. 平台：账单模块 | 从网关 log 按实例汇总出账 | 待实现 |
 
 ---
 

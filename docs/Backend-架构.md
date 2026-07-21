@@ -400,7 +400,7 @@ flowchart TB
 | `PrecheckService`  | `domain/gateway`    | `LoadPrecheckContext` + `Evaluate()`（纯内存预检，含模型白名单检查） |
 | `GatewayService`   | `domain/gateway`    | `/v1` 鉴权 + Precheck + 反代 NewAPI           |
 
-**`adminport.Port` 消费者：** `newapisync`、`models.Service`（RebuildAbilities + ListModelPricing）、`company.Service`（CreateUser）。
+**`adminport.Port` 消费者：** `newapisync`、`models.Service`（RebuildAbilities + ListModelPricing + UpsertModelRatio）、`company.Service`（CreateUser）、`pricingsync.Worker`（UpdateOption）。
 
 **NewAPISync 子接口（嵌入组合，DI 收窄）：**
 
