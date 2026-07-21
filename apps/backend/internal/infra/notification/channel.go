@@ -16,3 +16,11 @@ type Channel interface {
 	// Send delivers a rendered message to the given recipient.
 	Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error
 }
+
+// DirectSender is an optional interface a Channel can implement to support
+// sending directly to an address (phone/email) without recipient ID resolution.
+// Used by verification code flows where the recipient may not exist yet.
+type DirectSender interface {
+	// SendDirect delivers a rendered message directly to the given address.
+	SendDirect(ctx context.Context, address string, msg domainnotification.RenderedMessage) error
+}

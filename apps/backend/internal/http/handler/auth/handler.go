@@ -9,35 +9,40 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/identity/sms"
+	"github.com/tokenjoy/backend/internal/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Handler struct {
-	pub        httpdeps.Public
-	companySvc domaincompany.Service
-	users      store.UserRepository
-	org        store.OrgRepository
-	sessions   store.SessionRepository
-	invites    store.InviteRepository
-	sms        *sms.Service
+	pub           httpdeps.Public
+	companySvc    domaincompany.Service
+	users         store.UserRepository
+	org           store.OrgRepository
+	sessions      store.SessionRepository
+	invites       store.InviteRepository
+	verifyCode    *verifycode.Service
+	registerToken *registertoken.Issuer
 }
 
 func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
-	users store.UserRepository, org store.OrgRepository, sessions store.SessionRepository, invites store.InviteRepository, smsSvc *sms.Service) *Handler {
+	users store.UserRepository, org store.OrgRepository, sessions store.SessionRepository,
+	invites store.InviteRepository, vc *verifycode.Service, regToken *registertoken.Issuer) *Handler {
 	return &Handler{
-		pub:        pub,
-		companySvc: companySvc,
-		users:      users,
-		org:        org,
-		sessions:   sessions,
-		invites:    invites,
-		sms:        smsSvc,
+		pub:           pub,
+		companySvc:    companySvc,
+		users:         users,
+		org:           org,
+		sessions:      sessions,
+		invites:       invites,
+		verifyCode:    vc,
+		registerToken: regToken,
 	}
 }
 
@@ -49,6 +54,15 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/set-password", h.SetPassword)
 	r.Post("/auth/reset-password", h.ResetPassword)
 	r.Get("/auth/invites/pending", h.PendingInvites)
+
+	// Verification code endpoints — only register if service is available.
+	if h.verifyCode != nil {
+		r.Post("/auth/sms/send", h.SendCode)
+		r.Post("/auth/sms/verify", h.VerifyCode)
+		r.Post("/auth/sms/select", h.SelectCompany)
+		r.Post("/auth/verify-code/send", h.SendCode)
+		r.Post("/auth/verify-code/verify", h.VerifyCode)
+	}
 }
 
 type loginBody struct {
@@ -76,7 +90,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if isPhone {
 		// Phone + password login: look up all companies for this phone, verify password.
-		results, err := h.org.MemberByPhone(ctx, sms.FormatPhone(identifier))
+		results, err := h.org.MemberByPhone(ctx, verifycode.FormatPhone(identifier))
 		if err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
@@ -330,31 +344,44 @@ func (h *Handler) SetPassword(w http.ResponseWriter, r *http.Request) {
 
 type resetPasswordBody struct {
 	Phone       string `json:"phone"`
+	Email       string `json:"email"`
 	Code        string `json:"code"`
 	NewPassword string `json:"newPassword"`
 }
 
-// ResetPassword verifies SMS code then sets a new password.
+// ResetPassword verifies a code (sent via SMS or Email) then sets a new password.
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var body resetPasswordBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
 	}
-	if body.Phone == "" || body.Code == "" || len(body.NewPassword) < 8 {
-		httputil.WriteStatus(w, http.StatusBadRequest, "phone, code, and newPassword (min 8) required")
+	if body.Code == "" || len(body.NewPassword) < 8 {
+		httputil.WriteStatus(w, http.StatusBadRequest, "code and newPassword (min 8) required")
+		return
+	}
+
+	// Determine channel and address.
+	var channel, address string
+	switch {
+	case body.Phone != "":
+		channel = domainnotification.ChannelSMS
+		address = verifycode.FormatPhone(body.Phone)
+	case body.Email != "":
+		channel = domainnotification.ChannelEmail
+		address = body.Email
+	default:
+		httputil.WriteStatus(w, http.StatusBadRequest, "phone or email required")
 		return
 	}
 
 	ctx := r.Context()
-	phone := sms.FormatPhone(body.Phone)
 
-	// Verify SMS code.
-	if h.sms == nil {
-		httputil.WriteStatus(w, http.StatusServiceUnavailable, "SMS not configured")
+	if h.verifyCode == nil {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "verification service not configured")
 		return
 	}
-	vr := h.sms.Verify(ctx, phone, body.Code)
+	vr := h.verifyCode.Verify(ctx, channel, address, body.Code)
 	if !vr.OK {
 		status := http.StatusBadRequest
 		if vr.Locked {
@@ -364,8 +391,14 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find user by phone.
-	user, err := h.users.GetByPhone(ctx, phone)
+	// Find user by phone or email.
+	var user *store.User
+	var err error
+	if channel == domainnotification.ChannelSMS {
+		user, err = h.users.GetByPhone(ctx, address)
+	} else {
+		user, err = h.users.GetByEmail(ctx, address)
+	}
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return

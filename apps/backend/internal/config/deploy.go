@@ -57,6 +57,9 @@ func (c Config) validateProductionContract() error {
 	if c.SimulateDelay {
 		return fmt.Errorf("SIMULATE_DELAY must be false in production")
 	}
+	if c.SkipVerifyCode {
+		return fmt.Errorf("SKIP_VERIFY_CODE must be false in production")
+	}
 	if strings.TrimSpace(c.ClockAnchor) != "" {
 		return fmt.Errorf("CLOCK_ANCHOR must not be set in production")
 	}

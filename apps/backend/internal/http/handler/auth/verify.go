@@ -1,87 +1,53 @@
-package authsms
+package auth
 
 import (
 	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/identity/registertoken"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
-	"github.com/tokenjoy/backend/internal/identity/sms"
+	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-// Handler implements POST /auth/sms/* endpoints (SaaS only).
-type Handler struct {
-	sms           *sms.Service
-	companySvc    domaincompany.Service
-	users         store.UserRepository
-	sessions      store.SessionRepository
-	registerToken *registertoken.Issuer
-	sessionToken  sessiontoken.Issuer
-	secureCookie  bool
-	sessionTTLSec int
-	refreshTTLSec int
-}
+// --- SendCode ---
 
-func NewHandler(
-	smsSvc *sms.Service,
-	companySvc domaincompany.Service,
-	users store.UserRepository,
-	sessions store.SessionRepository,
-	registerToken *registertoken.Issuer,
-	sessionToken sessiontoken.Issuer,
-	secureCookie bool,
-	sessionTTLSec int,
-	refreshTTLSec int,
-) *Handler {
-	if smsSvc == nil {
-		return nil
-	}
-	return &Handler{
-		sms:           smsSvc,
-		companySvc:    companySvc,
-		users:         users,
-		sessions:      sessions,
-		registerToken: registerToken,
-		sessionToken:  sessionToken,
-		secureCookie:  secureCookie,
-		sessionTTLSec: sessionTTLSec,
-		refreshTTLSec: refreshTTLSec,
-	}
-}
-
-func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.Post("/auth/sms/send", h.Send)
-	r.Post("/auth/sms/verify", h.Verify)
-	r.Post("/auth/sms/select", h.Select)
-}
-
-// --- Send ---
-
-type sendBody struct {
+type sendCodeBody struct {
 	Phone string `json:"phone"`
-	// TODO: captcha token validation (上线阻塞项)
+	Email string `json:"email"`
 }
 
-func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
-	var body sendBody
+// SendCode sends a verification code via SMS or Email.
+func (h *Handler) SendCode(w http.ResponseWriter, r *http.Request) {
+	if h.verifyCode == nil {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "verification service not configured")
+		return
+	}
+
+	var body sendCodeBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
 	}
-	if body.Phone == "" {
-		httputil.WriteStatus(w, http.StatusBadRequest, "phone required")
+
+	var channel, address string
+	switch {
+	case body.Phone != "":
+		channel = domainnotification.ChannelSMS
+		address = verifycode.FormatPhone(body.Phone)
+	case body.Email != "":
+		channel = domainnotification.ChannelEmail
+		address = body.Email
+	default:
+		httputil.WriteStatus(w, http.StatusBadRequest, "phone or email required")
 		return
 	}
 
-	phone := sms.FormatPhone(body.Phone)
-	result := h.sms.Send(r.Context(), phone)
+	result := h.verifyCode.Send(r.Context(), channel, address)
 	if !result.OK {
 		status := http.StatusTooManyRequests
 		resp := map[string]any{"message": result.Reason}
@@ -95,14 +61,14 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// --- Verify ---
+// --- VerifyCode ---
 
-type verifyBody struct {
+type verifyCodeBody struct {
 	Phone string `json:"phone"`
+	Email string `json:"email"`
 	Code  string `json:"code"`
 }
 
-// SmsVerifyResult matches the design doc's discriminated union response.
 type companyOption struct {
 	CompanyID   uuid.UUID `json:"companyId"`
 	CompanyName string    `json:"companyName"`
@@ -117,22 +83,40 @@ type pendingInviteOption struct {
 	ExpiresAt   string    `json:"expiresAt"`
 }
 
-func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
-	var body verifyBody
+// VerifyCode verifies a code and performs SMS/Email login flow.
+func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
+	if h.verifyCode == nil {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "verification service not configured")
+		return
+	}
+
+	var body verifyCodeBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
 	}
-	if body.Phone == "" || body.Code == "" {
-		httputil.WriteStatus(w, http.StatusBadRequest, "phone and code required")
+	if body.Code == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "code required")
 		return
 	}
 
-	phone := sms.FormatPhone(body.Phone)
+	var channel, address string
+	switch {
+	case body.Phone != "":
+		channel = domainnotification.ChannelSMS
+		address = verifycode.FormatPhone(body.Phone)
+	case body.Email != "":
+		channel = domainnotification.ChannelEmail
+		address = body.Email
+	default:
+		httputil.WriteStatus(w, http.StatusBadRequest, "phone or email required")
+		return
+	}
+
 	ctx := r.Context()
 
-	// Step 1: Verify SMS code.
-	vr := h.sms.Verify(ctx, phone, body.Code)
+	// Step 1: Verify code.
+	vr := h.verifyCode.Verify(ctx, channel, address, body.Code)
 	if !vr.OK {
 		status := http.StatusBadRequest
 		if vr.Locked {
@@ -142,14 +126,19 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 2: Find user (login only — do NOT auto-create; registration is separate).
-	user, err := h.users.GetByPhone(ctx, phone)
+	// Step 2: Find user by phone or email.
+	var user *store.User
+	var err error
+	if channel == domainnotification.ChannelSMS {
+		user, err = h.users.GetByPhone(ctx, address)
+	} else {
+		user, err = h.users.GetByEmail(ctx, address)
+	}
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
 	if user == nil {
-		// User does not exist → direct them to register.
 		httputil.WriteJSON(w, http.StatusOK, map[string]any{"action": "not_found"}, nil)
 		return
 	}
@@ -164,14 +153,11 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 	// Step 4: Route based on member count.
 	switch {
 	case len(members) == 1:
-		// Single member → direct enter (§21: don't expose memberId).
 		m := members[0]
 		h.issueTokenPairAndRespond(w, r, m.CompanyID, m.MemberID, user.ID,
 			map[string]any{"action": "enter"}, false)
-		return
 
 	case len(members) >= 2:
-		// Multiple members → select_company.
 		companies := make([]companyOption, len(members))
 		for i, m := range members {
 			companies[i] = companyOption{
@@ -184,7 +170,6 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 			"action":    "select_company",
 			"companies": companies,
 		})
-		return
 
 	default:
 		// 0 members → check invites.
@@ -216,19 +201,19 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// No members, no invites → not registered, direct to register page.
 		httputil.WriteJSON(w, http.StatusOK, map[string]any{"action": "not_found"}, nil)
 	}
 }
 
-// --- Select ---
+// --- SelectCompany ---
 
-type selectBody struct {
+type selectCompanyBody struct {
 	CompanyID uuid.UUID `json:"companyId"`
 }
 
-func (h *Handler) Select(w http.ResponseWriter, r *http.Request) {
-	var body selectBody
+// SelectCompany allows a user with multiple companies to pick one after code verification.
+func (h *Handler) SelectCompany(w http.ResponseWriter, r *http.Request) {
+	var body selectCompanyBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
@@ -238,7 +223,6 @@ func (h *Handler) Select(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve user from register session.
 	userID, err := h.resolveRegisterUser(r)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, "register session expired or invalid")
@@ -246,8 +230,6 @@ func (h *Handler) Select(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-
-	// Verify the user actually has a member in this company.
 	members, err := h.users.ListMemberCompanies(ctx, userID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
@@ -266,12 +248,11 @@ func (h *Handler) Select(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Issue token pair.
 	h.issueTokenPairAndRespond(w, r, target.CompanyID, target.MemberID, userID,
 		map[string]any{"memberId": target.MemberID.String(), "companyId": target.CompanyID.String()}, true)
 }
 
-// --- Helpers ---
+// --- Register session helpers ---
 
 const registerCookieName = "tokenjoy_register_session"
 
@@ -287,14 +268,12 @@ func (h *Handler) resolveRegisterUser(r *http.Request) (uuid.UUID, error) {
 	return claims.UserID, nil
 }
 
-// issueTokenPairAndRespond issues session cookies and responds with a JSON payload.
-// If clearRegister is true, the register session cookie is removed.
 func (h *Handler) issueTokenPairAndRespond(w http.ResponseWriter, r *http.Request, companyID, memberID, userID uuid.UUID, payload map[string]any, clearRegister bool) {
 	_, err := httpx.IssueTokenPair(r.Context(), w, r, httpx.TokenPairParams{
-		Secret:        h.sessionToken.Secret(),
-		SessionTTLSec: h.sessionTTLSec,
-		RefreshTTLSec: h.refreshTTLSec,
-		SecureCookie:  h.secureCookie,
+		Secret:        h.pub.SessionToken.Secret(),
+		SessionTTLSec: h.pub.Cfg.SessionTTLSec,
+		RefreshTTLSec: h.pub.Cfg.RefreshTokenTTLSec,
+		SecureCookie:  h.pub.SecureCookie,
 		SessionStore:  h.sessions,
 	}, companyID, memberID, userID)
 	if err != nil {
@@ -313,7 +292,7 @@ func (h *Handler) issueRegisterSessionAndRespond(w http.ResponseWriter, userID u
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	setRegisterSessionCookie(w, regToken, h.secureCookie)
+	setRegisterSessionCookie(w, regToken, h.pub.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, payload, nil)
 }
 
@@ -325,7 +304,7 @@ func setRegisterSessionCookie(w http.ResponseWriter, token string, secure bool) 
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   secure,
-		MaxAge:   600, // 10 min
+		MaxAge:   600,
 	})
 }
 

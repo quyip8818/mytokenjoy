@@ -82,7 +82,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices, l
 			DevReadinessChecker: devReadiness,
 			NotificationSvc:     i.notificationSvc,
 			RateLimiter:         i.rateLimiter,
-			SmsSvc:              i.smsSvc,
+			VerifyCodeSvc:       i.verifyCodeSvc,
 		},
 		Infra:     i,
 		OrgSync:   services.org,

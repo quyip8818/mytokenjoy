@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/sms"
+	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -28,7 +28,7 @@ func insertSeedMembers(ctx context.Context, exec TableWriter, tid uuid.UUID, mem
 		}
 		var phone *string
 		if member.Phone != "" {
-			formatted := sms.FormatPhone(member.Phone)
+			formatted := verifycode.FormatPhone(member.Phone)
 			phone = &formatted
 		}
 		var email *string

@@ -80,29 +80,7 @@ func (c *SMSChannel) Send(ctx context.Context, recipientID uuid.UUID, msg domain
 		c.logger.Debug("sms: no phone for recipient, skipping", "recipient", recipientID)
 		return nil
 	}
-
-	content := buildSMSContent(msg)
-	paramJSON, _ := json.Marshal(map[string]string{"content": content})
-
-	resp, err := c.client.SendSms(&dysmsapi.SendSmsRequest{
-		PhoneNumbers:  tea.String(phone),
-		SignName:      tea.String(c.signName),
-		TemplateCode:  tea.String(c.templateCode),
-		TemplateParam: tea.String(string(paramJSON)),
-	})
-	if err != nil {
-		return fmt.Errorf("aliyun sms: %w", err)
-	}
-
-	if resp.Body == nil {
-		return fmt.Errorf("aliyun sms: nil response body")
-	}
-	if code := tea.StringValue(resp.Body.Code); code != "OK" {
-		return fmt.Errorf("aliyun sms rejected: %s - %s", code, tea.StringValue(resp.Body.Message))
-	}
-
-	c.logger.Debug("sms sent", "to", phone, "bizId", tea.StringValue(resp.Body.BizId))
-	return nil
+	return c.sendToPhone(phone, msg)
 }
 
 // buildSMSContent formats the notification into a short text for the template variable.
@@ -117,4 +95,43 @@ func buildSMSContent(msg domainnotification.RenderedMessage) string {
 	return s
 }
 
+// SendDirect delivers an SMS directly to the given phone number without recipient resolution.
+func (c *SMSChannel) SendDirect(ctx context.Context, address string, msg domainnotification.RenderedMessage) error {
+	if c.client == nil {
+		c.logger.Info("sms: [DEV] direct send", "phone", address, "title", msg.Title, "body", msg.Body)
+		return nil
+	}
+	return c.sendToPhone(address, msg)
+}
+
+func (c *SMSChannel) sendToPhone(phone string, msg domainnotification.RenderedMessage) error {
+	// Strip +86 prefix for Aliyun API.
+	phoneNum := phone
+	if strings.HasPrefix(phone, "+86") {
+		phoneNum = strings.TrimPrefix(phone, "+86")
+	}
+
+	content := buildSMSContent(msg)
+	paramJSON, _ := json.Marshal(map[string]string{"content": content})
+
+	resp, err := c.client.SendSms(&dysmsapi.SendSmsRequest{
+		PhoneNumbers:  tea.String(phoneNum),
+		SignName:      tea.String(c.signName),
+		TemplateCode:  tea.String(c.templateCode),
+		TemplateParam: tea.String(string(paramJSON)),
+	})
+	if err != nil {
+		return fmt.Errorf("aliyun sms: %w", err)
+	}
+	if resp.Body == nil {
+		return fmt.Errorf("aliyun sms: nil response body")
+	}
+	if code := tea.StringValue(resp.Body.Code); code != "OK" {
+		return fmt.Errorf("aliyun sms rejected: %s - %s", code, tea.StringValue(resp.Body.Message))
+	}
+	c.logger.Debug("sms direct sent", "to", phoneNum, "bizId", tea.StringValue(resp.Body.BizId))
+	return nil
+}
+
 var _ Channel = (*SMSChannel)(nil)
+var _ DirectSender = (*SMSChannel)(nil)

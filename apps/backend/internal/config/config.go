@@ -20,12 +20,13 @@ type HTTPConfig struct {
 
 // DeployConfig holds deployment and environment settings.
 type DeployConfig struct {
-	BootstrapMode string `env:"BOOTSTRAP_MODE" envDefault:"none"`
-	Seed          string `env:"SEED" envDefault:"full"`
-	SecureCookie  bool   `env:"SECURE_COOKIE" envDefault:"false"`
-	ClockAnchor   string `env:"CLOCK_ANCHOR"`
-	DeployEnv     string `env:"DEPLOY_ENV" envDefault:"local"`
-	SimulateDelay bool   `env:"SIMULATE_DELAY" envDefault:"false"`
+	BootstrapMode  string `env:"BOOTSTRAP_MODE" envDefault:"none"`
+	Seed           string `env:"SEED" envDefault:"full"`
+	SecureCookie   bool   `env:"SECURE_COOKIE" envDefault:"false"`
+	ClockAnchor    string `env:"CLOCK_ANCHOR"`
+	DeployEnv      string `env:"DEPLOY_ENV" envDefault:"local"`
+	SimulateDelay  bool   `env:"SIMULATE_DELAY" envDefault:"false"`
+	SkipVerifyCode bool   `env:"SKIP_VERIFY_CODE" envDefault:"false"`
 }
 
 // DatabaseConfig holds primary and log database connection settings.

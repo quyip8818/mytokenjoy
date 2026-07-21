@@ -3,7 +3,7 @@ package identity_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/identity/sms"
+	"github.com/tokenjoy/backend/internal/identity/verifycode"
 )
 
 func TestFormatPhone(t *testing.T) {
@@ -20,7 +20,7 @@ func TestFormatPhone(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
-			got := sms.FormatPhone(tc.input)
+			got := verifycode.FormatPhone(tc.input)
 			if got != tc.want {
 				t.Errorf("FormatPhone(%q) = %q, want %q", tc.input, got, tc.want)
 			}
@@ -30,7 +30,7 @@ func TestFormatPhone(t *testing.T) {
 
 func TestNewServiceNilWhenNoRedisURL(t *testing.T) {
 	t.Parallel()
-	svc, err := sms.NewService("", nil, nil)
+	svc, err := verifycode.NewService(verifycode.Config{RedisURL: ""}, nil, nil)
 	if err != nil {
 		t.Fatalf("expected nil error, got: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestNewServiceNilWhenNoRedisURL(t *testing.T) {
 
 func TestNewServiceErrorOnBadRedisURL(t *testing.T) {
 	t.Parallel()
-	svc, err := sms.NewService("not-a-url", nil, nil)
+	svc, err := verifycode.NewService(verifycode.Config{RedisURL: "not-a-url"}, nil, nil)
 	if err == nil {
 		t.Fatal("expected error for invalid redis URL")
 	}

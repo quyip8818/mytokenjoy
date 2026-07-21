@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
@@ -83,6 +84,21 @@ func (s *Service) Registry() *Registry { return s.registry }
 
 // SetEnqueuer sets the job enqueuer for async delivery (called after river client init).
 func (s *Service) SetEnqueuer(e jobs.Enqueuer) { s.enqueuer = e }
+
+// SendDirect delivers a message directly to an address (phone/email) via the named channel,
+// bypassing recipient resolution and user preferences. Used for verification codes, invites, etc.
+func (s *Service) SendDirect(ctx context.Context, channel string, address string, msg domainnotification.RenderedMessage) error {
+	ch, ok := s.registry.Get(channel)
+	if !ok || !ch.IsConfigured() {
+		s.logger.Warn("SendDirect: channel not available", "channel", channel)
+		return fmt.Errorf("notification: channel %q not configured", channel)
+	}
+	direct, ok := ch.(DirectSender)
+	if !ok {
+		return fmt.Errorf("notification: channel %q does not support direct send", channel)
+	}
+	return direct.SendDirect(ctx, address, msg)
+}
 
 // --- types.Notifier interface (backward-compatible) ---
 

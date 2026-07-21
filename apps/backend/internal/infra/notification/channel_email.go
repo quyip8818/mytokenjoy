@@ -57,7 +57,15 @@ func (c *EmailChannel) Send(ctx context.Context, recipientID uuid.UUID, msg doma
 			"recipient", recipientID)
 		return nil
 	}
+	return c.sendToAddress(to, msg)
+}
 
+// SendDirect delivers an email directly to the given address without recipient resolution.
+func (c *EmailChannel) SendDirect(ctx context.Context, address string, msg domainnotification.RenderedMessage) error {
+	return c.sendToAddress(address, msg)
+}
+
+func (c *EmailChannel) sendToAddress(to string, msg domainnotification.RenderedMessage) error {
 	body := buildEmailBody(msg)
 
 	mime := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=\"utf-8\"\r\n\r\n%s",
@@ -94,3 +102,4 @@ func buildEmailBody(msg domainnotification.RenderedMessage) string {
 }
 
 var _ Channel = (*EmailChannel)(nil)
+var _ DirectSender = (*EmailChannel)(nil)

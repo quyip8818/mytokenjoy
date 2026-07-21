@@ -8,12 +8,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
-	"github.com/tokenjoy/backend/internal/identity/sms"
+	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +26,7 @@ type Handler struct {
 	companySvc          domaincompany.Service
 	users               store.UserRepository
 	sessions            store.SessionRepository
-	sms                 *sms.Service
+	verifyCode          *verifycode.Service
 	registerToken       *registertoken.Issuer
 	sessionToken        sessiontoken.Issuer
 	secureCookie        bool
@@ -38,7 +39,7 @@ func NewHandler(
 	companySvc domaincompany.Service,
 	users store.UserRepository,
 	sessions store.SessionRepository,
-	smsSvc *sms.Service,
+	vc *verifycode.Service,
 	registerToken *registertoken.Issuer,
 	sessionToken sessiontoken.Issuer,
 	secureCookie bool,
@@ -50,7 +51,7 @@ func NewHandler(
 		companySvc:          companySvc,
 		users:               users,
 		sessions:            sessions,
-		sms:                 smsSvc,
+		verifyCode:          vc,
 		registerToken:       registerToken,
 		sessionToken:        sessionToken,
 		secureCookie:        secureCookie,
@@ -104,10 +105,14 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	phone := sms.FormatPhone(body.Phone)
+	phone := verifycode.FormatPhone(body.Phone)
 
-	// Step 1: Verify SMS code (same service as login; reuse does not consume a second attempt).
-	vr := h.sms.Verify(ctx, phone, body.Code)
+	// Step 1: Verify code.
+	if h.verifyCode == nil {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "verification service not configured")
+		return
+	}
+	vr := h.verifyCode.Verify(ctx, domainnotification.ChannelSMS, phone, body.Code)
 	if !vr.OK {
 		status := http.StatusBadRequest
 		if vr.Locked {

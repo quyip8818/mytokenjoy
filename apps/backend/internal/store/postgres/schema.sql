@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS currencies (
 CREATE TABLE IF NOT EXISTS companies (
     id                        UUID PRIMARY KEY,
     name                      TEXT NOT NULL,
+    industry                  TEXT NOT NULL DEFAULT '',
+    size                      TEXT NOT NULL DEFAULT '',
     type                      TEXT NOT NULL DEFAULT 'selfhosted'
                               CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
     status                    TEXT NOT NULL DEFAULT 'active',

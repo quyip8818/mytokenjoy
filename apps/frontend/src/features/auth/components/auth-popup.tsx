@@ -52,6 +52,7 @@ export function AuthPopup({
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [email, setEmail] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
@@ -248,6 +249,10 @@ export function AuthPopup({
     async (e: React.FormEvent) => {
       e.preventDefault()
       if (!phone.trim() || !code.trim() || newPassword.length < 8) return
+      if (newPassword !== confirmNewPassword) {
+        setError('两次密码输入不一致')
+        return
+      }
       setSubmitting(true)
       setError(null)
       try {
@@ -262,7 +267,7 @@ export function AuthPopup({
         setSubmitting(false)
       }
     },
-    [phone, code, newPassword],
+    [phone, code, newPassword, confirmNewPassword],
   )
 
   // --- Render ---
@@ -329,9 +334,11 @@ export function AuthPopup({
           {step === 'login-phone-pw' && (
             <form onSubmit={handleLoginPhonePw} className="flex flex-col gap-5">
               <div className="space-y-2">
-                <Label htmlFor="lp-phone" className="text-sm font-medium">手机号</Label>
+                <Label htmlFor="lp-phone" className="text-sm font-medium">
+                  手机号
+                </Label>
                 <div className="flex gap-2">
-                  <span className="flex items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                  <span className="flex items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground h-11">
                     +86
                   </span>
                   <Input
@@ -340,7 +347,7 @@ export function AuthPopup({
                     inputMode="numeric"
                     autoComplete="tel"
                     placeholder="请输入手机号"
-                    className="h-10"
+                    className="h-11"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
@@ -348,23 +355,29 @@ export function AuthPopup({
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lp-pw" className="text-sm font-medium">密码</Label>
+                <Label htmlFor="lp-pw" className="text-sm font-medium">
+                  密码
+                </Label>
                 <Input
                   id="lp-pw"
                   type="password"
                   autoComplete="current-password"
                   placeholder="输入密码"
-                  className="h-10"
+                  className="h-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
               {displayError && <p className="text-sm text-destructive">{displayError}</p>}
-              <Button type="submit" className="h-10 text-sm font-medium" disabled={submitting || !phone.trim() || !password}>
+              <Button
+                type="submit"
+                className="h-11 text-base font-medium"
+                disabled={submitting || !phone.trim() || !password}
+              >
                 {submitting ? '登录中…' : '登录'}
               </Button>
-              <div className="flex justify-between text-sm text-foreground">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <button
                   type="button"
                   onClick={() => {
@@ -394,7 +407,7 @@ export function AuthPopup({
                     setError(null)
                     setCode('')
                   }}
-                  className="text-sm text-foreground hover:text-foreground transition-colors"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   忘记密码？
                 </button>
@@ -416,10 +429,14 @@ export function AuthPopup({
                 onSend={handleSendCode}
               />
               {displayError && <p className="text-sm text-destructive">{displayError}</p>}
-              <Button type="submit" className="h-10 text-sm font-medium" disabled={submitting || !code.trim()}>
+              <Button
+                type="submit"
+                className="h-11 text-base font-medium"
+                disabled={submitting || !code.trim()}
+              >
                 {submitting ? '验证中…' : '登录'}
               </Button>
-              <div className="flex justify-between text-sm text-foreground">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <button
                   type="button"
                   onClick={() => {
@@ -448,36 +465,44 @@ export function AuthPopup({
           {step === 'login-email-pw' && (
             <form onSubmit={handleLoginEmailPw} className="flex flex-col gap-5">
               <div className="space-y-2">
-                <Label htmlFor="le-email" className="text-sm font-medium">邮箱</Label>
+                <Label htmlFor="le-email" className="text-sm font-medium">
+                  邮箱
+                </Label>
                 <Input
                   id="le-email"
                   type="email"
                   autoComplete="username"
                   placeholder="name@company.com"
-                  className="h-10"
+                  className="h-11"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="le-pw" className="text-sm font-medium">密码</Label>
+                <Label htmlFor="le-pw" className="text-sm font-medium">
+                  密码
+                </Label>
                 <Input
                   id="le-pw"
                   type="password"
                   autoComplete="current-password"
                   placeholder="输入密码"
-                  className="h-10"
+                  className="h-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
               {displayError && <p className="text-sm text-destructive">{displayError}</p>}
-              <Button type="submit" className="h-10 text-sm font-medium" disabled={submitting || !email.trim() || !password}>
+              <Button
+                type="submit"
+                className="h-11 text-base font-medium"
+                disabled={submitting || !email.trim() || !password}
+              >
                 {submitting ? '登录中…' : '登录'}
               </Button>
-              <div className="flex justify-center text-sm text-foreground">
+              <div className="flex justify-center text-sm text-muted-foreground">
                 <button
                   type="button"
                   onClick={() => {
@@ -495,7 +520,7 @@ export function AuthPopup({
           {/* === RESET PASSWORD === */}
           {step === 'reset-password' && (
             <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
-              <p className="text-sm text-muted-foreground">通过短信验证码重置密码</p>
+              <p className="text-base text-muted-foreground">通过短信验证码重置密码</p>
               <PhoneCodeFields
                 phone={phone}
                 setPhone={setPhone}
@@ -507,21 +532,45 @@ export function AuthPopup({
                 onSend={handleSendCode}
               />
               <div className="space-y-2">
-                <Label htmlFor="rp-new-pw" className="text-sm font-medium">新密码</Label>
+                <Label htmlFor="rp-new-pw" className="text-sm font-medium">
+                  新密码
+                </Label>
                 <Input
                   id="rp-new-pw"
                   type="password"
                   autoComplete="new-password"
                   placeholder="至少 8 位"
-                  className="h-10"
+                  className="h-11"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
                   minLength={8}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="rp-confirm-new-pw" className="text-sm font-medium">
+                  确认新密码
+                </Label>
+                <Input
+                  id="rp-confirm-new-pw"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="再次输入新密码"
+                  className="h-11"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+              </div>
               {displayError && <p className="text-sm text-destructive">{displayError}</p>}
-              <Button type="submit" className="h-10 text-sm font-medium" disabled={submitting || !code.trim() || newPassword.length < 8}>
+              <Button
+                type="submit"
+                className="h-11 text-base font-medium"
+                disabled={
+                  submitting || !code.trim() || newPassword.length < 8 || !confirmNewPassword
+                }
+              >
                 {submitting ? '重置中…' : '重置密码'}
               </Button>
               <button
@@ -530,7 +579,7 @@ export function AuthPopup({
                   setStep('login-phone-pw')
                   setError(null)
                 }}
-                className="text-sm text-foreground hover:text-foreground transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 ← 返回登录
               </button>
@@ -551,13 +600,15 @@ export function AuthPopup({
                 onSend={handleSendCode}
               />
               <div className="space-y-2">
-                <Label htmlFor="rp-pw" className="text-sm font-medium">设置密码</Label>
+                <Label htmlFor="rp-pw" className="text-sm font-medium">
+                  设置密码
+                </Label>
                 <Input
                   id="rp-pw"
                   type="password"
                   autoComplete="new-password"
                   placeholder="至少 8 位"
-                  className="h-10"
+                  className="h-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -565,13 +616,15 @@ export function AuthPopup({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rp-pw-confirm" className="text-sm font-medium">确认密码</Label>
+                <Label htmlFor="rp-pw-confirm" className="text-sm font-medium">
+                  确认密码
+                </Label>
                 <Input
                   id="rp-pw-confirm"
                   type="password"
                   autoComplete="new-password"
                   placeholder="再次输入密码"
-                  className="h-10"
+                  className="h-11"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -581,7 +634,7 @@ export function AuthPopup({
               {displayError && <p className="text-sm text-destructive">{displayError}</p>}
               <Button
                 type="submit"
-                className="h-10 text-sm font-medium"
+                className="h-11 text-base font-medium"
                 disabled={submitting || !code.trim() || password.length < 8 || !confirmPassword}
               >
                 {submitting ? '验证中…' : '下一步'}
@@ -592,14 +645,16 @@ export function AuthPopup({
           {/* === REGISTER: company name + industry + size === */}
           {step === 'register-info' && (
             <form onSubmit={handleCreateCompany} className="flex flex-col gap-5">
-              <p className="text-sm text-muted-foreground">创建您的企业</p>
+              <p className="text-base text-muted-foreground">创建您的企业</p>
               <div className="space-y-2">
-                <Label htmlFor="ri-company" className="text-sm font-medium">公司名称</Label>
+                <Label htmlFor="ri-company" className="text-sm font-medium">
+                  公司名称
+                </Label>
                 <Input
                   id="ri-company"
                   type="text"
                   placeholder="您的企业名称"
-                  className="h-10"
+                  className="h-11"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   required
@@ -608,7 +663,7 @@ export function AuthPopup({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">所属行业</Label>
                 <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="请选择行业" />
                   </SelectTrigger>
                   <SelectContent>
@@ -628,7 +683,7 @@ export function AuthPopup({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">人员规模</Label>
                 <Select value={size} onValueChange={setSize}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="请选择人员规模" />
                   </SelectTrigger>
                   <SelectContent>
@@ -642,13 +697,17 @@ export function AuthPopup({
                 </Select>
               </div>
               {displayError && <p className="text-sm text-destructive">{displayError}</p>}
-              <Button type="submit" className="h-10 text-sm font-medium" disabled={submitting || !companyName.trim()}>
+              <Button
+                type="submit"
+                className="h-11 text-base font-medium"
+                disabled={submitting || !companyName.trim()}
+              >
                 {submitting ? '创建中…' : '创建并开始体验'}
               </Button>
               <button
                 type="button"
                 onClick={() => setStep('register-phone')}
-                className="text-sm text-foreground hover:text-foreground transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 ← 返回
               </button>
@@ -658,7 +717,7 @@ export function AuthPopup({
           {/* === SELECT COMPANY === */}
           {step === 'select-company' && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">选择企业</p>
+              <p className="text-base text-muted-foreground">选择企业</p>
               {companies.map((c) => (
                 <button
                   key={c.companyId}
@@ -668,8 +727,8 @@ export function AuthPopup({
                   className="flex items-center justify-between rounded-lg border px-4 py-3.5 text-left transition-colors hover:bg-muted"
                 >
                   <div>
-                    <div className="font-medium text-sm">{c.companyName}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{c.role}</div>
+                    <div className="font-medium text-base">{c.companyName}</div>
+                    <div className="text-sm text-muted-foreground mt-0.5">{c.role}</div>
                   </div>
                 </button>
               ))}
@@ -680,13 +739,15 @@ export function AuthPopup({
           {/* === SELECT INVITE === */}
           {step === 'select-invite' && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">您有待接受的邀请</p>
+              <p className="text-base text-muted-foreground">您有待接受的邀请</p>
               <div className="space-y-2">
-                <Label htmlFor="si-name" className="text-sm font-medium">您的姓名</Label>
+                <Label htmlFor="si-name" className="text-sm font-medium">
+                  您的姓名
+                </Label>
                 <Input
                   id="si-name"
                   placeholder="输入姓名"
-                  className="h-10"
+                  className="h-11"
                   value={memberName}
                   onChange={(e) => setMemberName(e.target.value)}
                 />
@@ -700,8 +761,8 @@ export function AuthPopup({
                   className="flex items-center justify-between rounded-lg border px-4 py-3.5 text-left transition-colors hover:bg-muted"
                 >
                   <div>
-                    <div className="font-medium text-sm">{inv.companyName}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{inv.role}</div>
+                    <div className="font-medium text-base">{inv.companyName}</div>
+                    <div className="text-sm text-muted-foreground mt-0.5">{inv.role}</div>
                   </div>
                   <span className="text-sm text-primary font-medium">接受</span>
                 </button>
@@ -738,9 +799,11 @@ function PhoneCodeFields({
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="popup-phone" className="text-sm font-medium">手机号</Label>
+        <Label htmlFor="popup-phone" className="text-sm font-medium">
+          手机号
+        </Label>
         <div className="flex gap-2">
-          <span className="flex items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground h-10">
+          <span className="flex items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground h-11">
             +86
           </span>
           <Input
@@ -749,7 +812,7 @@ function PhoneCodeFields({
             inputMode="numeric"
             autoComplete="tel"
             placeholder="请输入手机号"
-            className="h-10"
+            className="h-11"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
@@ -757,7 +820,9 @@ function PhoneCodeFields({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="popup-code" className="text-sm font-medium">验证码</Label>
+        <Label htmlFor="popup-code" className="text-sm font-medium">
+          验证码
+        </Label>
         <div className="flex gap-2">
           <Input
             id="popup-code"
@@ -765,7 +830,7 @@ function PhoneCodeFields({
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="6 位验证码"
-            className="h-10"
+            className="h-11"
             maxLength={6}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
@@ -776,7 +841,7 @@ function PhoneCodeFields({
             variant="outline"
             disabled={!canSend}
             onClick={onSend}
-            className="shrink-0 whitespace-nowrap h-10"
+            className="shrink-0 whitespace-nowrap h-11"
           >
             {sending ? '发送中…' : countdown > 0 ? `${countdown}s` : '获取验证码'}
           </Button>

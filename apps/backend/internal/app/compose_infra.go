@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/sms"
+	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -36,7 +36,7 @@ type infra struct {
 	budgetCheck     budgetcheck.Store
 	rateLimiter     pkgrl.Limiter
 	precheckCache   *domaingateway.PrecheckCache
-	smsSvc          *sms.Service
+	verifyCodeSvc   *verifycode.Service
 }
 
 func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store, enqueuer jobs.Enqueuer, adminPortOverride adminport.Port) (infra, error) {
@@ -66,24 +66,20 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		budgetCheck:     budgetcheck.Open(context.Background(), cfg, logger),
 		rateLimiter:     ratelimit.Open(context.Background(), cfg.RedisURL, logger),
 		precheckCache:   domaingateway.NewPrecheckCache(st.GatewayPrecheck()),
-		smsSvc:          buildSMSService(cfg, logger),
+		verifyCodeSvc:   buildVerifyCodeService(cfg, notifySvc, logger),
 	}, nil
 }
 
-func buildSMSService(cfg config.Config, logger *slog.Logger) *sms.Service {
+func buildVerifyCodeService(cfg config.Config, notifier verifycode.Notifier, logger *slog.Logger) *verifycode.Service {
 	if !cfg.SupportSaas {
 		return nil
 	}
-	sender := sms.NewAliyunSender(sms.AliyunConfig{
-		AccessKeyID:     cfg.AliyunSMSAccessKeyID,
-		AccessKeySecret: cfg.AliyunSMSAccessKeySecret,
-		SignName:        cfg.AliyunSMSSignName,
-		TemplateCode:    cfg.AliyunSMSTemplateCode,
-		Endpoint:        cfg.AliyunSMSEndpoint,
-	}, logger)
-	svc, err := sms.NewService(cfg.RedisURL, sender, logger)
+	svc, err := verifycode.NewService(verifycode.Config{
+		RedisURL:   cfg.RedisURL,
+		SkipVerify: cfg.SkipVerifyCode,
+	}, notifier, logger)
 	if err != nil {
-		logger.Error("sms: service init failed", "error", err)
+		logger.Error("verifycode: service init failed", "error", err)
 		return nil
 	}
 	return svc
