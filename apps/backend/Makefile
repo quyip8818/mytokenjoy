@@ -9,6 +9,7 @@ TEST_PKG_PARALLEL ?= 4
 AIR_VERSION ?= v1.65.3
 AIR := $(shell go env GOPATH)/bin/air
 SERVER_BIN := tmp/server
+SKIP_VERIFY_CODE ?= $(if $(filter true,$(npm_config_skip_verify)),true,false)
 
 install-air:
 	go install github.com/air-verse/air@$(AIR_VERSION)
@@ -18,7 +19,9 @@ start:
 	@set -a \
 		&& [ -f .env.development ] && . ./.env.development \
 		&& [ -f .env ] && . ./.env \
-		; set +a; "$(AIR)"
+		; set +a; \
+		if [ "$(SKIP_VERIFY_CODE)" = "true" ]; then export SKIP_VERIFY_CODE=true; fi; \
+		"$(AIR)"
 
 build:
 	@mkdir -p tmp
