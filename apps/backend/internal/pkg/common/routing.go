@@ -57,6 +57,10 @@ func ResolveDeptAllowedModelIDs(
 	if rule == nil {
 		return modelcatalog.EnabledModelIDs(models)
 	}
+	// No explicit allowlist and not inherited = unconfigured node; allow all models.
+	if len(rule.AllowedModelIDs) == 0 && !rule.Inherited {
+		return modelcatalog.EnabledModelIDs(models)
+	}
 
 	parentID := getParentDeptID(rule.NodeID, parents)
 	var parentRule *types.RoutingRule
