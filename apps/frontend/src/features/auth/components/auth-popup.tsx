@@ -358,7 +358,7 @@ export function AuthPopup({
           {/* === LOGIN: phone + password (default) === */}
           {step === 'login-phone-pw' && (
             <form onSubmit={handleLoginPhonePw} className="flex flex-col gap-5">
-              {successMessage && <p className="text-sm text-emerald-600">{successMessage}</p>}
+              <FormMessage success={successMessage} />
               <div className="space-y-2">
                 <Label htmlFor="lp-phone" className="text-sm font-medium">
                   手机号
@@ -395,7 +395,7 @@ export function AuthPopup({
                   required
                 />
               </div>
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <FormMessage error={displayError} />
               <Button
                 type="submit"
                 className="h-11 text-base font-medium"
@@ -450,7 +450,7 @@ export function AuthPopup({
                 countdown={countdown}
                 onSend={handleSendCode}
               />
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <FormMessage error={displayError} />
               <Button
                 type="submit"
                 className="h-11 text-base font-medium"
@@ -514,7 +514,7 @@ export function AuthPopup({
                   required
                 />
               </div>
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <FormMessage error={displayError} />
               <Button
                 type="submit"
                 className="h-11 text-base font-medium"
@@ -550,44 +550,21 @@ export function AuthPopup({
                 countdown={countdown}
                 onSend={handleSendCode}
               />
-              <div className="space-y-2">
-                <Label htmlFor="rp-new-pw" className="text-sm font-medium">
-                  新密码
-                </Label>
-                <Input
-                  id="rp-new-pw"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="至少 8 位"
-                  className="h-11"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rp-confirm-new-pw" className="text-sm font-medium">
-                  确认新密码
-                </Label>
-                <Input
-                  id="rp-confirm-new-pw"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="再次输入新密码"
-                  className="h-11"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <NewPasswordFields
+                id="reset"
+                password={newPassword}
+                setPassword={setNewPassword}
+                confirm={confirmNewPassword}
+                setConfirm={setConfirmNewPassword}
+                passwordLabel="新密码"
+                confirmLabel="确认新密码"
+              />
+              <FormMessage error={displayError} />
               <Button
                 type="submit"
                 className="h-11 text-base font-medium"
                 disabled={
-                  submitting || !code.trim() || newPassword.length < 8 || !confirmNewPassword
+                  submitting || !code.trim() || newPassword.length < 8 || newPassword !== confirmNewPassword
                 }
               >
                 {submitting ? '重置中…' : '重置密码'}
@@ -617,43 +594,18 @@ export function AuthPopup({
                 countdown={countdown}
                 onSend={handleSendCode}
               />
-              <div className="space-y-2">
-                <Label htmlFor="rp-pw" className="text-sm font-medium">
-                  设置密码
-                </Label>
-                <Input
-                  id="rp-pw"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="至少 8 位"
-                  className="h-11"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rp-pw-confirm" className="text-sm font-medium">
-                  确认密码
-                </Label>
-                <Input
-                  id="rp-pw-confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="再次输入密码"
-                  className="h-11"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <NewPasswordFields
+                id="reg"
+                password={password}
+                setPassword={setPassword}
+                confirm={confirmPassword}
+                setConfirm={setConfirmPassword}
+              />
+              <FormMessage error={displayError} />
               <Button
                 type="submit"
                 className="h-11 text-base font-medium"
-                disabled={submitting || !code.trim() || password.length < 8 || !confirmPassword}
+                disabled={submitting || !code.trim() || password.length < 8 || password !== confirmPassword}
               >
                 {submitting ? '验证中…' : '下一步'}
               </Button>
@@ -681,7 +633,7 @@ export function AuthPopup({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">所属行业</Label>
                 <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger className="h-11">
+                  <SelectTrigger className="!h-11 w-full">
                     <SelectValue placeholder="请选择行业" />
                   </SelectTrigger>
                   <SelectContent>
@@ -701,7 +653,7 @@ export function AuthPopup({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">人员规模</Label>
                 <Select value={size} onValueChange={setSize}>
-                  <SelectTrigger className="h-11">
+                  <SelectTrigger className="!h-11 w-full">
                     <SelectValue placeholder="请选择人员规模" />
                   </SelectTrigger>
                   <SelectContent>
@@ -714,7 +666,7 @@ export function AuthPopup({
                   </SelectContent>
                 </Select>
               </div>
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <FormMessage error={displayError} />
               <Button
                 type="submit"
                 className="h-11 text-base font-medium"
@@ -750,7 +702,7 @@ export function AuthPopup({
                   </div>
                 </button>
               ))}
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <FormMessage error={displayError} />
             </div>
           )}
 
@@ -785,7 +737,7 @@ export function AuthPopup({
                   <span className="text-sm text-primary font-medium">接受</span>
                 </button>
               ))}
-              {displayError && <p className="text-sm text-destructive">{displayError}</p>}
+              <FormMessage error={displayError} />
             </div>
           )}
         </div>
@@ -866,5 +818,85 @@ function PhoneCodeFields({
         </div>
       </div>
     </>
+  )
+}
+
+// --- New password + confirm fields with real-time validation ---
+function NewPasswordFields({
+  id,
+  password,
+  setPassword,
+  confirm,
+  setConfirm,
+  passwordLabel = '设置密码',
+  confirmLabel = '确认密码',
+}: {
+  id: string
+  password: string
+  setPassword: (v: string) => void
+  confirm: string
+  setConfirm: (v: string) => void
+  passwordLabel?: string
+  confirmLabel?: string
+}) {
+  const hint =
+    password.length > 0 && password.length < 8
+      ? '密码至少需要 8 位'
+      : confirm.length > 0 && confirm !== password
+        ? '两次密码输入不一致'
+        : null
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor={`${id}-pw`} className="text-sm font-medium">
+          {passwordLabel}
+        </Label>
+        <Input
+          id={`${id}-pw`}
+          type="password"
+          autoComplete="new-password"
+          placeholder="至少 8 位"
+          className="h-11"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={8}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${id}-pw-confirm`} className="text-sm font-medium">
+          {confirmLabel}
+        </Label>
+        <Input
+          id={`${id}-pw-confirm`}
+          type="password"
+          autoComplete="new-password"
+          placeholder="再次输入密码"
+          className="h-11"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          required
+          minLength={8}
+        />
+        {hint && <p className="text-xs text-destructive mt-1">{hint}</p>}
+      </div>
+    </>
+  )
+}
+
+// --- Unified form message (error / success / hint) ---
+function FormMessage({ error, success, hint }: { error?: string | null; success?: string | null; hint?: string | null }) {
+  const msg = error || success || hint
+  if (!msg) return null
+  const style = error
+    ? 'bg-destructive/10 border-destructive/20 text-destructive'
+    : success
+      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400'
+      : 'bg-muted border-border text-muted-foreground'
+  return (
+    <div className={cn('rounded-md border px-3 py-2 text-sm', style)} role={error ? 'alert' : 'status'}>
+      {msg}
+    </div>
   )
 }
