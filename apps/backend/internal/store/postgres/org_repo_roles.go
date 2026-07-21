@@ -93,7 +93,7 @@ func (r *pgOrgRepo) SetRoles(ctx context.Context, roles []types.Role) error {
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO roles (id, company_id, name, type, permissions)
 			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (company_id, name) DO UPDATE SET permissions = EXCLUDED.permissions
+			ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, permissions = EXCLUDED.permissions
 		`, role.ID, companyID, role.Name, role.Type, role.Permissions); err != nil {
 			return fmt.Errorf("upsert role %s: %w", role.ID, err)
 		}
