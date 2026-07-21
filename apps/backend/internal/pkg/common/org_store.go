@@ -36,9 +36,6 @@ func LoadRoutingRules(ctx context.Context, orgNodes store.OrgNodeRepository, all
 		if err != nil {
 			return nil, err
 		}
-		if !HasOrgNodeRoutingConfig(node, allowed) {
-			continue
-		}
 		rules = append(rules, types.OrgNodeToRoutingRule(node, allowed))
 	}
 	return rules, nil
