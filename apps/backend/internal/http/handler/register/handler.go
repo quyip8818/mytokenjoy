@@ -13,7 +13,9 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/identity/sms"
 	"github.com/tokenjoy/backend/internal/store"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const registerSessionCookie = "tokenjoy_register_session"
@@ -23,6 +25,7 @@ type Handler struct {
 	companySvc          domaincompany.Service
 	users               store.UserRepository
 	sessions            store.SessionRepository
+	sms                 *sms.Service
 	registerToken       *registertoken.Issuer
 	sessionToken        sessiontoken.Issuer
 	secureCookie        bool
@@ -35,6 +38,7 @@ func NewHandler(
 	companySvc domaincompany.Service,
 	users store.UserRepository,
 	sessions store.SessionRepository,
+	smsSvc *sms.Service,
 	registerToken *registertoken.Issuer,
 	sessionToken sessiontoken.Issuer,
 	secureCookie bool,
@@ -46,6 +50,7 @@ func NewHandler(
 		companySvc:          companySvc,
 		users:               users,
 		sessions:            sessions,
+		sms:                 smsSvc,
 		registerToken:       registerToken,
 		sessionToken:        sessionToken,
 		secureCookie:        secureCookie,
@@ -75,7 +80,7 @@ func (h *Handler) requireRegistration(next http.HandlerFunc) http.HandlerFunc {
 
 type initBody struct {
 	Phone string `json:"phone"`
-	Token string `json:"token"` // SMS verification token (validated upstream)
+	Code  string `json:"code"`
 }
 
 type initResponseChoose struct {
@@ -93,18 +98,27 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
 	}
-	if body.Phone == "" || body.Token == "" {
-		httputil.WriteStatus(w, http.StatusBadRequest, "phone and token required")
+	if body.Phone == "" || body.Code == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "phone and code required")
 		return
 	}
 
-	// TODO: validate SMS token (body.Token) against SMS verification service.
-	// For now we trust the token was validated by the SMS layer.
-
 	ctx := r.Context()
+	phone := sms.FormatPhone(body.Phone)
 
-	// Find or create user by phone.
-	user, err := h.users.GetByPhone(ctx, body.Phone)
+	// Step 1: Verify SMS code (same service as login; reuse does not consume a second attempt).
+	vr := h.sms.Verify(ctx, phone, body.Code)
+	if !vr.OK {
+		status := http.StatusBadRequest
+		if vr.Locked {
+			status = http.StatusTooManyRequests
+		}
+		httputil.WriteJSON(w, status, map[string]string{"message": vr.Reason}, nil)
+		return
+	}
+
+	// Step 2: Find or create user by phone.
+	user, err := h.users.GetByPhone(ctx, phone)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -115,7 +129,7 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().UTC()
 		newUser := store.User{
 			ID:        userID,
-			Phone:     body.Phone,
+			Phone:     phone,
 			Status:    "active",
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -212,6 +226,7 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 
 type companyBody struct {
 	CompanyName string `json:"companyName"`
+	Password    string `json:"password"`
 }
 
 func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
@@ -224,10 +239,25 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "companyName required")
 		return
 	}
+	if len(body.Password) < 8 {
+		httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
+		return
+	}
 
 	userID, err := h.resolveRegisterUser(r)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusUnauthorized, "register session expired or invalid")
+		return
+	}
+
+	// Hash and persist password for the user.
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	if err := h.users.UpdatePassword(r.Context(), userID, string(passwordHash)); err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
 

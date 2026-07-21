@@ -18,6 +18,12 @@ function SmsLoginMode({ onSwitchToPassword }: { onSwitchToPassword: () => void }
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
       <SmsLoginForm {...props} />
+      <p className="text-sm text-muted-foreground">
+        还没有账号？
+        <a href="/register" className="text-primary underline-offset-4 hover:underline">
+          立即注册
+        </a>
+      </p>
       <Divider />
       <button
         type="button"

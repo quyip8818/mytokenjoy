@@ -41,21 +41,10 @@ export function useOnboardPage() {
   const handleCreateCompany = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault()
-      if (!companyName.trim()) return
-      setCreating(true)
-      setError(null)
-      try {
-        await authApi.registerCompany(companyName.trim())
-        await refreshSession()
-        navigate(ROUTES.home, { replace: true })
-      } catch (err) {
-        const message = err instanceof ApiError ? err.message : '创建失败'
-        setError(message)
-      } finally {
-        setCreating(false)
-      }
+      // Redirect to register page — creating a company requires password setup.
+      window.location.href = '/register'
     },
-    [companyName, navigate, refreshSession],
+    [],
   )
 
   return {

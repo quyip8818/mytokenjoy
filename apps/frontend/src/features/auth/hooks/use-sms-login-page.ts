@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { authApi, type SmsVerifyResult } from '@/api/auth'
 import { ApiError } from '@/api/client'
 import { useSession } from '@/features/session'
 import { ROUTES } from '@/config/routes'
-
-const COUNTDOWN_SECONDS = 60
+import { useSmsCountdown } from './use-sms-countdown'
 
 export function useSmsLoginPage() {
   const navigate = useNavigate()
@@ -13,40 +12,12 @@ export function useSmsLoginPage() {
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [countdown, setCountdown] = useState(0)
+  const [showRegisterHint, setShowRegisterHint] = useState(false)
 
-  // Countdown timer for send cooldown.
-  const isCountingDown = countdown > 0
-  useEffect(() => {
-    if (!isCountingDown) return
-    const id = setInterval(() => {
-      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1))
-    }, 1000)
-    return () => clearInterval(id)
-  }, [isCountingDown])
+  const { sending, countdown, sendError, sendCode } = useSmsCountdown()
 
-  const handleSendCode = useCallback(async () => {
-    if (!phone.trim() || countdown > 0) return
-    setSending(true)
-    setError(null)
-    try {
-      await authApi.smsSend(phone.trim())
-      setCountdown(COUNTDOWN_SECONDS)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message)
-        if (err.retryAfter) {
-          setCountdown(err.retryAfter)
-        }
-      } else {
-        setError('发送失败，请重试')
-      }
-    } finally {
-      setSending(false)
-    }
-  }, [phone, countdown])
+  const handleSendCode = useCallback(() => sendCode(phone), [sendCode, phone])
 
   const handleVerify = useCallback(
     async (event: React.FormEvent) => {
@@ -70,8 +41,9 @@ export function useSmsLoginPage() {
               replace: true,
             })
             break
-          case 'onboard':
-            navigate('/onboard', { state: { mode: 'onboard' }, replace: true })
+          case 'not_found':
+            setError('该手机号尚未注册，请先注册')
+            setShowRegisterHint(true)
             break
         }
       } catch (err) {
@@ -89,10 +61,11 @@ export function useSmsLoginPage() {
     setPhone,
     code,
     setCode,
-    error,
+    error: error || sendError,
     sending,
     verifying,
     countdown,
+    showRegisterHint,
     canSend: phone.trim().length >= 11 && countdown === 0 && !sending,
     handleSendCode,
     handleVerify,

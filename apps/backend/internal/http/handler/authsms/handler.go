@@ -142,27 +142,16 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 2: Find or create user.
+	// Step 2: Find user (login only — do NOT auto-create; registration is separate).
 	user, err := h.users.GetByPhone(ctx, phone)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
 	if user == nil {
-		// Create new user.
-		now := time.Now().UTC()
-		newUser := store.User{
-			ID:        uuid.Must(uuid.NewV7()),
-			Phone:     phone,
-			Status:    "active",
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		if err := h.users.Create(ctx, newUser); err != nil {
-			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-			return
-		}
-		user = &newUser
+		// User does not exist → direct them to register.
+		httputil.WriteJSON(w, http.StatusOK, map[string]any{"action": "not_found"}, nil)
+		return
 	}
 
 	// Step 3: Query members for this user.
@@ -227,10 +216,8 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// No members, no invites → onboard.
-		h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
-			"action": "onboard",
-		})
+		// No members, no invites → not registered, direct to register page.
+		httputil.WriteJSON(w, http.StatusOK, map[string]any{"action": "not_found"}, nil)
 	}
 }
 

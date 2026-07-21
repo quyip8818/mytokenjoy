@@ -41,6 +41,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/logout", h.Logout)
 	r.Post("/auth/refresh", h.Refresh)
 	r.Post("/auth/accept-invite", h.AcceptInvite)
+	r.Post("/auth/set-password", h.SetPassword)
 	r.Get("/auth/invites/pending", h.PendingInvites)
 }
 
@@ -225,4 +226,41 @@ func (h *Handler) PendingInvites(w http.ResponseWriter, r *http.Request) {
 		invites = []domaincompany.PendingInvite{}
 	}
 	httputil.WriteJSON(w, http.StatusOK, invites, nil)
+}
+
+// --- SetPassword ---
+
+type setPasswordBody struct {
+	Password string `json:"password"`
+}
+
+// SetPassword allows a logged-in user (e.g. after SMS login) to set or update their password.
+func (h *Handler) SetPassword(w http.ResponseWriter, r *http.Request) {
+	claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken)
+	if !ok || claims.UserID == uuid.Nil {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+
+	var body setPasswordBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+		return
+	}
+	if len(body.Password) < 8 {
+		httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	if err := h.users.UpdatePassword(r.Context(), claims.UserID, string(passwordHash)); err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

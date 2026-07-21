@@ -14,6 +14,7 @@ export function SmsLoginForm({
   sending,
   verifying,
   countdown,
+  showRegisterHint,
   canSend,
   handleSendCode,
   handleVerify,
@@ -71,8 +72,17 @@ export function SmsLoginForm({
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
+      {showRegisterHint ? (
+        <p className="text-sm text-muted-foreground">
+          还没有账号？
+          <a href="/register" className="text-primary underline-offset-4 hover:underline">
+            立即注册
+          </a>
+        </p>
+      ) : null}
+
       <Button type="submit" disabled={verifying || !code.trim()}>
-        {verifying ? '验证中…' : '进入'}
+        {verifying ? '验证中…' : '登录'}
       </Button>
     </form>
   )

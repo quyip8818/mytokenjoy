@@ -24,8 +24,10 @@
 
 | 原则 | 说明 |
 |------|------|
-| 登录即注册合一 | 中国市场标准，用户零决策——验证码通过后系统按状态引导 |
+| 登录与注册分离 | 登录页只处理已注册用户；未注册用户引导到独立注册页 |
 | 两条路径对等 | phone 和 email 不是主/备，是地区适配 |
+| 注册必须设置密码 | 注册流程包含密码设置，注册后可用手机号 OTP 或邮箱密码两种方式登录 |
+| 登录后可设置/更新密码 | SMS 登录成功后通过 `POST /auth/set-password` 管理密码 |
 | 配置切换不改代码 | `AUTH_PRIMARY` 改一个环境变量即切换 |
 | OTP 统一抽象 | 手机和邮箱共用 Send/Verify 接口 |
 | 私有化/SaaS 差异最小化 | 唯一 if：`registrationEnabled` |
@@ -39,17 +41,20 @@
 ```
 ┌────────────────────────────────────────┐
 │            TokenJoy                    │
-│        企业 AI 管理平台                │
 │                                        │
 │  手机号: [+86 ___________]             │
 │  验证码: [______]  [获取验证码 60s]    │
 │                                        │
-│  [进入]                                │
+│  [登录]                                │
 │                                        │
+│  还没有账号？ [立即注册]               │
 │  ─────── 其他方式 ───────              │
-│  [邮箱登录]                            │
+│  [邮箱密码登录]                        │
 └────────────────────────────────────────┘
 ```
+
+- 验证码通过但用户不存在 → 提示"该手机号尚未注册"+ 展示注册链接
+- 不再自动创建用户
 
 ### 3.2 `AUTH_PRIMARY=email`（海外）
 
@@ -119,32 +124,34 @@ sms:attempts:{target}  → counter, TTL 15min（验证失败计数）
 
 ---
 
-## 5. 分流逻辑（登录即注册）
+## 5. 分流逻辑（登录）
 
 ### 5.1 流程图
 
 ```mermaid
 flowchart TD
-    A[输入手机号/邮箱 + 验证码] --> B{验证码通过}
+    A[输入手机号 + 验证码] --> B{验证码通过}
     B --> C{User 存在？}
-    C -->|否| E[创建 User]
+    C -->|否| N[返回 not_found → 提示去注册]
     C -->|是| D{有 Member？}
-    E --> F{有待接受邀请？}
     D -->|1 个| G[issueTokenPair → 进入系统]
     D -->|≥2 个| H[签发 Register Session → 企业选择页]
-    D -->|0 个| F
+    D -->|0 个| F{有待接受邀请？}
     F -->|有| I[签发 Register Session → 选择页]
-    F -->|无| J[签发 Register Session → 新用户选择页]
+    F -->|无| N
 ```
 
-### 5.2 分流规则
+### 5.2 登录分流规则
 
 | Member 数 | 有邀请？ | action | Cookie |
 | --- | --- | --- | --- |
 | 1 | — | `enter` | issueTokenPair |
 | ≥2 | — | `select_company` | Register Session |
 | 0 | 是 | `choose` | Register Session |
-| 0 | 否 | `onboard` | Register Session |
+| 0 | 否 | `not_found` | 无（引导去注册） |
+| User 不存在 | — | `not_found` | 无（引导去注册） |
+
+> **关键变更**：SMS verify 不再自动创建 User。未注册用户返回 `not_found`，前端展示"还没有账号？立即注册"。
 
 > 有 member 且有新邀请的用户：直接 `enter` 不阻断登录，进入系统后通过 `GET /auth/invites/pending` + UI 通知提示未接受邀请。
 
@@ -155,7 +162,7 @@ type SmsVerifyResult =
   | { action: "enter"; memberId: string; companyId: string }
   | { action: "select_company"; companies: CompanyOption[] }
   | { action: "choose"; invites: PendingInvite[] }
-  | { action: "onboard" }
+  | { action: "not_found" }
 
 interface CompanyOption {
   companyId: string
@@ -213,21 +220,45 @@ WHERE u.email = $1 AND m.status = 'active' AND c.status = 'active';
 
 `POST /auth/sms/select { companyId }` + Register Session → issueTokenPair → 清除 Register Cookie。
 
-### 7.2 新用户选择页（onboard）
+### 7.2 注册页（/register，独立流程）
+
+注册与登录分离，注册流程为两步：
+
+**第一步：验证手机号**
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  欢迎使用 TokenJoy                                   │
+│  注册 TokenJoy                                       │
+│  验证手机号后创建企业                                │
 │                                                      │
-│  创建您的企业，立即体验 AI 管理平台                  │
-│  （使用模拟资金和模拟模型，升级后接入真实模型）      │
+│  手机号: [+86 ___________]                           │
+│  验证码: [______]  [获取验证码]                      │
 │                                                      │
-│  公司名称: [____________]  [创建并开始体验]          │
+│  [下一步]                                            │
 │                                                      │
+│  已有账号？ [去登录]                                 │
 └──────────────────────────────────────────────────────┘
 ```
 
-> **产品语义**："创建公司"创建的是一家**真实企业**（`type=trial`），数据永久保留。试用期间使用模拟资金 + mock 模型体验全部功能，升级后原地切到正式版。不存在独立的"免费试用"入口——创建公司本身就是试用。
+验证通过后调用 `POST /auth/register/init` 创建 User + 签发 Register Session。
+
+**第二步：设置密码 + 创建企业**
+
+```
+┌──────────────────────────────────────────────────────┐
+│  创建企业                                            │
+│  设置登录密码并创建您的企业                          │
+│                                                      │
+│  设置密码: [________________]  (至少 8 位)           │
+│  公司名称: [________________]                        │
+│                                                      │
+│  [创建并开始体验]                                    │
+└──────────────────────────────────────────────────────┘
+```
+
+调用 `POST /auth/register/company { companyName, password }` → 创建 Trial 企业 + 设置密码 → issueTokenPair → 进入系统。
+
+> **产品语义**：创建的是一家真实企业（`type=trial`），数据永久保留。试用期间使用模拟资金 + mock 模型体验全部功能，升级后原地切到正式版。
 
 ### 7.3 有邀请选择页（choose）
 
@@ -316,8 +347,8 @@ interface AuthCapabilities {
 | 维度 | 私有化 | SaaS |
 |------|--------|------|
 | 主认证 | 由 `AUTH_PRIMARY` 决定 | 由 `AUTH_PRIMARY` 决定 |
-| 自助注册 | ❌（"未找到账号，请联系管理员"） | ✅（新用户自动创建 Trial） |
-| 登录按钮 | "登录" | "进入"（不区分登录/注册） |
+| 自助注册 | ❌（"未找到账号，请联系管理员"） | ✅（独立注册页 /register） |
+| 登录按钮 | "登录" | "登录"（未注册提示去 /register） |
 | 企业数量 | 1 家（`LocalCompanyID`） | 多家（JWT `company_id`） |
 | Trial | 不适用 | 注册即 Trial |
 | 供应商 Key | 企业管理员完全 CRUD | 只读展示（"由平台运营管理"） |
@@ -364,10 +395,11 @@ JWT 设计已包含 `company_id` + `member_id`，无需改数据模型。
 | POST | `/auth/sms/verify` | SMS code | RequireSaaS | 验证码校验 → 分流 |
 | POST | `/auth/sms/select` | Register Session | RequireSaaS | 多企业选择 → issueTokenPair |
 | POST | `/auth/register/accept` | Register Session | RequireSaaS | 接受邀请 → issueTokenPair |
-| POST | `/auth/register/company` | Register Session | RequireSaaS | 创建公司 → issueTokenPair |
+| POST | `/auth/register/company` | Register Session | RequireSaaS | 创建公司（含密码）→ issueTokenPair |
 | POST | `/auth/login` | 无 | — | 邮箱密码 → issueTokenPair |
 | POST | `/auth/logout` | Access Token | — | Revoke + 清 Cookie |
 | POST | `/auth/refresh` | Refresh Cookie | — | 续签 Access Token |
+| POST | `/auth/set-password` | Access Token | — | 设置/更新密码 |
 | POST | `/auth/accept-invite` | Access Token 或 password | — | 邀请激活 → issueTokenPair |
 | GET | `/auth/invites/pending` | Access Token | — | 待接受邀请列表 |
 | GET | `/auth/setup-status` | 无 | RequireLocal | 私有化检查 |
@@ -439,24 +471,31 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 ```
 routes/login.tsx
 routes/login/select.tsx
-routes/onboard.tsx
+routes/register.tsx
+routes/onboard.tsx              — 仅用于 choose 模式（有邀请时）
 routes/setup.tsx
 routes/invite/accept.tsx
 
 features/auth/
 ├── index.ts
 ├── components/
-│   ├── login-page.tsx              — 统一入口，根据 capabilities 编排
-│   ├── phone-otp-form.tsx          — 手机号 + 验证码
+│   ├── login-form.tsx              — 邮箱 + 密码
+│   ├── sms-login-form.tsx          — 手机号 + 验证码（含"去注册"提示）
 │   ├── email-password-form.tsx     — 邮箱 + 密码
 │   ├── email-otp-form.tsx          — 邮箱 + 验证码
 │   └── company-select.tsx          — 多企业选择（SaaS）
 ├── hooks/
-│   ├── use-login.ts
+│   ├── use-login-page.ts
+│   ├── use-sms-login-page.ts      — 处理 not_found → showRegisterHint
+│   ├── use-register-page.ts       — 两步注册（验证码 → 密码+公司名）
 │   ├── use-otp.ts                  — 统一 OTP hook（phone/email）
 │   └── use-auth-capabilities.ts
 └── lib/
     └── auth-capabilities.ts
+
+components/layout/
+├── header.tsx                  — HeaderUserChip 含下拉菜单（设置密码/退出）
+└── set-password-dialog.tsx     — 设置密码弹窗
 
 api/auth.ts
 ```
@@ -493,13 +532,15 @@ api/auth.ts
 
 | 决策 | 理由 |
 | --- | --- |
+| 登录与注册分离 | 避免 OTP 验证通过即创建用户的隐式注册行为；用户意图明确 |
+| 注册必须设置密码 | 注册后可用两种方式登录（OTP / 邮箱密码）；密码为企业内安全管理基础 |
+| 登录后可设置密码 | SMS 登录老用户可补设密码，渐进升级安全性 |
 | 只有单 member 才签 Token Pair | 避免悬空 session |
 | Refresh 不 rotate | 幂等无 DB 写，避免并发 race |
 | RequireSession 不查 DB | 零 DB 开销；撤销延迟 ≤ 15min 可接受 |
 | SMS 用 Redis | 短命数据，TTL 天然适配 |
 | sms/send 必须 captcha | 无认证端点，防 SMS 轰炸 |
 | sms/verify 不返回 memberId | 减少无认证端点信息暴露 |
-| 登录即注册合一 | 中国市场标准 |
 | Register Session 独立 | 注册中间态无系统权限 |
 | 旧 session 不主动 revoke | Cookie 覆盖即切断客户端，DB 自然过期 |
 | 邮箱双模式（密码 + OTP） | 用户可选，兼顾安全和便捷 |

@@ -26,7 +26,7 @@ export type SmsVerifyResult =
   | { action: 'enter' }
   | { action: 'select_company'; companies: CompanyOption[] }
   | { action: 'choose'; invites: PendingInvite[] }
-  | { action: 'onboard' }
+  | { action: 'not_found' }
 
 export const authApi = {
   login: (input: LoginInput) =>
@@ -59,16 +59,25 @@ export const authApi = {
     }),
 
   // --- Register endpoints ---
+  registerInit: (phone: string, code: string) =>
+    request<{ action: 'choose'; invites: PendingInvite[] } | { action: 'login' }>(
+      '/auth/register/init',
+      {
+        method: 'POST',
+        body: JSON.stringify({ phone, code }),
+      },
+    ),
+
   registerAccept: (inviteCode: string, name: string) =>
     request<{ memberId: string; companyId: string }>('/auth/register/accept', {
       method: 'POST',
       body: JSON.stringify({ inviteCode, name }),
     }),
 
-  registerCompany: (companyName: string) =>
+  registerCompany: (companyName: string, password: string) =>
     request<{ memberId: string; companyId: string }>('/auth/register/company', {
       method: 'POST',
-      body: JSON.stringify({ companyName }),
+      body: JSON.stringify({ companyName, password }),
     }),
 
   // --- Accept invite (unauthenticated, email link) ---
@@ -76,5 +85,12 @@ export const authApi = {
     request<{ memberId: string; companyId: string }>('/auth/accept-invite', {
       method: 'POST',
       body: JSON.stringify({ inviteCode, name, password }),
+    }),
+
+  // --- Set password (authenticated) ---
+  setPassword: (password: string) =>
+    request<void>('/auth/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
     }),
 }
