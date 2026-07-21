@@ -17,25 +17,49 @@ export class ApiError extends Error {
 const NON_JSON_RESPONSE_MESSAGE =
   'Expected application/json from /api. Ensure /api is proxied to the Go backend (same-origin), not served as SPA HTML.'
 
-function isJsonContentType(contentType: string): boolean {
-  return contentType.includes('application/json')
+function isNoContent(res: Response): boolean {
+  return res.status === 204 || res.status === 205
 }
 
-async function readJsonBody<T>(res: Response): Promise<T> {
-  const contentType = res.headers.get('Content-Type') ?? ''
-  if (!isJsonContentType(contentType)) {
+function hasJsonContentType(res: Response): boolean {
+  const ct = res.headers.get('Content-Type')
+  return ct != null && ct.includes('application/json')
+}
+
+/**
+ * Parse a successful response body.
+ * - 204/205: no body expected → returns undefined.
+ * - Otherwise: must be application/json (if not, the request likely hit
+ *   the SPA fallback instead of the Go backend).
+ */
+async function parseSuccessBody<T>(res: Response): Promise<T> {
+  if (isNoContent(res)) return undefined as T
+
+  if (!hasJsonContentType(res)) {
     throw new ApiError(res.status, NON_JSON_RESPONSE_MESSAGE)
   }
 
   const text = await res.text()
-  if (!text) {
-    return undefined as T
-  }
+  if (!text) return undefined as T
 
   try {
     return JSON.parse(text) as T
   } catch {
     throw new ApiError(res.status, 'Invalid JSON response from API')
+  }
+}
+
+/** Best-effort parse of an error response body (may be JSON or empty). */
+async function parseErrorBody(res: Response): Promise<{ message?: string; retryAfter?: number }> {
+  if (isNoContent(res) || !hasJsonContentType(res)) return {}
+
+  const text = await res.text()
+  if (!text) return {}
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return {}
   }
 }
 
@@ -91,14 +115,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   }
 
   if (!res.ok) {
-    let body: { message?: string; retryAfter?: number } = {}
-    try {
-      body = await readJsonBody<{ message?: string; retryAfter?: number }>(res)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        body = { message: error.message }
-      }
-    }
+    const body = await parseErrorBody(res)
     if (res.status === 401) {
       apiEvents.emit('unauthorized')
     }
@@ -112,7 +129,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     )
   }
 
-  return readJsonBody<T>(res)
+  return parseSuccessBody<T>(res)
 }
 
 export function buildQuery(params: object): string {

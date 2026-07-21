@@ -142,7 +142,7 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
   return (
     <div className="relative z-10 flex shrink-0 items-start gap-1 border-b border-sidebar-border/70 px-4 py-5">
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold text-primary">TokenJoy</h1>
+        <img src="/logo.png" alt="Tokenjoy" className="h-7 w-auto" />
         <p className="mt-0.5 truncate text-xs text-muted-foreground">LLM API 管理平台</p>
       </div>
       <div className="pt-0.5">{toggleButton}</div>

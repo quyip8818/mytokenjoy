@@ -40,9 +40,7 @@ function HeaderUserChip() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setPasswordDialogOpen(true)}>
-            设置密码
-          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setPasswordDialogOpen(true)}>设置密码</DropdownMenuItem>
           <DropdownMenuItem onSelect={handleLogout}>退出登录</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

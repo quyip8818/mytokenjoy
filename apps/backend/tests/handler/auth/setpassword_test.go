@@ -138,9 +138,9 @@ func TestLogin_PhoneDetection(t *testing.T) {
 	// An email-like string should require companyId in SaaS mode.
 	// A phone-like string should use the phone path.
 	cases := []struct {
-		name     string
-		email    string
-		isPhone  bool
+		name    string
+		email   string
+		isPhone bool
 	}{
 		{"bare 11-digit", "13812341234", true},
 		{"with +86", "+8613812341234", true},
