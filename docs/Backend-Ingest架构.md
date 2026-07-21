@@ -603,3 +603,89 @@ flowchart TB
 - **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota（`pkg/newapiunits`）的 wallet_sync、发生月↔开账月双轨。  
 - **Worker** = **两条异步线**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：线 A `infra/ingest.Worker`（pending + reconcile）与线 B `infra/river.Client`（`wallet_sync` / rebalance / overrun / org sync 等 River job）并行。  
 - **可靠** = webhook 求快 ACK，IngestWorker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。
+
+---
+
+## 16. Ingest 事务内预算累计（同事务细节）
+
+> 以下内容整合自原 `Backend-预算累计架构.md`，描述 Ingest 事务中 `budget_consumed` 和 `combined_key_remain` 的原子写入。
+
+### 16.1 事务时序
+
+```text
+IngestRaw → BEGIN
+  → SELECT ... FROM companies WHERE id=$1 FOR UPDATE（公司级串行）
+  → ExistsIdempotency?（锁后检查，重复零副作用）
+  → ConsumeLots（lot FIFO + wallet_remain）
+  → INSERT usage_ledger（segments）
+  → IncrementConsumedBatch（UNNEST 批量 UPSERT budget_consumed，最多 3 轴）
+  → DecrementBatch（combined_key_remain -= amount；GREATEST(remain - delta, 0)）
+  → NULL remain → 锁行重算 → UpdateBatch（仅初始化）
+  → INSERT wallet_sync job（River in-tx）
+  → 可选 INSERT overrun job（remain ≤ 0 时）
+  → COMMIT
+```
+
+### 16.2 约束
+
+| 约束 | 实现 |
+|---|---|
+| 公司级串行 | `companies FOR UPDATE` — Ingest 和 reconcile 共用 |
+| 幂等在锁后 | 锁后检查 → 重复请求零副作用 |
+| consumed 一次写 | `IncrementConsumedBatch` UNNEST 批量 UPSERT |
+| combined 原子扣减 | `GREATEST(remain - delta, 0)` |
+| 绝对重算仅初始化 | NULL remain → 锁行 → 重算 → UpdateBatch |
+| job 失败 = 账务回滚 | River job 在同一事务中插入 |
+| 无 advisory lock | Ingest 热路径不拿 budget advisory lock |
+
+### 16.3 批量 consumed SQL
+
+```sql
+INSERT INTO budget_consumed (company_id, axis_kind, axis_id, period_key, consumed, updated_at)
+SELECT $1, axis_kind, axis_id, period_key, amount, NOW()
+FROM UNNEST($2::text[], $3::text[], $4::text[], $5::numeric[])
+    AS input(axis_kind, axis_id, period_key, amount)
+ON CONFLICT (company_id, axis_kind, axis_id, period_key)
+DO UPDATE SET consumed = budget_consumed.consumed + EXCLUDED.consumed, updated_at = NOW();
+```
+
+### 16.4 Overrun Gate
+
+Ingest 只做 gate，不执行 Disable/NewAPI：
+
+- `platformKeyID` 为空 → 跳过
+- `summaries == nil`（Unconstrained）→ 跳过
+- key 不在 summaries 中（Unknown）→ InsertOverrun
+- key 在 summaries 且 `remain ≤ 0` → InsertOverrun
+- 否则 → 跳过
+
+`OverrunService` worker 做多轴裁决（platform key → member → project → department），payload 含 `periodKey` 避免跨月误判。
+
+### 16.5 告警（post-commit best-effort）
+
+Ingest commit 后：
+1. `CheckBudgetAlerts` — 仅 touched department
+2. 收件人：`NotifyRoleIDs` → role name → active members
+3. 去重键：`budget-alert:{companyID}:{ruleID}:{threshold}:{periodKey}:{memberID}`
+4. 经 `notification.DispatchAsync`，失败只记日志不影响账务
+
+### 16.6 Reconcile（冷路径 ~24h）
+
+`ReconcileService.RunCompany`：
+1. `AcquireBudgetLock`（advisory）+ `LockCompanyForUpdate`
+2. `ListCallSettledSince`（~2 月窗口）→ 按 entry.OccurredAt 归属开账月
+3. diff expected vs actual → `SetConsumed(expected)`；多余行 → `SetConsumed(0)`
+4. 有修复 → `LockPlatformKeysForUpdate` → `ComputeGatewaySummaryUpdates` → `UpdateBatch`
+5. 修复后 → `InsertRebalance(company)`
+
+### 16.7 数据写入者总览
+
+| 数据 | 写入者 | 时机 |
+|---|---|---|
+| `usage_ledger` | Ingest | 事务内 |
+| `budget_consumed` | Ingest（IncrementConsumedBatch） | 事务内 |
+| `budget_consumed` | Reconcile（SetConsumed） | 冷路径修复 |
+| `combined_key_remain` | Ingest（DecrementBatch / absoluteRecompute） | 事务内 |
+| `combined_key_remain` | Reconcile（UpdateBatch） | 冷路径修复 |
+| `combined_key_remain` | Rebalance | 充值/月切后 |
+| `usage_buckets` | dashboard projector | 异步投影（看门狗每小时触发） |

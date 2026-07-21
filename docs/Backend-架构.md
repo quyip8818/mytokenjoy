@@ -2,7 +2,7 @@
 
 `apps/backend/` 分层、请求链路、域划分、Store 抽象、NewAPI/Gateway 集成与看板读路径。
 
-**相关：** [Backend.md](./Backend.md)（索引）· [Backend-结构优化.md](./Backend-结构优化.md)（当前结构基线与剩余债务）· [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
+**相关：** [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-离线任务.md](./Backend-离线任务.md) · [工程收口.md](./工程收口.md) · [Frontend.md](./Frontend.md)
 
 ---
 
@@ -519,3 +519,124 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | pkg 测      | `tests/pkg/org/` 等；组织 diff/ID 与 `internal/pkg/org` 对称 |
 
 变更检查清单见 [Backend.md](./Backend.md)。
+
+
+---
+
+## 11. 模块化设计
+
+### 11.1 设计目标
+
+| 目标 | 说明 |
+| --- | --- |
+| **可读** | 新人 15 分钟内能回答：请求从哪进、业务在哪、持久化在哪、异步从哪触发 |
+| **可导航** | 同一概念只在一个目录「当家」；文件名即职责 |
+| **可演进** | 单域改动不牵动全局；`app/` 装配与 `domain/` 业务隔离 |
+| **可验证** | 分层约束可用 `rg` 机械检查 |
+
+### 11.2 模块地图（业务能力视图）
+
+| 逻辑模块 | 包路径 | 职责 |
+| --- | --- | --- |
+| **平台与租户** | `company`、`org`、`grants` | 开户、邀请、组织树、数据源同步 |
+| **身份与鉴权** | `identity/*`、`infra/permission` | Session JWT、RBAC、权限 manifest |
+| **计费与预算** | `billing`、`billing/lot`、`budget`、`usage` | 充值 lot、双轴预算、入账与投影 |
+| **数据面与同步** | `gateway`、`keys`、`newapisync`、`adminport` | `/v1` 预检、PlatformKey、NewAPI Admin |
+| **只读聚合** | `dashboard`、`memberanalytics`、`audit`、`models` | 看板、工作台、审计、模型目录 |
+| **异步运行时** | `infra/ingest`、`infra/jobs`、`infra/scheduler`、`infra/river` | 两条异步线 + 看门狗 |
+| **横切** | `config`、`store`、`pkg/*`、`integration/*` | 配置、持久化、纯函数、外部适配 |
+
+模块级依赖：只读聚合 → 可读计费/租户；数据面 → 可读计费（预检）；异步 → 调 domain 公开 Processor；`integration/*` 实现 port。
+
+### 11.3 组合根 `app/`（as-built）
+
+21 个文件、单包 `package app`，按装配阶段命名：
+
+| 前缀 | 含义 |
+| --- | --- |
+| `compose_*` | 装配阶段（infra → domain → http → worker） |
+| `port_*` | 域 `JobEnqueuer` → `infra/jobs.Enqueuer` 薄适配 |
+| `holder_*` | 延迟绑定（River Client 启动后 `Set`） |
+
+装配链路：`cmd/server` → `app.New` → `openStore` → `assembleRegistry`（`compose_infra` → `compose_domain` → `registry`）→ `buildBackgroundWorkers` → `http.NewRouter`。
+
+**注入 SSOT（查找改 DI 时从这里开始）：**
+
+| 阶段 | 文件 |
+| --- | --- |
+| 外部适配 / 横切 infra | `compose_infra.go` |
+| 域服务构造 | `compose_domain_wire.go` |
+| HTTP + Gateway + Identity | `compose_http.go`、`registry.go` |
+| 后台 worker | `compose_worker.go` |
+| Job 端口适配 | `port_*.go` |
+
+### 11.4 `infra/` 异步栈
+
+```text
+infra/
+├── jobs/          # 10 kind 常量 SSOT + kinds_*.go + enqueue
+├── scheduler/     # L2 due 查询 + 看门狗批量入队
+├── river/         # client + periodic/watchdog + workers/
+├── ingest/        # 线 A（pending + reconcile）
+└── budgetcheck/   # Gateway 软缓存
+```
+
+禁止回退：不新增 `*_fanout` Periodic；调度 SSOT = `tenant_background_state` + `tenant_watchdog`。
+
+---
+
+## 12. 结构基线与分层约束
+
+### 12.1 分层不变量（CI 可验）
+
+```bash
+# scripts/layer-guard.sh — make lint 含此检查
+rg 'internal/infra/'           apps/backend/internal/domain/       # domain 零 infra import
+rg 'integration/newapi|integration/datasource/feishu' apps/backend/internal/domain/
+rg '\.Store\b'                 apps/backend/internal/http/handler/  # handler 不直访 Store
+rg 'fanout'                    apps/backend/internal/infra/river/periodic/
+```
+
+### 12.2 领域端口（Job enqueuer · 6 域）
+
+| 端口 | 定义 | 适配器 |
+| --- | --- | --- |
+| `billing.JobEnqueuer` | `domain/billing/ports.go` | `app/port_billing.go` |
+| `budget.JobEnqueuer` | `domain/budget/ports.go` | `app/port_budget.go` |
+| `usage.IngestJobEnqueuer` | `domain/usage/ports.go` | `app/port_usage.go` |
+| `dashboard.JobEnqueuer` | `domain/dashboard/ports.go` | `app/port_dashboard.go` |
+| `newapisync.SyncJobEnqueuer` | `domain/newapisync/ports/ports.go` | `app/port_newapisync.go` |
+| `remote.JobEnqueuer` | `domain/org/remote/ports.go` | `app/port_org.go` |
+
+**其它端口：** `adminport.Port`、`types.Notifier`、`GatewaySoftCache`、`datasource.Provider`、`authz.RevisionReader`。
+
+### 12.3 钱包与 lot 边界
+
+| 名称 | 路径 |
+| --- | --- |
+| **Lot 写 SSOT** | `domain/billing/lot/`（FIFO 消费、`wallet_remain`） |
+| **Billing 域** | `domain/billing/`（充值、展示、wallet_sync） |
+| **WalletService** | `domain/company/`（NewAPI quota 读；依赖 `QuotaReader`） |
+| **Usage 聚合** | `store/postgres/usage_aggregate.go` → `UsageRepository` |
+
+### 12.4 PR 自检清单
+
+- [ ] 新异步入队：域内 `ports.go` + `app/port_<域>.go`；domain 不 import `infra/jobs`
+- [ ] lot 写路径只经 `domain/billing/lot/`
+- [ ] usage 聚合只经 `UsageRepository` / `usage_aggregate.go`
+- [ ] domain 无新增 `infra/*` / 具体 integration import
+- [ ] 业务 handler 不直访 store
+- [ ] `make test-unit` 全绿
+
+### 12.5 入口速查
+
+| 问题 | 入口 |
+| --- | --- |
+| 进程启动 | `cmd/server/main.go` → `app.New` |
+| 装配总线 | `assemble.go` → `compose_infra` → `compose_domain` → `registry` |
+| HTTP 路由 | `http/router.go` → `handler/register.go` |
+| 域服务 DI | `compose_domain_wire.go` |
+| 后台任务 | `compose_worker.go`（ingest + river） |
+| Job 入队 | domain 端口 → `port_*` → `infra/jobs` |
+| 看门狗 | `compose_watchdog.go` → `scheduler.RunOnce`；周期 `river/periodic/watchdog.go` |
+| 测试装配 | `testhook_registry.go` + `tests/testutil` |
