@@ -84,8 +84,9 @@ func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.Platf
 	if err != nil {
 		return types.PlatformKey{}, domain.ServiceUnavailable("NewAPI sync failed")
 	}
-	created.FullKey = &fullKey
-	created.KeyPrefix = platformKeyPrefix(fullKey)
+	displayKey := "sk-" + fullKey
+	created.FullKey = &displayKey
+	created.KeyPrefix = platformKeyPrefix(displayKey)
 	return s.enrichPlatformKeyResponse(ctx, created)
 }
 
