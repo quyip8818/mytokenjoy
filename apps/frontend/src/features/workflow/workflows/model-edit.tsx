@@ -216,7 +216,11 @@ export function ModelEditWorkflow({
                 setInputPrice(e.target.value)
                 markDirty()
               }}
+              disabled={!isCustomModel(model)}
             />
+            {!isCustomModel(model) && (
+              <p className="text-xs text-muted-foreground">内置模型价格由平台同步，不可编辑</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>输出单价 (¥/M tokens)</Label>
@@ -227,6 +231,7 @@ export function ModelEditWorkflow({
                 setOutputPrice(e.target.value)
                 markDirty()
               }}
+              disabled={!isCustomModel(model)}
             />
           </div>
         </div>

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
 type optionEntry struct {
@@ -65,4 +67,54 @@ func MergeGroupOption(raw, optKey, group, displayName string) (merged string, sk
 		return "", false, err
 	}
 	return string(out), false, nil
+}
+
+// UpdateOption sets a NewAPI system option (e.g. ModelRatio, CompletionRatio).
+func (c *Client) UpdateOption(ctx context.Context, key, value string) error {
+	if err := c.do(ctx, "PUT", "/api/option/", map[string]string{
+		"key":   key,
+		"value": value,
+	}, nil); err != nil {
+		return fmt.Errorf("update option %s: %w", key, err)
+	}
+	return nil
+}
+
+// UpsertModelRatio adds or updates a single model's ratio entries in the
+// global ModelRatio and CompletionRatio option maps (read-modify-write).
+func (c *Client) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice float64) error {
+	var entries []optionEntry
+	if err := c.do(ctx, "GET", "/api/option/", nil, &entries); err != nil {
+		return fmt.Errorf("list options for upsert ratio: %w", err)
+	}
+	byKey := make(map[string]string, len(entries))
+	for _, e := range entries {
+		byKey[e.Key] = e.Value
+	}
+
+	modelRatio, completionRatio := newapiunits.RatioFromPrice(inputPrice, outputPrice)
+
+	// Update ModelRatio map
+	mrMap := map[string]float64{}
+	if raw := byKey["ModelRatio"]; raw != "" {
+		_ = json.Unmarshal([]byte(raw), &mrMap)
+	}
+	mrMap[modelType] = modelRatio
+	mrJSON, _ := json.Marshal(mrMap)
+	if err := c.UpdateOption(ctx, "ModelRatio", string(mrJSON)); err != nil {
+		return err
+	}
+
+	// Update CompletionRatio map
+	crMap := map[string]float64{}
+	if raw := byKey["CompletionRatio"]; raw != "" {
+		_ = json.Unmarshal([]byte(raw), &crMap)
+	}
+	crMap[modelType] = completionRatio
+	crJSON, _ := json.Marshal(crMap)
+	if err := c.UpdateOption(ctx, "CompletionRatio", string(crJSON)); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -138,4 +138,12 @@ func (s *StubAdminClient) ListModelPricing(ctx context.Context) ([]adminport.Mod
 	return nil, nil
 }
 
+func (s *StubAdminClient) UpdateOption(ctx context.Context, key, value string) error {
+	return nil
+}
+
+func (s *StubAdminClient) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice float64) error {
+	return nil
+}
+
 var _ adminport.Port = (*StubAdminClient)(nil)

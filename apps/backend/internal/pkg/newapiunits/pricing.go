@@ -13,3 +13,14 @@ func PriceFromRatio(modelRatio, completionRatio float64) (inputPrice, outputPric
 	outputPrice = modelRatio * completionRatio * 2
 	return inputPrice, outputPrice
 }
+
+// RatioFromPrice converts display prices (元/1M tokens) back to NewAPI ratios.
+// Inverse of PriceFromRatio.
+func RatioFromPrice(inputPrice, outputPrice float64) (modelRatio, completionRatio float64) {
+	if inputPrice == 0 {
+		return 0, 0
+	}
+	modelRatio = inputPrice / 2
+	completionRatio = outputPrice / inputPrice
+	return modelRatio, completionRatio
+}

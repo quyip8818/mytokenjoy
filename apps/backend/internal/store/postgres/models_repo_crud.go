@@ -92,13 +92,13 @@ func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (
 		INSERT INTO models (
 			company_id, provider, type, name, description, endpoint,
 			api_key, endpoint_model_name,
-			input_price, output_price, max_context, max_tokens, enabled, capabilities, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+			max_context, max_tokens, enabled, capabilities, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 		RETURNING model_id
 	`, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled,
+		model.MaxContext, model.MaxTokens, model.Enabled,
 		capabilities).Scan(&modelID)
 	if err != nil {
 		return types.ModelInfo{}, fmt.Errorf("insert model: %w", err)
@@ -123,18 +123,16 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			endpoint = $7,
 			api_key = $8,
 			endpoint_model_name = $9,
-			input_price = $10,
-			output_price = $11,
-			max_context = $12,
-			max_tokens = $13,
-			enabled = $14,
-			capabilities = $15,
+			max_context = $10,
+			max_tokens = $11,
+			enabled = $12,
+			capabilities = $13,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
 	`, model.ID, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.InputPrice, model.OutputPrice, model.MaxContext, model.MaxTokens, model.Enabled,
+		model.MaxContext, model.MaxTokens, model.Enabled,
 		capabilities)
 	if err != nil {
 		return fmt.Errorf("update model %d: %w", model.ID, err)

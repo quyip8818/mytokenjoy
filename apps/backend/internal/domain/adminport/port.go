@@ -21,4 +21,6 @@ type Port interface {
 
 	// --- Pricing (used by models domain) ---
 	ListModelPricing(ctx context.Context) ([]ModelPricing, error)
+	UpdateOption(ctx context.Context, key, value string) error
+	UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice float64) error
 }

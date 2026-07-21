@@ -68,6 +68,12 @@ export function ModelListTable({
             </TableHead>
           )}
           <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            输入价格
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            输出价格
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
             描述
           </TableHead>
           {showProviderColumn && (
@@ -97,6 +103,12 @@ export function ModelListTable({
                 </Badge>
               </TableCell>
             )}
+            <TableCell className="text-right font-mono text-xs text-muted-foreground">
+              {model.inputPrice > 0 ? `¥${model.inputPrice}/M` : '—'}
+            </TableCell>
+            <TableCell className="text-right font-mono text-xs text-muted-foreground">
+              {model.outputPrice > 0 ? `¥${model.outputPrice}/M` : '—'}
+            </TableCell>
             <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
               {model.description || '—'}
             </TableCell>

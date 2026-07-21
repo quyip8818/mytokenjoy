@@ -145,8 +145,6 @@ CREATE TABLE IF NOT EXISTS models (
     endpoint     TEXT,
     api_key      TEXT,
     endpoint_model_name TEXT,
-    input_price  NUMERIC(18, 8) NOT NULL DEFAULT 0,
-    output_price NUMERIC(18, 8) NOT NULL DEFAULT 0,
     max_context  INT NOT NULL DEFAULT 0,
     max_tokens   INT NOT NULL DEFAULT 0,
     enabled      BOOLEAN NOT NULL DEFAULT TRUE,

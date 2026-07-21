@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
@@ -11,8 +12,10 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/integration/platform"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
+	"github.com/tokenjoy/backend/internal/worker/pricingsync"
 )
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
@@ -89,17 +92,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	if !o.skipWorker {
 		bgWorkers.start(workerCtx, cfg)
 		startDeferredWatchdog(workerCtx, cfg, logger, st, holder)
-	}
-
-	if cfg.NewAPIEnabled {
-		go func() {
-			n, err := registry.Deps.ModelsSvc.SyncPricingFromUpstream(context.Background())
-			if err != nil {
-				slog.Warn("startup pricing sync failed", "error", err)
-			} else if n > 0 {
-				slog.Info("startup pricing sync complete", "updated", n)
-			}
-		}()
+		startPricingSyncWorker(workerCtx, cfg, registry.Infra.adminPort)
 	}
 
 	return &App{
@@ -123,4 +116,22 @@ func (a *App) Close() {
 	for _, closer := range a.closers {
 		closer()
 	}
+}
+
+func startPricingSyncWorker(ctx context.Context, cfg config.Config, adminPort adminport.Port) {
+	if !cfg.PlatformPricingSyncEnabled {
+		return
+	}
+	if cfg.PlatformPricingSyncURL == "" || cfg.PlatformPricingSyncKey == "" {
+		slog.Warn("pricing sync enabled but URL/Key not configured, skipping")
+		return
+	}
+	interval := time.Duration(cfg.PlatformPricingSyncIntervalSec) * time.Second
+	if interval <= 0 {
+		interval = 10 * time.Minute
+	}
+	pc := platform.NewClient(cfg.PlatformPricingSyncURL, cfg.PlatformPricingSyncKey)
+	w := pricingsync.New(pc, adminPort, interval)
+	go w.Run(ctx)
+	slog.Info("pricing sync worker started", "interval", interval)
 }

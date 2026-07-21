@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,7 @@ import (
 
 type Service interface {
 	ListModels(ctx context.Context) ([]types.ModelInfo, error)
+	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
 	DeleteModel(ctx context.Context, id uuid.UUID) error
@@ -26,7 +28,6 @@ type Service interface {
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
 	ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
 	UpdateRoutingRule(ctx context.Context, id uuid.UUID, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
-	SyncPricingFromUpstream(ctx context.Context) (int, error)
 }
 
 // Store is the narrow store surface the models domain needs.
@@ -106,6 +107,12 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	if err != nil {
 		return types.ModelInfo{}, mapModelPersistError(err)
 	}
+	// Write pricing to NewAPI (SOT for all model pricing)
+	if s.client != nil && (input.InputPrice > 0 || input.OutputPrice > 0) {
+		if err := s.client.UpsertModelRatio(ctx, input.Type, input.InputPrice, input.OutputPrice); err != nil {
+			slog.Warn("create model: failed to write pricing to NewAPI", "model", input.Type, "error", err)
+		}
+	}
 	return created, nil
 }
 
@@ -143,6 +150,12 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 	}
 	if input.OutputPrice != nil {
 		existing.OutputPrice = *input.OutputPrice
+	}
+	// Write pricing to NewAPI if changed
+	if (input.InputPrice != nil || input.OutputPrice != nil) && s.client != nil {
+		if err := s.client.UpsertModelRatio(ctx, existing.Type, existing.InputPrice, existing.OutputPrice); err != nil {
+			return types.ModelInfo{}, fmt.Errorf("update model pricing: %w", err)
+		}
 	}
 	if input.MaxContext != nil {
 		existing.MaxContext = *input.MaxContext
@@ -342,40 +355,28 @@ func (s *service) UpdateRoutingRule(
 	return common.EnrichRoutingRule(updated, catalog), nil
 }
 
-func (s *service) SyncPricingFromUpstream(ctx context.Context) (int, error) {
-	if s.client == nil {
-		return 0, fmt.Errorf("newapi admin client required")
-	}
-	pricing, err := s.client.ListModelPricing(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("fetch upstream pricing: %w", err)
-	}
-	priceByModel := make(map[string]adminport.ModelPricing, len(pricing))
-	for _, p := range pricing {
-		priceByModel[p.ModelName] = p
-	}
-
+func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error) {
 	models, err := s.store.Models().Models(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("list models: %w", err)
+		return nil, err
 	}
 
-	updated := 0
-	for _, model := range models {
-		p, ok := priceByModel[model.Type]
-		if !ok {
-			continue
-		}
-		inputPoints, outputPoints := newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
-		if model.InputPrice == inputPoints && model.OutputPrice == outputPoints {
-			continue
-		}
-		model.InputPrice = inputPoints
-		model.OutputPrice = outputPoints
-		if err := s.store.Models().UpdateModel(ctx, model); err != nil {
-			return updated, fmt.Errorf("update model %s pricing: %w", model.Type, err)
-		}
-		updated++
+	// best-effort: NewAPI 不可达时仍返回模型列表，价格为 0
+	if s.client == nil {
+		return models, nil
 	}
-	return updated, nil
+	pricingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	pricing, _ := s.client.ListModelPricing(pricingCtx)
+	priceMap := make(map[string]adminport.ModelPricing, len(pricing))
+	for _, p := range pricing {
+		priceMap[p.ModelName] = p
+	}
+
+	for i := range models {
+		if p, ok := priceMap[models[i].Type]; ok {
+			models[i].InputPrice, models[i].OutputPrice = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+		}
+	}
+	return models, nil
 }

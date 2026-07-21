@@ -103,6 +103,12 @@ type PlatformConfig struct {
 
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`
+
+	// Pricing sync worker — pulls pricing from platform and writes to local NewAPI.
+	PlatformPricingSyncEnabled     bool   `env:"PLATFORM_PRICING_SYNC_ENABLED" envDefault:"false"`
+	PlatformPricingSyncURL         string `env:"PLATFORM_PRICING_SYNC_URL"`
+	PlatformPricingSyncKey         string `env:"PLATFORM_PRICING_SYNC_KEY"`
+	PlatformPricingSyncIntervalSec int    `env:"PLATFORM_PRICING_SYNC_INTERVAL_SEC" envDefault:"600"`
 }
 
 // IdentityConfig holds authentication, session, and authorization settings.
