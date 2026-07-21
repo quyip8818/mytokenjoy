@@ -226,6 +226,8 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 
 type companyBody struct {
 	CompanyName string `json:"companyName"`
+	Industry    string `json:"industry"`
+	Size        string `json:"size"`
 	Password    string `json:"password"`
 }
 
@@ -262,9 +264,11 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.companySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
-		UserID: userID,
-		Name:   body.CompanyName,
-		Type:   store.CompanyTypeTrial,
+		UserID:   userID,
+		Name:     body.CompanyName,
+		Industry: body.Industry,
+		Size:     body.Size,
+		Type:     store.CompanyTypeTrial,
 	})
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)

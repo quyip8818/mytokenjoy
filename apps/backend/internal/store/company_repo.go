@@ -21,6 +21,8 @@ const (
 type Company struct {
 	ID                    uuid.UUID
 	Name                  string
+	Industry              string
+	Size                  string
 	Type                  string
 	Status                string
 	RootDeptID            *uuid.UUID

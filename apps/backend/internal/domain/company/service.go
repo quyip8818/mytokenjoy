@@ -33,6 +33,8 @@ type UpdateCompanyPatch struct {
 type CreateCompanyRequest struct {
 	UserID      uuid.UUID // optional: non-nil → creator becomes super-admin
 	Name        string
+	Industry    string // optional: 行业
+	Size        string // optional: 人员规模
 	Type        string // "standard" | "trial" | "selfhosted"
 	InviteEmail string // optional: non-empty → generate invite (platform provisioning)
 }

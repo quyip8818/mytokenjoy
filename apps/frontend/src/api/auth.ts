@@ -78,10 +78,10 @@ export const authApi = {
       body: JSON.stringify({ inviteCode, name }),
     }),
 
-  registerCompany: (companyName: string, password: string) =>
+  registerCompany: (companyName: string, password: string, industry: string, size: string) =>
     request<{ memberId: string; companyId: string }>('/auth/register/company', {
       method: 'POST',
-      body: JSON.stringify({ companyName, password }),
+      body: JSON.stringify({ companyName, password, industry, size }),
     }),
 
   // --- Accept invite (unauthenticated, email link) ---

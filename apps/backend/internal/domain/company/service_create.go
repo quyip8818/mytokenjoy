@@ -25,7 +25,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 
 	var result CreateCompanyResult
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
-		company, err := s.provisionCompany(ctx, tx, req.Name, companyType)
+		company, err := s.provisionCompany(ctx, tx, req.Name, req.Industry, req.Size, companyType)
 		if err != nil {
 			return err
 		}
@@ -74,12 +74,14 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 
 // provisionCompany creates company infrastructure within tx:
 // Company row + NewAPI wallet + preset roles + root org node.
-func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, companyType string) (store.Company, error) {
+func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, industry, size, companyType string) (store.Company, error) {
 	now := time.Now().UTC()
 	companyID := uuid.Must(uuid.NewV7())
 	company := store.Company{
 		ID:        companyID,
 		Name:      name,
+		Industry:  industry,
+		Size:      size,
 		Type:      companyType,
 		Status:    store.CompanyStatusActive,
 		CreatedAt: now,
