@@ -18,7 +18,7 @@ export function useApprovalPendingCountQuery(options: UseApprovalPendingCountQue
 
   return useInjectedQuery({
     injectedApis: apis,
-    queryKey: queryKeys.org.approvalPendingCount(),
+    queryKey: queryKeys.approval.pendingCount(),
     queryFn: async (a) => {
       if (!canApprove) return 0
       const res = await a.approvalApi.list({ status: 'pending', limit: 0 })

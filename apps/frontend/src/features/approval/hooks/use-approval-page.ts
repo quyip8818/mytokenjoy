@@ -34,10 +34,9 @@ export function useApprovalPage(injectedApis?: AppApis) {
   const approvals = useMemo(() => data?.items ?? [], [data])
   const total = data?.total ?? 0
 
-  const pendingCount = useMemo(
-    () => approvals.filter((a) => a.status === 'pending').length,
-    [approvals],
-  )
+  // When tab='pending', all items in the list are pending so count === total.
+  // No need for a separate client-side filter.
+  const pendingCount = tab === 'pending' ? total : 0
 
   const handleApprove = useCallback(
     async (id: string) => {

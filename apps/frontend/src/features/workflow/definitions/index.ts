@@ -8,6 +8,7 @@ type DomainDefinitions = Partial<Record<WorkflowId, WorkflowDefinition>>
 const DOMAIN_LOADERS = {
   org: () => import('./org').then((m) => m.orgWorkflowDefinitions),
   keys: () => import('./keys').then((m) => m.keysWorkflowDefinitions),
+  approval: () => import('./approval').then((m) => m.approvalWorkflowDefinitions),
   models: () => import('./models').then((m) => m.modelsWorkflowDefinitions),
   shared: () => import('./shared').then((m) => m.sharedWorkflowDefinitions),
 } as const

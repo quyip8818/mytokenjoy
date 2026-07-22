@@ -35,16 +35,3 @@ export function KeyStatusBadge({ status }: { status: string }) {
       return <Badge variant="outline">{status}</Badge>
   }
 }
-
-export function ApprovalStatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case 'pending':
-      return <StatusBadge variant="warning">待审批</StatusBadge>
-    case 'approved':
-      return <StatusBadge variant="success">已通过</StatusBadge>
-    case 'rejected':
-      return <StatusBadge variant="danger">已拒绝</StatusBadge>
-    default:
-      return <Badge variant="outline">{status}</Badge>
-  }
-}

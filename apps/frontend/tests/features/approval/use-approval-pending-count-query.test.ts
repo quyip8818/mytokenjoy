@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
-import { useApprovalPendingCountQuery } from '@/features/org/hooks/use-approval-pending-count-query'
+import { useApprovalPendingCountQuery } from '@/features/approval/hooks/use-approval-pending-count-query'
 import { PERMISSION } from '@/lib/permissions'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 

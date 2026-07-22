@@ -18,11 +18,6 @@ export {
 export { useStructurePage } from './hooks/use-structure-page'
 export { useRolesPage } from './hooks/use-roles-page'
 export { useDataSourcePage } from './hooks/use-data-source-page'
-export {
-  useApprovalPendingCountQuery,
-  APPROVAL_PENDING_POLL_INTERVAL_MS,
-  type UseApprovalPendingCountQueryOptions,
-} from './hooks/use-approval-pending-count-query'
 export { DepartmentPanel } from './components/structure/department-panel'
 export { MemberToolbar } from './components/structure/member-toolbar'
 export { MemberTable } from './components/structure/member-table'

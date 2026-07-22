@@ -91,6 +91,11 @@ func (h *KeyApprovalHandler) OnApprovedTx(ctx context.Context, req types.Approva
 	var meta types.KeyApprovalMeta
 	json.Unmarshal(req.Metadata, &meta)
 
+	// Acquire budget lock to prevent concurrent approval races
+	if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+		return nil, err
+	}
+
 	members, err := tx.Org().Members(ctx)
 	if err != nil {
 		return nil, err
@@ -254,10 +259,36 @@ func (h *BudgetApprovalHandler) PreApprove(ctx context.Context, req types.Approv
 func (h *BudgetApprovalHandler) OnApprovedTx(ctx context.Context, req types.ApprovalRequest, tx store.Store) (approval.ApproveResult, error) {
 	var meta types.BudgetApprovalMeta
 	json.Unmarshal(req.Metadata, &meta)
+
+	// Acquire budget lock to prevent concurrent approval races
+	if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
+		return nil, err
+	}
+
+	// Resolve department and re-check reserved pool under lock
 	members, err := tx.Org().Members(ctx)
 	if err != nil {
 		return nil, err
 	}
+	applicant, ok := org.FindMemberByID(members, req.ApplicantID)
+	if !ok {
+		return nil, domain.NotFound("申请人不存在")
+	}
+	row, found, err := tx.Budget().OrgNodeBudget().Get(ctx, applicant.DepartmentID)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, domain.Validation("部门预算节点不存在")
+	}
+	reserved := int64(0)
+	if row.ReservedPool != nil {
+		reserved = *row.ReservedPool
+	}
+	if int64(meta.RequestedBudget) > reserved {
+		return nil, domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %d quota", reserved))
+	}
+
 	members = budget.AddMemberPersonalBudget(members, req.ApplicantID, int64(meta.RequestedBudget))
 	if err := tx.Org().SetMembers(ctx, members); err != nil {
 		return nil, err

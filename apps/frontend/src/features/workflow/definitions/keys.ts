@@ -2,8 +2,6 @@ import { defineWorkflow } from '../types'
 import { KeyFormWorkflow } from '../workflows/key-form'
 import { KeyRevealWorkflow } from '../workflows/key-reveal'
 import { KeyRotateConfirmWorkflow } from '../workflows/key-rotate-confirm'
-import { ApprovalSubmitWorkflow } from '../workflows/approval-submit'
-import { ApprovalReviewWorkflow } from '../workflows/approval-review'
 import { ProviderKeyFormWorkflow } from '../workflows/provider-key-form'
 
 export const keysWorkflowDefinitions = {
@@ -14,8 +12,6 @@ export const keysWorkflowDefinitions = {
     title: '重新生成 Key',
   }),
   'key-reveal': defineWorkflow(KeyRevealWorkflow, { defaultLayer: 3, title: 'Key 已生成' }),
-  'approval-submit': defineWorkflow(ApprovalSubmitWorkflow, { defaultLayer: 1, title: '发起申请' }),
-  'approval-review': defineWorkflow(ApprovalReviewWorkflow, { defaultLayer: 1, title: '审批处理' }),
   'provider-key-form': defineWorkflow(ProviderKeyFormWorkflow, {
     defaultLayer: 1,
     title: '添加供应商 Key',

@@ -3,12 +3,14 @@ import type { WorkflowDefinition } from '@/features/workflow/types'
 import { WORKFLOW_META, getWorkflowDomain } from '@/features/workflow/definitions/workflow-meta'
 import { orgWorkflowDefinitions } from '@/features/workflow/definitions/org'
 import { keysWorkflowDefinitions } from '@/features/workflow/definitions/keys'
+import { approvalWorkflowDefinitions } from '@/features/workflow/definitions/approval'
 import { modelsWorkflowDefinitions } from '@/features/workflow/definitions/models'
 import { sharedWorkflowDefinitions } from '@/features/workflow/definitions/shared'
 
 const workflowDefinitionsByDomain: Record<string, Record<string, WorkflowDefinition>> = {
   org: orgWorkflowDefinitions,
   keys: keysWorkflowDefinitions,
+  approval: approvalWorkflowDefinitions,
   models: modelsWorkflowDefinitions,
   shared: sharedWorkflowDefinitions,
 }

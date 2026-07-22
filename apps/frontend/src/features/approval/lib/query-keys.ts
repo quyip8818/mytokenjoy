@@ -4,4 +4,5 @@ export const approvalKeys = {
     [...approvalKeys.all, 'list', status ?? 'all', type ?? 'all'] as const,
   detail: (id: string) => [...approvalKeys.all, 'detail', id] as const,
   preCheck: (id: string) => [...approvalKeys.all, 'preCheck', id] as const,
+  pendingCount: () => [...approvalKeys.all, 'pending-count'] as const,
 }

@@ -20,8 +20,6 @@ export function useBudgetSelection({
 }: UseBudgetSelectionOptions) {
   const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>()
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
-  const [approvalOpen, setApprovalOpen] = useState(false)
-
   const resolvedSelectedTeamId = selectedTeamId ?? tree[0]?.id
 
   const selectedNode = useMemo(
@@ -61,8 +59,6 @@ export function useBudgetSelection({
     selectedNode,
     activeProjectId,
     activeProject,
-    approvalOpen,
-    setApprovalOpen,
     departmentMembers,
     departmentMembersLoading,
     projectMembers,

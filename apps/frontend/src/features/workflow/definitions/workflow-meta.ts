@@ -19,14 +19,14 @@ export const WORKFLOW_META: Record<WorkflowId, WorkflowMeta> = {
   'reject-reason': { defaultLayer: 2, title: '拒绝理由' },
 }
 
-const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared'> = {
+const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared' | 'approval'> = {
   'member-search': 'org',
   'key-create': 'keys',
   'key-edit': 'keys',
   'key-rotate-confirm': 'keys',
   'key-reveal': 'keys',
-  'approval-submit': 'keys',
-  'approval-review': 'keys',
+  'approval-submit': 'approval',
+  'approval-review': 'approval',
   'provider-key-form': 'keys',
   'model-create': 'models',
   'model-edit': 'models',
@@ -44,6 +44,6 @@ export function getWorkflowMeta(id: WorkflowId): WorkflowMeta {
   return meta
 }
 
-export function getWorkflowDomain(id: WorkflowId): 'org' | 'keys' | 'models' | 'shared' {
+export function getWorkflowDomain(id: WorkflowId): 'org' | 'keys' | 'models' | 'shared' | 'approval' {
   return WORKFLOW_DOMAIN[id]
 }
