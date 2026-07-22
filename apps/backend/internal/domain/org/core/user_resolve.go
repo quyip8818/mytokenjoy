@@ -6,12 +6,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 // ResolveOrCreateUser finds an existing user by phone or email, or creates a new one.
 // Returns the user ID.
 func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (uuid.UUID, error) {
+	if phone == "" && email == "" {
+		return uuid.Nil, domain.BadRequest("手机号或邮箱至少填写一项")
+	}
+
 	if phone != "" {
 		user, err := st.User().GetByPhone(ctx, phone)
 		if err != nil {

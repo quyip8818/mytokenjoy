@@ -89,8 +89,6 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 		Provider:     types.ProviderCustom,
 		Type:         "gpt-roundtrip",
 		Name:         "GPT RoundTrip",
-		InputPrice:   1,
-		OutputPrice:  2,
 		MaxContext:   128000,
 		Enabled:      true,
 		Capabilities: []string{"chat"},

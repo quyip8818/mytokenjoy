@@ -51,6 +51,7 @@ export function MemberFormDialog({
     handleSubmit,
     reset,
     control,
+    getValues,
     formState: { errors },
   } = useForm<MemberFormData>()
 
@@ -134,17 +135,24 @@ export function MemberFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>
-                手机号 <span className="text-destructive">*</span>
-              </Label>
-              <Input {...register('phone', { required: '请输入手机号' })} />
+              <Label>手机号</Label>
+              <Input
+                {...register('phone', {
+                  validate: () =>
+                    getValues('phone').trim() !== '' || getValues('email').trim() !== '' || '手机号或邮箱至少填写一项',
+                })}
+              />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label>
-                邮箱 <span className="text-destructive">*</span>
-              </Label>
-              <Input type="email" {...register('email', { required: '请输入邮箱' })} />
+              <Label>邮箱</Label>
+              <Input
+                type="email"
+                {...register('email', {
+                  validate: () =>
+                    getValues('phone').trim() !== '' || getValues('email').trim() !== '' || '手机号或邮箱至少填写一项',
+                })}
+              />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
           </div>

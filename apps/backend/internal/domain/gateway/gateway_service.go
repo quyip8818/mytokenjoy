@@ -16,11 +16,28 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/infra/gatewaymetrics"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/pkg/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )
+
+// Recorder records gateway metrics. Implementations live in infra/gatewaymetrics.
+type Recorder interface {
+	RecordAllowed()
+	RecordRejected()
+	RecordRateLimited()
+	RecordPrecheckDuration(d time.Duration)
+}
+
+type noopRecorder struct{}
+
+func (noopRecorder) RecordAllowed()                       {}
+func (noopRecorder) RecordRejected()                      {}
+func (noopRecorder) RecordRateLimited()                   {}
+func (noopRecorder) RecordPrecheckDuration(time.Duration) {}
+
+// NoopRecorder returns a no-op Recorder for tests or disabled gateway.
+func NoopRecorder() Recorder { return noopRecorder{} }
 
 const gatewayMaxBodyBytes = 4 << 20
 
@@ -37,10 +54,10 @@ type gatewayService struct {
 	rlBurst       int
 	rlDryRun      bool
 	logger        *slog.Logger
-	metrics       gatewaymetrics.Recorder
+	metrics       Recorder
 }
 
-func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit.Limiter, logger *slog.Logger, metrics gatewaymetrics.Recorder) (GatewayService, error) {
+func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit.Limiter, logger *slog.Logger, metrics Recorder) (GatewayService, error) {
 	target, err := url.Parse(cfg.NewAPIBaseURL)
 	if err != nil {
 		return nil, err
@@ -67,7 +84,7 @@ func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit
 		req.Host = target.Host
 	}
 	if metrics == nil {
-		metrics = gatewaymetrics.Noop()
+		metrics = NoopRecorder()
 	}
 	return &gatewayService{
 		precheck:      precheck,

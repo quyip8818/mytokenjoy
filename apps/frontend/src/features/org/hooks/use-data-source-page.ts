@@ -51,8 +51,17 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     setUserPhase('connected')
     try {
       const result = await apis.dataSourceApi.import()
-      const msg = `导入完成：${result.successMembers} 名成员，${result.successDepartments} 个部门`
-      toast.success(msg)
+      const successMsg = `导入完成：${result.successMembers} 名成员，${result.successDepartments} 个部门`
+      if (result.failures.length === 0) {
+        toast.success(successMsg)
+      } else {
+        toast.success(successMsg)
+        const reasons = [...new Set(result.failures.map((f) => f.reason))]
+        toast.warning(
+          `${result.failures.length} 名成员导入失败：${reasons.slice(0, 3).join('；')}`,
+          { duration: 8000 },
+        )
+      }
     } catch {
       toast.info('配置已保存，可前往组织架构页执行导入')
     }
