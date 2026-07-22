@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/grants"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -83,6 +84,12 @@ type service struct {
 	client           adminport.Port
 	grants           grants.Normalizer
 	cacheInvalidator types.PrecheckCacheInvalidator
+	emailSender      EmailSender
+}
+
+// EmailSender is the subset of notification.Service that company needs for invite emails.
+type EmailSender interface {
+	SendDirect(ctx context.Context, channel string, address string, msg domainnotification.RenderedMessage) error
 }
 
 // CompanyServiceOption configures optional dependencies.
@@ -93,6 +100,15 @@ func WithCompanyCacheInvalidator(inv types.PrecheckCacheInvalidator) CompanyServ
 	return func(s *service) {
 		if inv != nil {
 			s.cacheInvalidator = inv
+		}
+	}
+}
+
+// WithEmailSender sets the email sender for invite emails.
+func WithEmailSender(sender EmailSender) CompanyServiceOption {
+	return func(s *service) {
+		if sender != nil {
+			s.emailSender = sender
 		}
 	}
 }

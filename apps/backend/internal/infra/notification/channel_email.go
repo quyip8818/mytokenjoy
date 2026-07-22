@@ -11,7 +11,7 @@ import (
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 )
 
-// EmailChannel sends notifications via Resend.
+// EmailChannel sends notifications via Resend templates.
 type EmailChannel struct {
 	client   *resend.Client
 	from     string
@@ -60,13 +60,24 @@ func (c *EmailChannel) SendDirect(ctx context.Context, address string, msg domai
 }
 
 func (c *EmailChannel) sendToAddress(to string, msg domainnotification.RenderedMessage) error {
-	html := buildEmailBody(msg)
+	templateID := resolveTemplateID(msg)
+	if templateID == "" {
+		return fmt.Errorf("resend: no template configured for event %v", msg.Payload["eventType"])
+	}
+
+	vars := make(map[string]any, len(msg.Payload))
+	for k, v := range msg.Payload {
+		vars[k] = v
+	}
 
 	params := &resend.SendEmailRequest{
 		From:    c.from,
 		To:      []string{to},
 		Subject: msg.Title,
-		Html:    html,
+		Template: &resend.EmailTemplate{
+			Id:        templateID,
+			Variables: vars,
+		},
 	}
 
 	_, err := c.client.Emails.Send(params)
@@ -74,23 +85,27 @@ func (c *EmailChannel) sendToAddress(to string, msg domainnotification.RenderedM
 		return fmt.Errorf("resend send to %s: %w", to, err)
 	}
 
-	c.logger.Debug("email sent via resend", "to", to, "subject", msg.Title)
+	c.logger.Debug("email sent via resend", "to", to, "subject", msg.Title, "template", templateID)
 	return nil
 }
 
-func buildEmailBody(msg domainnotification.RenderedMessage) string {
-	return fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333;">
-  <div style="max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px;">
-    <h2 style="margin: 0 0 12px 0; font-size: 18px; color: #111;">%s</h2>
-    <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #555;">%s</p>
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
-    <p style="font-size: 12px; color: #999; margin: 0;">此邮件由 TokenJoy 通知系统自动发送</p>
-  </div>
-</body>
-</html>`, msg.Title, msg.Body)
+// resolveTemplateID maps eventType to a hardcoded Resend template alias (kebab-case).
+func resolveTemplateID(msg domainnotification.RenderedMessage) string {
+	eventType, _ := msg.Payload["eventType"].(string)
+	switch eventType {
+	case domainnotification.EventBudgetAlertReached:
+		return "budget-alert"
+	case domainnotification.EventOverrunBlocked, domainnotification.EventOverdraftExpanded:
+		return "overrun-blocked"
+	case domainnotification.EventSyncThresholdExceeded:
+		return "sync-threshold-exceeded"
+	case "verification_code":
+		return "verification-code"
+	case "company_invite":
+		return "company-invite"
+	default:
+		return ""
+	}
 }
 
 var _ Channel = (*EmailChannel)(nil)

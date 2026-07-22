@@ -63,7 +63,10 @@ func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudi
 }
 
 func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) domaincompany.Service {
-	return domaincompany.NewService(cfg, i.store, i.adminPort, grants, domaincompany.WithCompanyCacheInvalidator(i.precheckCache))
+	return domaincompany.NewService(cfg, i.store, i.adminPort, grants,
+		domaincompany.WithCompanyCacheInvalidator(i.precheckCache),
+		domaincompany.WithEmailSender(i.notificationSvc),
+	)
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {

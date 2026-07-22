@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -66,6 +67,8 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	logDetail := fmt.Sprintf("created company %s", result.Company.ID)
 	if req.InviteEmail != "" {
 		logDetail = fmt.Sprintf("created company %s invite for %s", result.Company.ID, req.InviteEmail)
+		// Send invite email (best-effort, non-fatal).
+		s.sendInviteEmail(ctx, req.InviteEmail, result.Company.Name, result.InviteCode)
 	}
 	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", uuid.Nil,
 		result.Company.ID.String(), logDetail)
@@ -209,4 +212,23 @@ func (s *service) addMember(ctx context.Context, tx store.Store, userID, company
 	}
 
 	return member, nil
+}
+
+// sendInviteEmail sends the company invite email. Best-effort: failures are logged, not propagated.
+func (s *service) sendInviteEmail(ctx context.Context, email, companyName, inviteCode string) {
+	if s.emailSender == nil {
+		return
+	}
+	inviteURL := fmt.Sprintf("%s/invite?code=%s", s.cfg.FrontendURL, inviteCode)
+	msg := domainnotification.RenderedMessage{
+		Title: fmt.Sprintf("%s 邀请您加入 TokenJoy", companyName),
+		Body:  fmt.Sprintf("%s 邀请您加入 TokenJoy 平台，邀请码：%s", companyName, inviteCode),
+		Payload: map[string]any{
+			"eventType":   "company_invite",
+			"companyName": companyName,
+			"inviteCode":  inviteCode,
+			"inviteUrl":   inviteURL,
+		},
+	}
+	_ = s.emailSender.SendDirect(ctx, "email", email, msg)
 }

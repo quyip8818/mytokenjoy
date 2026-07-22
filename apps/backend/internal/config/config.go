@@ -60,10 +60,12 @@ type DataSourceConfig struct {
 // NotificationConfig holds notification channel settings (webhook, email, SMS).
 type NotificationConfig struct {
 	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
+	FrontendURL      string `env:"FRONTEND_URL" envDefault:"http://localhost:5173"`
 
 	// Resend email channel
 	ResendAPIKey string `env:"RESEND_API_KEY"`
 	ResendFrom   string `env:"RESEND_FROM"`
+	// Resend template IDs are hardcoded as kebab-case aliases (see infra/notification/channel_email.go)
 
 	// SMS channel (Aliyun / 阿里云)
 	AliyunSMSAccessKeyID     string `env:"ALIYUN_SMS_ACCESS_KEY_ID"`
