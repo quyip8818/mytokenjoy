@@ -29,8 +29,8 @@ DELETE FROM projects WHERE company_id = $COMPANY_ID;
 DELETE FROM alert_rule_notify_roles WHERE company_id = $COMPANY_ID;
 DELETE FROM alert_rules WHERE company_id = $COMPANY_ID;
 
--- 删除预算审批
-DELETE FROM budget_approvals WHERE company_id = $COMPANY_ID;
+-- 删除审批记录
+DELETE FROM approval_requests WHERE company_id = $COMPANY_ID;
 
 -- 删除成员角色和成员（保留 admin）
 DELETE FROM member_roles WHERE company_id = $COMPANY_ID AND member_id != '$ADMIN_ID';

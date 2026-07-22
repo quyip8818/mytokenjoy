@@ -44,6 +44,8 @@ export function getWorkflowMeta(id: WorkflowId): WorkflowMeta {
   return meta
 }
 
-export function getWorkflowDomain(id: WorkflowId): 'org' | 'keys' | 'models' | 'shared' | 'approval' {
+export function getWorkflowDomain(
+  id: WorkflowId,
+): 'org' | 'keys' | 'models' | 'shared' | 'approval' {
   return WORKFLOW_DOMAIN[id]
 }

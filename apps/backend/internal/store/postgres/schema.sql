@@ -324,7 +324,7 @@ CREATE TABLE IF NOT EXISTS model_allowlist (
     PRIMARY KEY (company_id, owner_type, owner_id, model_id),
     FOREIGN KEY (model_id) REFERENCES models (model_id) ON DELETE CASCADE,
     CONSTRAINT chk_model_allowlist_owner_type
-        CHECK (owner_type IN ('platform_key', 'org_node', 'key_approval'))
+        CHECK (owner_type IN ('platform_key', 'org_node'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_model_allowlist_owner
