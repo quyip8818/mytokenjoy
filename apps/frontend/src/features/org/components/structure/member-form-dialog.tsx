@@ -139,7 +139,9 @@ export function MemberFormDialog({
               <Input
                 {...register('phone', {
                   validate: () =>
-                    getValues('phone').trim() !== '' || getValues('email').trim() !== '' || '手机号或邮箱至少填写一项',
+                    getValues('phone').trim() !== '' ||
+                    getValues('email').trim() !== '' ||
+                    '手机号或邮箱至少填写一项',
                 })}
               />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
@@ -150,7 +152,9 @@ export function MemberFormDialog({
                 type="email"
                 {...register('email', {
                   validate: () =>
-                    getValues('phone').trim() !== '' || getValues('email').trim() !== '' || '手机号或邮箱至少填写一项',
+                    getValues('phone').trim() !== '' ||
+                    getValues('email').trim() !== '' ||
+                    '手机号或邮箱至少填写一项',
                 })}
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}

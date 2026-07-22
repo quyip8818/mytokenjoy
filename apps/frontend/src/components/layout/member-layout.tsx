@@ -18,7 +18,11 @@ export function MemberLayout() {
         <aside className="flex w-48 shrink-0 flex-col border-r border-border bg-card">
           <div className="px-5 pt-5 pb-4">
             <Link to="/" className="group block">
-              <img src="/logo.png" alt="TokenJoy" className="h-7 w-auto transition-transform group-hover:scale-105" />
+              <img
+                src="/logo.png"
+                alt="TokenJoy"
+                className="h-7 w-auto transition-transform group-hover:scale-105"
+              />
               <p className="mt-1 text-[10px] text-muted-foreground">个人中心</p>
             </Link>
           </div>

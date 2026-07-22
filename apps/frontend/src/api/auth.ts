@@ -64,7 +64,12 @@ export const authApi = {
     }),
 
   // --- Register endpoints ---
-  registerInit: (identifier: { phone?: string; email?: string }, code: string, password: string, name?: string) =>
+  registerInit: (
+    identifier: { phone?: string; email?: string },
+    code: string,
+    password: string,
+    name?: string,
+  ) =>
     request<{ action: 'choose'; invites: PendingInvite[] } | { action: 'login' }>(
       '/auth/register/init',
       {
@@ -79,10 +84,22 @@ export const authApi = {
       body: JSON.stringify({ inviteCode, ...(name ? { name } : {}) }),
     }),
 
-  registerCompany: (companyName: string, industry: string, size: string, alias?: string, avatar?: string) =>
+  registerCompany: (
+    companyName: string,
+    industry: string,
+    size: string,
+    alias?: string,
+    avatar?: string,
+  ) =>
     request<{ memberId: string; companyId: string }>('/auth/register/company', {
       method: 'POST',
-      body: JSON.stringify({ companyName, industry, size, ...(alias ? { alias } : {}), ...(avatar ? { avatar } : {}) }),
+      body: JSON.stringify({
+        companyName,
+        industry,
+        size,
+        ...(alias ? { alias } : {}),
+        ...(avatar ? { avatar } : {}),
+      }),
     }),
 
   // --- Accept invite (unauthenticated, email link) ---
@@ -100,7 +117,11 @@ export const authApi = {
     }),
 
   // --- Reset password (unauthenticated, verified) ---
-  resetPassword: (identifier: { phone?: string; email?: string }, code: string, newPassword: string) =>
+  resetPassword: (
+    identifier: { phone?: string; email?: string },
+    code: string,
+    newPassword: string,
+  ) =>
     request<void>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ ...identifier, code, newPassword }),

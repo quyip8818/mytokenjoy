@@ -31,7 +31,7 @@ export interface LoginActivityResponse {
 export const accountApi = {
   getProfile: () => request<Profile>('/me/profile'),
 
-  updateProfile: (params: { name?: string; avatar?: string }) =>
+  updateProfile: (params: { name?: string; avatar?: string; alias?: string }) =>
     request<void>('/me/profile', {
       method: 'PUT',
       body: JSON.stringify(params),

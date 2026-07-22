@@ -106,7 +106,7 @@ export function KeyFormWorkflow({
         const picked = members[0]
         if (!picked) return
         setTargetMemberId(picked.id)
-        setTargetMemberName(picked.name)
+        setTargetMemberName(picked.alias)
         onSetDirty(true)
       },
     })

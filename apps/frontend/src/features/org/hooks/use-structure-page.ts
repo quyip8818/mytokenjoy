@@ -122,6 +122,7 @@ export function useStructurePage(injectedApis?: AppApis) {
         const dept = flattenDepartments(departments).find((item) => item.id === data.departmentId)
         await apis.memberApi.create({
           alias: data.name,
+          avatar: '',
           phone: data.phone,
           email: data.email,
           departmentId: data.departmentId,

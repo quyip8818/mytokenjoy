@@ -25,6 +25,7 @@ export function TestSessionProvider({
       authzRevision: 0,
       memberId: mockMember.id,
       member: mockMember,
+      userName: mockMember.alias,
       permissions,
       readOnly,
       billingCurrency: 'CNY',

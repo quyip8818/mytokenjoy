@@ -115,7 +115,7 @@ export function MemberTable({
         ),
         size: 40,
       }),
-      columnHelper.accessor('name', {
+      columnHelper.accessor('alias', {
         header: '姓名',
         cell: (info) => <span className="font-medium text-foreground">{info.getValue()}</span>,
       }),
@@ -123,7 +123,9 @@ export function MemberTable({
       columnHelper.accessor('phone', {
         header: '手机号',
         cell: (info) => (
-          <span className="tabular-nums text-muted-foreground">{maskPhone(info.getValue())}</span>
+          <span className="tabular-nums text-muted-foreground">
+            {maskPhone(info.getValue() ?? '')}
+          </span>
         ),
       }),
       columnHelper.accessor('jobTitle', {

@@ -16,9 +16,7 @@ export function MemberCallLogsPageShell({
   setPage,
 }: MemberCallLogsPageShellProps) {
   return (
-    <PageShell
-      description={<h1 className="text-sm font-semibold">使用记录</h1>}
-    >
+    <PageShell description={<h1 className="text-sm font-semibold">使用记录</h1>}>
       <DataSection
         loading={loading}
         error={error}

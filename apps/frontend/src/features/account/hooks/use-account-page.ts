@@ -23,7 +23,7 @@ export function useAccountPage() {
   const [profileError, setProfileError] = useState<string | null>(null)
 
   const updateProfile = useCallback(
-    async (params: { name?: string; avatar?: string }) => {
+    async (params: { name?: string; avatar?: string; alias?: string }) => {
       setProfileSaving(true)
       setProfileError(null)
       try {

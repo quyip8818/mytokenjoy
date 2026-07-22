@@ -48,6 +48,7 @@ function withOverrides<K extends keyof AppApis>(
 
 function mergeApis(base: AppApis, overrides: ApiNamespaceOverrides): AppApis {
   return {
+    accountApi: withOverrides(base, 'accountApi', overrides.accountApi),
     authApi: withOverrides(base, 'authApi', overrides.authApi),
     billingApi: withOverrides(base, 'billingApi', overrides.billingApi),
     budgetApi: withOverrides(base, 'budgetApi', overrides.budgetApi),

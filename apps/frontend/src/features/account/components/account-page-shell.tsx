@@ -31,9 +31,7 @@ export function AccountPageShell(props: AccountPageState) {
 
   if (!profile) {
     return (
-      <div className="flex h-40 items-center justify-center text-sm text-destructive">
-        加载失败
-      </div>
+      <div className="flex h-40 items-center justify-center text-sm text-destructive">加载失败</div>
     )
   }
 
@@ -141,9 +139,7 @@ export function AccountPageShell(props: AccountPageState) {
             <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-medium">登出所有设备</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  登出除当前外的所有已登录设备
-                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">登出除当前外的所有已登录设备</p>
               </div>
               <Button
                 variant="outline"
@@ -157,9 +153,7 @@ export function AccountPageShell(props: AccountPageState) {
             <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-medium text-destructive">退出当前设备</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  退出登录并返回登录页面
-                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">退出登录并返回登录页面</p>
               </div>
               <Button
                 variant="outline"
@@ -231,63 +225,163 @@ function ProfileEditSection({
   profile: { name: string; avatar: string }
   saving: boolean
   error: string | null
-  onSave: (params: { name?: string; avatar?: string }) => Promise<boolean>
+  onSave: (params: { name?: string; avatar?: string; alias?: string }) => Promise<boolean>
 }) {
   const { member } = useSession()
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(profile.name)
+  const [editingAlias, setEditingAlias] = useState(false)
+  const [aliasValue, setAliasValue] = useState(member?.alias || '')
 
   const handleSaveName = useCallback(async () => {
     const trimmed = nameValue.trim()
-    if (trimmed === profile.name) { setEditingName(false); return }
+    if (trimmed === profile.name) {
+      setEditingName(false)
+      return
+    }
     const ok = await onSave({ name: trimmed })
     if (ok) setEditingName(false)
   }, [nameValue, profile.name, onSave])
 
+  const handleSaveAlias = useCallback(async () => {
+    const trimmed = aliasValue.trim()
+    if (trimmed === (member?.alias || '')) {
+      setEditingAlias(false)
+      return
+    }
+    const ok = await onSave({ alias: trimmed })
+    if (ok) setEditingAlias(false)
+  }, [aliasValue, member?.alias, onSave])
+
   const handleAvatarChange = useCallback(
-    (avatar: string) => { onSave({ avatar }) },
+    (avatar: string) => {
+      onSave({ avatar })
+    },
     [onSave],
   )
 
   return (
-    <div className="px-5 py-4 space-y-4">
-      {/* Avatar + Name row */}
-      <div className="flex items-center gap-4">
-        <AvatarPicker value={profile.avatar} onChange={handleAvatarChange} size={56} />
-        <div className="flex-1 space-y-1">
+    <div className="divide-y divide-border">
+      {/* Avatar */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-4">
+          <span className="w-14 text-xs text-muted-foreground">头像</span>
+          <AvatarPicker value={profile.avatar} onChange={handleAvatarChange} size={40} />
+        </div>
+      </div>
+      {/* Name */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-4">
+          <span className="w-14 text-xs text-muted-foreground">姓名</span>
           {editingName ? (
             <div className="flex items-center gap-2">
               <Input
                 value={nameValue}
                 onChange={(e) => setNameValue(e.target.value)}
-                className="h-8 text-sm"
+                className="h-8 w-40 text-sm"
                 placeholder="输入姓名"
                 autoFocus
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveName()
+                  if (e.key === 'Escape') setEditingName(false)
+                }}
               />
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleSaveName} disabled={saving}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={handleSaveName}
+                disabled={saving}
+              >
                 {saving ? '…' : '保存'}
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditingName(false); setNameValue(profile.name) }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setEditingName(false)
+                  setNameValue(profile.name)
+                }}
+              >
                 取消
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{profile.name || '未设置姓名'}</span>
-              <Button size="sm" variant="ghost" className="h-6 text-xs text-primary" onClick={() => { setNameValue(profile.name); setEditingName(true) }}>
-                编辑
-              </Button>
-            </div>
-          )}
-          {member && (
-            <p className="text-xs text-muted-foreground">
-              昵称：{member.alias || '—'}
-            </p>
+            <span className="text-sm font-medium">{profile.name || '未设置'}</span>
           )}
         </div>
+        {!editingName && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-primary hover:text-primary"
+            onClick={() => {
+              setNameValue(profile.name)
+              setEditingName(true)
+            }}
+          >
+            修改
+          </Button>
+        )}
       </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {/* Alias */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-4">
+          <span className="w-14 text-xs text-muted-foreground">昵称</span>
+          {editingAlias ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={aliasValue}
+                onChange={(e) => setAliasValue(e.target.value)}
+                className="h-8 w-40 text-sm"
+                placeholder="输入昵称"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveAlias()
+                  if (e.key === 'Escape') setEditingAlias(false)
+                }}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={handleSaveAlias}
+                disabled={saving}
+              >
+                {saving ? '…' : '保存'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setEditingAlias(false)
+                  setAliasValue(member?.alias || '')
+                }}
+              >
+                取消
+              </Button>
+            </div>
+          ) : (
+            <span className="text-sm font-medium">{member?.alias || '未设置'}</span>
+          )}
+        </div>
+        {!editingAlias && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-primary hover:text-primary"
+            onClick={() => {
+              setAliasValue(member?.alias || '')
+              setEditingAlias(true)
+            }}
+          >
+            修改
+          </Button>
+        )}
+      </div>
+      {error && <p className="px-5 pb-3 text-xs text-destructive">{error}</p>}
     </div>
   )
 }

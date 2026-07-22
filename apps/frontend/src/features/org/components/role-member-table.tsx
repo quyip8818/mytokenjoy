@@ -157,7 +157,9 @@ export function RoleMemberTable({
             ) : (
               paged.map((member) => (
                 <TableRow key={member.id} className="border-border-subtle hover:bg-muted/50">
-                  <TableCell className="px-4 py-3 text-sm text-foreground">{member.alias}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm text-foreground">
+                    {member.alias}
+                  </TableCell>
                   <TableCell className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {member.roles.map((r) => (

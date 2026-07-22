@@ -10,7 +10,12 @@ interface LoginActivityPanelProps {
   onOffsetChange: (offset: number) => void
 }
 
-export function LoginActivityPanel({ data, loading, offset, onOffsetChange }: LoginActivityPanelProps) {
+export function LoginActivityPanel({
+  data,
+  loading,
+  offset,
+  onOffsetChange,
+}: LoginActivityPanelProps) {
   if (loading && !data) {
     return (
       <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
@@ -44,9 +49,7 @@ export function LoginActivityPanel({ data, loading, offset, onOffsetChange }: Lo
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                IP: {item.ip}
-              </p>
+              <p className="text-xs text-muted-foreground">IP: {item.ip}</p>
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               {formatTime(item.time)}
@@ -57,9 +60,7 @@ export function LoginActivityPanel({ data, loading, offset, onOffsetChange }: Lo
 
       {(hasPrev || hasNext) && (
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            共 {data.total} 条
-          </span>
+          <span className="text-xs text-muted-foreground">共 {data.total} 条</span>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -122,5 +123,10 @@ function formatTime(iso: string): string {
   if (diffHours < 24) return `${diffHours} 小时前`
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 7) return `${diffDays} 天前`
-  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }

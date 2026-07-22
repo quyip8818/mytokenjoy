@@ -25,9 +25,7 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
       onOpenChange={onOpenChange}
       title="模拟消耗"
       description={
-        <p>
-          模拟一次 Token 消耗（不花真钱），体验 Budget 额度扣减与用量追踪的完整流程。
-        </p>
+        <p>模拟一次 Token 消耗（不花真钱），体验 Budget 额度扣减与用量追踪的完整流程。</p>
       }
       error={dialog.error}
       busy={dialog.busy}

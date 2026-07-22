@@ -91,13 +91,17 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 const maxAvatarBytes = 50 * 1024 // 50KB decoded limit
 
 var dicebearStyles = map[string]bool{
-	"adventurer": true, "notionists": true, "bottts": true,
-	"shapes": true, "lorelei": true, "fun-emoji": true,
+	"avataaars": true, "lorelei": true, "micah": true,
+	"adventurer": true, "notionists": true, "big-smile": true,
+	"open-peeps": true, "pixel-art": true,
+	// legacy styles: no longer shown in picker but still valid
+	"bottts": true, "shapes": true, "fun-emoji": true,
 }
 
 type updateProfileRequest struct {
 	Name   *string `json:"name"`
 	Avatar *string `json:"avatar"`
+	Alias  *string `json:"alias"`
 }
 
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +121,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	if body.Name == nil && body.Avatar == nil {
+	if body.Name == nil && body.Avatar == nil && body.Alias == nil {
 		httputil.WriteStatus(w, http.StatusBadRequest, "nothing to update")
 		return
 	}
@@ -139,6 +143,14 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := h.org.UpdateMemberAvatar(ctx, sessionCtx.CompanyID, sessionCtx.Member.ID, avatar); err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+	}
+
+	if body.Alias != nil {
+		alias := strings.TrimSpace(*body.Alias)
+		if err := h.org.UpdateMemberAlias(ctx, sessionCtx.CompanyID, sessionCtx.Member.ID, alias); err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}

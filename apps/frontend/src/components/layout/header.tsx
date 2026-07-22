@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router'
-import { User } from 'lucide-react'
 import { ROUTE_TITLES } from '@/config/nav'
 import { useSession } from '@/features/session'
+import { UserAvatar } from '@/components/ui/user-avatar'
 import { HeaderDevBackendToolbar } from './header-dev-backend-chrome'
 import { NotificationInbox } from './notification-inbox'
 
@@ -26,7 +26,6 @@ function HeaderUserChip() {
   const navigate = useNavigate()
   const { member, userName } = useSession()
   const displayName = member?.alias || userName || '用户'
-  const avatar = member?.avatar
 
   return (
     <button
@@ -35,13 +34,7 @@ function HeaderUserChip() {
       aria-label="账户设置"
       onClick={() => navigate('/me/account')}
     >
-      {avatar ? (
-        <img src={avatar} alt="" className="h-6 w-6 rounded-md object-cover" />
-      ) : (
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted">
-          <User className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-      )}
+      <UserAvatar avatar={member?.avatar} fallback={displayName} size={24} />
       <span className="text-sm text-foreground">{displayName}</span>
     </button>
   )

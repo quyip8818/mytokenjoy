@@ -293,6 +293,17 @@ func (r *pgOrgRepo) UpdateMemberAvatar(ctx context.Context, companyID uuid.UUID,
 	return nil
 }
 
+func (r *pgOrgRepo) UpdateMemberAlias(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID, alias string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE members SET alias = $3, updated_at = NOW()
+		WHERE company_id = $1 AND id = $2
+	`, companyID, memberID, alias)
+	if err != nil {
+		return fmt.Errorf("update member alias: %w", err)
+	}
+	return nil
+}
+
 func (r *pgOrgRepo) SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
