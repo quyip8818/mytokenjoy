@@ -1,0 +1,28 @@
+# 测试规范
+
+## 运行
+
+```bash
+pnpm test                    # 全量
+cd apps/backend && go test -tags=testhook -run "TestXxx" ./tests/domain/xxx/ -v -count=1
+cd apps/frontend && vitest run
+```
+
+## 后端核心规则
+
+1. **改了 schema.sql 或 seed/ 下任何文件 → 必须 bump `testTemplateVersion`**
+   - 文件：`tests/testutil/pg/template.go`
+   - 不 bump = 旧模板复用 = 幽灵失败
+
+2. **时钟固定**：测试默认 `ClockAnchor = "2026-06-19"`，period = `"2026-06"`
+   - 不要用 `time.Now()` 做 period 断言
+
+3. **Build tag**：运行后端测试必须加 `-tags=testhook`
+
+4. **测试文件放 `apps/backend/tests/`**，镜像 internal/ 路径，禁止放在 src 旁边
+
+## 前端核心规则
+
+1. Vitest + @testing-library/react
+2. 测试文件放 `apps/frontend/tests/`，镜像 src/ 路径
+3. API 层用 `vi.mock` mock，不要真实请求
