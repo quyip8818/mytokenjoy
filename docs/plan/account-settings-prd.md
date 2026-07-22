@@ -12,24 +12,26 @@
 
 | 能力 | 后端 | 前端 | 备注 |
 |------|------|------|------|
-| 设置/修改密码 | ✅ `/auth/set-password` | ❌ 无入口 | 仅 SMS 登录后场景可触发 |
-| 重置密码（忘记） | ✅ `/auth/reset-password` | ❌ 无入口 | 需验证码 |
-| 更换手机号 | ✅ `UserRepo.UpdatePhone` | ❌ 无 | 仅 DB 层有接口 |
-| 更换邮箱 | ✅ `UserRepo.UpdateEmail` | ❌ 无 | 仅 DB 层有接口 |
-| 查看会话 | ✅ `SessionRepository` | ❌ 无 | — |
+| 设置密码（首次） | ✅ `/auth/set-password` | ❌ 无入口 | SMS 登录后场景可触发 |
+| 修改密码（需旧密码） | ❌ 无端点 | ❌ 无 | 需新增 |
+| 更换手机号 | ✅ `UserRepo.UpdatePhone` | ❌ 无 | 仅 DB 层有方法 |
+| 更换邮箱 | ✅ `UserRepo.UpdateEmail` | ❌ 无 | 仅 DB 层有方法 |
+| 吊销所有会话 | ✅ `SessionRepo.RevokeAllByUser` | ❌ 无 | 现有实现不排除当前 session |
+| 查看会话/登录记录 | ✅ sessions 表含 ip/user_agent | ❌ 无 | 需新增查询端点 |
+| 查看所属企业 | ✅ `UserRepo.ListMemberCompanies` | ❌ 无 | — |
 | 编辑个人信息（姓名等） | 由管理员在成员管理操作 | ❌ 无自助 | — |
 
-结论：后端基础能力已就绪，缺乏面向用户的 HTTP 端点和前端页面。
+结论：后端基础能力大部分已就绪，缺乏面向用户的 HTTP 端点和前端页面。
 
 ## 3. 用户故事
 
 | # | 角色 | 故事 | 验收标准 |
 |---|------|------|----------|
-| US-1 | 普通成员 | 我想修改登录密码 | 输入旧密码 + 新密码确认后立即生效；错误提示清晰 |
-| US-2 | 普通成员 | 我想更换绑定手机号 | 先验证新手机验证码，再替换；旧号无需验证（已登录态视为本人） |
-| US-3 | 普通成员 | 我想更换绑定邮箱 | 向新邮箱发送验证码，验证通过后替换 |
+| US-1 | 普通成员 | 我想设置或修改登录密码 | 有旧密码时需验证旧密码；无密码时直接设置；新密码 ≥ 8 位；错误提示清晰 |
+| US-2 | 普通成员 | 我想更换绑定手机号 | 向新手机发验证码，验证通过后替换；旧号无需验证（登录态视为本人） |
+| US-3 | 普通成员 | 我想更换绑定邮箱 | 向新邮箱发验证码，验证通过后替换 |
 | US-4 | 普通成员 | 我想查看当前绑定信息 | 脱敏显示手机号和邮箱（`138****1234`、`q**@xx.com`） |
-| US-5 | 普通成员 | 我想查看我所在的企业列表 | 显示我加入的所有企业（名称、角色、状态） |
+| US-5 | 普通成员 | 我想查看我所在的企业列表 | 显示我加入的所有企业（名称、角色），标记当前企业 |
 | US-6 | 普通成员 | 我想登出所有设备 | 一键吊销除当前外的所有活跃会话 |
 | US-7 | 普通成员 | 我想查看最近登录活动 | 列表展示最近 N 条登录记录（时间、IP、设备类型） |
 
@@ -41,10 +43,10 @@
 │   ├── 姓名（只读，由管理员维护）
 │   ├── 手机号（脱敏 + 修改按钮）
 │   ├── 邮箱（脱敏 + 修改按钮）
-│   └── 所属企业 & 角色（只读列表）
+│   └── 所属企业 & 角色（只读列表，标记当前）
 │
 ├── 安全设置（Security）
-│   ├── 修改密码
+│   ├── 设置/修改密码
 │   ├── 登出所有设备
 │   └── 最近登录活动
 │
@@ -55,8 +57,11 @@
 
 ## 5. 交互流程
 
-### 5.1 修改密码
+### 5.1 设置/修改密码
 
+前端根据 `hasPassword` 字段决定展示哪种表单：
+
+**已有密码（hasPassword = true）：**
 ```
 用户点击「修改密码」
   → 弹出 Modal
@@ -67,7 +72,15 @@
   → 提示成功，关闭 Modal
 ```
 
-注意：与现有 `/auth/set-password` 区分——`set-password` 是无旧密码场景（SMS 首次设密）；`change-password` 需验证旧密码。
+**未设密码（hasPassword = false）：**
+```
+用户点击「设置密码」
+  → 弹出 Modal
+  → 输入：新密码、确认新密码
+  → 调用 POST /auth/set-password { password }（复用现有端点）
+  → 204
+  → 提示成功，刷新 hasPassword 状态
+```
 
 ### 5.2 更换手机号
 
@@ -75,10 +88,10 @@
 用户点击「修改」
   → 弹出 Modal
   → 输入新手机号
-  → 调用 POST /auth/verify-code/send { phone, scene: "bind_phone" }
+  → 调用 POST /auth/verify-code/send { phone, purpose: "bind" }
   → 输入验证码
   → 调用 POST /me/change-phone { phone, code }
-  → 后端验证码校验 → 更新 user.phone → 同步更新 member.phone → 204
+  → 后端验证码校验 → 检查唯一性 → 更新 user.phone → 204
   → 提示成功，刷新页面信息
 ```
 
@@ -88,10 +101,10 @@
 用户点击「修改」
   → 弹出 Modal
   → 输入新邮箱
-  → 调用 POST /auth/verify-code/send { email, scene: "bind_email" }
+  → 调用 POST /auth/verify-code/send { email, purpose: "bind" }
   → 输入验证码
   → 调用 POST /me/change-email { email, code }
-  → 后端验证码校验 → 更新 user.email → 同步更新 member.email → 204
+  → 后端验证码校验 → 检查唯一性 → 更新 user.email → 204
   → 提示成功，刷新页面信息
 ```
 
@@ -101,22 +114,33 @@
 用户点击「登出所有设备」
   → 二次确认 Dialog
   → 调用 POST /me/revoke-sessions
-  → 后端吊销当前用户所有 session（保留当前）
+  → 后端吊销当前用户所有 session（排除当前 session）
   → 提示成功
+```
+
+### 5.5 最近登录活动
+
+```
+进入页面自动加载
+  → 调用 GET /me/login-activity?limit=20
+  → 展示列表：时间、IP 地址、设备/浏览器（解析 user_agent）
+  → 当前会话标记「当前」
 ```
 
 ## 6. API 设计
 
-### 新增端点（挂在 `/me` 路由组下，需已认证）
+### 新增端点（挂在 `/me` 路由组下，复用现有 company-scoped auth）
+
+从 session claims 取 `UserID` 操作用户数据，不需要额外的认证层级。
 
 | Method | Path | 功能 | Request Body | Response |
 |--------|------|------|-------------|----------|
-| GET | `/me/profile` | 获取个人信息 | — | `{ phone, email, name, companies[] }` |
+| GET | `/me/profile` | 获取个人信息 | — | 见下方 |
 | POST | `/me/change-password` | 修改密码（需旧密码） | `{ oldPassword, newPassword }` | 204 |
 | POST | `/me/change-phone` | 更换手机号 | `{ phone, code }` | 204 |
 | POST | `/me/change-email` | 更换邮箱 | `{ email, code }` | 204 |
 | POST | `/me/revoke-sessions` | 登出其他设备 | — | 204 |
-| GET | `/me/login-activity` | 最近登录活动 | `?limit=20` | `[{ time, ip, userAgent }]` |
+| GET | `/me/login-activity` | 最近登录活动 | `?limit=20` | `[{ time, ip, userAgent, current }]` |
 
 ### GET /me/profile 响应示例
 
@@ -137,20 +161,65 @@
 }
 ```
 
-注意：`phone`/`email` 在 API 层脱敏返回，前端不做脱敏逻辑。
+- `phone`/`email` 在 API 层脱敏返回，前端不做脱敏逻辑
+- `current` 通过 session claims 中的 `companyId` 判断
+
+### GET /me/login-activity 响应示例
+
+```json
+[
+  {
+    "time": "2026-07-20T10:30:00Z",
+    "ip": "203.0.113.42",
+    "userAgent": "Chrome 126 / macOS",
+    "current": true
+  },
+  {
+    "time": "2026-07-18T08:15:00Z",
+    "ip": "198.51.100.7",
+    "userAgent": "Safari / iOS 18",
+    "current": false
+  }
+]
+```
+
+数据源：直接查 `sessions` 表（已含 `ip`、`user_agent`、`created_at`），`current` 通过 session ID 匹配。
+
+### 错误响应约定
+
+| 状态码 | 场景 |
+|--------|------|
+| 400 | 参数校验失败、验证码错误 |
+| 401 | 旧密码错误 |
+| 409 | 手机号/邮箱已被其他账户绑定 |
+| 429 | 验证码发送频率限制 |
 
 ## 7. 安全约束
 
 | 场景 | 防护措施 |
 |------|---------|
 | 修改密码 | 必须验证旧密码；新密码 ≥ 8 位 |
-| 更换手机/邮箱 | 必须验证新手机/邮箱的验证码（复用现有 verify-code 服务） |
+| 更换手机/邮箱 | 验证新号码/邮箱的验证码（复用现有 verify-code 服务） |
 | 验证码频率 | 复用现有限流：同号码 60s 间隔、5 分钟有效、连续错误锁定 |
-| 登出设备 | 仅吊销非当前 session |
+| 手机/邮箱唯一性 | 后端更新前查重，冲突返回 409 |
+| 至少保留一个凭证 | 不允许同时清空手机和邮箱（后端校验） |
+| 登出设备 | 排除当前 session |
 | 信息展示 | API 层脱敏，防止中间人获取完整号码 |
 | CSRF | 现有 JWT Cookie + SameSite 已覆盖 |
 
-## 8. 前端实现方案
+## 8. 后端实现要点
+
+- 在现有 `handler/me/` 下新增端点，复用 `ProtectedHandlerBase`
+- `change-password`：bcrypt compare 旧密码 → hash 新密码 → `UserRepo.UpdatePassword`
+- `change-phone` / `change-email`：
+  - 调 `verifyCode.Verify(ctx, channel, address, code)`
+  - 查重：`UserRepo.GetByPhone/Email`，非空则 409
+  - 更新：`UserRepo.UpdatePhone/Email`
+- `revoke-sessions`：从 session claims 取当前 session ID，新增 `SessionRepo.RevokeAllByUserExcept(userID, exceptSessionID)` 方法
+- `login-activity`：新增 `SessionRepo.ListByUser(userID, limit)` 查询（含已过期/已吊销的）
+- `SendCode` 需新增 `purpose: "bind"` 支持：跳过"用户必须存在"校验（当前仅 `"register"` 跳过）
+
+## 9. 前端实现方案
 
 | 层 | 位置 | 职责 |
 |----|------|------|
@@ -159,24 +228,16 @@
 | API | `api/account.ts` | HTTP 请求封装 |
 | 共享组件 | 复用现有 Dialog、Form、Input | — |
 
-页面入口从 Sidebar / Header 用户头像下拉菜单进入。
-
-## 9. 后端实现方案
-
-- 在现有 `handler/me/` 下新增端点
-- `change-password` 逻辑：验旧密码 → bcrypt 新密码 → `UserRepo.UpdatePassword`
-- `change-phone` / `change-email`：调 `verifyCode.Verify` → `UserRepo.UpdatePhone/Email` → 同步 `MemberRepo.UpdatePhone/Email`
-- `revoke-sessions`：`SessionRepo.DeleteByUserIDExcept(currentSessionID)`
-- `login-activity`：需在 `sessions` 表增加 `ip`、`user_agent` 字段（或新建 `login_logs` 表）
+页面入口从 Header 用户头像下拉菜单进入。
 
 ## 10. 数据变更
 
-无需 migration（项目未上线），直接修改 schema.sql：
+无需新增表或字段。`sessions` 表已有 `ip`、`user_agent`、`created_at`，可直接支持登录活动查询。
 
-1. `sessions` 表增加 `ip TEXT`、`user_agent TEXT` 字段
-2. 或新建 `user_login_logs` 表：
+如果后续需要长期保留登录记录（session 过期删除后仍可查），再考虑独立 `user_login_logs` 表：
 
 ```sql
+-- 预留方案，当前不实现
 CREATE TABLE IF NOT EXISTS user_login_logs (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id    UUID NOT NULL REFERENCES users(id),
@@ -189,17 +250,20 @@ CREATE INDEX idx_login_logs_user ON user_login_logs(user_id, created_at DESC);
 
 ## 11. 分期计划
 
-### P0（MVP，建议首期交付）
+### P0（MVP，首期交付）
 
-- [x] 查看个人基本信息（脱敏手机/邮箱/姓名/企业）
-- [x] 修改密码（需旧密码）
-- [x] 更换手机号（验证码流程）
-- [x] 更换邮箱（验证码流程）
+- [ ] GET /me/profile（脱敏手机/邮箱/姓名/企业列表）
+- [ ] 设置/修改密码（根据 hasPassword 区分流程）
+- [ ] 更换手机号（验证码流程）
+- [ ] 更换邮箱（验证码流程）
+- [ ] 登出所有设备
+- [ ] SendCode 支持 `purpose: "bind"`（后端改动）
+- [ ] 前端 /account 页面 + features/account 模块
 
 ### P1（第二期）
 
-- [ ] 登出所有设备
-- [ ] 最近登录活动
+- [ ] 最近登录活动（GET /me/login-activity）
+- [ ] user_agent 解析为可读设备名（Chrome / macOS 等）
 
 ### P2（远期预留）
 
@@ -210,10 +274,10 @@ CREATE INDEX idx_login_logs_user ON user_login_logs(user_id, created_at DESC);
 
 ## 12. 开放问题
 
-| # | 问题 | 建议 |
+| # | 问题 | 决定 |
 |---|------|------|
-| 1 | 更换手机/邮箱是否需要管理员审批？ | 建议不需要——本人登录态 + 验证码已足够；管理员可在成员管理看到变更 |
-| 2 | 同一手机/邮箱被其他用户占用时如何处理？ | 后端返回冲突错误，前端提示「该手机号已被其他账户绑定」 |
+| 1 | 更换手机/邮箱是否需要管理员审批？ | 不需要——登录态 + 验证码已足够；管理员可在成员管理看到变更 |
+| 2 | 同一手机/邮箱被其他用户占用？ | 后端返回 409，前端提示「该手机号/邮箱已被其他账户绑定」 |
 | 3 | 是否允许同时清空手机和邮箱？ | 不允许——至少保留一个可用的登录凭证 |
-| 4 | 姓名是否允许自助修改？ | 当前由管理员维护（Member 属于 Company），建议保持只读 |
-| 5 | 是否需要操作日志/审计？ | P1 再考虑，当前先做功能 |
+| 4 | 姓名是否允许自助修改？ | 保持只读（Member 属于 Company，由管理员维护） |
+| 5 | 登录活动是否需要长期保留？ | P0 先查 sessions 表；如果有保留需求，P1 再加独立日志表 |
