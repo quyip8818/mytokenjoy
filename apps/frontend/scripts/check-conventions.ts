@@ -121,7 +121,7 @@ const registeredAdminPages = new Set(
 )
 
 const routesDir = join(srcRoot, 'routes')
-const orphanSkipPrefixes = ['routes/auth/', 'routes/member/']
+const orphanSkipPrefixes = ['routes/auth/', 'routes/member/', 'routes/account/']
 
 walkFiles(routesDir, (filePath) => {
   if (!filePath.endsWith('.tsx')) return

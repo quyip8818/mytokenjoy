@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { User } from 'lucide-react'
 import { ROUTE_TITLES } from '@/config/nav'
 import { useSession } from '@/features/session'
 import { HeaderDevBackendToolbar } from './header-dev-backend-chrome'
@@ -13,11 +14,25 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { authApi } from '@/api/auth'
 
-function HeaderUserChip() {
+/** Company badge — read-only display of current company context. */
+function HeaderCompanyChip() {
   const { member } = useSession()
+  const companyName = member?.name ?? '管理员'
+  const initial = companyName.charAt(0) || '管'
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
+      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[10px] font-medium text-primary-foreground">
+        {initial}
+      </div>
+      <span className="text-sm text-foreground">{companyName}</span>
+    </div>
+  )
+}
+
+/** User menu — account settings & logout. */
+function HeaderUserMenu() {
   const navigate = useNavigate()
-  const displayName = member?.name ?? '管理员'
-  const initial = displayName.charAt(0) || '管'
 
   const handleLogout = useCallback(async () => {
     await authApi.logout()
@@ -29,12 +44,10 @@ function HeaderUserChip() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 transition-colors hover:bg-muted"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted"
+          aria-label="用户菜单"
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[10px] font-medium text-primary-foreground">
-            {initial}
-          </div>
-          <span className="text-sm text-foreground">{displayName}</span>
+          <User className="h-4 w-4 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -55,7 +68,8 @@ export function Header() {
       <h1 className="truncate text-sm font-medium text-foreground">{title}</h1>
       <div className="flex items-center gap-3">
         <NotificationInbox />
-        <HeaderUserChip />
+        <HeaderCompanyChip />
+        <HeaderUserMenu />
         <HeaderDevBackendToolbar />
       </div>
     </header>
