@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/page-shell'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +19,7 @@ export function AccountPageShell(props: AccountPageState) {
 
   if (profileLoading) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
         加载中…
       </div>
     )
@@ -26,84 +27,108 @@ export function AccountPageShell(props: AccountPageState) {
 
   if (!profile) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-destructive">
+      <div className="flex h-40 items-center justify-center text-sm text-destructive">
         加载失败
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-6">
-      {/* Basic Info */}
-      <section className="space-y-4">
-        <h2 className="text-base font-medium">基本信息</h2>
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <InfoRow label="姓名" value={profile.name} />
-          <InfoRow
-            label="手机号"
-            value={profile.phone}
-            action={
-              <Button variant="link" size="sm" onClick={() => props.setPhoneDialogOpen(true)}>
-                修改
-              </Button>
-            }
-          />
-          <InfoRow
-            label="邮箱"
-            value={profile.email}
-            action={
-              <Button variant="link" size="sm" onClick={() => props.setEmailDialogOpen(true)}>
-                修改
-              </Button>
-            }
-          />
-          {profile.companies.length > 0 && (
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs text-muted-foreground mb-2">所属企业</p>
-              <div className="space-y-1">
-                {profile.companies.map((c) => (
-                  <div key={c.companyId} className="flex items-center gap-2 text-sm">
-                    <span>{c.companyName}</span>
-                    <span className="text-xs text-muted-foreground">({c.role})</span>
-                    {c.current && (
-                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                        当前
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
+    <PageShell description={<h1 className="text-sm font-semibold">账户设置</h1>}>
+      <div className="max-w-2xl space-y-6">
+        {/* Profile */}
+        <section>
+          <h2 className="mb-3 text-xs font-medium text-muted-foreground">基本信息</h2>
+          <div className="rounded-lg border border-border divide-y divide-border">
+            <InfoRow label="姓名" value={profile.name} />
+            <InfoRow
+              label="手机号"
+              value={profile.phone}
+              action={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary"
+                  onClick={() => props.setPhoneDialogOpen(true)}
+                >
+                  修改
+                </Button>
+              }
+            />
+            <InfoRow
+              label="邮箱"
+              value={profile.email}
+              action={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary"
+                  onClick={() => props.setEmailDialogOpen(true)}
+                >
+                  修改
+                </Button>
+              }
+            />
+          </div>
+        </section>
 
-      {/* Security */}
-      <section className="space-y-4">
-        <h2 className="text-base font-medium">安全设置</h2>
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm">登录密码</p>
-              <p className="text-xs text-muted-foreground">
-                {profile.hasPassword ? '已设置' : '未设置，设置后可用密码登录'}
-              </p>
+        {/* Companies */}
+        {profile.companies.length > 0 && (
+          <section>
+            <h2 className="mb-3 text-xs font-medium text-muted-foreground">所属企业</h2>
+            <div className="rounded-lg border border-border divide-y divide-border">
+              {profile.companies.map((c) => (
+                <div key={c.companyId} className="flex items-center gap-2 px-4 py-3 text-sm">
+                  <span className="font-medium">{c.companyName}</span>
+                  <span className="text-xs text-muted-foreground">{c.role}</span>
+                  {c.current && (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      当前
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
-            <Button variant="outline" size="sm" onClick={() => props.setPasswordDialogOpen(true)}>
-              {profile.hasPassword ? '修改密码' : '设置密码'}
-            </Button>
-          </div>
-          <div className="flex items-center justify-between border-t border-border pt-3">
-            <div>
-              <p className="text-sm">登出所有设备</p>
-              <p className="text-xs text-muted-foreground">登出除当前外的所有已登录设备</p>
+          </section>
+        )}
+
+        {/* Security */}
+        <section>
+          <h2 className="mb-3 text-xs font-medium text-muted-foreground">安全</h2>
+          <div className="rounded-lg border border-border divide-y divide-border">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">登录密码</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {profile.hasPassword ? '已设置' : '未设置，设置后可用密码登录'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => props.setPasswordDialogOpen(true)}
+              >
+                {profile.hasPassword ? '修改' : '设置'}
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => props.setRevokeDialogOpen(true)}>
-              登出
-            </Button>
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">登出所有设备</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  登出除当前外的所有已登录设备
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => props.setRevokeDialogOpen(true)}
+              >
+                登出
+              </Button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {/* Dialogs */}
       <ChangePasswordDialog
@@ -149,7 +174,7 @@ export function AccountPageShell(props: AccountPageState) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }
 
@@ -163,9 +188,9 @@ function InfoRow({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-muted-foreground w-12">{label}</span>
+    <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center gap-4">
+        <span className="w-14 text-xs text-muted-foreground">{label}</span>
         <span className="text-sm">{value}</span>
       </div>
       {action}

@@ -17,7 +17,6 @@ import { SessionGate } from '@/features/session'
 
 const LoginPage = lazy(() => import('@/routes/auth/login'))
 const InviteAcceptPage = lazy(() => import('@/routes/auth/invite-accept'))
-const AccountPage = lazy(() => import('@/routes/account'))
 
 const lazyPages = APP_ROUTES.map((entry) => ({
   path: toRouterPath(entry.path),
@@ -35,7 +34,6 @@ function AuthenticatedRoutes() {
       <Routes>
         <Route element={<AdminLayout />}>
           <Route index element={<HomeRedirect />} />
-          <Route path="account" element={<AccountPage />} />
           {lazyPages.map(({ path, Page }) => (
             <Route key={path} path={path} element={<Page />} />
           ))}

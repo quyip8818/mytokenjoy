@@ -14,6 +14,7 @@ import {
   Key,
   LayoutDashboard,
   ScrollText,
+  Settings,
   Shield,
   ShieldAlert,
   TrendingUp,
@@ -241,6 +242,22 @@ const MEMBER_ROUTE_DEFINITIONS_INTERNAL = [
     icon: Bell,
     audience: 'member',
     lazy: () => import('@/routes/member/notifications'),
+  },
+  {
+    key: 'memberAccount',
+    path: '/me/account',
+    label: '账户设置',
+    icon: Settings,
+    audience: 'member',
+    lazy: () => import('@/routes/member/account'),
+  },
+  {
+    key: 'memberLoginActivity',
+    path: '/me/login-activity',
+    label: '登录活动',
+    icon: Activity,
+    audience: 'member',
+    lazy: () => import('@/routes/member/login-activity'),
   },
 ] as const satisfies readonly RouteDefinition[]
 

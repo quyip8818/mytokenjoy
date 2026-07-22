@@ -51,7 +51,7 @@ function HeaderUserMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => navigate('/account')}>账户设置</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => navigate('/me/account')}>账户设置</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>退出登录</DropdownMenuItem>
       </DropdownMenuContent>

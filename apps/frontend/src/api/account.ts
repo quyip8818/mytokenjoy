@@ -1,4 +1,4 @@
-import { request } from './client'
+import { request, buildQuery } from './client'
 
 export interface ProfileCompany {
   companyId: string
@@ -13,6 +13,18 @@ export interface Profile {
   name: string
   hasPassword: boolean
   companies: ProfileCompany[]
+}
+
+export interface LoginActivityItem {
+  time: string
+  ip: string
+  userAgent: string
+  current: boolean
+}
+
+export interface LoginActivityResponse {
+  items: LoginActivityItem[]
+  total: number
 }
 
 export const accountApi = {
@@ -40,4 +52,7 @@ export const accountApi = {
     request<void>('/me/revoke-sessions', {
       method: 'POST',
     }),
+
+  getLoginActivity: (params: { limit?: number; offset?: number } = {}) =>
+    request<LoginActivityResponse>(`/me/login-activity${buildQuery(params)}`),
 }
