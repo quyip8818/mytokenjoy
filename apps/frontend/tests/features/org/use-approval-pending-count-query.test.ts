@@ -6,10 +6,9 @@ import { createMockApis, renderHookWithProviders } from '@tests/utils'
 
 describe('useApprovalPendingCountQuery', () => {
   it('loads pending approval count when user can approve', async () => {
-    const approvals = [{ id: 'a1' }, { id: 'a2' }]
     const apis = createMockApis({
       approvalApi: {
-        list: vi.fn().mockResolvedValue(approvals),
+        list: vi.fn().mockResolvedValue({ items: [], total: 2 }),
       },
     })
 
@@ -25,13 +24,13 @@ describe('useApprovalPendingCountQuery', () => {
       expect(result.current.data).toBe(2)
     })
 
-    expect(apis.approvalApi.list).toHaveBeenCalledWith({ tab: 'pending' })
+    expect(apis.approvalApi.list).toHaveBeenCalledWith({ status: 'pending', limit: 0 })
   })
 
   it('skips fetch when user cannot approve', async () => {
     const apis = createMockApis({
       approvalApi: {
-        list: vi.fn().mockResolvedValue([{ id: 'a1' }]),
+        list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       },
     })
 

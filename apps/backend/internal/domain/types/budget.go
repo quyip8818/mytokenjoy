@@ -61,22 +61,3 @@ type MemberBudget struct {
 type UpdateMemberBudgetInput struct {
 	PersonalBudget int64 `json:"personalBudget"`
 }
-
-type BudgetApproval struct {
-	ID             uuid.UUID `json:"id"`
-	ApplicantID    uuid.UUID `json:"-"`
-	DepartmentID   uuid.UUID `json:"-"`
-	ApplicantName  string    `json:"applicantName"`
-	DepartmentName string    `json:"departmentName"`
-	Amount         int64     `json:"amount"`
-	Reason         string    `json:"reason"`
-	Status         string    `json:"status"`
-	CreatedAt      string    `json:"createdAt"`
-	ResolvedAt     *string   `json:"resolvedAt,omitempty"`
-	RejectReason   *string   `json:"rejectReason,omitempty"`
-}
-
-type ResolveBudgetApprovalInput struct {
-	Status       string  `json:"status"`
-	RejectReason *string `json:"rejectReason,omitempty"`
-}

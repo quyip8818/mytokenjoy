@@ -42,8 +42,6 @@ func getContractCases() []getContractCase {
 		{name: "keys provider", path: "/api/keys/provider"},
 		{name: "keys platform", path: "/api/keys/platform"},
 		{name: "keys platform budget summary", path: fmt.Sprintf("/api/keys/platform/budget-summary?memberId=%s", contract.IDMember1)},
-		{name: "keys approvals", path: "/api/keys/approvals"},
-		{name: "keys approval budget check", path: fmt.Sprintf("/api/keys/approvals/%s/budget-check", contract.IDApproval1)},
 		{name: "models list", path: "/api/models"},
 		{name: "models routing", path: "/api/models/routing"},
 		{name: "models routing resolve", path: fmt.Sprintf("/api/models/routing/resolve?deptId=%s", contract.IDDept3)},

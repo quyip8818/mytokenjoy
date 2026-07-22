@@ -1,7 +1,5 @@
 import { request, buildQuery } from './client'
 import type {
-  ApprovalType,
-  KeyApproval,
   MemberBudgetSummary,
   Paginated,
   PlatformKey,
@@ -57,24 +55,3 @@ export const platformKeyApi = {
     request<MemberBudgetSummary>(`/keys/platform/budget-summary?memberId=${memberId}`),
 }
 
-export const approvalApi = {
-  list: (params?: { tab?: 'pending' | 'approved' | 'rejected' | 'all'; memberId?: string }) =>
-    request<KeyApproval[]>(`/keys/approvals${buildQuery(params ?? {})}`),
-  create: (data: {
-    type: ApprovalType
-    reason: string
-    requestedBudget: number
-    requestedModels: string[]
-    memberId: string
-  }) => request<KeyApproval>('/keys/approvals', { method: 'POST', body: JSON.stringify(data) }),
-  approve: (id: string) => request<void>(`/keys/approvals/${id}/approve`, { method: 'PUT' }),
-  reject: (id: string, reason?: string) =>
-    request<void>(`/keys/approvals/${id}/reject`, {
-      method: 'PUT',
-      body: JSON.stringify({ reason }),
-    }),
-  checkBudget: (id: string) =>
-    request<{ sufficient: boolean; reservedPool: number; requested: number }>(
-      `/keys/approvals/${id}/budget-check`,
-    ),
-}

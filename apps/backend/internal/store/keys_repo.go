@@ -18,6 +18,4 @@ type KeysRepository interface {
 	DisablePlatformKey(ctx context.Context, keyID uuid.UUID) error
 	ListActiveMemberKeys(ctx context.Context, memberID uuid.UUID) ([]types.PlatformKey, error)
 	ListActiveKeysByProjectID(ctx context.Context, projectID uuid.UUID) ([]types.PlatformKey, error)
-	Approvals(ctx context.Context) ([]types.KeyApproval, error)
-	SetApprovals(ctx context.Context, approvals []types.KeyApproval) error
 }

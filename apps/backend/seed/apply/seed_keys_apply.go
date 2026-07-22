@@ -70,31 +70,6 @@ func insertSeedKeys(ctx context.Context, exec TableWriter, tid uuid.UUID, snap s
 			return err
 		}
 	}
-	for _, approval := range snap.Approvals {
-		createdAt, err := pkgtime.Parse(approval.CreatedAt)
-		if err != nil {
-			return err
-		}
-		var resolvedAt *time.Time
-		if approval.ResolvedAt != nil {
-			t, err := pkgtime.Parse(*approval.ResolvedAt)
-			if err != nil {
-				return err
-			}
-			resolvedAt = &t
-		}
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO key_approvals (
-				id, company_id, type, applicant, applicant_id, department, reason, requested_budget,
-				status, approver, reject_reason, created_at, resolved_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-			ON CONFLICT (company_id, id) DO NOTHING
-		`, approval.ID, tid, approval.Type, approval.Applicant, approval.ApplicantID, approval.Department,
-			approval.Reason, approval.RequestedBudget, approval.Status, approval.Approver,
-			approval.RejectReason, createdAt, resolvedAt); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

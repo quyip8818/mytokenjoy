@@ -34,6 +34,9 @@ func (s *txStore) Budget() store.BudgetRepository { return s.domain.budget }
 func (s *txStore) Keys() store.KeysRepository     { return s.domain.keys }
 func (s *txStore) Models() store.ModelsRepository { return s.domain.models }
 func (s *txStore) Audit() store.AuditRepository   { return s.domain.audit }
+func (s *txStore) Approval() store.ApprovalRepository {
+	return &pgApprovalRepo{db: s.tx}
+}
 func (s *txStore) Ledger() store.LedgerRepository { return s.ledger }
 
 func (s *txStore) BudgetConsumed() store.BudgetConsumedRepository {

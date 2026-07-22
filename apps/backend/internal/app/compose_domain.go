@@ -5,6 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
+	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
@@ -33,15 +34,17 @@ type domainServices struct {
 	company         domaincompany.Service
 	billing         domainbilling.Service
 	memberAnalytics domainmemberanalytics.Service
+	approval        *domainapproval.Engine
 }
 
 func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, orgAdmin *adapter.OrgRiverAdminHolder) domainServices {
 	reader := wireReader(i)
 	keysSvc := wireKeys(cfg, i)
+	budgetSvc := wireBudget(cfg, i, enqueuer)
 	grants := permission.NewGrantNormalizer()
 	return domainServices{
 		org:             wireOrg(cfg, i, logger, grants, enqueuer, orgAdmin),
-		budget:          wireBudget(cfg, i, enqueuer),
+		budget:          budgetSvc,
 		keys:            keysSvc,
 		models:          wireModels(cfg, i),
 		dashboard:       wireDashboard(cfg, i, reader),
@@ -53,5 +56,6 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueu
 		company:         wireCompany(cfg, i, grants),
 		billing:         wireBilling(cfg, i, reader),
 		memberAnalytics: wireMemberAnalytics(cfg, reader, keysSvc),
+		approval:        wireApprovalEngine(i, logger, keysSvc, budgetSvc),
 	}
 }

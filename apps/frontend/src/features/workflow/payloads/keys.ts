@@ -1,4 +1,4 @@
-import type { KeyApproval, PlatformKey, PlatformKeyScope } from '@/api/types'
+import type { ApprovalRequest, PlatformKey, PlatformKeyScope } from '@/api/types'
 
 export interface KeysWorkflowPayloads {
   'key-create': {
@@ -35,7 +35,7 @@ export interface KeysWorkflowPayloads {
     onSuccess?: () => void
   }
   'approval-review': {
-    approval: KeyApproval
+    approval: ApprovalRequest
     onSuccess?: () => void
   }
   'provider-key-form': {

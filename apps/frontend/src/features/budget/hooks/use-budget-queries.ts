@@ -42,17 +42,6 @@ export function useBudgetQueries(injectedApis?: AppApis) {
     queryFn: (api) => api.budgetApi.getOverrunPolicy(),
   })
 
-  const { data: approvals = [], refresh: refreshApprovals } = useInjectedQuery({
-    injectedApis,
-    queryKey: queryKeys.budget.approvals(),
-    queryFn: (api) => api.budgetApi.getApprovals(),
-  })
-
-  const pendingCount = useMemo(
-    () => approvals.filter((item) => item.status === 'pending').length,
-    [approvals],
-  )
-
   useEffect(() => {
     if (!periodSyncedFromTree.current && tree[0]?.period) {
       setPeriod(tree[0].period)
@@ -64,8 +53,8 @@ export function useBudgetQueries(injectedApis?: AppApis) {
   const error = treeError ?? projectsError
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshTree(), refreshProjects(), refreshApprovals()])
-  }, [refreshTree, refreshProjects, refreshApprovals])
+    await Promise.all([refreshTree(), refreshProjects()])
+  }, [refreshTree, refreshProjects])
 
   const nodeNameMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -92,12 +81,9 @@ export function useBudgetQueries(injectedApis?: AppApis) {
     period,
     periodLabel,
     overrunPolicy,
-    approvals,
-    pendingCount,
     loading,
     error,
     refresh,
-    refreshApprovals,
     shiftPeriod: (delta: number) => setPeriod((current) => shiftBudgetPeriod(current, delta)),
     findNode: (nodeId: string) => findBudgetNode(tree, nodeId),
   }

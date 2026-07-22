@@ -1,14 +1,11 @@
 import { ClipboardList } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
-import { PermissionGate } from '@/features/session'
-import { PERMISSION } from '@/lib/permissions'
-import type { useApprovalPage } from '@/features/keys'
+import type { useApprovalPage } from '../hooks/use-approval-page'
 import { ApprovalTable } from './approval-table'
 
 type ApprovalPageShellProps = ReturnType<typeof useApprovalPage>
@@ -20,23 +17,14 @@ export function ApprovalPageShell({
   refresh,
   tab,
   setTab,
-  canApprove,
+  canResolve,
   pendingCount,
-  rowClass,
   handleApprove,
   handleReject,
-  openSubmit,
+  handleRetry,
 }: ApprovalPageShellProps) {
   return (
-    <PageShell
-      actions={
-        <PermissionGate permission={PERMISSION.SELF_APPROVAL}>
-          <Button variant="brand" onClick={openSubmit}>
-            发起申请
-          </Button>
-        </PermissionGate>
-      }
-    >
+    <PageShell>
       <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <TabsList>
           <TabsTrigger value="pending">
@@ -55,26 +43,26 @@ export function ApprovalPageShell({
         <TabsContent value={tab} className="mt-4">
           <Card className="border-border shadow-xs">
             <CardContent className="pt-5 pb-4">
-              <h3 className="mb-4 text-sm font-semibold text-foreground/80">申请列表</h3>
+              <h3 className="mb-4 text-sm font-semibold text-foreground/80">审批列表</h3>
               <DataSection
                 loading={loading}
                 error={error}
                 onRetry={refresh}
-                skeletonColumns={7}
+                skeletonColumns={8}
                 className="border-0 shadow-none"
                 contentClassName="p-0"
                 empty={listEmpty(loading, approvals, {
                   icon: ClipboardList,
-                  title: '暂无申请',
+                  title: '暂无审批',
                   description: '当前筛选条件下没有审批记录',
                 })}
               >
                 <ApprovalTable
                   approvals={approvals}
-                  canApprove={canApprove}
-                  rowClass={rowClass}
+                  canResolve={canResolve}
                   onApprove={handleApprove}
                   onReject={handleReject}
+                  onRetry={handleRetry}
                 />
               </DataSection>
             </CardContent>

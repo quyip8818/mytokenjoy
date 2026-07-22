@@ -11,26 +11,24 @@ import (
 )
 
 type Snapshot struct {
-	Company         Company
-	OrgIntegration  types.OrgIntegration
-	SyncLogs        []types.SyncLog
-	ImportFailures  []types.ImportFailure
-	OrgNodes        []types.OrgNode
-	ModelAllowlist  []ModelAllowlistRow
-	Members         []types.Member
-	Roles           []types.Role
-	Permissions     []types.Permission
-	Projects        []types.Project
-	OverrunPolicy   types.OverrunPolicyConfig
-	AlertRules      []types.AlertRule
-	BudgetApprovals []types.BudgetApproval
-	ProviderKeys    []types.ProviderKey
-	PlatformKeys    []types.PlatformKey
-	Approvals       []types.KeyApproval
-	Models          []types.ModelInfo
-	AuditSettings   types.AuditSettings
-	OperationLogs   []types.OperationLog
-	UsageLedger     []types.UsageLedgerEntry
+	Company        Company
+	OrgIntegration types.OrgIntegration
+	SyncLogs       []types.SyncLog
+	ImportFailures []types.ImportFailure
+	OrgNodes       []types.OrgNode
+	ModelAllowlist []ModelAllowlistRow
+	Members        []types.Member
+	Roles          []types.Role
+	Permissions    []types.Permission
+	Projects       []types.Project
+	OverrunPolicy  types.OverrunPolicyConfig
+	AlertRules     []types.AlertRule
+	ProviderKeys   []types.ProviderKey
+	PlatformKeys   []types.PlatformKey
+	Models         []types.ModelInfo
+	AuditSettings  types.AuditSettings
+	OperationLogs  []types.OperationLog
+	UsageLedger    []types.UsageLedgerEntry
 	// SeedAt is the business-clock instant used for open-budget snapshot period keys.
 	SeedAt time.Time
 }
@@ -59,6 +57,7 @@ type Store interface {
 	Notification() NotificationRepository
 	NotificationPreference() NotificationPreferenceRepository
 	Session() SessionRepository
+	Approval() ApprovalRepository
 	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error
 }

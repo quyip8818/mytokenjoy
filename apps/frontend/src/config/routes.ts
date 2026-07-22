@@ -126,13 +126,13 @@ const ADMIN_ROUTE_DEFINITIONS = [
   },
   {
     key: 'keysApproval',
-    path: '/keys/approval',
+    path: '/approvals',
     label: '审批中心',
     icon: CheckCircle2,
     audience: 'admin',
     requiredPermissions: [PERMISSION.BUDGET_APPROVE, PERMISSION.SELF_APPROVAL],
     badgeKey: 'approvalPending' as const,
-    lazy: () => import('@/routes/keys/approval'),
+    lazy: () => import('@/routes/approval/index'),
     navGroup: 'Key 中心',
   },
   {

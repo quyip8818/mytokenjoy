@@ -1,7 +1,6 @@
 import { request } from './client'
 import type {
   AlertRule,
-  BudgetApproval,
   Project,
   BudgetNode,
   MemberBudget,
@@ -58,10 +57,4 @@ export const budgetApi = {
   deleteAlert: (id: string) => request<void>(`/budget/alerts/${id}`, { method: 'DELETE' }),
   getProjectMemberConsumed: (projectId: string) =>
     request<Record<string, number>>(`/budget/projects/${projectId}/member-consumed`),
-  getApprovals: () => request<BudgetApproval[]>('/budget/approvals'),
-  resolveApproval: (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) =>
-    request<BudgetApproval>(`/budget/approvals/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
 }

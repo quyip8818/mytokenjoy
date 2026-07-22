@@ -36,25 +36,6 @@ func cloneAlertRules(items []types.AlertRule) []types.AlertRule {
 	return result
 }
 
-func cloneBudgetApprovals(items []types.BudgetApproval) []types.BudgetApproval {
-	if len(items) == 0 {
-		return nil
-	}
-	cloned := make([]types.BudgetApproval, len(items))
-	for i, item := range items {
-		cloned[i] = item
-		if item.ResolvedAt != nil {
-			s := *item.ResolvedAt
-			cloned[i].ResolvedAt = &s
-		}
-		if item.RejectReason != nil {
-			s := *item.RejectReason
-			cloned[i].RejectReason = &s
-		}
-	}
-	return cloned
-}
-
 func cloneProviderKeys(items []types.ProviderKey) []types.ProviderKey {
 	result := make([]types.ProviderKey, len(items))
 	for i, key := range items {
@@ -107,33 +88,6 @@ func clonePlatformKey(key types.PlatformKey) types.PlatformKey {
 		cloned.ExpiresAt = &expiresAt
 	}
 	return cloned
-}
-
-func cloneApprovals(items []types.KeyApproval) []types.KeyApproval {
-	result := make([]types.KeyApproval, len(items))
-	for i, approval := range items {
-		cloned := types.KeyApproval{
-			ID: approval.ID, Type: approval.Type, Applicant: approval.Applicant,
-			ApplicantID: approval.ApplicantID, Department: approval.Department,
-			Reason: approval.Reason, RequestedBudget: approval.RequestedBudget,
-			RequestedModels: append([]uuid.UUID{}, approval.RequestedModels...),
-			Status:          approval.Status, CreatedAt: approval.CreatedAt,
-		}
-		if approval.Approver != nil {
-			approver := *approval.Approver
-			cloned.Approver = &approver
-		}
-		if approval.RejectReason != nil {
-			rejectReason := *approval.RejectReason
-			cloned.RejectReason = &rejectReason
-		}
-		if approval.ResolvedAt != nil {
-			resolvedAt := *approval.ResolvedAt
-			cloned.ResolvedAt = &resolvedAt
-		}
-		result[i] = cloned
-	}
-	return result
 }
 
 func cloneModels(items []types.ModelInfo) []types.ModelInfo {

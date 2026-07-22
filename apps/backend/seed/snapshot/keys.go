@@ -72,13 +72,3 @@ func buildProviderKeys() []types.ProviderKey {
 		{ID: uuid.MustParse("00000000-0000-7000-8000-000000001008"), Provider: "custom", Name: "自建模型网关", KeyPrefix: "sk-cst-ghi...", Status: "active", CreatedAt: "2026-05-20", RotateEnabled: true},
 	}
 }
-
-func buildApprovals() []types.KeyApproval {
-	return []types.KeyApproval{
-		{ID: contract.IDApproval1, Type: "key", Applicant: "钱七", ApplicantID: contract.IDMemberAuditor, Department: "前端组", Reason: "需要接入 DeepSeek V4 Pro 进行代码辅助开发", RequestedBudget: float64(seedQuota(5000)), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel11}, Status: "pending", CreatedAt: "2026-06-18 14:30"},
-		{ID: contract.IDApproval2, Type: "key", Applicant: "王五", ApplicantID: contract.IDMember3, Department: "后端组", Reason: "新项目需要多模型测试", RequestedBudget: float64(seedQuota(8000)), RequestedModels: []uuid.UUID{contract.IDModel1, contract.IDModel11}, Status: "pending", CreatedAt: "2026-06-17 09:15"},
-		{ID: uuid.MustParse("00000000-0000-7000-8000-0000000000c3"), Type: "budget", Applicant: "张三", ApplicantID: contract.IDMember1, Department: "后端组", Reason: "额度即将用完，申请追加", RequestedBudget: float64(seedQuota(3000)), RequestedModels: []uuid.UUID{contract.IDModel1}, Status: "approved", Approver: strPtr("李四"), CreatedAt: "2026-06-15 11:00", ResolvedAt: strPtr("2026-06-15 14:20")},
-	}
-}
-
-func strPtr(v string) *string { return &v }

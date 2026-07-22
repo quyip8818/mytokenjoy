@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
+	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
@@ -20,6 +22,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func dashboardScopeConfig() domainusage.DashboardScopeConfig {
@@ -87,4 +90,16 @@ func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer
 
 func wireReader(i infra) domainusage.Reader {
 	return domainusage.NewReader(i.store.Usage(), i.store.Ledger())
+}
+
+func wireApprovalEngine(i infra, logger *slog.Logger, keysSvc domainkeys.Service, budgetSvc domainbudget.Service) *domainapproval.Engine {
+	repo := i.store.Approval()
+	txRunner := func(ctx context.Context, fn func(store.Store) error) error {
+		return i.store.WithTx(ctx, fn)
+	}
+	return domainapproval.NewEngine(repo, txRunner, logger,
+		domainkeys.NewKeyApprovalHandler(keysSvc),
+		domainkeys.NewBudgetApprovalHandler(keysSvc),
+		domainbudget.NewMemberBudgetApprovalHandler(budgetSvc),
+	)
 }

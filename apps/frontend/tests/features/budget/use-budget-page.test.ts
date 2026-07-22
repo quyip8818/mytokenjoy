@@ -11,7 +11,6 @@ describe('useBudgetPage', () => {
       budgetApi: {
         getTree: vi.fn().mockResolvedValue(mockBudgetTree),
         getProjects: vi.fn().mockResolvedValue(mockProjects),
-        getApprovals: vi.fn().mockResolvedValue([]),
         getOverrunPolicy: vi.fn().mockResolvedValue({
           thresholds: [80],
           notifyEmail: false,
@@ -32,7 +31,6 @@ describe('useBudgetPage', () => {
     expect(apis.budgetApi.getTree).toHaveBeenCalled()
     expect(apis.budgetApi.getProjects).toHaveBeenCalled()
     expect(result.current.selectedTeamId).toBe('n1')
-    expect(result.current.pendingCount).toBe(0)
   })
 
   it('updates project memberBudgets via budget API', async () => {
@@ -41,7 +39,6 @@ describe('useBudgetPage', () => {
       budgetApi: {
         getTree: vi.fn().mockResolvedValue(mockBudgetTree),
         getProjects: vi.fn().mockResolvedValue(mockProjects),
-        getApprovals: vi.fn().mockResolvedValue([]),
         getOverrunPolicy: vi.fn().mockResolvedValue({
           thresholds: [80],
           notifyEmail: false,

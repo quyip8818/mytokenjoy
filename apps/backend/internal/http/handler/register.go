@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/config"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
+	approvalhandler "github.com/tokenjoy/backend/internal/http/handler/approval"
 	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
 	"github.com/tokenjoy/backend/internal/http/handler/auth"
 	"github.com/tokenjoy/backend/internal/http/handler/billing"
@@ -36,6 +37,7 @@ type Registry struct {
 	models         *modelshandler.Handler
 	dashboard      *dashboardhandler.Handler
 	audit          *audithandler.Handler
+	approval       *approvalhandler.Handler
 	me             *mehandler.Handler
 	notification   *notificationhandler.Handler
 	internalIngest *ingesthandler.Handler
@@ -58,6 +60,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		models:         modelshandler.NewHandler(p, deps.ModelsSvc),
 		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:          audithandler.NewHandler(p, deps.AuditSvc),
+		approval:       approvalhandler.NewHandler(p, deps.ApprovalEngine),
 		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc, deps.Users(), deps.Org(), deps.Sessions(), deps.VerifyCodeSvc),
 		notification:   notificationhandler.NewHandler(p, deps.Notifications(), deps.NotificationPreferences(), deps.NotificationSvc),
 		internalIngest: ingesthandler.NewHandler(deps.Config, deps.IngestEnqueuer, deps.IngestMetrics, deps.Logger),
@@ -92,6 +95,7 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	r.Route("/models", reg.models.RegisterRoutes)
 	r.Route("/dashboard", reg.dashboard.RegisterRoutes)
 	r.Route("/audit", reg.audit.RegisterRoutes)
+	r.Route("/approvals", reg.approval.RegisterRoutes)
 	r.Route("/me", reg.me.RegisterRoutes)
 	r.Route("/notifications", reg.notification.RegisterRoutes)
 	// /api/dev/* — local development only; see config.AllowsDevHTTPRoutes.

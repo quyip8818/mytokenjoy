@@ -77,6 +77,7 @@ func buildServiceRegistry(cfg config.Config, i infra, services domainServices, l
 			BillingSvc:          services.billing,
 			MemberAnalyticsSvc:  services.memberAnalytics,
 			CompanyGate:         i.companyGate,
+			ApprovalEngine:      services.approval,
 			Gateway:             gateway,
 			DevBearerResolver:   devBearer,
 			DevReadinessChecker: devReadiness,

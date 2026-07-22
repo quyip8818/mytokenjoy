@@ -28,11 +28,6 @@ type Service interface {
 	RotatePlatformKey(ctx context.Context, id uuid.UUID) (types.PlatformKey, error)
 	RevokePlatformKey(ctx context.Context, id uuid.UUID) error
 	DeletePlatformKey(ctx context.Context, id uuid.UUID) error
-	ListApprovals(ctx context.Context, tab string, memberID uuid.UUID) ([]types.KeyApproval, error)
-	CreateApproval(ctx context.Context, input types.CreateApprovalInput) (types.KeyApproval, error)
-	ApprovalBudgetCheck(ctx context.Context, id uuid.UUID) (types.ApprovalBudgetCheck, error)
-	ApproveApproval(ctx context.Context, id uuid.UUID, approverMemberID uuid.UUID) error
-	RejectApproval(ctx context.Context, id uuid.UUID, approverMemberID uuid.UUID, reason *string) error
 }
 
 // Store is the narrow store surface the keys domain needs.
@@ -96,57 +91,4 @@ func (s *service) BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.
 	}
 	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, memberID)
 	return budget.BuildBudgetSummary(budgetCtx.Members, budgetCtx.PlatformKeys, memberID, reservedPool), nil
-}
-
-func (s *service) ListApprovals(ctx context.Context, tab string, memberID uuid.UUID) ([]types.KeyApproval, error) {
-	items, err := s.store.Keys().Approvals(ctx)
-	if err != nil {
-		return nil, err
-	}
-	filtered := make([]types.KeyApproval, 0, len(items))
-	for _, item := range items {
-		switch tab {
-		case "pending", "approved", "rejected":
-			if item.Status != tab {
-				continue
-			}
-		case "all", "":
-			// no status filter
-		default:
-			if item.Status != tab {
-				continue
-			}
-		}
-		if memberID != uuid.Nil && item.ApplicantID != memberID {
-			continue
-		}
-		filtered = append(filtered, item)
-	}
-	return filtered, nil
-}
-
-func (s *service) ApprovalBudgetCheck(ctx context.Context, id uuid.UUID) (types.ApprovalBudgetCheck, error) {
-	approvals, err := s.store.Keys().Approvals(ctx)
-	if err != nil {
-		return types.ApprovalBudgetCheck{}, err
-	}
-	var approval *types.KeyApproval
-	for i := range approvals {
-		if approvals[i].ID == id {
-			approval = &approvals[i]
-			break
-		}
-	}
-	if approval == nil {
-		return types.ApprovalBudgetCheck{}, domain.NotFound("Not found")
-	}
-	requested := int64(approval.RequestedBudget)
-	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
-	if err != nil {
-		return types.ApprovalBudgetCheck{}, err
-	}
-	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, approval.ApplicantID)
-	return types.ApprovalBudgetCheck{
-		Sufficient: requested <= reservedPool, ReservedPool: reservedPool, Requested: requested,
-	}, nil
 }

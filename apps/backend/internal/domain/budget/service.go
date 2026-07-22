@@ -27,8 +27,6 @@ type Service interface {
 	CreateAlert(ctx context.Context, rule types.AlertRule) (types.AlertRule, error)
 	UpdateAlert(ctx context.Context, id uuid.UUID, patch types.AlertRule) (types.AlertRule, error)
 	DeleteAlert(ctx context.Context, id uuid.UUID) error
-	ListApprovals(ctx context.Context) ([]types.BudgetApproval, error)
-	ResolveApproval(ctx context.Context, id uuid.UUID, input types.ResolveBudgetApprovalInput) (types.BudgetApproval, error)
 	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]int64, error)
 }
 

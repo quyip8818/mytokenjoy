@@ -75,13 +75,6 @@ var (
 	IDPlatformKey6 = uuid.MustParse("00000000-0000-7000-8000-000000000f06")
 )
 
-// --- Approvals ---
-
-var (
-	IDApproval1 = uuid.MustParse("00000000-0000-7000-8000-0000000000c1")
-	IDApproval2 = uuid.MustParse("00000000-0000-7000-8000-0000000000c2")
-)
-
 // --- Projects ---
 
 var (
@@ -104,10 +97,7 @@ var (
 // --- Misc seed IDs ---
 
 var (
-	IDSyncLog1       = uuid.MustParse("00000000-0000-7000-8000-0000000aa001")
-	IDBudgetAppr4    = uuid.MustParse("00000000-0000-7000-8000-000000000a04")
-	IDBudgetAppr5    = uuid.MustParse("00000000-0000-7000-8000-000000000a05")
-	IDMemberFallback = uuid.MustParse("00000000-0000-7000-8000-000000000e45")
+	IDSyncLog1 = uuid.MustParse("00000000-0000-7000-8000-0000000aa001")
 
 	IDAlertRule1 = uuid.MustParse("00000000-0000-7000-8000-0000000ab001")
 	IDAlertRule2 = uuid.MustParse("00000000-0000-7000-8000-0000000ab002")
@@ -117,10 +107,6 @@ var (
 	IDAlertRule6 = uuid.MustParse("00000000-0000-7000-8000-0000000ab006")
 	IDAlertRule7 = uuid.MustParse("00000000-0000-7000-8000-0000000ab007")
 	IDAlertRule8 = uuid.MustParse("00000000-0000-7000-8000-0000000ab008")
-
-	IDBudgetApproval1 = uuid.MustParse("00000000-0000-7000-8000-000000000a01")
-	IDBudgetApproval2 = uuid.MustParse("00000000-0000-7000-8000-000000000a02")
-	IDBudgetApproval3 = uuid.MustParse("00000000-0000-7000-8000-000000000a03")
 
 	// Seed lot/order used by usage_ledger seed data.
 	IDSeedLotOrder = uuid.MustParse("00000000-0000-7000-8000-000000000aa0")

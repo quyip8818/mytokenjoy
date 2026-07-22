@@ -29,18 +29,15 @@ const allStyles: Record<string, object> = {
 }
 
 /** Styles shown in the picker UI. */
-const pickerStyles = {
-  avataaars,
-  lorelei,
-  micah,
-  adventurer,
-  notionists,
-  'big-smile': bigSmile,
-  'open-peeps': openPeeps,
-  'pixel-art': pixelArt,
-}
-
-export type AvatarStyle = keyof typeof pickerStyles
+export type AvatarStyle =
+  | 'avataaars'
+  | 'lorelei'
+  | 'micah'
+  | 'adventurer'
+  | 'notionists'
+  | 'big-smile'
+  | 'open-peeps'
+  | 'pixel-art'
 
 export const AVATAR_STYLE_NAMES: AvatarStyle[] = [
   'avataaars',

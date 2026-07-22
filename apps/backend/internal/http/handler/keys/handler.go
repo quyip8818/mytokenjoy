@@ -32,10 +32,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	adminRead.Get("/platform", h.PlatformList)
 	adminRead.Get("/platform/budget-summary", h.PlatformBudgetSummary)
 
-	approvalRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead, permission.BudgetApprove)
-	approvalRead.Get("/approvals", h.ApprovalsList)
-	approvalRead.Get("/approvals/{id}/budget-check", h.ApprovalBudgetCheck)
-
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
 	providerWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysProvider))
@@ -51,13 +47,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	platformWrite.Post("/platform/{id}/rotate", h.PlatformRotate)
 	platformWrite.Put("/platform/{id}/revoke", h.PlatformRevoke)
 	platformWrite.Delete("/platform/{id}", h.PlatformDelete)
-
-	approvalWrite := write.With(httpmiddleware.RequireAnyPermission(permission.SelfApproval))
-	approvalWrite.Post("/approvals", h.ApprovalCreate)
-
-	approveWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetApprove))
-	approveWrite.Put("/approvals/{id}/approve", h.ApprovalApprove)
-	approveWrite.Put("/approvals/{id}/reject", h.ApprovalReject)
 }
 
 func (h *Handler) ProviderList(w http.ResponseWriter, r *http.Request) {
@@ -213,71 +202,5 @@ func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = h.service.DeletePlatformKey(r.Context(), id)
-	httputil.WriteVoid(w, err)
-}
-
-func (h *Handler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	memberID, _ := uuid.Parse(query.Get("memberId"))
-	approvals, err := h.service.ListApprovals(r.Context(), query.Get("tab"), memberID)
-	httputil.WriteJSON(w, http.StatusOK, approvals, err)
-}
-
-func (h *Handler) ApprovalCreate(w http.ResponseWriter, r *http.Request) {
-	var body types.CreateApprovalInput
-	if err := httputil.DecodeJSON(r, &body); err != nil {
-		httputil.WriteError(w, err)
-		return
-	}
-	// Bind approval to authenticated session member (prevent impersonation)
-	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
-		body.MemberID = sessionCtx.Member.ID
-	}
-	approval, err := h.service.CreateApproval(r.Context(), body)
-	httputil.WriteJSON(w, http.StatusOK, approval, err)
-}
-
-func (h *Handler) ApprovalBudgetCheck(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	result, err := h.service.ApprovalBudgetCheck(r.Context(), id)
-	httputil.WriteJSON(w, http.StatusOK, result, err)
-}
-
-func (h *Handler) ApprovalApprove(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
-	if !ok {
-		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-		return
-	}
-	err = h.service.ApproveApproval(r.Context(), id, sessionCtx.Member.ID)
-	httputil.WriteVoid(w, err)
-}
-
-func (h *Handler) ApprovalReject(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	var body types.RejectApprovalInput
-	if err := httputil.DecodeJSON(r, &body); err != nil {
-		httputil.WriteError(w, err)
-		return
-	}
-	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
-	if !ok {
-		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-		return
-	}
-	err = h.service.RejectApproval(r.Context(), id, sessionCtx.Member.ID, body.Reason)
 	httputil.WriteVoid(w, err)
 }

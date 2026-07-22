@@ -1,18 +1,18 @@
-import type { KeyApproval } from '@/api/types'
+import type { ApprovalRequest } from '@/api/types'
 
-export const mockApprovals: KeyApproval[] = [
+export const mockApprovals: ApprovalRequest[] = [
   {
     id: 'a1',
     type: 'key',
-    applicant: '张三',
-    applicantId: 'm1',
-    department: '研发部',
-    reason: '需要 API 访问',
-    requestedBudget: 0,
-    requestedModels: ['00000000-0000-7000-8000-0000000000b1'],
     status: 'pending',
-    approver: null,
+    applicantId: 'm1',
+    applicantName: '张三',
+    departmentName: '研发部',
+    metadata: {
+      reason: '需要 API 访问',
+      requestedBudget: 5000,
+      requestedModels: ['00000000-0000-7000-8000-0000000000b1'],
+    },
     createdAt: '2026-01-01',
-    resolvedAt: null,
   },
 ]

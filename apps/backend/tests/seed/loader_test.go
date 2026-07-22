@@ -56,16 +56,6 @@ func TestLoadSnapshot(t *testing.T) {
 	if len(snapshot.PlatformKeys) == 0 {
 		t.Fatal("expected platform keys")
 	}
-	foundPending := false
-	for _, approval := range snapshot.Approvals {
-		if approval.ID == contract.IDApproval1 {
-			foundPending = true
-			break
-		}
-	}
-	if !foundPending {
-		t.Fatal("expected pending approval apv-1")
-	}
 	if len(snapshot.OperationLogs) == 0 {
 		t.Fatal("expected operation logs")
 	}

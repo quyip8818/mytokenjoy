@@ -3,14 +3,12 @@ package keys_test
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter"
 	"github.com/tokenjoy/backend/internal/config"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/newapisync/ports"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
@@ -53,18 +51,4 @@ func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPI
 	)
 	newapisynctf.EnsureWalletCompanyID(t, st, contract.DefaultCompanyID, newapisynctf.TestWalletCompanyID)
 	return newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st)), st
-}
-
-func findApproval(st store.Store, id uuid.UUID) *types.KeyApproval {
-	approvals, err := st.Keys().Approvals(testutil.Ctx())
-	if err != nil {
-		return nil
-	}
-	for _, a := range approvals {
-		if a.ID == id {
-			copy := a
-			return &copy
-		}
-	}
-	return nil
 }

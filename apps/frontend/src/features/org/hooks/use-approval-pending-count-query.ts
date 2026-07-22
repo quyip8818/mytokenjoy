@@ -21,8 +21,8 @@ export function useApprovalPendingCountQuery(options: UseApprovalPendingCountQue
     queryKey: queryKeys.org.approvalPendingCount(),
     queryFn: async (a) => {
       if (!canApprove) return 0
-      const items = await a.approvalApi.list({ tab: 'pending' })
-      return items.length
+      const res = await a.approvalApi.list({ status: 'pending', limit: 0 })
+      return res.total
     },
     enabled: canApprove,
     refetchInterval: options.poll && canApprove ? APPROVAL_PENDING_POLL_INTERVAL_MS : false,

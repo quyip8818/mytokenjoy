@@ -9,13 +9,11 @@ import { useWorkflowRefresh } from '@/features/workflow'
 interface UseBudgetActionsOptions {
   injectedApis?: AppApis
   refresh: () => Promise<void>
-  refreshApprovals: () => Promise<void>
 }
 
 export function useBudgetActions({
   injectedApis,
   refresh,
-  refreshApprovals,
 }: UseBudgetActionsOptions) {
   const apis = useInjectedApis(injectedApis)
 
@@ -31,15 +29,6 @@ export function useBudgetActions({
         await refresh()
       }, '更新部门预算失败'),
     [apis, refresh],
-  )
-
-  const resolveApproval = useCallback(
-    (id: string, data: { status: 'approved' | 'rejected'; rejectReason?: string }) =>
-      withErrorToast(async () => {
-        await apis.budgetApi.resolveApproval(id, data)
-        await refreshApprovals()
-      }, '审批操作失败'),
-    [apis, refreshApprovals],
   )
 
   const createProject = useCallback(
@@ -139,7 +128,6 @@ export function useBudgetActions({
 
   return {
     updateDepartment,
-    resolveApproval,
     createProject,
     updateProject,
     deleteProject,

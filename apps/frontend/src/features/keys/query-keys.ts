@@ -5,5 +5,4 @@ export const keysKeys = {
   provider: () => [...keysKeys.all, 'provider'] as const,
   mine: (memberId: string) => [...keysKeys.all, 'mine', memberId] as const,
   budget: (memberId: string) => [...keysKeys.all, 'budget', memberId] as const,
-  approvals: (tab: string) => [...keysKeys.all, 'approvals', tab] as const,
 }

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('审批中心', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/keys/approval')
+    await page.goto('/approvals')
     await expect(page.getByRole('heading', { name: '审批中心' })).toBeVisible()
   })
 

@@ -191,26 +191,6 @@ func (h *Handler) AlertDelete(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
-func (h *Handler) ApprovalsList(w http.ResponseWriter, r *http.Request) {
-	items, err := h.service.ListApprovals(r.Context())
-	httputil.WriteJSON(w, http.StatusOK, items, err)
-}
-
-func (h *Handler) ApprovalResolve(w http.ResponseWriter, r *http.Request) {
-	var body types.ResolveBudgetApprovalInput
-	if err := httputil.DecodeJSON(r, &body); err != nil {
-		httputil.WriteError(w, err)
-		return
-	}
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	item, err := h.service.ResolveApproval(r.Context(), id, body)
-	httputil.WriteJSON(w, http.StatusOK, item, err)
-}
-
 func (h *Handler) ProjectMemberConsumed(w http.ResponseWriter, r *http.Request) {
 	groupID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
@@ -229,7 +209,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/projects/{id}/member-consumed", h.ProjectMemberConsumed)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)
 	read.Get("/alerts", h.AlertsList)
-	read.Get("/approvals", h.ApprovalsList)
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
@@ -246,7 +225,4 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	policyWrite.Post("/alerts", h.AlertCreate)
 	policyWrite.Put("/alerts/{id}", h.AlertUpdate)
 	policyWrite.Delete("/alerts/{id}", h.AlertDelete)
-
-	approveWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetApprove))
-	approveWrite.Put("/approvals/{id}", h.ApprovalResolve)
 }

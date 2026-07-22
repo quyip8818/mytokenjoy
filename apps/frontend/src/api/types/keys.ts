@@ -33,25 +33,6 @@ export interface PlatformKey {
   expiresAt: string | null
 }
 
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
-export type ApprovalType = 'key' | 'budget'
-
-export interface KeyApproval {
-  id: string
-  type: ApprovalType
-  applicant: string
-  applicantId: string
-  department: string
-  reason: string
-  requestedBudget: number
-  requestedModels: string[]
-  status: ApprovalStatus
-  approver: string | null
-  rejectReason?: string | null
-  createdAt: string
-  resolvedAt: string | null
-}
-
 export interface MemberBudgetSummary {
   totalBudget: number
   consumed: number

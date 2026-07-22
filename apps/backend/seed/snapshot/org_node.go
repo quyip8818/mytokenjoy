@@ -142,14 +142,5 @@ func buildModelAllowlist() []store.ModelAllowlistRow {
 			})
 		}
 	}
-	for _, approval := range buildApprovals() {
-		for _, modelID := range approval.RequestedModels {
-			rows = append(rows, store.ModelAllowlistRow{
-				OwnerType: types.AllowlistOwnerKeyApproval,
-				OwnerID:   approval.ID,
-				ModelID:   modelID,
-			})
-		}
-	}
 	return rows
 }

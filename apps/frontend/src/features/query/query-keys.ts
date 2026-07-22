@@ -1,3 +1,4 @@
+import { approvalKeys } from '@/features/approval'
 import { auditKeys } from '@/features/audit/query-keys'
 import { budgetKeys } from '@/features/budget/query-keys'
 import { dashboardKeys } from '@/features/dashboard/query-keys'
@@ -12,6 +13,7 @@ export const queryKeys = {
     all: ['session'] as const,
     current: () => [...queryKeys.session.all, 'current'] as const,
   },
+  approval: approvalKeys,
   budget: budgetKeys,
   org: orgKeys,
   keys: keysKeys,

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
+	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
@@ -48,6 +49,7 @@ type Deps struct {
 	BillingSvc          domainbilling.Service
 	MemberAnalyticsSvc  domainmemberanalytics.Service
 	CompanyGate         *domaincompany.Gate
+	ApprovalEngine      *domainapproval.Engine
 	Gateway             domaingateway.GatewayService
 	DevBearerResolver   devapi.BearerResolver
 	DevReadinessChecker devapi.ReadinessChecker

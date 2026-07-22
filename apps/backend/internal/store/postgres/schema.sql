@@ -316,24 +316,6 @@ CREATE TABLE IF NOT EXISTS alert_rule_notify_roles (
     FOREIGN KEY (company_id, rule_id) REFERENCES alert_rules (company_id, id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS budget_approvals (
-    id              UUID NOT NULL,
-    company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    applicant_id    UUID,
-    applicant_name  TEXT NOT NULL,
-    department_name TEXT NOT NULL,
-    amount          NUMERIC(18, 6) NOT NULL,
-    reason          TEXT NOT NULL,
-    status          TEXT NOT NULL,
-    reject_reason   TEXT,
-    created_at      TIMESTAMPTZ NOT NULL,
-    resolved_at     TIMESTAMPTZ,
-    PRIMARY KEY (company_id, id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_budget_approvals_status
-    ON budget_approvals (company_id, status, created_at DESC);
-
 CREATE TABLE IF NOT EXISTS model_allowlist (
     company_id UUID NOT NULL,
     owner_type TEXT NOT NULL,
@@ -402,26 +384,6 @@ COMMENT ON COLUMN platform_keys.combined_key_remain IS
     'Combined budget remain = min(key_budget, member_cap, project_cap) - consumed; maintained by Projector';
 COMMENT ON COLUMN platform_keys.combined_key_remain_version IS
     'Monotonic version for combined_key_remain, shared with optional Redis cache';
-
-CREATE TABLE IF NOT EXISTS key_approvals (
-    id              UUID NOT NULL,
-    company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    type            TEXT NOT NULL,
-    applicant       TEXT NOT NULL,
-    applicant_id    UUID NOT NULL,
-    department      TEXT NOT NULL,
-    reason          TEXT NOT NULL,
-    requested_budget BIGINT NOT NULL DEFAULT 0,
-    status          TEXT NOT NULL,
-    approver        TEXT,
-    reject_reason   TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resolved_at     TIMESTAMPTZ,
-    PRIMARY KEY (company_id, id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_key_approvals_company_status
-    ON key_approvals (company_id, status, created_at DESC);
 
 -- Audit domain
 CREATE TABLE IF NOT EXISTS audit_settings (
@@ -635,3 +597,27 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_active ON sessions(user_id) WHERE revoked_at IS NULL;
+
+-- Unified approval requests
+CREATE TABLE IF NOT EXISTS approval_requests (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id      UUID NOT NULL REFERENCES companies(id),
+    type            TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    applicant_id    UUID NOT NULL,
+    applicant_name  TEXT NOT NULL,
+    department_id   UUID,
+    department_name TEXT,
+    metadata        JSONB NOT NULL DEFAULT '{}',
+    approver_id     UUID,
+    approver_name   TEXT,
+    reject_reason   TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at     TIMESTAMPTZ,
+    CONSTRAINT valid_approval_status CHECK (status IN ('pending','approved','rejected','cancelled','failed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_approval_company_status ON approval_requests(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_approval_company_type   ON approval_requests(company_id, type);
+CREATE INDEX IF NOT EXISTS idx_approval_applicant      ON approval_requests(company_id, applicant_id);
+CREATE INDEX IF NOT EXISTS idx_approval_created_at     ON approval_requests(company_id, created_at DESC);

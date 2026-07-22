@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useApprovalPage } from '@/features/keys/hooks/use-approval-page'
+import { useApprovalPage } from '@/features/approval/hooks/use-approval-page'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { mockApprovals } from '@tests/fixtures/approvals'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
@@ -9,7 +9,7 @@ describe('useApprovalPage', () => {
   it('loads pending approvals on mount', async () => {
     const apis = createMockApis({
       approvalApi: {
-        list: vi.fn().mockResolvedValue(mockApprovals),
+        list: vi.fn().mockResolvedValue({ items: mockApprovals, total: 1 }),
       },
     })
 
@@ -17,7 +17,7 @@ describe('useApprovalPage', () => {
 
     await waitForLoaded(result, 'loading')
 
-    expect(apis.approvalApi.list).toHaveBeenCalledWith({ tab: 'pending' })
+    expect(apis.approvalApi.list).toHaveBeenCalledWith({ status: 'pending' })
     expect(result.current.approvals).toEqual(mockApprovals)
     expect(result.current.pendingCount).toBe(1)
   })
@@ -25,7 +25,7 @@ describe('useApprovalPage', () => {
   it('switches tab filter', async () => {
     const apis = createMockApis({
       approvalApi: {
-        list: vi.fn().mockResolvedValue([]),
+        list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       },
     })
 
@@ -39,6 +39,8 @@ describe('useApprovalPage', () => {
 
     await waitForLoaded(result, 'loading')
 
-    expect(apis.approvalApi.list).toHaveBeenCalledWith(expect.objectContaining({ tab: 'approved' }))
+    expect(apis.approvalApi.list).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'approved' }),
+    )
   })
 })

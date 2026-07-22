@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { useInjectedApis } from '@/api/use-apis'
-import { useSession, useBillingExchange } from '@/features/session'
+import { useBillingExchange } from '@/features/session'
 import { currencySymbol } from '@/lib/quota-display'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '@/features/workflow'
@@ -33,7 +33,6 @@ export function ApprovalSubmitWorkflow({
 }: WorkflowComponentProps<'approval-submit'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const { memberId } = useSession()
   const { displayToQuota, billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
@@ -74,13 +73,12 @@ export function ApprovalSubmitWorkflow({
     if (!(await validateModels())) return
     setSubmitting(true)
     try {
-      await apis.approvalApi.create({
-        type,
+      const metadata = {
         reason,
         requestedBudget: displayToQuota(Number(requestedBudget) || 0),
         requestedModels: models,
-        memberId,
-      })
+      }
+      await apis.approvalApi.create({ type, metadata })
       toast.success('申请已提交')
       onSuccess?.()
       closeAll()

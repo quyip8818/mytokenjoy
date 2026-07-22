@@ -4,7 +4,6 @@ export const budgetKeys = {
   projects: () => [...budgetKeys.all, 'projects'] as const,
   overrunPolicy: () => [...budgetKeys.all, 'overrun-policy'] as const,
   alerts: () => [...budgetKeys.all, 'alerts'] as const,
-  approvals: () => [...budgetKeys.all, 'approvals'] as const,
   memberBudgets: (departmentId: string) =>
     [...budgetKeys.all, 'member-budgets', departmentId] as const,
 }

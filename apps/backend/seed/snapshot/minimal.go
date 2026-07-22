@@ -30,24 +30,22 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		SyncLogs: []types.SyncLog{
 			{ID: contract.IDSyncLog1, Time: ref + " 02:00", Type: "scheduled", Result: "success", Detail: "初始化同步 8 人"},
 		},
-		ImportFailures:  nil,
-		OrgNodes:        buildMinimalOrgNodes(),
-		ModelAllowlist:  minimalModelAllowlist(platformKeys),
-		Members:         members,
-		Roles:           roles,
-		Permissions:     buildPermissions(),
-		Projects:        minimalProjects(),
-		BudgetApprovals: minimalBudgetApprovals(),
-		OverrunPolicy:   buildOverrunPolicy(),
-		AlertRules:      minimalAlertRules(),
-		ProviderKeys:    buildProviderKeys()[:3],
-		PlatformKeys:    platformKeys,
-		Approvals:       buildApprovals()[:1],
-		Models:          buildModels(),
-		AuditSettings:   buildAuditSettings(),
-		OperationLogs:   loadOperationLogs()[:1],
-		UsageLedger:     nil,
-		SeedAt:          clock.NowUTC(cfg.Clock()),
+		ImportFailures: nil,
+		OrgNodes:       buildMinimalOrgNodes(),
+		ModelAllowlist: minimalModelAllowlist(platformKeys),
+		Members:        members,
+		Roles:          roles,
+		Permissions:    buildPermissions(),
+		Projects:       minimalProjects(),
+		OverrunPolicy:  buildOverrunPolicy(),
+		AlertRules:     minimalAlertRules(),
+		ProviderKeys:   buildProviderKeys()[:3],
+		PlatformKeys:   platformKeys,
+		Models:         buildModels(),
+		AuditSettings:  buildAuditSettings(),
+		OperationLogs:  loadOperationLogs()[:1],
+		UsageLedger:    nil,
+		SeedAt:         clock.NowUTC(cfg.Clock()),
 	}
 }
 
@@ -119,16 +117,6 @@ func minimalProjects() []types.Project {
 		{
 			ID: contract.IDProject1, Name: "AI 创新项目组", Budget: 30000, Consumed: 18500,
 			MemberIDs: []uuid.UUID{contract.IDMember1, contract.IDMember4}, OwnerDepartmentID: contract.IDDept3,
-		},
-	}
-}
-
-func minimalBudgetApprovals() []types.BudgetApproval {
-	return []types.BudgetApproval{
-		{
-			ID: contract.IDBudgetApproval1, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
-			Amount: 500, Reason: "本月额度用尽，需完成搜索优化任务",
-			Status: "pending", CreatedAt: "2026-06-28 14:30",
 		},
 	}
 }

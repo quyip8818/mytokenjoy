@@ -9,7 +9,6 @@ import "github.com/google/uuid"
 const (
 	AllowlistOwnerPlatformKey = "platform_key"
 	AllowlistOwnerOrgNode     = "org_node"
-	AllowlistOwnerKeyApproval = "key_approval"
 )
 
 type OrgNode struct {

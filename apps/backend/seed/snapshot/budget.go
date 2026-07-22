@@ -5,7 +5,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/seed/contract"
-	"github.com/tokenjoy/backend/seed/filler"
 )
 
 func buildBudgetTree() []types.BudgetNode {
@@ -88,47 +87,4 @@ func buildAlertRules() []types.AlertRule {
 		{ID: contract.IDAlertRule7, NodeID: contract.IDDept7, NodeName: "市场部", Thresholds: []int{80, 100}, NotifyRoleIDs: []uuid.UUID{contract.IDRoleBudgetApprover}, Enabled: true},
 		{ID: contract.IDAlertRule8, NodeID: contract.IDDept8, NodeName: "行政部", Thresholds: []int{100}, NotifyRoleIDs: []uuid.UUID{contract.IDRole1}, Enabled: false},
 	}
-}
-
-func buildBudgetApprovals() []types.BudgetApproval {
-	resolved1 := "2026-06-20 11:30"
-	resolved2 := "2026-06-15 16:45"
-	resolved3 := "2026-06-25 17:30"
-	productMember := firstMemberInDepartment(contract.IDDept6)
-	return []types.BudgetApproval{
-		{
-			ID: contract.IDBudgetApproval1, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
-			Amount: 500, Reason: "本月额度用尽，需完成搜索优化任务",
-			Status: "pending", CreatedAt: "2026-06-28 14:30",
-		},
-		{
-			ID: contract.IDBudgetApproval2, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
-			Amount: 300, Reason: "RAG 管道调试需额外调用",
-			Status: "approved", CreatedAt: "2026-06-20 09:00", ResolvedAt: &resolved1,
-		},
-		{
-			ID: contract.IDBudgetApproval3, ApplicantID: contract.IDMember1, ApplicantName: "张三", DepartmentName: "后端组",
-			Amount: 200, Reason: "紧急修复线上搜索问题",
-			Status: "approved", CreatedAt: "2026-06-15 16:00", ResolvedAt: &resolved2,
-		},
-		{
-			ID: contract.IDBudgetAppr4, ApplicantID: contract.IDMember4, ApplicantName: "赵六", DepartmentName: "后端组",
-			Amount: 300, Reason: "调试 RAG 管道需额外调用",
-			Status: "pending", CreatedAt: "2026-06-29 09:15",
-		},
-		{
-			ID: contract.IDBudgetAppr5, ApplicantID: productMember.ID, ApplicantName: productMember.Alias, DepartmentName: productMember.DepartmentName,
-			Amount: 200, Reason: "产品文档生成",
-			Status: "approved", CreatedAt: "2026-06-25 16:00", ResolvedAt: &resolved3,
-		},
-	}
-}
-
-func firstMemberInDepartment(departmentID uuid.UUID) types.Member {
-	for _, member := range filler.BuildMembers() {
-		if member.DepartmentID == departmentID {
-			return member
-		}
-	}
-	return types.Member{ID: contract.IDMemberFallback, Alias: "产品成员", DepartmentName: "产品部"}
 }

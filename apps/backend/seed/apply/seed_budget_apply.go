@@ -3,12 +3,10 @@ package apply
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -56,7 +54,7 @@ func insertSeedBudget(ctx context.Context, exec TableWriter, tid uuid.UUID, snap
 			}
 		}
 	}
-	return insertSeedBudgetApprovals(ctx, exec, tid, snap.BudgetApprovals)
+	return nil
 }
 
 func insertSeedBudgetConsumed(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {
@@ -101,37 +99,4 @@ func insertBudgetConsumedRow(ctx context.Context, exec TableWriter, tid uuid.UUI
 		ON CONFLICT (company_id, axis_kind, axis_id, period_key) DO NOTHING
 	`, tid, axisKind, axisID, periodKey, consumed)
 	return err
-}
-
-func insertSeedBudgetApprovals(ctx context.Context, exec TableWriter, tid uuid.UUID, approvals []types.BudgetApproval) error {
-	for _, approval := range approvals {
-		createdAt, err := pkgtime.Parse(approval.CreatedAt)
-		if err != nil {
-			return err
-		}
-		var resolvedAt *time.Time
-		if approval.ResolvedAt != nil {
-			t, parseErr := pkgtime.Parse(*approval.ResolvedAt)
-			if parseErr != nil {
-				return parseErr
-			}
-			resolvedAt = &t
-		}
-		var applicantID *uuid.UUID
-		if approval.ApplicantID != uuid.Nil {
-			applicantID = &approval.ApplicantID
-		}
-		if _, err := exec.Exec(ctx, `
-			INSERT INTO budget_approvals (
-				id, company_id, applicant_id, applicant_name, department_name,
-				amount, reason, status, reject_reason, created_at, resolved_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			ON CONFLICT (company_id, id) DO NOTHING
-		`, approval.ID, tid, applicantID, approval.ApplicantName, approval.DepartmentName,
-			approval.Amount, approval.Reason, approval.Status, approval.RejectReason,
-			createdAt, resolvedAt); err != nil {
-			return err
-		}
-	}
-	return nil
 }

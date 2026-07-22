@@ -65,15 +65,3 @@ export interface ProjectView {
   overrunPolicy: OverrunPolicy
   period: string
 }
-
-export interface BudgetApproval {
-  id: string
-  applicantName: string
-  departmentName: string
-  amount: number
-  reason: string
-  status: 'pending' | 'approved' | 'rejected'
-  createdAt: string
-  resolvedAt?: string
-  rejectReason?: string
-}

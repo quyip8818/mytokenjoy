@@ -21,7 +21,6 @@ export function useBudgetPage(injectedApis?: AppApis) {
   const actions = useBudgetActions({
     injectedApis,
     refresh: queries.refresh,
-    refreshApprovals: queries.refreshApprovals,
   })
 
   return { ...queries, ...selection, ...actions }

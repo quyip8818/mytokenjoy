@@ -132,10 +132,10 @@ func TestSelfApprovalWithoutKeysAdminRead(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	memberCookie := testutil.SessionCookie(t, contract.IDMemberPure)
-	approvalBody := `{"type":"budget","reason":"need more","requestedBudget":500,"memberId":"` + contract.IDMemberPure.String() + `"}`
-	createRec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/keys/approvals", memberCookie, approvalBody, nil)
-	if createRec.Code != http.StatusOK {
-		t.Fatalf("expected approval create 200, got %d body=%s", createRec.Code, createRec.Body.String())
+	approvalBody := `{"type":"budget","metadata":{"reason":"need more","requestedBudget":500,"requestedModels":[]}}`
+	createRec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/approvals", memberCookie, approvalBody, nil)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected approval create 201, got %d body=%s", createRec.Code, createRec.Body.String())
 	}
 	platformRec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/keys/platform", memberCookie, "", nil)
 	if platformRec.Code != http.StatusForbidden {

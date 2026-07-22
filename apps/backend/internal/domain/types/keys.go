@@ -56,33 +56,11 @@ type PlatformKeyListFilter struct {
 	Scope        string
 }
 
-type KeyApproval struct {
-	ID              uuid.UUID   `json:"id"`
-	Type            string      `json:"type"`
-	Applicant       string      `json:"applicant"`
-	ApplicantID     uuid.UUID   `json:"applicantId"`
-	Department      string      `json:"department"`
-	Reason          string      `json:"reason"`
-	RequestedBudget float64     `json:"requestedBudget"`
-	RequestedModels []uuid.UUID `json:"requestedModels"`
-	Status          string      `json:"status"`
-	Approver        *string     `json:"approver"`
-	RejectReason    *string     `json:"rejectReason,omitempty"`
-	CreatedAt       string      `json:"createdAt"`
-	ResolvedAt      *string     `json:"resolvedAt"`
-}
-
 type MemberBudgetSummary struct {
 	TotalBudget  int64 `json:"totalBudget"`
 	Consumed     int64 `json:"consumed"`
 	Remaining    int64 `json:"remaining"`
 	ReservedPool int64 `json:"reservedPool"`
-}
-
-type ApprovalBudgetCheck struct {
-	Sufficient   bool  `json:"sufficient"`
-	ReservedPool int64 `json:"reservedPool"`
-	Requested    int64 `json:"requested"`
 }
 
 type CreateProviderKeyInput struct {
@@ -116,16 +94,4 @@ type UpdatePlatformKeyInput struct {
 
 type TogglePlatformKeyInput struct {
 	Enabled bool `json:"enabled"`
-}
-
-type CreateApprovalInput struct {
-	Type            string      `json:"type"`
-	Reason          string      `json:"reason"`
-	RequestedBudget float64     `json:"requestedBudget"`
-	RequestedModels []uuid.UUID `json:"requestedModels"`
-	MemberID        uuid.UUID   `json:"memberId"`
-}
-
-type RejectApprovalInput struct {
-	Reason *string `json:"reason"`
 }

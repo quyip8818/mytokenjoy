@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -19,7 +18,4 @@ type BudgetRepository interface {
 	SetOverrunPolicy(ctx context.Context, policy types.OverrunPolicyConfig) error
 	AlertRules(ctx context.Context) ([]types.AlertRule, error)
 	SetAlertRules(ctx context.Context, rules []types.AlertRule) error
-	BudgetApprovals(ctx context.Context) ([]types.BudgetApproval, error)
-	SetBudgetApprovals(ctx context.Context, items []types.BudgetApproval) error
-	UpdateBudgetApproval(ctx context.Context, id uuid.UUID, status string, rejectReason *string, resolvedAt time.Time) error
 }

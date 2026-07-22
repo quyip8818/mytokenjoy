@@ -9,7 +9,7 @@ const routes = [
   { path: '/models/list', heading: '模型列表' },
   { path: '/models/routing', heading: '模型白名单' },
   { path: '/keys/mine', heading: '我的 Key' },
-  { path: '/keys/approval', heading: '审批中心' },
+  { path: '/approvals', heading: '审批中心' },
   { path: '/keys/platform', heading: 'Key 管理' },
   { path: '/keys/provider', heading: '供应商 Key' },
   { path: '/dashboard/cost', heading: '成本看板' },

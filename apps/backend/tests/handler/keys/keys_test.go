@@ -2,12 +2,10 @@ package keys_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
@@ -89,44 +87,6 @@ func keysCases() []keysCase {
 				}
 				if len(payload.Items) == 0 {
 					t.Fatal("expected keys under dept-3 subtree")
-				}
-			},
-		},
-		{
-			name: "approvals list approved tab",
-			path: "/api/keys/approvals?tab=approved",
-			assert: func(t *testing.T, body []byte) {
-				t.Helper()
-				var approvals []struct {
-					Status string `json:"status"`
-				}
-				if err := json.Unmarshal(body, &approvals); err != nil {
-					t.Fatal(err)
-				}
-				for _, approval := range approvals {
-					if approval.Status != "approved" {
-						t.Fatalf("expected approved only, got %+v", approval)
-					}
-				}
-			},
-		},
-		{
-			name: "approvals list pending member id",
-			path: fmt.Sprintf("/api/keys/approvals?tab=pending&memberId=%s", contract.IDMemberAuditor),
-			assert: func(t *testing.T, body []byte) {
-				t.Helper()
-				var approvals []struct {
-					Status      string    `json:"status"`
-					ApplicantID uuid.UUID `json:"applicantId"`
-				}
-				if err := json.Unmarshal(body, &approvals); err != nil {
-					t.Fatal(err)
-				}
-				if len(approvals) != 1 {
-					t.Fatalf("expected 1 pending approval for auditor, got %+v", approvals)
-				}
-				if approvals[0].Status != "pending" || approvals[0].ApplicantID != contract.IDMemberAuditor {
-					t.Fatalf("unexpected approval: %+v", approvals[0])
 				}
 			},
 		},
