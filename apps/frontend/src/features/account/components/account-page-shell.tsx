@@ -35,11 +35,15 @@ export function AccountPageShell(props: AccountPageState) {
 
   return (
     <PageShell description={<h1 className="text-sm font-semibold">账户设置</h1>}>
-      <div className="max-w-2xl space-y-6">
-        {/* Profile */}
-        <section>
-          <h2 className="mb-3 text-xs font-medium text-muted-foreground">基本信息</h2>
-          <div className="rounded-lg border border-border divide-y divide-border">
+      <div className="mx-auto w-full max-w-xl space-y-8">
+        {/* Profile Card */}
+        <section className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              个人信息
+            </h2>
+          </div>
+          <div className="divide-y divide-border">
             <InfoRow label="姓名" value={profile.name} />
             <InfoRow
               label="手机号"
@@ -48,7 +52,7 @@ export function AccountPageShell(props: AccountPageState) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-primary"
+                  className="h-7 text-xs text-primary hover:text-primary"
                   onClick={() => props.setPhoneDialogOpen(true)}
                 >
                   修改
@@ -62,7 +66,7 @@ export function AccountPageShell(props: AccountPageState) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-primary"
+                  className="h-7 text-xs text-primary hover:text-primary"
                   onClick={() => props.setEmailDialogOpen(true)}
                 >
                   修改
@@ -72,17 +76,26 @@ export function AccountPageShell(props: AccountPageState) {
           </div>
         </section>
 
-        {/* Companies */}
+        {/* Companies Card */}
         {profile.companies.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-xs font-medium text-muted-foreground">所属企业</h2>
-            <div className="rounded-lg border border-border divide-y divide-border">
+          <section className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-5 py-3">
+              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                所属企业
+              </h2>
+            </div>
+            <div className="divide-y divide-border">
               {profile.companies.map((c) => (
-                <div key={c.companyId} className="flex items-center gap-2 px-4 py-3 text-sm">
-                  <span className="font-medium">{c.companyName}</span>
-                  <span className="text-xs text-muted-foreground">{c.role}</span>
+                <div key={c.companyId} className="flex items-center gap-3 px-5 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-xs font-medium">
+                    {c.companyName.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{c.companyName}</p>
+                    <p className="text-xs text-muted-foreground">{c.role}</p>
+                  </div>
                   {c.current && (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">
                       当前
                     </span>
                   )}
@@ -92,11 +105,15 @@ export function AccountPageShell(props: AccountPageState) {
           </section>
         )}
 
-        {/* Security */}
-        <section>
-          <h2 className="mb-3 text-xs font-medium text-muted-foreground">安全</h2>
-          <div className="rounded-lg border border-border divide-y divide-border">
-            <div className="flex items-center justify-between px-4 py-3">
+        {/* Security Card */}
+        <section className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              安全
+            </h2>
+          </div>
+          <div className="divide-y divide-border">
+            <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-medium">登录密码</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -106,12 +123,13 @@ export function AccountPageShell(props: AccountPageState) {
               <Button
                 variant="outline"
                 size="sm"
+                className="h-7"
                 onClick={() => props.setPasswordDialogOpen(true)}
               >
                 {profile.hasPassword ? '修改' : '设置'}
               </Button>
             </div>
-            <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-medium">登出所有设备</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -121,9 +139,26 @@ export function AccountPageShell(props: AccountPageState) {
               <Button
                 variant="outline"
                 size="sm"
+                className="h-7"
                 onClick={() => props.setRevokeDialogOpen(true)}
               >
                 登出
+              </Button>
+            </div>
+            <div className="flex items-center justify-between px-5 py-4">
+              <div>
+                <p className="text-sm font-medium text-destructive">退出当前设备</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  退出登录并返回登录页面
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={props.logout}
+              >
+                退出
               </Button>
             </div>
           </div>
@@ -188,10 +223,10 @@ function InfoRow({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
+    <div className="flex items-center justify-between px-5 py-3">
       <div className="flex items-center gap-4">
         <span className="w-14 text-xs text-muted-foreground">{label}</span>
-        <span className="text-sm">{value}</span>
+        <span className="text-sm font-medium">{value}</span>
       </div>
       {action}
     </div>

@@ -25,12 +25,7 @@ export function NotificationsPageShell({
 
   return (
     <PageShell
-      description={
-        <div>
-          <h2 className="text-lg font-semibold">通知偏好</h2>
-          <p className="text-sm text-muted-foreground">选择每种通知类型的接收渠道</p>
-        </div>
-      }
+      description={<h1 className="text-sm font-semibold">通知偏好</h1>}
       actions={
         <Button variant="outline" size="sm" onClick={resetPreferences} disabled={saving}>
           恢复默认

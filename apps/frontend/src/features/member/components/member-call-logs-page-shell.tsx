@@ -1,5 +1,3 @@
-import { Link } from 'react-router'
-import { ArrowLeft } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import type { useMemberCallLogsPage } from '@/features/member'
@@ -19,14 +17,7 @@ export function MemberCallLogsPageShell({
 }: MemberCallLogsPageShellProps) {
   return (
     <PageShell
-      description={
-        <div className="flex items-center gap-3">
-          <Link to="/me" className="text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-4" />
-          </Link>
-          <h1 className="text-sm font-semibold">使用记录</h1>
-        </div>
-      }
+      description={<h1 className="text-sm font-semibold">使用记录</h1>}
     >
       <DataSection
         loading={loading}

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApis } from '@/api/use-apis'
 import { ApiError } from '@/api/client'
@@ -8,8 +9,9 @@ export const accountKeys = {
 }
 
 export function useAccountPage() {
-  const { accountApi } = useApis()
+  const { accountApi, authApi } = useApis()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const profileQuery = useQuery({
     queryKey: accountKeys.profile,
@@ -105,6 +107,12 @@ export function useAccountPage() {
     }
   }, [accountApi])
 
+  // --- Logout ---
+  const logout = useCallback(async () => {
+    await authApi.logout()
+    navigate('/login', { replace: true })
+  }, [authApi, navigate])
+
   return {
     profile: profileQuery.data ?? null,
     profileLoading: profileQuery.isLoading,
@@ -131,6 +139,8 @@ export function useAccountPage() {
     setRevokeDialogOpen,
     revoking,
     revokeSessions,
+
+    logout,
   }
 }
 

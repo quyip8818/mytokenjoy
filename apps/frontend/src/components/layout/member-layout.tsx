@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router'
+import { Outlet, NavLink, Link } from 'react-router'
 import { useSession } from '@/features/session'
 import { WorkflowProvider } from '@/features/workflow'
 import { WorkflowPanelStack } from '@/features/workflow'
@@ -17,8 +17,15 @@ export function MemberLayout() {
       <div className="flex h-dvh bg-background">
         <aside className="flex w-48 shrink-0 flex-col border-r border-border bg-card">
           <div className="px-5 pt-5 pb-4">
-            <h1 className="text-base font-semibold text-primary">TokenJoy</h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">个人中心</p>
+            <Link to="/" className="group flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-[10px] font-bold text-primary-foreground transition-transform group-hover:scale-105">
+                T
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">TokenJoy</p>
+                <p className="text-[10px] text-muted-foreground">个人中心</p>
+              </div>
+            </Link>
           </div>
           <nav className="flex-1 space-y-0.5 px-3">
             {MEMBER_ROUTE_DEFINITIONS.map((item) => {
