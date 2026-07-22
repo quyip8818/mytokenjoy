@@ -26,8 +26,7 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
       title="模拟消耗"
       description={
         <p>
-          调用 <code>{TEST_MODEL}</code> 走 Gateway 预检与转发。HTTP 200 即表示调用成功；扣费 /
-          入账由后台 Worker 异步完成。
+          模拟一次 Token 消耗（不花真钱），体验 Budget 额度扣减与用量追踪的完整流程。
         </p>
       }
       error={dialog.error}
