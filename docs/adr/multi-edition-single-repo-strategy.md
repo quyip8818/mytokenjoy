@@ -22,8 +22,8 @@ mytokenjoy/
 │   ├── newapi/              ← NewAPI 构建（local variant）
 │   └── dev-mock-llm/
 │
-├── platform/                ← 内部运营产品（独立前后端）
-│   ├── frontend/            ← 平台管理 UI（独立 Vite app）
+├── platform/                ← 内部管理后台
+│   ├── frontend/            ← 管理页面（React SPA）
 │   ├── backend/             ← Go 后端（独立 binary，独立 DB）
 │   └── newapi/              ← NewAPI 构建（platform variant）
 │
@@ -70,12 +70,16 @@ mytokenjoy/
 
 ## 跨产品通信
 
-```
-Apps Backend  ──GET  /api/v1/pricing/latest──→  Platform Backend
-              ←── { version, model_ratio, completion_ratio } ──┘
+```mermaid
+sequenceDiagram
+    participant A as Apps Backend
+    participant P as Platform Backend
 
-Apps Backend  ──POST /api/v1/instances/register──→  Platform Backend
-              ←── { instance_id, ... } ────────────┘
+    A->>P: GET /api/v1/pricing/latest
+    P-->>A: { version, model_ratio, completion_ratio }
+
+    A->>P: POST /api/v1/instances/register
+    P-->>A: { instance_id, ... }
 ```
 
 接口极少，耦合极低。两边独立开发、独立部署。
