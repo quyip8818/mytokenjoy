@@ -32,9 +32,8 @@ func TestLoginEndpoints(t *testing.T) {
 	t.Run("EmailPassword_Success", func(t *testing.T) {
 		t.Parallel()
 		rec := postJSON(router, "/api/auth/login", map[string]any{
-			"email":     "zhangsan@example.com",
-			"password":  contract.DemoPassword,
-			"companyId": contract.DefaultCompanyID,
+			"email":    "zhangsan@example.com",
+			"password": contract.DemoPassword,
 		}, "")
 
 		if rec.Code != http.StatusOK {
@@ -52,9 +51,8 @@ func TestLoginEndpoints(t *testing.T) {
 	t.Run("EmailPassword_WrongPassword", func(t *testing.T) {
 		t.Parallel()
 		rec := postJSON(router, "/api/auth/login", map[string]any{
-			"email":     "zhangsan@example.com",
-			"password":  "wrong-password",
-			"companyId": contract.DefaultCompanyID,
+			"email":    "zhangsan@example.com",
+			"password": "wrong-password",
 		}, "")
 
 		if rec.Code != http.StatusUnauthorized {

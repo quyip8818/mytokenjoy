@@ -11,15 +11,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { authApi, type CompanyOption, type PendingInvite, type SmsVerifyResult } from '@/api/auth'
+import { authApi, type CompanyOption, type PendingInvite, type VerifyResult } from '@/api/auth'
 import { ApiError } from '@/api/client'
-import { useSmsCountdown } from '../hooks/use-sms-countdown'
+import { useVerifyCountdown } from '../hooks/use-verify-countdown'
 
 type AuthMode = 'login' | 'register'
 type AuthStep =
   | 'login-phone-pw' // 默认：手机号 + 密码
   | 'login-phone-code' // 手机号 + 验证码
   | 'login-email-pw' // 邮箱 + 密码
+  | 'login-email-code' // 邮箱 + 验证码
   | 'reset-password' // 忘记密码：手机号 + 验证码 + 新密码
   | 'register-phone' // 手机号 + 验证码 + 密码
   | 'register-info' // 公司名
@@ -66,12 +67,22 @@ export function AuthPopup({
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [memberName, setMemberName] = useState('')
 
-  const { sending, countdown, sendError, sendCode } = useSmsCountdown()
-  const handleSendCode = useCallback(() => sendCode(phone), [sendCode, phone])
+  const { sending, countdown, sendError, sendCode: sendPhoneCode } = useVerifyCountdown()
+  const handleSendCode = useCallback(() => sendPhoneCode({ phone: phone.trim() }), [sendPhoneCode, phone])
   const canSend = phone.trim().length >= 11 && countdown === 0 && !sending
 
+  // Email verify code countdown (independent from phone)
+  const {
+    sending: emailSending,
+    countdown: emailCountdown,
+    sendError: emailSendError,
+    sendCode: sendEmailCode,
+  } = useVerifyCountdown()
+  const handleSendEmailCode = useCallback(() => sendEmailCode({ email: email.trim() }), [sendEmailCode, email])
+  const canSendEmail = email.trim().length > 0 && email.includes('@') && emailCountdown === 0 && !emailSending
+
   const isLoginStep =
-    step === 'login-phone-pw' || step === 'login-phone-code' || step === 'login-email-pw'
+    step === 'login-phone-pw' || step === 'login-phone-code' || step === 'login-email-pw' || step === 'login-email-code'
   const showTabs = isLoginStep || step === 'register-phone'
 
   // Clear sensitive fields whenever the visible step changes.
@@ -119,6 +130,32 @@ export function AuthPopup({
     [phone, password, onSuccess],
   )
 
+  // --- Shared verify code result handler ---
+  const handleVerifyResult = useCallback(
+    (result: VerifyResult, notFoundMsg: string) => {
+      switch (result.action) {
+        case 'enter':
+          onSuccess?.()
+          break
+        case 'select_company':
+          setCompanies(result.companies)
+          setStep('select-company')
+          break
+        case 'choose':
+          setInvites(result.invites)
+          setStep('select-invite')
+          break
+        case 'create_company':
+          setStep('register-info')
+          break
+        case 'not_found':
+          setError(notFoundMsg)
+          break
+      }
+    },
+    [onSuccess],
+  )
+
   // --- Login: phone + SMS code ---
   const handleLoginPhoneCode = useCallback(
     async (e: React.FormEvent) => {
@@ -127,33 +164,34 @@ export function AuthPopup({
       setSubmitting(true)
       setError(null)
       try {
-        const result: SmsVerifyResult = await authApi.smsVerify(phone.trim(), code.trim())
-        switch (result.action) {
-          case 'enter':
-            onSuccess?.()
-            break
-          case 'select_company':
-            setCompanies(result.companies)
-            setStep('select-company')
-            break
-          case 'choose':
-            setInvites(result.invites)
-            setStep('select-invite')
-            break
-          case 'create_company':
-            setStep('register-info')
-            break
-          case 'not_found':
-            setError('该手机号尚未注册，请切换到注册')
-            break
-        }
+        const result = await authApi.verifyCode({ phone: phone.trim(), code: code.trim() })
+        handleVerifyResult(result, '该手机号尚未注册，请切换到注册')
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '验证失败')
       } finally {
         setSubmitting(false)
       }
     },
-    [phone, code, onSuccess],
+    [phone, code, handleVerifyResult],
+  )
+
+  // --- Login: email + verify code ---
+  const handleLoginEmailCode = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!email.trim() || !code.trim()) return
+      setSubmitting(true)
+      setError(null)
+      try {
+        const result = await authApi.verifyCode({ email: email.trim(), code: code.trim() })
+        handleVerifyResult(result, '该邮箱尚未注册')
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : '验证失败')
+      } finally {
+        setSubmitting(false)
+      }
+    },
+    [email, code, handleVerifyResult],
   )
 
   // --- Login: email + password ---
@@ -188,7 +226,7 @@ export function AuthPopup({
       setSubmitting(true)
       setError(null)
       try {
-        await authApi.smsSelect(companyId)
+        await authApi.selectCompany(companyId)
         onSuccess?.()
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '选择失败')
@@ -522,7 +560,7 @@ export function AuthPopup({
               >
                 {submitting ? '登录中…' : '登录'}
               </Button>
-              <div className="flex justify-center text-sm text-muted-foreground">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <button
                   type="button"
                   onClick={() => {
@@ -531,6 +569,92 @@ export function AuthPopup({
                   className="hover:text-foreground transition-colors"
                 >
                   ← 手机号登录
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    changeStep('login-email-code')
+                  }}
+                  className="hover:text-foreground transition-colors"
+                >
+                  验证码登录
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* === LOGIN: email + verify code === */}
+          {step === 'login-email-code' && (
+            <form onSubmit={handleLoginEmailCode} className="flex flex-col gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="lec-email" className="text-sm font-medium">
+                  邮箱
+                </Label>
+                <Input
+                  id="lec-email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="name@company.com"
+                  className="h-11"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lec-code" className="text-sm font-medium">
+                  验证码
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="lec-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="6 位验证码"
+                    className="h-11"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!canSendEmail}
+                    onClick={handleSendEmailCode}
+                    className="shrink-0 whitespace-nowrap h-11"
+                  >
+                    {emailSending ? '发送中…' : emailCountdown > 0 ? `${emailCountdown}s` : '获取验证码'}
+                  </Button>
+                </div>
+              </div>
+              <FormMessage error={error || emailSendError} />
+              <Button
+                type="submit"
+                className="h-11 text-base font-medium"
+                disabled={submitting || !code.trim()}
+              >
+                {submitting ? '验证中…' : '登录'}
+              </Button>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => {
+                    changeStep('login-email-pw')
+                  }}
+                  className="hover:text-foreground transition-colors"
+                >
+                  ← 密码登录
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    changeStep('login-phone-pw')
+                  }}
+                  className="hover:text-foreground transition-colors"
+                >
+                  手机号登录
                 </button>
               </div>
             </form>

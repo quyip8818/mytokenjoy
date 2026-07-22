@@ -4,39 +4,34 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/smtp"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/resend/resend-go/v3"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 )
 
-// EmailChannel sends notifications via SMTP.
+// EmailChannel sends notifications via Resend.
 type EmailChannel struct {
-	host     string
-	port     int
-	user     string
-	pass     string
+	client   *resend.Client
 	from     string
 	resolver *RecipientResolver
 	logger   *slog.Logger
 }
 
 type EmailConfig struct {
-	Host string
-	Port int
-	User string
-	Pass string
-	From string
+	APIKey string
+	From   string
 }
 
 func NewEmailChannel(cfg EmailConfig, resolver *RecipientResolver, logger *slog.Logger) *EmailChannel {
+	var client *resend.Client
+	if strings.TrimSpace(cfg.APIKey) != "" {
+		client = resend.NewClient(cfg.APIKey)
+	}
 	return &EmailChannel{
-		host:     strings.TrimSpace(cfg.Host),
-		port:     cfg.Port,
-		user:     cfg.User,
-		pass:     cfg.Pass,
-		from:     cfg.From,
+		client:   client,
+		from:     strings.TrimSpace(cfg.From),
 		resolver: resolver,
 		logger:   logger,
 	}
@@ -45,11 +40,10 @@ func NewEmailChannel(cfg EmailConfig, resolver *RecipientResolver, logger *slog.
 func (c *EmailChannel) Name() string { return domainnotification.ChannelEmail }
 
 func (c *EmailChannel) IsConfigured() bool {
-	return c.host != "" && c.from != ""
+	return c.client != nil && c.from != ""
 }
 
 func (c *EmailChannel) Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error {
-	// Resolve memberID → email address
 	info := c.resolver.Resolve(ctx, recipientID)
 	to := info.Email
 	if to == "" {
@@ -66,23 +60,21 @@ func (c *EmailChannel) SendDirect(ctx context.Context, address string, msg domai
 }
 
 func (c *EmailChannel) sendToAddress(to string, msg domainnotification.RenderedMessage) error {
-	body := buildEmailBody(msg)
+	html := buildEmailBody(msg)
 
-	mime := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=\"utf-8\"\r\n\r\n%s",
-		c.from, to, msg.Title, body)
-
-	addr := fmt.Sprintf("%s:%d", c.host, c.port)
-
-	var auth smtp.Auth
-	if c.user != "" {
-		auth = smtp.PlainAuth("", c.user, c.pass, c.host)
+	params := &resend.SendEmailRequest{
+		From:    c.from,
+		To:      []string{to},
+		Subject: msg.Title,
+		Html:    html,
 	}
 
-	if err := smtp.SendMail(addr, auth, c.from, []string{to}, []byte(mime)); err != nil {
-		return fmt.Errorf("email send to %s: %w", to, err)
+	_, err := c.client.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("resend send to %s: %w", to, err)
 	}
 
-	c.logger.Debug("email sent", "to", to, "subject", msg.Title)
+	c.logger.Debug("email sent via resend", "to", to, "subject", msg.Title)
 	return nil
 }
 

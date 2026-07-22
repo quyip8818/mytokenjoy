@@ -3,10 +3,9 @@ import { request } from './client'
 export interface LoginInput {
   email: string
   password: string
-  companyId?: string
 }
 
-// --- SMS Auth Types (design doc §5) ---
+// --- Verify Code Auth Types ---
 
 export interface CompanyOption {
   companyId: string
@@ -22,7 +21,7 @@ export interface PendingInvite {
   expiresAt: string
 }
 
-export type SmsVerifyResult =
+export type VerifyResult =
   | { action: 'enter' }
   | { action: 'select_company'; companies: CompanyOption[] }
   | { action: 'choose'; invites: PendingInvite[] }
@@ -45,21 +44,21 @@ export const authApi = {
       method: 'POST',
     }),
 
-  // --- SMS endpoints ---
-  smsSend: (phone: string) =>
-    request<void>('/auth/sms/send', {
+  // --- Verify code endpoints (phone or email) ---
+  sendCode: (params: { phone?: string; email?: string }) =>
+    request<void>('/auth/verify-code/send', {
       method: 'POST',
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify(params),
     }),
 
-  smsVerify: (phone: string, code: string) =>
-    request<SmsVerifyResult>('/auth/sms/verify', {
+  verifyCode: (params: { phone?: string; email?: string; code: string }) =>
+    request<VerifyResult>('/auth/verify-code/verify', {
       method: 'POST',
-      body: JSON.stringify({ phone, code }),
+      body: JSON.stringify(params),
     }),
 
-  smsSelect: (companyId: string) =>
-    request<{ memberId: string; companyId: string }>('/auth/sms/select', {
+  selectCompany: (companyId: string) =>
+    request<{ memberId: string; companyId: string }>('/auth/select-company', {
       method: 'POST',
       body: JSON.stringify({ companyId }),
     }),
@@ -100,7 +99,7 @@ export const authApi = {
       body: JSON.stringify({ password }),
     }),
 
-  // --- Reset password (unauthenticated, SMS verified) ---
+  // --- Reset password (unauthenticated, verified) ---
   resetPassword: (phone: string, code: string, newPassword: string) =>
     request<void>('/auth/reset-password', {
       method: 'POST',

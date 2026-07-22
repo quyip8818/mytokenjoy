@@ -122,8 +122,9 @@ func (s *Service) Send(ctx context.Context, channel, address string) SendResult 
 
 	// Deliver via notification channel.
 	msg := domainnotification.RenderedMessage{
-		Title: "验证码",
-		Body:  fmt.Sprintf("您的验证码是：%s，5分钟内有效。", code),
+		Title:   "验证码",
+		Body:    fmt.Sprintf("您的验证码是：%s，5分钟内有效。", code),
+		Payload: map[string]any{"code": code},
 	}
 	if err := s.notifier.SendDirect(ctx, channel, address, msg); err != nil {
 		s.logger.Error("verifycode: send failed", "error", err, "channel", channel, "address", address)

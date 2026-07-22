@@ -61,12 +61,9 @@ type DataSourceConfig struct {
 type NotificationConfig struct {
 	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
 
-	// SMTP / Email channel
-	SMTPHost string `env:"SMTP_HOST"`
-	SMTPPort int    `env:"SMTP_PORT" envDefault:"587"`
-	SMTPUser string `env:"SMTP_USER"`
-	SMTPPass string `env:"SMTP_PASS"`
-	SMTPFrom string `env:"SMTP_FROM"`
+	// Resend email channel
+	ResendAPIKey string `env:"RESEND_API_KEY"`
+	ResendFrom   string `env:"RESEND_FROM"`
 
 	// SMS channel (Aliyun / 阿里云)
 	AliyunSMSAccessKeyID     string `env:"ALIYUN_SMS_ACCESS_KEY_ID"`

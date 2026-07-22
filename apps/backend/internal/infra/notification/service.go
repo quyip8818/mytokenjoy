@@ -44,13 +44,10 @@ func NewService(cfg config.Config, st store.Store, logger *slog.Logger) *Service
 	// Conditionally register webhook channel
 	registry.Register(NewWebhookChannel(cfg.NotifyWebhookURL, logger))
 
-	// Conditionally register email channel
+	// Conditionally register email channel (Resend)
 	registry.Register(NewEmailChannel(EmailConfig{
-		Host: cfg.SMTPHost,
-		Port: cfg.SMTPPort,
-		User: cfg.SMTPUser,
-		Pass: cfg.SMTPPass,
-		From: cfg.SMTPFrom,
+		APIKey: cfg.ResendAPIKey,
+		From:   cfg.ResendFrom,
 	}, resolver, logger))
 
 	// Conditionally register SMS channel (Aliyun)

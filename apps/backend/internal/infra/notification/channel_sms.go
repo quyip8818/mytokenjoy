@@ -111,8 +111,15 @@ func (c *SMSChannel) sendToPhone(phone string, msg domainnotification.RenderedMe
 		phoneNum = strings.TrimPrefix(phone, "+86")
 	}
 
-	content := buildSMSContent(msg)
-	paramJSON, _ := json.Marshal(map[string]string{"content": content})
+	// Build template params: use code directly if present (verification code),
+	// otherwise fall back to content string for general notifications.
+	var paramJSON []byte
+	if code, ok := msg.Payload["code"].(string); ok && code != "" {
+		paramJSON, _ = json.Marshal(map[string]string{"code": code})
+	} else {
+		content := buildSMSContent(msg)
+		paramJSON, _ = json.Marshal(map[string]string{"content": content})
+	}
 
 	resp, err := c.client.SendSms(&dysmsapi.SendSmsRequest{
 		PhoneNumbers:  tea.String(phoneNum),

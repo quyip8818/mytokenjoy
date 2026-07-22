@@ -26,9 +26,8 @@ func TestSetPassword_Success(t *testing.T) {
 	router := testhttp.NewRouter(t)
 
 	loginRec := postJSON(router, "/api/auth/login", map[string]any{
-		"email":     "zhangsan@example.com",
-		"password":  contract.DemoPassword,
-		"companyId": contract.DefaultCompanyID,
+		"email":    "zhangsan@example.com",
+		"password": contract.DemoPassword,
 	}, "")
 	if loginRec.Code != http.StatusOK {
 		t.Fatalf("login failed: %d %s", loginRec.Code, loginRec.Body.String())
@@ -47,9 +46,8 @@ func TestSetPassword_Success(t *testing.T) {
 	}
 
 	rec2 := postJSON(router, "/api/auth/login", map[string]any{
-		"email":     "zhangsan@example.com",
-		"password":  "newpass123",
-		"companyId": contract.DefaultCompanyID,
+		"email":    "zhangsan@example.com",
+		"password": "newpass123",
 	}, "")
 	if rec2.Code != http.StatusOK {
 		t.Fatalf("expected 200 after password change, got %d body=%s", rec2.Code, rec2.Body.String())
@@ -63,9 +61,8 @@ func TestAuthValidation(t *testing.T) {
 	t.Run("SetPassword_TooShort", func(t *testing.T) {
 		t.Parallel()
 		loginRec := postJSON(router, "/api/auth/login", map[string]any{
-			"email":     "zhangsan@example.com",
-			"password":  contract.DemoPassword,
-			"companyId": contract.DefaultCompanyID,
+			"email":    "zhangsan@example.com",
+			"password": contract.DemoPassword,
 		}, "")
 		cookie := extractSessionCookie(loginRec)
 		if cookie == "" {

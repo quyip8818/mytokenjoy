@@ -5,10 +5,9 @@ import { ApiError } from '@/api/client'
 const COUNTDOWN_SECONDS = 60
 
 /**
- * Shared hook for SMS send + countdown logic.
- * Used by both login and register pages.
+ * Generalized countdown hook for verification code sending (phone or email).
  */
-export function useSmsCountdown() {
+export function useVerifyCountdown() {
   const [sending, setSending] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -23,12 +22,14 @@ export function useSmsCountdown() {
   }, [isCountingDown])
 
   const sendCode = useCallback(
-    async (phone: string) => {
-      if (!phone.trim() || countdown > 0) return
+    async (params: { phone?: string; email?: string }) => {
+      if (countdown > 0) return
+      const hasValue = (params.phone && params.phone.trim()) || (params.email && params.email.trim())
+      if (!hasValue) return
       setSending(true)
       setSendError(null)
       try {
-        await authApi.smsSend(phone.trim())
+        await authApi.sendCode(params)
         setCountdown(COUNTDOWN_SECONDS)
       } catch (err) {
         if (err instanceof ApiError) {

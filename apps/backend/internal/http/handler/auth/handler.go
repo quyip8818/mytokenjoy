@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/identity/verifycode"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,7 +24,6 @@ type Handler struct {
 	pub           httpdeps.Public
 	companySvc    domaincompany.Service
 	users         store.UserRepository
-	org           store.OrgRepository
 	sessions      store.SessionRepository
 	invites       store.InviteRepository
 	verifyCode    *verifycode.Service
@@ -32,13 +31,12 @@ type Handler struct {
 }
 
 func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
-	users store.UserRepository, org store.OrgRepository, sessions store.SessionRepository,
+	users store.UserRepository, sessions store.SessionRepository,
 	invites store.InviteRepository, vc *verifycode.Service, regToken *registertoken.Issuer) *Handler {
 	return &Handler{
 		pub:           pub,
 		companySvc:    companySvc,
 		users:         users,
-		org:           org,
 		sessions:      sessions,
 		invites:       invites,
 		verifyCode:    vc,
@@ -54,23 +52,25 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/set-password", h.SetPassword)
 	r.Post("/auth/reset-password", h.ResetPassword)
 	r.Get("/auth/invites/pending", h.PendingInvites)
+	r.Post("/auth/select-company", h.SelectCompany)
 
 	// Verification code endpoints — only register if service is available.
 	if h.verifyCode != nil {
 		r.Post("/auth/sms/send", h.SendCode)
 		r.Post("/auth/sms/verify", h.VerifyCode)
-		r.Post("/auth/sms/select", h.SelectCompany)
+		r.Post("/auth/sms/select", h.SelectCompany) // legacy alias
 		r.Post("/auth/verify-code/send", h.SendCode)
 		r.Post("/auth/verify-code/verify", h.VerifyCode)
 	}
 }
 
 type loginBody struct {
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	CompanyID uuid.UUID `json:"companyId"`
+	Email    string `json:"email"`    // phone or email
+	Password string `json:"password"`
 }
 
+// Login authenticates by password. The "email" field accepts either a phone number or email.
+// Flow: resolve user → verify password → route by member count (single/multi/none).
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -83,99 +83,70 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	identifier := body.Email
 
-	// Detect if identifier is a phone number (digits, optional +86 prefix).
-	isPhone := isPhoneNumber(identifier)
-
-	if isPhone {
-		// Phone + password login: look up all companies for this phone, verify password.
-		results, err := h.org.MemberByPhone(ctx, verifycode.FormatPhone(identifier))
-		if err != nil {
-			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-			return
-		}
-		// Filter to those with matching password.
-		var matched []store.MemberCompanyAuth
-		for _, r := range results {
-			if r.PasswordHash != "" && verifyPassword(r.PasswordHash, body.Password) == nil {
-				matched = append(matched, r)
-			}
-		}
-		if len(matched) == 0 {
-			// Check if user exists with valid password but no member (incomplete registration).
-			phone := verifycode.FormatPhone(identifier)
-			user, err := h.users.GetByPhone(ctx, phone)
-			if err != nil {
-				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-				return
-			}
-			if user != nil && user.PasswordHash != "" && verifyPassword(user.PasswordHash, body.Password) == nil {
-				// User exists, password correct, but no member → needs company creation.
-				h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
-					"action": "create_company",
-				})
-				return
-			}
-			httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
-			return
-		}
-		if len(matched) == 1 {
-			m := matched[0].Member
-			if _, err := h.issueTokenPair(w, r, m.CompanyID, m.ID, m.UserID); err != nil {
-				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-				return
-			}
-			httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": m.ID.String()}, nil)
-			return
-		}
-		// Multiple companies → return list for selection (same as SMS flow).
-		companies := make([]map[string]any, len(matched))
-		for i, mc := range matched {
-			companies[i] = map[string]any{
-				"companyId":   mc.Member.CompanyID,
-				"companyName": mc.CompanyName,
-				"memberId":    mc.Member.ID,
-			}
-		}
-		httputil.WriteJSON(w, http.StatusOK, map[string]any{
-			"action":    "select_company",
-			"companies": companies,
-		}, nil)
-		return
-	}
-
-	// Email + password login: original flow (requires companyID in SaaS mode).
-	var companyID uuid.UUID
-	if h.pub.Cfg.SupportSaas {
-		if body.CompanyID == uuid.Nil {
-			httputil.WriteJSON(w, http.StatusBadRequest, nil, domain.BadRequest("company id required for email login"))
-			return
-		}
-		companyCtx, err := h.companySvc.ResolveCompanyContext(ctx, body.CompanyID)
-		if err != nil {
-			httputil.WriteJSON(w, http.StatusBadRequest, nil, err)
-			return
-		}
-		companyID = companyCtx.CompanyID
-	} else {
-		companyCtx, ok := ctxcompany.From(ctx)
-		if !ok {
-			httputil.WriteStatus(w, http.StatusBadRequest, "Company not found")
-			return
-		}
-		companyID = companyCtx.CompanyID
-	}
-	member, err := h.pub.Credentials.AuthenticateMember(ctx, companyID, body.Email, body.Password)
+	// Step 1: Resolve user by identifier (phone or email).
+	user, err := h.resolveUserByIdentifier(ctx, body.Email)
 	if err != nil {
-		httputil.WriteJSON(w, http.StatusUnauthorized, nil, err)
-		return
-	}
-	if _, err := h.issueTokenPair(w, r, member.CompanyID, member.ID, member.UserID); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"memberId": member.ID.String()}, nil)
+	if user == nil || user.PasswordHash == "" {
+		httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
+		return
+	}
+
+	// Step 2: Verify password.
+	if verifyPassword(user.PasswordHash, body.Password) != nil {
+		httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
+		return
+	}
+
+	// Step 3: Route by member companies (same logic for phone and email).
+	h.routeByMembership(w, r, user.ID)
+}
+
+// resolveUserByIdentifier looks up user by phone (if identifier looks like a phone) or email.
+func (h *Handler) resolveUserByIdentifier(ctx context.Context, identifier string) (*store.User, error) {
+	if isPhoneNumber(identifier) {
+		return h.users.GetByPhone(ctx, verifycode.FormatPhone(identifier))
+	}
+	return h.users.GetByEmail(ctx, identifier)
+}
+
+// routeByMembership queries a user's active memberships and routes:
+//   - 1 company  → issue session directly
+//   - N companies → issue register token + return select_company list
+//   - 0 companies → issue register token + return create_company
+func (h *Handler) routeByMembership(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
+	members, err := h.users.ListMemberCompanies(r.Context(), userID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	switch len(members) {
+	case 1:
+		m := members[0]
+		h.issueTokenPairAndRespond(w, r, m.CompanyID, m.MemberID, userID,
+			map[string]any{"memberId": m.MemberID.String()}, false)
+	case 0:
+		h.issueRegisterSessionAndRespond(w, userID, map[string]any{
+			"action": "create_company",
+		})
+	default:
+		companies := make([]companyOption, len(members))
+		for i, m := range members {
+			companies[i] = companyOption{
+				CompanyID:   m.CompanyID,
+				CompanyName: m.CompanyName,
+				Role:        m.Role,
+			}
+		}
+		h.issueRegisterSessionAndRespond(w, userID, map[string]any{
+			"action":    "select_company",
+			"companies": companies,
+		})
+	}
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

@@ -1,5 +1,5 @@
 export { useLoginPage } from './hooks/use-login-page'
-export { useSmsCountdown } from './hooks/use-sms-countdown'
+export { useVerifyCountdown } from './hooks/use-verify-countdown'
 export { LoginForm } from './components/login-form'
 export { AuthPopup } from './components/auth-popup'
 export { FakeDashboard } from './components/fake-dashboard'
