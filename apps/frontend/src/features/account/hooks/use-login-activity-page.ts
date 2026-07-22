@@ -7,12 +7,12 @@ export const loginActivityKeys = {
 }
 
 export function useLoginActivityPage() {
-  const { accountApi } = useApis()
+  const { meApi } = useApis()
   const [offset, setOffset] = useState(0)
 
   const query = useQuery({
     queryKey: loginActivityKeys.list(offset),
-    queryFn: () => accountApi.getLoginActivity({ limit: 20, offset }),
+    queryFn: () => meApi.getLoginActivity({ limit: 20, offset }),
   })
 
   return {

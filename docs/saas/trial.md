@@ -17,7 +17,7 @@
 
 ### 1.1 注册流程
 
-1. 输入手机号 + 验证码（`/auth/sms/verify` → action: onboard）
+1. 输入手机号 + 验证码（`/auth/verify-code/verify` → action: onboard）
 2. 填写公司名（`/auth/register/company`）
 3. 创建 Trial 企业 → 自动登录
 4. 触发 Onboarding（右侧栏：CSV / 手动 / 飞书 / 跳过）

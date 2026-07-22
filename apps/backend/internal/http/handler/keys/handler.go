@@ -30,7 +30,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	adminRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead)
 	adminRead.Get("/provider", h.ProviderList)
 	adminRead.Get("/platform", h.PlatformList)
-	adminRead.Get("/platform/budget-summary", h.PlatformBudgetSummary)
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
@@ -121,12 +120,6 @@ func (h *Handler) PlatformList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httputil.WriteJSON(w, http.StatusOK, keys, err)
-}
-
-func (h *Handler) PlatformBudgetSummary(w http.ResponseWriter, r *http.Request) {
-	memberID, _ := uuid.Parse(r.URL.Query().Get("memberId"))
-	summary, err := h.service.BudgetSummary(r.Context(), memberID)
-	httputil.WriteJSON(w, http.StatusOK, summary, err)
 }
 
 func (h *Handler) PlatformCreate(w http.ResponseWriter, r *http.Request) {

@@ -59,6 +59,16 @@ func (h *Handler) MemberBudgets(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, budgets, err)
 }
 
+func (h *Handler) MemberSummary(w http.ResponseWriter, r *http.Request) {
+	memberID, err := uuid.Parse(chi.URLParam(r, "memberId"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid memberId")
+		return
+	}
+	summary, err := h.service.MemberSummary(r.Context(), memberID)
+	httputil.WriteJSON(w, http.StatusOK, summary, err)
+}
+
 func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
 	var body types.UpdateMemberBudgetInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
@@ -205,6 +215,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
 	read.Get("/departments/{departmentId}/member-budgets", h.MemberBudgets)
+	read.Get("/members/{memberId}/summary", h.MemberSummary)
 	read.Get("/projects", h.ProjectsList)
 	read.Get("/projects/{id}/member-consumed", h.ProjectMemberConsumed)
 	read.Get("/overrun-policy", h.OverrunPolicyGet)

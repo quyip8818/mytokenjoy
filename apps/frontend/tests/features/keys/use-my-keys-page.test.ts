@@ -12,7 +12,9 @@ describe('useMyKeysPage', () => {
         list: vi
           .fn()
           .mockResolvedValue({ items: mockPlatformKeys, total: mockPlatformKeys.length }),
-        getBudgetSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
+      },
+      budgetApi: {
+        getMemberSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
       },
     })
 
@@ -24,7 +26,7 @@ describe('useMyKeysPage', () => {
     })
 
     expect(apis.platformKeyApi.list).toHaveBeenCalled()
-    expect(apis.platformKeyApi.getBudgetSummary).toHaveBeenCalled()
+    expect(apis.budgetApi.getMemberSummary).toHaveBeenCalled()
     expect(result.current.budgetSummary).toEqual(mockBudgetSummary)
   })
 
@@ -32,7 +34,9 @@ describe('useMyKeysPage', () => {
     const apis = createMockApis({
       platformKeyApi: {
         list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-        getBudgetSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
+      },
+      budgetApi: {
+        getMemberSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
       },
     })
 

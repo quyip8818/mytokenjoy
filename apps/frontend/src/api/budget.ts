@@ -4,6 +4,7 @@ import type {
   Project,
   BudgetNode,
   MemberBudget,
+  MemberBudgetSummary,
   OverrunPolicyConfig,
   UpdateMemberBudgetInput,
 } from './types'
@@ -57,4 +58,6 @@ export const budgetApi = {
   deleteAlert: (id: string) => request<void>(`/budget/alerts/${id}`, { method: 'DELETE' }),
   getProjectMemberConsumed: (projectId: string) =>
     request<Record<string, number>>(`/budget/projects/${projectId}/member-consumed`),
+  getMemberSummary: (memberId: string) =>
+    request<MemberBudgetSummary>(`/budget/members/${memberId}/summary`),
 }

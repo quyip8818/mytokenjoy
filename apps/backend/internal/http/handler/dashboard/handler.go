@@ -96,23 +96,6 @@ func (h *Handler) DepartmentUsage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) UsageSeries(w http.ResponseWriter, r *http.Request) {
-	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
-		query := r.URL.Query()
-		result, err := h.service.UsageSeriesFromQuery(
-			ctx,
-			query.Get("granularity"),
-			query.Get("start"),
-			query.Get("end"),
-			query.Get("groupBy"),
-			query.Get("departmentId"),
-			query.Get("memberId"),
-			scope,
-		)
-		httputil.WriteJSON(w, http.StatusOK, result, err)
-	})
-}
-
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	costRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardCost)
 	costRead.Get("/cost/summary", h.CostSummary)
@@ -124,7 +107,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	usageRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardUsage)
 	usageRead.Get("/usage/models", h.ModelUsage)
 	usageRead.Get("/usage/teams", h.DepartmentUsage)
-	usageRead.Get("/usage/series", h.UsageSeries)
 }
 
 func (h *Handler) withScope(w http.ResponseWriter, r *http.Request, fn func(context.Context, domainusage.SessionScope)) {

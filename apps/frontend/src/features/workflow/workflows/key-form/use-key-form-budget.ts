@@ -46,7 +46,7 @@ export function useKeyFormBudget({
   useEffect(() => {
     if (!isCreate || scope !== 'member' || !effectiveMemberId) return
     let cancelled = false
-    void apis.platformKeyApi.getBudgetSummary(effectiveMemberId).then((summary) => {
+    void apis.budgetApi.getMemberSummary(effectiveMemberId).then((summary) => {
       if (!cancelled) setBudgetState({ memberId: effectiveMemberId, summary })
     })
     return () => {

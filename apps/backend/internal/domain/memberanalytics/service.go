@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
@@ -16,19 +16,19 @@ type Service interface {
 
 type service struct {
 	cfg    config.Config
-	keys   domainkeys.Service
+	budget domainbudget.Service
 	reader domainusage.Reader
 	clock  clock.Clock
 }
 
 func NewService(
 	cfg config.Config,
-	keys domainkeys.Service,
+	budget domainbudget.Service,
 	reader domainusage.Reader,
 ) Service {
 	return &service{
 		cfg:    cfg,
-		keys:   keys,
+		budget: budget,
 		reader: reader,
 		clock:  cfg.Clock(),
 	}

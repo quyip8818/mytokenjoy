@@ -87,7 +87,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 当前 **16** 个管理台业务页：dashboard（cost、usage）、org（3）、budget（2：index、alerts）、keys（4）、models（2）、wallet（1）、audit（2）。钱包路由为 `/wallet`（无 `/billing` 重定向）。
 
-**成员工作台**（`MEMBER_ROUTE_DEFINITIONS`，与上表分开计数）：`/me`、`/me/keys`、`/me/call-logs`；API 命名空间 `meApi`（`api/member.ts`）。
+**成员工作台**（`MEMBER_ROUTE_DEFINITIONS`，与上表分开计数）：`/me`、`/me/keys`、`/me/call-logs`；API 命名空间 `meApi`（`api/me.ts`）。
 
 新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `features/{domain}/hooks/use-{page}-page.ts` + shell → `routes/{domain}/{page}.tsx` 薄入口。
 
@@ -96,7 +96,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 ## 4. API 层与页面架构
 
 - `api/client.ts`：`request()`、`ApiError`、`buildQuery()`；`credentials: 'include'`
-- `app-apis.ts`：`AppApis` + `defaultApis`（**17** 命名空间；仍缺 `platformApi`）
+- `app-apis.ts`：`AppApis` + `defaultApis`（**19** 命名空间；仍缺 `platformApi`）
 - 生产 `AppProviders`（`components/layout/app-providers.tsx`）注入 `defaultApis`；测试 `createMockApis()`
 
 **薄页面 → 页面 Hook → 展示组件**：Hook 用 `useApis()`、`useInjectedQuery` + `queryKeys`；组件 props 受控。
@@ -122,7 +122,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | 模块                    | 路径                                   | 职责                                                                |
 | ----------------------- | -------------------------------------- | ------------------------------------------------------------------- |
 | `client.ts`             | `api/client.ts`                        | `request()`、`ApiError`、`buildQuery()`、`setUnauthorizedHandler()` |
-| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（17 个命名空间）                |
+| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（19 个命名空间）                |
 | `api-context.ts`        | `api/api-context.ts`                   | `ApiContext` React Context                                          |
 | `context.tsx`           | `api/context.tsx`                      | `ApiProvider` 注入                                                  |
 | `use-apis.ts`           | `api/use-apis.ts`                      | `useApis()`、`useInjectedApis()`                                    |
@@ -394,6 +394,7 @@ HTTP 非 2xx 时，body 应包含：
 | GET    | `/budget/approvals`                               | —                                                | `BudgetApproval[]`    | 预算额度审批队列                  |
 | PUT    | `/budget/approvals/:id`                           | `{ status, rejectReason? }`                      | `void`                | `approved` \| `rejected`          |
 | GET    | `/budget/projects/:id/member-consumed`              | —                                                | `Record<string, number>`    | 项目内成员已消耗                    |
+| GET    | `/budget/members/:memberId/summary`                 | —                                                | `MemberBudgetSummary`       | 成员预算汇总（预算/已用/剩余/预留池） |
 
 ---
 
@@ -422,7 +423,6 @@ HTTP 非 2xx 时，body 应包含：
 | POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
 | PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
 | DELETE | `/keys/platform/:id`           | —                                                                                    | `void`                   |                                                                      |
-| GET    | `/keys/platform/budget-summary` | query: `memberId`                                                                    | `MemberBudgetSummary`     |                                                                      |
 
 **UI：**
 
@@ -479,20 +479,16 @@ HTTP 非 2xx 时，body 应包含：
 | `period`      | `current_month` \| `last_month` \| `last_7_days` \| `custom`                 |
 | `startDate`   | `period=custom` 时必填，ISO 日期（按响应 `timezone` 解释）                   |
 | `endDate`     | `period=custom` 时必填，ISO 日期                                             |
-| `granularity` | 趋势粒度：`day` \| `hour` \| `week` \| `month`（`minute` 仅 `usage/series`） |
+| `granularity` | 趋势粒度：`day` \| `hour` \| `week` \| `month`（`minute` 仅内部 domain 层使用） |
 
 **数据源约定**
 
 - `cost/*`、`usage/models`、`usage/teams` 的 **consumed / cost** 均来自 **`usage_buckets` 周期聚合**（不读 `org_nodes.consumed`）。
 - `usage/teams` 的 **budget**（部门 limit）来自 **`org_nodes`** 预算树。
 - 聚合/展示时区默认 **`Asia/Shanghai`**（IANA）；响应 `timezone` 字段返回实际使用值；企业可配置覆盖。
-- `week` / `month` 由服务端对 buckets 做 `date_trunc('week' \| 'month', …)`，不走 `usage/series`。
+- `week` / `month` 由服务端对 buckets 做 `date_trunc('week' \| 'month', …)`。
 
-**用量时间序列** — 统一 `day` / `hour` / `minute` 查询形状：
-
-| 方法 | 路径                      | 查询               | 响应                  |
-| ---- | ------------------------- | ------------------ | --------------------- |
-| GET  | `/dashboard/usage/series` | `UsageSeriesQuery` | `UsageSeriesResponse` |
+**用量时间序列** — 统一 `day` / `hour` / `minute` 查询形状（已移除独立端点，由 `usage/models` 和 `usage/teams` 覆盖）：
 
 `UsageSeriesQuery`：`granularity`（`day` \| `hour` \| `minute`，必填）、`start`、`end`（ISO8601 或 `YYYY-MM-DD`）、`groupBy?`（`none` \| `department` \| `member` \| `model`，**单选**）、`departmentId?`、`memberId?`
 
@@ -540,13 +536,20 @@ HTTP 非 2xx 时，body 应包含：
 
 ---
 
-#### 5.4.8 Member（成员工作台）
+#### 5.4.8 Member（成员工作台 + 个人设置）
 
-客户端：[`member.ts`](../apps/frontend/src/api/member.ts)（`meApi`）
+客户端：[`me.ts`](../apps/frontend/src/api/me.ts)（`meApi`）
 
-| 方法 | 路径            | 查询 / Body | 响应                  |
-| ---- | --------------- | ----------- | --------------------- |
-| GET  | `/me/dashboard` | —           | `MemberDashboardView` |
+| 方法 | 路径               | 查询 / Body                                    | 响应                    |
+| ---- | ------------------ | ---------------------------------------------- | ----------------------- |
+| GET  | `/me/dashboard`    | —                                              | `MemberDashboardView`   |
+| GET  | `/me/profile`      | —                                              | `Profile`               |
+| PUT  | `/me/profile`      | `{ name?, avatar?, alias? }`                   | `void`                  |
+| POST | `/me/change-password` | `{ oldPassword?, newPassword }`             | `void`                  |
+| POST | `/me/change-phone` | `{ phone, code }`                              | `void`                  |
+| POST | `/me/change-email` | `{ email, code }`                              | `void`                  |
+| POST | `/me/revoke-sessions` | —                                            | `void`                  |
+| GET  | `/me/login-activity` | query: `limit?`, `offset?`                   | `LoginActivityResponse` |
 
 路由见 §3 `MEMBER_ROUTE_DEFINITIONS`；布局 `MemberLayout`。
 
@@ -705,9 +708,9 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.6 AppApis 聚合
 
-[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **17** 个命名空间（仍缺 `platformApi`，见 §5.9）：
+[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **19** 个命名空间（仍缺 `platformApi`，见 §5.9）：
 
-`sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`, `meApi`
+`sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`, `meApi`, `notificationApi`, `devApi`, `notificationApi`, `devApi`
 
 所有 HTTP 调用均经 `client.request()`，无其他 `fetch('/api/...')` 直连。
 
@@ -875,7 +878,7 @@ HTTP 非 2xx 时，body 应包含：
 
 | 项                   | 后端                          | 前端 `AppApis`                            | 控制台页面                         |
 | -------------------- | ----------------------------- | ----------------------------------------- | ---------------------------------- |
-| 企业面 §5.4 域 API   | 已实现                        | 已接入（17 命名空间，缺 `platformApi`）   | 16 管理台业务页 + 3 成员工作台路由 |
+| 企业面 §5.4 域 API   | 已实现                        | 已接入（19 命名空间，缺 `platformApi`）   | 16 管理台业务页 + 3 成员工作台路由 |
 | `auth/login`         | 已实现                        | `authApi.login`                           | `/login`                           |
 | `auth/logout`        | 已实现                        | `authApi.logout`                          | —                                  |
 | `auth/accept-invite` | 已实现                        | 未接入                                    | 无 `/invite/accept`                |

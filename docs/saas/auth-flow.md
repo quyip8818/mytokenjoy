@@ -153,9 +153,9 @@ flowchart TD
 
 > **关键变更**：SMS verify 不再自动创建 User。未注册用户返回 `not_found`，前端展示"还没有账号？立即注册"。
 
-> 有 member 且有新邀请的用户：直接 `enter` 不阻断登录，进入系统后通过 `GET /auth/invites/pending` + UI 通知提示未接受邀请。
+> 有 member 且有新邀请的用户：直接 `enter` 不阻断登录，进入系统后通过 UI 通知提示未接受邀请（verify-code 流中 `action='choose'` 返回邀请列表）。
 
-### 5.3 `POST /auth/sms/verify` 响应
+### 5.3 `POST /auth/verify-code/verify` 响应
 
 ```typescript
 type SmsVerifyResult =
@@ -218,7 +218,7 @@ WHERE u.email = $1 AND m.status = 'active' AND c.status = 'active';
 └────────────────────────────────────────┘
 ```
 
-`POST /auth/sms/select { companyId }` + Register Session → issueTokenPair → 清除 Register Cookie。
+`POST /auth/select-company { companyId }` + Register Session → issueTokenPair → 清除 Register Cookie。
 
 ### 7.2 注册页（/register，独立流程）
 
@@ -391,9 +391,9 @@ JWT 设计已包含 `company_id` + `member_id`，无需改数据模型。
 | GET | `/auth/capabilities` | 无 | — | 前端据此渲染登录页 |
 | POST | `/auth/otp/send` | captcha | — | 发送验证码（SMS 或 Email） |
 | POST | `/auth/otp/verify` | OTP code | — | 验证 → 登录/注册引导 |
-| POST | `/auth/sms/send` | captcha | RequireSaaS | 发送短信验证码 |
-| POST | `/auth/sms/verify` | SMS code | RequireSaaS | 验证码校验 → 分流 |
-| POST | `/auth/sms/select` | Register Session | RequireSaaS | 多企业选择 → issueTokenPair |
+| POST | `/auth/verify-code/send` | captcha | RequireSaaS | 发送验证码 |
+| POST | `/auth/verify-code/verify` | code | RequireSaaS | 验证码校验 → 分流 |
+| POST | `/auth/select-company` | Register Session | RequireSaaS | 多企业选择 → issueTokenPair |
 | POST | `/auth/register/accept` | Register Session | RequireSaaS | 接受邀请 → issueTokenPair |
 | POST | `/auth/register/company` | Register Session | RequireSaaS | 创建公司（含密码）→ issueTokenPair |
 | POST | `/auth/login` | 无 | — | 邮箱密码 → issueTokenPair |
@@ -401,7 +401,6 @@ JWT 设计已包含 `company_id` + `member_id`，无需改数据模型。
 | POST | `/auth/refresh` | Refresh Cookie | — | 续签 Access Token |
 | POST | `/auth/set-password` | Access Token | — | 设置/更新密码 |
 | POST | `/auth/accept-invite` | Access Token 或 password | — | 邀请激活 → issueTokenPair |
-| GET | `/auth/invites/pending` | Access Token | — | 待接受邀请列表 |
 | GET | `/auth/setup-status` | 无 | RequireLocal | 私有化检查 |
 | POST | `/auth/setup` | 无 | RequireLocal | 私有化初始化 |
 | GET | `/auth/companies` | Access Token | — | 当前 user 关联的企业列表 |
@@ -425,7 +424,7 @@ func RequireLocal(cfg config.Config) func(http.Handler) http.Handler
 ```go
 func (reg Registry) RegisterAPIRoutes(r chi.Router) {
     // 两种模式都可用
-    reg.auth.RegisterRoutes(r)         // login, logout, accept-invite, invites/pending, capabilities
+    reg.auth.RegisterRoutes(r)         // login, logout, accept-invite, verify-code, select-company
 
     // 仅 SaaS
     r.Group(func(r chi.Router) {

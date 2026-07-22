@@ -51,14 +51,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/accept-invite", h.AcceptInvite)
 	r.Post("/auth/set-password", h.SetPassword)
 	r.Post("/auth/reset-password", h.ResetPassword)
-	r.Get("/auth/invites/pending", h.PendingInvites)
 	r.Post("/auth/select-company", h.SelectCompany)
 
 	// Verification code endpoints — only register if service is available.
 	if h.verifyCode != nil {
-		r.Post("/auth/sms/send", h.SendCode)
-		r.Post("/auth/sms/verify", h.VerifyCode)
-		r.Post("/auth/sms/select", h.SelectCompany) // legacy alias
 		r.Post("/auth/verify-code/send", h.SendCode)
 		r.Post("/auth/verify-code/verify", h.VerifyCode)
 	}
@@ -262,36 +258,6 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		"memberId":  member.ID,
 		"companyId": member.CompanyID,
 	}, nil)
-}
-
-// PendingInvites returns pending invites for the currently logged-in user.
-func (h *Handler) PendingInvites(w http.ResponseWriter, r *http.Request) {
-	claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken)
-	if !ok || claims.UserID == uuid.Nil {
-		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-		return
-	}
-
-	ctx := r.Context()
-	user, err := h.users.GetByID(ctx, claims.UserID)
-	if err != nil || user == nil {
-		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-		return
-	}
-
-	invites, err := h.companySvc.PendingInvitesForUser(ctx, domaincompany.PendingInvitesForUserRequest{
-		Email:  user.Email,
-		Phone:  user.Phone,
-		UserID: user.ID,
-	})
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-		return
-	}
-	if invites == nil {
-		invites = []domaincompany.PendingInvite{}
-	}
-	httputil.WriteJSON(w, http.StatusOK, invites, nil)
 }
 
 // --- SetPassword ---

@@ -9,13 +9,13 @@ export const accountKeys = {
 }
 
 export function useAccountPage() {
-  const { accountApi, authApi } = useApis()
+  const { meApi, authApi } = useApis()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
   const profileQuery = useQuery({
     queryKey: accountKeys.profile,
-    queryFn: () => accountApi.getProfile(),
+    queryFn: () => meApi.getProfile(),
   })
 
   // --- Update Profile (name / avatar) ---
@@ -27,7 +27,7 @@ export function useAccountPage() {
       setProfileSaving(true)
       setProfileError(null)
       try {
-        await accountApi.updateProfile(params)
+        await meApi.updateProfile(params)
         queryClient.invalidateQueries({ queryKey: accountKeys.profile })
         return true
       } catch (err) {
@@ -37,7 +37,7 @@ export function useAccountPage() {
         setProfileSaving(false)
       }
     },
-    [accountApi, queryClient],
+    [meApi, queryClient],
   )
 
   // --- Change Password ---
@@ -50,7 +50,7 @@ export function useAccountPage() {
       setPasswordSaving(true)
       setPasswordError(null)
       try {
-        await accountApi.changePassword({ oldPassword, newPassword })
+        await meApi.changePassword({ oldPassword, newPassword })
         setPasswordDialogOpen(false)
         queryClient.invalidateQueries({ queryKey: accountKeys.profile })
         return true
@@ -61,7 +61,7 @@ export function useAccountPage() {
         setPasswordSaving(false)
       }
     },
-    [accountApi, queryClient],
+    [meApi, queryClient],
   )
 
   // --- Change Phone ---
@@ -74,7 +74,7 @@ export function useAccountPage() {
       setPhoneSaving(true)
       setPhoneError(null)
       try {
-        await accountApi.changePhone(phone, code)
+        await meApi.changePhone(phone, code)
         setPhoneDialogOpen(false)
         queryClient.invalidateQueries({ queryKey: accountKeys.profile })
         return true
@@ -85,7 +85,7 @@ export function useAccountPage() {
         setPhoneSaving(false)
       }
     },
-    [accountApi, queryClient],
+    [meApi, queryClient],
   )
 
   // --- Change Email ---
@@ -98,7 +98,7 @@ export function useAccountPage() {
       setEmailSaving(true)
       setEmailError(null)
       try {
-        await accountApi.changeEmail(email, code)
+        await meApi.changeEmail(email, code)
         setEmailDialogOpen(false)
         queryClient.invalidateQueries({ queryKey: accountKeys.profile })
         return true
@@ -109,7 +109,7 @@ export function useAccountPage() {
         setEmailSaving(false)
       }
     },
-    [accountApi, queryClient],
+    [meApi, queryClient],
   )
 
   // --- Revoke Sessions ---
@@ -119,7 +119,7 @@ export function useAccountPage() {
   const revokeSessions = useCallback(async () => {
     setRevoking(true)
     try {
-      await accountApi.revokeSessions()
+      await meApi.revokeSessions()
       setRevokeDialogOpen(false)
       return true
     } catch {
@@ -127,7 +127,7 @@ export function useAccountPage() {
     } finally {
       setRevoking(false)
     }
-  }, [accountApi])
+  }, [meApi])
 
   // --- Logout ---
   const logout = useCallback(async () => {

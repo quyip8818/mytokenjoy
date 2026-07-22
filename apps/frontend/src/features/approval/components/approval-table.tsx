@@ -68,14 +68,30 @@ export function ApprovalTable({
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">类型</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">申请人</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">部门</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">申请理由</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">金额</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">状态</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">时间</TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">操作</TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            类型
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            申请人
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            部门
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            申请理由
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            金额
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            状态
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            时间
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            操作
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

@@ -15,7 +15,7 @@
 | 平台开户 | `POST /api/platform/companies` → `company/service_create.go` | InviteEmail 模式生成 invite code |
 | 超管激活 | `POST /api/auth/accept-invite` → `service_invite.go` | 支持双路径：已登录(session) / 未登录(password) |
 | 前端激活页 | `/invite/accept?code=xxx` → `invite-accept.tsx` | 输入姓名+密码 → AcceptInvite → 发 session |
-| 已登录接受邀请 | `GET /api/auth/invites/pending` + `POST /auth/accept-invite` | session 中取 userID |
+| 已登录接受邀请 | `POST /auth/accept-invite` | session 中取 userID |
 | SaaS 注册 | `POST /auth/register/init` + `/accept` + `/company` | 手机验证码 → 选邀请或建公司 |
 | 手动加人 | `POST /api/org/members` → `CreateMember` | 立即 active，创建 user 但**无密码** |
 | 批量导入 | `POST /api/org/members/batch-import` | 同上，无密码 |

@@ -76,7 +76,7 @@ func (s *service) GetDashboard(ctx context.Context, memberID uuid.UUID) (Dashboa
 	if err != nil {
 		return DashboardView{}, fmt.Errorf("query usage summary: %w", err)
 	}
-	budgetSummary, err := s.keys.BudgetSummary(ctx, memberID)
+	budgetSummary, err := s.budget.MemberSummary(ctx, memberID)
 	if err != nil {
 		return DashboardView{}, fmt.Errorf("budget summary: %w", err)
 	}

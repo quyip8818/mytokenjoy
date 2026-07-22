@@ -173,11 +173,7 @@ export function AvatarPicker({ value, onChange, trigger, size = 48 }: AvatarPick
                 type="button"
                 className="aspect-square rounded-lg border-2 overflow-hidden transition-all p-1 border-primary ring-2 ring-primary/20"
               >
-                <img
-                  src={selected}
-                  alt="uploaded"
-                  className="w-full h-full rounded object-cover"
-                />
+                <img src={selected} alt="uploaded" className="w-full h-full rounded object-cover" />
               </button>
             )}
             {previews.map((p) => (

@@ -1,4 +1,3 @@
-import { accountApi } from './account'
 import { approvalApi } from './approval'
 import { auditApi } from './audit'
 import { authApi } from './auth'
@@ -7,14 +6,13 @@ import { budgetApi } from './budget'
 import { dashboardApi } from './dashboard'
 import { devApi } from './dev'
 import { platformKeyApi, providerKeyApi } from './keys'
-import { meApi } from './member'
+import { meApi } from './me'
 import { modelApi, routingApi } from './models'
 import { notificationApi } from './notification'
 import { dataSourceApi, departmentApi, memberApi, roleApi, syncApi } from './org'
 import { sessionApi } from './session'
 
 export interface AppApis {
-  accountApi: typeof accountApi
   authApi: typeof authApi
   billingApi: typeof billingApi
   budgetApi: typeof budgetApi
@@ -37,7 +35,6 @@ export interface AppApis {
 }
 
 export const defaultApis: AppApis = {
-  accountApi,
   authApi,
   billingApi,
   budgetApi,

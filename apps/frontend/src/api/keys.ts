@@ -1,11 +1,5 @@
 import { request, buildQuery } from './client'
-import type {
-  MemberBudgetSummary,
-  Paginated,
-  PlatformKey,
-  PlatformKeyScope,
-  ProviderKey,
-} from './types'
+import type { Paginated, PlatformKey, PlatformKeyScope, ProviderKey } from './types'
 
 export const providerKeyApi = {
   list: () => request<ProviderKey[]>('/keys/provider'),
@@ -51,7 +45,4 @@ export const platformKeyApi = {
   rotate: (id: string) => request<PlatformKey>(`/keys/platform/${id}/rotate`, { method: 'POST' }),
   revoke: (id: string) => request<void>(`/keys/platform/${id}/revoke`, { method: 'PUT' }),
   delete: (id: string) => request<void>(`/keys/platform/${id}`, { method: 'DELETE' }),
-  getBudgetSummary: (memberId: string) =>
-    request<MemberBudgetSummary>(`/keys/platform/budget-summary?memberId=${memberId}`),
 }
-

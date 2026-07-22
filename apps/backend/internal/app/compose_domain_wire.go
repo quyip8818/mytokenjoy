@@ -76,8 +76,8 @@ func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbi
 	return domainbilling.NewService(cfg, i.store, reader)
 }
 
-func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, keys domainkeys.Service) domainmemberanalytics.Service {
-	return domainmemberanalytics.NewService(cfg, keys, reader)
+func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, budget domainbudget.Service) domainmemberanalytics.Service {
+	return domainmemberanalytics.NewService(cfg, budget, reader)
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {

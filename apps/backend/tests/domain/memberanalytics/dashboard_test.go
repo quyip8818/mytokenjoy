@@ -4,13 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/adapter"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/runtime"
@@ -24,10 +20,9 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
 		t.Fatal(err)
 	}
-	newAPISync := newapisync.New(cfg, st, nil, policy.NewChannelPolicy(cfg), adapter.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
-	keysSvc := domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false))
+	budgetSvc := domainbudget.NewService(cfg, st, common.NewDelayer(false), nil)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	return domainmemberanalytics.NewService(cfg, keysSvc, reader), ctx
+	return domainmemberanalytics.NewService(cfg, budgetSvc, reader), ctx
 }
 
 func TestGetDashboardReturnsUsageForMember(t *testing.T) {

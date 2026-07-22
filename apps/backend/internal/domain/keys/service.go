@@ -5,10 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/newapisync"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -21,7 +19,6 @@ type Service interface {
 	RotateProviderKey(ctx context.Context, id uuid.UUID, newKey string) (types.ProviderKey, error)
 	DeleteProviderKey(ctx context.Context, id uuid.UUID) error
 	ListPlatformKeys(ctx context.Context, filter types.PlatformKeyListFilter) (types.PageResult[types.PlatformKey], error)
-	BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error)
 	CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error)
 	UpdatePlatformKey(ctx context.Context, id uuid.UUID, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
 	TogglePlatformKey(ctx context.Context, id uuid.UUID, enabled bool) (types.PlatformKey, error)
@@ -79,16 +76,4 @@ func WithCacheInvalidator(inv types.PrecheckCacheInvalidator) ServiceOption {
 
 func (s *service) ListProviderKeys(ctx context.Context) ([]types.ProviderKey, error) {
 	return s.store.Keys().ProviderKeys(ctx)
-}
-
-func (s *service) BudgetSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error) {
-	if memberID == uuid.Nil {
-		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
-	}
-	budgetCtx, err := budget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
-	if err != nil {
-		return types.MemberBudgetSummary{}, err
-	}
-	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, memberID)
-	return budget.BuildBudgetSummary(budgetCtx.Members, budgetCtx.PlatformKeys, memberID, reservedPool), nil
 }

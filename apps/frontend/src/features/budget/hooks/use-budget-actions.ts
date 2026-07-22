@@ -11,10 +11,7 @@ interface UseBudgetActionsOptions {
   refresh: () => Promise<void>
 }
 
-export function useBudgetActions({
-  injectedApis,
-  refresh,
-}: UseBudgetActionsOptions) {
+export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOptions) {
   const apis = useInjectedApis(injectedApis)
 
   const { openWithRefresh } = useWorkflowRefresh({

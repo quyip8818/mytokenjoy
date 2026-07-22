@@ -55,7 +55,7 @@ func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueu
 		rebalance:       wireRebalance(cfg, i),
 		company:         wireCompany(cfg, i, grants),
 		billing:         wireBilling(cfg, i, reader),
-		memberAnalytics: wireMemberAnalytics(cfg, reader, keysSvc),
+		memberAnalytics: wireMemberAnalytics(cfg, reader, budgetSvc),
 		approval:        wireApprovalEngine(i, logger, keysSvc, budgetSvc),
 	}
 }

@@ -14,6 +14,18 @@ func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
 	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 }
 
+func (s *service) MemberSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error) {
+	if memberID == uuid.Nil {
+		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
+	}
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	if err != nil {
+		return types.MemberBudgetSummary{}, err
+	}
+	reservedPool := pkgbudget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, memberID)
+	return pkgbudget.BuildBudgetSummary(budgetCtx.Members, budgetCtx.PlatformKeys, memberID, reservedPool), nil
+}
+
 func (s *service) ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error) {
 	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
 	if err != nil {

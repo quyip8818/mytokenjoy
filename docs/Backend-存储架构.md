@@ -81,7 +81,7 @@ flowchart TB
 | ----------------------------------------------------- | ------------------------------------------------------------------------- |
 | `Org()` / `Nodes()`                                   | `org_nodes`, `members`, `roles`, `permissions`, `org_integration`, …      |
 | `Budget()`                                            | `projects`, `budget_consumed`, `alert_rules`, `budget_approvals`, … |
-| `Keys()`                                              | `provider_keys`, `platform_keys`, `key_approvals`                         |
+| `Keys()`                                              | `provider_keys`, `platform_keys`, `platform_key_mappings`                 |
 | `Models()` / `Allowlist()`                            | `models`, `model_capabilities`, `model_allowlist`                         |
 | `Ledger()` / `Usage()` / `BudgetConsumed()`           | `usage_ledger`, `usage_buckets`, `budget_consumed`                       |
 | `PlatformKeyMappings()`               | `platform_key_mappings`                                                     |
@@ -201,7 +201,7 @@ flowchart LR
 | 租户   | `companies`, `company_invites`, `company_recharge_orders`, `company_recharge_lots`, `currencies`, `platform_operators`                                                   |
 | 组织   | `org_nodes`, `members`, `roles`, `permissions`, `role_permission_grants`, `member_roles`, `org_integration`, `org_sync_logs`, `org_import_failures`                     |
 | 预算   | `projects`, `project_members`, `budget_consumed`, `budget_projection_progress`, `dashboard_projection_progress`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `budget_approvals` |
-| 密钥   | `provider_keys`, `platform_keys`, `key_approvals`, `platform_key_mappings`                                                                                                     |
+| 密钥   | `provider_keys`, `platform_keys`, `platform_key_mappings`                                                                                                              |
 | 模型   | `models`, `model_capabilities`, `model_allowlist`（`models` 同表承载平台源与租户自有模型，读取并集）                                                                 |
 | 审计   | `audit_settings`, `operation_logs`, `usage_ledger`                                                                                                                      |
 | 运行面 | `usage_buckets`, `river_job`, `river_leader`, `river_queue`, `scheduler_locks`, `notification_log` |

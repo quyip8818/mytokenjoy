@@ -42,7 +42,7 @@ export function useMyKeysPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.keys.budget(memberId),
-    queryFn: (apis) => apis.platformKeyApi.getBudgetSummary(memberId),
+    queryFn: (apis) => apis.budgetApi.getMemberSummary(memberId),
     enabled: Boolean(memberId),
   })
 

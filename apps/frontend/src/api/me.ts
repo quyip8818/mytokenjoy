@@ -1,4 +1,5 @@
 import { request, buildQuery } from './client'
+import type { MemberDashboardView } from './types/member'
 
 export interface ProfileCompany {
   companyId: string
@@ -28,7 +29,8 @@ export interface LoginActivityResponse {
   total: number
 }
 
-export const accountApi = {
+export const meApi = {
+  // --- profile ---
   getProfile: () => request<Profile>('/me/profile'),
 
   updateProfile: (params: { name?: string; avatar?: string; alias?: string }) =>
@@ -37,6 +39,7 @@ export const accountApi = {
       body: JSON.stringify(params),
     }),
 
+  // --- security ---
   changePassword: (params: { oldPassword?: string; newPassword: string }) =>
     request<void>('/me/change-password', {
       method: 'POST',
@@ -62,4 +65,7 @@ export const accountApi = {
 
   getLoginActivity: (params: { limit?: number; offset?: number } = {}) =>
     request<LoginActivityResponse>(`/me/login-activity${buildQuery(params)}`),
+
+  // --- analytics ---
+  getDashboard: () => request<MemberDashboardView>('/me/dashboard'),
 }

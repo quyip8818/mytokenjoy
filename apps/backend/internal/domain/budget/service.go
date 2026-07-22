@@ -28,6 +28,7 @@ type Service interface {
 	UpdateAlert(ctx context.Context, id uuid.UUID, patch types.AlertRule) (types.AlertRule, error)
 	DeleteAlert(ctx context.Context, id uuid.UUID) error
 	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]int64, error)
+	MemberSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error)
 }
 
 // Store is the narrow store surface the budget service needs.

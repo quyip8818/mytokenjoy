@@ -199,12 +199,12 @@ flowchart TB
 | 预算树 | GET | `/api/budget/tree` |
 | 部门预算 | PUT | `/api/budget/departments/{departmentId}` |
 | 成员额度 | GET / PUT | `/api/budget/members/{memberId}` |
+| 成员预算汇总 | GET | `/api/budget/members/{memberId}/summary` |
 | 项目 | CRUD | `/api/budget/projects/*`（含 `memberBudgets` patch） |
 | 项目成员已用 | GET | `/api/budget/projects/{id}/member-consumed` |
 | 预警规则 | CRUD | `/api/budget/alerts/*` |
 | 超限策略 | GET / PUT | `/api/budget/overrun-policy` |
-| 预算审批 | GET / PUT | `/api/budget/approvals`、`/api/budget/approvals/{id}` |
-| Key / 额度审批 | — | `/api/keys/approvals/*`（密钥域，独立表） |
+| 审批 | — | `/api/approvals/*`（统一审批引擎） |
 | 充值 | POST | `/api/billing/recharge`；平台代充见 [Backend.md](./Backend.md) §2 |
 
 ---
@@ -421,7 +421,7 @@ sequenceDiagram
 
 | 职责 | 域 |
 | --- | --- |
-| 预算树、组、成员额度、预警策略 | `domain/budget` |
+| 预算树、组、成员额度、预警策略、成员预算汇总 | `domain/budget` |
 | 入账与 ledger | `domain/usage` |
 | 预算 / consumed 写入 | `domain/budget`（Ingest 同事务 `ApplyIncrement`） |
 | 看板 buckets 投影 | `domain/dashboard` |
@@ -462,7 +462,6 @@ sequenceDiagram
 
 | 项 | 说明 |
 | --- | --- |
-| 两套审批 | `budget_approvals` 与 `key_approvals` 并存，前端需分清入口 |
 | 前端账期 | 演示环境仍有固定账期硬编码，应跟随后端 `period_key` |
 | 列表规模 | Key 全量加载 + 内存 enrich；超 500 行时需 SQL 筛选与分页（plan §7） |
 | 部门管理员 RBAC | 非管理员默认应只能看本部门 Key 与预算（plan §7 #4） |

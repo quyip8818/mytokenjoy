@@ -6,7 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
+	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -144,6 +146,7 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	t.Parallel()
 	svc, st, _ := newKeysServiceWithNewAPI(t)
+	budgetSvc := domainbudget.NewService(testutil.TestConfig(), st, common.NewDelayer(false), nil)
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 500,
@@ -152,7 +155,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	beforeSummary, err := svc.BudgetSummary(testutil.Ctx(), memberID)
+	beforeSummary, err := budgetSvc.MemberSummary(testutil.Ctx(), memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +163,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	if err := svc.DeletePlatformKey(testutil.Ctx(), created.ID); err != nil {
 		t.Fatal(err)
 	}
-	afterSummary, err := svc.BudgetSummary(testutil.Ctx(), memberID)
+	afterSummary, err := budgetSvc.MemberSummary(testutil.Ctx(), memberID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,12 +176,13 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 
 func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	t.Parallel()
-	svc, st := newKeysService(t)
+	_, st := newKeysService(t)
+	budgetSvc := domainbudget.NewService(testutil.TestConfig(), st, common.NewDelayer(false), nil)
 	ctx := testutil.Ctx()
 	// Zero out existing consumed, then set controlled values.
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 1000)
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey3, 234)
-	summary, err := svc.BudgetSummary(ctx, contract.IDMember1)
+	summary, err := budgetSvc.MemberSummary(ctx, contract.IDMember1)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -514,7 +514,7 @@ flowchart LR
 | L1 | 并发双花窗口 | 预检用快照，入账后封禁；极短窗口产品可接受 |
 | L2 | Reconcile 单实例 | `scheduler_locks` 限制；主路径靠 pending，reconcile 非常态 |
 | L3 | 多币种未实现 | 当前单币种够用；`currencies` 表预留了扩展能力 |
-| L4 | 两套审批表 | `budget_approvals` 与 `key_approvals` 并存；前端入口不同 |
+| L4 | ~~两套审批表~~ | ✅ 已合并为统一 `approval_requests` 表 + `/approvals` 引擎 |
 
 ---
 
