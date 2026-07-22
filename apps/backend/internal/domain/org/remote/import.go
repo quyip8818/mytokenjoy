@@ -191,6 +191,11 @@ func (s *Service) importFromProvider(
 
 			userID, uerr := core.ResolveOrCreateUser(ctx, st, remote.Mobile, remote.Email)
 			if uerr != nil {
+				result.Failures = append(result.Failures, types.ImportFailure{
+					ID:     memberID,
+					Name:   remote.Name,
+					Reason: uerr.Error(),
+				})
 				continue
 			}
 			members = append(members, types.Member{

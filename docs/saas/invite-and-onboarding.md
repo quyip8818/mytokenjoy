@@ -1,171 +1,252 @@
 # 开户·邀请·加人
 
-> 本文定义 Company 创建、成员邀请加入、平台开户的 Domain Service 接口与实施计划。  
+> 本文定义 Company 创建、成员邀请加入、激活链接的完整流程。  
 > 数据模型见 [identity-model.md](./identity-model.md)。  
 > 认证流程见 [auth-flow.md](./auth-flow.md)。
 
 ---
 
-## 0. 架构符合性
+## 1. 现状总结
 
-**方向正确，核心租户/NewAPI 链路已对齐；不需要重做开户事务或钥匙模型。**
+### 已实现
 
-现状是「平台运营开户 + 超管 accept-invite」，不是完整的「客户自助注册 Company + 企内邀请加人」。差距主要在**产品入口与企业内 Invite 写通**，不在 Postgres↔NewAPI 边界。
+| 能力 | 路径 | 说明 |
+| --- | --- | --- |
+| 平台开户 | `POST /api/platform/companies` → `company/service_create.go` | InviteEmail 模式生成 invite code |
+| 超管激活 | `POST /api/auth/accept-invite` → `service_invite.go` | 支持双路径：已登录(session) / 未登录(password) |
+| 前端激活页 | `/invite/accept?code=xxx` → `invite-accept.tsx` | 输入姓名+密码 → AcceptInvite → 发 session |
+| 已登录接受邀请 | `GET /api/auth/invites/pending` + `POST /auth/accept-invite` | session 中取 userID |
+| SaaS 注册 | `POST /auth/register/init` + `/accept` + `/company` | 手机验证码 → 选邀请或建公司 |
+| 手动加人 | `POST /api/org/members` → `CreateMember` | 立即 active，创建 user 但**无密码** |
+| 批量导入 | `POST /api/org/members/batch-import` | 同上，无密码 |
+| 邮件/短信发送 | `notification.Service.SendDirect(channel, address, msg)` | SMTP + 阿里云 SMS |
 
-| 子系统 | 判定 |
-| --- | --- |
-| CreateCompany + NewAPI 钱包用户 + 回滚 | ✅ 符合；自助开户应**复用**本 service |
-| SaaS `company_id ≥ 1_000_000`、双 Session | ✅ 符合 |
-| 超管 invite 写入 + `POST /auth/accept-invite` | ✅ 后端符合；❌ 前端无页/无 API 封装 |
-| 企业内 InviteMember | ❌ `501 NotImplemented`；BatchInvite 假计数 |
-| 公开自助注册 Company | ❌ 无；仅 `POST /api/platform/companies`（平台 operator） |
-| NewAPI 单 Admin 代建 / 客户不碰 Admin | ✅ 符合目标态 |
+### 未实现（主缺口）
 
-**要改**：Invite 写通、accept-invite 前端、契约字段统一、（可选）自助开户公开 API + 限流、平台控制台 UI。  
-**不必改**：`service_create` 内 CreateUser/钱包语义、一企一钱包、Admin 代建 Token、平台/企业 Session 分离。
-
----
-
-## 1. 目标语义（SSOT）
-
-```text
-开 Company（平台代开 或 客户自助，同一 domain）
-  → Postgres company + NewAPI wallet user W
-  → InviteEmail 模式: 生成 invite / UserID 模式: 注册人即超管
-加人（企内）
-  → company_invites → accept-invite(userID) → member + 企业 JWT
-发 Key
-  → CreateToken(user_id=W)（已有 as-built）
-```
-
-### 不变量
-
-| ID | 约束 |
-| --- | --- |
-| S1 | 企业 API 必须绑定 `company_id`；禁止跨企 |
-| S2 | 客户永不持有 `NEW_API_ADMIN_TOKEN` |
-| S3 | 客户不登录 NewAPI；钱包密码不入库 |
-| S4 | 该企 PlatformKey → Token.`user_id` == wallet |
-| S5 | 平台 JWT ≠ 企业 JWT（双 Secret） |
-| S6 | 开户 CreateUser 失败必须整单 ROLLBACK |
+| 能力 | 现状 | 问题 |
+| --- | --- | --- |
+| 企内 InviteMember | `501 NotImplemented` | 前端有 UI，后端空壳 |
+| BatchInvite | 返回假 `{sent: N}`，不写 invite | 欺骗性响应 |
+| 创建成员后发激活链接 | 无 | user 无密码无法登录 |
 
 ---
 
-## 2. Domain Service 接口
+## 2. 目标
 
-```go
-type Service interface {
-    // 创建企业（两种模式：立即加入 或 生成邀请）
-    CreateCompany(ctx, CreateCompanyReq) (CreateCompanyResult, error)
+管理员添加成员后，系统**自动发送激活链接**（邮件或短信），用户点击链接即可设置密码并登录。
 
-    // 通过邀请码加入已有企业
-    AcceptInvite(ctx, AcceptInviteReq) (types.Member, error)
+```
+管理员创建成员（已有）
+  → resolveOrCreateUser（已有）
+  → 检测 user 无密码 → 创建 invite → 发送激活链接
+  → 用户点击 /invite/accept?code=xxx
+  → 输入姓名+密码 → AcceptInvite（已有）→ 设密码 → 发 session
+```
 
-    // 查询某 user 待接受的邀请列表
-    PendingInvitesForUser(ctx, PendingInvitesForUserReq) ([]PendingInvite, error)
+核心原则：**复用已有的 invite + accept-invite 流程**，补齐发送环节。
 
-    // --- 不变 ---
-    ListCompanies(ctx) ([]store.Company, error)
-    UpdateCompany(ctx, id, patch) error
-    ResolveCompanyContext(ctx, companyID) (Context, error)
-    ResolveFromMember(ctx, memberID) (Context, error)
-}
+---
+
+## 3. 完整流程
+
+### 3.1 创建成员 + 自动邀请
+
+```mermaid
+sequenceDiagram
+    participant A as 管理员
+    participant F as 前端
+    participant B as 后端
+    participant N as 通知服务
+
+    A->>F: 填写成员信息（姓名、邮箱/手机）
+    F->>B: POST /api/org/members
+    B->>B: CreateMember → resolveOrCreateUser
+    B->>B: 检测 user.password_hash == "" → 创建 invite
+    B->>N: SendDirect(email/sms, 激活链接)
+    B-->>F: 201 member
+    Note over N: 邮件/短信内容: "点击链接设置密码: {PUBLIC_URL}/invite/accept?code=xxx"
+```
+
+### 3.2 用户激活
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant F as 前端
+    participant B as 后端
+
+    U->>F: 点击邮件中的链接
+    F->>F: /invite/accept?code=xxx 页面
+    U->>F: 输入姓名、密码
+    F->>B: POST /api/auth/accept-invite { inviteCode, name, password }
+    B->>B: 验证 invite → hash password → 更新 user
+    B->>B: AcceptInvite → member 已存在则幂等
+    B-->>F: { memberId, companyId } + Session Cookie
+    F->>F: 跳转到首页
+```
+
+### 3.3 手动重发邀请
+
+```mermaid
+sequenceDiagram
+    participant A as 管理员
+    participant F as 前端
+    participant B as 后端
+
+    A->>F: 选中未激活成员 → 点击"重发邀请"
+    F->>B: POST /api/org/members/batch-invite { ids: [...] }
+    B->>B: 对每个成员: 创建新 invite（或复用未过期的）→ 发送通知
+    B-->>F: { sent: N, failed: [...] }
 ```
 
 ---
 
-## 3. 方法定义
+## 4. 改动方案
 
-### 3.1 `CreateCompany`
+### 4.1 后端
 
-**语义**：创建一家新公司。两种模式由入参决定：
+#### 4.1.1 Config 新增 `PUBLIC_URL`
 
 ```go
-type CreateCompanyReq struct {
-    UserID      uuid.UUID // 可选：非 Nil 时创建者立即成为超管 Member
-    CompanyName string
-    CompanyType string    // "standard" | "trial" | "selfhosted"
-    InviteEmail string    // 可选：非空时生成 invite（平台开户，defer 加入）
-}
-
-type CreateCompanyResult struct {
-    Company    store.Company
-    Member     *types.Member // UserID 模式时非 nil
-    InviteCode string        // InviteEmail 模式时非空
-}
+// config.go — PlatformConfig 内
+PublicURL string `env:"PUBLIC_URL" envDefault:"http://localhost:5173"`
 ```
 
-| 条件 | 模式 | 行为 | 场景 |
-| --- | --- | --- | --- |
-| `UserID != Nil` | 立即加入 | Company + Member（超管） | 自助注册、Setup |
-| `UserID == Nil && InviteEmail != ""` | 生成邀请 | Company + Invite | 平台运营开户 |
-| 两者都空 | 错误 | | |
+用于拼接激活链接：`{PUBLIC_URL}/invite/accept?code={inviteCode}`
 
-内部（单事务）：
-1. `provisionCompany`（Company + 钱包 + 角色 + org tree）
-2. 若 UserID 模式 → `addMember`（User 成为超管）
-3. 若 InviteEmail 模式 → 创建 invite 记录
-
-### 3.2 `AcceptInvite`
-
-**语义**：一个已确认身份的 User 通过邀请码加入已有公司。
+#### 4.1.2 修改 `InviteMember` 签名与实现
 
 ```go
-type AcceptInviteReq struct {
-    UserID     uuid.UUID
+// interfaces.go
+type MemberService interface {
+    // ...
+    InviteMember(ctx context.Context, input InviteMemberInput) (InviteMemberResult, error)
+    BatchInvite(ctx context.Context, ids []uuid.UUID) (types.BatchInviteResult, error)
+}
+
+// types
+type InviteMemberInput struct {
+    Email string
+    Phone string
+}
+
+type InviteMemberResult struct {
+    MemberID   uuid.UUID
     InviteCode string
-    Name       string
 }
 ```
 
-内部：
-1. 验证 invite（存在 + 未用 + 未过期）
-2. 检查 user 是否已是该 company 的 member → 是则幂等返回现有 member
-3. `addMember`（User 成为 invite.Role 的 Member）
-4. MarkInviteAccepted
+实现逻辑（`member_invite.go`）：
 
-### 3.3 `PendingInvitesForUser`
+1. 查找/创建 user（复用 `resolveOrCreateUser`）
+2. 创建 member（复用 `CreateMember` 逻辑）
+3. 写 `company_invites` 记录（role=member，7天过期）
+4. 调用 `notifier.Send` 发送激活通知
+5. 返回 memberID + inviteCode
 
-**语义**：查找某个 user 所有待接受的公司邀请（按 email/phone/userID 任一标识匹配）。
+#### 4.1.3 修改 `CreateMember` —— 创建后自动发邀请
+
+在 `member_mutate.go` 的 `CreateMember` 末尾追加：
 
 ```go
-type PendingInvitesForUserReq struct {
-    Email  string
-    Phone  string
-    UserID uuid.UUID
-}
-
-type PendingInvite struct {
-    InviteCode  string
-    CompanyID   uuid.UUID
-    CompanyName string
-    Role        string
-    ExpiresAt   time.Time
+// 若 user 无密码，自动发送激活邀请
+if needsActivation {
+    _ = s.sendActivationInvite(ctx, member, userID)
 }
 ```
 
-查询逻辑：传入 user 的所有已知标识，动态构建 WHERE 条件（只加非空字段），OR 合并去重返回。
+`sendActivationInvite` 逻辑：
+1. 生成 invite code → 写 `company_invites`
+2. 拼接链接 `{PublicURL}/invite/accept?code={code}`
+3. 有邮箱 → 发邮件；有手机 → 发短信；都没有 → 跳过
 
----
+#### 4.1.4 修改 `BatchInvite` —— 真实发送
 
-## 4. 内部 Helper（unexported）
+替换假实现：对每个目标成员执行 `sendActivationInvite`，收集结果。
+
+#### 4.1.5 `AcceptInvite` 适配
+
+当前 `AcceptInvite`（company domain）会 `addMember`。但如果成员**已存在**（CreateMember 时就创建了），需要幂等处理：
+- 若 member 已存在于该 company → 仅标记 invite accepted，不重复创建
+
+这个逻辑已经在当前 `addMember` helper 中——需要确认幂等行为。
+
+#### 4.1.6 Handler 改造
+
+`org/member.go` — `MembersInvite`：
 
 ```go
-// provisionCompany 创建企业基础设施
-// Company + NewAPI 钱包 + 预设角色 + root org node
-func (s *service) provisionCompany(ctx, tx, name, companyType string) (store.Company, error)
-
-// addMember 将 user 加入企业
-// 若已是 member → 幂等返回现有 member
-// 否则创建 Member + 分配角色 + 挂到 root dept + 设为 manager（超管时）
-func (s *service) addMember(ctx, tx, userID, companyID uuid.UUID, name, role string) (types.Member, error)
+func (h *Handler) MembersInvite(w http.ResponseWriter, r *http.Request) {
+    var body struct {
+        Email string `json:"email"`
+        Phone string `json:"phone"`
+    }
+    if err := httputil.DecodeJSON(r, &body); err != nil {
+        httputil.WriteError(w, err)
+        return
+    }
+    result, err := h.service.InviteMember(r.Context(), org.InviteMemberInput{
+        Email: body.Email,
+        Phone: body.Phone,
+    })
+    httputil.WriteJSON(w, http.StatusOK, result, err)
+}
 ```
+
+### 4.2 Deps 变更
+
+`core/deps.go` 的 `Store` 接口需增加 `Invite()` 方法：
+
+```go
+type Store interface {
+    // ...existing...
+    Invite() store.InviteRepository
+}
+```
+
+或者将 invite 写入逻辑放到 Notifier/独立 port 中。由于 org domain 不应直接依赖 company domain 的 invite store，推荐通过一个 **InvitePort** 接口解耦：
+
+```go
+// org/core/deps.go 或 org/interfaces.go
+type InvitePort interface {
+    CreateMemberInvite(ctx context.Context, memberID, userID uuid.UUID, email, phone string) (inviteCode string, err error)
+}
+```
+
+实现方放在 company domain 或 infra 层，org domain 只依赖这个接口。
+
+### 4.3 通知模板
+
+新增邀请邮件模板：
+
+```
+主题: 您已被邀请加入 {CompanyName}
+正文:
+  您好，
+  您已被邀请加入 {CompanyName}。
+  请点击以下链接设置密码并完成激活：
+  {ActivationLink}
+  链接有效期 7 天。
+```
+
+短信模板（如用阿里云）：
+```
+【{SignName}】您已被邀请加入{CompanyName}，请点击链接完成激活：{Link}
+```
+
+### 4.4 前端
+
+**无需改动**。现有 `/invite/accept?code=xxx` 页面已完整支持：
+- 解析 URL 中的 code
+- 表单输入姓名 + 密码
+- 调用 `authApi.acceptInvite`
+- 成功后 refreshSession → 跳转首页
 
 ---
 
 ## 5. 数据模型
 
-### 5.1 `company_invites` 表
+### `company_invites` 表（已存在）
 
 ```sql
 CREATE TABLE company_invites (
@@ -174,278 +255,87 @@ CREATE TABLE company_invites (
     email        TEXT,
     phone        TEXT,
     user_id      UUID,
-    role         TEXT NOT NULL DEFAULT 'super_admin',
+    role         TEXT NOT NULL DEFAULT 'member',
     invite_code  TEXT NOT NULL UNIQUE,
     expires_at   TIMESTAMPTZ NOT NULL,
     accepted_at  TIMESTAMPTZ,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX idx_invites_email_pending ON company_invites(email)
-    WHERE accepted_at IS NULL AND email IS NOT NULL AND email != '';
-CREATE INDEX idx_invites_phone_pending ON company_invites(phone)
-    WHERE accepted_at IS NULL AND phone IS NOT NULL AND phone != '';
-CREATE INDEX idx_invites_user_pending ON company_invites(user_id)
-    WHERE accepted_at IS NULL AND user_id IS NOT NULL;
 ```
 
-### 5.2 `InviteRepository`
-
-```go
-type CompanyInvite struct {
-    ID         uuid.UUID
-    CompanyID  uuid.UUID
-    Email      string
-    Phone      string
-    UserID     uuid.UUID
-    Role       string
-    InviteCode string
-    ExpiresAt  time.Time
-    AcceptedAt *time.Time
-    CreatedAt  time.Time
-}
-
-type InviteRepository interface {
-    CreateInvite(ctx, invite CompanyInvite) error
-    GetInviteByCode(ctx, inviteCode string) (*CompanyInvite, error)
-    MarkInviteAccepted(ctx, id uuid.UUID, acceptedAt time.Time) error
-    FindPendingInvitesForUser(ctx, email string, phone string, userID uuid.UUID) ([]CompanyInvite, error)
-}
-```
-
-`FindPendingInvitesForUser` 实现：Go 层根据非空参数动态拼 WHERE 条件，避免 SQL 中的零值比较。
+**新增场景**：管理员 CreateMember 后写入的 invite，role 固定为 `member`。
 
 ---
 
-## 6. 各场景编排
+## 6. 不变量
 
-| 场景 | Handler 编排 |
+| ID | 约束 |
 | --- | --- |
-| **SaaS 注册** | sms/verify → register/init → (accept / company) |
-| **私有化 Setup** | Create User(email, password) → CreateCompany(UserID, 'selfhosted') |
-| **平台运营开户** | CreateCompany(UserID=Nil, InviteEmail=email) → 返回 inviteCode |
-| **邮件邀请激活** | GetOrCreate User(email, password) → AcceptInvite(userID) |
-| **已登录用户接受邀请** | AcceptInvite(session.userID) |
-| **企内 InviteMember** | 校验权限 → 写 company_invites → 返回 inviteCode |
-
-### 注册后完整时序
-
-```mermaid
-sequenceDiagram
-    participant U as 用户
-    participant F as 前端
-    participant B as 后端
-
-    Note over U,F: 手机号验证码已通过 → 新用户
-    F->>B: POST /auth/register/init { phone, token }
-    B->>B: 验证 token → 找到/创建 User → PendingInvitesForUser
-    B-->>F: { action: "choose", invites: [...] } + registerSession
-
-    alt 用户选择接受邀请
-        F->>B: POST /auth/register/accept { inviteCode, name }
-        B->>B: AcceptInvite(userID, inviteCode, name)
-        B-->>F: { memberId, companyId } + Session Cookie
-    else 用户选择创建新公司
-        F->>B: POST /auth/register/company { companyName }
-        B->>B: CreateCompany(userID, companyName, "trial")
-        B-->>F: { memberId, companyId } + Session Cookie
-    end
-```
-
-### `register/init` 幂等性
-
-| phone 对应 User | 该 User 有 member? | 行为 |
-| --- | --- | --- |
-| 不存在 | — | 创建 User → 继续注册 |
-| 存在 | 无 member | 复用 User → 重新签发 registerSession → 继续注册 |
-| 存在 | 有 member | 已注册完成 → 返回 `{ action: "login" }`，引导走登录 |
+| S1 | invite code 一次性，accept 后标记 accepted_at |
+| S2 | invite 7 天过期，过期后需重新发送 |
+| S3 | 已有密码的 user 不发激活链接（已可直接登录） |
+| S4 | member 创建和 invite 写入在同一事务中 |
+| S5 | accept-invite 幂等：member 已存在时不报错 |
+| S6 | 通知发送失败不阻塞 member 创建（fire-and-forget） |
 
 ---
 
-## 7. 已登录用户接受邀请
+## 7. 实施文件清单
 
-已登录用户（有 session）收到新邀请后，不走 `register/*` 流程：
-
-```
-GET /auth/invites/pending → 待接受列表
-POST /auth/accept-invite { inviteCode, name } → AcceptInvite(session.userID)
-```
-
-**复用 `POST /auth/accept-invite`**：
-- 已登录时：handler 从 session 取 userID，body 中不需要 password
-- 未登录时（邮件链接）：handler 从 body.password 创建/更新 User，再取 userID
-
----
-
-## 8. 现状索引
-
-| 能力 | 路径 | 状态 |
-| --- | --- | --- |
-| 平台开户 | `POST /api/platform/companies` → `company/service_create.go` | ✅（InviteEmail 模式） |
-| 钱包用户 | `provisionCompany` 内 `CreateUser` → `newapi_wallet_company_id` | ✅ |
-| 超管 invite 行 | CreateCompany InviteEmail 模式写 `company_invites`（7 天） | ✅ |
-| accept-invite | `POST /api/auth/accept-invite` → `service_invite.go` | ✅ API + 双路径 |
-| 已登录接受邀请 | `GET /api/auth/invites/pending` + `POST /auth/accept-invite` | ✅ |
-| 注册流程 | `POST /auth/register/init` + `/accept` + `/company` | ✅ API（SaaS only + RegistrationEnabled） |
-| 企内 InviteMember | `org/structure/member_batch.go` → **NotImplemented** | ❌ |
-| BatchInvite | 返回假 `sent`，不写 invite | ❌ |
-| 手动/导入加人 | `CreateMember` / batch-import，立即 active、无密码 | ✅ 组织面 |
-| 前端 platform / invite | Frontend.md：未接入 | ❌ |
-
----
-
-## 9. Gap → 实施项
-
-| ID | 项 | 优先级 | 说明 |
-| --- | --- | --- | --- |
-| A | 契约收口：`inviteCode` | P0 | Frontend.md / 类型与后端对齐 |
-| B | accept-invite 前端 | P0 | `authApi.acceptInvite` + `/invite/accept` 路由页 |
-| C | InviteMember 写通 | P0 | 写 `company_invites`；复用 AcceptInvite；测 domain + handler |
-| D | BatchInvite 真实化或降级 | P1 | 真写 invite **或** 明确 501/隐藏 UI；禁止假成功 |
-| E | 自助开户 API（可选） | P1 | 新公开端点 → 调用现有 CreateCompany；限流 + slug/email 校验 |
-| F | 平台控制台前端 | P2 | platform login + 开户/列企；展示超管 invite 链接 |
-| G | 发信 | P2 | invite 邮件可后置；先返回 code/链接 |
-
----
-
-## 10. PR 切片（按序）
-
-### PR-A — 契约与本文
-
-- 统一 `inviteCode`（Frontend.md § auth）
-- 本文为实施 SSOT
-
-### PR-B — accept-invite 前端
-
-| 交付 | |
+| 文件 | 改动 |
 | --- | --- |
-| API | `apps/frontend/src/api/auth.ts`：`acceptInvite({ inviteCode, password, name? })` |
-| 路由 | `/invite/accept`（公开）；成功后 `refreshSession` / 进企业面 |
-| 不改 | Backend AcceptInvite 行为 |
-
-### PR-C — 企业内 InviteMember（主缺口）
-
-| 交付 | |
-| --- | --- |
-| Domain | 实现 `InviteMember`：校验权限/邮箱 → 写 `company_invites`（role=member 或请求角色）→ 返回 `inviteCode` |
-| HTTP | 现有 org members invite 路由改为成功语义 |
-| Accept | **复用** `AcceptInvite`；不新建激活 API |
-| 测 | `tests/domain/org` + handler：invite → accept → login |
-| 非目标 | 本 PR 可不发邮件 |
-
-### PR-D — BatchInvite
-
-- 对每个目标写 invite **或** UI 去掉批量邀请直至实现
-- 禁止「返回 sent>0 但库中无行」
-
-### PR-E — 自助开户（产品确认后）
-
-```text
-POST /api/auth/register-company   # 示例路径；限流
-  → company.Service.CreateCompany（同今日逻辑）
-  → 201 + inviteCode（超管）
-```
-
-| 护栏 | |
-| --- | --- |
-| 鉴权 | 公开或验证码/邮箱验证；**不是**平台 Cookie |
-| 滥用 | 限流、slug 唯一、邮箱唯一策略 |
-| NewAPI | 仍单 Admin AT；失败 ROLLBACK |
-| 平台路径 | `POST /platform/companies` **保留**给运营 |
-
-### PR-F — 平台前端
-
-- `platformApi` + `/platform/login` + 开户表单；展示 invite 链接给超管邮件/复制
+| `internal/config/config.go` | 添加 `PublicURL` 字段 |
+| `internal/domain/org/interfaces.go` | 修改 `InviteMember` 签名 |
+| `internal/domain/org/structure/member_invite.go` | **新文件**：InviteMember + sendActivationInvite + BatchInvite 实现 |
+| `internal/domain/org/structure/member_mutate.go` | CreateMember 末尾追加自动邀请 |
+| `internal/domain/org/structure/member_batch.go` | 删除旧的空 InviteMember + 假 BatchInvite |
+| `internal/domain/org/core/deps.go` | Store 接口加 `Invite()` 或新增 InvitePort |
+| `internal/http/handler/org/member.go` | MembersInvite handler 改为解析 email/phone |
+| `internal/domain/company/service_invite.go` | AcceptInvite 增加幂等（member 已存在时） |
+| `internal/infra/notification/templates/` | 邀请邮件/短信模板 |
 
 ---
 
-## 11. 安全（实施约束）
-
-| 做 | 不做 |
-| --- | --- |
-| 自助开户用独立公开路由 + 限流 | 把 CreateCompany 挂到无鉴权的 `/platform/*` |
-| 企业 invite 仅本企 RBAC（`org:members`） | 客户持有 NewAPI Admin |
-| accept-invite 一次性 code | 第二套 CreateUser-per-member |
-| 保持双 Session Secret | NewAPI Console 对企业开放 |
-
-NewAPI Admin by-id 能力仍仅服务 Backend；SaaS 客户增多时**不要**给多名真人开 NewAPI Admin 账号。
-
----
-
-## 12. 对比现有实现
-
-| | 之前 | 之后 |
-| --- | --- | --- |
-| CreateCompany 入参 | Name + SuperAdminEmail | UserID(可选) + Name + Type + InviteEmail(可选) |
-| CreateCompany 创建 Invite | 是（强制） | 仅 InviteEmail 模式 |
-| CreateCompany 创建 Member | 否 | UserID 模式时创建 |
-| AcceptInvite 入参 | InviteCode + Name + Password | UserID + InviteCode + Name |
-| AcceptInvite 创建 User | 是 | 否（handler 层负责） |
-| AcceptInvite 设密码 | 是 | 否（handler 层负责） |
-| PendingInvites 查询 | 不存在 | 新增 |
-| 已登录用户接受邀请 | 不支持 | 支持 |
-
----
-
-## 13. 验收
-
-| # | 条件 |
-| --- | --- |
-| 1 | 平台开户仍：company + wallet + 超管 invite；CreateUser 失败无脏 company |
-| 2 | 企内 InviteMember → DB 有 invite 行 → accept-invite 得 member 可 login |
-| 3 | 前端 `/invite/accept` 可用；字段为 `inviteCode` |
-| 4 | BatchInvite 无假成功（真写或不可达） |
-| 5 | （若做 E）自助开户与平台开户共用 CreateCompany；限流生效 |
-| 6 | 无企业 NewAPI 密码/AT 入库 |
-
----
-
-## 14. 代码索引
-
-```text
-开户     domain/company/service_create.go       — CreateCompany (双模式: UserID / InviteEmail)
-                                                  provisionCompany (内部 helper)
-                                                  addMember (内部 helper, 幂等)
-         http/handler/platform/handler.go       — POST /platform/companies (InviteEmail 模式)
-邀请激活 domain/company/service_invite.go       — AcceptInvite (接收 UserID)
-                                                  PendingInvitesForUser (batch 查)
-         http/handler/auth/handler.go           — POST /auth/accept-invite (双路径)
-                                                  GET /auth/invites/pending
-注册流程 http/handler/register/handler.go       — POST /auth/register/init, /accept, /company
-         identity/registertoken/token.go        — 短期注册 session JWT
-Mode     http/middleware/mode_guard.go          — RequireSaaS / RequireLocal
-企内邀请 domain/org/structure/member_batch.go   ← 待实现
-         http/handler/org/member.go
-钥匙     docs/Backend-NewAPI-多租户钥匙代建.md
-```
-
----
-
-## 15. 实施顺序
-
-1. `company_invites` 表加 `phone` + `user_id` 列 + pending 索引
-2. `InviteRepository.FindPendingInvitesForUser` — 动态 WHERE 构建
-3. 提取 `provisionCompany` + `addMember` 内部 helper
-4. 重写 `CreateCompany`（新签名，两种模式）
-5. 重写 `AcceptInvite`（新签名：UserID）
-6. 新增 `PendingInvitesForUser` domain 方法
-7. 实现 `RequireSaaS` / `RequireLocal` mode guard middleware
-8. 改造 `POST /platform/companies` handler → CreateCompany(InviteEmail 模式)
-9. 改造 `POST /auth/accept-invite` handler → User 处理提到 handler 层
-10. 实现 `POST /auth/register/*` 三个端点（RequireSaaS 守卫）
-11. 实现 `POST /auth/setup`（RequireLocal 守卫）
-12. 实现 `GET /auth/invites/pending`
-13. 现有测试适配
-
----
-
-## 16. 决策记录
+## 8. 决策记录
 
 | 日期 | 决策 |
 | --- | --- |
-| 2026-07-14 | 现架构方向正确；不重做开户/NewAPI 边界 |
-| 2026-07-14 | 主缺口：InviteMember + accept-invite 前端；自助开户为可选新入口复用 CreateCompany |
-| 2026-07-14 | 本文升格为实施文档 |
-| 2026-07-18 | CreateCompany 重构为双模式（UserID / InviteEmail）；AcceptInvite 接收 UserID（handler 层负责 User 创建）|
-| 2026-07-18 | 注册流程实现：register/init + accept + company 三端点；RequireSaaS + RegistrationEnabled 守卫 |
-| 2026-07-18 | PendingInvitesForUser 新增（支持 email/phone/userID 多标识匹配）|
+| 2025-07-14 | 现架构方向正确；不重做开户/NewAPI 边界 |
+| 2025-07-18 | CreateCompany 双模式；AcceptInvite handler 层负责 User 创建 |
+| 2025-07-18 | 注册流程：register/init + accept + company；PendingInvitesForUser |
+| 2025-07-21 | 确定方向：CreateMember 后自动发激活链接，复用 accept-invite 流程 |
+| 2025-07-21 | 通知发送 fire-and-forget，不阻塞创建；前端无需改动 |
+| 2025-07-21 | 通过 InvitePort 接口解耦 org domain 对 invite store 的依赖 |
+
+---
+
+## 9. 验收条件
+
+| # | 条件 |
+| --- | --- |
+| 1 | 管理员创建成员后，若 user 无密码，自动生成 invite 并发送邮件/短信 |
+| 2 | 邮件/短信中包含可点击的激活链接 `/invite/accept?code=xxx` |
+| 3 | 用户点击链接 → 设置密码 → 成功登录进入系统 |
+| 4 | 管理员可对未激活成员手动"重发邀请"（BatchInvite） |
+| 5 | 已有密码的 user（如通过 SMS 注册后被加入）不发激活链接 |
+| 6 | invite 过期后重发生成新 code |
+| 7 | AcceptInvite 幂等：member 已存在时正常完成不报错 |
+| 8 | 通知发送失败不阻塞 member 创建 |
+
+---
+
+## 10. 代码索引
+
+```
+开户        domain/company/service_create.go       — CreateCompany (双模式)
+激活        domain/company/service_invite.go       — AcceptInvite
+            http/handler/auth/handler.go           — POST /auth/accept-invite (双路径)
+前端激活页  routes/auth/invite-accept.tsx           — /invite/accept?code=xxx
+加人        domain/org/structure/member_mutate.go   — CreateMember
+            domain/org/structure/member_invite.go   — InviteMember + sendActivationInvite (待实现)
+            http/handler/org/member.go             — POST /org/members/invite
+批量邀请    domain/org/structure/member_batch.go    — BatchInvite (待改)
+注册        http/handler/register/                 — register/init + accept + company
+通知        infra/notification/service.go          — SendDirect(channel, address, msg)
+配置        config/config.go                       — PUBLIC_URL
+```
