@@ -384,7 +384,7 @@ export function AuthPopup({
 
         {/* Header */}
         <div className="px-10 pt-10 pb-5 text-center">
-          <img src="/logo.png" alt="Tokenjoy" className="mx-auto h-10 w-auto" />
+          <img src="/logo.png" alt="Tokenjoy" className="mx-auto h-7 w-auto" />
           <p className="mt-2 text-sm text-muted-foreground tracking-wide">企业 AI 模型管理平台</p>
         </div>
 
