@@ -18,8 +18,9 @@ import (
 // --- SendCode ---
 
 type sendCodeBody struct {
-	Phone string `json:"phone"`
-	Email string `json:"email"`
+	Phone   string `json:"phone"`
+	Email   string `json:"email"`
+	Purpose string `json:"purpose"` // "register" skips user existence check
 }
 
 // SendCode sends a verification code via SMS or Email.
@@ -46,6 +47,26 @@ func (h *Handler) SendCode(w http.ResponseWriter, r *http.Request) {
 	default:
 		httputil.WriteStatus(w, http.StatusBadRequest, "phone or email required")
 		return
+	}
+
+	// Reject sending code if user is not registered (skip for registration purpose).
+	if body.Purpose != "register" {
+		ctx := r.Context()
+		var user *store.User
+		var userErr error
+		if channel == domainnotification.ChannelSMS {
+			user, userErr = h.users.GetByPhone(ctx, address)
+		} else {
+			user, userErr = h.users.GetByEmail(ctx, address)
+		}
+		if userErr != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+		if user == nil {
+			httputil.WriteJSON(w, http.StatusBadRequest, map[string]string{"message": "account not found"}, nil)
+			return
+		}
 	}
 
 	result := h.verifyCode.Send(r.Context(), channel, address)

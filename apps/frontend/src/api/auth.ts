@@ -45,7 +45,7 @@ export const authApi = {
     }),
 
   // --- Verify code endpoints (phone or email) ---
-  sendCode: (params: { phone?: string; email?: string }) =>
+  sendCode: (params: { phone?: string; email?: string; purpose?: string }) =>
     request<void>('/auth/verify-code/send', {
       method: 'POST',
       body: JSON.stringify(params),
@@ -64,12 +64,12 @@ export const authApi = {
     }),
 
   // --- Register endpoints ---
-  registerInit: (phone: string, code: string, password: string) =>
+  registerInit: (identifier: { phone?: string; email?: string }, code: string, password: string) =>
     request<{ action: 'choose'; invites: PendingInvite[] } | { action: 'login' }>(
       '/auth/register/init',
       {
         method: 'POST',
-        body: JSON.stringify({ phone, code, password }),
+        body: JSON.stringify({ ...identifier, code, password }),
       },
     ),
 
@@ -100,9 +100,9 @@ export const authApi = {
     }),
 
   // --- Reset password (unauthenticated, verified) ---
-  resetPassword: (phone: string, code: string, newPassword: string) =>
+  resetPassword: (identifier: { phone?: string; email?: string }, code: string, newPassword: string) =>
     request<void>('/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ phone, code, newPassword }),
+      body: JSON.stringify({ ...identifier, code, newPassword }),
     }),
 }

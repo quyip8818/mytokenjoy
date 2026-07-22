@@ -22,7 +22,7 @@ export function useVerifyCountdown() {
   }, [isCountingDown])
 
   const sendCode = useCallback(
-    async (params: { phone?: string; email?: string }) => {
+    async (params: { phone?: string; email?: string; purpose?: string }) => {
       if (countdown > 0) return
       const hasValue = (params.phone && params.phone.trim()) || (params.email && params.email.trim())
       if (!hasValue) return

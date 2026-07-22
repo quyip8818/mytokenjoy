@@ -80,6 +80,7 @@ func (h *Handler) requireRegistration(next http.HandlerFunc) http.HandlerFunc {
 
 type initBody struct {
 	Phone    string `json:"phone"`
+	Email    string `json:"email"`
 	Code     string `json:"code"`
 	Password string `json:"password"`
 }
@@ -99,8 +100,12 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
 	}
-	if body.Phone == "" || body.Code == "" {
-		httputil.WriteStatus(w, http.StatusBadRequest, "phone and code required")
+	if body.Phone == "" && body.Email == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "phone or email required")
+		return
+	}
+	if body.Code == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "code required")
 		return
 	}
 	if len(body.Password) < 8 {
@@ -109,14 +114,24 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	phone := verifycode.FormatPhone(body.Phone)
+
+	// Determine channel and address.
+	var channel, address string
+	switch {
+	case body.Phone != "":
+		channel = domainnotification.ChannelSMS
+		address = verifycode.FormatPhone(body.Phone)
+	default:
+		channel = domainnotification.ChannelEmail
+		address = body.Email
+	}
 
 	// Step 1: Verify code.
 	if h.verifyCode == nil {
 		httputil.WriteStatus(w, http.StatusServiceUnavailable, "verification service not configured")
 		return
 	}
-	vr := h.verifyCode.Verify(ctx, domainnotification.ChannelSMS, phone, body.Code)
+	vr := h.verifyCode.Verify(ctx, channel, address, body.Code)
 	if !vr.OK {
 		status := http.StatusBadRequest
 		if vr.Locked {
@@ -126,8 +141,14 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 2: Find or create user by phone.
-	user, err := h.users.GetByPhone(ctx, phone)
+	// Step 2: Find or create user.
+	var user *store.User
+	var err error
+	if channel == domainnotification.ChannelSMS {
+		user, err = h.users.GetByPhone(ctx, address)
+	} else {
+		user, err = h.users.GetByEmail(ctx, address)
+	}
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -143,11 +164,15 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().UTC()
 		newUser := store.User{
 			ID:           userID,
-			Phone:        phone,
 			PasswordHash: string(passwordHash),
 			Status:       "active",
 			CreatedAt:    now,
 			UpdatedAt:    now,
+		}
+		if channel == domainnotification.ChannelSMS {
+			newUser.Phone = address
+		} else {
+			newUser.Email = address
 		}
 		if err := h.users.Create(ctx, newUser); err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
