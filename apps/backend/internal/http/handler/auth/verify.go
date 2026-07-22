@@ -49,8 +49,8 @@ func (h *Handler) SendCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reject sending code if user is not registered (skip for registration purpose).
-	if body.Purpose != "register" {
+	// Reject sending code if user is not registered (skip for registration and bind purposes).
+	if body.Purpose != "register" && body.Purpose != "bind" {
 		ctx := r.Context()
 		var user *store.User
 		var userErr error

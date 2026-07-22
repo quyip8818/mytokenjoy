@@ -65,7 +65,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email    string `json:"email"`    // phone or email
+	Email    string `json:"email"` // phone or email
 	Password string `json:"password"`
 }
 

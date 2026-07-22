@@ -63,4 +63,45 @@ func (r *sessionRepo) RevokeAllByUser(ctx context.Context, userID uuid.UUID) err
 	return nil
 }
 
+func (r *sessionRepo) RevokeAllByUserExcept(ctx context.Context, userID uuid.UUID, exceptSessionID string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE sessions SET revoked_at = NOW() WHERE user_id = $1 AND id != $2 AND revoked_at IS NULL`,
+		userID, exceptSessionID)
+	if err != nil {
+		return fmt.Errorf("revoke all sessions except: %w", err)
+	}
+	return nil
+}
+
+func (r *sessionRepo) ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]store.Session, int, error) {
+	var total int
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM sessions WHERE user_id = $1`, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count sessions: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT id, user_id, member_id, company_id, token_hash, user_agent, ip, created_at, expires_at, revoked_at
+		FROM sessions
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []store.Session
+	for rows.Next() {
+		var s store.Session
+		if err := rows.Scan(&s.ID, &s.UserID, &s.MemberID, &s.CompanyID, &s.TokenHash,
+			&s.UserAgent, &s.IP, &s.CreatedAt, &s.ExpiresAt, &s.RevokedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan session: %w", err)
+		}
+		sessions = append(sessions, s)
+	}
+	return sessions, total, nil
+}
+
 var _ store.SessionRepository = (*sessionRepo)(nil)

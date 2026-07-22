@@ -1,3 +1,4 @@
+import { accountApi } from './account'
 import { auditApi } from './audit'
 import { authApi } from './auth'
 import { billingApi } from './billing'
@@ -12,6 +13,7 @@ import { dataSourceApi, departmentApi, memberApi, roleApi, syncApi } from './org
 import { sessionApi } from './session'
 
 export interface AppApis {
+  accountApi: typeof accountApi
   authApi: typeof authApi
   billingApi: typeof billingApi
   budgetApi: typeof budgetApi
@@ -34,6 +36,7 @@ export interface AppApis {
 }
 
 export const defaultApis: AppApis = {
+  accountApi,
   authApi,
   billingApi,
   budgetApi,

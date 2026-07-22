@@ -14,6 +14,7 @@ import {
   Key,
   LayoutDashboard,
   ScrollText,
+  Settings,
   Shield,
   ShieldAlert,
   TrendingUp,
@@ -205,6 +206,15 @@ const ADMIN_ROUTE_DEFINITIONS = [
     requiredPermissions: [PERMISSION.AUDIT_READ],
     lazy: () => import('@/routes/audit/calls'),
     navGroup: '审计',
+  },
+  {
+    key: 'account',
+    path: '/account',
+    label: '账户设置',
+    icon: Settings,
+    audience: 'admin',
+    requiredPermissions: [],
+    lazy: () => import('@/routes/account'),
   },
 ] as const satisfies readonly RouteDefinition[]
 

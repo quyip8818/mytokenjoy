@@ -16,7 +16,7 @@
 | 修改密码（需旧密码） | ❌ 无端点 | ❌ 无 | 需新增 |
 | 更换手机号 | ✅ `UserRepo.UpdatePhone` | ❌ 无 | 仅 DB 层有方法 |
 | 更换邮箱 | ✅ `UserRepo.UpdateEmail` | ❌ 无 | 仅 DB 层有方法 |
-| 吊销所有会话 | ✅ `SessionRepo.RevokeAllByUser` | ❌ 无 | 现有实现不排除当前 session |
+| 吊销所有会话 | ⚠️ `SessionRepo.RevokeAllByUser` | ❌ 无 | 现有方法不支持排除当前 session，需新增 `RevokeAllByUserExcept` |
 | 查看会话/登录记录 | ✅ sessions 表含 ip/user_agent | ❌ 无 | 需新增查询端点 |
 | 查看所属企业 | ✅ `UserRepo.ListMemberCompanies` | ❌ 无 | — |
 | 编辑个人信息（姓名等） | 由管理员在成员管理操作 | ❌ 无自助 | — |
@@ -91,9 +91,11 @@
   → 调用 POST /auth/verify-code/send { phone, purpose: "bind" }
   → 输入验证码
   → 调用 POST /me/change-phone { phone, code }
-  → 后端验证码校验 → 检查唯一性 → 更新 user.phone → 204
+  → 后端在同一请求内完成：验证码校验 → 检查唯一性 → 更新 user.phone → 204
   → 提示成功，刷新页面信息
 ```
+
+> **实现说明**：`change-phone` 是一次性 atomic 操作——verify + update 在同一请求中完成，无需前端先调 verify 再调 update。
 
 ### 5.3 更换邮箱
 
@@ -104,9 +106,11 @@
   → 调用 POST /auth/verify-code/send { email, purpose: "bind" }
   → 输入验证码
   → 调用 POST /me/change-email { email, code }
-  → 后端验证码校验 → 检查唯一性 → 更新 user.email → 204
+  → 后端在同一请求内完成：验证码校验 → 检查唯一性 → 更新 user.email → 204
   → 提示成功，刷新页面信息
 ```
+
+> **实现说明**：同 change-phone，`change-email` 也是 atomic 操作（verify + update 单请求完成）。
 
 ### 5.4 登出所有设备
 
@@ -122,16 +126,17 @@
 
 ```
 进入页面自动加载
-  → 调用 GET /me/login-activity?limit=20
-  → 展示列表：时间、IP 地址、设备/浏览器（解析 user_agent）
+  → 调用 GET /me/login-activity?limit=20&offset=0
+  → 展示列表：时间、IP 地址、设备/浏览器（前端格式化原始 user_agent）
   → 当前会话标记「当前」
+  → 支持翻页加载更多
 ```
 
 ## 6. API 设计
 
-### 新增端点（挂在 `/me` 路由组下，复用现有 company-scoped auth）
+### 新增端点（挂在 `/me` 路由组下）
 
-从 session claims 取 `UserID` 操作用户数据，不需要额外的认证层级。
+从 session claims 取 `UserID` 操作用户数据。`/me` 下的端点使用 UserID 级别鉴权，不走 company-scoped permission check（因为 profile、企业列表等数据天然跨 company）。
 
 | Method | Path | 功能 | Request Body | Response |
 |--------|------|------|-------------|----------|
@@ -140,7 +145,7 @@
 | POST | `/me/change-phone` | 更换手机号 | `{ phone, code }` | 204 |
 | POST | `/me/change-email` | 更换邮箱 | `{ email, code }` | 204 |
 | POST | `/me/revoke-sessions` | 登出其他设备 | — | 204 |
-| GET | `/me/login-activity` | 最近登录活动 | `?limit=20` | `[{ time, ip, userAgent, current }]` |
+| GET | `/me/login-activity` | 最近登录活动 | `?limit=20&offset=0` | `{ items: [...], total }` |
 
 ### GET /me/profile 响应示例
 
@@ -167,30 +172,34 @@
 ### GET /me/login-activity 响应示例
 
 ```json
-[
-  {
-    "time": "2026-07-20T10:30:00Z",
-    "ip": "203.0.113.42",
-    "userAgent": "Chrome 126 / macOS",
-    "current": true
-  },
-  {
-    "time": "2026-07-18T08:15:00Z",
-    "ip": "198.51.100.7",
-    "userAgent": "Safari / iOS 18",
-    "current": false
-  }
-]
+{
+  "items": [
+    {
+      "time": "2026-07-20T10:30:00Z",
+      "ip": "203.0.113.42",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ...",
+      "current": true
+    },
+    {
+      "time": "2026-07-18T08:15:00Z",
+      "ip": "198.51.100.7",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) ...",
+      "current": false
+    }
+  ],
+  "total": 42
+}
 ```
 
-数据源：直接查 `sessions` 表（已含 `ip`、`user_agent`、`created_at`），`current` 通过 session ID 匹配。
+- 参数：`limit`（默认 20，上限 100）、`offset`（默认 0）
+- 数据源：直接查 `sessions` 表（已含 `ip`、`user_agent`、`created_at`），`current` 通过 session ID 匹配
+- `userAgent`：P0 后端返回原始 user_agent 字符串，前端做基础格式化展示；P1 后端增加解析后的 `device` 字段（如 "Chrome 126 / macOS"）
 
 ### 错误响应约定
 
 | 状态码 | 场景 |
 |--------|------|
-| 400 | 参数校验失败、验证码错误 |
-| 401 | 旧密码错误 |
+| 400 | 参数校验失败、验证码错误、旧密码错误（`code: "wrong_password"`） |
 | 409 | 手机号/邮箱已被其他账户绑定 |
 | 429 | 验证码发送频率限制 |
 
@@ -202,7 +211,7 @@
 | 更换手机/邮箱 | 验证新号码/邮箱的验证码（复用现有 verify-code 服务） |
 | 验证码频率 | 复用现有限流：同号码 60s 间隔、5 分钟有效、连续错误锁定 |
 | 手机/邮箱唯一性 | 后端更新前查重，冲突返回 409 |
-| 至少保留一个凭证 | 不允许同时清空手机和邮箱（后端校验） |
+| 至少保留一个凭证 | 流程设计为「替换」而非「删除」——用户只能将手机/邮箱换为新值（需验证码），不提供清空操作，天然保证凭证不会丢失 |
 | 登出设备 | 排除当前 session |
 | 信息展示 | API 层脱敏，防止中间人获取完整号码 |
 | CSRF | 现有 JWT Cookie + SameSite 已覆盖 |
@@ -223,7 +232,7 @@
 
 | 层 | 位置 | 职责 |
 |----|------|------|
-| 路由 | `routes/account/page.tsx` | 页面入口，组合 features 组件 |
+| 路由 | `routes/account/index.tsx` | 页面入口，组合 features 组件 |
 | Feature | `features/account/` | hooks、components、index.ts |
 | API | `api/account.ts` | HTTP 请求封装 |
 | 共享组件 | 复用现有 Dialog、Form、Input | — |
@@ -233,6 +242,12 @@
 ## 10. 数据变更
 
 无需新增表或字段。`sessions` 表已有 `ip`、`user_agent`、`created_at`，可直接支持登录活动查询。
+
+P1 实现 login-activity 时需补充索引（现有 partial index 仅覆盖 `revoked_at IS NULL` 的活跃 session，无法加速含历史记录的查询）：
+
+```sql
+CREATE INDEX idx_sessions_user_created ON sessions(user_id, created_at DESC);
+```
 
 如果后续需要长期保留登录记录（session 过期删除后仍可查），再考虑独立 `user_login_logs` 表：
 
@@ -263,7 +278,7 @@ CREATE INDEX idx_login_logs_user ON user_login_logs(user_id, created_at DESC);
 ### P1（第二期）
 
 - [ ] 最近登录活动（GET /me/login-activity）
-- [ ] user_agent 解析为可读设备名（Chrome / macOS 等）
+- [ ] 后端 user_agent 解析：响应增加 `device` 字段（如 "Chrome 126 / macOS"），前端优先展示 `device`
 
 ### P2（远期预留）
 
@@ -278,6 +293,6 @@ CREATE INDEX idx_login_logs_user ON user_login_logs(user_id, created_at DESC);
 |---|------|------|
 | 1 | 更换手机/邮箱是否需要管理员审批？ | 不需要——登录态 + 验证码已足够；管理员可在成员管理看到变更 |
 | 2 | 同一手机/邮箱被其他用户占用？ | 后端返回 409，前端提示「该手机号/邮箱已被其他账户绑定」 |
-| 3 | 是否允许同时清空手机和邮箱？ | 不允许——至少保留一个可用的登录凭证 |
+| 3 | 是否允许同时清空手机和邮箱？ | 不存在此场景——流程仅支持「替换」（输入新值 + 验证码），不提供「删除」操作 |
 | 4 | 姓名是否允许自助修改？ | 保持只读（Member 属于 Company，由管理员维护） |
 | 5 | 登录活动是否需要长期保留？ | P0 先查 sessions 表；如果有保留需求，P1 再加独立日志表 |

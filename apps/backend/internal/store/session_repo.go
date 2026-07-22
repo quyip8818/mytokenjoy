@@ -27,4 +27,6 @@ type SessionRepository interface {
 	GetActive(ctx context.Context, id string) (*Session, error)
 	Revoke(ctx context.Context, id string) error
 	RevokeAllByUser(ctx context.Context, userID uuid.UUID) error
+	RevokeAllByUserExcept(ctx context.Context, userID uuid.UUID, exceptSessionID string) error
+	ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]Session, int, error)
 }
