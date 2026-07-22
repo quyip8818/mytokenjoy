@@ -22,7 +22,7 @@ export function useBudgetQueries(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.budget.tree(period),
-    queryFn: async (api) => (await api.budgetApi.getTree(period)) ?? [],
+    queryFn: (api) => api.budgetApi.getTree(period),
   })
 
   const {
@@ -33,7 +33,7 @@ export function useBudgetQueries(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.budget.projects(),
-    queryFn: async (api) => (await api.budgetApi.getProjects()) ?? [],
+    queryFn: (api) => api.budgetApi.getProjects(),
   })
 
   const { data: overrunPolicy } = useInjectedQuery({
@@ -45,11 +45,11 @@ export function useBudgetQueries(injectedApis?: AppApis) {
   const { data: approvals = [], refresh: refreshApprovals } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.budget.approvals(),
-    queryFn: async (api) => (await api.budgetApi.getApprovals()) ?? [],
+    queryFn: (api) => api.budgetApi.getApprovals(),
   })
 
   const pendingCount = useMemo(
-    () => (approvals ?? []).filter((item) => item.status === 'pending').length,
+    () => approvals.filter((item) => item.status === 'pending').length,
     [approvals],
   )
 
