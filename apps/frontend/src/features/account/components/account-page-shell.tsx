@@ -1,5 +1,8 @@
+import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { PageShell } from '@/components/layout/page-shell'
+import { AvatarPicker } from '@/components/ui/avatar-picker'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useSession } from '@/features/session'
 import type { AccountPageState } from '../hooks/use-account-page'
 import { ChangePasswordDialog } from './change-password-dialog'
 import { ChangeContactDialog } from './change-contact-dialog'
@@ -44,7 +48,12 @@ export function AccountPageShell(props: AccountPageState) {
             </h2>
           </div>
           <div className="divide-y divide-border">
-            <InfoRow label="姓名" value={profile.name} />
+            <ProfileEditSection
+              profile={profile}
+              saving={props.profileSaving}
+              error={props.profileError}
+              onSave={props.updateProfile}
+            />
             <InfoRow
               label="手机号"
               value={profile.phone}
@@ -210,6 +219,76 @@ export function AccountPageShell(props: AccountPageState) {
         </AlertDialogContent>
       </AlertDialog>
     </PageShell>
+  )
+}
+
+function ProfileEditSection({
+  profile,
+  saving,
+  error,
+  onSave,
+}: {
+  profile: { name: string; avatar: string }
+  saving: boolean
+  error: string | null
+  onSave: (params: { name?: string; avatar?: string }) => Promise<boolean>
+}) {
+  const { member } = useSession()
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState(profile.name)
+
+  const handleSaveName = useCallback(async () => {
+    const trimmed = nameValue.trim()
+    if (trimmed === profile.name) { setEditingName(false); return }
+    const ok = await onSave({ name: trimmed })
+    if (ok) setEditingName(false)
+  }, [nameValue, profile.name, onSave])
+
+  const handleAvatarChange = useCallback(
+    (avatar: string) => { onSave({ avatar }) },
+    [onSave],
+  )
+
+  return (
+    <div className="px-5 py-4 space-y-4">
+      {/* Avatar + Name row */}
+      <div className="flex items-center gap-4">
+        <AvatarPicker value={profile.avatar} onChange={handleAvatarChange} size={56} />
+        <div className="flex-1 space-y-1">
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                className="h-8 text-sm"
+                placeholder="输入姓名"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
+              />
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleSaveName} disabled={saving}>
+                {saving ? '…' : '保存'}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditingName(false); setNameValue(profile.name) }}>
+                取消
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{profile.name || '未设置姓名'}</span>
+              <Button size="sm" variant="ghost" className="h-6 text-xs text-primary" onClick={() => { setNameValue(profile.name); setEditingName(true) }}>
+                编辑
+              </Button>
+            </div>
+          )}
+          {member && (
+            <p className="text-xs text-muted-foreground">
+              昵称：{member.alias || '—'}
+            </p>
+          )}
+        </div>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
   )
 }
 

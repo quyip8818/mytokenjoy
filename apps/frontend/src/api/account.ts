@@ -11,6 +11,7 @@ export interface Profile {
   phone: string
   email: string
   name: string
+  avatar: string
   hasPassword: boolean
   companies: ProfileCompany[]
 }
@@ -29,6 +30,12 @@ export interface LoginActivityResponse {
 
 export const accountApi = {
   getProfile: () => request<Profile>('/me/profile'),
+
+  updateProfile: (params: { name?: string; avatar?: string }) =>
+    request<void>('/me/profile', {
+      method: 'PUT',
+      body: JSON.stringify(params),
+    }),
 
   changePassword: (params: { oldPassword?: string; newPassword: string }) =>
     request<void>('/me/change-password', {

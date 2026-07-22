@@ -11,6 +11,7 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	mehandler "github.com/tokenjoy/backend/internal/http/handler/me"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/registertoken"
@@ -83,6 +84,7 @@ type initBody struct {
 	Email    string `json:"email"`
 	Code     string `json:"code"`
 	Password string `json:"password"`
+	Name     string `json:"name"` // optional: user's real name
 }
 
 type initResponseChoose struct {
@@ -164,6 +166,7 @@ func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().UTC()
 		newUser := store.User{
 			ID:           userID,
+			Name:         body.Name,
 			PasswordHash: string(passwordHash),
 			Status:       "active",
 			CreatedAt:    now,
@@ -248,8 +251,8 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
 		return
 	}
-	if body.InviteCode == "" || body.Name == "" {
-		httputil.WriteStatus(w, http.StatusBadRequest, "inviteCode and name required")
+	if body.InviteCode == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "inviteCode required")
 		return
 	}
 
@@ -259,8 +262,10 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write users.name (user was created during register-init without a name).
-	_ = h.users.UpdateName(r.Context(), userID, body.Name)
+	// Write users.name if provided.
+	if body.Name != "" {
+		_ = h.users.UpdateName(r.Context(), userID, body.Name)
+	}
 
 	member, err := h.companySvc.AcceptInvite(r.Context(), domaincompany.AcceptInviteRequest{
 		UserID:     userID,
@@ -281,6 +286,8 @@ type companyBody struct {
 	CompanyName string `json:"companyName"`
 	Industry    string `json:"industry"`
 	Size        string `json:"size"`
+	Alias       string `json:"alias"`  // optional: member alias in the new company
+	Avatar      string `json:"avatar"` // optional: member avatar (dicebear or data URI)
 }
 
 func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
@@ -293,6 +300,12 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "companyName required")
 		return
 	}
+	if body.Avatar != "" {
+		if err := mehandler.ValidateAvatar(body.Avatar); err != nil {
+			httputil.WriteError(w, err)
+			return
+		}
+	}
 
 	userID, err := h.resolveRegisterUser(r)
 	if err != nil {
@@ -301,11 +314,13 @@ func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.companySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
-		UserID:   userID,
-		Name:     body.CompanyName,
-		Industry: body.Industry,
-		Size:     body.Size,
-		Type:     store.CompanyTypeTrial,
+		UserID:       userID,
+		Name:         body.CompanyName,
+		Industry:     body.Industry,
+		Size:         body.Size,
+		Type:         store.CompanyTypeTrial,
+		MemberAlias:  body.Alias,
+		MemberAvatar: body.Avatar,
 	})
 	if err != nil {
 		slog.Error("register/company: CreateCompany failed", "error", err, "user_id", userID)

@@ -41,7 +41,7 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 
 	var member types.Member
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
-		m, err := s.addMember(ctx, tx, req.UserID, invite.CompanyID, req.Name, invite.Role)
+		m, err := s.addMember(ctx, tx, req.UserID, invite.CompanyID, req.Name, "", invite.Role)
 		if err != nil {
 			return err
 		}

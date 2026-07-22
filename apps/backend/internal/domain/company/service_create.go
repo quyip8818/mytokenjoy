@@ -33,13 +33,14 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 
 		if req.UserID != uuid.Nil {
 			// UserID mode: creator becomes super-admin immediately.
-			// Use users.name as alias (user was created during registration with a name).
-			user, uerr := tx.User().GetByID(ctx, req.UserID)
-			alias := ""
-			if uerr == nil && user != nil {
-				alias = user.Name
+			alias := req.MemberAlias
+			if alias == "" {
+				// Fallback: use users.name as alias.
+				if user, err := tx.User().GetByID(ctx, req.UserID); err == nil && user != nil {
+					alias = user.Name
+				}
 			}
-			member, err := s.addMember(ctx, tx, req.UserID, company.ID, alias, store.InviteRoleSuperAdmin)
+			member, err := s.addMember(ctx, tx, req.UserID, company.ID, alias, req.MemberAvatar, store.InviteRoleSuperAdmin)
 			if err != nil {
 				return err
 			}
@@ -142,7 +143,7 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, in
 }
 
 // addMember adds a user to a company. Idempotent: if user is already a member, returns existing.
-func (s *service) addMember(ctx context.Context, tx store.Store, userID, companyID uuid.UUID, alias, role string) (types.Member, error) {
+func (s *service) addMember(ctx context.Context, tx store.Store, userID, companyID uuid.UUID, alias, avatar, role string) (types.Member, error) {
 	company, err := tx.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return types.Member{}, err
@@ -179,6 +180,7 @@ func (s *service) addMember(ctx context.Context, tx store.Store, userID, company
 		CompanyID:      company.ID,
 		UserID:         userID,
 		Alias:          alias,
+		Avatar:         avatar,
 		DepartmentID:   deptID,
 		Status:         types.MemberStatusActive,
 		Roles:          memberRolesFromInvite(role),

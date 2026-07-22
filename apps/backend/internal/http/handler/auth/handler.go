@@ -172,8 +172,8 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
 		return
 	}
-	if body.InviteCode == "" || body.Name == "" {
-		httputil.WriteStatus(w, http.StatusBadRequest, "inviteCode and name required")
+	if body.InviteCode == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "inviteCode required")
 		return
 	}
 
@@ -219,6 +219,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			now := time.Now().UTC()
 			newUser := store.User{
 				ID:           uuid.Must(uuid.NewV7()),
+				Name:         body.Name,
 				Email:        invite.Email,
 				PasswordHash: string(passwordHash),
 				Status:       "active",
@@ -239,8 +240,10 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Write users.name.
-	_ = h.users.UpdateName(ctx, userID, body.Name)
+	// Write users.name if provided.
+	if body.Name != "" {
+		_ = h.users.UpdateName(ctx, userID, body.Name)
+	}
 
 	member, err := h.companySvc.AcceptInvite(ctx, domaincompany.AcceptInviteRequest{
 		UserID:     userID,

@@ -18,6 +18,28 @@ export function useAccountPage() {
     queryFn: () => accountApi.getProfile(),
   })
 
+  // --- Update Profile (name / avatar) ---
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+
+  const updateProfile = useCallback(
+    async (params: { name?: string; avatar?: string }) => {
+      setProfileSaving(true)
+      setProfileError(null)
+      try {
+        await accountApi.updateProfile(params)
+        queryClient.invalidateQueries({ queryKey: accountKeys.profile })
+        return true
+      } catch (err) {
+        setProfileError(err instanceof ApiError ? err.message : '保存失败')
+        return false
+      } finally {
+        setProfileSaving(false)
+      }
+    },
+    [accountApi, queryClient],
+  )
+
   // --- Change Password ---
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
@@ -116,6 +138,10 @@ export function useAccountPage() {
   return {
     profile: profileQuery.data ?? null,
     profileLoading: profileQuery.isLoading,
+
+    profileSaving,
+    profileError,
+    updateProfile,
 
     passwordDialogOpen,
     setPasswordDialogOpen,

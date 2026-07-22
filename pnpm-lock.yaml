@@ -24,6 +24,12 @@ importers:
 
   apps/frontend:
     dependencies:
+      '@dicebear/core':
+        specifier: ^10.3.0
+        version: 10.3.0
+      '@dicebear/styles':
+        specifier: ^10.2.0
+        version: 10.2.0
       '@fontsource-variable/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -401,6 +407,13 @@ packages:
   '@csstools/css-tokenizer@4.0.0':
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
+
+  '@dicebear/core@10.3.0':
+    resolution: {integrity: sha512-HbzHvYY/E0m3B7BfBjs8SO7JyqJnORJgQhM2YM7VoN/EQzrqJ3Z0j4+op+WfEWXWzZj75tQqBU5SZpUssi5m/Q==}
+    engines: {node: '>=22.0.0'}
+
+  '@dicebear/styles@10.2.0':
+    resolution: {integrity: sha512-o4rw0+7Q7sSAyr9YxYrUe3jCxlOAzEcBvbQvl4hQKQ+9WNmBK4p7wGYvsmGeJbxFh8y/Ux6ltrCPyXBIDV6qYA==}
 
   '@dotenvx/dotenvx@1.75.1':
     resolution: {integrity: sha512-/BITOC9dmS/edY2zQwZNicQ059O6RKabtQfyEafV0nGtfYRNHYy1DIPiYVcov40+tob9hfmBnbR963dS+EQ1DQ==}
@@ -4155,6 +4168,10 @@ snapshots:
       css-tree: 3.2.1
 
   '@csstools/css-tokenizer@4.0.0': {}
+
+  '@dicebear/core@10.3.0': {}
+
+  '@dicebear/styles@10.2.0': {}
 
   '@dotenvx/dotenvx@1.75.1':
     dependencies:

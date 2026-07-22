@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { AvatarPicker } from '@/components/ui/avatar-picker'
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ export function AuthPopup({
   const [companies, setCompanies] = useState<CompanyOption[]>([])
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [memberName, setMemberName] = useState('')
+  const [avatar, setAvatar] = useState('')
 
   // Phone countdown
   const { sending, countdown, sendError, sendCode: sendPhoneCode } = useVerifyCountdown()
@@ -246,7 +248,7 @@ export function AuthPopup({
   // --- Accept invite ---
   const handleAcceptInvite = useCallback(
     async (inviteCode: string) => {
-      const name = memberName.trim() || '新成员'
+      const name = memberName.trim() || undefined
       setSubmitting(true)
       setError(null)
       try {
@@ -270,7 +272,7 @@ export function AuthPopup({
       setSubmitting(true)
       setError(null)
       try {
-        const result = await authApi.registerInit({ phone: phone.trim() }, code.trim(), password)
+        const result = await authApi.registerInit({ phone: phone.trim() }, code.trim(), password, memberName.trim() || undefined)
         if (result.action === 'login') { setError('该手机号已注册，请切换到登录'); return }
         if (result.invites && result.invites.length > 0) { setInvites(result.invites); setStep('select-invite'); return }
         setStep('register-info')
@@ -280,7 +282,7 @@ export function AuthPopup({
         setSubmitting(false)
       }
     },
-    [phone, code, password, confirmPassword],
+    [phone, code, password, confirmPassword, memberName],
   )
 
   // --- Register: email ---
@@ -292,7 +294,7 @@ export function AuthPopup({
       setSubmitting(true)
       setError(null)
       try {
-        const result = await authApi.registerInit({ email: email.trim() }, code.trim(), password)
+        const result = await authApi.registerInit({ email: email.trim() }, code.trim(), password, memberName.trim() || undefined)
         if (result.action === 'login') { setError('该邮箱已注册，请切换到登录'); return }
         if (result.invites && result.invites.length > 0) { setInvites(result.invites); setStep('select-invite'); return }
         setStep('register-info')
@@ -302,7 +304,7 @@ export function AuthPopup({
         setSubmitting(false)
       }
     },
-    [email, code, password, confirmPassword],
+    [email, code, password, confirmPassword, memberName],
   )
 
   // --- Create company ---
@@ -313,7 +315,7 @@ export function AuthPopup({
       setSubmitting(true)
       setError(null)
       try {
-        await authApi.registerCompany(companyName.trim(), industry, size)
+        await authApi.registerCompany(companyName.trim(), industry, size, memberName.trim() || undefined, avatar || undefined)
         onSuccess?.()
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '创建失败')
@@ -321,7 +323,7 @@ export function AuthPopup({
         setSubmitting(false)
       }
     },
-    [companyName, industry, size, onSuccess],
+    [companyName, industry, size, memberName, avatar, onSuccess],
   )
 
   // --- Reset password (phone) ---
@@ -514,6 +516,10 @@ export function AuthPopup({
           {/* === REGISTER: phone === */}
           {step === 'register-phone' && (
             <form onSubmit={handleRegisterVerify} className="flex flex-col gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="reg-name" className="text-sm font-medium">姓名 <span className="text-muted-foreground font-normal">（可选）</span></Label>
+                <Input id="reg-name" type="text" placeholder="您的姓名" className="h-11" value={memberName} onChange={(e) => setMemberName(e.target.value)} />
+              </div>
               <PhoneCodeFields phone={phone} setPhone={setPhone} code={code} setCode={setCode} canSend={canSend} sending={sending} countdown={countdown} onSend={handleSendRegisterPhoneCode} />
               <NewPasswordFields id="reg" password={password} setPassword={setPassword} confirm={confirmPassword} setConfirm={setConfirmPassword} />
               <FormMessage error={displayError} />
@@ -527,6 +533,10 @@ export function AuthPopup({
           {/* === REGISTER: email === */}
           {step === 'register-email' && (
             <form onSubmit={handleRegisterEmailVerify} className="flex flex-col gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="reg-email-name" className="text-sm font-medium">姓名 <span className="text-muted-foreground font-normal">（可选）</span></Label>
+                <Input id="reg-email-name" type="text" placeholder="您的姓名" className="h-11" value={memberName} onChange={(e) => setMemberName(e.target.value)} />
+              </div>
               <EmailCodeFields id="reg-email" email={email} setEmail={setEmail} code={code} setCode={setCode} canSend={canSendEmail} sending={emailSending} countdown={emailCountdown} onSend={handleSendRegisterEmailCode} />
               <NewPasswordFields id="reg-email" password={password} setPassword={setPassword} confirm={confirmPassword} setConfirm={setConfirmPassword} />
               <FormMessage error={error || emailSendError} />
@@ -544,6 +554,13 @@ export function AuthPopup({
               <div className="space-y-2">
                 <Label htmlFor="ri-company" className="text-sm font-medium">公司名称</Label>
                 <Input id="ri-company" type="text" placeholder="您的企业名称" className="h-11" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ri-alias" className="text-sm font-medium">您的昵称 <span className="text-muted-foreground font-normal">（可选）</span></Label>
+                <div className="flex items-center gap-3">
+                  <AvatarPicker value={avatar} onChange={setAvatar} size={40} />
+                  <Input id="ri-alias" type="text" placeholder="在该企业内的显示名" className="h-11 flex-1" value={memberName} onChange={(e) => setMemberName(e.target.value)} />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">所属行业</Label>

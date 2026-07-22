@@ -64,25 +64,25 @@ export const authApi = {
     }),
 
   // --- Register endpoints ---
-  registerInit: (identifier: { phone?: string; email?: string }, code: string, password: string) =>
+  registerInit: (identifier: { phone?: string; email?: string }, code: string, password: string, name?: string) =>
     request<{ action: 'choose'; invites: PendingInvite[] } | { action: 'login' }>(
       '/auth/register/init',
       {
         method: 'POST',
-        body: JSON.stringify({ ...identifier, code, password }),
+        body: JSON.stringify({ ...identifier, code, password, ...(name ? { name } : {}) }),
       },
     ),
 
-  registerAccept: (inviteCode: string, name: string) =>
+  registerAccept: (inviteCode: string, name?: string) =>
     request<{ memberId: string; companyId: string }>('/auth/register/accept', {
       method: 'POST',
-      body: JSON.stringify({ inviteCode, name }),
+      body: JSON.stringify({ inviteCode, ...(name ? { name } : {}) }),
     }),
 
-  registerCompany: (companyName: string, industry: string, size: string) =>
+  registerCompany: (companyName: string, industry: string, size: string, alias?: string, avatar?: string) =>
     request<{ memberId: string; companyId: string }>('/auth/register/company', {
       method: 'POST',
-      body: JSON.stringify({ companyName, industry, size }),
+      body: JSON.stringify({ companyName, industry, size, ...(alias ? { alias } : {}), ...(avatar ? { avatar } : {}) }),
     }),
 
   // --- Accept invite (unauthenticated, email link) ---
