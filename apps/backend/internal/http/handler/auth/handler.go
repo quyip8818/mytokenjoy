@@ -61,8 +61,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email    string `json:"email"` // phone or email
-	Password string `json:"password"`
+	Email     string    `json:"email"` // phone or email
+	Password  string    `json:"password"`
+	CompanyID uuid.UUID `json:"companyId"` // required in SaaS mode
 }
 
 // Login authenticates by password. The "email" field accepts either a phone number or email.
@@ -75,6 +76,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Email == "" || body.Password == "" {
 		httputil.WriteStatus(w, http.StatusBadRequest, "credentials required")
+		return
+	}
+
+	// SaaS mode requires companyId in the login request.
+	if h.pub.Cfg.SupportSaas && body.CompanyID == uuid.Nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "companyId required")
 		return
 	}
 
@@ -97,7 +104,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 3: Route by member companies (same logic for phone and email).
+	// Step 3: If SaaS with companyId, resolve membership directly.
+	if h.pub.Cfg.SupportSaas {
+		h.loginWithCompanyID(w, r, user.ID, body.CompanyID)
+		return
+	}
+
+	// Step 4: Non-SaaS — route by member companies.
 	h.routeByMembership(w, r, user.ID)
 }
 
@@ -107,6 +120,23 @@ func (h *Handler) resolveUserByIdentifier(ctx context.Context, identifier string
 		return h.users.GetByPhone(ctx, verifycode.FormatPhone(identifier))
 	}
 	return h.users.GetByEmail(ctx, identifier)
+}
+
+// loginWithCompanyID handles SaaS login where the user specifies which company to log into.
+func (h *Handler) loginWithCompanyID(w http.ResponseWriter, r *http.Request, userID uuid.UUID, companyID uuid.UUID) {
+	members, err := h.users.ListMemberCompanies(r.Context(), userID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	for _, m := range members {
+		if m.CompanyID == companyID {
+			h.issueTokenPairAndRespond(w, r, m.CompanyID, m.MemberID, userID,
+				map[string]any{"memberId": m.MemberID.String()}, false)
+			return
+		}
+	}
+	httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
 }
 
 // routeByMembership queries a user's active memberships and routes:
