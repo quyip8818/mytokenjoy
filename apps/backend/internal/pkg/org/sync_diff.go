@@ -60,7 +60,7 @@ func BuildSyncDiff(
 			diff.RemoveMembers = append(diff.RemoveMembers, member)
 			continue
 		}
-		if remote.Name != member.Name || remote.Email != member.Email || remote.Mobile != member.Phone {
+		if remote.Name != member.Alias {
 			diff.UpdateMembers = append(diff.UpdateMembers, remote)
 		}
 	}

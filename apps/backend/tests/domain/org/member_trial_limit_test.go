@@ -41,7 +41,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	// The limit is 3 — if existing already >= 3, the next create should fail.
 	if existingCount >= 3 {
 		_, err := svc.CreateMember(ctx, types.Member{
-			Name: "Over Limit", Phone: "13900009999", Email: "over@example.com",
+			Alias: "Over Limit", Phone: "13900009999", Email: "over@example.com",
 			DepartmentID: contract.IDDept5,
 		})
 		if err == nil {
@@ -53,7 +53,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	// Fill up to limit
 	for i := existingCount; i < 3; i++ {
 		_, err := svc.CreateMember(ctx, types.Member{
-			Name: "Fill", Phone: "", Email: "",
+			Alias: "Fill", Phone: "", Email: "",
 			DepartmentID: contract.IDDept5,
 		})
 		if err != nil {
@@ -63,7 +63,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 
 	// Now the next one should fail
 	_, err = svc.CreateMember(ctx, types.Member{
-		Name: "Over Limit", Phone: "13900008888", Email: "overlimit@example.com",
+		Alias: "Over Limit", Phone: "13900008888", Email: "overlimit@example.com",
 		DepartmentID: contract.IDDept5,
 	})
 	if err == nil {
@@ -86,7 +86,7 @@ func TestTrialMemberLimitAllowsNonTrial(t *testing.T) {
 
 	// Should succeed even though limit is 1 and there are already members
 	_, err := svc.CreateMember(ctx, types.Member{
-		Name: "No Limit", Phone: "13900007777", Email: "nolimit@example.com",
+		Alias: "No Limit", Phone: "13900007777", Email: "nolimit@example.com",
 		DepartmentID: contract.IDDept5,
 	})
 	if err != nil {

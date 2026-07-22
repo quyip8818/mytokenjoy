@@ -58,8 +58,8 @@ func TestAcceptInviteCreatesMembers(t *testing.T) {
 	if member.CompanyID != created.Company.ID {
 		t.Fatal("expected member in created company")
 	}
-	if member.Name != "New Admin" {
-		t.Fatalf("expected name 'New Admin', got %s", member.Name)
+	if member.Alias != "New Admin" {
+		t.Fatalf("expected name 'New Admin', got %s", member.Alias)
 	}
 }
 

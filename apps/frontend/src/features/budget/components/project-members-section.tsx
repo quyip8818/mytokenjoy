@@ -136,7 +136,7 @@ export function ProjectMembersSection({
                   project.consumed > 0 ? Math.round((memberConsumed / project.consumed) * 100) : 0
                 return (
                   <TableRow key={m.id} className="even:bg-muted/40 hover:bg-muted/50">
-                    <TableCell className="font-medium">{m.name}</TableCell>
+                    <TableCell className="font-medium">{m.alias}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatDisplayCurrency(memberConsumed)}
                     </TableCell>
@@ -148,7 +148,7 @@ export function ProjectMembersSection({
                         variant="ghost"
                         size="icon"
                         className="size-6 text-muted-foreground hover:text-red-600"
-                        aria-label={`移除成员 ${m.name}`}
+                        aria-label={`移除成员 ${m.alias}`}
                         onClick={() => void removeMember(m.id)}
                       >
                         <UserMinus className="size-3.5" />

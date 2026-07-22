@@ -25,6 +25,7 @@ export function createMockSession(
     companyId: '00000000-0000-7000-8000-000000000002',
     companyType: 'selfhosted',
     authzRevision: 0,
+    user: { name: '管理员' },
     member: mockMember,
     permissions,
     readOnly,

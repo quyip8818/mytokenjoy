@@ -30,7 +30,7 @@ func manualDept(id uuid.UUID, name string) types.Department {
 func importedMember(id uuid.UUID, extID, name, email, phone string) types.Member {
 	ext := extID
 	return types.Member{
-		ID: id, Name: name, Email: email, Phone: phone,
+		ID: id, Alias: name, Phone: phone, Email: email,
 		ExternalID: &ext, Source: types.MemberSourceImported,
 	}
 }
@@ -71,12 +71,12 @@ func TestBuildSyncDiffRenames(t *testing.T) {
 		[]types.Department{importedDept(syncDept1, "d1", "Eng")},
 		[]types.Member{importedMember(syncMember1, "u1", "Alice", "a@x.com", "138")},
 		[]datasource.RemoteDepartment{{ExternalID: "d1", Name: "Engineering"}},
-		[]datasource.RemoteMember{{ExternalID: "u1", Name: "Alice", Email: "alice@x.com", Mobile: "139"}},
+		[]datasource.RemoteMember{{ExternalID: "u1", Name: "Alice Renamed", Email: "a@x.com", Mobile: "138"}},
 	)
 	if len(diff.UpdateDepartments) != 1 || diff.UpdateDepartments[0].Name != "Engineering" {
 		t.Fatalf("unexpected update departments: %+v", diff.UpdateDepartments)
 	}
-	if len(diff.UpdateMembers) != 1 || diff.UpdateMembers[0].Email != "alice@x.com" {
+	if len(diff.UpdateMembers) != 1 || diff.UpdateMembers[0].Name != "Alice Renamed" {
 		t.Fatalf("unexpected update members: %+v", diff.UpdateMembers)
 	}
 }
@@ -87,7 +87,7 @@ func TestBuildSyncDiffSkipsManualSources(t *testing.T) {
 	diff := pkgorg.BuildSyncDiff(
 		[]types.Department{manualDept(syncManual, "Local"), importedDept(syncDept1, "d1", "Eng")},
 		[]types.Member{
-			{ID: syncMManual, Name: "Bob", Source: types.MemberSourceManual, ExternalID: &ext},
+			{ID: syncMManual, Alias: "Bob", Source: types.MemberSourceManual, ExternalID: &ext},
 			importedMember(syncMember1, "u1", "Alice", "a@x.com", "138"),
 		},
 		nil,

@@ -132,7 +132,7 @@ export function BudgetOrgMemberPicker({
           onChange(remaining)
         } else {
           const toAdd = memberIds.filter((id) => !selectedIds.includes(id))
-          for (const m of members) newNames.set(m.id, m.name)
+          for (const m of members) newNames.set(m.id, m.alias)
           onChange([...selectedIds, ...toAdd])
         }
         setSelectedNames(newNames)
@@ -155,7 +155,7 @@ export function BudgetOrgMemberPicker({
         newNames.delete(member.id)
       } else {
         onChange([...selectedIds, member.id])
-        newNames.set(member.id, member.name)
+        newNames.set(member.id, member.alias)
       }
       setSelectedNames(newNames)
     },
@@ -353,9 +353,9 @@ function MemberRow({
         checked={checked}
         onCheckedChange={onToggle}
         className="size-3.5"
-        aria-label={member.name}
+        aria-label={member.alias}
       />
-      <span className="flex-1 truncate">{member.name}</span>
+      <span className="flex-1 truncate">{member.alias}</span>
       <span className="text-[11px] text-muted-foreground">{member.departmentName}</span>
     </label>
   )

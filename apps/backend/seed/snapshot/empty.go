@@ -14,7 +14,7 @@ import (
 func BuildEmpty(cfg config.Config) store.Snapshot {
 	admin := types.Member{
 		ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID,
-		Name: "管理员", Email: "admin@example.com",
+		Alias: "管理员", Email: "admin@example.com",
 		DepartmentID: contract.IDDept1, DepartmentName: "总公司",
 		Status: "active", Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
 	}

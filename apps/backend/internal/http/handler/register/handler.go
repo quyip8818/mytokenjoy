@@ -259,6 +259,9 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Write users.name (user was created during register-init without a name).
+	_ = h.users.UpdateName(r.Context(), userID, body.Name)
+
 	member, err := h.companySvc.AcceptInvite(r.Context(), domaincompany.AcceptInviteRequest{
 		UserID:     userID,
 		InviteCode: body.InviteCode,

@@ -107,7 +107,7 @@ func buildCallDetail(input EntryBuildInput, memberID *uuid.UUID, modelName strin
 	if memberID != nil && input.Member != nil {
 		detail.CallerType = types.CallerTypeMember
 		detail.CallerID = memberID.String()
-		detail.Caller = input.Member.Name
+		detail.Caller = input.Member.Alias
 	} else {
 		detail.CallerType = types.CallerTypePlatformKey
 		detail.CallerID = input.Mapping.PlatformKeyID.String()

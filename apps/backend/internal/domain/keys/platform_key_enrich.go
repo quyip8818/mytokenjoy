@@ -63,7 +63,7 @@ func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.
 
 	if key.MemberID != nil {
 		if member, ok := lookups.memberByID[*key.MemberID]; ok {
-			name := member.Name
+			name := member.Alias
 			enriched.MemberName = &name
 			enriched.DepartmentID = member.DepartmentID
 			enriched.DepartmentName = member.DepartmentName

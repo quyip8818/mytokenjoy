@@ -139,7 +139,7 @@ func (s *service) DepartmentMemberCosts(ctx context.Context, deptID uuid.UUID, p
 	for _, row := range rows {
 		name := row.MemberID.String()
 		if member, ok := pkgorg.FindMemberByID(members, row.MemberID); ok {
-			name = member.Name
+			name = member.Alias
 		}
 		result = append(result, types.DepartmentCostMember{
 			MemberID: row.MemberID, MemberName: name,
@@ -206,7 +206,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 		name := row.MemberID.String()
 		deptName := ""
 		if member, ok := pkgorg.FindMemberByID(members, row.MemberID); ok {
-			name = member.Name
+			name = member.Alias
 			if path := pkgorg.GetDeptPath(departments, member.DepartmentID); path != nil {
 				deptName = *path
 			}

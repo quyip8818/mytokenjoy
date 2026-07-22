@@ -11,8 +11,8 @@ import (
 )
 
 // ResolveOrCreateUser finds an existing user by phone or email, or creates a new one.
-// Returns the user ID.
-func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (uuid.UUID, error) {
+// Returns the user ID. When creating a new user, name is stored in users.name.
+func ResolveOrCreateUser(ctx context.Context, st Store, phone, email, name string) (uuid.UUID, error) {
 	if phone == "" && email == "" {
 		return uuid.Nil, domain.BadRequest("手机号或邮箱至少填写一项")
 	}
@@ -41,6 +41,7 @@ func ResolveOrCreateUser(ctx context.Context, st Store, phone, email string) (uu
 	userID := uuid.Must(uuid.NewV7())
 	newUser := store.User{
 		ID:        userID,
+		Name:      name,
 		Phone:     phone,
 		Email:     email,
 		Status:    "active",

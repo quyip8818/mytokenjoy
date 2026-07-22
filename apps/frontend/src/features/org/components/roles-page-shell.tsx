@@ -132,7 +132,7 @@ export function RolesPageShell({
             ? {
                 open: true,
                 title: '移除成员',
-                desc: `确定将「${removeConfirm.member.name}」从「${removeConfirm.role.name}」角色中移除吗？`,
+                desc: `确定将「${removeConfirm.member.alias}」从「${removeConfirm.role.name}」角色中移除吗？`,
                 variant: 'danger',
                 confirmLabel: '移除',
                 onConfirm: handleConfirmRemove,

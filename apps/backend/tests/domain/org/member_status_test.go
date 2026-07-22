@@ -140,7 +140,7 @@ func TestCreateMemberDefaultsToActive(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	member, err := svc.CreateMember(ctx, types.Member{
-		Name: "New Person", Phone: "13900009999", Email: "new@example.com",
+		Alias: "New Person", Phone: "13900009999", Email: "new@example.com",
 		DepartmentID: contract.IDDept3,
 	})
 	if err != nil {
@@ -159,7 +159,7 @@ func TestBatchInviteSetsStatus(t *testing.T) {
 
 	// Create a member first
 	member, err := svc.CreateMember(ctx, types.Member{
-		Name: "Invite Target", Phone: "13900001111", Email: "invite@example.com",
+		Alias: "Invite Target", Phone: "13900001111", Email: "invite@example.com",
 		DepartmentID: contract.IDDept3,
 	})
 	if err != nil {

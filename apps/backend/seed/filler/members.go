@@ -29,57 +29,57 @@ var leafDeptBudgets = []DeptBudget{
 func anchorMembers() []types.Member {
 	return []types.Member{
 		{
-			ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID, Name: "管理员", Phone: "13800000001", Email: "admin@example.com",
+			ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID, Alias: "管理员", Phone: "13800000001", Email: "admin@example.com",
 			DepartmentID: contract.IDDept1, DepartmentName: "总公司", Status: "active",
 			Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
 		},
 		{
-			ID: contract.IDMember1, CompanyID: contract.DefaultCompanyID, Name: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
+			ID: contract.IDMember1, CompanyID: contract.DefaultCompanyID, Alias: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{
-			ID: contract.IDMember2, CompanyID: contract.DefaultCompanyID, Name: "李四", Phone: "13912345678", Email: "lisi@example.com",
+			ID: contract.IDMember2, CompanyID: contract.DefaultCompanyID, Alias: "李四", Phone: "13912345678", Email: "lisi@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleOrgAdmin, permission.RoleBudgetApprover}, Source: "imported",
 		},
 		{
-			ID: contract.IDMember3, CompanyID: contract.DefaultCompanyID, Name: "王五", Phone: "", Email: "wangwu@example.com",
+			ID: contract.IDMember3, CompanyID: contract.DefaultCompanyID, Alias: "王五", Phone: "", Email: "wangwu@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "pending",
 			Roles: []string{permission.RoleMember}, Source: "invited",
 		},
 		{
-			ID: contract.IDMember4, CompanyID: contract.DefaultCompanyID, Name: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
+			ID: contract.IDMember4, CompanyID: contract.DefaultCompanyID, Alias: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
 			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "manual",
 		},
 		{
-			ID: contract.IDMember5, CompanyID: contract.DefaultCompanyID, Name: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
+			ID: contract.IDMember5, CompanyID: contract.DefaultCompanyID, Alias: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
 			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "inactive",
 			Roles: []string{permission.RoleMember}, Source: "imported",
 		},
 		{
-			ID: contract.IDMemberAuditor, CompanyID: contract.DefaultCompanyID, Name: "孙审计", Phone: "13512345678", Email: "sunaudit@example.com",
+			ID: contract.IDMemberAuditor, CompanyID: contract.DefaultCompanyID, Alias: "孙审计", Phone: "13512345678", Email: "sunaudit@example.com",
 			DepartmentID: contract.IDDept8, DepartmentName: "行政部", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAuditor}, Source: "manual",
 		},
 		{
-			ID: contract.IDMemberPure, CompanyID: contract.DefaultCompanyID, Name: "周八", Phone: "13412345678", Email: "zhouba@example.com",
+			ID: contract.IDMemberPure, CompanyID: contract.DefaultCompanyID, Alias: "周八", Phone: "13412345678", Email: "zhouba@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember}, Source: "manual",
 		},
 		{
-			ID: contract.IDMember6, CompanyID: contract.DefaultCompanyID, Name: "吴九", Phone: "13312345678", Email: "wujiu@example.com",
+			ID: contract.IDMember6, CompanyID: contract.DefaultCompanyID, Alias: "吴九", Phone: "13312345678", Email: "wujiu@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{
-			ID: contract.IDMember15, CompanyID: contract.DefaultCompanyID, Name: "郑十五", Phone: "13212345615", Email: "zheng15@example.com",
+			ID: contract.IDMember15, CompanyID: contract.DefaultCompanyID, Alias: "郑十五", Phone: "13212345615", Email: "zheng15@example.com",
 			DepartmentID: contract.IDDept5, DepartmentName: "测试组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
 		{
-			ID: contract.IDMember16, CompanyID: contract.DefaultCompanyID, Name: "冯十六", Phone: "13212345616", Email: "feng16@example.com",
+			ID: contract.IDMember16, CompanyID: contract.DefaultCompanyID, Alias: "冯十六", Phone: "13212345616", Email: "feng16@example.com",
 			DepartmentID: contract.IDDept5, DepartmentName: "测试组", Status: "active",
 			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
 		},
@@ -130,7 +130,7 @@ func buildGeneratedMember(seq int, departmentID uuid.UUID, departmentName string
 		phone = buildPhone(seq)
 	}
 	return types.Member{
-		ID: seedMemberID(seq), CompanyID: contract.DefaultCompanyID, Name: name, Phone: phone, Email: buildEmail(seq),
+		ID: seedMemberID(seq), CompanyID: contract.DefaultCompanyID, Alias: name, Phone: phone, Email: buildEmail(seq),
 		DepartmentID: departmentID, DepartmentName: departmentName,
 		Status: pickStatus(seq), Roles: []string{permission.RoleMember}, Source: pickSource(seq),
 	}

@@ -173,9 +173,7 @@ func (s *Service) importFromProvider(
 					if members[i].ID != existing.ID {
 						continue
 					}
-					members[i].Name = remote.Name
-					members[i].Email = remote.Email
-					members[i].Phone = remote.Mobile
+					members[i].Alias = remote.Name
 					members[i].DepartmentID = localDept
 					members[i].DepartmentName = deptNameByID[localDept]
 					members[i].ExternalID = stringPtr(remote.ExternalID)
@@ -189,7 +187,7 @@ func (s *Service) importFromProvider(
 				continue
 			}
 
-			userID, uerr := core.ResolveOrCreateUser(ctx, st, remote.Mobile, remote.Email)
+			userID, uerr := core.ResolveOrCreateUser(ctx, st, remote.Mobile, remote.Email, remote.Name)
 			if uerr != nil {
 				result.Failures = append(result.Failures, types.ImportFailure{
 					ID:     memberID,
@@ -201,9 +199,7 @@ func (s *Service) importFromProvider(
 			members = append(members, types.Member{
 				ID:             memberID,
 				UserID:         userID,
-				Name:           remote.Name,
-				Phone:          remote.Mobile,
-				Email:          remote.Email,
+				Alias:          remote.Name,
 				DepartmentID:   localDept,
 				DepartmentName: deptNameByID[localDept],
 				Status:         "active",

@@ -112,6 +112,7 @@ export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessio
       authzRevision: query.data?.authzRevision ?? 0,
       memberId: query.data?.member?.id ?? '',
       member: query.data?.member ?? null,
+      userName: query.data?.user?.name ?? '',
       permissions: query.data?.permissions ?? [],
       readOnly: query.data?.readOnly ?? false,
       billingCurrency: query.data?.billingCurrency ?? 'CNY',

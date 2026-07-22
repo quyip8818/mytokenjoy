@@ -31,10 +31,15 @@ func (r *RecipientResolver) Resolve(ctx context.Context, memberID uuid.UUID) Rec
 	if err != nil || member == nil {
 		return RecipientInfo{MemberID: memberID}
 	}
+	// Resolve user for email/phone.
+	user, err := r.store.User().GetByID(ctx, member.UserID)
+	if err != nil || user == nil {
+		return RecipientInfo{MemberID: member.ID, Name: member.Alias}
+	}
 	return RecipientInfo{
 		MemberID: member.ID,
-		Email:    member.Email,
-		Phone:    member.Phone,
-		Name:     member.Name,
+		Email:    user.Email,
+		Phone:    user.Phone,
+		Name:     member.Alias,
 	}
 }

@@ -117,7 +117,7 @@ func buildBudgetApprovals() []types.BudgetApproval {
 			Status: "pending", CreatedAt: "2026-06-29 09:15",
 		},
 		{
-			ID: contract.IDBudgetAppr5, ApplicantID: productMember.ID, ApplicantName: productMember.Name, DepartmentName: productMember.DepartmentName,
+			ID: contract.IDBudgetAppr5, ApplicantID: productMember.ID, ApplicantName: productMember.Alias, DepartmentName: productMember.DepartmentName,
 			Amount: 200, Reason: "产品文档生成",
 			Status: "approved", CreatedAt: "2026-06-25 16:00", ResolvedAt: &resolved3,
 		},
@@ -130,5 +130,5 @@ func firstMemberInDepartment(departmentID uuid.UUID) types.Member {
 			return member
 		}
 	}
-	return types.Member{ID: contract.IDMemberFallback, Name: "产品成员", DepartmentName: "产品部"}
+	return types.Member{ID: contract.IDMemberFallback, Alias: "产品成员", DepartmentName: "产品部"}
 }

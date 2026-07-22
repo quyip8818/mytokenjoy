@@ -9,6 +9,7 @@ import (
 
 type User struct {
 	ID           uuid.UUID
+	Name         string
 	Phone        string
 	Email        string
 	PasswordHash string
@@ -25,6 +26,7 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error
 	UpdatePhone(ctx context.Context, id uuid.UUID, phone string) error
 	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
+	UpdateName(ctx context.Context, id uuid.UUID, name string) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 	HasAnyMember(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListMemberCompanies(ctx context.Context, userID uuid.UUID) ([]MemberCompany, error)

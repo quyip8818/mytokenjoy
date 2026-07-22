@@ -9,6 +9,7 @@ import (
 
 type MemberAuthz struct {
 	Member        types.Member
+	UserName      string
 	Roles         []types.Role
 	AuthzRevision int64
 }
@@ -33,6 +34,7 @@ type OrgRepository interface {
 	GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*MemberAuthz, error)
 	MemberPersonalBudget(ctx context.Context, memberID uuid.UUID) (int64, bool, error)
 	SetMembers(ctx context.Context, members []types.Member) error
+	UpdateMemberAvatar(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID, avatar string) error
 	UpdateMemberPersonalBudget(ctx context.Context, memberID uuid.UUID, personalBudget int64) error
 	SetMemberPasswordHash(ctx context.Context, memberID, passwordHash string) error
 	Roles(ctx context.Context) ([]types.Role, error)

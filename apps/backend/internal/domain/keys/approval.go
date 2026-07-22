@@ -43,7 +43,7 @@ func (s *service) CreateApproval(ctx context.Context, input types.CreateApproval
 	}
 	created := types.KeyApproval{
 		ID:   uuid.Must(uuid.NewV7()),
-		Type: input.Type, Applicant: member.Name, ApplicantID: input.MemberID, Department: member.DepartmentName,
+		Type: input.Type, Applicant: member.Alias, ApplicantID: input.MemberID, Department: member.DepartmentName,
 		Reason: input.Reason, RequestedBudget: input.RequestedBudget,
 		RequestedModels: append([]uuid.UUID{}, input.RequestedModels...),
 		Status:          "pending", CreatedAt: time.Now().Format("2006-01-02 15:04"),

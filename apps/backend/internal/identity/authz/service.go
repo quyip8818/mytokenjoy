@@ -60,11 +60,12 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 	// Read company type from request context (injected by CompanyResolve middleware).
 	companyType := companyTypeFromContext(ctx, companyID, s.store)
 
-	if member, perms, readOnly, ok := s.cache.Get(companyID, memberID, revision); ok {
+	if member, userName, perms, readOnly, ok := s.cache.Get(companyID, memberID, revision); ok {
 		return types.SessionContext{
 			CompanyID:       companyID,
 			CompanyType:     companyType,
 			AuthzRevision:   revision,
+			User:            types.SessionUser{Name: userName},
 			Member:          member,
 			Permissions:     perms,
 			ReadOnly:        readOnly,
@@ -82,11 +83,12 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 	}
 	permissions := ResolveMemberPermissions(authz.Member, authz.Roles)
 	readOnly := IsReadOnlySession(permissions)
-	s.cache.Put(companyID, memberID, revision, authz.Member, permissions, readOnly)
+	s.cache.Put(companyID, memberID, revision, authz.Member, authz.UserName, permissions, readOnly)
 	return types.SessionContext{
 		CompanyID:       companyID,
 		CompanyType:     companyType,
 		AuthzRevision:   revision,
+		User:            types.SessionUser{Name: authz.UserName},
 		Member:          authz.Member,
 		Permissions:     permissions,
 		ReadOnly:        readOnly,

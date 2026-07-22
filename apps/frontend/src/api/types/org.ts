@@ -77,9 +77,8 @@ export type MemberStatus = 'active' | 'inactive' | 'pending'
 export interface Member {
   id: string
   companyId: string
-  name: string
-  phone: string
-  email: string
+  alias: string
+  avatar: string
   departmentId: string
   departmentName: string
   status: MemberStatus
@@ -90,6 +89,8 @@ export interface Member {
   employeeId?: string
   jobTitle?: string
   hireDate?: string
+  phone?: string
+  email?: string
 }
 
 export interface BatchImportRow {

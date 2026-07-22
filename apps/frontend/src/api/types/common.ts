@@ -13,10 +13,15 @@ export interface MemberPaginated extends Paginated<Member> {
   pendingCount: number
 }
 
+export interface SessionUser {
+  name: string
+}
+
 export interface SessionContext {
   companyId: string
   companyType: CompanyType
   authzRevision: number
+  user: SessionUser
   member: Member
   permissions: string[]
   readOnly: boolean

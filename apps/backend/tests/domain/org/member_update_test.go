@@ -42,9 +42,9 @@ func TestUpdateMemberMergeSemanticsPreservesUnchangedFields(t *testing.T) {
 		t.Fatal("expected seeded member to have companyID")
 	}
 
-	// Update only name and phone (partial update from frontend)
+	// Update only alias and phone (partial update from frontend)
 	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.Member{
-		Name:  "张三改名",
+		Alias: "张三改名",
 		Phone: "13999999999",
 	})
 	if err != nil {
@@ -52,8 +52,8 @@ func TestUpdateMemberMergeSemanticsPreservesUnchangedFields(t *testing.T) {
 	}
 
 	// Name and phone should be updated
-	if updated.Name != "张三改名" {
-		t.Fatalf("expected name '张三改名', got %q", updated.Name)
+	if updated.Alias != "张三改名" {
+		t.Fatalf("expected alias '张三改名', got %q", updated.Alias)
 	}
 	if updated.Phone != "13999999999" {
 		t.Fatalf("expected phone '13999999999', got %q", updated.Phone)

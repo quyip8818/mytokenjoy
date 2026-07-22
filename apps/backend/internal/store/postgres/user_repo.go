@@ -19,9 +19,9 @@ func newUserRepo(db dbQuerier) *userRepo {
 
 func (r *userRepo) Create(ctx context.Context, user store.User) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO users (id, phone, email, password_hash, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, user.ID, nilIfEmpty(user.Phone), nilIfEmpty(user.Email),
+		INSERT INTO users (id, name, phone, email, password_hash, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, user.ID, user.Name, nilIfEmpty(user.Phone), nilIfEmpty(user.Email),
 		nilIfEmpty(user.PasswordHash), user.Status, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create user: %w", err)
@@ -31,7 +31,7 @@ func (r *userRepo) Create(ctx context.Context, user store.User) error {
 
 func (r *userRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.User, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
+		SELECT id, name, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
 		FROM users WHERE id = $1
 	`, id)
 	return scanUser(row)
@@ -39,7 +39,7 @@ func (r *userRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.User, erro
 
 func (r *userRepo) GetByPhone(ctx context.Context, phone string) (*store.User, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
+		SELECT id, name, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
 		FROM users WHERE phone = $1
 	`, phone)
 	return scanUser(row)
@@ -47,7 +47,7 @@ func (r *userRepo) GetByPhone(ctx context.Context, phone string) (*store.User, e
 
 func (r *userRepo) GetByEmail(ctx context.Context, email string) (*store.User, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
+		SELECT id, name, COALESCE(phone,''), COALESCE(email,''), COALESCE(password_hash,''), status, created_at, updated_at
 		FROM users WHERE email = $1
 	`, email)
 	return scanUser(row)
@@ -65,6 +65,11 @@ func (r *userRepo) UpdatePhone(ctx context.Context, id uuid.UUID, phone string) 
 
 func (r *userRepo) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
 	_, err := r.db.Exec(ctx, `UPDATE users SET email = $2, updated_at = NOW() WHERE id = $1`, id, nilIfEmpty(email))
+	return err
+}
+
+func (r *userRepo) UpdateName(ctx context.Context, id uuid.UUID, name string) error {
+	_, err := r.db.Exec(ctx, `UPDATE users SET name = $2, updated_at = NOW() WHERE id = $1`, id, name)
 	return err
 }
 
@@ -113,7 +118,7 @@ func (r *userRepo) ListMemberCompanies(ctx context.Context, userID uuid.UUID) ([
 
 func scanUser(row pgx.Row) (*store.User, error) {
 	var u store.User
-	err := row.Scan(&u.ID, &u.Phone, &u.Email, &u.PasswordHash, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.ID, &u.Name, &u.Phone, &u.Email, &u.PasswordHash, &u.Status, &u.CreatedAt, &u.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}

@@ -116,7 +116,7 @@ func resolveMemberName(memberID uuid.UUID, members []types.Member) (string, erro
 	}
 	for _, member := range members {
 		if member.ID == memberID {
-			return member.Name, nil
+			return member.Alias, nil
 		}
 	}
 	return "", domain.NotFound("member not found")

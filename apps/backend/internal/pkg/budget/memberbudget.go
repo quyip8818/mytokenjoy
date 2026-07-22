@@ -106,7 +106,7 @@ func GetMemberBudgetCapacity(deptNode types.BudgetNode) int64 {
 
 func BuildMemberBudget(member types.Member, platformKeys []types.PlatformKey) types.MemberBudget {
 	return types.MemberBudget{
-		MemberID: member.ID, MemberName: member.Name, DepartmentID: member.DepartmentID,
+		MemberID: member.ID, MemberName: member.Alias, DepartmentID: member.DepartmentID,
 		PersonalBudget: member.PersonalBudget,
 		Allocated:      GetAllocatedKeyBudget(platformKeys, member.ID),
 		Consumed:       GetConsumedKeyBudget(platformKeys, member.ID),

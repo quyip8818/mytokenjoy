@@ -56,7 +56,7 @@ export function BudgetMemberPicker({
             <span className="flex flex-wrap gap-1">
               {selectedMembers.map((member) => (
                 <Badge key={member.id} variant="outline" className="h-5 px-1.5 text-xs font-normal">
-                  {member.name}
+                  {member.alias}
                 </Badge>
               ))}
             </span>
@@ -76,9 +76,9 @@ export function BudgetMemberPicker({
                     <Checkbox
                       checked={checked}
                       onCheckedChange={() => toggle(member.id)}
-                      aria-label={member.name}
+                      aria-label={member.alias}
                     />
-                    <span className="flex-1 truncate">{member.name}</span>
+                    <span className="flex-1 truncate">{member.alias}</span>
                     <span className="text-xs text-muted-foreground">{member.departmentName}</span>
                   </label>
                 </li>

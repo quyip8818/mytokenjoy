@@ -30,15 +30,15 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 	}
 
 	// Resolve or create user for this member.
-	userID, err := s.resolveOrCreateUser(ctx, input.Phone, input.Email)
+	userID, err := s.resolveOrCreateUser(ctx, input.Phone, input.Email, input.Alias)
 	if err != nil {
 		return types.Member{}, err
 	}
 
 	member := types.Member{
-		ID:     generateID(),
-		UserID: userID,
-		Name:   input.Name, Phone: input.Phone, Email: input.Email,
+		ID:       generateID(),
+		UserID:   userID,
+		Alias:    input.Alias,
 		Username: input.Username, EmployeeID: input.EmployeeID,
 		JobTitle: input.JobTitle, HireDate: input.HireDate,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
@@ -81,14 +81,8 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 		if members[i].ID == id {
 			existing := members[i]
 			// Merge: only overwrite non-zero fields from input
-			if input.Name != "" {
-				existing.Name = input.Name
-			}
-			if input.Phone != "" {
-				existing.Phone = input.Phone
-			}
-			if input.Email != "" {
-				existing.Email = input.Email
+			if input.Alias != "" {
+				existing.Alias = input.Alias
 			}
 			if input.Username != "" {
 				existing.Username = input.Username
@@ -123,6 +117,19 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 			if err := s.d.Store.Org().SetMembers(ctx, members); err != nil {
 				return types.Member{}, err
 			}
+
+			// Update phone/email on users table if provided.
+			if input.Phone != "" {
+				if err := s.d.Store.User().UpdatePhone(ctx, existing.UserID, input.Phone); err != nil {
+					return types.Member{}, err
+				}
+			}
+			if input.Email != "" {
+				if err := s.d.Store.User().UpdateEmail(ctx, existing.UserID, input.Email); err != nil {
+					return types.Member{}, err
+				}
+			}
+
 			return existing, nil
 		}
 	}

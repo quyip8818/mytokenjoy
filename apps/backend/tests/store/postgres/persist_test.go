@@ -56,7 +56,7 @@ func modelUpdatedAt(t *testing.T, pool *pgxpool.Pool, modelID uuid.UUID) time.Ti
 func findMemberName(members []types.Member, id uuid.UUID) string {
 	for _, member := range members {
 		if member.ID == id {
-			return member.Name
+			return member.Alias
 		}
 	}
 	return ""
@@ -139,7 +139,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	updated := false
 	for i := range members {
 		if members[i].ID == contract.IDMember1 {
-			members[i].Name = "PersistTest"
+			members[i].Alias = "PersistTest"
 			updated = true
 			break
 		}
@@ -189,7 +189,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 		}
 		for i := range members {
 			if members[i].ID == contract.IDMember1 {
-				members[i].Name = "TxTest"
+				members[i].Alias = "TxTest"
 			}
 		}
 		if err := tx.Org().SetMembers(ctx, members); err != nil {

@@ -183,7 +183,7 @@ func TestWithTxRollback(t *testing.T) {
 		}
 		for i := range members {
 			if members[i].ID == contract.IDMember1 {
-				members[i].Name = "ShouldRollback"
+				members[i].Alias = "ShouldRollback"
 			}
 		}
 		if err := tx.Org().SetMembers(ctx, members); err != nil {

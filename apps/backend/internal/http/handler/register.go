@@ -58,7 +58,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		models:         modelshandler.NewHandler(p, deps.ModelsSvc),
 		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:          audithandler.NewHandler(p, deps.AuditSvc),
-		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc, deps.Users(), deps.Sessions(), deps.VerifyCodeSvc),
+		me:             mehandler.NewHandler(p, deps.MemberAnalyticsSvc, deps.Users(), deps.Org(), deps.Sessions(), deps.VerifyCodeSvc),
 		notification:   notificationhandler.NewHandler(p, deps.Notifications(), deps.NotificationPreferences(), deps.NotificationSvc),
 		internalIngest: ingesthandler.NewHandler(deps.Config, deps.IngestEnqueuer, deps.IngestMetrics, deps.Logger),
 		dev:            devhandler.NewHandler(p, deps.Config.LocalCompanyID, deps.DevBearerResolver, deps.DevReadinessChecker),

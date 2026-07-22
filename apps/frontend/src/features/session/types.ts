@@ -9,6 +9,7 @@ export interface AppSession {
   authzRevision: number
   memberId: string
   member: Member | null
+  userName: string
   permissions: string[]
   readOnly: boolean
   billingCurrency: string

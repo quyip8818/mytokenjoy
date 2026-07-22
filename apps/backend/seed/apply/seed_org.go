@@ -36,20 +36,20 @@ func insertSeedMembers(ctx context.Context, exec TableWriter, tid uuid.UUID, mem
 			email = &member.Email
 		}
 		if _, err := exec.Exec(ctx, `
-			INSERT INTO users (id, phone, email, password_hash, status)
-			VALUES ($1, $2, $3, $4, 'active')
+			INSERT INTO users (id, name, phone, email, password_hash, status)
+			VALUES ($1, $2, $3, $4, $5, 'active')
 			ON CONFLICT (id) DO NOTHING
-		`, userID, phone, email, passwordHash); err != nil {
+		`, userID, member.Alias, phone, email, passwordHash); err != nil {
 			return fmt.Errorf("seed user for member %s: %w", member.ID, err)
 		}
 
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO members (
-				id, company_id, user_id, name, department_id,
+				id, company_id, user_id, alias, avatar, department_id,
 				status, source, external_id, personal_budget
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			) VALUES ($1, $2, $3, $4, '', $5, $6, $7, $8, $9)
 			ON CONFLICT (company_id, id) DO NOTHING
-		`, member.ID, member.CompanyID, userID, member.Name,
+		`, member.ID, member.CompanyID, userID, member.Alias,
 			member.DepartmentID, member.Status, member.Source, member.ExternalID, member.PersonalBudget); err != nil {
 			return fmt.Errorf("seed member %s: %w", member.ID, err)
 		}

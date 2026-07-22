@@ -17,16 +17,18 @@ type Handler struct {
 	shared.ProtectedHandlerBase
 	memberAnalytics domainmemberanalytics.Service
 	users           store.UserRepository
+	org             store.OrgRepository
 	sessions        store.SessionRepository
 	verifyCode      *verifycode.Service
 }
 
 func NewHandler(p httpdeps.Protected, memberAnalytics domainmemberanalytics.Service,
-	users store.UserRepository, sessions store.SessionRepository, vc *verifycode.Service) *Handler {
+	users store.UserRepository, org store.OrgRepository, sessions store.SessionRepository, vc *verifycode.Service) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 		memberAnalytics:      memberAnalytics,
 		users:                users,
+		org:                  org,
 		sessions:             sessions,
 		verifyCode:           vc,
 	}
@@ -38,6 +40,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	session := httpmiddleware.SessionRoutes(r, h.Protected)
 	session.Get("/profile", h.GetProfile)
+	session.Put("/profile", h.UpdateProfile)
 	session.Post("/change-password", h.ChangePassword)
 	session.Post("/change-phone", h.ChangePhone)
 	session.Post("/change-email", h.ChangeEmail)

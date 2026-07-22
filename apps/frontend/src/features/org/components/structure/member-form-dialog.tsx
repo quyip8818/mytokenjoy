@@ -58,7 +58,7 @@ export function MemberFormDialog({
   useEffect(() => {
     if (open && member) {
       reset({
-        name: member.name,
+        name: member.alias,
         phone: member.phone,
         email: member.email,
         username: member.username,

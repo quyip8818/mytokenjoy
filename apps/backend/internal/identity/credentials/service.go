@@ -75,7 +75,7 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 		ID:        memberID,
 		CompanyID: s.cfg.TokenJoyCompanyID,
 		UserID:    userID,
-		Name:      s.cfg.PlatformBootstrapEmail,
+		Alias:     s.cfg.PlatformBootstrapEmail,
 		Status:    types.MemberStatusActive,
 		Roles:     []string{grants.RolePlatformAdmin},
 	}

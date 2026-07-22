@@ -13,7 +13,7 @@ func TestCreateMemberRejectsNoContact(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Name:         "No Contact",
+		Alias:        "No Contact",
 		DepartmentID: contract.IDDept5,
 	})
 	de := asDomainError(t, err)
@@ -26,7 +26,7 @@ func TestCreateMemberAcceptsPhoneOnly(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	m, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Name: "Phone Only", Phone: "13700009999",
+		Alias: "Phone Only", Phone: "13700009999",
 		DepartmentID: contract.IDDept5,
 	})
 	if err != nil {
@@ -41,7 +41,7 @@ func TestCreateMemberAcceptsEmailOnly(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	m, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Name: "Email Only", Email: "emailonly@example.com",
+		Alias: "Email Only", Email: "emailonly@example.com",
 		DepartmentID: contract.IDDept5,
 	})
 	if err != nil {

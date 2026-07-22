@@ -50,7 +50,7 @@ export function useAuditCallsPage(injectedApis?: AppApis) {
     [models],
   )
   const memberOptions = useMemo(
-    () => Object.fromEntries(members.map((member) => [member.id, member.name])),
+    () => Object.fromEntries(members.map((member) => [member.id, member.alias])),
     [members],
   )
 

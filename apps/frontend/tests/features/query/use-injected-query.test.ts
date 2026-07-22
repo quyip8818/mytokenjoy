@@ -11,15 +11,15 @@ describe('useInjectedQuery', () => {
         getCurrent: vi.fn().mockResolvedValue({
           member: {
             id: 'm1',
-            name: 'Test',
-            phone: '1',
-            email: 'a@b.com',
+            alias: 'Test',
+            avatar: '',
             departmentId: 'd1',
             departmentName: 'Dept',
             status: 'active',
             roles: [],
             source: 'manual',
           },
+          user: { name: 'Test' },
           permissions: [],
           readOnly: false,
         }),

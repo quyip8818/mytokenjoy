@@ -48,6 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_company_invites_user_pending ON company_invites (
 -- Global: users (authentication identity)
 CREATE TABLE IF NOT EXISTS users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name          TEXT NOT NULL DEFAULT '',
     phone         TEXT,
     email         TEXT,
     password_hash TEXT,
@@ -191,7 +192,8 @@ CREATE TABLE IF NOT EXISTS members (
     id              UUID NOT NULL,
     company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     user_id         UUID NOT NULL,
-    name            TEXT NOT NULL,
+    alias           TEXT NOT NULL DEFAULT '',
+    avatar          TEXT NOT NULL DEFAULT '',
     department_id   UUID,
     status          TEXT NOT NULL,
     source          TEXT NOT NULL DEFAULT '',

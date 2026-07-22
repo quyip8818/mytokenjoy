@@ -69,7 +69,7 @@ export function RoleMemberTable({
   const [pageInputValue, setPageInputValue] = useState('1')
 
   const filtered = useMemo(
-    () => members.filter((m) => m.name.toLowerCase().includes(search.toLowerCase())),
+    () => members.filter((m) => m.alias.toLowerCase().includes(search.toLowerCase())),
     [members, search],
   )
 
@@ -157,7 +157,7 @@ export function RoleMemberTable({
             ) : (
               paged.map((member) => (
                 <TableRow key={member.id} className="border-border-subtle hover:bg-muted/50">
-                  <TableCell className="px-4 py-3 text-sm text-foreground">{member.name}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm text-foreground">{member.alias}</TableCell>
                   <TableCell className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {member.roles.map((r) => (
@@ -363,7 +363,7 @@ export function AddMemberDialog({
                   className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 transition-colors"
                 >
                   <div>
-                    <span className="text-sm text-foreground">{m.name}</span>
+                    <span className="text-sm text-foreground">{m.alias}</span>
                     <span className="text-xs text-muted-foreground ml-2">{m.departmentName}</span>
                   </div>
                   <Button

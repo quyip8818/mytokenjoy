@@ -27,13 +27,13 @@ func TestMemberCreateHTTP(t *testing.T) {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	var member struct {
-		Name string `json:"name"`
+		Alias string `json:"alias"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&member); err != nil {
 		t.Fatal(err)
 	}
-	if member.Name != "测试用户" {
-		t.Fatalf("expected name 测试用户, got %q", member.Name)
+	if member.Alias != "测试用户" {
+		t.Fatalf("expected alias 测试用户, got %q", member.Alias)
 	}
 }
 

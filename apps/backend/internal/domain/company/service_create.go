@@ -33,7 +33,13 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 
 		if req.UserID != uuid.Nil {
 			// UserID mode: creator becomes super-admin immediately.
-			member, err := s.addMember(ctx, tx, req.UserID, company.ID, req.Name, store.InviteRoleSuperAdmin)
+			// Use users.name as alias (user was created during registration with a name).
+			user, uerr := tx.User().GetByID(ctx, req.UserID)
+			alias := ""
+			if uerr == nil && user != nil {
+				alias = user.Name
+			}
+			member, err := s.addMember(ctx, tx, req.UserID, company.ID, alias, store.InviteRoleSuperAdmin)
 			if err != nil {
 				return err
 			}
@@ -136,7 +142,7 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, in
 }
 
 // addMember adds a user to a company. Idempotent: if user is already a member, returns existing.
-func (s *service) addMember(ctx context.Context, tx store.Store, userID, companyID uuid.UUID, name, role string) (types.Member, error) {
+func (s *service) addMember(ctx context.Context, tx store.Store, userID, companyID uuid.UUID, alias, role string) (types.Member, error) {
 	company, err := tx.Company().GetByID(ctx, companyID)
 	if err != nil {
 		return types.Member{}, err
@@ -167,23 +173,12 @@ func (s *service) addMember(ctx context.Context, tx store.Store, userID, company
 		deptID = uuid.Must(uuid.NewV7())
 	}
 
-	// Resolve user info for member record.
-	user, err := tx.User().GetByID(ctx, userID)
-	if err != nil {
-		return types.Member{}, fmt.Errorf("addMember get user: %w", err)
-	}
-	if user == nil {
-		return types.Member{}, domain.NotFound("user not found")
-	}
-
 	memberID := uuid.Must(uuid.NewV7())
 	member := types.Member{
 		ID:             memberID,
 		CompanyID:      company.ID,
-		UserID:         user.ID,
-		Name:           name,
-		Email:          user.Email,
-		Phone:          user.Phone,
+		UserID:         userID,
+		Alias:          alias,
 		DepartmentID:   deptID,
 		Status:         types.MemberStatusActive,
 		Roles:          memberRolesFromInvite(role),

@@ -239,6 +239,9 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Write users.name.
+	_ = h.users.UpdateName(ctx, userID, body.Name)
+
 	member, err := h.companySvc.AcceptInvite(ctx, domaincompany.AcceptInviteRequest{
 		UserID:     userID,
 		InviteCode: body.InviteCode,

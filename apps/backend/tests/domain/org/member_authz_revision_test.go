@@ -21,7 +21,7 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := svc.CreateMember(ctx, types.Member{
-		Name: "Revision User", Phone: "13900003333", Email: "revision@example.com",
+		Alias: "Revision User", Phone: "13900003333", Email: "revision@example.com",
 		DepartmentID: contract.IDDept5,
 	}); err != nil {
 		t.Fatal(err)

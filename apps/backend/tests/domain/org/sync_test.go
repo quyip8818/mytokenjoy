@@ -28,7 +28,7 @@ func TestSyncThresholdBlocksDeletion(t *testing.T) {
 		t.Fatal(err)
 	}
 	members = append(members, types.Member{
-		ID: memberID, UserID: memberID, Name: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
+		ID: memberID, UserID: memberID, Alias: "Gone User", DepartmentID: contract.IDDept3, DepartmentName: "研发部",
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &importedExternalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {
@@ -104,7 +104,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 	memberID := uuid.MustParse("00000000-0000-7000-8000-00000000ee99")
 	testutil.EnsureUser(t, env.Store, memberID)
 	members = append(members, types.Member{
-		ID: memberID, UserID: memberID, Name: "Gone User", DepartmentID: contract.IDDept3,
+		ID: memberID, UserID: memberID, Alias: "Gone User", DepartmentID: contract.IDDept3,
 		Status: "active", Roles: []string{"普通成员"}, Source: types.MemberSourceImported, ExternalID: &externalID,
 	})
 	if err := env.Store.Org().SetMembers(ctx, members); err != nil {

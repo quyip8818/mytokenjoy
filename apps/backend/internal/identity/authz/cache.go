@@ -16,6 +16,7 @@ type cacheKey struct {
 
 type cacheValue struct {
 	member      types.Member
+	userName    string
 	permissions []string
 	readOnly    bool
 }
@@ -44,20 +45,20 @@ func NewLRUCache(maxSize int) *LRUCache {
 	}
 }
 
-func (c *LRUCache) Get(companyID uuid.UUID, memberID uuid.UUID, revision int64) (types.Member, []string, bool, bool) {
+func (c *LRUCache) Get(companyID uuid.UUID, memberID uuid.UUID, revision int64) (types.Member, string, []string, bool, bool) {
 	key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	elem, ok := c.items[key]
 	if !ok {
-		return types.Member{}, nil, false, false
+		return types.Member{}, "", nil, false, false
 	}
 	c.ll.MoveToFront(elem)
 	entry := elem.Value.(*lruEntry)
-	return entry.value.member, append([]string(nil), entry.value.permissions...), entry.value.readOnly, true
+	return entry.value.member, entry.value.userName, append([]string(nil), entry.value.permissions...), entry.value.readOnly, true
 }
 
-func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, member types.Member, permissions []string, readOnly bool) {
+func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, member types.Member, userName string, permissions []string, readOnly bool) {
 	key := cacheKey{companyID: companyID, memberID: memberID, revision: revision}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -65,6 +66,7 @@ func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, 
 		c.ll.MoveToFront(elem)
 		elem.Value.(*lruEntry).value = cacheValue{
 			member:      member,
+			userName:    userName,
 			permissions: append([]string(nil), permissions...),
 			readOnly:    readOnly,
 		}
@@ -81,6 +83,7 @@ func (c *LRUCache) Put(companyID uuid.UUID, memberID uuid.UUID, revision int64, 
 		key: key,
 		value: cacheValue{
 			member:      member,
+			userName:    userName,
 			permissions: append([]string(nil), permissions...),
 			readOnly:    readOnly,
 		},

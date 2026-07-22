@@ -16,8 +16,8 @@ import { authApi } from '@/api/auth'
 
 /** Company badge — read-only display of current company context. */
 function HeaderCompanyChip() {
-  const { member } = useSession()
-  const companyName = member?.name ?? '管理员'
+  const { member, userName } = useSession()
+  const companyName = member?.alias || userName || '管理员'
   const initial = companyName.charAt(0) || '管'
 
   return (

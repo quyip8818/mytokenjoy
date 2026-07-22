@@ -109,7 +109,7 @@ export function useStructurePage(injectedApis?: AppApis) {
     try {
       if (editingMember) {
         await apis.memberApi.update(editingMember.id, {
-          name: data.name,
+          alias: data.name,
           phone: data.phone,
           email: data.email,
           departmentId: data.departmentId,
@@ -121,7 +121,7 @@ export function useStructurePage(injectedApis?: AppApis) {
       } else {
         const dept = flattenDepartments(departments).find((item) => item.id === data.departmentId)
         await apis.memberApi.create({
-          name: data.name,
+          alias: data.name,
           phone: data.phone,
           email: data.email,
           departmentId: data.departmentId,

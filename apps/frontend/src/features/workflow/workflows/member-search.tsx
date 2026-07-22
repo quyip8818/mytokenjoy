@@ -103,7 +103,7 @@ export function MemberSearchWorkflow({
                   <Checkbox checked={selected.has(m.id)} onCheckedChange={() => toggleMember(m)} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{m.name}</p>
+                  <p className="text-sm font-medium">{m.alias}</p>
                   <p className="text-xs text-muted-foreground truncate">{m.departmentName}</p>
                 </div>
               </button>

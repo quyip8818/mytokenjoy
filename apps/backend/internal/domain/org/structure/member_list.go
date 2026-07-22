@@ -32,7 +32,7 @@ func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, 
 	if keyword != "" {
 		filtered := make([]types.Member, 0)
 		for _, member := range items {
-			if strings.Contains(member.Name, keyword) {
+			if strings.Contains(member.Alias, keyword) {
 				filtered = append(filtered, member)
 			}
 		}

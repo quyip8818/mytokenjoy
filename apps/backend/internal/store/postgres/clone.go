@@ -158,7 +158,7 @@ func cloneMembers(items []types.Member) []types.Member {
 	result := make([]types.Member, len(items))
 	for i, member := range items {
 		result[i] = types.Member{
-			ID: member.ID, CompanyID: member.CompanyID, UserID: member.UserID, Name: member.Name, Phone: member.Phone, Email: member.Email,
+			ID: member.ID, CompanyID: member.CompanyID, UserID: member.UserID, Alias: member.Alias, Avatar: member.Avatar,
 			DepartmentID: member.DepartmentID, DepartmentName: member.DepartmentName,
 			Status: member.Status, Roles: append([]string{}, member.Roles...), Source: member.Source,
 			PersonalBudget: member.PersonalBudget,

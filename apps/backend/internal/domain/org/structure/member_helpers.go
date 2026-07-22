@@ -81,6 +81,6 @@ func (s *LocalService) checkTrialMemberLimitBatch(ctx context.Context, members [
 }
 
 // resolveOrCreateUser finds an existing user by phone or email, or creates a new one.
-func (s *LocalService) resolveOrCreateUser(ctx context.Context, phone, email string) (uuid.UUID, error) {
-	return core.ResolveOrCreateUser(ctx, s.d.Store, phone, email)
+func (s *LocalService) resolveOrCreateUser(ctx context.Context, phone, email, name string) (uuid.UUID, error) {
+	return core.ResolveOrCreateUser(ctx, s.d.Store, phone, email, name)
 }

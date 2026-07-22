@@ -8,8 +8,8 @@ import { Toaster } from '@/components/ui/sonner'
 import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
 
 export function MemberLayout() {
-  const { member } = useSession()
-  const displayName = member?.name ?? '—'
+  const { member, userName } = useSession()
+  const displayName = member?.alias || userName || '—'
   const initial = displayName.slice(0, 1)
 
   return (
