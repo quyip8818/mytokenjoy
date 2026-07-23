@@ -38,6 +38,8 @@ export function ApprovalSubmitWorkflow({
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
   const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'member_budget'
+  const projectId = entry.payload.projectId
+  const projectName = entry.payload.projectName
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
@@ -74,13 +76,15 @@ export function ApprovalSubmitWorkflow({
     setSubmitting(true)
     try {
       const metadata =
-        type === 'member_budget'
-          ? { amount: displayToQuota(Number(requestedBudget) || 0), reason }
-          : {
-              reason,
-              requestedBudget: displayToQuota(Number(requestedBudget) || 0),
-              requestedModels: models,
-            }
+        type === 'project_budget' || type === 'project_member_budget'
+          ? { projectId, projectName, amount: displayToQuota(Number(requestedBudget) || 0), reason }
+          : type === 'member_budget'
+            ? { amount: displayToQuota(Number(requestedBudget) || 0), reason }
+            : {
+                reason,
+                requestedBudget: displayToQuota(Number(requestedBudget) || 0),
+                requestedModels: models,
+              }
       await apis.approvalApi.create({ type, metadata })
       toast.success('申请已提交')
       onSuccess?.()
@@ -122,6 +126,12 @@ export function ApprovalSubmitWorkflow({
             <SelectContent>
               <SelectItem value="key">Key 申请</SelectItem>
               <SelectItem value="member_budget">额度追加</SelectItem>
+              {projectId && (
+                <>
+                  <SelectItem value="project_budget">项目额度追加</SelectItem>
+                  <SelectItem value="project_member_budget">项目成员额度</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>

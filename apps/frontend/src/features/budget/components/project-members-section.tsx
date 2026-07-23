@@ -22,6 +22,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { UserMinus, UserPlus } from 'lucide-react'
+import { useSession } from '@/features/session'
+import { useWorkflow } from '@/features/workflow'
 
 type ProjectMembersSectionProps = {
   project: ProjectView
@@ -46,7 +48,8 @@ export function ProjectMembersSection({
   const [draftMemberIds, setDraftMemberIds] = useState<string[]>([])
   const [savingMembers, setSavingMembers] = useState(false)
   const [consumedMap, setConsumedMap] = useState<Record<string, number>>({})
-
+  const { memberId } = useSession()
+  const { open } = useWorkflow()
   useEffect(() => {
     let cancelled = false
     const fetchFn = getProjectMemberConsumed ?? budgetApi.getProjectMemberConsumed
@@ -79,8 +82,8 @@ export function ProjectMembersSection({
     }
   }
 
-  async function removeMember(memberId: string) {
-    const next = project.memberIds.filter((id) => id !== memberId)
+  async function removeMember(targetId: string) {
+    const next = project.memberIds.filter((id) => id !== targetId)
     try {
       await onUpdateProject(project.id, { memberIds: next })
       onUpdated()
@@ -114,6 +117,9 @@ export function ProjectMembersSection({
                 成员
               </TableHead>
               <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
+                额度
+              </TableHead>
+              <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
                 已消耗
               </TableHead>
               <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
@@ -125,18 +131,40 @@ export function ProjectMembersSection({
           <TableBody>
             {members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
                   暂无关联成员
                 </TableCell>
               </TableRow>
             ) : (
               members.map((m) => {
                 const memberConsumed = consumedMap[m.id] ?? 0
+                const memberBudget = project.memberBudgets?.[m.id] ?? 0
                 const memberPct =
                   project.consumed > 0 ? Math.round((memberConsumed / project.consumed) * 100) : 0
+                const isCurrentUser = m.id === memberId
                 return (
                   <TableRow key={m.id} className="even:bg-muted/40 hover:bg-muted/50">
                     <TableCell className="font-medium">{m.alias}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatDisplayCurrency(memberBudget)}
+                      {isCurrentUser && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="ml-1 h-auto p-0 text-xs"
+                          onClick={() =>
+                            open('approval-submit', {
+                              defaultType: 'project_member_budget',
+                              projectId: project.id,
+                              projectName: project.name,
+                              onSuccess: onUpdated,
+                            })
+                          }
+                        >
+                          申请额度
+                        </Button>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatDisplayCurrency(memberConsumed)}
                     </TableCell>

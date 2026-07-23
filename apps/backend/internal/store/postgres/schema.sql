@@ -272,9 +272,11 @@ CREATE TABLE IF NOT EXISTS projects (
     name                 TEXT NOT NULL,
     budget               BIGINT NOT NULL DEFAULT 0,
     owner_department_id  UUID NOT NULL,
+    owner_id             UUID,
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
-    FOREIGN KEY (company_id, owner_department_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT
+    FOREIGN KEY (company_id, owner_department_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (company_id, owner_id) REFERENCES members (company_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS project_members (
@@ -606,8 +608,7 @@ CREATE TABLE IF NOT EXISTS approval_requests (
     status          TEXT NOT NULL DEFAULT 'pending',
     applicant_id    UUID NOT NULL,
     applicant_name  TEXT NOT NULL,
-    department_id   UUID,
-    department_name TEXT,
+    scope_id        UUID NOT NULL,
     metadata        JSONB NOT NULL DEFAULT '{}',
     approver_id     UUID,
     approver_name   TEXT,
@@ -617,7 +618,7 @@ CREATE TABLE IF NOT EXISTS approval_requests (
     CONSTRAINT valid_approval_status CHECK (status IN ('pending','approved','rejected','cancelled','failed'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_approval_type_scope    ON approval_requests(company_id, type, scope_id, status);
 CREATE INDEX IF NOT EXISTS idx_approval_company_status ON approval_requests(company_id, status);
-CREATE INDEX IF NOT EXISTS idx_approval_company_type   ON approval_requests(company_id, type);
 CREATE INDEX IF NOT EXISTS idx_approval_applicant      ON approval_requests(company_id, applicant_id);
 CREATE INDEX IF NOT EXISTS idx_approval_created_at     ON approval_requests(company_id, created_at DESC);

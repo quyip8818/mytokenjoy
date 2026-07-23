@@ -22,6 +22,7 @@ type Project struct {
 	MemberIDs         []uuid.UUID         `json:"memberIds"`
 	MemberBudgets     map[uuid.UUID]int64 `json:"memberBudgets,omitempty"`
 	OwnerDepartmentID uuid.UUID           `json:"ownerDepartmentId"`
+	OwnerID           *uuid.UUID          `json:"ownerId,omitempty"`
 }
 
 type UpdateProjectInput struct {
@@ -30,6 +31,7 @@ type UpdateProjectInput struct {
 	MemberIDs         *[]uuid.UUID         `json:"memberIds"`
 	MemberBudgets     *map[uuid.UUID]int64 `json:"memberBudgets"`
 	OwnerDepartmentID *uuid.UUID           `json:"ownerDepartmentId"`
+	OwnerID           *uuid.UUID           `json:"ownerId"`
 }
 
 type OverrunPolicyConfig struct {

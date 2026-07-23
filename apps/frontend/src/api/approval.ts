@@ -12,9 +12,17 @@ export const approvalApi = {
     status?: ApprovalStatus
     type?: ApprovalType
     applicantId?: string
+    scopeIds?: string[]
     limit?: number
     offset?: number
-  }) => request<ApprovalListResponse>(`/approvals${buildQuery(params ?? {})}`),
+  }) => {
+    const { scopeIds, ...rest } = params ?? {}
+    const query = buildQuery({
+      ...rest,
+      ...(scopeIds?.length ? { scopeIds: scopeIds.join(',') } : {}),
+    })
+    return request<ApprovalListResponse>(`/approvals${query}`)
+  },
 
   get: (id: string) => request<ApprovalRequest>(`/approvals/${id}`),
 

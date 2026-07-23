@@ -56,6 +56,10 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 			MemberIDs:         append([]uuid.UUID{}, project.MemberIDs...),
 			MemberBudgets:     cloneMemberBudgets(project.MemberBudgets),
 			OwnerDepartmentID: project.OwnerDepartmentID,
+			OwnerID:           project.OwnerID,
+		}
+		if err := validateOwnerInMembers(created.OwnerID, created.MemberIDs); err != nil {
+			return err
 		}
 		if err := validateProjectMemberBudgets(created.Budget, created.MemberIDs, created.MemberBudgets); err != nil {
 			return err
@@ -98,6 +102,19 @@ func (s *service) UpdateProject(ctx context.Context, id uuid.UUID, patch types.U
 					projects[i].Budget = *patch.Budget
 				}
 				if patch.MemberIDs != nil {
+					// Cannot remove owner from member list
+					if projects[i].OwnerID != nil {
+						ownerStillPresent := false
+						for _, mid := range *patch.MemberIDs {
+							if mid == *projects[i].OwnerID {
+								ownerStillPresent = true
+								break
+							}
+						}
+						if !ownerStillPresent {
+							return domain.Validation("cannot remove project owner from members; change owner first")
+						}
+					}
 					projects[i].MemberIDs = *patch.MemberIDs
 					projects[i].MemberBudgets = pruneMemberBudgets(projects[i].MemberBudgets, projects[i].MemberIDs)
 				}
@@ -110,6 +127,12 @@ func (s *service) UpdateProject(ctx context.Context, id uuid.UUID, patch types.U
 				}
 				if patch.OwnerDepartmentID != nil && *patch.OwnerDepartmentID != uuid.Nil {
 					projects[i].OwnerDepartmentID = *patch.OwnerDepartmentID
+				}
+				if patch.OwnerID != nil {
+					projects[i].OwnerID = patch.OwnerID
+				}
+				if err := validateOwnerInMembers(projects[i].OwnerID, projects[i].MemberIDs); err != nil {
+					return err
 				}
 				if err := validateProjectMemberBudgets(projects[i].Budget, projects[i].MemberIDs, projects[i].MemberBudgets); err != nil {
 					return err

@@ -184,7 +184,9 @@ flowchart TB
 | 建 Key（项目） | budget ≤ 组 budget − 组 consumed − 组内已分配 Key budget（含 `project_member`） |
 | 建 Key（项目成员） | roster + `member_budget > 0`；budget ≤ sub 剩余；见 `pkg/budget/scope_validate.go` |
 | 改项目成员子额度 | `PUT /api/budget/projects/{id}` · `memberBudgets`；须属于 roster |
-| 额度追加审批 | 申请额 ≤ 部门 `reserved_pool`；通过后增加 `personal_budget` |
+| 额度追加审批（个人） | 申请额 ≤ 部门 `reserved_pool`；通过后预留池 -= amount，`personal_budget` += amount |
+| 项目额度追加审批 | Owner 发起，管理员批；申请额 ≤ 部门 `reserved_pool`；通过后预留池 -= amount，project.Budget += amount |
+| 项目成员额度审批 | 成员发起，Owner 批；申请额 ≤ 项目未分配余额；通过后 `memberBudgets[applicant]` += amount |
 
 组织树结构变更与模型白名单同事务提交；预算数字仅经预算域服务修改。
 
@@ -447,7 +449,6 @@ sequenceDiagram
 | --- | --- | --- |
 | 百分比预警 | `alert_rules` 仅 CRUD，无运行时 Worker | 入账或定时任务按阈值发通知；与 PRD US-08 对齐 |
 | 超限文案 | `overrun_policy.blockMessage` 已存库，Precheck 返回通用错误 | Gateway 拒绝时读取并返回配置文案 |
-| 预留池扣减 | 额度审批只校验 `reserved_pool` 上限，字段不随审批减少 | 审批通过时扣减预留池或维护「已分配预留」子账，避免重复透支 |
 
 ### 应优化（可靠性 / 可观测）
 

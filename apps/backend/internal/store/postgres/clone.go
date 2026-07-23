@@ -12,6 +12,7 @@ func cloneProjects(items []types.Project) []types.Project {
 			ID: project.ID, Name: project.Name, Budget: project.Budget, Consumed: project.Consumed,
 			MemberIDs:         append([]uuid.UUID{}, project.MemberIDs...),
 			OwnerDepartmentID: project.OwnerDepartmentID,
+			OwnerID:           project.OwnerID,
 		}
 		if len(project.MemberBudgets) > 0 {
 			result[i].MemberBudgets = make(map[uuid.UUID]int64, len(project.MemberBudgets))

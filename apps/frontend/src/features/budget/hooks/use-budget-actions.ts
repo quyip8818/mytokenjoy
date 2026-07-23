@@ -40,7 +40,12 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   const updateProject = useCallback(
     (
       groupId: string,
-      data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> },
+      data: {
+        budget?: number
+        memberIds?: string[]
+        memberBudgets?: Record<string, number>
+        ownerId?: string
+      },
     ) =>
       withErrorToast(async () => {
         await apis.budgetApi.updateProject(groupId, data)

@@ -31,7 +31,9 @@ export interface KeysWorkflowPayloads {
     onDone?: () => void
   }
   'approval-submit': {
-    defaultType?: 'key' | 'member_budget'
+    defaultType?: 'key' | 'member_budget' | 'project_budget' | 'project_member_budget'
+    projectId?: string
+    projectName?: string
     onSuccess?: () => void
   }
   'approval-review': {

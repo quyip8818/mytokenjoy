@@ -13,8 +13,9 @@ import { formatDisplayCurrency } from '@/lib/quota-display'
 
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
-  budget: '额度追加',
   member_budget: '额度追加',
+  project_budget: '项目预算',
+  project_member_budget: '项目成员额度',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -31,6 +32,16 @@ const STATUS_STYLES: Record<string, string> = {
   rejected: 'bg-red-50 text-red-700',
   cancelled: 'bg-gray-50 text-gray-600',
   failed: 'bg-orange-50 text-orange-700',
+}
+
+function getMetaDepartmentName(approval: ApprovalRequest): string {
+  const v = approval.metadata.departmentName
+  return typeof v === 'string' ? v : ''
+}
+
+function getMetaProjectName(approval: ApprovalRequest): string {
+  const v = approval.metadata.projectName
+  return typeof v === 'string' ? v : ''
 }
 
 export function ApprovalReviewWorkflow({
@@ -84,7 +95,7 @@ export function ApprovalReviewWorkflow({
     <WorkflowPanelChrome
       title="审批处理"
       onClose={onClose}
-      contextBar={`申请人：${approval.applicantName} · ${approval.departmentName ?? ''}`}
+      contextBar={`申请人：${approval.applicantName} · ${getMetaDepartmentName(approval)}`}
       footer={
         approval.status === 'pending' ? (
           <WorkflowPanelFooter
@@ -148,8 +159,11 @@ export function ApprovalReviewWorkflow({
         <WorkflowInfoBox fullWidth className="space-y-3">
           <h4 className="font-semibold">申请信息</h4>
           <p className="text-muted-foreground">申请人：{approval.applicantName}</p>
-          {approval.departmentName && (
-            <p className="text-muted-foreground">部门：{approval.departmentName}</p>
+          {getMetaDepartmentName(approval) && (
+            <p className="text-muted-foreground">部门：{getMetaDepartmentName(approval)}</p>
+          )}
+          {getMetaProjectName(approval) && (
+            <p className="text-muted-foreground">项目：{getMetaProjectName(approval)}</p>
           )}
           <p className="text-muted-foreground">申请时间：{approval.createdAt}</p>
           {approval.approverName && (

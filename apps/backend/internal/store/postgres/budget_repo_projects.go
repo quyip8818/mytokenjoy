@@ -29,7 +29,7 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	companyID := store.CompanyID(ctx)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, budget, owner_department_id
+		SELECT id, name, budget, owner_department_id, owner_id
 		FROM projects WHERE company_id = $1 ORDER BY id
 	`, companyID)
 	if err != nil {
@@ -40,7 +40,7 @@ func (r *pgBudgetRepo) Projects(ctx context.Context) ([]types.Project, error) {
 	projectIndex := make(map[uuid.UUID]int)
 	for rows.Next() {
 		var p types.Project
-		if err := rows.Scan(&p.ID, &p.Name, &p.Budget, &p.OwnerDepartmentID); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Budget, &p.OwnerDepartmentID, &p.OwnerID); err != nil {
 			return nil, err
 		}
 		p.Consumed = 0
@@ -103,14 +103,15 @@ func (r *pgBudgetRepo) SetProjects(ctx context.Context, projects []types.Project
 	for i, project := range cloned {
 		ids[i] = project.ID
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO projects (id, company_id, name, budget, owner_department_id, updated_at)
-			VALUES ($1, $2, $3, $4, $5, NOW())
+			INSERT INTO projects (id, company_id, name, budget, owner_department_id, owner_id, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				name = EXCLUDED.name,
 				budget = EXCLUDED.budget,
 				owner_department_id = EXCLUDED.owner_department_id,
+				owner_id = EXCLUDED.owner_id,
 				updated_at = NOW()
-		`, project.ID, companyID, project.Name, project.Budget, project.OwnerDepartmentID); err != nil {
+		`, project.ID, companyID, project.Name, project.Budget, project.OwnerDepartmentID, project.OwnerID); err != nil {
 			return fmt.Errorf("upsert project %s: %w", project.ID, err)
 		}
 		if _, err := r.db.Exec(ctx, `

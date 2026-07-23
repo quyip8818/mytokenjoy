@@ -102,6 +102,7 @@ export function toProjectView(
     departmentName,
     overrunPolicy,
     period,
+    ownerId: project.ownerId,
   }
 }
 

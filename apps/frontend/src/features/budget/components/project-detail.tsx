@@ -6,6 +6,8 @@ import { ProjectMembersSection } from './project-members-section'
 import { ProjectSettingsForm } from './project-settings-form'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { useSession } from '@/features/session'
+import { useWorkflow } from '@/features/workflow'
 
 interface ProjectDetailProps {
   project: ProjectView
@@ -14,7 +16,12 @@ interface ProjectDetailProps {
   membersLoading?: boolean
   onUpdateProject: (
     projectId: string,
-    data: { budget?: number; memberIds?: string[]; memberBudgets?: Record<string, number> },
+    data: {
+      budget?: number
+      memberIds?: string[]
+      memberBudgets?: Record<string, number>
+      ownerId?: string
+    },
   ) => Promise<void>
   onDeleteProject: (projectId: string) => Promise<void>
   onCreateProjectKey: (
@@ -39,6 +46,9 @@ export function ProjectDetail({
   onDeleted,
 }: ProjectDetailProps) {
   const [deleting, setDeleting] = useState(false)
+  const { memberId } = useSession()
+  const { open } = useWorkflow()
+  const isOwner = project.ownerId === memberId
 
   async function handleDelete() {
     setDeleting(true)
@@ -55,6 +65,23 @@ export function ProjectDetail({
       <div className="flex items-center justify-between gap-3">
         <ProjectHeader project={project} />
         <div className="flex items-center gap-2">
+          {isOwner && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              onClick={() =>
+                open('approval-submit', {
+                  defaultType: 'project_budget',
+                  projectId: project.id,
+                  projectName: project.name,
+                  onSuccess: onUpdated,
+                })
+              }
+            >
+              申请追加额度
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -85,6 +112,7 @@ export function ProjectDetail({
 
       <ProjectSettingsForm
         project={project}
+        members={members}
         onUpdateProject={onUpdateProject}
         onUpdated={onUpdated}
       />

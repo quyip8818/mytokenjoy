@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { ProjectView } from '@/api/types'
+import type { ProjectView, Member } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -12,27 +12,43 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Pencil } from 'lucide-react'
 import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
 
 type ProjectSettingsFormProps = {
   project: ProjectView
-  onUpdateProject: (projectId: string, data: { budget: number }) => Promise<void>
+  members?: Member[]
+  onUpdateProject: (
+    projectId: string,
+    data: { budget?: number; ownerId?: string },
+  ) => Promise<void>
   onUpdated: () => void
 }
 
 export function ProjectSettingsForm({
   project,
+  members = [],
   onUpdateProject,
   onUpdated,
 }: ProjectSettingsFormProps) {
   const pct = project.budget > 0 ? Math.round((project.consumed / project.budget) * 100) : 0
   const [dialogOpen, setDialogOpen] = useState(false)
   const [draftBudget, setDraftBudget] = useState('')
+  const [draftOwnerId, setDraftOwnerId] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const ownerName = members.find((m) => m.id === project.ownerId)?.alias ?? '未设置'
 
   function openDialog() {
     setDraftBudget(String(quotaToDisplay(project.budget)))
+    setDraftOwnerId(project.ownerId ?? '')
     setDialogOpen(true)
   }
 
@@ -48,7 +64,11 @@ export function ProjectSettingsForm({
     }
     setSaving(true)
     try {
-      await onUpdateProject(project.id, { budget: displayToQuota(budgetNum) })
+      const data: { budget?: number; ownerId?: string } = { budget: displayToQuota(budgetNum) }
+      if (draftOwnerId && draftOwnerId !== project.ownerId) {
+        data.ownerId = draftOwnerId
+      }
+      await onUpdateProject(project.id, data)
       setDialogOpen(false)
       onUpdated()
       toast.success('项目设置已更新')
@@ -82,6 +102,10 @@ export function ProjectSettingsForm({
             <p className="text-sm font-medium tabular-nums">
               {formatDisplayCurrency(project.budget)}
             </p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-muted-foreground">负责人</Label>
+            <p className="text-sm font-medium">{ownerName}</p>
           </div>
         </div>
         <div className="mt-3 border-t border-border pt-3">
@@ -121,6 +145,23 @@ export function ProjectSettingsForm({
                 已消耗：{formatDisplayCurrency(project.consumed)}
               </p>
             </div>
+            {members.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label className="text-xs font-medium">负责人</Label>
+                <Select value={draftOwnerId} onValueChange={setDraftOwnerId}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="选择负责人" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.alias}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button

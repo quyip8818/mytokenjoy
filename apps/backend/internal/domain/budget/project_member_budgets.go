@@ -78,3 +78,15 @@ func mergeMemberBudgetPatch(existing map[uuid.UUID]int64, patch map[uuid.UUID]in
 	}
 	return existing, nil
 }
+
+func validateOwnerInMembers(ownerID *uuid.UUID, memberIDs []uuid.UUID) error {
+	if ownerID == nil {
+		return nil
+	}
+	for _, mid := range memberIDs {
+		if mid == *ownerID {
+			return nil
+		}
+	}
+	return domain.Validation("project owner must be a member of the project")
+}

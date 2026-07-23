@@ -26,6 +26,7 @@ export interface Project {
   memberIds: string[]
   memberBudgets?: Record<string, number>
   ownerDepartmentId: string
+  ownerId?: string
 }
 
 export interface AlertRule {
@@ -64,4 +65,5 @@ export interface ProjectView {
   departmentName: string
   overrunPolicy: OverrunPolicy
   period: string
+  ownerId?: string
 }
