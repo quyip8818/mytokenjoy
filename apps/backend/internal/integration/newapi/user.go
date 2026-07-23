@@ -65,3 +65,14 @@ func isDuplicateUsernameError(err error) bool {
 	return strings.Contains(msg, "users_username_key") ||
 		(strings.Contains(msg, "duplicate") && strings.Contains(msg, "username"))
 }
+
+// ManageUser calls /api/user/manage to adjust user quota.
+// action is typically "add_quota"; value is the quota delta.
+func (c *Client) ManageUser(ctx context.Context, userID int64, action string, value int64) error {
+	body := map[string]any{
+		"id":     userID,
+		"action": action,
+		"value":  value,
+	}
+	return c.do(ctx, "POST", "/api/user/manage", body, nil)
+}

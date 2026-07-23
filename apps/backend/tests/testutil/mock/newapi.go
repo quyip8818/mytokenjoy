@@ -146,4 +146,8 @@ func (s *StubAdminClient) UpsertModelRatio(ctx context.Context, modelType string
 	return nil
 }
 
+func (s *StubAdminClient) ManageUser(_ context.Context, _ int64, _ string, _ int64) error {
+	return nil
+}
+
 var _ adminport.Port = (*StubAdminClient)(nil)

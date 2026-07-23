@@ -41,13 +41,23 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	if cur != nil && cur.QuotaPerUnit > 0 {
 		ppu = cur.QuotaPerUnit
 	}
+	// Determine lot kind based on company type: demo/trial use mock lots.
+	lotKind := store.LotKindPaid
+	if co.Type == store.CompanyTypeDemo || co.Type == store.CompanyTypeTrial {
+		lotKind = store.LotKindMock
+	}
 	for _, order := range buildSeedRechargeOrders() {
 		order.Currency = currency
 		order.QuotaPerUnit = ppu
 		order.QuotaGranted = common.QuotaFromAmount(order.Amount, ppu)
-		order.LotKind = store.LotKindPaid
+		order.LotKind = lotKind
 		if order.Status == store.RechargeStatusConfirmed {
-			lot := domainbilling.BuildPaidLot(order, currency)
+			var lot store.RechargeLot
+			if lotKind == store.LotKindMock {
+				lot = domainbilling.BuildMockLot(order, currency)
+			} else {
+				lot = domainbilling.BuildPaidLot(order, currency)
+			}
 			if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 				return fmt.Errorf("seed recharge lot %s: %w", order.ID, err)
 			}

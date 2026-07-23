@@ -120,6 +120,10 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, in
 	if err := tx.Company().UpdateNewAPIWalletCompanyID(ctx, company.ID, user.ID); err != nil {
 		return store.Company{}, err
 	}
+	// Trial/demo accounts: give NewAPI user a large quota for mock model requests.
+	if company.Type == store.CompanyTypeTrial || company.Type == store.CompanyTypeDemo {
+		_ = s.client.ManageUser(ctx, user.ID, "add_quota", 500000*500000)
+	}
 	walletID := user.ID
 	company.NewAPIWalletCompanyID = &walletID
 

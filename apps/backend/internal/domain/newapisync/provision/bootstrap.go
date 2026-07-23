@@ -116,6 +116,10 @@ func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uui
 	if user.ID <= 0 {
 		return fmt.Errorf("create demo newapi wallet user: missing id")
 	}
+	// Give demo wallet user a large quota so test-model requests aren't rejected.
+	if err := d.Client.ManageUser(ctx, user.ID, "add_quota", 500000*500000); err != nil {
+		slog.Default().Warn("bootstrap: failed to add quota to demo wallet user", "error", err)
+	}
 	if err := d.Store.Company().UpdateNewAPIWalletCompanyID(ctx, companyID, user.ID); err != nil {
 		return err
 	}

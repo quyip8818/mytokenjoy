@@ -18,6 +18,7 @@ type Port interface {
 
 	// --- User provisioning (used by company creation, bootstrap) ---
 	CreateUser(ctx context.Context, req CreateUserInput) (UserResult, error)
+	ManageUser(ctx context.Context, userID int64, action string, value int64) error
 
 	// --- Pricing (used by models domain) ---
 	ListModelPricing(ctx context.Context) ([]ModelPricing, error)

@@ -137,6 +137,14 @@ func (p *SelfHealingPort) CreateUser(ctx context.Context, req adminport.CreateUs
 	return r, err
 }
 
+func (p *SelfHealingPort) ManageUser(ctx context.Context, userID int64, action string, value int64) error {
+	err := p.client.ManageUser(ctx, userID, action, value)
+	if p.selfHeal(ctx, err) {
+		return p.client.ManageUser(ctx, userID, action, value)
+	}
+	return err
+}
+
 func (p *SelfHealingPort) ListModelPricing(ctx context.Context) ([]adminport.ModelPricing, error) {
 	r, err := p.client.ListModelPricing(ctx)
 	if p.selfHeal(ctx, err) {
