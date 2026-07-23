@@ -39,7 +39,7 @@ func TestUpgradeToStandardChangesTypeAndInvalidatesCache(t *testing.T) {
 	}
 
 	// Seed trial credit.
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 10000, nil); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 10000); err != nil {
 		t.Fatal(err)
 	}
 
@@ -101,7 +101,7 @@ func TestUpgradeToStandardFromDemo(t *testing.T) {
 	}
 
 	// Seed trial credit.
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 5000, nil); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 5000); err != nil {
 		t.Fatal(err)
 	}
 

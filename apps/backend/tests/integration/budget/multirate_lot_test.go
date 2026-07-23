@@ -51,7 +51,7 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 		CreatedBy: uuid.Nil, CreatedAt: base, UpdatedAt: base,
 	}
 	lot1 := domainbilling.BuildLot(order1, common.DefaultBillingCurrency, store.LotKindPaid, order1.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order1, lot1, lot1.QuotaGranted, nil); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order1, lot1, lot1.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -72,7 +72,7 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 		CreatedBy: uuid.Nil, CreatedAt: base.Add(time.Second), UpdatedAt: base.Add(time.Second),
 	}
 	lot2 := domainbilling.BuildLot(order2, common.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted, nil); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -210,7 +210,7 @@ func TestGiftLotUsesCompanyQPUForDisplay(t *testing.T) {
 		CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindGift, 0)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -253,7 +253,7 @@ func TestOverdraftWithMultiRateLots(t *testing.T) {
 		CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -325,7 +325,7 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 		CreatedBy: uuid.Nil, CreatedAt: base, UpdatedAt: base,
 	}
 	lot1 := domainbilling.BuildLot(order1, common.DefaultBillingCurrency, store.LotKindPaid, order1.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order1, lot1, lot1.QuotaGranted, nil); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order1, lot1, lot1.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 
@@ -360,7 +360,7 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 		CreatedBy: uuid.Nil, CreatedAt: base.Add(time.Second), UpdatedAt: base.Add(time.Second),
 	}
 	lot2 := domainbilling.BuildLot(order2, common.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted, nil); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 

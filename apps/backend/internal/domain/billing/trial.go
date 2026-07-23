@@ -13,7 +13,7 @@ import (
 
 // SeedTrialCredit creates a trial lot with simulated funds for a newly registered
 // trial company. Call within the registration transaction after company creation.
-func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID uuid.UUID, trialQuota int64, onCommit billinglot.PostCreditFunc) error {
+func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID uuid.UUID, trialQuota int64, beforeCommit ...billinglot.PreCreditFunc) error {
 	if trialQuota <= 0 {
 		return fmt.Errorf("trial credit amount must be positive")
 	}
@@ -37,7 +37,7 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID u
 		UpdatedAt:    now,
 	}
 	lot := BuildLot(order, currency, store.LotKindMock, 0)
-	return billinglot.CreditFromLot(ctx, st, order, lot, trialQuota, onCommit)
+	return billinglot.CreditFromLot(ctx, st, order, lot, trialQuota, beforeCommit...)
 }
 
 // TrialUpgradeStore is the minimal store surface needed for the trial→standard upgrade.

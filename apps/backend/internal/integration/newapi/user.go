@@ -68,11 +68,15 @@ func isDuplicateUsernameError(err error) bool {
 
 // ManageUser calls /api/user/manage to adjust user quota.
 // action is typically "add_quota"; value is the quota delta.
+// For add_quota action, mode must be "add", "subtract", or "override".
 func (c *Client) ManageUser(ctx context.Context, userID int64, action string, value int64) error {
 	body := map[string]any{
 		"id":     userID,
 		"action": action,
 		"value":  value,
+	}
+	if action == "add_quota" {
+		body["mode"] = "add"
 	}
 	return c.do(ctx, "POST", "/api/user/manage", body, nil)
 }
