@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
-import type { LucideIcon } from 'lucide-react'
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups, type NavGroup, type NavItem } from '@/config/nav'
@@ -37,14 +36,17 @@ function saveCollapsedGroups(groups: Set<string>) {
 function useGroupCollapse(navGroups: NavGroup[], currentPath: string) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
     const persisted = loadCollapsedGroups()
-    if (persisted.size === 0) {
-      const defaults = new Set<string>()
-      for (const group of navGroups) {
-        if (group.collapsed) defaults.add(group.group)
+    const base =
+      persisted.size === 0
+        ? new Set(navGroups.filter((g) => g.collapsed).map((g) => g.group))
+        : new Set(persisted)
+    // Ensure the group containing the current page is expanded on initial load
+    for (const group of navGroups) {
+      if (group.items.some((item) => currentPath === item.path)) {
+        base.delete(group.group)
       }
-      return defaults
     }
-    return persisted
+    return base
   })
 
   const toggle = useCallback((groupName: string) => {
@@ -61,11 +63,8 @@ function useGroupCollapse(navGroups: NavGroup[], currentPath: string) {
   }, [])
 
   const isGroupCollapsed = useCallback(
-    (group: NavGroup) => {
-      if (group.items.some((item) => currentPath === item.path)) return false
-      return collapsedGroups.has(group.group)
-    },
-    [collapsedGroups, currentPath],
+    (group: NavGroup) => collapsedGroups.has(group.group),
+    [collapsedGroups],
   )
 
   return { isGroupCollapsed, toggle }
@@ -92,10 +91,10 @@ function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) 
             to={item.path}
             aria-label={item.label}
             className={cn(
-              'group/nav relative flex items-center justify-center rounded-lg p-1.5 transition-colors duration-100',
+              'group/nav relative flex items-center justify-center rounded-lg p-1.5 transition-all duration-150',
               isActive
                 ? 'bg-primary/8 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                : 'text-muted-foreground hover:scale-105 hover:bg-accent hover:text-accent-foreground',
             )}
           >
             <Icon className="size-[18px]" strokeWidth={1.75} />
@@ -116,10 +115,10 @@ function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) 
     <NavLink
       to={item.path}
       className={cn(
-        'group/nav relative flex items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] transition-all duration-100',
+        'group/nav relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150',
         isActive
           ? 'bg-primary/8 font-medium text-primary'
-          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+          : 'text-muted-foreground hover:scale-[1.01] hover:bg-accent/50 hover:text-foreground',
       )}
     >
       <Icon
@@ -137,8 +136,6 @@ function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) 
 }
 
 // ─── Nav Group ───
-
-const MY_GROUP_NAME = '我的'
 
 interface SidebarGroupProps {
   group: NavGroup
@@ -175,19 +172,19 @@ function SidebarGroup({
       <button
         type="button"
         onClick={onToggleGroup}
-        className="group/header mb-0.5 flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+        className="group/header mb-1 flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-base font-semibold text-muted-foreground/80 transition-colors hover:text-foreground"
         aria-expanded={!groupCollapsed}
       >
         <ChevronDown
           className={cn(
-            'size-3 shrink-0 text-muted-foreground/50 transition-transform duration-150 group-hover/header:text-muted-foreground',
+            'size-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-150 group-hover/header:text-muted-foreground',
             groupCollapsed && '-rotate-90',
           )}
         />
-        <span className="truncate uppercase">{group.group}</span>
+        <span className="truncate">{group.group}</span>
       </button>
       {!groupCollapsed && (
-        <div className="space-y-px">
+        <div className="ml-2 space-y-px">
           {group.items.map((item) => (
             <SidebarNavItem
               key={item.path}
@@ -224,11 +221,7 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
           aria-expanded={!collapsed}
           aria-label={toggleLabel}
         >
-          {collapsed ? (
-            <PanelLeftOpen className="size-4" />
-          ) : (
-            <PanelLeftClose className="size-4" />
-          )}
+          {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
         </Button>
       </TooltipTrigger>
       <TooltipContent side={collapsed ? 'right' : 'bottom'} sideOffset={8}>
@@ -272,10 +265,7 @@ export function Sidebar() {
     return 0
   }
 
-  // Separate "我的" group from admin groups
-  const adminGroups = navGroups.filter((g) => g.group !== MY_GROUP_NAME)
-  const myGroup = navGroups.find((g) => g.group === MY_GROUP_NAME)
-
+  // All groups rendered uniformly (including "我的")
   return (
     <TooltipProvider delayDuration={0}>
       <aside
@@ -286,14 +276,13 @@ export function Sidebar() {
       >
         <SidebarHeader collapsed={collapsed} onToggle={toggleCollapsed} />
 
-        {/* Main nav area */}
         <nav
           className={cn(
             'flex-1 overflow-y-auto py-3',
-            collapsed ? 'space-y-2 px-1.5' : 'space-y-3 px-2',
+            collapsed ? 'space-y-2 px-1.5' : 'space-y-1 px-2',
           )}
         >
-          {adminGroups.map((group, groupIndex) => (
+          {navGroups.map((group, groupIndex) => (
             <div key={group.group}>
               {collapsed && groupIndex > 0 && (
                 <div className="mx-auto mb-2 h-px w-4 rounded-full bg-border/60" />
@@ -308,24 +297,6 @@ export function Sidebar() {
             </div>
           ))}
         </nav>
-
-        {/* "我的" section — visually separated at bottom */}
-        {myGroup && (
-          <div
-            className={cn(
-              'shrink-0 border-t border-border/50',
-              collapsed ? 'px-1.5 py-2' : 'px-2 py-2',
-            )}
-          >
-            <SidebarGroup
-              group={myGroup}
-              groupCollapsed={isGroupCollapsed(myGroup)}
-              sidebarCollapsed={collapsed}
-              onToggleGroup={() => toggle(myGroup.group)}
-              getBadge={getBadge}
-            />
-          </div>
-        )}
       </aside>
     </TooltipProvider>
   )
