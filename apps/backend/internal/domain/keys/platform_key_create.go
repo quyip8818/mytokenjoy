@@ -10,6 +10,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error) {
@@ -41,6 +44,13 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	models, err := s.store.Models().Models(ctx)
 	if err != nil {
 		return types.PlatformKey{}, err
+	}
+
+	// Trial/demo accounts: whitelist must only contain test-only models.
+	if info, ok := ctxcompany.From(ctx); ok && (info.Type == store.CompanyTypeTrial || info.Type == store.CompanyTypeDemo) {
+		if err := validateTestOnlyModels(input.ModelWhitelist, models); err != nil {
+			return types.PlatformKey{}, err
+		}
 	}
 
 	switch input.Scope {
@@ -109,4 +119,23 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		return types.PlatformKey{}, err
 	}
 	return result, nil
+}
+
+// validateTestOnlyModels ensures all model IDs in the whitelist are test-only models.
+// Used to enforce that trial/demo accounts cannot create keys with real model access.
+func validateTestOnlyModels(whitelist []uuid.UUID, catalog []types.ModelInfo) error {
+	byID := make(map[uuid.UUID]types.ModelInfo, len(catalog))
+	for _, m := range catalog {
+		byID[m.ID] = m
+	}
+	for _, id := range whitelist {
+		m, ok := byID[id]
+		if !ok {
+			return domain.Validation("model not found in catalog")
+		}
+		if !modelcatalog.IsTestOnlyCallType(m.Type) {
+			return domain.Validation("试用账户只能使用 test-model，升级后可使用全部模型")
+		}
+	}
+	return nil
 }

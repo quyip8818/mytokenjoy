@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SimulateConsumeDialog } from '@/features/dev'
+import { useSession } from '@/features/session'
+
+const SIMULATE_ALLOWED_TYPES = ['demo', 'trial', 'testing'] as const
 
 function HeaderDevBackendToolbarContent() {
   const [simulateOpen, setSimulateOpen] = useState(false)
@@ -16,7 +19,8 @@ function HeaderDevBackendToolbarContent() {
 }
 
 export function HeaderDevBackendToolbar() {
-  if (!import.meta.env.DEV) {
+  const { companyType } = useSession()
+  if (!(SIMULATE_ALLOWED_TYPES as readonly string[]).includes(companyType)) {
     return null
   }
 

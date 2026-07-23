@@ -27,10 +27,10 @@ type PrecheckOpts struct {
 }
 
 // PrecheckForRequest builds precheck options from the gateway request context.
-func PrecheckForRequest(path, model string, allowDev bool) PrecheckOpts {
+func PrecheckForRequest(path, model string) PrecheckOpts {
 	return PrecheckOpts{
 		SkipModelCheck:     path == "/v1/models",
-		SkipModelAllowlist: allowDev && modelcatalog.IsTestOnlyCallType(model),
+		SkipModelAllowlist: modelcatalog.IsTestOnlyCallType(model),
 	}
 }
 

@@ -2,6 +2,7 @@ package company
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ type Service interface {
 	PendingInvitesForUser(ctx context.Context, req PendingInvitesForUserRequest) ([]PendingInvite, error)
 	ListCompanies(ctx context.Context) ([]store.Company, error)
 	UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateCompanyPatch) error
+	UpgradeToStandard(ctx context.Context, companyID uuid.UUID) error
 	ResolveCompanyContext(ctx context.Context, companyID uuid.UUID) (Context, error)
 	ResolveFromMember(ctx context.Context, memberID uuid.UUID) (Context, error)
 }
@@ -72,6 +74,7 @@ type PendingInvite struct {
 // Store is the narrow store surface the company domain needs.
 type Store interface {
 	Company() store.CompanyRepository
+	Billing() store.BillingRepository
 	User() store.UserRepository
 	Org() store.OrgRepository
 	Invite() store.InviteRepository
@@ -137,5 +140,46 @@ func (s *service) UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateC
 		}
 		s.cacheInvalidator.InvalidateCompany(id)
 	}
+	return nil
+}
+
+// UpgradeToStandard upgrades a trial/demo company to standard.
+// Within a transaction: changes type → expires all mock lots → resets wallet.
+// After commit: invalidates precheck cache so Gateway rejects test-model immediately.
+func (s *service) UpgradeToStandard(ctx context.Context, companyID uuid.UUID) error {
+	co, err := s.store.Company().GetByID(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	if co == nil {
+		return domain.NotFound("company not found")
+	}
+	if co.Type != store.CompanyTypeTrial && co.Type != store.CompanyTypeDemo {
+		return domain.Validation("only trial/demo accounts can be upgraded")
+	}
+
+	// Transaction: update type + expire mock lots + reset wallet.
+	if err := s.store.WithTx(ctx, func(tx store.Store) error {
+		// Lock company row first to serialize with concurrent ingest/consume.
+		if _, err := tx.Company().LockForUpdate(ctx, companyID); err != nil {
+			return err
+		}
+		if err := tx.Company().UpdateType(ctx, companyID, store.CompanyTypeStandard); err != nil {
+			return err
+		}
+		if _, err := tx.Billing().ExpireMockLots(ctx, companyID); err != nil {
+			return fmt.Errorf("expire mock lots: %w", err)
+		}
+		remain, err := tx.Billing().SumActiveLotsRemaining(ctx, companyID)
+		if err != nil {
+			return fmt.Errorf("sum active lots: %w", err)
+		}
+		return tx.Company().SetWalletQuotaRemain(ctx, companyID, remain, nil)
+	}); err != nil {
+		return err
+	}
+
+	// Post-commit: invalidate precheck cache so test-model is immediately rejected.
+	s.cacheInvalidator.InvalidateCompany(companyID)
 	return nil
 }

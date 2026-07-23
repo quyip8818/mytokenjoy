@@ -14,12 +14,10 @@ import {
 import { GatewayClientError, postChatCompletions } from '../lib/simulate-consume'
 
 function readStoredPlatformKeyId(): string {
-  if (!import.meta.env.DEV) return ''
   return sessionStorage.getItem(PLATFORM_KEY_ID_SESSION_KEY) ?? ''
 }
 
 function writeStoredPlatformKeyId(platformKeyId: string) {
-  if (!import.meta.env.DEV) return
   if (platformKeyId) sessionStorage.setItem(PLATFORM_KEY_ID_SESSION_KEY, platformKeyId)
   else sessionStorage.removeItem(PLATFORM_KEY_ID_SESSION_KEY)
 }
@@ -36,10 +34,10 @@ function formatPlatformKeyLabel(key: PlatformKey): string {
 }
 
 async function resolveBearer(
-  devApiClient: AppApis['devApi'],
+  devApiClient: AppApis['platformKeyApi'],
   platformKeyId: string,
 ): Promise<string> {
-  const { bearer } = await devApiClient.getPlatformKeyBearer(platformKeyId)
+  const { bearer } = await devApiClient.simulateBearer(platformKeyId)
   if (!bearer) {
     throw new Error('未返回 sk-，请检查 Key 是否已同步到 NewAPI')
   }
@@ -94,7 +92,7 @@ export function useSimulateConsumeDialog(
     injectedApis,
     queryKey: [...queryKeys.keys.all, 'simulate-bearer', selectedKeyId] as const,
     queryFn: async (a) => {
-      const sk = await resolveBearer(a.devApi, selectedKeyId)
+      const sk = await resolveBearer(a.platformKeyApi, selectedKeyId)
       writeStoredPlatformKeyId(selectedKeyId)
       return sk
     },
@@ -143,7 +141,7 @@ export function useSimulateConsumeDialog(
     let sk = bearer.trim()
     if (!sk) {
       try {
-        sk = await resolveBearer(apis.devApi, selectedKeyId)
+        sk = await resolveBearer(apis.platformKeyApi, selectedKeyId)
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : '无法获取 Platform Key')
         return
@@ -172,7 +170,7 @@ export function useSimulateConsumeDialog(
     } finally {
       setSubmitting(false)
     }
-  }, [apis.devApi, bearer, inputTokens, onSuccess, outputTokens, queryClient, selectedKeyId])
+  }, [apis.platformKeyApi, bearer, inputTokens, onSuccess, outputTokens, queryClient, selectedKeyId])
 
   return {
     platformKeys,

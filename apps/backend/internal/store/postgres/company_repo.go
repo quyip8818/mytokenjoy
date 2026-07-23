@@ -81,6 +81,11 @@ func (r *companyRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status str
 	return err
 }
 
+func (r *companyRepo) UpdateType(ctx context.Context, id uuid.UUID, companyType string) error {
+	_, err := r.db.Exec(ctx, `UPDATE companies SET type = $2, updated_at = NOW() WHERE id = $1`, id, companyType)
+	return err
+}
+
 func (r *companyRepo) UpdateNewAPIWalletCompanyID(ctx context.Context, id uuid.UUID, walletCompanyID int64) error {
 	if walletCompanyID <= 0 {
 		return fmt.Errorf("newapi wallet company id must be positive")

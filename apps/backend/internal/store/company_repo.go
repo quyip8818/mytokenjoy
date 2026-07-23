@@ -48,6 +48,7 @@ type CompanyRepository interface {
 	GetByIDs(ctx context.Context, ids []uuid.UUID) ([]Company, error)
 	Create(ctx context.Context, company Company) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
+	UpdateType(ctx context.Context, id uuid.UUID, companyType string) error
 	UpdateNewAPIWalletCompanyID(ctx context.Context, id uuid.UUID, walletCompanyID int64) error
 	UpdateRootDeptID(ctx context.Context, id uuid.UUID, rootDeptID uuid.UUID) error
 	GetAuthzRevision(ctx context.Context, id uuid.UUID) (int64, error)

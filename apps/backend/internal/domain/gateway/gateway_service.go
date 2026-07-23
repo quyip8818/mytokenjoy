@@ -46,15 +46,14 @@ type GatewayService interface {
 }
 
 type gatewayService struct {
-	precheck      Prechecker
-	proxy         *httputil.ReverseProxy
-	allowDevModel bool
-	rateLimiter   ratelimit.Limiter
-	rlRate        int
-	rlBurst       int
-	rlDryRun      bool
-	logger        *slog.Logger
-	metrics       Recorder
+	precheck    Prechecker
+	proxy       *httputil.ReverseProxy
+	rateLimiter ratelimit.Limiter
+	rlRate      int
+	rlBurst     int
+	rlDryRun    bool
+	logger      *slog.Logger
+	metrics     Recorder
 }
 
 func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit.Limiter, logger *slog.Logger, metrics Recorder) (GatewayService, error) {
@@ -87,15 +86,14 @@ func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit
 		metrics = NoopRecorder()
 	}
 	return &gatewayService{
-		precheck:      precheck,
-		proxy:         proxy,
-		allowDevModel: cfg.AllowsDevHTTPRoutes(),
-		rateLimiter:   limiter,
-		rlRate:        cfg.RateLimitV1Rate,
-		rlBurst:       cfg.RateLimitV1Burst,
-		rlDryRun:      cfg.RateLimitDryRun,
-		logger:        logger,
-		metrics:       metrics,
+		precheck:    precheck,
+		proxy:       proxy,
+		rateLimiter: limiter,
+		rlRate:      cfg.RateLimitV1Rate,
+		rlBurst:     cfg.RateLimitV1Burst,
+		rlDryRun:    cfg.RateLimitDryRun,
+		logger:      logger,
+		metrics:     metrics,
 	}, nil
 }
 
@@ -127,20 +125,29 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "read request body", http.StatusForbidden)
 		return
 	}
-	if !g.allowDevModel && modelcatalog.IsTestOnlyCallType(model) {
-		g.metrics.RecordRejected()
-		logGatewayRejection(r.URL.Path, model, "test-only model outside local environment")
-		http.Error(w, "request rejected", http.StatusForbidden)
-		return
-	}
-	opts := PrecheckForRequest(r.URL.Path, model, g.allowDevModel)
+	opts := PrecheckForRequest(r.URL.Path, model)
 	start := time.Now()
-	_, err = g.precheck.Run(r.Context(), keyHash, model, opts)
+	result, err := g.precheck.Run(r.Context(), keyHash, model, opts)
 	g.metrics.RecordPrecheckDuration(time.Since(start))
 	if err != nil {
 		g.metrics.RecordRejected()
 		logGatewayRejection(r.URL.Path, model, err.Error())
 		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	// Post-precheck company type guards:
+	// 1. test-model only available for demo/trial/testing accounts
+	if modelcatalog.IsTestOnlyCallType(model) && !isTestModelAllowed(result.CompanyType) {
+		g.metrics.RecordRejected()
+		logGatewayRejection(r.URL.Path, model, "test-model not available for this account type")
+		http.Error(w, "test-model not available for this account type", http.StatusForbidden)
+		return
+	}
+	// 2. trial/demo accounts can only use test-model
+	if isTrialOrDemo(result.CompanyType) && !modelcatalog.IsTestOnlyCallType(model) {
+		g.metrics.RecordRejected()
+		logGatewayRejection(r.URL.Path, model, "trial/demo accounts can only use test-model")
+		http.Error(w, "trial/demo accounts can only use test-model", http.StatusForbidden)
 		return
 	}
 	g.metrics.RecordAllowed()
@@ -265,6 +272,19 @@ var allowedGatewayPaths = map[string]struct{}{
 func isAllowedGatewayPath(path string) bool {
 	_, ok := allowedGatewayPaths[path]
 	return ok
+}
+
+func isTestModelAllowed(companyType string) bool {
+	switch companyType {
+	case store.CompanyTypeDemo, store.CompanyTypeTrial, store.CompanyTypeTesting:
+		return true
+	default:
+		return false
+	}
+}
+
+func isTrialOrDemo(companyType string) bool {
+	return companyType == store.CompanyTypeTrial || companyType == store.CompanyTypeDemo
 }
 
 var _ GatewayService = (*gatewayService)(nil)

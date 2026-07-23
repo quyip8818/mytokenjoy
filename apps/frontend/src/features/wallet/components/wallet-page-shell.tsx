@@ -1,6 +1,7 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import type { useWalletPage } from '@/features/wallet'
+import { useSession } from '@/features/session'
 import { walletBillingCurrency } from '../lib/selectors'
 import { RechargePanel } from './recharge-panel'
 import { RechargeRecordsTable } from './recharge-records-table'
@@ -17,6 +18,9 @@ export function WalletPageShell({
   rechargePending,
   handleRecharge,
 }: WalletPageShellProps) {
+  const { companyType } = useSession()
+  const canRecharge = companyType !== 'trial' && companyType !== 'demo'
+
   return (
     <PageShell
       description={
@@ -34,11 +38,19 @@ export function WalletPageShell({
         contentClassName="space-y-6 p-0 pt-0"
         className="border-0 shadow-none"
       >
-        <RechargePanel
-          currency={walletBillingCurrency(wallet)}
-          rechargePending={rechargePending}
-          onRecharge={handleRecharge}
-        />
+        {canRecharge ? (
+          <RechargePanel
+            currency={walletBillingCurrency(wallet)}
+            rechargePending={rechargePending}
+            onRecharge={handleRecharge}
+          />
+        ) : (
+          <div className="rounded-lg border border-border bg-card p-5">
+            <p className="text-sm text-muted-foreground">
+              试用账户不支持充值，升级为正式版后可使用充值功能。
+            </p>
+          </div>
+        )}
         <RechargeRecordsTable records={topUpRecords} />
       </DataSection>
     </PageShell>

@@ -56,7 +56,7 @@ func NewRegistry(deps httpdeps.Deps) Registry {
 		billing:        billing.NewHandler(p, deps.BillingSvc),
 		org:            orghandler.NewHandler(p, deps.OrgSvc, deps.CompanySvc),
 		budget:         budgethandler.NewHandler(p, deps.BudgetSvc),
-		keys:           keyshandler.NewHandler(p, deps.KeysSvc),
+		keys:           keyshandler.NewHandler(p, deps.KeysSvc, deps.DevBearerResolver),
 		models:         modelshandler.NewHandler(p, deps.ModelsSvc),
 		dashboard:      dashboardhandler.NewHandler(p, deps.DashboardSvc),
 		audit:          audithandler.NewHandler(p, deps.AuditSvc),

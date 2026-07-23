@@ -9,7 +9,7 @@ verify_load_backend_dotenv
 
 MODEL="${DEV_MOCK_MODEL:-test-model}"
 BASE_URL="$(verify_http_origin "${DEV_MOCK_BASE_URL:-http://host.docker.internal:8765}")"
-GROUP="${DEV_MOCK_CHANNEL_GROUP:-dept-00000000-0000-7000-8000-000000000d03}"
+GROUP="${DEV_MOCK_CHANNEL_GROUP:-platform_shared}"
 NAME="${DEV_MOCK_CHANNEL_NAME:-test-model}"
 CHANNEL_KEY="${DEV_MOCK_CHANNEL_KEY:-sk-local-test}"
 

@@ -27,12 +27,12 @@ describe('useSimulateConsumeDialog', () => {
   })
 
   it('submits gateway call then invokes onSuccess', async () => {
-    const getPlatformKeyBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
+    const simulateBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
     const onSuccess = vi.fn()
     const apis = createMockApis({
-      devApi: { getPlatformKeyBearer },
       platformKeyApi: {
         list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
+        simulateBearer,
       },
     })
     vi.mocked(simulateConsume.postChatCompletions).mockResolvedValue()
@@ -61,12 +61,12 @@ describe('useSimulateConsumeDialog', () => {
   })
 
   it('rejects submit when input tokens is zero', async () => {
-    const getPlatformKeyBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
+    const simulateBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
     const onSuccess = vi.fn()
     const apis = createMockApis({
-      devApi: { getPlatformKeyBearer },
       platformKeyApi: {
         list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
+        simulateBearer,
       },
     })
 

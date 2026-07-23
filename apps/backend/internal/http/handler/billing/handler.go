@@ -54,7 +54,7 @@ type rechargeBody struct {
 }
 
 func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
-	if isTrialCompany(r) {
+	if isTrialOrDemoCompany(r) {
 		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
 		return
 	}
@@ -72,7 +72,7 @@ func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
-	if isTrialCompany(r) {
+	if isTrialOrDemoCompany(r) {
 		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
 		return
 	}
@@ -85,8 +85,8 @@ func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
-// isTrialCompany checks if the current request belongs to a trial tenant.
-func isTrialCompany(r *http.Request) bool {
+// isTrialOrDemoCompany checks if the current request belongs to a trial or demo tenant.
+func isTrialOrDemoCompany(r *http.Request) bool {
 	info, ok := ctxcompany.From(r.Context())
-	return ok && info.Type == store.CompanyTypeTrial
+	return ok && (info.Type == store.CompanyTypeTrial || info.Type == store.CompanyTypeDemo)
 }

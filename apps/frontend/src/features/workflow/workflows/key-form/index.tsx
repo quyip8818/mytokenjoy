@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { Member, PlatformKeyScope } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
@@ -36,10 +37,19 @@ export function KeyFormWorkflow({
 }: KeyFormWorkflowProps) {
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
-  const { memberId } = useSession()
+  const { memberId, companyType } = useSession()
   const { displayToQuota, billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
-  const { resolveAllowedModelIds } = useMemberWhitelist()
+  const { resolveAllowedModelIds: resolveAllModels } = useMemberWhitelist()
+  const isTrialOrDemo = companyType === 'trial' || companyType === 'demo'
+
+  // Trial/demo: filter model picker to only show test-model type models.
+  const resolveAllowedModelIds = useCallback(async () => {
+    if (!isTrialOrDemo) return resolveAllModels()
+    const allModels = await apis.modelApi.list()
+    return allModels.filter((m) => m.type.startsWith('test-')).map((m) => m.modelId)
+  }, [isTrialOrDemo, resolveAllModels, apis.modelApi])
+
   const isCreate = entry.id === 'key-create'
   const key =
     entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined

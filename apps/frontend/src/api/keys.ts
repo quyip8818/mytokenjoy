@@ -45,4 +45,6 @@ export const platformKeyApi = {
   rotate: (id: string) => request<PlatformKey>(`/keys/platform/${id}/rotate`, { method: 'POST' }),
   revoke: (id: string) => request<void>(`/keys/platform/${id}/revoke`, { method: 'PUT' }),
   delete: (id: string) => request<void>(`/keys/platform/${id}`, { method: 'DELETE' }),
+  simulateBearer: (id: string) =>
+    request<{ bearer: string }>(`/keys/platform/${id}/simulate-bearer`),
 }

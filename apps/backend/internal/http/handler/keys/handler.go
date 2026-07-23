@@ -5,24 +5,30 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Handler struct {
 	shared.ProtectedHandlerBase
-	service domainkeys.Service
+	service        domainkeys.Service
+	bearerResolver devapi.BearerResolver
 }
 
-func NewHandler(p httpdeps.Protected, service domainkeys.Service) *Handler {
+func NewHandler(p httpdeps.Protected, service domainkeys.Service, bearerResolver devapi.BearerResolver) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 		service:              service,
+		bearerResolver:       bearerResolver,
 	}
 }
 
@@ -46,6 +52,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	platformWrite.Post("/platform/{id}/rotate", h.PlatformRotate)
 	platformWrite.Put("/platform/{id}/revoke", h.PlatformRevoke)
 	platformWrite.Delete("/platform/{id}", h.PlatformDelete)
+
+	// simulate-bearer: available for demo/trial/testing accounts only.
+	simulateRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysAdmin)
+	simulateRead.Get("/platform/{id}/simulate-bearer", h.SimulateBearer)
 }
 
 func (h *Handler) ProviderList(w http.ResponseWriter, r *http.Request) {
@@ -196,4 +206,42 @@ func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.service.DeletePlatformKey(r.Context(), id)
 	httputil.WriteVoid(w, err)
+}
+
+func (h *Handler) SimulateBearer(w http.ResponseWriter, r *http.Request) {
+	info, ok := ctxcompany.From(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, "no company context")
+		return
+	}
+	if !isSimulateAllowed(info.Type) {
+		httputil.WriteError(w, domain.Forbidden("simulate-bearer not available for this account type"))
+		return
+	}
+	if h.bearerResolver == nil {
+		httputil.WriteStatus(w, http.StatusServiceUnavailable, "bearer resolver not configured")
+		return
+	}
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	bearer, err := h.bearerResolver.ResolvePlatformKeyBearer(r.Context(), id)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, struct {
+		Bearer string `json:"bearer"`
+	}{Bearer: bearer}, nil)
+}
+
+func isSimulateAllowed(companyType string) bool {
+	switch companyType {
+	case store.CompanyTypeDemo, store.CompanyTypeTrial, store.CompanyTypeTesting:
+		return true
+	default:
+		return false
+	}
 }
