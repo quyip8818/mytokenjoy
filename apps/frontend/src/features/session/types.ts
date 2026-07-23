@@ -5,6 +5,7 @@ export type { CompanyType } from '@/api/types/common'
 
 export interface AppSession {
   companyId: string
+  companyName: string
   companyType: CompanyType
   authzRevision: number
   memberId: string

@@ -57,12 +57,13 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 		return types.SessionContext{}, err
 	}
 
-	// Read company type from request context (injected by CompanyResolve middleware).
-	companyType := companyTypeFromContext(ctx, companyID, s.store)
+	// Read company type and name from request context (injected by CompanyResolve middleware).
+	companyType, companyName := companyInfoFromContext(ctx, companyID, s.store)
 
 	if member, userName, perms, readOnly, ok := s.cache.Get(companyID, memberID, revision); ok {
 		return types.SessionContext{
 			CompanyID:       companyID,
+			CompanyName:     companyName,
 			CompanyType:     companyType,
 			AuthzRevision:   revision,
 			User:            types.SessionUser{Name: userName},
@@ -86,6 +87,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 	s.cache.Put(companyID, memberID, revision, authz.Member, authz.UserName, permissions, readOnly)
 	return types.SessionContext{
 		CompanyID:       companyID,
+		CompanyName:     companyName,
 		CompanyType:     companyType,
 		AuthzRevision:   revision,
 		User:            types.SessionUser{Name: authz.UserName},
@@ -97,18 +99,20 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 	}, nil
 }
 
-// companyTypeFromContext tries to get company type from the request context first
+// companyInfoFromContext tries to get company type and name from the request context first
 // (already resolved by CompanyResolve middleware), falling back to a DB lookup only if needed.
-func companyTypeFromContext(ctx context.Context, companyID uuid.UUID, st Store) string {
-	if info, ok := ctxcompany.From(ctx); ok && info.CompanyID == companyID && info.Type != "" {
-		return info.Type
+func companyInfoFromContext(ctx context.Context, companyID uuid.UUID, st Store) (companyType, companyName string) {
+	if info, ok := ctxcompany.From(ctx); ok && info.CompanyID == companyID {
+		if info.Type != "" {
+			return info.Type, info.Name
+		}
 	}
 	// Fallback: context not available (e.g. tests).
 	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil || co == nil {
-		return ""
+		return "", ""
 	}
-	return co.Type
+	return co.Type, co.Name
 }
 
 // revisionCache caches authz_revision per company with a short TTL.

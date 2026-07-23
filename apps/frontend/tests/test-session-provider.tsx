@@ -21,6 +21,7 @@ export function TestSessionProvider({
   const session = useMemo<AppSession>(
     () => ({
       companyId: '00000000-0000-7000-8000-000000000002',
+      companyName: 'Test Company',
       companyType,
       authzRevision: 0,
       memberId: mockMember.id,

@@ -19,6 +19,7 @@ export interface SessionUser {
 
 export interface SessionContext {
   companyId: string
+  companyName: string
   companyType: CompanyType
   authzRevision: number
   user: SessionUser

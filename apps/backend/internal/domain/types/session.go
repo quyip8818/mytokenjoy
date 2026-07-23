@@ -42,6 +42,7 @@ type SessionUser struct {
 
 type SessionContext struct {
 	CompanyID       uuid.UUID   `json:"companyId"`
+	CompanyName     string      `json:"companyName"`
 	CompanyType     string      `json:"companyType"`
 	AuthzRevision   int64       `json:"authzRevision"`
 	User            SessionUser `json:"user"`

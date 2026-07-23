@@ -7,16 +7,16 @@ import { NotificationInbox } from './notification-inbox'
 
 /** Company badge — read-only display of current company context. */
 function HeaderCompanyChip() {
-  const { member, userName } = useSession()
-  const companyName = member?.alias || userName || '管理员'
-  const initial = companyName.charAt(0) || '管'
+  const { companyName } = useSession()
+  const displayName = companyName || '管理员'
+  const initial = displayName.charAt(0) || '管'
 
   return (
     <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
       <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[10px] font-medium text-primary-foreground">
         {initial}
       </div>
-      <span className="text-sm text-foreground">{companyName}</span>
+      <span className="text-sm text-foreground">{displayName}</span>
     </div>
   )
 }

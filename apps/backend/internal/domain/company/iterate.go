@@ -31,6 +31,7 @@ func ForEachActiveCompany(ctx context.Context, companies store.CompanyRepository
 func ContextFromStore(co store.Company) Context {
 	info := Context{
 		CompanyID: co.ID,
+		Name:      co.Name,
 		Type:      co.Type,
 		Status:    co.Status,
 	}
